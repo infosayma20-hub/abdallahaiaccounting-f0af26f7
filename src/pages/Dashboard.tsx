@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import EnablePasskey from "@/components/EnablePasskey";
+import CompleteProfileDialog from "@/components/CompleteProfileDialog";
 
 const summaryCards = [
   {
@@ -59,32 +60,20 @@ const Dashboard = () => {
   const [sending, setSending] = useState(false);
   const [webhookUrl, setWebhookUrl] = useState(() => localStorage.getItem(WEBHOOK_STORAGE_KEY) || "");
   const [showWebhookInput, setShowWebhookInput] = useState(false);
+  const [showProfileDialog, setShowProfileDialog] = useState(false);
 
-  // Ensure user exists in Airtable Clients table (for Google/OAuth signups)
+  // Check if OAuth user needs to complete profile
   useEffect(() => {
-    const ensureAirtableClient = async () => {
-      if (!user) return;
-      const alreadySynced = localStorage.getItem(`airtable_synced_${user.id}`);
-      if (alreadySynced) return;
-
-      try {
-        await supabase.functions.invoke("airtable-create-client", {
-          body: {
-            clientName: user.id,
-            contactEmail: user.email || "",
-            phoneNumber: user.user_metadata?.phone || "",
-            companyName: user.user_metadata?.company_name || "",
-            address: user.user_metadata?.address || "",
-            country: user.user_metadata?.country || "",
-            workField: user.user_metadata?.work_field || "",
-          },
-        });
-        localStorage.setItem(`airtable_synced_${user.id}`, "true");
-      } catch (err) {
-        console.error("Failed to sync user to Airtable:", err);
+    if (!user) return;
+    const profileCompleted = localStorage.getItem(`profile_completed_${user.id}`);
+    const alreadySynced = localStorage.getItem(`airtable_synced_${user.id}`);
+    // Show dialog for OAuth users who haven't completed profile
+    if (!profileCompleted && !alreadySynced) {
+      const isOAuth = user.app_metadata?.provider !== "email";
+      if (isOAuth) {
+        setShowProfileDialog(true);
       }
-    };
-    ensureAirtableClient();
+    }
   }, [user]);
 
   const handleSend = async () => {
@@ -120,6 +109,13 @@ const Dashboard = () => {
 
   return (
     <div className="px-4 pt-6 space-y-6">
+      {user && (
+        <CompleteProfileDialog
+          open={showProfileDialog}
+          onClose={() => setShowProfileDialog(false)}
+          user={user}
+        />
+      )}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
