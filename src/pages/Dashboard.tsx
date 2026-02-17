@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { FileText, TrendingUp, TrendingDown, Wallet, Mic, ChevronLeft } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -46,6 +47,7 @@ const summaryCards = [
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const [inputValue, setInputValue] = useState("");
 
   return (
     <div className="px-4 pt-6 space-y-6">
@@ -112,6 +114,7 @@ const Dashboard = () => {
         {["قبضت", "دفعت", "اشتريت", "صرفت"].map((action) => (
           <button
             key={action}
+            onClick={() => setInputValue((prev) => (prev ? prev + " " : "") + action)}
             className="px-4 py-2 rounded-full bg-secondary text-sm font-medium text-foreground hover:bg-accent transition-colors active:scale-95"
           >
             {action}
@@ -133,6 +136,8 @@ const Dashboard = () => {
               </button>
               <input
                 type="text"
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
                 placeholder="اكتب عملية… مثال: دفعت 500 شيكل كهرباء"
                 className="flex-1 h-10 bg-secondary rounded-lg px-3 text-sm text-foreground placeholder:text-muted-foreground border-0 outline-none focus:ring-2 focus:ring-primary/20"
                 dir="rtl"
