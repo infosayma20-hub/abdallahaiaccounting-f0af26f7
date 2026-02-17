@@ -218,26 +218,26 @@ const AuthPage = () => {
                     dir="rtl"
                   >
                     <option value="">اختر الدولة</option>
-                    <option value="PS">فلسطين 🇵🇸</option>
-                    <option value="IL">إسرائيل 🇮🇱</option>
+                    <option value="PS">🇵🇸 فلسطين</option>
+                    <option value="JO">🇯🇴 الأردن</option>
                     <option value="JO">الأردن 🇯🇴</option>
-                    <option value="SA">السعودية 🇸🇦</option>
-                    <option value="AE">الإمارات 🇦🇪</option>
-                    <option value="EG">مصر 🇪🇬</option>
-                    <option value="LB">لبنان 🇱🇧</option>
-                    <option value="SY">سوريا 🇸🇾</option>
-                    <option value="IQ">العراق 🇮🇶</option>
-                    <option value="KW">الكويت 🇰🇼</option>
-                    <option value="BH">البحرين 🇧🇭</option>
-                    <option value="QA">قطر 🇶🇦</option>
-                    <option value="OM">عمان 🇴🇲</option>
-                    <option value="YE">اليمن 🇾🇪</option>
-                    <option value="MA">المغرب 🇲🇦</option>
-                    <option value="TN">تونس 🇹🇳</option>
-                    <option value="DZ">الجزائر 🇩🇿</option>
-                    <option value="LY">ليبيا 🇱🇾</option>
-                    <option value="SD">السودان 🇸🇩</option>
-                    <option value="TR">تركيا 🇹🇷</option>
+                    <option value="SA">🇸🇦 السعودية</option>
+                    <option value="AE">🇦🇪 الإمارات</option>
+                    <option value="EG">🇪🇬 مصر</option>
+                    <option value="LB">🇱🇧 لبنان</option>
+                    <option value="SY">🇸🇾 سوريا</option>
+                    <option value="IQ">🇮🇶 العراق</option>
+                    <option value="KW">🇰🇼 الكويت</option>
+                    <option value="BH">🇧🇭 البحرين</option>
+                    <option value="QA">🇶🇦 قطر</option>
+                    <option value="OM">🇴🇲 عمان</option>
+                    <option value="YE">🇾🇪 اليمن</option>
+                    <option value="MA">🇲🇦 المغرب</option>
+                    <option value="TN">🇹🇳 تونس</option>
+                    <option value="DZ">🇩🇿 الجزائر</option>
+                    <option value="LY">🇱🇾 ليبيا</option>
+                    <option value="SD">🇸🇩 السودان</option>
+                    <option value="TR">🇹🇷 تركيا</option>
                   </select>
                   <Input placeholder="مجال العمل" value={workField} onChange={(e) => setWorkField(e.target.value)} dir="rtl" />
                   <label className="flex items-start gap-2 text-xs text-muted-foreground cursor-pointer" dir="rtl">
