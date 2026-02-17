@@ -1,4 +1,4 @@
-import { FileText, TrendingUp, TrendingDown, Wallet, CheckCircle2, Circle, ChevronLeft } from "lucide-react";
+import { FileText, TrendingUp, TrendingDown, Wallet, Mic, ChevronLeft } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { useNavigate } from "react-router-dom";
@@ -42,12 +42,6 @@ const summaryCards = [
     trend: "-5%",
     trendUp: false,
   },
-];
-
-const tasks = [
-  { label: "أنشئ أول فاتورة", done: false },
-  { label: "أضف عملية محاسبية", done: false },
-  { label: "راجع الأرباح والخسائر", done: false },
 ];
 
 const Dashboard = () => {
@@ -113,26 +107,27 @@ const Dashboard = () => {
         </Card>
       </div>
 
-      {/* قائمة المهام */}
+      {/* حقل الإدخال السريع */}
       <div>
         <h2 className="text-base font-semibold text-foreground mb-3">ابدأ هنا</h2>
-        <div className="space-y-2">
-          {tasks.map((task) => (
-            <Card key={task.label} className="border-0 shadow-sm">
-              <CardContent className="p-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  {task.done ? (
-                    <CheckCircle2 className="h-5 w-5 text-primary" />
-                  ) : (
-                    <Circle className="h-5 w-5 text-muted-foreground" />
-                  )}
-                  <span className="text-sm font-medium text-foreground">{task.label}</span>
-                </div>
-                <ChevronLeft className="h-4 w-4 text-muted-foreground" />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <Card className="border-0 shadow-sm">
+          <CardContent className="p-3">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => navigate("/voice")}
+                className="flex-shrink-0 w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center hover:bg-primary/20 transition-colors active:scale-95"
+              >
+                <Mic className="h-5 w-5 text-primary" />
+              </button>
+              <input
+                type="text"
+                placeholder="اكتب عملية… مثال: دفعت 500 شيكل كهرباء"
+                className="flex-1 h-10 bg-secondary rounded-lg px-3 text-sm text-foreground placeholder:text-muted-foreground border-0 outline-none focus:ring-2 focus:ring-primary/20"
+                dir="rtl"
+              />
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* P&L Quick Link */}
