@@ -107,6 +107,18 @@ const Dashboard = () => {
         </Card>
       </div>
 
+      {/* اختصارات الأوامر المحاسبية */}
+      <div className="flex flex-wrap gap-2 justify-end">
+        {["قبضت", "دفعت", "اشتريت", "صرفت"].map((action) => (
+          <button
+            key={action}
+            className="px-4 py-2 rounded-full bg-secondary text-sm font-medium text-foreground hover:bg-accent transition-colors active:scale-95"
+          >
+            {action}
+          </button>
+        ))}
+      </div>
+
       {/* حقل الإدخال السريع */}
       <div>
         <h2 className="text-base font-semibold text-foreground mb-3">ابدأ هنا</h2>
