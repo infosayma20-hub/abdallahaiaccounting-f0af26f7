@@ -1,8 +1,10 @@
 import { useState } from "react";
-import { FileText, TrendingUp, TrendingDown, Wallet, Mic, ChevronLeft } from "lucide-react";
+import { FileText, TrendingUp, TrendingDown, Wallet, Mic, ChevronLeft, Send, Loader2, BookOpen, Receipt } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 const summaryCards = [
   {
@@ -45,9 +47,46 @@ const summaryCards = [
   },
 ];
 
+const WEBHOOK_STORAGE_KEY = "makecom_webhook_url";
+
 const Dashboard = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [inputValue, setInputValue] = useState("");
+  const [sending, setSending] = useState(false);
+  const [webhookUrl, setWebhookUrl] = useState(() => localStorage.getItem(WEBHOOK_STORAGE_KEY) || "");
+  const [showWebhookInput, setShowWebhookInput] = useState(false);
+
+  const handleSend = async () => {
+    if (!inputValue.trim()) return;
+    
+    if (!webhookUrl) {
+      setShowWebhookInput(true);
+      toast({ title: "أدخل رابط Webhook أولاً", description: "اضغط على أيقونة الإعدادات بجانب حقل الإدخال" });
+      return;
+    }
+
+    setSending(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-transaction", {
+        body: { text: inputValue, webhookUrl },
+      });
+      if (error) throw error;
+      
+      toast({ title: "تم الإرسال بنجاح ✅", description: "جاري معالجة العملية بالذكاء الاصطناعي" });
+      setInputValue("");
+    } catch (err: any) {
+      toast({ title: "خطأ في الإرسال", description: err.message, variant: "destructive" });
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const saveWebhookUrl = () => {
+    localStorage.setItem(WEBHOOK_STORAGE_KEY, webhookUrl);
+    setShowWebhookInput(false);
+    toast({ title: "تم حفظ رابط Webhook ✅" });
+  };
 
   return (
     <div className="px-4 pt-6 space-y-6">
@@ -95,21 +134,59 @@ const Dashboard = () => {
         ))}
       </div>
 
-      {/* التغذية التجارية */}
-      <div>
-        <h2 className="text-base font-semibold text-foreground mb-3">النشاط الأخير</h2>
-        <Card className="border-0 shadow-sm">
-          <CardContent className="p-6 flex flex-col items-center justify-center text-center">
-            <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-3">
-              <FileText className="h-7 w-7 text-muted-foreground" />
+      {/* Quick Links */}
+      <div className="grid grid-cols-2 gap-3">
+        <Card
+          className="border-0 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+          onClick={() => navigate("/transactions")}
+        >
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-primary/10">
+              <Receipt className="h-5 w-5 text-primary" />
             </div>
-            <p className="text-sm font-medium text-muted-foreground">لا يوجد نشاط جديد حتى الآن</p>
-            <p className="text-xs text-muted-foreground mt-1">ستظهر هنا أحدث العمليات والفواتير</p>
+            <div>
+              <p className="text-sm font-semibold text-foreground">المعاملات</p>
+              <p className="text-[10px] text-muted-foreground">عرض من Airtable</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card
+          className="border-0 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+          onClick={() => navigate("/accounts")}
+        >
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-accent">
+              <BookOpen className="h-5 w-5 text-accent-foreground" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-foreground">الحسابات</p>
+              <p className="text-[10px] text-muted-foreground">شجرة الحسابات</p>
+            </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* اختصارات الأوامر المحاسبية */}
+      {/* Webhook URL Input */}
+      {showWebhookInput && (
+        <Card className="border-0 shadow-sm">
+          <CardContent className="p-3 space-y-2">
+            <p className="text-xs font-medium text-foreground">رابط Make.com Webhook</p>
+            <div className="flex gap-2">
+              <input
+                type="url"
+                value={webhookUrl}
+                onChange={(e) => setWebhookUrl(e.target.value)}
+                placeholder="https://hook.eu2.make.com/..."
+                className="flex-1 h-9 bg-secondary rounded-lg px-3 text-xs text-foreground placeholder:text-muted-foreground border-0 outline-none focus:ring-2 focus:ring-primary/20"
+                dir="ltr"
+              />
+              <button onClick={saveWebhookUrl} className="px-3 h-9 rounded-lg bg-primary text-primary-foreground text-xs font-medium">حفظ</button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Shortcut Buttons */}
       <div className="flex flex-wrap gap-2 justify-end">
         {["قبضت", "دفعت", "اشتريت", "صرفت"].map((action) => (
           <button
@@ -122,9 +199,17 @@ const Dashboard = () => {
         ))}
       </div>
 
-      {/* حقل الإدخال السريع */}
+      {/* Input */}
       <div>
-        <h2 className="text-base font-semibold text-foreground mb-3">ابدأ هنا</h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-base font-semibold text-foreground">ابدأ هنا</h2>
+          <button
+            onClick={() => setShowWebhookInput(!showWebhookInput)}
+            className="text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+          >
+            ⚙️ إعدادات Webhook
+          </button>
+        </div>
         <Card className="border-0 shadow-sm">
           <CardContent className="p-3">
             <div className="flex items-center gap-2">
@@ -138,10 +223,22 @@ const Dashboard = () => {
                 type="text"
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleSend()}
                 placeholder="اكتب عملية… مثال: دفعت 500 شيكل كهرباء"
                 className="flex-1 h-10 bg-secondary rounded-lg px-3 text-sm text-foreground placeholder:text-muted-foreground border-0 outline-none focus:ring-2 focus:ring-primary/20"
                 dir="rtl"
               />
+              <button
+                onClick={handleSend}
+                disabled={sending || !inputValue.trim()}
+                className="flex-shrink-0 w-10 h-10 rounded-full bg-primary flex items-center justify-center hover:opacity-90 transition-all active:scale-95 disabled:opacity-50"
+              >
+                {sending ? (
+                  <Loader2 className="h-4 w-4 text-primary-foreground animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4 text-primary-foreground" />
+                )}
+              </button>
             </div>
           </CardContent>
         </Card>

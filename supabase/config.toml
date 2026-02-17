@@ -1,1 +1,10 @@
 project_id = "omwuyscprzexgmxgittp"
+
+[functions.airtable-transactions]
+verify_jwt = false
+
+[functions.airtable-accounts]
+verify_jwt = false
+
+[functions.send-transaction]
+verify_jwt = false
