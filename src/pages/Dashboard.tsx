@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { FileText, TrendingUp, TrendingDown, Wallet, Mic, ChevronLeft, Send, Loader2, BookOpen, Receipt } from "lucide-react";
+import { FileText, TrendingUp, TrendingDown, Wallet, Mic, ChevronLeft, Send, Loader2, BookOpen, Receipt, LogOut } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 const summaryCards = [
   {
@@ -52,6 +53,7 @@ const WEBHOOK_STORAGE_KEY = "makecom_webhook_url";
 const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user, signOut } = useAuth();
   const [inputValue, setInputValue] = useState("");
   const [sending, setSending] = useState(false);
   const [webhookUrl, setWebhookUrl] = useState(() => localStorage.getItem(WEBHOOK_STORAGE_KEY) || "");
@@ -94,11 +96,15 @@ const Dashboard = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-foreground">عبدالله AI للمحاسبة</h1>
-          <p className="text-sm text-muted-foreground">شركة عبدالله التجارية</p>
+          <p className="text-sm text-muted-foreground">{user?.email}</p>
         </div>
-        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-          <span className="text-primary font-bold text-sm">ع</span>
-        </div>
+        <button
+          onClick={signOut}
+          className="w-10 h-10 rounded-full bg-destructive/10 flex items-center justify-center hover:bg-destructive/20 transition-colors"
+          title="تسجيل الخروج"
+        >
+          <LogOut className="h-4 w-4 text-destructive" />
+        </button>
       </div>
 
       {/* Summary Cards */}
