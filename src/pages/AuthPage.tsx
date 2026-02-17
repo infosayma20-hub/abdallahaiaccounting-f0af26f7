@@ -19,6 +19,10 @@ const AuthPage = () => {
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [companyName, setCompanyName] = useState("");
+  const [address, setAddress] = useState("");
+  const [country, setCountry] = useState("");
+  const [workField, setWorkField] = useState("");
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [loading, setLoading] = useState(false);
   const [supportsPasskeys, setSupportsPasskeys] = useState(false);
   const [savedEmail, setSavedEmail] = useState("");
@@ -46,7 +50,7 @@ const AuthPage = () => {
           password,
           options: {
             emailRedirectTo: window.location.origin,
-            data: { full_name: displayName, company_name: companyName },
+            data: { full_name: displayName, company_name: companyName, address, country, work_field: workField },
           },
         });
         if (error) throw error;
@@ -206,9 +210,53 @@ const AuthPage = () => {
                 <>
                   <Input placeholder="الاسم الكامل" value={displayName} onChange={(e) => setDisplayName(e.target.value)} dir="rtl" />
                   <Input placeholder="اسم الشركة" value={companyName} onChange={(e) => setCompanyName(e.target.value)} dir="rtl" />
+                  <Input placeholder="العنوان" value={address} onChange={(e) => setAddress(e.target.value)} dir="rtl" />
+                  <select
+                    value={country}
+                    onChange={(e) => setCountry(e.target.value)}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    dir="rtl"
+                  >
+                    <option value="">اختر الدولة</option>
+                    <option value="PS">فلسطين 🇵🇸</option>
+                    <option value="IL">إسرائيل 🇮🇱</option>
+                    <option value="JO">الأردن 🇯🇴</option>
+                    <option value="SA">السعودية 🇸🇦</option>
+                    <option value="AE">الإمارات 🇦🇪</option>
+                    <option value="EG">مصر 🇪🇬</option>
+                    <option value="LB">لبنان 🇱🇧</option>
+                    <option value="SY">سوريا 🇸🇾</option>
+                    <option value="IQ">العراق 🇮🇶</option>
+                    <option value="KW">الكويت 🇰🇼</option>
+                    <option value="BH">البحرين 🇧🇭</option>
+                    <option value="QA">قطر 🇶🇦</option>
+                    <option value="OM">عمان 🇴🇲</option>
+                    <option value="YE">اليمن 🇾🇪</option>
+                    <option value="MA">المغرب 🇲🇦</option>
+                    <option value="TN">تونس 🇹🇳</option>
+                    <option value="DZ">الجزائر 🇩🇿</option>
+                    <option value="LY">ليبيا 🇱🇾</option>
+                    <option value="SD">السودان 🇸🇩</option>
+                    <option value="TR">تركيا 🇹🇷</option>
+                  </select>
+                  <Input placeholder="مجال العمل" value={workField} onChange={(e) => setWorkField(e.target.value)} dir="rtl" />
+                  <label className="flex items-start gap-2 text-xs text-muted-foreground cursor-pointer" dir="rtl">
+                    <input
+                      type="checkbox"
+                      checked={agreedToTerms}
+                      onChange={(e) => setAgreedToTerms(e.target.checked)}
+                      className="mt-0.5 h-4 w-4 rounded border-input accent-primary"
+                    />
+                    <span>
+                      بإنشاء حساب، أنت توافق على{" "}
+                      <a href="/terms" className="text-primary hover:underline">الشروط والأحكام</a>
+                      {" "}و{" "}
+                      <a href="/privacy" className="text-primary hover:underline">سياسة الخصوصية</a>
+                    </span>
+                  </label>
                 </>
               )}
-              <Button type="submit" className="w-full gap-2" disabled={loading}>
+              <Button type="submit" className="w-full gap-2" disabled={loading || (mode === "signup" && !agreedToTerms)}>
                 {loading && <Loader2 className="h-4 w-4 animate-spin" />}
                 {mode === "login" ? "تسجيل الدخول" : mode === "signup" ? "إنشاء حساب" : "إرسال رابط الاستعادة"}
               </Button>
