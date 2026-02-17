@@ -11,7 +11,7 @@ serve(async (req) => {
   }
 
   try {
-    const { text, webhookUrl } = await req.json();
+    const { text, webhookUrl, userId } = await req.json();
     
     if (!text) throw new Error('Transaction text is required');
     if (!webhookUrl) throw new Error('Webhook URL is required');
@@ -21,6 +21,7 @@ serve(async (req) => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         text,
+        userId: userId || '',
         timestamp: new Date().toISOString(),
         source: 'web_app',
       }),
