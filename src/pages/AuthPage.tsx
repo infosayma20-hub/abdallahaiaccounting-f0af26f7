@@ -47,7 +47,7 @@ const AuthPage = () => {
         toast({ title: "تم الإرسال", description: "تحقق من بريدك الإلكتروني لإعادة تعيين كلمة المرور" });
         setMode("login");
       } else if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
+        const { data: signUpData, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -56,12 +56,13 @@ const AuthPage = () => {
           },
         });
         if (error) throw error;
+        const userId = signUpData?.user?.id || "";
 
         // Send user data to Airtable Clients table
         try {
           await supabase.functions.invoke("airtable-create-client", {
             body: {
-              clientName: displayName || email,
+              clientName: userId,
               contactEmail: email,
               phoneNumber: phone,
               companyName,
