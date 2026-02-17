@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FileText, TrendingUp, TrendingDown, Wallet, Mic, ChevronLeft, Send, Loader2, BookOpen, Receipt, LogOut, Users } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -59,6 +59,33 @@ const Dashboard = () => {
   const [sending, setSending] = useState(false);
   const [webhookUrl, setWebhookUrl] = useState(() => localStorage.getItem(WEBHOOK_STORAGE_KEY) || "");
   const [showWebhookInput, setShowWebhookInput] = useState(false);
+
+  // Ensure user exists in Airtable Clients table (for Google/OAuth signups)
+  useEffect(() => {
+    const ensureAirtableClient = async () => {
+      if (!user) return;
+      const alreadySynced = localStorage.getItem(`airtable_synced_${user.id}`);
+      if (alreadySynced) return;
+
+      try {
+        await supabase.functions.invoke("airtable-create-client", {
+          body: {
+            clientName: user.id,
+            contactEmail: user.email || "",
+            phoneNumber: user.user_metadata?.phone || "",
+            companyName: user.user_metadata?.company_name || "",
+            address: user.user_metadata?.address || "",
+            country: user.user_metadata?.country || "",
+            workField: user.user_metadata?.work_field || "",
+          },
+        });
+        localStorage.setItem(`airtable_synced_${user.id}`, "true");
+      } catch (err) {
+        console.error("Failed to sync user to Airtable:", err);
+      }
+    };
+    ensureAirtableClient();
+  }, [user]);
 
   const handleSend = async () => {
     if (!inputValue.trim()) return;
