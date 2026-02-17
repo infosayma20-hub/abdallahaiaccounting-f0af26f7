@@ -52,10 +52,28 @@ const AuthPage = () => {
           password,
           options: {
             emailRedirectTo: window.location.origin,
-            data: { full_name: displayName, company_name: companyName, address, country, work_field: workField, phone },
+            data: { full_name: displayName, company_name: companyName },
           },
         });
         if (error) throw error;
+
+        // Send user data to Airtable Clients table
+        try {
+          await supabase.functions.invoke("airtable-create-client", {
+            body: {
+              clientName: displayName || email,
+              contactEmail: email,
+              phoneNumber: phone,
+              companyName,
+              address,
+              country,
+              workField,
+            },
+          });
+        } catch (airtableErr) {
+          console.error("Failed to create Airtable client:", airtableErr);
+        }
+
         toast({ title: "تم إنشاء الحساب ✅", description: "تحقق من بريدك الإلكتروني لتأكيد الحساب" });
         setMode("login");
       } else {
