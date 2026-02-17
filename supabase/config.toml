@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.airtable-clients]
 verify_jwt = false
+
+[functions.webauthn]
+verify_jwt = false
