@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { FileText, TrendingUp, TrendingDown, Wallet, Mic, ChevronLeft, Send, Loader2, BookOpen, Receipt, LogOut } from "lucide-react";
+import { FileText, TrendingUp, TrendingDown, Wallet, Mic, ChevronLeft, Send, Loader2, BookOpen, Receipt, LogOut, Users } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { useNavigate } from "react-router-dom";
@@ -141,33 +141,38 @@ const Dashboard = () => {
       </div>
 
       {/* Quick Links */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-3 gap-3">
         <Card
           className="border-0 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
           onClick={() => navigate("/transactions")}
         >
-          <CardContent className="p-4 flex items-center gap-3">
+          <CardContent className="p-4 flex flex-col items-center gap-2 text-center">
             <div className="p-2 rounded-lg bg-primary/10">
               <Receipt className="h-5 w-5 text-primary" />
             </div>
-            <div>
-              <p className="text-sm font-semibold text-foreground">المعاملات</p>
-              <p className="text-[10px] text-muted-foreground">عرض من Airtable</p>
-            </div>
+            <p className="text-xs font-semibold text-foreground">المعاملات</p>
           </CardContent>
         </Card>
         <Card
           className="border-0 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
           onClick={() => navigate("/accounts")}
         >
-          <CardContent className="p-4 flex items-center gap-3">
+          <CardContent className="p-4 flex flex-col items-center gap-2 text-center">
             <div className="p-2 rounded-lg bg-accent">
               <BookOpen className="h-5 w-5 text-accent-foreground" />
             </div>
-            <div>
-              <p className="text-sm font-semibold text-foreground">الحسابات</p>
-              <p className="text-[10px] text-muted-foreground">شجرة الحسابات</p>
+            <p className="text-xs font-semibold text-foreground">الحسابات</p>
+          </CardContent>
+        </Card>
+        <Card
+          className="border-0 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+          onClick={() => navigate("/clients")}
+        >
+          <CardContent className="p-4 flex flex-col items-center gap-2 text-center">
+            <div className="p-2 rounded-lg bg-warning/10">
+              <Users className="h-5 w-5 text-warning" />
             </div>
+            <p className="text-xs font-semibold text-foreground">العملاء</p>
           </CardContent>
         </Card>
       </div>
