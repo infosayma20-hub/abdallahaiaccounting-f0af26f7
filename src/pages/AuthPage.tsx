@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Mail } from "lucide-react";
+import { Loader2, ScanFace } from "lucide-react";
+import { startRegistration, startAuthentication, browserSupportsWebAuthn } from "@simplewebauthn/browser";
 
 type Mode = "login" | "signup" | "forgot";
 
@@ -19,11 +20,18 @@ const AuthPage = () => {
   const [displayName, setDisplayName] = useState("");
   const [companyName, setCompanyName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [supportsPasskeys, setSupportsPasskeys] = useState(false);
+  const [savedEmail, setSavedEmail] = useState("");
+
+  useEffect(() => {
+    setSupportsPasskeys(browserSupportsWebAuthn());
+    const stored = localStorage.getItem("passkey_email");
+    if (stored) setSavedEmail(stored);
+  }, []);
 
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-
     try {
       if (mode === "forgot") {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
@@ -69,6 +77,55 @@ const AuthPage = () => {
     }
   };
 
+  const handleBiometricSignIn = async () => {
+    const biometricEmail = savedEmail || email;
+    if (!biometricEmail) {
+      toast({ title: "أدخل البريد الإلكتروني أولاً", variant: "destructive" });
+      return;
+    }
+    setLoading(true);
+    try {
+      // Get auth options
+      const { data: options, error: optErr } = await supabase.functions.invoke("webauthn", {
+        body: { action: "auth-options", email: biometricEmail },
+      });
+      if (optErr || options?.error) throw new Error(options?.error || optErr?.message);
+
+      // Trigger biometric (Face ID / fingerprint)
+      const credential = await startAuthentication({ optionsJSON: options });
+
+      // Verify
+      const { data: result, error: verErr } = await supabase.functions.invoke("webauthn", {
+        body: { action: "auth-verify", credentialId: credential.id, email: biometricEmail },
+      });
+      if (verErr || result?.error) throw new Error(result?.error || verErr?.message);
+
+      // Use the action link to sign in
+      if (result?.actionLink) {
+        const url = new URL(result.actionLink);
+        const token_hash = url.searchParams.get("token") || url.hash?.split("token=")[1];
+        
+        const { error: verifyErr } = await supabase.auth.verifyOtp({
+          token_hash: token_hash || "",
+          type: "magiclink",
+        });
+        if (verifyErr) throw verifyErr;
+      }
+
+      toast({ title: "تم تسجيل الدخول بنجاح ✅" });
+      navigate("/");
+    } catch (err: any) {
+      const msg = err.message || "فشل التحقق البيومتري";
+      if (msg.includes("No passkeys")) {
+        toast({ title: "لا يوجد مفتاح مرور", description: "سجل الدخول أولاً ثم فعّل Face ID من الإعدادات", variant: "destructive" });
+      } else {
+        toast({ title: "خطأ", description: msg, variant: "destructive" });
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center px-4 bg-background">
       <div className="w-full max-w-sm space-y-6">
@@ -82,6 +139,19 @@ const AuthPage = () => {
             {mode === "login" ? "تسجيل الدخول" : mode === "signup" ? "إنشاء حساب جديد" : "استعادة كلمة المرور"}
           </p>
         </div>
+
+        {/* Biometric Sign In */}
+        {mode === "login" && supportsPasskeys && savedEmail && (
+          <Button
+            variant="outline"
+            className="w-full gap-3 h-14 text-base border-primary/20 hover:bg-primary/5"
+            onClick={handleBiometricSignIn}
+            disabled={loading}
+          >
+            <ScanFace className="h-6 w-6 text-primary" />
+            <span className="text-foreground font-semibold">تسجيل الدخول بـ Face ID</span>
+          </Button>
+        )}
 
         {/* Google Sign In */}
         {mode !== "forgot" && (
@@ -113,48 +183,31 @@ const AuthPage = () => {
         <Card className="border-0 shadow-sm">
           <CardContent className="p-5">
             <form onSubmit={handleEmailAuth} className="space-y-4">
-              <div>
+              <Input
+                type="email"
+                placeholder="البريد الإلكتروني"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                dir="ltr"
+              />
+              {mode !== "forgot" && (
                 <Input
-                  type="email"
-                  placeholder="البريد الإلكتروني"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  type="password"
+                  placeholder="كلمة المرور"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   required
+                  minLength={6}
                   dir="ltr"
                 />
-              </div>
-
-              {mode !== "forgot" && (
-                <div>
-                  <Input
-                    type="password"
-                    placeholder="كلمة المرور"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    minLength={6}
-                    dir="ltr"
-                  />
-                </div>
               )}
-
               {mode === "signup" && (
                 <>
-                  <Input
-                    placeholder="الاسم الكامل"
-                    value={displayName}
-                    onChange={(e) => setDisplayName(e.target.value)}
-                    dir="rtl"
-                  />
-                  <Input
-                    placeholder="اسم الشركة"
-                    value={companyName}
-                    onChange={(e) => setCompanyName(e.target.value)}
-                    dir="rtl"
-                  />
+                  <Input placeholder="الاسم الكامل" value={displayName} onChange={(e) => setDisplayName(e.target.value)} dir="rtl" />
+                  <Input placeholder="اسم الشركة" value={companyName} onChange={(e) => setCompanyName(e.target.value)} dir="rtl" />
                 </>
               )}
-
               <Button type="submit" className="w-full gap-2" disabled={loading}>
                 {loading && <Loader2 className="h-4 w-4 animate-spin" />}
                 {mode === "login" ? "تسجيل الدخول" : mode === "signup" ? "إنشاء حساب" : "إرسال رابط الاستعادة"}
@@ -162,6 +215,17 @@ const AuthPage = () => {
             </form>
           </CardContent>
         </Card>
+
+        {/* Biometric hint for login without saved email */}
+        {mode === "login" && supportsPasskeys && !savedEmail && (
+          <button
+            onClick={handleBiometricSignIn}
+            className="w-full flex items-center justify-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ScanFace className="h-4 w-4" />
+            تسجيل الدخول بـ Face ID
+          </button>
+        )}
 
         {/* Links */}
         <div className="text-center space-y-2">

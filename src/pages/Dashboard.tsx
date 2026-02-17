@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import EnablePasskey from "@/components/EnablePasskey";
 
 const summaryCards = [
   {
@@ -273,6 +274,9 @@ const Dashboard = () => {
           <ChevronLeft className="h-4 w-4 text-muted-foreground" />
         </CardContent>
       </Card>
+
+      {/* Face ID */}
+      <EnablePasskey />
     </div>
   );
 };
