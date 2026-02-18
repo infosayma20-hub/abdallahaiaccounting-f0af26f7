@@ -178,7 +178,13 @@ const Dashboard = () => {
     setSending(true);
     try {
       const { data, error } = await supabase.functions.invoke("send-transaction", {
-        body: { text: inputValue, webhookUrl, userId: user?.id },
+        body: {
+          text: inputValue,
+          webhookUrl,
+          userId: user?.id,
+          email: user?.email,
+          companyName: user?.user_metadata?.company_name,
+        },
       });
       if (error) throw error;
       
