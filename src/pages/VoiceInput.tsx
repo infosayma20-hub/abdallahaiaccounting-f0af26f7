@@ -1,26 +1,28 @@
 import { useState, useRef, useEffect } from "react";
-import { Mic, MicOff, RotateCcw, ArrowRight, Check, Pencil, Sparkles } from "lucide-react";
+import { Mic, MicOff, RotateCcw, ArrowRight, Check, Pencil, Sparkles, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
-type RecordingState = "idle" | "recording" | "preview";
+type RecordingState = "idle" | "recording" | "processing" | "preview";
 
 const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+interface ParsedTransaction {
+  debit: string;
+  credit: string;
+  amount: string;
+  description: string;
+}
 
 const VoiceInput = () => {
   const navigate = useNavigate();
   const [state, setState] = useState<RecordingState>("idle");
   const [transcript, setTranscript] = useState("");
+  const [transaction, setTransaction] = useState<ParsedTransaction | null>(null);
   const recognitionRef = useRef<any>(null);
-
-  const mockTransaction = {
-    debit: "مصروفات الكهرباء",
-    credit: "الصندوق",
-    amount: "₪500",
-    description: transcript || "دفعت 500 شيكل كهرباء من الصندوق",
-  };
 
   const startRecording = () => {
     if (!SpeechRecognition) {
@@ -48,18 +50,45 @@ const VoiceInput = () => {
       }
     };
 
-    recognition.onend = () => {
-      // If still in recording state, recognition ended unexpectedly
-    };
+    recognition.onend = () => {};
 
     recognition.start();
     setTranscript("");
+    setTransaction(null);
     setState("recording");
   };
 
-  const stopRecording = () => {
+  const stopRecording = async () => {
     recognitionRef.current?.stop();
-    setState("preview");
+    const currentTranscript = transcript;
+    
+    if (!currentTranscript.trim()) {
+      toast.error("لم يتم التقاط أي كلام، حاول مرة أخرى");
+      setState("idle");
+      return;
+    }
+
+    setState("processing");
+
+    try {
+      const { data, error } = await supabase.functions.invoke("parse-voice-transaction", {
+        body: { text: currentTranscript },
+      });
+
+      if (error) throw error;
+
+      if (data?.transaction) {
+        setTransaction(data.transaction);
+        setState("preview");
+      } else {
+        toast.error("لم أتمكن من فهم العملية، حاول مرة أخرى");
+        setState("idle");
+      }
+    } catch (err: any) {
+      console.error("Parse error:", err);
+      toast.error("حدث خطأ في تحليل النص");
+      setState("idle");
+    }
   };
 
   useEffect(() => {
@@ -84,7 +113,15 @@ const VoiceInput = () => {
         </div>
       </div>
 
-      {state !== "preview" ? (
+      {state === "processing" ? (
+        <div className="flex-1 flex flex-col items-center justify-center -mt-16 gap-4">
+          <Loader2 className="h-12 w-12 text-primary animate-spin" />
+          <p className="text-sm text-muted-foreground">جارِ تحليل النص بالذكاء الاصطناعي...</p>
+          <p className="text-xs text-foreground bg-muted p-3 rounded-lg max-w-xs text-center">
+            {transcript}
+          </p>
+        </div>
+      ) : state !== "preview" ? (
         <div className="flex-1 flex flex-col items-center justify-center -mt-16">
           {/* Microphone Button */}
           <div className="relative mb-8">
@@ -174,40 +211,54 @@ const VoiceInput = () => {
           </div>
 
           {/* Extracted Transaction */}
-          <Card className="border-0 shadow-sm">
-            <CardContent className="p-5 space-y-4">
-              <div className="flex justify-between items-center py-2 border-b border-border">
-                <span className="text-xs text-muted-foreground">الحساب المدين</span>
-                <span className="text-sm font-semibold text-foreground">{mockTransaction.debit}</span>
-              </div>
-              <div className="flex justify-between items-center py-2 border-b border-border">
-                <span className="text-xs text-muted-foreground">الحساب الدائن</span>
-                <span className="text-sm font-semibold text-foreground">{mockTransaction.credit}</span>
-              </div>
-              <div className="flex justify-between items-center py-2 border-b border-border">
-                <span className="text-xs text-muted-foreground">المبلغ</span>
-                <span className="text-lg font-bold text-primary">{mockTransaction.amount}</span>
-              </div>
-              <div className="flex justify-between items-center py-2">
-                <span className="text-xs text-muted-foreground">الوصف</span>
-                <span className="text-sm text-foreground">{mockTransaction.description}</span>
-              </div>
-            </CardContent>
-          </Card>
+          {transaction && (
+            <Card className="border-0 shadow-sm">
+              <CardContent className="p-5 space-y-4">
+                <div className="flex justify-between items-center py-2 border-b border-border">
+                  <span className="text-xs text-muted-foreground">الحساب المدين</span>
+                  <span className="text-sm font-semibold text-foreground">{transaction.debit}</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-border">
+                  <span className="text-xs text-muted-foreground">الحساب الدائن</span>
+                  <span className="text-sm font-semibold text-foreground">{transaction.credit}</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-border">
+                  <span className="text-xs text-muted-foreground">المبلغ</span>
+                  <span className="text-lg font-bold text-primary">{transaction.amount}</span>
+                </div>
+                <div className="flex justify-between items-center py-2">
+                  <span className="text-xs text-muted-foreground">الوصف</span>
+                  <span className="text-sm text-foreground">{transaction.description}</span>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Actions */}
           <div className="flex gap-3 pt-4">
             <Button
               variant="outline"
               className="flex-1 gap-2"
-              onClick={() => setState("idle")}
+              onClick={() => { setTransaction(null); setState("idle"); }}
             >
               <Pencil className="h-4 w-4" />
               تعديل يدوي
             </Button>
             <Button
               className="flex-1 gap-2"
-              onClick={() => navigate("/")}
+              onClick={async () => {
+                if (!transaction) return;
+                try {
+                  const { error } = await supabase.functions.invoke("send-transaction", {
+                    body: { text: transcript },
+                  });
+                  if (error) throw error;
+                  toast.success("تم تسجيل العملية بنجاح");
+                  navigate("/");
+                } catch {
+                  toast.error("حدث خطأ في تسجيل العملية");
+                }
+              }}
             >
               <Check className="h-4 w-4" />
               تأكيد العملية
