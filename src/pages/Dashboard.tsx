@@ -307,7 +307,7 @@ const Dashboard = () => {
           ].map((action) => (
             <button
               key={action.value}
-              onClick={() => setInputValue(action.value + " ")}
+              onClick={() => setInputValue((prev) => prev.trim() ? prev.trim() + " " + action.value + " " : action.value + " ")}
               className="px-3 py-1.5 rounded-full bg-secondary text-xs font-medium text-foreground hover:bg-primary/10 hover:text-primary transition-all active:scale-95 border border-transparent hover:border-primary/20"
             >
               {action.label}
