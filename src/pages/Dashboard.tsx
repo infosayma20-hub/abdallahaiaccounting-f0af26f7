@@ -281,7 +281,7 @@ const Dashboard = () => {
         </Card>
         <Card
           className="border-0 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
-          onClick={() => navigate("/clients")}
+          onClick={() => navigate("/contacts")}
         >
           <CardContent className="p-4 flex flex-col items-center gap-2 text-center">
             <div className="p-2 rounded-lg bg-warning/10">
