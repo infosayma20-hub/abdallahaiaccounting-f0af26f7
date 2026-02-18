@@ -128,7 +128,36 @@ const InvoicesPage = () => {
 
   const itemsTotal = newInvoice.items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
 
-  const handleCreate = () => {
+  const isNewContact = newInvoice.contactName.trim() !== "" && !contacts.some(
+    c => (c.fields["Contact Name"] || "").trim() === newInvoice.contactName.trim()
+  );
+
+  const createContactInAirtable = async (name: string) => {
+    if (!user) return;
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-contacts?clientId=${user.id}`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            contactName: name,
+            contactType: newInvoice.type === "sales" ? "عميل" : "مورد",
+          }),
+        }
+      );
+      if (res.ok) {
+        fetchContacts();
+      }
+    } catch (err) {
+      console.error("Error creating contact:", err);
+    }
+  };
+
+  const handleCreate = async () => {
     if (!newInvoice.contactName.trim()) {
       toast({ title: "يرجى اختيار جهة الاتصال", variant: "destructive" });
       return;
@@ -136,6 +165,13 @@ const InvoicesPage = () => {
     if (newInvoice.items.some(i => !i.description.trim() || i.unitPrice <= 0)) {
       toast({ title: "يرجى تعبئة جميع البنود بشكل صحيح", variant: "destructive" });
       return;
+    }
+
+    setCreating(true);
+
+    // Auto-create contact if new
+    if (isNewContact) {
+      await createContactInAirtable(newInvoice.contactName.trim());
     }
 
     const invoice: Invoice = {
@@ -153,8 +189,9 @@ const InvoicesPage = () => {
 
     const updated = [invoice, ...invoices];
     saveInvoices(updated);
-    toast({ title: `تم إنشاء ${newInvoice.type === "sales" ? "فاتورة مبيعات" : "فاتورة مشتريات"} بنجاح ✅` });
+    toast({ title: `تم إنشاء ${newInvoice.type === "sales" ? "فاتورة مبيعات" : "فاتورة مشتريات"} بنجاح ✅${isNewContact ? " وتم إضافة جهة الاتصال الجديدة" : ""}` });
     setShowCreateDialog(false);
+    setCreating(false);
     setNewInvoice({
       type: "sales",
       contactName: "",
@@ -354,6 +391,9 @@ const InvoicesPage = () => {
                     <option key={c.id} value={c.fields["Contact Name"] || ""} />
                   ))}
                 </datalist>
+                {isNewContact && (
+                  <p className="text-[10px] text-primary mt-1 font-medium">✨ سيتم إنشاء جهة اتصال جديدة تلقائياً</p>
+                )}
               </div>
               <div>
                 <label className="text-xs text-muted-foreground mb-1 block">التاريخ</label>
