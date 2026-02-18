@@ -23,7 +23,7 @@ interface TransactionRecord {
   };
 }
 
-const WEBHOOK_STORAGE_KEY = "makecom_webhook_url";
+
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -31,8 +31,6 @@ const Dashboard = () => {
   const { user, signOut } = useAuth();
   const [inputValue, setInputValue] = useState("");
   const [sending, setSending] = useState(false);
-  const [webhookUrl, setWebhookUrl] = useState(() => localStorage.getItem(WEBHOOK_STORAGE_KEY) || "");
-  const [showWebhookInput, setShowWebhookInput] = useState(false);
   const [showProfileDialog, setShowProfileDialog] = useState(false);
   const [transactions, setTransactions] = useState<TransactionRecord[]>([]);
   const [loadingTx, setLoadingTx] = useState(true);
@@ -168,19 +166,12 @@ const Dashboard = () => {
 
   const handleSend = async () => {
     if (!inputValue.trim()) return;
-    
-    if (!webhookUrl) {
-      setShowWebhookInput(true);
-      toast({ title: "أدخل رابط Webhook أولاً", description: "اضغط على أيقونة الإعدادات بجانب حقل الإدخال" });
-      return;
-    }
 
     setSending(true);
     try {
       const { data, error } = await supabase.functions.invoke("send-transaction", {
         body: {
           text: inputValue,
-          webhookUrl,
           userId: user?.id,
           email: user?.email,
           companyName: user?.user_metadata?.company_name,
@@ -195,12 +186,6 @@ const Dashboard = () => {
     } finally {
       setSending(false);
     }
-  };
-
-  const saveWebhookUrl = () => {
-    localStorage.setItem(WEBHOOK_STORAGE_KEY, webhookUrl);
-    setShowWebhookInput(false);
-    toast({ title: "تم حفظ رابط Webhook ✅" });
   };
 
   return (
@@ -307,37 +292,9 @@ const Dashboard = () => {
         </Card>
       </div>
 
-      {/* Webhook URL Input */}
-      {showWebhookInput && (
-        <Card className="border-0 shadow-sm">
-          <CardContent className="p-3 space-y-2">
-            <p className="text-xs font-medium text-foreground">رابط Make.com Webhook</p>
-            <div className="flex gap-2">
-              <input
-                type="url"
-                value={webhookUrl}
-                onChange={(e) => setWebhookUrl(e.target.value)}
-                placeholder="https://hook.eu2.make.com/..."
-                className="flex-1 h-9 bg-secondary rounded-lg px-3 text-xs text-foreground placeholder:text-muted-foreground border-0 outline-none focus:ring-2 focus:ring-primary/20"
-                dir="ltr"
-              />
-              <button onClick={saveWebhookUrl} className="px-3 h-9 rounded-lg bg-primary text-primary-foreground text-xs font-medium">حفظ</button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
       {/* Quick Entry Section */}
       <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <button
-            onClick={() => setShowWebhookInput(!showWebhookInput)}
-            className="text-[10px] text-muted-foreground hover:text-foreground transition-colors"
-          >
-            ⚙️ إعدادات Webhook
-          </button>
-          <h2 className="text-base font-semibold text-foreground text-right">سجّل عملية</h2>
-        </div>
+        <h2 className="text-base font-semibold text-foreground text-right">سجّل عملية</h2>
 
         {/* Shortcut Chips */}
         <div className="flex gap-2 flex-wrap">
