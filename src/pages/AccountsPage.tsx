@@ -121,7 +121,7 @@ const AccountsPage = () => {
     <div className="px-4 pt-6 space-y-4" dir="rtl">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate("/")} className="p-2 rounded-lg hover:bg-muted transition-colors">
+          <button onClick={() => navigate("/menu")} className="p-2 rounded-lg hover:bg-muted transition-colors">
             <ArrowRight className="h-5 w-5 text-foreground" />
           </button>
           <div>
