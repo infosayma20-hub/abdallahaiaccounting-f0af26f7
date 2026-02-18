@@ -56,6 +56,7 @@ serve(async (req) => {
         "Email": email || "",
         "Company": company || "",
         "Address": address || "",
+        "Client Name": clientId,
       };
 
       if (clientRecordId) {
