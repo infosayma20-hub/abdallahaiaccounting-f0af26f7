@@ -11,12 +11,14 @@ serve(async (req) => {
   }
 
   try {
-    const { text, webhookUrl, userId, email, companyName } = await req.json();
+    const WEBHOOK_URL = Deno.env.get('MAKECOM_WEBHOOK_URL');
+    if (!WEBHOOK_URL) throw new Error('MAKECOM_WEBHOOK_URL is not configured');
+
+    const { text, userId, email, companyName } = await req.json();
     
     if (!text) throw new Error('Transaction text is required');
-    if (!webhookUrl) throw new Error('Webhook URL is required');
 
-    const response = await fetch(webhookUrl, {
+    const response = await fetch(WEBHOOK_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -29,7 +31,6 @@ serve(async (req) => {
       }),
     });
 
-    // Some webhooks don't return proper responses
     let responseData;
     try {
       responseData = await response.json();
