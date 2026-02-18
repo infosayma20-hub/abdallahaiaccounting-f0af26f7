@@ -73,7 +73,7 @@ serve(async (req) => {
     const contactsList = clientContacts.map((c: any) => ({
       id: c.id,
       name: c.fields["Contact Name"] || c.fields["Name"] || '',
-      type: c.fields["Type"] || '',
+      type: c.fields["Contact Type"] || '',
       phone: c.fields["Phone"] || '',
       email: c.fields["Email"] || '',
     }));
@@ -188,7 +188,7 @@ ${JSON.stringify(accountsList, null, 0)}
     if (parsed.action === 'add_contact') {
       const fields: any = {
         "Contact Name": parsed.data.name,
-        "Type": parsed.data.type || "زبون",
+        "Contact Type": parsed.data.type || "زبون",
       };
       if (parsed.data.phone) fields["Phone"] = parsed.data.phone;
       if (parsed.data.email) fields["Email"] = parsed.data.email;
@@ -205,7 +205,7 @@ ${JSON.stringify(accountsList, null, 0)}
     } else if (parsed.action === 'edit_contact' && parsed.recordId) {
       const fields: any = {};
       if (parsed.data.name) fields["Contact Name"] = parsed.data.name;
-      if (parsed.data.type) fields["Type"] = parsed.data.type;
+      if (parsed.data.type) fields["Contact Type"] = parsed.data.type;
       if (parsed.data.phone) fields["Phone"] = parsed.data.phone;
       if (parsed.data.email) fields["Email"] = parsed.data.email;
 
