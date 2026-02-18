@@ -16,6 +16,7 @@ import ExportPage from "./pages/ExportPage";
 import SmartReportPage from "./pages/SmartReportPage";
 import AuthPage from "./pages/AuthPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
+import PricingPage from "./pages/PricingPage";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
 
@@ -66,6 +67,7 @@ const App = () => (
                     <Route path="/contacts" element={<ContactsPage />} />
                     <Route path="/export" element={<ExportPage />} />
                     <Route path="/smart-report" element={<SmartReportPage />} />
+                    <Route path="/pricing" element={<PricingPage />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </AppLayout>
