@@ -45,9 +45,24 @@ serve(async (req) => {
     if (req.method === 'POST') {
       // Create a new contact
       const body = await req.json();
-      const { contactName, contactType, phone, email, company, address, clientRecordId } = body;
+      const { contactName, contactType, phone, email, company, address } = body;
 
       if (!contactName) throw new Error('Contact name is required');
+
+      // Look up the client's Airtable record ID using clientId (Supabase UUID)
+      let clientRecordId = '';
+      if (clientId) {
+        const clientLookupUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Clients?filterByFormula={Client Name}="${clientId}"&maxRecords=1`;
+        const clientRes = await fetch(clientLookupUrl, {
+          headers: { 'Authorization': `Bearer ${AIRTABLE_API_KEY}` },
+        });
+        if (clientRes.ok) {
+          const clientData = await clientRes.json();
+          if (clientData.records && clientData.records.length > 0) {
+            clientRecordId = clientData.records[0].id;
+          }
+        }
+      }
 
       const fields: Record<string, any> = {
         "Contact Name": contactName,
@@ -56,7 +71,6 @@ serve(async (req) => {
         "Email": email || "",
         "Company": company || "",
         "Address": address || "",
-        "Client Name": clientId,
       };
 
       if (clientRecordId) {
@@ -89,20 +103,34 @@ serve(async (req) => {
     const allContacts = await fetchAllRecords(airtableUrl, AIRTABLE_API_KEY);
 
     if (clientId) {
-      const filtered = allContacts.filter((c: any) => {
-        const clientName = c.fields["Client Name"] || c.fields["Client name"];
-        if (clientName) {
-          if (Array.isArray(clientName)) return clientName.includes(clientId);
-          return clientName === clientId;
-        }
-        const clientField = c.fields["Client"];
-        if (!clientField || (Array.isArray(clientField) && clientField.length === 0)) return false;
-        if (Array.isArray(clientField)) {
-          return clientField.some((cf: string) => cf === clientId || cf.includes(clientId));
-        }
-        return String(clientField) === clientId;
+      // Look up client Airtable record ID
+      const clientLookupUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Clients?filterByFormula={Client Name}="${clientId}"&maxRecords=1`;
+      const clientRes = await fetch(clientLookupUrl, {
+        headers: { 'Authorization': `Bearer ${AIRTABLE_API_KEY}` },
       });
-      return new Response(JSON.stringify({ records: filtered }), {
+      let clientRecordId = '';
+      if (clientRes.ok) {
+        const clientData = await clientRes.json();
+        if (clientData.records && clientData.records.length > 0) {
+          clientRecordId = clientData.records[0].id;
+        }
+      }
+
+      if (clientRecordId) {
+        const filtered = allContacts.filter((c: any) => {
+          const clientField = c.fields["Client"];
+          if (!clientField || (Array.isArray(clientField) && clientField.length === 0)) return false;
+          if (Array.isArray(clientField)) {
+            return clientField.includes(clientRecordId);
+          }
+          return String(clientField) === clientRecordId;
+        });
+        return new Response(JSON.stringify({ records: filtered }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      
+      return new Response(JSON.stringify({ records: [] }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }

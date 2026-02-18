@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.airtable-create-client]
 verify_jwt = false
+
+[functions.airtable-contacts]
+verify_jwt = false
