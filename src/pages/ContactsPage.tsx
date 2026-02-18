@@ -224,10 +224,7 @@ const ContactsPage = () => {
       {/* Loading */}
       {loading && (
         <div className="flex flex-col items-center justify-center py-20 gap-3">
-          <div className="relative">
-            <div className="w-16 h-16 rounded-full border-4 border-muted animate-pulse" />
-            <Loader2 className="h-8 w-8 animate-spin text-primary absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
-          </div>
+          <Loader2 className="h-10 w-10 animate-spin text-primary" />
           <p className="text-sm text-muted-foreground">جاري تحميل جهات الاتصال...</p>
         </div>
       )}
