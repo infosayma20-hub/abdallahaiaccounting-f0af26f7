@@ -62,11 +62,20 @@ const AccountsPage = () => {
   const [adding, setAdding] = useState(false);
 
   const fetchAccounts = async () => {
+    if (!user) return;
     setLoading(true);
     setError(null);
     try {
-      const { data, error: fnError } = await supabase.functions.invoke("airtable-accounts");
-      if (fnError) throw fnError;
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-accounts?clientId=${user.id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+        }
+      );
+      if (!res.ok) throw new Error("Failed to fetch accounts");
+      const data = await res.json();
       if (data?.error) throw new Error(data.error);
       setAccounts(data?.records || []);
     } catch (err: any) {
@@ -76,7 +85,7 @@ const AccountsPage = () => {
     }
   };
 
-  useEffect(() => { fetchAccounts(); }, []);
+  useEffect(() => { fetchAccounts(); }, [user]);
 
   const handleAddAccount = async () => {
     if (!newAccountName.trim() || !newAccountType) return;
