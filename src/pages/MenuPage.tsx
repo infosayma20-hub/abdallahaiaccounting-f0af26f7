@@ -1,22 +1,25 @@
 import { BookOpen, Receipt, ShoppingCart, Users, BarChart3, MoreHorizontal } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { useNavigate } from "react-router-dom";
 
 const menuItems = [
-  { icon: BookOpen, label: "المحاسبة", description: "دفتر الأستاذ والقيود", color: "bg-primary/10", iconColor: "text-primary" },
-  { icon: Receipt, label: "المصروفات", description: "تتبع المصاريف", color: "bg-destructive/10", iconColor: "text-destructive" },
-  { icon: ShoppingCart, label: "المبيعات والتحصيل", description: "الفواتير والتحصيل", color: "bg-accent", iconColor: "text-accent-foreground" },
-  { icon: Users, label: "العملاء", description: "إدارة العملاء", color: "bg-primary/10", iconColor: "text-primary" },
-  { icon: BarChart3, label: "التقارير", description: "تقارير مالية", color: "bg-warning/10", iconColor: "text-warning" },
-  { icon: MoreHorizontal, label: "المزيد", description: "إعدادات وخيارات", color: "bg-muted", iconColor: "text-muted-foreground" },
+  { icon: BookOpen, label: "المحاسبة", description: "دفتر الأستاذ والقيود", color: "bg-primary/10", iconColor: "text-primary", path: "/accounts" },
+  { icon: Receipt, label: "المصروفات", description: "تتبع المصاريف", color: "bg-destructive/10", iconColor: "text-destructive", path: "/transactions" },
+  { icon: ShoppingCart, label: "المبيعات والتحصيل", description: "الفواتير والتحصيل", color: "bg-accent", iconColor: "text-accent-foreground", path: "/transactions" },
+  { icon: Users, label: "العملاء", description: "إدارة العملاء", color: "bg-primary/10", iconColor: "text-primary", path: "/clients" },
+  { icon: BarChart3, label: "التقارير", description: "تقارير مالية", color: "bg-warning/10", iconColor: "text-warning", path: "/profit-loss" },
+  { icon: MoreHorizontal, label: "المزيد", description: "إعدادات وخيارات", color: "bg-muted", iconColor: "text-muted-foreground", path: null },
 ];
 
 const shortcuts = [
-  { label: "فاتورة جديدة", emoji: "📄" },
-  { label: "مصروف جديد", emoji: "💸" },
-  { label: "تقرير سريع", emoji: "📊" },
+  { label: "فاتورة جديدة", emoji: "📄", path: "/transactions" },
+  { label: "مصروف جديد", emoji: "💸", path: "/" },
+  { label: "تقرير سريع", emoji: "📊", path: "/profit-loss" },
 ];
 
 const MenuPage = () => {
+  const navigate = useNavigate();
+
   return (
     <div className="px-4 pt-6 space-y-6">
       {/* Header */}
@@ -32,6 +35,7 @@ const MenuPage = () => {
           {shortcuts.map((s) => (
             <button
               key={s.label}
+              onClick={() => navigate(s.path)}
               className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-card border border-border shadow-sm whitespace-nowrap hover:bg-accent transition-colors active:scale-95"
             >
               <span>{s.emoji}</span>
@@ -44,7 +48,11 @@ const MenuPage = () => {
       {/* شبكة القائمة */}
       <div className="grid grid-cols-2 gap-3">
         {menuItems.map((item) => (
-          <Card key={item.label} className="border-0 shadow-sm cursor-pointer hover:shadow-md transition-shadow active:scale-[0.98]">
+          <Card
+            key={item.label}
+            className="border-0 shadow-sm cursor-pointer hover:shadow-md transition-shadow active:scale-[0.98]"
+            onClick={() => item.path && navigate(item.path)}
+          >
             <CardContent className="p-5 flex flex-col items-center text-center gap-3">
               <div className={`p-3 rounded-xl ${item.color}`}>
                 <item.icon className={`h-6 w-6 ${item.iconColor}`} />
