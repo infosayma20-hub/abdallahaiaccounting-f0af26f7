@@ -346,6 +346,8 @@ const Dashboard = () => {
             { label: "💸 دفعت", value: "دفعت" },
             { label: "🛒 اشتريت", value: "اشتريت" },
             { label: "🧾 صرفت", value: "صرفت" },
+            { label: "🏦 نزل الراتب", value: "نزل الراتب" },
+            { label: "😄 شخص مبسوط", value: "شخص مبسوط" },
           ].map((action) => (
             <button
               key={action.value}
