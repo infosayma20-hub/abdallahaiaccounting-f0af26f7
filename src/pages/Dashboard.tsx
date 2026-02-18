@@ -214,9 +214,20 @@ const Dashboard = () => {
       )}
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-foreground">عبدالله AI للمحاسبة</h1>
-          <p className="text-sm text-muted-foreground">{user?.email}</p>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+            <span className="text-sm font-bold text-primary">
+              {user?.user_metadata?.company_name
+                ? user.user_metadata.company_name.split(' ').slice(0, 2).map((w: string) => w[0]).join('')
+                : user?.email?.[0]?.toUpperCase() || 'ع'}
+            </span>
+          </div>
+          <div>
+            <h1 className="text-base font-bold text-foreground">
+              {user?.user_metadata?.company_name || 'عميل'}
+            </h1>
+            <p className="text-xs text-muted-foreground">{user?.email}</p>
+          </div>
         </div>
         <button
           onClick={signOut}
