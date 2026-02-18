@@ -11,8 +11,10 @@ interface Transaction {
   id: string;
   fields: {
     Description?: string;
-    "Debit Account"?: string;
-    "Credit Account"?: string;
+    "Debit Account"?: string | string[];
+    "Credit Account"?: string | string[];
+    "Debit Account Name"?: string;
+    "Credit Account Name"?: string;
     "Transaction Type"?: string;
     Amount?: number;
     Currency?: string;
@@ -118,11 +120,11 @@ const TransactionsPage = () => {
                       {tx.fields["Transaction Type"]}
                     </Badge>
                   )}
-                  {tx.fields["Debit Account"] && (
-                    <span className="text-[10px] text-muted-foreground">مدين: {tx.fields["Debit Account"]}</span>
+                  {tx.fields["Debit Account Name"] && (
+                    <span className="text-[10px] text-muted-foreground">مدين: {tx.fields["Debit Account Name"]}</span>
                   )}
-                  {tx.fields["Credit Account"] && (
-                    <span className="text-[10px] text-muted-foreground">دائن: {tx.fields["Credit Account"]}</span>
+                  {tx.fields["Credit Account Name"] && (
+                    <span className="text-[10px] text-muted-foreground">دائن: {tx.fields["Credit Account Name"]}</span>
                   )}
                 </div>
               </CardContent>

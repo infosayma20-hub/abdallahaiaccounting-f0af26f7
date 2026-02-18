@@ -5,6 +5,36 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+async function fetchAllRecords(baseUrl: string, apiKey: string): Promise<any[]> {
+  let allRecords: any[] = [];
+  let currentUrl = baseUrl;
+
+  while (currentUrl) {
+    const response = await fetch(currentUrl, {
+      headers: { 'Authorization': `Bearer ${apiKey}` },
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Airtable API error [${response.status}]: ${errorText}`);
+    }
+
+    const data = await response.json();
+    allRecords = allRecords.concat(data.records || []);
+
+    if (data.offset) {
+      const separator = currentUrl.includes('?') ? '&' : '?';
+      // Remove existing offset param if any
+      const cleanUrl = baseUrl.replace(/&offset=[^&]*/, '');
+      currentUrl = `${cleanUrl}&offset=${data.offset}`;
+    } else {
+      currentUrl = '';
+    }
+  }
+
+  return allRecords;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -18,40 +48,48 @@ serve(async (req) => {
     if (!AIRTABLE_BASE_ID) throw new Error('AIRTABLE_BASE_ID not configured');
 
     const url = new URL(req.url);
-    const offset = url.searchParams.get('offset') || '';
     const clientId = url.searchParams.get('clientId') || '';
     const view = url.searchParams.get('view') || 'ملخص الحركات المحاسبية';
     
-    // Build filter formula for client ID
     const filterFormula = clientId ? `&filterByFormula=${encodeURIComponent(`{Client}="${clientId}"`)}` : '';
     
-    const airtableUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Transactions?view=${encodeURIComponent(view)}&pageSize=100${filterFormula}${offset ? `&offset=${offset}` : ''}`;
-    
-    // Fetch all pages
-    let allRecords: any[] = [];
-    let currentUrl = airtableUrl;
-    
-    while (currentUrl) {
-      const response = await fetch(currentUrl, {
-        headers: { 'Authorization': `Bearer ${AIRTABLE_API_KEY}` },
-      });
+    const txUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Transactions?view=${encodeURIComponent(view)}&pageSize=100${filterFormula}`;
+    const accountsUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Accounts?pageSize=100`;
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Airtable API error [${response.status}]: ${errorText}`);
-      }
+    // Fetch transactions and accounts in parallel
+    const [allTx, allAccounts] = await Promise.all([
+      fetchAllRecords(txUrl, AIRTABLE_API_KEY),
+      fetchAllRecords(accountsUrl, AIRTABLE_API_KEY),
+    ]);
 
-      const data = await response.json();
-      allRecords = allRecords.concat(data.records || []);
-      
-      if (data.offset) {
-        currentUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Transactions?view=${encodeURIComponent(view)}&pageSize=100${filterFormula}&offset=${data.offset}`;
-      } else {
-        currentUrl = '';
-      }
+    // Build account ID -> Name map
+    const accountMap: Record<string, string> = {};
+    for (const acc of allAccounts) {
+      accountMap[acc.id] = acc.fields?.["Account Name"] || acc.fields?.["Name"] || acc.id;
     }
+
+    // Replace record IDs with account names in transactions
+    const enrichedTx = allTx.map((tx: any) => {
+      const fields = { ...tx.fields };
+
+      // Debit Account - linked record (array of IDs)
+      if (Array.isArray(fields["Debit Account"])) {
+        fields["Debit Account Name"] = fields["Debit Account"].map((id: string) => accountMap[id] || id).join(", ");
+      } else if (typeof fields["Debit Account"] === "string") {
+        fields["Debit Account Name"] = accountMap[fields["Debit Account"]] || fields["Debit Account"];
+      }
+
+      // Credit Account - linked record (array of IDs)
+      if (Array.isArray(fields["Credit Account"])) {
+        fields["Credit Account Name"] = fields["Credit Account"].map((id: string) => accountMap[id] || id).join(", ");
+      } else if (typeof fields["Credit Account"] === "string") {
+        fields["Credit Account Name"] = accountMap[fields["Credit Account"]] || fields["Credit Account"];
+      }
+
+      return { ...tx, fields };
+    });
     
-    return new Response(JSON.stringify({ records: allRecords }), {
+    return new Response(JSON.stringify({ records: enrichedTx }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
