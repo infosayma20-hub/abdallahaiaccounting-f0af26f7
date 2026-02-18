@@ -1,21 +1,72 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Mic, MicOff, RotateCcw, ArrowRight, Check, Pencil, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 type RecordingState = "idle" | "recording" | "preview";
+
+const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
 const VoiceInput = () => {
   const navigate = useNavigate();
   const [state, setState] = useState<RecordingState>("idle");
+  const [transcript, setTranscript] = useState("");
+  const recognitionRef = useRef<any>(null);
 
   const mockTransaction = {
     debit: "مصروفات الكهرباء",
     credit: "الصندوق",
     amount: "₪500",
-    description: "دفعت 500 شيكل كهرباء من الصندوق",
+    description: transcript || "دفعت 500 شيكل كهرباء من الصندوق",
   };
+
+  const startRecording = () => {
+    if (!SpeechRecognition) {
+      toast.error("المتصفح لا يدعم التعرف على الصوت، استخدم Chrome");
+      return;
+    }
+    const recognition = new SpeechRecognition();
+    recognition.lang = "ar-SA";
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognitionRef.current = recognition;
+
+    recognition.onresult = (event: any) => {
+      let text = "";
+      for (let i = 0; i < event.results.length; i++) {
+        text += event.results[i][0].transcript;
+      }
+      setTranscript(text);
+    };
+
+    recognition.onerror = (event: any) => {
+      console.error("Speech error:", event.error);
+      if (event.error === "not-allowed") {
+        toast.error("يرجى السماح بالوصول إلى الميكروفون");
+      }
+    };
+
+    recognition.onend = () => {
+      // If still in recording state, recognition ended unexpectedly
+    };
+
+    recognition.start();
+    setTranscript("");
+    setState("recording");
+  };
+
+  const stopRecording = () => {
+    recognitionRef.current?.stop();
+    setState("preview");
+  };
+
+  useEffect(() => {
+    return () => {
+      recognitionRef.current?.stop();
+    };
+  }, []);
 
   return (
     <div className="px-4 pt-6 min-h-screen flex flex-col">
@@ -44,7 +95,7 @@ const VoiceInput = () => {
               </>
             )}
             <button
-              onClick={() => setState(state === "idle" ? "recording" : "preview")}
+              onClick={() => state === "idle" ? startRecording() : stopRecording()}
               className={`relative z-10 w-28 h-28 rounded-full flex items-center justify-center transition-all active:scale-95 ${
                 state === "recording"
                   ? "bg-destructive text-destructive-foreground shadow-xl"
@@ -82,6 +133,11 @@ const VoiceInput = () => {
               ? 'اضغط على الميكروفون وتحدث…\nمثال: "دفعت 500 شيكل كهرباء من الصندوق"'
               : "جارِ التسجيل… اضغط لإيقاف التسجيل"}
           </p>
+          {state === "recording" && transcript && (
+            <p className="text-sm text-foreground mt-4 bg-muted p-3 rounded-lg max-w-xs text-center font-medium">
+              {transcript}
+            </p>
+          )}
 
           {/* Controls */}
           {state === "recording" && (
@@ -89,7 +145,7 @@ const VoiceInput = () => {
               <Button
                 variant="outline"
                 size="lg"
-                onClick={() => setState("idle")}
+                onClick={() => { recognitionRef.current?.stop(); setTranscript(""); setState("idle"); }}
                 className="gap-2"
               >
                 <RotateCcw className="h-4 w-4" />
@@ -97,7 +153,7 @@ const VoiceInput = () => {
               </Button>
               <Button
                 size="lg"
-                onClick={() => setState("preview")}
+                onClick={stopRecording}
                 className="gap-2"
               >
                 <MicOff className="h-4 w-4" />
