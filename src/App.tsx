@@ -12,6 +12,7 @@ import ProfitLoss from "./pages/ProfitLoss";
 import TransactionsPage from "./pages/TransactionsPage";
 import AccountsPage from "./pages/AccountsPage";
 import ContactsPage from "./pages/ContactsPage";
+import ExportPage from "./pages/ExportPage";
 import AuthPage from "./pages/AuthPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import NotFound from "./pages/NotFound";
@@ -62,6 +63,7 @@ const App = () => (
                     <Route path="/transactions" element={<TransactionsPage />} />
                     <Route path="/accounts" element={<AccountsPage />} />
                     <Route path="/contacts" element={<ContactsPage />} />
+                    <Route path="/export" element={<ExportPage />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </AppLayout>

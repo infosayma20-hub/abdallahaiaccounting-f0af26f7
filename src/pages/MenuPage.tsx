@@ -1,11 +1,11 @@
-import { BookOpen, Receipt, ShoppingCart, Users, BarChart3, MoreHorizontal } from "lucide-react";
+import { BookOpen, Receipt, FileSpreadsheet, Users, BarChart3, MoreHorizontal } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 
 const menuItems = [
   { icon: BookOpen, label: "المحاسبة", description: "دفتر الأستاذ والقيود", color: "bg-primary/10", iconColor: "text-primary", path: "/accounts" },
   { icon: Receipt, label: "المصروفات", description: "تتبع المصاريف", color: "bg-destructive/10", iconColor: "text-destructive", path: "/transactions" },
-  { icon: ShoppingCart, label: "المبيعات والتحصيل", description: "الفواتير والتحصيل", color: "bg-accent", iconColor: "text-accent-foreground", path: "/transactions" },
+  { icon: FileSpreadsheet, label: "تصدير Excel", description: "تصدير المعاملات", color: "bg-accent", iconColor: "text-accent-foreground", path: "/export" },
   { icon: Users, label: "العملاء", description: "زبائن وموردين", color: "bg-primary/10", iconColor: "text-primary", path: "/contacts" },
   { icon: BarChart3, label: "التقارير", description: "تقارير مالية", color: "bg-warning/10", iconColor: "text-warning", path: "/profit-loss" },
   { icon: MoreHorizontal, label: "المزيد", description: "إعدادات وخيارات", color: "bg-muted", iconColor: "text-muted-foreground", path: null },
