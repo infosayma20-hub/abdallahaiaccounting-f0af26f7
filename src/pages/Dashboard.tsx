@@ -9,46 +9,19 @@ import { useAuth } from "@/hooks/useAuth";
 import EnablePasskey from "@/components/EnablePasskey";
 import CompleteProfileDialog from "@/components/CompleteProfileDialog";
 
-const summaryCards = [
-  {
-    title: "الفواتير",
-    value: "₪12,500",
-    subtitle: "3 غير مدفوعة",
-    icon: FileText,
-    iconBg: "bg-primary/10",
-    iconColor: "text-primary",
-    progress: 65,
-  },
-  {
-    title: "الرصيد النقدي",
-    value: "₪34,200",
-    subtitle: "محدّث اليوم",
-    icon: Wallet,
-    iconBg: "bg-accent",
-    iconColor: "text-accent-foreground",
-    progress: null,
-  },
-  {
-    title: "الإيرادات",
-    value: "₪48,000",
-    subtitle: "هذا الشهر",
-    icon: TrendingUp,
-    iconBg: "bg-primary/10",
-    iconColor: "text-primary",
-    trend: "+12%",
-    trendUp: true,
-  },
-  {
-    title: "المصروفات",
-    value: "₪22,300",
-    subtitle: "هذا الشهر",
-    icon: TrendingDown,
-    iconBg: "bg-destructive/10",
-    iconColor: "text-destructive",
-    trend: "-5%",
-    trendUp: false,
-  },
-];
+interface TransactionRecord {
+  id: string;
+  fields: {
+    Amount?: number;
+    Currency?: string;
+    "Transaction Type"?: string;
+    "Credit Account Rollup"?: string;
+    "Debit Account Rollup"?: string;
+    Description?: string;
+    Date?: string;
+    Client?: string;
+  };
+}
 
 const WEBHOOK_STORAGE_KEY = "makecom_webhook_url";
 
@@ -61,13 +34,14 @@ const Dashboard = () => {
   const [webhookUrl, setWebhookUrl] = useState(() => localStorage.getItem(WEBHOOK_STORAGE_KEY) || "");
   const [showWebhookInput, setShowWebhookInput] = useState(false);
   const [showProfileDialog, setShowProfileDialog] = useState(false);
+  const [transactions, setTransactions] = useState<TransactionRecord[]>([]);
+  const [loadingTx, setLoadingTx] = useState(true);
 
   // Check if OAuth user needs to complete profile
   useEffect(() => {
     if (!user) return;
     const profileCompleted = localStorage.getItem(`profile_completed_${user.id}`);
     const alreadySynced = localStorage.getItem(`airtable_synced_${user.id}`);
-    // Show dialog for OAuth users who haven't completed profile
     if (!profileCompleted && !alreadySynced) {
       const isOAuth = user.app_metadata?.provider !== "email";
       if (isOAuth) {
@@ -75,6 +49,122 @@ const Dashboard = () => {
       }
     }
   }, [user]);
+
+  // Sync user to Airtable
+  useEffect(() => {
+    const ensureAirtableClient = async () => {
+      if (!user || localStorage.getItem(`airtable_synced_${user.id}`)) return;
+      try {
+        await supabase.functions.invoke("airtable-create-client", {
+          body: {
+            clientName: user.id,
+            contactEmail: user.email || "",
+            phoneNumber: user.user_metadata?.phone || "",
+            companyName: user.user_metadata?.company_name || "",
+            address: user.user_metadata?.address || "",
+            country: user.user_metadata?.country || "",
+            workField: user.user_metadata?.work_field || "",
+          },
+        });
+        localStorage.setItem(`airtable_synced_${user.id}`, "true");
+      } catch (err) {
+        console.error("Failed to sync user to Airtable:", err);
+      }
+    };
+    ensureAirtableClient();
+  }, [user]);
+
+  // Fetch transactions for this client
+  useEffect(() => {
+    if (!user) return;
+    const fetchTx = async () => {
+      setLoadingTx(true);
+      try {
+        const res = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-transactions?clientId=${user.id}`,
+          {
+            headers: {
+              Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            },
+          }
+        );
+        if (!res.ok) throw new Error("Failed to fetch transactions");
+        const result = await res.json();
+        setTransactions(result.records || []);
+      } catch (err) {
+        console.error("Error fetching transactions:", err);
+      } finally {
+        setLoadingTx(false);
+      }
+    };
+    fetchTx();
+  }, [user]);
+
+  // Compute summary from transactions
+  const revenue = transactions
+    .filter((tx) => tx.fields["Debit Account Rollup"] === "Asset" && tx.fields["Credit Account Rollup"] === "Revenue")
+    .reduce((sum, tx) => sum + (tx.fields.Amount || 0), 0);
+
+  const expenses = transactions
+    .filter((tx) => tx.fields["Debit Account Rollup"] === "Expenses")
+    .reduce((sum, tx) => sum + (tx.fields.Amount || 0), 0);
+
+  const totalIncome = transactions
+    .filter((tx) => tx.fields["Transaction Type"] === "سند قبض")
+    .reduce((sum, tx) => sum + (tx.fields.Amount || 0), 0);
+
+  const totalOutcome = transactions
+    .filter((tx) => tx.fields["Transaction Type"] === "سند صرف")
+    .reduce((sum, tx) => sum + (tx.fields.Amount || 0), 0);
+
+  const cashBalance = totalIncome - totalOutcome;
+
+  const unpaidInvoices = transactions.filter(
+    (tx) => tx.fields["Transaction Type"] === "فاتورة مبيعات"
+  );
+
+  const invoiceTotal = unpaidInvoices.reduce((sum, tx) => sum + (tx.fields.Amount || 0), 0);
+
+  const summaryCards = [
+    {
+      title: "الفواتير",
+      value: `₪${invoiceTotal.toLocaleString()}`,
+      subtitle: `${unpaidInvoices.length} فاتورة`,
+      icon: FileText,
+      iconBg: "bg-primary/10",
+      iconColor: "text-primary",
+      progress: unpaidInvoices.length > 0 ? 65 : 0,
+    },
+    {
+      title: "الرصيد النقدي",
+      value: `₪${cashBalance.toLocaleString()}`,
+      subtitle: "محدّث الآن",
+      icon: Wallet,
+      iconBg: "bg-accent",
+      iconColor: "text-accent-foreground",
+      progress: null,
+    },
+    {
+      title: "الإيرادات",
+      value: `₪${revenue.toLocaleString()}`,
+      subtitle: "إجمالي",
+      icon: TrendingUp,
+      iconBg: "bg-primary/10",
+      iconColor: "text-primary",
+      trend: null,
+      trendUp: true,
+    },
+    {
+      title: "المصروفات",
+      value: `₪${expenses.toLocaleString()}`,
+      subtitle: "إجمالي",
+      icon: TrendingDown,
+      iconBg: "bg-destructive/10",
+      iconColor: "text-destructive",
+      trend: null,
+      trendUp: false,
+    },
+  ];
 
   const handleSend = async () => {
     if (!inputValue.trim()) return;
@@ -133,35 +223,41 @@ const Dashboard = () => {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 gap-3">
-        {summaryCards.map((card) => (
-          <Card key={card.title} className="border-0 shadow-sm">
-            <CardContent className="p-4">
-              <div className="flex items-start justify-between mb-3">
-                <div className={`p-2 rounded-lg ${card.iconBg}`}>
-                  <card.icon className={`h-4 w-4 ${card.iconColor}`} />
+        {loadingTx ? (
+          <div className="col-span-2 flex items-center justify-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          </div>
+        ) : (
+          summaryCards.map((card) => (
+            <Card key={card.title} className="border-0 shadow-sm">
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between mb-3">
+                  <div className={`p-2 rounded-lg ${card.iconBg}`}>
+                    <card.icon className={`h-4 w-4 ${card.iconColor}`} />
+                  </div>
+                  {card.trend && (
+                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                      card.trendUp ? "bg-primary/10 text-primary" : "bg-destructive/10 text-destructive"
+                    }`}>
+                      {card.trend}
+                    </span>
+                  )}
                 </div>
-                {card.trend && (
-                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                    card.trendUp ? "bg-primary/10 text-primary" : "bg-destructive/10 text-destructive"
-                  }`}>
-                    {card.trend}
-                  </span>
+                <p className="text-xs text-muted-foreground mb-1">{card.title}</p>
+                <p className="text-lg font-bold text-foreground">{card.value}</p>
+                {card.progress !== null && card.progress !== undefined && (
+                  <div className="mt-2">
+                    <Progress value={card.progress} className="h-1.5" />
+                    <p className="text-[10px] text-muted-foreground mt-1">{card.subtitle}</p>
+                  </div>
                 )}
-              </div>
-              <p className="text-xs text-muted-foreground mb-1">{card.title}</p>
-              <p className="text-lg font-bold text-foreground">{card.value}</p>
-              {card.progress !== null && card.progress !== undefined && (
-                <div className="mt-2">
-                  <Progress value={card.progress} className="h-1.5" />
+                {!card.progress && card.progress !== 0 && (
                   <p className="text-[10px] text-muted-foreground mt-1">{card.subtitle}</p>
-                </div>
-              )}
-              {!card.progress && card.progress !== 0 && (
-                <p className="text-[10px] text-muted-foreground mt-1">{card.subtitle}</p>
-              )}
-            </CardContent>
-          </Card>
-        ))}
+                )}
+              </CardContent>
+            </Card>
+          ))
+        )}
       </div>
 
       {/* Quick Links */}
