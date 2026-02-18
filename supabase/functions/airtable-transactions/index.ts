@@ -19,22 +19,39 @@ serve(async (req) => {
 
     const url = new URL(req.url);
     const offset = url.searchParams.get('offset') || '';
+    const clientId = url.searchParams.get('clientId') || '';
     const view = url.searchParams.get('view') || 'ملخص الحركات المحاسبية';
     
-    const airtableUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Transactions?view=${encodeURIComponent(view)}&pageSize=50${offset ? `&offset=${offset}` : ''}`;
+    // Build filter formula for client ID
+    const filterFormula = clientId ? `&filterByFormula=${encodeURIComponent(`{Client}="${clientId}"`)}` : '';
     
-    const response = await fetch(airtableUrl, {
-      headers: { 'Authorization': `Bearer ${AIRTABLE_API_KEY}` },
-    });
+    const airtableUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Transactions?view=${encodeURIComponent(view)}&pageSize=100${filterFormula}${offset ? `&offset=${offset}` : ''}`;
+    
+    // Fetch all pages
+    let allRecords: any[] = [];
+    let currentUrl = airtableUrl;
+    
+    while (currentUrl) {
+      const response = await fetch(currentUrl, {
+        headers: { 'Authorization': `Bearer ${AIRTABLE_API_KEY}` },
+      });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Airtable API error [${response.status}]: ${errorText}`);
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Airtable API error [${response.status}]: ${errorText}`);
+      }
+
+      const data = await response.json();
+      allRecords = allRecords.concat(data.records || []);
+      
+      if (data.offset) {
+        currentUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Transactions?view=${encodeURIComponent(view)}&pageSize=100${filterFormula}&offset=${data.offset}`;
+      } else {
+        currentUrl = '';
+      }
     }
-
-    const data = await response.json();
     
-    return new Response(JSON.stringify(data), {
+    return new Response(JSON.stringify({ records: allRecords }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
