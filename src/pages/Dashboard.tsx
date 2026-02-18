@@ -398,6 +398,19 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
+        {/* Suggested Amounts */}
+        <div className="flex gap-1.5 justify-end flex-wrap">
+          {[10, 20, 30, 50, 100, 200, 500, 1000, 5000].map((amount) => (
+            <button
+              key={amount}
+              onClick={() => setInputValue((prev) => prev.replace(/\d+/g, '').trim() + ` ${amount}`)}
+              className="px-2 py-1 rounded-md bg-secondary text-[11px] font-medium text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all active:scale-95"
+            >
+              {amount.toLocaleString()}₪
+            </button>
+          ))}
+        </div>
+
         {/* Quick Examples */}
         <div className="space-y-2">
           <div className="flex items-center gap-1 justify-end">
