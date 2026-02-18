@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { FileText, TrendingUp, TrendingDown, Wallet, Mic, ChevronLeft, Send, Loader2, BookOpen, Receipt, LogOut, Users, Sparkles } from "lucide-react";
+import { FileText, TrendingUp, TrendingDown, Wallet, Mic, ChevronLeft, Send, Loader2, BookOpen, Receipt, LogOut, Users, Sparkles, Database } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { useNavigate } from "react-router-dom";
@@ -31,6 +31,8 @@ const Dashboard = () => {
   const { user, signOut } = useAuth();
   const [inputValue, setInputValue] = useState("");
   const [sending, setSending] = useState(false);
+  const [dbCommand, setDbCommand] = useState("");
+  const [dbSending, setDbSending] = useState(false);
   const [showProfileDialog, setShowProfileDialog] = useState(false);
   const [transactions, setTransactions] = useState<TransactionRecord[]>([]);
   const [loadingTx, setLoadingTx] = useState(true);
@@ -185,6 +187,36 @@ const Dashboard = () => {
       toast({ title: "خطأ في الإرسال", description: err.message, variant: "destructive" });
     } finally {
       setSending(false);
+    }
+  };
+
+  const handleDbCommand = async () => {
+    if (!dbCommand.trim()) return;
+    setDbSending(true);
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/database-command`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ command: dbCommand, clientId: user?.id }),
+        }
+      );
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error || "فشل تنفيذ الأمر");
+      if (data.success) {
+        toast({ title: "✅ " + (data.message || "تم تنفيذ الأمر بنجاح") });
+        setDbCommand("");
+      } else {
+        toast({ title: data.message || "لم أفهم الأمر", variant: "destructive" });
+      }
+    } catch (err: any) {
+      toast({ title: "خطأ", description: err.message, variant: "destructive" });
+    } finally {
+      setDbSending(false);
     }
   };
 
@@ -417,6 +449,65 @@ const Dashboard = () => {
               </button>
             ))}
           </div>
+        </div>
+      </div>
+
+      {/* Database Command Section */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <Database className="h-4 w-4 text-accent-foreground" />
+          <h2 className="text-base font-semibold text-foreground">إدارة البيانات</h2>
+        </div>
+
+        <Card className="border-0 shadow-md bg-gradient-to-l from-accent/30 to-background">
+          <CardContent className="p-3">
+            <div className="flex items-center gap-2" dir="ltr">
+              <button
+                onClick={() => navigate("/voice")}
+                className="flex-shrink-0 w-10 h-10 rounded-full bg-accent flex items-center justify-center hover:opacity-80 transition-colors active:scale-95"
+              >
+                <Mic className="h-5 w-5 text-accent-foreground" />
+              </button>
+              <input
+                type="text"
+                value={dbCommand}
+                onChange={(e) => setDbCommand(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleDbCommand()}
+                placeholder="أضف زبون، احذف حساب، عدّل اسم..."
+                className="flex-1 h-10 bg-secondary/60 rounded-lg px-3 text-sm text-foreground placeholder:text-muted-foreground border-0 outline-none focus:ring-2 focus:ring-accent/40"
+                dir="rtl"
+              />
+              <button
+                onClick={handleDbCommand}
+                disabled={dbSending || !dbCommand.trim()}
+                className="flex-shrink-0 w-10 h-10 rounded-full bg-accent flex items-center justify-center hover:opacity-90 transition-all active:scale-95 disabled:opacity-50"
+              >
+                {dbSending ? (
+                  <Loader2 className="h-4 w-4 text-accent-foreground animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4 text-accent-foreground" />
+                )}
+              </button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Command Examples */}
+        <div className="flex flex-wrap gap-1.5">
+          {[
+            "أضف الزبون علي حجاج",
+            "أضف حساب بنك فلسطين",
+            "احذف الزبون محمد",
+            "عدّل اسم الحساب صندوق",
+          ].map((example) => (
+            <button
+              key={example}
+              onClick={() => setDbCommand(example)}
+              className="px-2.5 py-1 rounded-md bg-muted/50 text-[11px] text-muted-foreground hover:bg-accent/20 hover:text-accent-foreground transition-all active:scale-95"
+            >
+              {example}
+            </button>
+          ))}
         </div>
       </div>
 

@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.airtable-contacts]
 verify_jwt = false
+
+[functions.database-command]
+verify_jwt = false
