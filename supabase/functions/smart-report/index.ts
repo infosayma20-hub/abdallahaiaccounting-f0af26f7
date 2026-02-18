@@ -1,0 +1,169 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+async function fetchAllRecords(baseUrl: string, apiKey: string): Promise<any[]> {
+  let allRecords: any[] = [];
+  let currentUrl = baseUrl;
+  while (currentUrl) {
+    const response = await fetch(currentUrl, {
+      headers: { 'Authorization': `Bearer ${apiKey}` },
+    });
+    if (!response.ok) throw new Error(`Airtable error [${response.status}]`);
+    const data = await response.json();
+    allRecords = allRecords.concat(data.records || []);
+    currentUrl = data.offset ? `${baseUrl.replace(/&offset=[^&]*/, '')}&offset=${data.offset}` : '';
+  }
+  return allRecords;
+}
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const AIRTABLE_API_KEY = Deno.env.get('AIRTABLE_API_KEY');
+    const AIRTABLE_BASE_ID = Deno.env.get('AIRTABLE_BASE_ID');
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+
+    if (!AIRTABLE_API_KEY) throw new Error('AIRTABLE_API_KEY not configured');
+    if (!AIRTABLE_BASE_ID) throw new Error('AIRTABLE_BASE_ID not configured');
+    if (!LOVABLE_API_KEY) throw new Error('LOVABLE_API_KEY not configured');
+
+    const { question, clientId } = await req.json();
+    if (!question || typeof question !== 'string' || question.trim().length === 0) {
+      throw new Error('Question is required');
+    }
+    if (question.length > 500) throw new Error('Question too long');
+
+    // Fetch client's transactions and accounts
+    const txUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Transactions?pageSize=100`;
+    const accUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Accounts?pageSize=100`;
+
+    const [allTx, allAcc] = await Promise.all([
+      fetchAllRecords(txUrl, AIRTABLE_API_KEY),
+      fetchAllRecords(accUrl, AIRTABLE_API_KEY),
+    ]);
+
+    // Filter transactions for this client
+    const clientTx = clientId ? allTx.filter((tx: any) => {
+      const clientName = tx.fields["Client Name"] || tx.fields["Client name"];
+      if (clientName) {
+        if (Array.isArray(clientName)) return clientName.includes(clientId);
+        return clientName === clientId;
+      }
+      const clientField = tx.fields["Client"];
+      if (!clientField) return false;
+      if (Array.isArray(clientField)) return clientField.some((c: string) => c.includes(clientId));
+      return String(clientField).includes(clientId);
+    }) : allTx;
+
+    // Filter accounts for this client (shared + private)
+    const clientAcc = clientId ? allAcc.filter((acc: any) => {
+      const clientField = acc.fields["Client"];
+      if (!clientField || (Array.isArray(clientField) && clientField.length === 0)) return true;
+      const clientName = acc.fields["Client Name"] || acc.fields["Client name"];
+      if (clientName) {
+        if (Array.isArray(clientName)) return clientName.includes(clientId);
+        return clientName === clientId;
+      }
+      return false;
+    }) : allAcc;
+
+    // Prepare data summary for AI
+    const txSummary = clientTx.map((tx: any) => ({
+      date: tx.fields.Date || '',
+      description: tx.fields.Description || '',
+      type: tx.fields["Transaction Type"] || '',
+      amount: tx.fields.Amount || 0,
+      currency: tx.fields.Currency || '',
+      debitAccount: tx.fields["Debit Account Name"] || '',
+      creditAccount: tx.fields["Credit Account Name"] || '',
+      debitType: tx.fields["Debit Account Rollup"] || '',
+      creditType: tx.fields["Credit Account Rollup"] || '',
+      reference: tx.fields.Reference || '',
+    }));
+
+    const accSummary = clientAcc.map((acc: any) => ({
+      name: acc.fields["Account Name"] || '',
+      type: acc.fields["Account Type"] || '',
+    }));
+
+    const systemPrompt = `أنت محاسب ذكي. لديك بيانات مالية للعميل وتحتاج الإجابة على سؤاله بدقة.
+
+القواعد:
+1. أجب باللغة العربية دائماً
+2. إذا السؤال عن مبلغ إجمالي، احسبه من البيانات
+3. إذا السؤال عن كشف حساب أو تفاصيل، أعد جدول بالمعاملات المطلوبة
+4. أعد الإجابة بصيغة JSON فقط بهذا الشكل:
+{
+  "answer": "نص الإجابة المختصر",
+  "total": رقم_إجمالي_إن_وجد_أو_null,
+  "currency": "العملة",
+  "table": [
+    {"التاريخ": "...", "الوصف": "...", "المبلغ": رقم, "النوع": "...", "الحساب المدين": "...", "الحساب الدائن": "..."}
+  ]
+}
+
+إذا لم تجد بيانات مطابقة، أعد:
+{"answer": "لم أجد بيانات مطابقة لسؤالك", "total": null, "currency": null, "table": []}
+
+لا تضف أي نص خارج JSON.`;
+
+    const userPrompt = `بيانات الحسابات:
+${JSON.stringify(accSummary, null, 0)}
+
+بيانات المعاملات (${txSummary.length} معاملة):
+${JSON.stringify(txSummary, null, 0)}
+
+سؤال العميل: ${question}`;
+
+    // Call AI
+    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.5-flash',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+        temperature: 0.1,
+      }),
+    });
+
+    if (!aiResponse.ok) {
+      const errText = await aiResponse.text();
+      throw new Error(`AI API error [${aiResponse.status}]: ${errText}`);
+    }
+
+    const aiData = await aiResponse.json();
+    const content = aiData.choices?.[0]?.message?.content || '';
+
+    // Parse JSON from AI response
+    let result;
+    try {
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      result = jsonMatch ? JSON.parse(jsonMatch[0]) : { answer: content, total: null, table: [] };
+    } catch {
+      result = { answer: content, total: null, table: [] };
+    }
+
+    return new Response(JSON.stringify(result), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  } catch (error) {
+    console.error('Error:', error);
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+});
