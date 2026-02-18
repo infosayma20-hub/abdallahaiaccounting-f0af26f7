@@ -8,7 +8,7 @@ const menuItems = [
   { icon: FileSpreadsheet, label: "تصدير Excel", description: "تصدير المعاملات", color: "bg-accent", iconColor: "text-accent-foreground", path: "/export" },
   { icon: Users, label: "العملاء", description: "زبائن وموردين", color: "bg-primary/10", iconColor: "text-primary", path: "/contacts" },
   { icon: BarChart3, label: "التقارير", description: "تقارير مالية", color: "bg-warning/10", iconColor: "text-warning", path: "/profit-loss" },
-  { icon: Sparkles, label: "التقرير الذكي", description: "اسأل بلغتك", color: "bg-primary/10", iconColor: "text-primary", path: "/smart-report" },
+  
 ];
 
 const shortcuts = [
