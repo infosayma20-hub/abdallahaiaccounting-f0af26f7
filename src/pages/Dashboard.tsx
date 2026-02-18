@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { FileText, TrendingUp, TrendingDown, Wallet, Mic, ChevronLeft, Send, Loader2, BookOpen, Receipt, LogOut, Users } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { FileText, TrendingUp, TrendingDown, Wallet, Mic, ChevronLeft, Send, Loader2, BookOpen, Receipt, LogOut, Users, Sparkles } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { useNavigate } from "react-router-dom";
@@ -334,31 +334,38 @@ const Dashboard = () => {
         </Card>
       )}
 
-      {/* Shortcut Buttons */}
-      <div className="flex flex-wrap gap-2 justify-end">
-        {["قبضت", "دفعت", "اشتريت", "صرفت"].map((action) => (
-          <button
-            key={action}
-            onClick={() => setInputValue((prev) => (prev ? prev + " " : "") + action)}
-            className="px-4 py-2 rounded-full bg-secondary text-sm font-medium text-foreground hover:bg-accent transition-colors active:scale-95"
-          >
-            {action}
-          </button>
-        ))}
-      </div>
-
-      {/* Input */}
-      <div>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-base font-semibold text-foreground">ابدأ هنا</h2>
+      {/* Quick Entry Section */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
           <button
             onClick={() => setShowWebhookInput(!showWebhookInput)}
             className="text-[10px] text-muted-foreground hover:text-foreground transition-colors"
           >
             ⚙️ إعدادات Webhook
           </button>
+          <h2 className="text-base font-semibold text-foreground">سجّل عملية</h2>
         </div>
-        <Card className="border-0 shadow-sm">
+
+        {/* Shortcut Chips */}
+        <div className="flex gap-2 justify-end">
+          {[
+            { label: "💰 قبضت", value: "قبضت" },
+            { label: "💸 دفعت", value: "دفعت" },
+            { label: "🛒 اشتريت", value: "اشتريت" },
+            { label: "🧾 صرفت", value: "صرفت" },
+          ].map((action) => (
+            <button
+              key={action.value}
+              onClick={() => setInputValue(action.value + " ")}
+              className="px-3 py-1.5 rounded-full bg-secondary text-xs font-medium text-foreground hover:bg-primary/10 hover:text-primary transition-all active:scale-95 border border-transparent hover:border-primary/20"
+            >
+              {action.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Input Card */}
+        <Card className="border-0 shadow-md bg-gradient-to-l from-primary/5 to-background">
           <CardContent className="p-3">
             <div className="flex items-center gap-2">
               <button
@@ -372,8 +379,8 @@ const Dashboard = () => {
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSend()}
-                placeholder="اكتب عملية… مثال: دفعت 500 شيكل كهرباء"
-                className="flex-1 h-10 bg-secondary rounded-lg px-3 text-sm text-foreground placeholder:text-muted-foreground border-0 outline-none focus:ring-2 focus:ring-primary/20"
+                placeholder="اكتب أو تكلم… مثال: قبضت 500 من أحمد"
+                className="flex-1 h-10 bg-secondary/60 rounded-lg px-3 text-sm text-foreground placeholder:text-muted-foreground border-0 outline-none focus:ring-2 focus:ring-primary/20"
                 dir="rtl"
               />
               <button
@@ -390,6 +397,30 @@ const Dashboard = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Quick Examples */}
+        <div className="space-y-2">
+          <div className="flex items-center gap-1 justify-end">
+            <p className="text-[11px] text-muted-foreground">أمثلة سريعة</p>
+            <Sparkles className="h-3 w-3 text-primary" />
+          </div>
+          <div className="flex flex-wrap gap-1.5 justify-end">
+            {[
+              "قبضت 500 من أحمد",
+              "دفعت كهرباء 100",
+              "اشتريت بضاعة 1500",
+              "صرفت بنزين 50",
+            ].map((example) => (
+              <button
+                key={example}
+                onClick={() => setInputValue(example)}
+                className="px-2.5 py-1 rounded-md bg-muted/50 text-[11px] text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all active:scale-95"
+              >
+                {example}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* P&L Quick Link */}
