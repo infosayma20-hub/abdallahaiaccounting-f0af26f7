@@ -347,7 +347,6 @@ const Dashboard = () => {
             { label: "🛒 اشتريت", value: "اشتريت" },
             { label: "🧾 صرفت", value: "صرفت" },
             { label: "🏦 نزل الراتب", value: "نزل الراتب" },
-            { label: "😄 شخص مبسوط", value: "شخص مبسوط" },
           ].map((action) => (
             <button
               key={action.value}
@@ -395,7 +394,7 @@ const Dashboard = () => {
 
         {/* Suggested Amounts */}
         <div className="flex gap-1.5 flex-wrap">
-          {[10, 20, 30, 50, 100, 200, 500, 1000, 5000].map((amount) => (
+          {[10, 20, 30, 50, 100, 200, 500, 1000].map((amount) => (
             <button
               key={amount}
               onClick={() => setInputValue((prev) => prev.replace(/\d+/g, '').trim() + ` ${amount}`)}
