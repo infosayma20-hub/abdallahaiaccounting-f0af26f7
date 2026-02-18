@@ -411,6 +411,38 @@ const Dashboard = () => {
           ))}
         </div>
 
+        {/* Suggested Expense Names */}
+        <div className="space-y-2">
+          <div className="flex items-center gap-1 justify-end">
+            <p className="text-[11px] text-muted-foreground">مصاريف يومية</p>
+          </div>
+          <div className="flex flex-wrap gap-1.5 justify-end">
+            {["بنزين", "مواصلات", "أكل", "ضيافة", "قرطاسية", "تنظيف", "صيانة", "بضاعة"].map((name) => (
+              <button
+                key={name}
+                onClick={() => setInputValue((prev) => prev.trim() + ` ${name}`)}
+                className="px-2.5 py-1 rounded-md bg-muted/50 text-[11px] text-muted-foreground hover:bg-warning/10 hover:text-warning transition-all active:scale-95"
+              >
+                {name}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center gap-1 justify-end mt-2">
+            <p className="text-[11px] text-muted-foreground">مصاريف شهرية</p>
+          </div>
+          <div className="flex flex-wrap gap-1.5 justify-end">
+            {["إيجار", "كهرباء", "مياه", "إنترنت", "هاتف", "رواتب", "تأمين", "إعلان"].map((name) => (
+              <button
+                key={name}
+                onClick={() => setInputValue((prev) => prev.trim() + ` ${name}`)}
+                className="px-2.5 py-1 rounded-md bg-muted/50 text-[11px] text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all active:scale-95"
+              >
+                {name}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Quick Examples */}
         <div className="space-y-2">
           <div className="flex items-center gap-1 justify-end">
