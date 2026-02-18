@@ -204,7 +204,7 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="px-4 pt-6 space-y-6">
+    <div className="px-4 pt-6 space-y-6" dir="rtl">
       {user && (
         <CompleteProfileDialog
           open={showProfileDialog}
@@ -247,18 +247,11 @@ const Dashboard = () => {
         ) : (
           summaryCards.map((card) => (
             <Card key={card.title} className="border-0 shadow-sm">
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between mb-3">
+              <CardContent className="p-4 text-center">
+                <div className="flex justify-center mb-3">
                   <div className={`p-2 rounded-lg ${card.iconBg}`}>
                     <card.icon className={`h-4 w-4 ${card.iconColor}`} />
                   </div>
-                  {card.trend && (
-                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                      card.trendUp ? "bg-primary/10 text-primary" : "bg-destructive/10 text-destructive"
-                    }`}>
-                      {card.trend}
-                    </span>
-                  )}
                 </div>
                 <p className="text-xs text-muted-foreground mb-1">{card.title}</p>
                 <p className="text-lg font-bold text-foreground">{card.value}</p>
@@ -343,11 +336,11 @@ const Dashboard = () => {
           >
             ⚙️ إعدادات Webhook
           </button>
-          <h2 className="text-base font-semibold text-foreground">سجّل عملية</h2>
+          <h2 className="text-base font-semibold text-foreground text-right">سجّل عملية</h2>
         </div>
 
         {/* Shortcut Chips */}
-        <div className="flex gap-2 justify-end">
+        <div className="flex gap-2 flex-wrap">
           {[
             { label: "💰 قبضت", value: "قبضت" },
             { label: "💸 دفعت", value: "دفعت" },
@@ -367,7 +360,7 @@ const Dashboard = () => {
         {/* Input Card */}
         <Card className="border-0 shadow-md bg-gradient-to-l from-primary/5 to-background">
           <CardContent className="p-3">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2" dir="ltr">
               <button
                 onClick={() => navigate("/voice")}
                 className="flex-shrink-0 w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center hover:bg-primary/20 transition-colors active:scale-95"
@@ -399,7 +392,7 @@ const Dashboard = () => {
         </Card>
 
         {/* Suggested Amounts */}
-        <div className="flex gap-1.5 justify-end flex-wrap">
+        <div className="flex gap-1.5 flex-wrap">
           {[10, 20, 30, 50, 100, 200, 500, 1000, 5000].map((amount) => (
             <button
               key={amount}
@@ -413,10 +406,8 @@ const Dashboard = () => {
 
         {/* Suggested Expense Names */}
         <div className="space-y-2">
-          <div className="flex items-center gap-1 justify-end">
-            <p className="text-[11px] text-muted-foreground">مصاريف يومية</p>
-          </div>
-          <div className="flex flex-wrap gap-1.5 justify-end">
+          <p className="text-[11px] text-muted-foreground">مصاريف يومية</p>
+          <div className="flex flex-wrap gap-1.5">
             {["بنزين", "مواصلات", "أكل", "ضيافة", "قرطاسية", "تنظيف", "صيانة", "بضاعة"].map((name) => (
               <button
                 key={name}
@@ -427,10 +418,8 @@ const Dashboard = () => {
               </button>
             ))}
           </div>
-          <div className="flex items-center gap-1 justify-end mt-2">
-            <p className="text-[11px] text-muted-foreground">مصاريف شهرية</p>
-          </div>
-          <div className="flex flex-wrap gap-1.5 justify-end">
+          <p className="text-[11px] text-muted-foreground mt-2">مصاريف شهرية</p>
+          <div className="flex flex-wrap gap-1.5">
             {["إيجار", "كهرباء", "مياه", "إنترنت", "هاتف", "رواتب", "تأمين", "إعلان"].map((name) => (
               <button
                 key={name}
@@ -445,11 +434,11 @@ const Dashboard = () => {
 
         {/* Quick Examples */}
         <div className="space-y-2">
-          <div className="flex items-center gap-1 justify-end">
-            <p className="text-[11px] text-muted-foreground">أمثلة سريعة</p>
+          <div className="flex items-center gap-1">
             <Sparkles className="h-3 w-3 text-primary" />
+            <p className="text-[11px] text-muted-foreground">أمثلة سريعة</p>
           </div>
-          <div className="flex flex-wrap gap-1.5 justify-end">
+          <div className="flex flex-wrap gap-1.5">
             {[
               "قبضت 500 من أحمد",
               "دفعت كهرباء 100",
