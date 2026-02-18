@@ -1,4 +1,4 @@
-import { BookOpen, Receipt, FileSpreadsheet, Users, BarChart3, Sparkles, MoreHorizontal } from "lucide-react";
+import { BookOpen, Receipt, FileSpreadsheet, Users, BarChart3, Sparkles } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 
@@ -12,9 +12,7 @@ const menuItems = [
 ];
 
 const shortcuts = [
-  { label: "فاتورة جديدة", emoji: "📄", path: "/transactions" },
-  { label: "مصروف جديد", emoji: "💸", path: "/" },
-  { label: "تقرير سريع", emoji: "📊", path: "/profit-loss" },
+  { label: "✨ التقرير الذكي", emoji: "", path: "/smart-report" },
 ];
 
 const MenuPage = () => {
@@ -28,22 +26,19 @@ const MenuPage = () => {
         <p className="text-sm text-muted-foreground">جميع الأدوات والخدمات</p>
       </div>
 
-      {/* اختصارات */}
-      <div>
-        <h2 className="text-sm font-semibold text-muted-foreground mb-3">الأكثر استخداماً</h2>
-        <div className="flex gap-2 overflow-x-auto pb-2">
-          {shortcuts.map((s) => (
-            <button
-              key={s.label}
-              onClick={() => navigate(s.path)}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-card border border-border shadow-sm whitespace-nowrap hover:bg-accent transition-colors active:scale-95"
-            >
-              <span>{s.emoji}</span>
-              <span className="text-xs font-medium text-foreground">{s.label}</span>
-            </button>
-          ))}
+      {/* التقرير الذكي */}
+      <button
+        onClick={() => navigate("/smart-report")}
+        className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-gradient-to-l from-primary/10 to-primary/5 border border-primary/20 shadow-sm hover:shadow-md transition-all active:scale-[0.98]"
+      >
+        <div className="p-2 rounded-lg bg-primary/10">
+          <Sparkles className="h-5 w-5 text-primary" />
         </div>
-      </div>
+        <div className="text-right">
+          <p className="text-sm font-semibold text-foreground">التقرير الذكي</p>
+          <p className="text-[10px] text-muted-foreground">اسأل عن بياناتك المالية بلغتك</p>
+        </div>
+      </button>
 
       {/* شبكة القائمة */}
       <div className="grid grid-cols-2 gap-3">
