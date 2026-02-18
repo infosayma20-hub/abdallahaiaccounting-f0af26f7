@@ -43,9 +43,9 @@ const accountTypeOptions = [
   { value: "Asset", label: "أصول" },
   { value: "Liability", label: "التزامات" },
   { value: "Revenue", label: "إيرادات" },
+  { value: "Purchases", label: "مشتريات" },
   { value: "Expenses", label: "مصروفات" },
   { value: "Owner's Equity", label: "حقوق الملكية" },
-  { value: "Purchases", label: "مشتريات" },
 ];
 
 const AccountsPage = () => {
@@ -112,7 +112,9 @@ const AccountsPage = () => {
     }
   };
 
-  const accountTypes = [...new Set(accounts.map(a => a.fields["Account Type"]).filter(Boolean))];
+  const typeOrder = ["Asset", "Liability", "Revenue", "Purchases", "Expenses", "Owner's Equity", "Equity"];
+  const accountTypes = [...new Set(accounts.map(a => a.fields["Account Type"]).filter(Boolean))]
+    .sort((a, b) => (typeOrder.indexOf(a!) === -1 ? 99 : typeOrder.indexOf(a!)) - (typeOrder.indexOf(b!) === -1 ? 99 : typeOrder.indexOf(b!)));
   const filtered = filterType ? accounts.filter(a => a.fields["Account Type"] === filterType) : accounts;
 
   return (
