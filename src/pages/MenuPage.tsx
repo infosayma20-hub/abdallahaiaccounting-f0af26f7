@@ -8,7 +8,7 @@ const menuItems = [
   { icon: FileText, label: "الفواتير", description: "مبيعات ومشتريات", color: "bg-warning/10", iconColor: "text-warning", path: "/invoices" },
   { icon: FileSpreadsheet, label: "تصدير", description: "Excel و PDF", color: "bg-accent", iconColor: "text-accent-foreground", path: "/export" },
   { icon: Users, label: "العملاء", description: "زبائن وموردين", color: "bg-primary/10", iconColor: "text-primary", path: "/contacts" },
-  { icon: BarChart3, label: "التقارير", description: "تقارير مالية", color: "bg-warning/10", iconColor: "text-warning", path: "/profit-loss" },
+  { icon: BarChart3, label: "الأرباح والخسائر", description: "تقارير مالية", color: "bg-warning/10", iconColor: "text-warning", path: "/profit-loss" },
   { icon: CreditCard, label: "الباقات", description: "الأسعار والاشتراك", color: "bg-secondary", iconColor: "text-secondary-foreground", path: "/pricing" },
 ];
 
