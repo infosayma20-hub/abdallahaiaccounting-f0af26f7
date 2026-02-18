@@ -1,10 +1,15 @@
 import { useState, useEffect } from "react";
-import { ArrowRight, Loader2, RefreshCw } from "lucide-react";
+import { ArrowRight, Loader2, RefreshCw, Plus } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 
 interface Account {
   id: string;
@@ -20,6 +25,7 @@ const typeColors: Record<string, string> = {
   "Revenue": "bg-accent text-accent-foreground",
   "Expenses": "bg-destructive/10 text-destructive",
   "Equity": "bg-muted text-muted-foreground",
+  "Owner's Equity": "bg-muted text-muted-foreground",
   "Purchases": "bg-secondary text-secondary-foreground",
 };
 
@@ -28,16 +34,32 @@ const typeLabels: Record<string, string> = {
   "Liability": "التزامات",
   "Revenue": "إيرادات",
   "Expenses": "مصروفات",
-  "Equity": "حقوق ملكية",
+  "Equity": "حقوق الملكية",
+  "Owner's Equity": "حقوق الملكية",
   "Purchases": "مشتريات",
 };
 
+const accountTypeOptions = [
+  { value: "Asset", label: "أصول" },
+  { value: "Liability", label: "التزامات" },
+  { value: "Revenue", label: "إيرادات" },
+  { value: "Expenses", label: "مصروفات" },
+  { value: "Owner's Equity", label: "حقوق الملكية" },
+  { value: "Purchases", label: "مشتريات" },
+];
+
 const AccountsPage = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { toast } = useToast();
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filterType, setFilterType] = useState<string | null>(null);
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [newAccountName, setNewAccountName] = useState("");
+  const [newAccountType, setNewAccountType] = useState("");
+  const [adding, setAdding] = useState(false);
 
   const fetchAccounts = async () => {
     setLoading(true);
@@ -56,14 +78,39 @@ const AccountsPage = () => {
 
   useEffect(() => { fetchAccounts(); }, []);
 
+  const handleAddAccount = async () => {
+    if (!newAccountName.trim() || !newAccountType) return;
+    setAdding(true);
+    try {
+      const { data, error: fnError } = await supabase.functions.invoke("airtable-create-account", {
+        body: {
+          accountName: newAccountName.trim(),
+          accountType: newAccountType,
+          clientId: user?.id,
+        },
+      });
+      if (fnError) throw fnError;
+      if (data?.error) throw new Error(data.error);
+      toast({ title: "تم إضافة الحساب بنجاح ✅" });
+      setNewAccountName("");
+      setNewAccountType("");
+      setShowAddDialog(false);
+      fetchAccounts();
+    } catch (err: any) {
+      toast({ title: "خطأ", description: err.message, variant: "destructive" });
+    } finally {
+      setAdding(false);
+    }
+  };
+
   const accountTypes = [...new Set(accounts.map(a => a.fields["Account Type"]).filter(Boolean))];
   const filtered = filterType ? accounts.filter(a => a.fields["Account Type"] === filterType) : accounts;
 
   return (
-    <div className="px-4 pt-6 space-y-4">
+    <div className="px-4 pt-6 space-y-4" dir="rtl">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate(-1)} className="p-2 rounded-lg hover:bg-muted transition-colors">
+          <button onClick={() => navigate("/")} className="p-2 rounded-lg hover:bg-muted transition-colors">
             <ArrowRight className="h-5 w-5 text-foreground" />
           </button>
           <div>
@@ -71,9 +118,14 @@ const AccountsPage = () => {
             <p className="text-xs text-muted-foreground">{accounts.length} حساب</p>
           </div>
         </div>
-        <Button variant="ghost" size="icon" onClick={fetchAccounts} disabled={loading}>
-          <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="icon" onClick={() => setShowAddDialog(true)}>
+            <Plus className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" onClick={fetchAccounts} disabled={loading}>
+            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -132,6 +184,43 @@ const AccountsPage = () => {
           ))}
         </div>
       )}
+
+      {/* Add Account Dialog */}
+      <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+        <DialogContent className="max-w-sm" dir="rtl">
+          <DialogHeader>
+            <DialogTitle>إضافة حساب جديد</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Input
+              placeholder="اسم الحساب"
+              value={newAccountName}
+              onChange={(e) => setNewAccountName(e.target.value)}
+              dir="rtl"
+            />
+            <Select value={newAccountType} onValueChange={setNewAccountType} dir="rtl">
+              <SelectTrigger>
+                <SelectValue placeholder="نوع الحساب" />
+              </SelectTrigger>
+              <SelectContent className="bg-background z-50">
+                {accountTypeOptions.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button
+              onClick={handleAddAccount}
+              className="w-full gap-2"
+              disabled={adding || !newAccountName.trim() || !newAccountType}
+            >
+              {adding && <Loader2 className="h-4 w-4 animate-spin" />}
+              إضافة
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
