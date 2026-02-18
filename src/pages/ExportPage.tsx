@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ArrowRight, Loader2, RefreshCw, Download, FileSpreadsheet } from "lucide-react";
+import { ArrowRight, Loader2, RefreshCw, Download, FileSpreadsheet, FileText } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +20,8 @@ interface Transaction {
     Currency?: string;
     Date?: string;
     Reference?: string;
+    "Debit Account Rollup"?: string;
+    "Credit Account Rollup"?: string;
   };
 }
 
@@ -80,7 +82,7 @@ const ExportPage = () => {
     return true;
   });
 
-  const handleExport = () => {
+  const handleExportExcel = () => {
     if (filteredTransactions.length === 0) {
       toast({ title: "لا توجد بيانات للتصدير", variant: "destructive" });
       return;
@@ -101,13 +103,10 @@ const ExportPage = () => {
       const ws = XLSX.utils.json_to_sheet(data);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "المعاملات");
-
-      // Auto-width columns
       const colWidths = Object.keys(data[0]).map((key) => ({
         wch: Math.max(key.length, ...data.map((row) => String((row as any)[key]).length)) + 2,
       }));
       ws["!cols"] = colWidths;
-
       const fileName = `معاملات_${dateFrom || "بداية"}_${dateTo || "نهاية"}.xlsx`;
       XLSX.writeFile(wb, fileName);
       toast({ title: "تم تصدير الملف بنجاح ✅" });
@@ -116,6 +115,106 @@ const ExportPage = () => {
     } finally {
       setExporting(false);
     }
+  };
+
+  const handleExportPDF = () => {
+    if (filteredTransactions.length === 0) {
+      toast({ title: "لا توجد بيانات للتصدير", variant: "destructive" });
+      return;
+    }
+
+    const totalRevenue = filteredTransactions
+      .filter(tx => tx.fields["Debit Account Rollup"] === "Asset" && tx.fields["Credit Account Rollup"] === "Revenue")
+      .reduce((sum, tx) => sum + (tx.fields.Amount || 0), 0);
+    const totalExpenses = filteredTransactions
+      .filter(tx => tx.fields["Debit Account Rollup"] === "Expenses")
+      .reduce((sum, tx) => sum + (tx.fields.Amount || 0), 0);
+    const netProfit = totalRevenue - totalExpenses;
+    const totalAmount = filteredTransactions.reduce((sum, tx) => sum + (tx.fields.Amount || 0), 0);
+
+    const rows = filteredTransactions.map((tx, i) => `
+      <tr style="${i % 2 === 0 ? '' : 'background:#f9fafb;'}">
+        <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;font-size:12px;">${i + 1}</td>
+        <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;font-size:12px;">${tx.fields.Date || ""}</td>
+        <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;font-size:12px;">${tx.fields.Description || ""}</td>
+        <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;font-size:12px;">${tx.fields["Transaction Type"] || ""}</td>
+        <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;font-size:12px;">${tx.fields["Debit Account Name"] || ""}</td>
+        <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;font-size:12px;">${tx.fields["Credit Account Name"] || ""}</td>
+        <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;font-size:12px;font-weight:600;">₪${(tx.fields.Amount || 0).toLocaleString()}</td>
+      </tr>
+    `).join("");
+
+    const html = `
+      <html dir="rtl">
+        <head>
+          <title>تقرير مالي</title>
+          <style>
+            * { margin:0; padding:0; box-sizing:border-box; font-family:'IBM Plex Sans Arabic','Segoe UI',sans-serif; }
+            body { padding:30px; color:#1a1a2e; }
+            @media print { body { padding:15px; } }
+          </style>
+        </head>
+        <body>
+          <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:25px;border-bottom:3px solid #2d8a5e;padding-bottom:15px;">
+            <div>
+              <h1 style="font-size:24px;color:#2d8a5e;font-weight:700;">تقرير مالي</h1>
+              <p style="font-size:12px;color:#666;margin-top:4px;">عبدالله AI للمحاسبة</p>
+            </div>
+            <div style="text-align:left;font-size:12px;color:#666;">
+              <span style="display:block;">الفترة: ${dateFrom || "بداية"} - ${dateTo || "نهاية"}</span>
+              <span style="display:block;">تاريخ التقرير: ${new Date().toLocaleDateString("ar")}</span>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:15px;margin-bottom:25px;">
+            <div style="flex:1;background:#f0faf5;border-radius:10px;padding:15px;border:1px solid #d1fae5;">
+              <p style="font-size:11px;color:#2d8a5e;">إجمالي الإيرادات</p>
+              <p style="font-size:20px;font-weight:700;color:#2d8a5e;">₪${totalRevenue.toLocaleString()}</p>
+            </div>
+            <div style="flex:1;background:#fef2f2;border-radius:10px;padding:15px;border:1px solid #fee2e2;">
+              <p style="font-size:11px;color:#dc2626;">إجمالي المصروفات</p>
+              <p style="font-size:20px;font-weight:700;color:#dc2626;">₪${totalExpenses.toLocaleString()}</p>
+            </div>
+            <div style="flex:1;background:${netProfit >= 0 ? '#f0faf5' : '#fef2f2'};border-radius:10px;padding:15px;border:1px solid ${netProfit >= 0 ? '#d1fae5' : '#fee2e2'};">
+              <p style="font-size:11px;color:${netProfit >= 0 ? '#2d8a5e' : '#dc2626'};">${netProfit >= 0 ? 'صافي الربح' : 'صافي الخسارة'}</p>
+              <p style="font-size:20px;font-weight:700;color:${netProfit >= 0 ? '#2d8a5e' : '#dc2626'};">₪${Math.abs(netProfit).toLocaleString()}</p>
+            </div>
+          </div>
+
+          <table style="width:100%;border-collapse:collapse;">
+            <thead>
+              <tr style="background:#f0faf5;">
+                <th style="padding:10px;text-align:right;font-size:12px;color:#2d8a5e;border-bottom:2px solid #2d8a5e;">#</th>
+                <th style="padding:10px;text-align:right;font-size:12px;color:#2d8a5e;border-bottom:2px solid #2d8a5e;">التاريخ</th>
+                <th style="padding:10px;text-align:right;font-size:12px;color:#2d8a5e;border-bottom:2px solid #2d8a5e;">الوصف</th>
+                <th style="padding:10px;text-align:right;font-size:12px;color:#2d8a5e;border-bottom:2px solid #2d8a5e;">النوع</th>
+                <th style="padding:10px;text-align:right;font-size:12px;color:#2d8a5e;border-bottom:2px solid #2d8a5e;">مدين</th>
+                <th style="padding:10px;text-align:right;font-size:12px;color:#2d8a5e;border-bottom:2px solid #2d8a5e;">دائن</th>
+                <th style="padding:10px;text-align:right;font-size:12px;color:#2d8a5e;border-bottom:2px solid #2d8a5e;">المبلغ</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows}
+              <tr style="background:#f0faf5;font-weight:700;">
+                <td colspan="6" style="padding:10px;border-top:2px solid #2d8a5e;font-size:13px;">الإجمالي (${filteredTransactions.length} معاملة)</td>
+                <td style="padding:10px;border-top:2px solid #2d8a5e;font-size:15px;color:#2d8a5e;">₪${totalAmount.toLocaleString()}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div style="text-align:center;margin-top:30px;font-size:10px;color:#999;border-top:1px solid #e5e7eb;padding-top:15px;">
+            تم إنشاؤه بواسطة عبدالله AI للمحاسبة • ${new Date().toLocaleDateString("ar")}
+          </div>
+        </body>
+      </html>
+    `;
+
+    const win = window.open("", "_blank");
+    if (!win) return;
+    win.document.write(html);
+    win.document.close();
+    win.print();
+    toast({ title: "تم فتح التقرير للطباعة/PDF ✅" });
   };
 
   const totalAmount = filteredTransactions.reduce((sum, tx) => sum + (tx.fields.Amount || 0), 0);
@@ -128,8 +227,8 @@ const ExportPage = () => {
             <ArrowRight className="h-5 w-5 text-foreground" />
           </button>
           <div>
-            <h1 className="text-lg font-bold text-foreground">تصدير Excel</h1>
-            <p className="text-xs text-muted-foreground">تصدير المعاملات إلى ملف Excel</p>
+            <h1 className="text-lg font-bold text-foreground">التصدير</h1>
+            <p className="text-xs text-muted-foreground">تصدير المعاملات إلى Excel أو PDF</p>
           </div>
         </div>
         <Button variant="ghost" size="icon" onClick={fetchData} disabled={loading}>
@@ -190,19 +289,26 @@ const ExportPage = () => {
             </CardContent>
           </Card>
 
-          {/* Export Button */}
-          <Button
-            onClick={handleExport}
-            className="w-full gap-2 h-12 text-base"
-            disabled={exporting || filteredTransactions.length === 0}
-          >
-            {exporting ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
-            ) : (
-              <FileSpreadsheet className="h-5 w-5" />
-            )}
-            تصدير {filteredTransactions.length} معاملة إلى Excel
-          </Button>
+          {/* Export Buttons */}
+          <div className="grid grid-cols-2 gap-3">
+            <Button
+              onClick={handleExportExcel}
+              className="gap-2 h-12 text-sm rounded-xl"
+              disabled={exporting || filteredTransactions.length === 0}
+            >
+              {exporting ? <Loader2 className="h-5 w-5 animate-spin" /> : <FileSpreadsheet className="h-5 w-5" />}
+              تصدير Excel
+            </Button>
+            <Button
+              onClick={handleExportPDF}
+              variant="outline"
+              className="gap-2 h-12 text-sm rounded-xl"
+              disabled={filteredTransactions.length === 0}
+            >
+              <FileText className="h-5 w-5" />
+              تصدير PDF
+            </Button>
+          </div>
 
           {/* Preview */}
           {filteredTransactions.length > 0 && (
