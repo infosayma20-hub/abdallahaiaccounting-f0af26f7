@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Transaction {
   id: string;
@@ -30,16 +31,26 @@ const typeColors: Record<string, string> = {
 
 const TransactionsPage = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchTransactions = async () => {
+    if (!user) return;
     setLoading(true);
     setError(null);
     try {
-      const { data, error: fnError } = await supabase.functions.invoke("airtable-transactions");
-      if (fnError) throw fnError;
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-transactions?clientId=${user.id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+        }
+      );
+      if (!res.ok) throw new Error("Failed to fetch transactions");
+      const data = await res.json();
       if (data?.error) throw new Error(data.error);
       setTransactions(data?.records || []);
     } catch (err: any) {
@@ -49,7 +60,7 @@ const TransactionsPage = () => {
     }
   };
 
-  useEffect(() => { fetchTransactions(); }, []);
+  useEffect(() => { fetchTransactions(); }, [user]);
 
   return (
     <div className="px-4 pt-6 space-y-4">
