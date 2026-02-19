@@ -33,9 +33,30 @@ serve(async (req) => {
     if (uuidRes.ok) {
       const uuidData = await uuidRes.json();
       if (uuidData.records && uuidData.records.length > 0) {
-        // Client already exists by UUID - return existing record
-        console.log(`Client already exists with UUID: ${clientName}`);
-        return new Response(JSON.stringify({ success: true, existing: true, data: uuidData }), {
+        // Client exists by UUID - update with any new profile data
+        const existingRecordId = uuidData.records[0].id;
+        const existingFields = uuidData.records[0].fields;
+        console.log(`Client exists with UUID: ${clientName}, updating profile data`);
+
+        const updateUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Clients/${existingRecordId}`;
+        await fetch(updateUrl, {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            fields: {
+              "Phone Number": phoneNumber || existingFields["Phone Number"] || "",
+              "Company Name": companyName || existingFields["Company Name"] || "",
+              "Address": address || existingFields["Address"] || "",
+              "Country": country || existingFields["Country"] || "",
+              "Work Field": workField || existingFields["Work Field"] || "",
+            },
+          }),
+        });
+
+        return new Response(JSON.stringify({ success: true, existing: true, updated: true, data: uuidData }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
