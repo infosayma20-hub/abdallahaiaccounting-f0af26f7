@@ -264,7 +264,7 @@ const ContactsPage = () => {
             const config = typeConfig[f["Contact Type"] || ""] || { color: "text-muted-foreground", bgColor: "bg-muted", icon: User, label: "غير محدد" };
             const TypeIcon = config.icon;
             const name = f["Contact Name"] || "بدون اسم";
-            const hasDetails = f["Phone"] || f["Email"] || f["Company"] || f["Address"];
+            const hasDetails = true; // Always allow expand for statement button
 
             return (
               <Card
