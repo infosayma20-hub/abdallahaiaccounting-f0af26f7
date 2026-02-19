@@ -15,6 +15,7 @@ interface ParsedTransaction {
   credit: string;
   amount: string;
   description: string;
+  contactName?: string | null;
 }
 
 const VoiceInput = () => {
@@ -230,6 +231,12 @@ const VoiceInput = () => {
                   <span className="text-xs text-muted-foreground">الوصف</span>
                   <span className="text-sm text-foreground">{transaction.description}</span>
                 </div>
+                {transaction.contactName && (
+                  <div className="flex justify-between items-center py-2 border-t border-border">
+                    <span className="text-xs text-muted-foreground">جهة الاتصال</span>
+                    <span className="text-sm font-semibold text-primary">{transaction.contactName} 🔗</span>
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
