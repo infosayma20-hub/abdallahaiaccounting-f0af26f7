@@ -5,23 +5,35 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-async function findContactByName(baseId: string, apiKey: string, clientId: string, name: string): Promise<string | null> {
-  // Fetch contacts for this client and find matching name
+async function getClientRecordId(baseId: string, apiKey: string, clientUUID: string): Promise<string | null> {
+  const filter = encodeURIComponent(`{Client Name}="${clientUUID}"`);
+  const url = `https://api.airtable.com/v0/${baseId}/Clients?filterByFormula=${filter}&pageSize=1`;
+  const res = await fetch(url, { headers: { 'Authorization': `Bearer ${apiKey}` } });
+  if (!res.ok) return null;
+  const data = await res.json();
+  return data.records?.[0]?.id || null;
+}
+
+async function findContactByName(baseId: string, apiKey: string, clientUUID: string, name: string): Promise<string | null> {
+  // First resolve client UUID to Airtable record ID
+  const clientRecordId = await getClientRecordId(baseId, apiKey, clientUUID);
+  if (!clientRecordId) {
+    console.log(`Client record not found for UUID: ${clientUUID}`);
+    return null;
+  }
+  console.log(`Client UUID ${clientUUID} → Record ID ${clientRecordId}`);
+
+  // Fetch contacts linked to this client record
   const url = `https://api.airtable.com/v0/${baseId}/Contacts?pageSize=100`;
   const res = await fetch(url, { headers: { 'Authorization': `Bearer ${apiKey}` } });
   if (!res.ok) return null;
   const data = await res.json();
   
   const contacts = (data.records || []).filter((c: any) => {
-    const cn = c.fields["Client Name"] || c.fields["Client name"];
-    if (cn) {
-      if (Array.isArray(cn)) return cn.includes(clientId);
-      return cn === clientId;
-    }
     const cf = c.fields["Client"];
     if (!cf) return false;
-    if (Array.isArray(cf)) return cf.some((x: string) => x.includes(clientId));
-    return String(cf).includes(clientId);
+    if (Array.isArray(cf)) return cf.includes(clientRecordId);
+    return cf === clientRecordId;
   });
 
   // Search for best match
@@ -35,15 +47,16 @@ async function findContactByName(baseId: string, apiKey: string, clientId: strin
   return null;
 }
 
-async function linkContactToLatestTransaction(baseId: string, apiKey: string, clientId: string, contactRecordId: string, description: string) {
-  // Find the most recent transaction matching description for this client
-  const filter = encodeURIComponent(`{Client}="${clientId}"`);
+async function linkContactToLatestTransaction(baseId: string, apiKey: string, clientUUID: string, contactId: string, description: string) {
+  const clientRecordId = await getClientRecordId(baseId, apiKey, clientUUID);
+  if (!clientRecordId) return;
+
+  const filter = encodeURIComponent(`{Client}="${clientRecordId}"`);
   const url = `https://api.airtable.com/v0/${baseId}/Transactions?filterByFormula=${filter}&sort%5B0%5D%5Bfield%5D=Date&sort%5B0%5D%5Bdirection%5D=desc&pageSize=5`;
   const res = await fetch(url, { headers: { 'Authorization': `Bearer ${apiKey}` } });
   if (!res.ok) return;
   const data = await res.json();
   
-  // Find the transaction that matches description or is most recent
   const records = data.records || [];
   let targetRecord = null;
   
@@ -55,13 +68,11 @@ async function linkContactToLatestTransaction(baseId: string, apiKey: string, cl
     }
   }
   
-  // Fallback: use the most recent transaction
   if (!targetRecord && records.length > 0) {
     targetRecord = records[0];
   }
   
   if (targetRecord && !targetRecord.fields["Contact"]) {
-    // Update the transaction with the contact link
     const updateUrl = `https://api.airtable.com/v0/${baseId}/Transactions/${targetRecord.id}`;
     await fetch(updateUrl, {
       method: 'PATCH',
@@ -70,10 +81,10 @@ async function linkContactToLatestTransaction(baseId: string, apiKey: string, cl
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        fields: { "Contact": [contactRecordId] },
+        fields: { "Contact": [contactId] },
       }),
     });
-    console.log(`Linked contact ${contactRecordId} to transaction ${targetRecord.id}`);
+    console.log(`Linked contact ${contactId} to transaction ${targetRecord.id}`);
   }
 }
 
