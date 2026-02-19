@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ArrowRight, Loader2, RefreshCw, Plus, Phone, Mail, Building2, MapPin, User, Users, ShoppingBag, Search, ChevronDown, ChevronUp, Sparkles } from "lucide-react";
+import { ArrowRight, Loader2, RefreshCw, Plus, Phone, Mail, Building2, MapPin, User, Users, ShoppingBag, Search, ChevronDown, ChevronUp, Sparkles, Receipt } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import ContactStatementDialog from "@/components/ContactStatementDialog";
 
 interface Contact {
   id: string;
@@ -49,6 +50,7 @@ const ContactsPage = () => {
   const [newContact, setNewContact] = useState({
     name: "", type: "", phone: "", email: "", company: "", address: "",
   });
+  const [statementContact, setStatementContact] = useState<{ id: string; name: string; type: string } | null>(null);
 
   const fetchContacts = async () => {
     if (!user) return;
@@ -315,10 +317,22 @@ const ContactsPage = () => {
                     </div>
                   </div>
 
-                  {/* Expanded Details */}
                   {isExpanded && hasDetails && (
                     <div className="px-4 pb-4 pt-0">
                       <div className="border-t border-border/50 pt-3 space-y-3">
+                        {/* Statement Button */}
+                        <button
+                          className="flex items-center gap-3 p-2.5 rounded-xl bg-primary/10 hover:bg-primary/20 transition-colors w-full"
+                          onClick={(e) => { e.stopPropagation(); setStatementContact({ id: contact.id, name, type: f["Contact Type"] || "" }); }}
+                        >
+                          <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
+                            <Receipt className="h-4 w-4 text-primary" />
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xs font-semibold text-primary">كشف حساب</p>
+                            <p className="text-[10px] text-muted-foreground">عرض جميع المعاملات المالية</p>
+                          </div>
+                        </button>
                         {f["Phone"] && (
                           <a href={`tel:${f["Phone"]}`} className="flex items-center gap-3 p-2.5 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors" onClick={e => e.stopPropagation()}>
                             <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 flex items-center justify-center">
@@ -408,6 +422,17 @@ const ContactsPage = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Contact Statement Dialog */}
+      {statementContact && (
+        <ContactStatementDialog
+          open={!!statementContact}
+          onClose={() => setStatementContact(null)}
+          contactId={statementContact.id}
+          contactName={statementContact.name}
+          contactType={statementContact.type}
+        />
+      )}
     </div>
   );
 };
