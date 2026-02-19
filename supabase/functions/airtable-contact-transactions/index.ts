@@ -35,13 +35,21 @@ serve(async (req) => {
 
     if (!contactId) throw new Error('contactId is required');
 
-    // Fetch transactions filtered by Contact linked record
-    const filterFormula = encodeURIComponent(`FIND("${contactId}", ARRAYJOIN(RECORD_ID(Contact)))`);
-    
-    // Since filtering by linked record ID is tricky, fetch all transactions for this client and filter
-    const clientFilter = clientId ? `&filterByFormula=${encodeURIComponent(`{Client}="${clientId}"`)}` : '';
-    const txUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Transactions?view=${encodeURIComponent('ملخص الحركات المحاسبية')}&pageSize=100${clientFilter}`;
+    // Fetch all transactions (can't filter linked records by formula with UUID)
+    const txUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Transactions?view=${encodeURIComponent('ملخص الحركات المحاسبية')}&pageSize=100`;
     const accountsUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Accounts?pageSize=100`;
+
+    // If clientId is a UUID, resolve to Airtable record ID
+    let clientRecordId = clientId;
+    if (clientId && !clientId.startsWith('rec')) {
+      const clientFilter = encodeURIComponent(`{Client Name}="${clientId}"`);
+      const clientUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Clients?filterByFormula=${clientFilter}&pageSize=1`;
+      const clientRes = await fetch(clientUrl, { headers: { 'Authorization': `Bearer ${AIRTABLE_API_KEY}` } });
+      if (clientRes.ok) {
+        const clientData = await clientRes.json();
+        clientRecordId = clientData.records?.[0]?.id || clientId;
+      }
+    }
 
     const [allTx, allAccounts] = await Promise.all([
       fetchAllRecords(txUrl, AIRTABLE_API_KEY),
