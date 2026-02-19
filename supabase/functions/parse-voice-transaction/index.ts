@@ -26,16 +26,17 @@ serve(async (req) => {
   "debit": "اسم الحساب المدين",
   "credit": "اسم الحساب الدائن",
   "amount": "المبلغ مع العملة (مثل ₪500)",
-  "description": "وصف مختصر للعملية"
+  "description": "وصف مختصر للعملية",
+  "contactName": "اسم الزبون أو المورد المذكور في النص أو null إذا لم يُذكر"
 }
 
 أمثلة:
-- "دفعت 500 شيكل كهرباء من الصندوق" → {"debit": "مصروفات الكهرباء", "credit": "الصندوق", "amount": "₪500", "description": "دفع فاتورة كهرباء"}
-- "استلمت 1000 شيكل من زبون أحمد" → {"debit": "الصندوق", "credit": "المبيعات", "amount": "₪1000", "description": "تحصيل من الزبون أحمد"}
-- "شراء بضاعة 2000 شيكل نقداً" → {"debit": "المشتريات", "credit": "الصندوق", "amount": "₪2000", "description": "شراء بضاعة نقداً"}
+- "دفعت 500 شيكل كهرباء من الصندوق" → {"debit": "مصروفات الكهرباء", "credit": "الصندوق", "amount": "₪500", "description": "دفع فاتورة كهرباء", "contactName": null}
+- "قبضت 1000 شيكل من العميل سلام صايمة" → {"debit": "الصندوق", "credit": "العملاء", "amount": "₪1000", "description": "قبض من الزبون سلام صايمة", "contactName": "سلام صايمة"}
+- "شراء بضاعة 2000 شيكل من المورد أحمد" → {"debit": "المشتريات", "credit": "الصندوق", "amount": "₪2000", "description": "شراء بضاعة من المورد أحمد", "contactName": "أحمد"}
 
 إذا لم تتمكن من فهم النص كعملية مالية، أعد:
-{"debit": "", "credit": "", "amount": "", "description": "لم أتمكن من فهم العملية"}`;
+{"debit": "", "credit": "", "amount": "", "description": "لم أتمكن من فهم العملية", "contactName": null}`;
 
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -87,6 +88,7 @@ serve(async (req) => {
         credit: parsed.credit || '',
         amount: parsed.amount || '',
         description: parsed.description || text,
+        contactName: parsed.contactName || null,
       },
     }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
