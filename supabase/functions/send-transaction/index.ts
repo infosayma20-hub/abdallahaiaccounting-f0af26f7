@@ -49,18 +49,34 @@ async function findContactByName(baseId: string, apiKey: string, clientUUID: str
 
 async function linkContactToLatestTransaction(baseId: string, apiKey: string, clientUUID: string, contactId: string, description: string) {
   const clientRecordId = await getClientRecordId(baseId, apiKey, clientUUID);
-  if (!clientRecordId) return;
+  if (!clientRecordId) {
+    console.log('linkContact: client record not found');
+    return;
+  }
 
-  const filter = encodeURIComponent(`{Client}="${clientRecordId}"`);
-  const url = `https://api.airtable.com/v0/${baseId}/Transactions?filterByFormula=${filter}&sort%5B0%5D%5Bfield%5D=Date&sort%5B0%5D%5Bdirection%5D=desc&pageSize=5`;
+  // Fetch recent transactions (can't filter linked records by formula reliably)
+  const url = `https://api.airtable.com/v0/${baseId}/Transactions?sort%5B0%5D%5Bfield%5D=Date&sort%5B0%5D%5Bdirection%5D=desc&pageSize=20`;
   const res = await fetch(url, { headers: { 'Authorization': `Bearer ${apiKey}` } });
-  if (!res.ok) return;
+  if (!res.ok) {
+    console.log('linkContact: failed to fetch transactions', res.status);
+    return;
+  }
   const data = await res.json();
   
-  const records = data.records || [];
+  // Filter by client in code
+  const records = (data.records || []).filter((r: any) => {
+    const client = r.fields["Client"];
+    if (!client) return false;
+    if (Array.isArray(client)) return client.includes(clientRecordId);
+    return client === clientRecordId;
+  });
+
+  console.log(`linkContact: found ${records.length} transactions for client ${clientRecordId}`);
+
+  // Find matching transaction without Contact already set
   let targetRecord = null;
-  
   for (const rec of records) {
+    if (rec.fields["Contact"]) continue; // already linked
     const desc = (rec.fields["Description"] || "").toLowerCase();
     if (desc && description.toLowerCase().includes(desc.substring(0, 10))) {
       targetRecord = rec;
@@ -68,13 +84,14 @@ async function linkContactToLatestTransaction(baseId: string, apiKey: string, cl
     }
   }
   
-  if (!targetRecord && records.length > 0) {
-    targetRecord = records[0];
+  // Fallback: most recent unlinked transaction
+  if (!targetRecord) {
+    targetRecord = records.find((r: any) => !r.fields["Contact"]);
   }
   
-  if (targetRecord && !targetRecord.fields["Contact"]) {
+  if (targetRecord) {
     const updateUrl = `https://api.airtable.com/v0/${baseId}/Transactions/${targetRecord.id}`;
-    await fetch(updateUrl, {
+    const updateRes = await fetch(updateUrl, {
       method: 'PATCH',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
@@ -84,10 +101,11 @@ async function linkContactToLatestTransaction(baseId: string, apiKey: string, cl
         fields: { "Contact": [contactId] },
       }),
     });
-    console.log(`Linked contact ${contactId} to transaction ${targetRecord.id}`);
+    console.log(`linkContact: PATCH ${targetRecord.id} → status ${updateRes.status}`);
+  } else {
+    console.log('linkContact: no unlinked transaction found');
   }
 }
-
 // Extract potential contact name from Arabic text
 function extractContactName(text: string): string | null {
   // Common patterns: "من الزبون X", "من العميل X", "من X", "الزبون X", "العميل X", "المورد X", "لـ X"
