@@ -47,14 +47,13 @@ async function findContactByName(baseId: string, apiKey: string, clientUUID: str
   return null;
 }
 
-async function linkContactToLatestTransaction(baseId: string, apiKey: string, clientUUID: string, contactId: string, description: string) {
+async function linkContactToLatestTransaction(baseId: string, apiKey: string, clientUUID: string, contactId: string, description: string, contactName: string) {
   const clientRecordId = await getClientRecordId(baseId, apiKey, clientUUID);
   if (!clientRecordId) {
     console.log('linkContact: client record not found');
     return;
   }
 
-  // Fetch recent transactions (can't filter linked records by formula reliably)
   const url = `https://api.airtable.com/v0/${baseId}/Transactions?sort%5B0%5D%5Bfield%5D=Date&sort%5B0%5D%5Bdirection%5D=desc&pageSize=20`;
   const res = await fetch(url, { headers: { 'Authorization': `Bearer ${apiKey}` } });
   if (!res.ok) {
@@ -63,7 +62,6 @@ async function linkContactToLatestTransaction(baseId: string, apiKey: string, cl
   }
   const data = await res.json();
   
-  // Filter by client in code
   const records = (data.records || []).filter((r: any) => {
     const client = r.fields["Client"];
     if (!client) return false;
@@ -71,22 +69,18 @@ async function linkContactToLatestTransaction(baseId: string, apiKey: string, cl
     return client === clientRecordId;
   });
 
-  console.log(`linkContact: found ${records.length} transactions for client ${clientRecordId}`);
+  console.log(`linkContact: found ${records.length} transactions for client, looking for "${contactName}"`);
 
-  // Find matching transaction without Contact already set
+  // Only link transactions whose description contains the contact name
+  const normalizedContactName = contactName.trim().toLowerCase();
   let targetRecord = null;
   for (const rec of records) {
-    if (rec.fields["Contact"]) continue; // already linked
+    if (rec.fields["Contact"]) continue;
     const desc = (rec.fields["Description"] || "").toLowerCase();
-    if (desc && description.toLowerCase().includes(desc.substring(0, 10))) {
+    if (desc && desc.includes(normalizedContactName)) {
       targetRecord = rec;
       break;
     }
-  }
-  
-  // Fallback: most recent unlinked transaction
-  if (!targetRecord) {
-    targetRecord = records.find((r: any) => !r.fields["Contact"]);
   }
   
   if (targetRecord) {
@@ -101,9 +95,9 @@ async function linkContactToLatestTransaction(baseId: string, apiKey: string, cl
         fields: { "Contact": [contactId] },
       }),
     });
-    console.log(`linkContact: PATCH ${targetRecord.id} → status ${updateRes.status}`);
+    console.log(`linkContact: PATCH ${targetRecord.id} (${(targetRecord.fields["Description"] || "").substring(0, 30)}) → status ${updateRes.status}`);
   } else {
-    console.log('linkContact: no unlinked transaction found');
+    console.log(`linkContact: no unlinked transaction found containing "${contactName}"`);
   }
 }
 // Extract potential contact name from Arabic text
@@ -181,7 +175,7 @@ serve(async (req) => {
       // Wait a bit for Make.com to create the transaction
       await new Promise(resolve => setTimeout(resolve, 5000));
       try {
-        await linkContactToLatestTransaction(AIRTABLE_BASE_ID, AIRTABLE_API_KEY, userId, contactRecordId, text);
+        await linkContactToLatestTransaction(AIRTABLE_BASE_ID, AIRTABLE_API_KEY, userId, contactRecordId, text, contactName || '');
       } catch (err) {
         console.error('Failed to link contact to transaction:', err);
       }
