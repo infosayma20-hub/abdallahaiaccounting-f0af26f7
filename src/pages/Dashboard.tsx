@@ -40,13 +40,20 @@ const Dashboard = () => {
   // Check if OAuth user needs to complete profile
   useEffect(() => {
     if (!user) return;
+    // Check localStorage first
     const profileCompleted = localStorage.getItem(`profile_completed_${user.id}`);
     const alreadySynced = localStorage.getItem(`airtable_synced_${user.id}`);
-    if (!profileCompleted && !alreadySynced) {
-      const isOAuth = user.app_metadata?.provider !== "email";
-      if (isOAuth) {
-        setShowProfileDialog(true);
-      }
+    if (profileCompleted || alreadySynced) return;
+    // Check user_metadata - if phone/company already set, profile was completed before
+    const meta = user.user_metadata;
+    if (meta?.phone || meta?.company_name) {
+      localStorage.setItem(`profile_completed_${user.id}`, "true");
+      localStorage.setItem(`airtable_synced_${user.id}`, "true");
+      return;
+    }
+    const isOAuth = user.app_metadata?.provider !== "email";
+    if (isOAuth) {
+      setShowProfileDialog(true);
     }
   }, [user]);
 
