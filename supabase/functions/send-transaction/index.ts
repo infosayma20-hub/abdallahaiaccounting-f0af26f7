@@ -147,6 +147,25 @@ serve(async (req) => {
       console.log(`Contact search: "${contactName}" → ${contactRecordId || 'not found'}`);
     }
 
+    // Fetch Chart of Accounts (COA) to send with the webhook
+    let accountsList = '';
+    if (AIRTABLE_API_KEY && AIRTABLE_BASE_ID) {
+      try {
+        const accUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Accounts?pageSize=100`;
+        const accRes = await fetch(accUrl, { headers: { 'Authorization': `Bearer ${AIRTABLE_API_KEY}` } });
+        if (accRes.ok) {
+          const accData = await accRes.json();
+          accountsList = (accData.records || [])
+            .map((r: any) => r.fields["Account Name"] || '')
+            .filter(Boolean)
+            .join(', ');
+          console.log(`COA: ${accountsList.substring(0, 100)}...`);
+        }
+      } catch (e) {
+        console.error('Failed to fetch COA:', e);
+      }
+    }
+
     // Send to Make.com webhook
     const response = await fetch(WEBHOOK_URL, {
       method: 'POST',
@@ -158,6 +177,7 @@ serve(async (req) => {
         client_name: companyName || '',
         contactRecordId: contactRecordId || '',
         contactName: contactName || '',
+        accounts_list: accountsList,
         timestamp: new Date().toISOString(),
         source: 'web_app',
       }),
