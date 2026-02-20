@@ -536,25 +536,35 @@ const Dashboard = () => {
 
         {(() => {
           const dbSuggestions = [
-            // Contacts
+            // Add Contacts
             { emoji: "👥", text: "أضف زبون باسم علي حجاج ورقم 0599311885", cat: "contact" },
             { emoji: "👥", text: "أضف مورد باسم أحمد نصار", cat: "contact" },
             { emoji: "👥", text: "أضف جهة اتصال شركة القدس للتجارة", cat: "contact" },
+            // Delete Contacts
             { emoji: "🗑️", text: "احذف جهة الاتصال محمد عبد الرحمن", cat: "contact" },
-            // Accounts
+            { emoji: "🗑️", text: "حذف المورد القديم خالد حسين", cat: "contact" },
+            // Add Accounts
             { emoji: "🏦", text: "أضف حساب بنك فلسطين ضمن الأصول", cat: "account" },
             { emoji: "🏦", text: "أنشئ حساب صندوق رئيسي", cat: "account" },
             { emoji: "🏦", text: "أضف حساب مصاريف تسويق", cat: "account" },
+            { emoji: "🏦", text: "أضف حساب إيرادات خدمات", cat: "account" },
+            // Rename Accounts
             { emoji: "✏️", text: "عدّل اسم حساب صندوق إلى صندوق الفرع", cat: "account" },
+            { emoji: "✏️", text: "غيّر اسم حساب مصاريف كهرباء إلى مصاريف مرافق", cat: "account" },
+            // Delete Accounts
             { emoji: "🗑️", text: "احذف حساب غير مستخدم", cat: "account" },
-            // Products
+            { emoji: "🗑️", text: "إزالة حساب مؤقت من شجرة الحسابات", cat: "account" },
+            // Add Products
             { emoji: "📦", text: "أضف صنف طحين 50 كيلو بسعر 120 شيكل", cat: "product" },
             { emoji: "📦", text: "أضف منتج كفر موبايل بسعر 35 شيكل", cat: "product" },
-            { emoji: "📦", text: "عدل سعر منتج طحين إلى 130 شيكل", cat: "product" },
-            { emoji: "📦", text: "حدّث كمية منتج كرتونة مياه إلى 40", cat: "product" },
-            { emoji: "🧸", text: "أضف صنف لعبة أطفال تصنيف ألعاب سعر شراء 80 شيكل وسعر بيع 120 شيكل", cat: "product" },
+            { emoji: "🧸", text: "أضف صنف لعبة أطفال تصنيف ألعاب سعر شراء 80 وسعر بيع 120 شيكل", cat: "product" },
+            // Update Products
+            { emoji: "✏️", text: "عدل سعر منتج طحين إلى 130 شيكل", cat: "product" },
+            { emoji: "✏️", text: "حدّث كمية منتج كرتونة مياه إلى 40", cat: "product" },
+            // Delete Products
+            { emoji: "🗑️", text: "احذف صنف قديم غير مستخدم", cat: "product" },
           ];
-          // Pick 1 from each category + 1 random
+          // Pick 1 from each category + 2 random for more variety
           const cats = ["contact", "account", "product"];
           const minute = Math.floor(new Date().getMinutes() / 5);
           const picked: typeof dbSuggestions = [];
@@ -563,10 +573,15 @@ const Dashboard = () => {
             const idx = (minute * cat.charCodeAt(0)) % items.length;
             picked.push(items[idx]);
           });
-          // Add one more random
+          // Add two more random
           const remaining = dbSuggestions.filter((s) => !picked.includes(s));
-          const extraIdx = (minute * 13) % remaining.length;
-          picked.push(remaining[extraIdx]);
+          const extraIdx1 = (minute * 13) % remaining.length;
+          picked.push(remaining[extraIdx1]);
+          const remaining2 = remaining.filter((_, i) => i !== extraIdx1);
+          if (remaining2.length > 0) {
+            const extraIdx2 = (minute * 7) % remaining2.length;
+            picked.push(remaining2[extraIdx2]);
+          }
           return (
             <div className="flex flex-wrap gap-1.5">
               {picked.map((s) => (
@@ -583,25 +598,6 @@ const Dashboard = () => {
         })()}
       </div>
 
-      {/* P&L Quick Link */}
-      <Card
-        id="profit-loss-card"
-        className="border-0 shadow-sm cursor-pointer hover:shadow-md transition-all duration-200 hover:-translate-y-0.5"
-        onClick={() => navigate("/profit-loss")}
-      >
-        <CardContent className="p-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-primary/10">
-              <TrendingUp className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-foreground">الأرباح والخسائر</p>
-              <p className="text-xs text-muted-foreground">عرض التقرير الشهري</p>
-            </div>
-          </div>
-          <ChevronLeft className="h-4 w-4 text-muted-foreground" />
-        </CardContent>
-      </Card>
 
       {showPasskeyOnboarding && (
         <PasskeyOnboarding onComplete={() => setShowPasskeyOnboarding(false)} />
