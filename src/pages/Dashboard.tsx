@@ -354,8 +354,8 @@ const Dashboard = () => {
 
         {/* Input Card */}
         <Card className="border-0 shadow-lg bg-gradient-to-l from-primary/5 to-background overflow-hidden">
-          <CardContent className="p-3">
-            <div className="flex items-center gap-2" dir="ltr">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3" dir="ltr">
               <button
                 onClick={() => navigate("/voice")}
                 className="flex-shrink-0 w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center hover:bg-primary/20 transition-colors active:scale-95"
