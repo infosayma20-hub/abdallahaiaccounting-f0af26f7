@@ -22,7 +22,7 @@ const MentionInput = ({ value, onChange, onKeyDown, placeholder, className, user
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [mentionStart, setMentionStart] = useState(-1);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [contactsLoaded, setContactsLoaded] = useState(false);
 
@@ -55,7 +55,7 @@ const MentionInput = ({ value, onChange, onKeyDown, placeholder, className, user
     searchQuery ? c.name.toLowerCase().includes(searchQuery.toLowerCase()) : true
   );
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newValue = e.target.value;
     onChange(newValue);
 
@@ -95,7 +95,7 @@ const MentionInput = ({ value, onChange, onKeyDown, placeholder, className, user
     inputRef.current?.focus();
   }, [value, mentionStart, onChange]);
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (showDropdown && filteredContacts.length > 0) {
       if (e.key === "ArrowDown") {
         e.preventDefault();
@@ -116,6 +116,12 @@ const MentionInput = ({ value, onChange, onKeyDown, placeholder, className, user
         setShowDropdown(false);
         return;
       }
+    }
+    // Shift+Enter = new line (default textarea behavior), Enter = send
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      onKeyDown?.(e);
+      return;
     }
     onKeyDown?.(e);
   };
@@ -146,15 +152,21 @@ const MentionInput = ({ value, onChange, onKeyDown, placeholder, className, user
 
   return (
     <div className="relative flex-1 min-w-0 flex items-center gap-2">
-      <input
+      <textarea
         ref={inputRef}
-        type="text"
         value={value}
         onChange={handleInputChange}
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
-        className={className}
+        className={`${className} resize-none overflow-y-auto`}
         dir="rtl"
+        rows={1}
+        style={{ minHeight: '44px', maxHeight: '120px', height: 'auto' }}
+        onInput={(e) => {
+          const target = e.target as HTMLTextAreaElement;
+          target.style.height = 'auto';
+          target.style.height = Math.min(target.scrollHeight, 120) + 'px';
+        }}
       />
       <button
         type="button"
