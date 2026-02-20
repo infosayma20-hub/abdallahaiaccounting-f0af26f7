@@ -153,7 +153,8 @@ const InventoryPage = () => {
     } else {
       const { error } = await supabase.from("products").insert(payload);
       if (error) {
-        toast({ title: "خطأ في إضافة المنتج", variant: "destructive" });
+        console.error("Insert product error:", error);
+        toast({ title: "خطأ في إضافة المنتج", description: error.message, variant: "destructive" });
       } else {
         toast({ title: "تم إضافة المنتج ✅" });
       }
