@@ -100,10 +100,20 @@ async function linkContactToLatestTransaction(baseId: string, apiKey: string, cl
     console.log(`linkContact: no unlinked transaction found containing "${contactName}"`);
   }
 }
+// Detect if text is an opening balance entry
+function isOpeningBalance(text: string): boolean {
+  const patterns = [
+    /رصيد\s*(ابتدائي|افتتاحي|مدور|أول\s*المدة)/i,
+    /opening\s*balance/i,
+  ];
+  return patterns.some(p => p.test(text));
+}
+
 // Extract potential contact name from Arabic text
 function extractContactName(text: string): string | null {
   // Common patterns: "من الزبون X", "من العميل X", "من X", "الزبون X", "العميل X", "المورد X", "لـ X"
   const patterns = [
+    /(?:(?:رصيد\s*(?:ابتدائي|افتتاحي|مدور)\s*(?:لل?|من\s*)?)(?:الزبون|العميل|الزبونة|العميلة|المورد|المورّد|حساب)?\s*)([^\d,،.]+?)(?:\s+مبلغ|\s+بقيمة|\s*\d)/i,
     /(?:من\s+(?:الزبون|العميل|الزبونة|العميلة|المورد|المورّد|الشركة)\s+)([^\d,،.]+)/i,
     /(?:(?:الزبون|العميل|الزبونة|العميلة|المورد|المورّد)\s+)([^\d,،.]+)/i,
     /(?:من\s+)([^\d,،.]{3,}?)(?:\s+مبلغ|\s+قيمة|\s*$)/i,
@@ -233,6 +243,24 @@ serve(async (req) => {
       }
     }
 
+    // Detect opening balance
+    const openingBalance = isOpeningBalance(text);
+    console.log(`Opening balance: ${openingBalance}, Contact: "${contactName}"`);
+
+    // Build AI instruction
+    let aiInstruction = '';
+    if (openingBalance) {
+      aiInstruction = `تنبيه مهم جداً: هذه العملية هي رصيد افتتاحي/مدور وليست عملية تشغيلية عادية.
+يجب أن يكون:
+- نوع العملية: "رصيد ابتدائي"
+- القيد: إذا مدين → مدين: حساب الجهة، دائن: أرصدة افتتاحية. إذا دائن → العكس.
+- لا يؤثر على الأرباح والخسائر.
+- is_opening_balance = true
+${contactAccountName ? `- استخدم حساب "${contactAccountName}" وليس "العملاء" العام.` : ''}`;
+    } else if (contactAccountName) {
+      aiInstruction = `تنبيه مهم: عند تسجيل هذه المعاملة، يجب استخدام حساب "${contactAccountName}" كحساب مدين أو دائن (حسب نوع العملية) بدلاً من حساب "العملاء" العام. لا تستخدم "العملاء" أبداً إذا كان هناك حساب خاص بالجهة.`;
+    }
+
     // Send to Make.com webhook
     const response = await fetch(WEBHOOK_URL, {
       method: 'POST',
@@ -252,10 +280,8 @@ serve(async (req) => {
         contacts_detailed: contactsDetailed,
         timestamp: new Date().toISOString(),
         source: 'web_app',
-        // Explicit instruction for AI: always use the specific contact account
-        ai_instruction: contactAccountName
-          ? `تنبيه مهم: عند تسجيل هذه المعاملة، يجب استخدام حساب "${contactAccountName}" كحساب مدين أو دائن (حسب نوع العملية) بدلاً من حساب "العملاء" العام. لا تستخدم "العملاء" أبداً إذا كان هناك حساب خاص بالجهة.`
-          : '',
+        is_opening_balance: openingBalance,
+        ai_instruction: aiInstruction,
       }),
     });
 

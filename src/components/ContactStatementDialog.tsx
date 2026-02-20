@@ -34,8 +34,19 @@ interface ContactStatementDialogProps {
   contactType?: string;
 }
 
+// Detect opening balance transactions
+function isOpeningBalance(tx: Transaction): boolean {
+  const type = (tx.fields["Transaction Type"] || "").trim();
+  const desc = (tx.fields.Description || "").trim();
+  return /رصيد\s*(ابتدائي|افتتاحي|مدور|أول\s*المدة)/i.test(desc) ||
+    /رصيد\s*(ابتدائي|افتتاحي|مدور)/i.test(type) ||
+    type === "رصيد ابتدائي";
+}
+
 // Map internal transaction types to customer-friendly descriptions
 function friendlyDescription(tx: Transaction): string {
+  if (isOpeningBalance(tx)) return "رصيد ابتدائي";
+
   const type = (tx.fields["Transaction Type"] || "").trim();
   const desc = (tx.fields.Description || "").trim();
 
@@ -124,6 +135,10 @@ const ContactStatementDialog = ({ open, onClose, contactId, contactName, contact
       const data = await res.json();
       if (data?.error) throw new Error(data.error);
       const sorted = (data?.records || []).sort((a: Transaction, b: Transaction) => {
+        // Opening balances always come first
+        const aOB = isOpeningBalance(a) ? 0 : 1;
+        const bOB = isOpeningBalance(b) ? 0 : 1;
+        if (aOB !== bOB) return aOB - bOB;
         const da = a.fields.Date || "";
         const db = b.fields.Date || "";
         return da.localeCompare(db);
