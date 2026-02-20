@@ -12,6 +12,7 @@ import { useCountUp } from "@/hooks/useCountUp";
 import { useRotatingPlaceholder } from "@/hooks/useRotatingPlaceholder";
 import PasskeyOnboarding from "@/components/PasskeyOnboarding";
 import CompleteProfileDialog from "@/components/CompleteProfileDialog";
+import OnboardingFlow from "@/components/OnboardingFlow";
 import { browserSupportsWebAuthn } from "@simplewebauthn/browser";
 
 interface TransactionRecord {
@@ -45,6 +46,7 @@ const Dashboard = () => {
   const [dbSending, setDbSending] = useState(false);
   const [showProfileDialog, setShowProfileDialog] = useState(false);
   const [showPasskeyOnboarding, setShowPasskeyOnboarding] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const [transactions, setTransactions] = useState<TransactionRecord[]>([]);
   const [loadingTx, setLoadingTx] = useState(true);
   const rotatingPlaceholder = useRotatingPlaceholder();
@@ -58,7 +60,16 @@ const Dashboard = () => {
     }
   }, [user]);
 
-  // Check if OAuth user needs to complete profile
+  // Show onboarding for first-time users
+  useEffect(() => {
+    if (!user) return;
+    const done = localStorage.getItem("onboarding_completed");
+    if (!done) {
+      setShowOnboarding(true);
+    }
+  }, [user]);
+
+
   useEffect(() => {
     if (!user) return;
     const profileCompleted = localStorage.getItem(`profile_completed_${user.id}`);
@@ -304,7 +315,7 @@ const Dashboard = () => {
       )}
 
       {/* Quick Links */}
-      <div className="grid grid-cols-3 gap-3">
+      <div id="quick-links-section" className="grid grid-cols-3 gap-3">
         <Card
           className="border-0 shadow-sm cursor-pointer hover:shadow-md transition-all duration-200 hover:-translate-y-0.5"
           onClick={() => navigate("/transactions")}
@@ -364,7 +375,7 @@ const Dashboard = () => {
         </div>
 
         {/* Input Card */}
-        <Card className="border-0 shadow-lg bg-gradient-to-l from-primary/5 to-background">
+        <Card id="smart-input-bar" className="border-0 shadow-lg bg-gradient-to-l from-primary/5 to-background">
           <CardContent className="px-3 py-2.5">
             <div className="flex items-center gap-2 min-h-[44px]" dir="rtl">
               <button
@@ -504,6 +515,7 @@ const Dashboard = () => {
 
       {/* P&L Quick Link */}
       <Card
+        id="profit-loss-card"
         className="border-0 shadow-sm cursor-pointer hover:shadow-md transition-all duration-200 hover:-translate-y-0.5"
         onClick={() => navigate("/profit-loss")}
       >
@@ -523,6 +535,16 @@ const Dashboard = () => {
 
       {showPasskeyOnboarding && (
         <PasskeyOnboarding onComplete={() => setShowPasskeyOnboarding(false)} />
+      )}
+
+      {showOnboarding && !showPasskeyOnboarding && (
+        <OnboardingFlow
+          onComplete={() => setShowOnboarding(false)}
+          onFocusInput={() => {
+            const input = document.querySelector<HTMLInputElement>("#smart-input-bar input");
+            input?.focus();
+          }}
+        />
       )}
     </div>
   );
