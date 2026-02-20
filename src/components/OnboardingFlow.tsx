@@ -133,20 +133,49 @@ const GuidedTour = ({ onComplete, onSkip }: { onComplete: () => void; onSkip: ()
     const el = document.getElementById(step.targetId);
     if (el) {
       el.scrollIntoView({ behavior: "smooth", block: "center" });
-      // Small delay for scroll to settle
       setTimeout(() => {
-        setTargetRect(el.getBoundingClientRect());
+        const rect = el.getBoundingClientRect();
+        setTargetRect(rect);
+        // Elevate the actual element above the overlay
+        el.style.position = "relative";
+        el.style.zIndex = "61";
+        el.style.borderRadius = "1rem";
       }, 400);
     }
+    // Reset previous element
+    return () => {
+      const el = document.getElementById(tourSteps[currentStep]?.targetId);
+      if (el) {
+        el.style.position = "";
+        el.style.zIndex = "";
+      }
+    };
   }, [currentStep]);
 
   useEffect(() => {
-    updatePosition();
+    const cleanup = updatePosition();
     window.addEventListener("resize", updatePosition);
-    return () => window.removeEventListener("resize", updatePosition);
+    return () => {
+      cleanup?.();
+      window.removeEventListener("resize", updatePosition);
+    };
   }, [updatePosition]);
 
+  // Cleanup all elements on unmount
+  useEffect(() => {
+    return () => {
+      tourSteps.forEach(s => {
+        const el = document.getElementById(s.targetId);
+        if (el) { el.style.position = ""; el.style.zIndex = ""; }
+      });
+    };
+  }, []);
+
   const handleNext = () => {
+    // Reset current element before moving
+    const el = document.getElementById(tourSteps[currentStep]?.targetId);
+    if (el) { el.style.position = ""; el.style.zIndex = ""; }
+
     if (currentStep < tourSteps.length - 1) {
       setCurrentStep(currentStep + 1);
     } else {
@@ -158,28 +187,28 @@ const GuidedTour = ({ onComplete, onSkip }: { onComplete: () => void; onSkip: ()
 
   return (
     <div className="fixed inset-0 z-[60]" dir="rtl">
-      {/* Backdrop with cutout */}
-      <div className="absolute inset-0 bg-foreground/60 backdrop-blur-sm" onClick={onSkip} />
+      {/* Dark overlay */}
+      <div className="absolute inset-0 bg-black/60" onClick={onSkip} />
 
-      {/* Highlight cutout */}
+      {/* Highlight ring around element (visual only, element itself is elevated) */}
       {targetRect && (
         <>
           <div
-            className="absolute rounded-2xl ring-4 ring-primary/50 shadow-2xl shadow-primary/20 transition-all duration-500 ease-out"
+            className="absolute rounded-2xl ring-4 ring-primary/40 pointer-events-none transition-all duration-500 ease-out"
             style={{
-              top: targetRect.top - 8,
-              left: targetRect.left - 8,
-              width: targetRect.width + 16,
-              height: targetRect.height + 16,
-              background: "transparent",
-              boxShadow: `0 0 0 9999px rgba(0,0,0,0.55)`,
+              zIndex: 62,
+              top: targetRect.top - 6,
+              left: targetRect.left - 6,
+              width: targetRect.width + 12,
+              height: targetRect.height + 12,
             }}
           />
 
           {/* Tooltip */}
           <div
-            className="absolute z-10 max-w-[300px] animate-in slide-in-from-bottom-4 duration-400"
+            className="absolute max-w-[300px] animate-in slide-in-from-bottom-4 duration-400"
             style={{
+              zIndex: 63,
               ...(step.position === "top"
                 ? { bottom: window.innerHeight - targetRect.top + 20 }
                 : { top: targetRect.bottom + 20 }),
