@@ -19,6 +19,8 @@ import ResetPasswordPage from "./pages/ResetPasswordPage";
 import PricingPage from "./pages/PricingPage";
 import InvoicesPage from "./pages/InvoicesPage";
 import InventoryPage from "./pages/InventoryPage";
+import TermsPage from "./pages/TermsPage";
+import PrivacyPage from "./pages/PrivacyPage";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
 
@@ -55,8 +57,10 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/auth" element={<AuthRoute><AuthPage /></AuthRoute>} />
-            <Route path="/reset-password" element={<ResetPasswordPage />} />
-            <Route path="/*" element={
+             <Route path="/reset-password" element={<ResetPasswordPage />} />
+             <Route path="/terms" element={<TermsPage />} />
+             <Route path="/privacy" element={<PrivacyPage />} />
+             <Route path="/*" element={
               <ProtectedRoute>
                 <AppLayout>
                   <Routes>
