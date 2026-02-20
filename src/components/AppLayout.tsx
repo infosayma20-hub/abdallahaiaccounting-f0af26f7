@@ -32,13 +32,13 @@ const AppLayout = ({ children }: AppLayoutProps) => {
 
       {/* Bottom Navigation */}
       <nav className="fixed bottom-0 left-0 right-0 z-40">
-        <div className="max-w-md mx-auto bg-card border-t border-border shadow-lg">
+        <div className="max-w-md mx-auto bg-card/95 backdrop-blur-md border-t border-border/50 shadow-xl">
           <div className="flex items-center justify-around h-16 px-4">
             {/* الرئيسية */}
             <button
               onClick={() => navigate("/")}
-              className={`flex flex-col items-center gap-1 px-4 py-2 transition-colors ${
-                isActive("/") ? "text-primary" : "text-muted-foreground"
+              className={`flex flex-col items-center gap-1 px-4 py-2 transition-all duration-200 ${
+                isActive("/") ? "text-primary scale-105" : "text-muted-foreground"
               }`}
             >
               <Home className="h-5 w-5" />
@@ -48,7 +48,7 @@ const AppLayout = ({ children }: AppLayoutProps) => {
             {/* زر الإضافة العائم */}
             <button
               onClick={() => setSheetOpen(true)}
-              className="flex items-center justify-center w-14 h-14 -mt-8 rounded-full bg-primary text-primary-foreground shadow-lg hover:opacity-90 transition-all active:scale-95"
+              className="flex items-center justify-center w-14 h-14 -mt-8 rounded-2xl bg-primary text-primary-foreground shadow-xl shadow-primary/30 hover:opacity-90 transition-all active:scale-95"
             >
               <Plus className="h-7 w-7" />
             </button>
@@ -56,8 +56,8 @@ const AppLayout = ({ children }: AppLayoutProps) => {
             {/* القائمة */}
             <button
               onClick={() => navigate("/menu")}
-              className={`flex flex-col items-center gap-1 px-4 py-2 transition-colors ${
-                isActive("/menu") ? "text-primary" : "text-muted-foreground"
+              className={`flex flex-col items-center gap-1 px-4 py-2 transition-all duration-200 ${
+                isActive("/menu") ? "text-primary scale-105" : "text-muted-foreground"
               }`}
             >
               <Menu className="h-5 w-5" />

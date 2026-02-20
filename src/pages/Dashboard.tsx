@@ -1,12 +1,15 @@
 import { useState, useEffect, useMemo } from "react";
 import { FileText, TrendingUp, TrendingDown, Wallet, Mic, ChevronLeft, Send, Loader2, BookOpen, Receipt, LogOut, Users, Sparkles, Database } from "lucide-react";
 import MentionInput from "@/components/MentionInput";
+import SmartInsightCard from "@/components/SmartInsightCard";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { useCountUp } from "@/hooks/useCountUp";
+import { useRotatingPlaceholder } from "@/hooks/useRotatingPlaceholder";
 import EnablePasskey from "@/components/EnablePasskey";
 import CompleteProfileDialog from "@/components/CompleteProfileDialog";
 
@@ -24,7 +27,12 @@ interface TransactionRecord {
   };
 }
 
-
+const cardGradients = [
+  "from-blue-500/10 via-blue-400/5 to-transparent",    // الفواتير
+  "from-emerald-500/10 via-emerald-400/5 to-transparent", // الرصيد
+  "from-teal-500/10 via-teal-400/5 to-transparent",     // الإيرادات
+  "from-red-400/10 via-red-300/5 to-transparent",        // المصروفات
+];
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -37,15 +45,14 @@ const Dashboard = () => {
   const [showProfileDialog, setShowProfileDialog] = useState(false);
   const [transactions, setTransactions] = useState<TransactionRecord[]>([]);
   const [loadingTx, setLoadingTx] = useState(true);
+  const rotatingPlaceholder = useRotatingPlaceholder();
 
   // Check if OAuth user needs to complete profile
   useEffect(() => {
     if (!user) return;
-    // Check localStorage first
     const profileCompleted = localStorage.getItem(`profile_completed_${user.id}`);
     const alreadySynced = localStorage.getItem(`airtable_synced_${user.id}`);
     if (profileCompleted || alreadySynced) return;
-    // Check user_metadata - if phone/company already set, profile was completed before
     const meta = user.user_metadata;
     if (meta?.phone || meta?.company_name) {
       localStorage.setItem(`profile_completed_${user.id}`, "true");
@@ -82,7 +89,7 @@ const Dashboard = () => {
     ensureAirtableClient();
   }, [user]);
 
-  // Fetch transactions for this client
+  // Fetch transactions
   useEffect(() => {
     if (!user) return;
     const fetchTx = async () => {
@@ -90,11 +97,7 @@ const Dashboard = () => {
       try {
         const res = await fetch(
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-transactions?clientId=${user.id}`,
-          {
-            headers: {
-              Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-            },
-          }
+          { headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` } }
         );
         if (!res.ok) throw new Error("Failed to fetch transactions");
         const result = await res.json();
@@ -108,87 +111,80 @@ const Dashboard = () => {
     fetchTx();
   }, [user]);
 
-  // Compute summary from transactions
+  // Compute summary
   const revenue = transactions
     .filter((tx) => tx.fields["Debit Account Rollup"] === "Asset" && tx.fields["Credit Account Rollup"] === "Revenue")
     .reduce((sum, tx) => sum + (tx.fields.Amount || 0), 0);
-
   const expenses = transactions
     .filter((tx) => tx.fields["Debit Account Rollup"] === "Expenses")
     .reduce((sum, tx) => sum + (tx.fields.Amount || 0), 0);
-
   const totalIncome = transactions
     .filter((tx) => tx.fields["Transaction Type"] === "سند قبض")
     .reduce((sum, tx) => sum + (tx.fields.Amount || 0), 0);
-
   const totalOutcome = transactions
     .filter((tx) => tx.fields["Transaction Type"] === "سند صرف")
     .reduce((sum, tx) => sum + (tx.fields.Amount || 0), 0);
-
   const cashBalance = totalIncome - totalOutcome;
-
-  const unpaidInvoices = transactions.filter(
-    (tx) => tx.fields["Transaction Type"] === "فاتورة مبيعات"
-  );
-
+  const unpaidInvoices = transactions.filter((tx) => tx.fields["Transaction Type"] === "فاتورة مبيعات");
   const invoiceTotal = unpaidInvoices.reduce((sum, tx) => sum + (tx.fields.Amount || 0), 0);
+
+  // Count-up animations
+  const animInvoice = useCountUp(invoiceTotal, 1200, !loadingTx);
+  const animCash = useCountUp(cashBalance, 1200, !loadingTx);
+  const animRevenue = useCountUp(revenue, 1200, !loadingTx);
+  const animExpenses = useCountUp(expenses, 1200, !loadingTx);
 
   const summaryCards = [
     {
       title: "الفواتير",
-      value: `₪${invoiceTotal.toLocaleString()}`,
+      value: animInvoice,
       subtitle: `${unpaidInvoices.length} فاتورة`,
       icon: FileText,
-      iconBg: "bg-primary/10",
-      iconColor: "text-primary",
+      iconBg: "bg-blue-500/10",
+      iconColor: "text-blue-600",
       progress: unpaidInvoices.length > 0 ? 65 : 0,
+      gradient: cardGradients[0],
     },
     {
       title: "الرصيد النقدي",
-      value: `₪${cashBalance.toLocaleString()}`,
+      value: animCash,
       subtitle: "محدّث الآن",
       icon: Wallet,
-      iconBg: "bg-accent",
-      iconColor: "text-accent-foreground",
+      iconBg: "bg-emerald-500/10",
+      iconColor: "text-emerald-600",
       progress: null,
+      gradient: cardGradients[1],
     },
     {
       title: "الإيرادات",
-      value: `₪${revenue.toLocaleString()}`,
+      value: animRevenue,
       subtitle: "إجمالي",
       icon: TrendingUp,
-      iconBg: "bg-primary/10",
-      iconColor: "text-primary",
-      trend: null,
-      trendUp: true,
+      iconBg: "bg-teal-500/10",
+      iconColor: "text-teal-600",
+      progress: null,
+      gradient: cardGradients[2],
     },
     {
       title: "المصروفات",
-      value: `₪${expenses.toLocaleString()}`,
+      value: animExpenses,
       subtitle: "إجمالي",
       icon: TrendingDown,
-      iconBg: "bg-destructive/10",
-      iconColor: "text-destructive",
-      trend: null,
-      trendUp: false,
+      iconBg: "bg-red-400/10",
+      iconColor: "text-red-500",
+      progress: null,
+      gradient: cardGradients[3],
     },
   ];
 
   const handleSend = async () => {
     if (!inputValue.trim()) return;
-
     setSending(true);
     try {
       const { data, error } = await supabase.functions.invoke("send-transaction", {
-        body: {
-          text: inputValue,
-          userId: user?.id,
-          email: user?.email,
-          companyName: user?.user_metadata?.company_name,
-        },
+        body: { text: inputValue, userId: user?.id, email: user?.email, companyName: user?.user_metadata?.company_name },
       });
       if (error) throw error;
-      
       toast({ title: "تم الإرسال بنجاح ✅", description: "جاري معالجة العملية بالذكاء الاصطناعي" });
       setInputValue("");
     } catch (err: any) {
@@ -202,17 +198,11 @@ const Dashboard = () => {
     if (!dbCommand.trim()) return;
     setDbSending(true);
     try {
-      const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/database-command`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ command: dbCommand, clientId: user?.id }),
-        }
-      );
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/database-command`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ command: dbCommand, clientId: user?.id }),
+      });
       const data = await res.json();
       if (!res.ok || data.error) throw new Error(data.error || "فشل تنفيذ الأمر");
       if (data.success) {
@@ -228,35 +218,32 @@ const Dashboard = () => {
     }
   };
 
+  const displayName = user?.user_metadata?.company_name || user?.user_metadata?.full_name || "عميل";
+
   return (
-    <div className="px-4 pt-6 space-y-6" dir="rtl">
+    <div className="px-4 pt-6 pb-28 space-y-6" dir="rtl">
       {user && (
-        <CompleteProfileDialog
-          open={showProfileDialog}
-          onClose={() => setShowProfileDialog(false)}
-          user={user}
-        />
+        <CompleteProfileDialog open={showProfileDialog} onClose={() => setShowProfileDialog(false)} user={user} />
       )}
-      {/* Header */}
-      <div className="flex items-center justify-between">
+
+      {/* Hero Header */}
+      <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-            <span className="text-sm font-bold text-primary">
-              {user?.user_metadata?.company_name
-                ? user.user_metadata.company_name.split(' ').slice(0, 2).map((w: string) => w[0]).join('')
-                : user?.email?.[0]?.toUpperCase() || 'ع'}
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center shadow-sm">
+            <span className="text-base font-bold text-primary">
+              {displayName.split(' ').slice(0, 2).map((w: string) => w[0]).join('')}
             </span>
           </div>
           <div>
-            <h1 className="text-base font-bold text-foreground">
-              {user?.user_metadata?.company_name || 'عميل'}
+            <h1 className="text-lg font-bold text-foreground">
+              مرحباً {displayName} 👋
             </h1>
-            <p className="text-xs text-muted-foreground">{user?.email}</p>
+            <p className="text-xs text-muted-foreground">ملخصك المالي اليوم</p>
           </div>
         </div>
         <button
           onClick={signOut}
-          className="w-10 h-10 rounded-full bg-destructive/10 flex items-center justify-center hover:bg-destructive/20 transition-colors"
+          className="w-10 h-10 rounded-xl bg-destructive/10 flex items-center justify-center hover:bg-destructive/20 transition-colors"
           title="تسجيل الخروج"
         >
           <LogOut className="h-4 w-4 text-destructive" />
@@ -271,15 +258,20 @@ const Dashboard = () => {
           </div>
         ) : (
           summaryCards.map((card) => (
-            <Card key={card.title} className="border-0 shadow-sm">
-              <CardContent className="p-4 text-center">
+            <Card
+              key={card.title}
+              className="border-0 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-0.5 overflow-hidden"
+            >
+              <CardContent className={`p-4 text-center bg-gradient-to-br ${card.gradient}`}>
                 <div className="flex justify-center mb-3">
-                  <div className={`p-2 rounded-lg ${card.iconBg}`}>
+                  <div className={`p-2.5 rounded-xl ${card.iconBg}`}>
                     <card.icon className={`h-4 w-4 ${card.iconColor}`} />
                   </div>
                 </div>
                 <p className="text-xs text-muted-foreground mb-1">{card.title}</p>
-                <p className="text-lg font-bold text-foreground">{card.value}</p>
+                <p className="text-lg font-bold text-foreground tabular-nums">
+                  ₪{card.value.toLocaleString()}
+                </p>
                 {card.progress !== null && card.progress !== undefined && (
                   <div className="mt-2">
                     <Progress value={card.progress} className="h-1.5" />
@@ -295,36 +287,41 @@ const Dashboard = () => {
         )}
       </div>
 
+      {/* Smart Insight */}
+      {!loadingTx && (
+        <SmartInsightCard expenses={expenses} revenue={revenue} transactionCount={transactions.length} />
+      )}
+
       {/* Quick Links */}
       <div className="grid grid-cols-3 gap-3">
         <Card
-          className="border-0 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+          className="border-0 shadow-sm cursor-pointer hover:shadow-md transition-all duration-200 hover:-translate-y-0.5"
           onClick={() => navigate("/transactions")}
         >
           <CardContent className="p-4 flex flex-col items-center gap-2 text-center">
-            <div className="p-2 rounded-lg bg-primary/10">
+            <div className="p-2 rounded-xl bg-primary/10">
               <Receipt className="h-5 w-5 text-primary" />
             </div>
             <p className="text-xs font-semibold text-foreground">المعاملات</p>
           </CardContent>
         </Card>
         <Card
-          className="border-0 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+          className="border-0 shadow-sm cursor-pointer hover:shadow-md transition-all duration-200 hover:-translate-y-0.5"
           onClick={() => navigate("/accounts")}
         >
           <CardContent className="p-4 flex flex-col items-center gap-2 text-center">
-            <div className="p-2 rounded-lg bg-accent">
+            <div className="p-2 rounded-xl bg-accent">
               <BookOpen className="h-5 w-5 text-accent-foreground" />
             </div>
             <p className="text-xs font-semibold text-foreground">الحسابات</p>
           </CardContent>
         </Card>
         <Card
-          className="border-0 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+          className="border-0 shadow-sm cursor-pointer hover:shadow-md transition-all duration-200 hover:-translate-y-0.5"
           onClick={() => navigate("/contacts")}
         >
           <CardContent className="p-4 flex flex-col items-center gap-2 text-center">
-            <div className="p-2 rounded-lg bg-warning/10">
+            <div className="p-2 rounded-xl bg-warning/10">
               <Users className="h-5 w-5 text-warning" />
             </div>
             <p className="text-xs font-semibold text-foreground">العملاء</p>
@@ -356,12 +353,12 @@ const Dashboard = () => {
         </div>
 
         {/* Input Card */}
-        <Card className="border-0 shadow-md bg-gradient-to-l from-primary/5 to-background">
+        <Card className="border-0 shadow-lg bg-gradient-to-l from-primary/5 to-background overflow-hidden">
           <CardContent className="p-3">
             <div className="flex items-center gap-2" dir="ltr">
               <button
                 onClick={() => navigate("/voice")}
-                className="flex-shrink-0 w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center hover:bg-primary/20 transition-colors active:scale-95"
+                className="flex-shrink-0 w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center hover:bg-primary/20 transition-colors active:scale-95"
               >
                 <Mic className="h-5 w-5 text-primary" />
               </button>
@@ -369,14 +366,14 @@ const Dashboard = () => {
                 value={inputValue}
                 onChange={setInputValue}
                 onKeyDown={(e) => e.key === "Enter" && handleSend()}
-                placeholder="اكتب أو تكلم… مثال: قبضت 500 من @أحمد"
-                className="flex-1 h-10 bg-secondary/60 rounded-lg px-3 text-sm text-foreground placeholder:text-muted-foreground border-0 outline-none focus:ring-2 focus:ring-primary/20"
+                placeholder={rotatingPlaceholder}
+                className="flex-1 h-10 bg-secondary/60 rounded-lg px-3 text-sm text-foreground placeholder:text-muted-foreground border-0 outline-none focus:ring-2 focus:ring-primary/20 transition-all"
                 userId={user?.id}
               />
               <button
                 onClick={handleSend}
                 disabled={sending || !inputValue.trim()}
-                className="flex-shrink-0 w-10 h-10 rounded-full bg-primary flex items-center justify-center hover:opacity-90 transition-all active:scale-95 disabled:opacity-50"
+                className="flex-shrink-0 w-10 h-10 rounded-xl bg-primary flex items-center justify-center hover:opacity-90 transition-all active:scale-95 disabled:opacity-50 shadow-md shadow-primary/25"
               >
                 {sending ? (
                   <Loader2 className="h-4 w-4 text-primary-foreground animate-spin" />
@@ -399,7 +396,7 @@ const Dashboard = () => {
                 const textPart = prev.replace(/\d+/g, '').trim();
                 return textPart + ` ${currentNum + amount}`;
               })}
-              className="px-2 py-1 rounded-md bg-secondary text-[11px] font-medium text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all active:scale-95"
+              className="px-2 py-1 rounded-lg bg-secondary text-[11px] font-medium text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all active:scale-95"
             >
               {amount.toLocaleString()}₪
             </button>
@@ -414,7 +411,7 @@ const Dashboard = () => {
               <button
                 key={name}
                 onClick={() => setInputValue((prev) => prev.trim() + ` ${name}`)}
-                className="px-2.5 py-1 rounded-md bg-muted/50 text-[11px] text-muted-foreground hover:bg-warning/10 hover:text-warning transition-all active:scale-95"
+                className="px-2.5 py-1 rounded-lg bg-muted/50 text-[11px] text-muted-foreground hover:bg-warning/10 hover:text-warning transition-all active:scale-95"
               >
                 {name}
               </button>
@@ -426,7 +423,7 @@ const Dashboard = () => {
               <button
                 key={name}
                 onClick={() => setInputValue((prev) => prev.trim() + ` ${name}`)}
-                className="px-2.5 py-1 rounded-md bg-muted/50 text-[11px] text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all active:scale-95"
+                className="px-2.5 py-1 rounded-lg bg-muted/50 text-[11px] text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all active:scale-95"
               >
                 {name}
               </button>
@@ -450,7 +447,7 @@ const Dashboard = () => {
               <button
                 key={example}
                 onClick={() => setInputValue(example)}
-                className="px-2.5 py-1 rounded-md bg-muted/50 text-[11px] text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all active:scale-95"
+                className="px-2.5 py-1 rounded-lg bg-muted/50 text-[11px] text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all active:scale-95"
               >
                 {example}
               </button>
@@ -466,12 +463,12 @@ const Dashboard = () => {
           <h2 className="text-base font-semibold text-foreground">إدارة البيانات</h2>
         </div>
 
-        <Card className="border-0 shadow-md bg-gradient-to-l from-accent/30 to-background">
+        <Card className="border-0 shadow-lg bg-gradient-to-l from-accent/30 to-background">
           <CardContent className="p-3">
             <div className="flex items-center gap-2" dir="ltr">
               <button
                 onClick={() => navigate("/voice")}
-                className="flex-shrink-0 w-10 h-10 rounded-full bg-accent flex items-center justify-center hover:opacity-80 transition-colors active:scale-95"
+                className="flex-shrink-0 w-10 h-10 rounded-xl bg-accent flex items-center justify-center hover:opacity-80 transition-colors active:scale-95"
               >
                 <Mic className="h-5 w-5 text-accent-foreground" />
               </button>
@@ -487,7 +484,7 @@ const Dashboard = () => {
               <button
                 onClick={handleDbCommand}
                 disabled={dbSending || !dbCommand.trim()}
-                className="flex-shrink-0 w-10 h-10 rounded-full bg-accent flex items-center justify-center hover:opacity-90 transition-all active:scale-95 disabled:opacity-50"
+                className="flex-shrink-0 w-10 h-10 rounded-xl bg-accent flex items-center justify-center hover:opacity-90 transition-all active:scale-95 disabled:opacity-50"
               >
                 {dbSending ? (
                   <Loader2 className="h-4 w-4 text-accent-foreground animate-spin" />
@@ -499,7 +496,6 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
-        {/* Command Examples */}
         <div className="flex flex-wrap gap-1.5">
           {[
             "أضف الزبون علي حجاج",
@@ -510,7 +506,7 @@ const Dashboard = () => {
             <button
               key={example}
               onClick={() => setDbCommand(example)}
-              className="px-2.5 py-1 rounded-md bg-muted/50 text-[11px] text-muted-foreground hover:bg-accent/20 hover:text-accent-foreground transition-all active:scale-95"
+              className="px-2.5 py-1 rounded-lg bg-muted/50 text-[11px] text-muted-foreground hover:bg-accent/20 hover:text-accent-foreground transition-all active:scale-95"
             >
               {example}
             </button>
@@ -520,12 +516,12 @@ const Dashboard = () => {
 
       {/* P&L Quick Link */}
       <Card
-        className="border-0 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+        className="border-0 shadow-sm cursor-pointer hover:shadow-md transition-all duration-200 hover:-translate-y-0.5"
         onClick={() => navigate("/profit-loss")}
       >
         <CardContent className="p-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-primary/10">
+            <div className="p-2 rounded-xl bg-primary/10">
               <TrendingUp className="h-5 w-5 text-primary" />
             </div>
             <div>
@@ -537,7 +533,6 @@ const Dashboard = () => {
         </CardContent>
       </Card>
 
-      {/* Face ID */}
       <EnablePasskey />
     </div>
   );
