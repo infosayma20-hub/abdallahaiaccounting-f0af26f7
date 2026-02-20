@@ -18,6 +18,7 @@ import AuthPage from "./pages/AuthPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import PricingPage from "./pages/PricingPage";
 import InvoicesPage from "./pages/InvoicesPage";
+import InventoryPage from "./pages/InventoryPage";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
 
@@ -70,6 +71,7 @@ const App = () => (
                     <Route path="/smart-report" element={<SmartReportPage />} />
                     <Route path="/pricing" element={<PricingPage />} />
                     <Route path="/invoices" element={<InvoicesPage />} />
+                    <Route path="/inventory" element={<InventoryPage />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </AppLayout>

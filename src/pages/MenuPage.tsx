@@ -1,4 +1,4 @@
-import { BookOpen, Receipt, FileSpreadsheet, Users, BarChart3, Sparkles, FileText, CreditCard } from "lucide-react";
+import { BookOpen, Receipt, FileSpreadsheet, Users, BarChart3, Sparkles, FileText, CreditCard, Package } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 
@@ -6,6 +6,7 @@ const menuItems = [
   { icon: BookOpen, label: "المحاسبة", description: "دفتر الأستاذ والقيود", color: "bg-primary/10", iconColor: "text-primary", path: "/accounts" },
   { icon: Receipt, label: "المصروفات", description: "تتبع المصاريف", color: "bg-destructive/10", iconColor: "text-destructive", path: "/transactions" },
   { icon: FileText, label: "الفواتير", description: "مبيعات ومشتريات", color: "bg-warning/10", iconColor: "text-warning", path: "/invoices" },
+  { icon: Package, label: "المخزون", description: "تتبع المنتجات والكميات", color: "bg-primary/10", iconColor: "text-primary", path: "/inventory" },
   { icon: FileSpreadsheet, label: "تصدير", description: "Excel و PDF", color: "bg-accent", iconColor: "text-accent-foreground", path: "/export" },
   { icon: Users, label: "العملاء", description: "زبائن وموردين", color: "bg-primary/10", iconColor: "text-primary", path: "/contacts" },
   { icon: BarChart3, label: "الأرباح والخسائر", description: "تقارير مالية", color: "bg-warning/10", iconColor: "text-warning", path: "/profit-loss" },
