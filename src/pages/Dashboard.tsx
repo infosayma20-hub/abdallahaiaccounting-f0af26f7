@@ -373,7 +373,7 @@ const Dashboard = () => {
               <button
                 onClick={handleSend}
                 disabled={sending || !inputValue.trim()}
-                className="flex-shrink-0 w-10 h-10 rounded-xl bg-primary flex items-center justify-center hover:opacity-90 transition-all active:scale-95 disabled:opacity-50 shadow-md shadow-primary/25"
+                className="flex-shrink-0 w-10 h-10 rounded-full bg-primary flex items-center justify-center hover:opacity-90 transition-all active:scale-95 disabled:opacity-50 shadow-md shadow-primary/25"
               >
                 {sending ? (
                   <Loader2 className="h-4 w-4 text-primary-foreground animate-spin" />
