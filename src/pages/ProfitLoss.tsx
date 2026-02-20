@@ -50,10 +50,20 @@ const ProfitLoss = () => {
     fetchTx();
   }, [user]);
 
-  const totalRevenue = transactions
+  // Filter out opening balance transactions from P&L
+  const plTransactions = transactions.filter((tx) => {
+    const type = (tx.fields["Transaction Type"] || "").trim();
+    const desc = (tx.fields.Description || "").trim();
+    const isOB = /رصيد\s*(ابتدائي|افتتاحي|مدور|أول\s*المدة)/i.test(desc) ||
+      /رصيد\s*(ابتدائي|افتتاحي|مدور)/i.test(type) ||
+      type === "رصيد ابتدائي";
+    return !isOB;
+  });
+
+  const totalRevenue = plTransactions
     .filter((tx) => tx.fields["Debit Account Rollup"] === "Asset" && tx.fields["Credit Account Rollup"] === "Revenue")
     .reduce((sum, tx) => sum + (tx.fields.Amount || 0), 0);
-  const totalExpenses = transactions
+  const totalExpenses = plTransactions
     .filter((tx) => tx.fields["Debit Account Rollup"] === "Expenses")
     .reduce((sum, tx) => sum + (tx.fields.Amount || 0), 0);
   const netProfit = totalRevenue - totalExpenses;
@@ -73,7 +83,7 @@ const ProfitLoss = () => {
 
   // Monthly chart
   const monthlyMap: Record<number, { revenue: number; expenses: number }> = {};
-  transactions.forEach((tx) => {
+  plTransactions.forEach((tx) => {
     if (!tx.fields.Date) return;
     const month = new Date(tx.fields.Date).getMonth();
     if (!monthlyMap[month]) monthlyMap[month] = { revenue: 0, expenses: 0 };
