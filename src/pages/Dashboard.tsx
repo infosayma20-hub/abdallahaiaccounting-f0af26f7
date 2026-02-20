@@ -381,7 +381,7 @@ const Dashboard = () => {
         {/* Input Card */}
         <Card id="smart-input-bar" className="border-0 shadow-lg bg-gradient-to-l from-primary/5 to-background">
           <CardContent className="px-3 py-2.5">
-            <div className="flex items-center gap-2 min-h-[44px]" dir="rtl">
+            <div className="flex items-end gap-2 min-h-[44px]" dir="rtl">
               <button
                 onClick={handleSend}
                 disabled={sending || !inputValue.trim()}
