@@ -123,6 +123,10 @@ const MentionInput = ({ value, onChange, onKeyDown, placeholder, className, user
       onKeyDown?.(e);
       return;
     }
+    // Don't propagate Shift+Enter to parent (let textarea handle newline)
+    if (e.key === "Enter" && e.shiftKey) {
+      return;
+    }
     onKeyDown?.(e);
   };
 
