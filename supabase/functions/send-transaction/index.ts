@@ -147,6 +147,39 @@ serve(async (req) => {
       console.log(`Contact search: "${contactName}" → ${contactRecordId || 'not found'}`);
     }
 
+    // Look up the contact's corresponding account (Customer X / Supplier X)
+    let contactAccountName = '';
+    let contactAccountId = '';
+    if (contactName && AIRTABLE_API_KEY && AIRTABLE_BASE_ID) {
+      try {
+        const clientRecordId = userId ? await getClientRecordId(AIRTABLE_BASE_ID, AIRTABLE_API_KEY, userId) : null;
+        const accSearchUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Accounts?pageSize=100`;
+        const accRes = await fetch(accSearchUrl, { headers: { 'Authorization': `Bearer ${AIRTABLE_API_KEY}` } });
+        if (accRes.ok) {
+          const accData = await accRes.json();
+          const normalizedContact = contactName.trim().toLowerCase();
+          for (const acc of (accData.records || [])) {
+            const accName = (acc.fields["Account Name"] || "").trim().toLowerCase();
+            // Match "Customer contactName" or "Supplier contactName"
+            if (accName.includes(normalizedContact)) {
+              // Verify it belongs to same client if possible
+              const accClient = acc.fields["Client"];
+              if (!clientRecordId || !accClient || 
+                  (Array.isArray(accClient) && accClient.includes(clientRecordId)) ||
+                  accClient === clientRecordId) {
+                contactAccountName = acc.fields["Account Name"] || "";
+                contactAccountId = acc.id;
+                break;
+              }
+            }
+          }
+          console.log(`Contact account: "${contactAccountName}" (${contactAccountId || 'not found'})`);
+        }
+      } catch (e) {
+        console.error('Failed to look up contact account:', e);
+      }
+    }
+
     // Fetch Chart of Accounts (COA) to send with the webhook
     let accountsList = '';
     if (AIRTABLE_API_KEY && AIRTABLE_BASE_ID) {
@@ -177,6 +210,8 @@ serve(async (req) => {
         client_name: companyName || '',
         contactRecordId: contactRecordId || '',
         contactName: contactName || '',
+        contactAccountName: contactAccountName || '',
+        contactAccountId: contactAccountId || '',
         accounts_list: accountsList,
         timestamp: new Date().toISOString(),
         source: 'web_app',
