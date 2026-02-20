@@ -415,10 +415,10 @@ const Dashboard = () => {
         {(() => {
           const txSuggestions = [
             { emoji: "💰", text: "قبضت 1000 شيكل من الزبون @علي حجاج نقداً" },
-            { emoji: "💸", text: "دفعت 500 شيكل للمورد @حنين صايمة من الصندوق" },
+            { emoji: "💸", text: "دفعت 500 شيكل للمورد @أحمد نصار من الصندوق" },
             { emoji: "🔄", text: "حولت 2000 شيكل من الصندوق إلى بنك فلسطين" },
             { emoji: "💳", text: "سددت 750 شيكل للمورد @خالد حسين عبر البنك" },
-            { emoji: "💰", text: "استلمت 1200 شيكل من الزبون @سالم صايمة إلى البنك" },
+            { emoji: "💰", text: "استلمت 1200 شيكل من الزبون @سالم يوسف إلى البنك" },
             { emoji: "⚡", text: "دفعت مصاريف كهرباء 300 شيكل من البنك" },
             { emoji: "🏧", text: "سحبت 400 شيكل من البنك إلى الصندوق" },
             { emoji: "🛒", text: "اشتريت بضاعة بقيمة 1500 شيكل ودفعنا نقداً" },
@@ -538,7 +538,7 @@ const Dashboard = () => {
           const dbSuggestions = [
             // Contacts
             { emoji: "👥", text: "أضف زبون باسم علي حجاج ورقم 0599311885", cat: "contact" },
-            { emoji: "👥", text: "أضف مورد باسم حنين صايمة", cat: "contact" },
+            { emoji: "👥", text: "أضف مورد باسم أحمد نصار", cat: "contact" },
             { emoji: "👥", text: "أضف جهة اتصال شركة القدس للتجارة", cat: "contact" },
             { emoji: "🗑️", text: "احذف جهة الاتصال محمد عبد الرحمن", cat: "contact" },
             // Accounts
@@ -552,7 +552,7 @@ const Dashboard = () => {
             { emoji: "📦", text: "أضف منتج كفر موبايل بسعر 35 شيكل", cat: "product" },
             { emoji: "📦", text: "عدل سعر منتج طحين إلى 130 شيكل", cat: "product" },
             { emoji: "📦", text: "حدّث كمية منتج كرتونة مياه إلى 40", cat: "product" },
-            { emoji: "📦", text: "أضف منتج بتكلفة شراء 80 وسعر بيع 120", cat: "product" },
+            { emoji: "🧸", text: "أضف صنف لعبة أطفال تصنيف ألعاب سعر شراء 80 شيكل وسعر بيع 120 شيكل", cat: "product" },
           ];
           // Pick 1 from each category + 1 random
           const cats = ["contact", "account", "product"];
