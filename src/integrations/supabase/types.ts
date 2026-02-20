@@ -44,6 +44,54 @@ export type Database = {
         }
         Relationships: []
       }
+      products: {
+        Row: {
+          buy_price: number
+          category: Database["public"]["Enums"]["product_category"]
+          created_at: string
+          id: string
+          min_quantity: number
+          name: string
+          notes: string | null
+          quantity: number
+          sell_price: number
+          sku: string | null
+          unit: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          buy_price?: number
+          category?: Database["public"]["Enums"]["product_category"]
+          created_at?: string
+          id?: string
+          min_quantity?: number
+          name: string
+          notes?: string | null
+          quantity?: number
+          sell_price?: number
+          sku?: string | null
+          unit?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          buy_price?: number
+          category?: Database["public"]["Enums"]["product_category"]
+          created_at?: string
+          id?: string
+          min_quantity?: number
+          name?: string
+          notes?: string | null
+          quantity?: number
+          sell_price?: number
+          sku?: string | null
+          unit?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           address: string | null
@@ -80,6 +128,44 @@ export type Database = {
         }
         Relationships: []
       }
+      stock_movements: {
+        Row: {
+          created_at: string
+          id: string
+          movement_type: Database["public"]["Enums"]["stock_movement_type"]
+          product_id: string
+          quantity: number
+          reference_note: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          movement_type: Database["public"]["Enums"]["stock_movement_type"]
+          product_id: string
+          quantity: number
+          reference_note?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          movement_type?: Database["public"]["Enums"]["stock_movement_type"]
+          product_id?: string
+          quantity?: number
+          reference_note?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_movements_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       webauthn_challenges: {
         Row: {
           challenge: string
@@ -112,7 +198,13 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      product_category:
+        | "بضاعة عامة"
+        | "مواد خام"
+        | "مواد تعبئة"
+        | "قطع غيار"
+        | "أخرى"
+      stock_movement_type: "وارد" | "صادر" | "تعديل يدوي"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -239,6 +331,15 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      product_category: [
+        "بضاعة عامة",
+        "مواد خام",
+        "مواد تعبئة",
+        "قطع غيار",
+        "أخرى",
+      ],
+      stock_movement_type: ["وارد", "صادر", "تعديل يدوي"],
+    },
   },
 } as const
