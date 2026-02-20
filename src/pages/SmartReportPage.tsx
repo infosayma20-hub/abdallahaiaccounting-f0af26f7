@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ArrowRight, Loader2, Send, Sparkles, TableIcon } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -26,9 +27,18 @@ const SmartReportPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
   const [question, setQuestion] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ReportResult | null>(null);
+
+  // Auto-execute from query param
+  useEffect(() => {
+    const q = searchParams.get("q");
+    if (q && user) {
+      handleAsk(q);
+    }
+  }, [searchParams, user]);
 
   const handleAsk = async (q?: string) => {
     const finalQ = (q || question).trim();

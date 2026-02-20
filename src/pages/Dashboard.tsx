@@ -598,6 +598,32 @@ const Dashboard = () => {
         })()}
       </div>
 
+      {/* Smart Reports Section */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-primary" />
+          <h2 className="text-base font-semibold text-foreground">التقارير الذكية</h2>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          {[
+            { emoji: "👤", label: "كشف حساب زبون أو مورد", query: "أعطني كشف حساب" },
+            { emoji: "📊", label: "كشف أرباح وخسائر", query: "كم إجمالي أرباحي وخسائري؟" },
+            { emoji: "📦", label: "كشف مخزون وكميات", query: "أعطني تقرير المخزون والكميات المتوفرة" },
+            { emoji: "💰", label: "مصاريف ومقبوضات اليوم", query: "كشف المعاملات اليومية مصاريف ومقبوضات" },
+          ].map((report) => (
+            <button
+              key={report.label}
+              onClick={() => navigate(`/smart-report?q=${encodeURIComponent(report.query)}`)}
+              className="flex items-center gap-2 p-3 rounded-xl bg-primary/5 border border-primary/10 text-right hover:bg-primary/10 hover:border-primary/20 transition-all active:scale-[0.98]"
+            >
+              <span className="text-lg">{report.emoji}</span>
+              <span className="text-xs font-medium text-foreground leading-tight">{report.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
 
       {showPasskeyOnboarding && (
         <PasskeyOnboarding onComplete={() => setShowPasskeyOnboarding(false)} />
