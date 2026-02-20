@@ -147,60 +147,89 @@ serve(async (req) => {
       console.log(`Contact search: "${contactName}" → ${contactRecordId || 'not found'}`);
     }
 
+    // Resolve client record ID once for all lookups
+    let clientRecordId: string | null = null;
+    if (AIRTABLE_API_KEY && AIRTABLE_BASE_ID && userId) {
+      clientRecordId = await getClientRecordId(AIRTABLE_BASE_ID, AIRTABLE_API_KEY, userId);
+    }
+
     // Look up the contact's corresponding account (Customer X / Supplier X)
     let contactAccountName = '';
     let contactAccountId = '';
-    if (contactName && AIRTABLE_API_KEY && AIRTABLE_BASE_ID) {
+
+    // Fetch accounts and contacts in parallel (filtered by user)
+    let accountsList = '';
+    let accountsDetailed: { id: string; name: string; type: string }[] = [];
+    let contactsDetailed: { id: string; name: string; type: string; phone: string; email: string }[] = [];
+
+    if (AIRTABLE_API_KEY && AIRTABLE_BASE_ID) {
       try {
-        const clientRecordId = userId ? await getClientRecordId(AIRTABLE_BASE_ID, AIRTABLE_API_KEY, userId) : null;
-        const accSearchUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Accounts?pageSize=100`;
-        const accRes = await fetch(accSearchUrl, { headers: { 'Authorization': `Bearer ${AIRTABLE_API_KEY}` } });
+        const [accRes, conRes] = await Promise.all([
+          fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Accounts?pageSize=100`, { headers: { 'Authorization': `Bearer ${AIRTABLE_API_KEY}` } }),
+          fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Contacts?pageSize=100`, { headers: { 'Authorization': `Bearer ${AIRTABLE_API_KEY}` } }),
+        ]);
+
+        // Process accounts - filter to shared + user's own
         if (accRes.ok) {
           const accData = await accRes.json();
-          const normalizedContact = contactName.trim().toLowerCase();
-          for (const acc of (accData.records || [])) {
-            const accName = (acc.fields["Account Name"] || "").trim().toLowerCase();
-            // Match "Customer contactName" or "Supplier contactName"
-            if (accName.includes(normalizedContact)) {
-              // Verify it belongs to same client if possible
-              const accClient = acc.fields["Client"];
-              if (!clientRecordId || !accClient || 
-                  (Array.isArray(accClient) && accClient.includes(clientRecordId)) ||
-                  accClient === clientRecordId) {
+          const allAccounts = (accData.records || []).filter((r: any) => r.fields["Account Name"]);
+          
+          const userAccounts = clientRecordId
+            ? allAccounts.filter((r: any) => {
+                const cl = r.fields["Client"];
+                if (!cl || (Array.isArray(cl) && cl.length === 0)) return true; // shared
+                if (Array.isArray(cl)) return cl.includes(clientRecordId);
+                return cl === clientRecordId;
+              })
+            : allAccounts;
+
+          accountsDetailed = userAccounts.map((r: any) => ({
+            id: r.id,
+            name: r.fields["Account Name"],
+            type: r.fields["Account Type"] || '',
+          }));
+          accountsList = accountsDetailed.map(a => a.name).join(', ');
+
+          // Find contact's account
+          if (contactName) {
+            const normalizedContact = contactName.trim().toLowerCase();
+            for (const acc of userAccounts) {
+              const accName = (acc.fields["Account Name"] || "").trim().toLowerCase();
+              if (accName.includes(normalizedContact)) {
                 contactAccountName = acc.fields["Account Name"] || "";
                 contactAccountId = acc.id;
                 break;
               }
             }
           }
-          console.log(`Contact account: "${contactAccountName}" (${contactAccountId || 'not found'})`);
+          console.log(`COA: ${accountsDetailed.length} accounts for user`);
         }
-      } catch (e) {
-        console.error('Failed to look up contact account:', e);
-      }
-    }
 
-    // Fetch Chart of Accounts (COA) with IDs to send with the webhook
-    let accountsList = '';
-    let accountsDetailed: { id: string; name: string; type: string }[] = [];
-    if (AIRTABLE_API_KEY && AIRTABLE_BASE_ID) {
-      try {
-        const accUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Accounts?pageSize=100`;
-        const accRes = await fetch(accUrl, { headers: { 'Authorization': `Bearer ${AIRTABLE_API_KEY}` } });
-        if (accRes.ok) {
-          const accData = await accRes.json();
-          accountsDetailed = (accData.records || [])
-            .filter((r: any) => r.fields["Account Name"])
-            .map((r: any) => ({
-              id: r.id,
-              name: r.fields["Account Name"],
-              type: r.fields["Account Type"] || '',
-            }));
-          accountsList = accountsDetailed.map(a => a.name).join(', ');
-          console.log(`COA: ${accountsDetailed.length} accounts`);
+        // Process contacts - filter to user's own
+        if (conRes.ok) {
+          const conData = await conRes.json();
+          const allContacts = (conData.records || []).filter((r: any) => r.fields["Contact Name"]);
+          
+          const userContacts = clientRecordId
+            ? allContacts.filter((r: any) => {
+                const cl = r.fields["Client"];
+                if (!cl) return false;
+                if (Array.isArray(cl)) return cl.includes(clientRecordId);
+                return cl === clientRecordId;
+              })
+            : [];
+
+          contactsDetailed = userContacts.map((r: any) => ({
+            id: r.id,
+            name: r.fields["Contact Name"],
+            type: r.fields["Contact Type"] || '',
+            phone: r.fields["Phone"] || '',
+            email: r.fields["Email"] || '',
+          }));
+          console.log(`Contacts: ${contactsDetailed.length} for user`);
         }
       } catch (e) {
-        console.error('Failed to fetch COA:', e);
+        console.error('Failed to fetch accounts/contacts:', e);
       }
     }
 
@@ -213,12 +242,14 @@ serve(async (req) => {
         userId: userId || '',
         email: email || '',
         client_name: companyName || '',
+        clientRecordId: clientRecordId || '',
         contactRecordId: contactRecordId || '',
         contactName: contactName || '',
         contactAccountName: contactAccountName || '',
         contactAccountId: contactAccountId || '',
         accounts_list: accountsList,
         accounts_detailed: accountsDetailed,
+        contacts_detailed: contactsDetailed,
         timestamp: new Date().toISOString(),
         source: 'web_app',
       }),
