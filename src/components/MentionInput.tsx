@@ -145,27 +145,25 @@ const MentionInput = ({ value, onChange, onKeyDown, placeholder, className, user
   }, []);
 
   return (
-    <div className="relative flex-1">
-      <div className="flex items-center gap-1">
-        <button
-          type="button"
-          onClick={triggerMentionDropdown}
-          className="flex-shrink-0 w-8 h-8 rounded-full bg-muted/60 flex items-center justify-center hover:bg-primary/10 hover:text-primary transition-colors active:scale-95"
-          title="أذكر جهة اتصال @"
-        >
-          <AtSign className="h-4 w-4" />
-        </button>
-        <input
-          ref={inputRef}
-          type="text"
-          value={value}
-          onChange={handleInputChange}
-          onKeyDown={handleKeyDown}
-          placeholder={placeholder}
-          className={className}
-          dir="rtl"
-        />
-      </div>
+    <div className="relative flex-1 min-w-0 flex items-center gap-2">
+      <input
+        ref={inputRef}
+        type="text"
+        value={value}
+        onChange={handleInputChange}
+        onKeyDown={handleKeyDown}
+        placeholder={placeholder}
+        className={className}
+        dir="rtl"
+      />
+      <button
+        type="button"
+        onClick={triggerMentionDropdown}
+        className="flex-shrink-0 w-9 h-9 rounded-full bg-muted/60 flex items-center justify-center hover:bg-primary/10 hover:text-primary transition-colors active:scale-95"
+        title="أذكر جهة اتصال @"
+      >
+        <AtSign className="h-4 w-4" />
+      </button>
 
       {showDropdown && (
         <div
