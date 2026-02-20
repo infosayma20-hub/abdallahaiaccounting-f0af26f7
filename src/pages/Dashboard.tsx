@@ -499,23 +499,44 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
-        <div className="flex flex-wrap gap-1.5">
-          {[
-            "أضف الزبون علي حجاج",
-            "أضف حساب بنك فلسطين",
-            "أضف صنف طحين 50 كيلو سعر 20",
-            "احذف الزبون محمد",
-            "عدّل اسم الحساب صندوق",
-          ].map((example) => (
-            <button
-              key={example}
-              onClick={() => setDbCommand(example)}
-              className="px-2.5 py-1 rounded-lg bg-muted/50 text-[11px] text-muted-foreground hover:bg-accent/20 hover:text-accent-foreground transition-all active:scale-95"
-            >
-              {example}
-            </button>
-          ))}
-        </div>
+        {(() => {
+          const allSuggestions = [
+            { emoji: "👥", text: "أضف زبون باسم علي حجاج ورقم 0599311885" },
+            { emoji: "👥", text: "أضف زبونة باسم سارة المصري وعنوانها نابلس" },
+            { emoji: "👥", text: "عدل رقم الزبون خالد إلى 0599123456" },
+            { emoji: "👥", text: "احذف الزبون محمد عبد الرحمن" },
+            { emoji: "📦", text: "أضف منتج طحين 50 كيلو بسعر 120 شيكل" },
+            { emoji: "📦", text: "أضف منتج خدمة تصميم شعار بسعر 300" },
+            { emoji: "📦", text: "عدل سعر منتج كرتونة مياه إلى 25 شيكل" },
+            { emoji: "📦", text: "أضف منتج بتكلفة شراء 80 وسعر بيع 120" },
+            { emoji: "🏦", text: "أضف حساب بنك فلسطين" },
+            { emoji: "🏦", text: "أضف حساب صندوق رئيسي" },
+            { emoji: "🏦", text: "عدّل اسم الحساب صندوق إلى صندوق الفرع" },
+            { emoji: "🏦", text: "أنشئ حساب مورد باسم حنين صايمة" },
+            { emoji: "🚚", text: "أضف زبون أحمد جابر رقم 0599000000 عنوان جنين" },
+          ];
+          // Pick 4 random suggestions, seeded by the current hour so they change periodically
+          const hour = new Date().getHours();
+          const shuffled = [...allSuggestions].sort((a, b) => {
+            const hashA = (a.text.length * 31 + hour) % 100;
+            const hashB = (b.text.length * 31 + hour) % 100;
+            return hashA - hashB;
+          });
+          const picked = shuffled.slice(0, 4);
+          return (
+            <div className="flex flex-wrap gap-1.5">
+              {picked.map((s) => (
+                <button
+                  key={s.text}
+                  onClick={() => setDbCommand(s.text)}
+                  className="px-2.5 py-1 rounded-lg bg-muted/50 text-[11px] text-muted-foreground hover:bg-accent/20 hover:text-accent-foreground transition-all active:scale-95"
+                >
+                  {s.emoji} {s.text}
+                </button>
+              ))}
+            </div>
+          );
+        })()}
       </div>
 
       {/* P&L Quick Link */}
