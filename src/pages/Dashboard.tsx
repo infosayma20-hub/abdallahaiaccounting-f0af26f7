@@ -10,8 +10,9 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useCountUp } from "@/hooks/useCountUp";
 import { useRotatingPlaceholder } from "@/hooks/useRotatingPlaceholder";
-import EnablePasskey from "@/components/EnablePasskey";
+import PasskeyOnboarding from "@/components/PasskeyOnboarding";
 import CompleteProfileDialog from "@/components/CompleteProfileDialog";
+import { browserSupportsWebAuthn } from "@simplewebauthn/browser";
 
 interface TransactionRecord {
   id: string;
@@ -43,9 +44,19 @@ const Dashboard = () => {
   const [dbCommand, setDbCommand] = useState("");
   const [dbSending, setDbSending] = useState(false);
   const [showProfileDialog, setShowProfileDialog] = useState(false);
+  const [showPasskeyOnboarding, setShowPasskeyOnboarding] = useState(false);
   const [transactions, setTransactions] = useState<TransactionRecord[]>([]);
   const [loadingTx, setLoadingTx] = useState(true);
   const rotatingPlaceholder = useRotatingPlaceholder();
+
+  // Show passkey onboarding on first login
+  useEffect(() => {
+    if (!user) return;
+    const done = localStorage.getItem("passkey_onboarding_done");
+    if (!done && browserSupportsWebAuthn()) {
+      setShowPasskeyOnboarding(true);
+    }
+  }, [user]);
 
   // Check if OAuth user needs to complete profile
   useEffect(() => {
@@ -510,7 +521,9 @@ const Dashboard = () => {
         </CardContent>
       </Card>
 
-      <EnablePasskey />
+      {showPasskeyOnboarding && (
+        <PasskeyOnboarding onComplete={() => setShowPasskeyOnboarding(false)} />
+      )}
     </div>
   );
 };
