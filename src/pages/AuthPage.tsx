@@ -214,7 +214,8 @@ const AuthPage = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                dir="ltr"
+                className="text-right"
+                dir="rtl"
               />
               {mode !== "forgot" && (
                 <Input
@@ -224,7 +225,8 @@ const AuthPage = () => {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   minLength={6}
-                  dir="ltr"
+                  className="text-right"
+                  dir="rtl"
                 />
               )}
               {mode === "signup" && (
@@ -258,7 +260,7 @@ const AuthPage = () => {
                       <SelectItem value="TR">🇹🇷 تركيا</SelectItem>
                     </SelectContent>
                   </Select>
-                  <Input placeholder="رقم الهاتف" value={phone} onChange={(e) => setPhone(e.target.value)} dir="ltr" type="tel" />
+                  <Input placeholder="رقم الهاتف" value={phone} onChange={(e) => setPhone(e.target.value)} dir="rtl" className="text-right" type="tel" />
                   <Input placeholder="مجال العمل" value={workField} onChange={(e) => setWorkField(e.target.value)} dir="rtl" />
                   <label className="flex items-start gap-2 text-xs text-muted-foreground cursor-pointer" dir="rtl">
                     <input
