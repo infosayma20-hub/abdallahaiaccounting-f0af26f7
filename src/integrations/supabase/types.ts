@@ -47,7 +47,7 @@ export type Database = {
       products: {
         Row: {
           buy_price: number
-          category: Database["public"]["Enums"]["product_category"]
+          category: string
           created_at: string
           id: string
           min_quantity: number
@@ -62,7 +62,7 @@ export type Database = {
         }
         Insert: {
           buy_price?: number
-          category?: Database["public"]["Enums"]["product_category"]
+          category?: string
           created_at?: string
           id?: string
           min_quantity?: number
@@ -77,7 +77,7 @@ export type Database = {
         }
         Update: {
           buy_price?: number
-          category?: Database["public"]["Enums"]["product_category"]
+          category?: string
           created_at?: string
           id?: string
           min_quantity?: number

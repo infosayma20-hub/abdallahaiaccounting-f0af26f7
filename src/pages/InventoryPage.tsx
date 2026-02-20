@@ -34,8 +34,8 @@ interface StockMovement {
   created_at: string;
 }
 
-const CATEGORIES = ["بضاعة عامة", "مواد خام", "مواد تعبئة", "قطع غيار", "أخرى"];
-const UNITS = ["قطعة", "كيلو", "لتر", "متر", "علبة", "كرتونة", "طن"];
+const DEFAULT_CATEGORIES = ["بضاعة عامة", "مواد خام", "مواد تعبئة", "قطع غيار", "أخرى"];
+const DEFAULT_UNITS = ["قطعة", "كيلو", "لتر", "متر", "علبة", "كرتونة", "طن"];
 
 const InventoryPage = () => {
   const navigate = useNavigate();
@@ -53,6 +53,14 @@ const InventoryPage = () => {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [saving, setSaving] = useState(false);
   const [editMode, setEditMode] = useState(false);
+  const [customCategoryInput, setCustomCategoryInput] = useState("");
+  const [showCustomCategory, setShowCustomCategory] = useState(false);
+  const [customUnitInput, setCustomUnitInput] = useState("");
+  const [showCustomUnit, setShowCustomUnit] = useState(false);
+
+  // Derive unique categories and units from existing products + defaults
+  const CATEGORIES = [...new Set([...DEFAULT_CATEGORIES, ...products.map(p => p.category)])].filter(Boolean);
+  const UNITS = [...new Set([...DEFAULT_UNITS, ...products.map(p => p.unit)])].filter(Boolean);
 
   const [form, setForm] = useState({
     name: "",
@@ -348,21 +356,101 @@ const InventoryPage = () => {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-xs text-muted-foreground mb-1 block">التصنيف</label>
-                <Select value={form.category} onValueChange={v => setForm(p => ({ ...p, category: v }))}>
-                  <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                {showCustomCategory ? (
+                  <div className="flex gap-1.5">
+                    <Input
+                      placeholder="اسم التصنيف الجديد"
+                      value={customCategoryInput}
+                      onChange={e => setCustomCategoryInput(e.target.value)}
+                      className="rounded-xl flex-1"
+                      autoFocus
+                    />
+                    <Button
+                      type="button"
+                      size="sm"
+                      className="rounded-xl px-3"
+                      disabled={!customCategoryInput.trim()}
+                      onClick={() => {
+                        setForm(p => ({ ...p, category: customCategoryInput.trim() }));
+                        setShowCustomCategory(false);
+                        setCustomCategoryInput("");
+                      }}
+                    >
+                      ✓
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      className="rounded-xl px-2"
+                      onClick={() => { setShowCustomCategory(false); setCustomCategoryInput(""); }}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <Select value={form.category} onValueChange={v => {
+                    if (v === "__custom__") { setShowCustomCategory(true); return; }
+                    setForm(p => ({ ...p, category: v }));
+                  }}>
+                    <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                      <SelectItem value="__custom__" className="text-primary font-semibold border-t border-border mt-1 pt-1">
+                        <span className="flex items-center gap-1"><Plus className="h-3 w-3" /> إضافة تصنيف جديد</span>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
               <div>
                 <label className="text-xs text-muted-foreground mb-1 block">الوحدة</label>
-                <Select value={form.unit} onValueChange={v => setForm(p => ({ ...p, unit: v }))}>
-                  <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {UNITS.map(u => <SelectItem key={u} value={u}>{u}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                {showCustomUnit ? (
+                  <div className="flex gap-1.5">
+                    <Input
+                      placeholder="اسم الوحدة الجديدة"
+                      value={customUnitInput}
+                      onChange={e => setCustomUnitInput(e.target.value)}
+                      className="rounded-xl flex-1"
+                      autoFocus
+                    />
+                    <Button
+                      type="button"
+                      size="sm"
+                      className="rounded-xl px-3"
+                      disabled={!customUnitInput.trim()}
+                      onClick={() => {
+                        setForm(p => ({ ...p, unit: customUnitInput.trim() }));
+                        setShowCustomUnit(false);
+                        setCustomUnitInput("");
+                      }}
+                    >
+                      ✓
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      className="rounded-xl px-2"
+                      onClick={() => { setShowCustomUnit(false); setCustomUnitInput(""); }}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <Select value={form.unit} onValueChange={v => {
+                    if (v === "__custom__") { setShowCustomUnit(true); return; }
+                    setForm(p => ({ ...p, unit: v }));
+                  }}>
+                    <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {UNITS.map(u => <SelectItem key={u} value={u}>{u}</SelectItem>)}
+                      <SelectItem value="__custom__" className="text-primary font-semibold border-t border-border mt-1 pt-1">
+                        <span className="flex items-center gap-1"><Plus className="h-3 w-3" /> إضافة وحدة جديدة</span>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
             </div>
 
