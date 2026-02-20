@@ -127,12 +127,12 @@ const PricingPage = () => {
         </p>
 
         {/* Billing Toggle */}
-        <div className="inline-flex items-center gap-1 p-1 rounded-2xl bg-muted/60 border border-border/50">
+        <div className="inline-flex items-center gap-1 p-1.5 rounded-2xl bg-muted/60 border border-border/50">
           <button
             onClick={() => setBilling("monthly")}
-            className={`px-5 py-2 rounded-xl text-xs font-semibold transition-all ${
+            className={`px-5 py-2.5 rounded-xl text-xs font-semibold transition-all duration-300 ${
               billing === "monthly"
-                ? "bg-primary text-primary-foreground shadow-md shadow-primary/20"
+                ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 scale-105"
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
@@ -140,9 +140,9 @@ const PricingPage = () => {
           </button>
           <button
             onClick={() => setBilling("yearly")}
-            className={`px-5 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 ${
+            className={`px-5 py-2.5 rounded-xl text-xs font-semibold transition-all duration-300 flex items-center gap-1.5 ${
               billing === "yearly"
-                ? "bg-primary text-primary-foreground shadow-md shadow-primary/20"
+                ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 scale-105"
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
@@ -174,8 +174,8 @@ const PricingPage = () => {
             >
               {/* Popular Badge */}
               {plan.popular && (
-                <div className="bg-primary text-primary-foreground text-center py-2 text-xs font-bold tracking-wide">
-                  ⭐ الأكثر شيوعًا
+                <div className="bg-gradient-to-l from-primary to-primary/80 text-primary-foreground text-center py-2.5 text-xs font-bold tracking-wide">
+                  ⭐ الأكثر اختياراً
                 </div>
               )}
 
