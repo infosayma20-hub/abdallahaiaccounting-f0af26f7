@@ -93,6 +93,39 @@ serve(async (req) => {
       }
 
       const data = await response.json();
+
+      // Auto-create a corresponding account in Accounts table
+      try {
+        const isSupplier = (contactType || '').includes('مورد') || (contactType || '').toLowerCase().includes('supplier');
+        const prefix = isSupplier ? 'Supplier' : 'Customer';
+        const accountName = `${prefix} ${contactName}`;
+        const accountType = isSupplier ? 'Liability' : 'Asset';
+
+        const accFields: Record<string, any> = {
+          "Account Name": accountName,
+          "Account Type": accountType,
+        };
+        if (clientRecordId) {
+          accFields["Client"] = [clientRecordId];
+        }
+
+        const accRes = await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Accounts`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ records: [{ fields: accFields }] }),
+        });
+        if (!accRes.ok) {
+          console.error('Auto-create account failed:', await accRes.text());
+        } else {
+          console.log(`Auto-created account: ${accountName} (${accountType})`);
+        }
+      } catch (accErr) {
+        console.error('Auto-create account error:', accErr);
+      }
+
       return new Response(JSON.stringify({ success: true, data }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
