@@ -411,6 +411,41 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
+        {/* Smart Transaction Suggestions */}
+        {(() => {
+          const txSuggestions = [
+            { emoji: "💰", text: "قبضت 1000 شيكل من الزبون @علي حجاج نقداً" },
+            { emoji: "💸", text: "دفعت 500 شيكل للمورد @حنين صايمة من الصندوق" },
+            { emoji: "🔄", text: "حولت 2000 شيكل من الصندوق إلى بنك فلسطين" },
+            { emoji: "💳", text: "سددت 750 شيكل للمورد @خالد حسين عبر البنك" },
+            { emoji: "💰", text: "استلمت 1200 شيكل من الزبون @سالم صايمة إلى البنك" },
+            { emoji: "⚡", text: "دفعت مصاريف كهرباء 300 شيكل من البنك" },
+            { emoji: "🏧", text: "سحبت 400 شيكل من البنك إلى الصندوق" },
+            { emoji: "🛒", text: "اشتريت بضاعة بقيمة 1500 شيكل ودفعنا نقداً" },
+            { emoji: "🧾", text: "صرفت 200 شيكل بنزين من الصندوق" },
+            { emoji: "💸", text: "دفعت إيجار المحل 1500 شيكل من البنك" },
+          ];
+          const minute = Math.floor(new Date().getMinutes() / 10);
+          const shuffled = [...txSuggestions].sort((a, b) => {
+            const hA = (a.text.charCodeAt(5) * 7 + minute) % 50;
+            const hB = (b.text.charCodeAt(5) * 7 + minute) % 50;
+            return hA - hB;
+          });
+          return (
+            <div className="flex flex-wrap gap-1.5">
+              {shuffled.slice(0, 3).map((s) => (
+                <button
+                  key={s.text}
+                  onClick={() => setInputValue(s.text)}
+                  className="px-2.5 py-1 rounded-lg bg-primary/5 text-[11px] text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all active:scale-95 border border-primary/10"
+                >
+                  {s.emoji} {s.text}
+                </button>
+              ))}
+            </div>
+          );
+        })()}
+
         {/* Suggested Amounts */}
         <div className="flex gap-1.5 flex-wrap">
           {[10, 20, 30, 50, 100, 200, 500, 1000].map((amount) => (
@@ -500,29 +535,38 @@ const Dashboard = () => {
         </Card>
 
         {(() => {
-          const allSuggestions = [
-            { emoji: "👥", text: "أضف زبون باسم علي حجاج ورقم 0599311885" },
-            { emoji: "👥", text: "أضف زبونة باسم سارة المصري وعنوانها نابلس" },
-            { emoji: "👥", text: "عدل رقم الزبون خالد إلى 0599123456" },
-            { emoji: "👥", text: "احذف الزبون محمد عبد الرحمن" },
-            { emoji: "📦", text: "أضف منتج طحين 50 كيلو بسعر 120 شيكل" },
-            { emoji: "📦", text: "أضف منتج خدمة تصميم شعار بسعر 300" },
-            { emoji: "📦", text: "عدل سعر منتج كرتونة مياه إلى 25 شيكل" },
-            { emoji: "📦", text: "أضف منتج بتكلفة شراء 80 وسعر بيع 120" },
-            { emoji: "🏦", text: "أضف حساب بنك فلسطين" },
-            { emoji: "🏦", text: "أضف حساب صندوق رئيسي" },
-            { emoji: "🏦", text: "عدّل اسم الحساب صندوق إلى صندوق الفرع" },
-            { emoji: "🏦", text: "أنشئ حساب مورد باسم حنين صايمة" },
-            { emoji: "🚚", text: "أضف زبون أحمد جابر رقم 0599000000 عنوان جنين" },
+          const dbSuggestions = [
+            // Contacts
+            { emoji: "👥", text: "أضف زبون باسم علي حجاج ورقم 0599311885", cat: "contact" },
+            { emoji: "👥", text: "أضف مورد باسم حنين صايمة", cat: "contact" },
+            { emoji: "👥", text: "أضف جهة اتصال شركة القدس للتجارة", cat: "contact" },
+            { emoji: "🗑️", text: "احذف جهة الاتصال محمد عبد الرحمن", cat: "contact" },
+            // Accounts
+            { emoji: "🏦", text: "أضف حساب بنك فلسطين ضمن الأصول", cat: "account" },
+            { emoji: "🏦", text: "أنشئ حساب صندوق رئيسي", cat: "account" },
+            { emoji: "🏦", text: "أضف حساب مصاريف تسويق", cat: "account" },
+            { emoji: "✏️", text: "عدّل اسم حساب صندوق إلى صندوق الفرع", cat: "account" },
+            { emoji: "🗑️", text: "احذف حساب غير مستخدم", cat: "account" },
+            // Products
+            { emoji: "📦", text: "أضف صنف طحين 50 كيلو بسعر 120 شيكل", cat: "product" },
+            { emoji: "📦", text: "أضف منتج كفر موبايل بسعر 35 شيكل", cat: "product" },
+            { emoji: "📦", text: "عدل سعر منتج طحين إلى 130 شيكل", cat: "product" },
+            { emoji: "📦", text: "حدّث كمية منتج كرتونة مياه إلى 40", cat: "product" },
+            { emoji: "📦", text: "أضف منتج بتكلفة شراء 80 وسعر بيع 120", cat: "product" },
           ];
-          // Pick 4 random suggestions, seeded by the current hour so they change periodically
-          const hour = new Date().getHours();
-          const shuffled = [...allSuggestions].sort((a, b) => {
-            const hashA = (a.text.length * 31 + hour) % 100;
-            const hashB = (b.text.length * 31 + hour) % 100;
-            return hashA - hashB;
+          // Pick 1 from each category + 1 random
+          const cats = ["contact", "account", "product"];
+          const minute = Math.floor(new Date().getMinutes() / 5);
+          const picked: typeof dbSuggestions = [];
+          cats.forEach((cat) => {
+            const items = dbSuggestions.filter((s) => s.cat === cat);
+            const idx = (minute * cat.charCodeAt(0)) % items.length;
+            picked.push(items[idx]);
           });
-          const picked = shuffled.slice(0, 4);
+          // Add one more random
+          const remaining = dbSuggestions.filter((s) => !picked.includes(s));
+          const extraIdx = (minute * 13) % remaining.length;
+          picked.push(remaining[extraIdx]);
           return (
             <div className="flex flex-wrap gap-1.5">
               {picked.map((s) => (
