@@ -201,13 +201,29 @@ const Dashboard = () => {
 
   const handleSend = async () => {
     if (!inputValue.trim()) return;
+    // Split by newlines into separate transactions
+    const lines = inputValue.split("\n").map(l => l.trim()).filter(Boolean);
+    if (lines.length === 0) return;
     setSending(true);
+    let successCount = 0;
+    let failCount = 0;
     try {
-      const { data, error } = await supabase.functions.invoke("send-transaction", {
-        body: { text: inputValue, userId: user?.id, email: user?.email, companyName: user?.user_metadata?.company_name },
-      });
-      if (error) throw error;
-      toast({ title: "تم الإرسال بنجاح ✅", description: "جاري معالجة العملية بالذكاء الاصطناعي" });
+      for (const line of lines) {
+        try {
+          const { error } = await supabase.functions.invoke("send-transaction", {
+            body: { text: line, userId: user?.id, email: user?.email, companyName: user?.user_metadata?.company_name },
+          });
+          if (error) throw error;
+          successCount++;
+        } catch {
+          failCount++;
+        }
+      }
+      if (failCount === 0) {
+        toast({ title: `تم إرسال ${successCount > 1 ? successCount + " عمليات" : "العملية"} بنجاح ✅`, description: "جاري المعالجة بالذكاء الاصطناعي" });
+      } else {
+        toast({ title: `تم إرسال ${successCount} من ${lines.length} عمليات`, description: `فشل ${failCount} عمليات`, variant: "destructive" });
+      }
       setInputValue("");
     } catch (err: any) {
       toast({ title: "خطأ في الإرسال", description: err.message, variant: "destructive" });
