@@ -456,7 +456,7 @@ const Dashboard = () => {
       </div>
 
       {/* Database Command Section */}
-      <div className="space-y-3">
+      <div id="database-command-section" className="space-y-3">
         <div className="flex items-center gap-2">
           <Database className="h-4 w-4 text-accent-foreground" />
           <h2 className="text-base font-semibold text-foreground">إدارة البيانات</h2>

@@ -113,9 +113,9 @@ const tourSteps: TooltipStep[] = [
     position: "top",
   },
   {
-    targetId: "quick-links-section",
-    message: "من هنا تقدر تضيف فاتورة، زبون أو مصروف بسرعة",
-    position: "bottom",
+    targetId: "database-command-section",
+    message: "من هنا تقدر تضيف فاتورة، زبون أو مصروف بسرعة عبر إدارة البيانات",
+    position: "top",
   },
   {
     targetId: "profit-loss-card",
