@@ -353,33 +353,33 @@ const Dashboard = () => {
         </div>
 
         {/* Input Card */}
-        <Card className="border-0 shadow-lg bg-gradient-to-l from-primary/5 to-background overflow-hidden">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3" dir="ltr">
+        <Card className="border-0 shadow-lg bg-gradient-to-l from-primary/5 to-background">
+          <CardContent className="px-3 py-2.5">
+            <div className="flex items-center gap-2 min-h-[44px]" dir="rtl">
               <button
-                onClick={() => navigate("/voice")}
-                className="flex-shrink-0 w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center hover:bg-primary/20 transition-colors active:scale-95"
+                onClick={handleSend}
+                disabled={sending || !inputValue.trim()}
+                className="flex-shrink-0 w-11 h-11 rounded-full bg-primary flex items-center justify-center hover:opacity-90 transition-all active:scale-95 disabled:opacity-50 shadow-md shadow-primary/25"
               >
-                <Mic className="h-5 w-5 text-primary" />
+                {sending ? (
+                  <Loader2 className="h-4 w-4 text-primary-foreground animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4 text-primary-foreground rotate-180" />
+                )}
               </button>
               <MentionInput
                 value={inputValue}
                 onChange={setInputValue}
                 onKeyDown={(e) => e.key === "Enter" && handleSend()}
                 placeholder={rotatingPlaceholder}
-                className="flex-1 h-10 bg-secondary/60 rounded-lg px-3 text-sm text-foreground placeholder:text-muted-foreground border-0 outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                className="flex-1 min-w-0 h-11 bg-secondary/60 rounded-xl px-3 text-sm text-foreground placeholder:text-muted-foreground border-0 outline-none focus:ring-2 focus:ring-primary/20 transition-all"
                 userId={user?.id}
               />
               <button
-                onClick={handleSend}
-                disabled={sending || !inputValue.trim()}
-                className="flex-shrink-0 w-10 h-10 rounded-full bg-primary flex items-center justify-center hover:opacity-90 transition-all active:scale-95 disabled:opacity-50 shadow-md shadow-primary/25"
+                onClick={() => navigate("/voice")}
+                className="flex-shrink-0 w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center hover:bg-primary/20 transition-colors active:scale-95"
               >
-                {sending ? (
-                  <Loader2 className="h-4 w-4 text-primary-foreground animate-spin" />
-                ) : (
-                  <Send className="h-4 w-4 text-primary-foreground" />
-                )}
+                <Mic className="h-5 w-5 text-primary" />
               </button>
             </div>
           </CardContent>
