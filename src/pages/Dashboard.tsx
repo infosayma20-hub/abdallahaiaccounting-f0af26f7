@@ -227,7 +227,11 @@ const Dashboard = () => {
       });
       const data = await res.json();
       if (!res.ok || data.error) throw new Error(data.error || "فشل تنفيذ الأمر");
-      if (data.success) {
+      if (data.action === 'need_info') {
+        toast({ title: "📝 " + (data.message || "أحتاج تفاصيل إضافية"), description: (data.missing_fields || []).join("، ") });
+      } else if (data.action === 'delete_blocked') {
+        toast({ title: data.message || "لا يمكن الحذف", variant: "destructive" });
+      } else if (data.success) {
         toast({ title: "✅ " + (data.message || "تم تنفيذ الأمر بنجاح") });
         setDbCommand("");
       } else {
@@ -499,6 +503,7 @@ const Dashboard = () => {
           {[
             "أضف الزبون علي حجاج",
             "أضف حساب بنك فلسطين",
+            "أضف صنف طحين 50 كيلو سعر 20",
             "احذف الزبون محمد",
             "عدّل اسم الحساب صندوق",
           ].map((example) => (
