@@ -398,7 +398,7 @@ const Dashboard = () => {
               })}
               className="px-2 py-1 rounded-lg bg-secondary text-[11px] font-medium text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all active:scale-95"
             >
-              {amount.toLocaleString()}₪
+              {amount.toLocaleString()}
             </button>
           ))}
         </div>
