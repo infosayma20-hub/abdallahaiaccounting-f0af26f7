@@ -7,6 +7,12 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import * as XLSX from "xlsx";
 
+// Accounting format: negative numbers shown as (1,000) instead of -1,000
+function fmtNum(n: number): string {
+  if (n < 0) return `(${Math.abs(n).toLocaleString()})`;
+  return n.toLocaleString();
+}
+
 interface Transaction {
   id: string;
   fields: {
@@ -193,7 +199,7 @@ const ContactStatementDialog = ({ open, onClose, contactId, contactName, contact
         <td style="color:#047857;font-weight:600;">${r.debit ? r.debit.toLocaleString() : "-"}</td>
         <td style="color:#dc2626;font-weight:600;">${r.credit ? r.credit.toLocaleString() : "-"}</td>
         <td style="font-weight:700;color:${r.runningBalance >= 0 ? "#047857" : "#dc2626"};">
-          ${r.runningBalance.toLocaleString()}
+          ${fmtNum(r.runningBalance)}
         </td>
       </tr>
     `).join("");
@@ -510,7 +516,7 @@ const ContactStatementDialog = ({ open, onClose, contactId, contactName, contact
       <div class="summary-box balance">
         <div class="icon">💰</div>
         <div class="label">الرصيد النهائي</div>
-        <div class="value">${Math.abs(finalBalance).toLocaleString()} <span class="currency">${currency}</span></div>
+        <div class="value">${fmtNum(finalBalance)} <span class="currency">${currency}</span></div>
         <div style="font-size:9px;color:${balanceColor};margin-top:2px;">${balanceLabel}</div>
       </div>
     </div>
@@ -533,7 +539,7 @@ const ContactStatementDialog = ({ open, onClose, contactId, contactName, contact
           <td colspan="3" style="text-align:right;color:#047857;">الإجمالي</td>
           <td class="green">${totalDebit.toLocaleString()}</td>
           <td class="red">${totalCredit.toLocaleString()}</td>
-          <td style="color:${balanceColor};font-size:14px;">${Math.abs(finalBalance).toLocaleString()}</td>
+          <td style="color:${balanceColor};font-size:14px;">${fmtNum(finalBalance)}</td>
         </tr>
       </tbody>
     </table>
@@ -608,7 +614,7 @@ const ContactStatementDialog = ({ open, onClose, contactId, contactName, contact
                 <Wallet className="h-3.5 w-3.5 mx-auto mb-1" style={{ color: finalBalance >= 0 ? "#047857" : "#dc2626" }} />
                 <p className="text-[10px] text-muted-foreground mb-1">الرصيد النهائي</p>
                 <p className={`text-sm font-bold ${finalBalance >= 0 ? "text-emerald-700 dark:text-emerald-400" : "text-red-700 dark:text-red-400"}`}>
-                  {Math.abs(finalBalance).toLocaleString()} {currency}
+                  {fmtNum(finalBalance)} {currency}
                 </p>
               </div>
             </div>
@@ -640,7 +646,7 @@ const ContactStatementDialog = ({ open, onClose, contactId, contactName, contact
                           {r.credit ? r.credit.toLocaleString() : "-"}
                         </td>
                         <td className={`px-3 py-2 text-center font-bold ${r.runningBalance >= 0 ? "text-emerald-700 dark:text-emerald-400" : "text-red-700 dark:text-red-400"}`}>
-                          {r.runningBalance.toLocaleString()}
+                          {fmtNum(r.runningBalance)}
                         </td>
                       </tr>
                     ))}
