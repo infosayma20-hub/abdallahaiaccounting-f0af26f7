@@ -252,6 +252,10 @@ serve(async (req) => {
         contacts_detailed: contactsDetailed,
         timestamp: new Date().toISOString(),
         source: 'web_app',
+        // Explicit instruction for AI: always use the specific contact account
+        ai_instruction: contactAccountName
+          ? `تنبيه مهم: عند تسجيل هذه المعاملة، يجب استخدام حساب "${contactAccountName}" كحساب مدين أو دائن (حسب نوع العملية) بدلاً من حساب "العملاء" العام. لا تستخدم "العملاء" أبداً إذا كان هناك حساب خاص بالجهة.`
+          : '',
       }),
     });
 
