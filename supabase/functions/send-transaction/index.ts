@@ -180,19 +180,24 @@ serve(async (req) => {
       }
     }
 
-    // Fetch Chart of Accounts (COA) to send with the webhook
+    // Fetch Chart of Accounts (COA) with IDs to send with the webhook
     let accountsList = '';
+    let accountsDetailed: { id: string; name: string; type: string }[] = [];
     if (AIRTABLE_API_KEY && AIRTABLE_BASE_ID) {
       try {
         const accUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Accounts?pageSize=100`;
         const accRes = await fetch(accUrl, { headers: { 'Authorization': `Bearer ${AIRTABLE_API_KEY}` } });
         if (accRes.ok) {
           const accData = await accRes.json();
-          accountsList = (accData.records || [])
-            .map((r: any) => r.fields["Account Name"] || '')
-            .filter(Boolean)
-            .join(', ');
-          console.log(`COA: ${accountsList.substring(0, 100)}...`);
+          accountsDetailed = (accData.records || [])
+            .filter((r: any) => r.fields["Account Name"])
+            .map((r: any) => ({
+              id: r.id,
+              name: r.fields["Account Name"],
+              type: r.fields["Account Type"] || '',
+            }));
+          accountsList = accountsDetailed.map(a => a.name).join(', ');
+          console.log(`COA: ${accountsDetailed.length} accounts`);
         }
       } catch (e) {
         console.error('Failed to fetch COA:', e);
@@ -213,6 +218,7 @@ serve(async (req) => {
         contactAccountName: contactAccountName || '',
         contactAccountId: contactAccountId || '',
         accounts_list: accountsList,
+        accounts_detailed: accountsDetailed,
         timestamp: new Date().toISOString(),
         source: 'web_app',
       }),
