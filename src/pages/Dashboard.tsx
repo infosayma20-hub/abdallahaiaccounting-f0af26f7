@@ -364,7 +364,7 @@ const Dashboard = () => {
                 {sending ? (
                   <Loader2 className="h-4 w-4 text-primary-foreground animate-spin" />
                 ) : (
-                  <Send className="h-4 w-4 text-primary-foreground rotate-180" />
+                  <Send className="h-4 w-4 text-primary-foreground" />
                 )}
               </button>
               <MentionInput
