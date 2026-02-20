@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { FileText, TrendingUp, TrendingDown, Wallet, Mic, ChevronLeft, Send, Loader2, BookOpen, Receipt, LogOut, Users, Sparkles, Database } from "lucide-react";
+import MentionInput from "@/components/MentionInput";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { useNavigate } from "react-router-dom";
@@ -364,14 +365,13 @@ const Dashboard = () => {
               >
                 <Mic className="h-5 w-5 text-primary" />
               </button>
-              <input
-                type="text"
+              <MentionInput
                 value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
+                onChange={setInputValue}
                 onKeyDown={(e) => e.key === "Enter" && handleSend()}
-                placeholder="اكتب أو تكلم… مثال: قبضت 500 من أحمد"
+                placeholder="اكتب أو تكلم… مثال: قبضت 500 من @أحمد"
                 className="flex-1 h-10 bg-secondary/60 rounded-lg px-3 text-sm text-foreground placeholder:text-muted-foreground border-0 outline-none focus:ring-2 focus:ring-primary/20"
-                dir="rtl"
+                userId={user?.id}
               />
               <button
                 onClick={handleSend}
