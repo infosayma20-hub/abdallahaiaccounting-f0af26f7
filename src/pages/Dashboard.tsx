@@ -403,6 +403,19 @@ const Dashboard = () => {
           ))}
         </div>
 
+        {/* Currency Buttons */}
+        <div className="flex gap-1.5 flex-wrap">
+          {["شيكل", "دولار", "دينار", "يورو", "جنيه مصري", "جنيه استرليني"].map((currency) => (
+            <button
+              key={currency}
+              onClick={() => setInputValue((prev) => prev.trim() + ` ${currency}`)}
+              className="px-2.5 py-1 rounded-lg bg-muted/50 text-[11px] text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all active:scale-95"
+            >
+              {currency}
+            </button>
+          ))}
+        </div>
+
         {/* Suggested Expense Names */}
         <div className="space-y-2">
           <p className="text-[11px] text-muted-foreground">مصاريف يومية</p>
@@ -414,42 +427,6 @@ const Dashboard = () => {
                 className="px-2.5 py-1 rounded-lg bg-muted/50 text-[11px] text-muted-foreground hover:bg-warning/10 hover:text-warning transition-all active:scale-95"
               >
                 {name}
-              </button>
-            ))}
-          </div>
-          <p className="text-[11px] text-muted-foreground mt-2">مصاريف شهرية</p>
-          <div className="flex flex-wrap gap-1.5">
-            {["إيجار", "كهرباء", "مياه", "إنترنت", "هاتف", "رواتب", "تأمين", "إعلان"].map((name) => (
-              <button
-                key={name}
-                onClick={() => setInputValue((prev) => prev.trim() + ` ${name}`)}
-                className="px-2.5 py-1 rounded-lg bg-muted/50 text-[11px] text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all active:scale-95"
-              >
-                {name}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Quick Examples */}
-        <div className="space-y-2">
-          <div className="flex items-center gap-1">
-            <Sparkles className="h-3 w-3 text-primary" />
-            <p className="text-[11px] text-muted-foreground">أمثلة سريعة</p>
-          </div>
-          <div className="flex flex-wrap gap-1.5">
-            {[
-              "قبضت 500 من أحمد",
-              "دفعت كهرباء 100",
-              "اشتريت بضاعة 1500",
-              "صرفت بنزين 50",
-            ].map((example) => (
-              <button
-                key={example}
-                onClick={() => setInputValue(example)}
-                className="px-2.5 py-1 rounded-lg bg-muted/50 text-[11px] text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all active:scale-95"
-              >
-                {example}
               </button>
             ))}
           </div>
