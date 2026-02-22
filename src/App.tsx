@@ -21,6 +21,7 @@ import InvoicesPage from "./pages/InvoicesPage";
 import InventoryPage from "./pages/InventoryPage";
 import TermsPage from "./pages/TermsPage";
 import PrivacyPage from "./pages/PrivacyPage";
+import ProfilePage from "./pages/ProfilePage";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
 
@@ -76,6 +77,7 @@ const App = () => (
                     <Route path="/pricing" element={<PricingPage />} />
                     <Route path="/invoices" element={<InvoicesPage />} />
                     <Route path="/inventory" element={<InventoryPage />} />
+                    <Route path="/profile" element={<ProfilePage />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </AppLayout>
