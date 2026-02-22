@@ -217,11 +217,14 @@ const Dashboard = () => {
       {/* Hero Header */}
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center shadow-sm">
+          <button
+            onClick={() => navigate("/profile")}
+            className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center shadow-sm hover:shadow-md transition-all active:scale-95"
+          >
             <span className="text-base font-bold text-primary">
               {displayName.split(' ').slice(0, 2).map((w: string) => w[0]).join('')}
             </span>
-          </div>
+          </button>
           <div>
             <h1 className="text-lg font-bold text-foreground">
               مرحباً {displayName} 👋
