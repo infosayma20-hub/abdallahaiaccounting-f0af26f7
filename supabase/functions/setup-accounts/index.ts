@@ -23,9 +23,9 @@ function getAccountsForSetup(req: SetupRequest): { name: string; type: string }[
     { name: "صندوق", type: "Asset" },
     { name: "بنك", type: "Asset" },
     { name: "إيرادات مبيعات", type: "Revenue" },
-    { name: "أرصدة افتتاحية", type: "Liability" },
-    { name: "أرباح محتجزة", type: "Liability" },
-    { name: "رأس المال", type: "Liability" },
+    { name: "أرصدة افتتاحية", type: "Owner's Equity" },
+    { name: "أرباح محتجزة", type: "Owner's Equity" },
+    { name: "رأس المال", type: "Owner's Equity" },
   );
 
   // ── Receivables & Payables ──
