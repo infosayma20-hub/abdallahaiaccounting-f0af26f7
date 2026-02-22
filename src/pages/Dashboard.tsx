@@ -41,7 +41,22 @@ const Dashboard = () => {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [transactions, setTransactions] = useState<TransactionRecord[]>([]);
   const [loadingTx, setLoadingTx] = useState(true);
+  const [profileData, setProfileData] = useState<{ display_name?: string; company_name?: string } | null>(null);
   const rotatingPlaceholder = useRotatingPlaceholder();
+
+  // Fetch profile from DB
+  useEffect(() => {
+    if (!user) return;
+    const loadProfile = async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("display_name, company_name")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (data) setProfileData(data);
+    };
+    loadProfile();
+  }, [user]);
 
   // Show passkey onboarding on first login
   useEffect(() => {
@@ -204,7 +219,7 @@ const Dashboard = () => {
     }
   };
 
-  const displayName = user?.user_metadata?.company_name || user?.user_metadata?.full_name || "عميل";
+  const displayName = profileData?.company_name || profileData?.display_name || user?.user_metadata?.company_name || user?.user_metadata?.full_name || "عميل";
   const hasTransactions = !loadingTx && transactions.length > 0;
   const isEmpty = !loadingTx && transactions.length === 0;
 
