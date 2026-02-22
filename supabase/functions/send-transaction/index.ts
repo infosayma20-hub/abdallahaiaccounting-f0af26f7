@@ -36,14 +36,60 @@ async function findContactByName(baseId: string, apiKey: string, clientUUID: str
     return cf === clientRecordId;
   });
 
+  // Normalize Arabic text: remove ال prefix, diacritics, normalize common chars
+  function normalizeArabic(s: string): string {
+    return s
+      .trim()
+      .toLowerCase()
+      .replace(/[\u064B-\u065F\u0670]/g, '') // remove tashkeel
+      .replace(/[أإآ]/g, 'ا')               // normalize alef variants
+      .replace(/ة/g, 'ه')                   // taa marbuta → haa
+      .replace(/ى/g, 'ي');                   // alef maqsura → yaa
+  }
+
+  // Strip ال from each word for comparison
+  function stripAl(s: string): string {
+    return s.split(/\s+/).map(w => w.replace(/^ال/, '')).join(' ');
+  }
+
+  // Calculate word overlap similarity (0-1)
+  function wordSimilarity(a: string, b: string): number {
+    const wordsA = stripAl(normalizeArabic(a)).split(/\s+/).filter(Boolean);
+    const wordsB = stripAl(normalizeArabic(b)).split(/\s+/).filter(Boolean);
+    if (wordsA.length === 0 || wordsB.length === 0) return 0;
+    const matched = wordsA.filter(wa => wordsB.some(wb => wa === wb || wa.includes(wb) || wb.includes(wa)));
+    return matched.length / Math.max(wordsA.length, wordsB.length);
+  }
+
   // Search for best match
-  const normalizedName = name.trim().toLowerCase();
+  const normalizedName = normalizeArabic(name);
+  const strippedName = stripAl(normalizedName);
+
+  // Pass 1: exact or substring match (with ال normalization)
   for (const contact of contacts) {
-    const contactName = (contact.fields["Contact Name"] || "").trim().toLowerCase();
-    if (contactName && (contactName === normalizedName || normalizedName.includes(contactName) || contactName.includes(normalizedName))) {
+    const cn = normalizeArabic(contact.fields["Contact Name"] || "");
+    const scn = stripAl(cn);
+    if (cn === normalizedName || scn === strippedName ||
+        normalizedName.includes(cn) || cn.includes(normalizedName) ||
+        strippedName.includes(scn) || scn.includes(strippedName)) {
       return contact.id;
     }
   }
+
+  // Pass 2: high word similarity (≥60% word overlap)
+  let bestMatch: { id: string; score: number } | null = null;
+  for (const contact of contacts) {
+    const cn = contact.fields["Contact Name"] || "";
+    const score = wordSimilarity(name, cn);
+    if (score >= 0.6 && (!bestMatch || score > bestMatch.score)) {
+      bestMatch = { id: contact.id, score };
+    }
+  }
+  if (bestMatch) {
+    console.log(`Fuzzy match: "${name}" → contact ${bestMatch.id} (score: ${bestMatch.score})`);
+    return bestMatch.id;
+  }
+
   return null;
 }
 
@@ -71,13 +117,20 @@ async function linkContactToLatestTransaction(baseId: string, apiKey: string, cl
 
   console.log(`linkContact: found ${records.length} transactions for client, looking for "${contactName}"`);
 
-  // Only link transactions whose description contains the contact name
-  const normalizedContactName = contactName.trim().toLowerCase();
+  // Normalize Arabic for matching
+  function normAr(s: string): string {
+    return s.trim().toLowerCase()
+      .replace(/[\u064B-\u065F\u0670]/g, '')
+      .replace(/[أإآ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي')
+      .split(/\s+/).map(w => w.replace(/^ال/, '')).join(' ');
+  }
+
+  const normContact = normAr(contactName);
   let targetRecord = null;
   for (const rec of records) {
     if (rec.fields["Contact"]) continue;
-    const desc = (rec.fields["Description"] || "").toLowerCase();
-    if (desc && desc.includes(normalizedContactName)) {
+    const desc = normAr(rec.fields["Description"] || "");
+    if (desc && (desc.includes(normContact) || normContact.split(' ').every(w => desc.includes(w)))) {
       targetRecord = rec;
       break;
     }
