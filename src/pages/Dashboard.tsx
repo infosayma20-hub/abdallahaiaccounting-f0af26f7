@@ -1,9 +1,8 @@
-import { useState, useEffect, useMemo } from "react";
-import { FileText, TrendingUp, TrendingDown, Wallet, Mic, ChevronLeft, Send, Loader2, BookOpen, Receipt, LogOut, Users, Sparkles, Database } from "lucide-react";
+import { useState, useEffect } from "react";
+import { FileText, Wallet, Mic, Send, Loader2, LogOut, Sparkles, Database, BookOpen, Receipt, Users, Package, PlusCircle, BookOpenCheck } from "lucide-react";
 import MentionInput from "@/components/MentionInput";
-import SmartInsightCard from "@/components/SmartInsightCard";
 import { Card, CardContent } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
+import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -28,13 +27,6 @@ interface TransactionRecord {
     Client?: string;
   };
 }
-
-const cardGradients = [
-  "from-blue-500/10 via-blue-400/5 to-transparent",    // الفواتير
-  "from-emerald-500/10 via-emerald-400/5 to-transparent", // الرصيد
-  "from-teal-500/10 via-teal-400/5 to-transparent",     // الإيرادات
-  "from-red-400/10 via-red-300/5 to-transparent",        // المصروفات
-];
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -68,7 +60,6 @@ const Dashboard = () => {
       setShowOnboarding(true);
     }
   }, [user]);
-
 
   useEffect(() => {
     if (!user) return;
@@ -147,61 +138,14 @@ const Dashboard = () => {
     .filter((tx) => tx.fields["Transaction Type"] === "سند صرف")
     .reduce((sum, tx) => sum + (tx.fields.Amount || 0), 0);
   const cashBalance = totalIncome - totalOutcome;
-  const unpaidInvoices = transactions.filter((tx) => tx.fields["Transaction Type"] === "فاتورة مبيعات");
-  const invoiceTotal = unpaidInvoices.reduce((sum, tx) => sum + (tx.fields.Amount || 0), 0);
+  const netProfit = revenue - expenses;
 
   // Count-up animations
-  const animInvoice = useCountUp(invoiceTotal, 1200, !loadingTx);
   const animCash = useCountUp(cashBalance, 1200, !loadingTx);
-  const animRevenue = useCountUp(revenue, 1200, !loadingTx);
-  const animExpenses = useCountUp(expenses, 1200, !loadingTx);
-
-  const summaryCards = [
-    {
-      title: "الفواتير",
-      value: animInvoice,
-      subtitle: `${unpaidInvoices.length} فاتورة`,
-      icon: FileText,
-      iconBg: "bg-blue-500/10",
-      iconColor: "text-blue-600",
-      progress: unpaidInvoices.length > 0 ? 65 : 0,
-      gradient: cardGradients[0],
-    },
-    {
-      title: "الرصيد النقدي",
-      value: animCash,
-      subtitle: "محدّث الآن",
-      icon: Wallet,
-      iconBg: "bg-emerald-500/10",
-      iconColor: "text-emerald-600",
-      progress: null,
-      gradient: cardGradients[1],
-    },
-    {
-      title: "الإيرادات",
-      value: animRevenue,
-      subtitle: "إجمالي",
-      icon: TrendingUp,
-      iconBg: "bg-teal-500/10",
-      iconColor: "text-teal-600",
-      progress: null,
-      gradient: cardGradients[2],
-    },
-    {
-      title: "المصروفات",
-      value: animExpenses,
-      subtitle: "إجمالي",
-      icon: TrendingDown,
-      iconBg: "bg-red-400/10",
-      iconColor: "text-red-500",
-      progress: null,
-      gradient: cardGradients[3],
-    },
-  ];
+  const animProfit = useCountUp(netProfit, 1200, !loadingTx);
 
   const handleSend = async () => {
     if (!inputValue.trim()) return;
-    // Split by newlines into separate transactions
     const lines = inputValue.split("\n").map(l => l.trim()).filter(Boolean);
     if (lines.length === 0) return;
     setSending(true);
@@ -261,6 +205,8 @@ const Dashboard = () => {
   };
 
   const displayName = user?.user_metadata?.company_name || user?.user_metadata?.full_name || "عميل";
+  const hasTransactions = !loadingTx && transactions.length > 0;
+  const isEmpty = !loadingTx && transactions.length === 0;
 
   return (
     <div className="px-4 pt-6 pb-28 space-y-6" dir="rtl">
@@ -280,7 +226,9 @@ const Dashboard = () => {
             <h1 className="text-lg font-bold text-foreground">
               مرحباً {displayName} 👋
             </h1>
-            <p className="text-xs text-muted-foreground">ملخصك المالي اليوم</p>
+            <p className="text-xs text-muted-foreground">
+              {isEmpty ? "لنبدأ بإضافة أول عملية مالية" : "ملخصك المالي اليوم"}
+            </p>
           </div>
         </div>
         <button
@@ -292,354 +240,361 @@ const Dashboard = () => {
         </button>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-2 gap-3">
-        {loadingTx ? (
-          <div className="col-span-2 flex items-center justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin text-primary" />
-          </div>
-        ) : (
-          summaryCards.map((card) => (
-            <Card
-              key={card.title}
-              className="border-0 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-0.5 overflow-hidden"
-            >
-              <CardContent className={`p-4 text-center bg-gradient-to-br ${card.gradient}`}>
-                <div className="flex justify-center mb-3">
-                  <div className={`p-2.5 rounded-xl ${card.iconBg}`}>
-                    <card.icon className={`h-4 w-4 ${card.iconColor}`} />
-                  </div>
-                </div>
-                <p className="text-xs text-muted-foreground mb-1">{card.title}</p>
-                <p className="text-lg font-bold text-foreground tabular-nums">
-                  ₪{card.value.toLocaleString()}
-                </p>
-                {card.progress !== null && card.progress !== undefined && (
-                  <div className="mt-2">
-                    <Progress value={card.progress} className="h-1.5" />
-                    <p className="text-[10px] text-muted-foreground mt-1">{card.subtitle}</p>
-                  </div>
-                )}
-                {!card.progress && card.progress !== 0 && (
-                  <p className="text-[10px] text-muted-foreground mt-1">{card.subtitle}</p>
-                )}
-              </CardContent>
-            </Card>
-          ))
-        )}
-      </div>
-
-      {/* Smart Insight */}
-      {!loadingTx && (
-        <SmartInsightCard expenses={expenses} revenue={revenue} transactionCount={transactions.length} />
+      {/* Loading State */}
+      {loadingTx && (
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
       )}
 
-      {/* Quick Links */}
-      <div id="quick-links-section" className="grid grid-cols-3 gap-3">
-        <Card
-          className="border-0 shadow-sm cursor-pointer hover:shadow-md transition-all duration-200 hover:-translate-y-0.5"
-          onClick={() => navigate("/transactions")}
-        >
-          <CardContent className="p-4 flex flex-col items-center gap-2 text-center">
-            <div className="p-2 rounded-xl bg-primary/10">
-              <Receipt className="h-5 w-5 text-primary" />
+      {/* ═══════════════════════════════════════ */}
+      {/* EMPTY STATE */}
+      {/* ═══════════════════════════════════════ */}
+      {isEmpty && (
+        <div className="space-y-8">
+          {/* Hero Illustration */}
+          <div className="flex flex-col items-center text-center pt-4 space-y-4">
+            <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-primary/15 to-accent/20 flex items-center justify-center">
+              <BookOpenCheck className="h-12 w-12 text-primary" />
             </div>
-            <p className="text-xs font-semibold text-foreground">المعاملات</p>
-          </CardContent>
-        </Card>
-        <Card
-          className="border-0 shadow-sm cursor-pointer hover:shadow-md transition-all duration-200 hover:-translate-y-0.5"
-          onClick={() => navigate("/accounts")}
-        >
-          <CardContent className="p-4 flex flex-col items-center gap-2 text-center">
-            <div className="p-2 rounded-xl bg-accent">
-              <BookOpen className="h-5 w-5 text-accent-foreground" />
+            <div className="space-y-2">
+              <h2 className="text-xl font-bold text-foreground">لا توجد حركات حتى الآن</h2>
+              <p className="text-sm text-muted-foreground max-w-xs mx-auto leading-relaxed">
+                أضف أول عملية وسيبدأ نظامك المحاسبي بالعمل فوراً
+              </p>
             </div>
-            <p className="text-xs font-semibold text-foreground">الحسابات</p>
-          </CardContent>
-        </Card>
-        <Card
-          className="border-0 shadow-sm cursor-pointer hover:shadow-md transition-all duration-200 hover:-translate-y-0.5"
-          onClick={() => navigate("/contacts")}
-        >
-          <CardContent className="p-4 flex flex-col items-center gap-2 text-center">
-            <div className="p-2 rounded-xl bg-warning/10">
-              <Users className="h-5 w-5 text-warning" />
-            </div>
-            <p className="text-xs font-semibold text-foreground">العملاء</p>
-          </CardContent>
-        </Card>
-      </div>
+          </div>
 
-      {/* Quick Entry Section */}
-      <div className="space-y-3">
-        <h2 className="text-base font-semibold text-foreground text-right">سجّل عملية</h2>
+          {/* Main CTA */}
+          <Button
+            onClick={() => {
+              const input = document.querySelector<HTMLInputElement>("#smart-input-bar input, #smart-input-bar textarea");
+              if (input) {
+                input.focus();
+                input.scrollIntoView({ behavior: "smooth", block: "center" });
+              }
+            }}
+            className="w-full h-14 rounded-2xl text-base font-bold shadow-lg shadow-primary/25 gap-2"
+            size="lg"
+          >
+            <PlusCircle className="h-5 w-5" />
+            إضافة أول عملية
+          </Button>
 
-        {/* Shortcut Chips */}
-        <div className="flex gap-2 flex-wrap">
-          {[
-            { label: "💰 قبضت", value: "قبضت" },
-            { label: "💸 دفعت", value: "دفعت" },
-            { label: "🛒 اشتريت", value: "اشتريت" },
-            { label: "🧾 صرفت", value: "صرفت" },
-            { label: "🏧 سحبت", value: "سحبت" },
-          ].map((action) => (
+          {/* Quick Shortcuts */}
+          <div className="grid grid-cols-3 gap-3">
             <button
-              key={action.value}
-              onClick={() => setInputValue((prev) => prev.trim() ? prev.trim() + " " + action.value + " " : action.value + " ")}
-              className="px-3 py-1.5 rounded-full bg-secondary text-xs font-medium text-foreground hover:bg-primary/10 hover:text-primary transition-all active:scale-95 border border-transparent hover:border-primary/20"
+              onClick={() => navigate("/voice")}
+              className="flex flex-col items-center gap-2.5 p-4 rounded-2xl bg-primary/5 border border-primary/10 hover:bg-primary/10 transition-all active:scale-[0.97]"
             >
-              {action.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Input Card */}
-        <Card id="smart-input-bar" className="border-0 shadow-lg bg-gradient-to-l from-primary/5 to-background">
-          <CardContent className="px-3 py-2.5">
-            <div className="flex items-end gap-2 min-h-[44px]" dir="rtl">
-              <button
-                onClick={handleSend}
-                disabled={sending || !inputValue.trim()}
-                className="flex-shrink-0 w-11 h-11 rounded-full bg-primary flex items-center justify-center hover:opacity-90 transition-all active:scale-95 disabled:opacity-50 shadow-md shadow-primary/25"
-              >
-                {sending ? (
-                  <Loader2 className="h-4 w-4 text-primary-foreground animate-spin" />
-                ) : (
-                  <Send className="h-4 w-4 text-primary-foreground" />
-                )}
-              </button>
-              <MentionInput
-                value={inputValue}
-                onChange={setInputValue}
-                onKeyDown={(e) => e.key === "Enter" && handleSend()}
-                placeholder={rotatingPlaceholder}
-                className="flex-1 min-w-0 h-11 bg-secondary/60 rounded-xl px-3 text-sm text-foreground placeholder:text-muted-foreground border-0 outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-                userId={user?.id}
-              />
-              <button
-                onClick={() => navigate("/voice")}
-                className="flex-shrink-0 w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center hover:bg-primary/20 transition-colors active:scale-95"
-              >
+              <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center">
                 <Mic className="h-5 w-5 text-primary" />
+              </div>
+              <span className="text-xs font-medium text-foreground">إدخال صوتي</span>
+            </button>
+            <button
+              onClick={() => navigate("/invoices")}
+              className="flex flex-col items-center gap-2.5 p-4 rounded-2xl bg-warning/5 border border-warning/10 hover:bg-warning/10 transition-all active:scale-[0.97]"
+            >
+              <div className="w-11 h-11 rounded-xl bg-warning/10 flex items-center justify-center">
+                <FileText className="h-5 w-5 text-warning" />
+              </div>
+              <span className="text-xs font-medium text-foreground">إنشاء فاتورة</span>
+            </button>
+            <button
+              onClick={() => navigate("/inventory")}
+              className="flex flex-col items-center gap-2.5 p-4 rounded-2xl bg-accent/50 border border-accent hover:bg-accent transition-all active:scale-[0.97]"
+            >
+              <div className="w-11 h-11 rounded-xl bg-accent flex items-center justify-center">
+                <Package className="h-5 w-5 text-accent-foreground" />
+              </div>
+              <span className="text-xs font-medium text-foreground">إضافة منتج</span>
+            </button>
+          </div>
+
+          {/* Smart Input for Empty State */}
+          <div className="space-y-3">
+            <Card id="smart-input-bar" className="border-0 shadow-lg bg-gradient-to-l from-primary/5 to-background">
+              <CardContent className="px-3 py-2.5">
+                <div className="flex items-end gap-2 min-h-[44px]" dir="rtl">
+                  <button
+                    onClick={handleSend}
+                    disabled={sending || !inputValue.trim()}
+                    className="flex-shrink-0 w-11 h-11 rounded-full bg-primary flex items-center justify-center hover:opacity-90 transition-all active:scale-95 disabled:opacity-50 shadow-md shadow-primary/25"
+                  >
+                    {sending ? (
+                      <Loader2 className="h-4 w-4 text-primary-foreground animate-spin" />
+                    ) : (
+                      <Send className="h-4 w-4 text-primary-foreground" />
+                    )}
+                  </button>
+                  <MentionInput
+                    value={inputValue}
+                    onChange={setInputValue}
+                    onKeyDown={(e) => e.key === "Enter" && handleSend()}
+                    placeholder={rotatingPlaceholder}
+                    className="flex-1 min-w-0 h-11 bg-secondary/60 rounded-xl px-3 text-sm text-foreground placeholder:text-muted-foreground border-0 outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                    userId={user?.id}
+                  />
+                  <button
+                    onClick={() => navigate("/voice")}
+                    className="flex-shrink-0 w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center hover:bg-primary/20 transition-colors active:scale-95"
+                  >
+                    <Mic className="h-5 w-5 text-primary" />
+                  </button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Subtle hint */}
+          <p className="text-center text-xs text-muted-foreground">
+            💡 يمكنك دائماً استخدام الذكاء الاصطناعي لكتابة العملية بلغتك
+          </p>
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════ */}
+      {/* ACTIVE STATE */}
+      {/* ═══════════════════════════════════════ */}
+      {hasTransactions && (
+        <div className="space-y-6">
+          {/* Summary Cards - Only 2 */}
+          <div className="grid grid-cols-2 gap-3">
+            <Card className="border-0 shadow-sm overflow-hidden">
+              <CardContent className="p-4 text-center bg-gradient-to-br from-primary/10 via-primary/5 to-transparent">
+                <div className="flex justify-center mb-3">
+                  <div className="p-2.5 rounded-xl bg-primary/10">
+                    <Wallet className="h-4 w-4 text-primary" />
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground mb-1">الرصيد الحالي</p>
+                <p className="text-lg font-bold text-foreground tabular-nums">
+                  ₪{animCash.toLocaleString()}
+                </p>
+                <p className="text-[10px] text-muted-foreground mt-1">محدّث الآن</p>
+              </CardContent>
+            </Card>
+            <Card className="border-0 shadow-sm overflow-hidden">
+              <CardContent className="p-4 text-center bg-gradient-to-br from-accent/20 via-accent/10 to-transparent">
+                <div className="flex justify-center mb-3">
+                  <div className="p-2.5 rounded-xl bg-accent">
+                    <Sparkles className="h-4 w-4 text-accent-foreground" />
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground mb-1">صافي الربح هذا الشهر</p>
+                <p className={`text-lg font-bold tabular-nums ${netProfit >= 0 ? "text-primary" : "text-destructive"}`}>
+                  ₪{animProfit.toLocaleString()}
+                </p>
+                <p className="text-[10px] text-muted-foreground mt-1">{netProfit >= 0 ? "أداء إيجابي ✅" : "خسارة ⚠️"}</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Recent Transactions - Last 5 */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h2 className="text-base font-semibold text-foreground">آخر العمليات</h2>
+              <button
+                onClick={() => navigate("/transactions")}
+                className="text-xs font-medium text-primary hover:underline"
+              >
+                عرض الكل
               </button>
             </div>
-          </CardContent>
-        </Card>
+            <div className="space-y-2">
+              {transactions.slice(0, 5).map((tx) => {
+                const isIncome = tx.fields["Transaction Type"] === "سند قبض";
+                const isExpense = tx.fields["Transaction Type"] === "سند صرف";
+                return (
+                  <Card key={tx.id} className="border-0 shadow-sm">
+                    <CardContent className="p-3 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${isIncome ? "bg-primary/10" : isExpense ? "bg-destructive/10" : "bg-secondary"}`}>
+                          <span className="text-sm">
+                            {isIncome ? "💰" : isExpense ? "💸" : "📄"}
+                          </span>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-foreground line-clamp-1">
+                            {tx.fields.Description || tx.fields["Transaction Type"] || "عملية"}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground">
+                            {tx.fields.Date || ""}
+                          </p>
+                        </div>
+                      </div>
+                      <p className={`text-sm font-bold tabular-nums ${isIncome ? "text-primary" : isExpense ? "text-destructive" : "text-foreground"}`}>
+                        {isIncome ? "+" : isExpense ? "-" : ""}₪{(tx.fields.Amount || 0).toLocaleString()}
+                      </p>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
 
-        {/* Smart Transaction Suggestions */}
-        {(() => {
-          const txSuggestions = [
-            { emoji: "💰", text: "قبضت 1000 شيكل من الزبون @علي حجاج نقداً" },
-            { emoji: "💸", text: "دفعت 500 شيكل للمورد @أحمد نصار من الصندوق" },
-            { emoji: "🔄", text: "حولت 2000 شيكل من الصندوق إلى بنك فلسطين" },
-            { emoji: "💳", text: "سددت 750 شيكل للمورد @خالد حسين عبر البنك" },
-            { emoji: "💰", text: "استلمت 1200 شيكل من الزبون @سالم يوسف إلى البنك" },
-            { emoji: "⚡", text: "دفعت مصاريف كهرباء 300 شيكل من البنك" },
-            { emoji: "🏧", text: "سحبت 400 شيكل من البنك إلى الصندوق" },
-            { emoji: "🛒", text: "اشتريت بضاعة بقيمة 1500 شيكل ودفعنا نقداً" },
-            { emoji: "🧾", text: "صرفت 200 شيكل بنزين من الصندوق" },
-            { emoji: "💸", text: "دفعت إيجار المحل 1500 شيكل من البنك" },
-          ];
-          const minute = Math.floor(new Date().getMinutes() / 10);
-          const shuffled = [...txSuggestions].sort((a, b) => {
-            const hA = (a.text.charCodeAt(5) * 7 + minute) % 50;
-            const hB = (b.text.charCodeAt(5) * 7 + minute) % 50;
-            return hA - hB;
-          });
-          return (
-            <div className="flex flex-wrap gap-1.5">
-              {shuffled.slice(0, 3).map((s) => (
+          {/* AI CTA Button */}
+          <button
+            onClick={() => navigate("/smart-report")}
+            className="w-full flex items-center gap-3 p-4 rounded-2xl bg-gradient-to-l from-primary/15 via-primary/10 to-primary/5 border border-primary/20 shadow-sm hover:shadow-md transition-all active:scale-[0.98]"
+          >
+            <div className="w-12 h-12 rounded-xl bg-primary/15 flex items-center justify-center">
+              <Sparkles className="h-6 w-6 text-primary" />
+            </div>
+            <div className="text-right flex-1">
+              <p className="text-sm font-bold text-foreground">اسأل الذكاء الاصطناعي عن وضعك المالي</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">تقارير وتحليلات فورية بلغتك</p>
+            </div>
+          </button>
+
+          {/* Quick Entry Section */}
+          <div className="space-y-3">
+            <h2 className="text-base font-semibold text-foreground text-right">سجّل عملية</h2>
+
+            {/* Shortcut Chips */}
+            <div className="flex gap-2 flex-wrap">
+              {[
+                { label: "💰 قبضت", value: "قبضت" },
+                { label: "💸 دفعت", value: "دفعت" },
+                { label: "🛒 اشتريت", value: "اشتريت" },
+                { label: "🧾 صرفت", value: "صرفت" },
+                { label: "🏧 سحبت", value: "سحبت" },
+              ].map((action) => (
                 <button
-                  key={s.text}
-                  onClick={() => setInputValue(s.text)}
-                  className="px-2.5 py-1 rounded-lg bg-primary/5 text-[11px] text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all active:scale-95 border border-primary/10"
+                  key={action.value}
+                  onClick={() => setInputValue((prev) => prev.trim() ? prev.trim() + " " + action.value + " " : action.value + " ")}
+                  className="px-3 py-1.5 rounded-full bg-secondary text-xs font-medium text-foreground hover:bg-primary/10 hover:text-primary transition-all active:scale-95 border border-transparent hover:border-primary/20"
                 >
-                  {s.emoji} {s.text}
+                  {action.label}
                 </button>
               ))}
             </div>
-          );
-        })()}
 
-        {/* Suggested Amounts */}
-        <div className="flex gap-1.5 flex-wrap">
-          {[10, 20, 30, 50, 100, 200, 500, 1000].map((amount) => (
-            <button
-              key={amount}
-              onClick={() => setInputValue((prev) => {
-                const match = prev.match(/(\d+)/);
-                const currentNum = match ? parseInt(match[1]) : 0;
-                const textPart = prev.replace(/\d+/g, '').trim();
-                return textPart + ` ${currentNum + amount}`;
-              })}
-              className="px-2 py-1 rounded-lg bg-secondary text-[11px] font-medium text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all active:scale-95"
-            >
-              {amount.toLocaleString()}
-            </button>
-          ))}
-        </div>
+            {/* Input Card */}
+            <Card id="smart-input-bar" className="border-0 shadow-lg bg-gradient-to-l from-primary/5 to-background">
+              <CardContent className="px-3 py-2.5">
+                <div className="flex items-end gap-2 min-h-[44px]" dir="rtl">
+                  <button
+                    onClick={handleSend}
+                    disabled={sending || !inputValue.trim()}
+                    className="flex-shrink-0 w-11 h-11 rounded-full bg-primary flex items-center justify-center hover:opacity-90 transition-all active:scale-95 disabled:opacity-50 shadow-md shadow-primary/25"
+                  >
+                    {sending ? (
+                      <Loader2 className="h-4 w-4 text-primary-foreground animate-spin" />
+                    ) : (
+                      <Send className="h-4 w-4 text-primary-foreground" />
+                    )}
+                  </button>
+                  <MentionInput
+                    value={inputValue}
+                    onChange={setInputValue}
+                    onKeyDown={(e) => e.key === "Enter" && handleSend()}
+                    placeholder={rotatingPlaceholder}
+                    className="flex-1 min-w-0 h-11 bg-secondary/60 rounded-xl px-3 text-sm text-foreground placeholder:text-muted-foreground border-0 outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                    userId={user?.id}
+                  />
+                  <button
+                    onClick={() => navigate("/voice")}
+                    className="flex-shrink-0 w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center hover:bg-primary/20 transition-colors active:scale-95"
+                  >
+                    <Mic className="h-5 w-5 text-primary" />
+                  </button>
+                </div>
+              </CardContent>
+            </Card>
 
-        {/* Currency Buttons */}
-        <div className="flex gap-1.5 flex-wrap">
-          {["شيكل", "دولار", "دينار", "يورو", "جنيه مصري", "جنيه استرليني"].map((currency) => (
-            <button
-              key={currency}
-              onClick={() => setInputValue((prev) => prev.trim() + ` ${currency}`)}
-              className="px-2.5 py-1 rounded-lg bg-muted/50 text-[11px] text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all active:scale-95"
-            >
-              {currency}
-            </button>
-          ))}
-        </div>
+            {/* Smart Transaction Suggestions */}
+            {(() => {
+              const txSuggestions = [
+                { emoji: "💰", text: "استلمت 1200 شيكل من الزبون @سالم يوسف إلى البنك" },
+                { emoji: "🛒", text: "اشتريت بضاعة بقيمة 1500 شيكل ودفعنا نقداً" },
+                { emoji: "🔄", text: "حولت 2000 شيكل من الصندوق إلى بنك فلسطين" },
+              ];
+              return (
+                <div className="flex flex-wrap gap-1.5">
+                  {txSuggestions.map((s) => (
+                    <button
+                      key={s.text}
+                      onClick={() => setInputValue(s.text)}
+                      className="px-2.5 py-1 rounded-lg bg-primary/5 text-[11px] text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all active:scale-95 border border-primary/10"
+                    >
+                      {s.emoji} {s.text}
+                    </button>
+                  ))}
+                </div>
+              );
+            })()}
+          </div>
 
-        {/* Suggested Expense Names */}
-        <div className="space-y-2">
-          <p className="text-[11px] text-muted-foreground">مصاريف يومية</p>
-          <div className="flex flex-wrap gap-1.5">
-            {["بنزين", "مواصلات", "أكل", "ضيافة", "قرطاسية", "تنظيف", "صيانة", "بضاعة"].map((name) => (
-              <button
-                key={name}
-                onClick={() => setInputValue((prev) => prev.trim() + ` ${name}`)}
-                className="px-2.5 py-1 rounded-lg bg-muted/50 text-[11px] text-muted-foreground hover:bg-warning/10 hover:text-warning transition-all active:scale-95"
-              >
-                {name}
-              </button>
-            ))}
+          {/* Database Command Section */}
+          <div id="database-command-section" className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Database className="h-4 w-4 text-accent-foreground" />
+              <h2 className="text-base font-semibold text-foreground">إدارة البيانات</h2>
+            </div>
+
+            <Card className="border-0 shadow-lg bg-gradient-to-l from-accent/30 to-background">
+              <CardContent className="p-3">
+                <div className="flex items-center gap-2" dir="ltr">
+                  <button
+                    onClick={() => navigate("/voice")}
+                    className="flex-shrink-0 w-10 h-10 rounded-xl bg-accent flex items-center justify-center hover:opacity-80 transition-colors active:scale-95"
+                  >
+                    <Mic className="h-5 w-5 text-accent-foreground" />
+                  </button>
+                  <input
+                    type="text"
+                    value={dbCommand}
+                    onChange={(e) => setDbCommand(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleDbCommand()}
+                    placeholder="أضف زبون، احذف حساب، عدّل اسم..."
+                    className="flex-1 h-10 bg-secondary/60 rounded-lg px-3 text-sm text-foreground placeholder:text-muted-foreground border-0 outline-none focus:ring-2 focus:ring-accent/40"
+                    dir="rtl"
+                  />
+                  <button
+                    onClick={handleDbCommand}
+                    disabled={dbSending || !dbCommand.trim()}
+                    className="flex-shrink-0 w-10 h-10 rounded-xl bg-accent flex items-center justify-center hover:opacity-90 transition-all active:scale-95 disabled:opacity-50"
+                  >
+                    {dbSending ? (
+                      <Loader2 className="h-4 w-4 text-accent-foreground animate-spin" />
+                    ) : (
+                      <Send className="h-4 w-4 text-accent-foreground" />
+                    )}
+                  </button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Smart Reports Section */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-primary" />
+              <h2 className="text-base font-semibold text-foreground">التقارير الذكية</h2>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { emoji: "👤", label: "كشف حساب زبون أو مورد", query: "أعطني كشف حساب" },
+                { emoji: "📊", label: "كشف أرباح وخسائر", query: "كم إجمالي أرباحي وخسائري؟" },
+                { emoji: "📦", label: "كشف مخزون وكميات", query: "أعطني تقرير المخزون والكميات المتوفرة" },
+                { emoji: "💰", label: "مصاريف ومقبوضات اليوم", query: "كشف المعاملات اليومية مصاريف ومقبوضات" },
+              ].map((report) => (
+                <button
+                  key={report.label}
+                  onClick={() => navigate(`/smart-report?q=${encodeURIComponent(report.query)}`)}
+                  className="flex items-center gap-2 p-3 rounded-xl bg-primary/5 border border-primary/10 text-right hover:bg-primary/10 hover:border-primary/20 transition-all active:scale-[0.98]"
+                >
+                  <span className="text-lg">{report.emoji}</span>
+                  <span className="text-xs font-medium text-foreground leading-tight">{report.label}</span>
+                </button>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
-
-      {/* Database Command Section */}
-      <div id="database-command-section" className="space-y-3">
-        <div className="flex items-center gap-2">
-          <Database className="h-4 w-4 text-accent-foreground" />
-          <h2 className="text-base font-semibold text-foreground">إدارة البيانات</h2>
-        </div>
-
-        <Card className="border-0 shadow-lg bg-gradient-to-l from-accent/30 to-background">
-          <CardContent className="p-3">
-            <div className="flex items-center gap-2" dir="ltr">
-              <button
-                onClick={() => navigate("/voice")}
-                className="flex-shrink-0 w-10 h-10 rounded-xl bg-accent flex items-center justify-center hover:opacity-80 transition-colors active:scale-95"
-              >
-                <Mic className="h-5 w-5 text-accent-foreground" />
-              </button>
-              <input
-                type="text"
-                value={dbCommand}
-                onChange={(e) => setDbCommand(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleDbCommand()}
-                placeholder="أضف زبون، احذف حساب، عدّل اسم..."
-                className="flex-1 h-10 bg-secondary/60 rounded-lg px-3 text-sm text-foreground placeholder:text-muted-foreground border-0 outline-none focus:ring-2 focus:ring-accent/40"
-                dir="rtl"
-              />
-              <button
-                onClick={handleDbCommand}
-                disabled={dbSending || !dbCommand.trim()}
-                className="flex-shrink-0 w-10 h-10 rounded-xl bg-accent flex items-center justify-center hover:opacity-90 transition-all active:scale-95 disabled:opacity-50"
-              >
-                {dbSending ? (
-                  <Loader2 className="h-4 w-4 text-accent-foreground animate-spin" />
-                ) : (
-                  <Send className="h-4 w-4 text-accent-foreground" />
-                )}
-              </button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {(() => {
-          const dbSuggestions = [
-            // Add Contacts
-            { emoji: "👥", text: "أضف زبون باسم علي حجاج ورقم 0599311885", cat: "contact" },
-            { emoji: "👥", text: "أضف مورد باسم أحمد نصار", cat: "contact" },
-            { emoji: "👥", text: "أضف جهة اتصال شركة القدس للتجارة", cat: "contact" },
-            // Delete Contacts
-            { emoji: "🗑️", text: "احذف جهة الاتصال محمد عبد الرحمن", cat: "contact" },
-            { emoji: "🗑️", text: "حذف المورد القديم خالد حسين", cat: "contact" },
-            // Add Accounts
-            { emoji: "🏦", text: "أضف حساب بنك فلسطين ضمن الأصول", cat: "account" },
-            { emoji: "🏦", text: "أنشئ حساب صندوق رئيسي", cat: "account" },
-            { emoji: "🏦", text: "أضف حساب مصاريف تسويق", cat: "account" },
-            { emoji: "🏦", text: "أضف حساب إيرادات خدمات", cat: "account" },
-            // Rename Accounts
-            { emoji: "✏️", text: "عدّل اسم حساب صندوق إلى صندوق الفرع", cat: "account" },
-            { emoji: "✏️", text: "غيّر اسم حساب مصاريف كهرباء إلى مصاريف مرافق", cat: "account" },
-            // Delete Accounts
-            { emoji: "🗑️", text: "احذف حساب غير مستخدم", cat: "account" },
-            { emoji: "🗑️", text: "إزالة حساب مؤقت من شجرة الحسابات", cat: "account" },
-            // Add Products
-            { emoji: "📦", text: "أضف صنف طحين 50 كيلو بسعر 120 شيكل", cat: "product" },
-            { emoji: "📦", text: "أضف منتج كفر موبايل بسعر 35 شيكل", cat: "product" },
-            { emoji: "🧸", text: "أضف صنف لعبة أطفال تصنيف ألعاب سعر شراء 80 وسعر بيع 120 شيكل", cat: "product" },
-            // Update Products
-            { emoji: "✏️", text: "عدل سعر منتج طحين إلى 130 شيكل", cat: "product" },
-            { emoji: "✏️", text: "حدّث كمية منتج كرتونة مياه إلى 40", cat: "product" },
-            // Delete Products
-            { emoji: "🗑️", text: "احذف صنف قديم غير مستخدم", cat: "product" },
-          ];
-          // Pick 1 from each category + 2 random for more variety
-          const cats = ["contact", "account", "product"];
-          const minute = Math.floor(new Date().getMinutes() / 5);
-          const picked: typeof dbSuggestions = [];
-          cats.forEach((cat) => {
-            const items = dbSuggestions.filter((s) => s.cat === cat);
-            const idx = (minute * cat.charCodeAt(0)) % items.length;
-            picked.push(items[idx]);
-          });
-          // Add two more random
-          const remaining = dbSuggestions.filter((s) => !picked.includes(s));
-          const extraIdx1 = (minute * 13) % remaining.length;
-          picked.push(remaining[extraIdx1]);
-          const remaining2 = remaining.filter((_, i) => i !== extraIdx1);
-          if (remaining2.length > 0) {
-            const extraIdx2 = (minute * 7) % remaining2.length;
-            picked.push(remaining2[extraIdx2]);
-          }
-          return (
-            <div className="flex flex-wrap gap-1.5">
-              {picked.map((s) => (
-                <button
-                  key={s.text}
-                  onClick={() => setDbCommand(s.text)}
-                  className="px-2.5 py-1 rounded-lg bg-muted/50 text-[11px] text-muted-foreground hover:bg-accent/20 hover:text-accent-foreground transition-all active:scale-95"
-                >
-                  {s.emoji} {s.text}
-                </button>
-              ))}
-            </div>
-          );
-        })()}
-      </div>
-
-      {/* Smart Reports Section */}
-      <div className="space-y-3">
-        <div className="flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-primary" />
-          <h2 className="text-base font-semibold text-foreground">التقارير الذكية</h2>
-        </div>
-
-        <div className="grid grid-cols-2 gap-2">
-          {[
-            { emoji: "👤", label: "كشف حساب زبون أو مورد", query: "أعطني كشف حساب" },
-            { emoji: "📊", label: "كشف أرباح وخسائر", query: "كم إجمالي أرباحي وخسائري؟" },
-            { emoji: "📦", label: "كشف مخزون وكميات", query: "أعطني تقرير المخزون والكميات المتوفرة" },
-            { emoji: "💰", label: "مصاريف ومقبوضات اليوم", query: "كشف المعاملات اليومية مصاريف ومقبوضات" },
-          ].map((report) => (
-            <button
-              key={report.label}
-              onClick={() => navigate(`/smart-report?q=${encodeURIComponent(report.query)}`)}
-              className="flex items-center gap-2 p-3 rounded-xl bg-primary/5 border border-primary/10 text-right hover:bg-primary/10 hover:border-primary/20 transition-all active:scale-[0.98]"
-            >
-              <span className="text-lg">{report.emoji}</span>
-              <span className="text-xs font-medium text-foreground leading-tight">{report.label}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
+      )}
 
       {showPasskeyOnboarding && (
         <PasskeyOnboarding onComplete={() => setShowPasskeyOnboarding(false)} />
