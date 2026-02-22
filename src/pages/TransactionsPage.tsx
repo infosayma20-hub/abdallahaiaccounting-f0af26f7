@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
-import { ArrowRight, Loader2, RefreshCw, Pencil } from "lucide-react";
+import { ArrowRight, Loader2, RefreshCw, Pencil, Trash2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -78,6 +79,8 @@ const TransactionsPage = () => {
     "Credit Account Name": "",
   });
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const fetchData = async () => {
     if (!user) return;
@@ -151,6 +154,28 @@ const TransactionsPage = () => {
       toast({ title: "خطأ", description: err.message, variant: "destructive" });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!editingTx) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-update-transaction`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ recordId: editingTx.id, action: "delete" }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error || "فشل الحذف");
+      toast({ title: "تم حذف المعاملة بنجاح 🗑️" });
+      setEditingTx(null);
+      setShowDeleteConfirm(false);
+      fetchData();
+    } catch (err: any) {
+      toast({ title: "خطأ", description: err.message, variant: "destructive" });
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -292,13 +317,37 @@ const TransactionsPage = () => {
                 </SelectContent>
               </Select>
             </div>
-            <Button onClick={handleSave} className="w-full gap-2 rounded-xl" disabled={saving}>
-              {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-              حفظ التعديلات
-            </Button>
+            <div className="flex gap-2">
+              <Button onClick={handleSave} className="flex-1 gap-2 rounded-xl" disabled={saving || deleting}>
+                {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+                حفظ التعديلات
+              </Button>
+              <Button variant="destructive" size="icon" className="rounded-xl" onClick={() => setShowDeleteConfirm(true)} disabled={saving || deleting}>
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent dir="rtl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>حذف المعاملة</AlertDialogTitle>
+            <AlertDialogDescription>
+              هل أنت متأكد من حذف هذه المعاملة؟ لا يمكن التراجع عن هذا الإجراء.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex gap-2">
+            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90" disabled={deleting}>
+              {deleting && <Loader2 className="h-4 w-4 animate-spin ml-2" />}
+              حذف نهائي
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

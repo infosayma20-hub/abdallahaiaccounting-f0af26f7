@@ -17,12 +17,29 @@ serve(async (req) => {
     if (!AIRTABLE_API_KEY) throw new Error('AIRTABLE_API_KEY not configured');
     if (!AIRTABLE_BASE_ID) throw new Error('AIRTABLE_BASE_ID not configured');
 
-    const { recordId, fields } = await req.json();
+    const { recordId, fields, action } = await req.json();
 
     if (!recordId) throw new Error('recordId is required');
+
+    // DELETE action
+    if (action === 'delete') {
+      const deleteUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Transactions/${recordId}`;
+      const delRes = await fetch(deleteUrl, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${AIRTABLE_API_KEY}` },
+      });
+      if (!delRes.ok) {
+        const errText = await delRes.text();
+        throw new Error(`Airtable delete failed [${delRes.status}]: ${errText}`);
+      }
+      return new Response(JSON.stringify({ success: true, deleted: true }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // UPDATE action (default)
     if (!fields || typeof fields !== 'object') throw new Error('fields object is required');
 
-    // If debitAccountName or creditAccountName provided, resolve to record IDs
     const accountsUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Accounts?pageSize=100`;
     const accRes = await fetch(accountsUrl, {
       headers: { 'Authorization': `Bearer ${AIRTABLE_API_KEY}` },
@@ -37,16 +54,13 @@ serve(async (req) => {
       if (name) accountNameToId[name] = acc.id;
     }
 
-    // Build the update fields
     const updateFields: Record<string, any> = {};
-
     if (fields.Description !== undefined) updateFields["Description"] = fields.Description;
     if (fields.Amount !== undefined) updateFields["Amount"] = Number(fields.Amount);
     if (fields["Transaction Type"] !== undefined) updateFields["Transaction Type"] = fields["Transaction Type"];
     if (fields.Date !== undefined) updateFields["Date"] = fields.Date;
     if (fields.Currency !== undefined) updateFields["Currency"] = fields.Currency;
 
-    // Resolve account names to IDs for linked records
     if (fields["Debit Account Name"]) {
       const id = accountNameToId[fields["Debit Account Name"]];
       if (id) updateFields["Debit Account"] = [id];
@@ -59,7 +73,6 @@ serve(async (req) => {
       else throw new Error(`Credit account not found: ${fields["Credit Account Name"]}`);
     }
 
-    // PATCH the record in Airtable
     const patchUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Transactions/${recordId}`;
     const patchRes = await fetch(patchUrl, {
       method: 'PATCH',
