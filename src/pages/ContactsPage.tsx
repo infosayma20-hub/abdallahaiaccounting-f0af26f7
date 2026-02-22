@@ -338,7 +338,7 @@ const ContactsPage = () => {
                             <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 flex items-center justify-center">
                               <Phone className="h-4 w-4 text-emerald-600" />
                             </div>
-                            <div>
+                            <div className="text-right">
                               <p className="text-[10px] text-muted-foreground">الهاتف</p>
                               <p className="text-xs font-medium text-foreground" dir="ltr">{f["Phone"]}</p>
                             </div>
@@ -349,7 +349,7 @@ const ContactsPage = () => {
                             <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/30 flex items-center justify-center">
                               <Mail className="h-4 w-4 text-blue-600" />
                             </div>
-                            <div>
+                            <div className="text-right">
                               <p className="text-[10px] text-muted-foreground">البريد الإلكتروني</p>
                               <p className="text-xs font-medium text-foreground" dir="ltr">{f["Email"]}</p>
                             </div>
@@ -360,7 +360,7 @@ const ContactsPage = () => {
                             <div className="w-8 h-8 rounded-lg bg-purple-50 dark:bg-purple-950/30 flex items-center justify-center">
                               <Building2 className="h-4 w-4 text-purple-600" />
                             </div>
-                            <div>
+                            <div className="text-right">
                               <p className="text-[10px] text-muted-foreground">الشركة</p>
                               <p className="text-xs font-medium text-foreground">{f["Company"]}</p>
                             </div>
@@ -371,7 +371,7 @@ const ContactsPage = () => {
                             <div className="w-8 h-8 rounded-lg bg-rose-50 dark:bg-rose-950/30 flex items-center justify-center">
                               <MapPin className="h-4 w-4 text-rose-600" />
                             </div>
-                            <div>
+                            <div className="text-right">
                               <p className="text-[10px] text-muted-foreground">العنوان</p>
                               <p className="text-xs font-medium text-foreground">{f["Address"]}</p>
                             </div>
