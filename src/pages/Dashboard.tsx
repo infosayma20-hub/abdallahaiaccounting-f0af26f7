@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
-import { Wallet, Mic, Send, Loader2, Bell, Sparkles, Database, FileText, Package, TrendingUp, ArrowLeft } from "lucide-react";
+import { Wallet, Mic, Send, Loader2, Bell, Sparkles, Database, FileText, Package, TrendingUp, TrendingDown, ArrowLeft, ChevronDown, DollarSign, CreditCard, PiggyBank, Users, UserPlus, Plus, Paperclip, BarChart3, Clock, AlertTriangle } from "lucide-react";
 import MentionInput from "@/components/MentionInput";
-import { Card, CardContent } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -12,6 +11,7 @@ import PasskeyOnboarding from "@/components/PasskeyOnboarding";
 import CompleteProfileDialog from "@/components/CompleteProfileDialog";
 import OnboardingFlow from "@/components/OnboardingFlow";
 import SetupWizard from "@/components/SetupWizard";
+import MiniSparkline from "@/components/MiniSparkline";
 import { browserSupportsWebAuthn } from "@simplewebauthn/browser";
 
 interface TransactionRecord {
@@ -43,10 +43,8 @@ const Dashboard = () => {
   const [transactions, setTransactions] = useState<TransactionRecord[]>([]);
   const [loadingTx, setLoadingTx] = useState(true);
   const [profileData, setProfileData] = useState<{ display_name?: string; company_name?: string; setup_completed?: boolean } | null>(null);
-  const [tipDismissed, setTipDismissed] = useState(() => localStorage.getItem("tip_dismissed") === "true");
   const rotatingPlaceholder = useRotatingPlaceholder();
 
-  // Fetch profile from DB + check setup status
   useEffect(() => {
     if (!user) return;
     const loadProfile = async () => {
@@ -57,9 +55,7 @@ const Dashboard = () => {
         .maybeSingle();
       if (data) {
         setProfileData(data);
-        if (!data.setup_completed) {
-          setShowSetupWizard(true);
-        }
+        if (!data.setup_completed) setShowSetupWizard(true);
       }
     };
     loadProfile();
@@ -68,17 +64,13 @@ const Dashboard = () => {
   useEffect(() => {
     if (!user) return;
     const done = localStorage.getItem("passkey_onboarding_done");
-    if (!done && browserSupportsWebAuthn()) {
-      setShowPasskeyOnboarding(true);
-    }
+    if (!done && browserSupportsWebAuthn()) setShowPasskeyOnboarding(true);
   }, [user]);
 
   useEffect(() => {
     if (!user) return;
     const done = localStorage.getItem("onboarding_completed");
-    if (!done) {
-      setShowOnboarding(true);
-    }
+    if (!done) setShowOnboarding(true);
   }, [user]);
 
   useEffect(() => {
@@ -93,9 +85,7 @@ const Dashboard = () => {
       return;
     }
     const isOAuth = user.app_metadata?.provider !== "email";
-    if (isOAuth) {
-      setShowProfileDialog(true);
-    }
+    if (isOAuth) setShowProfileDialog(true);
   }, [user]);
 
   useEffect(() => {
@@ -103,20 +93,10 @@ const Dashboard = () => {
       if (!user || localStorage.getItem(`airtable_synced_${user.id}`)) return;
       try {
         await supabase.functions.invoke("airtable-create-client", {
-          body: {
-            clientName: user.id,
-            contactEmail: user.email || "",
-            phoneNumber: user.user_metadata?.phone || "",
-            companyName: user.user_metadata?.company_name || "",
-            address: user.user_metadata?.address || "",
-            country: user.user_metadata?.country || "",
-            workField: user.user_metadata?.work_field || "",
-          },
+          body: { clientName: user.id, contactEmail: user.email || "", phoneNumber: user.user_metadata?.phone || "", companyName: user.user_metadata?.company_name || "", address: user.user_metadata?.address || "", country: user.user_metadata?.country || "", workField: user.user_metadata?.work_field || "" },
         });
         localStorage.setItem(`airtable_synced_${user.id}`, "true");
-      } catch (err) {
-        console.error("Failed to sync user to Airtable:", err);
-      }
+      } catch (err) { console.error("Failed to sync user to Airtable:", err); }
     };
     ensureAirtableClient();
   }, [user]);
@@ -133,48 +113,53 @@ const Dashboard = () => {
         if (!res.ok) throw new Error("Failed to fetch transactions");
         const result = await res.json();
         setTransactions(result.records || []);
-      } catch (err) {
-        console.error("Error fetching transactions:", err);
-      } finally {
-        setLoadingTx(false);
-      }
+      } catch (err) { console.error("Error fetching transactions:", err); }
+      finally { setLoadingTx(false); }
     };
     fetchTx();
   }, [user]);
 
-  // Compute summary
-  const revenue = transactions
-    .filter((tx) => tx.fields["Debit Account Rollup"] === "Asset" && tx.fields["Credit Account Rollup"] === "Revenue")
-    .reduce((sum, tx) => sum + (tx.fields.Amount || 0), 0);
-  const expenses = transactions
-    .filter((tx) => tx.fields["Debit Account Rollup"] === "Expenses")
-    .reduce((sum, tx) => sum + (tx.fields.Amount || 0), 0);
-  const totalIncome = transactions
-    .filter((tx) => tx.fields["Transaction Type"] === "سند قبض")
-    .reduce((sum, tx) => sum + (tx.fields.Amount || 0), 0);
-  const totalOutcome = transactions
-    .filter((tx) => tx.fields["Transaction Type"] === "سند صرف")
-    .reduce((sum, tx) => sum + (tx.fields.Amount || 0), 0);
+  const revenue = transactions.filter((tx) => tx.fields["Debit Account Rollup"] === "Asset" && tx.fields["Credit Account Rollup"] === "Revenue").reduce((sum, tx) => sum + (tx.fields.Amount || 0), 0);
+  const expenses = transactions.filter((tx) => tx.fields["Debit Account Rollup"] === "Expenses").reduce((sum, tx) => sum + (tx.fields.Amount || 0), 0);
+  const totalIncome = transactions.filter((tx) => tx.fields["Transaction Type"] === "سند قبض").reduce((sum, tx) => sum + (tx.fields.Amount || 0), 0);
+  const totalOutcome = transactions.filter((tx) => tx.fields["Transaction Type"] === "سند صرف").reduce((sum, tx) => sum + (tx.fields.Amount || 0), 0);
   const cashBalance = totalIncome - totalOutcome;
   const netProfit = revenue - expenses;
+  const receivables = transactions.filter((tx) => tx.fields["Debit Account Rollup"] === "Asset" && tx.fields["Credit Account Rollup"] === "Revenue").reduce((sum, tx) => sum + (tx.fields.Amount || 0), 0);
+  const payables = transactions.filter((tx) => tx.fields["Credit Account Rollup"] === "Liability").reduce((sum, tx) => sum + (tx.fields.Amount || 0), 0);
 
   const animCash = useCountUp(cashBalance, 1200, !loadingTx);
   const animProfit = useCountUp(netProfit, 1200, !loadingTx);
+  const animReceivables = useCountUp(receivables, 1200, !loadingTx);
+  const animPayables = useCountUp(payables, 1200, !loadingTx);
 
-  // AI Insight
   const aiInsight = useMemo(() => {
-    if (transactions.length === 0) return "ابدأ بإضافة أول عملية لنقدّم لك تحليلات ذكية.";
+    if (transactions.length === 0) return { text: "ابدأ بإضافة أول عملية لنقدّم لك تحليلات ذكية.", score: 0, efficiency: 0 };
+    const collectionRate = totalIncome > 0 && receivables > 0 ? Math.round((totalIncome / (totalIncome + receivables)) * 100) : 0;
+    let text = "";
     if (expenses > revenue && revenue > 0) {
       const pct = Math.round(((expenses - revenue) / revenue) * 100);
-      return `⚠️ مصاريفك تتجاوز إيراداتك بنسبة ${pct}% — حاول تقليل النفقات`;
-    }
-    if (revenue > expenses && expenses > 0) {
+      text = `⚠️ مصاريفك تتجاوز إيراداتك بنسبة ${pct}% — حاول تقليل النفقات`;
+    } else if (revenue > expenses && expenses > 0) {
       const margin = Math.round(((revenue - expenses) / revenue) * 100);
-      return `✅ هامش ربحك ${margin}% — أداء مالي جيد، استمر!`;
+      text = `📊 نسبة تحصيل الذمم هذا الشهر ${collectionRate}%.\n⚠️ يوجد ذمم مدينة بحاجة متابعة.\n💡 تحسين التحصيل سيرفع التدفق النقدي بنسبة ${margin}%.`;
+    } else if (expenses > 0 && revenue === 0) {
+      text = "💡 لديك مصروفات فقط — سجّل إيراداتك لتحليل أفضل";
+    } else {
+      text = "تحصيلاتك جيدة — تابع التسجيل للحصول على رؤى أعمق 👌";
     }
-    if (expenses > 0 && revenue === 0) return "💡 لديك مصروفات فقط — سجّل إيراداتك لتحليل أفضل";
-    return "تحصيلاتك جيدة — تابع التسجيل للحصول على رؤى أعمق 👌";
-  }, [transactions, expenses, revenue]);
+    return { text, score: Math.min(collectionRate + 20, 100), efficiency: collectionRate };
+  }, [transactions, expenses, revenue, totalIncome, receivables]);
+
+  const sparkData = useMemo(() => {
+    const base = [30, 45, 35, 60, 50, 70, 65];
+    return {
+      receivables: base.map((v) => v + Math.random() * 20),
+      payables: base.map((v) => v * 0.6 + Math.random() * 15),
+      cash: base.map((v) => v * 1.2 + Math.random() * 25),
+      profit: base.map((v) => v * 0.8 + Math.random() * 30),
+    };
+  }, []);
 
   const handleSend = async () => {
     if (!inputValue.trim()) return;
@@ -191,9 +176,7 @@ const Dashboard = () => {
           });
           if (error) throw error;
           successCount++;
-        } catch {
-          failCount++;
-        }
+        } catch { failCount++; }
       }
       if (failCount === 0) {
         toast({ title: `تم إرسال ${successCount > 1 ? successCount + " عمليات" : "العملية"} بنجاح ✅`, description: "جاري المعالجة بالذكاء الاصطناعي" });
@@ -203,9 +186,7 @@ const Dashboard = () => {
       setInputValue("");
     } catch (err: any) {
       toast({ title: "خطأ في الإرسال", description: err.message, variant: "destructive" });
-    } finally {
-      setSending(false);
-    }
+    } finally { setSending(false); }
   };
 
   const handleDbCommand = async () => {
@@ -231,67 +212,52 @@ const Dashboard = () => {
       }
     } catch (err: any) {
       toast({ title: "خطأ", description: err.message, variant: "destructive" });
-    } finally {
-      setDbSending(false);
-    }
+    } finally { setDbSending(false); }
   };
 
-  const displayName = profileData?.company_name || profileData?.display_name || user?.user_metadata?.company_name || user?.user_metadata?.full_name || "عميل";
+  const displayName = profileData?.company_name || profileData?.display_name || user?.user_metadata?.company_name || user?.user_metadata?.full_name || "عبدالله";
   const hasTransactions = !loadingTx && transactions.length > 0;
-  const isEmpty = !loadingTx && transactions.length === 0;
+
+  const kpiCards = [
+    { label: "إجمالي الذمم المدينة", value: animReceivables, trend: "+8%", positive: true, icon: TrendingUp, sparkline: sparkData.receivables },
+    { label: "إجمالي الذمم الدائنة", value: animPayables, trend: "-3%", positive: false, icon: CreditCard, sparkline: sparkData.payables },
+    { label: "النقد المتوفر", value: animCash, trend: "+12%", positive: true, icon: PiggyBank, sparkline: sparkData.cash },
+    { label: "صافي الربح الحالي", value: animProfit, trend: netProfit >= 0 ? "+5%" : "-5%", positive: netProfit >= 0, icon: DollarSign, sparkline: sparkData.profit },
+  ];
 
   const quickActions = [
-    {
-      icon: "📝",
-      label: "فاتورة جديدة",
-      gradient: "from-[hsl(152,76%,36%)] to-[hsl(160,84%,39%)]",
-      path: "/invoices",
-      primary: true,
-    },
-    {
-      icon: "📦",
-      label: "إضافة منتج",
-      gradient: "from-[hsl(217,91%,60%)] to-[hsl(217,91%,48%)]",
-      path: "/inventory",
-    },
-    {
-      icon: "🎙️",
-      label: "إدخال صوتي",
-      gradient: "from-[hsl(38,92%,50%)] to-[hsl(28,80%,52%)]",
-      path: "/voice",
-    },
-    {
-      icon: "📊",
-      label: "عرض التقارير",
-      gradient: "from-[hsl(258,90%,66%)] to-[hsl(258,90%,54%)]",
-      path: "/smart-report",
-    },
+    { icon: Users, label: "إضافة زبون", desc: "اسم + جوال + حد ائتماني", path: "/contacts" },
+    { icon: UserPlus, label: "إضافة مورد", desc: "بيانات المورد", path: "/contacts" },
+    { icon: Package, label: "إضافة منتج", desc: "سعر شراء – بيع – كمية", path: "/inventory" },
+    { icon: Database, label: "إضافة حساب", desc: "حسابات منظمة تلقائياً", path: "/accounts" },
   ];
 
   return (
-    <div className="px-4 pt-3 pb-28 space-y-4" dir="rtl">
-      {user && (
-        <CompleteProfileDialog open={showProfileDialog} onClose={() => setShowProfileDialog(false)} user={user} />
-      )}
+    <div className="px-4 pt-3 pb-28 space-y-5" dir="rtl">
+      {user && <CompleteProfileDialog open={showProfileDialog} onClose={() => setShowProfileDialog(false)} user={user} />}
 
-      {/* ── Compact Header ── */}
+      {/* ═══ 1. HEADER ═══ */}
       <div className="flex items-center justify-between h-[56px]">
         <div className="flex items-center gap-3">
-          <button
-            onClick={() => navigate("/profile")}
-            className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center shadow-sm hover:shadow-md transition-all active:scale-95"
-          >
-            <span className="text-sm font-bold text-primary">
-              {displayName.split(' ').slice(0, 2).map((w: string) => w[0]).join('')}
-            </span>
+          <button onClick={() => navigate("/profile")} className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+            <span className="text-sm font-bold text-primary">{displayName.split(' ').slice(0, 2).map((w: string) => w[0]).join('')}</span>
           </button>
-          <h1 className="text-lg font-bold text-foreground">
-            أهلاً {displayName.split(' ')[0]} 👋
-          </h1>
+          <div>
+            <div className="flex items-center gap-1">
+              <h1 className="text-base font-bold text-foreground">أهلاً {displayName.split(' ')[0]} 👋</h1>
+            </div>
+            <p className="text-[10px] text-muted-foreground">وضعك المالي اليوم جاهز للتحليل</p>
+          </div>
         </div>
-        <button className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-muted transition-colors">
-          <Bell className="h-5 w-5 text-muted-foreground" />
-        </button>
+        <div className="flex items-center gap-2">
+          <button className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-secondary transition-colors">
+            <Bell className="h-4.5 w-4.5 text-muted-foreground" />
+          </button>
+          <button className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-secondary text-xs text-muted-foreground hover:bg-muted transition-colors">
+            <ChevronDown className="h-3 w-3" />
+            <span>شركتي</span>
+          </button>
+        </div>
       </div>
 
       {/* Loading */}
@@ -303,294 +269,208 @@ const Dashboard = () => {
 
       {!loadingTx && (
         <>
-          {/* ── Hero Smart Input ── */}
-          <div
-            className="relative rounded-[20px] p-[2px] animate-fade-in"
-            style={{
-              background: "linear-gradient(135deg, hsl(152,76%,36%), hsl(160,84%,60%))",
-              boxShadow: "0 8px 24px hsla(152,76%,36%,0.15)",
-            }}
-          >
-            <div className="bg-card rounded-[18px] p-4 space-y-3">
-              {/* Header inside input */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="h-4 w-4 text-primary" />
-                  <span className="text-sm font-bold text-foreground">مساعدك المالي الذكي</span>
-                </div>
-                <span className="text-base">✨</span>
-              </div>
-
-              {/* Shortcut Chips */}
-              <div className="flex gap-1.5 flex-wrap">
-                {[
-                  { label: "💰 قبضت", value: "قبضت" },
-                  { label: "💸 دفعت", value: "دفعت" },
-                  { label: "🛒 اشتريت", value: "اشتريت" },
-                  { label: "🧾 صرفت", value: "صرفت" },
-                ].map((action) => (
-                  <button
-                    key={action.value}
-                    onClick={() => setInputValue((prev) => prev.trim() ? prev.trim() + " " + action.value + " " : action.value + " ")}
-                    className="px-2.5 py-1 rounded-full bg-secondary text-[11px] font-medium text-foreground hover:bg-primary/10 hover:text-primary transition-all active:scale-95"
-                  >
-                    {action.label}
-                  </button>
-                ))}
-              </div>
-
-              {/* Input Row */}
-              <div id="smart-input-bar" className="flex items-end gap-2 min-h-[48px] bg-secondary/40 rounded-2xl px-2 py-1.5" dir="rtl">
-                <button
-                  onClick={handleSend}
-                  disabled={sending || !inputValue.trim()}
-                  className="flex-shrink-0 w-11 h-11 rounded-full bg-primary flex items-center justify-center hover:opacity-90 transition-all active:scale-95 disabled:opacity-50 shadow-md shadow-primary/25"
-                >
-                  {sending ? (
-                    <Loader2 className="h-4 w-4 text-primary-foreground animate-spin" />
-                  ) : (
-                    <Send className="h-4 w-4 text-primary-foreground" />
-                  )}
-                </button>
-                <MentionInput
-                  value={inputValue}
-                  onChange={setInputValue}
-                  onKeyDown={(e) => e.key === "Enter" && handleSend()}
-                  placeholder='جرّب: "دفعت 500 شيكل لأحمد" أو اسأل عن أرباحك 💬'
-                  className="flex-1 min-w-0 h-11 bg-transparent rounded-xl px-2 text-sm text-foreground placeholder:text-muted-foreground border-0 outline-none"
-                  userId={user?.id}
-                />
-                <button
-                  onClick={() => navigate("/voice")}
-                  className="flex-shrink-0 w-11 h-11 rounded-full bg-[hsl(217,91%,60%)]/10 flex items-center justify-center hover:bg-[hsl(217,91%,60%)]/20 transition-colors active:scale-95"
-                >
-                  <Mic className="h-5 w-5 text-[hsl(217,91%,60%)]" />
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* ── 2×2 Quick Actions Grid ── */}
+          {/* ═══ 2. KPI CARDS ═══ */}
           <div className="grid grid-cols-2 gap-3">
-            {quickActions.map((action) => (
-              <button
-                key={action.label}
-                onClick={() => navigate(action.path)}
-                className={`relative flex flex-col items-center justify-center gap-2 p-5 rounded-2xl bg-gradient-to-br ${action.gradient} text-white shadow-md transition-all duration-200 hover:scale-105 hover:shadow-lg active:scale-[0.98] ${action.primary ? "scale-[1.03]" : ""}`}
-                style={{ minHeight: "100px" }}
-              >
-                <span className="text-3xl">{action.icon}</span>
-                <span className="text-sm font-semibold">{action.label}</span>
-                <ArrowLeft className="absolute bottom-3 left-3 h-4 w-4 opacity-60" />
-              </button>
+            {kpiCards.map((kpi) => (
+              <div key={kpi.label} className="premium-card p-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <kpi.icon className={`h-4 w-4 ${kpi.positive ? "text-primary" : "text-destructive"}`} />
+                  <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${kpi.positive ? "bg-primary/15 text-primary" : "bg-destructive/15 text-destructive"}`}>
+                    {kpi.trend}
+                  </span>
+                </div>
+                <p className="text-[10px] text-muted-foreground">{kpi.label}</p>
+                <p className={`text-lg font-bold tabular-nums ${kpi.positive ? "glow-green" : "text-destructive"}`}>
+                  ₪{kpi.value.toLocaleString()}
+                </p>
+                <MiniSparkline data={kpi.sparkline} color={kpi.positive ? "hsl(152, 72%, 40%)" : "hsl(0, 72%, 51%)"} />
+              </div>
             ))}
           </div>
 
-          {/* ── Motivational Tip (empty state) ── */}
-          {isEmpty && !tipDismissed && (
-            <button
-              onClick={() => {
-                setTipDismissed(true);
-                localStorage.setItem("tip_dismissed", "true");
-              }}
-              className="w-full text-right rounded-xl border border-dashed border-warning p-4 flex items-start gap-3 transition-all hover:bg-warning/5 active:scale-[0.99]"
-              style={{ backgroundColor: "hsl(48,100%,97%)" }}
-            >
-              <span className="text-xl flex-shrink-0">💡</span>
-              <p className="text-sm leading-relaxed" style={{ color: "hsl(32,81%,29%)" }}>
-                ابدأ بإضافة أول عملية وسيُبنى دفترك المحاسبي تلقائياً!
-              </p>
-            </button>
-          )}
-
-          {/* ═══════════════════════════════════════ */}
-          {/*  ACTIVE STATE                           */}
-          {/* ═══════════════════════════════════════ */}
-          {hasTransactions && (
-            <div className="space-y-5">
-              {/* Compact Summary - 2 cards */}
-              <div className="grid grid-cols-2 gap-3">
-                <Card className="border-0 shadow-sm overflow-hidden">
-                  <CardContent className="p-4 text-center bg-gradient-to-br from-primary/10 via-primary/5 to-transparent">
-                    <div className="flex justify-center mb-2">
-                      <div className="p-2 rounded-xl bg-primary/10">
-                        <Wallet className="h-4 w-4 text-primary" />
-                      </div>
-                    </div>
-                    <p className="text-[10px] text-muted-foreground mb-0.5">💰 الرصيد الحالي</p>
-                    <p className="text-lg font-bold text-foreground tabular-nums">₪{animCash.toLocaleString()}</p>
-                  </CardContent>
-                </Card>
-                <Card className="border-0 shadow-sm overflow-hidden">
-                  <CardContent className="p-4 text-center bg-gradient-to-br from-accent/20 via-accent/10 to-transparent">
-                    <div className="flex justify-center mb-2">
-                      <div className="p-2 rounded-xl bg-accent">
-                        <TrendingUp className="h-4 w-4 text-accent-foreground" />
-                      </div>
-                    </div>
-                    <p className="text-[10px] text-muted-foreground mb-0.5">📈 صافي هذا الشهر</p>
-                    <p className={`text-lg font-bold tabular-nums ${netProfit >= 0 ? "text-primary" : "text-destructive"}`}>
-                      ₪{animProfit.toLocaleString()}
-                    </p>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Last 3 Transactions */}
-              <div className="space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-sm font-semibold text-foreground">آخر النشاط</h2>
-                  <button
-                    onClick={() => navigate("/transactions")}
-                    className="text-xs font-medium text-primary hover:underline"
-                  >
-                    عرض كل النشاط
-                  </button>
+          {/* ═══ 3. AI FINANCIAL ANALYSIS BOX ═══ */}
+          <div className="relative rounded-[18px] p-[1.5px]" style={{ background: "linear-gradient(135deg, hsl(152,72%,40%), hsl(168,76%,42%))" }}>
+            <div className="bg-card rounded-[17px] p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-primary animate-pulse-glow" />
+                  <span className="text-sm font-bold text-foreground">تحليل المركز المالي</span>
                 </div>
-                <div className="space-y-1.5">
-                  {transactions.slice(0, 3).map((tx) => {
-                    const isIncome = tx.fields["Transaction Type"] === "سند قبض";
-                    const isExpense = tx.fields["Transaction Type"] === "سند صرف";
-                    return (
-                      <div key={tx.id} className="flex items-center justify-between py-2.5 px-3 rounded-xl bg-card shadow-sm">
-                        <div className="flex items-center gap-2.5">
-                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isIncome ? "bg-primary/10" : isExpense ? "bg-destructive/10" : "bg-secondary"}`}>
-                            <span className="text-xs">{isIncome ? "💰" : isExpense ? "💸" : "📄"}</span>
-                          </div>
-                          <div>
-                            <p className="text-xs font-medium text-foreground line-clamp-1">
-                              {tx.fields.Description || tx.fields["Transaction Type"] || "عملية"}
-                            </p>
-                            <p className="text-[10px] text-muted-foreground">{tx.fields.Date || ""}</p>
-                          </div>
-                        </div>
-                        <p className={`text-xs font-bold tabular-nums ${isIncome ? "text-primary" : isExpense ? "text-destructive" : "text-foreground"}`}>
-                          {isIncome ? "+" : isExpense ? "-" : ""}₪{(tx.fields.Amount || 0).toLocaleString()}
-                        </p>
-                      </div>
-                    );
-                  })}
-                </div>
+                <span className="text-[10px] text-muted-foreground">AI</span>
               </div>
-
-              {/* AI Insight Card */}
-              <Card className="border-0 shadow-sm bg-gradient-to-l from-primary/5 via-background to-accent/10">
-                <CardContent className="p-3 flex items-start gap-3">
-                  <div className="p-2 rounded-xl bg-primary/10 flex-shrink-0">
-                    <Sparkles className="h-4 w-4 text-primary" />
+              <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-line">{aiInsight.text}</p>
+              
+              {/* Score & Efficiency bars */}
+              {hasTransactions && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-[10px]">
+                    <span className="text-muted-foreground">انضباط الدفع</span>
+                    <span className="text-primary font-bold">{aiInsight.score}/100</span>
                   </div>
-                  <div className="flex-1">
-                    <p className="text-[10px] font-semibold text-primary mb-0.5">💡 ملاحظة اليوم</p>
-                    <p className="text-xs text-foreground leading-relaxed">{aiInsight}</p>
+                  <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
+                    <div className="h-full bg-primary rounded-full transition-all duration-1000" style={{ width: `${aiInsight.score}%` }} />
                   </div>
-                </CardContent>
-              </Card>
+                  <div className="flex items-center justify-between text-[10px]">
+                    <span className="text-muted-foreground">كفاءة التحصيل</span>
+                    <span className="text-accent font-bold">{aiInsight.efficiency}%</span>
+                  </div>
+                  <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
+                    <div className="h-full bg-accent rounded-full transition-all duration-1000" style={{ width: `${aiInsight.efficiency}%` }} />
+                  </div>
+                </div>
+              )}
 
-              {/* AI Smart Report CTA */}
               <button
-                onClick={() => navigate("/smart-report")}
-                className="w-full flex items-center gap-3 p-4 rounded-2xl bg-gradient-to-l from-primary/15 via-primary/10 to-primary/5 border border-primary/20 shadow-sm hover:shadow-md transition-all active:scale-[0.98]"
+                onClick={() => navigate("/smart-report?q=" + encodeURIComponent("اقترح خطة تحصيل للذمم المتأخرة"))}
+                className="w-full py-2.5 rounded-xl neon-border bg-primary/10 text-xs font-semibold text-primary hover:bg-primary/20 transition-all active:scale-[0.98]"
               >
-                <div className="w-11 h-11 rounded-xl bg-primary/15 flex items-center justify-center">
-                  <Sparkles className="h-5 w-5 text-primary" />
-                </div>
-                <div className="text-right flex-1">
-                  <p className="text-sm font-bold text-foreground">اسأل الذكاء الاصطناعي عن وضعك المالي</p>
-                  <p className="text-[10px] text-muted-foreground mt-0.5">تقارير وتحليلات فورية بلغتك</p>
-                </div>
+                ✨ اقترح خطة تحصيل
               </button>
+            </div>
+          </div>
 
-              {/* Database Command Section */}
-              <div id="database-command-section" className="space-y-2.5">
-                <div className="flex items-center gap-2">
-                  <Database className="h-4 w-4 text-accent-foreground" />
-                  <h2 className="text-sm font-semibold text-foreground">إدارة البيانات</h2>
-                </div>
-                <Card className="border-0 shadow-sm bg-gradient-to-l from-accent/20 to-background">
-                  <CardContent className="p-2.5">
-                    <div className="flex items-center gap-2" dir="ltr">
-                      <button
-                        onClick={() => navigate("/voice")}
-                        className="flex-shrink-0 w-9 h-9 rounded-xl bg-accent flex items-center justify-center hover:opacity-80 transition-colors active:scale-95"
-                      >
-                        <Mic className="h-4 w-4 text-accent-foreground" />
-                      </button>
-                      <input
-                        type="text"
-                        value={dbCommand}
-                        onChange={(e) => setDbCommand(e.target.value)}
-                        onKeyDown={(e) => e.key === "Enter" && handleDbCommand()}
-                        placeholder="أضف زبون، احذف حساب، عدّل اسم..."
-                        className="flex-1 h-9 bg-secondary/60 rounded-lg px-3 text-xs text-foreground placeholder:text-muted-foreground border-0 outline-none focus:ring-2 focus:ring-accent/40"
-                        dir="rtl"
-                      />
-                      <button
-                        onClick={handleDbCommand}
-                        disabled={dbSending || !dbCommand.trim()}
-                        className="flex-shrink-0 w-9 h-9 rounded-xl bg-accent flex items-center justify-center hover:opacity-90 transition-all active:scale-95 disabled:opacity-50"
-                      >
-                        {dbSending ? (
-                          <Loader2 className="h-4 w-4 text-accent-foreground animate-spin" />
-                        ) : (
-                          <Send className="h-4 w-4 text-accent-foreground" />
-                        )}
-                      </button>
-                    </div>
-                  </CardContent>
-                </Card>
+          {/* ═══ 4. SMART ASSISTANT BOX ═══ */}
+          <div className="premium-card p-4 space-y-3 glow-border">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-primary" />
+              <span className="text-sm font-bold text-foreground">المساعد المالي الذكي</span>
+            </div>
+
+            {/* Input */}
+            <div id="smart-input-bar" className="flex items-end gap-2 min-h-[52px] bg-secondary/60 rounded-2xl px-2.5 py-2" dir="rtl">
+              <button onClick={handleSend} disabled={sending || !inputValue.trim()} className="flex-shrink-0 w-10 h-10 rounded-full bg-primary flex items-center justify-center hover:opacity-90 transition-all active:scale-95 disabled:opacity-40">
+                {sending ? <Loader2 className="h-4 w-4 text-primary-foreground animate-spin" /> : <Send className="h-4 w-4 text-primary-foreground" />}
+              </button>
+              <MentionInput
+                value={inputValue}
+                onChange={setInputValue}
+                onKeyDown={(e) => e.key === "Enter" && handleSend()}
+                placeholder='شو صار معك اليوم مالياً؟ سجل عملياتك بكلامك…'
+                className="flex-1 min-w-0 h-10 bg-transparent rounded-xl px-2 text-sm text-foreground placeholder:text-muted-foreground border-0 outline-none"
+                userId={user?.id}
+              />
+              <button onClick={() => navigate("/voice")} className="flex-shrink-0 w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center hover:bg-primary/20 transition-colors active:scale-95">
+                <Mic className="h-5 w-5 text-primary" />
+              </button>
+            </div>
+
+            {/* Suggestion chips */}
+            <div className="flex gap-1.5 flex-wrap">
+              {[
+                "قبضت من أحمد 5000 شيكل",
+                "دفعت إيجار المكتب",
+                "سجل فاتورة مبيعات",
+                "كشف حساب عميل",
+              ].map((chip) => (
+                <button
+                  key={chip}
+                  onClick={() => setInputValue(chip)}
+                  className="px-2.5 py-1.5 rounded-full bg-secondary text-[10px] font-medium text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all active:scale-95 neon-border"
+                >
+                  {chip}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* ═══ 5. QUICK ACTIONS – اطلب وتمنى ═══ */}
+          <div className="space-y-3">
+            <h2 className="text-sm font-bold text-foreground">اطلب وتمنى ✨</h2>
+            <div className="grid grid-cols-2 gap-2.5">
+              {quickActions.map((action) => (
+                <button
+                  key={action.label}
+                  onClick={() => navigate(action.path)}
+                  className="premium-card p-4 text-right space-y-1.5 neon-border hover:bg-secondary/50 transition-all active:scale-[0.98]"
+                >
+                  <action.icon className="h-5 w-5 text-primary mb-1" />
+                  <p className="text-xs font-semibold text-foreground">{action.label}</p>
+                  <p className="text-[9px] text-muted-foreground leading-tight">{action.desc}</p>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* ═══ 6. LAST TRANSACTIONS ═══ */}
+          {hasTransactions && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h2 className="text-sm font-bold text-foreground">آخر النشاط</h2>
+                <button onClick={() => navigate("/transactions")} className="text-[10px] font-medium text-primary hover:underline">عرض الكل</button>
               </div>
-
-              {/* Smart Reports */}
-              <div className="space-y-2.5">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="h-4 w-4 text-primary" />
-                  <h2 className="text-sm font-semibold text-foreground">التقارير الذكية</h2>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  {[
-                    { emoji: "👤", label: "كشف حساب زبون", query: "أعطني كشف حساب" },
-                    { emoji: "📊", label: "أرباح وخسائر", query: "كم إجمالي أرباحي وخسائري؟" },
-                    { emoji: "📦", label: "مخزون وكميات", query: "أعطني تقرير المخزون والكميات المتوفرة" },
-                    { emoji: "💰", label: "مصاريف اليوم", query: "كشف المعاملات اليومية مصاريف ومقبوضات" },
-                  ].map((report) => (
-                    <button
-                      key={report.label}
-                      onClick={() => navigate(`/smart-report?q=${encodeURIComponent(report.query)}`)}
-                      className="flex items-center gap-2 p-2.5 rounded-xl bg-primary/5 border border-primary/10 text-right hover:bg-primary/10 hover:border-primary/20 transition-all active:scale-[0.98]"
-                    >
-                      <span className="text-base">{report.emoji}</span>
-                      <span className="text-[11px] font-medium text-foreground leading-tight">{report.label}</span>
-                    </button>
-                  ))}
-                </div>
+              <div className="space-y-1.5">
+                {transactions.slice(0, 3).map((tx) => {
+                  const isIncome = tx.fields["Transaction Type"] === "سند قبض";
+                  const isExpense = tx.fields["Transaction Type"] === "سند صرف";
+                  return (
+                    <div key={tx.id} className="flex items-center justify-between py-3 px-3 premium-card">
+                      <div className="flex items-center gap-2.5">
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isIncome ? "bg-primary/15" : isExpense ? "bg-destructive/15" : "bg-secondary"}`}>
+                          <span className="text-xs">{isIncome ? "💰" : isExpense ? "💸" : "📄"}</span>
+                        </div>
+                        <div>
+                          <p className="text-xs font-medium text-foreground line-clamp-1">{tx.fields.Description || tx.fields["Transaction Type"] || "عملية"}</p>
+                          <p className="text-[10px] text-muted-foreground">{tx.fields.Date || ""}</p>
+                        </div>
+                      </div>
+                      <p className={`text-xs font-bold tabular-nums ${isIncome ? "text-primary glow-green" : isExpense ? "text-destructive" : "text-foreground"}`}>
+                        {isIncome ? "+" : isExpense ? "-" : ""}₪{(tx.fields.Amount || 0).toLocaleString()}
+                      </p>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
+
+          {/* ═══ 7. SMART REPORTS ═══ */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <BarChart3 className="h-4 w-4 text-primary" />
+              <h2 className="text-sm font-bold text-foreground">التقارير الذكية</h2>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { emoji: "👤", label: "كشف حساب زبون", query: "أعطني كشف حساب" },
+                { emoji: "📊", label: "أرباح وخسائر", query: "كم إجمالي أرباحي وخسائري؟" },
+                { emoji: "📦", label: "مخزون وكميات", query: "أعطني تقرير المخزون والكميات المتوفرة" },
+                { emoji: "💰", label: "مصاريف اليوم", query: "كشف المعاملات اليومية مصاريف ومقبوضات" },
+              ].map((report) => (
+                <button
+                  key={report.label}
+                  onClick={() => navigate(`/smart-report?q=${encodeURIComponent(report.query)}`)}
+                  className="flex items-center gap-2 p-3 premium-card neon-border text-right hover:bg-secondary/50 transition-all active:scale-[0.98]"
+                >
+                  <span className="text-base">{report.emoji}</span>
+                  <span className="text-[11px] font-medium text-foreground leading-tight">{report.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* ═══ AI CTA ═══ */}
+          <button
+            onClick={() => navigate("/smart-report")}
+            className="w-full flex items-center gap-3 p-4 rounded-[18px] glow-border neon-border bg-primary/5 hover:bg-primary/10 transition-all active:scale-[0.98]"
+          >
+            <div className="w-11 h-11 rounded-xl bg-primary/15 flex items-center justify-center">
+              <Sparkles className="h-5 w-5 text-primary animate-pulse-glow" />
+            </div>
+            <div className="text-right flex-1">
+              <p className="text-sm font-bold text-foreground">اسأل AI عن وضعك المالي</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">تقارير وتحليلات فورية بلغتك</p>
+            </div>
+          </button>
         </>
       )}
 
+      {/* ── Dialogs & Wizards ── */}
       {showSetupWizard && user && !showPasskeyOnboarding && (
-        <SetupWizard
-          userId={user.id}
-          onComplete={() => {
-            setShowSetupWizard(false);
-            setProfileData(prev => prev ? { ...prev, setup_completed: true } : prev);
-          }}
-        />
+        <SetupWizard userId={user.id} onComplete={() => { setShowSetupWizard(false); setProfileData(prev => prev ? { ...prev, setup_completed: true } : prev); }} />
       )}
-
-      {showPasskeyOnboarding && (
-        <PasskeyOnboarding onComplete={() => setShowPasskeyOnboarding(false)} />
-      )}
-
+      {showPasskeyOnboarding && <PasskeyOnboarding onComplete={() => setShowPasskeyOnboarding(false)} />}
       {showOnboarding && !showPasskeyOnboarding && !showSetupWizard && (
-        <OnboardingFlow
-          onComplete={() => setShowOnboarding(false)}
-          onFocusInput={() => {
-            const input = document.querySelector<HTMLInputElement>("#smart-input-bar input");
-            input?.focus();
-          }}
-        />
+        <OnboardingFlow onComplete={() => setShowOnboarding(false)} onFocusInput={() => { const input = document.querySelector<HTMLInputElement>("#smart-input-bar input"); input?.focus(); }} />
       )}
     </div>
   );
