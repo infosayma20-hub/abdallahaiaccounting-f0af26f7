@@ -13,7 +13,8 @@ interface SetupRequest {
   hasEmployees: boolean;
 }
 
-// Account templates by category
+// Valid Airtable Account Types: Asset, Revenue, Expenses, Liability, Purchases
+// Note: "Equity" is not a valid option in Airtable, so we use "Liability" for equity-like accounts
 function getAccountsForSetup(req: SetupRequest): { name: string; type: string }[] {
   const accounts: { name: string; type: string }[] = [];
 
@@ -22,9 +23,9 @@ function getAccountsForSetup(req: SetupRequest): { name: string; type: string }[
     { name: "صندوق", type: "Asset" },
     { name: "بنك", type: "Asset" },
     { name: "إيرادات مبيعات", type: "Revenue" },
-    { name: "أرصدة افتتاحية", type: "Equity" },
-    { name: "أرباح محتجزة", type: "Equity" },
-    { name: "رأس المال", type: "Equity" },
+    { name: "أرصدة افتتاحية", type: "Liability" },
+    { name: "أرباح محتجزة", type: "Liability" },
+    { name: "رأس المال", type: "Liability" },
   );
 
   // ── Receivables & Payables ──
