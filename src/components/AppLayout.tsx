@@ -1,100 +1,53 @@
-import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Home, Menu, Plus, FileText, Receipt, BookOpen, Users, BarChart3, MoreHorizontal, Mic, Landmark, UserPlus } from "lucide-react";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Home, Users, FileText, Receipt, Sparkles } from "lucide-react";
 
 interface AppLayoutProps {
   children: React.ReactNode;
 }
 
-const quickActions = [
-  { icon: FileText, label: "فاتورة", color: "text-primary" },
-  { icon: Receipt, label: "مصروف", color: "text-destructive" },
-  { icon: BookOpen, label: "قيد محاسبي", color: "text-accent-foreground" },
-  { icon: Users, label: "عميل", color: "text-primary" },
-  { icon: UserPlus, label: "مورد", color: "text-warning" },
-  { icon: Landmark, label: "إيداع بنكي", color: "text-muted-foreground" },
+const navItems = [
+  { icon: Sparkles, label: "AI", path: "/smart-report" },
+  { icon: Receipt, label: "المصروفات", path: "/transactions" },
+  { icon: FileText, label: "الفواتير", path: "/invoices" },
+  { icon: Users, label: "العملاء", path: "/contacts" },
+  { icon: Home, label: "الرئيسية", path: "/" },
 ];
 
 const AppLayout = ({ children }: AppLayoutProps) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const [sheetOpen, setSheetOpen] = useState(false);
 
   const isActive = (path: string) => location.pathname === path;
 
   return (
     <div className="flex flex-col min-h-screen max-w-md mx-auto bg-background relative">
-      {/* Main Content */}
-      <main className="flex-1 pb-24 overflow-y-auto">
+      <main className="flex-1 pb-20 overflow-y-auto">
         {children}
       </main>
 
-      {/* Bottom Navigation */}
+      {/* Bottom Navigation - Premium Dark */}
       <nav className="fixed bottom-0 left-0 right-0 z-40">
-        <div className="max-w-md mx-auto bg-card/95 backdrop-blur-md border-t border-border/50 shadow-xl">
-          <div className="flex items-center justify-around h-16 px-4">
-            {/* الرئيسية */}
-            <button
-              onClick={() => navigate("/")}
-              className={`flex flex-col items-center gap-1 px-4 py-2 transition-all duration-200 ${
-                isActive("/") ? "text-primary scale-105" : "text-muted-foreground"
-              }`}
-            >
-              <Home className="h-5 w-5" />
-              <span className="text-xs font-medium">الرئيسية</span>
-            </button>
-
-            {/* زر الإضافة العائم */}
-            <button
-              onClick={() => setSheetOpen(true)}
-              className="flex items-center justify-center w-14 h-14 -mt-8 rounded-2xl bg-primary text-primary-foreground shadow-xl shadow-primary/30 hover:opacity-90 transition-all active:scale-95"
-            >
-              <Plus className="h-7 w-7" />
-            </button>
-
-            {/* القائمة */}
-            <button
-              onClick={() => navigate("/menu")}
-              className={`flex flex-col items-center gap-1 px-4 py-2 transition-all duration-200 ${
-                isActive("/menu") ? "text-primary scale-105" : "text-muted-foreground"
-              }`}
-            >
-              <Menu className="h-5 w-5" />
-              <span className="text-xs font-medium">القائمة</span>
-            </button>
+        <div className="max-w-md mx-auto" style={{ background: "hsl(220, 30%, 8%)", borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+          <div className="flex items-center justify-around h-16 px-2">
+            {navItems.map((item) => {
+              const active = isActive(item.path);
+              const isAI = item.path === "/smart-report";
+              return (
+                <button
+                  key={item.path}
+                  onClick={() => navigate(item.path)}
+                  className={`flex flex-col items-center gap-0.5 px-3 py-1.5 transition-all duration-200 ${
+                    active ? "text-primary" : "text-muted-foreground"
+                  } ${isAI && active ? "animate-pulse-glow" : ""}`}
+                >
+                  <item.icon className={`h-5 w-5 ${active ? "drop-shadow-[0_0_6px_hsl(152,72%,40%,0.6)]" : ""}`} />
+                  <span className="text-[10px] font-medium">{item.label}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
       </nav>
-
-      {/* Bottom Sheet - إضافة سريعة */}
-      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        <SheetContent side="bottom" className="rounded-t-2xl px-6 pb-8">
-          <SheetHeader className="mb-4">
-            <SheetTitle className="text-center text-lg font-bold">إضافة جديدة</SheetTitle>
-          </SheetHeader>
-          <div className="grid grid-cols-3 gap-4">
-            {quickActions.map((action) => (
-              <button
-                key={action.label}
-                onClick={() => setSheetOpen(false)}
-                className="flex flex-col items-center gap-2 p-4 rounded-xl bg-secondary hover:bg-accent transition-colors active:scale-95"
-              >
-                <action.icon className={`h-6 w-6 ${action.color}`} />
-                <span className="text-xs font-medium text-foreground">{action.label}</span>
-              </button>
-            ))}
-          </div>
-          {/* زر الإدخال الصوتي */}
-          <button
-            onClick={() => { setSheetOpen(false); navigate("/voice"); }}
-            className="mt-4 w-full flex items-center justify-center gap-3 p-4 rounded-xl bg-primary/10 border border-primary/20 hover:bg-primary/20 transition-colors active:scale-[0.98]"
-          >
-            <Mic className="h-6 w-6 text-primary" />
-            <span className="text-sm font-semibold text-primary">إدخال بالصوت 🎙️</span>
-          </button>
-        </SheetContent>
-      </Sheet>
     </div>
   );
 };
