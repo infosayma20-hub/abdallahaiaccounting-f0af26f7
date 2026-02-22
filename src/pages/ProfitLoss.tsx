@@ -101,7 +101,7 @@ const ProfitLoss = () => {
   return (
     <div className="px-4 pt-6 space-y-6 pb-8">
       <div className="flex items-center gap-3">
-        <button onClick={() => navigate("/")} className="p-2 rounded-xl hover:bg-muted transition-colors">
+        <button onClick={() => navigate("/menu")} className="p-2 rounded-xl hover:bg-muted transition-colors">
           <ArrowRight className="h-5 w-5 text-foreground" />
         </button>
         <h1 className="text-lg font-bold text-foreground">الأرباح والخسائر</h1>
