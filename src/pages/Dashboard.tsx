@@ -12,6 +12,7 @@ import { useRotatingPlaceholder } from "@/hooks/useRotatingPlaceholder";
 import PasskeyOnboarding from "@/components/PasskeyOnboarding";
 import CompleteProfileDialog from "@/components/CompleteProfileDialog";
 import OnboardingFlow from "@/components/OnboardingFlow";
+import SetupWizard from "@/components/SetupWizard";
 import { browserSupportsWebAuthn } from "@simplewebauthn/browser";
 
 interface TransactionRecord {
@@ -39,21 +40,27 @@ const Dashboard = () => {
   const [showProfileDialog, setShowProfileDialog] = useState(false);
   const [showPasskeyOnboarding, setShowPasskeyOnboarding] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showSetupWizard, setShowSetupWizard] = useState(false);
   const [transactions, setTransactions] = useState<TransactionRecord[]>([]);
   const [loadingTx, setLoadingTx] = useState(true);
-  const [profileData, setProfileData] = useState<{ display_name?: string; company_name?: string } | null>(null);
+  const [profileData, setProfileData] = useState<{ display_name?: string; company_name?: string; setup_completed?: boolean } | null>(null);
   const rotatingPlaceholder = useRotatingPlaceholder();
 
-  // Fetch profile from DB
+  // Fetch profile from DB + check setup status
   useEffect(() => {
     if (!user) return;
     const loadProfile = async () => {
       const { data } = await supabase
         .from("profiles")
-        .select("display_name, company_name")
+        .select("display_name, company_name, setup_completed")
         .eq("user_id", user.id)
         .maybeSingle();
-      if (data) setProfileData(data);
+      if (data) {
+        setProfileData(data);
+        if (!data.setup_completed) {
+          setShowSetupWizard(true);
+        }
+      }
     };
     loadProfile();
   }, [user]);
@@ -587,11 +594,21 @@ const Dashboard = () => {
         </>
       )}
 
+      {showSetupWizard && user && !showPasskeyOnboarding && (
+        <SetupWizard
+          userId={user.id}
+          onComplete={() => {
+            setShowSetupWizard(false);
+            setProfileData(prev => prev ? { ...prev, setup_completed: true } : prev);
+          }}
+        />
+      )}
+
       {showPasskeyOnboarding && (
         <PasskeyOnboarding onComplete={() => setShowPasskeyOnboarding(false)} />
       )}
 
-      {showOnboarding && !showPasskeyOnboarding && (
+      {showOnboarding && !showPasskeyOnboarding && !showSetupWizard && (
         <OnboardingFlow
           onComplete={() => setShowOnboarding(false)}
           onFocusInput={() => {
