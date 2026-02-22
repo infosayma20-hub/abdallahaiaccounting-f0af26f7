@@ -288,48 +288,7 @@ const Dashboard = () => {
             ))}
           </div>
 
-          {/* ═══ 3. AI FINANCIAL ANALYSIS BOX ═══ */}
-          <div className="relative rounded-[18px] p-[1.5px]" style={{ background: "linear-gradient(135deg, hsl(152,72%,40%), hsl(168,76%,42%))" }}>
-            <div className="bg-card rounded-[17px] p-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="h-4 w-4 text-primary animate-pulse-glow" />
-                  <span className="text-sm font-bold text-foreground">تحليل المركز المالي</span>
-                </div>
-                <span className="text-[10px] text-muted-foreground">AI</span>
-              </div>
-              <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-line">{aiInsight.text}</p>
-              
-              {/* Score & Efficiency bars */}
-              {hasTransactions && (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-[10px]">
-                    <span className="text-muted-foreground">انضباط الدفع</span>
-                    <span className="text-primary font-bold">{aiInsight.score}/100</span>
-                  </div>
-                  <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
-                    <div className="h-full bg-primary rounded-full transition-all duration-1000" style={{ width: `${aiInsight.score}%` }} />
-                  </div>
-                  <div className="flex items-center justify-between text-[10px]">
-                    <span className="text-muted-foreground">كفاءة التحصيل</span>
-                    <span className="text-accent font-bold">{aiInsight.efficiency}%</span>
-                  </div>
-                  <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
-                    <div className="h-full bg-accent rounded-full transition-all duration-1000" style={{ width: `${aiInsight.efficiency}%` }} />
-                  </div>
-                </div>
-              )}
-
-              <button
-                onClick={() => navigate("/smart-report?q=" + encodeURIComponent("اقترح خطة تحصيل للذمم المتأخرة"))}
-                className="w-full py-2.5 rounded-xl neon-border bg-primary/10 text-xs font-semibold text-primary hover:bg-primary/20 transition-all active:scale-[0.98]"
-              >
-                ✨ اقترح خطة تحصيل
-              </button>
-            </div>
-          </div>
-
-          {/* ═══ 4. SMART ASSISTANT BOX ═══ */}
+          {/* ═══ 3. SMART ASSISTANT BOX ═══ */}
           <div className="premium-card p-4 space-y-3 glow-border">
             <div className="flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-primary" />
@@ -357,10 +316,10 @@ const Dashboard = () => {
             {/* Suggestion chips */}
             <div className="flex gap-1.5 flex-wrap">
               {[
-                "قبضت من أحمد 5000 شيكل",
-                "دفعت إيجار المكتب",
-                "سجل فاتورة مبيعات",
-                "كشف حساب عميل",
+                "قبضت من أحمد 5,000 شيكل",
+                "دفعت لمحمد 1,200 دينار",
+                "حوّلت لشركة النور 3,500 شيكل",
+                "صرفت على الصيانة 800 شيكل",
               ].map((chip) => (
                 <button
                   key={chip}
@@ -370,6 +329,46 @@ const Dashboard = () => {
                   {chip}
                 </button>
               ))}
+            </div>
+          </div>
+
+          {/* ═══ 4. AI FINANCIAL ANALYSIS BOX ═══ */}
+          <div className="relative rounded-[18px] p-[1.5px]" style={{ background: "linear-gradient(135deg, hsl(152,72%,40%), hsl(168,76%,42%))" }}>
+            <div className="bg-card rounded-[17px] p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-primary animate-pulse-glow" />
+                  <span className="text-sm font-bold text-foreground">تحليل المركز المالي</span>
+                </div>
+                <span className="text-[10px] text-muted-foreground">AI</span>
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-line">{aiInsight.text}</p>
+              
+              {hasTransactions && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-[10px]">
+                    <span className="text-muted-foreground">انضباط الدفع</span>
+                    <span className="text-primary font-bold">{aiInsight.score}/100</span>
+                  </div>
+                  <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
+                    <div className="h-full bg-primary rounded-full transition-all duration-1000" style={{ width: `${aiInsight.score}%` }} />
+                  </div>
+                  <div className="flex items-center justify-between text-[10px]">
+                    <span className="text-muted-foreground">كفاءة التحصيل</span>
+                    <span className="text-accent font-bold">{aiInsight.efficiency}%</span>
+                  </div>
+                  <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
+                    <div className="h-full bg-accent rounded-full transition-all duration-1000" style={{ width: `${aiInsight.efficiency}%` }} />
+                  </div>
+                </div>
+              )}
+
+              <button
+                onClick={() => navigate("/smart-report?q=" + encodeURIComponent("اقترح خطة تحصيل للذمم المتأخرة"))}
+                className="w-full py-2.5 rounded-xl neon-border bg-primary/10 text-xs font-semibold text-primary hover:bg-primary/20 transition-all active:scale-[0.98]"
+              >
+                ✨ اقترح خطة تحصيل
+              </button>
             </div>
           </div>
 
