@@ -23,3 +23,6 @@ verify_jwt = false
 
 [functions.database-command]
 verify_jwt = false
+
+[functions.setup-accounts]
+verify_jwt = false
