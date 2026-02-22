@@ -1,8 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
-import { Wallet, Mic, Send, Loader2, LogOut, Sparkles, Database, FileText, Package, PlusCircle, BookOpenCheck, TrendingUp } from "lucide-react";
+import { Wallet, Mic, Send, Loader2, Bell, Sparkles, Database, FileText, Package, TrendingUp, ArrowLeft } from "lucide-react";
 import MentionInput from "@/components/MentionInput";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -44,6 +43,7 @@ const Dashboard = () => {
   const [transactions, setTransactions] = useState<TransactionRecord[]>([]);
   const [loadingTx, setLoadingTx] = useState(true);
   const [profileData, setProfileData] = useState<{ display_name?: string; company_name?: string; setup_completed?: boolean } | null>(null);
+  const [tipDismissed, setTipDismissed] = useState(() => localStorage.getItem("tip_dismissed") === "true");
   const rotatingPlaceholder = useRotatingPlaceholder();
 
   // Fetch profile from DB + check setup status
@@ -161,23 +161,6 @@ const Dashboard = () => {
   const animCash = useCountUp(cashBalance, 1200, !loadingTx);
   const animProfit = useCountUp(netProfit, 1200, !loadingTx);
 
-  // Dynamic smart greeting
-  const smartGreeting = useMemo(() => {
-    if (loadingTx) return "";
-    if (transactions.length === 0) return "جاهز نحلّل وضعك المالي اليوم؟";
-    const todayTx = transactions.filter((tx) => {
-      if (!tx.fields.Date) return false;
-      const today = new Date().toISOString().split("T")[0];
-      return tx.fields.Date.startsWith(today);
-    });
-    if (todayTx.length > 0) {
-      if (netProfit > 0) return `اليوم سجلت ${todayTx.length} عمليات، وصافي ربحك إيجابي 👍`;
-      return `اليوم سجلت ${todayTx.length} عمليات — تابع لتحقق أهدافك`;
-    }
-    if (netProfit > 0) return `صافي ربحك إيجابي هذا الشهر — أداء ممتاز! 🎯`;
-    return `لديك ${transactions.length} عملية مسجّلة — جاهز نراجع وضعك؟`;
-  }, [loadingTx, transactions, netProfit]);
-
   // AI Insight
   const aiInsight = useMemo(() => {
     if (transactions.length === 0) return "ابدأ بإضافة أول عملية لنقدّم لك تحليلات ذكية.";
@@ -257,38 +240,57 @@ const Dashboard = () => {
   const hasTransactions = !loadingTx && transactions.length > 0;
   const isEmpty = !loadingTx && transactions.length === 0;
 
+  const quickActions = [
+    {
+      icon: "📝",
+      label: "فاتورة جديدة",
+      gradient: "from-[hsl(152,76%,36%)] to-[hsl(160,84%,39%)]",
+      path: "/invoices",
+      primary: true,
+    },
+    {
+      icon: "📦",
+      label: "إضافة منتج",
+      gradient: "from-[hsl(217,91%,60%)] to-[hsl(217,91%,48%)]",
+      path: "/inventory",
+    },
+    {
+      icon: "🎙️",
+      label: "إدخال صوتي",
+      gradient: "from-[hsl(38,92%,50%)] to-[hsl(28,80%,52%)]",
+      path: "/voice",
+    },
+    {
+      icon: "📊",
+      label: "عرض التقارير",
+      gradient: "from-[hsl(258,90%,66%)] to-[hsl(258,90%,54%)]",
+      path: "/smart-report",
+    },
+  ];
+
   return (
-    <div className="px-4 pt-6 pb-28 space-y-5" dir="rtl">
+    <div className="px-4 pt-3 pb-28 space-y-4" dir="rtl">
       {user && (
         <CompleteProfileDialog open={showProfileDialog} onClose={() => setShowProfileDialog(false)} user={user} />
       )}
 
-      {/* ── Smart Greeting Header ── */}
-      <div className="flex items-start justify-between">
+      {/* ── Compact Header ── */}
+      <div className="flex items-center justify-between h-[56px]">
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate("/profile")}
-            className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center shadow-sm hover:shadow-md transition-all active:scale-95"
+            className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center shadow-sm hover:shadow-md transition-all active:scale-95"
           >
-            <span className="text-base font-bold text-primary">
+            <span className="text-sm font-bold text-primary">
               {displayName.split(' ').slice(0, 2).map((w: string) => w[0]).join('')}
             </span>
           </button>
-          <div>
-            <h1 className="text-lg font-bold text-foreground">
-              أهلاً {displayName} 👋
-            </h1>
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              {smartGreeting}
-            </p>
-          </div>
+          <h1 className="text-lg font-bold text-foreground">
+            أهلاً {displayName.split(' ')[0]} 👋
+          </h1>
         </div>
-        <button
-          onClick={signOut}
-          className="w-10 h-10 rounded-xl bg-destructive/10 flex items-center justify-center hover:bg-destructive/20 transition-colors"
-          title="تسجيل الخروج"
-        >
-          <LogOut className="h-4 w-4 text-destructive" />
+        <button className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-muted transition-colors">
+          <Bell className="h-5 w-5 text-muted-foreground" />
         </button>
       </div>
 
@@ -299,25 +301,28 @@ const Dashboard = () => {
         </div>
       )}
 
-      {/* ═══════════════════════════════════════ */}
-      {/*  AI ASSISTANT HUB (Always visible)     */}
-      {/* ═══════════════════════════════════════ */}
       {!loadingTx && (
         <>
-          {/* ── 🧠 Central AI Card ── */}
-          <Card className="border-0 shadow-xl overflow-hidden relative" style={{ boxShadow: "0 4px 30px hsl(152 45% 42% / 0.12)" }}>
-            <CardContent className="p-0">
-              {/* Header */}
-              <div className="px-4 pt-4 pb-3 bg-gradient-to-l from-primary/10 via-primary/5 to-transparent">
-                <div className="flex items-center gap-2 mb-1">
+          {/* ── Hero Smart Input ── */}
+          <div
+            className="relative rounded-[20px] p-[2px] animate-fade-in"
+            style={{
+              background: "linear-gradient(135deg, hsl(152,76%,36%), hsl(160,84%,60%))",
+              boxShadow: "0 8px 24px hsla(152,76%,36%,0.15)",
+            }}
+          >
+            <div className="bg-card rounded-[18px] p-4 space-y-3">
+              {/* Header inside input */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
                   <Sparkles className="h-4 w-4 text-primary" />
-                  <span className="text-sm font-bold text-foreground">✨ مساعدك المالي الذكي</span>
+                  <span className="text-sm font-bold text-foreground">مساعدك المالي الذكي</span>
                 </div>
-                <p className="text-[11px] text-muted-foreground">اكتب عمليتك أو اسأل أي سؤال مالي</p>
+                <span className="text-base">✨</span>
               </div>
 
               {/* Shortcut Chips */}
-              <div className="px-4 py-2 flex gap-1.5 flex-wrap">
+              <div className="flex gap-1.5 flex-wrap">
                 {[
                   { label: "💰 قبضت", value: "قبضت" },
                   { label: "💸 دفعت", value: "دفعت" },
@@ -334,98 +339,68 @@ const Dashboard = () => {
                 ))}
               </div>
 
-              {/* Input */}
-              <div className="px-3 pb-3">
-                <div id="smart-input-bar" className="flex items-end gap-2 min-h-[48px] bg-secondary/40 rounded-2xl px-2 py-1.5" dir="rtl">
-                  <button
-                    onClick={handleSend}
-                    disabled={sending || !inputValue.trim()}
-                    className="flex-shrink-0 w-11 h-11 rounded-full bg-primary flex items-center justify-center hover:opacity-90 transition-all active:scale-95 disabled:opacity-50 shadow-md shadow-primary/25"
-                  >
-                    {sending ? (
-                      <Loader2 className="h-4 w-4 text-primary-foreground animate-spin" />
-                    ) : (
-                      <Send className="h-4 w-4 text-primary-foreground" />
-                    )}
-                  </button>
-                  <MentionInput
-                    value={inputValue}
-                    onChange={setInputValue}
-                    onKeyDown={(e) => e.key === "Enter" && handleSend()}
-                    placeholder={rotatingPlaceholder}
-                    className="flex-1 min-w-0 h-11 bg-transparent rounded-xl px-2 text-sm text-foreground placeholder:text-muted-foreground border-0 outline-none"
-                    userId={user?.id}
-                  />
-                  <button
-                    onClick={() => navigate("/voice")}
-                    className="flex-shrink-0 w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center hover:bg-primary/20 transition-colors active:scale-95"
-                  >
-                    <Mic className="h-5 w-5 text-primary" />
-                  </button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* ═══════════════════════════════════════ */}
-          {/*  EMPTY STATE                            */}
-          {/* ═══════════════════════════════════════ */}
-          {isEmpty && (
-            <div className="space-y-6">
-              {/* Empty Hero */}
-              <div className="flex flex-col items-center text-center pt-2 space-y-3">
-                <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-primary/15 to-accent/20 flex items-center justify-center">
-                  <BookOpenCheck className="h-10 w-10 text-primary" />
-                </div>
-                <div className="space-y-1.5">
-                  <h2 className="text-lg font-bold text-foreground">لا توجد حركات حتى الآن</h2>
-                  <p className="text-sm text-muted-foreground max-w-[260px] mx-auto leading-relaxed">
-                    أضف أول عملية وسيبدأ نظامك المحاسبي بالعمل فوراً
-                  </p>
-                </div>
-              </div>
-
-              {/* Quick Shortcuts */}
-              <div className="grid grid-cols-3 gap-3">
+              {/* Input Row */}
+              <div id="smart-input-bar" className="flex items-end gap-2 min-h-[48px] bg-secondary/40 rounded-2xl px-2 py-1.5" dir="rtl">
+                <button
+                  onClick={handleSend}
+                  disabled={sending || !inputValue.trim()}
+                  className="flex-shrink-0 w-11 h-11 rounded-full bg-primary flex items-center justify-center hover:opacity-90 transition-all active:scale-95 disabled:opacity-50 shadow-md shadow-primary/25"
+                >
+                  {sending ? (
+                    <Loader2 className="h-4 w-4 text-primary-foreground animate-spin" />
+                  ) : (
+                    <Send className="h-4 w-4 text-primary-foreground" />
+                  )}
+                </button>
+                <MentionInput
+                  value={inputValue}
+                  onChange={setInputValue}
+                  onKeyDown={(e) => e.key === "Enter" && handleSend()}
+                  placeholder='جرّب: "دفعت 500 شيكل لأحمد" أو اسأل عن أرباحك 💬'
+                  className="flex-1 min-w-0 h-11 bg-transparent rounded-xl px-2 text-sm text-foreground placeholder:text-muted-foreground border-0 outline-none"
+                  userId={user?.id}
+                />
                 <button
                   onClick={() => navigate("/voice")}
-                  className="flex flex-col items-center gap-2 p-3.5 rounded-2xl bg-primary/5 border border-primary/10 hover:bg-primary/10 transition-all active:scale-[0.97]"
+                  className="flex-shrink-0 w-11 h-11 rounded-full bg-[hsl(217,91%,60%)]/10 flex items-center justify-center hover:bg-[hsl(217,91%,60%)]/20 transition-colors active:scale-95"
                 >
-                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                    <Mic className="h-5 w-5 text-primary" />
-                  </div>
-                  <span className="text-[11px] font-medium text-foreground">إدخال صوتي</span>
-                </button>
-                <button
-                  onClick={() => navigate("/invoices")}
-                  className="flex flex-col items-center gap-2 p-3.5 rounded-2xl bg-warning/5 border border-warning/10 hover:bg-warning/10 transition-all active:scale-[0.97]"
-                >
-                  <div className="w-10 h-10 rounded-xl bg-warning/10 flex items-center justify-center">
-                    <FileText className="h-5 w-5 text-warning" />
-                  </div>
-                  <span className="text-[11px] font-medium text-foreground">إنشاء فاتورة</span>
-                </button>
-                <button
-                  onClick={() => navigate("/inventory")}
-                  className="flex flex-col items-center gap-2 p-3.5 rounded-2xl bg-accent/50 border border-accent hover:bg-accent transition-all active:scale-[0.97]"
-                >
-                  <div className="w-10 h-10 rounded-xl bg-accent flex items-center justify-center">
-                    <Package className="h-5 w-5 text-accent-foreground" />
-                  </div>
-                  <span className="text-[11px] font-medium text-foreground">إضافة منتج</span>
+                  <Mic className="h-5 w-5 text-[hsl(217,91%,60%)]" />
                 </button>
               </div>
-
-              {/* AI Insight (empty) */}
-              <Card className="border-0 shadow-sm bg-gradient-to-l from-primary/5 to-transparent">
-                <CardContent className="p-3 flex items-center gap-3">
-                  <div className="p-2 rounded-xl bg-primary/10 flex-shrink-0">
-                    <Sparkles className="h-4 w-4 text-primary" />
-                  </div>
-                  <p className="text-xs text-muted-foreground leading-relaxed">{aiInsight}</p>
-                </CardContent>
-              </Card>
             </div>
+          </div>
+
+          {/* ── 2×2 Quick Actions Grid ── */}
+          <div className="grid grid-cols-2 gap-3">
+            {quickActions.map((action) => (
+              <button
+                key={action.label}
+                onClick={() => navigate(action.path)}
+                className={`relative flex flex-col items-center justify-center gap-2 p-5 rounded-2xl bg-gradient-to-br ${action.gradient} text-white shadow-md transition-all duration-200 hover:scale-105 hover:shadow-lg active:scale-[0.98] ${action.primary ? "scale-[1.03]" : ""}`}
+                style={{ minHeight: "100px" }}
+              >
+                <span className="text-3xl">{action.icon}</span>
+                <span className="text-sm font-semibold">{action.label}</span>
+                <ArrowLeft className="absolute bottom-3 left-3 h-4 w-4 opacity-60" />
+              </button>
+            ))}
+          </div>
+
+          {/* ── Motivational Tip (empty state) ── */}
+          {isEmpty && !tipDismissed && (
+            <button
+              onClick={() => {
+                setTipDismissed(true);
+                localStorage.setItem("tip_dismissed", "true");
+              }}
+              className="w-full text-right rounded-xl border border-dashed border-warning p-4 flex items-start gap-3 transition-all hover:bg-warning/5 active:scale-[0.99]"
+              style={{ backgroundColor: "hsl(48,100%,97%)" }}
+            >
+              <span className="text-xl flex-shrink-0">💡</span>
+              <p className="text-sm leading-relaxed" style={{ color: "hsl(32,81%,29%)" }}>
+                ابدأ بإضافة أول عملية وسيُبنى دفترك المحاسبي تلقائياً!
+              </p>
+            </button>
           )}
 
           {/* ═══════════════════════════════════════ */}
@@ -433,7 +408,7 @@ const Dashboard = () => {
           {/* ═══════════════════════════════════════ */}
           {hasTransactions && (
             <div className="space-y-5">
-              {/* Compact Summary - 2 cards only */}
+              {/* Compact Summary - 2 cards */}
               <div className="grid grid-cols-2 gap-3">
                 <Card className="border-0 shadow-sm overflow-hidden">
                   <CardContent className="p-4 text-center bg-gradient-to-br from-primary/10 via-primary/5 to-transparent">
