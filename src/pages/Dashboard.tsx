@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Wallet, Mic, Send, Loader2, Bell, Sparkles, Database, FileText, Package, TrendingUp, TrendingDown, ArrowLeft, ChevronDown, DollarSign, CreditCard, PiggyBank, Users, UserPlus, Plus, Paperclip, BarChart3, Clock, AlertTriangle, Sun, Moon } from "lucide-react";
+import { Wallet, Mic, Send, Loader2, Bell, Sparkles, Database, FileText, Package, TrendingUp, TrendingDown, ArrowLeft, ChevronDown, Users, UserPlus, Plus, Paperclip, BarChart3, Clock, AlertTriangle, Sun, Moon } from "lucide-react";
 import MentionInput from "@/components/MentionInput";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,7 +11,7 @@ import PasskeyOnboarding from "@/components/PasskeyOnboarding";
 import CompleteProfileDialog from "@/components/CompleteProfileDialog";
 import OnboardingFlow from "@/components/OnboardingFlow";
 import SetupWizard from "@/components/SetupWizard";
-import MiniSparkline from "@/components/MiniSparkline";
+import ExecutiveKPICards from "@/components/ExecutiveKPICards";
 import { browserSupportsWebAuthn } from "@simplewebauthn/browser";
 import { useTheme } from "@/hooks/useTheme";
 
@@ -131,10 +131,6 @@ const Dashboard = () => {
   const receivables = transactions.filter((tx) => tx.fields["Debit Account Rollup"] === "Asset" && tx.fields["Credit Account Rollup"] === "Revenue").reduce((sum, tx) => sum + (tx.fields.Amount || 0), 0);
   const payables = transactions.filter((tx) => tx.fields["Credit Account Rollup"] === "Liability").reduce((sum, tx) => sum + (tx.fields.Amount || 0), 0);
 
-  const animCash = useCountUp(cashBalance, 1200, !loadingTx);
-  const animProfit = useCountUp(netProfit, 1200, !loadingTx);
-  const animReceivables = useCountUp(receivables, 1200, !loadingTx);
-  const animPayables = useCountUp(payables, 1200, !loadingTx);
 
   const aiInsight = useMemo(() => {
     if (transactions.length === 0) return { text: "ابدأ بإضافة أول عملية لنقدّم لك تحليلات ذكية.", score: 0, efficiency: 0 };
@@ -154,15 +150,6 @@ const Dashboard = () => {
     return { text, score: Math.min(collectionRate + 20, 100), efficiency: collectionRate };
   }, [transactions, expenses, revenue, totalIncome, receivables]);
 
-  const sparkData = useMemo(() => {
-    const base = [30, 45, 35, 60, 50, 70, 65];
-    return {
-      receivables: base.map((v) => v + Math.random() * 20),
-      payables: base.map((v) => v * 0.6 + Math.random() * 15),
-      cash: base.map((v) => v * 1.2 + Math.random() * 25),
-      profit: base.map((v) => v * 0.8 + Math.random() * 30),
-    };
-  }, []);
 
   const handleSend = async () => {
     if (!inputValue.trim()) return;
@@ -221,12 +208,6 @@ const Dashboard = () => {
   const displayName = profileData?.company_name || profileData?.display_name || user?.user_metadata?.company_name || user?.user_metadata?.full_name || "عبدالله";
   const hasTransactions = !loadingTx && transactions.length > 0;
 
-  const kpiCards = [
-    { label: "إجمالي الذمم المدينة", value: animReceivables, trend: "+8%", positive: true, icon: TrendingUp, sparkline: sparkData.receivables },
-    { label: "إجمالي الذمم الدائنة", value: animPayables, trend: "-3%", positive: false, icon: CreditCard, sparkline: sparkData.payables },
-    { label: "النقد المتوفر", value: animCash, trend: "+12%", positive: true, icon: PiggyBank, sparkline: sparkData.cash },
-    { label: "صافي الربح الحالي", value: animProfit, trend: netProfit >= 0 ? "+5%" : "-5%", positive: netProfit >= 0, icon: DollarSign, sparkline: sparkData.profit },
-  ];
 
   const quickActions = [
     { icon: Users, label: "إضافة زبون", desc: "اسم + جوال + حد ائتماني", path: "/contacts" },
@@ -282,24 +263,19 @@ const Dashboard = () => {
 
       {!loadingTx && (
         <>
-          {/* ═══ 2. KPI CARDS ═══ */}
-          <div className="grid grid-cols-2 gap-3">
-            {kpiCards.map((kpi) => (
-              <div key={kpi.label} className="premium-card p-4 space-y-2">
-                <div className="flex items-center justify-between">
-                  <kpi.icon className={`h-4 w-4 ${kpi.positive ? "text-primary" : "text-destructive"}`} />
-                  <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${kpi.positive ? "bg-primary/15 text-primary" : "bg-destructive/15 text-destructive"}`}>
-                    {kpi.trend}
-                  </span>
-                </div>
-                <p className="text-[10px] text-muted-foreground">{kpi.label}</p>
-                <p className={`text-lg font-bold tabular-nums ${kpi.positive ? "glow-green" : "text-destructive"}`}>
-                  ₪{kpi.value.toLocaleString()}
-                </p>
-                <MiniSparkline data={kpi.sparkline} color={kpi.positive ? "hsl(152, 72%, 40%)" : "hsl(0, 72%, 51%)"} />
-              </div>
-            ))}
-          </div>
+          {/* ═══ 2. EXECUTIVE KPI CARDS ═══ */}
+          <ExecutiveKPICards
+            revenue={revenue}
+            expenses={expenses}
+            totalIncome={totalIncome}
+            totalOutcome={totalOutcome}
+            receivables={receivables}
+            payables={payables}
+            cashBalance={cashBalance}
+            netProfit={netProfit}
+            transactionCount={transactions.length}
+            loading={loadingTx}
+          />
 
           {/* ═══ 3. SMART ASSISTANT BOX ═══ */}
           <div className={`premium-card p-4 space-y-3 glow-border ${themePulse ? "animate-theme-pulse" : ""}`}>
