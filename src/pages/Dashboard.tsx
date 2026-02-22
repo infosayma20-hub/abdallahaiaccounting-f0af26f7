@@ -329,17 +329,19 @@ const Dashboard = () => {
             {/* Suggestion chips */}
             <div className="flex gap-1.5 flex-wrap">
               {[
-                "قبضت من أحمد 5,000 شيكل",
-                "دفعت لمحمد 1,200 دينار",
-                "حوّلت لشركة النور 3,500 شيكل",
-                "صرفت على الصيانة 800 شيكل",
+                { text: "قبضت من @أحمد 5,000 شيكل", highlight: "@أحمد" },
+                { text: "دفعت ل@محمد 1,200 دينار", highlight: "@محمد" },
+                { text: "بعت @طحين 50 كيلو ل@شركة النور", highlight: "@" },
+                { text: "اشتريت @حديد 100 كيلو من @مورد الشمال", highlight: "@" },
               ].map((chip) => (
                 <button
-                  key={chip}
-                  onClick={() => setInputValue(chip)}
+                  key={chip.text}
+                  onClick={() => setInputValue(chip.text.replace(/@/g, ''))}
                   className="px-2.5 py-1.5 rounded-full bg-secondary text-[10px] font-medium text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all active:scale-95 neon-border"
                 >
-                  {chip}
+                  {chip.text.split(/(@\S+)/g).map((part, i) =>
+                    part.startsWith('@') ? <span key={i} className="text-primary font-bold">{part}</span> : part
+                  )}
                 </button>
               ))}
             </div>
