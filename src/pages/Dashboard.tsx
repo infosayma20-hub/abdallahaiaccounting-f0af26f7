@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { FileText, Wallet, Mic, Send, Loader2, LogOut, Sparkles, Database, BookOpen, Receipt, Users, Package, PlusCircle, BookOpenCheck } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { Wallet, Mic, Send, Loader2, LogOut, Sparkles, Database, FileText, Package, PlusCircle, BookOpenCheck, TrendingUp } from "lucide-react";
 import MentionInput from "@/components/MentionInput";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -58,7 +58,6 @@ const Dashboard = () => {
     loadProfile();
   }, [user]);
 
-  // Show passkey onboarding on first login
   useEffect(() => {
     if (!user) return;
     const done = localStorage.getItem("passkey_onboarding_done");
@@ -67,7 +66,6 @@ const Dashboard = () => {
     }
   }, [user]);
 
-  // Show onboarding for first-time users
   useEffect(() => {
     if (!user) return;
     const done = localStorage.getItem("onboarding_completed");
@@ -93,7 +91,6 @@ const Dashboard = () => {
     }
   }, [user]);
 
-  // Sync user to Airtable
   useEffect(() => {
     const ensureAirtableClient = async () => {
       if (!user || localStorage.getItem(`airtable_synced_${user.id}`)) return;
@@ -117,7 +114,6 @@ const Dashboard = () => {
     ensureAirtableClient();
   }, [user]);
 
-  // Fetch transactions
   useEffect(() => {
     if (!user) return;
     const fetchTx = async () => {
@@ -155,9 +151,40 @@ const Dashboard = () => {
   const cashBalance = totalIncome - totalOutcome;
   const netProfit = revenue - expenses;
 
-  // Count-up animations
   const animCash = useCountUp(cashBalance, 1200, !loadingTx);
   const animProfit = useCountUp(netProfit, 1200, !loadingTx);
+
+  // Dynamic smart greeting
+  const smartGreeting = useMemo(() => {
+    if (loadingTx) return "";
+    if (transactions.length === 0) return "جاهز نحلّل وضعك المالي اليوم؟";
+    const todayTx = transactions.filter((tx) => {
+      if (!tx.fields.Date) return false;
+      const today = new Date().toISOString().split("T")[0];
+      return tx.fields.Date.startsWith(today);
+    });
+    if (todayTx.length > 0) {
+      if (netProfit > 0) return `اليوم سجلت ${todayTx.length} عمليات، وصافي ربحك إيجابي 👍`;
+      return `اليوم سجلت ${todayTx.length} عمليات — تابع لتحقق أهدافك`;
+    }
+    if (netProfit > 0) return `صافي ربحك إيجابي هذا الشهر — أداء ممتاز! 🎯`;
+    return `لديك ${transactions.length} عملية مسجّلة — جاهز نراجع وضعك؟`;
+  }, [loadingTx, transactions, netProfit]);
+
+  // AI Insight
+  const aiInsight = useMemo(() => {
+    if (transactions.length === 0) return "ابدأ بإضافة أول عملية لنقدّم لك تحليلات ذكية.";
+    if (expenses > revenue && revenue > 0) {
+      const pct = Math.round(((expenses - revenue) / revenue) * 100);
+      return `⚠️ مصاريفك تتجاوز إيراداتك بنسبة ${pct}% — حاول تقليل النفقات`;
+    }
+    if (revenue > expenses && expenses > 0) {
+      const margin = Math.round(((revenue - expenses) / revenue) * 100);
+      return `✅ هامش ربحك ${margin}% — أداء مالي جيد، استمر!`;
+    }
+    if (expenses > 0 && revenue === 0) return "💡 لديك مصروفات فقط — سجّل إيراداتك لتحليل أفضل";
+    return "تحصيلاتك جيدة — تابع التسجيل للحصول على رؤى أعمق 👌";
+  }, [transactions, expenses, revenue]);
 
   const handleSend = async () => {
     if (!inputValue.trim()) return;
@@ -224,12 +251,12 @@ const Dashboard = () => {
   const isEmpty = !loadingTx && transactions.length === 0;
 
   return (
-    <div className="px-4 pt-6 pb-28 space-y-6" dir="rtl">
+    <div className="px-4 pt-6 pb-28 space-y-5" dir="rtl">
       {user && (
         <CompleteProfileDialog open={showProfileDialog} onClose={() => setShowProfileDialog(false)} user={user} />
       )}
 
-      {/* Hero Header */}
+      {/* ── Smart Greeting Header ── */}
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
           <button
@@ -242,10 +269,10 @@ const Dashboard = () => {
           </button>
           <div>
             <h1 className="text-lg font-bold text-foreground">
-              مرحباً {displayName} 👋
+              أهلاً {displayName} 👋
             </h1>
-            <p className="text-xs text-muted-foreground">
-              {isEmpty ? "لنبدأ بإضافة أول عملية مالية" : "ملخصك المالي اليوم"}
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              {smartGreeting}
             </p>
           </div>
         </div>
@@ -258,7 +285,7 @@ const Dashboard = () => {
         </button>
       </div>
 
-      {/* Loading State */}
+      {/* Loading */}
       {loadingTx && (
         <div className="flex items-center justify-center py-16">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -266,75 +293,43 @@ const Dashboard = () => {
       )}
 
       {/* ═══════════════════════════════════════ */}
-      {/* EMPTY STATE */}
+      {/*  AI ASSISTANT HUB (Always visible)     */}
       {/* ═══════════════════════════════════════ */}
-      {isEmpty && (
-        <div className="space-y-8">
-          {/* Hero Illustration */}
-          <div className="flex flex-col items-center text-center pt-4 space-y-4">
-            <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-primary/15 to-accent/20 flex items-center justify-center">
-              <BookOpenCheck className="h-12 w-12 text-primary" />
-            </div>
-            <div className="space-y-2">
-              <h2 className="text-xl font-bold text-foreground">لا توجد حركات حتى الآن</h2>
-              <p className="text-sm text-muted-foreground max-w-xs mx-auto leading-relaxed">
-                أضف أول عملية وسيبدأ نظامك المحاسبي بالعمل فوراً
-              </p>
-            </div>
-          </div>
-
-          {/* Main CTA */}
-          <Button
-            onClick={() => {
-              const input = document.querySelector<HTMLInputElement>("#smart-input-bar input, #smart-input-bar textarea");
-              if (input) {
-                input.focus();
-                input.scrollIntoView({ behavior: "smooth", block: "center" });
-              }
-            }}
-            className="w-full h-14 rounded-2xl text-base font-bold shadow-lg shadow-primary/25 gap-2"
-            size="lg"
-          >
-            <PlusCircle className="h-5 w-5" />
-            إضافة أول عملية
-          </Button>
-
-          {/* Quick Shortcuts */}
-          <div className="grid grid-cols-3 gap-3">
-            <button
-              onClick={() => navigate("/voice")}
-              className="flex flex-col items-center gap-2.5 p-4 rounded-2xl bg-primary/5 border border-primary/10 hover:bg-primary/10 transition-all active:scale-[0.97]"
-            >
-              <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center">
-                <Mic className="h-5 w-5 text-primary" />
+      {!loadingTx && (
+        <>
+          {/* ── 🧠 Central AI Card ── */}
+          <Card className="border-0 shadow-xl overflow-hidden relative" style={{ boxShadow: "0 4px 30px hsl(152 45% 42% / 0.12)" }}>
+            <CardContent className="p-0">
+              {/* Header */}
+              <div className="px-4 pt-4 pb-3 bg-gradient-to-l from-primary/10 via-primary/5 to-transparent">
+                <div className="flex items-center gap-2 mb-1">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-bold text-foreground">✨ مساعدك المالي الذكي</span>
+                </div>
+                <p className="text-[11px] text-muted-foreground">اكتب عمليتك أو اسأل أي سؤال مالي</p>
               </div>
-              <span className="text-xs font-medium text-foreground">إدخال صوتي</span>
-            </button>
-            <button
-              onClick={() => navigate("/invoices")}
-              className="flex flex-col items-center gap-2.5 p-4 rounded-2xl bg-warning/5 border border-warning/10 hover:bg-warning/10 transition-all active:scale-[0.97]"
-            >
-              <div className="w-11 h-11 rounded-xl bg-warning/10 flex items-center justify-center">
-                <FileText className="h-5 w-5 text-warning" />
-              </div>
-              <span className="text-xs font-medium text-foreground">إنشاء فاتورة</span>
-            </button>
-            <button
-              onClick={() => navigate("/inventory")}
-              className="flex flex-col items-center gap-2.5 p-4 rounded-2xl bg-accent/50 border border-accent hover:bg-accent transition-all active:scale-[0.97]"
-            >
-              <div className="w-11 h-11 rounded-xl bg-accent flex items-center justify-center">
-                <Package className="h-5 w-5 text-accent-foreground" />
-              </div>
-              <span className="text-xs font-medium text-foreground">إضافة منتج</span>
-            </button>
-          </div>
 
-          {/* Smart Input for Empty State */}
-          <div className="space-y-3">
-            <Card id="smart-input-bar" className="border-0 shadow-lg bg-gradient-to-l from-primary/5 to-background">
-              <CardContent className="px-3 py-2.5">
-                <div className="flex items-end gap-2 min-h-[44px]" dir="rtl">
+              {/* Shortcut Chips */}
+              <div className="px-4 py-2 flex gap-1.5 flex-wrap">
+                {[
+                  { label: "💰 قبضت", value: "قبضت" },
+                  { label: "💸 دفعت", value: "دفعت" },
+                  { label: "🛒 اشتريت", value: "اشتريت" },
+                  { label: "🧾 صرفت", value: "صرفت" },
+                ].map((action) => (
+                  <button
+                    key={action.value}
+                    onClick={() => setInputValue((prev) => prev.trim() ? prev.trim() + " " + action.value + " " : action.value + " ")}
+                    className="px-2.5 py-1 rounded-full bg-secondary text-[11px] font-medium text-foreground hover:bg-primary/10 hover:text-primary transition-all active:scale-95"
+                  >
+                    {action.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Input */}
+              <div className="px-3 pb-3">
+                <div id="smart-input-bar" className="flex items-end gap-2 min-h-[48px] bg-secondary/40 rounded-2xl px-2 py-1.5" dir="rtl">
                   <button
                     onClick={handleSend}
                     disabled={sending || !inputValue.trim()}
@@ -351,7 +346,7 @@ const Dashboard = () => {
                     onChange={setInputValue}
                     onKeyDown={(e) => e.key === "Enter" && handleSend()}
                     placeholder={rotatingPlaceholder}
-                    className="flex-1 min-w-0 h-11 bg-secondary/60 rounded-xl px-3 text-sm text-foreground placeholder:text-muted-foreground border-0 outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                    className="flex-1 min-w-0 h-11 bg-transparent rounded-xl px-2 text-sm text-foreground placeholder:text-muted-foreground border-0 outline-none"
                     userId={user?.id}
                   />
                   <button
@@ -361,257 +356,235 @@ const Dashboard = () => {
                     <Mic className="h-5 w-5 text-primary" />
                   </button>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
+              </div>
+            </CardContent>
+          </Card>
 
-          {/* Subtle hint */}
-          <p className="text-center text-xs text-muted-foreground">
-            💡 يمكنك دائماً استخدام الذكاء الاصطناعي لكتابة العملية بلغتك
-          </p>
-        </div>
-      )}
-
-      {/* ═══════════════════════════════════════ */}
-      {/* ACTIVE STATE */}
-      {/* ═══════════════════════════════════════ */}
-      {hasTransactions && (
-        <div className="space-y-6">
-          {/* Summary Cards - Only 2 */}
-          <div className="grid grid-cols-2 gap-3">
-            <Card className="border-0 shadow-sm overflow-hidden">
-              <CardContent className="p-4 text-center bg-gradient-to-br from-primary/10 via-primary/5 to-transparent">
-                <div className="flex justify-center mb-3">
-                  <div className="p-2.5 rounded-xl bg-primary/10">
-                    <Wallet className="h-4 w-4 text-primary" />
-                  </div>
+          {/* ═══════════════════════════════════════ */}
+          {/*  EMPTY STATE                            */}
+          {/* ═══════════════════════════════════════ */}
+          {isEmpty && (
+            <div className="space-y-6">
+              {/* Empty Hero */}
+              <div className="flex flex-col items-center text-center pt-2 space-y-3">
+                <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-primary/15 to-accent/20 flex items-center justify-center">
+                  <BookOpenCheck className="h-10 w-10 text-primary" />
                 </div>
-                <p className="text-xs text-muted-foreground mb-1">الرصيد الحالي</p>
-                <p className="text-lg font-bold text-foreground tabular-nums">
-                  ₪{animCash.toLocaleString()}
-                </p>
-                <p className="text-[10px] text-muted-foreground mt-1">محدّث الآن</p>
-              </CardContent>
-            </Card>
-            <Card className="border-0 shadow-sm overflow-hidden">
-              <CardContent className="p-4 text-center bg-gradient-to-br from-accent/20 via-accent/10 to-transparent">
-                <div className="flex justify-center mb-3">
-                  <div className="p-2.5 rounded-xl bg-accent">
-                    <Sparkles className="h-4 w-4 text-accent-foreground" />
-                  </div>
+                <div className="space-y-1.5">
+                  <h2 className="text-lg font-bold text-foreground">لا توجد حركات حتى الآن</h2>
+                  <p className="text-sm text-muted-foreground max-w-[260px] mx-auto leading-relaxed">
+                    أضف أول عملية وسيبدأ نظامك المحاسبي بالعمل فوراً
+                  </p>
                 </div>
-                <p className="text-xs text-muted-foreground mb-1">صافي الربح هذا الشهر</p>
-                <p className={`text-lg font-bold tabular-nums ${netProfit >= 0 ? "text-primary" : "text-destructive"}`}>
-                  ₪{animProfit.toLocaleString()}
-                </p>
-                <p className="text-[10px] text-muted-foreground mt-1">{netProfit >= 0 ? "أداء إيجابي ✅" : "خسارة ⚠️"}</p>
-              </CardContent>
-            </Card>
-          </div>
+              </div>
 
-          {/* Recent Transactions - Last 5 */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h2 className="text-base font-semibold text-foreground">آخر العمليات</h2>
-              <button
-                onClick={() => navigate("/transactions")}
-                className="text-xs font-medium text-primary hover:underline"
-              >
-                عرض الكل
-              </button>
-            </div>
-            <div className="space-y-2">
-              {transactions.slice(0, 5).map((tx) => {
-                const isIncome = tx.fields["Transaction Type"] === "سند قبض";
-                const isExpense = tx.fields["Transaction Type"] === "سند صرف";
-                return (
-                  <Card key={tx.id} className="border-0 shadow-sm">
-                    <CardContent className="p-3 flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${isIncome ? "bg-primary/10" : isExpense ? "bg-destructive/10" : "bg-secondary"}`}>
-                          <span className="text-sm">
-                            {isIncome ? "💰" : isExpense ? "💸" : "📄"}
-                          </span>
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-foreground line-clamp-1">
-                            {tx.fields.Description || tx.fields["Transaction Type"] || "عملية"}
-                          </p>
-                          <p className="text-[10px] text-muted-foreground">
-                            {tx.fields.Date || ""}
-                          </p>
-                        </div>
-                      </div>
-                      <p className={`text-sm font-bold tabular-nums ${isIncome ? "text-primary" : isExpense ? "text-destructive" : "text-foreground"}`}>
-                        {isIncome ? "+" : isExpense ? "-" : ""}₪{(tx.fields.Amount || 0).toLocaleString()}
-                      </p>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* AI CTA Button */}
-          <button
-            onClick={() => navigate("/smart-report")}
-            className="w-full flex items-center gap-3 p-4 rounded-2xl bg-gradient-to-l from-primary/15 via-primary/10 to-primary/5 border border-primary/20 shadow-sm hover:shadow-md transition-all active:scale-[0.98]"
-          >
-            <div className="w-12 h-12 rounded-xl bg-primary/15 flex items-center justify-center">
-              <Sparkles className="h-6 w-6 text-primary" />
-            </div>
-            <div className="text-right flex-1">
-              <p className="text-sm font-bold text-foreground">اسأل الذكاء الاصطناعي عن وضعك المالي</p>
-              <p className="text-[11px] text-muted-foreground mt-0.5">تقارير وتحليلات فورية بلغتك</p>
-            </div>
-          </button>
-
-          {/* Quick Entry Section */}
-          <div className="space-y-3">
-            <h2 className="text-base font-semibold text-foreground text-right">سجّل عملية</h2>
-
-            {/* Shortcut Chips */}
-            <div className="flex gap-2 flex-wrap">
-              {[
-                { label: "💰 قبضت", value: "قبضت" },
-                { label: "💸 دفعت", value: "دفعت" },
-                { label: "🛒 اشتريت", value: "اشتريت" },
-                { label: "🧾 صرفت", value: "صرفت" },
-                { label: "🏧 سحبت", value: "سحبت" },
-              ].map((action) => (
+              {/* Quick Shortcuts */}
+              <div className="grid grid-cols-3 gap-3">
                 <button
-                  key={action.value}
-                  onClick={() => setInputValue((prev) => prev.trim() ? prev.trim() + " " + action.value + " " : action.value + " ")}
-                  className="px-3 py-1.5 rounded-full bg-secondary text-xs font-medium text-foreground hover:bg-primary/10 hover:text-primary transition-all active:scale-95 border border-transparent hover:border-primary/20"
+                  onClick={() => navigate("/voice")}
+                  className="flex flex-col items-center gap-2 p-3.5 rounded-2xl bg-primary/5 border border-primary/10 hover:bg-primary/10 transition-all active:scale-[0.97]"
                 >
-                  {action.label}
-                </button>
-              ))}
-            </div>
-
-            {/* Input Card */}
-            <Card id="smart-input-bar" className="border-0 shadow-lg bg-gradient-to-l from-primary/5 to-background">
-              <CardContent className="px-3 py-2.5">
-                <div className="flex items-end gap-2 min-h-[44px]" dir="rtl">
-                  <button
-                    onClick={handleSend}
-                    disabled={sending || !inputValue.trim()}
-                    className="flex-shrink-0 w-11 h-11 rounded-full bg-primary flex items-center justify-center hover:opacity-90 transition-all active:scale-95 disabled:opacity-50 shadow-md shadow-primary/25"
-                  >
-                    {sending ? (
-                      <Loader2 className="h-4 w-4 text-primary-foreground animate-spin" />
-                    ) : (
-                      <Send className="h-4 w-4 text-primary-foreground" />
-                    )}
-                  </button>
-                  <MentionInput
-                    value={inputValue}
-                    onChange={setInputValue}
-                    onKeyDown={(e) => e.key === "Enter" && handleSend()}
-                    placeholder={rotatingPlaceholder}
-                    className="flex-1 min-w-0 h-11 bg-secondary/60 rounded-xl px-3 text-sm text-foreground placeholder:text-muted-foreground border-0 outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-                    userId={user?.id}
-                  />
-                  <button
-                    onClick={() => navigate("/voice")}
-                    className="flex-shrink-0 w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center hover:bg-primary/20 transition-colors active:scale-95"
-                  >
+                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
                     <Mic className="h-5 w-5 text-primary" />
+                  </div>
+                  <span className="text-[11px] font-medium text-foreground">إدخال صوتي</span>
+                </button>
+                <button
+                  onClick={() => navigate("/invoices")}
+                  className="flex flex-col items-center gap-2 p-3.5 rounded-2xl bg-warning/5 border border-warning/10 hover:bg-warning/10 transition-all active:scale-[0.97]"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-warning/10 flex items-center justify-center">
+                    <FileText className="h-5 w-5 text-warning" />
+                  </div>
+                  <span className="text-[11px] font-medium text-foreground">إنشاء فاتورة</span>
+                </button>
+                <button
+                  onClick={() => navigate("/inventory")}
+                  className="flex flex-col items-center gap-2 p-3.5 rounded-2xl bg-accent/50 border border-accent hover:bg-accent transition-all active:scale-[0.97]"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-accent flex items-center justify-center">
+                    <Package className="h-5 w-5 text-accent-foreground" />
+                  </div>
+                  <span className="text-[11px] font-medium text-foreground">إضافة منتج</span>
+                </button>
+              </div>
+
+              {/* AI Insight (empty) */}
+              <Card className="border-0 shadow-sm bg-gradient-to-l from-primary/5 to-transparent">
+                <CardContent className="p-3 flex items-center gap-3">
+                  <div className="p-2 rounded-xl bg-primary/10 flex-shrink-0">
+                    <Sparkles className="h-4 w-4 text-primary" />
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed">{aiInsight}</p>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* ═══════════════════════════════════════ */}
+          {/*  ACTIVE STATE                           */}
+          {/* ═══════════════════════════════════════ */}
+          {hasTransactions && (
+            <div className="space-y-5">
+              {/* Compact Summary - 2 cards only */}
+              <div className="grid grid-cols-2 gap-3">
+                <Card className="border-0 shadow-sm overflow-hidden">
+                  <CardContent className="p-4 text-center bg-gradient-to-br from-primary/10 via-primary/5 to-transparent">
+                    <div className="flex justify-center mb-2">
+                      <div className="p-2 rounded-xl bg-primary/10">
+                        <Wallet className="h-4 w-4 text-primary" />
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground mb-0.5">💰 الرصيد الحالي</p>
+                    <p className="text-lg font-bold text-foreground tabular-nums">₪{animCash.toLocaleString()}</p>
+                  </CardContent>
+                </Card>
+                <Card className="border-0 shadow-sm overflow-hidden">
+                  <CardContent className="p-4 text-center bg-gradient-to-br from-accent/20 via-accent/10 to-transparent">
+                    <div className="flex justify-center mb-2">
+                      <div className="p-2 rounded-xl bg-accent">
+                        <TrendingUp className="h-4 w-4 text-accent-foreground" />
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground mb-0.5">📈 صافي هذا الشهر</p>
+                    <p className={`text-lg font-bold tabular-nums ${netProfit >= 0 ? "text-primary" : "text-destructive"}`}>
+                      ₪{animProfit.toLocaleString()}
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Last 3 Transactions */}
+              <div className="space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-sm font-semibold text-foreground">آخر النشاط</h2>
+                  <button
+                    onClick={() => navigate("/transactions")}
+                    className="text-xs font-medium text-primary hover:underline"
+                  >
+                    عرض كل النشاط
                   </button>
                 </div>
-              </CardContent>
-            </Card>
+                <div className="space-y-1.5">
+                  {transactions.slice(0, 3).map((tx) => {
+                    const isIncome = tx.fields["Transaction Type"] === "سند قبض";
+                    const isExpense = tx.fields["Transaction Type"] === "سند صرف";
+                    return (
+                      <div key={tx.id} className="flex items-center justify-between py-2.5 px-3 rounded-xl bg-card shadow-sm">
+                        <div className="flex items-center gap-2.5">
+                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isIncome ? "bg-primary/10" : isExpense ? "bg-destructive/10" : "bg-secondary"}`}>
+                            <span className="text-xs">{isIncome ? "💰" : isExpense ? "💸" : "📄"}</span>
+                          </div>
+                          <div>
+                            <p className="text-xs font-medium text-foreground line-clamp-1">
+                              {tx.fields.Description || tx.fields["Transaction Type"] || "عملية"}
+                            </p>
+                            <p className="text-[10px] text-muted-foreground">{tx.fields.Date || ""}</p>
+                          </div>
+                        </div>
+                        <p className={`text-xs font-bold tabular-nums ${isIncome ? "text-primary" : isExpense ? "text-destructive" : "text-foreground"}`}>
+                          {isIncome ? "+" : isExpense ? "-" : ""}₪{(tx.fields.Amount || 0).toLocaleString()}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
 
-            {/* Smart Transaction Suggestions */}
-            {(() => {
-              const txSuggestions = [
-                { emoji: "💰", text: "استلمت 1200 شيكل من الزبون @سالم يوسف إلى البنك" },
-                { emoji: "🛒", text: "اشتريت بضاعة بقيمة 1500 شيكل ودفعنا نقداً" },
-                { emoji: "🔄", text: "حولت 2000 شيكل من الصندوق إلى بنك فلسطين" },
-              ];
-              return (
-                <div className="flex flex-wrap gap-1.5">
-                  {txSuggestions.map((s) => (
+              {/* AI Insight Card */}
+              <Card className="border-0 shadow-sm bg-gradient-to-l from-primary/5 via-background to-accent/10">
+                <CardContent className="p-3 flex items-start gap-3">
+                  <div className="p-2 rounded-xl bg-primary/10 flex-shrink-0">
+                    <Sparkles className="h-4 w-4 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-[10px] font-semibold text-primary mb-0.5">💡 ملاحظة اليوم</p>
+                    <p className="text-xs text-foreground leading-relaxed">{aiInsight}</p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* AI Smart Report CTA */}
+              <button
+                onClick={() => navigate("/smart-report")}
+                className="w-full flex items-center gap-3 p-4 rounded-2xl bg-gradient-to-l from-primary/15 via-primary/10 to-primary/5 border border-primary/20 shadow-sm hover:shadow-md transition-all active:scale-[0.98]"
+              >
+                <div className="w-11 h-11 rounded-xl bg-primary/15 flex items-center justify-center">
+                  <Sparkles className="h-5 w-5 text-primary" />
+                </div>
+                <div className="text-right flex-1">
+                  <p className="text-sm font-bold text-foreground">اسأل الذكاء الاصطناعي عن وضعك المالي</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">تقارير وتحليلات فورية بلغتك</p>
+                </div>
+              </button>
+
+              {/* Database Command Section */}
+              <div id="database-command-section" className="space-y-2.5">
+                <div className="flex items-center gap-2">
+                  <Database className="h-4 w-4 text-accent-foreground" />
+                  <h2 className="text-sm font-semibold text-foreground">إدارة البيانات</h2>
+                </div>
+                <Card className="border-0 shadow-sm bg-gradient-to-l from-accent/20 to-background">
+                  <CardContent className="p-2.5">
+                    <div className="flex items-center gap-2" dir="ltr">
+                      <button
+                        onClick={() => navigate("/voice")}
+                        className="flex-shrink-0 w-9 h-9 rounded-xl bg-accent flex items-center justify-center hover:opacity-80 transition-colors active:scale-95"
+                      >
+                        <Mic className="h-4 w-4 text-accent-foreground" />
+                      </button>
+                      <input
+                        type="text"
+                        value={dbCommand}
+                        onChange={(e) => setDbCommand(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && handleDbCommand()}
+                        placeholder="أضف زبون، احذف حساب، عدّل اسم..."
+                        className="flex-1 h-9 bg-secondary/60 rounded-lg px-3 text-xs text-foreground placeholder:text-muted-foreground border-0 outline-none focus:ring-2 focus:ring-accent/40"
+                        dir="rtl"
+                      />
+                      <button
+                        onClick={handleDbCommand}
+                        disabled={dbSending || !dbCommand.trim()}
+                        className="flex-shrink-0 w-9 h-9 rounded-xl bg-accent flex items-center justify-center hover:opacity-90 transition-all active:scale-95 disabled:opacity-50"
+                      >
+                        {dbSending ? (
+                          <Loader2 className="h-4 w-4 text-accent-foreground animate-spin" />
+                        ) : (
+                          <Send className="h-4 w-4 text-accent-foreground" />
+                        )}
+                      </button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Smart Reports */}
+              <div className="space-y-2.5">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  <h2 className="text-sm font-semibold text-foreground">التقارير الذكية</h2>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { emoji: "👤", label: "كشف حساب زبون", query: "أعطني كشف حساب" },
+                    { emoji: "📊", label: "أرباح وخسائر", query: "كم إجمالي أرباحي وخسائري؟" },
+                    { emoji: "📦", label: "مخزون وكميات", query: "أعطني تقرير المخزون والكميات المتوفرة" },
+                    { emoji: "💰", label: "مصاريف اليوم", query: "كشف المعاملات اليومية مصاريف ومقبوضات" },
+                  ].map((report) => (
                     <button
-                      key={s.text}
-                      onClick={() => setInputValue(s.text)}
-                      className="px-2.5 py-1 rounded-lg bg-primary/5 text-[11px] text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all active:scale-95 border border-primary/10"
+                      key={report.label}
+                      onClick={() => navigate(`/smart-report?q=${encodeURIComponent(report.query)}`)}
+                      className="flex items-center gap-2 p-2.5 rounded-xl bg-primary/5 border border-primary/10 text-right hover:bg-primary/10 hover:border-primary/20 transition-all active:scale-[0.98]"
                     >
-                      {s.emoji} {s.text}
+                      <span className="text-base">{report.emoji}</span>
+                      <span className="text-[11px] font-medium text-foreground leading-tight">{report.label}</span>
                     </button>
                   ))}
                 </div>
-              );
-            })()}
-          </div>
-
-          {/* Database Command Section */}
-          <div id="database-command-section" className="space-y-3">
-            <div className="flex items-center gap-2">
-              <Database className="h-4 w-4 text-accent-foreground" />
-              <h2 className="text-base font-semibold text-foreground">إدارة البيانات</h2>
+              </div>
             </div>
-
-            <Card className="border-0 shadow-lg bg-gradient-to-l from-accent/30 to-background">
-              <CardContent className="p-3">
-                <div className="flex items-center gap-2" dir="ltr">
-                  <button
-                    onClick={() => navigate("/voice")}
-                    className="flex-shrink-0 w-10 h-10 rounded-xl bg-accent flex items-center justify-center hover:opacity-80 transition-colors active:scale-95"
-                  >
-                    <Mic className="h-5 w-5 text-accent-foreground" />
-                  </button>
-                  <input
-                    type="text"
-                    value={dbCommand}
-                    onChange={(e) => setDbCommand(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleDbCommand()}
-                    placeholder="أضف زبون، احذف حساب، عدّل اسم..."
-                    className="flex-1 h-10 bg-secondary/60 rounded-lg px-3 text-sm text-foreground placeholder:text-muted-foreground border-0 outline-none focus:ring-2 focus:ring-accent/40"
-                    dir="rtl"
-                  />
-                  <button
-                    onClick={handleDbCommand}
-                    disabled={dbSending || !dbCommand.trim()}
-                    className="flex-shrink-0 w-10 h-10 rounded-xl bg-accent flex items-center justify-center hover:opacity-90 transition-all active:scale-95 disabled:opacity-50"
-                  >
-                    {dbSending ? (
-                      <Loader2 className="h-4 w-4 text-accent-foreground animate-spin" />
-                    ) : (
-                      <Send className="h-4 w-4 text-accent-foreground" />
-                    )}
-                  </button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Smart Reports Section */}
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-primary" />
-              <h2 className="text-base font-semibold text-foreground">التقارير الذكية</h2>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2">
-              {[
-                { emoji: "👤", label: "كشف حساب زبون أو مورد", query: "أعطني كشف حساب" },
-                { emoji: "📊", label: "كشف أرباح وخسائر", query: "كم إجمالي أرباحي وخسائري؟" },
-                { emoji: "📦", label: "كشف مخزون وكميات", query: "أعطني تقرير المخزون والكميات المتوفرة" },
-                { emoji: "💰", label: "مصاريف ومقبوضات اليوم", query: "كشف المعاملات اليومية مصاريف ومقبوضات" },
-              ].map((report) => (
-                <button
-                  key={report.label}
-                  onClick={() => navigate(`/smart-report?q=${encodeURIComponent(report.query)}`)}
-                  className="flex items-center gap-2 p-3 rounded-xl bg-primary/5 border border-primary/10 text-right hover:bg-primary/10 hover:border-primary/20 transition-all active:scale-[0.98]"
-                >
-                  <span className="text-lg">{report.emoji}</span>
-                  <span className="text-xs font-medium text-foreground leading-tight">{report.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
+          )}
+        </>
       )}
 
       {showPasskeyOnboarding && (
