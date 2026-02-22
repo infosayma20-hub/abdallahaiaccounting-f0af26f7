@@ -401,20 +401,38 @@ const ContactsPage = () => {
           <DialogHeader>
             <DialogTitle className="text-center">إضافة جهة اتصال جديدة</DialogTitle>
           </DialogHeader>
-          <div className="space-y-3 pt-2">
-            <Input placeholder="الاسم *" value={newContact.name} onChange={(e) => setNewContact(p => ({ ...p, name: e.target.value }))} dir="rtl" className="rounded-xl" />
-            <Select value={newContact.type} onValueChange={(v) => setNewContact(p => ({ ...p, type: v }))} dir="rtl">
-              <SelectTrigger className="rounded-xl"><SelectValue placeholder="النوع *" /></SelectTrigger>
-              <SelectContent className="bg-background z-50">
-                {contactTypeOptions.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Input placeholder="رقم الهاتف" value={newContact.phone} onChange={(e) => setNewContact(p => ({ ...p, phone: e.target.value }))} dir="ltr" className="rounded-xl" />
-            <Input placeholder="البريد الإلكتروني" value={newContact.email} onChange={(e) => setNewContact(p => ({ ...p, email: e.target.value }))} dir="ltr" className="rounded-xl" />
-            <Input placeholder="الشركة" value={newContact.company} onChange={(e) => setNewContact(p => ({ ...p, company: e.target.value }))} dir="rtl" className="rounded-xl" />
-            <Input placeholder="العنوان" value={newContact.address} onChange={(e) => setNewContact(p => ({ ...p, address: e.target.value }))} dir="rtl" className="rounded-xl" />
+          <div className="space-y-3 pt-2" dir="rtl">
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block text-right">الاسم *</label>
+              <Input value={newContact.name} onChange={(e) => setNewContact(p => ({ ...p, name: e.target.value }))} dir="rtl" className="rounded-xl text-right" />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block text-right">النوع *</label>
+              <Select value={newContact.type} onValueChange={(v) => setNewContact(p => ({ ...p, type: v }))} dir="rtl">
+                <SelectTrigger className="rounded-xl text-right"><SelectValue placeholder="اختر النوع" /></SelectTrigger>
+                <SelectContent className="bg-background z-50">
+                  {contactTypeOptions.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block text-right">رقم الهاتف</label>
+              <Input value={newContact.phone} onChange={(e) => setNewContact(p => ({ ...p, phone: e.target.value }))} dir="rtl" className="rounded-xl text-right" />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block text-right">البريد الإلكتروني</label>
+              <Input value={newContact.email} onChange={(e) => setNewContact(p => ({ ...p, email: e.target.value }))} dir="rtl" className="rounded-xl text-right" />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block text-right">الشركة</label>
+              <Input value={newContact.company} onChange={(e) => setNewContact(p => ({ ...p, company: e.target.value }))} dir="rtl" className="rounded-xl text-right" />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block text-right">العنوان</label>
+              <Input value={newContact.address} onChange={(e) => setNewContact(p => ({ ...p, address: e.target.value }))} dir="rtl" className="rounded-xl text-right" />
+            </div>
             <Button onClick={handleAddContact} className="w-full gap-2 rounded-xl h-11 shadow-md shadow-primary/20" disabled={adding || !newContact.name.trim() || !newContact.type}>
               {adding && <Loader2 className="h-4 w-4 animate-spin" />}
               إضافة جهة الاتصال
