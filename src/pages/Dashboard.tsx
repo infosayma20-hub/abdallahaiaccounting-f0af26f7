@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Wallet, Mic, Send, Loader2, Bell, Sparkles, Database, FileText, Package, TrendingUp, TrendingDown, ArrowLeft, ChevronDown, DollarSign, CreditCard, PiggyBank, Users, UserPlus, Plus, Paperclip, BarChart3, Clock, AlertTriangle } from "lucide-react";
+import { Wallet, Mic, Send, Loader2, Bell, Sparkles, Database, FileText, Package, TrendingUp, TrendingDown, ArrowLeft, ChevronDown, DollarSign, CreditCard, PiggyBank, Users, UserPlus, Plus, Paperclip, BarChart3, Clock, AlertTriangle, Sun, Moon } from "lucide-react";
 import MentionInput from "@/components/MentionInput";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,6 +13,7 @@ import OnboardingFlow from "@/components/OnboardingFlow";
 import SetupWizard from "@/components/SetupWizard";
 import MiniSparkline from "@/components/MiniSparkline";
 import { browserSupportsWebAuthn } from "@simplewebauthn/browser";
+import { useTheme } from "@/hooks/useTheme";
 
 interface TransactionRecord {
   id: string;
@@ -32,6 +33,8 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user, signOut } = useAuth();
+  const { theme, toggleTheme } = useTheme();
+  const [themePulse, setThemePulse] = useState(false);
   const [inputValue, setInputValue] = useState("");
   const [sending, setSending] = useState(false);
   const [dbCommand, setDbCommand] = useState("");
@@ -249,13 +252,23 @@ const Dashboard = () => {
             <p className="text-[10px] text-muted-foreground">وضعك المالي اليوم جاهز للتحليل</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <button className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-secondary transition-colors">
-            <Bell className="h-4.5 w-4.5 text-muted-foreground" />
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={() => {
+              toggleTheme();
+              setThemePulse(true);
+              setTimeout(() => setThemePulse(false), 500);
+            }}
+            className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-secondary transition-all active:scale-90"
+          >
+            {theme === "dark" ? (
+              <Moon className="h-[18px] w-[18px] text-muted-foreground" />
+            ) : (
+              <Sun className="h-[18px] w-[18px] text-warning" />
+            )}
           </button>
-          <button className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-secondary text-xs text-muted-foreground hover:bg-muted transition-colors">
-            <ChevronDown className="h-3 w-3" />
-            <span>شركتي</span>
+          <button className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-secondary transition-colors">
+            <Bell className="h-[18px] w-[18px] text-muted-foreground" />
           </button>
         </div>
       </div>
@@ -289,7 +302,7 @@ const Dashboard = () => {
           </div>
 
           {/* ═══ 3. SMART ASSISTANT BOX ═══ */}
-          <div className="premium-card p-4 space-y-3 glow-border">
+          <div className={`premium-card p-4 space-y-3 glow-border ${themePulse ? "animate-theme-pulse" : ""}`}>
             <div className="flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-primary" />
               <span className="text-sm font-bold text-foreground">المساعد المالي الذكي</span>
