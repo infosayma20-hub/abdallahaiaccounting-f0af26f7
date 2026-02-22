@@ -347,7 +347,24 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* ═══ 4. AI FINANCIAL ANALYSIS BOX ═══ */}
+          {/* ═══ QUICK ACTIONS – اطلب وتمنى ═══ */}
+          <div className="space-y-3">
+            <h2 className="text-sm font-bold text-foreground">اطلب وتمنى ✨</h2>
+            <div className="grid grid-cols-2 gap-2.5">
+              {quickActions.map((action) => (
+                <button
+                  key={action.label}
+                  onClick={() => navigate(action.path)}
+                  className="premium-card p-4 text-right space-y-1.5 neon-border hover:bg-secondary/50 transition-all active:scale-[0.98]"
+                >
+                  <action.icon className="h-5 w-5 text-primary mb-1" />
+                  <p className="text-xs font-semibold text-foreground">{action.label}</p>
+                  <p className="text-[9px] text-muted-foreground leading-tight">{action.desc}</p>
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div className="relative rounded-[18px] p-[1.5px]" style={{ background: "linear-gradient(135deg, hsl(152,72%,40%), hsl(168,76%,42%))" }}>
             <div className="bg-card rounded-[17px] p-4 space-y-3">
               <div className="flex items-center justify-between">
@@ -387,23 +404,6 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* ═══ 5. QUICK ACTIONS – اطلب وتمنى ═══ */}
-          <div className="space-y-3">
-            <h2 className="text-sm font-bold text-foreground">اطلب وتمنى ✨</h2>
-            <div className="grid grid-cols-2 gap-2.5">
-              {quickActions.map((action) => (
-                <button
-                  key={action.label}
-                  onClick={() => navigate(action.path)}
-                  className="premium-card p-4 text-right space-y-1.5 neon-border hover:bg-secondary/50 transition-all active:scale-[0.98]"
-                >
-                  <action.icon className="h-5 w-5 text-primary mb-1" />
-                  <p className="text-xs font-semibold text-foreground">{action.label}</p>
-                  <p className="text-[9px] text-muted-foreground leading-tight">{action.desc}</p>
-                </button>
-              ))}
-            </div>
-          </div>
 
           {/* ═══ 6. LAST TRANSACTIONS ═══ */}
           {hasTransactions && (
