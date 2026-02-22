@@ -176,7 +176,7 @@ const MentionInput = ({ value, onChange, onKeyDown, placeholder, className, user
         type="button"
         onClick={triggerMentionDropdown}
         className="flex-shrink-0 w-9 h-9 rounded-full bg-muted/60 flex items-center justify-center hover:bg-primary/10 hover:text-primary transition-colors active:scale-95"
-        title="أذكر جهة اتصال @"
+        title="أذكر زبون/مورد @"
       >
         <AtSign className="h-4 w-4" />
       </button>
@@ -188,7 +188,7 @@ const MentionInput = ({ value, onChange, onKeyDown, placeholder, className, user
         >
           {filteredContacts.length === 0 ? (
             <div className="px-3 py-2 text-xs text-muted-foreground text-center">
-              لا توجد جهات اتصال
+              لا يوجد زبون/مورد
             </div>
           ) : (
             filteredContacts.map((contact, index) => (
@@ -202,7 +202,7 @@ const MentionInput = ({ value, onChange, onKeyDown, placeholder, className, user
                 <Users className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />
                 <span className="flex-1 truncate text-foreground">{contact.name}</span>
                 <span className="text-[10px] text-muted-foreground flex-shrink-0">
-                  {contact.type || "جهة اتصال"}
+                  {contact.type || "زبون/مورد"}
                 </span>
               </button>
             ))
