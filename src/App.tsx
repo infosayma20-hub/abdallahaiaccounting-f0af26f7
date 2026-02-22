@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
+import { ThemeProvider } from "@/hooks/useTheme";
 import AppLayout from "./components/AppLayout";
 import Dashboard from "./pages/Dashboard";
 import MenuPage from "./pages/MenuPage";
@@ -42,44 +43,46 @@ const AuthRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <AuthProvider>
-          <Routes>
-            <Route path="/auth" element={<AuthRoute><AuthPage /></AuthRoute>} />
-             <Route path="/reset-password" element={<ResetPasswordPage />} />
-             <Route path="/terms" element={<TermsPage />} />
-             <Route path="/privacy" element={<PrivacyPage />} />
-             <Route path="/*" element={
-              <ProtectedRoute>
-                <AppLayout>
-                  <Routes>
-                    <Route path="/" element={<Dashboard />} />
-                    <Route path="/menu" element={<MenuPage />} />
-                    <Route path="/voice" element={<VoiceInput />} />
-                    <Route path="/profit-loss" element={<ProfitLoss />} />
-                    <Route path="/transactions" element={<TransactionsPage />} />
-                    <Route path="/accounts" element={<AccountsPage />} />
-                    <Route path="/contacts" element={<ContactsPage />} />
-                    <Route path="/export" element={<ExportPage />} />
-                    <Route path="/smart-report" element={<SmartReportPage />} />
-                    <Route path="/pricing" element={<PricingPage />} />
-                    <Route path="/invoices" element={<InvoicesPage />} />
-                    <Route path="/inventory" element={<InventoryPage />} />
-                    <Route path="/profile" element={<ProfilePage />} />
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
-                </AppLayout>
-              </ProtectedRoute>
-            } />
-          </Routes>
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+  <ThemeProvider>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <AuthProvider>
+            <Routes>
+              <Route path="/auth" element={<AuthRoute><AuthPage /></AuthRoute>} />
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
+              <Route path="/terms" element={<TermsPage />} />
+              <Route path="/privacy" element={<PrivacyPage />} />
+              <Route path="/*" element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <Routes>
+                      <Route path="/" element={<Dashboard />} />
+                      <Route path="/menu" element={<MenuPage />} />
+                      <Route path="/voice" element={<VoiceInput />} />
+                      <Route path="/profit-loss" element={<ProfitLoss />} />
+                      <Route path="/transactions" element={<TransactionsPage />} />
+                      <Route path="/accounts" element={<AccountsPage />} />
+                      <Route path="/contacts" element={<ContactsPage />} />
+                      <Route path="/export" element={<ExportPage />} />
+                      <Route path="/smart-report" element={<SmartReportPage />} />
+                      <Route path="/pricing" element={<PricingPage />} />
+                      <Route path="/invoices" element={<InvoicesPage />} />
+                      <Route path="/inventory" element={<InventoryPage />} />
+                      <Route path="/profile" element={<ProfilePage />} />
+                      <Route path="*" element={<NotFound />} />
+                    </Routes>
+                  </AppLayout>
+                </ProtectedRoute>
+              } />
+            </Routes>
+          </AuthProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </ThemeProvider>
 );
 
 export default App;

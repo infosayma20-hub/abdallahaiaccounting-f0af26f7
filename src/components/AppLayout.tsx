@@ -27,7 +27,7 @@ const AppLayout = ({ children }: AppLayoutProps) => {
 
       {/* Bottom Navigation - Premium Dark */}
       <nav className="fixed bottom-0 left-0 right-0 z-40">
-        <div className="max-w-md mx-auto" style={{ background: "hsl(220, 30%, 8%)", borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+        <div className="max-w-md mx-auto bg-card" style={{ borderTop: "1px solid rgba(128,128,128,0.1)" }}>
           <div className="flex items-center justify-around h-16 px-2">
             {navItems.map((item) => {
               const active = isActive(item.path);
