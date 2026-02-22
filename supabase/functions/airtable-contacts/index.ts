@@ -45,7 +45,7 @@ serve(async (req) => {
     if (req.method === 'POST') {
       // Create a new contact
       const body = await req.json();
-      const { contactName, contactType, phone, email, company, address } = body;
+      const { contactName, contactType, phone, email, company, address, creditLimit, paymentDays } = body;
 
       if (!contactName) throw new Error('Contact name is required');
 
@@ -72,6 +72,13 @@ serve(async (req) => {
         "Company": company || "",
         "Address": address || "",
       };
+
+      if (creditLimit !== undefined && creditLimit !== "") {
+        fields["Credit Limit"] = Number(creditLimit);
+      }
+      if (paymentDays !== undefined && paymentDays !== "") {
+        fields["Payment Days"] = Number(paymentDays);
+      }
 
       if (clientRecordId) {
         fields["Client"] = [clientRecordId];

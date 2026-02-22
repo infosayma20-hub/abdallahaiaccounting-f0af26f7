@@ -20,6 +20,8 @@ interface Contact {
     "Email"?: string;
     "Company"?: string;
     "Address"?: string;
+    "Credit Limit"?: number;
+    "Payment Days"?: number;
   };
 }
 
@@ -48,7 +50,7 @@ const ContactsPage = () => {
   const [adding, setAdding] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [newContact, setNewContact] = useState({
-    name: "", type: "", phone: "", email: "", company: "", address: "",
+    name: "", type: "", phone: "", email: "", company: "", address: "", creditLimit: "", paymentDays: "30",
   });
   const [statementContact, setStatementContact] = useState<{ id: string; name: string; type: string } | null>(null);
 
@@ -93,6 +95,8 @@ const ContactsPage = () => {
             email: newContact.email,
             company: newContact.company,
             address: newContact.address,
+            creditLimit: newContact.creditLimit,
+            paymentDays: newContact.paymentDays,
           }),
         }
       );
@@ -100,7 +104,7 @@ const ContactsPage = () => {
       const data = await res.json();
       if (data?.error) throw new Error(data.error);
       toast({ title: "تم إضافة جهة الاتصال بنجاح ✅" });
-      setNewContact({ name: "", type: "", phone: "", email: "", company: "", address: "" });
+      setNewContact({ name: "", type: "", phone: "", email: "", company: "", address: "", creditLimit: "", paymentDays: "30" });
       setShowAddDialog(false);
       fetchContacts();
     } catch (err: any) {
@@ -301,6 +305,16 @@ const ContactsPage = () => {
                           <p className="text-[11px] text-muted-foreground" dir="ltr">{f["Phone"]}</p>
                         </div>
                       )}
+                      {(f["Credit Limit"] || f["Payment Days"]) && (
+                        <div className="flex items-center gap-2 mt-1">
+                          {f["Credit Limit"] != null && f["Credit Limit"] > 0 && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">سقف: ₪{f["Credit Limit"]?.toLocaleString()}</span>
+                          )}
+                          {f["Payment Days"] != null && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{f["Payment Days"]} يوم</span>
+                          )}
+                        </div>
+                      )}
                     </div>
 
                     {/* Type Badge + Expand */}
@@ -432,6 +446,16 @@ const ContactsPage = () => {
             <div>
               <label className="text-xs text-muted-foreground mb-1 block text-right">العنوان</label>
               <Input value={newContact.address} onChange={(e) => setNewContact(p => ({ ...p, address: e.target.value }))} dir="rtl" className="rounded-xl text-right" />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block text-right">سقف الدين (₪)</label>
+                <Input type="number" value={newContact.creditLimit} onChange={(e) => setNewContact(p => ({ ...p, creditLimit: e.target.value }))} dir="rtl" className="rounded-xl text-right" placeholder="0" />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block text-right">أيام التسديد</label>
+                <Input type="number" value={newContact.paymentDays} onChange={(e) => setNewContact(p => ({ ...p, paymentDays: e.target.value }))} dir="rtl" className="rounded-xl text-right" placeholder="30" />
+              </div>
             </div>
             <Button onClick={handleAddContact} className="w-full gap-2 rounded-xl h-11 shadow-md shadow-primary/20" disabled={adding || !newContact.name.trim() || !newContact.type}>
               {adding && <Loader2 className="h-4 w-4 animate-spin" />}
