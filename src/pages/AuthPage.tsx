@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
@@ -188,9 +189,9 @@ const AuthPage = () => {
                   <input type="checkbox" checked={agreedToTerms} onChange={(e) => setAgreedToTerms(e.target.checked)} className="mt-0.5 h-4 w-4 rounded border-input accent-primary" />
                   <span>
                     أوافق على{" "}
-                    <a href="/terms" className="text-primary hover:underline">الشروط</a>
+                    <Link to="/terms" className="text-primary hover:underline">الشروط</Link>
                     {" "}و{" "}
-                    <a href="/privacy" className="text-primary hover:underline">سياسة الخصوصية</a>
+                    <Link to="/privacy" className="text-primary hover:underline">سياسة الخصوصية</Link>
                   </span>
                 </label>
               )}
