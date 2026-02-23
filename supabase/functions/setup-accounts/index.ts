@@ -13,102 +13,119 @@ interface SetupRequest {
   hasEmployees: boolean;
 }
 
-// Valid Airtable Account Types: Asset, Revenue, Expenses, Liability, Purchases
-// Note: "Equity" is not a valid option in Airtable, so we use "Liability" for equity-like accounts
 function getAccountsForSetup(req: SetupRequest): { name: string; type: string }[] {
   const accounts: { name: string; type: string }[] = [];
 
-  // ── Core accounts (always created) ──
+  // ══════════════════════════════════════════════
+  // 1000 - ASSETS (الأصول)
+  // ══════════════════════════════════════════════
   accounts.push(
-    { name: "صندوق", type: "Asset" },
-    { name: "بنك", type: "Asset" },
-    { name: "إيرادات مبيعات", type: "Revenue" },
-    { name: "أرصدة افتتاحية", type: "Owner's Equity" },
-    { name: "أرباح محتجزة", type: "Owner's Equity" },
-    { name: "رأس المال", type: "Owner's Equity" },
+    { name: "1110 - الصندوق", type: "Asset" },
+    { name: "1120 - البنك", type: "Asset" },
+  );
+  if (req.hasReceivables) {
+    accounts.push({ name: "1130 - ذمم عملاء", type: "Asset" });
+  }
+  if (req.hasInventory) {
+    accounts.push({ name: "1140 - المخزون", type: "Asset" });
+  }
+  accounts.push(
+    { name: "1210 - مركبات", type: "Asset" },
+    { name: "1220 - معدات وأجهزة", type: "Asset" },
   );
 
-  // ── Receivables & Payables ──
+  // ══════════════════════════════════════════════
+  // 2000 - LIABILITIES (الالتزامات)
+  // ══════════════════════════════════════════════
   if (req.hasReceivables) {
-    accounts.push(
-      { name: "ذمم عملاء", type: "Asset" },
-      { name: "ذمم موردين", type: "Liability" },
-    );
+    accounts.push({ name: "2110 - ذمم موردين", type: "Liability" });
   }
-
-  // ── Inventory ──
-  if (req.hasInventory) {
-    accounts.push(
-      { name: "مخزون بضاعة", type: "Asset" },
-      { name: "تكلفة البضاعة المباعة", type: "Expenses" },
-    );
-  }
-
-  // ── Employees ──
+  accounts.push(
+    { name: "2120 - أوراق دفع", type: "Liability" },
+  );
   if (req.hasEmployees) {
-    accounts.push(
-      { name: "رواتب وأجور", type: "Expenses" },
-      { name: "التزامات رواتب", type: "Liability" },
-    );
+    accounts.push({ name: "2130 - التزامات رواتب", type: "Liability" });
   }
+  accounts.push(
+    { name: "2210 - قروض بنكية", type: "Liability" },
+  );
 
-  // ── Business-type specific expenses ──
+  // ══════════════════════════════════════════════
+  // 3000 - EQUITY (حقوق الملكية)
+  // ══════════════════════════════════════════════
+  accounts.push(
+    { name: "3100 - رأس المال", type: "Owner's Equity" },
+    { name: "3200 - أرباح محتجزة", type: "Owner's Equity" },
+    { name: "3300 - أرباح العام الحالي", type: "Owner's Equity" },
+    { name: "3400 - أرصدة افتتاحية", type: "Owner's Equity" },
+  );
+
+  // ══════════════════════════════════════════════
+  // 4000 - REVENUES (الإيرادات)
+  // ══════════════════════════════════════════════
+  accounts.push(
+    { name: "4100 - إيرادات مبيعات", type: "Revenue" },
+  );
+  if (req.businessType === "خدمات" || req.businessType === "مقاولات") {
+    accounts.push({ name: "4200 - إيرادات خدمات", type: "Revenue" });
+  }
+  if (req.businessType === "مقاولات") {
+    accounts.push({ name: "4210 - إيرادات مشاريع", type: "Revenue" });
+  }
+  accounts.push(
+    { name: "4300 - إيرادات أخرى", type: "Revenue" },
+    { name: "4400 - مردودات مبيعات", type: "Revenue" },
+  );
+
+  // ══════════════════════════════════════════════
+  // 5000 - EXPENSES (المصروفات)
+  // ══════════════════════════════════════════════
+  if (req.hasInventory) {
+    accounts.push({ name: "5100 - تكلفة البضاعة المباعة", type: "Expenses" });
+  }
+  if (req.hasEmployees) {
+    accounts.push({ name: "5200 - رواتب وأجور", type: "Expenses" });
+  }
+  accounts.push(
+    { name: "5300 - مصروف إيجار", type: "Expenses" },
+    { name: "5400 - كهرباء وماء", type: "Expenses" },
+    { name: "5500 - مصروفات إدارية وعمومية", type: "Expenses" },
+    { name: "5600 - مصروف تسويق وإعلان", type: "Expenses" },
+    { name: "5700 - استهلاكات وإطفاءات", type: "Expenses" },
+    { name: "5800 - مصروف هاتف وإنترنت", type: "Expenses" },
+  );
+
+  // Business-specific expenses
   switch (req.businessType) {
     case "تجارة":
       accounts.push(
-        { name: "مصروف إيجار", type: "Expenses" },
-        { name: "مصروف كهرباء وماء", type: "Expenses" },
-        { name: "مصروف نقل وشحن", type: "Expenses" },
-        { name: "مصروف هاتف وإنترنت", type: "Expenses" },
-        { name: "مصروفات عمومية", type: "Expenses" },
-      );
-      break;
-    case "خدمات":
-      accounts.push(
-        { name: "مصروف إيجار", type: "Expenses" },
-        { name: "مصروف كهرباء وماء", type: "Expenses" },
-        { name: "مصروف هاتف وإنترنت", type: "Expenses" },
-        { name: "مصروف تسويق وإعلان", type: "Expenses" },
-        { name: "مصروفات عمومية", type: "Expenses" },
-        { name: "إيرادات خدمات", type: "Revenue" },
+        { name: "5810 - مصروف نقل وشحن", type: "Expenses" },
+        { name: "5110 - مشتريات بضاعة", type: "Expenses" },
+        { name: "5120 - مردودات مشتريات", type: "Expenses" },
       );
       break;
     case "مطعم":
       accounts.push(
-        { name: "مصروف إيجار", type: "Expenses" },
-        { name: "مصروف كهرباء وماء وغاز", type: "Expenses" },
-        { name: "مصروف مواد خام", type: "Expenses" },
-        { name: "مصروف تغليف", type: "Expenses" },
-        { name: "مصروف نظافة", type: "Expenses" },
-        { name: "مصروفات عمومية", type: "Expenses" },
+        { name: "5410 - مصروف غاز", type: "Expenses" },
+        { name: "5810 - مصروف مواد خام", type: "Expenses" },
+        { name: "5820 - مصروف تغليف", type: "Expenses" },
+        { name: "5830 - مصروف نظافة", type: "Expenses" },
       );
       break;
     case "متجر إلكتروني":
       accounts.push(
-        { name: "مصروف شحن وتوصيل", type: "Expenses" },
-        { name: "مصروف تسويق إلكتروني", type: "Expenses" },
-        { name: "مصروف اشتراكات ومنصات", type: "Expenses" },
-        { name: "مصروف تغليف", type: "Expenses" },
-        { name: "مصروفات عمومية", type: "Expenses" },
-        { name: "مردودات مبيعات", type: "Revenue" },
+        { name: "5810 - مصروف شحن وتوصيل", type: "Expenses" },
+        { name: "5820 - مصروف تسويق إلكتروني", type: "Expenses" },
+        { name: "5830 - اشتراكات ومنصات", type: "Expenses" },
+        { name: "5840 - مصروف تغليف", type: "Expenses" },
       );
       break;
     case "مقاولات":
       accounts.push(
-        { name: "مصروف مواد بناء", type: "Expenses" },
-        { name: "مصروف معدات", type: "Expenses" },
-        { name: "مصروف مقاولين من الباطن", type: "Expenses" },
-        { name: "مصروف نقل", type: "Expenses" },
-        { name: "مصروفات عمومية", type: "Expenses" },
-        { name: "إيرادات مشاريع", type: "Revenue" },
-      );
-      break;
-    default: // أخرى
-      accounts.push(
-        { name: "مصروف إيجار", type: "Expenses" },
-        { name: "مصروف كهرباء وماء", type: "Expenses" },
-        { name: "مصروف هاتف وإنترنت", type: "Expenses" },
-        { name: "مصروفات عمومية", type: "Expenses" },
+        { name: "5810 - مصروف مواد بناء", type: "Expenses" },
+        { name: "5820 - مصروف معدات", type: "Expenses" },
+        { name: "5830 - مقاولين من الباطن", type: "Expenses" },
+        { name: "5840 - مصروف نقل", type: "Expenses" },
       );
       break;
   }
@@ -153,8 +170,14 @@ serve(async (req) => {
     // Generate accounts
     const allAccounts = getAccountsForSetup(body);
     
-    // Filter out already existing accounts
-    const newAccounts = allAccounts.filter(a => !existingAccountNames.includes(a.name));
+    // Filter out already existing accounts (check by code prefix or full name)
+    const newAccounts = allAccounts.filter(a => {
+      const code = a.name.split(" - ")[0]?.trim();
+      return !existingAccountNames.some(existing => {
+        const existingCode = existing.split(" - ")[0]?.trim();
+        return existing === a.name || (code && existingCode && code === existingCode);
+      });
+    });
 
     if (newAccounts.length === 0) {
       return new Response(JSON.stringify({ 

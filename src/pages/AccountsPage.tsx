@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { ArrowRight, Loader2, RefreshCw, Plus, ChevronDown, Search } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { ArrowRight, Loader2, RefreshCw, Plus, ChevronDown, Search, Wallet, TrendingUp, TrendingDown, Scale, DollarSign, Building2, Landmark, CreditCard, Package, Users, Receipt } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -20,24 +20,38 @@ interface Account {
   };
 }
 
-const typeColors: Record<string, string> = {
-  "Asset": "bg-primary/10 text-primary",
-  "Liability": "bg-warning/10 text-warning",
-  "Revenue": "bg-accent text-accent-foreground",
-  "Expenses": "bg-destructive/10 text-destructive",
-  "Equity": "bg-muted text-muted-foreground",
-  "Owner's Equity": "bg-muted text-muted-foreground",
-  "Purchases": "bg-secondary text-secondary-foreground",
-};
+// Parse account code and name from "1110 - الصندوق" format
+function parseAccount(name: string): { code: string; label: string; codeNum: number } {
+  const match = name.match(/^(\d{4})\s*[-–]\s*(.+)/);
+  if (match) return { code: match[1], label: match[2].trim(), codeNum: parseInt(match[1]) };
+  return { code: "", label: name, codeNum: 99999 };
+}
 
-const typeLabels: Record<string, string> = {
-  "Asset": "أصول",
-  "Liability": "التزامات",
-  "Revenue": "إيرادات",
-  "Expenses": "مصروفات",
-  "Equity": "حقوق الملكية",
-  "Owner's Equity": "حقوق الملكية",
-  "Purchases": "مشتريات",
+// Determine hierarchy level from code: 1000=cat, 1100=group, 1110=leaf
+function getLevel(code: string): number {
+  if (!code) return 2;
+  if (code.endsWith("00") && code[2] === "0") return 0; // e.g., 1000
+  if (code.endsWith("00")) return 1; // e.g., 1100
+  return 2; // e.g., 1110
+}
+
+// Get parent group code: 1110 → 1100, 1100 → 1000
+function getParentCode(code: string): string {
+  if (!code || code.length < 4) return "";
+  const level = getLevel(code);
+  if (level === 2) return code.substring(0, 2) + "00"; // 1110 → 1100
+  if (level === 1) return code[0] + "000"; // 1100 → 1000
+  return "";
+}
+
+const categoryConfig: Record<string, { icon: typeof Wallet; color: string; bgColor: string; label: string }> = {
+  "Asset": { icon: Wallet, color: "text-blue-600 dark:text-blue-400", bgColor: "bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800", label: "الأصول" },
+  "Liability": { icon: CreditCard, color: "text-amber-600 dark:text-amber-400", bgColor: "bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800", label: "الالتزامات" },
+  "Owner's Equity": { icon: Scale, color: "text-purple-600 dark:text-purple-400", bgColor: "bg-purple-50 dark:bg-purple-950/30 border-purple-200 dark:border-purple-800", label: "حقوق الملكية" },
+  "Equity": { icon: Scale, color: "text-purple-600 dark:text-purple-400", bgColor: "bg-purple-50 dark:bg-purple-950/30 border-purple-200 dark:border-purple-800", label: "حقوق الملكية" },
+  "Revenue": { icon: TrendingUp, color: "text-emerald-600 dark:text-emerald-400", bgColor: "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800", label: "الإيرادات" },
+  "Expenses": { icon: TrendingDown, color: "text-red-600 dark:text-red-400", bgColor: "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800", label: "المصروفات" },
+  "Purchases": { icon: Package, color: "text-orange-600 dark:text-orange-400", bgColor: "bg-orange-50 dark:bg-orange-950/30 border-orange-200 dark:border-orange-800", label: "مشتريات" },
 };
 
 const accountTypeOptions = [
@@ -45,9 +59,13 @@ const accountTypeOptions = [
   { value: "Liability", label: "التزامات" },
   { value: "Owner's Equity", label: "حقوق الملكية" },
   { value: "Revenue", label: "إيرادات" },
-  { value: "Purchases", label: "مشتريات" },
   { value: "Expenses", label: "مصروفات" },
 ];
+
+const typeOrder = ["Asset", "Liability", "Owner's Equity", "Equity", "Revenue", "Purchases", "Expenses"];
+
+// System accounts that cannot be deleted
+const systemAccountCodes = ["1110", "1120", "1130", "2110", "3100", "3200", "3400", "4100", "5100"];
 
 const AccountsPage = () => {
   const navigate = useNavigate();
@@ -62,6 +80,7 @@ const AccountsPage = () => {
   const [adding, setAdding] = useState(false);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
   const [searchQuery, setSearchQuery] = useState("");
+  const [typeFilter, setTypeFilter] = useState("all");
 
   const fetchAccounts = async () => {
     if (!user) return;
@@ -85,7 +104,6 @@ const AccountsPage = () => {
 
   useEffect(() => { fetchAccounts(); }, [user]);
 
-  // Initialize all sections as open
   useEffect(() => {
     if (accounts.length > 0) {
       const types = [...new Set(accounts.map(a => a.fields["Account Type"]).filter(Boolean))] as string[];
@@ -116,23 +134,47 @@ const AccountsPage = () => {
     }
   };
 
-  const typeOrder = ["Asset", "Liability", "Owner's Equity", "Equity", "Revenue", "Purchases", "Expenses"];
-  const accountTypes = [...new Set(accounts.map(a => a.fields["Account Type"]).filter(Boolean))]
-    .sort((a, b) => (typeOrder.indexOf(a!) === -1 ? 99 : typeOrder.indexOf(a!)) - (typeOrder.indexOf(b!) === -1 ? 99 : typeOrder.indexOf(b!)));
+  // Sorted account types
+  const accountTypes = useMemo(() => {
+    return [...new Set(accounts.map(a => a.fields["Account Type"]).filter(Boolean))]
+      .sort((a, b) => (typeOrder.indexOf(a!) === -1 ? 99 : typeOrder.indexOf(a!)) - (typeOrder.indexOf(b!) === -1 ? 99 : typeOrder.indexOf(b!)));
+  }, [accounts]);
 
-  // Filter accounts by search
-  const filteredAccounts = searchQuery.trim()
-    ? accounts.filter(a => (a.fields["Account Name"] || "").toLowerCase().includes(searchQuery.toLowerCase()))
-    : accounts;
+  // Filter and search
+  const filteredAccounts = useMemo(() => {
+    return accounts.filter(a => {
+      const name = a.fields["Account Name"] || "";
+      const type = a.fields["Account Type"] || "";
+      if (typeFilter !== "all" && type !== typeFilter) return false;
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        if (!name.toLowerCase().includes(q)) return false;
+      }
+      return true;
+    });
+  }, [accounts, searchQuery, typeFilter]);
 
-  // Group accounts by type
-  const groupedAccounts = accountTypes.reduce((acc, type) => {
-    acc[type!] = filteredAccounts.filter(a => a.fields["Account Type"] === type);
-    return acc;
-  }, {} as Record<string, Account[]>);
+  // Group by type
+  const groupedAccounts = useMemo(() => {
+    const grouped: Record<string, Account[]> = {};
+    accountTypes.forEach(type => {
+      const typeAccounts = filteredAccounts
+        .filter(a => a.fields["Account Type"] === type)
+        .sort((a, b) => {
+          const pa = parseAccount(a.fields["Account Name"] || "");
+          const pb = parseAccount(b.fields["Account Name"] || "");
+          return pa.codeNum - pb.codeNum;
+        });
+      grouped[type!] = typeAccounts;
+    });
+    return grouped;
+  }, [filteredAccounts, accountTypes]);
+
+  const totalFiltered = filteredAccounts.length;
 
   return (
     <div className="px-4 pt-6 space-y-4 pb-8" dir="rtl">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <button onClick={() => navigate("/menu")} className="p-2 rounded-xl hover:bg-muted transition-colors">
@@ -140,7 +182,7 @@ const AccountsPage = () => {
           </button>
           <div>
             <h1 className="text-lg font-bold text-foreground">شجرة الحسابات</h1>
-            <p className="text-xs text-muted-foreground">{accounts.length} حساب</p>
+            <p className="text-xs text-muted-foreground">{totalFiltered} حساب</p>
           </div>
         </div>
         <div className="flex items-center gap-1">
@@ -153,17 +195,30 @@ const AccountsPage = () => {
         </div>
       </div>
 
-      {/* Search */}
+      {/* Search & Filter Bar */}
       {!loading && !error && accounts.length > 0 && (
-        <div className="relative">
-          <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="ابحث عن حساب..."
-            className="pr-9 rounded-xl text-sm"
-            dir="rtl"
-          />
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="ابحث بالكود أو الاسم..."
+              className="pr-9 rounded-xl text-sm"
+              dir="rtl"
+            />
+          </div>
+          <Select value={typeFilter} onValueChange={setTypeFilter} dir="rtl">
+            <SelectTrigger className="w-[130px] rounded-xl text-xs">
+              <SelectValue placeholder="الكل" />
+            </SelectTrigger>
+            <SelectContent className="bg-background z-50">
+              <SelectItem value="all">جميع الأنواع</SelectItem>
+              {accountTypeOptions.map(opt => (
+                <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       )}
 
@@ -186,8 +241,10 @@ const AccountsPage = () => {
         <div className="space-y-3">
           {accountTypes.map((type) => {
             const typeAccounts = groupedAccounts[type!] || [];
-            if (searchQuery && typeAccounts.length === 0) return null;
+            if ((searchQuery || typeFilter !== "all") && typeAccounts.length === 0) return null;
             const isOpen = openSections[type!] ?? true;
+            const config = categoryConfig[type!] || categoryConfig["Expenses"];
+            const Icon = config.icon;
 
             return (
               <Collapsible
@@ -196,25 +253,51 @@ const AccountsPage = () => {
                 onOpenChange={(open) => setOpenSections(prev => ({ ...prev, [type!]: open }))}
               >
                 <CollapsibleTrigger className="w-full">
-                  <div className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-muted/50 hover:bg-muted transition-colors">
-                    <div className="flex items-center gap-2">
-                      <Badge variant="secondary" className={`text-[10px] ${typeColors[type!] || ""}`}>
-                        {typeLabels[type!] || type}
-                      </Badge>
-                      <span className="text-xs text-muted-foreground">({typeAccounts.length})</span>
+                  <div className={`flex items-center justify-between px-3.5 py-3 rounded-xl border transition-colors ${config.bgColor}`}>
+                    <div className="flex items-center gap-2.5">
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${config.color} bg-white/60 dark:bg-black/20`}>
+                        <Icon className="h-4 w-4" />
+                      </div>
+                      <span className={`text-sm font-bold ${config.color}`}>{config.label}</span>
+                      <span className="text-xs text-muted-foreground font-medium">({typeAccounts.length})</span>
                     </div>
                     <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
                   </div>
                 </CollapsibleTrigger>
                 <CollapsibleContent className="overflow-hidden data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up">
-                  <div className="space-y-1.5 mt-1.5">
-                    {typeAccounts.map((acc) => (
-                      <Card key={acc.id} className="border-0 shadow-sm hover:shadow-md transition-all duration-200">
-                        <CardContent className="p-3.5 flex items-center justify-between">
-                          <p className="text-sm font-semibold text-foreground">{acc.fields["Account Name"]}</p>
-                        </CardContent>
-                      </Card>
-                    ))}
+                  <div className="space-y-1 mt-1.5 mr-4 border-r-2 border-border/50 pr-3">
+                    {typeAccounts.map((acc) => {
+                      const { code, label, codeNum } = parseAccount(acc.fields["Account Name"] || "");
+                      const isSystem = systemAccountCodes.includes(code);
+                      const level = getLevel(code);
+                      const isGroup = level < 2;
+
+                      return (
+                        <div
+                          key={acc.id}
+                          className={`flex items-center justify-between rounded-lg px-3 py-2.5 transition-all duration-150 hover:bg-muted/50 ${isGroup ? "bg-muted/20" : ""}`}
+                          style={{ paddingRight: level === 2 ? "20px" : level === 1 ? "12px" : "4px" }}
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            {code && (
+                              <span className="text-[11px] font-mono font-bold text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded shrink-0">
+                                {code}
+                              </span>
+                            )}
+                            <span className={`text-sm truncate ${isGroup ? "font-bold text-foreground" : "font-medium text-foreground"}`}>
+                              {label}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {isSystem && (
+                              <Badge variant="outline" className="text-[9px] px-1.5 py-0 border-primary/30 text-primary/70">
+                                نظام
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </CollapsibleContent>
               </Collapsible>
@@ -230,7 +313,7 @@ const AccountsPage = () => {
             <DialogTitle>إضافة حساب جديد</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <Input placeholder="اسم الحساب" value={newAccountName} onChange={(e) => setNewAccountName(e.target.value)} dir="rtl" />
+            <Input placeholder="اسم الحساب (مثال: 5910 - مصروف جديد)" value={newAccountName} onChange={(e) => setNewAccountName(e.target.value)} dir="rtl" />
             <Select value={newAccountType} onValueChange={setNewAccountType} dir="rtl">
               <SelectTrigger><SelectValue placeholder="نوع الحساب" /></SelectTrigger>
               <SelectContent className="bg-background z-50">
