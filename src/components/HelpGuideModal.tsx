@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { X, Sparkles, AtSign, Banknote, Users, BarChart3, CheckCircle2, BookOpen, Landmark, ShoppingCart, CreditCard, Receipt, ArrowRightLeft, PiggyBank, Package, UserPlus, FolderPlus } from "lucide-react";
+import { X, Sparkles, AtSign, Banknote, Users, BarChart3, CheckCircle2, BookOpen, ChevronDown, MessageCircle, Hash, Package, UserPlus, FolderPlus } from "lucide-react";
 
 interface HelpGuideModalProps {
   open: boolean;
@@ -7,157 +7,14 @@ interface HelpGuideModalProps {
   onFillInput?: (text: string, target: "assistant" | "command") => void;
 }
 
-const sections = [
-  {
-    id: "mention",
-    icon: AtSign,
-    title: "استخدم @ لتحديد الاسم بسرعة",
-    highlight: true,
-    content: (
-      <div className="space-y-2 text-xs text-muted-foreground leading-relaxed">
-        <p>عند كتابة <span className="text-primary font-bold">@</span> سيظهر لك اقتراحات:</p>
-        <div className="flex flex-wrap gap-1.5">
-          {["زبائن", "موردين", "منتجات", "حسابات"].map(t => (
-            <span key={t} className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-medium">{t}</span>
-          ))}
-        </div>
-        <p>عند اختيار الاسم يتم الربط تلقائياً مع السجل الصحيح — يمنع الأخطاء ويسرّع الإدخال.</p>
-      </div>
-    ),
-    examples: [
-      { text: 'قبضت من @محمد 5000 شيكل', target: "assistant" as const },
-      { text: 'اشتريت 100 كيلو من @شركة_النور', target: "assistant" as const },
-      { text: 'بعت 3 قطع من @سجاد', target: "assistant" as const },
-    ],
-  },
-  {
-    id: "financial",
-    icon: Banknote,
-    title: "أوامر مالية",
-    subsections: [
-      {
-        icon: Landmark, label: "تأسيس ورأس المال",
-        examples: [
-          { text: "أسست المشروع برأس مال 50000 شيكل نقداً", target: "assistant" as const },
-          { text: "حطيت رأس مال 20000 في البنك", target: "assistant" as const },
-          { text: "نقلت 10000 من الصندوق للبنك", target: "assistant" as const },
-        ],
-      },
-      {
-        icon: Package, label: "شراء معدات",
-        examples: [
-          { text: "اشتريت كمبيوتر بـ 3500 شيكل نقداً", target: "assistant" as const },
-          { text: "اشتريت ماكينة بـ 20000 دفعت 5000 والباقي على الحساب", target: "assistant" as const },
-        ],
-      },
-      {
-        icon: ShoppingCart, label: "مشتريات",
-        examples: [
-          { text: "اشتريت بضاعة من @شركة_النور بـ 8000 على الحساب", target: "assistant" as const },
-          { text: "اشتريت 50 قطعة @سجاد سعر القطعة 120", target: "assistant" as const },
-        ],
-      },
-      {
-        icon: Receipt, label: "مبيعات",
-        examples: [
-          { text: "بعت 3 قطع @سجاد بسعر 150 للقطعة نقداً", target: "assistant" as const },
-          { text: "سجل فاتورة للزبون @محمد 12000 على الحساب", target: "assistant" as const },
-        ],
-      },
-      {
-        icon: PiggyBank, label: "قبض ودفع",
-        examples: [
-          { text: "قبضت من @محمد 1500 شيكل نقداً", target: "assistant" as const },
-          { text: "استلمت من @سليم 3000 تحويل بنك", target: "assistant" as const },
-          { text: "دفعت لـ @شركة_النور 3000 من البنك", target: "assistant" as const },
-        ],
-      },
-      {
-        icon: CreditCard, label: "شيكات",
-        examples: [
-          { text: "استلمت شيك من @أحمد 4000 بتاريخ 1/3", target: "assistant" as const },
-          { text: "أودعت شيك @أحمد في البنك", target: "assistant" as const },
-        ],
-      },
-      {
-        icon: ArrowRightLeft, label: "مصاريف وتحويل",
-        examples: [
-          { text: "دفعت إيجار 2500 من البنك", target: "assistant" as const },
-          { text: "دفعت كهرباء 300 شيكل", target: "assistant" as const },
-          { text: "حولت 2000 من البنك للصندوق", target: "assistant" as const },
-        ],
-      },
-    ],
-  },
-  {
-    id: "definitions",
-    icon: Users,
-    title: "أوامر تعريفية",
-    subsections: [
-      {
-        icon: UserPlus, label: "زبائن وموردين",
-        examples: [
-          { text: "أضف زبون @محمد، جوال 059xxxx، عنوان نابلس", target: "command" as const },
-          { text: "خلي حد ائتمان @محمد 10000", target: "command" as const },
-          { text: "أضف مورد @شركة_الشمال", target: "command" as const },
-        ],
-      },
-      {
-        icon: Package, label: "منتجات",
-        examples: [
-          { text: "أضف منتج @سجاد شراء 80 بيع 120 كمية 200", target: "command" as const },
-        ],
-      },
-      {
-        icon: FolderPlus, label: "حسابات",
-        examples: [
-          { text: "أضف حساب مصروف تسويق", target: "command" as const },
-          { text: "خلي حساب مصروف تسويق ضمن المصاريف التشغيلية", target: "command" as const },
-        ],
-      },
-    ],
-  },
-  {
-    id: "reports",
-    icon: BarChart3,
-    title: "تقارير وتحليل",
-    examples: [
-      { text: "اعرض أرباح وخسائر هذا الشهر", target: "assistant" as const },
-      { text: "اعرض الذمم المتأخرة", target: "assistant" as const },
-      { text: "كشف حساب @محمد", target: "assistant" as const },
-      { text: "شو وضعي المالي اليوم؟", target: "assistant" as const },
-      { text: "اعرض المخزون والكميات", target: "assistant" as const },
-    ],
-  },
-  {
-    id: "rules",
-    icon: CheckCircle2,
-    title: "قواعد سريعة",
-    highlight: true,
-    content: (
-      <div className="grid grid-cols-2 gap-2">
-        {[
-          "احكي طبيعي",
-          "اذكر المبلغ",
-          "حدد طريقة الدفع",
-          "إذا شيك اذكر التاريخ",
-          "استخدم @ لتحديد الاسم",
-          "إذا بضاعة اذكر الكمية والسعر",
-        ].map(rule => (
-          <div key={rule} className="flex items-center gap-1.5 text-[11px] text-foreground">
-            <CheckCircle2 className="h-3 w-3 text-primary flex-shrink-0" />
-            <span>{rule}</span>
-          </div>
-        ))}
-      </div>
-    ),
-  },
-];
-
-const ExampleChip = ({ text, onClick }: { text: string; onClick: () => void }) => (
+const ExampleChip = ({ text, onClick, featured }: { text: string; onClick: () => void; featured?: boolean }) => (
   <button
     onClick={onClick}
-    className="text-right px-3 py-2 rounded-xl bg-secondary/80 text-[11px] text-foreground hover:bg-primary/10 hover:text-primary transition-all active:scale-95 border border-border/50"
+    className={`text-right px-3 py-2 rounded-xl text-[11px] transition-all active:scale-95 border ${
+      featured
+        ? "bg-primary/10 text-primary font-semibold border-primary/30 shadow-[0_0_12px_hsl(var(--primary)/0.15)] hover:shadow-[0_0_20px_hsl(var(--primary)/0.25)]"
+        : "bg-secondary/80 text-foreground hover:bg-primary/10 hover:text-primary border-border/50"
+    }`}
   >
     {text.split(/(@\S+)/g).map((part, i) =>
       part.startsWith("@") ? <span key={i} className="text-primary font-bold">{part}</span> : part
@@ -165,8 +22,20 @@ const ExampleChip = ({ text, onClick }: { text: string; onClick: () => void }) =
   </button>
 );
 
+const ExpandButton = ({ expanded, onClick, count }: { expanded: boolean; onClick: () => void; count: number }) => (
+  <button
+    onClick={onClick}
+    className="flex items-center gap-1 text-[10px] text-primary font-medium hover:underline transition-all"
+  >
+    <ChevronDown className={`h-3 w-3 transition-transform duration-200 ${expanded ? "rotate-180" : ""}`} />
+    {expanded ? "عرض أقل" : `عرض المزيد (${count})`}
+  </button>
+);
+
 const HelpGuideModal = ({ open, onClose, onFillInput }: HelpGuideModalProps) => {
   const [dontShowAgain, setDontShowAgain] = useState(false);
+  const [expandFinancial, setExpandFinancial] = useState(false);
+  const [expandDefinitions, setExpandDefinitions] = useState(false);
 
   if (!open) return null;
 
@@ -181,12 +50,65 @@ const HelpGuideModal = ({ open, onClose, onFillInput }: HelpGuideModalProps) => 
     onClose();
   };
 
+  const mainFinancialExamples = [
+    { text: "قبضت من @محمد 5000 شيكل", target: "assistant" as const },
+    { text: "دفعت إيجار 2500 من البنك", target: "assistant" as const },
+    { text: "اشتريت 50 قطعة @سجاد سعر القطعة 120", target: "assistant" as const },
+    { text: "استلمت شيك من @أحمد 4000 بتاريخ 1/3", target: "assistant" as const },
+    { text: "سجل فاتورة لـ @سليم 12000 على الحساب", target: "assistant" as const },
+  ];
+
+  const moreFinancialExamples = [
+    { text: "أسست المشروع برأس مال 50000 شيكل نقداً", target: "assistant" as const },
+    { text: "حطيت رأس مال 20000 في البنك", target: "assistant" as const },
+    { text: "نقلت 10000 من الصندوق للبنك", target: "assistant" as const },
+    { text: "اشتريت كمبيوتر بـ 3500 شيكل نقداً", target: "assistant" as const },
+    { text: "اشتريت ماكينة بـ 20000 دفعت 5000 والباقي على الحساب", target: "assistant" as const },
+    { text: "اشتريت بضاعة من @شركة_النور بـ 8000 على الحساب", target: "assistant" as const },
+    { text: "بعت 3 قطع @سجاد بسعر 150 للقطعة نقداً", target: "assistant" as const },
+    { text: "قبضت من @محمد 1500 شيكل نقداً", target: "assistant" as const },
+    { text: "استلمت من @سليم 3000 تحويل بنك", target: "assistant" as const },
+    { text: "أودعت شيك @أحمد في البنك", target: "assistant" as const },
+    { text: "دفعت لـ @شركة_النور 3000 من البنك", target: "assistant" as const },
+    { text: "دفعت كهرباء 300 شيكل", target: "assistant" as const },
+    { text: "حولت 2000 من البنك للصندوق", target: "assistant" as const },
+  ];
+
+  const mainDefinitionExamples = [
+    { text: "أضف زبون @محمد", target: "command" as const },
+    { text: "أضف مورد @شركة_النور", target: "command" as const },
+    { text: "أضف منتج @سجاد شراء 80 بيع 120", target: "command" as const },
+  ];
+
+  const moreDefinitionExamples = [
+    { text: "أضف زبون @محمد، جوال 059xxxx، عنوان نابلس", target: "command" as const },
+    { text: "خلي حد ائتمان @محمد 10000", target: "command" as const },
+    { text: "أضف مورد @شركة_الشمال", target: "command" as const },
+    { text: "أضف منتج @سجاد شراء 80 بيع 120 كمية 200", target: "command" as const },
+    { text: "أضف حساب مصروف تسويق", target: "command" as const },
+    { text: "خلي حساب مصروف تسويق ضمن المصاريف التشغيلية", target: "command" as const },
+  ];
+
+  const reportExamples = [
+    { text: "اعرض أرباح وخسائر هذا الشهر", target: "assistant" as const },
+    { text: "كشف حساب @محمد", target: "assistant" as const },
+    { text: "اعرض الذمم المتأخرة", target: "assistant" as const },
+    { text: "شو وضعي المالي اليوم؟", target: "assistant" as const },
+  ];
+
+  const rules = [
+    { icon: MessageCircle, text: "احكي طبيعي وبساطة" },
+    { icon: Hash, text: "اذكر المبلغ دائماً" },
+    { icon: Users, text: "حدد من / لـ" },
+    { icon: AtSign, text: "استخدم @ لتجنب الأخطاء" },
+    { icon: Banknote, text: "اذكر التاريخ إذا شيك" },
+    { icon: Package, text: "اذكر الكمية والسعر إذا بضاعة" },
+  ];
+
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center" dir="rtl">
-      {/* Overlay */}
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-in fade-in duration-300" onClick={handleClose} />
 
-      {/* Modal */}
       <div className="relative w-full max-w-lg max-h-[90vh] bg-card rounded-t-[20px] sm:rounded-[20px] shadow-2xl overflow-hidden animate-in slide-in-from-bottom duration-300 flex flex-col">
         {/* Header */}
         <div className="sticky top-0 z-10 bg-card/95 backdrop-blur-md border-b border-border/50 px-5 pt-5 pb-4">
@@ -195,55 +117,126 @@ const HelpGuideModal = ({ open, onClose, onFillInput }: HelpGuideModalProps) => 
           </button>
           <div className="flex items-center gap-2 mb-1">
             <BookOpen className="h-5 w-5 text-primary" />
-            <h2 className="text-base font-bold text-foreground">دليل استخدام المساعد المالي الذكي</h2>
+            <h2 className="text-base font-bold text-foreground">دليل المساعد المالي الذكي</h2>
           </div>
           <p className="text-xs text-muted-foreground">اكتب أو احكي ببساطة… وسأتولى الباقي</p>
+          <p className="text-[11px] text-primary font-medium mt-1">سجل أي عملية خلال 5 ثواني فقط ⚡</p>
         </div>
 
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
-          {sections.map((section) => (
-            <div
-              key={section.id}
-              className={`space-y-3 ${section.highlight ? "p-3.5 rounded-2xl border-2 border-primary/20 bg-primary/5" : ""}`}
-            >
-              {/* Section Header */}
-              <div className="flex items-center gap-2">
-                <section.icon className="h-4 w-4 text-primary" />
-                <h3 className="text-sm font-bold text-foreground">{section.title}</h3>
-              </div>
 
-              {/* Custom content */}
-              {section.content}
+          {/* Featured Example */}
+          <button
+            onClick={() => handleExampleClick("قبضت من @محمد 5000 شيكل نقداً", "assistant")}
+            className="w-full p-4 rounded-2xl border-2 border-primary/30 bg-primary/5 text-center space-y-2 hover:bg-primary/10 transition-all active:scale-[0.98] shadow-[0_0_20px_hsl(var(--primary)/0.1)] animate-[pulse_3s_ease-in-out_infinite]"
+            style={{ animationName: "none" }}
+            onMouseEnter={e => e.currentTarget.style.animationName = ""}
+          >
+            <p className="text-sm font-bold text-foreground">
+              قبضت من <span className="text-primary">@محمد</span> 5000 شيكل نقداً
+            </p>
+            <p className="text-[10px] text-muted-foreground">
+              استخدم <span className="text-primary font-bold">@</span> لاختيار الاسم الصحيح وربطه تلقائياً
+            </p>
+          </button>
 
-              {/* Top-level examples */}
-              {section.examples && (
-                <div className="flex flex-wrap gap-2">
-                  {section.examples.map((ex) => (
-                    <ExampleChip key={ex.text} text={ex.text} onClick={() => handleExampleClick(ex.text, ex.target)} />
+          {/* Smart @ Section */}
+          <div className="p-3.5 rounded-2xl border-2 border-primary/20 bg-primary/5 space-y-3">
+            <div className="flex items-center gap-2">
+              <AtSign className="h-4 w-4 text-primary" />
+              <h3 className="text-sm font-bold text-foreground">استخدم @ لتحديد الاسم بسرعة</h3>
+            </div>
+            <div className="flex items-start gap-3 text-xs text-muted-foreground">
+              <div className="flex-1 space-y-2">
+                <p>عند كتابة <span className="text-primary font-bold">@</span> تظهر اقتراحات:</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {["زبائن", "موردين", "منتجات", "حسابات"].map(t => (
+                    <span key={t} className="px-2.5 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-medium">{t}</span>
                   ))}
                 </div>
-              )}
+              </div>
+              <div className="space-y-1 text-[10px] min-w-fit">
+                <div className="flex items-center gap-1"><CheckCircle2 className="h-3 w-3 text-primary" /><span>الربط تلقائي</span></div>
+                <div className="flex items-center gap-1"><CheckCircle2 className="h-3 w-3 text-primary" /><span>يمنع الأخطاء</span></div>
+                <div className="flex items-center gap-1"><CheckCircle2 className="h-3 w-3 text-primary" /><span>يسرّع الإدخال</span></div>
+              </div>
+            </div>
+          </div>
 
-              {/* Subsections */}
-              {section.subsections?.map((sub) => (
-                <div key={sub.label} className="space-y-1.5">
-                  <div className="flex items-center gap-1.5">
-                    <sub.icon className="h-3.5 w-3.5 text-muted-foreground" />
-                    <span className="text-[11px] font-semibold text-muted-foreground">{sub.label}</span>
-                  </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {sub.examples.map((ex) => (
-                      <ExampleChip key={ex.text} text={ex.text} onClick={() => handleExampleClick(ex.text, ex.target)} />
-                    ))}
-                  </div>
+          {/* Financial Commands */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Banknote className="h-4 w-4 text-primary" />
+              <h3 className="text-sm font-bold text-foreground">أوامر مالية</h3>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {mainFinancialExamples.map(ex => (
+                <ExampleChip key={ex.text} text={ex.text} onClick={() => handleExampleClick(ex.text, ex.target)} />
+              ))}
+            </div>
+            {expandFinancial && (
+              <div className="flex flex-wrap gap-1.5 animate-in fade-in slide-in-from-top-2 duration-200">
+                {moreFinancialExamples.map(ex => (
+                  <ExampleChip key={ex.text} text={ex.text} onClick={() => handleExampleClick(ex.text, ex.target)} />
+                ))}
+              </div>
+            )}
+            <ExpandButton expanded={expandFinancial} onClick={() => setExpandFinancial(!expandFinancial)} count={moreFinancialExamples.length} />
+          </div>
+
+          {/* Definition Commands */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Users className="h-4 w-4 text-primary" />
+              <h3 className="text-sm font-bold text-foreground">أوامر تعريفية</h3>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {mainDefinitionExamples.map(ex => (
+                <ExampleChip key={ex.text} text={ex.text} onClick={() => handleExampleClick(ex.text, ex.target)} />
+              ))}
+            </div>
+            {expandDefinitions && (
+              <div className="flex flex-wrap gap-1.5 animate-in fade-in slide-in-from-top-2 duration-200">
+                {moreDefinitionExamples.map(ex => (
+                  <ExampleChip key={ex.text} text={ex.text} onClick={() => handleExampleClick(ex.text, ex.target)} />
+                ))}
+              </div>
+            )}
+            <ExpandButton expanded={expandDefinitions} onClick={() => setExpandDefinitions(!expandDefinitions)} count={moreDefinitionExamples.length} />
+          </div>
+
+          {/* Reports - Compact pills */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <BarChart3 className="h-4 w-4 text-primary" />
+              <h3 className="text-sm font-bold text-foreground">تقارير وتحليل</h3>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {reportExamples.map(ex => (
+                <ExampleChip key={ex.text} text={ex.text} onClick={() => handleExampleClick(ex.text, ex.target)} />
+              ))}
+            </div>
+          </div>
+
+          {/* Rules */}
+          <div className="p-3.5 rounded-2xl border-2 border-primary/20 bg-primary/5 space-y-3">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4 text-primary" />
+              <h3 className="text-sm font-bold text-foreground">قواعد سريعة</h3>
+            </div>
+            <div className="grid grid-cols-2 gap-2.5">
+              {rules.map(rule => (
+                <div key={rule.text} className="flex items-center gap-2 text-[11px] text-foreground">
+                  <rule.icon className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+                  <span>{rule.text}</span>
                 </div>
               ))}
             </div>
-          ))}
+          </div>
         </div>
 
-        {/* Sticky Footer */}
+        {/* Footer */}
         <div className="sticky bottom-0 bg-card/95 backdrop-blur-md border-t border-border/50 px-5 py-4 space-y-3">
           <label className="flex items-center gap-2 cursor-pointer">
             <input
