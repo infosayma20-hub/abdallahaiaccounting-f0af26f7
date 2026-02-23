@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
-import { Wallet, Mic, Send, Loader2, Bell, Sparkles, Database, FileText, Package, TrendingUp, TrendingDown, ArrowLeft, ChevronDown, Users, UserPlus, Plus, Paperclip, BarChart3, Clock, AlertTriangle, Sun, Moon } from "lucide-react";
+import { Wallet, Mic, Send, Loader2, Bell, Sparkles, Database, FileText, Package, TrendingUp, TrendingDown, ArrowLeft, ChevronDown, Users, UserPlus, Plus, Paperclip, BarChart3, Clock, AlertTriangle, Sun, Moon, HelpCircle } from "lucide-react";
+import HelpGuideModal from "@/components/HelpGuideModal";
 import MentionInput, { MentionItem } from "@/components/MentionInput";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -40,6 +41,7 @@ const Dashboard = () => {
   const [sending, setSending] = useState(false);
   const [dbCommand, setDbCommand] = useState("");
   const [dbSending, setDbSending] = useState(false);
+  const [showHelpGuide, setShowHelpGuide] = useState(false);
   const [showProfileDialog, setShowProfileDialog] = useState(false);
   const [showPasskeyOnboarding, setShowPasskeyOnboarding] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -257,6 +259,12 @@ const Dashboard = () => {
         </div>
         <div className="flex items-center gap-1.5">
           <button
+            onClick={() => setShowHelpGuide(true)}
+            className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-secondary transition-colors"
+          >
+            <HelpCircle className="h-[18px] w-[18px] text-primary" />
+          </button>
+          <button
             onClick={() => {
               toggleTheme();
               setThemePulse(true);
@@ -325,13 +333,15 @@ const Dashboard = () => {
               </button>
             </div>
 
-            {/* Suggestion chips */}
+            {/* Financial command suggestion chips */}
             <div className="flex gap-1.5 flex-wrap">
               {[
-                { text: "قبضت من @أحمد 5,000 شيكل", highlight: "@أحمد" },
-                { text: "دفعت ل@محمد 1,200 دينار", highlight: "@محمد" },
-                { text: "بعت @طحين 50 كيلو ل@شركة النور", highlight: "@" },
-                { text: "اشتريت @حديد 100 كيلو من @مورد الشمال", highlight: "@" },
+                { text: "قبضت من @أحمد 5,000 شيكل" },
+                { text: "دفعت ل@محمد 1,200 دينار" },
+                { text: "بعت @طحين 50 كيلو ل@شركة النور" },
+                { text: "اشتريت @حديد 100 كيلو من @مورد الشمال" },
+                { text: "دفعت إيجار 2500 شيكل" },
+                { text: "استلمت شيك من @أحمد 4000" },
               ].map((chip) => (
                 <button
                   key={chip.text}
@@ -382,6 +392,23 @@ const Dashboard = () => {
                 <button onClick={() => navigate("/voice")} className="flex-shrink-0 w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center hover:bg-primary/20 transition-colors active:scale-95">
                   <Mic className="h-5 w-5 text-primary" />
                 </button>
+              </div>
+              {/* Definition command suggestion chips */}
+              <div className="flex gap-1.5 flex-wrap">
+                {[
+                  "أضف زبون أحمد جوال 0501234567",
+                  "أضف مورد شركة الشمال",
+                  "أضف منتج سجاد شراء 80 بيع 120",
+                  "أضف حساب مصروف تسويق",
+                ].map((chip) => (
+                  <button
+                    key={chip}
+                    onClick={() => setDbCommand(chip)}
+                    className="px-2.5 py-1.5 rounded-full bg-secondary text-[10px] font-medium text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all active:scale-95 neon-border"
+                  >
+                    {chip}
+                  </button>
+                ))}
               </div>
             </div>
 
@@ -521,6 +548,14 @@ const Dashboard = () => {
       {showOnboarding && !showPasskeyOnboarding && !showSetupWizard && (
         <OnboardingFlow onComplete={() => setShowOnboarding(false)} onFocusInput={() => { const input = document.querySelector<HTMLInputElement>("#smart-input-bar input"); input?.focus(); }} />
       )}
+      <HelpGuideModal
+        open={showHelpGuide}
+        onClose={() => setShowHelpGuide(false)}
+        onFillInput={(text, target) => {
+          if (target === "assistant") setInputValue(text);
+          else setDbCommand(text);
+        }}
+      />
     </div>
   );
 };
