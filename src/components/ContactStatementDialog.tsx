@@ -199,6 +199,7 @@ const ContactStatementDialog = ({ open, onClose, contactId, contactName, contact
       "#": i + 1,
       "التاريخ": r.tx.fields.Date || "",
       "البيان": r.description,
+      "ملاحظات": r.tx.fields.Description || "",
       "مدين": r.debit || "",
       "دائن": r.credit || "",
       "الرصيد الجاري": r.runningBalance,
@@ -207,6 +208,7 @@ const ContactStatementDialog = ({ open, onClose, contactId, contactName, contact
       "#": "" as any,
       "التاريخ": "",
       "البيان": "الإجمالي",
+      "ملاحظات": "",
       "مدين": totalDebit as any,
       "دائن": totalCredit as any,
       "الرصيد الجاري": finalBalance,
@@ -229,6 +231,7 @@ const ContactStatementDialog = ({ open, onClose, contactId, contactName, contact
         <td style="color:#6b7280;">${i + 1}</td>
         <td>${r.tx.fields.Date || "-"}</td>
         <td style="text-align:right;font-weight:500;">${r.description}</td>
+        <td style="text-align:right;font-size:11px;color:#6b7280;">${r.tx.fields.Description || "-"}</td>
         <td style="color:#047857;font-weight:600;">${r.debit ? r.debit.toLocaleString() : "-"}</td>
         <td style="color:#dc2626;font-weight:600;">${r.credit ? r.credit.toLocaleString() : "-"}</td>
         <td style="font-weight:700;color:${r.runningBalance >= 0 ? "#047857" : "#dc2626"};">
@@ -561,18 +564,19 @@ const ContactStatementDialog = ({ open, onClose, contactId, contactName, contact
     <table>
       <thead>
         <tr>
-          <th style="width:40px;">#</th>
-          <th style="width:90px;">التاريخ</th>
+          <th style="width:35px;">#</th>
+          <th style="width:80px;">التاريخ</th>
           <th>البيان</th>
-          <th style="width:90px;">مدين</th>
-          <th style="width:90px;">دائن</th>
-          <th style="width:100px;">الرصيد الجاري</th>
+          <th>ملاحظات</th>
+          <th style="width:80px;">مدين</th>
+          <th style="width:80px;">دائن</th>
+          <th style="width:90px;">الرصيد الجاري</th>
         </tr>
       </thead>
       <tbody>
         ${rowsHtml}
         <tr class="totals-row">
-          <td colspan="3" style="text-align:right;color:#047857;">الإجمالي</td>
+          <td colspan="4" style="text-align:right;color:#047857;">الإجمالي</td>
           <td class="green">${totalDebit.toLocaleString()}</td>
           <td class="red">${totalCredit.toLocaleString()}</td>
           <td style="color:${balanceColor};font-size:14px;">${fmtNum(finalBalance)}</td>
@@ -664,6 +668,7 @@ const ContactStatementDialog = ({ open, onClose, contactId, contactName, contact
                       <th className="px-3 py-2 text-center font-semibold w-8">#</th>
                       <th className="px-3 py-2 text-right font-semibold">التاريخ</th>
                       <th className="px-3 py-2 text-right font-semibold">البيان</th>
+                      <th className="px-3 py-2 text-right font-semibold">ملاحظات</th>
                       <th className="px-3 py-2 text-center font-semibold">مدين</th>
                       <th className="px-3 py-2 text-center font-semibold">دائن</th>
                       <th className="px-3 py-2 text-center font-semibold">الرصيد</th>
@@ -675,6 +680,7 @@ const ContactStatementDialog = ({ open, onClose, contactId, contactName, contact
                         <td className="px-3 py-2 text-center text-muted-foreground">{i + 1}</td>
                         <td className="px-3 py-2">{r.tx.fields.Date || "-"}</td>
                         <td className="px-3 py-2 max-w-[180px] truncate font-medium">{r.description}</td>
+                        <td className="px-3 py-2 max-w-[150px] truncate text-muted-foreground text-[10px]">{r.tx.fields.Description || "-"}</td>
                         <td className="px-3 py-2 text-center text-emerald-700 dark:text-emerald-400 font-semibold">
                           {r.debit ? r.debit.toLocaleString() : "-"}
                         </td>
