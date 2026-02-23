@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ArrowRight, Loader2, RefreshCw, Pencil, Trash2 } from "lucide-react";
+import { ArrowRight, Loader2, RefreshCw, Pencil, Trash2, CheckSquare, X } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -82,6 +83,12 @@ const TransactionsPage = () => {
   const [deleting, setDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
+  // Bulk select state
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
+
   const fetchData = async () => {
     if (!user) return;
     setLoading(true);
@@ -113,6 +120,7 @@ const TransactionsPage = () => {
   useEffect(() => { fetchData(); }, [user]);
 
   const openEdit = (tx: Transaction) => {
+    if (selectMode) return;
     setEditingTx(tx);
     setEditFields({
       Description: tx.fields.Description || "",
@@ -179,6 +187,51 @@ const TransactionsPage = () => {
     }
   };
 
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === transactions.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(transactions.map(tx => tx.id)));
+    }
+  };
+
+  const exitSelectMode = () => {
+    setSelectMode(false);
+    setSelectedIds(new Set());
+  };
+
+  const handleBulkDelete = async () => {
+    setBulkDeleting(true);
+    try {
+      const ids = Array.from(selectedIds);
+      await Promise.all(
+        ids.map(id =>
+          fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-update-transaction`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ recordId: id, action: "delete" }),
+          })
+        )
+      );
+      toast({ title: `تم حذف ${ids.length} معاملة بنجاح 🗑️` });
+      setShowBulkDeleteConfirm(false);
+      exitSelectMode();
+      fetchData();
+    } catch (err: any) {
+      toast({ title: "خطأ", description: err.message, variant: "destructive" });
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
+
   const accountNames = accounts.map(a => a.fields["Account Name"]).filter(Boolean) as string[];
 
   return (
@@ -193,10 +246,46 @@ const TransactionsPage = () => {
             <p className="text-xs text-muted-foreground">{transactions.length} معاملة</p>
           </div>
         </div>
-        <Button variant="ghost" size="icon" onClick={fetchData} disabled={loading}>
-          <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-        </Button>
+        <div className="flex items-center gap-1">
+          {!selectMode ? (
+            <Button variant="ghost" size="icon" onClick={() => setSelectMode(true)} disabled={loading || transactions.length === 0}>
+              <CheckSquare className="h-4 w-4" />
+            </Button>
+          ) : (
+            <Button variant="ghost" size="icon" onClick={exitSelectMode}>
+              <X className="h-4 w-4" />
+            </Button>
+          )}
+          <Button variant="ghost" size="icon" onClick={fetchData} disabled={loading}>
+            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+          </Button>
+        </div>
       </div>
+
+      {/* Select mode toolbar */}
+      {selectMode && (
+        <div className="flex items-center justify-between bg-muted/50 rounded-xl p-3 border border-border">
+          <div className="flex items-center gap-3">
+            <Checkbox
+              checked={selectedIds.size === transactions.length && transactions.length > 0}
+              onCheckedChange={toggleSelectAll}
+            />
+            <span className="text-sm text-foreground">
+              {selectedIds.size > 0 ? `تم تحديد ${selectedIds.size}` : "حدد المعاملات"}
+            </span>
+          </div>
+          <Button
+            variant="destructive"
+            size="sm"
+            className="gap-1.5 rounded-xl"
+            disabled={selectedIds.size === 0}
+            onClick={() => setShowBulkDeleteConfirm(true)}
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            حذف ({selectedIds.size})
+          </Button>
+        </div>
+      )}
 
       {loading && (
         <div className="flex items-center justify-center py-16">
@@ -217,46 +306,56 @@ const TransactionsPage = () => {
         <div className="space-y-2.5">
           {transactions.map((tx) => {
             const payTag = paymentMethodTags[tx.fields["Transaction Type"] || ""];
+            const isSelected = selectedIds.has(tx.id);
             return (
               <Card
                 key={tx.id}
-                className="border-0 shadow-sm cursor-pointer hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 overflow-hidden"
-                onClick={() => openEdit(tx)}
+                className={`border-0 shadow-sm cursor-pointer hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 overflow-hidden ${isSelected ? "ring-2 ring-primary bg-primary/5" : ""}`}
+                onClick={() => selectMode ? toggleSelect(tx.id) : openEdit(tx)}
               >
                 <CardContent className="p-4">
-                  <div className="flex items-start justify-between mb-2.5">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-semibold text-foreground">{tx.fields.Description || "بدون وصف"}</p>
-                        <Pencil className="h-3 w-3 text-muted-foreground opacity-50" />
+                  <div className="flex items-start gap-3">
+                    {selectMode && (
+                      <div className="pt-0.5">
+                        <Checkbox checked={isSelected} onCheckedChange={() => toggleSelect(tx.id)} />
                       </div>
-                      {tx.fields.Date && (
-                        <p className="text-[10px] text-muted-foreground mt-1">{tx.fields.Date}</p>
-                      )}
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between mb-2.5">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-semibold text-foreground">{tx.fields.Description || "بدون وصف"}</p>
+                            {!selectMode && <Pencil className="h-3 w-3 text-muted-foreground opacity-50" />}
+                          </div>
+                          {tx.fields.Date && (
+                            <p className="text-[10px] text-muted-foreground mt-1">{tx.fields.Date}</p>
+                          )}
+                        </div>
+                        <div className="text-left">
+                          <p className="text-sm font-bold text-foreground tabular-nums">
+                            {tx.fields.Amount?.toLocaleString()} {tx.fields.Currency || ""}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {tx.fields["Transaction Type"] && (
+                          <Badge variant="secondary" className={`text-[10px] ${typeColors[tx.fields["Transaction Type"]] || ""}`}>
+                            {tx.fields["Transaction Type"]}
+                          </Badge>
+                        )}
+                        {payTag && (
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted/60 text-muted-foreground">
+                            {payTag.emoji} {payTag.label}
+                          </span>
+                        )}
+                        {tx.fields["Debit Account Name"] && (
+                          <span className="text-[10px] text-muted-foreground">مدين: {tx.fields["Debit Account Name"]}</span>
+                        )}
+                        {tx.fields["Credit Account Name"] && (
+                          <span className="text-[10px] text-muted-foreground">دائن: {tx.fields["Credit Account Name"]}</span>
+                        )}
+                      </div>
                     </div>
-                    <div className="text-left">
-                      <p className="text-sm font-bold text-foreground tabular-nums">
-                        {tx.fields.Amount?.toLocaleString()} {tx.fields.Currency || ""}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    {tx.fields["Transaction Type"] && (
-                      <Badge variant="secondary" className={`text-[10px] ${typeColors[tx.fields["Transaction Type"]] || ""}`}>
-                        {tx.fields["Transaction Type"]}
-                      </Badge>
-                    )}
-                    {payTag && (
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted/60 text-muted-foreground">
-                        {payTag.emoji} {payTag.label}
-                      </span>
-                    )}
-                    {tx.fields["Debit Account Name"] && (
-                      <span className="text-[10px] text-muted-foreground">مدين: {tx.fields["Debit Account Name"]}</span>
-                    )}
-                    {tx.fields["Credit Account Name"] && (
-                      <span className="text-[10px] text-muted-foreground">دائن: {tx.fields["Credit Account Name"]}</span>
-                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -344,6 +443,25 @@ const TransactionsPage = () => {
             <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90" disabled={deleting}>
               {deleting && <Loader2 className="h-4 w-4 animate-spin ml-2" />}
               حذف نهائي
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk Delete Confirmation */}
+      <AlertDialog open={showBulkDeleteConfirm} onOpenChange={setShowBulkDeleteConfirm}>
+        <AlertDialogContent dir="rtl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>حذف {selectedIds.size} معاملة</AlertDialogTitle>
+            <AlertDialogDescription>
+              هل أنت متأكد من حذف {selectedIds.size} معاملة؟ لا يمكن التراجع عن هذا الإجراء.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex gap-2">
+            <AlertDialogCancel disabled={bulkDeleting}>إلغاء</AlertDialogCancel>
+            <AlertDialogAction onClick={handleBulkDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90" disabled={bulkDeleting}>
+              {bulkDeleting && <Loader2 className="h-4 w-4 animate-spin ml-2" />}
+              حذف نهائي ({selectedIds.size})
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
