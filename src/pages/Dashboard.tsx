@@ -188,27 +188,42 @@ const Dashboard = () => {
 
   const handleDbCommand = async () => {
     if (!dbCommand.trim()) return;
+    const lines = dbCommand.split("\n").map(l => l.trim()).filter(Boolean);
+    if (lines.length === 0) return;
     setDbSending(true);
+    let successCount = 0;
+    let errorMessages: string[] = [];
     try {
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/database-command`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ command: dbCommand, clientId: user?.id }),
-      });
-      const data = await res.json();
-      if (!res.ok || data.error) throw new Error(data.error || "فشل تنفيذ الأمر");
-      if (data.action === 'need_info') {
-        toast({ title: "📝 " + (data.message || "أحتاج تفاصيل إضافية"), description: (data.missing_fields || []).join("، ") });
-      } else if (data.action === 'delete_blocked') {
-        toast({ title: data.message || "لا يمكن الحذف", variant: "destructive" });
-      } else if (data.success) {
-        toast({ title: "✅ " + (data.message || "تم تنفيذ الأمر بنجاح") });
-        setDbCommand("");
-      } else {
-        toast({ title: data.message || "لم أفهم الأمر", variant: "destructive" });
+      for (const line of lines) {
+        try {
+          const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/database-command`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ command: line, clientId: user?.id }),
+          });
+          const data = await res.json();
+          if (!res.ok || data.error) {
+            errorMessages.push(`❌ ${line}: ${data.error || "فشل"}`);
+          } else if (data.action === 'need_info') {
+            toast({ title: "📝 " + (data.message || "أحتاج تفاصيل إضافية"), description: (data.missing_fields || []).join("، ") });
+          } else if (data.action === 'delete_blocked') {
+            toast({ title: data.message || "لا يمكن الحذف", variant: "destructive" });
+          } else if (data.success) {
+            successCount++;
+          } else {
+            errorMessages.push(`⚠️ ${line}: ${data.message || "لم أفهم"}`);
+          }
+        } catch (err: any) {
+          errorMessages.push(`❌ ${line}: ${err.message}`);
+        }
       }
-    } catch (err: any) {
-      toast({ title: "خطأ", description: err.message, variant: "destructive" });
+      if (successCount > 0) {
+        toast({ title: `✅ تم تنفيذ ${successCount} ${successCount === 1 ? "أمر" : "أوامر"} بنجاح` });
+        setDbCommand("");
+      }
+      if (errorMessages.length > 0) {
+        toast({ title: "بعض الأوامر فشلت", description: errorMessages.join("\n"), variant: "destructive" });
+      }
     } finally { setDbSending(false); }
   };
 
