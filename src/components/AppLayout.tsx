@@ -1,15 +1,15 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { Home, Users, FileText, Receipt, Sparkles } from "lucide-react";
+import { Home, Users, FileText, Receipt, Menu } from "lucide-react";
 
 interface AppLayoutProps {
   children: React.ReactNode;
 }
 
 const navItems = [
-  { icon: Sparkles, label: "AI", path: "/smart-report" },
-  { icon: Receipt, label: "المصروفات", path: "/transactions" },
-  { icon: FileText, label: "الفواتير", path: "/invoices" },
+  { icon: Receipt, label: "المعاملات", path: "/transactions" },
   { icon: Users, label: "العملاء", path: "/contacts" },
+  { icon: FileText, label: "الحسابات", path: "/accounts" },
+  { icon: Menu, label: "القائمة", path: "/menu" },
   { icon: Home, label: "الرئيسية", path: "/" },
 ];
 
