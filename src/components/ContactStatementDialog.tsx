@@ -363,7 +363,9 @@ const ContactStatementDialog = ({ open, onClose, contactId, contactName, contact
 </div>
 </body></html>`);
     printWindow.document.close();
-    setTimeout(() => printWindow.print(), 500);
+    printWindow.onload = () => {
+      try { printWindow.print(); } catch (_) { /* user cancelled */ }
+    };
     toast({ title: "تم فتح نافذة الطباعة ✅" });
   };
 
@@ -485,22 +487,27 @@ const ContactStatementDialog = ({ open, onClose, contactId, contactName, contact
             {!isPrintView && (
               <div className="flex flex-wrap items-center gap-2 p-3 rounded-xl bg-muted/30 border border-border">
                 <div className="flex items-center gap-1.5">
-                  <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
-                  <Input
-                    type="date"
-                    value={dateFrom}
-                    onChange={(e) => setDateFrom(e.target.value)}
-                    className="h-8 w-[130px] text-xs rounded-lg"
-                    placeholder="من تاريخ"
-                  />
+                  <div className="relative">
+                    <Calendar className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+                    <Input
+                      type="date"
+                      value={dateFrom}
+                      onChange={(e) => setDateFrom(e.target.value)}
+                      className="h-8 w-[140px] text-xs rounded-lg pr-7 [&::-webkit-calendar-picker-indicator]{opacity:0}{cursor:pointer}"
+                      placeholder="من تاريخ"
+                    />
+                  </div>
                   <span className="text-xs text-muted-foreground">—</span>
-                  <Input
-                    type="date"
-                    value={dateTo}
-                    onChange={(e) => setDateTo(e.target.value)}
-                    className="h-8 w-[130px] text-xs rounded-lg"
-                    placeholder="إلى تاريخ"
-                  />
+                  <div className="relative">
+                    <Calendar className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+                    <Input
+                      type="date"
+                      value={dateTo}
+                      onChange={(e) => setDateTo(e.target.value)}
+                      className="h-8 w-[140px] text-xs rounded-lg pr-7 [&::-webkit-calendar-picker-indicator]{opacity:0}{cursor:pointer}"
+                      placeholder="إلى تاريخ"
+                    />
+                  </div>
                 </div>
                 <Select value={typeFilter} onValueChange={setTypeFilter}>
                   <SelectTrigger className="h-8 w-[140px] text-xs rounded-lg">
