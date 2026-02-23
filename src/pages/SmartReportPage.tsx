@@ -97,7 +97,7 @@ const SmartReportPage = () => {
             Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ question: finalQ }),
+          body: JSON.stringify({ question: finalQ, clientId: user?.id }),
         }
       );
       if (!res.ok) throw new Error("فشل في الحصول على التقرير");

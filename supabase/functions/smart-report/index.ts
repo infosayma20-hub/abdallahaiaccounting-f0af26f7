@@ -40,8 +40,26 @@ serve(async (req) => {
     }
     if (question.length > 500) throw new Error('Question too long');
 
-    // Fetch client's transactions and accounts
-    const txUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Transactions?pageSize=100`;
+    // Resolve Supabase UUID to Airtable Client record ID
+    let airtableClientRecordId = '';
+    if (clientId) {
+      const clientLookupUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Clients?filterByFormula=${encodeURIComponent(`{UserID}="${clientId}"`)}&pageSize=1`;
+      const clientRes = await fetch(clientLookupUrl, {
+        headers: { 'Authorization': `Bearer ${AIRTABLE_API_KEY}` },
+      });
+      if (clientRes.ok) {
+        const clientData = await clientRes.json();
+        if (clientData.records && clientData.records.length > 0) {
+          airtableClientRecordId = clientData.records[0].id;
+        }
+      }
+    }
+
+    // Fetch transactions with client filter if possible
+    const filterFormula = airtableClientRecordId
+      ? `&filterByFormula=${encodeURIComponent(`{Client}="${airtableClientRecordId}"`)}`
+      : '';
+    const txUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Transactions?pageSize=100${filterFormula}`;
     const accUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Accounts?pageSize=100`;
 
     const [allTx, allAcc] = await Promise.all([
@@ -49,29 +67,23 @@ serve(async (req) => {
       fetchAllRecords(accUrl, AIRTABLE_API_KEY),
     ]);
 
-    // Filter transactions for this client
-    const clientTx = clientId ? allTx.filter((tx: any) => {
-      const clientName = tx.fields["Client Name"] || tx.fields["Client name"];
-      if (clientName) {
-        if (Array.isArray(clientName)) return clientName.includes(clientId);
-        return clientName === clientId;
-      }
-      const clientField = tx.fields["Client"];
-      if (!clientField) return false;
-      if (Array.isArray(clientField)) return clientField.some((c: string) => c.includes(clientId));
-      return String(clientField).includes(clientId);
-    }) : allTx;
+    // If filter didn't work via formula, filter in memory
+    let clientTx = allTx;
+    if (airtableClientRecordId && !filterFormula) {
+      clientTx = allTx.filter((tx: any) => {
+        const clientField = tx.fields["Client"];
+        if (!clientField) return false;
+        if (Array.isArray(clientField)) return clientField.includes(airtableClientRecordId);
+        return clientField === airtableClientRecordId;
+      });
+    }
 
-    // Filter accounts for this client (shared + private)
-    const clientAcc = clientId ? allAcc.filter((acc: any) => {
+    // Filter accounts for this client
+    const clientAcc = airtableClientRecordId ? allAcc.filter((acc: any) => {
       const clientField = acc.fields["Client"];
-      if (!clientField || (Array.isArray(clientField) && clientField.length === 0)) return true;
-      const clientName = acc.fields["Client Name"] || acc.fields["Client name"];
-      if (clientName) {
-        if (Array.isArray(clientName)) return clientName.includes(clientId);
-        return clientName === clientId;
-      }
-      return false;
+      if (!clientField || (Array.isArray(clientField) && clientField.length === 0)) return true; // shared accounts
+      if (Array.isArray(clientField)) return clientField.includes(airtableClientRecordId);
+      return clientField === airtableClientRecordId;
     }) : allAcc;
 
     // Prepare data summary for AI
