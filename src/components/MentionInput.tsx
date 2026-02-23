@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Users, AtSign, Package } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
-interface MentionItem {
+export interface MentionItem {
   id: string;
   name: string;
   type: string; // "زبون" | "مورد" | "صنف"
@@ -13,12 +13,13 @@ interface MentionInputProps {
   value: string;
   onChange: (value: string) => void;
   onKeyDown?: (e: React.KeyboardEvent) => void;
+  onMentionSelect?: (item: MentionItem) => void;
   placeholder?: string;
   className?: string;
   userId?: string;
 }
 
-const MentionInput = ({ value, onChange, onKeyDown, placeholder, className, userId }: MentionInputProps) => {
+const MentionInput = ({ value, onChange, onKeyDown, onMentionSelect, placeholder, className, userId }: MentionInputProps) => {
   const [items, setItems] = useState<MentionItem[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -116,10 +117,11 @@ const MentionInput = ({ value, onChange, onKeyDown, placeholder, className, user
       const newValue = before + item.name + " " + after;
       onChange(newValue);
     }
+    onMentionSelect?.(item);
     setShowDropdown(false);
     setMentionStart(-1);
     inputRef.current?.focus();
-  }, [value, mentionStart, onChange]);
+  }, [value, mentionStart, onChange, onMentionSelect]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (showDropdown && allFiltered.length > 0) {

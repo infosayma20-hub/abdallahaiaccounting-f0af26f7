@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { Wallet, Mic, Send, Loader2, Bell, Sparkles, Database, FileText, Package, TrendingUp, TrendingDown, ArrowLeft, ChevronDown, Users, UserPlus, Plus, Paperclip, BarChart3, Clock, AlertTriangle, Sun, Moon } from "lucide-react";
-import MentionInput from "@/components/MentionInput";
+import MentionInput, { MentionItem } from "@/components/MentionInput";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -36,6 +36,7 @@ const Dashboard = () => {
   const { theme, toggleTheme } = useTheme();
   const [themePulse, setThemePulse] = useState(false);
   const [inputValue, setInputValue] = useState("");
+  const [selectedMentions, setSelectedMentions] = useState<MentionItem[]>([]);
   const [sending, setSending] = useState(false);
   const [dbCommand, setDbCommand] = useState("");
   const [dbSending, setDbSending] = useState(false);
@@ -158,12 +159,17 @@ const Dashboard = () => {
     setSending(true);
     let successCount = 0;
     let failCount = 0;
+    // Find selected contact mention (category === "contact")
+    const contactMention = selectedMentions.find(m => m.category === "contact");
     try {
       for (const line of lines) {
         try {
-          const { error } = await supabase.functions.invoke("send-transaction", {
-            body: { text: line, userId: user?.id, email: user?.email, companyName: user?.user_metadata?.company_name },
-          });
+          const body: any = { text: line, userId: user?.id, email: user?.email, companyName: user?.user_metadata?.company_name };
+          if (contactMention) {
+            body.mentionedContactName = contactMention.name;
+            body.mentionedContactId = contactMention.id;
+          }
+          const { error } = await supabase.functions.invoke("send-transaction", { body });
           if (error) throw error;
           successCount++;
         } catch { failCount++; }
@@ -174,6 +180,7 @@ const Dashboard = () => {
         toast({ title: `تم إرسال ${successCount} من ${lines.length} عمليات`, description: `فشل ${failCount} عمليات`, variant: "destructive" });
       }
       setInputValue("");
+      setSelectedMentions([]);
     } catch (err: any) {
       toast({ title: "خطأ في الإرسال", description: err.message, variant: "destructive" });
     } finally { setSending(false); }
@@ -293,6 +300,7 @@ const Dashboard = () => {
                 value={inputValue}
                 onChange={setInputValue}
                 onKeyDown={(e) => e.key === "Enter" && handleSend()}
+                onMentionSelect={(item) => setSelectedMentions(prev => [...prev, item])}
                 placeholder='شو صار معك اليوم مالياً؟ سجل عملياتك بكلامك…'
                 className="flex-1 min-w-0 h-10 bg-transparent rounded-xl px-2 text-sm text-foreground placeholder:text-muted-foreground border-0 outline-none"
                 userId={user?.id}
