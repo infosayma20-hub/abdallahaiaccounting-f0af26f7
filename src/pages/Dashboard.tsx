@@ -339,6 +339,30 @@ const Dashboard = () => {
                 </button>
               ))}
             </div>
+
+            {/* AI Command Box */}
+            <div className="premium-card p-3 space-y-2 neon-border">
+              <div className="flex items-center gap-2 mb-1">
+                <Database className="h-3.5 w-3.5 text-primary" />
+                <span className="text-[11px] font-semibold text-muted-foreground">نفّذ بالكلام: أضف زبون، مورد، حساب، أو منتج...</span>
+              </div>
+              <div className="flex items-end gap-2 bg-secondary/60 rounded-xl px-2.5 py-2">
+                <button onClick={handleDbCommand} disabled={dbSending || !dbCommand.trim()} className="flex-shrink-0 w-9 h-9 rounded-full bg-primary flex items-center justify-center hover:opacity-90 transition-all active:scale-95 disabled:opacity-40">
+                  {dbSending ? <Loader2 className="h-4 w-4 text-primary-foreground animate-spin" /> : <Send className="h-4 w-4 text-primary-foreground" />}
+                </button>
+                <input
+                  value={dbCommand}
+                  onChange={(e) => setDbCommand(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleDbCommand()}
+                  placeholder='مثال: "أضف زبون أحمد جوال 0501234567 حد ائتماني 10000"'
+                  className="flex-1 min-w-0 h-9 bg-transparent rounded-xl px-2 text-sm text-foreground placeholder:text-muted-foreground border-0 outline-none text-right"
+                  dir="rtl"
+                />
+                <button onClick={() => navigate("/voice")} className="flex-shrink-0 w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center hover:bg-primary/20 transition-colors active:scale-95">
+                  <Mic className="h-4 w-4 text-primary" />
+                </button>
+              </div>
+            </div>
           </div>
 
           <div className="relative rounded-[18px] p-[1.5px]" style={{ background: "linear-gradient(135deg, hsl(152,72%,40%), hsl(168,76%,42%))" }}>
