@@ -345,13 +345,24 @@ const Dashboard = () => {
                 <button onClick={handleDbCommand} disabled={dbSending || !dbCommand.trim()} className="flex-shrink-0 w-9 h-9 rounded-full bg-primary flex items-center justify-center hover:opacity-90 transition-all active:scale-95 disabled:opacity-40">
                   {dbSending ? <Loader2 className="h-4 w-4 text-primary-foreground animate-spin" /> : <Send className="h-4 w-4 text-primary-foreground" />}
                 </button>
-                <input
+                <textarea
                   value={dbCommand}
                   onChange={(e) => setDbCommand(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleDbCommand()}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      handleDbCommand();
+                    }
+                  }}
                   placeholder='مثال: "أضف زبون أحمد جوال 0501234567 حد ائتماني 10000"'
-                  className="flex-1 min-w-0 h-9 bg-transparent rounded-xl px-2 text-sm text-foreground placeholder:text-muted-foreground border-0 outline-none text-right"
+                  className="flex-1 min-w-0 min-h-[36px] max-h-[120px] bg-transparent rounded-xl px-2 py-2 text-sm text-foreground placeholder:text-muted-foreground border-0 outline-none text-right resize-none overflow-y-auto"
                   dir="rtl"
+                  rows={1}
+                  onInput={(e) => {
+                    const target = e.target as HTMLTextAreaElement;
+                    target.style.height = "auto";
+                    target.style.height = Math.min(target.scrollHeight, 120) + "px";
+                  }}
                 />
                 <button onClick={() => navigate("/voice")} className="flex-shrink-0 w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center hover:bg-primary/20 transition-colors active:scale-95">
                   <Mic className="h-4 w-4 text-primary" />
