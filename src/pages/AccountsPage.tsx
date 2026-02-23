@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ArrowRight, Loader2, RefreshCw, Plus, ChevronDown } from "lucide-react";
+import { ArrowRight, Loader2, RefreshCw, Plus, ChevronDown, Search } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -61,6 +61,7 @@ const AccountsPage = () => {
   const [newAccountType, setNewAccountType] = useState("");
   const [adding, setAdding] = useState(false);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
+  const [searchQuery, setSearchQuery] = useState("");
 
   const fetchAccounts = async () => {
     if (!user) return;
@@ -119,9 +120,14 @@ const AccountsPage = () => {
   const accountTypes = [...new Set(accounts.map(a => a.fields["Account Type"]).filter(Boolean))]
     .sort((a, b) => (typeOrder.indexOf(a!) === -1 ? 99 : typeOrder.indexOf(a!)) - (typeOrder.indexOf(b!) === -1 ? 99 : typeOrder.indexOf(b!)));
 
+  // Filter accounts by search
+  const filteredAccounts = searchQuery.trim()
+    ? accounts.filter(a => (a.fields["Account Name"] || "").toLowerCase().includes(searchQuery.toLowerCase()))
+    : accounts;
+
   // Group accounts by type
   const groupedAccounts = accountTypes.reduce((acc, type) => {
-    acc[type!] = accounts.filter(a => a.fields["Account Type"] === type);
+    acc[type!] = filteredAccounts.filter(a => a.fields["Account Type"] === type);
     return acc;
   }, {} as Record<string, Account[]>);
 
@@ -147,6 +153,20 @@ const AccountsPage = () => {
         </div>
       </div>
 
+      {/* Search */}
+      {!loading && !error && accounts.length > 0 && (
+        <div className="relative">
+          <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="ابحث عن حساب..."
+            className="pr-9 rounded-xl text-sm"
+            dir="rtl"
+          />
+        </div>
+      )}
+
       {loading && (
         <div className="flex items-center justify-center py-16">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -166,6 +186,7 @@ const AccountsPage = () => {
         <div className="space-y-3">
           {accountTypes.map((type) => {
             const typeAccounts = groupedAccounts[type!] || [];
+            if (searchQuery && typeAccounts.length === 0) return null;
             const isOpen = openSections[type!] ?? true;
 
             return (
