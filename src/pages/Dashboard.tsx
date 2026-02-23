@@ -326,19 +326,6 @@ const Dashboard = () => {
           {/* ═══ QUICK ACTIONS – اطلب وتمنى ═══ */}
           <div className="space-y-3">
             <h2 className="text-sm font-bold text-foreground">اطلب وتمنى ✨</h2>
-            <div className="grid grid-cols-2 gap-2.5">
-              {quickActions.map((action) => (
-                <button
-                  key={action.label}
-                  onClick={() => navigate(action.path)}
-                  className="premium-card p-4 text-right space-y-1.5 neon-border hover:bg-secondary/50 transition-all active:scale-[0.98]"
-                >
-                  <action.icon className="h-5 w-5 text-primary mb-1" />
-                  <p className="text-xs font-semibold text-foreground">{action.label}</p>
-                  <p className="text-[9px] text-muted-foreground leading-tight">{action.desc}</p>
-                </button>
-              ))}
-            </div>
 
             {/* AI Command Box */}
             <div className="premium-card p-3 space-y-2 neon-border">
@@ -362,6 +349,20 @@ const Dashboard = () => {
                   <Mic className="h-4 w-4 text-primary" />
                 </button>
               </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2.5">
+              {quickActions.map((action) => (
+                <button
+                  key={action.label}
+                  onClick={() => navigate(action.path)}
+                  className="premium-card p-4 text-right space-y-1.5 neon-border hover:bg-secondary/50 transition-all active:scale-[0.98]"
+                >
+                  <action.icon className="h-5 w-5 text-primary mb-1" />
+                  <p className="text-xs font-semibold text-foreground">{action.label}</p>
+                  <p className="text-[9px] text-muted-foreground leading-tight">{action.desc}</p>
+                </button>
+              ))}
             </div>
           </div>
 
