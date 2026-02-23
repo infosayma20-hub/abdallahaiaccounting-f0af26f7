@@ -206,7 +206,7 @@ const ContactStatementDialog = ({ open, onClose, contactId, contactName, contact
       "ملاحظات": r.tx.fields.Description || "",
       "مدين": r.debit || "",
       "دائن": r.credit || "",
-      "الرصيد": `${fmtBalanceShort(r.runningBalance)} ${balanceDirection(r.runningBalance)}`,
+      "الرصيد": r.runningBalance,
     }));
     rows.push({
       "#": "" as any,
@@ -215,7 +215,7 @@ const ContactStatementDialog = ({ open, onClose, contactId, contactName, contact
       "ملاحظات": "",
       "مدين": totalDebit as any,
       "دائن": totalCredit as any,
-      "الرصيد": fmtBalance(finalBalance, currency),
+      "الرصيد": finalBalance as any,
     });
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
@@ -487,27 +487,21 @@ const ContactStatementDialog = ({ open, onClose, contactId, contactName, contact
             {!isPrintView && (
               <div className="flex flex-wrap items-center gap-2 p-3 rounded-xl bg-muted/30 border border-border">
                 <div className="flex items-center gap-1.5">
-                  <div className="relative">
-                    <Calendar className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
-                    <Input
-                      type="date"
-                      value={dateFrom}
-                      onChange={(e) => setDateFrom(e.target.value)}
-                      className="h-8 w-[140px] text-xs rounded-lg pr-7 [&::-webkit-calendar-picker-indicator]{opacity:0}{cursor:pointer}"
-                      placeholder="من تاريخ"
-                    />
-                  </div>
+                  <Input
+                    type="date"
+                    value={dateFrom}
+                    onChange={(e) => setDateFrom(e.target.value)}
+                    className="h-8 w-[140px] text-xs rounded-lg"
+                    placeholder="من تاريخ"
+                  />
                   <span className="text-xs text-muted-foreground">—</span>
-                  <div className="relative">
-                    <Calendar className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
-                    <Input
-                      type="date"
-                      value={dateTo}
-                      onChange={(e) => setDateTo(e.target.value)}
-                      className="h-8 w-[140px] text-xs rounded-lg pr-7 [&::-webkit-calendar-picker-indicator]{opacity:0}{cursor:pointer}"
-                      placeholder="إلى تاريخ"
-                    />
-                  </div>
+                  <Input
+                    type="date"
+                    value={dateTo}
+                    onChange={(e) => setDateTo(e.target.value)}
+                    className="h-8 w-[140px] text-xs rounded-lg"
+                    placeholder="إلى تاريخ"
+                  />
                 </div>
                 <Select value={typeFilter} onValueChange={setTypeFilter}>
                   <SelectTrigger className="h-8 w-[140px] text-xs rounded-lg">
