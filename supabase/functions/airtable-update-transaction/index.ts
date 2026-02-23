@@ -21,8 +21,48 @@ serve(async (req) => {
 
     if (!recordId) throw new Error('recordId is required');
 
-    // DELETE action
+    // SOFT DELETE action — mark as deleted instead of permanent delete
     if (action === 'delete') {
+      const patchUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Transactions/${recordId}`;
+      const patchRes = await fetch(patchUrl, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ fields: { Deleted: true } }),
+      });
+      if (!patchRes.ok) {
+        const errText = await patchRes.text();
+        throw new Error(`Airtable soft-delete failed [${patchRes.status}]: ${errText}`);
+      }
+      return new Response(JSON.stringify({ success: true, deleted: true }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // RESTORE action — unmark as deleted
+    if (action === 'restore') {
+      const patchUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Transactions/${recordId}`;
+      const patchRes = await fetch(patchUrl, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ fields: { Deleted: false } }),
+      });
+      if (!patchRes.ok) {
+        const errText = await patchRes.text();
+        throw new Error(`Airtable restore failed [${patchRes.status}]: ${errText}`);
+      }
+      return new Response(JSON.stringify({ success: true, restored: true }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // PERMANENT DELETE action
+    if (action === 'permanent-delete') {
       const deleteUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Transactions/${recordId}`;
       const delRes = await fetch(deleteUrl, {
         method: 'DELETE',
@@ -32,7 +72,7 @@ serve(async (req) => {
         const errText = await delRes.text();
         throw new Error(`Airtable delete failed [${delRes.status}]: ${errText}`);
       }
-      return new Response(JSON.stringify({ success: true, deleted: true }), {
+      return new Response(JSON.stringify({ success: true, permanentlyDeleted: true }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
