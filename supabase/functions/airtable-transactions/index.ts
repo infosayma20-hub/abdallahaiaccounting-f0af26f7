@@ -24,7 +24,6 @@ async function fetchAllRecords(baseUrl: string, apiKey: string): Promise<any[]> 
 
     if (data.offset) {
       const separator = currentUrl.includes('?') ? '&' : '?';
-      // Remove existing offset param if any
       const cleanUrl = baseUrl.replace(/&offset=[^&]*/, '');
       currentUrl = `${cleanUrl}&offset=${data.offset}`;
     } else {
@@ -50,13 +49,25 @@ serve(async (req) => {
     const url = new URL(req.url);
     const clientId = url.searchParams.get('clientId') || '';
     const view = url.searchParams.get('view') || 'ملخص الحركات المحاسبية';
+    const showDeleted = url.searchParams.get('deleted') === 'true';
     
-    const filterFormula = clientId ? `&filterByFormula=${encodeURIComponent(`{Client}="${clientId}"`)}` : '';
+    // Build filter: client + deleted status
+    let filterParts: string[] = [];
+    if (clientId) filterParts.push(`{Client}="${clientId}"`);
+    
+    if (showDeleted) {
+      filterParts.push(`{Deleted}=TRUE()`);
+    } else {
+      filterParts.push(`OR({Deleted}=BLANK(),{Deleted}=FALSE())`);
+    }
+
+    const filterFormula = filterParts.length > 1 
+      ? `&filterByFormula=${encodeURIComponent(`AND(${filterParts.join(',')})`)}`
+      : `&filterByFormula=${encodeURIComponent(filterParts[0])}`;
     
     const txUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Transactions?view=${encodeURIComponent(view)}&pageSize=100${filterFormula}`;
     const accountsUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Accounts?pageSize=100`;
 
-    // Fetch transactions and accounts in parallel
     const [allTx, allAccounts] = await Promise.all([
       fetchAllRecords(txUrl, AIRTABLE_API_KEY),
       fetchAllRecords(accountsUrl, AIRTABLE_API_KEY),
@@ -72,14 +83,12 @@ serve(async (req) => {
     const enrichedTx = allTx.map((tx: any) => {
       const fields = { ...tx.fields };
 
-      // Debit Account - linked record (array of IDs)
       if (Array.isArray(fields["Debit Account"])) {
         fields["Debit Account Name"] = fields["Debit Account"].map((id: string) => accountMap[id] || id).join(", ");
       } else if (typeof fields["Debit Account"] === "string") {
         fields["Debit Account Name"] = accountMap[fields["Debit Account"]] || fields["Debit Account"];
       }
 
-      // Credit Account - linked record (array of IDs)
       if (Array.isArray(fields["Credit Account"])) {
         fields["Credit Account Name"] = fields["Credit Account"].map((id: string) => accountMap[id] || id).join(", ");
       } else if (typeof fields["Credit Account"] === "string") {

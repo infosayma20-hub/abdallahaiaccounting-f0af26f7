@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ArrowRight, Loader2, RefreshCw, Pencil, Trash2, CheckSquare, X } from "lucide-react";
+import { ArrowRight, Loader2, RefreshCw, Pencil, Trash2, CheckSquare, X, RotateCcw, Archive } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,7 @@ interface Transaction {
     Currency?: string;
     Date?: string;
     Reference?: string;
+    Deleted?: boolean;
   };
 }
 
@@ -89,6 +90,12 @@ const TransactionsPage = () => {
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
 
+  // Trash view state
+  const [showTrash, setShowTrash] = useState(false);
+  const [deletedTransactions, setDeletedTransactions] = useState<Transaction[]>([]);
+  const [loadingTrash, setLoadingTrash] = useState(false);
+  const [restoringId, setRestoringId] = useState<string | null>(null);
+
   const fetchData = async () => {
     if (!user) return;
     setLoading(true);
@@ -117,7 +124,28 @@ const TransactionsPage = () => {
     }
   };
 
+  const fetchDeletedTransactions = async () => {
+    if (!user) return;
+    setLoadingTrash(true);
+    try {
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-transactions?clientId=${user.id}&deleted=true`, {
+        headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+      });
+      if (!res.ok) throw new Error("Failed to fetch deleted transactions");
+      const data = await res.json();
+      setDeletedTransactions(data?.records || []);
+    } catch (err: any) {
+      toast({ title: "خطأ", description: err.message, variant: "destructive" });
+    } finally {
+      setLoadingTrash(false);
+    }
+  };
+
   useEffect(() => { fetchData(); }, [user]);
+
+  useEffect(() => {
+    if (showTrash) fetchDeletedTransactions();
+  }, [showTrash]);
 
   const openEdit = (tx: Transaction) => {
     if (selectMode) return;
@@ -176,7 +204,7 @@ const TransactionsPage = () => {
       });
       const data = await res.json();
       if (!res.ok || data.error) throw new Error(data.error || "فشل الحذف");
-      toast({ title: "تم حذف المعاملة بنجاح 🗑️" });
+      toast({ title: "تم نقل المعاملة إلى سلة المحذوفات 🗑️" });
       setEditingTx(null);
       setShowDeleteConfirm(false);
       fetchData();
@@ -221,9 +249,51 @@ const TransactionsPage = () => {
           })
         )
       );
-      toast({ title: `تم حذف ${ids.length} معاملة بنجاح 🗑️` });
+      toast({ title: `تم نقل ${ids.length} معاملة إلى سلة المحذوفات 🗑️` });
       setShowBulkDeleteConfirm(false);
       exitSelectMode();
+      fetchData();
+    } catch (err: any) {
+      toast({ title: "خطأ", description: err.message, variant: "destructive" });
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
+
+  const handleRestore = async (recordId: string) => {
+    setRestoringId(recordId);
+    try {
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-update-transaction`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ recordId, action: "restore" }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error || "فشل الاسترجاع");
+      toast({ title: "تم استرجاع المعاملة بنجاح ✅" });
+      fetchDeletedTransactions();
+      fetchData();
+    } catch (err: any) {
+      toast({ title: "خطأ", description: err.message, variant: "destructive" });
+    } finally {
+      setRestoringId(null);
+    }
+  };
+
+  const handleRestoreAll = async () => {
+    setBulkDeleting(true);
+    try {
+      await Promise.all(
+        deletedTransactions.map(tx =>
+          fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-update-transaction`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ recordId: tx.id, action: "restore" }),
+          })
+        )
+      );
+      toast({ title: `تم استرجاع ${deletedTransactions.length} معاملة بنجاح ✅` });
+      fetchDeletedTransactions();
       fetchData();
     } catch (err: any) {
       toast({ title: "خطأ", description: err.message, variant: "destructive" });
@@ -238,32 +308,41 @@ const TransactionsPage = () => {
     <div className="px-4 pt-6 space-y-4" dir="rtl">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate("/menu")} className="p-2 rounded-xl hover:bg-muted transition-colors">
+          <button onClick={() => showTrash ? setShowTrash(false) : navigate("/menu")} className="p-2 rounded-xl hover:bg-muted transition-colors">
             <ArrowRight className="h-5 w-5 text-foreground" />
           </button>
           <div>
-            <h1 className="text-lg font-bold text-foreground">المعاملات</h1>
-            <p className="text-xs text-muted-foreground">{transactions.length} معاملة</p>
+            <h1 className="text-lg font-bold text-foreground">{showTrash ? "سلة المحذوفات" : "المعاملات"}</h1>
+            <p className="text-xs text-muted-foreground">
+              {showTrash ? `${deletedTransactions.length} معاملة محذوفة` : `${transactions.length} معاملة`}
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-1">
-          {!selectMode ? (
-            <Button variant="ghost" size="icon" onClick={() => setSelectMode(true)} disabled={loading || transactions.length === 0}>
-              <CheckSquare className="h-4 w-4" />
-            </Button>
-          ) : (
-            <Button variant="ghost" size="icon" onClick={exitSelectMode}>
-              <X className="h-4 w-4" />
-            </Button>
+          {!showTrash && (
+            <>
+              {!selectMode ? (
+                <Button variant="ghost" size="icon" onClick={() => setSelectMode(true)} disabled={loading || transactions.length === 0}>
+                  <CheckSquare className="h-4 w-4" />
+                </Button>
+              ) : (
+                <Button variant="ghost" size="icon" onClick={exitSelectMode}>
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+              <Button variant="ghost" size="icon" onClick={() => setShowTrash(true)} className="relative">
+                <Archive className="h-4 w-4" />
+              </Button>
+            </>
           )}
-          <Button variant="ghost" size="icon" onClick={fetchData} disabled={loading}>
-            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+          <Button variant="ghost" size="icon" onClick={showTrash ? fetchDeletedTransactions : fetchData} disabled={loading || loadingTrash}>
+            <RefreshCw className={`h-4 w-4 ${(loading || loadingTrash) ? "animate-spin" : ""}`} />
           </Button>
         </div>
       </div>
 
       {/* Select mode toolbar */}
-      {selectMode && (
+      {selectMode && !showTrash && (
         <div className="flex items-center justify-between bg-muted/50 rounded-xl p-3 border border-border">
           <div className="flex items-center gap-3">
             <Checkbox
@@ -287,81 +366,152 @@ const TransactionsPage = () => {
         </div>
       )}
 
-      {loading && (
-        <div className="flex items-center justify-center py-16">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      )}
+      {/* Trash view */}
+      {showTrash && (
+        <>
+          {deletedTransactions.length > 0 && (
+            <div className="flex justify-end">
+              <Button variant="outline" size="sm" className="gap-1.5 rounded-xl" onClick={handleRestoreAll} disabled={bulkDeleting}>
+                {bulkDeleting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCcw className="h-3.5 w-3.5" />}
+                استرجاع الكل ({deletedTransactions.length})
+              </Button>
+            </div>
+          )}
 
-      {error && (
-        <Card className="border-destructive/30 bg-destructive/5">
-          <CardContent className="p-4 text-center">
-            <p className="text-sm text-destructive">{error}</p>
-            <Button variant="outline" size="sm" className="mt-2" onClick={fetchData}>إعادة المحاولة</Button>
-          </CardContent>
-        </Card>
-      )}
+          {loadingTrash && (
+            <div className="flex items-center justify-center py-16">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          )}
 
-      {!loading && !error && (
-        <div className="space-y-2.5">
-          {transactions.map((tx) => {
-            const payTag = paymentMethodTags[tx.fields["Transaction Type"] || ""];
-            const isSelected = selectedIds.has(tx.id);
-            return (
-              <Card
-                key={tx.id}
-                className={`border-0 shadow-sm cursor-pointer hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 overflow-hidden ${isSelected ? "ring-2 ring-primary bg-primary/5" : ""}`}
-                onClick={() => selectMode ? toggleSelect(tx.id) : openEdit(tx)}
-              >
-                <CardContent className="p-4">
-                  <div className="flex items-start gap-3">
-                    {selectMode && (
-                      <div className="pt-0.5">
-                        <Checkbox checked={isSelected} onCheckedChange={() => toggleSelect(tx.id)} />
+          {!loadingTrash && deletedTransactions.length === 0 && (
+            <div className="text-center py-16 space-y-2">
+              <Archive className="h-12 w-12 text-muted-foreground/30 mx-auto" />
+              <p className="text-sm text-muted-foreground">سلة المحذوفات فارغة</p>
+            </div>
+          )}
+
+          {!loadingTrash && deletedTransactions.length > 0 && (
+            <div className="space-y-2.5">
+              {deletedTransactions.map((tx) => (
+                <Card key={tx.id} className="border-0 shadow-sm overflow-hidden opacity-75">
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex-1">
+                        <p className="text-sm font-semibold text-foreground line-through">{tx.fields.Description || "بدون وصف"}</p>
+                        {tx.fields.Date && <p className="text-[10px] text-muted-foreground mt-1">{tx.fields.Date}</p>}
                       </div>
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between mb-2.5">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <p className="text-sm font-semibold text-foreground">{tx.fields.Description || "بدون وصف"}</p>
-                            {!selectMode && <Pencil className="h-3 w-3 text-muted-foreground opacity-50" />}
-                          </div>
-                          {tx.fields.Date && (
-                            <p className="text-[10px] text-muted-foreground mt-1">{tx.fields.Date}</p>
-                          )}
-                        </div>
-                        <div className="text-left">
-                          <p className="text-sm font-bold text-foreground tabular-nums">
-                            {tx.fields.Amount?.toLocaleString()} {tx.fields.Currency || ""}
-                          </p>
-                        </div>
-                      </div>
+                      <p className="text-sm font-bold text-foreground tabular-nums">
+                        {tx.fields.Amount?.toLocaleString()} {tx.fields.Currency || ""}
+                      </p>
+                    </div>
+                    <div className="flex items-center justify-between mt-2">
                       <div className="flex items-center gap-2 flex-wrap">
                         {tx.fields["Transaction Type"] && (
                           <Badge variant="secondary" className={`text-[10px] ${typeColors[tx.fields["Transaction Type"]] || ""}`}>
                             {tx.fields["Transaction Type"]}
                           </Badge>
                         )}
-                        {payTag && (
-                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted/60 text-muted-foreground">
-                            {payTag.emoji} {payTag.label}
-                          </span>
-                        )}
-                        {tx.fields["Debit Account Name"] && (
-                          <span className="text-[10px] text-muted-foreground">مدين: {tx.fields["Debit Account Name"]}</span>
-                        )}
-                        {tx.fields["Credit Account Name"] && (
-                          <span className="text-[10px] text-muted-foreground">دائن: {tx.fields["Credit Account Name"]}</span>
-                        )}
                       </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-1.5 rounded-xl text-xs"
+                        onClick={() => handleRestore(tx.id)}
+                        disabled={restoringId === tx.id}
+                      >
+                        {restoringId === tx.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <RotateCcw className="h-3 w-3" />}
+                        استرجاع
+                      </Button>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Main transactions list */}
+      {!showTrash && (
+        <>
+          {loading && (
+            <div className="flex items-center justify-center py-16">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          )}
+
+          {error && (
+            <Card className="border-destructive/30 bg-destructive/5">
+              <CardContent className="p-4 text-center">
+                <p className="text-sm text-destructive">{error}</p>
+                <Button variant="outline" size="sm" className="mt-2" onClick={fetchData}>إعادة المحاولة</Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {!loading && !error && (
+            <div className="space-y-2.5">
+              {transactions.map((tx) => {
+                const payTag = paymentMethodTags[tx.fields["Transaction Type"] || ""];
+                const isSelected = selectedIds.has(tx.id);
+                return (
+                  <Card
+                    key={tx.id}
+                    className={`border-0 shadow-sm cursor-pointer hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 overflow-hidden ${isSelected ? "ring-2 ring-primary bg-primary/5" : ""}`}
+                    onClick={() => selectMode ? toggleSelect(tx.id) : openEdit(tx)}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-start gap-3">
+                        {selectMode && (
+                          <div className="pt-0.5">
+                            <Checkbox checked={isSelected} onCheckedChange={() => toggleSelect(tx.id)} />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between mb-2.5">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2">
+                                <p className="text-sm font-semibold text-foreground">{tx.fields.Description || "بدون وصف"}</p>
+                                {!selectMode && <Pencil className="h-3 w-3 text-muted-foreground opacity-50" />}
+                              </div>
+                              {tx.fields.Date && (
+                                <p className="text-[10px] text-muted-foreground mt-1">{tx.fields.Date}</p>
+                              )}
+                            </div>
+                            <div className="text-left">
+                              <p className="text-sm font-bold text-foreground tabular-nums">
+                                {tx.fields.Amount?.toLocaleString()} {tx.fields.Currency || ""}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            {tx.fields["Transaction Type"] && (
+                              <Badge variant="secondary" className={`text-[10px] ${typeColors[tx.fields["Transaction Type"]] || ""}`}>
+                                {tx.fields["Transaction Type"]}
+                              </Badge>
+                            )}
+                            {payTag && (
+                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted/60 text-muted-foreground">
+                                {payTag.emoji} {payTag.label}
+                              </span>
+                            )}
+                            {tx.fields["Debit Account Name"] && (
+                              <span className="text-[10px] text-muted-foreground">مدين: {tx.fields["Debit Account Name"]}</span>
+                            )}
+                            {tx.fields["Credit Account Name"] && (
+                              <span className="text-[10px] text-muted-foreground">دائن: {tx.fields["Credit Account Name"]}</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </>
       )}
 
       {/* Edit Dialog */}
@@ -433,16 +583,16 @@ const TransactionsPage = () => {
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
         <AlertDialogContent dir="rtl">
           <AlertDialogHeader>
-            <AlertDialogTitle>حذف المعاملة</AlertDialogTitle>
+            <AlertDialogTitle>نقل إلى سلة المحذوفات</AlertDialogTitle>
             <AlertDialogDescription>
-              هل أنت متأكد من حذف هذه المعاملة؟ لا يمكن التراجع عن هذا الإجراء.
+              سيتم نقل المعاملة إلى سلة المحذوفات. يمكنك استرجاعها لاحقاً.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex gap-2">
             <AlertDialogCancel>إلغاء</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90" disabled={deleting}>
               {deleting && <Loader2 className="h-4 w-4 animate-spin ml-2" />}
-              حذف نهائي
+              نقل للمحذوفات
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -452,16 +602,16 @@ const TransactionsPage = () => {
       <AlertDialog open={showBulkDeleteConfirm} onOpenChange={setShowBulkDeleteConfirm}>
         <AlertDialogContent dir="rtl">
           <AlertDialogHeader>
-            <AlertDialogTitle>حذف {selectedIds.size} معاملة</AlertDialogTitle>
+            <AlertDialogTitle>نقل {selectedIds.size} معاملة للمحذوفات</AlertDialogTitle>
             <AlertDialogDescription>
-              هل أنت متأكد من حذف {selectedIds.size} معاملة؟ لا يمكن التراجع عن هذا الإجراء.
+              سيتم نقل {selectedIds.size} معاملة إلى سلة المحذوفات. يمكنك استرجاعها لاحقاً.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex gap-2">
             <AlertDialogCancel disabled={bulkDeleting}>إلغاء</AlertDialogCancel>
             <AlertDialogAction onClick={handleBulkDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90" disabled={bulkDeleting}>
               {bulkDeleting && <Loader2 className="h-4 w-4 animate-spin ml-2" />}
-              حذف نهائي ({selectedIds.size})
+              نقل للمحذوفات ({selectedIds.size})
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
