@@ -15,12 +15,54 @@ interface ReportResult {
   table: Record<string, any>[];
 }
 
-const exampleQuestions = [
-  "كم إجمالي أرباحي؟",
-  "كم مشترياتي هذا الشهر؟",
-  "كم سحبت شخصي؟",
-  "أعطني كشف حساب المصروفات",
-  "ما هي آخر 10 معاملات؟",
+const reportCategories = [
+  {
+    label: "📊 الأرباح والخسائر",
+    questions: [
+      "اعرض أرباح وخسائر هذا الشهر",
+      "كم إجمالي أرباحي؟",
+      "كم صافي الربح؟",
+    ],
+  },
+  {
+    label: "🛒 المشتريات والمبيعات",
+    questions: [
+      "كم مشترياتي هذا الشهر؟",
+      "كم مبيعاتي هذا الشهر؟",
+      "كشف بالمقبوضات",
+    ],
+  },
+  {
+    label: "👤 كشوفات الحسابات",
+    questions: [
+      "كشف حساب المسحوبات الشخصية",
+      "كشف حساب المصروفات",
+      "كشف حساب الصندوق",
+    ],
+  },
+  {
+    label: "🏦 الذمم والعملاء",
+    questions: [
+      "اعرض الذمم المتأخرة",
+      "كشف حساب الزبائن",
+      "كشف حساب الموردين",
+    ],
+  },
+  {
+    label: "📦 المخزون",
+    questions: [
+      "اعرض المخزون والكميات",
+      "ما هي الأصناف الأقل من الحد الأدنى؟",
+    ],
+  },
+  {
+    label: "💰 ملخص مالي",
+    questions: [
+      "شو وضعي المالي اليوم؟",
+      "كشف بالمصاريف",
+      "ما هي آخر 10 معاملات؟",
+    ],
+  },
 ];
 
 const SmartReportPage = () => {
@@ -119,19 +161,23 @@ const SmartReportPage = () => {
 
       {/* Example Questions */}
       {!result && !loading && (
-        <div className="space-y-2">
-          <p className="text-xs text-muted-foreground">أمثلة سريعة</p>
-          <div className="flex flex-wrap gap-2">
-            {exampleQuestions.map((q) => (
-              <button
-                key={q}
-                onClick={() => handleAsk(q)}
-                className="px-3 py-1.5 rounded-full bg-secondary text-xs font-medium text-foreground hover:bg-primary/10 hover:text-primary transition-all active:scale-95"
-              >
-                {q}
-              </button>
-            ))}
-          </div>
+        <div className="space-y-3">
+          {reportCategories.map((cat) => (
+            <div key={cat.label} className="space-y-1.5">
+              <p className="text-xs font-semibold text-muted-foreground">{cat.label}</p>
+              <div className="flex flex-wrap gap-2">
+                {cat.questions.map((q) => (
+                  <button
+                    key={q}
+                    onClick={() => handleAsk(q)}
+                    className="px-3 py-1.5 rounded-full bg-secondary text-xs font-medium text-foreground hover:bg-primary/10 hover:text-primary transition-all active:scale-95"
+                  >
+                    {q}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
