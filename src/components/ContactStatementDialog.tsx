@@ -67,50 +67,68 @@ function friendlyDescription(tx: Transaction): string {
   return typeMap[type] || desc || type || "-";
 }
 
-// Determine debit/credit from the contact's perspective
-function classifyAmount(tx: Transaction, contactName: string): { debit: number; credit: number } {
+// Determine debit/credit from proper accounting perspective based on contact type
+function classifyAmount(tx: Transaction, contactName: string, contactType?: string): { debit: number; credit: number } {
   const amount = tx.fields.Amount || 0;
   const type = (tx.fields["Transaction Type"] || "").trim();
   const desc = (tx.fields.Description || "").trim().toLowerCase();
   const debitAcc = (tx.fields["Debit Account Name"] || "").toLowerCase();
   const creditAcc = (tx.fields["Credit Account Name"] || "").toLowerCase();
   const nameL = contactName.toLowerCase();
+  const isSupplier = (contactType || "").includes("مورد") || (contactType || "").toLowerCase().includes("supplier");
 
-  // If contact is in the debit account → they owe us → debit (مدين)
-  // If contact is in the credit account → we owe them → credit (دائن)
-  if (debitAcc.includes(nameL) || debitAcc.includes("العملاء") || debitAcc.includes("customer")) {
-    // Contact is debited — sales, debit side
-    if (type === "سند قبض" || desc.includes("قبض") || desc.includes("تحصيل")) {
-      // Receipt: contact pays us → credit (reduces their balance)
+  // Check if this contact's account appears in debit or credit side
+  const contactInDebit = debitAcc.includes(nameL) || debitAcc.includes("supplier " + nameL) || debitAcc.includes("customer " + nameL);
+  const contactInCredit = creditAcc.includes(nameL) || creditAcc.includes("supplier " + nameL) || creditAcc.includes("customer " + nameL);
+
+  // Also check generic account names
+  const genericDebit = debitAcc.includes("العملاء") || debitAcc.includes("customer") || debitAcc.includes("الموردين") || debitAcc.includes("supplier");
+  const genericCredit = creditAcc.includes("العملاء") || creditAcc.includes("customer") || creditAcc.includes("الموردين") || creditAcc.includes("supplier");
+
+  // If the contact's personal account is explicitly in debit → debit entry for this contact
+  if (contactInDebit) {
+    return { debit: amount, credit: 0 };
+  }
+  // If the contact's personal account is explicitly in credit → credit entry for this contact
+  if (contactInCredit) {
+    return { debit: 0, credit: amount };
+  }
+
+  // Fallback: classify based on transaction type + contact type (proper accounting rules)
+  if (isSupplier) {
+    // SUPPLIER accounting:
+    // فاتورة مشتريات (purchase invoice) → credit (we owe them more)
+    // سند صرف (payment) → debit (we paid, balance decreases)
+    // مردود مشتريات (purchase return) → debit (they owe us back)
+    if (type === "فاتورة مشتريات" || desc.includes("شراء") || desc.includes("اشتري") || desc.includes("بضاعة")) {
       return { debit: 0, credit: amount };
     }
-    // Sales invoice: contact owes us → debit
-    return { debit: amount, credit: 0 };
-  }
-
-  if (creditAcc.includes(nameL) || creditAcc.includes("العملاء") || creditAcc.includes("customer")) {
-    // Contact is credited
-    if (type === "سند صرف" || desc.includes("صرف") || desc.includes("دفع")) {
+    if (type === "سند صرف" || desc.includes("صرف") || desc.includes("دفع") || desc.includes("سداد")) {
       return { debit: amount, credit: 0 };
     }
+    if (desc.includes("مردود")) {
+      return { debit: amount, credit: 0 };
+    }
+    // Default for supplier: credit (we owe them)
     return { debit: 0, credit: amount };
-  }
-
-  // Fallback based on transaction type
-  if (type === "سند قبض" || desc.includes("قبض") || desc.includes("تحصيل")) {
-    return { debit: 0, credit: amount };
-  }
-  if (type === "فاتورة مبيعات" || desc.includes("بيع")) {
+  } else {
+    // CUSTOMER accounting:
+    // فاتورة مبيعات (sales invoice) → debit (they owe us)
+    // سند قبض (receipt) → credit (they paid, balance decreases)
+    // مردود مبيعات (sales return) → credit
+    // خصم → credit
+    if (type === "فاتورة مبيعات" || desc.includes("بيع")) {
+      return { debit: amount, credit: 0 };
+    }
+    if (type === "سند قبض" || desc.includes("قبض") || desc.includes("تحصيل")) {
+      return { debit: 0, credit: amount };
+    }
+    if (desc.includes("مردود") || desc.includes("خصم")) {
+      return { debit: 0, credit: amount };
+    }
+    // Default for customer: debit (they owe us)
     return { debit: amount, credit: 0 };
   }
-  if (desc.includes("مردود")) {
-    return { debit: 0, credit: amount };
-  }
-  if (desc.includes("خصم")) {
-    return { debit: 0, credit: amount };
-  }
-
-  return { debit: amount, credit: 0 };
 }
 
 const ContactStatementDialog = ({ open, onClose, contactId, contactName, contactType }: ContactStatementDialogProps) => {
@@ -155,7 +173,7 @@ const ContactStatementDialog = ({ open, onClose, contactId, contactName, contact
   const statementRows = (() => {
     let runningBalance = 0;
     return transactions.map((tx) => {
-      const { debit, credit } = classifyAmount(tx, contactName);
+      const { debit, credit } = classifyAmount(tx, contactName, contactType);
       runningBalance += debit - credit;
       return {
         tx,
@@ -219,8 +237,11 @@ const ContactStatementDialog = ({ open, onClose, contactId, contactName, contact
       </tr>
     `).join("");
 
+    const isSupplier = (contactType || "").includes("مورد") || (contactType || "").toLowerCase().includes("supplier");
     const balanceColor = finalBalance >= 0 ? "#047857" : "#dc2626";
-    const balanceLabel = finalBalance >= 0 ? "مدين (لصالحنا)" : "دائن (لصالح العميل)";
+    const balanceLabel = isSupplier
+      ? (finalBalance > 0 ? "مدين (دفعنا أكثر)" : finalBalance < 0 ? "دائن (مستحق للمورد)" : "مسدد بالكامل")
+      : (finalBalance > 0 ? "مدين (مستحق لنا)" : finalBalance < 0 ? "دائن (دفع أكثر)" : "مسدد بالكامل");
 
     printWindow.document.write(`<!DOCTYPE html>
 <html dir="rtl" lang="ar">
@@ -506,7 +527,7 @@ const ContactStatementDialog = ({ open, onClose, contactId, contactName, contact
     <div class="title-section">
       <h2>كشف حساب</h2>
       <div class="client-meta">
-        <span>العميل: <strong>${contactName}</strong></span>
+        <span>${isSupplier ? "المورد" : "العميل"}: <strong>${contactName}</strong></span>
         ${contactType ? `<span> | ${contactType}</span>` : ""}
       </div>
     </div>
