@@ -198,14 +198,18 @@ serve(async (req) => {
     const AIRTABLE_BASE_ID = Deno.env.get('AIRTABLE_BASE_ID');
     if (!WEBHOOK_URL) throw new Error('MAKECOM_WEBHOOK_URL is not configured');
 
-    const { text, userId, email, companyName } = await req.json();
+    const { text, userId, email, companyName, mentionedContactName, mentionedContactId } = await req.json();
     if (!text) throw new Error('Transaction text is required');
 
-    // Extract contact name from text
-    const contactName = extractContactName(text);
+    // Use explicitly mentioned contact if provided via @ mention, otherwise fall back to regex extraction
+    let contactName: string | null = mentionedContactName || extractContactName(text);
     let contactRecordId: string | null = null;
 
-    if (contactName && AIRTABLE_API_KEY && AIRTABLE_BASE_ID && userId) {
+    if (mentionedContactId && AIRTABLE_API_KEY && AIRTABLE_BASE_ID && userId) {
+      // mentionedContactId from MentionInput is an Airtable record ID - use it directly
+      contactRecordId = mentionedContactId;
+      console.log(`Using mentioned contact: "${mentionedContactName}" → ${mentionedContactId}`);
+    } else if (contactName && AIRTABLE_API_KEY && AIRTABLE_BASE_ID && userId) {
       contactRecordId = await findContactByName(AIRTABLE_BASE_ID, AIRTABLE_API_KEY, userId, contactName);
       console.log(`Contact search: "${contactName}" → ${contactRecordId || 'not found'}`);
     }
