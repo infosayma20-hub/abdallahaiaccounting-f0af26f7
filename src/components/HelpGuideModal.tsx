@@ -151,7 +151,7 @@ const HelpGuideModal = ({ open, onClose, onFillInput }: HelpGuideModalProps) => 
               <div className="flex-1 space-y-2">
                 <p>عند كتابة <span className="text-primary font-bold">@</span> تظهر اقتراحات:</p>
                 <div className="flex flex-wrap gap-1.5">
-                  {["زبائن", "موردين", "منتجات", "حسابات"].map(t => (
+                  {["زبائن", "موردين", "منتجات"].map(t => (
                     <span key={t} className="px-2.5 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-medium">{t}</span>
                   ))}
                 </div>
