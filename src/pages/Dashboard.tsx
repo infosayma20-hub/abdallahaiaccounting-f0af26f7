@@ -50,6 +50,8 @@ const Dashboard = () => {
   const [transactions, setTransactions] = useState<TransactionRecord[]>([]);
   const [loadingTx, setLoadingTx] = useState(true);
   const [profileData, setProfileData] = useState<{ display_name?: string; company_name?: string; setup_completed?: boolean } | null>(null);
+  const [pendingInvoice, setPendingInvoice] = useState<any>(null);
+  const [invoiceMessage, setInvoiceMessage] = useState<string | null>(null);
   const rotatingPlaceholder = useRotatingPlaceholder();
 
   useEffect(() => {
@@ -160,11 +162,41 @@ const Dashboard = () => {
     const lines = inputValue.split("\n").map(l => l.trim()).filter(Boolean);
     if (lines.length === 0) return;
     setSending(true);
-    let successCount = 0;
-    let failCount = 0;
-    // Find selected contact mention (category === "contact")
     const contactMention = selectedMentions.find(m => m.category === "contact");
+
     try {
+      // For single-line inputs, try smart parsing first
+      if (lines.length === 1) {
+        try {
+          const parseRes = await supabase.functions.invoke("parse-voice-transaction", { body: { text: lines[0] } });
+          const parseData = parseRes.data;
+
+          if (parseData?.type === 'invoice') {
+            if (parseData.status === 'incomplete') {
+              // Missing fields - show message
+              const missing = (parseData.missingFields || []).join("، ");
+              setInvoiceMessage(`تقريباً انتهينا 🙌\nلكن أحتاج المعلومات التالية:\n${missing}`);
+              setSending(false);
+              return;
+            }
+            if (parseData.status === 'complete') {
+              // Show confirmation
+              setPendingInvoice({ ...parseData.transaction, invoiceType: parseData.invoiceType, originalText: lines[0] });
+              setInvoiceMessage(parseData.message || '');
+              setInputValue("");
+              setSelectedMentions([]);
+              setSending(false);
+              return;
+            }
+          }
+        } catch (parseErr) {
+          console.log("Parse skipped, falling back to direct send:", parseErr);
+        }
+      }
+
+      // Default: send directly to webhook
+      let successCount = 0;
+      let failCount = 0;
       for (const line of lines) {
         try {
           const body: any = { text: line, userId: user?.id, email: user?.email, companyName: user?.user_metadata?.company_name };
@@ -187,6 +219,31 @@ const Dashboard = () => {
     } catch (err: any) {
       toast({ title: "خطأ في الإرسال", description: err.message, variant: "destructive" });
     } finally { setSending(false); }
+  };
+
+  const handleConfirmInvoice = async () => {
+    if (!pendingInvoice) return;
+    setSending(true);
+    try {
+      const body: any = {
+        text: pendingInvoice.originalText,
+        userId: user?.id,
+        email: user?.email,
+        companyName: user?.user_metadata?.company_name,
+      };
+      const { error } = await supabase.functions.invoke("send-transaction", { body });
+      if (error) throw error;
+      toast({ title: "تم إنشاء الفاتورة بنجاح ✅" });
+      setPendingInvoice(null);
+      setInvoiceMessage(null);
+    } catch (err: any) {
+      toast({ title: "خطأ", description: err.message, variant: "destructive" });
+    } finally { setSending(false); }
+  };
+
+  const handleCancelInvoice = () => {
+    setPendingInvoice(null);
+    setInvoiceMessage(null);
   };
 
   const handleDbCommand = async () => {
@@ -355,6 +412,39 @@ const Dashboard = () => {
                 </button>
               ))}
             </div>
+
+            {/* Invoice confirmation / missing fields message */}
+            {invoiceMessage && (
+              <div className="p-3.5 rounded-2xl border-2 border-primary/20 bg-primary/5 space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                <p className="text-xs text-foreground whitespace-pre-line leading-relaxed">{invoiceMessage}</p>
+                {pendingInvoice && (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleConfirmInvoice}
+                      disabled={sending}
+                      className="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground text-xs font-bold hover:opacity-90 transition-all active:scale-95 disabled:opacity-40"
+                    >
+                      {sending ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : "✅ نعم، أنشئ الفاتورة"}
+                    </button>
+                    <button
+                      onClick={handleCancelInvoice}
+                      className="px-4 py-2.5 rounded-xl bg-secondary text-foreground text-xs font-medium hover:bg-destructive/10 transition-all active:scale-95"
+                    >
+                      إلغاء
+                    </button>
+                  </div>
+                )}
+                {!pendingInvoice && (
+                  <button
+                    onClick={() => setInvoiceMessage(null)}
+                    className="text-[10px] text-primary font-medium hover:underline"
+                  >
+                    فهمت ✓
+                  </button>
+                )}
+              </div>
+            )}
+
             {/* Saved custom commands for assistant */}
             <SavedCommands
               onSelect={(text, target) => {
