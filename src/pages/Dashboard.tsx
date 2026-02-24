@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Wallet, Mic, Send, Loader2, Bell, Sparkles, Database, FileText, Package, TrendingUp, TrendingDown, ArrowLeft, ChevronDown, Users, UserPlus, Plus, Paperclip, BarChart3, Clock, AlertTriangle, Sun, Moon, HelpCircle } from "lucide-react";
+import { Wallet, Mic, Send, Loader2, Bell, Sparkles, Database, FileText, Package, TrendingUp, TrendingDown, ArrowLeft, ChevronDown, Users, UserPlus, Plus, Paperclip, BarChart3, Clock, AlertTriangle, Sun, Moon, HelpCircle, AtSign } from "lucide-react";
 import HelpGuideModal from "@/components/HelpGuideModal";
 import MentionInput, { MentionItem } from "@/components/MentionInput";
 import { useNavigate } from "react-router-dom";
@@ -13,6 +13,7 @@ import CompleteProfileDialog from "@/components/CompleteProfileDialog";
 import OnboardingFlow from "@/components/OnboardingFlow";
 import SetupWizard from "@/components/SetupWizard";
 import ExecutiveKPICards from "@/components/ExecutiveKPICards";
+import SavedCommands from "@/components/SavedCommands";
 import { browserSupportsWebAuthn } from "@simplewebauthn/browser";
 import { useTheme } from "@/hooks/useTheme";
 
@@ -389,6 +390,13 @@ const Dashboard = () => {
                     target.style.height = Math.min(target.scrollHeight, 120) + "px";
                   }}
                 />
+                <button
+                  onClick={() => setDbCommand(dbCommand + "@")}
+                  className="flex-shrink-0 w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center hover:bg-primary/20 transition-colors active:scale-95"
+                  title="إشارة @"
+                >
+                  <AtSign className="h-5 w-5 text-primary" />
+                </button>
                 <button onClick={() => navigate("/voice")} className="flex-shrink-0 w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center hover:bg-primary/20 transition-colors active:scale-95">
                   <Mic className="h-5 w-5 text-primary" />
                 </button>
@@ -410,6 +418,15 @@ const Dashboard = () => {
                   </button>
                 ))}
               </div>
+              {/* Saved custom commands */}
+              <SavedCommands
+                onSelect={(text, target) => {
+                  if (target === "assistant") setInputValue(text);
+                  else setDbCommand(text);
+                }}
+                currentInput={dbCommand}
+                currentTarget="command"
+              />
             </div>
 
             <div className="grid grid-cols-2 gap-2.5">
