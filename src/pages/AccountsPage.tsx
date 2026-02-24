@@ -88,7 +88,18 @@ const accountTypeOptions = [
 const typeOrder = ["Asset", "Liability", "Owner's Equity", "Equity", "Revenue", "Purchases", "Expenses"];
 
 // System accounts that cannot be deleted
-const systemAccountCodes = ["1110", "1120", "1130", "2110", "3100", "3200", "3400", "4100", "5100"];
+const systemAccountCodes = [
+  // Assets
+  "1110", "1120", "1130", "1140", "1150", "1160", "1210", "1220",
+  // Liabilities
+  "2110", "2120", "2130", "2210",
+  // Equity
+  "3100", "3200", "3300", "3400",
+  // Revenue
+  "4100", "4200", "4300", "4400", "4500",
+  // Expenses
+  "5100", "5110", "5200", "5300", "5400", "5500", "5600", "5700", "5800",
+];
 
 const AccountsPage = () => {
   const navigate = useNavigate();
