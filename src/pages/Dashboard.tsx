@@ -374,9 +374,9 @@ const Dashboard = () => {
             <div className="premium-card p-4 space-y-3 neon-border">
               <div className="flex items-center gap-2">
                 <Database className="h-4 w-4 text-primary" />
-                <span className="text-sm font-bold text-foreground">نفّذ بالكلام: أضف زبون، مورد، حساب، أو منتج...</span>
+                <span className="text-sm font-bold text-foreground">أضف زبون، مورد، حساب، أو منتج...</span>
               </div>
-              <div className="flex items-end gap-2 min-h-[56px] bg-secondary/60 rounded-2xl px-2.5 py-2" dir="rtl">
+              <div className="flex items-end gap-2 min-h-[52px] bg-secondary/60 rounded-2xl px-2.5 py-2" dir="rtl">
                 <button onClick={handleDbCommand} disabled={dbSending || !dbCommand.trim()} className="flex-shrink-0 w-10 h-10 rounded-full bg-primary flex items-center justify-center hover:opacity-90 transition-all active:scale-95 disabled:opacity-40">
                   {dbSending ? <Loader2 className="h-4 w-4 text-primary-foreground animate-spin" /> : <Send className="h-4 w-4 text-primary-foreground" />}
                 </button>
@@ -389,22 +389,17 @@ const Dashboard = () => {
                       handleDbCommand();
                     }
                   }}
-                  placeholder='مثال: "أضف زبون أحمد جوال 0501234567 حد ائتماني 10000"'
-                  className="flex-1 min-w-0 min-h-[48px] max-h-[120px] bg-transparent rounded-xl px-2 py-2 text-sm text-foreground placeholder:text-muted-foreground border-0 outline-none text-right resize-none overflow-y-auto"
+                  placeholder='أضف زبون أحمد جوال 0501234567'
+                  className="flex-1 min-w-0 h-10 bg-transparent rounded-xl px-2 py-2 text-sm text-foreground placeholder:text-muted-foreground border-0 outline-none text-right resize-none overflow-hidden"
                   dir="rtl"
                   rows={1}
-                  onInput={(e) => {
-                    const target = e.target as HTMLTextAreaElement;
-                    target.style.height = "auto";
-                    target.style.height = Math.min(target.scrollHeight, 120) + "px";
-                  }}
                 />
                 <button
                   onClick={() => setDbCommand(dbCommand + "@")}
-                  className="flex-shrink-0 w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center hover:bg-primary/20 transition-colors active:scale-95"
+                  className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center hover:bg-primary/20 transition-colors active:scale-95"
                   title="إشارة @"
                 >
-                  <AtSign className="h-5 w-5 text-primary" />
+                  <AtSign className="h-4 w-4 text-primary" />
                 </button>
                 <button onClick={() => navigate("/voice")} className="flex-shrink-0 w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center hover:bg-primary/20 transition-colors active:scale-95">
                   <Mic className="h-5 w-5 text-primary" />
