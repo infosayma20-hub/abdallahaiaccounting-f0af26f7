@@ -75,6 +75,7 @@ function getAccountsForSetup(req: SetupRequest): { name: string; type: string }[
   accounts.push(
     { name: "4300 - إيرادات أخرى", type: "Revenue" },
     { name: "4400 - مردودات مبيعات", type: "Revenue" },
+    { name: "4500 - مردودات مشتريات", type: "Revenue" },
   );
 
   // ══════════════════════════════════════════════
@@ -101,7 +102,6 @@ function getAccountsForSetup(req: SetupRequest): { name: string; type: string }[
       accounts.push(
         { name: "5810 - مصروف نقل وشحن", type: "Expenses" },
         { name: "5110 - مشتريات بضاعة", type: "Expenses" },
-        { name: "5120 - مردودات مشتريات", type: "Expenses" },
       );
       break;
     case "مطعم":
