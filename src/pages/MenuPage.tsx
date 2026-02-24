@@ -1,4 +1,4 @@
-import { BookOpen, Receipt, FileSpreadsheet, Users, BarChart3, Sparkles, FileText, CreditCard, Package } from "lucide-react";
+import { BookOpen, Receipt, FileSpreadsheet, Users, BarChart3, Sparkles, FileText, CreditCard, Package, Wrench, MessageCircle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 
@@ -61,6 +61,26 @@ const MenuPage = () => {
             </CardContent>
           </Card>
         ))}
+      </div>
+
+      {/* Custom Solution Banner */}
+      <div className="relative overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-l from-primary/5 via-primary/10 to-transparent p-5 space-y-3">
+        <div className="flex items-center gap-2">
+          <Wrench className="h-5 w-5 text-primary" />
+          <h3 className="text-sm font-bold text-foreground">نظام مالي مخصص لقطاعك</h3>
+        </div>
+        <p className="text-xs text-muted-foreground leading-relaxed">
+          هل تعمل في قطاع الذهب، التصنيع، المقاولات، أو أي مجال متخصص؟ نبني لك نظاماً مالياً مصمماً خصيصاً لطبيعة عملك — دليل حسابات، تقارير، وأوامر ذكية تناسب قطاعك.
+        </p>
+        <a
+          href="https://wa.me/970000000000?text=%D8%A3%D8%B1%D9%8A%D8%AF%20%D9%86%D8%B8%D8%A7%D9%85%20%D9%85%D8%A7%D9%84%D9%8A%20%D9%85%D8%AE%D8%B5%D8%B5%20%D9%84%D9%82%D8%B7%D8%A7%D8%B9%D9%8A"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-xs font-bold hover:opacity-90 transition-all active:scale-95"
+        >
+          <MessageCircle className="h-4 w-4" />
+          تواصل معنا عبر واتساب
+        </a>
       </div>
     </div>
   );
