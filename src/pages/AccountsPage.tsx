@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { ArrowRight, Loader2, RefreshCw, Plus, ChevronDown, Search, Wallet, TrendingUp, TrendingDown, Scale, DollarSign, Building2, Landmark, CreditCard, Package, Users, Receipt } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -88,17 +88,9 @@ const accountTypeOptions = [
 const typeOrder = ["Asset", "Liability", "Owner's Equity", "Equity", "Revenue", "Purchases", "Expenses"];
 
 // System accounts that cannot be deleted
+// System accounts that cannot be deleted (used internally for protection)
 const systemAccountCodes = [
-  // Assets
-  "1110", "1120", "1130", "1140", "1150", "1160", "1210", "1220",
-  // Liabilities
-  "2110", "2120", "2130", "2210",
-  // Equity
-  "3100", "3200", "3300", "3400",
-  // Revenue
-  "4100", "4200", "4300", "4400", "4500",
-  // Expenses
-  "5100", "5110", "5200", "5300", "5400", "5500", "5600", "5700", "5800",
+  "1110", "1120", "1130", "1140", "2110", "3100", "3200", "3400", "4100", "5100",
 ];
 
 const AccountsPage = () => {
@@ -208,7 +200,6 @@ const AccountsPage = () => {
 
   const renderAccountRow = (acc: Account) => {
     const { code, label } = parseAccount(acc.fields["Account Name"] || "");
-    const isSystem = systemAccountCodes.includes(code);
     const level = getLevel(code);
     const isGroup = level < 2;
 
@@ -227,13 +218,6 @@ const AccountsPage = () => {
           <span className={`text-sm truncate ${isGroup ? "font-bold text-foreground" : "font-medium text-foreground"}`}>
             {label}
           </span>
-        </div>
-        <div className="flex items-center gap-1.5 shrink-0">
-          {isSystem && (
-            <Badge variant="outline" className="text-[9px] px-1.5 py-0 border-primary/30 text-primary/70">
-              نظام
-            </Badge>
-          )}
         </div>
       </div>
     );
