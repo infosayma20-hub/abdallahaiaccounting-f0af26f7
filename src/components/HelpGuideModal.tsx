@@ -53,9 +53,9 @@ const HelpGuideModal = ({ open, onClose, onFillInput }: HelpGuideModalProps) => 
   const mainFinancialExamples = [
     { text: "قبضت من @محمد 5000 شيكل", target: "assistant" as const },
     { text: "دفعت إيجار 2500 من البنك", target: "assistant" as const },
-    { text: "اشتريت 50 قطعة @سجاد سعر القطعة 120", target: "assistant" as const },
-    { text: "استلمت شيك من @أحمد 4000 بتاريخ 1/3", target: "assistant" as const },
-    { text: "سجل فاتورة لـ @سليم 12000 على الحساب", target: "assistant" as const },
+    { text: "بعت @طحين 50 كيلو ل@شركة النور سعر الكيلو 10 نقداً", target: "assistant" as const },
+    { text: "اشتريت 50 قطعة @سجاد سعر القطعة 120 على الحساب", target: "assistant" as const },
+    { text: "سجل فاتورة ل@سليم 12000 على الحساب", target: "assistant" as const },
   ];
 
   const moreFinancialExamples = [
@@ -64,11 +64,11 @@ const HelpGuideModal = ({ open, onClose, onFillInput }: HelpGuideModalProps) => 
     { text: "نقلت 10000 من الصندوق للبنك", target: "assistant" as const },
     { text: "اشتريت كمبيوتر بـ 3500 شيكل نقداً", target: "assistant" as const },
     { text: "اشتريت ماكينة بـ 20000 دفعت 5000 والباقي على الحساب", target: "assistant" as const },
-    { text: "اشتريت بضاعة من @شركة_النور بـ 8000 على الحساب", target: "assistant" as const },
-    { text: "بعت 3 قطع @سجاد بسعر 150 للقطعة نقداً", target: "assistant" as const },
+    { text: "اشتريت @بضاعة 100 قطعة من @شركة_النور سعر القطعة 80 على الحساب", target: "assistant" as const },
+    { text: "بعت @سجاد 3 قطع ل@محمد سعر القطعة 150 نقداً", target: "assistant" as const },
     { text: "قبضت من @محمد 1500 شيكل نقداً", target: "assistant" as const },
     { text: "استلمت من @سليم 3000 تحويل بنك", target: "assistant" as const },
-    { text: "أودعت شيك @أحمد في البنك", target: "assistant" as const },
+    { text: "استلمت شيك من @أحمد 4000 بتاريخ 1/3", target: "assistant" as const },
     { text: "دفعت لـ @شركة_النور 3000 من البنك", target: "assistant" as const },
     { text: "دفعت كهرباء 300 شيكل", target: "assistant" as const },
     { text: "حولت 2000 من البنك للصندوق", target: "assistant" as const },
