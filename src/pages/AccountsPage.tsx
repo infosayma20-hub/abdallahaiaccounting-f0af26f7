@@ -35,6 +35,29 @@ function getLevel(code: string): number {
   return 2; // e.g., 1110
 }
 
+// Subcategory grouping by code prefix
+interface SubCategory {
+  label: string;
+  prefixes: string[]; // first 2 digits
+}
+
+const subCategories: Record<string, SubCategory[]> = {
+  "Asset": [
+    { label: "أصول متداولة", prefixes: ["11"] },
+    { label: "أصول غير متداولة", prefixes: ["12", "13", "14", "15", "16", "17", "18", "19"] },
+  ],
+  "Liability": [
+    { label: "التزامات متداولة", prefixes: ["21"] },
+    { label: "التزامات غير متداولة", prefixes: ["22", "23", "24", "25", "26", "27", "28", "29"] },
+  ],
+  "Expenses": [
+    { label: "مصاريف تشغيلية", prefixes: ["51"] },
+    { label: "إدارية وعمومية", prefixes: ["52", "53", "54", "55"] },
+    { label: "بيعية وتسويقية", prefixes: ["56"] },
+    { label: "مصاريف أخرى", prefixes: ["57", "58", "59"] },
+  ],
+};
+
 // Get parent group code: 1110 → 1100, 1100 → 1000
 function getParentCode(code: string): string {
   if (!code || code.length < 4) return "";
@@ -172,6 +195,39 @@ const AccountsPage = () => {
 
   const totalFiltered = filteredAccounts.length;
 
+  const renderAccountRow = (acc: Account) => {
+    const { code, label } = parseAccount(acc.fields["Account Name"] || "");
+    const isSystem = systemAccountCodes.includes(code);
+    const level = getLevel(code);
+    const isGroup = level < 2;
+
+    return (
+      <div
+        key={acc.id}
+        className={`flex items-center justify-between rounded-lg px-3 py-2.5 transition-all duration-150 hover:bg-muted/50 ${isGroup ? "bg-muted/20" : ""}`}
+        style={{ paddingRight: level === 2 ? "20px" : level === 1 ? "12px" : "4px" }}
+      >
+        <div className="flex items-center gap-2.5 min-w-0">
+          {code && (
+            <span className="text-[11px] font-mono font-bold text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded shrink-0">
+              {code}
+            </span>
+          )}
+          <span className={`text-sm truncate ${isGroup ? "font-bold text-foreground" : "font-medium text-foreground"}`}>
+            {label}
+          </span>
+        </div>
+        <div className="flex items-center gap-1.5 shrink-0">
+          {isSystem && (
+            <Badge variant="outline" className="text-[9px] px-1.5 py-0 border-primary/30 text-primary/70">
+              نظام
+            </Badge>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="px-4 pt-6 space-y-4 pb-8" dir="rtl">
       {/* Header */}
@@ -266,38 +322,54 @@ const AccountsPage = () => {
                 </CollapsibleTrigger>
                 <CollapsibleContent className="overflow-hidden data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up">
                   <div className="space-y-1 mt-1.5 mr-4 border-r-2 border-border/50 pr-3">
-                    {typeAccounts.map((acc) => {
-                      const { code, label, codeNum } = parseAccount(acc.fields["Account Name"] || "");
-                      const isSystem = systemAccountCodes.includes(code);
-                      const level = getLevel(code);
-                      const isGroup = level < 2;
-
+                    {(() => {
+                      const subs = subCategories[type!];
+                      if (subs) {
+                        // Group accounts by subcategory
+                        return subs.map((sub) => {
+                          const subAccounts = typeAccounts.filter((acc) => {
+                            const { code } = parseAccount(acc.fields["Account Name"] || "");
+                            const prefix = code.substring(0, 2);
+                            return sub.prefixes.includes(prefix);
+                          });
+                          if (subAccounts.length === 0) return null;
+                          return (
+                            <div key={sub.label} className="mb-2">
+                              <div className="flex items-center gap-2 py-1.5 px-2">
+                                <div className="h-px flex-1 bg-border/40" />
+                                <span className="text-[10px] font-bold text-muted-foreground/70 uppercase tracking-wide shrink-0">{sub.label}</span>
+                                <div className="h-px flex-1 bg-border/40" />
+                              </div>
+                              {subAccounts.map((acc) => renderAccountRow(acc))}
+                            </div>
+                          );
+                        });
+                      }
+                      // No subcategories — render flat
+                      return typeAccounts.map((acc) => renderAccountRow(acc));
+                    })()}
+                    {/* Accounts without matching subcategory */}
+                    {(() => {
+                      const subs = subCategories[type!];
+                      if (!subs) return null;
+                      const allPrefixes = subs.flatMap(s => s.prefixes);
+                      const unmatched = typeAccounts.filter((acc) => {
+                        const { code } = parseAccount(acc.fields["Account Name"] || "");
+                        const prefix = code.substring(0, 2);
+                        return !allPrefixes.includes(prefix) && code;
+                      });
+                      if (unmatched.length === 0) return null;
                       return (
-                        <div
-                          key={acc.id}
-                          className={`flex items-center justify-between rounded-lg px-3 py-2.5 transition-all duration-150 hover:bg-muted/50 ${isGroup ? "bg-muted/20" : ""}`}
-                          style={{ paddingRight: level === 2 ? "20px" : level === 1 ? "12px" : "4px" }}
-                        >
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            {code && (
-                              <span className="text-[11px] font-mono font-bold text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded shrink-0">
-                                {code}
-                              </span>
-                            )}
-                            <span className={`text-sm truncate ${isGroup ? "font-bold text-foreground" : "font-medium text-foreground"}`}>
-                              {label}
-                            </span>
+                        <div className="mb-2">
+                          <div className="flex items-center gap-2 py-1.5 px-2">
+                            <div className="h-px flex-1 bg-border/40" />
+                            <span className="text-[10px] font-bold text-muted-foreground/70 uppercase tracking-wide shrink-0">أخرى</span>
+                            <div className="h-px flex-1 bg-border/40" />
                           </div>
-                          <div className="flex items-center gap-1.5 shrink-0">
-                            {isSystem && (
-                              <Badge variant="outline" className="text-[9px] px-1.5 py-0 border-primary/30 text-primary/70">
-                                نظام
-                              </Badge>
-                            )}
-                          </div>
+                          {unmatched.map((acc) => renderAccountRow(acc))}
                         </div>
                       );
-                    })}
+                    })()}
                   </div>
                 </CollapsibleContent>
               </Collapsible>
