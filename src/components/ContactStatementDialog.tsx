@@ -83,8 +83,8 @@ function classifyAmount(tx: Transaction, contactName: string, contactType?: stri
   const nameL = contactName.toLowerCase();
   const isSupplier = (contactType || "").includes("مورد") || (contactType || "").toLowerCase().includes("supplier");
 
-  const contactInDebit = debitAcc.includes(nameL) || debitAcc.includes("supplier " + nameL) || debitAcc.includes("customer " + nameL);
-  const contactInCredit = creditAcc.includes(nameL) || creditAcc.includes("supplier " + nameL) || creditAcc.includes("customer " + nameL);
+  const contactInDebit = debitAcc.includes(nameL) || debitAcc.includes("supplier " + nameL) || debitAcc.includes("customer " + nameL) || debitAcc.includes("مورد " + nameL) || debitAcc.includes("زبون " + nameL);
+  const contactInCredit = creditAcc.includes(nameL) || creditAcc.includes("supplier " + nameL) || creditAcc.includes("customer " + nameL) || creditAcc.includes("مورد " + nameL) || creditAcc.includes("زبون " + nameL);
 
   if (contactInDebit) return { debit: amount, credit: 0 };
   if (contactInCredit) return { debit: 0, credit: amount };

@@ -294,7 +294,7 @@ ${JSON.stringify(productsList, null, 0)}
       try {
         const cType = parsed.data.type || 'زبون';
         const isSupplier = cType.includes('مورد') || cType.toLowerCase().includes('supplier');
-        const prefix = isSupplier ? 'Supplier' : 'Customer';
+        const prefix = isSupplier ? 'مورد' : 'زبون';
         const accountName = `${prefix} ${parsed.data.name}`;
         const accountType = isSupplier ? 'Liability' : 'Asset';
 

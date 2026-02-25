@@ -104,7 +104,7 @@ serve(async (req) => {
       // Auto-create a corresponding account in Accounts table
       try {
         const isSupplier = (contactType || '').includes('مورد') || (contactType || '').toLowerCase().includes('supplier');
-        const prefix = isSupplier ? 'Supplier' : 'Customer';
+        const prefix = isSupplier ? 'مورد' : 'زبون';
         const accountName = `${prefix} ${contactName}`;
         const accountType = isSupplier ? 'Liability' : 'Asset';
 
