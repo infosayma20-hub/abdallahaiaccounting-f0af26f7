@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Users, AtSign, Package, PlusCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import QuickAddModal from "./QuickAddModal";
 
 export interface MentionItem {
   id: string;
@@ -35,7 +36,9 @@ const MentionInput = ({ value, onChange, onKeyDown, onMentionSelect, placeholder
   const [loaded, setLoaded] = useState(false);
   const [autoTriggered, setAutoTriggered] = useState(false);
   const prevValueRef = useRef("");
-
+  const [quickAddModal, setQuickAddModal] = useState<{ open: boolean; category: "contact" | "product"; defaultName: string }>({
+    open: false, category: "product", defaultName: ""
+  });
   // Fetch contacts + products once
   useEffect(() => {
     if (!userId || loaded) return;
@@ -180,17 +183,10 @@ const MentionInput = ({ value, onChange, onKeyDown, onMentionSelect, placeholder
   };
 
   const handleCreateNew = useCallback(async (name: string, category: "contact" | "product") => {
-    // If no name typed yet, prompt user to type a name then auto-create
+    // If no name typed yet, open the quick add modal
     if (!name) {
       setShowDropdown(false);
-      // Open a simple prompt for the name
-      const hint = category === "contact" ? "اسم الزبون أو المورد" : "اسم المنتج أو الصنف";
-      const userInput = window.prompt(hint);
-      if (!userInput || !userInput.trim()) {
-        return;
-      }
-      // Recursively call with the typed name
-      handleCreateNew(userInput.trim(), category);
+      setQuickAddModal({ open: true, category, defaultName: "" });
       return;
     }
 
@@ -472,6 +468,48 @@ const MentionInput = ({ value, onChange, onKeyDown, onMentionSelect, placeholder
           )}
         </div>
       )}
+
+      {/* Quick Add Modal */}
+      <QuickAddModal
+        open={quickAddModal.open}
+        defaultName={quickAddModal.defaultName}
+        initialType={quickAddModal.category}
+        onCancel={() => setQuickAddModal(prev => ({ ...prev, open: false }))}
+        onConfirm={async ({ name: newName, type: addType }) => {
+          setQuickAddModal(prev => ({ ...prev, open: false }));
+          const category = addType === "product" ? "product" as const : "contact" as const;
+          // For supplier, still use contact category but change the command
+          if (addType === "supplier" && userId) {
+            try {
+              const res = await fetch(
+                `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/database-command`,
+                {
+                  method: "POST",
+                  headers: {
+                    Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({ command: `أضف مورد ${newName}`, clientId: userId }),
+                }
+              );
+              const data = await res.json();
+              if (data.success) {
+                const newItem: MentionItem = { id: data.recordId || `__new_contact_${Date.now()}`, name: newName, type: "مورد", category: "contact" };
+                setItems(prev => [...prev, newItem]);
+                // Insert into input
+                const before = mentionStart >= 0 ? value.slice(0, mentionStart) : value.trim() + " ";
+                const after = mentionStart >= 0 ? value.slice(inputRef.current?.selectionStart || value.length) : "";
+                onChange(before + newName + " " + after);
+                onMentionSelect?.(newItem);
+              }
+            } catch (e) { console.error("Quick add supplier failed:", e); }
+          } else {
+            handleCreateNew(newName, category);
+          }
+          setMentionStart(-1);
+          inputRef.current?.focus();
+        }}
+      />
     </div>
   );
 };
