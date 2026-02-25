@@ -29,8 +29,8 @@ const AppLayout = ({ children }: AppLayoutProps) => {
       <AIAssistantWidget />
 
       {/* Bottom Navigation - Premium Dark */}
-      <nav className="fixed bottom-0 left-0 right-0 z-40">
-        <div className="max-w-md mx-auto bg-card" style={{ borderTop: "1px solid rgba(128,128,128,0.1)" }}>
+      <nav className="fixed bottom-2 left-2 right-2 z-40">
+        <div className="max-w-md mx-auto bg-card rounded-2xl shadow-lg" style={{ border: "1px solid rgba(128,128,128,0.15)" }}>
           <div className="flex items-center justify-around h-16 px-2">
             {navItems.map((item) => {
               const active = isActive(item.path);
