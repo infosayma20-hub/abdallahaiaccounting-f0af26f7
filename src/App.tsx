@@ -5,8 +5,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { ThemeProvider } from "@/hooks/useTheme";
-import AppLayout from "./components/AppLayout";
-import Dashboard from "./pages/Dashboard";
+import WebLayout from "./components/layout/WebLayout";
+import HomeDashboard from "./pages/HomeDashboard";
 import MenuPage from "./pages/MenuPage";
 import VoiceInput from "./pages/VoiceInput";
 import ProfitLoss from "./pages/ProfitLoss";
@@ -59,9 +59,9 @@ const App = () => (
               <Route path="/privacy" element={<PrivacyPage />} />
               <Route path="/*" element={
                 <ProtectedRoute>
-                  <AppLayout>
+                  <WebLayout>
                     <Routes>
-                      <Route path="/" element={<Dashboard />} />
+                      <Route path="/" element={<HomeDashboard />} />
                       <Route path="/menu" element={<MenuPage />} />
                       <Route path="/voice" element={<VoiceInput />} />
                       <Route path="/profit-loss" element={<ProfitLoss />} />
@@ -76,9 +76,17 @@ const App = () => (
                       <Route path="/reports" element={<ReportsPage />} />
                       <Route path="/cheques" element={<ChequesPage />} />
                       <Route path="/profile" element={<ProfilePage />} />
+                      <Route path="/settings" element={<ProfilePage />} />
+                      <Route path="/journal-entries" element={<TransactionsPage />} />
+                      <Route path="/trial-balance" element={<ReportsPage />} />
+                      <Route path="/receipts" element={<TransactionsPage />} />
+                      <Route path="/bills" element={<InvoicesPage />} />
+                      <Route path="/payments" element={<TransactionsPage />} />
+                      <Route path="/inventory-movements" element={<InventoryPage />} />
+                      <Route path="/inventory-valuation" element={<InventoryPage />} />
                       <Route path="*" element={<NotFound />} />
                     </Routes>
-                  </AppLayout>
+                  </WebLayout>
                 </ProtectedRoute>
               } />
             </Routes>
