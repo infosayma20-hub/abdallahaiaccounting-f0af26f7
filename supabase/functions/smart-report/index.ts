@@ -119,7 +119,7 @@ ${JSON.stringify(movementsSummary, null, 0)}
     // CRITICAL: If clientId was provided but we couldn't resolve it, return empty data to prevent data leakage
     if (clientId && !airtableClientRecordId) {
       return new Response(JSON.stringify({
-        answer: "لم يتم العثور على حسابك في النظام. تأكد من إعداد حسابك بشكل صحيح.",
+        answer: "لا توجد حركات مالية مسجلة حالياً. ابدأ بإضافة أول عملية وسيتم عرض تقاريرك هنا.",
         total: null,
         currency: null,
         table: []
