@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 type Phase = "loading" | "success";
@@ -67,6 +67,8 @@ const TransactionToast = ({
 }: TransactionToastProps) => {
   const [phase, setPhase] = useState<Phase>("loading");
   const [visible, setVisible] = useState(false);
+  const onDoneRef = useRef(onDone);
+  onDoneRef.current = onDone;
 
   useEffect(() => {
     if (!show) {
@@ -81,14 +83,14 @@ const TransactionToast = ({
     const successTimer = setTimeout(() => setPhase("success"), 500);
     const hideTimer = setTimeout(() => {
       setVisible(false);
-      onDone?.();
+      onDoneRef.current?.();
     }, 3200);
 
     return () => {
       clearTimeout(successTimer);
       clearTimeout(hideTimer);
     };
-  }, [show, onDone]);
+  }, [show]);
 
   return (
     <AnimatePresence>
