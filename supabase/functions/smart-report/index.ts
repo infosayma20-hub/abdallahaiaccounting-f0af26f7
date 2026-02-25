@@ -117,17 +117,41 @@ ${JSON.stringify(movementsSummary, null, 0)}
 
     console.log(`smart-report: fetched ${clientTx.length} transactions, ${clientAcc.length} accounts for client ${clientId || 'all'}`);
 
-    // Prepare data summary for AI
+    // Build account ID -> Name map for resolving linked records
+    const accountMap: Record<string, string> = {};
+    for (const acc of clientAcc) {
+      accountMap[acc.id] = acc.fields?.["Account Name"] || acc.fields?.["Name"] || acc.id;
+    }
+
+    // Build account ID -> Type map
+    const accountTypeMap: Record<string, string> = {};
+    for (const acc of clientAcc) {
+      accountTypeMap[acc.id] = acc.fields?.["Account Type"] || '';
+    }
+
+    // Helper to resolve linked record IDs to names
+    const resolveAccount = (field: any): string => {
+      if (Array.isArray(field)) return field.map((id: string) => accountMap[id] || id).join(", ");
+      if (typeof field === "string") return accountMap[field] || field;
+      return '';
+    };
+    const resolveAccountType = (field: any): string => {
+      if (Array.isArray(field)) return field.map((id: string) => accountTypeMap[id] || '').join(", ");
+      if (typeof field === "string") return accountTypeMap[field] || '';
+      return '';
+    };
+
+    // Prepare data summary for AI with resolved account names
     const txSummary = clientTx.map((tx: any) => ({
       date: tx.fields.Date || '',
       description: tx.fields.Description || '',
       type: tx.fields["Transaction Type"] || '',
       amount: tx.fields.Amount || 0,
       currency: tx.fields.Currency || '',
-      debitAccount: tx.fields["Debit Account Name"] || '',
-      creditAccount: tx.fields["Credit Account Name"] || '',
-      debitType: tx.fields["Debit Account Rollup"] || '',
-      creditType: tx.fields["Credit Account Rollup"] || '',
+      debitAccount: tx.fields["Debit Account Name"] || resolveAccount(tx.fields["Debit Account"]),
+      creditAccount: tx.fields["Credit Account Name"] || resolveAccount(tx.fields["Credit Account"]),
+      debitType: tx.fields["Debit Account Rollup"] || resolveAccountType(tx.fields["Debit Account"]),
+      creditType: tx.fields["Credit Account Rollup"] || resolveAccountType(tx.fields["Credit Account"]),
       reference: tx.fields.Reference || '',
     }));
 
@@ -184,6 +208,13 @@ ${JSON.stringify(movementsSummary, null, 0)}
 ━━━ أسلوب الرد ━━━
 واضح، رقمي، مختصر، تحليلي، غير إنشائي، لا مبالغة، لا تعميم، لا شرح زائد.
 النتيجة أولاً → ثم التحليل → ثم التوصية.
+
+━━━ قواعد حاسمة ━━━
+- لا ترفض إنشاء التقرير أبداً إذا وجدت بيانات معاملات. حلل ما هو متاح.
+- إذا كانت بعض المعاملات ناقصة البيانات (حساب مدين أو دائن فارغ أو "غير محدد")، اعرض التقرير بالبيانات المتوفرة وأضف ملاحظة عن المعاملات الناقصة.
+- عند حساب الأرباح والخسائر: الإيرادات = مجموع المعاملات التي حسابها الدائن من نوع Revenue/إيرادات. المصروفات = مجموع المعاملات التي حسابها المدين من نوع Expense/مصروفات.
+- صافي الربح = إجمالي الإيرادات - إجمالي المصروفات.
+- لا تقل "البيانات غير كافية" إلا إذا كان عدد المعاملات = 0.
 
 ━━━ صيغة الإخراج ━━━
 أعد الإجابة بصيغة JSON فقط:
