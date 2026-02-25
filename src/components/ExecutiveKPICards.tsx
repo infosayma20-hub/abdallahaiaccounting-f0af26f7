@@ -108,7 +108,8 @@ const ExecutiveKPICards = ({
   const profitMargin = revenue > 0 ? Math.round(((revenue - expenses) / revenue) * 100) : 0;
   const collectionRate = totalIncome > 0 && receivables > 0 ? Math.round((totalIncome / (totalIncome + receivables)) * 100) : (transactionCount > 0 ? 100 : 0);
   const debtToCash = cashBalance > 0 ? payables / cashBalance : payables > 0 ? 999 : 0;
-  const due30 = Math.round(payables * 0.6);
+  // All payables assumed due within 30 days (conservative — no maturity dates available)
+  const due30 = payables;
 
   const sparkData = useMemo(() => {
     const base = [30, 45, 35, 60, 50, 70, 65];

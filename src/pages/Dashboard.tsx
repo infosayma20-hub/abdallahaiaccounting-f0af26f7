@@ -135,7 +135,9 @@ const Dashboard = () => {
   const expenses = transactions.filter((tx) => tx.fields["Debit Account Rollup"] === "Expenses").reduce((sum, tx) => sum + (tx.fields.Amount || 0), 0);
   const totalIncome = transactions.filter((tx) => tx.fields["Transaction Type"] === "سند قبض").reduce((sum, tx) => sum + (tx.fields.Amount || 0), 0);
   const totalOutcome = transactions.filter((tx) => tx.fields["Transaction Type"] === "سند صرف").reduce((sum, tx) => sum + (tx.fields.Amount || 0), 0);
-  const cashBalance = totalIncome - totalOutcome;
+  // Cash balance: includes capital/equity injections (debit to asset, credit to equity)
+  const capitalInjections = transactions.filter((tx) => tx.fields["Debit Account Rollup"] === "Asset" && tx.fields["Credit Account Rollup"] === "Owner's Equity").reduce((sum, tx) => sum + (tx.fields.Amount || 0), 0);
+  const cashBalance = totalIncome - totalOutcome + capitalInjections;
   const netProfit = revenue - expenses;
   const receivables = transactions.filter((tx) => tx.fields["Debit Account Rollup"] === "Asset" && tx.fields["Credit Account Rollup"] === "Revenue").reduce((sum, tx) => sum + (tx.fields.Amount || 0), 0);
   const payables = transactions.filter((tx) => tx.fields["Credit Account Rollup"] === "Liability").reduce((sum, tx) => sum + (tx.fields.Amount || 0), 0);
