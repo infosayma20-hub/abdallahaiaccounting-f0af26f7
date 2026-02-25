@@ -99,7 +99,7 @@ ${JSON.stringify(movementsSummary, null, 0)}
     // Resolve Supabase UUID to Airtable Client record ID
     let airtableClientRecordId = '';
     if (clientId) {
-      const clientLookupUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Clients?filterByFormula=${encodeURIComponent(`{UserID}="${clientId}"`)}&pageSize=1`;
+      const clientLookupUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Clients?filterByFormula=${encodeURIComponent(`{Name}="${clientId}"`)}&pageSize=1`;
       const clientRes = await fetch(clientLookupUrl, {
         headers: { 'Authorization': `Bearer ${AIRTABLE_API_KEY}` },
       });
