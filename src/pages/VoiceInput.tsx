@@ -80,7 +80,12 @@ const VoiceInput = () => {
 
       if (error) throw error;
 
-      if (data?.transaction) {
+      if (data?.type === 'inventory_report') {
+        // Redirect to smart report with inventory query
+        toast.info("جارِ تحويلك لتقرير المخزون...");
+        navigate(`/smart-report?q=${encodeURIComponent(currentTranscript)}`);
+        setState("idle");
+      } else if (data?.transaction) {
         setTransaction(data.transaction);
         setState("preview");
       } else {

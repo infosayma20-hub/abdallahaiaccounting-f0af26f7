@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -40,6 +41,61 @@ serve(async (req) => {
     }
     if (question.length > 500) throw new Error('Question too long');
 
+    // Check if this is an inventory question
+    const inventoryKeywords = ['المخزون', 'رصيد المخزون', 'كم عندي', 'كمية المنتج', 'حركة مخزون', 'تقرير مخزون', 'قيمة المخزون', 'تحليل مخزون', 'منتجات منخفضة', 'منتجات ناقصة', 'تكلفة المنتج', 'ربحية المنتج', 'الأصناف', 'صنف'];
+    const isInventoryQ = inventoryKeywords.some(kw => question.includes(kw));
+
+    if (isInventoryQ && clientId) {
+      // Query Supabase products + stock_movements
+      const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
+      const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+      const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+      const { data: products } = await sb.from('products').select('*').eq('user_id', clientId);
+      const { data: movements } = await sb.from('stock_movements').select('*, products(name)').eq('user_id', clientId).order('created_at', { ascending: false }).limit(200);
+
+      const productsSummary = (products || []).map(p => ({
+        name: p.name, quantity: p.quantity, unit: p.unit, buy_price: p.buy_price, sell_price: p.sell_price, min_quantity: p.min_quantity, category: p.category
+      }));
+      const movementsSummary = (movements || []).map(m => ({
+        product: (m as any).products?.name || '', type: m.movement_type, quantity: m.quantity, note: m.reference_note || '', date: m.created_at
+      }));
+
+      const invPrompt = `أنت محاسب محترف. لديك بيانات المخزون التالية:
+
+المنتجات (${productsSummary.length}):
+${JSON.stringify(productsSummary, null, 0)}
+
+حركات المخزون (${movementsSummary.length}):
+${JSON.stringify(movementsSummary, null, 0)}
+
+سؤال المستخدم: ${question}
+
+أجب بدقة بناءً على البيانات. أعد JSON فقط:
+{
+  "answer": "نص الإجابة",
+  "total": رقم_أو_null,
+  "currency": "₪",
+  "table": [{"الصنف": "...", "الكمية": ..., "الوحدة": "...", "سعر الشراء": ..., "سعر البيع": ..., "القيمة": ...}]
+}
+
+إذا سأل عن منتجات منخفضة، فلتر المنتجات حيث quantity <= min_quantity.
+إذا سأل عن قيمة المخزون، احسب quantity * buy_price لكل منتج.
+إذا سأل عن ربحية منتج، احسب (sell_price - buy_price) / buy_price * 100.
+لا تكتب أي نص خارج JSON.`;
+
+      const aiRes = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${LOVABLE_API_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: 'google/gemini-2.5-flash', messages: [{ role: 'user', content: invPrompt }], temperature: 0.1 }),
+      });
+      if (!aiRes.ok) throw new Error(`AI error [${aiRes.status}]`);
+      const aiData = await aiRes.json();
+      const content = aiData.choices?.[0]?.message?.content || '';
+      let result;
+      try { const m = content.match(/\{[\s\S]*\}/); result = m ? JSON.parse(m[0]) : { answer: content, total: null, table: [] }; } catch { result = { answer: content, total: null, table: [] }; }
+      return new Response(JSON.stringify(result), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
     // Resolve Supabase UUID to Airtable Client record ID
     let airtableClientRecordId = '';
     if (clientId) {
