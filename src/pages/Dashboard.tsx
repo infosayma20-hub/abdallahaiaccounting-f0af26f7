@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { Wallet, Mic, Send, Loader2, Bell, Sparkles, Database, FileText, Package, TrendingUp, TrendingDown, ArrowLeft, ChevronDown, Users, UserPlus, Plus, Paperclip, BarChart3, Clock, AlertTriangle, Sun, Moon, HelpCircle, AtSign } from "lucide-react";
+import SmartAlertCard from "@/components/SmartAlertCard";
 import HelpGuideModal from "@/components/HelpGuideModal";
 import MentionInput, { MentionItem } from "@/components/MentionInput";
 import { useNavigate } from "react-router-dom";
@@ -55,6 +56,8 @@ const Dashboard = () => {
   const [pendingInvoice, setPendingInvoice] = useState<any>(null);
   const [invoiceMessage, setInvoiceMessage] = useState<string | null>(null);
   const [dbResponseMessage, setDbResponseMessage] = useState<string | null>(null);
+  const [financialAlert, setFinancialAlert] = useState<any>(null);
+  const [allAlerts, setAllAlerts] = useState<any[]>([]);
   const rotatingPlaceholder = useRotatingPlaceholder();
 
   useEffect(() => {
@@ -160,6 +163,30 @@ const Dashboard = () => {
     }
     return { text, score: Math.min(collectionRate + 20, 100), efficiency: collectionRate };
   }, [transactions, expenses, revenue, totalIncome, receivables]);
+
+  // Fetch financial alerts
+  useEffect(() => {
+    if (!user || loadingTx) return;
+    const fetchAlerts = async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke("financial-alerts", {
+          body: {
+            clientId: user.id,
+            transactions,
+            revenue, expenses, totalIncome, totalOutcome,
+            cashBalance, receivables, payables,
+          },
+        });
+        if (!error && data) {
+          setFinancialAlert(data.alert);
+          setAllAlerts(data.allAlerts || []);
+        }
+      } catch (err) {
+        console.error("Failed to fetch financial alerts:", err);
+      }
+    };
+    fetchAlerts();
+  }, [user, loadingTx, transactions]);
 
 
   const handleSend = async () => {
@@ -371,6 +398,9 @@ const Dashboard = () => {
             transactionCount={transactions.length}
             loading={loadingTx}
           />
+
+          {/* ═══ 2.5 SMART FINANCIAL ALERTS ═══ */}
+          <SmartAlertCard alert={financialAlert} allAlerts={allAlerts} userId={user?.id} />
 
           {/* ═══ 3. SMART ASSISTANT BOX ═══ */}
           <div className={`premium-card p-4 space-y-3 glow-border ${themePulse ? "animate-theme-pulse" : ""}`}>
