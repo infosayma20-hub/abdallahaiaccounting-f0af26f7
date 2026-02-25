@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ArrowRight, Camera, User, Mail, Building2, MapPin, Globe, Briefcase, Save, Loader2 } from "lucide-react";
+import { ArrowRight, Camera, User, Mail, Building2, MapPin, Globe, Briefcase, Save, Loader2, LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 
 const ProfilePage = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
   const [profile, setProfile] = useState({
@@ -155,6 +155,16 @@ const ProfilePage = () => {
       >
         {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}
         حفظ التعديلات
+      </Button>
+
+      {/* Logout Button */}
+      <Button
+        onClick={signOut}
+        variant="outline"
+        className="w-full h-12 rounded-2xl text-base font-bold gap-2 text-destructive border-destructive/30 hover:bg-destructive/10"
+      >
+        <LogOut className="h-5 w-5" />
+        تسجيل الخروج
       </Button>
     </div>
   );
