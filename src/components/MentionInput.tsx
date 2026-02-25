@@ -477,34 +477,37 @@ const MentionInput = ({ value, onChange, onKeyDown, onMentionSelect, placeholder
         onCancel={() => setQuickAddModal(prev => ({ ...prev, open: false }))}
         onConfirm={async ({ name: newName, type: addType }) => {
           setQuickAddModal(prev => ({ ...prev, open: false }));
-          const category = addType === "product" ? "product" as const : "contact" as const;
-          // For supplier, still use contact category but change the command
-          if (addType === "supplier" && userId) {
-            try {
-              const res = await fetch(
-                `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/database-command`,
-                {
-                  method: "POST",
-                  headers: {
-                    Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-                    "Content-Type": "application/json",
-                  },
-                  body: JSON.stringify({ command: `أضف مورد ${newName}`, clientId: userId }),
-                }
-              );
-              const data = await res.json();
-              if (data.success) {
-                const newItem: MentionItem = { id: data.recordId || `__new_contact_${Date.now()}`, name: newName, type: "مورد", category: "contact" };
-                setItems(prev => [...prev, newItem]);
-                // Insert into input
-                const before = mentionStart >= 0 ? value.slice(0, mentionStart) : value.trim() + " ";
-                const after = mentionStart >= 0 ? value.slice(inputRef.current?.selectionStart || value.length) : "";
-                onChange(before + newName + " " + after);
-                onMentionSelect?.(newItem);
+          
+          const addContact = async (contactType: string) => {
+            if (!userId) return;
+            const command = contactType === "مورد" ? `أضف مورد ${newName}` : `أضف زبون ${newName}`;
+            const res = await fetch(
+              `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/database-command`,
+              {
+                method: "POST",
+                headers: {
+                  Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ command, clientId: userId }),
               }
-            } catch (e) { console.error("Quick add supplier failed:", e); }
+            );
+            const data = await res.json();
+            console.log(`Quick add ${contactType} result:`, data);
+            const newItem: MentionItem = { id: data.recordId || `__new_contact_${Date.now()}`, name: newName, type: contactType, category: "contact" };
+            setItems(prev => [...prev, newItem]);
+            const before = mentionStart >= 0 ? value.slice(0, mentionStart) : value.trim() + " ";
+            const after = mentionStart >= 0 ? value.slice(inputRef.current?.selectionStart || value.length) : "";
+            onChange(before + newName + " " + after);
+            onMentionSelect?.(newItem);
+          };
+
+          if (addType === "supplier") {
+            await addContact("مورد");
+          } else if (addType === "customer") {
+            await addContact("زبون");
           } else {
-            handleCreateNew(newName, category);
+            await handleCreateNew(newName, "product");
           }
           setMentionStart(-1);
           inputRef.current?.focus();

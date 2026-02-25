@@ -24,12 +24,19 @@ const QuickAddModal = ({ open, defaultName = "", initialType, onConfirm, onCance
     initialType === "contact" ? "customer" : "product"
   );
   const [isService, setIsService] = useState(false);
+  const [saving, setSaving] = useState(false);
 
+  // Reset state when modal opens
   if (!open) return null;
 
-  const handleConfirm = () => {
-    if (!name.trim()) return;
-    onConfirm({ name: name.trim(), type: selectedType, isService });
+  const handleConfirm = async () => {
+    if (!name.trim() || saving) return;
+    setSaving(true);
+    try {
+      await onConfirm({ name: name.trim(), type: selectedType, isService });
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -131,10 +138,10 @@ const QuickAddModal = ({ open, defaultName = "", initialType, onConfirm, onCance
             </button>
             <button
               onClick={handleConfirm}
-              disabled={!name.trim()}
+              disabled={!name.trim() || saving}
               className="flex-1 h-11 rounded-xl bg-primary text-sm font-semibold text-primary-foreground hover:opacity-90 transition-all active:scale-95 disabled:opacity-40 shadow-md"
             >
-              إنشاء وإكمال ✓
+              {saving ? "جارِ الإضافة..." : "إنشاء وإكمال ✓"}
             </button>
           </div>
         </div>
