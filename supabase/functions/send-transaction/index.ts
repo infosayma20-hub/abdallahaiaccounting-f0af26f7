@@ -304,10 +304,33 @@ serve(async (req) => {
     const openingBalance = isOpeningBalance(text);
     console.log(`Opening balance: ${openingBalance}, Contact: "${contactName}"`);
 
+    // Detect payment method from text
+    const paymentMethodHints: Record<string, string> = {};
+    const lowerText = text.toLowerCase();
+    if (/آجل|على الحساب|بالدين|دين/.test(lowerText)) {
+      paymentMethodHints.method = 'آجل';
+      paymentMethodHints.instruction = 'طريقة الدفع آجل: يجب استخدام حساب "ذمم موردين" (للمشتريات) أو "ذمم العملاء" (للمبيعات) كحساب دائن/مدين. لا تستخدم "بنك" أو "صندوق" أبداً في العمليات الآجلة.';
+    } else if (/نقد|كاش|نقداً/.test(lowerText)) {
+      paymentMethodHints.method = 'نقد';
+      paymentMethodHints.instruction = 'طريقة الدفع نقد: استخدم حساب "صندوق" أو "الصندوق".';
+    } else if (/شيك/.test(lowerText)) {
+      paymentMethodHints.method = 'شيك';
+      paymentMethodHints.instruction = 'طريقة الدفع شيك: استخدم حساب "شيكات" أو "أوراق قبض/دفع".';
+    } else if (/تحويل|بنك/.test(lowerText)) {
+      paymentMethodHints.method = 'تحويل';
+      paymentMethodHints.instruction = 'طريقة الدفع تحويل بنكي: استخدم حساب "البنك".';
+    }
+
     // Build AI instruction
     let aiInstruction = '';
+
+    // Payment method rules (highest priority)
+    if (paymentMethodHints.instruction) {
+      aiInstruction += `\n⚠️ قاعدة إلزامية: ${paymentMethodHints.instruction}\n`;
+    }
+
     if (openingBalance) {
-      aiInstruction = `تنبيه مهم جداً: هذه العملية هي رصيد افتتاحي/مدور وليست عملية تشغيلية عادية.
+      aiInstruction += `تنبيه مهم جداً: هذه العملية هي رصيد افتتاحي/مدور وليست عملية تشغيلية عادية.
 يجب أن يكون:
 - نوع العملية: "رصيد ابتدائي"
 - القيد: إذا مدين → مدين: حساب الجهة، دائن: أرصدة افتتاحية. إذا دائن → العكس.
@@ -315,8 +338,16 @@ serve(async (req) => {
 - is_opening_balance = true
 ${contactAccountName ? `- استخدم حساب "${contactAccountName}" وليس "العملاء" العام.` : ''}`;
     } else if (contactAccountName) {
-      aiInstruction = `تنبيه مهم: عند تسجيل هذه المعاملة، يجب استخدام حساب "${contactAccountName}" كحساب مدين أو دائن (حسب نوع العملية) بدلاً من حساب "العملاء" العام. لا تستخدم "العملاء" أبداً إذا كان هناك حساب خاص بالجهة.`;
+      aiInstruction += `تنبيه مهم: عند تسجيل هذه المعاملة، يجب استخدام حساب "${contactAccountName}" كحساب مدين أو دائن (حسب نوع العملية) بدلاً من حساب "العملاء" العام. لا تستخدم "العملاء" أبداً إذا كان هناك حساب خاص بالجهة.`;
     }
+
+    // Add general payment-account mapping rules
+    aiInstruction += `\n\nقواعد توجيه الحسابات حسب طريقة الدفع:
+- نقد/كاش → صندوق
+- تحويل/بنك → البنك
+- شيك → شيكات / أوراق قبض أو دفع
+- آجل/على الحساب/بالدين → ذمم العملاء (للمبيعات) أو ذمم الموردين (للمشتريات)
+لا تخلط أبداً بين هذه الحسابات.`;
 
     // Send to Make.com webhook
     const response = await fetch(WEBHOOK_URL, {
