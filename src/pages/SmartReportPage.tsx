@@ -139,7 +139,7 @@ const SmartReportPage = () => {
       <ReportHeader
         reportName="التقرير الذكي"
         companyName={companyName}
-        onBack={() => navigate("/reports")}
+        onBack={() => { setResult(null); setQuestion(""); }}
         onExportPDF={result?.table && result.table.length > 0 ? handleExportPDF : undefined}
         onExportExcel={result?.table && result.table.length > 0 ? handleExportExcel : undefined}
         icon={<Sparkles className="h-5 w-5 text-primary" />}
