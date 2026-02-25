@@ -212,6 +212,9 @@ const MentionInput = ({ value, onChange, onKeyDown, onMentionSelect, placeholder
     try {
       if (category === "product" && userId) {
         // Save product to Supabase - only name is required
+        const { data: sessionData } = await supabase.auth.getSession();
+        console.log("Quick add product - userId:", userId, "session:", !!sessionData?.session);
+        
         const { data, error } = await supabase.from("products").insert({
           name,
           user_id: userId,
@@ -222,10 +225,14 @@ const MentionInput = ({ value, onChange, onKeyDown, onMentionSelect, placeholder
           min_quantity: 0,
           category: "بضاعة عامة",
         }).select("id").single();
+        
+        if (error) {
+          console.error("Quick add product error:", error.message, error.details, error.hint);
+        }
         if (!error && data) {
+          console.log("Quick add product success:", data.id);
           newItem.id = data.id;
           newItem.type = "صنف · قطعة";
-          // Add to local items list
           setItems(prev => [...prev, newItem]);
         }
       } else if (category === "contact" && userId) {
@@ -243,13 +250,19 @@ const MentionInput = ({ value, onChange, onKeyDown, onMentionSelect, placeholder
             }
           );
           const data = await res.json();
+          console.log("Quick add contact result:", data);
           if (data.success && data.recordId) {
             newItem.id = data.recordId;
+            setItems(prev => [...prev, newItem]);
+          } else if (data.success) {
+            // Success but no recordId returned
             setItems(prev => [...prev, newItem]);
           }
         } catch (e) {
           console.error("Failed to create contact:", e);
         }
+      } else {
+        console.warn("Quick add skipped - no userId:", userId, "category:", category);
       }
     } catch (e) {
       console.error("Quick create failed:", e);
