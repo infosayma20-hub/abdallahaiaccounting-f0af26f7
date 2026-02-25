@@ -151,15 +151,36 @@ serve(async (req) => {
 1. جهات اتصال (Contacts): زبائن وموردين
 2. حسابات (Accounts): شجرة الحسابات المحاسبية
 3. أصناف/منتجات (Products): المخزون والبضائع
+4. سندات قيد (Journal Entries): قيود محاسبية يدوية
 
 أنواع الحسابات المتاحة: Asset, Liability, Owner's Equity, Revenue, Purchases, Expenses
 فئات الأصناف المتاحة: بضاعة عامة, مواد خام, مواد تعبئة, قطع غيار, أخرى
 وحدات القياس الشائعة: قطعة, كيلو, لتر, متر, صندوق, كرتونة, طن
 
+━━━ كشف سندات القيد ━━━
+إذا احتوى الأمر على كلمات مثل: "سند قيد", "قيد محاسبي", "قيد يومية", "ترحيل", "سجل قيد", "من حساب ... إلى حساب", "مدين ... دائن"
+فأعد action: "add_journal_entry" مع البيانات التالية:
+{
+  "action": "add_journal_entry",
+  "data": {
+    "debitAccount": "اسم الحساب المدين (طابقه من قائمة الحسابات)",
+    "debitAccountId": "معرف السجل للحساب المدين من القائمة أو null",
+    "creditAccount": "اسم الحساب الدائن (طابقه من قائمة الحسابات)",
+    "creditAccountId": "معرف السجل للحساب الدائن من القائمة أو null",
+    "amount": رقم_المبلغ,
+    "description": "وصف العملية",
+    "date": "YYYY-MM-DD أو null لتاريخ اليوم"
+  },
+  "message": "رسالة تأكيد بالعربية"
+}
+
+إذا لم يذكر المستخدم حساب مدين أو دائن أو مبلغ، أعد action: "need_info" مع الحقول الناقصة.
+إذا ذكر أسماء حسابات، طابقها مع قائمة الحسابات الحالية وأعد المعرفات.
+
 أعد الإجابة بصيغة JSON فقط:
 {
-  "action": "add_contact" | "edit_contact" | "delete_contact" | "add_account" | "edit_account" | "delete_account" | "add_product" | "edit_product" | "delete_product" | "need_info" | "unknown",
-  "table": "Contacts" | "Accounts" | "Products",
+  "action": "add_contact" | "edit_contact" | "delete_contact" | "add_account" | "edit_account" | "delete_account" | "add_product" | "edit_product" | "delete_product" | "add_journal_entry" | "need_info" | "unknown",
+  "table": "Contacts" | "Accounts" | "Products" | "Transactions",
   "data": {
     "name": "الاسم",
     "type": "النوع",
@@ -171,7 +192,14 @@ serve(async (req) => {
     "buy_price": "سعر الشراء (0 افتراضياً)",
     "sell_price": "سعر البيع (0 افتراضياً)",
     "min_quantity": "الحد الأدنى (0 افتراضياً)",
-    "sku": "رمز الصنف إن وجد"
+    "sku": "رمز الصنف إن وجد",
+    "debitAccount": "اسم الحساب المدين",
+    "debitAccountId": "معرف الحساب المدين",
+    "creditAccount": "اسم الحساب الدائن",
+    "creditAccountId": "معرف الحساب الدائن",
+    "amount": "المبلغ",
+    "description": "الوصف",
+    "date": "التاريخ"
   },
   "recordId": "معرف السجل للتعديل/الحذف أو null",
   "message": "رسالة تأكيد بالعربية",
@@ -470,6 +498,24 @@ ${JSON.stringify(productsList, null, 0)}
         .eq('user_id', clientId);
       if (deleteError) throw new Error(`خطأ في حذف الصنف: ${deleteError.message}`);
       result = { deleted: true };
+
+    // ─── JOURNAL ENTRY (return for confirmation, don't execute) ─────
+    } else if (parsed.action === 'add_journal_entry') {
+      return new Response(JSON.stringify({
+        success: true,
+        action: 'add_journal_entry',
+        message: parsed.message,
+        data: {
+          debitAccount: parsed.data.debitAccount || '',
+          debitAccountId: parsed.data.debitAccountId || null,
+          creditAccount: parsed.data.creditAccount || '',
+          creditAccountId: parsed.data.creditAccountId || null,
+          amount: Number(parsed.data.amount) || 0,
+          description: parsed.data.description || '',
+          date: parsed.data.date || new Date().toISOString().split('T')[0],
+        },
+        accounts: accountsList,
+      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
     } else {
       return new Response(JSON.stringify({

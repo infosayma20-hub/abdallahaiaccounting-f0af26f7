@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Wallet, Mic, Send, Loader2, Bell, Sparkles, Database, FileText, Package, TrendingUp, TrendingDown, ArrowLeft, ChevronDown, Users, UserPlus, Plus, Paperclip, BarChart3, Clock, AlertTriangle, Sun, Moon, HelpCircle, AtSign } from "lucide-react";
+import { Wallet, Mic, Send, Loader2, Bell, Sparkles, Database, FileText, Package, TrendingUp, TrendingDown, ArrowLeft, ChevronDown, Users, UserPlus, Plus, Paperclip, BarChart3, Clock, AlertTriangle, Sun, Moon, HelpCircle, AtSign, BookOpen } from "lucide-react";
 import SmartAlertCard from "@/components/SmartAlertCard";
 import HelpGuideModal from "@/components/HelpGuideModal";
 import MentionInput, { MentionItem } from "@/components/MentionInput";
@@ -18,6 +18,7 @@ import SavedCommands from "@/components/SavedCommands";
 import { browserSupportsWebAuthn } from "@simplewebauthn/browser";
 import { useTheme } from "@/hooks/useTheme";
 import TransactionToast, { useTransactionToast } from "@/components/TransactionToast";
+import JournalEntryPopup from "@/components/JournalEntryPopup";
 
 interface TransactionRecord {
   id: string;
@@ -58,6 +59,9 @@ const Dashboard = () => {
   const [dbResponseMessage, setDbResponseMessage] = useState<string | null>(null);
   const [financialAlert, setFinancialAlert] = useState<any>(null);
   const [allAlerts, setAllAlerts] = useState<any[]>([]);
+  const [showJournalEntry, setShowJournalEntry] = useState(false);
+  const [journalEntryData, setJournalEntryData] = useState<any>(null);
+  const [journalEntryAccounts, setJournalEntryAccounts] = useState<any[]>([]);
   const rotatingPlaceholder = useRotatingPlaceholder();
 
   useEffect(() => {
@@ -377,6 +381,11 @@ const Dashboard = () => {
             setDbResponseMessage(`تقريباً انتهينا 🙌\nلكن أحتاج المعلومات التالية:\n${missing}`);
           } else if (data.action === 'delete_blocked') {
             setDbResponseMessage(`⚠️ ${data.message || "لا يمكن الحذف — السجل مرتبط بحركات مالية"}`);
+          } else if (data.action === 'add_journal_entry') {
+            setJournalEntryData(data.data || null);
+            setJournalEntryAccounts(data.accounts || []);
+            setShowJournalEntry(true);
+            setDbCommand("");
           } else if (data.success) {
             successCount++;
           } else {
@@ -614,6 +623,7 @@ const Dashboard = () => {
                   "أضف مورد شركة الشمال",
                   "أضف منتج سجاد شراء 80 بيع 120",
                   "أضف حساب مصروف تسويق",
+                  "سند قيد مدين المشتريات دائن الصندوق 5000",
                 ].map((chip) => (
                   <button
                     key={chip}
@@ -623,6 +633,14 @@ const Dashboard = () => {
                     {chip}
                   </button>
                 ))}
+                {/* Direct journal entry button */}
+                <button
+                  onClick={() => setShowJournalEntry(true)}
+                  className="px-2.5 py-1.5 rounded-full bg-primary/10 text-[10px] font-bold text-primary hover:bg-primary/20 transition-all active:scale-95 neon-border flex items-center gap-1"
+                >
+                  <BookOpen className="h-3 w-3" />
+                  سند قيد جديد
+                </button>
               </div>
               {/* Response bubble - same style as financial assistant */}
               {dbResponseMessage && (
@@ -767,6 +785,13 @@ const Dashboard = () => {
         }}
       />
       <TransactionToast show={txToast.show} onDone={txToast.handleDone} />
+      <JournalEntryPopup
+        open={showJournalEntry}
+        onClose={() => { setShowJournalEntry(false); setJournalEntryData(null); }}
+        onSuccess={() => txToast.trigger()}
+        initialData={journalEntryData}
+        accounts={journalEntryAccounts.length > 0 ? journalEntryAccounts : undefined}
+      />
     </div>
   );
 };
