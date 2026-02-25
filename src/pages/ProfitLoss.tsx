@@ -1,10 +1,12 @@
-import { useState, useEffect } from "react";
-import { ArrowRight, TrendingUp, TrendingDown, DollarSign, Loader2 } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { TrendingUp, TrendingDown, DollarSign, Loader2, BarChart3 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell } from "recharts";
 import { useAuth } from "@/hooks/useAuth";
 import { useCountUp } from "@/hooks/useCountUp";
+import { supabase } from "@/integrations/supabase/client";
+import { ReportHeader, ReportSummary, ReportTable, exportToExcel, exportToPDF } from "@/components/ReportComponents";
 
 interface TransactionRecord {
   id: string;
@@ -14,6 +16,8 @@ interface TransactionRecord {
     "Transaction Type"?: string;
     "Credit Account Rollup"?: string;
     "Debit Account Rollup"?: string;
+    "Debit Account Name"?: string;
+    "Credit Account Name"?: string;
     Description?: string;
     Date?: string;
     Client?: string;
@@ -28,6 +32,13 @@ const ProfitLoss = () => {
   const [period, setPeriod] = useState<"monthly" | "yearly">("monthly");
   const [transactions, setTransactions] = useState<TransactionRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [companyName, setCompanyName] = useState("");
+
+  useEffect(() => {
+    if (!user) return;
+    supabase.from("profiles").select("company_name").eq("user_id", user.id).maybeSingle()
+      .then(({ data }) => { if (data?.company_name) setCompanyName(data.company_name); });
+  }, [user]);
 
   useEffect(() => {
     if (!user) return;
@@ -50,13 +61,12 @@ const ProfitLoss = () => {
     fetchTx();
   }, [user]);
 
-  // Filter out opening balance transactions from P&L
+  // Filter out opening balance transactions
   const plTransactions = transactions.filter((tx) => {
     const type = (tx.fields["Transaction Type"] || "").trim();
     const desc = (tx.fields.Description || "").trim();
     const isOB = /رصيد\s*(ابتدائي|افتتاحي|مدور|أول\s*المدة)/i.test(desc) ||
-      /رصيد\s*(ابتدائي|افتتاحي|مدور)/i.test(type) ||
-      type === "رصيد ابتدائي";
+      /رصيد\s*(ابتدائي|افتتاحي|مدور)/i.test(type) || type === "رصيد ابتدائي";
     return !isOB;
   });
 
@@ -67,6 +77,7 @@ const ProfitLoss = () => {
     .filter((tx) => tx.fields["Debit Account Rollup"] === "Expenses")
     .reduce((sum, tx) => sum + (tx.fields.Amount || 0), 0);
   const netProfit = totalRevenue - totalExpenses;
+  const margin = totalRevenue > 0 ? Math.round((netProfit / totalRevenue) * 100) : 0;
 
   const animRevenue = useCountUp(totalRevenue, 1200, !loading);
   const animExpenses = useCountUp(totalExpenses, 1200, !loading);
@@ -74,10 +85,7 @@ const ProfitLoss = () => {
 
   // Pie data
   const pieData = totalRevenue > 0 || totalExpenses > 0
-    ? [
-        { name: "الإيرادات", value: totalRevenue },
-        { name: "المصروفات", value: totalExpenses },
-      ]
+    ? [{ name: "الإيرادات", value: totalRevenue }, { name: "المصروفات", value: totalExpenses }]
     : [];
   const COLORS = ["hsl(152, 45%, 42%)", "hsl(0, 72%, 51%)"];
 
@@ -98,14 +106,66 @@ const ProfitLoss = () => {
     .sort(([a], [b]) => Number(a) - Number(b))
     .map(([m, data]) => ({ month: monthNames[Number(m)], revenue: data.revenue, expenses: data.expenses }));
 
+  // Build table data for export & display
+  const tableData = useMemo(() => {
+    // Revenue items
+    const revenueRows = plTransactions
+      .filter(tx => tx.fields["Debit Account Rollup"] === "Asset" && tx.fields["Credit Account Rollup"] === "Revenue")
+      .map(tx => ({
+        "التاريخ": tx.fields.Date || "-",
+        "الوصف": tx.fields.Description || "-",
+        "المبلغ": tx.fields.Amount || 0,
+        "النوع": "إيراد",
+        "الحساب المدين": tx.fields["Debit Account Name"] || "-",
+        "الحساب الدائن": tx.fields["Credit Account Name"] || "-",
+      }));
+    const expenseRows = plTransactions
+      .filter(tx => tx.fields["Debit Account Rollup"] === "Expenses")
+      .map(tx => ({
+        "التاريخ": tx.fields.Date || "-",
+        "الوصف": tx.fields.Description || "-",
+        "المبلغ": tx.fields.Amount || 0,
+        "النوع": "مصروف",
+        "الحساب المدين": tx.fields["Debit Account Name"] || "-",
+        "الحساب الدائن": tx.fields["Credit Account Name"] || "-",
+      }));
+    return [...revenueRows, ...expenseRows].sort((a, b) => (b["التاريخ"] || "").localeCompare(a["التاريخ"] || ""));
+  }, [plTransactions]);
+
+  const currentMonth = monthNames[new Date().getMonth()];
+  const periodLabel = period === "monthly" ? `${currentMonth} ${new Date().getFullYear()}` : `${new Date().getFullYear()}`;
+
+  const handleExportExcel = () => {
+    exportToExcel(tableData, {
+      "التقرير": "الأرباح والخسائر",
+      "الفترة": periodLabel,
+      "إجمالي الإيرادات": totalRevenue,
+      "إجمالي المصروفات": totalExpenses,
+      "صافي الربح": netProfit,
+      "هامش الربح %": margin,
+    }, `أرباح-وخسائر-${Date.now()}`);
+  };
+
+  const handleExportPDF = () => {
+    exportToPDF("الأرباح والخسائر", companyName, periodLabel, {
+      "إجمالي الإيرادات": `₪${totalRevenue.toLocaleString()}`,
+      "إجمالي المصروفات": `₪${totalExpenses.toLocaleString()}`,
+      "صافي الربح": `₪${netProfit.toLocaleString()}`,
+      "هامش الربح": `${margin}%`,
+    }, tableData);
+  };
+
   return (
-    <div className="px-4 pt-6 space-y-6 pb-8">
-      <div className="flex items-center gap-3">
-        <button onClick={() => navigate("/menu")} className="p-2 rounded-xl hover:bg-muted transition-colors">
-          <ArrowRight className="h-5 w-5 text-foreground" />
-        </button>
-        <h1 className="text-lg font-bold text-foreground">الأرباح والخسائر</h1>
-      </div>
+    <div className="px-4 pt-6 space-y-5 pb-8">
+      <ReportHeader
+        reportName="الأرباح والخسائر"
+        companyName={companyName}
+        period={periodLabel}
+        onBack={() => navigate("/menu")}
+        onExportPDF={!loading ? handleExportPDF : undefined}
+        onExportExcel={!loading ? handleExportExcel : undefined}
+        icon={<BarChart3 className="h-5 w-5 text-primary" />}
+      />
 
       {loading ? (
         <div className="flex items-center justify-center py-16">
@@ -115,23 +175,21 @@ const ProfitLoss = () => {
         <>
           {/* Period Toggle */}
           <div className="flex gap-1 bg-muted/60 p-1 rounded-2xl">
-            <button
-              onClick={() => setPeriod("monthly")}
-              className={`flex-1 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 ${
-                period === "monthly" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
-              }`}
-            >
+            <button onClick={() => setPeriod("monthly")} className={`flex-1 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 ${period === "monthly" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"}`}>
               شهري
             </button>
-            <button
-              onClick={() => setPeriod("yearly")}
-              className={`flex-1 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 ${
-                period === "yearly" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
-              }`}
-            >
+            <button onClick={() => setPeriod("yearly")} className={`flex-1 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 ${period === "yearly" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"}`}>
               سنوي
             </button>
           </div>
+
+          {/* Summary */}
+          <ReportSummary items={[
+            { label: "إجمالي الإيرادات", value: totalRevenue, color: "primary" },
+            { label: "إجمالي المصروفات", value: totalExpenses, color: "destructive" },
+            { label: netProfit >= 0 ? "صافي الربح" : "صافي الخسارة", value: netProfit, color: netProfit >= 0 ? "primary" : "destructive" },
+            { label: "هامش الربح", value: margin, color: margin > 0 ? "primary" : "destructive", prefix: "%" },
+          ]} />
 
           {/* Circular Chart */}
           {pieData.length > 0 && (
@@ -141,19 +199,8 @@ const ProfitLoss = () => {
                 <div className="h-40 w-40 relative" dir="ltr">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
-                      <Pie
-                        data={pieData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={45}
-                        outerRadius={65}
-                        paddingAngle={4}
-                        dataKey="value"
-                        strokeWidth={0}
-                      >
-                        {pieData.map((_, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index]} />
-                        ))}
+                      <Pie data={pieData} cx="50%" cy="50%" innerRadius={45} outerRadius={65} paddingAngle={4} dataKey="value" strokeWidth={0}>
+                        {pieData.map((_, index) => (<Cell key={`cell-${index}`} fill={COLORS[index]} />))}
                       </Pie>
                     </PieChart>
                   </ResponsiveContainer>
@@ -164,68 +211,12 @@ const ProfitLoss = () => {
                   </div>
                 </div>
                 <div className="flex items-center gap-6 mt-3">
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-3 h-3 rounded-full bg-primary" />
-                    <span className="text-xs text-muted-foreground">إيرادات</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-3 h-3 rounded-full bg-destructive" />
-                    <span className="text-xs text-muted-foreground">مصروفات</span>
-                  </div>
+                  <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-primary" /><span className="text-xs text-muted-foreground">إيرادات</span></div>
+                  <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-destructive" /><span className="text-xs text-muted-foreground">مصروفات</span></div>
                 </div>
               </CardContent>
             </Card>
           )}
-
-          {/* Summary Cards */}
-          <div className="space-y-3">
-            <Card className="border-0 shadow-sm overflow-hidden hover:shadow-md transition-all duration-200">
-              <div className="h-1 bg-gradient-to-l from-primary to-primary/50" />
-              <CardContent className="p-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-2.5 rounded-xl bg-primary/10">
-                    <TrendingUp className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">إجمالي الإيرادات</p>
-                    <p className="text-xl font-bold text-foreground tabular-nums">₪{animRevenue.toLocaleString()}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-0 shadow-sm overflow-hidden hover:shadow-md transition-all duration-200">
-              <div className="h-1 bg-gradient-to-l from-destructive to-destructive/50" />
-              <CardContent className="p-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-2.5 rounded-xl bg-destructive/10">
-                    <TrendingDown className="h-5 w-5 text-destructive" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">إجمالي المصروفات</p>
-                    <p className="text-xl font-bold text-foreground tabular-nums">₪{animExpenses.toLocaleString()}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-0 shadow-sm overflow-hidden hover:shadow-md transition-all duration-200">
-              <div className={`h-1 ${netProfit >= 0 ? "bg-gradient-to-l from-primary to-primary/50" : "bg-gradient-to-l from-destructive to-destructive/50"}`} />
-              <CardContent className="p-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className={`p-2.5 rounded-xl ${netProfit >= 0 ? "bg-primary/10" : "bg-destructive/10"}`}>
-                    <DollarSign className={`h-5 w-5 ${netProfit >= 0 ? "text-primary" : "text-destructive"}`} />
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">{netProfit >= 0 ? "صافي الربح" : "صافي الخسارة"}</p>
-                    <p className={`text-2xl font-bold tabular-nums ${netProfit >= 0 ? "text-primary" : "text-destructive"}`}>
-                      ₪{animNet.toLocaleString()}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
 
           {/* Bar Chart */}
           {monthlyData.length > 0 && (
@@ -244,17 +235,19 @@ const ProfitLoss = () => {
                   </ResponsiveContainer>
                 </div>
                 <div className="flex items-center justify-center gap-6 mt-3">
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-3 h-3 rounded-sm bg-primary" />
-                    <span className="text-xs text-muted-foreground">الإيرادات</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-3 h-3 rounded-sm bg-destructive" />
-                    <span className="text-xs text-muted-foreground">المصروفات</span>
-                  </div>
+                  <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm bg-primary" /><span className="text-xs text-muted-foreground">الإيرادات</span></div>
+                  <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm bg-destructive" /><span className="text-xs text-muted-foreground">المصروفات</span></div>
                 </div>
               </CardContent>
             </Card>
+          )}
+
+          {/* Detailed Table */}
+          {tableData.length > 0 && (
+            <div>
+              <h3 className="text-sm font-bold text-foreground mb-2">تفاصيل العمليات</h3>
+              <ReportTable data={tableData} typeColumn="النوع" amountColumn="المبلغ" />
+            </div>
           )}
         </>
       )}

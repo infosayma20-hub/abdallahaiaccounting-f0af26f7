@@ -1,12 +1,13 @@
-import { useState, useEffect } from "react";
-import { ArrowRight, Loader2, Send, Sparkles, TableIcon } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { Loader2, Send, Sparkles } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { ReportHeader, ReportSummary, ReportTable, exportToExcel, exportToPDF } from "@/components/ReportComponents";
 
 interface ReportResult {
   answer: string;
@@ -18,52 +19,27 @@ interface ReportResult {
 const reportCategories = [
   {
     label: "📊 الأرباح والخسائر",
-    questions: [
-      "اعرض أرباح وخسائر هذا الشهر",
-      "كم إجمالي أرباحي؟",
-      "كم صافي الربح؟",
-    ],
+    questions: ["اعرض أرباح وخسائر هذا الشهر", "كم إجمالي أرباحي؟", "كم صافي الربح؟"],
   },
   {
     label: "🛒 المشتريات والمبيعات",
-    questions: [
-      "كم مشترياتي هذا الشهر؟",
-      "كم مبيعاتي هذا الشهر؟",
-      "كشف بالمقبوضات",
-    ],
+    questions: ["كم مشترياتي هذا الشهر؟", "كم مبيعاتي هذا الشهر؟", "كشف بالمقبوضات"],
   },
   {
     label: "👤 كشوفات الحسابات",
-    questions: [
-      "كشف حساب المسحوبات الشخصية",
-      "كشف حساب المصروفات",
-      "كشف حساب الصندوق",
-    ],
+    questions: ["كشف حساب المسحوبات الشخصية", "كشف حساب المصروفات", "كشف حساب الصندوق"],
   },
   {
     label: "🏦 الذمم والعملاء",
-    questions: [
-      "اعرض الذمم المتأخرة",
-      "كشف حساب الزبائن",
-      "كشف حساب الموردين",
-    ],
+    questions: ["اعرض الذمم المتأخرة", "كشف حساب الزبائن", "كشف حساب الموردين"],
   },
   {
     label: "📦 المخزون",
-    questions: [
-      "اعرض المخزون والكميات",
-      "ما هي الأصناف الأقل من الحد الأدنى؟",
-      "اعرض قيمة المخزون",
-      "منتجات منخفضة",
-    ],
+    questions: ["اعرض المخزون والكميات", "ما هي الأصناف الأقل من الحد الأدنى؟", "اعرض قيمة المخزون", "منتجات منخفضة"],
   },
   {
     label: "💰 ملخص مالي",
-    questions: [
-      "شو وضعي المالي اليوم؟",
-      "كشف بالمصاريف",
-      "ما هي آخر 10 معاملات؟",
-    ],
+    questions: ["شو وضعي المالي اليوم؟", "كشف بالمصاريف", "ما هي آخر 10 معاملات؟"],
   },
 ];
 
@@ -75,13 +51,19 @@ const SmartReportPage = () => {
   const [question, setQuestion] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ReportResult | null>(null);
+  const [companyName, setCompanyName] = useState("");
+
+  // Fetch company name
+  useEffect(() => {
+    if (!user) return;
+    supabase.from("profiles").select("company_name").eq("user_id", user.id).maybeSingle()
+      .then(({ data }) => { if (data?.company_name) setCompanyName(data.company_name); });
+  }, [user]);
 
   // Auto-execute from query param
   useEffect(() => {
     const q = searchParams.get("q");
-    if (q && user) {
-      handleAsk(q);
-    }
+    if (q && user) handleAsk(q);
   }, [searchParams, user]);
 
   const handleAsk = async (q?: string) => {
@@ -113,24 +95,55 @@ const SmartReportPage = () => {
     }
   };
 
-  const tableColumns = result?.table && result.table.length > 0 ? Object.keys(result.table[0]) : [];
+  // Compute summary from table data
+  const summary = useMemo(() => {
+    if (!result?.table || result.table.length === 0) return null;
+    const rows = result.table;
+    let totalDebit = 0, totalCredit = 0;
+    rows.forEach((r) => {
+      const amount = Number(r["المبلغ"]) || 0;
+      const type = String(r["النوع"] ?? "").toLowerCase();
+      if (type.includes("مدين")) totalDebit += amount;
+      else if (type.includes("دائن")) totalCredit += amount;
+      else totalDebit += amount; // default
+    });
+    return { count: rows.length, totalDebit, totalCredit, net: totalDebit - totalCredit };
+  }, [result]);
+
+  const handleExportExcel = () => {
+    if (!result?.table) return;
+    const summaryData: Record<string, any> = {
+      "التقرير": question,
+      "عدد السجلات": summary?.count || 0,
+      "إجمالي المدين": summary?.totalDebit || 0,
+      "إجمالي الدائن": summary?.totalCredit || 0,
+      "صافي الرصيد": summary?.net || 0,
+    };
+    if (result.total != null) summaryData["الإجمالي"] = result.total;
+    exportToExcel(result.table, summaryData, `تقرير-ذكي-${Date.now()}`);
+  };
+
+  const handleExportPDF = () => {
+    if (!result?.table) return;
+    const summaryData: Record<string, any> = {
+      "عدد السجلات": summary?.count || 0,
+      "إجمالي المدين": `₪${(summary?.totalDebit || 0).toLocaleString()}`,
+      "إجمالي الدائن": `₪${(summary?.totalCredit || 0).toLocaleString()}`,
+      "صافي الرصيد": `₪${(summary?.net || 0).toLocaleString()}`,
+    };
+    exportToPDF(question, companyName, "حسب الطلب", summaryData, result.table);
+  };
 
   return (
-    <div className="px-4 pt-6 space-y-4" dir="rtl">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <button onClick={() => navigate("/menu")} className="p-2 rounded-lg hover:bg-muted transition-colors">
-            <ArrowRight className="h-5 w-5 text-foreground" />
-          </button>
-          <div>
-            <h1 className="text-lg font-bold text-foreground">التقرير الذكي</h1>
-            <p className="text-xs text-muted-foreground">اسأل عن بياناتك بلغتك</p>
-          </div>
-        </div>
-        <div className="p-2 rounded-lg bg-primary/10">
-          <Sparkles className="h-5 w-5 text-primary" />
-        </div>
-      </div>
+    <div className="px-4 pt-6 pb-8 space-y-4" dir="rtl">
+      <ReportHeader
+        reportName="التقرير الذكي"
+        companyName={companyName}
+        onBack={() => navigate("/menu")}
+        onExportPDF={result?.table && result.table.length > 0 ? handleExportPDF : undefined}
+        onExportExcel={result?.table && result.table.length > 0 ? handleExportExcel : undefined}
+        icon={<Sparkles className="h-5 w-5 text-primary" />}
+      />
 
       {/* Input */}
       <Card className="border-0 shadow-md bg-gradient-to-l from-primary/5 to-background">
@@ -151,11 +164,7 @@ const SmartReportPage = () => {
               disabled={loading || !question.trim()}
               className="flex-shrink-0 w-10 h-10 rounded-full bg-primary flex items-center justify-center hover:opacity-90 transition-all active:scale-95 disabled:opacity-50"
             >
-              {loading ? (
-                <Loader2 className="h-4 w-4 text-primary-foreground animate-spin" />
-              ) : (
-                <Send className="h-4 w-4 text-primary-foreground" />
-              )}
+              {loading ? <Loader2 className="h-4 w-4 text-primary-foreground animate-spin" /> : <Send className="h-4 w-4 text-primary-foreground" />}
             </button>
           </div>
         </CardContent>
@@ -169,11 +178,7 @@ const SmartReportPage = () => {
               <p className="text-xs font-semibold text-muted-foreground">{cat.label}</p>
               <div className="flex flex-wrap gap-2">
                 {cat.questions.map((q) => (
-                  <button
-                    key={q}
-                    onClick={() => handleAsk(q)}
-                    className="px-3 py-1.5 rounded-full bg-secondary text-xs font-medium text-foreground hover:bg-primary/10 hover:text-primary transition-all active:scale-95"
-                  >
+                  <button key={q} onClick={() => handleAsk(q)} className="px-3 py-1.5 rounded-full bg-secondary text-xs font-medium text-foreground hover:bg-primary/10 hover:text-primary transition-all active:scale-95">
                     {q}
                   </button>
                 ))}
@@ -199,9 +204,9 @@ const SmartReportPage = () => {
             <CardContent className="p-4">
               <div className="flex items-start gap-2">
                 <Sparkles className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-                <p className="text-sm font-medium text-foreground leading-relaxed">{result.answer}</p>
+                <p className="text-sm font-medium text-foreground leading-relaxed whitespace-pre-line">{result.answer}</p>
               </div>
-              {result.total !== null && result.total !== undefined && (
+              {result.total != null && (
                 <div className="mt-3 pt-3 border-t border-primary/10 text-center">
                   <p className="text-2xl font-bold text-primary">
                     {result.currency || "₪"}{result.total.toLocaleString()}
@@ -211,40 +216,19 @@ const SmartReportPage = () => {
             </CardContent>
           </Card>
 
+          {/* Summary */}
+          {summary && (
+            <ReportSummary items={[
+              { label: "عدد السجلات", value: summary.count, color: "muted", prefix: "" },
+              { label: "إجمالي المدين", value: summary.totalDebit, color: "primary" },
+              { label: "إجمالي الدائن", value: summary.totalCredit, color: "destructive" },
+              { label: "صافي الرصيد", value: summary.net, color: summary.net >= 0 ? "primary" : "destructive" },
+            ]} />
+          )}
+
           {/* Table */}
           {result.table && result.table.length > 0 && (
-            <Card className="border-0 shadow-sm">
-              <CardContent className="p-3">
-                <div className="flex items-center gap-2 mb-3">
-                  <TableIcon className="h-4 w-4 text-muted-foreground" />
-                  <p className="text-xs text-muted-foreground">{result.table.length} سجل</p>
-                </div>
-                <div className="overflow-x-auto rounded-lg border border-border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        {tableColumns.map((col) => (
-                          <TableHead key={col} className="text-xs font-semibold whitespace-nowrap text-right">
-                            {col}
-                          </TableHead>
-                        ))}
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {result.table.map((row, i) => (
-                        <TableRow key={i}>
-                          {tableColumns.map((col) => (
-                            <TableCell key={col} className="text-xs whitespace-nowrap">
-                              {typeof row[col] === "number" ? row[col].toLocaleString() : row[col] || "-"}
-                            </TableCell>
-                          ))}
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
+            <ReportTable data={result.table} typeColumn="النوع" amountColumn="المبلغ" />
           )}
 
           {/* Ask Again */}
