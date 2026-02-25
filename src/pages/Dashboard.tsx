@@ -16,6 +16,7 @@ import ExecutiveKPICards from "@/components/ExecutiveKPICards";
 import SavedCommands from "@/components/SavedCommands";
 import { browserSupportsWebAuthn } from "@simplewebauthn/browser";
 import { useTheme } from "@/hooks/useTheme";
+import TransactionToast, { useTransactionToast } from "@/components/TransactionToast";
 
 interface TransactionRecord {
   id: string;
@@ -34,6 +35,7 @@ interface TransactionRecord {
 const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const txToast = useTransactionToast();
   const { user, signOut } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const [themePulse, setThemePulse] = useState(false);
@@ -210,7 +212,7 @@ const Dashboard = () => {
         } catch { failCount++; }
       }
       if (failCount === 0) {
-        toast({ title: `تم إرسال ${successCount > 1 ? successCount + " عمليات" : "العملية"} بنجاح ✅`, description: "جاري المعالجة بالذكاء الاصطناعي" });
+        txToast.trigger();
       } else {
         toast({ title: `تم إرسال ${successCount} من ${lines.length} عمليات`, description: `فشل ${failCount} عمليات`, variant: "destructive" });
       }
@@ -233,7 +235,7 @@ const Dashboard = () => {
       };
       const { error } = await supabase.functions.invoke("send-transaction", { body });
       if (error) throw error;
-      toast({ title: "تم إنشاء الفاتورة بنجاح ✅" });
+      txToast.trigger();
       setPendingInvoice(null);
       setInvoiceMessage(null);
     } catch (err: any) {
@@ -667,6 +669,7 @@ const Dashboard = () => {
           else setDbCommand(text);
         }}
       />
+      <TransactionToast show={txToast.show} onDone={txToast.handleDone} />
     </div>
   );
 };

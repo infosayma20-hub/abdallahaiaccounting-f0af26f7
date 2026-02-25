@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import TransactionToast, { useTransactionToast } from "@/components/TransactionToast";
 
 type RecordingState = "idle" | "recording" | "processing" | "preview";
 
@@ -20,6 +21,7 @@ interface ParsedTransaction {
 
 const VoiceInput = () => {
   const navigate = useNavigate();
+  const txToast = useTransactionToast();
   const [state, setState] = useState<RecordingState>("idle");
   const [transcript, setTranscript] = useState("");
   const [transaction, setTransaction] = useState<ParsedTransaction | null>(null);
@@ -99,6 +101,7 @@ const VoiceInput = () => {
   }, []);
 
   return (
+    <>
     <div className="px-4 pt-6 min-h-screen flex flex-col">
       {/* Header */}
       <div className="flex items-center gap-3 mb-8">
@@ -260,8 +263,8 @@ const VoiceInput = () => {
                     body: { text: transcript },
                   });
                   if (error) throw error;
-                  toast.success("تم تسجيل العملية بنجاح");
-                  navigate("/");
+                  txToast.trigger();
+                  setTimeout(() => navigate("/"), 3000);
                 } catch {
                   toast.error("حدث خطأ في تسجيل العملية");
                 }
@@ -280,6 +283,8 @@ const VoiceInput = () => {
         </div>
       )}
     </div>
+    <TransactionToast show={txToast.show} onDone={txToast.handleDone} />
+    </>
   );
 };
 
