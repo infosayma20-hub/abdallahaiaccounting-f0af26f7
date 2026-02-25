@@ -179,11 +179,10 @@ const MentionInput = ({ value, onChange, onKeyDown, onMentionSelect, placeholder
     setShowDropdown(false);
   };
 
-  const handleCreateNew = useCallback((name: string, category: "contact" | "product") => {
+  const handleCreateNew = useCallback(async (name: string, category: "contact" | "product") => {
     // If no name typed yet, just close dropdown and keep @ so user can type the name
     if (!name) {
       setShowDropdown(false);
-      // Place cursor right after @ so user types the new name inline
       const hint = category === "contact" ? "اسم_الزبون" : "اسم_المنتج";
       if (mentionStart >= 0) {
         const before = value.slice(0, mentionStart);
@@ -191,7 +190,6 @@ const MentionInput = ({ value, onChange, onKeyDown, onMentionSelect, placeholder
         const after = value.slice(cursorPos);
         const newValue = before + hint + " " + after;
         onChange(newValue);
-        // Select the hint text so user can overwrite it
         setTimeout(() => {
           if (inputRef.current) {
             inputRef.current.focus();
@@ -203,13 +201,61 @@ const MentionInput = ({ value, onChange, onKeyDown, onMentionSelect, placeholder
       return;
     }
 
-    const newItem: MentionItem = {
+    let newItem: MentionItem = {
       id: `__new_${category}_${Date.now()}`,
       name,
       type: category === "contact" ? "جديد" : "صنف جديد",
       category,
     };
 
+    // Actually save to database
+    try {
+      if (category === "product" && userId) {
+        // Save product to Supabase - only name is required
+        const { data, error } = await supabase.from("products").insert({
+          name,
+          user_id: userId,
+          unit: "قطعة",
+          buy_price: 0,
+          sell_price: 0,
+          quantity: 0,
+          min_quantity: 0,
+          category: "بضاعة عامة",
+        }).select("id").single();
+        if (!error && data) {
+          newItem.id = data.id;
+          newItem.type = "صنف · قطعة";
+          // Add to local items list
+          setItems(prev => [...prev, newItem]);
+        }
+      } else if (category === "contact" && userId) {
+        // Save contact via Airtable edge function
+        try {
+          const res = await fetch(
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/database-command`,
+            {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ command: `أضف زبون ${name}`, clientId: userId }),
+            }
+          );
+          const data = await res.json();
+          if (data.success && data.recordId) {
+            newItem.id = data.recordId;
+            setItems(prev => [...prev, newItem]);
+          }
+        } catch (e) {
+          console.error("Failed to create contact:", e);
+        }
+      }
+    } catch (e) {
+      console.error("Quick create failed:", e);
+    }
+
+    // Insert name into input regardless
     if (mentionStart < 0) {
       const newValue = value.trim() + " " + newItem.name + " ";
       onChange(newValue);
@@ -224,7 +270,7 @@ const MentionInput = ({ value, onChange, onKeyDown, onMentionSelect, placeholder
     setShowDropdown(false);
     setMentionStart(-1);
     inputRef.current?.focus();
-  }, [value, mentionStart, onChange, onMentionSelect]);
+  }, [value, mentionStart, onChange, onMentionSelect, userId]);
 
   const insertMention = useCallback((item: MentionItem) => {
     if (mentionStart < 0) {
