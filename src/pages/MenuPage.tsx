@@ -22,7 +22,7 @@ const sections = [
   {
     title: "الإدارة",
     items: [
-      { icon: BookOpen, label: "المحاسبة", description: "دفتر الأستاذ والقيود", color: "bg-primary/10", iconColor: "text-primary", path: "/transactions" },
+      { icon: BookOpen, label: "المعاملات", description: "القيود والعمليات المالية", color: "bg-primary/10", iconColor: "text-primary", path: "/transactions" },
       { icon: CreditCard, label: "الباقات", description: "الأسعار والاشتراك", color: "bg-secondary", iconColor: "text-secondary-foreground", path: "/pricing" },
       { icon: FileSpreadsheet, label: "تصدير", description: "PDF و Excel", color: "bg-accent", iconColor: "text-accent-foreground", path: "/export" },
     ],
