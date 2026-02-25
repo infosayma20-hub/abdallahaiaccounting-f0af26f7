@@ -197,7 +197,7 @@ const InventoryPage = () => {
     return true;
   });
 
-  const totalValue = products.reduce((s, p) => s + p.quantity * p.sell_price, 0);
+  const totalValue = products.reduce((s, p) => s + p.quantity * p.buy_price, 0);
   const lowStockCount = products.filter(p => p.quantity <= p.min_quantity && p.min_quantity > 0).length;
 
   const movementTypeLabel: Record<string, { label: string; color: string; icon: typeof TrendingUp }> = {
@@ -230,7 +230,7 @@ const InventoryPage = () => {
           <div className="rounded-2xl bg-gradient-to-br from-primary/5 to-primary/10 p-4 border border-primary/10">
             <Package className="h-5 w-5 text-primary mb-1" />
             <p className="text-lg font-bold text-primary">₪{totalValue.toLocaleString()}</p>
-            <p className="text-[10px] text-primary/70 font-medium">قيمة المخزون (بسعر البيع)</p>
+            <p className="text-[10px] text-primary/70 font-medium">قيمة المخزون (بسعر التكلفة)</p>
           </div>
           <div className={`rounded-2xl p-4 border ${lowStockCount > 0 ? "bg-gradient-to-br from-destructive/5 to-destructive/10 border-destructive/10" : "bg-gradient-to-br from-muted/30 to-muted/50 border-border/30"}`}>
             <AlertTriangle className={`h-5 w-5 mb-1 ${lowStockCount > 0 ? "text-destructive" : "text-muted-foreground"}`} />
