@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Users, AtSign, Package } from "lucide-react";
+import { Users, AtSign, Package, PlusCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 export interface MentionItem {
   id: string;
   name: string;
-  type: string; // "زبون" | "مورد" | "صنف"
+  type: string;
   category: "contact" | "product";
 }
 
@@ -19,6 +19,11 @@ interface MentionInputProps {
   userId?: string;
 }
 
+// Keywords that trigger auto-@ for product/contact flow
+const SELL_KEYWORDS = ["بعت", "بيع", "بعنا"];
+const BUY_KEYWORDS = ["اشتريت", "شراء", "شرينا"];
+const ALL_TRIGGER_KEYWORDS = [...SELL_KEYWORDS, ...BUY_KEYWORDS];
+
 const MentionInput = ({ value, onChange, onKeyDown, onMentionSelect, placeholder, className, userId }: MentionInputProps) => {
   const [items, setItems] = useState<MentionItem[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -28,19 +33,19 @@ const MentionInput = ({ value, onChange, onKeyDown, onMentionSelect, placeholder
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [loaded, setLoaded] = useState(false);
+  const [autoTriggered, setAutoTriggered] = useState(false);
+  const prevValueRef = useRef("");
 
   // Fetch contacts + products once
   useEffect(() => {
     if (!userId || loaded) return;
     const fetchAll = async () => {
       try {
-        // Fetch contacts from Airtable
         const contactsPromise = fetch(
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-contacts?clientId=${userId}`,
           { headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` } }
         ).then(r => r.ok ? r.json() : { records: [] });
 
-        // Fetch products from Supabase
         const productsPromise = supabase
           .from("products")
           .select("id, name, unit")
@@ -77,13 +82,81 @@ const MentionInput = ({ value, onChange, onKeyDown, onMentionSelect, placeholder
     searchQuery ? item.name.toLowerCase().includes(searchQuery.toLowerCase()) : true
   );
 
-  // Group by category
   const groupedContacts = filteredItems.filter(i => i.category === "contact");
   const groupedProducts = filteredItems.filter(i => i.category === "product");
+
+  // "Create new" options based on search query
+  const createNewOptions: { label: string; category: "contact" | "product"; type: string }[] = [];
+  if (searchQuery.trim()) {
+    const nameExists = filteredItems.some(i => i.name === searchQuery.trim());
+    if (!nameExists) {
+      createNewOptions.push(
+        { label: `➕ أضف "${searchQuery}" كزبون/مورد`, category: "contact", type: "جديد" },
+        { label: `➕ أضف "${searchQuery}" كمنتج/صنف`, category: "product", type: "جديد" },
+      );
+    }
+  } else {
+    // Show create hints even without search
+    createNewOptions.push(
+      { label: "➕ أضف زبون أو مورد جديد", category: "contact", type: "جديد" },
+      { label: "➕ أضف منتج أو صنف جديد", category: "product", type: "جديد" },
+    );
+  }
+
   const allFiltered = [
-    ...groupedContacts.map(i => ({ ...i, _section: "contacts" })),
-    ...groupedProducts.map(i => ({ ...i, _section: "products" })),
+    ...groupedContacts.map(i => ({ ...i, _section: "contacts" as const, _isCreate: false })),
+    ...groupedProducts.map(i => ({ ...i, _section: "products" as const, _isCreate: false })),
+    ...createNewOptions.map((o, idx) => ({
+      id: `__create_${o.category}_${idx}`,
+      name: searchQuery.trim() || "",
+      type: o.type,
+      category: o.category,
+      _section: "create" as const,
+      _isCreate: true,
+      _label: o.label,
+    })),
   ];
+
+  // Auto-trigger @ when user types a sell/buy keyword followed by space
+  useEffect(() => {
+    const prev = prevValueRef.current;
+    prevValueRef.current = value;
+
+    // Only trigger when a space is added after a keyword
+    if (value.length <= prev.length) return;
+    const lastChar = value[value.length - 1];
+    if (lastChar !== " ") return;
+
+    const words = value.trim().split(/\s+/);
+    const lastWord = words[words.length - 1] || words[words.length - 2];
+    
+    if (!lastWord) return;
+    
+    // Check if the word before the space is a trigger keyword
+    const textBeforeSpace = value.slice(0, value.length - 1).trim();
+    const wordsBeforeSpace = textBeforeSpace.split(/\s+/);
+    const wordJustTyped = wordsBeforeSpace[wordsBeforeSpace.length - 1];
+    
+    if (wordJustTyped && ALL_TRIGGER_KEYWORDS.includes(wordJustTyped) && !autoTriggered) {
+      // Auto-insert @ and open dropdown
+      const newValue = value + "@";
+      onChange(newValue);
+      setMentionStart(newValue.length - 1);
+      setSearchQuery("");
+      setShowDropdown(true);
+      setSelectedIndex(0);
+      setAutoTriggered(true);
+      setTimeout(() => inputRef.current?.focus(), 50);
+    }
+    
+    // Reset auto-trigger flag when input is cleared
+    if (value.trim() === "") setAutoTriggered(false);
+  }, [value, autoTriggered, onChange]);
+
+  // Reset auto-trigger when input is cleared
+  useEffect(() => {
+    if (value.trim() === "") setAutoTriggered(false);
+  }, [value]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newValue = e.target.value;
@@ -105,6 +178,31 @@ const MentionInput = ({ value, onChange, onKeyDown, onMentionSelect, placeholder
     }
     setShowDropdown(false);
   };
+
+  const handleCreateNew = useCallback((name: string, category: "contact" | "product") => {
+    // Insert the name as a mention directly — the backend will auto-create it
+    const newItem: MentionItem = {
+      id: `__new_${category}_${Date.now()}`,
+      name: name || "جديد",
+      type: category === "contact" ? "جديد" : "صنف جديد",
+      category,
+    };
+
+    if (mentionStart < 0) {
+      const newValue = value.trim() + " " + newItem.name + " ";
+      onChange(newValue);
+    } else {
+      const before = value.slice(0, mentionStart);
+      const cursorPos = inputRef.current?.selectionStart || value.length;
+      const after = value.slice(cursorPos);
+      const newValue = before + newItem.name + " " + after;
+      onChange(newValue);
+    }
+    onMentionSelect?.(newItem);
+    setShowDropdown(false);
+    setMentionStart(-1);
+    inputRef.current?.focus();
+  }, [value, mentionStart, onChange, onMentionSelect]);
 
   const insertMention = useCallback((item: MentionItem) => {
     if (mentionStart < 0) {
@@ -137,7 +235,12 @@ const MentionInput = ({ value, onChange, onKeyDown, onMentionSelect, placeholder
       }
       if (e.key === "Enter" || e.key === "Tab") {
         e.preventDefault();
-        insertMention(allFiltered[selectedIndex]);
+        const selected = allFiltered[selectedIndex];
+        if (selected._isCreate) {
+          handleCreateNew(searchQuery.trim(), selected.category);
+        } else {
+          insertMention(selected);
+        }
         return;
       }
       if (e.key === "Escape") {
@@ -168,7 +271,6 @@ const MentionInput = ({ value, onChange, onKeyDown, onMentionSelect, placeholder
     inputRef.current?.focus();
   };
 
-  // Close dropdown on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node) &&
@@ -212,66 +314,91 @@ const MentionInput = ({ value, onChange, onKeyDown, onMentionSelect, placeholder
       {showDropdown && (
         <div
           ref={dropdownRef}
-          className="absolute bottom-full mb-1 right-0 left-0 z-50 bg-popover border border-border rounded-lg shadow-lg max-h-52 overflow-y-auto"
+          className="absolute bottom-full mb-1 right-0 left-0 z-50 bg-popover border border-border rounded-lg shadow-lg max-h-60 overflow-y-auto"
         >
-          {allFiltered.length === 0 ? (
-            <div className="px-3 py-2 text-xs text-muted-foreground text-center">
-              لا يوجد نتائج
-            </div>
-          ) : (
+          {/* Existing contacts */}
+          {groupedContacts.length > 0 && (
             <>
-              {/* Contacts section */}
-              {groupedContacts.length > 0 && (
-                <>
-                  <div className="px-3 py-1.5 text-[10px] font-bold text-primary bg-primary/5 sticky top-0 flex items-center gap-1.5">
-                    <Users className="h-3 w-3" />
-                    زبائن وموردين
-                  </div>
-                  {groupedContacts.map((item) => {
-                    const idx = flatIndex++;
-                    return (
-                      <button
-                        key={item.id}
-                        onClick={() => insertMention(item)}
-                        className={`w-full flex items-center gap-2 px-3 py-2 text-sm text-right hover:bg-accent/50 transition-colors ${
-                          idx === selectedIndex ? "bg-accent/30" : ""
-                        }`}
-                      >
-                        <Users className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />
-                        <span className="flex-1 truncate text-foreground">{item.name}</span>
-                        <span className="text-[10px] text-muted-foreground flex-shrink-0">{item.type}</span>
-                      </button>
-                    );
-                  })}
-                </>
-              )}
-
-              {/* Products section */}
-              {groupedProducts.length > 0 && (
-                <>
-                  <div className="px-3 py-1.5 text-[10px] font-bold text-primary bg-primary/5 sticky top-0 flex items-center gap-1.5">
-                    <Package className="h-3 w-3" />
-                    أصناف ومنتجات
-                  </div>
-                  {groupedProducts.map((item) => {
-                    const idx = flatIndex++;
-                    return (
-                      <button
-                        key={item.id}
-                        onClick={() => insertMention(item)}
-                        className={`w-full flex items-center gap-2 px-3 py-2 text-sm text-right hover:bg-accent/50 transition-colors ${
-                          idx === selectedIndex ? "bg-accent/30" : ""
-                        }`}
-                      >
-                        <Package className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />
-                        <span className="flex-1 truncate text-foreground">{item.name}</span>
-                        <span className="text-[10px] text-muted-foreground flex-shrink-0">{item.type}</span>
-                      </button>
-                    );
-                  })}
-                </>
-              )}
+              <div className="px-3 py-1.5 text-[10px] font-bold text-primary bg-primary/5 sticky top-0 flex items-center gap-1.5">
+                <Users className="h-3 w-3" />
+                زبائن وموردين
+              </div>
+              {groupedContacts.map((item) => {
+                const idx = flatIndex++;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => insertMention(item)}
+                    className={`w-full flex items-center gap-2 px-3 py-2 text-sm text-right hover:bg-accent/50 transition-colors ${
+                      idx === selectedIndex ? "bg-accent/30" : ""
+                    }`}
+                  >
+                    <Users className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />
+                    <span className="flex-1 truncate text-foreground">{item.name}</span>
+                    <span className="text-[10px] text-muted-foreground flex-shrink-0">{item.type}</span>
+                  </button>
+                );
+              })}
             </>
+          )}
+
+          {/* Existing products */}
+          {groupedProducts.length > 0 && (
+            <>
+              <div className="px-3 py-1.5 text-[10px] font-bold text-primary bg-primary/5 sticky top-0 flex items-center gap-1.5">
+                <Package className="h-3 w-3" />
+                أصناف ومنتجات
+              </div>
+              {groupedProducts.map((item) => {
+                const idx = flatIndex++;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => insertMention(item)}
+                    className={`w-full flex items-center gap-2 px-3 py-2 text-sm text-right hover:bg-accent/50 transition-colors ${
+                      idx === selectedIndex ? "bg-accent/30" : ""
+                    }`}
+                  >
+                    <Package className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />
+                    <span className="flex-1 truncate text-foreground">{item.name}</span>
+                    <span className="text-[10px] text-muted-foreground flex-shrink-0">{item.type}</span>
+                  </button>
+                );
+              })}
+            </>
+          )}
+
+          {/* Divider */}
+          {(groupedContacts.length > 0 || groupedProducts.length > 0) && (
+            <div className="border-t border-border my-0.5" />
+          )}
+
+          {/* Create new options */}
+          <div className="px-3 py-1.5 text-[10px] font-bold text-muted-foreground bg-muted/30 sticky top-0 flex items-center gap-1.5">
+            <PlusCircle className="h-3 w-3" />
+            إضافة سريعة
+          </div>
+          {createNewOptions.map((opt, idx) => {
+            const globalIdx = flatIndex++;
+            return (
+              <button
+                key={`create-${opt.category}-${idx}`}
+                onClick={() => handleCreateNew(searchQuery.trim(), opt.category)}
+                className={`w-full flex items-center gap-2 px-3 py-2.5 text-sm text-right hover:bg-primary/10 transition-colors ${
+                  globalIdx === selectedIndex ? "bg-primary/10" : ""
+                }`}
+              >
+                <PlusCircle className="h-3.5 w-3.5 flex-shrink-0 text-primary" />
+                <span className="flex-1 truncate text-foreground text-xs">{opt.label}</span>
+              </button>
+            );
+          })}
+
+          {/* No results hint */}
+          {groupedContacts.length === 0 && groupedProducts.length === 0 && searchQuery && (
+            <div className="px-3 py-2 text-[10px] text-muted-foreground text-center">
+              اكتب الاسم واختر "إضافة سريعة" ↑
+            </div>
           )}
         </div>
       )}
