@@ -106,9 +106,10 @@ const ExecutiveKPICards = ({
 }: ExecutiveKPICardsProps) => {
 
   const profitMargin = revenue > 0 ? Math.round(((revenue - expenses) / revenue) * 100) : 0;
-  const collectionRate = totalIncome > 0 && receivables > 0 ? Math.round((totalIncome / (totalIncome + receivables)) * 100) : (transactionCount > 0 ? 100 : 0);
+  const hasReceivables = receivables > 0;
+  const hasIncome = totalIncome > 0;
+  const collectionRate = hasIncome && hasReceivables ? Math.round((totalIncome / (totalIncome + receivables)) * 100) : hasIncome ? 100 : 0;
   const debtToCash = cashBalance > 0 ? payables / cashBalance : payables > 0 ? 999 : 0;
-  // All payables assumed due within 30 days (conservative — no maturity dates available)
   const due30 = payables;
 
   const sparkData = useMemo(() => {
@@ -121,22 +122,26 @@ const ExecutiveKPICards = ({
     };
   }, []);
 
+  const noActivity = revenue === 0 && expenses === 0;
+
   const cards: KPICardProps[] = [
     {
       title: "الأداء المالي",
       icon: TrendingUp,
       mainValue: netProfit,
       subItems: [
-        { label: "هامش الربح", value: `${profitMargin}%` },
-        { label: "مقارنة بالشهر السابق", value: netProfit >= 0 ? "↑ 5%" : "↓ 5%" },
+        { label: "هامش الربح", value: revenue > 0 ? `${profitMargin}%` : "—" },
+        { label: "مقارنة بالشهر السابق", value: noActivity ? "—" : netProfit > 0 ? "↑ تحسن" : netProfit < 0 ? "↓ تراجع" : "مستقر" },
       ],
-      aiInsight: netProfit > 0
-        ? `الربحية تحسنت بسبب زيادة المبيعات — هامش ${profitMargin}%`
-        : transactionCount === 0
-          ? "ابدأ بتسجيل العمليات لتحصل على تحليل أداء مالي"
-          : "المصاريف تتجاوز الإيرادات — حاول تقليل النفقات",
+      aiInsight: noActivity
+        ? "لم تُسجّل إيرادات أو مصاريف بعد — ابدأ بتسجيل عملياتك"
+        : netProfit > 0
+          ? `الربحية تحسنت — هامش ${profitMargin}%`
+          : netProfit === 0
+            ? "لا يوجد ربح أو خسارة حالياً"
+            : "المصاريف تتجاوز الإيرادات — حاول تقليل النفقات",
       sparkData: sparkData.profit,
-      status: netProfit > 0 ? "green" : netProfit === 0 ? "yellow" : "red",
+      status: noActivity ? "yellow" : netProfit > 0 ? "green" : netProfit === 0 ? "yellow" : "red",
       loading,
     },
     {
@@ -161,18 +166,18 @@ const ExecutiveKPICards = ({
       icon: Users,
       mainValue: receivables,
       subItems: [
-        { label: "نسبة التحصيل", value: `${collectionRate}%` },
-        { label: "متوسط أيام التحصيل", value: "28 يوم" },
+        { label: "نسبة التحصيل", value: hasIncome || hasReceivables ? `${collectionRate}%` : "—" },
+        { label: "متوسط أيام التحصيل", value: hasReceivables ? "قيد المتابعة" : "—" },
       ],
-      aiInsight: collectionRate >= 80
-        ? "نسبة التحصيل ممتازة — استمر بالمتابعة"
-        : collectionRate >= 60
-          ? "هناك ذمم بحاجة متابعة — حسّن التحصيل"
-          : transactionCount === 0
-            ? "سجّل مبيعاتك لتتبع تحصيل الزبائن"
+      aiInsight: !hasIncome && !hasReceivables
+        ? "لا توجد مبيعات أو ذمم مسجلة بعد"
+        : collectionRate >= 80
+          ? "نسبة التحصيل ممتازة — استمر بالمتابعة"
+          : collectionRate >= 60
+            ? "هناك ذمم بحاجة متابعة — حسّن التحصيل"
             : "نسبة التحصيل منخفضة — تابع العملاء المتأخرين",
       sparkData: sparkData.collection,
-      status: collectionRate >= 80 ? "green" : collectionRate >= 60 ? "yellow" : "red",
+      status: !hasIncome && !hasReceivables ? "yellow" : collectionRate >= 80 ? "green" : collectionRate >= 60 ? "yellow" : "red",
       loading,
     },
     {
