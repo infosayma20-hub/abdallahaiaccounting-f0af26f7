@@ -54,6 +54,7 @@ const Dashboard = () => {
   const [profileData, setProfileData] = useState<{ display_name?: string; company_name?: string; setup_completed?: boolean } | null>(null);
   const [pendingInvoice, setPendingInvoice] = useState<any>(null);
   const [invoiceMessage, setInvoiceMessage] = useState<string | null>(null);
+  const [dbResponseMessage, setDbResponseMessage] = useState<string | null>(null);
   const rotatingPlaceholder = useRotatingPlaceholder();
 
   useEffect(() => {
@@ -253,6 +254,7 @@ const Dashboard = () => {
     const lines = dbCommand.split("\n").map(l => l.trim()).filter(Boolean);
     if (lines.length === 0) return;
     setDbSending(true);
+    setDbResponseMessage(null);
     let successCount = 0;
     let errorMessages: string[] = [];
     try {
@@ -265,26 +267,27 @@ const Dashboard = () => {
           });
           const data = await res.json();
           if (!res.ok || data.error) {
-            errorMessages.push(`❌ ${line}: ${data.error || "فشل"}`);
+            errorMessages.push(`❌ ${data.error || "فشل"}`);
           } else if (data.action === 'need_info') {
-            toast({ title: "📝 " + (data.message || "أحتاج تفاصيل إضافية"), description: (data.missing_fields || []).join("، ") });
+            const missing = (data.missing_fields || []).join("، ");
+            setDbResponseMessage(`تقريباً انتهينا 🙌\nلكن أحتاج المعلومات التالية:\n${missing}`);
           } else if (data.action === 'delete_blocked') {
-            toast({ title: data.message || "لا يمكن الحذف", variant: "destructive" });
+            setDbResponseMessage(`⚠️ ${data.message || "لا يمكن الحذف — السجل مرتبط بحركات مالية"}`);
           } else if (data.success) {
             successCount++;
           } else {
-            errorMessages.push(`⚠️ ${line}: ${data.message || "لم أفهم"}`);
+            errorMessages.push(`⚠️ ${data.message || "لم أفهم"}`);
           }
         } catch (err: any) {
-          errorMessages.push(`❌ ${line}: ${err.message}`);
+          errorMessages.push(`❌ ${err.message}`);
         }
       }
       if (successCount > 0) {
-        toast({ title: `✅ تم تنفيذ ${successCount} ${successCount === 1 ? "أمر" : "أوامر"} بنجاح` });
+        setDbResponseMessage(`✅ تم تنفيذ ${successCount} ${successCount === 1 ? "أمر" : "أوامر"} بنجاح`);
         setDbCommand("");
       }
       if (errorMessages.length > 0) {
-        toast({ title: "بعض الأوامر فشلت", description: errorMessages.join("\n"), variant: "destructive" });
+        setDbResponseMessage(errorMessages.join("\n"));
       }
     } finally { setDbSending(false); }
   };
@@ -514,6 +517,18 @@ const Dashboard = () => {
                   </button>
                 ))}
               </div>
+              {/* Response bubble - same style as financial assistant */}
+              {dbResponseMessage && (
+                <div className="p-3.5 rounded-2xl border-2 border-primary/20 bg-primary/5 space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                  <p className="text-xs text-foreground whitespace-pre-line leading-relaxed">{dbResponseMessage}</p>
+                  <button
+                    onClick={() => setDbResponseMessage(null)}
+                    className="text-[10px] text-primary font-medium hover:underline"
+                  >
+                    فهمت ✓
+                  </button>
+                </div>
+              )}
               {/* Saved custom commands */}
               <SavedCommands
                 onSelect={(text, target) => {
