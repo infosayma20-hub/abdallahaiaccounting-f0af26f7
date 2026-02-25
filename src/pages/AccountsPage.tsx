@@ -54,7 +54,8 @@ const subCategories: Record<string, SubCategory[]> = {
     { label: "مصاريف تشغيلية", prefixes: ["51"] },
     { label: "إدارية وعمومية", prefixes: ["52", "53", "54", "55"] },
     { label: "بيعية وتسويقية", prefixes: ["56"] },
-    { label: "مصاريف أخرى", prefixes: ["57", "58", "59"] },
+    { label: "استهلاكات وإطفاءات", prefixes: ["57"] },
+    { label: "مصاريف أخرى", prefixes: ["58", "59"] },
   ],
 };
 
