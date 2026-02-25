@@ -180,24 +180,17 @@ const MentionInput = ({ value, onChange, onKeyDown, onMentionSelect, placeholder
   };
 
   const handleCreateNew = useCallback(async (name: string, category: "contact" | "product") => {
-    // If no name typed yet, just close dropdown and keep @ so user can type the name
+    // If no name typed yet, prompt user to type a name then auto-create
     if (!name) {
       setShowDropdown(false);
-      const hint = category === "contact" ? "اسم_الزبون" : "اسم_المنتج";
-      if (mentionStart >= 0) {
-        const before = value.slice(0, mentionStart);
-        const cursorPos = inputRef.current?.selectionStart || value.length;
-        const after = value.slice(cursorPos);
-        const newValue = before + hint + " " + after;
-        onChange(newValue);
-        setTimeout(() => {
-          if (inputRef.current) {
-            inputRef.current.focus();
-            inputRef.current.setSelectionRange(mentionStart, mentionStart + hint.length);
-          }
-        }, 50);
+      // Open a simple prompt for the name
+      const hint = category === "contact" ? "اسم الزبون أو المورد" : "اسم المنتج أو الصنف";
+      const userInput = window.prompt(hint);
+      if (!userInput || !userInput.trim()) {
+        return;
       }
-      setMentionStart(-1);
+      // Recursively call with the typed name
+      handleCreateNew(userInput.trim(), category);
       return;
     }
 
@@ -211,10 +204,6 @@ const MentionInput = ({ value, onChange, onKeyDown, onMentionSelect, placeholder
     // Actually save to database
     try {
       if (category === "product" && userId) {
-        // Save product to Supabase - only name is required
-        const { data: sessionData } = await supabase.auth.getSession();
-        console.log("Quick add product - userId:", userId, "session:", !!sessionData?.session);
-        
         const { data, error } = await supabase.from("products").insert({
           name,
           user_id: userId,
@@ -228,6 +217,8 @@ const MentionInput = ({ value, onChange, onKeyDown, onMentionSelect, placeholder
         
         if (error) {
           console.error("Quick add product error:", error.message, error.details, error.hint);
+          // Show feedback to user
+          alert(`فشل إضافة المنتج: ${error.message}`);
         }
         if (!error && data) {
           console.log("Quick add product success:", data.id);
@@ -236,7 +227,6 @@ const MentionInput = ({ value, onChange, onKeyDown, onMentionSelect, placeholder
           setItems(prev => [...prev, newItem]);
         }
       } else if (category === "contact" && userId) {
-        // Save contact via Airtable edge function
         try {
           const res = await fetch(
             `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/database-command`,
@@ -255,7 +245,6 @@ const MentionInput = ({ value, onChange, onKeyDown, onMentionSelect, placeholder
             newItem.id = data.recordId;
             setItems(prev => [...prev, newItem]);
           } else if (data.success) {
-            // Success but no recordId returned
             setItems(prev => [...prev, newItem]);
           }
         } catch (e) {
@@ -268,7 +257,7 @@ const MentionInput = ({ value, onChange, onKeyDown, onMentionSelect, placeholder
       console.error("Quick create failed:", e);
     }
 
-    // Insert name into input regardless
+    // Insert name into input
     if (mentionStart < 0) {
       const newValue = value.trim() + " " + newItem.name + " ";
       onChange(newValue);
