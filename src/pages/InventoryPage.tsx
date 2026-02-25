@@ -211,8 +211,8 @@ const InventoryPage = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate("/menu")} className="p-2 rounded-xl hover:bg-muted transition-colors">
-            <ArrowRight className="h-5 w-5 text-foreground" />
+          <button onClick={() => navigate("/menu")} className="w-9 h-9 rounded-full bg-muted/60 backdrop-blur-sm flex items-center justify-center hover:bg-muted transition-all duration-200 shadow-sm">
+            <ArrowRight className="h-4 w-4 text-muted-foreground" />
           </button>
           <div>
             <h1 className="text-xl font-bold text-foreground">المخزون</h1>
