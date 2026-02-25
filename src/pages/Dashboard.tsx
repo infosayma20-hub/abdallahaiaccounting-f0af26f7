@@ -585,7 +585,7 @@ const Dashboard = () => {
             <div className="premium-card p-4 space-y-3 neon-border">
               <div className="flex items-center gap-2">
                 <Database className="h-4 w-4 text-primary" />
-                <span className="text-sm font-bold text-foreground">أضف زبون، مورد، حساب، أو منتج...</span>
+                <span className="text-sm font-bold text-foreground">أضف زبون، مورد، حساب، منتج، أو سند قيد...</span>
               </div>
               <div className="flex items-end gap-2 min-h-[52px] bg-secondary/60 rounded-2xl px-2.5 py-2" dir="rtl">
                 <button onClick={handleDbCommand} disabled={dbSending || !dbCommand.trim()} className="flex-shrink-0 w-10 h-10 rounded-full bg-primary flex items-center justify-center hover:opacity-90 transition-all active:scale-95 disabled:opacity-40">
