@@ -180,10 +180,32 @@ const MentionInput = ({ value, onChange, onKeyDown, onMentionSelect, placeholder
   };
 
   const handleCreateNew = useCallback((name: string, category: "contact" | "product") => {
-    // Insert the name as a mention directly — the backend will auto-create it
+    // If no name typed yet, just close dropdown and keep @ so user can type the name
+    if (!name) {
+      setShowDropdown(false);
+      // Place cursor right after @ so user types the new name inline
+      const hint = category === "contact" ? "اسم_الزبون" : "اسم_المنتج";
+      if (mentionStart >= 0) {
+        const before = value.slice(0, mentionStart);
+        const cursorPos = inputRef.current?.selectionStart || value.length;
+        const after = value.slice(cursorPos);
+        const newValue = before + hint + " " + after;
+        onChange(newValue);
+        // Select the hint text so user can overwrite it
+        setTimeout(() => {
+          if (inputRef.current) {
+            inputRef.current.focus();
+            inputRef.current.setSelectionRange(mentionStart, mentionStart + hint.length);
+          }
+        }, 50);
+      }
+      setMentionStart(-1);
+      return;
+    }
+
     const newItem: MentionItem = {
       id: `__new_${category}_${Date.now()}`,
-      name: name || "جديد",
+      name,
       type: category === "contact" ? "جديد" : "صنف جديد",
       category,
     };
