@@ -212,8 +212,18 @@ const Dashboard = () => {
               return;
             }
             if (parseData.status === 'complete') {
-              // Show confirmation
-              setPendingInvoice({ ...parseData.transaction, invoiceType: parseData.invoiceType, originalText: lines[0] });
+              // Save mention data with pending invoice before clearing
+              const savedContactMention = contactMention;
+              const savedProductMention = selectedMentions.find(m => m.category === "product");
+              setPendingInvoice({ 
+                ...parseData.transaction, 
+                invoiceType: parseData.invoiceType, 
+                originalText: lines[0],
+                mentionedContactName: savedContactMention?.name || parseData.transaction?.contactName || null,
+                mentionedContactId: savedContactMention?.id || null,
+                mentionedProductName: savedProductMention?.name || parseData.transaction?.productName || null,
+                mentionedProductId: savedProductMention?.id || null,
+              });
               setInvoiceMessage(parseData.message || '');
               setInputValue("");
               setSelectedMentions([]);
@@ -263,8 +273,73 @@ const Dashboard = () => {
         email: user?.email,
         companyName: user?.user_metadata?.company_name,
       };
+      // Pass saved mention data
+      if (pendingInvoice.mentionedContactName) {
+        body.mentionedContactName = pendingInvoice.mentionedContactName;
+      }
+      if (pendingInvoice.mentionedContactId) {
+        body.mentionedContactId = pendingInvoice.mentionedContactId;
+      }
+      // Pass product info for inventory tracking
+      if (pendingInvoice.productName) {
+        body.productName = pendingInvoice.productName;
+      }
+      if (pendingInvoice.quantity) {
+        body.productQuantity = pendingInvoice.quantity;
+      }
+      if (pendingInvoice.invoiceType) {
+        body.invoiceType = pendingInvoice.invoiceType;
+      }
+      
       const { error } = await supabase.functions.invoke("send-transaction", { body });
       if (error) throw error;
+
+      // Auto-create stock movement if product is in local inventory
+      if (pendingInvoice.productName && pendingInvoice.quantity && user?.id) {
+        try {
+          const { data: products } = await supabase
+            .from("products")
+            .select("id, name, quantity")
+            .eq("user_id", user.id);
+          
+          if (products) {
+            const matchedProduct = products.find(p => 
+              p.name === pendingInvoice.productName || 
+              p.name.includes(pendingInvoice.productName) || 
+              pendingInvoice.productName.includes(p.name)
+            );
+            
+            if (matchedProduct) {
+              const isPurchase = pendingInvoice.invoiceType === 'purchase';
+              const movementType = isPurchase ? 'وارد' : 'صادر';
+              const qty = Number(pendingInvoice.quantity);
+              
+              // Create stock movement
+              await supabase.from("stock_movements").insert({
+                product_id: matchedProduct.id,
+                user_id: user.id,
+                quantity: qty,
+                movement_type: movementType,
+                reference_note: pendingInvoice.originalText?.substring(0, 100) || '',
+              });
+              
+              // Update product quantity
+              const newQty = isPurchase 
+                ? (matchedProduct.quantity || 0) + qty 
+                : Math.max(0, (matchedProduct.quantity || 0) - qty);
+              await supabase
+                .from("products")
+                .update({ quantity: newQty })
+                .eq("id", matchedProduct.id);
+              
+              console.log(`Stock updated: ${matchedProduct.name} → ${movementType} ${qty}, new qty: ${newQty}`);
+            }
+          }
+        } catch (stockErr) {
+          console.error("Stock movement creation failed:", stockErr);
+        }
+      }
+
       txToast.trigger();
       setPendingInvoice(null);
       setInvoiceMessage(null);
