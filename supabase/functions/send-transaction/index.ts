@@ -112,10 +112,16 @@ async function linkContactToLatestTransaction(baseId: string, apiKey: string, cl
 
   // Retry up to 3 times with increasing delay to wait for Make.com
   for (let attempt = 1; attempt <= 3; attempt++) {
-    const url = `https://api.airtable.com/v0/${baseId}/Transactions?sort%5B0%5D%5Bfield%5D=Created&sort%5B0%5D%5Bdirection%5D=desc&pageSize=30`;
+    const url = `https://api.airtable.com/v0/${baseId}/Transactions?sort%5B0%5D%5Bfield%5D=Date&sort%5B0%5D%5Bdirection%5D=desc&pageSize=30`;
     const res = await fetch(url, { headers: { 'Authorization': `Bearer ${apiKey}` } });
     if (!res.ok) {
-      console.log('linkContact: failed to fetch transactions', res.status);
+      const errText = await res.text();
+      console.log(`linkContact: failed to fetch transactions ${res.status}: ${errText.substring(0, 200)}`);
+      // Don't return on error, retry
+      if (attempt < 3) {
+        await new Promise(resolve => setTimeout(resolve, 5000));
+        continue;
+      }
       return;
     }
     const data = await res.json();
