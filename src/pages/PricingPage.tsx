@@ -28,7 +28,7 @@ const plans = [
     name: "Growth",
     subtitle: "للأعمال النامية التي تحتاج تحليلات أعمق",
     icon: Users,
-    monthlyPrice: 39,
+    monthlyPrice: 49,
     cta: "اشترك الآن",
     popular: true,
     features: [
@@ -46,7 +46,7 @@ const plans = [
     name: "Business",
     subtitle: "للشركات التي تحتاج تحكم كامل وتكامل متقدم",
     icon: Building2,
-    monthlyPrice: 79,
+    monthlyPrice: 89,
     cta: "تواصل معنا",
     popular: false,
     features: [
@@ -79,8 +79,9 @@ const PricingPage = () => {
   const navigate = useNavigate();
   const [billing, setBilling] = useState<BillingCycle>("annual");
 
-  const getAnnualMonthly = (monthly: number) => Math.round(monthly * 0.8);
-  const getAnnualTotal = (monthly: number) => getAnnualMonthly(monthly) * 12;
+  // annual_total = monthly × 12 × 0.8
+  const getAnnualTotal = (monthly: number) => Math.round(monthly * 12 * 0.8);
+  const getAnnualMonthly = (monthly: number) => Math.round(getAnnualTotal(monthly) / 12);
   const getAnnualSaving = (monthly: number) => (monthly * 12) - getAnnualTotal(monthly);
 
   return (
@@ -135,26 +136,26 @@ const PricingPage = () => {
               {plan.popular && (
                 <div className="bg-primary text-primary-foreground text-center py-2 text-xs font-bold flex items-center justify-center gap-1.5">
                   <Star className="h-3.5 w-3.5 fill-current" />
-                  الأكثر اختياراً
+                  الأكثر اختياراً ⭐
                 </div>
               )}
 
-              <div className={`bg-card p-5 space-y-4 ${plan.popular ? "pt-4" : ""}`}>
+              <div className={`bg-card ${plan.popular ? "p-6 pt-5" : "p-5"} space-y-4`}>
                 {/* Plan header */}
                 <div className="flex items-start justify-between">
                   <div className="space-y-1">
-                    <h3 className="text-lg font-bold text-foreground">{plan.name}</h3>
+                    <h3 className={`font-bold text-foreground ${plan.popular ? "text-xl" : "text-lg"}`}>{plan.name}</h3>
                     <p className="text-xs text-muted-foreground leading-relaxed">{plan.subtitle}</p>
                   </div>
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${plan.popular ? "bg-primary/10" : "bg-muted"}`}>
-                    <PlanIcon className={`h-5 w-5 ${plan.popular ? "text-primary" : "text-muted-foreground"}`} />
+                  <div className={`rounded-xl flex items-center justify-center flex-shrink-0 ${plan.popular ? "w-12 h-12 bg-primary/10" : "w-10 h-10 bg-muted"}`}>
+                    <PlanIcon className={`${plan.popular ? "h-6 w-6 text-primary" : "h-5 w-5 text-muted-foreground"}`} />
                   </div>
                 </div>
 
                 {/* Price */}
                 <div className="space-y-1">
                   <div className="flex items-baseline gap-1.5">
-                    <span className="text-3xl font-bold text-foreground">{displayPrice}₪</span>
+                    <span className={`font-bold text-foreground ${plan.popular ? "text-4xl" : "text-3xl"}`}>{displayPrice}₪</span>
                     <span className="text-sm text-muted-foreground">/ شهرياً</span>
                   </div>
                   {billing === "annual" ? (
@@ -181,10 +182,10 @@ const PricingPage = () => {
 
                 {/* CTA */}
                 <button
-                  className={`w-full py-3.5 rounded-2xl text-sm font-bold transition-all active:scale-[0.98] ${
+                  className={`w-full rounded-2xl text-sm font-bold transition-all active:scale-[0.98] ${
                     plan.popular
-                      ? "bg-primary text-primary-foreground hover:opacity-90 shadow-lg shadow-primary/20"
-                      : "bg-secondary text-foreground hover:bg-secondary/80 border border-border/50"
+                      ? "py-4 bg-primary text-primary-foreground hover:opacity-90 shadow-lg shadow-primary/20"
+                      : "py-3.5 bg-secondary text-foreground hover:bg-secondary/80 border border-border/50"
                   }`}
                 >
                   {plan.cta}
@@ -203,14 +204,12 @@ const PricingPage = () => {
       <div className="space-y-4 pt-4">
         <h2 className="text-lg font-bold text-foreground text-center">مقارنة الباقات</h2>
         <div className="rounded-2xl border border-border/50 overflow-hidden bg-card">
-          {/* Header */}
           <div className="grid grid-cols-4 bg-secondary/50 border-b border-border/30">
             <div className="p-3 text-[10px] font-bold text-muted-foreground">الميزة</div>
             <div className="p-3 text-[10px] font-bold text-center text-muted-foreground">Starter</div>
             <div className="p-3 text-[10px] font-bold text-center text-primary">Growth</div>
             <div className="p-3 text-[10px] font-bold text-center text-muted-foreground">Business</div>
           </div>
-          {/* Rows */}
           {comparisonFeatures.map((feat, i) => (
             <div
               key={feat.label}
