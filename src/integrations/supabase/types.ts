@@ -14,6 +14,101 @@ export type Database = {
   }
   public: {
     Tables: {
+      cheque_status_history: {
+        Row: {
+          cheque_id: string
+          created_at: string
+          from_status: Database["public"]["Enums"]["cheque_status"] | null
+          id: string
+          reason: string | null
+          to_status: Database["public"]["Enums"]["cheque_status"]
+          user_id: string
+        }
+        Insert: {
+          cheque_id: string
+          created_at?: string
+          from_status?: Database["public"]["Enums"]["cheque_status"] | null
+          id?: string
+          reason?: string | null
+          to_status: Database["public"]["Enums"]["cheque_status"]
+          user_id: string
+        }
+        Update: {
+          cheque_id?: string
+          created_at?: string
+          from_status?: Database["public"]["Enums"]["cheque_status"] | null
+          id?: string
+          reason?: string | null
+          to_status?: Database["public"]["Enums"]["cheque_status"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cheque_status_history_cheque_id_fkey"
+            columns: ["cheque_id"]
+            isOneToOne: false
+            referencedRelation: "cheques"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cheques: {
+        Row: {
+          amount: number
+          bank_name: string | null
+          cheque_date: string
+          cheque_number: string | null
+          cheque_type: Database["public"]["Enums"]["cheque_type"]
+          created_at: string
+          currency: string
+          id: string
+          image_url: string | null
+          linked_account: string | null
+          notes: string | null
+          party_name: string
+          party_type: string
+          status: Database["public"]["Enums"]["cheque_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          bank_name?: string | null
+          cheque_date: string
+          cheque_number?: string | null
+          cheque_type: Database["public"]["Enums"]["cheque_type"]
+          created_at?: string
+          currency?: string
+          id?: string
+          image_url?: string | null
+          linked_account?: string | null
+          notes?: string | null
+          party_name: string
+          party_type?: string
+          status?: Database["public"]["Enums"]["cheque_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          bank_name?: string | null
+          cheque_date?: string
+          cheque_number?: string | null
+          cheque_type?: Database["public"]["Enums"]["cheque_type"]
+          created_at?: string
+          currency?: string
+          id?: string
+          image_url?: string | null
+          linked_account?: string | null
+          notes?: string | null
+          party_name?: string
+          party_type?: string
+          status?: Database["public"]["Enums"]["cheque_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       passkey_credentials: {
         Row: {
           counter: number
@@ -213,6 +308,15 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
+      cheque_status:
+        | "مسجل"
+        | "آجل"
+        | "مستحق"
+        | "مودع"
+        | "محصل"
+        | "مرتجع"
+        | "ملغي"
+      cheque_type: "وارد" | "صادر"
       product_category:
         | "بضاعة عامة"
         | "مواد خام"
@@ -347,6 +451,8 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      cheque_status: ["مسجل", "آجل", "مستحق", "مودع", "محصل", "مرتجع", "ملغي"],
+      cheque_type: ["وارد", "صادر"],
       product_category: [
         "بضاعة عامة",
         "مواد خام",

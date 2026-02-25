@@ -1,4 +1,4 @@
-import { BookOpen, FileSpreadsheet, Users, BarChart3, Sparkles, FileText, CreditCard, Package, Wrench, MessageCircle, PieChart } from "lucide-react";
+import { BookOpen, FileSpreadsheet, Users, BarChart3, Sparkles, FileText, CreditCard, Package, Wrench, MessageCircle, PieChart, Receipt } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 
@@ -7,6 +7,7 @@ const sections = [
     title: "العمليات اليومية",
     items: [
       { icon: FileText, label: "الفواتير", description: "مبيعات ومشتريات", color: "bg-warning/10", iconColor: "text-warning", path: "/invoices" },
+      { icon: Receipt, label: "الشيكات", description: "واردة وصادرة", color: "bg-primary/10", iconColor: "text-primary", path: "/cheques" },
       { icon: Users, label: "العملاء", description: "زبائن وموردين", color: "bg-primary/10", iconColor: "text-primary", path: "/contacts" },
       { icon: Package, label: "المخزون", description: "المنتجات والكميات", color: "bg-primary/10", iconColor: "text-primary", path: "/inventory" },
     ],
