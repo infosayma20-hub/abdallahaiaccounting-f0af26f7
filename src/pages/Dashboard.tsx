@@ -19,6 +19,7 @@ import { browserSupportsWebAuthn } from "@simplewebauthn/browser";
 import { useTheme } from "@/hooks/useTheme";
 import TransactionToast, { useTransactionToast } from "@/components/TransactionToast";
 import JournalEntryPopup from "@/components/JournalEntryPopup";
+import ChequeDetailsDialog, { ChequeLineItem } from "@/components/ChequeDetailsDialog";
 
 interface TransactionRecord {
   id: string;
@@ -62,6 +63,8 @@ const Dashboard = () => {
   const [showJournalEntry, setShowJournalEntry] = useState(false);
   const [journalEntryData, setJournalEntryData] = useState<any>(null);
   const [journalEntryAccounts, setJournalEntryAccounts] = useState<any[]>([]);
+  const [showChequeDialog, setShowChequeDialog] = useState(false);
+  const [pendingChequeData, setPendingChequeData] = useState<any>(null);
   const rotatingPlaceholder = useRotatingPlaceholder();
 
   useEffect(() => {
@@ -235,6 +238,30 @@ const Dashboard = () => {
               return;
             }
           }
+
+          // Handle cheque intent - open details dialog
+          if (parseData?.type === 'cheque') {
+            const contactMentionSaved = contactMention;
+            setPendingChequeData({
+              chequeType: parseData.chequeType || 'وارد',
+              partyName: contactMentionSaved?.name || parseData.partyName || '',
+              partyType: parseData.partyType || 'عميل',
+              originalText: lines[0],
+              mentionedContactName: contactMentionSaved?.name || parseData.partyName || null,
+              mentionedContactId: contactMentionSaved?.id || null,
+              // Pre-fill from AI parse
+              amount: parseData.amount || 0,
+              currency: parseData.currency || 'شيكل',
+              chequeDate: parseData.chequeDate || '',
+              chequeNumber: parseData.chequeNumber || '',
+              bankName: parseData.bankName || '',
+            });
+            setShowChequeDialog(true);
+            setInputValue("");
+            setSelectedMentions([]);
+            setSending(false);
+            return;
+          }
         } catch (parseErr) {
           console.log("Parse skipped, falling back to direct send:", parseErr);
         }
@@ -355,6 +382,67 @@ const Dashboard = () => {
   const handleCancelInvoice = () => {
     setPendingInvoice(null);
     setInvoiceMessage(null);
+  };
+
+  const handleChequeConfirm = async (lines: ChequeLineItem[], chequeType: string, partyName: string, partyType: string) => {
+    if (!user) return;
+    setSending(true);
+    try {
+      const today = new Date().toISOString().split('T')[0];
+
+      for (const line of lines) {
+        const chequeStatus = line.chequeDate > today ? 'آجل' : 'مستحق';
+
+        // 1. Save to cheques table
+        const { error: chequeErr } = await supabase.from('cheques').insert({
+          user_id: user.id,
+          cheque_type: chequeType as any,
+          status: chequeStatus as any,
+          cheque_number: line.chequeNumber || null,
+          bank_name: line.bankName || null,
+          cheque_date: line.chequeDate,
+          amount: parseFloat(line.amount),
+          currency: line.currency,
+          party_name: partyName,
+          party_type: partyType,
+        });
+
+        if (chequeErr) {
+          console.error('Cheque insert error:', chequeErr);
+          toast({ title: "خطأ في حفظ الشيك", variant: "destructive" });
+          continue;
+        }
+
+        // 2. Send accounting entry to Airtable via webhook
+        const description = chequeType === 'وارد'
+          ? `استلام شيك من ${partyName} رقم ${line.chequeNumber} بتاريخ ${line.chequeDate}`
+          : `إصدار شيك ل${partyName} رقم ${line.chequeNumber} بتاريخ ${line.chequeDate}`;
+
+        const body: any = {
+          text: description,
+          userId: user.id,
+          email: user.email,
+          companyName: user.user_metadata?.company_name,
+        };
+
+        if (pendingChequeData?.mentionedContactName) {
+          body.mentionedContactName = pendingChequeData.mentionedContactName;
+        }
+        if (pendingChequeData?.mentionedContactId) {
+          body.mentionedContactId = pendingChequeData.mentionedContactId;
+        }
+
+        const { error: txErr } = await supabase.functions.invoke("send-transaction", { body });
+        if (txErr) console.error('Transaction send error:', txErr);
+      }
+
+      txToast.trigger();
+      setPendingChequeData(null);
+    } catch (err: any) {
+      toast({ title: "خطأ", description: err.message, variant: "destructive" });
+    } finally {
+      setSending(false);
+    }
   };
 
   const handleDbCommand = async () => {
@@ -791,6 +879,22 @@ const Dashboard = () => {
         onSuccess={() => txToast.trigger()}
         initialData={journalEntryData}
         accounts={journalEntryAccounts.length > 0 ? journalEntryAccounts : undefined}
+      />
+      <ChequeDetailsDialog
+        open={showChequeDialog}
+        onOpenChange={setShowChequeDialog}
+        chequeType={pendingChequeData?.chequeType || 'وارد'}
+        partyName={pendingChequeData?.partyName || ''}
+        partyType={pendingChequeData?.partyType || 'عميل'}
+        originalText={pendingChequeData?.originalText || ''}
+        initialData={pendingChequeData ? {
+          amount: pendingChequeData.amount,
+          currency: pendingChequeData.currency,
+          chequeDate: pendingChequeData.chequeDate,
+          chequeNumber: pendingChequeData.chequeNumber,
+          bankName: pendingChequeData.bankName,
+        } : undefined}
+        onConfirm={handleChequeConfirm}
       />
     </div>
   );
