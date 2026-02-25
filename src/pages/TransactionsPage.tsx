@@ -45,12 +45,24 @@ const typeColors: Record<string, string> = {
   "فاتورة مبيعات": "bg-primary/10 text-primary",
 };
 
-const paymentMethodTags: Record<string, { label: string; emoji: string }> = {
-  "سند صرف": { label: "نقدي", emoji: "🟢" },
-  "سند قبض": { label: "نقدي", emoji: "🟢" },
-  "قيد يومية": { label: "تحويل", emoji: "💳" },
-  "فاتورة مشتريات": { label: "بنك", emoji: "🏦" },
-  "فاتورة مبيعات": { label: "بنك", emoji: "🏦" },
+const getPaymentMethodTag = (tx: Transaction): { label: string; emoji: string } | null => {
+  const debit = (tx.fields["Debit Account Name"] || tx.fields["Debit"] || "").toString().toLowerCase();
+  const credit = (tx.fields["Credit Account Name"] || tx.fields["Credit"] || "").toString().toLowerCase();
+  const allAccounts = debit + " " + credit;
+
+  // Check for cash (صندوق)
+  if (allAccounts.includes("صندوق")) {
+    return { label: "نقدي", emoji: "🟢" };
+  }
+  // Check for credit/deferred (ذمم)
+  if (allAccounts.includes("ذمم")) {
+    return { label: "آجل", emoji: "📋" };
+  }
+  // Check for bank (بنك)
+  if (allAccounts.includes("بنك")) {
+    return { label: "تحويل", emoji: "💳" };
+  }
+  return null;
 };
 
 const transactionTypes = [
@@ -453,7 +465,7 @@ const TransactionsPage = () => {
           {!loading && !error && (
             <div className="space-y-2.5">
               {transactions.map((tx) => {
-                const payTag = paymentMethodTags[tx.fields["Transaction Type"] || ""];
+                const payTag = getPaymentMethodTag(tx);
                 const isSelected = selectedIds.has(tx.id);
                 return (
                   <Card
