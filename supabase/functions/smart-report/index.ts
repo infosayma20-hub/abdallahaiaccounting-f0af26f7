@@ -96,69 +96,26 @@ ${JSON.stringify(movementsSummary, null, 0)}
       try { const m = content.match(/\{[\s\S]*\}/); result = m ? JSON.parse(m[0]) : { answer: content, total: null, table: [] }; } catch { result = { answer: content, total: null, table: [] }; }
       return new Response(JSON.stringify(result), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
-    // Resolve Supabase UUID to Airtable Client record ID
-    let airtableClientRecordId = '';
+    // Build transaction filter using UUID directly (Airtable resolves linked record display values)
+    let txFilterParts: string[] = [];
     if (clientId) {
-      const clientLookupUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Clients?filterByFormula=${encodeURIComponent(`{Name}="${clientId}"`)}&pageSize=1`;
-      const clientRes = await fetch(clientLookupUrl, {
-        headers: { 'Authorization': `Bearer ${AIRTABLE_API_KEY}` },
-      });
-      if (clientRes.ok) {
-        const clientData = await clientRes.json();
-        if (clientData.records && clientData.records.length > 0) {
-          airtableClientRecordId = clientData.records[0].id;
-          console.log(`smart-report: resolved client ${clientId} → ${airtableClientRecordId}`);
-        } else {
-          console.log(`smart-report: no Airtable client found for UUID ${clientId}`);
-        }
-      } else {
-        console.log(`smart-report: client lookup failed with status ${clientRes.status}`);
-      }
+      txFilterParts.push(`{Client}="${clientId}"`);
     }
+    txFilterParts.push(`OR({Deleted}=BLANK(),{Deleted}=FALSE())`);
+    
+    const txFilter = txFilterParts.length > 1 
+      ? `AND(${txFilterParts.join(',')})` 
+      : txFilterParts[0];
 
-    // CRITICAL: If clientId was provided but we couldn't resolve it, return empty data to prevent data leakage
-    if (clientId && !airtableClientRecordId) {
-      return new Response(JSON.stringify({
-        answer: "لا توجد حركات مالية مسجلة حالياً. ابدأ بإضافة أول عملية وسيتم عرض تقاريرك هنا.",
-        total: null,
-        currency: null,
-        table: []
-      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-    }
+    const txUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Transactions?pageSize=100&filterByFormula=${encodeURIComponent(txFilter)}`;
+    const accUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Accounts?pageSize=100${clientId ? `&filterByFormula=${encodeURIComponent(`OR({Client}=BLANK(),{Client}="${clientId}")`)}` : ''}`;
 
-    // Always fetch all, then filter in memory (Airtable linked record filters are unreliable)
-    const txUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Transactions?pageSize=100`;
-    const accUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Accounts?pageSize=100`;
-
-    const [allTx, allAcc] = await Promise.all([
+    const [clientTx, clientAcc] = await Promise.all([
       fetchAllRecords(txUrl, AIRTABLE_API_KEY),
       fetchAllRecords(accUrl, AIRTABLE_API_KEY),
     ]);
 
-    // Filter transactions by client AND exclude deleted
-    let clientTx = allTx;
-    if (airtableClientRecordId) {
-      clientTx = allTx.filter((tx: any) => {
-        // Exclude soft-deleted transactions
-        if (tx.fields["Deleted"]) return false;
-        const clientField = tx.fields["Client"];
-        if (!clientField) return false;
-        if (Array.isArray(clientField)) return clientField.includes(airtableClientRecordId);
-        return clientField === airtableClientRecordId;
-      });
-      console.log(`smart-report: filtered ${clientTx.length}/${allTx.length} transactions (excl. deleted) for client ${airtableClientRecordId}`);
-    } else {
-      // Even without client filter, exclude deleted
-      clientTx = allTx.filter((tx: any) => !tx.fields["Deleted"]);
-    }
-
-    // Filter accounts for this client
-    const clientAcc = airtableClientRecordId ? allAcc.filter((acc: any) => {
-      const clientField = acc.fields["Client"];
-      if (!clientField || (Array.isArray(clientField) && clientField.length === 0)) return true; // shared accounts
-      if (Array.isArray(clientField)) return clientField.includes(airtableClientRecordId);
-      return clientField === airtableClientRecordId;
-    }) : allAcc;
+    console.log(`smart-report: fetched ${clientTx.length} transactions, ${clientAcc.length} accounts for client ${clientId || 'all'}`);
 
     // Prepare data summary for AI
     const txSummary = clientTx.map((tx: any) => ({
