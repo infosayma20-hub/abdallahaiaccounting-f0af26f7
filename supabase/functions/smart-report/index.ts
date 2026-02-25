@@ -135,16 +135,21 @@ ${JSON.stringify(movementsSummary, null, 0)}
       fetchAllRecords(accUrl, AIRTABLE_API_KEY),
     ]);
 
-    // Filter transactions by client
+    // Filter transactions by client AND exclude deleted
     let clientTx = allTx;
     if (airtableClientRecordId) {
       clientTx = allTx.filter((tx: any) => {
+        // Exclude soft-deleted transactions
+        if (tx.fields["Deleted"]) return false;
         const clientField = tx.fields["Client"];
         if (!clientField) return false;
         if (Array.isArray(clientField)) return clientField.includes(airtableClientRecordId);
         return clientField === airtableClientRecordId;
       });
-      console.log(`smart-report: filtered ${clientTx.length}/${allTx.length} transactions for client ${airtableClientRecordId}`);
+      console.log(`smart-report: filtered ${clientTx.length}/${allTx.length} transactions (excl. deleted) for client ${airtableClientRecordId}`);
+    } else {
+      // Even without client filter, exclude deleted
+      clientTx = allTx.filter((tx: any) => !tx.fields["Deleted"]);
     }
 
     // Filter accounts for this client
