@@ -734,42 +734,17 @@ const Dashboard = () => {
             </div>
           )}
 
-          {/* ═══ 7. SMART REPORTS ═══ */}
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <BarChart3 className="h-4 w-4 text-primary" />
-              <h2 className="text-sm font-bold text-foreground">التقارير الذكية</h2>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              {[
-                { emoji: "👤", label: "كشف حساب زبون", query: "أعطني كشف حساب" },
-                { emoji: "📊", label: "أرباح وخسائر", query: "كم إجمالي أرباحي وخسائري؟" },
-                { emoji: "📦", label: "مخزون وكميات", query: "أعطني تقرير المخزون والكميات المتوفرة" },
-                { emoji: "💰", label: "مصاريف اليوم", query: "كشف المعاملات اليومية مصاريف ومقبوضات" },
-              ].map((report) => (
-                <button
-                  key={report.label}
-                  onClick={() => navigate(`/smart-report?q=${encodeURIComponent(report.query)}`)}
-                  className="flex items-center gap-2 p-3 premium-card neon-border text-right hover:bg-secondary/50 transition-all active:scale-[0.98]"
-                >
-                  <span className="text-base">{report.emoji}</span>
-                  <span className="text-[11px] font-medium text-foreground leading-tight">{report.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* ═══ AI CTA ═══ */}
+          {/* ═══ 7. AI CTA ═══ */}
           <button
             onClick={() => navigate("/smart-report")}
-            className="w-full flex items-center gap-3 p-4 rounded-[18px] glow-border neon-border bg-primary/5 hover:bg-primary/10 transition-all active:scale-[0.98]"
+            className="w-full flex items-center gap-4 p-5 rounded-[20px] glow-border neon-border bg-primary/5 hover:bg-primary/10 transition-all active:scale-[0.98]"
           >
-            <div className="w-11 h-11 rounded-xl bg-primary/15 flex items-center justify-center">
-              <Sparkles className="h-5 w-5 text-primary animate-pulse-glow" />
+            <div className="w-14 h-14 rounded-2xl bg-primary/15 flex items-center justify-center">
+              <Sparkles className="h-7 w-7 text-primary animate-pulse-glow" />
             </div>
             <div className="text-right flex-1">
-              <p className="text-sm font-bold text-foreground">اسأل AI عن وضعك المالي</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">تقارير وتحليلات فورية بلغتك</p>
+              <p className="text-base font-bold text-foreground">اسأل AI عن وضعك المالي</p>
+              <p className="text-xs text-muted-foreground mt-1">تقارير وتحليلات فورية بلغتك</p>
             </div>
           </button>
         </>
