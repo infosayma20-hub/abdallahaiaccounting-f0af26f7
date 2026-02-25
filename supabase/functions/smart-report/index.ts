@@ -107,8 +107,23 @@ ${JSON.stringify(movementsSummary, null, 0)}
         const clientData = await clientRes.json();
         if (clientData.records && clientData.records.length > 0) {
           airtableClientRecordId = clientData.records[0].id;
+          console.log(`smart-report: resolved client ${clientId} → ${airtableClientRecordId}`);
+        } else {
+          console.log(`smart-report: no Airtable client found for UUID ${clientId}`);
         }
+      } else {
+        console.log(`smart-report: client lookup failed with status ${clientRes.status}`);
       }
+    }
+
+    // CRITICAL: If clientId was provided but we couldn't resolve it, return empty data to prevent data leakage
+    if (clientId && !airtableClientRecordId) {
+      return new Response(JSON.stringify({
+        answer: "لم يتم العثور على حسابك في النظام. تأكد من إعداد حسابك بشكل صحيح.",
+        total: null,
+        currency: null,
+        table: []
+      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
     // Always fetch all, then filter in memory (Airtable linked record filters are unreliable)
