@@ -111,11 +111,8 @@ ${JSON.stringify(movementsSummary, null, 0)}
       }
     }
 
-    // Fetch transactions with client filter if possible
-    const filterFormula = airtableClientRecordId
-      ? `&filterByFormula=${encodeURIComponent(`{Client}="${airtableClientRecordId}"`)}`
-      : '';
-    const txUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Transactions?pageSize=100${filterFormula}`;
+    // Always fetch all, then filter in memory (Airtable linked record filters are unreliable)
+    const txUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Transactions?pageSize=100`;
     const accUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Accounts?pageSize=100`;
 
     const [allTx, allAcc] = await Promise.all([
@@ -123,15 +120,16 @@ ${JSON.stringify(movementsSummary, null, 0)}
       fetchAllRecords(accUrl, AIRTABLE_API_KEY),
     ]);
 
-    // If filter didn't work via formula, filter in memory
+    // Filter transactions by client
     let clientTx = allTx;
-    if (airtableClientRecordId && !filterFormula) {
+    if (airtableClientRecordId) {
       clientTx = allTx.filter((tx: any) => {
         const clientField = tx.fields["Client"];
         if (!clientField) return false;
         if (Array.isArray(clientField)) return clientField.includes(airtableClientRecordId);
         return clientField === airtableClientRecordId;
       });
+      console.log(`smart-report: filtered ${clientTx.length}/${allTx.length} transactions for client ${airtableClientRecordId}`);
     }
 
     // Filter accounts for this client
