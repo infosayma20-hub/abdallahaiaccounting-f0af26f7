@@ -100,23 +100,6 @@ async function linkContactToLatestTransaction(baseId: string, apiKey: string, cl
     return;
   }
 
-  const url = `https://api.airtable.com/v0/${baseId}/Transactions?sort%5B0%5D%5Bfield%5D=Date&sort%5B0%5D%5Bdirection%5D=desc&pageSize=20`;
-  const res = await fetch(url, { headers: { 'Authorization': `Bearer ${apiKey}` } });
-  if (!res.ok) {
-    console.log('linkContact: failed to fetch transactions', res.status);
-    return;
-  }
-  const data = await res.json();
-  
-  const records = (data.records || []).filter((r: any) => {
-    const client = r.fields["Client"];
-    if (!client) return false;
-    if (Array.isArray(client)) return client.includes(clientRecordId);
-    return client === clientRecordId;
-  });
-
-  console.log(`linkContact: found ${records.length} transactions for client, looking for "${contactName}"`);
-
   // Normalize Arabic for matching
   function normAr(s: string): string {
     return s.trim().toLowerCase()
@@ -126,32 +109,76 @@ async function linkContactToLatestTransaction(baseId: string, apiKey: string, cl
   }
 
   const normContact = normAr(contactName);
-  let targetRecord = null;
-  for (const rec of records) {
-    if (rec.fields["Contact"]) continue;
-    const desc = normAr(rec.fields["Description"] || "");
-    if (desc && (desc.includes(normContact) || normContact.split(' ').every(w => desc.includes(w)))) {
-      targetRecord = rec;
-      break;
+
+  // Retry up to 3 times with increasing delay to wait for Make.com
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    const url = `https://api.airtable.com/v0/${baseId}/Transactions?sort%5B0%5D%5Bfield%5D=Created&sort%5B0%5D%5Bdirection%5D=desc&pageSize=30`;
+    const res = await fetch(url, { headers: { 'Authorization': `Bearer ${apiKey}` } });
+    if (!res.ok) {
+      console.log('linkContact: failed to fetch transactions', res.status);
+      return;
+    }
+    const data = await res.json();
+    
+    const records = (data.records || []).filter((r: any) => {
+      const client = r.fields["Client"];
+      if (!client) return false;
+      if (Array.isArray(client)) return client.includes(clientRecordId);
+      return client === clientRecordId;
+    });
+
+    console.log(`linkContact attempt ${attempt}: found ${records.length} transactions for client, looking for "${contactName}"`);
+
+    // Look for unlinked transaction containing the contact name
+    let targetRecord = null;
+    for (const rec of records) {
+      if (rec.fields["Contact"]) continue; // already linked
+      const desc = normAr(rec.fields["Description"] || "");
+      if (desc && (desc.includes(normContact) || normContact.split(' ').every((w: string) => desc.includes(w)))) {
+        targetRecord = rec;
+        break;
+      }
+    }
+
+    // Fallback: if no description match, link the most recent unlinked transaction (created in last 2 min)
+    if (!targetRecord) {
+      const twoMinAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
+      for (const rec of records) {
+        if (rec.fields["Contact"]) continue;
+        const created = rec.createdTime || '';
+        if (created >= twoMinAgo) {
+          targetRecord = rec;
+          console.log(`linkContact: fallback match on recent unlinked transaction ${rec.id}`);
+          break;
+        }
+      }
+    }
+    
+    if (targetRecord) {
+      const updateUrl = `https://api.airtable.com/v0/${baseId}/Transactions/${targetRecord.id}`;
+      const updateRes = await fetch(updateUrl, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          fields: { "Contact": [contactId] },
+        }),
+      });
+      console.log(`linkContact: PATCH ${targetRecord.id} → status ${updateRes.status}`);
+      return;
+    }
+
+    // Wait before retry
+    if (attempt < 3) {
+      const waitMs = attempt * 5000; // 5s, 10s
+      console.log(`linkContact: no match yet, retrying in ${waitMs/1000}s...`);
+      await new Promise(resolve => setTimeout(resolve, waitMs));
     }
   }
-  
-  if (targetRecord) {
-    const updateUrl = `https://api.airtable.com/v0/${baseId}/Transactions/${targetRecord.id}`;
-    const updateRes = await fetch(updateUrl, {
-      method: 'PATCH',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        fields: { "Contact": [contactId] },
-      }),
-    });
-    console.log(`linkContact: PATCH ${targetRecord.id} (${(targetRecord.fields["Description"] || "").substring(0, 30)}) → status ${updateRes.status}`);
-  } else {
-    console.log(`linkContact: no unlinked transaction found containing "${contactName}"`);
-  }
+
+  console.log(`linkContact: failed to find transaction after 3 attempts for "${contactName}"`);
 }
 // Detect if text is an opening balance entry
 function isOpeningBalance(text: string): boolean {
@@ -382,8 +409,8 @@ ${contactAccountName ? `- استخدم حساب "${contactAccountName}" وليس
 
     // After webhook succeeds, try to link contact to the transaction in Airtable
     if (contactRecordId && AIRTABLE_API_KEY && AIRTABLE_BASE_ID && userId) {
-      // Wait a bit for Make.com to create the transaction
-      await new Promise(resolve => setTimeout(resolve, 5000));
+      // Wait for Make.com to create the transaction, then retry with backoff
+      await new Promise(resolve => setTimeout(resolve, 8000));
       try {
         await linkContactToLatestTransaction(AIRTABLE_BASE_ID, AIRTABLE_API_KEY, userId, contactRecordId, text, contactName || '');
       } catch (err) {
