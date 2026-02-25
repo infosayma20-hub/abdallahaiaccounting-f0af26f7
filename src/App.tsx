@@ -21,6 +21,7 @@ import PricingPage from "./pages/PricingPage";
 import InvoicesPage from "./pages/InvoicesPage";
 import InventoryPage from "./pages/InventoryPage";
 import ReportsPage from "./pages/ReportsPage";
+import ChequesPage from "./pages/ChequesPage";
 import TermsPage from "./pages/TermsPage";
 import PrivacyPage from "./pages/PrivacyPage";
 import ProfilePage from "./pages/ProfilePage";
@@ -73,6 +74,7 @@ const App = () => (
                       <Route path="/invoices" element={<InvoicesPage />} />
                       <Route path="/inventory" element={<InventoryPage />} />
                       <Route path="/reports" element={<ReportsPage />} />
+                      <Route path="/cheques" element={<ChequesPage />} />
                       <Route path="/profile" element={<ProfilePage />} />
                       <Route path="*" element={<NotFound />} />
                     </Routes>

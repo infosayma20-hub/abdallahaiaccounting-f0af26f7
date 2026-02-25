@@ -21,7 +21,57 @@ serve(async (req) => {
 
     const systemPrompt = `أنت محاسب ذكي ومساعد مالي احترافي. المستخدم سيعطيك جملة تصف عملية مالية بالعربية.
 
-## الخطوة 0: كشف نية المخزون
+## الخطوة 0A: كشف نية الشيكات
+إذا احتوى النص على: شيك، شيكات، قبضت شيك، دفعت شيك، أودعت شيك، حصّلت شيك، شيك مرتجع
+فإن intent = "cheque"
+
+استخرج:
+- نوع_الشيك: "وارد" (قبضت/استلمت شيك) أو "صادر" (دفعت/أعطيت شيك)
+- الطرف_الاسم: اسم الجهة
+- الطرف_النوع: "عميل" أو "مورد"
+- رقم_الشيك: إن ذُكر
+- البنك: إن ذُكر
+- تاريخ_الشيك: التاريخ المذكور (صيغة YYYY-MM-DD)
+- المبلغ: الرقم
+- العملة: شيكل/دينار/دولار
+- الحالة: "آجل" إذا التاريخ مستقبلي، "مستحق" إذا اليوم أو ماضي
+- إجراء: "تسجيل" / "إيداع" / "تحصيل" / "إرجاع"
+
+القيد المحاسبي للشيك الوارد عند التسجيل:
+مدين: شيكات واردة، دائن: العملاء (لا يؤثر على الصندوق/البنك)
+
+القيد المحاسبي للشيك الصادر عند التسجيل:
+مدين: الموردين، دائن: شيكات صادرة (لا يؤثر على البنك)
+
+عند تحصيل شيك وارد: مدين: البنك، دائن: شيكات واردة
+عند صرف شيك صادر: مدين: شيكات صادرة، دائن: البنك
+
+أرجع JSON:
+{
+  "intent": "cheque",
+  "type": "cheque",
+  "status": "complete" أو "incomplete",
+  "chequeType": "وارد" أو "صادر",
+  "partyName": "",
+  "partyType": "عميل" أو "مورد",
+  "chequeNumber": "",
+  "bankName": "",
+  "chequeDate": "",
+  "amount": 0,
+  "currency": "",
+  "chequeStatus": "آجل" أو "مستحق",
+  "action": "تسجيل",
+  "debit": "",
+  "credit": "",
+  "description": "",
+  "missingFields": [],
+  "confirmationMessage": ""
+}
+
+إذا بعض الحقول ناقصة (المبلغ أو التاريخ أو الاسم):
+status = "incomplete" مع missingFields
+
+## الخطوة 0B: كشف نية المخزون
 إذا احتوى نص المستخدم على أي من الكلمات التالية:
 المخزون، رصيد المخزون، كم عندي، كمية المنتج، حركة مخزون، تقرير مخزون، قيمة المخزون، تحليل مخزون، منتجات منخفضة، منتجات ناقصة، تكلفة المنتج، ربحية المنتج
 
@@ -44,11 +94,11 @@ serve(async (req) => {
   "تحقق_من_الربط": true
 }
 
-## الخطوة 1: تصنيف العملية (إذا لم تكن مخزون)
+## الخطوة 1: تصنيف العملية (إذا لم تكن شيك أو مخزون)
 - إذا تضمن النص "بعت" أو "بيع" أو "مبيعات" أو ما يشير للبيع → النوع = "فاتورة مبيعات"
 - إذا تضمن النص "اشتريت" أو "شراء" أو "مشتريات" أو ما يشير للشراء → النوع = "فاتورة مشتريات"
-- إذا تضمن "قبضت" أو "استلمت" أو "تحصيل" → النوع = "سند قبض"
-- إذا تضمن "دفعت" أو "صرفت" أو "سددت" → النوع = "سند صرف"
+- إذا تضمن "قبضت" أو "استلمت" أو "تحصيل" (بدون كلمة شيك) → النوع = "سند قبض"
+- إذا تضمن "دفعت" أو "صرفت" أو "سددت" (بدون كلمة شيك) → النوع = "سند صرف"
 - غير ذلك → حاول تصنيفها
 
 ## الخطوة 2: استخراج الحقول
@@ -129,7 +179,7 @@ serve(async (req) => {
 - إذا لم يُذكر طريقة الدفع في فاتورة، اعتبرها ناقصة.
 - إذا ذُكر "نقداً" أو "كاش" → paymentMethod = "نقد"
 - إذا ذُكر "على الحساب" أو "آجل" أو "بالدين" → paymentMethod = "آجل"
-- إذا ذُكر "شيك" → paymentMethod = "شيك"
+- إذا ذُكر "شيك" في سياق فاتورة → paymentMethod = "شيك"
 - إذا ذُكر "تحويل" أو "بنك" → paymentMethod = "تحويل"
 - اجعل confirmationMessage بهذا الشكل:
 "تأكيد العملية:\\nالنوع: مبيعات/مشتريات\\nالجهة: الاسم\\nالمنتج: المنتج\\nالكمية: العدد\\nالسعر: السعر\\nالإجمالي: المجموع\\nطريقة الدفع: الطريقة\\n\\nهل تريد إنشاء الفاتورة الآن؟"
@@ -177,6 +227,30 @@ serve(async (req) => {
       return new Response(JSON.stringify({
         transaction: null,
         message: 'لم أتمكن من فهم العملية',
+      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    // Handle cheque intent
+    if (parsed.intent === 'cheque' || parsed.type === 'cheque') {
+      return new Response(JSON.stringify({
+        type: 'cheque',
+        status: parsed.status || 'complete',
+        chequeType: parsed.chequeType || '',
+        partyName: parsed.partyName || '',
+        partyType: parsed.partyType || 'عميل',
+        chequeNumber: parsed.chequeNumber || '',
+        bankName: parsed.bankName || '',
+        chequeDate: parsed.chequeDate || '',
+        amount: parsed.amount || 0,
+        currency: parsed.currency || 'شيكل',
+        chequeStatus: parsed.chequeStatus || 'مسجل',
+        action: parsed.action || 'تسجيل',
+        debit: parsed.debit || '',
+        credit: parsed.credit || '',
+        description: parsed.description || text,
+        missingFields: parsed.missingFields || [],
+        confirmationMessage: parsed.confirmationMessage || '',
+        message: parsed.message || '',
       }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
