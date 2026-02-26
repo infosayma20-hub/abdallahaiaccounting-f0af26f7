@@ -41,7 +41,13 @@ const AIAssistantWidget = () => {
   const inactivityTimer = useRef<ReturnType<typeof setTimeout>>();
   const greetingShown = useRef(false);
 
-  const userName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "المستخدم";
+  const [profileName, setProfileName] = useState<string | null>(null);
+  useEffect(() => {
+    if (!user?.id) return;
+    supabase.from("profiles").select("display_name, company_name").eq("user_id", user.id).maybeSingle()
+      .then(({ data }) => { if (data) setProfileName(data.display_name || data.company_name || null); });
+  }, [user?.id]);
+  const userName = profileName || user?.user_metadata?.full_name || user?.email?.split("@")[0] || "المستخدم";
 
   // Pulse on first visit
   useEffect(() => {
