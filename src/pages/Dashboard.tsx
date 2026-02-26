@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Wallet, Mic, Send, Loader2, Bell, Sparkles, Database, FileText, Package, TrendingUp, TrendingDown, ArrowLeft, ChevronDown, Users, UserPlus, Plus, Paperclip, BarChart3, Clock, AlertTriangle, Sun, Moon, HelpCircle, AtSign, BookOpen } from "lucide-react";
 import SmartAlertCard from "@/components/SmartAlertCard";
+import { Badge } from "@/components/ui/badge";
 import HelpGuideModal from "@/components/HelpGuideModal";
 import MentionInput, { MentionItem } from "@/components/MentionInput";
 import { useNavigate } from "react-router-dom";
@@ -753,6 +754,28 @@ const Dashboard = () => {
                 currentTarget="command"
               />
             </div>
+
+            {/* ═══ Smart Report Quick Access ═══ */}
+            <button
+              onClick={() => navigate("/smart-report")}
+              className="w-full premium-card p-4 neon-border hover:bg-primary/5 transition-all active:scale-[0.99] group"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                    <BarChart3 className="h-5 w-5 text-primary" />
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-bold text-foreground">التقرير الذكي</p>
+                    <p className="text-[10px] text-muted-foreground">اسأل عن أرباحك، مبيعاتك، ذممك... بلغتك</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Badge className="bg-primary/10 text-primary border-0 text-[9px] px-2 py-0.5">AI</Badge>
+                  <ArrowLeft className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                </div>
+              </div>
+            </button>
 
             <div className="grid grid-cols-2 gap-2.5">
               {quickActions.map((action) => (
