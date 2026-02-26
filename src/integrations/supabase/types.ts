@@ -14,6 +14,210 @@ export type Database = {
   }
   public: {
     Tables: {
+      attendance_audit_logs: {
+        Row: {
+          action: string
+          changed_by: string
+          created_at: string
+          id: string
+          new_values: Json | null
+          old_values: Json | null
+          reason: string | null
+          record_id: string
+          table_name: string
+        }
+        Insert: {
+          action: string
+          changed_by: string
+          created_at?: string
+          id?: string
+          new_values?: Json | null
+          old_values?: Json | null
+          reason?: string | null
+          record_id: string
+          table_name: string
+        }
+        Update: {
+          action?: string
+          changed_by?: string
+          created_at?: string
+          id?: string
+          new_values?: Json | null
+          old_values?: Json | null
+          reason?: string | null
+          record_id?: string
+          table_name?: string
+        }
+        Relationships: []
+      }
+      attendance_days: {
+        Row: {
+          attendance_date: string
+          auth_user_id: string
+          branch_id: string | null
+          created_at: string
+          employee_id: string
+          first_check_in: string | null
+          id: string
+          is_manually_adjusted: boolean | null
+          last_check_out: string | null
+          notes: string | null
+          overtime_hours: number | null
+          status: string
+          total_hours: number | null
+          updated_at: string
+        }
+        Insert: {
+          attendance_date?: string
+          auth_user_id: string
+          branch_id?: string | null
+          created_at?: string
+          employee_id: string
+          first_check_in?: string | null
+          id?: string
+          is_manually_adjusted?: boolean | null
+          last_check_out?: string | null
+          notes?: string | null
+          overtime_hours?: number | null
+          status?: string
+          total_hours?: number | null
+          updated_at?: string
+        }
+        Update: {
+          attendance_date?: string
+          auth_user_id?: string
+          branch_id?: string | null
+          created_at?: string
+          employee_id?: string
+          first_check_in?: string | null
+          id?: string
+          is_manually_adjusted?: boolean | null
+          last_check_out?: string | null
+          notes?: string | null
+          overtime_hours?: number | null
+          status?: string
+          total_hours?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_days_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_days_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      attendance_events: {
+        Row: {
+          auth_user_id: string
+          branch_id: string
+          created_at: string
+          device_info: string | null
+          employee_id: string
+          event_time: string
+          event_type: string
+          id: string
+          latitude: number | null
+          longitude: number | null
+          notes: string | null
+          qr_token_used: string | null
+          status: string
+        }
+        Insert: {
+          auth_user_id: string
+          branch_id: string
+          created_at?: string
+          device_info?: string | null
+          employee_id: string
+          event_time?: string
+          event_type: string
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          notes?: string | null
+          qr_token_used?: string | null
+          status?: string
+        }
+        Update: {
+          auth_user_id?: string
+          branch_id?: string
+          created_at?: string
+          device_info?: string | null
+          employee_id?: string
+          event_time?: string
+          event_type?: string
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          notes?: string | null
+          qr_token_used?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_events_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_events_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      branches: {
+        Row: {
+          address: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          latitude: number
+          longitude: number
+          name: string
+          radius_meters: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          latitude: number
+          longitude: number
+          name: string
+          radius_meters?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          latitude?: number
+          longitude?: number
+          name?: string
+          radius_meters?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       cheque_status_history: {
         Row: {
           cheque_id: string
@@ -167,6 +371,69 @@ export type Database = {
             columns: ["representative_id"]
             isOneToOne: false
             referencedRelation: "sales_representatives"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      correction_requests: {
+        Row: {
+          attendance_date: string
+          attendance_day_id: string | null
+          auth_user_id: string
+          created_at: string
+          employee_id: string
+          id: string
+          reason: string
+          request_type: string
+          requested_time: string | null
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+        }
+        Insert: {
+          attendance_date: string
+          attendance_day_id?: string | null
+          auth_user_id: string
+          created_at?: string
+          employee_id: string
+          id?: string
+          reason: string
+          request_type: string
+          requested_time?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+        }
+        Update: {
+          attendance_date?: string
+          attendance_day_id?: string | null
+          auth_user_id?: string
+          created_at?: string
+          employee_id?: string
+          id?: string
+          reason?: string
+          request_type?: string
+          requested_time?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "correction_requests_attendance_day_id_fkey"
+            columns: ["attendance_day_id"]
+            isOneToOne: false
+            referencedRelation: "attendance_days"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "correction_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
             referencedColumns: ["id"]
           },
         ]
@@ -425,9 +692,11 @@ export type Database = {
         Row: {
           address: string | null
           annual_leave_days: number
+          auth_user_id: string | null
           bank_account: string | null
           bank_name: string | null
           base_salary: number
+          branch_id: string | null
           created_at: string
           department: string | null
           email: string | null
@@ -455,9 +724,11 @@ export type Database = {
         Insert: {
           address?: string | null
           annual_leave_days?: number
+          auth_user_id?: string | null
           bank_account?: string | null
           bank_name?: string | null
           base_salary?: number
+          branch_id?: string | null
           created_at?: string
           department?: string | null
           email?: string | null
@@ -485,9 +756,11 @@ export type Database = {
         Update: {
           address?: string | null
           annual_leave_days?: number
+          auth_user_id?: string | null
           bank_account?: string | null
           bank_name?: string | null
           base_salary?: number
+          branch_id?: string | null
           created_at?: string
           department?: string | null
           email?: string | null
@@ -512,7 +785,15 @@ export type Database = {
           work_days_per_week?: number
           work_hours_per_day?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "employees_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       invoice_receipt_matching: {
         Row: {
@@ -842,6 +1123,38 @@ export type Database = {
         }
         Relationships: []
       }
+      qr_tokens: {
+        Row: {
+          branch_id: string
+          created_at: string
+          expires_at: string
+          id: string
+          token: string
+        }
+        Insert: {
+          branch_id: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          token: string
+        }
+        Update: {
+          branch_id?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qr_tokens_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sales_representatives: {
         Row: {
           collection_commission_rate: number
@@ -928,6 +1241,27 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       webauthn_challenges: {
         Row: {
           challenge: string
@@ -957,9 +1291,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
+      app_role: "admin" | "hr_manager" | "employee"
       cheque_status:
         | "مسجل"
         | "آجل"
@@ -1103,6 +1444,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_role: ["admin", "hr_manager", "employee"],
       cheque_status: ["مسجل", "آجل", "مستحق", "مودع", "محصل", "مرتجع", "ملغي"],
       cheque_type: ["وارد", "صادر"],
       product_category: [

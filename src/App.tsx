@@ -35,6 +35,8 @@ import PrivacyPage from "./pages/PrivacyPage";
 import ProfilePage from "./pages/ProfilePage";
 import NotFound from "./pages/NotFound";
 import LoadingScreen from "./components/LoadingScreen";
+import EmployeeAttendancePage from "./pages/EmployeeAttendancePage";
+import HRAttendancePage from "./pages/HRAttendancePage";
 
 const queryClient = new QueryClient();
 
@@ -96,6 +98,8 @@ const App = () => (
                       <Route path="/employees" element={<EmployeesPage />} />
                       <Route path="/sales-reps" element={<SalesRepresentativesPage />} />
                       <Route path="/orders" element={<OrdersPage />} />
+                      <Route path="/my-attendance" element={<EmployeeAttendancePage />} />
+                      <Route path="/hr-attendance" element={<HRAttendancePage />} />
                       <Route path="*" element={<NotFound />} />
                     </Routes>
                   </WebLayout>
