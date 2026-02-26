@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, FileSpreadsheet, FileText, TrendingUp, TrendingDown, Wallet, Calendar, Search, BarChart3, Clock, ArrowUpDown, Hash, Eye, Printer, X } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import * as XLSX from "xlsx";
 
@@ -108,6 +109,7 @@ const ContactStatementDialog = ({ open, onClose, contactId, contactName, contact
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(false);
   const [isPrintView, setIsPrintView] = useState(false);
+  const [profileData, setProfileData] = useState<{ display_name?: string; company_name?: string } | null>(null);
 
   // Filters
   const [dateFrom, setDateFrom] = useState("");
@@ -116,6 +118,12 @@ const ContactStatementDialog = ({ open, onClose, contactId, contactName, contact
   const [searchQuery, setSearchQuery] = useState("");
 
   const isSupplier = (contactType || "").includes("مورد") || (contactType || "").toLowerCase().includes("supplier");
+
+  useEffect(() => {
+    if (!user?.id) return;
+    supabase.from("profiles").select("display_name, company_name").eq("user_id", user.id).maybeSingle()
+      .then(({ data }) => { if (data) setProfileData(data); });
+  }, [user?.id]);
 
   useEffect(() => {
     if (open && contactId) fetchTransactions();
@@ -182,7 +190,7 @@ const ContactStatementDialog = ({ open, onClose, contactId, contactName, contact
   const totalCredit = statementRows.reduce((s, r) => s + r.credit, 0);
   const finalBalance = totalDebit - totalCredit;
   const currency = transactions[0]?.fields.Currency || "شيكل";
-  const companyName = user?.user_metadata?.company_name || "شركتي";
+  const companyName = profileData?.company_name || profileData?.display_name || user?.user_metadata?.company_name || "شركتي";
   const companyEmail = user?.email || "";
 
   // Analytics
