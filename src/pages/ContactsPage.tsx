@@ -654,8 +654,10 @@ const ContactsPage = () => {
                         <TypeIcon className="h-3 w-3 ml-1" />
                         {config.label}
                       </Badge>
-                      {fin && !fin.loading && fin.totalDealing > 0 && (
-                        <span className="text-[10px] text-muted-foreground">₪{fin.totalDealing.toLocaleString()}</span>
+                      {fin && !fin.loading && (
+                        <span className={`text-xs font-bold ${getBalanceColor(fin.balance)}`}>
+                          ₪{Math.abs(fin.balance).toLocaleString()}
+                        </span>
                       )}
                       <div className="text-muted-foreground/50">
                         {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
