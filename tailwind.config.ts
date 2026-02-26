@@ -14,7 +14,11 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['"IBM Plex Sans Arabic"', 'sans-serif'],
+        sans: ['"IBM Plex Sans Arabic"', 'system-ui', 'sans-serif'],
+      },
+      spacing: {
+        '18': '4.5rem',
+        '22': '5.5rem',
       },
       colors: {
         border: "hsl(var(--border))",
@@ -73,6 +77,14 @@ export default {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+        xl: "1rem",
+        "2xl": "1.25rem",
+      },
+      boxShadow: {
+        'soft': 'var(--shadow-sm)',
+        'medium': 'var(--shadow-md)',
+        'elevated': 'var(--shadow-lg)',
+        'card': 'var(--shadow-card)',
       },
       keyframes: {
         "accordion-down": {
@@ -91,12 +103,17 @@ export default {
           "0%, 100%": { height: "8px" },
           "50%": { height: "32px" },
         },
+        "fade-in": {
+          from: { opacity: "0", transform: "translateY(4px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         "pulse-ring": "pulse-ring 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite",
         "sound-wave": "sound-wave 0.8s ease-in-out infinite",
+        "fade-in": "fade-in 0.3s ease-out",
       },
     },
   },

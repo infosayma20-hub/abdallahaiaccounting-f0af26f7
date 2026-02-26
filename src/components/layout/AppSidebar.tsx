@@ -11,21 +11,13 @@ import {
   Users2,
   Settings,
   ChevronDown,
-  ChevronLeft,
-  ChevronRight,
   X,
   Sparkles,
   Receipt,
   Landmark,
-  FileSpreadsheet,
-  UserPlus,
-  Wallet,
-  ClipboardList,
-  Scale,
-  AlertTriangle,
   PanelLeftClose,
   PanelLeftOpen,
-  Grid3X3,
+  Briefcase,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -43,59 +35,82 @@ interface NavItem {
   children?: { label: string; path: string }[];
 }
 
-const mainNav: NavItem[] = [
-  { label: "الرئيسية", icon: Home, path: "/" },
+interface NavSection {
+  title: string;
+  items: NavItem[];
+}
+
+const navSections: NavSection[] = [
   {
-    label: "المحاسبة",
-    icon: BookOpen,
-    children: [
-      { label: "شجرة الحسابات", path: "/accounts" },
-      { label: "دفتر اليومية", path: "/transactions" },
-      { label: "القيود", path: "/journal-entries" },
-      { label: "ميزان المراجعة", path: "/trial-balance" },
+    title: "المحاسبة الأساسية",
+    items: [
+      { label: "الرئيسية", icon: Home, path: "/" },
+      {
+        label: "المحاسبة",
+        icon: BookOpen,
+        children: [
+          { label: "شجرة الحسابات", path: "/accounts" },
+          { label: "دفتر اليومية", path: "/transactions" },
+          { label: "القيود", path: "/journal-entries" },
+          { label: "ميزان المراجعة", path: "/trial-balance" },
+        ],
+      },
+      {
+        label: "الشيكات",
+        icon: Receipt,
+        children: [
+          { label: "شيكات واردة", path: "/cheques?type=incoming" },
+          { label: "شيكات صادرة", path: "/cheques?type=outgoing" },
+          { label: "حالات الشيكات", path: "/cheques" },
+        ],
+      },
     ],
   },
   {
-    label: "المبيعات والتحصيل",
-    icon: ShoppingCart,
-    children: [
-      { label: "العملاء", path: "/contacts?type=customer" },
-      { label: "الفواتير", path: "/invoices" },
-      { label: "سندات القبض", path: "/receipts" },
+    title: "المبيعات والمشتريات",
+    items: [
+      {
+        label: "المبيعات",
+        icon: ShoppingCart,
+        children: [
+          { label: "العملاء", path: "/contacts?type=customer" },
+          { label: "الفواتير", path: "/invoices" },
+          { label: "سندات القبض", path: "/receipts" },
+        ],
+      },
+      {
+        label: "المشتريات",
+        icon: CreditCard,
+        children: [
+          { label: "الموردين", path: "/contacts?type=supplier" },
+          { label: "فواتير مشتريات", path: "/bills" },
+          { label: "سندات الصرف", path: "/payments" },
+        ],
+      },
+      {
+        label: "المخزون",
+        icon: Package,
+        children: [
+          { label: "المنتجات", path: "/inventory" },
+          { label: "حركات المخزون", path: "/inventory-movements" },
+          { label: "تقييم المخزون", path: "/inventory-valuation" },
+        ],
+      },
     ],
   },
   {
-    label: "المشتريات والمدفوعات",
-    icon: CreditCard,
-    children: [
-      { label: "الموردين", path: "/contacts?type=supplier" },
-      { label: "فواتير مشتريات", path: "/bills" },
-      { label: "سندات الصرف", path: "/payments" },
+    title: "الذكاء والتقارير",
+    items: [
+      { label: "التقارير", icon: BarChart3, path: "/reports" },
+      { label: "الذكاء المالي", icon: Sparkles, path: "/smart-report" },
+      {
+        label: "الموارد البشرية",
+        icon: Briefcase,
+        children: [
+          { label: "الموظفون", path: "/contacts?type=employee" },
+        ],
+      },
     ],
-  },
-  {
-    label: "المخزون",
-    icon: Package,
-    children: [
-      { label: "المنتجات", path: "/inventory" },
-      { label: "حركات المخزون", path: "/inventory-movements" },
-      { label: "تقييم المخزون", path: "/inventory-valuation" },
-    ],
-  },
-  {
-    label: "الشيكات",
-    icon: Receipt,
-    children: [
-      { label: "شيكات واردة", path: "/cheques?type=incoming" },
-      { label: "شيكات صادرة", path: "/cheques?type=outgoing" },
-      { label: "حالات الشيكات", path: "/cheques" },
-    ],
-  },
-  { label: "التقارير", icon: BarChart3, path: "/reports" },
-  {
-    label: "الذكاء المالي",
-    icon: Sparkles,
-    path: "/smart-report",
   },
 ];
 
@@ -114,9 +129,7 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
     return location.pathname === basePath;
   };
 
-  const isGroupActive = (item: NavItem) => {
-    return item.children?.some((c) => isActive(c.path));
-  };
+  const isGroupActive = (item: NavItem) => item.children?.some((c) => isActive(c.path));
 
   const toggleGroup = (label: string) => {
     setExpandedGroups((prev) =>
@@ -151,7 +164,7 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
             }
           }}
           className={cn(
-            "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all group",
+            "w-full flex items-center gap-3 px-3 py-2 rounded-xl text-[13px] font-medium transition-all group",
             active || groupActive
               ? "bg-primary/10 text-primary"
               : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
@@ -159,14 +172,14 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
           )}
           title={collapsed ? item.label : undefined}
         >
-          <item.icon className={cn("h-[18px] w-[18px] flex-shrink-0", active || groupActive ? "text-primary" : "")} />
+          <item.icon className="h-5 w-5 flex-shrink-0" strokeWidth={1.8} />
           {!collapsed && (
             <>
               <span className="flex-1 text-right truncate">{item.label}</span>
               {hasChildren && (
                 <ChevronDown
                   className={cn(
-                    "h-3.5 w-3.5 text-muted-foreground transition-transform duration-200",
+                    "h-3.5 w-3.5 text-muted-foreground/60 transition-transform duration-200",
                     expanded && "rotate-180"
                   )}
                 />
@@ -175,9 +188,8 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
           )}
         </button>
 
-        {/* Children */}
         {hasChildren && expanded && !collapsed && (
-          <div className="mr-4 mt-0.5 space-y-0.5 border-r border-border/50 pr-3">
+          <div className="mr-5 mt-0.5 space-y-0.5 border-r border-border/40 pr-3">
             {item.children!.map((child) => {
               const childActive = isActive(child.path);
               return (
@@ -185,10 +197,10 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
                   key={child.path}
                   onClick={() => handleNavigate(child.path)}
                   className={cn(
-                    "w-full text-right px-3 py-1.5 rounded-md text-[13px] transition-all",
+                    "w-full text-right px-3 py-1.5 rounded-lg text-[12px] transition-all",
                     childActive
                       ? "bg-primary/10 text-primary font-medium"
-                      : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
+                      : "text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/60"
                   )}
                 >
                   {child.label}
@@ -203,43 +215,57 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
 
   const sidebarContent = (
     <div className="flex flex-col h-full">
-      {/* Logo / Brand */}
-      <div className={cn("h-14 flex items-center border-b border-sidebar-border px-4 flex-shrink-0", collapsed && "justify-center px-2")}>
+      {/* Logo */}
+      <div className={cn(
+        "h-16 flex items-center px-4 flex-shrink-0",
+        collapsed && "justify-center px-2"
+      )}>
         {!collapsed ? (
-          <div className="flex items-center gap-2.5 flex-1">
-            <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
-              <span className="text-sm font-bold text-primary">ع</span>
+          <div className="flex items-center gap-3 flex-1">
+            <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center">
+              <span className="text-sm font-bold text-primary-foreground">ع</span>
             </div>
             <div className="min-w-0">
-              <h1 className="text-sm font-bold text-foreground truncate">عبدالله AI</h1>
-              <p className="text-[10px] text-muted-foreground">المحاسبة الذكية</p>
+              <h1 className="text-[14px] font-bold text-foreground truncate">عبدالله AI</h1>
+              <p className="text-[10px] text-muted-foreground leading-none">المحاسبة الذكية</p>
             </div>
           </div>
         ) : (
-          <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
-            <span className="text-sm font-bold text-primary">ع</span>
+          <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center">
+            <span className="text-sm font-bold text-primary-foreground">ع</span>
           </div>
         )}
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5">
-        {mainNav.map(renderNavItem)}
+      {/* Navigation Sections */}
+      <nav className="flex-1 overflow-y-auto py-2 px-3 space-y-5">
+        {navSections.map((section) => (
+          <div key={section.title}>
+            {!collapsed && (
+              <p className="text-[10px] font-semibold text-muted-foreground/60 uppercase tracking-wider px-3 mb-2">
+                {section.title}
+              </p>
+            )}
+            {collapsed && <div className="h-px bg-border/30 mx-1 mb-2" />}
+            <div className="space-y-0.5">
+              {section.items.map(renderNavItem)}
+            </div>
+          </div>
+        ))}
       </nav>
 
       {/* Bottom */}
-      <div className="border-t border-sidebar-border py-2 px-2 space-y-0.5">
+      <div className="border-t border-sidebar-border/50 py-3 px-3 space-y-0.5">
         {bottomNav.map(renderNavItem)}
-        {/* Collapse toggle - desktop only */}
         <button
           onClick={onToggle}
-          className="hidden lg:flex w-full items-center gap-3 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:bg-sidebar-accent transition-all"
+          className="hidden lg:flex w-full items-center gap-3 px-3 py-2 rounded-xl text-[13px] text-muted-foreground hover:bg-sidebar-accent transition-all"
         >
           {collapsed ? (
-            <PanelLeftOpen className="h-[18px] w-[18px] mx-auto" />
+            <PanelLeftOpen className="h-5 w-5 mx-auto" strokeWidth={1.8} />
           ) : (
             <>
-              <PanelLeftClose className="h-[18px] w-[18px]" />
+              <PanelLeftClose className="h-5 w-5" strokeWidth={1.8} />
               <span>طي القائمة</span>
             </>
           )}
@@ -253,7 +279,7 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
       {/* Mobile overlay */}
       {mobileOpen && (
         <div
-          className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm lg:hidden"
+          className="fixed inset-0 z-50 bg-background/60 backdrop-blur-sm lg:hidden"
           onClick={onMobileClose}
         />
       )}
@@ -261,13 +287,13 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
       {/* Mobile sidebar */}
       <aside
         className={cn(
-          "fixed inset-y-0 right-0 z-50 w-64 bg-sidebar border-l border-sidebar-border transform transition-transform duration-300 lg:hidden",
+          "fixed inset-y-0 right-0 z-50 w-[280px] bg-sidebar transform transition-transform duration-300 lg:hidden",
           mobileOpen ? "translate-x-0" : "translate-x-full"
         )}
       >
         <button
           onClick={onMobileClose}
-          className="absolute top-3 left-3 w-8 h-8 rounded-lg flex items-center justify-center hover:bg-secondary transition-colors"
+          className="absolute top-4 left-4 w-8 h-8 rounded-xl flex items-center justify-center hover:bg-secondary transition-colors"
         >
           <X className="h-4 w-4 text-muted-foreground" />
         </button>
@@ -277,8 +303,8 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
       {/* Desktop sidebar */}
       <aside
         className={cn(
-          "hidden lg:flex flex-col border-l border-sidebar-border bg-sidebar flex-shrink-0 transition-all duration-300",
-          collapsed ? "w-[60px]" : "w-[240px]"
+          "hidden lg:flex flex-col border-l border-sidebar-border/50 bg-sidebar flex-shrink-0 transition-all duration-300",
+          collapsed ? "w-[64px]" : "w-[248px]"
         )}
       >
         {sidebarContent}
