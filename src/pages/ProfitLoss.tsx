@@ -70,12 +70,40 @@ const ProfitLoss = () => {
     return !isOB;
   });
 
-  const totalRevenue = plTransactions
-    .filter((tx) => tx.fields["Debit Account Rollup"] === "Asset" && tx.fields["Credit Account Rollup"] === "Revenue")
-    .reduce((sum, tx) => sum + (tx.fields.Amount || 0), 0);
-  const totalExpenses = plTransactions
-    .filter((tx) => tx.fields["Debit Account Rollup"] === "Expenses")
-    .reduce((sum, tx) => sum + (tx.fields.Amount || 0), 0);
+  // Helper: check description/type for keywords
+  const txMatch = (tx: TransactionRecord, keywords: string[]) => {
+    const desc = (tx.fields.Description || "").toLowerCase();
+    const type = (tx.fields["Transaction Type"] || "").toLowerCase();
+    const debitName = (tx.fields["Debit Account Name"] || "").toLowerCase();
+    const creditName = (tx.fields["Credit Account Name"] || "").toLowerCase();
+    const all = `${desc} ${type} ${debitName} ${creditName}`;
+    return keywords.some(k => all.includes(k));
+  };
+
+  // (+) المبيعات
+  const sales = plTransactions.filter(tx => tx.fields["Credit Account Rollup"] === "Revenue" && !txMatch(tx, ["مردود", "خصم"]))
+    .reduce((s, tx) => s + (tx.fields.Amount || 0), 0);
+  // (-) خصم مسموح به
+  const salesDiscounts = plTransactions.filter(tx => txMatch(tx, ["خصم مسموح", "خصم مبيعات"]))
+    .reduce((s, tx) => s + (tx.fields.Amount || 0), 0);
+  // (-) مردود مبيعات
+  const salesReturns = plTransactions.filter(tx => txMatch(tx, ["مردود مبيعات", "مرتجع مبيعات"]))
+    .reduce((s, tx) => s + (tx.fields.Amount || 0), 0);
+  // (-) مشتريات
+  const purchases = plTransactions.filter(tx => txMatch(tx, ["مشتريات", "شراء", "بضاعة"]) && tx.fields["Debit Account Rollup"] === "Expenses" || (tx.fields["Transaction Type"] || "").includes("فاتورة مشتريات"))
+    .reduce((s, tx) => s + (tx.fields.Amount || 0), 0);
+  // (+) خصم مكتسب
+  const purchaseDiscounts = plTransactions.filter(tx => txMatch(tx, ["خصم مكتسب", "خصم مشتريات"]))
+    .reduce((s, tx) => s + (tx.fields.Amount || 0), 0);
+  // (+) مردود مشتريات
+  const purchaseReturns = plTransactions.filter(tx => txMatch(tx, ["مردود مشتريات", "مرتجع مشتريات"]))
+    .reduce((s, tx) => s + (tx.fields.Amount || 0), 0);
+  // (-) مصاريف عامة
+  const generalExpenses = plTransactions.filter(tx => tx.fields["Debit Account Rollup"] === "Expenses" && !txMatch(tx, ["مشتريات", "شراء", "بضاعة", "مردود", "خصم"]))
+    .reduce((s, tx) => s + (tx.fields.Amount || 0), 0);
+
+  const totalRevenue = sales - salesDiscounts - salesReturns;
+  const totalExpenses = purchases - purchaseDiscounts - purchaseReturns + generalExpenses;
   const netProfit = totalRevenue - totalExpenses;
   const margin = totalRevenue > 0 ? Math.round((netProfit / totalRevenue) * 100) : 0;
 

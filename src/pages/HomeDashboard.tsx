@@ -114,14 +114,55 @@ const HomeDashboard = () => {
     fetchTx();
   }, [user]);
 
-  // ─── Computed Values ───
-  const revenue = transactions.filter((tx) => tx.fields["Debit Account Rollup"] === "Asset" && tx.fields["Credit Account Rollup"] === "Revenue").reduce((sum, tx) => sum + (tx.fields.Amount || 0), 0);
-  const expenses = transactions.filter((tx) => tx.fields["Debit Account Rollup"] === "Expenses").reduce((sum, tx) => sum + (tx.fields.Amount || 0), 0);
+  // ─── Computed Values (Proper P&L Formula) ───
+  // Helper: check description/type for keywords
+  const txMatch = (tx: TransactionRecord, keywords: string[]) => {
+    const desc = (tx.fields.Description || "").toLowerCase();
+    const type = (tx.fields["Transaction Type"] || "").toLowerCase();
+    const debitName = (tx.fields["Debit Account Name"] || "").toLowerCase();
+    const creditName = (tx.fields["Credit Account Name"] || "").toLowerCase();
+    const all = `${desc} ${type} ${debitName} ${creditName}`;
+    return keywords.some(k => all.includes(k));
+  };
+
+  // Filter out opening balances for P&L
+  const plTx = transactions.filter(tx => {
+    const type = (tx.fields["Transaction Type"] || "").trim();
+    const desc = (tx.fields.Description || "").trim();
+    return !/رصيد\s*(ابتدائي|افتتاحي|مدور|أول\s*المدة)/i.test(desc) &&
+      !/رصيد\s*(ابتدائي|افتتاحي|مدور)/i.test(type) && type !== "رصيد ابتدائي";
+  });
+
+  // (+) المبيعات (Sales)
+  const sales = plTx.filter(tx => tx.fields["Credit Account Rollup"] === "Revenue" && !txMatch(tx, ["مردود", "خصم"]))
+    .reduce((s, tx) => s + (tx.fields.Amount || 0), 0);
+  // (-) خصم مسموح به (Sales Discounts)
+  const salesDiscounts = plTx.filter(tx => txMatch(tx, ["خصم مسموح", "خصم مبيعات"]))
+    .reduce((s, tx) => s + (tx.fields.Amount || 0), 0);
+  // (-) مردود مبيعات (Sales Returns)
+  const salesReturns = plTx.filter(tx => txMatch(tx, ["مردود مبيعات", "مرتجع مبيعات"]))
+    .reduce((s, tx) => s + (tx.fields.Amount || 0), 0);
+  // (-) مشتريات (Purchases / COGS)
+  const purchases = plTx.filter(tx => txMatch(tx, ["مشتريات", "شراء", "بضاعة"]) && tx.fields["Debit Account Rollup"] === "Expenses" || (tx.fields["Transaction Type"] || "").includes("فاتورة مشتريات"))
+    .reduce((s, tx) => s + (tx.fields.Amount || 0), 0);
+  // (+) خصم مكتسب (Purchase Discounts Earned)
+  const purchaseDiscounts = plTx.filter(tx => txMatch(tx, ["خصم مكتسب", "خصم مشتريات"]))
+    .reduce((s, tx) => s + (tx.fields.Amount || 0), 0);
+  // (+) مردود مشتريات (Purchase Returns)
+  const purchaseReturns = plTx.filter(tx => txMatch(tx, ["مردود مشتريات", "مرتجع مشتريات"]))
+    .reduce((s, tx) => s + (tx.fields.Amount || 0), 0);
+  // (-) مصاريف (All Expenses excluding COGS/purchases already counted)
+  const generalExpenses = plTx.filter(tx => tx.fields["Debit Account Rollup"] === "Expenses" && !txMatch(tx, ["مشتريات", "شراء", "بضاعة", "مردود", "خصم"]))
+    .reduce((s, tx) => s + (tx.fields.Amount || 0), 0);
+
+  // Net Profit = Sales - Sales Discounts - Sales Returns - Purchases + Purchase Discounts + Purchase Returns - General Expenses
+  const netProfit = sales - salesDiscounts - salesReturns - purchases + purchaseDiscounts + purchaseReturns - generalExpenses;
+  const revenue = sales - salesDiscounts - salesReturns;
+  const expenses = purchases - purchaseDiscounts - purchaseReturns + generalExpenses;
   const totalIncome = transactions.filter((tx) => tx.fields["Transaction Type"] === "سند قبض").reduce((sum, tx) => sum + (tx.fields.Amount || 0), 0);
   const totalOutcome = transactions.filter((tx) => tx.fields["Transaction Type"] === "سند صرف").reduce((sum, tx) => sum + (tx.fields.Amount || 0), 0);
   const capitalInjections = transactions.filter((tx) => tx.fields["Debit Account Rollup"] === "Asset" && tx.fields["Credit Account Rollup"] === "Owner's Equity").reduce((sum, tx) => sum + (tx.fields.Amount || 0), 0);
   const cashBalance = totalIncome - totalOutcome + capitalInjections;
-  const netProfit = revenue - expenses;
   // Receivables: debit to receivable accounts minus credits (collections)
   const receivablesDebit = transactions.filter((tx) => tx.fields["Debit Account Rollup"] === "Asset" && tx.fields["Credit Account Rollup"] === "Revenue").reduce((sum, tx) => sum + (tx.fields.Amount || 0), 0);
   const receivablesCredit = transactions.filter((tx) => tx.fields["Credit Account Rollup"] === "Asset" && tx.fields["Debit Account Rollup"] === "Revenue").reduce((sum, tx) => sum + (tx.fields.Amount || 0), 0);
