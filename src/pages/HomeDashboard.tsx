@@ -356,33 +356,83 @@ const HomeDashboard = () => {
                 </div>
                 {invoiceMessage && (
                   <div className="p-4 rounded-xl border border-primary/15 bg-primary/5 space-y-3">
-                    <p className="text-xs text-foreground whitespace-pre-line">{invoiceMessage}</p>
                     {pendingInvoice ? (
-                      <div className="flex gap-2">
-                        <button onClick={async () => {
-                          if (!pendingInvoice || !user) return;
-                          setSending(true);
-                          try {
-                            const inv = pendingInvoice;
-                            const desc = inv.invoiceType === 'مبيعات'
-                              ? `بعت ${inv.productName || ''} ${inv.quantity || 1} بسعر ${inv.unitPrice || inv.amount} ${inv.paymentMethod === 'آجل' ? 'آجل' : 'نقداً'} ${inv.mentionedContactName ? 'ل' + inv.mentionedContactName : ''}`
-                              : `اشتريت ${inv.productName || ''} ${inv.quantity || 1} بسعر ${inv.unitPrice || inv.amount} ${inv.paymentMethod === 'آجل' ? 'آجل' : 'نقداً'} ${inv.mentionedContactName ? 'من ' + inv.mentionedContactName : ''}`;
-                            const body: any = { text: desc, userId: user.id, email: user.email };
-                            if (inv.mentionedContactName) body.mentionedContactName = inv.mentionedContactName;
-                            const { error } = await supabase.functions.invoke("send-transaction", { body });
-                            if (error) throw error;
-                            txToast.trigger();
-                            setPendingInvoice(null);
-                            setInvoiceMessage(null);
-                          } catch (err: any) {
-                            toast({ title: "خطأ", description: err.message, variant: "destructive" });
-                          } finally { setSending(false); }
-                        }} disabled={sending} className="flex-1 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold disabled:opacity-50">
-                          {sending ? "جاري الإنشاء..." : "✅ أنشئ الفاتورة"}</button>
-                        <button onClick={() => { setPendingInvoice(null); setInvoiceMessage(null); }} className="px-4 py-2 rounded-xl bg-secondary text-xs">إلغاء</button>
-                      </div>
+                      <>
+                        <p className="text-xs font-bold text-foreground">تأكيد العملية:</p>
+                        <div className="grid grid-cols-2 gap-2">
+                          {[
+                            { key: "invoiceType", label: "النوع", options: ["مبيعات", "مشتريات"] },
+                          ].map(({ key, label, options }) => (
+                            <div key={key} className="space-y-1">
+                              <label className="text-[10px] text-muted-foreground">{label}</label>
+                              <select
+                                value={pendingInvoice[key] || ""}
+                                onChange={(e) => setPendingInvoice((prev: any) => ({ ...prev, [key]: e.target.value }))}
+                                className="w-full h-8 rounded-lg bg-secondary/60 border-0 text-xs text-foreground px-2 focus:ring-2 focus:ring-primary/20"
+                              >
+                                {options.map(o => <option key={o} value={o}>{o}</option>)}
+                              </select>
+                            </div>
+                          ))}
+                          {[
+                            { key: "mentionedContactName", label: "الجهة" },
+                            { key: "productName", label: "المنتج" },
+                            { key: "quantity", label: "الكمية", type: "number" },
+                            { key: "unitPrice", label: "السعر", type: "number" },
+                            { key: "amount", label: "الإجمالي", type: "number" },
+                          ].map(({ key, label, type }) => (
+                            <div key={key} className="space-y-1">
+                              <label className="text-[10px] text-muted-foreground">{label}</label>
+                              <input
+                                type={type || "text"}
+                                value={pendingInvoice[key] || ""}
+                                onChange={(e) => setPendingInvoice((prev: any) => ({ ...prev, [key]: type === "number" ? Number(e.target.value) || 0 : e.target.value }))}
+                                className="w-full h-8 rounded-lg bg-secondary/60 border-0 text-xs text-foreground px-2 focus:ring-2 focus:ring-primary/20 text-right"
+                              />
+                            </div>
+                          ))}
+                          <div className="space-y-1">
+                            <label className="text-[10px] text-muted-foreground">طريقة الدفع</label>
+                            <select
+                              value={pendingInvoice.paymentMethod || "نقد"}
+                              onChange={(e) => setPendingInvoice((prev: any) => ({ ...prev, paymentMethod: e.target.value }))}
+                              className="w-full h-8 rounded-lg bg-secondary/60 border-0 text-xs text-foreground px-2 focus:ring-2 focus:ring-primary/20"
+                            >
+                              <option value="نقد">نقد</option>
+                              <option value="آجل">آجل</option>
+                              <option value="تحويل">تحويل بنكي</option>
+                            </select>
+                          </div>
+                        </div>
+                        <div className="flex gap-2 mt-2">
+                          <button onClick={async () => {
+                            if (!pendingInvoice || !user) return;
+                            setSending(true);
+                            try {
+                              const inv = pendingInvoice;
+                              const desc = inv.invoiceType === 'مبيعات'
+                                ? `بعت ${inv.productName || ''} ${inv.quantity || 1} بسعر ${inv.unitPrice || inv.amount} ${inv.paymentMethod === 'آجل' ? 'آجل' : inv.paymentMethod === 'تحويل' ? 'تحويل' : 'نقداً'} ${inv.mentionedContactName ? 'ل' + inv.mentionedContactName : ''}`
+                                : `اشتريت ${inv.productName || ''} ${inv.quantity || 1} بسعر ${inv.unitPrice || inv.amount} ${inv.paymentMethod === 'آجل' ? 'آجل' : inv.paymentMethod === 'تحويل' ? 'تحويل' : 'نقداً'} ${inv.mentionedContactName ? 'من ' + inv.mentionedContactName : ''}`;
+                              const body: any = { text: desc, userId: user.id, email: user.email };
+                              if (inv.mentionedContactName) body.mentionedContactName = inv.mentionedContactName;
+                              const { error } = await supabase.functions.invoke("send-transaction", { body });
+                              if (error) throw error;
+                              txToast.trigger();
+                              setPendingInvoice(null);
+                              setInvoiceMessage(null);
+                            } catch (err: any) {
+                              toast({ title: "خطأ", description: err.message, variant: "destructive" });
+                            } finally { setSending(false); }
+                          }} disabled={sending} className="flex-1 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold disabled:opacity-50">
+                            {sending ? "جاري الإنشاء..." : "✅ أنشئ الفاتورة"}</button>
+                          <button onClick={() => { setPendingInvoice(null); setInvoiceMessage(null); }} className="px-4 py-2 rounded-xl bg-secondary text-xs">إلغاء</button>
+                        </div>
+                      </>
                     ) : (
-                      <button onClick={() => setInvoiceMessage(null)} className="text-[10px] text-primary font-medium hover:underline">فهمت ✓</button>
+                      <>
+                        <p className="text-xs text-foreground whitespace-pre-line">{invoiceMessage}</p>
+                        <button onClick={() => setInvoiceMessage(null)} className="text-[10px] text-primary font-medium hover:underline">فهمت ✓</button>
+                      </>
                     )}
                   </div>
                 )}
