@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Search, Bell, Sun, Moon, Menu, ChevronDown, LogOut, User, Settings } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/hooks/useTheme";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import ModuleIcon from "@/components/ModuleIcon";
 import {
   DropdownMenu,
@@ -32,8 +33,21 @@ const TopBar = ({ onMenuClick, sidebarCollapsed }: TopBarProps) => {
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [searchValue, setSearchValue] = useState("");
+  const [profileName, setProfileName] = useState<string | null>(null);
 
-  const displayName = user?.user_metadata?.company_name || user?.user_metadata?.full_name || user?.email?.split("@")[0] || "المستخدم";
+  useEffect(() => {
+    if (!user?.id) return;
+    supabase
+      .from("profiles")
+      .select("display_name, company_name")
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        setProfileName(data?.display_name || data?.company_name || null);
+      });
+  }, [user?.id]);
+
+  const displayName = profileName || user?.user_metadata?.full_name || user?.email?.split("@")[0] || "المستخدم";
   const initials = displayName.split(" ").slice(0, 2).map((w: string) => w[0]).join("");
 
   return (
