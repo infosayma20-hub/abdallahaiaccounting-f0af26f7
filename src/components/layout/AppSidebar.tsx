@@ -84,7 +84,16 @@ const navSections: NavSection[] = [
   {
     title: "الذكاء والتقارير",
     items: [
-      { label: "التقارير", module: "reports", path: "/reports" },
+      {
+        label: "التقارير",
+        module: "reports",
+        children: [
+          { label: "مركز التقارير", path: "/reports" },
+          { label: "قائمة الدخل", path: "/profit-loss" },
+          { label: "المركز المالي", path: "/balance-sheet" },
+          { label: "ميزان المراجعة", path: "/trial-balance" },
+        ],
+      },
       { label: "الذكاء المالي", module: "ai", path: "/smart-report" },
       {
         label: "الموارد البشرية",
