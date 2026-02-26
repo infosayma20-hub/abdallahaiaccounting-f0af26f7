@@ -77,8 +77,8 @@ const KPIWidget = ({ title, value, prefix = "₪", icon: Icon, trend, trendLabel
       </div>
 
       {/* Value */}
-      <p className="text-3xl font-bold tabular-nums text-foreground leading-none mb-3">
-        <span className="text-lg font-medium text-muted-foreground ml-1">{prefix}</span>
+      <p className="text-[32px] font-bold tabular-nums text-foreground leading-none mb-3" style={{ letterSpacing: '0.02em', fontFeatureSettings: '"tnum" 1' }}>
+        <span className="text-base font-medium text-muted-foreground ml-1">{prefix}</span>
         {animValue.toLocaleString()}
       </p>
 
