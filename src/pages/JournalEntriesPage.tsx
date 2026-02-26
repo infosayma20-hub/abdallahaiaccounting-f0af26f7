@@ -1,8 +1,9 @@
 import { useState, useEffect, useMemo } from "react";
 import {
-  ArrowRight, Loader2, RefreshCw, Pencil, Search, Download, Calendar,
-  FileText, ChevronLeft, ChevronRight, Filter,
+  ArrowRight, Loader2, RefreshCw, Pencil, Search, Calendar,
+  FileText, ChevronLeft, ChevronRight, Filter, FileSpreadsheet,
 } from "lucide-react";
+import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -186,26 +187,23 @@ const JournalEntriesPage = () => {
     }
   };
 
-  // Export CSV
+  // Export Excel
   const handleExport = () => {
-    const header = ["التاريخ", "الوصف", "النوع", "الحساب المدين", "الحساب الدائن", "مدين", "دائن", "العملة"];
-    const rows = filtered.map(tx => [
-      tx.fields.Date || "",
-      tx.fields.Description || "",
-      tx.fields["Transaction Type"] || "",
-      tx.fields["Debit Account Name"] || "",
-      tx.fields["Credit Account Name"] || "",
-      tx.fields.Amount || 0,
-      tx.fields.Amount || 0,
-      tx.fields.Currency || "شيكل",
-    ]);
-    const csv = "\uFEFF" + [header, ...rows].map(r => r.join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `قيود_يومية_${dateFrom || "all"}_${dateTo || "all"}.csv`;
-    a.click();
+    const data = filtered.map(tx => ({
+      "التاريخ": tx.fields.Date || "",
+      "الوصف": tx.fields.Description || "",
+      "النوع": tx.fields["Transaction Type"] || "",
+      "الحساب المدين": tx.fields["Debit Account Name"] || "",
+      "الحساب الدائن": tx.fields["Credit Account Name"] || "",
+      "مدين": tx.fields.Amount || 0,
+      "دائن": tx.fields.Amount || 0,
+      "العملة": tx.fields.Currency || "شيكل",
+    }));
+    const ws = XLSX.utils.json_to_sheet(data);
+    ws["!cols"] = [{ wch: 12 }, { wch: 30 }, { wch: 14 }, { wch: 22 }, { wch: 22 }, { wch: 14 }, { wch: 14 }, { wch: 10 }];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "القيود المحاسبية");
+    XLSX.writeFile(wb, `قيود_يومية_${dateFrom || "all"}_${dateTo || "all"}.xlsx`);
   };
 
   const companyName = profileData?.company_name || profileData?.display_name || "الشركة";
@@ -252,8 +250,8 @@ const JournalEntriesPage = () => {
             تحديث
           </Button>
           <Button variant="outline" size="sm" onClick={handleExport} disabled={filtered.length === 0} className="gap-1.5">
-            <Download className="h-3.5 w-3.5" />
-            تصدير CSV
+            <FileSpreadsheet className="h-3.5 w-3.5" />
+            تصدير Excel
           </Button>
         </div>
       </div>
