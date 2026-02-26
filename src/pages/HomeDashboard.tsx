@@ -359,7 +359,26 @@ const HomeDashboard = () => {
                     <p className="text-xs text-foreground whitespace-pre-line">{invoiceMessage}</p>
                     {pendingInvoice ? (
                       <div className="flex gap-2">
-                        <button onClick={() => { /* confirm logic */ }} className="flex-1 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold">✅ أنشئ الفاتورة</button>
+                        <button onClick={async () => {
+                          if (!pendingInvoice || !user) return;
+                          setSending(true);
+                          try {
+                            const inv = pendingInvoice;
+                            const desc = inv.invoiceType === 'مبيعات'
+                              ? `بعت ${inv.productName || ''} ${inv.quantity || 1} بسعر ${inv.unitPrice || inv.amount} ${inv.paymentMethod === 'آجل' ? 'آجل' : 'نقداً'} ${inv.mentionedContactName ? 'ل' + inv.mentionedContactName : ''}`
+                              : `اشتريت ${inv.productName || ''} ${inv.quantity || 1} بسعر ${inv.unitPrice || inv.amount} ${inv.paymentMethod === 'آجل' ? 'آجل' : 'نقداً'} ${inv.mentionedContactName ? 'من ' + inv.mentionedContactName : ''}`;
+                            const body: any = { text: desc, userId: user.id, email: user.email };
+                            if (inv.mentionedContactName) body.mentionedContactName = inv.mentionedContactName;
+                            const { error } = await supabase.functions.invoke("send-transaction", { body });
+                            if (error) throw error;
+                            txToast.trigger();
+                            setPendingInvoice(null);
+                            setInvoiceMessage(null);
+                          } catch (err: any) {
+                            toast({ title: "خطأ", description: err.message, variant: "destructive" });
+                          } finally { setSending(false); }
+                        }} disabled={sending} className="flex-1 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold disabled:opacity-50">
+                          {sending ? "جاري الإنشاء..." : "✅ أنشئ الفاتورة"}</button>
                         <button onClick={() => { setPendingInvoice(null); setInvoiceMessage(null); }} className="px-4 py-2 rounded-xl bg-secondary text-xs">إلغاء</button>
                       </div>
                     ) : (
