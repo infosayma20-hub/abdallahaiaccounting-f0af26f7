@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/hooks/useTheme";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { NotificationsPanel, useNotifications } from "@/components/NotificationsPanel";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -353,6 +354,8 @@ const TopBar = ({ onMenuClick, sidebarCollapsed, onOpenHelpGuide }: TopBarProps)
   const navigate = useNavigate();
   const [profileName, setProfileName] = useState<string | null>(null);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const { unreadCount } = useNotifications();
 
   useEffect(() => {
     if (!user?.id) return;
@@ -395,7 +398,13 @@ const TopBar = ({ onMenuClick, sidebarCollapsed, onOpenHelpGuide }: TopBarProps)
         {/* Left icons */}
         <div className="flex items-center gap-1">
           <IconButton icon={theme === "dark" ? Moon : Sun} onClick={toggleTheme} title={theme === "dark" ? "وضع فاتح" : "وضع داكن"} />
-          <IconButton icon={Bell} badge title="الإشعارات" />
+          <div className="relative">
+            <IconButton icon={Bell} badge={unreadCount > 0} onClick={() => setNotificationsOpen(!notificationsOpen)} title="الإشعارات" />
+            {unreadCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 rounded-full bg-destructive text-destructive-foreground text-[9px] font-bold flex items-center justify-center px-1 pointer-events-none">{unreadCount > 9 ? "9+" : unreadCount}</span>
+            )}
+            <NotificationsPanel open={notificationsOpen} onClose={() => setNotificationsOpen(false)} />
+          </div>
           <IconButton icon={Settings} onClick={() => navigate("/settings")} title="الإعدادات" className="hidden sm:flex" />
           <IconButton icon={HelpCircle} onClick={onOpenHelpGuide} title="دليل الاستخدام" className="hidden sm:flex" />
           <div className="w-px h-6 bg-border/60 mx-1.5 hidden sm:block" />
