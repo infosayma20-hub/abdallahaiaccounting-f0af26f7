@@ -435,7 +435,18 @@ const HomeDashboard = () => {
                     className="flex-1 min-w-0 h-9 bg-transparent rounded-xl px-2 text-sm text-foreground placeholder:text-muted-foreground/50 border-0 outline-none"
                     userId={user?.id}
                   />
-                  <button onClick={() => navigate("/voice")} className="flex-shrink-0 w-9 h-9 rounded-xl bg-primary/8 flex items-center justify-center hover:bg-primary/15 transition-colors">
+                  <button
+                    onClick={() => {
+                      const current = inputValue;
+                      const needsSpace = current.length > 0 && !current.endsWith(' ');
+                      setInputValue(current + (needsSpace ? ' @' : '@'));
+                    }}
+                    className="flex-shrink-0 w-9 h-9 rounded-xl bg-primary/8 flex items-center justify-center hover:bg-primary/15 transition-colors"
+                    title="إشارة لزبون أو منتج @"
+                  >
+                    <span className="text-primary font-bold text-base">@</span>
+                  </button>
+                  <button onClick={() => navigate("/voice")} className="flex-shrink-0 w-9 h-9 rounded-xl bg-primary/8 flex items-center justify-center hover:bg-primary/15 transition-colors" title="تسجيل صوتي">
                     <Mic className="h-4 w-4 text-primary" />
                   </button>
                 </div>
