@@ -4,10 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, FileSpreadsheet, FileText, TrendingUp, TrendingDown, Wallet, Calendar, Search, BarChart3, Clock, ArrowUpDown, Hash, Eye, Printer, X } from "lucide-react";
+import { Loader2, FileSpreadsheet, FileText, TrendingUp, TrendingDown, Wallet, Calendar, Search, BarChart3, Clock, ArrowUpDown, Hash, Eye, Printer, X, ExternalLink } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 import * as XLSX from "xlsx";
 
 // Format balance with label instead of parentheses
@@ -104,6 +105,7 @@ function classifyAmount(tx: Transaction, contactName: string, contactType?: stri
 }
 
 const ContactStatementDialog = ({ open, onClose, contactId, contactName, contactType }: ContactStatementDialogProps) => {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -556,6 +558,7 @@ const ContactStatementDialog = ({ open, onClose, contactId, contactName, contact
                       <th className="px-3 py-2.5 text-center font-semibold text-white">مدين</th>
                       <th className="px-3 py-2.5 text-center font-semibold text-white">دائن</th>
                       <th className="px-3 py-2.5 text-center font-semibold text-white">الرصيد</th>
+                      <th className="px-2 py-2.5 text-center font-semibold text-white w-8"></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -575,6 +578,18 @@ const ContactStatementDialog = ({ open, onClose, contactId, contactName, contact
                           {fmtBalanceShort(r.runningBalance)}
                           <span className="text-[9px] opacity-60 mr-1">{balanceDirection(r.runningBalance)}</span>
                         </td>
+                        <td className="px-2 py-2.5 text-center">
+                          <button
+                            onClick={() => {
+                              onClose();
+                              navigate(`/transactions?search=${encodeURIComponent(r.tx.fields.Description || r.tx.fields["Transaction Type"] || "")}&highlight=${r.tx.id}`);
+                            }}
+                            className="w-6 h-6 rounded-md flex items-center justify-center hover:bg-primary/10 transition-colors group"
+                            title="فتح العملية المحاسبية"
+                          >
+                            <ExternalLink className="h-3.5 w-3.5 text-muted-foreground group-hover:text-primary transition-colors" />
+                          </button>
+                        </td>
                       </tr>
                     ))}
                     {/* Totals Row */}
@@ -585,6 +600,7 @@ const ContactStatementDialog = ({ open, onClose, contactId, contactName, contact
                       <td className={`px-3 py-3 text-center font-extrabold text-sm ${balanceColor}`}>
                         {fmtBalanceShort(finalBalance)} <span className="text-[9px] opacity-70">{balanceDirection(finalBalance)}</span>
                       </td>
+                      <td></td>
                     </tr>
                   </tbody>
                 </table>
