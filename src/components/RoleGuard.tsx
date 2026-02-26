@@ -1,0 +1,41 @@
+import { useState, useEffect } from "react";
+import { Navigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import LoadingScreen from "@/components/LoadingScreen";
+
+type AllowedRole = "admin" | "hr_manager" | "employee";
+
+interface Props {
+  children: React.ReactNode;
+  allowedRoles: AllowedRole[];
+  fallback?: string;
+}
+
+export default function RoleGuard({ children, allowedRoles, fallback = "/" }: Props) {
+  const { user, loading: authLoading } = useAuth();
+  const [checking, setChecking] = useState(true);
+  const [hasAccess, setHasAccess] = useState(false);
+
+  useEffect(() => {
+    if (authLoading || !user) return;
+
+    const checkRoles = async () => {
+      const { data } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id);
+
+      const userRoles = (data || []).map((r) => r.role);
+      const allowed = allowedRoles.some((role) => userRoles.includes(role));
+      setHasAccess(allowed);
+      setChecking(false);
+    };
+
+    checkRoles();
+  }, [user, authLoading, allowedRoles]);
+
+  if (authLoading || checking) return <LoadingScreen />;
+  if (!hasAccess) return <Navigate to={fallback} replace />;
+  return <>{children}</>;
+}
