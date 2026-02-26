@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   FileText, Receipt, Users, Package, Wallet, Landmark,
   TrendingUp, Loader2,
@@ -20,6 +20,7 @@ import JournalEntryPopup from "@/components/JournalEntryPopup";
 import SavedCommands from "@/components/SavedCommands";
 import SetupWizard from "@/components/SetupWizard";
 import CompleteProfileDialog from "@/components/CompleteProfileDialog";
+import HelpGuideModal from "@/components/HelpGuideModal";
 
 interface TransactionRecord {
   id: string;
@@ -57,6 +58,7 @@ const HomeDashboard = () => {
   const [loadingTx, setLoadingTx] = useState(true);
   const [profileData, setProfileData] = useState<any>(null);
   const [showSetupWizard, setShowSetupWizard] = useState(false);
+  const [showHelpGuide, setShowHelpGuide] = useState(false);
   const [showProfileDialog, setShowProfileDialog] = useState(false);
   const [privacyMode, setPrivacyMode] = useState(() => {
     try { return localStorage.getItem("dashboard_privacy") === "true"; } catch { return false; }
@@ -96,6 +98,14 @@ const HomeDashboard = () => {
     loadProfile();
   }, [user]);
 
+  // Show help guide for first-time users who already completed setup but haven't seen the guide
+  useEffect(() => {
+    if (!user || showSetupWizard || !profileData?.setup_completed) return;
+    if (!localStorage.getItem("help_guide_shown")) {
+      setTimeout(() => setShowHelpGuide(true), 1000);
+      localStorage.setItem("help_guide_shown", "true");
+    }
+  }, [user, showSetupWizard, profileData?.setup_completed]);
   useEffect(() => {
     if (!user) return;
     const fetchTx = async () => {
@@ -578,7 +588,14 @@ const HomeDashboard = () => {
                     </div>
                     خطوات البدء
                   </h3>
-                  <SetupWizard userId={user.id} onComplete={() => setShowSetupWizard(false)} />
+                  <SetupWizard userId={user.id} onComplete={() => {
+                    setShowSetupWizard(false);
+                    // Show help guide as part of first-time experience
+                    if (!localStorage.getItem("help_guide_shown")) {
+                      setTimeout(() => setShowHelpGuide(true), 500);
+                      localStorage.setItem("help_guide_shown", "true");
+                    }
+                  }} />
                 </div>
               )}
 
@@ -655,6 +672,11 @@ const HomeDashboard = () => {
         />
       )}
       <TransactionToast {...txToast} />
+      <HelpGuideModal
+        open={showHelpGuide}
+        onClose={() => setShowHelpGuide(false)}
+        onFillInput={(text) => setInputValue(text)}
+      />
     </div>
   );
 };
