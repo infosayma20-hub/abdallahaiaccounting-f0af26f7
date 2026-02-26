@@ -39,7 +39,7 @@ interface TransactionRecord {
 const createActions = [
   { label: "إنشاء فاتورة", icon: FileText, path: "/invoices" },
   { label: "سند صرف", icon: Wallet, path: "/transactions" },
-  { label: "إضافة إيداع", icon: Landmark, path: "/transactions" },
+  { label: "سند قبض", icon: Landmark, path: "/transactions" },
   { label: "إنشاء شيك", icon: Receipt, path: "/cheques" },
   { label: "إضافة عميل", icon: Users, path: "/contacts" },
   { label: "إضافة منتج", icon: Package, path: "/inventory" },
