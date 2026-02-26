@@ -101,6 +101,7 @@ const InvoicesPage = () => {
     chequeNumber: "",
     chequeBank: "",
     chequeDueDate: "",
+    chequeNotes: "",
     transferRef: "",
     transferBank: "",
   });
@@ -295,7 +296,7 @@ const InvoicesPage = () => {
       bank_name: form.chequeBank || null,
       currency: form.currency,
       status: "مسجل",
-      notes: `مرتبط بفاتورة ${invoice.invoiceNumber}`,
+      notes: form.chequeNotes ? `${form.chequeNotes} • فاتورة ${invoice.invoiceNumber}` : `مرتبط بفاتورة ${invoice.invoiceNumber}`,
     } as any);
   };
 
@@ -334,6 +335,20 @@ const InvoicesPage = () => {
     if (form.paymentMethod === "credit" && !form.dueDate) {
       toast({ title: "يرجى تحديد تاريخ الاستحقاق للدفع الآجل", variant: "destructive" });
       return false;
+    }
+    if (form.paymentMethod === "cheque") {
+      if (!form.chequeNumber.trim()) {
+        toast({ title: "يرجى إدخال رقم الشيك", variant: "destructive" });
+        return false;
+      }
+      if (!form.chequeBank.trim()) {
+        toast({ title: "يرجى إدخال اسم البنك", variant: "destructive" });
+        return false;
+      }
+      if (!form.chequeDueDate) {
+        toast({ title: "يرجى تحديد تاريخ استحقاق الشيك", variant: "destructive" });
+        return false;
+      }
     }
     return true;
   };
@@ -386,7 +401,7 @@ const InvoicesPage = () => {
       type: "sales", contactName: "", date: new Date().toISOString().split("T")[0],
       dueDate: "", paymentMethod: "cash", currency: "شيكل", notes: "",
       items: [createEmptyItem()],
-      chequeNumber: "", chequeBank: "", chequeDueDate: "",
+      chequeNumber: "", chequeBank: "", chequeDueDate: "", chequeNotes: "",
       transferRef: "", transferBank: "",
     });
     setContactSearch("");
@@ -711,26 +726,52 @@ const InvoicesPage = () => {
 
         {/* ─── SECTION 4: Payment Details (Dynamic) ─── */}
         {form.paymentMethod === "cheque" && (
-          <Card className="border-0 shadow-sm rounded-2xl">
+          <Card className="border-0 shadow-sm rounded-2xl border border-primary/10">
             <CardHeader className="pb-2 pt-4 px-4">
               <CardTitle className="text-sm font-semibold flex items-center gap-2">
                 <CreditCard className="h-4 w-4 text-primary" /> بيانات الشيك
               </CardTitle>
+              <p className="text-[10px] text-muted-foreground">سيتم إنشاء سجل شيك {form.type === "sales" ? "وارد" : "صادر"} تلقائياً وربطه بالفاتورة</p>
             </CardHeader>
             <CardContent className="px-4 pb-4 space-y-3">
+              {/* Auto-filled from invoice */}
+              <div className="rounded-xl bg-primary/5 border border-primary/10 p-3 space-y-1.5">
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] text-muted-foreground">نوع الشيك</span>
+                  <Badge variant="outline" className="text-[10px]">{form.type === "sales" ? "شيك وارد" : "شيك صادر"}</Badge>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] text-muted-foreground">الجهة</span>
+                  <span className="text-xs font-semibold text-foreground">{form.contactName || "—"}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] text-muted-foreground">المبلغ</span>
+                  <span className="text-xs font-bold text-primary tabular-nums">₪{summary.total.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] text-muted-foreground">العملة</span>
+                  <span className="text-xs text-foreground">{form.currency}</span>
+                </div>
+              </div>
+
+              {/* Cheque-specific fields */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[11px] text-muted-foreground mb-1 block">رقم الشيك</label>
-                  <Input value={form.chequeNumber} onChange={e => setForm(p => ({ ...p, chequeNumber: e.target.value }))} className="rounded-xl text-sm" placeholder="رقم الشيك" />
+                  <label className="text-[11px] text-muted-foreground mb-1 block font-medium">رقم الشيك *</label>
+                  <Input value={form.chequeNumber} onChange={e => setForm(p => ({ ...p, chequeNumber: e.target.value }))} className="rounded-xl text-sm" placeholder="أدخل رقم الشيك" />
                 </div>
                 <div>
-                  <label className="text-[11px] text-muted-foreground mb-1 block">البنك</label>
+                  <label className="text-[11px] text-muted-foreground mb-1 block font-medium">البنك *</label>
                   <Input value={form.chequeBank} onChange={e => setForm(p => ({ ...p, chequeBank: e.target.value }))} className="rounded-xl text-sm" placeholder="اسم البنك" />
                 </div>
               </div>
               <div>
-                <label className="text-[11px] text-muted-foreground mb-1 block">تاريخ استحقاق الشيك</label>
+                <label className="text-[11px] text-muted-foreground mb-1 block font-medium">تاريخ استحقاق الشيك *</label>
                 <Input type="date" value={form.chequeDueDate} onChange={e => setForm(p => ({ ...p, chequeDueDate: e.target.value }))} className="rounded-xl text-sm" dir="ltr" />
+              </div>
+              <div>
+                <label className="text-[11px] text-muted-foreground mb-1 block font-medium">ملاحظات الشيك</label>
+                <Input value={form.chequeNotes} onChange={e => setForm(p => ({ ...p, chequeNotes: e.target.value }))} className="rounded-xl text-sm" placeholder="ملاحظات إضافية (اختياري)" />
               </div>
             </CardContent>
           </Card>
