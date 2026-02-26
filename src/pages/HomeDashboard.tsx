@@ -1,17 +1,17 @@
 import { useState, useEffect } from "react";
 import {
-  Plus, FileText, Receipt, Users, Package, Wallet, Landmark,
-  TrendingUp, TrendingDown, Droplets, ArrowUpRight, Loader2,
+  FileText, Receipt, Users, Package, Wallet, Landmark,
+  TrendingUp, Loader2,
   Sparkles, Send, Mic, AlertTriangle, Clock, ChevronLeft,
-  BookOpen, Database, AtSign, ClipboardList,
+  BookOpen, Database, ClipboardList,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { useCountUp } from "@/hooks/useCountUp";
-import MiniSparkline from "@/components/MiniSparkline";
+
 import SmartAlertCard from "@/components/SmartAlertCard";
+import CustomizableKPICards from "@/components/CustomizableKPICards";
 import SmartDailySummary from "@/components/SmartDailySummary";
 import MentionInput, { MentionItem } from "@/components/MentionInput";
 import TransactionToast, { useTransactionToast } from "@/components/TransactionToast";
@@ -34,68 +34,6 @@ interface TransactionRecord {
     Client?: string;
   };
 }
-
-// ─── KPI Widget ───
-interface KPIWidgetProps {
-  title: string;
-  value: number;
-  prefix?: string;
-  icon: React.ElementType;
-  trend?: "up" | "down" | "neutral";
-  trendLabel?: string;
-  status: "green" | "yellow" | "red";
-  linkTo?: string;
-  loading: boolean;
-}
-
-const statusMap = {
-  green: { text: "text-success", bg: "bg-success/8", tag: "bg-success/10 text-success" },
-  yellow: { text: "text-warning", bg: "bg-warning/8", tag: "bg-warning/10 text-warning" },
-  red: { text: "text-destructive", bg: "bg-destructive/8", tag: "bg-destructive/10 text-destructive" },
-};
-
-const KPIWidget = ({ title, value, prefix = "₪", icon: Icon, trend, trendLabel, status, linkTo, loading }: KPIWidgetProps) => {
-  const navigate = useNavigate();
-  const animValue = useCountUp(value, 1000, !loading);
-  const colors = statusMap[status];
-
-  return (
-    <div
-      className="bg-card rounded-2xl p-5 hover:shadow-medium transition-all cursor-pointer group shadow-card"
-      onClick={() => linkTo && navigate(linkTo)}
-    >
-      {/* Title row */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2.5">
-          <div className={`w-9 h-9 rounded-xl ${colors.bg} flex items-center justify-center`}>
-            <Icon className="h-[18px] w-[18px]" strokeWidth={1.8} />
-          </div>
-          <span className="text-xs font-medium text-muted-foreground">{title}</span>
-        </div>
-        {linkTo && (
-          <ChevronLeft className="h-4 w-4 text-muted-foreground/40 opacity-0 group-hover:opacity-100 transition-opacity" />
-        )}
-      </div>
-
-      {/* Value */}
-      <p className="text-[32px] font-bold tabular-nums text-foreground leading-none mb-3" style={{ letterSpacing: '0.02em', fontFeatureSettings: '"tnum" 1' }}>
-        <span className="text-base font-medium text-muted-foreground ml-1">{prefix}</span>
-        {animValue.toLocaleString()}
-      </p>
-
-      {/* Trend tag */}
-      {trendLabel && (
-        <div className="flex items-center gap-1.5">
-          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-medium ${colors.tag}`}>
-            {trend === "up" && <TrendingUp className="h-3 w-3" />}
-            {trend === "down" && <TrendingDown className="h-3 w-3" />}
-            {trendLabel}
-          </span>
-        </div>
-      )}
-    </div>
-  );
-};
 
 // ─── Create Actions ───
 const createActions = [
@@ -356,48 +294,17 @@ const HomeDashboard = () => {
       {!loadingTx && (
         <>
           {/* ═══ KPI WIDGETS ═══ */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
-            <KPIWidget
-              title="صافي الربح"
-              value={netProfit}
-              icon={TrendingUp}
-              status={noActivity ? "yellow" : netProfit >= 0 ? "green" : "red"}
-              trendLabel={noActivity ? "لا توجد عمليات بعد" : netProfit >= 0 ? "أداء إيجابي" : "خسارة"}
-              trend={noActivity ? "neutral" : netProfit >= 0 ? "up" : "down"}
-              linkTo="/profit-loss"
-              loading={loadingTx}
-            />
-            <KPIWidget
-              title="السيولة النقدية"
-              value={cashBalance}
-              icon={Droplets}
-              status={cashBalance > 0 ? "green" : cashBalance === 0 ? "yellow" : "red"}
-              trendLabel={cashBalance > 0 ? "تدفق مستقر" : "لا توجد حركات"}
-              trend={cashBalance > 0 ? "up" : "neutral"}
-              linkTo="/transactions"
-              loading={loadingTx}
-            />
-            <KPIWidget
-              title="المدينون (لك)"
-              value={receivables}
-              icon={Users}
-              status={receivables === 0 ? "green" : receivables > cashBalance ? "red" : "yellow"}
-              trendLabel={receivables > 0 ? "بحاجة متابعة" : "لا ذمم"}
-              trend={receivables > 0 ? "down" : "neutral"}
-              linkTo="/contacts?type=customer"
-              loading={loadingTx}
-            />
-            <KPIWidget
-              title="الدائنون (عليك)"
-              value={payables}
-              icon={Landmark}
-              status={payables === 0 ? "green" : payables > cashBalance ? "red" : "yellow"}
-              trendLabel={payables > 0 ? "مستحقات قائمة" : "لا التزامات"}
-              trend={payables > 0 ? "down" : "neutral"}
-              linkTo="/contacts?type=supplier"
-              loading={loadingTx}
-            />
-          </div>
+          <CustomizableKPICards
+            revenue={revenue}
+            expenses={expenses}
+            totalIncome={totalIncome}
+            totalOutcome={totalOutcome}
+            receivables={receivables}
+            payables={payables}
+            cashBalance={cashBalance}
+            netProfit={netProfit}
+            loading={loadingTx}
+          />
 
           {/* ═══ SMART DAILY SUMMARY (WOW Card) ═══ */}
           <SmartDailySummary
