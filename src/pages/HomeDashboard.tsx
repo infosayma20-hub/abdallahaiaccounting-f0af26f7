@@ -122,8 +122,14 @@ const HomeDashboard = () => {
   const capitalInjections = transactions.filter((tx) => tx.fields["Debit Account Rollup"] === "Asset" && tx.fields["Credit Account Rollup"] === "Owner's Equity").reduce((sum, tx) => sum + (tx.fields.Amount || 0), 0);
   const cashBalance = totalIncome - totalOutcome + capitalInjections;
   const netProfit = revenue - expenses;
-  const receivables = transactions.filter((tx) => tx.fields["Debit Account Rollup"] === "Asset" && tx.fields["Credit Account Rollup"] === "Revenue").reduce((sum, tx) => sum + (tx.fields.Amount || 0), 0);
-  const payables = transactions.filter((tx) => tx.fields["Credit Account Rollup"] === "Liability").reduce((sum, tx) => sum + (tx.fields.Amount || 0), 0);
+  // Receivables: debit to receivable accounts minus credits (collections)
+  const receivablesDebit = transactions.filter((tx) => tx.fields["Debit Account Rollup"] === "Asset" && tx.fields["Credit Account Rollup"] === "Revenue").reduce((sum, tx) => sum + (tx.fields.Amount || 0), 0);
+  const receivablesCredit = transactions.filter((tx) => tx.fields["Credit Account Rollup"] === "Asset" && tx.fields["Debit Account Rollup"] === "Revenue").reduce((sum, tx) => sum + (tx.fields.Amount || 0), 0);
+  const receivables = receivablesDebit - receivablesCredit;
+  // Payables: credits to liability (purchases on credit) minus debits to liability (payments to suppliers)
+  const payablesCredit = transactions.filter((tx) => tx.fields["Credit Account Rollup"] === "Liability").reduce((sum, tx) => sum + (tx.fields.Amount || 0), 0);
+  const payablesDebit = transactions.filter((tx) => tx.fields["Debit Account Rollup"] === "Liability").reduce((sum, tx) => sum + (tx.fields.Amount || 0), 0);
+  const payables = payablesCredit - payablesDebit;
 
   // Alerts
   useEffect(() => {
