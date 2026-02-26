@@ -68,6 +68,7 @@ const App = () => (
               <Route path="/reset-password" element={<ResetPasswordPage />} />
               <Route path="/terms" element={<TermsPage />} />
               <Route path="/privacy" element={<PrivacyPage />} />
+              <Route path="/branch-display/:branchId" element={<BranchDisplayPage />} />
               <Route path="/*" element={
                 <ProtectedRoute>
                   <WebLayout>
@@ -101,7 +102,6 @@ const App = () => (
                       <Route path="/orders" element={<OrdersPage />} />
                       <Route path="/my-attendance" element={<EmployeeAttendancePage />} />
                       <Route path="/hr-attendance" element={<HRAttendancePage />} />
-                      <Route path="/branch-display/:branchId" element={<BranchDisplayPage />} />
                       <Route path="*" element={<NotFound />} />
                     </Routes>
                   </WebLayout>
