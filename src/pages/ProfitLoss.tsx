@@ -189,7 +189,7 @@ const ProfitLoss = () => {
         reportName="الأرباح والخسائر"
         companyName={companyName}
         period={periodLabel}
-        onBack={() => navigate("/menu")}
+        onBack={() => navigate("/")}
         onExportPDF={!loading ? handleExportPDF : undefined}
         onExportExcel={!loading ? handleExportExcel : undefined}
         icon={<BarChart3 className="h-5 w-5 text-primary" />}
