@@ -108,6 +108,10 @@ const navSections: NavSection[] = [
         module: "hr",
         children: [
           { label: "الموظفون", path: "/employees" },
+          { label: "بصمتي", path: "/my-attendance" },
+          { label: "لوحة الحضور (HR)", path: "/hr-attendance" },
+          { label: "الرواتب", path: "/payroll" },
+          { label: "الإجازات", path: "/leaves" },
         ],
       },
     ],
