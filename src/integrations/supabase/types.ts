@@ -188,7 +188,9 @@ export type Database = {
           latitude: number
           longitude: number
           name: string
+          qr_rotation_minutes: number
           radius_meters: number
+          secret_key: string
           updated_at: string
           user_id: string
         }
@@ -200,7 +202,9 @@ export type Database = {
           latitude: number
           longitude: number
           name: string
+          qr_rotation_minutes?: number
           radius_meters?: number
+          secret_key?: string
           updated_at?: string
           user_id: string
         }
@@ -212,7 +216,9 @@ export type Database = {
           latitude?: number
           longitude?: number
           name?: string
+          qr_rotation_minutes?: number
           radius_meters?: number
+          secret_key?: string
           updated_at?: string
           user_id?: string
         }

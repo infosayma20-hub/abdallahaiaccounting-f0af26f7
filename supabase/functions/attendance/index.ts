@@ -92,7 +92,7 @@ Deno.serve(async (req) => {
       // 1. Validate branch
       const { data: branch, error: branchErr } = await supabase
         .from("branches")
-        .select("*")
+        .select("*, secret_key, qr_rotation_minutes")
         .eq("id", branch_id)
         .eq("is_active", true)
         .single();
@@ -115,17 +115,23 @@ Deno.serve(async (req) => {
         );
       }
 
-      // 3. Validate QR token
-      const { data: token, error: tokenErr } = await supabase
-        .from("qr_tokens")
-        .select("*")
-        .eq("branch_id", branch_id)
-        .eq("token", qr_token)
-        .gt("expires_at", new Date().toISOString())
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .single();
-      if (tokenErr || !token) {
+      // 3. Validate QR token dynamically using HMAC
+      const branchSecret = branch.secret_key;
+      const rotationMinutes = branch.qr_rotation_minutes || 240;
+      
+      async function computeToken(brId: string, tw: number, sk: string): Promise<string> {
+        const encoder = new TextEncoder();
+        const data = `${brId}:${tw}`;
+        const key = await crypto.subtle.importKey("raw", encoder.encode(sk), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+        const sig = await crypto.subtle.sign("HMAC", key, encoder.encode(data));
+        return Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, "0")).join("");
+      }
+      
+      const currentWindow = Math.floor(Date.now() / (rotationMinutes * 60 * 1000));
+      const currentToken = await computeToken(branch_id, currentWindow, branchSecret);
+      const prevToken = await computeToken(branch_id, currentWindow - 1, branchSecret);
+      
+      if (qr_token !== currentToken && qr_token !== prevToken) {
         return new Response(JSON.stringify({ error: "رمز QR غير صالح أو منتهي الصلاحية" }), {
           status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
