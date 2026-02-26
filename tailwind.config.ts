@@ -76,6 +76,7 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        "icon-bg": "hsl(var(--icon-bg))",
       },
       borderRadius: {
         lg: "var(--radius)",

@@ -44,7 +44,7 @@ const IconButton = ({
   >
     <Icon className="h-[18px] w-[18px]" strokeWidth={1.8} />
     {badge && (
-      <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-background" />
+      <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary ring-2 ring-background" />
     )}
   </button>
 );
@@ -85,7 +85,7 @@ const SearchBar = ({
           "w-full h-10 pr-10 pl-4 rounded-full",
           "bg-muted/60 border border-transparent",
           "text-sm text-foreground placeholder:text-muted-foreground/50",
-          "focus:outline-none focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/10 focus:bg-background",
+          "focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/10 focus:bg-background",
           "hover:bg-muted/80",
           "transition-all duration-200"
         )}
@@ -121,7 +121,7 @@ const ProfileDropdown = ({
         <span className="text-[13px] font-medium text-foreground hidden md:block max-w-[140px] truncate">
           {displayName}
         </span>
-        <div className="w-7 h-7 rounded-full bg-emerald-600 flex items-center justify-center flex-shrink-0">
+        <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
           <span className="text-[11px] font-bold text-white leading-none">{initials}</span>
         </div>
       </button>
@@ -153,7 +153,7 @@ const ProfileDropdown = ({
 const AppLogo = () => (
   <div className="flex items-center gap-2.5 flex-shrink-0 cursor-default select-none">
     {/* Green AI circle icon */}
-    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-sm">
+    <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center shadow-sm">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
         <path
           d="M12 2l2.4 7.2L22 12l-7.6 2.8L12 22l-2.4-7.2L2 12l7.6-2.8L12 2z"

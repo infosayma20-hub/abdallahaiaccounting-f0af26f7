@@ -7,59 +7,60 @@
 @layer base {
   /* ─── DARK THEME (DEFAULT) ─── */
   :root {
-    --background: 220 20% 9%;
+    --background: 222 47% 6%;
     --foreground: 210 20% 98%;
 
-    --card: 220 18% 12%;
+    --card: 222 44% 9%;
     --card-foreground: 210 20% 98%;
 
-    --popover: 220 18% 13%;
+    --popover: 222 44% 10%;
     --popover-foreground: 210 20% 98%;
 
-    --primary: 158 50% 42%;
+    --primary: 142 71% 45%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 16% 15%;
+    --secondary: 222 40% 13%;
     --secondary-foreground: 210 15% 90%;
 
-    --muted: 220 14% 17%;
-    --muted-foreground: 217 10% 55%;
+    --muted: 222 35% 14%;
+    --muted-foreground: 217 15% 52%;
 
-    --accent: 158 45% 48%;
+    --accent: 142 65% 48%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 60% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 152 50% 44%;
+    --success: 142 71% 45%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 40 80% 52%;
+    --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
 
-    --info: 210 80% 55%;
+    --info: 217 91% 60%;
     --info-foreground: 0 0% 100%;
 
-    --border: 220 14% 16%;
-    --input: 220 14% 17%;
-    --ring: 158 50% 42%;
+    --border: 222 35% 14%;
+    --input: 222 35% 14%;
+    --ring: 142 71% 45%;
 
     --radius: 0.75rem;
 
-    --sidebar-background: 220 22% 8%;
-    --sidebar-foreground: 210 10% 70%;
-    --sidebar-primary: 158 50% 42%;
+    --sidebar-background: 222 47% 5%;
+    --sidebar-foreground: 215 15% 65%;
+    --sidebar-primary: 142 71% 45%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 16% 14%;
+    --sidebar-accent: 222 40% 12%;
     --sidebar-accent-foreground: 210 15% 90%;
-    --sidebar-border: 220 14% 13%;
-    --sidebar-ring: 158 50% 42%;
+    --sidebar-border: 222 40% 10%;
+    --sidebar-ring: 142 71% 45%;
 
-    --glow-green: 152 50% 49%;
+    --glow-green: 142 71% 45%;
     --deep-green: 160 50% 15%;
     --glass-border: 0 0% 100%;
-    --nav-bg: 220 22% 8%;
+    --nav-bg: 222 47% 5%;
     --glass-opacity: 0.04;
+    --icon-bg: 222 47% 11%;
 
     /* Elevation shadows */
     --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
@@ -71,56 +72,57 @@
   /* ─── LIGHT THEME ─── */
   .light {
     --background: 210 20% 97%;
-    --foreground: 220 20% 14%;
+    --foreground: 222 47% 11%;
 
     --card: 0 0% 100%;
-    --card-foreground: 220 20% 14%;
+    --card-foreground: 222 47% 11%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 220 20% 14%;
+    --popover-foreground: 222 47% 11%;
 
-    --primary: 158 48% 40%;
+    --primary: 142 71% 40%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 210 16% 94%;
-    --secondary-foreground: 220 16% 22%;
+    --secondary-foreground: 222 30% 22%;
 
     --muted: 210 14% 93%;
-    --muted-foreground: 218 10% 44%;
+    --muted-foreground: 218 12% 44%;
 
-    --accent: 158 42% 44%;
+    --accent: 142 65% 42%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 55% 52%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 152 48% 42%;
+    --success: 142 65% 40%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 40 76% 50%;
+    --warning: 38 88% 50%;
     --warning-foreground: 0 0% 100%;
 
-    --info: 210 75% 50%;
+    --info: 217 85% 50%;
     --info-foreground: 0 0% 100%;
 
     --border: 216 12% 90%;
     --input: 216 12% 90%;
-    --ring: 158 48% 40%;
+    --ring: 142 71% 40%;
 
     --sidebar-background: 0 0% 99%;
-    --sidebar-foreground: 220 14% 36%;
-    --sidebar-primary: 158 48% 40%;
+    --sidebar-foreground: 222 20% 36%;
+    --sidebar-primary: 142 71% 40%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 210 16% 94%;
-    --sidebar-accent-foreground: 220 20% 14%;
+    --sidebar-accent-foreground: 222 30% 14%;
     --sidebar-border: 216 12% 92%;
-    --sidebar-ring: 158 48% 40%;
+    --sidebar-ring: 142 71% 40%;
 
-    --glow-green: 152 50% 49%;
+    --glow-green: 142 71% 45%;
     --deep-green: 160 40% 92%;
     --glass-border: 0 0% 0%;
     --nav-bg: 0 0% 100%;
     --glass-opacity: 0.05;
+    --icon-bg: 222 47% 11%;
 
     --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
     --shadow-md: 0 2px 8px -2px rgba(0, 0, 0, 0.06);
