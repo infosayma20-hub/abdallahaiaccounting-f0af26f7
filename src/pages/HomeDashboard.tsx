@@ -3,7 +3,7 @@ import {
   FileText, Receipt, Users, Package, Wallet, Landmark,
   TrendingUp, Loader2,
   Sparkles, Send, Mic, AlertTriangle, Clock, ChevronLeft,
-  BookOpen, Database, ClipboardList,
+  BookOpen, Database, ClipboardList, EyeOff, Eye,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -58,6 +58,9 @@ const HomeDashboard = () => {
   const [profileData, setProfileData] = useState<any>(null);
   const [showSetupWizard, setShowSetupWizard] = useState(false);
   const [showProfileDialog, setShowProfileDialog] = useState(false);
+  const [privacyMode, setPrivacyMode] = useState(() => {
+    try { return localStorage.getItem("dashboard_privacy") === "true"; } catch { return false; }
+  });
   const [financialAlert, setFinancialAlert] = useState<any>(null);
   const [allAlerts, setAllAlerts] = useState<any[]>([]);
 
@@ -262,11 +265,28 @@ const HomeDashboard = () => {
     <div className="space-y-8 max-w-[1400px] mx-auto animate-fade-in" dir="rtl">
       {user && <CompleteProfileDialog open={showProfileDialog} onClose={() => setShowProfileDialog(false)} user={user} />}
 
-      {/* ═══ WELCOME HEADER (QuickBooks-style) ═══ */}
+      {/* ═══ WELCOME HEADER ═══ */}
       <div className="text-center space-y-5">
-        <h1 className="text-3xl font-bold text-foreground">
-          مرحباً {displayName.split(' ')[0]}! 👋
-        </h1>
+        <div className="flex items-center justify-between">
+          <div /> {/* spacer */}
+          <h1 className="text-3xl font-bold text-foreground flex-1">
+            مرحباً {displayName.split(' ')[0]}! 👋
+          </h1>
+          <button
+            onClick={() => {
+              const next = !privacyMode;
+              setPrivacyMode(next);
+              localStorage.setItem("dashboard_privacy", String(next));
+            }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl hover:bg-secondary transition-colors text-muted-foreground group"
+            title={privacyMode ? "إظهار البيانات المالية" : "إخفاء البيانات المالية"}
+          >
+            {privacyMode ? <EyeOff className="h-4 w-4" strokeWidth={1.8} /> : <Eye className="h-4 w-4" strokeWidth={1.8} />}
+            <span className="text-[11px] font-medium hidden sm:inline">
+              {privacyMode ? "إظهار" : "خصوصية"}
+            </span>
+          </button>
+        </div>
 
         {/* Create Actions Strip */}
         <div className="flex items-center justify-center gap-2 flex-wrap">
@@ -292,7 +312,23 @@ const HomeDashboard = () => {
       )}
 
       {!loadingTx && (
-        <>
+        <div className="relative">
+          {/* Privacy overlay */}
+          {privacyMode && (
+            <div className="absolute inset-0 z-10 backdrop-blur-lg bg-background/40 rounded-2xl flex items-center justify-center">
+              <div className="text-center space-y-3 p-6">
+                <EyeOff className="h-8 w-8 text-muted-foreground mx-auto" strokeWidth={1.5} />
+                <p className="text-sm text-muted-foreground font-medium">البيانات المالية مخفية</p>
+                <button
+                  onClick={() => { setPrivacyMode(false); localStorage.setItem("dashboard_privacy", "false"); }}
+                  className="px-4 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold hover:opacity-90 transition-all"
+                >
+                  إظهار البيانات
+                </button>
+              </div>
+            </div>
+          )}
+          <div className={privacyMode ? "select-none pointer-events-none space-y-8" : "space-y-8"}>
           {/* ═══ KPI WIDGETS ═══ */}
           <CustomizableKPICards
             revenue={revenue}
@@ -541,7 +577,8 @@ const HomeDashboard = () => {
               )}
             </div>
           </div>
-        </>
+          </div>
+        </div>
       )}
 
       {/* Dialogs */}
