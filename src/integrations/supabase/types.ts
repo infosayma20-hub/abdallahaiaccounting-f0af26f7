@@ -109,6 +109,68 @@ export type Database = {
         }
         Relationships: []
       }
+      commissions: {
+        Row: {
+          base_amount: number
+          commission_amount: number
+          commission_rate: number
+          commission_type: string
+          created_at: string
+          id: string
+          is_paid: boolean
+          linked_account_name: string | null
+          notes: string | null
+          paid_date: string | null
+          reference_description: string | null
+          reference_id: string | null
+          reference_type: string
+          representative_id: string
+          user_id: string
+        }
+        Insert: {
+          base_amount?: number
+          commission_amount?: number
+          commission_rate?: number
+          commission_type: string
+          created_at?: string
+          id?: string
+          is_paid?: boolean
+          linked_account_name?: string | null
+          notes?: string | null
+          paid_date?: string | null
+          reference_description?: string | null
+          reference_id?: string | null
+          reference_type: string
+          representative_id: string
+          user_id: string
+        }
+        Update: {
+          base_amount?: number
+          commission_amount?: number
+          commission_rate?: number
+          commission_type?: string
+          created_at?: string
+          id?: string
+          is_paid?: boolean
+          linked_account_name?: string | null
+          notes?: string | null
+          paid_date?: string | null
+          reference_description?: string | null
+          reference_id?: string | null
+          reference_type?: string
+          representative_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commissions_representative_id_fkey"
+            columns: ["representative_id"]
+            isOneToOne: false
+            referencedRelation: "sales_representatives"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employee_allowances: {
         Row: {
           allowance_name: string
@@ -452,6 +514,205 @@ export type Database = {
         }
         Relationships: []
       }
+      invoice_receipt_matching: {
+        Row: {
+          created_at: string
+          id: string
+          invoice_amount: number
+          invoice_id: string
+          invoice_number: string | null
+          match_date: string
+          matched_amount: number
+          notes: string | null
+          receipt_amount: number
+          receipt_id: string
+          receipt_number: string | null
+          representative_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          invoice_amount?: number
+          invoice_id: string
+          invoice_number?: string | null
+          match_date?: string
+          matched_amount?: number
+          notes?: string | null
+          receipt_amount?: number
+          receipt_id: string
+          receipt_number?: string | null
+          representative_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          invoice_amount?: number
+          invoice_id?: string
+          invoice_number?: string | null
+          match_date?: string
+          matched_amount?: number
+          notes?: string | null
+          receipt_amount?: number
+          receipt_id?: string
+          receipt_number?: string | null
+          representative_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_receipt_matching_representative_id_fkey"
+            columns: ["representative_id"]
+            isOneToOne: false
+            referencedRelation: "sales_representatives"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_items: {
+        Row: {
+          created_at: string
+          discount: number
+          id: string
+          notes: string | null
+          order_id: string
+          product_id: string | null
+          product_name: string
+          quantity: number
+          total: number
+          unit_price: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          discount?: number
+          id?: string
+          notes?: string | null
+          order_id: string
+          product_id?: string | null
+          product_name: string
+          quantity?: number
+          total?: number
+          unit_price?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          discount?: number
+          id?: string
+          notes?: string | null
+          order_id?: string
+          product_id?: string | null
+          product_name?: string
+          quantity?: number
+          total?: number
+          unit_price?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders: {
+        Row: {
+          created_at: string
+          customer_address: string | null
+          customer_name: string
+          customer_phone: string | null
+          delivery_date: string | null
+          discount: number
+          id: string
+          linked_invoice_id: string | null
+          notes: string | null
+          order_date: string
+          order_number: string | null
+          payment_method: string | null
+          payment_status: string
+          representative_id: string | null
+          shipping_cost: number
+          shipping_method: string | null
+          source: string | null
+          status: string
+          subtotal: number
+          total: number
+          tracking_number: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          customer_address?: string | null
+          customer_name: string
+          customer_phone?: string | null
+          delivery_date?: string | null
+          discount?: number
+          id?: string
+          linked_invoice_id?: string | null
+          notes?: string | null
+          order_date?: string
+          order_number?: string | null
+          payment_method?: string | null
+          payment_status?: string
+          representative_id?: string | null
+          shipping_cost?: number
+          shipping_method?: string | null
+          source?: string | null
+          status?: string
+          subtotal?: number
+          total?: number
+          tracking_number?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          customer_address?: string | null
+          customer_name?: string
+          customer_phone?: string | null
+          delivery_date?: string | null
+          discount?: number
+          id?: string
+          linked_invoice_id?: string | null
+          notes?: string | null
+          order_date?: string
+          order_number?: string | null
+          payment_method?: string | null
+          payment_status?: string
+          representative_id?: string | null
+          shipping_cost?: number
+          shipping_method?: string | null
+          source?: string | null
+          status?: string
+          subtotal?: number
+          total?: number
+          tracking_number?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_representative_id_fkey"
+            columns: ["representative_id"]
+            isOneToOne: false
+            referencedRelation: "sales_representatives"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       passkey_credentials: {
         Row: {
           counter: number
@@ -578,6 +839,54 @@ export type Database = {
           updated_at?: string
           user_id?: string
           work_field?: string | null
+        }
+        Relationships: []
+      }
+      sales_representatives: {
+        Row: {
+          collection_commission_rate: number
+          created_at: string
+          email: string | null
+          full_name: string
+          id: string
+          is_active: boolean
+          linked_account_name: string | null
+          notes: string | null
+          phone: string | null
+          region: string | null
+          sales_commission_rate: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          collection_commission_rate?: number
+          created_at?: string
+          email?: string | null
+          full_name: string
+          id?: string
+          is_active?: boolean
+          linked_account_name?: string | null
+          notes?: string | null
+          phone?: string | null
+          region?: string | null
+          sales_commission_rate?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          collection_commission_rate?: number
+          created_at?: string
+          email?: string | null
+          full_name?: string
+          id?: string
+          is_active?: boolean
+          linked_account_name?: string | null
+          notes?: string | null
+          phone?: string | null
+          region?: string | null
+          sales_commission_rate?: number
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
