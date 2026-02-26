@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ArrowRight, Loader2, RefreshCw, Pencil, Trash2, CheckSquare, X, RotateCcw, Archive } from "lucide-react";
+import { ArrowRight, Loader2, RefreshCw, Pencil, Trash2, CheckSquare, X, RotateCcw, Archive, Search, Filter } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -101,6 +101,10 @@ const TransactionsPage = () => {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
+
+  // Search & filter state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [typeFilter, setTypeFilter] = useState("all");
 
   // Trash view state
   const [showTrash, setShowTrash] = useState(false);
@@ -444,6 +448,37 @@ const TransactionsPage = () => {
         </>
       )}
 
+      {/* Search & Filter */}
+      {!showTrash && !loading && !error && transactions.length > 0 && (
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 pointer-events-none" />
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="ابحث بالوصف، الحساب، المبلغ، المرجع..."
+              className="pr-9 rounded-xl text-sm"
+              dir="rtl"
+            />
+            {searchQuery && (
+              <button onClick={() => setSearchQuery("")} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+          <Select value={typeFilter} onValueChange={setTypeFilter} dir="rtl">
+            <SelectTrigger className="w-[140px] rounded-xl">
+              <Filter className="h-3.5 w-3.5 ml-1.5 text-muted-foreground" />
+              <SelectValue placeholder="الكل" />
+            </SelectTrigger>
+            <SelectContent className="bg-background z-50">
+              <SelectItem value="all">جميع الأنواع</SelectItem>
+              {transactionTypes.map(t => (<SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
       {/* Main transactions list */}
       {!showTrash && (
         <>
@@ -462,67 +497,104 @@ const TransactionsPage = () => {
             </Card>
           )}
 
-          {!loading && !error && (
-            <div className="space-y-2.5">
-              {transactions.map((tx) => {
-                const payTag = getPaymentMethodTag(tx);
-                const isSelected = selectedIds.has(tx.id);
-                return (
-                  <Card
-                    key={tx.id}
-                    className={`border-0 shadow-sm cursor-pointer hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 overflow-hidden ${isSelected ? "ring-2 ring-primary bg-primary/5" : ""}`}
-                    onClick={() => selectMode ? toggleSelect(tx.id) : openEdit(tx)}
-                  >
-                    <CardContent className="p-4">
-                      <div className="flex items-start gap-3">
-                        {selectMode && (
-                          <div className="pt-0.5">
-                            <Checkbox checked={isSelected} onCheckedChange={() => toggleSelect(tx.id)} />
-                          </div>
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between mb-2.5">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2">
-                                <p className="text-sm font-semibold text-foreground">{tx.fields.Description || "بدون وصف"}</p>
-                                {!selectMode && <Pencil className="h-3 w-3 text-muted-foreground opacity-50" />}
+          {!loading && !error && (() => {
+            const q = searchQuery.toLowerCase().trim();
+            const filtered = transactions.filter(tx => {
+              const f = tx.fields;
+              // Type filter
+              if (typeFilter !== "all" && f["Transaction Type"] !== typeFilter) return false;
+              // Search filter
+              if (!q) return true;
+              const searchable = [
+                f.Description || "",
+                f["Debit Account Name"] || "",
+                f["Credit Account Name"] || "",
+                f["Transaction Type"] || "",
+                f.Reference || "",
+                f.Date || "",
+                String(f.Amount || ""),
+                f.Currency || "",
+              ].join(" ").toLowerCase();
+              return searchable.includes(q);
+            });
+
+            if (filtered.length === 0 && (q || typeFilter !== "all")) {
+              return (
+                <div className="text-center py-12 space-y-2">
+                  <Search className="h-10 w-10 text-muted-foreground/20 mx-auto" />
+                  <p className="text-sm text-muted-foreground">لا توجد نتائج مطابقة</p>
+                  <Button variant="ghost" size="sm" onClick={() => { setSearchQuery(""); setTypeFilter("all"); }}>
+                    مسح البحث
+                  </Button>
+                </div>
+              );
+            }
+
+            return (
+              <div className="space-y-2.5">
+                {q || typeFilter !== "all" ? (
+                  <p className="text-[10px] text-muted-foreground px-1">{filtered.length} نتيجة</p>
+                ) : null}
+                {filtered.map((tx) => {
+                  const payTag = getPaymentMethodTag(tx);
+                  const isSelected = selectedIds.has(tx.id);
+                  return (
+                    <Card
+                      key={tx.id}
+                      className={`border-0 shadow-sm cursor-pointer hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 overflow-hidden ${isSelected ? "ring-2 ring-primary bg-primary/5" : ""}`}
+                      onClick={() => selectMode ? toggleSelect(tx.id) : openEdit(tx)}
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex items-start gap-3">
+                          {selectMode && (
+                            <div className="pt-0.5">
+                              <Checkbox checked={isSelected} onCheckedChange={() => toggleSelect(tx.id)} />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between mb-2.5">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2">
+                                  <p className="text-sm font-semibold text-foreground">{tx.fields.Description || "بدون وصف"}</p>
+                                  {!selectMode && <Pencil className="h-3 w-3 text-muted-foreground opacity-50" />}
+                                </div>
+                                {tx.fields.Date && (
+                                  <p className="text-[10px] text-muted-foreground mt-1">{tx.fields.Date}</p>
+                                )}
                               </div>
-                              {tx.fields.Date && (
-                                <p className="text-[10px] text-muted-foreground mt-1">{tx.fields.Date}</p>
+                              <div className="text-left">
+                                <p className="text-sm font-bold text-foreground tabular-nums">
+                                  {tx.fields.Amount?.toLocaleString()} {tx.fields.Currency || ""}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              {tx.fields["Transaction Type"] && (
+                                <Badge variant="secondary" className={`text-[10px] ${typeColors[tx.fields["Transaction Type"]] || ""}`}>
+                                  {tx.fields["Transaction Type"]}
+                                </Badge>
+                              )}
+                              {payTag && (
+                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted/60 text-muted-foreground">
+                                  {payTag.emoji} {payTag.label}
+                                </span>
+                              )}
+                              {tx.fields["Debit Account Name"] && (
+                                <span className="text-[10px] text-muted-foreground">مدين: {tx.fields["Debit Account Name"]}</span>
+                              )}
+                              {tx.fields["Credit Account Name"] && (
+                                <span className="text-[10px] text-muted-foreground">دائن: {tx.fields["Credit Account Name"]}</span>
                               )}
                             </div>
-                            <div className="text-left">
-                              <p className="text-sm font-bold text-foreground tabular-nums">
-                                {tx.fields.Amount?.toLocaleString()} {tx.fields.Currency || ""}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2 flex-wrap">
-                            {tx.fields["Transaction Type"] && (
-                              <Badge variant="secondary" className={`text-[10px] ${typeColors[tx.fields["Transaction Type"]] || ""}`}>
-                                {tx.fields["Transaction Type"]}
-                              </Badge>
-                            )}
-                            {payTag && (
-                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted/60 text-muted-foreground">
-                                {payTag.emoji} {payTag.label}
-                              </span>
-                            )}
-                            {tx.fields["Debit Account Name"] && (
-                              <span className="text-[10px] text-muted-foreground">مدين: {tx.fields["Debit Account Name"]}</span>
-                            )}
-                            {tx.fields["Credit Account Name"] && (
-                              <span className="text-[10px] text-muted-foreground">دائن: {tx.fields["Credit Account Name"]}</span>
-                            )}
                           </div>
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          )}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            );
+          })()}
         </>
       )}
 
