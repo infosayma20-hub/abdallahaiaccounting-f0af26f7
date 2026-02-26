@@ -46,10 +46,13 @@ const ModuleShape = ({ module, color, size }: { module: string; color: string; s
 
   switch (module) {
     case "home":
-      // Abstract house: pentagon shape
+      // Abstract dashboard: four quadrants grid
       return (
         <svg width={s} height={s} viewBox="0 0 24 24" fill="none">
-          <path d="M12 3L4 9v10h5v-6h6v6h5V9L12 3z" stroke={color} strokeWidth={strokeW} strokeLinejoin="round" fill="none" />
+          <rect x="3" y="3" width="8" height="8" rx="2" stroke={color} strokeWidth={strokeW} />
+          <rect x="13" y="3" width="8" height="8" rx="2" stroke={color} strokeWidth={strokeW} />
+          <rect x="3" y="13" width="8" height="8" rx="2" stroke={color} strokeWidth={strokeW} />
+          <rect x="13" y="13" width="8" height="8" rx="2" stroke={color} strokeWidth={strokeW} />
         </svg>
       );
     case "accounting":
