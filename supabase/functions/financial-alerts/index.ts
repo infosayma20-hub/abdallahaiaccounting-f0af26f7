@@ -34,14 +34,36 @@ serve(async (req) => {
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // Products with no movement in 60 days
+    // Products with no movement in 60 days AND created more than 60 days ago
     const sixtyDaysAgo = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString();
-    const { data: allProducts } = await sb.from('products').select('id, name, quantity, buy_price').eq('user_id', clientId).gt('quantity', 0);
-    const { data: recentMovements } = await sb.from('stock_movements').select('product_id').eq('user_id', clientId).gte('created_at', sixtyDaysAgo);
+    const { data: allProducts } = await sb.from('products').select('id, name, quantity, buy_price, created_at').eq('user_id', clientId).gt('quantity', 0);
+    const { data: recentMovements } = await sb.from('stock_movements').select('product_id, created_at').eq('user_id', clientId).order('created_at', { ascending: false });
 
-    const recentProductIds = new Set((recentMovements || []).map(m => m.product_id));
-    const staleProducts = (allProducts || []).filter(p => !recentProductIds.has(p.id));
+    // Build map of last movement date per product
+    const lastMovementDate = new Map<string, string>();
+    for (const m of (recentMovements || [])) {
+      if (!lastMovementDate.has(m.product_id)) {
+        lastMovementDate.set(m.product_id, m.created_at);
+      }
+    }
+
+    const staleProducts = (allProducts || []).filter(p => {
+      // Product created less than 60 days ago is NOT stale
+      if (p.created_at && p.created_at > sixtyDaysAgo) return false;
+      // Check last movement date
+      const lastMove = lastMovementDate.get(p.id);
+      if (lastMove && lastMove > sixtyDaysAgo) return false;
+      return true;
+    });
     const staleValue = staleProducts.reduce((s, p) => s + (p.quantity * p.buy_price), 0);
+
+    // Calculate actual days since last activity for description
+    const staleDays = staleProducts.length > 0 ? staleProducts.map(p => {
+      const lastMove = lastMovementDate.get(p.id);
+      const refDate = lastMove || p.created_at;
+      return Math.floor((Date.now() - new Date(refDate).getTime()) / (1000 * 60 * 60 * 24));
+    }) : [];
+    const maxStaleDays = staleDays.length > 0 ? Math.max(...staleDays) : 0;
 
     // ═══ PRIORITY 1: Overdue receivables ═══
     if (receivables > 0) {
@@ -90,16 +112,18 @@ serve(async (req) => {
     }
 
     // ═══ PRIORITY 3: Stale inventory ═══
-    if (staleProducts.length > 0) {
+    if (staleProducts.length > 0 && maxStaleDays >= 60) {
+      const staleMonths = Math.floor(maxStaleDays / 30);
+      const staleLabel = staleMonths >= 2 ? `${staleMonths} أشهر` : `${maxStaleDays} يوم`;
       alerts.push({
         type: "financial_alert",
         priority: "medium",
         title: "مخزون راكد",
-        description: `لديك ${staleProducts.length} منتجات بدون حركة منذ شهرين\nقيمة المخزون الراكد ${staleValue.toLocaleString()} شيكل`,
+        description: `لديك ${staleProducts.length} منتجات بدون حركة منذ ${staleLabel}\nقيمة المخزون الراكد ${staleValue.toLocaleString()} شيكل`,
         cta_text: "تحليل المخزون الراكد",
         cta_action: "analyze_stale_inventory",
         icon: "📦",
-        metrics: { count: staleProducts.length, value: staleValue, products: staleProducts.map(p => p.name).slice(0, 5) },
+        metrics: { count: staleProducts.length, value: staleValue, days: maxStaleDays, products: staleProducts.map(p => p.name).slice(0, 5) },
       });
     }
 
