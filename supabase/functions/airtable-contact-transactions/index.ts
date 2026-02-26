@@ -1,9 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { authenticateRequest, corsHeaders, isValidUUID } from "../_shared/auth.ts";
 
 async function fetchAllRecords(baseUrl: string, apiKey: string): Promise<any[]> {
   let allRecords: any[] = [];
@@ -24,6 +20,10 @@ serve(async (req) => {
   }
 
   try {
+    const authResult = await authenticateRequest(req);
+    if (authResult instanceof Response) return authResult;
+    const authenticatedUserId = authResult.userId;
+
     const AIRTABLE_API_KEY = Deno.env.get('AIRTABLE_API_KEY');
     const AIRTABLE_BASE_ID = Deno.env.get('AIRTABLE_BASE_ID');
     if (!AIRTABLE_API_KEY) throw new Error('AIRTABLE_API_KEY not configured');
@@ -35,7 +35,17 @@ serve(async (req) => {
 
     if (!contactId) throw new Error('contactId is required');
 
-    // Fetch all transactions, excluding deleted ones
+    if (clientId && !isValidUUID(clientId)) {
+      return new Response(JSON.stringify({ error: 'Invalid clientId format' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    if (clientId && clientId !== authenticatedUserId) {
+      return new Response(JSON.stringify({ error: 'Forbidden' }), {
+        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     const deleteFilter = encodeURIComponent(`OR({Deleted}=BLANK(),{Deleted}=FALSE())`);
     const txUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Transactions?view=${encodeURIComponent('ملخص الحركات المحاسبية')}&pageSize=100&filterByFormula=${deleteFilter}`;
     const accountsUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Accounts?pageSize=100`;
@@ -57,13 +67,11 @@ serve(async (req) => {
       fetchAllRecords(accountsUrl, AIRTABLE_API_KEY),
     ]);
 
-    // Build account map
     const accountMap: Record<string, string> = {};
     for (const acc of allAccounts) {
       accountMap[acc.id] = acc.fields?.["Account Name"] || acc.id;
     }
 
-    // Filter transactions that have this contact linked
     const contactTx = allTx.filter((tx: any) => {
       const contactField = tx.fields["Contact"];
       if (!contactField) return false;
@@ -71,7 +79,6 @@ serve(async (req) => {
       return contactField === contactId;
     });
 
-    // Enrich with account names
     const enrichedTx = contactTx.map((tx: any) => {
       const fields = { ...tx.fields };
       if (Array.isArray(fields["Debit Account"])) {
@@ -88,7 +95,7 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error('Error:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: 'Internal server error' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

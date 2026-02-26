@@ -1,9 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { authenticateRequest, corsHeaders, isValidUUID } from "../_shared/auth.ts";
 
 async function fetchAllRecords(baseUrl: string, apiKey: string): Promise<any[]> {
   let allRecords: any[] = [];
@@ -39,6 +35,10 @@ serve(async (req) => {
   }
 
   try {
+    const authResult = await authenticateRequest(req);
+    if (authResult instanceof Response) return authResult;
+    const authenticatedUserId = authResult.userId;
+
     const AIRTABLE_API_KEY = Deno.env.get('AIRTABLE_API_KEY');
     const AIRTABLE_BASE_ID = Deno.env.get('AIRTABLE_BASE_ID');
     
@@ -48,20 +48,27 @@ serve(async (req) => {
     const url = new URL(req.url);
     const clientId = url.searchParams.get('clientId') || '';
     
+    if (clientId && !isValidUUID(clientId)) {
+      return new Response(JSON.stringify({ error: 'Invalid clientId format' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    if (clientId && clientId !== authenticatedUserId) {
+      return new Response(JSON.stringify({ error: 'Forbidden' }), {
+        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     // Fetch all accounts
     const airtableUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Accounts?pageSize=100`;
     const allAccounts = await fetchAllRecords(airtableUrl, AIRTABLE_API_KEY);
 
     if (clientId) {
-      // Filter: show shared accounts (no Client) + accounts belonging to this client
-      // Client field is a linked record - its display value is the Client Name (UUID)
       const filtered = allAccounts.filter((acc: any) => {
         const clientField = acc.fields["Client"];
-        // No client = shared account
         if (!clientField || (Array.isArray(clientField) && clientField.length === 0)) {
           return true;
         }
-        // Check if client name rollup or linked value matches
         const clientName = acc.fields["Client Name"] || acc.fields["Client name"];
         if (clientName) {
           if (Array.isArray(clientName)) {
@@ -69,7 +76,6 @@ serve(async (req) => {
           }
           return clientName === clientId;
         }
-        // Fallback: check if Client linked record display includes the clientId
         if (Array.isArray(clientField)) {
           return clientField.some((c: string) => c === clientId || c.includes(clientId));
         }
@@ -86,7 +92,7 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error('Error:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: 'Internal server error' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

@@ -1,9 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { authenticateRequest, corsHeaders, isValidUUID } from "../_shared/auth.ts";
 
 async function fetchAllRecords(baseUrl: string, apiKey: string): Promise<any[]> {
   let allRecords: any[] = [];
@@ -34,6 +30,10 @@ serve(async (req) => {
   }
 
   try {
+    const authResult = await authenticateRequest(req);
+    if (authResult instanceof Response) return authResult;
+    const authenticatedUserId = authResult.userId;
+
     const AIRTABLE_API_KEY = Deno.env.get('AIRTABLE_API_KEY');
     const AIRTABLE_BASE_ID = Deno.env.get('AIRTABLE_BASE_ID');
     if (!AIRTABLE_API_KEY) throw new Error('AIRTABLE_API_KEY not configured');
@@ -41,6 +41,17 @@ serve(async (req) => {
 
     const url = new URL(req.url);
     const clientId = url.searchParams.get('clientId') || '';
+
+    if (clientId && !isValidUUID(clientId)) {
+      return new Response(JSON.stringify({ error: 'Invalid clientId format' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    if (clientId && clientId !== authenticatedUserId) {
+      return new Response(JSON.stringify({ error: 'Forbidden' }), {
+        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     // ═══ DELETE: Delete a contact ═══
     if (req.method === 'DELETE') {
@@ -102,13 +113,11 @@ serve(async (req) => {
     }
 
     if (req.method === 'POST') {
-      // Create a new contact
       const body = await req.json();
       const { contactName, contactType, phone, email, company, address, creditLimit, paymentDays } = body;
 
       if (!contactName) throw new Error('Contact name is required');
 
-      // Look up the client's Airtable record ID using clientId (Supabase UUID)
       let clientRecordId = '';
       if (clientId) {
         const clientLookupUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Clients?filterByFormula={Client Name}="${clientId}"&maxRecords=1`;
@@ -160,7 +169,7 @@ serve(async (req) => {
 
       const data = await response.json();
 
-      // Auto-create a corresponding account in Accounts table
+      // Auto-create a corresponding account
       try {
         const isSupplier = (contactType || '').includes('مورد') || (contactType || '').toLowerCase().includes('supplier');
         const prefix = isSupplier ? 'مورد' : 'زبون';
@@ -175,7 +184,7 @@ serve(async (req) => {
           accFields["Client"] = [clientRecordId];
         }
 
-        const accRes = await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Accounts`, {
+        await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Accounts`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
@@ -183,11 +192,6 @@ serve(async (req) => {
           },
           body: JSON.stringify({ records: [{ fields: accFields }] }),
         });
-        if (!accRes.ok) {
-          console.error('Auto-create account failed:', await accRes.text());
-        } else {
-          console.log(`Auto-created account: ${accountName} (${accountType})`);
-        }
       } catch (accErr) {
         console.error('Auto-create account error:', accErr);
       }
@@ -202,7 +206,6 @@ serve(async (req) => {
     const allContacts = await fetchAllRecords(airtableUrl, AIRTABLE_API_KEY);
 
     if (clientId) {
-      // Look up client Airtable record ID
       const clientLookupUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Clients?filterByFormula={Client Name}="${clientId}"&maxRecords=1`;
       const clientRes = await fetch(clientLookupUrl, {
         headers: { 'Authorization': `Bearer ${AIRTABLE_API_KEY}` },
@@ -239,7 +242,7 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error('Error:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: 'Internal server error' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

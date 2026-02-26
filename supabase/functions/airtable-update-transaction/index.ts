@@ -1,9 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { authenticateRequest, corsHeaders } from "../_shared/auth.ts";
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -11,6 +7,9 @@ serve(async (req) => {
   }
 
   try {
+    const authResult = await authenticateRequest(req);
+    if (authResult instanceof Response) return authResult;
+
     const AIRTABLE_API_KEY = Deno.env.get('AIRTABLE_API_KEY');
     const AIRTABLE_BASE_ID = Deno.env.get('AIRTABLE_BASE_ID');
 
@@ -21,7 +20,7 @@ serve(async (req) => {
 
     if (!recordId) throw new Error('recordId is required');
 
-    // SOFT DELETE action — mark as deleted instead of permanent delete
+    // SOFT DELETE
     if (action === 'delete') {
       const patchUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Transactions/${recordId}`;
       const patchRes = await fetch(patchUrl, {
@@ -41,7 +40,7 @@ serve(async (req) => {
       });
     }
 
-    // RESTORE action — unmark as deleted
+    // RESTORE
     if (action === 'restore') {
       const patchUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Transactions/${recordId}`;
       const patchRes = await fetch(patchUrl, {
@@ -61,7 +60,7 @@ serve(async (req) => {
       });
     }
 
-    // PERMANENT DELETE action
+    // PERMANENT DELETE
     if (action === 'permanent-delete') {
       const deleteUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Transactions/${recordId}`;
       const delRes = await fetch(deleteUrl, {
@@ -77,7 +76,7 @@ serve(async (req) => {
       });
     }
 
-    // UPDATE action (default)
+    // UPDATE (default)
     if (!fields || typeof fields !== 'object') throw new Error('fields object is required');
 
     const accountsUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Accounts?pageSize=100`;
@@ -135,7 +134,7 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error('Error:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: 'Internal server error' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

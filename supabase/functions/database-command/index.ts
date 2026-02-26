@@ -1,9 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
-};
+import { authenticateRequest, corsHeaders, isValidUUID } from "../_shared/auth.ts";
 
 async function fetchAllRecords(baseUrl: string, apiKey: string): Promise<any[]> {
   let allRecords: any[] = [];
@@ -58,6 +54,11 @@ serve(async (req) => {
   }
 
   try {
+    // Authenticate request
+    const authResult = await authenticateRequest(req);
+    if (authResult instanceof Response) return authResult;
+    const authenticatedUserId = authResult.userId;
+
     const AIRTABLE_API_KEY = Deno.env.get('AIRTABLE_API_KEY');
     const AIRTABLE_BASE_ID = Deno.env.get('AIRTABLE_BASE_ID');
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
@@ -71,6 +72,18 @@ serve(async (req) => {
     const { command, clientId } = await req.json();
     if (!command || typeof command !== 'string' || command.trim().length === 0) {
       throw new Error('Command is required');
+    }
+
+    // Validate clientId matches authenticated user
+    if (clientId && !isValidUUID(clientId)) {
+      return new Response(JSON.stringify({ error: 'Invalid clientId format' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    if (clientId && clientId !== authenticatedUserId) {
+      return new Response(JSON.stringify({ error: 'Forbidden' }), {
+        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     // Fetch existing contacts, accounts, and products for context
@@ -534,7 +547,7 @@ ${JSON.stringify(productsList, null, 0)}
 
   } catch (error) {
     console.error('Error:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: 'Internal server error' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
