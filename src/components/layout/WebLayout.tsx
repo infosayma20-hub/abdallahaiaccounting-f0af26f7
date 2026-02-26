@@ -2,6 +2,7 @@ import { useState } from "react";
 import AppSidebar from "./AppSidebar";
 import TopBar from "./TopBar";
 import AIAssistantWidget from "../AIAssistantWidget";
+import HelpGuideModal from "../HelpGuideModal";
 
 interface WebLayoutProps {
   children: React.ReactNode;
@@ -10,6 +11,7 @@ interface WebLayoutProps {
 const WebLayout = ({ children }: WebLayoutProps) => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [showHelpGuide, setShowHelpGuide] = useState(false);
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background" dir="rtl">
@@ -26,6 +28,7 @@ const WebLayout = ({ children }: WebLayoutProps) => {
         <TopBar
           onMenuClick={() => setMobileSidebarOpen(true)}
           sidebarCollapsed={sidebarCollapsed}
+          onOpenHelpGuide={() => setShowHelpGuide(true)}
         />
 
         {/* Content */}
@@ -36,6 +39,13 @@ const WebLayout = ({ children }: WebLayoutProps) => {
 
       {/* AI Assistant Widget */}
       <AIAssistantWidget />
+
+      {/* Help Guide Modal - accessible from any page */}
+      <HelpGuideModal
+        open={showHelpGuide}
+        onClose={() => setShowHelpGuide(false)}
+        onFillInput={() => {}}
+      />
     </div>
   );
 };
