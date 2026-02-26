@@ -40,6 +40,7 @@ import HRAttendancePage from "./pages/HRAttendancePage";
 import BranchDisplayPage from "./pages/BranchDisplayPage";
 import EmployeeApp from "./pages/EmployeeApp";
 import RoleGuard from "./components/RoleGuard";
+import VoucherPage from "./pages/VoucherPage";
 
 const queryClient = new QueryClient();
 
@@ -95,9 +96,9 @@ const App = () => (
                       <Route path="/settings" element={<ProfilePage />} />
                       <Route path="/journal-entries" element={<JournalEntriesPage />} />
                       <Route path="/trial-balance" element={<TrialBalancePage />} />
-                      <Route path="/receipts" element={<TransactionsPage />} />
+                      <Route path="/receipts" element={<VoucherPage voucherType="سند قبض" />} />
                       <Route path="/bills" element={<InvoicesPage />} />
-                      <Route path="/payments" element={<TransactionsPage />} />
+                      <Route path="/payments" element={<VoucherPage voucherType="سند صرف" />} />
                       <Route path="/inventory-movements" element={<StockMovementsPage />} />
                       <Route path="/inventory-valuation" element={<InventoryValuationPage />} />
                       <Route path="/employees" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><EmployeesPage /></RoleGuard>} />
