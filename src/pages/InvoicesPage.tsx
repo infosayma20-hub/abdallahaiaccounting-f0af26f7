@@ -530,7 +530,7 @@ const InvoicesPage = () => {
                   className="rounded-xl text-sm pr-9"
                 />
               </div>
-              {showContactDropdown && contactSearch && (
+              {showContactDropdown && contactSearch && filteredContacts.length > 0 && (
                 <div className="absolute z-50 top-full left-0 right-0 mt-1 max-h-40 overflow-y-auto bg-popover border border-border rounded-xl shadow-lg">
                   {filteredContacts.map(c => (
                     <button key={c.id} onClick={() => selectContact(c.fields["Contact Name"] || "")} className="w-full text-right px-3 py-2 text-sm hover:bg-muted transition-colors flex items-center justify-between">
@@ -538,11 +538,6 @@ const InvoicesPage = () => {
                       <Badge variant="outline" className="text-[9px]">{c.fields["Contact Type"]}</Badge>
                     </button>
                   ))}
-                  {filteredContacts.length === 0 && (
-                    <div className="px-3 py-2 text-xs text-muted-foreground">
-                      لا توجد نتائج • سيتم إنشاء جهة اتصال جديدة
-                    </div>
-                  )}
                 </div>
               )}
               {isNewContact && form.contactName && (
