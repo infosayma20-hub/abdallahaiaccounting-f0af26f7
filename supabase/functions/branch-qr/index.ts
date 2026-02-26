@@ -48,7 +48,43 @@ Deno.serve(async (req) => {
     const pathParts = url.pathname.split("/").filter(Boolean);
     const action = url.searchParams.get("action") || pathParts[pathParts.length - 1];
 
-    // GET ?action=generate&branch_id=xxx — Generate active QR for a branch
+    // GET ?action=public&branch_id=xxx — Public QR generation (no auth needed)
+    if (req.method === "GET" && action === "public") {
+      const branchId = url.searchParams.get("branch_id");
+      if (!branchId) {
+        return new Response(JSON.stringify({ error: "branch_id مطلوب" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { data: branch, error: branchErr } = await supabase
+        .from("branches")
+        .select("id, secret_key, qr_rotation_minutes, name")
+        .eq("id", branchId)
+        .eq("is_active", true)
+        .single();
+
+      if (branchErr || !branch) {
+        return new Response(JSON.stringify({ error: "الفرع غير موجود" }), {
+          status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const timeWindow = getTimeWindow(branch.qr_rotation_minutes);
+      const qrToken = await computeToken(branch.id, timeWindow, branch.secret_key);
+      const expiresAt = getTimeWindowExpiry(branch.qr_rotation_minutes);
+
+      return new Response(JSON.stringify({
+        qr_payload: `${branch.id}:${qrToken}`,
+        branch_name: branch.name,
+        expires_at: expiresAt,
+        rotation_minutes: branch.qr_rotation_minutes,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // GET ?action=generate&branch_id=xxx — Authenticated QR generation
     if (req.method === "GET" && action === "generate") {
       const branchId = url.searchParams.get("branch_id");
       if (!branchId) {
