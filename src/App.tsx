@@ -16,6 +16,7 @@ import ContactsPage from "./pages/ContactsPage";
 import ExportPage from "./pages/ExportPage";
 import SmartReportPage from "./pages/SmartReportPage";
 import JournalEntriesPage from "./pages/JournalEntriesPage";
+import TrialBalancePage from "./pages/TrialBalancePage";
 import AuthPage from "./pages/AuthPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import PricingPage from "./pages/PricingPage";
@@ -79,7 +80,7 @@ const App = () => (
                       <Route path="/profile" element={<ProfilePage />} />
                       <Route path="/settings" element={<ProfilePage />} />
                       <Route path="/journal-entries" element={<JournalEntriesPage />} />
-                      <Route path="/trial-balance" element={<ReportsPage />} />
+                      <Route path="/trial-balance" element={<TrialBalancePage />} />
                       <Route path="/receipts" element={<TransactionsPage />} />
                       <Route path="/bills" element={<InvoicesPage />} />
                       <Route path="/payments" element={<TransactionsPage />} />
