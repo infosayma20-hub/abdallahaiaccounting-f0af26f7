@@ -17,7 +17,6 @@ interface TopBarProps {
   sidebarCollapsed: boolean;
 }
 
-// QuickBooks-style module shortcuts
 const moduleShortcuts = [
   { label: "المحاسبة", module: "accounting", path: "/accounts" },
   { label: "المصروفات", module: "expenses", path: "/transactions" },
@@ -39,8 +38,8 @@ const TopBar = ({ onMenuClick, sidebarCollapsed }: TopBarProps) => {
 
   return (
     <header className="border-b border-border/50 bg-card/80 backdrop-blur-md flex-shrink-0">
-      {/* Top row: Search + Actions */}
-      <div className="h-14 flex items-center gap-4 px-5">
+      {/* Top row: User (right) → Search (center) → left space */}
+      <div className="h-14 flex items-center gap-3 px-5">
         {/* Mobile menu */}
         <button
           onClick={onMenuClick}
@@ -49,8 +48,59 @@ const TopBar = ({ onMenuClick, sidebarCollapsed }: TopBarProps) => {
           <Menu className="h-5 w-5 text-muted-foreground" strokeWidth={1.8} />
         </button>
 
-        {/* Global Search */}
-        <div className="flex-1 max-w-lg">
+        {/* RIGHT SIDE (RTL): User profile */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className="flex items-center gap-2 h-9 px-2 rounded-xl hover:bg-secondary transition-colors flex-shrink-0">
+              <div className="w-8 h-8 rounded-full bg-primary/15 flex items-center justify-center">
+                <span className="text-xs font-semibold text-primary">{initials}</span>
+              </div>
+              <span className="text-[13px] font-medium text-foreground hidden md:block max-w-[140px] truncate">{displayName}</span>
+              <ChevronDown className="h-3.5 w-3.5 text-muted-foreground/60 hidden md:block" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-56 rounded-xl bg-popover border-border shadow-elevated z-50">
+            <div className="px-3 py-2.5">
+              <p className="text-sm font-semibold text-foreground">{displayName}</p>
+              <p className="text-xs text-muted-foreground">{user?.email}</p>
+            </div>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => navigate("/profile")} className="gap-2.5 cursor-pointer rounded-lg mx-1">
+              <User className="h-4 w-4" strokeWidth={1.8} />
+              الملف الشخصي
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate("/settings")} className="gap-2.5 cursor-pointer rounded-lg mx-1">
+              <Settings className="h-4 w-4" strokeWidth={1.8} />
+              الإعدادات
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={signOut} className="gap-2.5 cursor-pointer text-destructive rounded-lg mx-1">
+              <LogOut className="h-4 w-4" strokeWidth={1.8} />
+              تسجيل الخروج
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        {/* Notification bell */}
+        <button className="w-9 h-9 rounded-xl flex items-center justify-center hover:bg-secondary transition-colors relative flex-shrink-0">
+          <Bell className="h-[18px] w-[18px] text-muted-foreground" strokeWidth={1.8} />
+          <span className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-primary" />
+        </button>
+
+        {/* Theme toggle */}
+        <button
+          onClick={toggleTheme}
+          className="w-9 h-9 rounded-xl flex items-center justify-center hover:bg-secondary transition-colors flex-shrink-0"
+        >
+          {theme === "dark" ? (
+            <Moon className="h-[18px] w-[18px] text-muted-foreground" strokeWidth={1.8} />
+          ) : (
+            <Sun className="h-[18px] w-[18px] text-warning" strokeWidth={1.8} />
+          )}
+        </button>
+
+        {/* CENTER: Global Search */}
+        <div className="flex-1 max-w-xl mx-auto">
           <div className="relative">
             <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60 pointer-events-none" strokeWidth={1.8} />
             <input
@@ -62,60 +112,9 @@ const TopBar = ({ onMenuClick, sidebarCollapsed }: TopBarProps) => {
             />
           </div>
         </div>
-
-        {/* Actions */}
-        <div className="flex items-center gap-1">
-          <button
-            onClick={toggleTheme}
-            className="w-9 h-9 rounded-xl flex items-center justify-center hover:bg-secondary transition-colors"
-          >
-            {theme === "dark" ? (
-              <Moon className="h-[18px] w-[18px] text-muted-foreground" strokeWidth={1.8} />
-            ) : (
-              <Sun className="h-[18px] w-[18px] text-warning" strokeWidth={1.8} />
-            )}
-          </button>
-
-          <button className="w-9 h-9 rounded-xl flex items-center justify-center hover:bg-secondary transition-colors relative">
-            <Bell className="h-[18px] w-[18px] text-muted-foreground" strokeWidth={1.8} />
-            <span className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-primary" />
-          </button>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="flex items-center gap-2 h-9 px-2 rounded-xl hover:bg-secondary transition-colors mr-1">
-                <div className="w-8 h-8 rounded-full bg-primary/15 flex items-center justify-center">
-                  <span className="text-xs font-semibold text-primary">{initials}</span>
-                </div>
-                <span className="text-[13px] font-medium text-foreground hidden md:block max-w-[120px] truncate">{displayName}</span>
-                <ChevronDown className="h-3.5 w-3.5 text-muted-foreground/60 hidden md:block" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-56 rounded-xl bg-popover border-border shadow-elevated z-50">
-              <div className="px-3 py-2.5">
-                <p className="text-sm font-semibold text-foreground">{displayName}</p>
-                <p className="text-xs text-muted-foreground">{user?.email}</p>
-              </div>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => navigate("/profile")} className="gap-2.5 cursor-pointer rounded-lg mx-1">
-                <User className="h-4 w-4" strokeWidth={1.8} />
-                الملف الشخصي
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => navigate("/settings")} className="gap-2.5 cursor-pointer rounded-lg mx-1">
-                <Settings className="h-4 w-4" strokeWidth={1.8} />
-                الإعدادات
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={signOut} className="gap-2.5 cursor-pointer text-destructive rounded-lg mx-1">
-                <LogOut className="h-4 w-4" strokeWidth={1.8} />
-                تسجيل الخروج
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
       </div>
 
-      {/* Module shortcuts row (QuickBooks-style) */}
+      {/* Module shortcuts row */}
       <div className="h-12 flex items-center gap-3 px-5 overflow-x-auto scrollbar-hide">
         {moduleShortcuts.map((shortcut) => (
           <button
