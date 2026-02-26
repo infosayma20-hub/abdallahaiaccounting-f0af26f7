@@ -104,8 +104,15 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
 
   const isActive = (path?: string) => {
     if (!path) return false;
-    const basePath = path.split("?")[0];
-    return location.pathname === basePath;
+    const [basePath, queryString] = path.split("?");
+    if (location.pathname !== basePath) return false;
+    if (!queryString) return true;
+    const params = new URLSearchParams(queryString);
+    const currentParams = new URLSearchParams(location.search);
+    for (const [key, value] of params.entries()) {
+      if (currentParams.get(key) !== value) return false;
+    }
+    return true;
   };
 
   const isGroupActive = (item: NavItem) => item.children?.some((c) => isActive(c.path));
