@@ -3,7 +3,7 @@ import {
   Plus, FileText, Receipt, Users, Package, Wallet, Landmark,
   TrendingUp, TrendingDown, Droplets, ArrowUpRight, Loader2,
   Sparkles, Send, Mic, AlertTriangle, Clock, ChevronLeft,
-  BookOpen, Database, AtSign,
+  BookOpen, Database, AtSign, ClipboardList,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useCountUp } from "@/hooks/useCountUp";
 import MiniSparkline from "@/components/MiniSparkline";
 import SmartAlertCard from "@/components/SmartAlertCard";
+import SmartDailySummary from "@/components/SmartDailySummary";
 import MentionInput, { MentionItem } from "@/components/MentionInput";
 import TransactionToast, { useTransactionToast } from "@/components/TransactionToast";
 import ChequeDetailsDialog, { ChequeLineItem } from "@/components/ChequeDetailsDialog";
@@ -104,6 +105,7 @@ const createActions = [
   { label: "إنشاء شيك", icon: Receipt, path: "/cheques" },
   { label: "إضافة عميل", icon: Users, path: "/contacts" },
   { label: "إضافة منتج", icon: Package, path: "/inventory" },
+  { label: "سند قيد", icon: ClipboardList, action: "journal" },
 ];
 
 const HomeDashboard = () => {
@@ -334,7 +336,7 @@ const HomeDashboard = () => {
           {createActions.map((action) => (
             <button
               key={action.label}
-              onClick={() => navigate(action.path)}
+              onClick={() => 'action' in action ? setShowJournalEntry(true) : navigate((action as any).path)}
               className="flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/60 text-[13px] font-medium text-foreground hover:bg-secondary hover:shadow-soft transition-all"
             >
               <action.icon className="h-4 w-4 text-muted-foreground" strokeWidth={1.8} />
@@ -397,12 +399,20 @@ const HomeDashboard = () => {
             />
           </div>
 
+          {/* ═══ SMART DAILY SUMMARY (WOW Card) ═══ */}
+          <SmartDailySummary
+            netProfit={netProfit}
+            chequesToday={0}
+            lowStockCount={0}
+            followUpCount={receivables > 0 ? 1 : 0}
+            loading={loadingTx}
+          />
+
           {/* ═══ MAIN CONTENT GRID ═══ */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* LEFT: Smart Assistant + Commands (2 cols) */}
             <div className="lg:col-span-2 space-y-6">
-              {/* Smart Financial Alert */}
-              <SmartAlertCard alert={financialAlert} allAlerts={allAlerts} userId={user?.id} />
+              {/* Smart Assistant */}
 
               {/* Smart Assistant */}
               <div className="bg-card rounded-2xl p-6 space-y-4 shadow-card">
@@ -493,6 +503,9 @@ const HomeDashboard = () => {
                   </div>
                 )}
               </div>
+
+              {/* Smart Financial Alert (below assistants) */}
+              <SmartAlertCard alert={financialAlert} allAlerts={allAlerts} userId={user?.id} />
             </div>
 
             {/* RIGHT: Tasks & Insights Panel */}
