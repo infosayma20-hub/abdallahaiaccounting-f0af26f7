@@ -15,6 +15,7 @@ import AccountsPage from "./pages/AccountsPage";
 import ContactsPage from "./pages/ContactsPage";
 import ExportPage from "./pages/ExportPage";
 import SmartReportPage from "./pages/SmartReportPage";
+import JournalEntriesPage from "./pages/JournalEntriesPage";
 import AuthPage from "./pages/AuthPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import PricingPage from "./pages/PricingPage";
@@ -77,7 +78,7 @@ const App = () => (
                       <Route path="/cheques" element={<ChequesPage />} />
                       <Route path="/profile" element={<ProfilePage />} />
                       <Route path="/settings" element={<ProfilePage />} />
-                      <Route path="/journal-entries" element={<TransactionsPage />} />
+                      <Route path="/journal-entries" element={<JournalEntriesPage />} />
                       <Route path="/trial-balance" element={<ReportsPage />} />
                       <Route path="/receipts" element={<TransactionsPage />} />
                       <Route path="/bills" element={<InvoicesPage />} />
