@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ArrowRight, Camera, User, Mail, Building2, MapPin, Globe, Briefcase, Save, Loader2, LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -13,6 +13,9 @@ const ProfilePage = () => {
   const { user, signOut } = useAuth();
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [profile, setProfile] = useState({
     display_name: "",
     company_name: "",
@@ -47,7 +50,6 @@ const ProfilePage = () => {
           work_field: data.work_field || "",
         });
       } else {
-        // Fallback to user_metadata
         const meta = user.user_metadata || {};
         setProfile({
           display_name: meta.full_name || "",
@@ -57,9 +59,38 @@ const ProfilePage = () => {
           work_field: meta.work_field || "",
         });
       }
+      // Load avatar
+      const { data: files } = await supabase.storage.from("avatars").list(user.id, { limit: 1, sortBy: { column: "created_at", order: "desc" } });
+      if (files && files.length > 0) {
+        const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(`${user.id}/${files[0].name}`);
+        setAvatarUrl(urlData.publicUrl);
+      }
     };
     load();
   }, [user]);
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: "الحجم كبير", description: "الحد الأقصى 5 ميغابايت", variant: "destructive" });
+      return;
+    }
+    setUploadingAvatar(true);
+    try {
+      const ext = file.name.split(".").pop();
+      const path = `${user.id}/avatar.${ext}`;
+      const { error } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
+      if (error) throw error;
+      const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(path);
+      setAvatarUrl(urlData.publicUrl + "?t=" + Date.now());
+      toast({ title: "✅ تم تحديث الصورة" });
+    } catch (err: any) {
+      toast({ title: "خطأ في رفع الصورة", description: err.message, variant: "destructive" });
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
 
   const handleSave = async () => {
     if (!user) return;
@@ -110,12 +141,25 @@ const ProfilePage = () => {
       {/* Avatar Section */}
       <div className="flex flex-col items-center gap-3 py-4">
         <div className="relative">
-          <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center shadow-md border-2 border-primary/10">
-            <span className="text-3xl font-bold text-primary">{initials || "؟"}</span>
+          <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center shadow-md border-2 border-primary/10 overflow-hidden">
+            {avatarUrl ? (
+              <img src={avatarUrl} alt="avatar" className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-3xl font-bold text-primary">{initials || "؟"}</span>
+            )}
           </div>
-          <div className="absolute -bottom-1 -left-1 w-8 h-8 rounded-full bg-primary flex items-center justify-center shadow-md">
-            <Camera className="h-4 w-4 text-primary-foreground" />
-          </div>
+          <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploadingAvatar}
+            className="absolute -bottom-1 -left-1 w-8 h-8 rounded-full bg-primary flex items-center justify-center shadow-md hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-50"
+          >
+            {uploadingAvatar ? (
+              <Loader2 className="h-4 w-4 text-primary-foreground animate-spin" />
+            ) : (
+              <Camera className="h-4 w-4 text-primary-foreground" />
+            )}
+          </button>
         </div>
         <div className="text-center">
           <p className="text-base font-bold text-foreground">{profile.company_name || displayName || "مستخدم جديد"}</p>
