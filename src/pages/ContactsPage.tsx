@@ -1,11 +1,12 @@
 import { useState, useEffect, useMemo } from "react";
-import { ArrowRight, Loader2, RefreshCw, Plus, Phone, Mail, Building2, MapPin, User, Users, ShoppingBag, Search, ChevronDown, ChevronUp, Sparkles, Receipt, TrendingUp, TrendingDown, Calendar, FileText, Wallet, AlertTriangle } from "lucide-react";
+import { ArrowRight, Loader2, RefreshCw, Plus, Phone, Mail, Building2, MapPin, User, Users, ShoppingBag, Search, ChevronDown, ChevronUp, Sparkles, Receipt, TrendingUp, TrendingDown, Calendar, FileText, Wallet, AlertTriangle, Pencil, Trash2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -103,6 +104,11 @@ const ContactsPage = () => {
   });
   const [statementContact, setStatementContact] = useState<{ id: string; name: string; type: string } | null>(null);
   const [contactFinancials, setContactFinancials] = useState<Record<string, ContactFinancials>>({});
+  const [editContact, setEditContact] = useState<Contact | null>(null);
+  const [editData, setEditData] = useState({ name: "", type: "", phone: "", email: "", company: "", address: "", creditLimit: "", paymentDays: "" });
+  const [editing, setEditing] = useState(false);
+  const [deleteContact, setDeleteContact] = useState<Contact | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const fetchContacts = async () => {
     if (!user) return;
@@ -223,6 +229,89 @@ const ContactsPage = () => {
     } finally {
       setAdding(false);
     }
+  };
+
+  const handleEditContact = async () => {
+    if (!editContact || !editData.name.trim()) return;
+    setEditing(true);
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-contacts?clientId=${user?.id}`,
+        {
+          method: "PATCH",
+          headers: {
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            contactId: editContact.id,
+            contactName: editData.name.trim(),
+            contactType: editData.type,
+            phone: editData.phone,
+            email: editData.email,
+            company: editData.company,
+            address: editData.address,
+            creditLimit: editData.creditLimit,
+            paymentDays: editData.paymentDays,
+          }),
+        }
+      );
+      if (!res.ok) throw new Error("Failed to update contact");
+      const data = await res.json();
+      if (data?.error) throw new Error(data.error);
+      toast({ title: "تم تعديل جهة الاتصال بنجاح ✅" });
+      setEditContact(null);
+      setContactFinancials({});
+      fetchContacts();
+    } catch (err: any) {
+      toast({ title: "خطأ", description: err.message, variant: "destructive" });
+    } finally {
+      setEditing(false);
+    }
+  };
+
+  const handleDeleteContact = async () => {
+    if (!deleteContact) return;
+    const fin = contactFinancials[deleteContact.id];
+    if (fin && !fin.loading && fin.totalDealing > 0) {
+      toast({ title: "لا يمكن حذف جهة اتصال مرتبطة بمعاملات مالية", variant: "destructive" });
+      setDeleteContact(null);
+      return;
+    }
+    setDeleting(true);
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-contacts?clientId=${user?.id}&contactId=${deleteContact.id}`,
+        {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+        }
+      );
+      if (!res.ok) throw new Error("Failed to delete contact");
+      toast({ title: "تم حذف جهة الاتصال ✅" });
+      setDeleteContact(null);
+      setContactFinancials({});
+      fetchContacts();
+    } catch (err: any) {
+      toast({ title: "خطأ", description: err.message, variant: "destructive" });
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const openEditDialog = (contact: Contact) => {
+    const f = contact.fields;
+    setEditData({
+      name: f["Contact Name"] || "",
+      type: f["Contact Type"] || "",
+      phone: f["Phone"] || "",
+      email: f["Email"] || "",
+      company: f["Company"] || "",
+      address: f["Address"] || "",
+      creditLimit: f["Credit Limit"]?.toString() || "",
+      paymentDays: f["Payment Days"]?.toString() || "30",
+    });
+    setEditContact(contact);
   };
 
   const contactTypes = [...new Set(contacts.map(c => c.fields["Contact Type"]).filter(Boolean))];
@@ -617,6 +706,24 @@ const ContactsPage = () => {
                           </div>
                         )}
 
+                        {/* Edit & Delete Buttons */}
+                        <div className="flex gap-2">
+                          <button
+                            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors flex-1"
+                            onClick={(e) => { e.stopPropagation(); openEditDialog(contact); }}
+                          >
+                            <Pencil className="h-3.5 w-3.5 text-primary" />
+                            <span className="text-[11px] font-medium text-foreground">تعديل</span>
+                          </button>
+                          <button
+                            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-destructive/10 hover:bg-destructive/20 transition-colors"
+                            onClick={(e) => { e.stopPropagation(); setDeleteContact(contact); }}
+                          >
+                            <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                            <span className="text-[11px] font-medium text-destructive">حذف</span>
+                          </button>
+                        </div>
+
                         {/* Statement Button */}
                         <button
                           className="flex items-center gap-3 p-2.5 rounded-xl bg-primary/10 hover:bg-primary/20 transition-colors w-full"
@@ -731,6 +838,90 @@ const ContactsPage = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Edit Contact Dialog */}
+      <Dialog open={!!editContact} onOpenChange={(v) => !v && setEditContact(null)}>
+        <DialogContent className="max-w-sm rounded-2xl" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="text-center">تعديل جهة الاتصال</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 pt-2" dir="rtl">
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block text-right">الاسم *</label>
+              <Input value={editData.name} onChange={(e) => setEditData(p => ({ ...p, name: e.target.value }))} dir="rtl" className="rounded-xl text-right" />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block text-right">النوع *</label>
+              <Select value={editData.type} onValueChange={(v) => setEditData(p => ({ ...p, type: v }))} dir="rtl">
+                <SelectTrigger className="rounded-xl text-right"><SelectValue placeholder="اختر النوع" /></SelectTrigger>
+                <SelectContent className="bg-background z-50">
+                  {contactTypeOptions.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block text-right">رقم الهاتف</label>
+              <Input value={editData.phone} onChange={(e) => setEditData(p => ({ ...p, phone: e.target.value }))} dir="rtl" className="rounded-xl text-right" />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block text-right">البريد الإلكتروني</label>
+              <Input value={editData.email} onChange={(e) => setEditData(p => ({ ...p, email: e.target.value }))} dir="rtl" className="rounded-xl text-right" />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block text-right">الشركة</label>
+              <Input value={editData.company} onChange={(e) => setEditData(p => ({ ...p, company: e.target.value }))} dir="rtl" className="rounded-xl text-right" />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block text-right">العنوان</label>
+              <Input value={editData.address} onChange={(e) => setEditData(p => ({ ...p, address: e.target.value }))} dir="rtl" className="rounded-xl text-right" />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block text-right">سقف الدين (₪)</label>
+                <Input type="number" value={editData.creditLimit} onChange={(e) => setEditData(p => ({ ...p, creditLimit: e.target.value }))} dir="rtl" className="rounded-xl text-right" placeholder="0" />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block text-right">أيام التسديد</label>
+                <Input type="number" value={editData.paymentDays} onChange={(e) => setEditData(p => ({ ...p, paymentDays: e.target.value }))} dir="rtl" className="rounded-xl text-right" placeholder="30" />
+              </div>
+            </div>
+            <Button onClick={handleEditContact} className="w-full gap-2 rounded-xl h-11 shadow-md shadow-primary/20" disabled={editing || !editData.name.trim()}>
+              {editing && <Loader2 className="h-4 w-4 animate-spin" />}
+              حفظ التعديلات
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!deleteContact} onOpenChange={(v) => !v && setDeleteContact(null)}>
+        <AlertDialogContent dir="rtl" className="rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-right">حذف جهة الاتصال</AlertDialogTitle>
+            <AlertDialogDescription className="text-right">
+              {deleteContact && contactFinancials[deleteContact.id]?.totalDealing > 0
+                ? "لا يمكن حذف هذه الجهة لأنها مرتبطة بمعاملات مالية. قم بحذف أو نقل المعاملات أولاً."
+                : `هل أنت متأكد من حذف "${deleteContact?.fields["Contact Name"]}"؟ لا يمكن التراجع عن هذا الإجراء.`
+              }
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-row-reverse gap-2">
+            <AlertDialogCancel className="rounded-xl">إلغاء</AlertDialogCancel>
+            {deleteContact && !(contactFinancials[deleteContact.id]?.totalDealing > 0) && (
+              <AlertDialogAction
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-xl gap-2"
+                onClick={handleDeleteContact}
+                disabled={deleting}
+              >
+                {deleting && <Loader2 className="h-4 w-4 animate-spin" />}
+                حذف
+              </AlertDialogAction>
+            )}
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Contact Statement Dialog */}
       {statementContact && (

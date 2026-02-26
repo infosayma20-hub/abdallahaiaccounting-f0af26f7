@@ -42,6 +42,65 @@ serve(async (req) => {
     const url = new URL(req.url);
     const clientId = url.searchParams.get('clientId') || '';
 
+    // ═══ DELETE: Delete a contact ═══
+    if (req.method === 'DELETE') {
+      const contactId = url.searchParams.get('contactId');
+      if (!contactId) throw new Error('contactId is required for deletion');
+
+      const airtableUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Contacts/${contactId}`;
+      const response = await fetch(airtableUrl, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${AIRTABLE_API_KEY}` },
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Airtable DELETE error [${response.status}]: ${errorText}`);
+      }
+
+      const data = await response.json();
+      return new Response(JSON.stringify({ success: true, data }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // ═══ PATCH: Update a contact ═══
+    if (req.method === 'PATCH') {
+      const body = await req.json();
+      const { contactId, contactName, contactType, phone, email, company, address, creditLimit, paymentDays } = body;
+      if (!contactId) throw new Error('contactId is required for update');
+
+      const fields: Record<string, any> = {};
+      if (contactName !== undefined) fields["Contact Name"] = contactName;
+      if (contactType !== undefined) fields["Contact Type"] = contactType;
+      if (phone !== undefined) fields["Phone"] = phone;
+      if (email !== undefined) fields["Email"] = email;
+      if (company !== undefined) fields["Company"] = company;
+      if (address !== undefined) fields["Address"] = address;
+      if (creditLimit !== undefined && creditLimit !== "") fields["Credit Limit"] = Number(creditLimit);
+      if (paymentDays !== undefined && paymentDays !== "") fields["Payment Days"] = Number(paymentDays);
+
+      const airtableUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Contacts/${contactId}`;
+      const response = await fetch(airtableUrl, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ fields }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Airtable PATCH error [${response.status}]: ${errorText}`);
+      }
+
+      const data = await response.json();
+      return new Response(JSON.stringify({ success: true, data }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     if (req.method === 'POST') {
       // Create a new contact
       const body = await req.json();
