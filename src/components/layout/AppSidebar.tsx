@@ -1,25 +1,8 @@
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import {
-  Home,
-  BookOpen,
-  ShoppingCart,
-  CreditCard,
-  Package,
-  FileText,
-  BarChart3,
-  Users2,
-  Settings,
-  ChevronDown,
-  X,
-  Sparkles,
-  Receipt,
-  Landmark,
-  PanelLeftClose,
-  PanelLeftOpen,
-  Briefcase,
-} from "lucide-react";
+import { ChevronDown, X, PanelLeftClose, PanelLeftOpen, Settings, LayoutGrid } from "lucide-react";
 import { cn } from "@/lib/utils";
+import ModuleIcon from "@/components/ModuleIcon";
 
 interface SidebarProps {
   collapsed: boolean;
@@ -30,7 +13,7 @@ interface SidebarProps {
 
 interface NavItem {
   label: string;
-  icon: React.ElementType;
+  module: string;
   path?: string;
   children?: { label: string; path: string }[];
 }
@@ -44,10 +27,10 @@ const navSections: NavSection[] = [
   {
     title: "المحاسبة الأساسية",
     items: [
-      { label: "الرئيسية", icon: Home, path: "/" },
+      { label: "الرئيسية", module: "home", path: "/" },
       {
         label: "المحاسبة",
-        icon: BookOpen,
+        module: "accounting",
         children: [
           { label: "شجرة الحسابات", path: "/accounts" },
           { label: "دفتر اليومية", path: "/transactions" },
@@ -57,7 +40,7 @@ const navSections: NavSection[] = [
       },
       {
         label: "الشيكات",
-        icon: Receipt,
+        module: "cheques",
         children: [
           { label: "شيكات واردة", path: "/cheques?type=incoming" },
           { label: "شيكات صادرة", path: "/cheques?type=outgoing" },
@@ -71,7 +54,7 @@ const navSections: NavSection[] = [
     items: [
       {
         label: "المبيعات",
-        icon: ShoppingCart,
+        module: "sales",
         children: [
           { label: "العملاء", path: "/contacts?type=customer" },
           { label: "الفواتير", path: "/invoices" },
@@ -80,7 +63,7 @@ const navSections: NavSection[] = [
       },
       {
         label: "المشتريات",
-        icon: CreditCard,
+        module: "purchases",
         children: [
           { label: "الموردين", path: "/contacts?type=supplier" },
           { label: "فواتير مشتريات", path: "/bills" },
@@ -89,7 +72,7 @@ const navSections: NavSection[] = [
       },
       {
         label: "المخزون",
-        icon: Package,
+        module: "inventory",
         children: [
           { label: "المنتجات", path: "/inventory" },
           { label: "حركات المخزون", path: "/inventory-movements" },
@@ -101,21 +84,17 @@ const navSections: NavSection[] = [
   {
     title: "الذكاء والتقارير",
     items: [
-      { label: "التقارير", icon: BarChart3, path: "/reports" },
-      { label: "الذكاء المالي", icon: Sparkles, path: "/smart-report" },
+      { label: "التقارير", module: "reports", path: "/reports" },
+      { label: "الذكاء المالي", module: "ai", path: "/smart-report" },
       {
         label: "الموارد البشرية",
-        icon: Briefcase,
+        module: "hr",
         children: [
           { label: "الموظفون", path: "/contacts?type=employee" },
         ],
       },
     ],
   },
-];
-
-const bottomNav: NavItem[] = [
-  { label: "الإعدادات", icon: Settings, path: "/settings" },
 ];
 
 const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarProps) => {
@@ -164,7 +143,7 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
             }
           }}
           className={cn(
-            "w-full flex items-center gap-3 px-3 py-2 rounded-xl text-[13px] font-medium transition-all group",
+            "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all group",
             active || groupActive
               ? "bg-primary/10 text-primary"
               : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
@@ -172,7 +151,11 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
           )}
           title={collapsed ? item.label : undefined}
         >
-          <item.icon className="h-5 w-5 flex-shrink-0" strokeWidth={1.8} />
+          <ModuleIcon
+            module={item.module}
+            size="sm"
+            active={active || !!groupActive}
+          />
           {!collapsed && (
             <>
               <span className="flex-1 text-right truncate">{item.label}</span>
@@ -222,18 +205,14 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
       )}>
         {!collapsed ? (
           <div className="flex items-center gap-3 flex-1">
-            <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center">
-              <span className="text-sm font-bold text-primary-foreground">ع</span>
-            </div>
+            <ModuleIcon module="ai" size="md" active />
             <div className="min-w-0">
               <h1 className="text-[14px] font-bold text-foreground truncate">عبدالله AI</h1>
               <p className="text-[10px] text-muted-foreground leading-none">المحاسبة الذكية</p>
             </div>
           </div>
         ) : (
-          <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center">
-            <span className="text-sm font-bold text-primary-foreground">ع</span>
-          </div>
+          <ModuleIcon module="ai" size="md" active />
         )}
       </div>
 
@@ -256,7 +235,14 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
 
       {/* Bottom */}
       <div className="border-t border-sidebar-border/50 py-3 px-3 space-y-0.5">
-        {bottomNav.map(renderNavItem)}
+        <button
+          onClick={() => handleNavigate("/settings")}
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-all"
+          title={collapsed ? "الإعدادات" : undefined}
+        >
+          <ModuleIcon module="settings" size="sm" />
+          {!collapsed && <span className="flex-1 text-right truncate">الإعدادات</span>}
+        </button>
         <button
           onClick={onToggle}
           className="hidden lg:flex w-full items-center gap-3 px-3 py-2 rounded-xl text-[13px] text-muted-foreground hover:bg-sidebar-accent transition-all"
@@ -304,7 +290,7 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
       <aside
         className={cn(
           "hidden lg:flex flex-col border-l border-sidebar-border/50 bg-sidebar flex-shrink-0 transition-all duration-300",
-          collapsed ? "w-[64px]" : "w-[248px]"
+          collapsed ? "w-[68px]" : "w-[252px]"
         )}
       >
         {sidebarContent}

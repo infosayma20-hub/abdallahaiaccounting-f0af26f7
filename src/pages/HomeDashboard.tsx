@@ -322,20 +322,22 @@ const HomeDashboard = () => {
     <div className="space-y-8 max-w-[1400px] mx-auto animate-fade-in" dir="rtl">
       {user && <CompleteProfileDialog open={showProfileDialog} onClose={() => setShowProfileDialog(false)} user={user} />}
 
-      {/* ═══ WELCOME + CREATE ACTIONS ═══ */}
-      <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">مرحباً {displayName.split(' ')[0]} 👋</h1>
-          <p className="text-sm text-muted-foreground mt-1">إليك نظرة عامة على وضعك المالي</p>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
+      {/* ═══ WELCOME HEADER (QuickBooks-style) ═══ */}
+      <div className="text-center space-y-5">
+        <h1 className="text-3xl font-bold text-foreground">
+          مرحباً {displayName.split(' ')[0]}! 👋
+        </h1>
+
+        {/* Create Actions Strip */}
+        <div className="flex items-center justify-center gap-2 flex-wrap">
+          <span className="text-sm font-medium text-muted-foreground ml-2">إنشاء</span>
           {createActions.map((action) => (
             <button
               key={action.label}
               onClick={() => navigate(action.path)}
-              className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-secondary/60 text-xs font-medium text-foreground hover:bg-secondary transition-colors"
+              className="flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/60 text-[13px] font-medium text-foreground hover:bg-secondary hover:shadow-soft transition-all"
             >
-              <action.icon className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={1.8} />
+              <action.icon className="h-4 w-4 text-muted-foreground" strokeWidth={1.8} />
               {action.label}
             </button>
           ))}
