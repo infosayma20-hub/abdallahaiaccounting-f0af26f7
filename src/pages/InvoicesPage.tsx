@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from "react";
-import { ArrowRight, Loader2, RefreshCw, Plus, FileText, Printer, Download, Search, ShoppingCart, Receipt, Calendar, User, Hash } from "lucide-react";
+import { ArrowRight, Loader2, RefreshCw, Plus, FileText, Printer, Download, Search, ShoppingCart, Receipt, Calendar, User, Hash, Package } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -48,6 +49,7 @@ const InvoicesPage = () => {
 
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterType, setFilterType] = useState<"all" | "sales" | "purchase">("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -55,6 +57,8 @@ const InvoicesPage = () => {
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [creating, setCreating] = useState(false);
+  const [showQuickAdd, setShowQuickAdd] = useState(false);
+  const [quickAddForm, setQuickAddForm] = useState({ name: "", sell_price: 0, buy_price: 0, unit: "قطعة", quantity: 0 });
 
   const [newInvoice, setNewInvoice] = useState({
     type: "sales" as "sales" | "purchase",
@@ -73,8 +77,25 @@ const InvoicesPage = () => {
       setInvoices(JSON.parse(stored));
     }
     fetchContacts();
+    fetchProducts();
     setLoading(false);
   }, [user]);
+
+  const fetchProducts = async () => {
+    if (!user) return;
+    const { data } = await supabase.from("products").select("*").eq("user_id", user.id).order("name");
+    setProducts((data as any[]) || []);
+  };
+
+  const handleQuickAddProduct = async () => {
+    if (!user || !quickAddForm.name.trim()) { toast({ title: "اسم الصنف مطلوب", variant: "destructive" }); return; }
+    const { error } = await supabase.from("products").insert({ ...quickAddForm, user_id: user.id } as any);
+    if (error) { toast({ title: "خطأ في الإضافة", variant: "destructive" }); return; }
+    toast({ title: `تمت إضافة "${quickAddForm.name}" ✅` });
+    setShowQuickAdd(false);
+    setQuickAddForm({ name: "", sell_price: 0, buy_price: 0, unit: "قطعة", quantity: 0 });
+    fetchProducts();
+  };
 
   const saveInvoices = (updated: Invoice[]) => {
     if (!user) return;
@@ -110,12 +131,22 @@ const InvoicesPage = () => {
   };
 
   const updateItem = (index: number, field: keyof InvoiceItem, value: string | number) => {
-    setNewInvoice(prev => ({
-      ...prev,
-      items: prev.items.map((item, i) =>
-        i === index ? { ...item, [field]: value } : item
-      ),
-    }));
+    setNewInvoice(prev => {
+      const newItems = prev.items.map((item, i) => {
+        if (i !== index) return item;
+        const updated = { ...item, [field]: value };
+        // Auto-fill price when selecting a product by name
+        if (field === "description" && typeof value === "string") {
+          const prod = products.find(p => p.name === value);
+          if (prod) {
+            const price = prev.type === "sales" ? Number(prod.sell_price) : Number(prod.buy_price);
+            if (price > 0) updated.unitPrice = price;
+          }
+        }
+        return updated;
+      });
+      return { ...prev, items: newItems };
+    });
   };
 
   const removeItem = (index: number) => {
@@ -405,16 +436,46 @@ const InvoicesPage = () => {
             <div>
               <div className="flex items-center justify-between mb-2">
                 <label className="text-xs font-semibold text-foreground">بنود الفاتورة</label>
-                <Button variant="ghost" size="sm" className="text-xs gap-1 h-7" onClick={addItem}>
-                  <Plus className="h-3 w-3" /> إضافة بند
-                </Button>
+                <div className="flex gap-1">
+                  <Button variant="ghost" size="sm" className="text-xs gap-1 h-7 text-primary" onClick={() => setShowQuickAdd(true)}>
+                    <Package className="h-3 w-3" /> إضافة صنف جديد
+                  </Button>
+                  <Button variant="ghost" size="sm" className="text-xs gap-1 h-7" onClick={addItem}>
+                    <Plus className="h-3 w-3" /> إضافة بند
+                  </Button>
+                </div>
               </div>
               <div className="space-y-2">
                 {newInvoice.items.map((item, idx) => (
                   <div key={idx} className="grid grid-cols-12 gap-2 items-end">
                     <div className="col-span-5">
-                      {idx === 0 && <label className="text-[10px] text-muted-foreground block mb-1">الوصف</label>}
-                      <Input placeholder="وصف البند" value={item.description} onChange={e => updateItem(idx, "description", e.target.value)} className="rounded-lg text-xs" />
+                      {idx === 0 && <label className="text-[10px] text-muted-foreground block mb-1">الصنف / الوصف</label>}
+                      <div className="relative">
+                        <Input
+                          placeholder="اختر صنف أو اكتب وصف..."
+                          value={item.description}
+                          onChange={e => updateItem(idx, "description", e.target.value)}
+                          className="rounded-lg text-xs"
+                          list={`products-list-${idx}`}
+                          onBlur={() => {
+                            // Auto-fill price from product
+                            const prod = products.find(p => p.name === item.description);
+                            if (prod) {
+                              const price = newInvoice.type === "sales" ? Number(prod.sell_price) : Number(prod.buy_price);
+                              if (price > 0 && item.unitPrice === 0) {
+                                updateItem(idx, "unitPrice", price);
+                              }
+                            }
+                          }}
+                        />
+                        <datalist id={`products-list-${idx}`}>
+                          {products.map(p => (
+                            <option key={p.id} value={p.name}>
+                              {newInvoice.type === "sales" ? `سعر البيع: ${Number(p.sell_price).toLocaleString()}` : `سعر الشراء: ${Number(p.buy_price).toLocaleString()}`} • المتوفر: {p.quantity} {p.unit}
+                            </option>
+                          ))}
+                        </datalist>
+                      </div>
                     </div>
                     <div className="col-span-2">
                       {idx === 0 && <label className="text-[10px] text-muted-foreground block mb-1">الكمية</label>}
@@ -450,6 +511,30 @@ const InvoicesPage = () => {
               {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : "إنشاء الفاتورة"}
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Quick Add Product Dialog */}
+      <Dialog open={showQuickAdd} onOpenChange={setShowQuickAdd}>
+        <DialogContent dir="rtl" className="max-w-sm">
+          <DialogHeader><DialogTitle>إضافة صنف جديد</DialogTitle><DialogDescription>أضف صنف سريعاً واستخدمه في الفاتورة</DialogDescription></DialogHeader>
+          <div className="space-y-3">
+            <div><label className="text-xs text-muted-foreground">اسم الصنف *</label><Input value={quickAddForm.name} onChange={e => setQuickAddForm({ ...quickAddForm, name: e.target.value })} className="rounded-xl" /></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><label className="text-xs text-muted-foreground">سعر البيع</label><Input type="number" value={quickAddForm.sell_price} onChange={e => setQuickAddForm({ ...quickAddForm, sell_price: Number(e.target.value) })} className="rounded-xl" dir="ltr" /></div>
+              <div><label className="text-xs text-muted-foreground">سعر الشراء</label><Input type="number" value={quickAddForm.buy_price} onChange={e => setQuickAddForm({ ...quickAddForm, buy_price: Number(e.target.value) })} className="rounded-xl" dir="ltr" /></div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><label className="text-xs text-muted-foreground">الوحدة</label>
+                <Select value={quickAddForm.unit} onValueChange={v => setQuickAddForm({ ...quickAddForm, unit: v })}>
+                  <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
+                  <SelectContent>{["قطعة", "كغ", "طن", "متر", "لتر", "علبة", "كرتون", "حبة"].map(u => <SelectItem key={u} value={u}>{u}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div><label className="text-xs text-muted-foreground">الكمية المبدئية</label><Input type="number" value={quickAddForm.quantity} onChange={e => setQuickAddForm({ ...quickAddForm, quantity: Number(e.target.value) })} className="rounded-xl" dir="ltr" /></div>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 mt-3"><Button variant="outline" onClick={() => setShowQuickAdd(false)}>إلغاء</Button><Button onClick={handleQuickAddProduct}>إضافة الصنف</Button></div>
         </DialogContent>
       </Dialog>
 
