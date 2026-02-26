@@ -39,6 +39,7 @@ import EmployeeAttendancePage from "./pages/EmployeeAttendancePage";
 import HRAttendancePage from "./pages/HRAttendancePage";
 import BranchDisplayPage from "./pages/BranchDisplayPage";
 import EmployeeApp from "./pages/EmployeeApp";
+import RoleGuard from "./components/RoleGuard";
 
 const queryClient = new QueryClient();
 
@@ -70,7 +71,7 @@ const App = () => (
               <Route path="/terms" element={<TermsPage />} />
               <Route path="/privacy" element={<PrivacyPage />} />
               <Route path="/branch-display/:branchId" element={<BranchDisplayPage />} />
-              <Route path="/employee" element={<ProtectedRoute><EmployeeApp /></ProtectedRoute>} />
+              <Route path="/employee" element={<ProtectedRoute><RoleGuard allowedRoles={["employee"]} fallback="/auth"><EmployeeApp /></RoleGuard></ProtectedRoute>} />
               <Route path="/*" element={
                 <ProtectedRoute>
                   <WebLayout>
@@ -99,11 +100,11 @@ const App = () => (
                       <Route path="/payments" element={<TransactionsPage />} />
                       <Route path="/inventory-movements" element={<StockMovementsPage />} />
                       <Route path="/inventory-valuation" element={<InventoryValuationPage />} />
-                      <Route path="/employees" element={<EmployeesPage />} />
+                      <Route path="/employees" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><EmployeesPage /></RoleGuard>} />
                       <Route path="/sales-reps" element={<SalesRepresentativesPage />} />
                       <Route path="/orders" element={<OrdersPage />} />
                       <Route path="/my-attendance" element={<EmployeeAttendancePage />} />
-                      <Route path="/hr-attendance" element={<HRAttendancePage />} />
+                      <Route path="/hr-attendance" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><HRAttendancePage /></RoleGuard>} />
                       <Route path="*" element={<NotFound />} />
                     </Routes>
                   </WebLayout>
