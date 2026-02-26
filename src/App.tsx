@@ -38,6 +38,7 @@ import LoadingScreen from "./components/LoadingScreen";
 import EmployeeAttendancePage from "./pages/EmployeeAttendancePage";
 import HRAttendancePage from "./pages/HRAttendancePage";
 import BranchDisplayPage from "./pages/BranchDisplayPage";
+import EmployeeApp from "./pages/EmployeeApp";
 
 const queryClient = new QueryClient();
 
@@ -69,6 +70,7 @@ const App = () => (
               <Route path="/terms" element={<TermsPage />} />
               <Route path="/privacy" element={<PrivacyPage />} />
               <Route path="/branch-display/:branchId" element={<BranchDisplayPage />} />
+              <Route path="/employee" element={<ProtectedRoute><EmployeeApp /></ProtectedRoute>} />
               <Route path="/*" element={
                 <ProtectedRoute>
                   <WebLayout>
