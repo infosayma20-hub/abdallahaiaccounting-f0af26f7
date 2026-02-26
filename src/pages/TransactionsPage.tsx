@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { ArrowRight, Loader2, RefreshCw, Pencil, Trash2, CheckSquare, X, RotateCcw, Archive, Search, Filter } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -75,6 +76,7 @@ const transactionTypes = [
 
 const TransactionsPage = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
   const { toast } = useToast();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -102,8 +104,8 @@ const TransactionsPage = () => {
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
 
-  // Search & filter state
-  const [searchQuery, setSearchQuery] = useState("");
+  // Search & filter state - initialize from URL
+  const [searchQuery, setSearchQuery] = useState(searchParams.get("search") || "");
   const [typeFilter, setTypeFilter] = useState("all");
 
   // Trash view state

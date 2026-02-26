@@ -191,8 +191,12 @@ const GlobalSearchBar = ({ collapsed, onToggle }: { collapsed: boolean; onToggle
 
   const handleSelect = (result: SearchResult) => {
     setShowResults(false);
+    const searchTerm = result.title;
     setQuery("");
-    if (result.path) navigate(result.path);
+    if (result.path) {
+      const separator = result.path.includes("?") ? "&" : "?";
+      navigate(`${result.path}${separator}search=${encodeURIComponent(searchTerm)}`);
+    }
   };
 
   if (collapsed) {
