@@ -162,32 +162,22 @@ export default function EmployeeAttendancePage() {
         return;
       }
 
-      const { data, error } = await supabase.functions.invoke("attendance", {
-        body: {
-          branch_id: branchId,
-          qr_token: token,
-          latitude: lat,
-          longitude: lng,
-          device_info: navigator.userAgent.substring(0, 100),
-        },
-        headers: { "x-action": pendingAction === "checkin" ? "checkin" : "checkout" },
-      });
-
-      // The edge function uses URL path, so we need to construct the URL manually
-      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
       const endpoint = pendingAction === "checkin" ? "checkin" : "checkout";
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
       const session = await supabase.auth.getSession();
       const accessToken = session.data.session?.access_token;
 
       const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/attendance/${endpoint}`,
+        `https://${projectId}.supabase.co/functions/v1/attendance`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${accessToken}`,
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
           body: JSON.stringify({
+            action: endpoint,
             branch_id: branchId,
             qr_token: token,
             latitude: lat,
@@ -203,6 +193,7 @@ export default function EmployeeAttendancePage() {
       } else {
         toast({ title: "نجاح ✅", description: result.message });
         setShowQRDialog(false);
+        setQrInput("");
         fetchData();
       }
     } catch (e: any) {
