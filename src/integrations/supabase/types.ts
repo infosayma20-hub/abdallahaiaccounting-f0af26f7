@@ -109,6 +109,349 @@ export type Database = {
         }
         Relationships: []
       }
+      employee_allowances: {
+        Row: {
+          allowance_name: string
+          allowance_type: string
+          amount: number
+          created_at: string
+          employee_id: string
+          id: string
+          is_active: boolean
+          notes: string | null
+          percentage: number | null
+          user_id: string
+        }
+        Insert: {
+          allowance_name: string
+          allowance_type?: string
+          amount?: number
+          created_at?: string
+          employee_id: string
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          percentage?: number | null
+          user_id: string
+        }
+        Update: {
+          allowance_name?: string
+          allowance_type?: string
+          amount?: number
+          created_at?: string
+          employee_id?: string
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          percentage?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_allowances_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_attendance: {
+        Row: {
+          attendance_date: string
+          check_in: string | null
+          check_out: string | null
+          created_at: string
+          employee_id: string
+          hours_worked: number | null
+          id: string
+          notes: string | null
+          overtime_hours: number | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          attendance_date?: string
+          check_in?: string | null
+          check_out?: string | null
+          created_at?: string
+          employee_id: string
+          hours_worked?: number | null
+          id?: string
+          notes?: string | null
+          overtime_hours?: number | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          attendance_date?: string
+          check_in?: string | null
+          check_out?: string | null
+          created_at?: string
+          employee_id?: string
+          hours_worked?: number | null
+          id?: string
+          notes?: string | null
+          overtime_hours?: number | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_attendance_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_deductions: {
+        Row: {
+          amount: number
+          created_at: string
+          deduction_date: string
+          deduction_type: string
+          description: string | null
+          employee_id: string
+          id: string
+          is_repaid: boolean
+          notes: string | null
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          deduction_date?: string
+          deduction_type: string
+          description?: string | null
+          employee_id: string
+          id?: string
+          is_repaid?: boolean
+          notes?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          deduction_date?: string
+          deduction_type?: string
+          description?: string | null
+          employee_id?: string
+          id?: string
+          is_repaid?: boolean
+          notes?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_deductions_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_leaves: {
+        Row: {
+          created_at: string
+          days_count: number
+          employee_id: string
+          end_date: string
+          id: string
+          leave_type: string
+          notes: string | null
+          start_date: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          days_count?: number
+          employee_id: string
+          end_date: string
+          id?: string
+          leave_type: string
+          notes?: string | null
+          start_date: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          days_count?: number
+          employee_id?: string
+          end_date?: string
+          id?: string
+          leave_type?: string
+          notes?: string | null
+          start_date?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_leaves_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_payroll: {
+        Row: {
+          base_salary: number
+          created_at: string
+          employee_id: string
+          id: string
+          is_paid: boolean
+          net_salary: number
+          notes: string | null
+          paid_date: string | null
+          period_month: number
+          period_year: number
+          total_allowances: number
+          total_deductions: number
+          total_overtime: number
+          user_id: string
+        }
+        Insert: {
+          base_salary?: number
+          created_at?: string
+          employee_id: string
+          id?: string
+          is_paid?: boolean
+          net_salary?: number
+          notes?: string | null
+          paid_date?: string | null
+          period_month: number
+          period_year: number
+          total_allowances?: number
+          total_deductions?: number
+          total_overtime?: number
+          user_id: string
+        }
+        Update: {
+          base_salary?: number
+          created_at?: string
+          employee_id?: string
+          id?: string
+          is_paid?: boolean
+          net_salary?: number
+          notes?: string | null
+          paid_date?: string | null
+          period_month?: number
+          period_year?: number
+          total_allowances?: number
+          total_deductions?: number
+          total_overtime?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_payroll_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employees: {
+        Row: {
+          address: string | null
+          annual_leave_days: number
+          bank_account: string | null
+          bank_name: string | null
+          base_salary: number
+          created_at: string
+          department: string | null
+          email: string | null
+          emergency_contact: string | null
+          emergency_phone: string | null
+          end_date: string | null
+          full_name: string
+          hourly_rate: number
+          id: string
+          id_number: string | null
+          is_active: boolean
+          job_title: string | null
+          notes: string | null
+          phone: string | null
+          photo_url: string | null
+          position: string | null
+          salary_type: string
+          sick_leave_days: number
+          start_date: string
+          updated_at: string
+          user_id: string
+          work_days_per_week: number
+          work_hours_per_day: number
+        }
+        Insert: {
+          address?: string | null
+          annual_leave_days?: number
+          bank_account?: string | null
+          bank_name?: string | null
+          base_salary?: number
+          created_at?: string
+          department?: string | null
+          email?: string | null
+          emergency_contact?: string | null
+          emergency_phone?: string | null
+          end_date?: string | null
+          full_name: string
+          hourly_rate?: number
+          id?: string
+          id_number?: string | null
+          is_active?: boolean
+          job_title?: string | null
+          notes?: string | null
+          phone?: string | null
+          photo_url?: string | null
+          position?: string | null
+          salary_type?: string
+          sick_leave_days?: number
+          start_date?: string
+          updated_at?: string
+          user_id: string
+          work_days_per_week?: number
+          work_hours_per_day?: number
+        }
+        Update: {
+          address?: string | null
+          annual_leave_days?: number
+          bank_account?: string | null
+          bank_name?: string | null
+          base_salary?: number
+          created_at?: string
+          department?: string | null
+          email?: string | null
+          emergency_contact?: string | null
+          emergency_phone?: string | null
+          end_date?: string | null
+          full_name?: string
+          hourly_rate?: number
+          id?: string
+          id_number?: string | null
+          is_active?: boolean
+          job_title?: string | null
+          notes?: string | null
+          phone?: string | null
+          photo_url?: string | null
+          position?: string | null
+          salary_type?: string
+          sick_leave_days?: number
+          start_date?: string
+          updated_at?: string
+          user_id?: string
+          work_days_per_week?: number
+          work_hours_per_day?: number
+        }
+        Relationships: []
+      }
       passkey_credentials: {
         Row: {
           counter: number
