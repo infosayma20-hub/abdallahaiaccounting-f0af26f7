@@ -1,12 +1,13 @@
-import { useState, useEffect, useRef } from "react";
-import { ArrowRight, Loader2, RefreshCw, Plus, FileText, Printer, Download, Search, ShoppingCart, Receipt, Calendar, User, Hash, Package } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { useState, useEffect, useRef, useMemo } from "react";
+import { ArrowRight, Loader2, Plus, FileText, Printer, Search, ShoppingCart, Receipt, Package, Trash2, Save, Eye, AlertTriangle, CreditCard, Building2, Banknote, Clock, ChevronDown, X } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -23,9 +24,14 @@ interface Contact {
 }
 
 interface InvoiceItem {
+  id: string;
+  productId?: string;
   description: string;
   quantity: number;
   unitPrice: number;
+  discount: number;
+  taxRate: number;
+  subtotal: number;
 }
 
 interface Invoice {
@@ -33,13 +39,32 @@ interface Invoice {
   type: "sales" | "purchase";
   invoiceNumber: string;
   date: string;
+  dueDate?: string;
   contactName: string;
   items: InvoiceItem[];
   notes: string;
   status: "draft" | "sent" | "paid";
+  paymentMethod: "cash" | "transfer" | "cheque" | "credit";
+  subtotal: number;
+  totalDiscount: number;
+  totalTax: number;
   total: number;
+  paidAmount: number;
+  remainingAmount: number;
   currency: string;
+  chequeDetails?: { number: string; bank: string; dueDate: string };
+  transferDetails?: { reference: string; bank: string };
 }
+
+const createEmptyItem = (): InvoiceItem => ({
+  id: crypto.randomUUID(),
+  description: "",
+  quantity: 1,
+  unitPrice: 0,
+  discount: 0,
+  taxRate: 0,
+  subtotal: 0,
+});
 
 const InvoicesPage = () => {
   const navigate = useNavigate();
@@ -53,29 +78,37 @@ const InvoicesPage = () => {
   const [loading, setLoading] = useState(true);
   const [filterType, setFilterType] = useState<"all" | "sales" | "purchase">("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showCreatePage, setShowCreatePage] = useState(false);
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [creating, setCreating] = useState(false);
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [quickAddForm, setQuickAddForm] = useState({ name: "", sell_price: 0, buy_price: 0, unit: "قطعة", quantity: 0 });
+  const [contactSearch, setContactSearch] = useState("");
+  const [showContactDropdown, setShowContactDropdown] = useState(false);
+  const [contactDebtWarning, setContactDebtWarning] = useState<string | null>(null);
+  const [showPDFPreview, setShowPDFPreview] = useState(false);
 
-  const [newInvoice, setNewInvoice] = useState({
+  const [form, setForm] = useState({
     type: "sales" as "sales" | "purchase",
     contactName: "",
     date: new Date().toISOString().split("T")[0],
-    notes: "",
+    dueDate: "",
+    paymentMethod: "cash" as "cash" | "transfer" | "cheque" | "credit",
     currency: "شيكل",
-    items: [{ description: "", quantity: 1, unitPrice: 0 }] as InvoiceItem[],
+    notes: "",
+    items: [createEmptyItem()] as InvoiceItem[],
+    chequeNumber: "",
+    chequeBank: "",
+    chequeDueDate: "",
+    transferRef: "",
+    transferBank: "",
   });
 
-  // Load invoices from localStorage (simple approach without extra DB)
   useEffect(() => {
     if (!user) return;
     const stored = localStorage.getItem(`invoices_${user.id}`);
-    if (stored) {
-      setInvoices(JSON.parse(stored));
-    }
+    if (stored) setInvoices(JSON.parse(stored));
     fetchContacts();
     fetchProducts();
     setLoading(false);
@@ -85,22 +118,6 @@ const InvoicesPage = () => {
     if (!user) return;
     const { data } = await supabase.from("products").select("*").eq("user_id", user.id).order("name");
     setProducts((data as any[]) || []);
-  };
-
-  const handleQuickAddProduct = async () => {
-    if (!user || !quickAddForm.name.trim()) { toast({ title: "اسم الصنف مطلوب", variant: "destructive" }); return; }
-    const { error } = await supabase.from("products").insert({ ...quickAddForm, user_id: user.id } as any);
-    if (error) { toast({ title: "خطأ في الإضافة", variant: "destructive" }); return; }
-    toast({ title: `تمت إضافة "${quickAddForm.name}" ✅` });
-    setShowQuickAdd(false);
-    setQuickAddForm({ name: "", sell_price: 0, buy_price: 0, unit: "قطعة", quantity: 0 });
-    fetchProducts();
-  };
-
-  const saveInvoices = (updated: Invoice[]) => {
-    if (!user) return;
-    setInvoices(updated);
-    localStorage.setItem(`invoices_${user.id}`, JSON.stringify(updated));
   };
 
   const fetchContacts = async () => {
@@ -117,120 +134,263 @@ const InvoicesPage = () => {
     }
   };
 
+  const saveInvoices = (updated: Invoice[]) => {
+    if (!user) return;
+    setInvoices(updated);
+    localStorage.setItem(`invoices_${user.id}`, JSON.stringify(updated));
+  };
+
   const generateInvoiceNumber = (type: "sales" | "purchase") => {
     const prefix = type === "sales" ? "INV" : "PO";
     const num = invoices.filter(i => i.type === type).length + 1;
     return `${prefix}-${String(num).padStart(4, "0")}`;
   };
 
-  const addItem = () => {
-    setNewInvoice(prev => ({
-      ...prev,
-      items: [...prev.items, { description: "", quantity: 1, unitPrice: 0 }],
-    }));
+  // Calculate item subtotal
+  const calcItemSubtotal = (item: InvoiceItem) => {
+    const base = item.quantity * item.unitPrice;
+    const afterDiscount = base - item.discount;
+    const tax = afterDiscount * (item.taxRate / 100);
+    return afterDiscount + tax;
   };
 
-  const updateItem = (index: number, field: keyof InvoiceItem, value: string | number) => {
-    setNewInvoice(prev => {
-      const newItems = prev.items.map((item, i) => {
-        if (i !== index) return item;
+  // Summary calculations
+  const summary = useMemo(() => {
+    const subtotal = form.items.reduce((s, i) => s + i.quantity * i.unitPrice, 0);
+    const totalDiscount = form.items.reduce((s, i) => s + i.discount, 0);
+    const afterDiscount = subtotal - totalDiscount;
+    const totalTax = form.items.reduce((s, i) => {
+      const base = i.quantity * i.unitPrice - i.discount;
+      return s + base * (i.taxRate / 100);
+    }, 0);
+    const total = afterDiscount + totalTax;
+    const paidAmount = form.paymentMethod === "credit" ? 0 : total;
+    const remainingAmount = total - paidAmount;
+    return { subtotal, totalDiscount, totalTax, total, paidAmount, remainingAmount };
+  }, [form.items, form.paymentMethod]);
+
+  const updateItem = (id: string, field: keyof InvoiceItem, value: any) => {
+    setForm(prev => ({
+      ...prev,
+      items: prev.items.map(item => {
+        if (item.id !== id) return item;
         const updated = { ...item, [field]: value };
-        // Auto-fill price when selecting a product by name
         if (field === "description" && typeof value === "string") {
           const prod = products.find(p => p.name === value);
           if (prod) {
+            updated.productId = prod.id;
             const price = prev.type === "sales" ? Number(prod.sell_price) : Number(prod.buy_price);
             if (price > 0) updated.unitPrice = price;
           }
         }
+        updated.subtotal = calcItemSubtotal(updated);
         return updated;
-      });
-      return { ...prev, items: newItems };
-    });
-  };
-
-  const removeItem = (index: number) => {
-    if (newInvoice.items.length <= 1) return;
-    setNewInvoice(prev => ({
-      ...prev,
-      items: prev.items.filter((_, i) => i !== index),
+      }),
     }));
   };
 
-  const itemsTotal = newInvoice.items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
+  const addItem = () => setForm(prev => ({ ...prev, items: [...prev.items, createEmptyItem()] }));
 
-  const isNewContact = newInvoice.contactName.trim() !== "" && !contacts.some(
-    c => (c.fields["Contact Name"] || "").trim() === newInvoice.contactName.trim()
+  const removeItem = (id: string) => {
+    if (form.items.length <= 1) return;
+    setForm(prev => ({ ...prev, items: prev.items.filter(i => i.id !== id) }));
+  };
+
+  const filteredContacts = contacts.filter(c =>
+    (c.fields["Contact Name"] || "").includes(contactSearch)
+  );
+
+  const selectContact = (name: string) => {
+    setForm(prev => ({ ...prev, contactName: name }));
+    setContactSearch(name);
+    setShowContactDropdown(false);
+    // Check debt
+    checkContactDebt(name);
+  };
+
+  const checkContactDebt = async (name: string) => {
+    if (!user) return;
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-contact-transactions?clientId=${user.id}&contactName=${encodeURIComponent(name)}`,
+        { headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` } }
+      );
+      const data = await res.json();
+      const balance = data?.balance || 0;
+      if (balance > 0) {
+        setContactDebtWarning(`⚠️ هذا العميل عليه رصيد مستحق: ₪${balance.toLocaleString()}`);
+      } else {
+        setContactDebtWarning(null);
+      }
+    } catch {
+      setContactDebtWarning(null);
+    }
+  };
+
+  const handleQuickAddProduct = async () => {
+    if (!user || !quickAddForm.name.trim()) { toast({ title: "اسم الصنف مطلوب", variant: "destructive" }); return; }
+    const { error } = await supabase.from("products").insert({ ...quickAddForm, user_id: user.id } as any);
+    if (error) { toast({ title: "خطأ في الإضافة", variant: "destructive" }); return; }
+    toast({ title: `تمت إضافة "${quickAddForm.name}" ✅` });
+    setShowQuickAdd(false);
+    setQuickAddForm({ name: "", sell_price: 0, buy_price: 0, unit: "قطعة", quantity: 0 });
+    fetchProducts();
+  };
+
+  const isNewContact = form.contactName.trim() !== "" && !contacts.some(
+    c => (c.fields["Contact Name"] || "").trim() === form.contactName.trim()
   );
 
   const createContactInAirtable = async (name: string) => {
     if (!user) return;
     try {
-      const res = await fetch(
+      await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-contacts?clientId=${user.id}`,
         {
           method: "POST",
-          headers: {
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            contactName: name,
-            contactType: newInvoice.type === "sales" ? "عميل" : "مورد",
-          }),
+          headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ contactName: name, contactType: form.type === "sales" ? "عميل" : "مورد" }),
         }
       );
-      if (res.ok) {
-        fetchContacts();
-      }
-    } catch (err) {
-      console.error("Error creating contact:", err);
+      fetchContacts();
+    } catch (err) { console.error(err); }
+  };
+
+  // Inventory update
+  const updateInventory = async (items: InvoiceItem[], type: "sales" | "purchase") => {
+    if (!user) return;
+    for (const item of items) {
+      if (!item.productId) continue;
+      const prod = products.find(p => p.id === item.productId);
+      if (!prod) continue;
+
+      const newQty = type === "sales"
+        ? Number(prod.quantity) - item.quantity
+        : Number(prod.quantity) + item.quantity;
+
+      await supabase.from("products").update({ quantity: newQty } as any).eq("id", item.productId);
+
+      // Record stock movement
+      await supabase.from("stock_movements").insert({
+        product_id: item.productId,
+        quantity: item.quantity,
+        movement_type: type === "sales" ? "صادر" : "وارد",
+        reference_note: `فاتورة ${type === "sales" ? "مبيعات" : "مشتريات"}`,
+        user_id: user.id,
+      } as any);
     }
   };
 
-  const handleCreate = async () => {
-    if (!newInvoice.contactName.trim()) {
+  // Cheque creation
+  const createCheque = async (invoice: Invoice) => {
+    if (!user || form.paymentMethod !== "cheque") return;
+    await supabase.from("cheques").insert({
+      user_id: user.id,
+      cheque_type: form.type === "sales" ? "وارد" : "صادر",
+      party_name: form.contactName,
+      party_type: form.type === "sales" ? "عميل" : "مورد",
+      amount: invoice.total,
+      cheque_date: form.chequeDueDate || form.date,
+      cheque_number: form.chequeNumber || null,
+      bank_name: form.chequeBank || null,
+      currency: form.currency,
+      status: "مسجل",
+      notes: `مرتبط بفاتورة ${invoice.invoiceNumber}`,
+    } as any);
+  };
+
+  const validate = (): boolean => {
+    if (!form.contactName.trim()) {
       toast({ title: "يرجى اختيار جهة الاتصال", variant: "destructive" });
-      return;
+      return false;
     }
-    if (newInvoice.items.some(i => !i.description.trim() || i.unitPrice <= 0)) {
-      toast({ title: "يرجى تعبئة جميع البنود بشكل صحيح", variant: "destructive" });
-      return;
+    if (form.items.some(i => !i.description.trim())) {
+      toast({ title: "يرجى تعبئة وصف جميع البنود", variant: "destructive" });
+      return false;
     }
+    if (form.items.some(i => i.unitPrice <= 0)) {
+      toast({ title: "لا يمكن إنشاء فاتورة ببند سعره 0", variant: "destructive" });
+      return false;
+    }
+    if (form.items.some(i => i.quantity <= 0)) {
+      toast({ title: "الكمية يجب أن تكون أكبر من 0", variant: "destructive" });
+      return false;
+    }
+    if (summary.total <= 0) {
+      toast({ title: "إجمالي الفاتورة يجب أن يكون أكبر من 0", variant: "destructive" });
+      return false;
+    }
+    // Check stock availability for sales
+    if (form.type === "sales") {
+      for (const item of form.items) {
+        if (!item.productId) continue;
+        const prod = products.find(p => p.id === item.productId);
+        if (prod && item.quantity > Number(prod.quantity)) {
+          toast({ title: `الكمية المطلوبة من "${item.description}" (${item.quantity}) أكبر من المتوفر (${prod.quantity})`, variant: "destructive" });
+          return false;
+        }
+      }
+    }
+    if (form.paymentMethod === "credit" && !form.dueDate) {
+      toast({ title: "يرجى تحديد تاريخ الاستحقاق للدفع الآجل", variant: "destructive" });
+      return false;
+    }
+    return true;
+  };
 
+  const handleCreate = async (asDraft = false) => {
+    if (!asDraft && !validate()) return;
+    if (asDraft && !form.contactName.trim() && form.items.every(i => !i.description.trim())) {
+      toast({ title: "الفاتورة فارغة", variant: "destructive" });
+      return;
+    }
     setCreating(true);
-
-    // Auto-create contact if new
-    if (isNewContact) {
-      await createContactInAirtable(newInvoice.contactName.trim());
-    }
+    if (isNewContact) await createContactInAirtable(form.contactName.trim());
 
     const invoice: Invoice = {
       id: crypto.randomUUID(),
-      type: newInvoice.type,
-      invoiceNumber: generateInvoiceNumber(newInvoice.type),
-      date: newInvoice.date,
-      contactName: newInvoice.contactName,
-      items: newInvoice.items,
-      notes: newInvoice.notes,
-      status: "draft",
-      total: itemsTotal,
-      currency: newInvoice.currency,
+      type: form.type,
+      invoiceNumber: generateInvoiceNumber(form.type),
+      date: form.date,
+      dueDate: form.paymentMethod === "credit" ? form.dueDate : undefined,
+      contactName: form.contactName,
+      items: form.items,
+      notes: form.notes,
+      status: asDraft ? "draft" : "sent",
+      paymentMethod: form.paymentMethod,
+      subtotal: summary.subtotal,
+      totalDiscount: summary.totalDiscount,
+      totalTax: summary.totalTax,
+      total: summary.total,
+      paidAmount: summary.paidAmount,
+      remainingAmount: summary.remainingAmount,
+      currency: form.currency,
+      chequeDetails: form.paymentMethod === "cheque" ? { number: form.chequeNumber, bank: form.chequeBank, dueDate: form.chequeDueDate } : undefined,
+      transferDetails: form.paymentMethod === "transfer" ? { reference: form.transferRef, bank: form.transferBank } : undefined,
     };
 
-    const updated = [invoice, ...invoices];
-    saveInvoices(updated);
-    toast({ title: `تم إنشاء ${newInvoice.type === "sales" ? "فاتورة مبيعات" : "فاتورة مشتريات"} بنجاح ✅${isNewContact ? " وتم إضافة جهة الاتصال الجديدة" : ""}` });
-    setShowCreateDialog(false);
+    if (!asDraft) {
+      await updateInventory(form.items, form.type);
+      if (form.paymentMethod === "cheque") await createCheque(invoice);
+    }
+
+    saveInvoices([invoice, ...invoices]);
+    toast({ title: asDraft ? "تم حفظ المسودة ✅" : `تم إنشاء الفاتورة بنجاح ✅` });
+    setShowCreatePage(false);
     setCreating(false);
-    setNewInvoice({
-      type: "sales",
-      contactName: "",
-      date: new Date().toISOString().split("T")[0],
-      notes: "",
-      currency: "شيكل",
-      items: [{ description: "", quantity: 1, unitPrice: 0 }],
+    resetForm();
+  };
+
+  const resetForm = () => {
+    setForm({
+      type: "sales", contactName: "", date: new Date().toISOString().split("T")[0],
+      dueDate: "", paymentMethod: "cash", currency: "شيكل", notes: "",
+      items: [createEmptyItem()],
+      chequeNumber: "", chequeBank: "", chequeDueDate: "",
+      transferRef: "", transferBank: "",
     });
+    setContactSearch("");
+    setContactDebtWarning(null);
   };
 
   const handlePrint = () => {
@@ -238,32 +398,22 @@ const InvoicesPage = () => {
     const printContent = printRef.current.innerHTML;
     const win = window.open("", "_blank");
     if (!win) return;
-    win.document.write(`
-      <html dir="rtl">
-        <head>
-          <title>فاتورة ${selectedInvoice?.invoiceNumber}</title>
-          <style>
-            * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'IBM Plex Sans Arabic', 'Segoe UI', sans-serif; }
-            body { padding: 30px; color: #1a1a2e; }
-            .invoice-header { display: flex; justify-content: space-between; align-items: start; margin-bottom: 30px; border-bottom: 3px solid #2d8a5e; padding-bottom: 20px; }
-            .invoice-title { font-size: 28px; font-weight: 700; color: #2d8a5e; }
-            .invoice-meta { text-align: left; font-size: 13px; color: #555; }
-            .invoice-meta span { display: block; margin-bottom: 4px; }
-            .section { margin-bottom: 20px; }
-            .section-title { font-size: 14px; font-weight: 600; color: #2d8a5e; margin-bottom: 8px; }
-            table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-            th { background: #f0faf5; color: #2d8a5e; padding: 10px 12px; text-align: right; font-size: 13px; border-bottom: 2px solid #2d8a5e; }
-            td { padding: 10px 12px; text-align: right; font-size: 13px; border-bottom: 1px solid #e8e8e8; }
-            .total-row { background: #f0faf5; font-weight: 700; font-size: 15px; }
-            .total-row td { border-top: 2px solid #2d8a5e; }
-            .notes { background: #f9f9f9; padding: 12px; border-radius: 8px; font-size: 12px; color: #666; }
-            .footer { text-align: center; margin-top: 40px; font-size: 11px; color: #999; border-top: 1px solid #e8e8e8; padding-top: 15px; }
-            @media print { body { padding: 15px; } }
-          </style>
-        </head>
-        <body>${printContent}</body>
-      </html>
-    `);
+    win.document.write(`<html dir="rtl"><head><title>فاتورة ${selectedInvoice?.invoiceNumber}</title><style>
+      * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'IBM Plex Sans Arabic', sans-serif; }
+      body { padding: 30px; color: #1a1a2e; }
+      .inv-header { display: flex; justify-content: space-between; align-items: start; margin-bottom: 24px; border-bottom: 3px solid #2d8a5e; padding-bottom: 16px; }
+      .inv-title { font-size: 24px; font-weight: 700; color: #2d8a5e; }
+      .inv-meta { text-align: left; font-size: 12px; color: #555; }
+      .inv-meta span { display: block; margin-bottom: 3px; }
+      table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
+      th { background: #f0faf5; color: #2d8a5e; padding: 8px 10px; text-align: right; font-size: 12px; border-bottom: 2px solid #2d8a5e; }
+      td { padding: 8px 10px; text-align: right; font-size: 12px; border-bottom: 1px solid #e8e8e8; }
+      .summary-row { font-weight: 600; }
+      .total-final { font-size: 18px; font-weight: 700; color: #2d8a5e; }
+      .notes { background: #f9f9f9; padding: 10px; border-radius: 6px; font-size: 11px; color: #666; margin-top: 12px; }
+      .footer { text-align: center; margin-top: 30px; font-size: 10px; color: #999; border-top: 1px solid #e8e8e8; padding-top: 12px; }
+      @media print { body { padding: 15px; } }
+    </style></head><body>${printContent}</body></html>`);
     win.document.close();
     win.print();
   };
@@ -271,9 +421,7 @@ const InvoicesPage = () => {
   const updateStatus = (id: string, status: Invoice["status"]) => {
     const updated = invoices.map(inv => inv.id === id ? { ...inv, status } : inv);
     saveInvoices(updated);
-    if (selectedInvoice?.id === id) {
-      setSelectedInvoice({ ...selectedInvoice, status });
-    }
+    if (selectedInvoice?.id === id) setSelectedInvoice({ ...selectedInvoice, status });
     toast({ title: "تم تحديث الحالة ✅" });
   };
 
@@ -292,6 +440,429 @@ const InvoicesPage = () => {
     paid: { label: "مدفوعة", color: "bg-success/20 text-success" },
   };
 
+  const paymentLabels: Record<string, string> = {
+    cash: "نقداً",
+    transfer: "تحويل بنكي",
+    cheque: "شيك",
+    credit: "آجل",
+  };
+
+  // ─── CREATE INVOICE PAGE ───
+  if (showCreatePage) {
+    return (
+      <div className="px-4 pt-4 pb-32 space-y-4" dir="rtl">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button onClick={() => { setShowCreatePage(false); resetForm(); }} className="p-2 rounded-xl hover:bg-muted transition-colors">
+              <ArrowRight className="h-5 w-5 text-foreground" />
+            </button>
+            <div>
+              <h1 className="text-lg font-bold text-foreground">إنشاء فاتورة جديدة</h1>
+              <p className="text-xs text-muted-foreground">
+                {form.type === "sales" ? "فاتورة مبيعات" : "فاتورة مشتريات"} • {generateInvoiceNumber(form.type)}
+              </p>
+            </div>
+          </div>
+          <Button variant="ghost" size="sm" onClick={() => setShowPDFPreview(true)} className="gap-1.5 text-xs">
+            <Eye className="h-4 w-4" /> معاينة
+          </Button>
+        </div>
+
+        {/* ─── SECTION 1: Invoice Data ─── */}
+        <Card className="border-0 shadow-sm rounded-2xl">
+          <CardHeader className="pb-3 pt-4 px-4">
+            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+              <FileText className="h-4 w-4 text-primary" /> بيانات الفاتورة
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="px-4 pb-4 space-y-3">
+            {/* Invoice Type */}
+            <div className="flex gap-2">
+              <button onClick={() => setForm(p => ({ ...p, type: "sales" }))} className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2 ${form.type === "sales" ? "bg-primary text-primary-foreground shadow-md" : "bg-muted text-muted-foreground"}`}>
+                <Receipt className="h-4 w-4" /> فاتورة مبيعات
+              </button>
+              <button onClick={() => setForm(p => ({ ...p, type: "purchase" }))} className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2 ${form.type === "purchase" ? "bg-primary text-primary-foreground shadow-md" : "bg-muted text-muted-foreground"}`}>
+                <ShoppingCart className="h-4 w-4" /> فاتورة مشتريات
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              {/* Invoice Number */}
+              <div>
+                <label className="text-[11px] text-muted-foreground mb-1 block font-medium">رقم الفاتورة</label>
+                <Input value={generateInvoiceNumber(form.type)} readOnly className="rounded-xl text-sm bg-muted/50 cursor-not-allowed" dir="ltr" />
+              </div>
+              {/* Date */}
+              <div>
+                <label className="text-[11px] text-muted-foreground mb-1 block font-medium">التاريخ</label>
+                <Input type="date" value={form.date} onChange={e => setForm(p => ({ ...p, date: e.target.value }))} className="rounded-xl text-sm" dir="ltr" />
+              </div>
+            </div>
+
+            {/* Contact Search */}
+            <div className="relative">
+              <label className="text-[11px] text-muted-foreground mb-1 block font-medium">
+                {form.type === "sales" ? "العميل" : "المورد"}
+              </label>
+              <div className="relative">
+                <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                <Input
+                  placeholder={`ابحث عن ${form.type === "sales" ? "عميل" : "مورد"}...`}
+                  value={contactSearch}
+                  onChange={e => { setContactSearch(e.target.value); setForm(p => ({ ...p, contactName: e.target.value })); setShowContactDropdown(true); }}
+                  onFocus={() => setShowContactDropdown(true)}
+                  className="rounded-xl text-sm pr-9"
+                />
+              </div>
+              {showContactDropdown && contactSearch && (
+                <div className="absolute z-50 top-full left-0 right-0 mt-1 max-h-40 overflow-y-auto bg-popover border border-border rounded-xl shadow-lg">
+                  {filteredContacts.map(c => (
+                    <button key={c.id} onClick={() => selectContact(c.fields["Contact Name"] || "")} className="w-full text-right px-3 py-2 text-sm hover:bg-muted transition-colors flex items-center justify-between">
+                      <span>{c.fields["Contact Name"]}</span>
+                      <Badge variant="outline" className="text-[9px]">{c.fields["Contact Type"]}</Badge>
+                    </button>
+                  ))}
+                  {filteredContacts.length === 0 && (
+                    <div className="px-3 py-2 text-xs text-muted-foreground">
+                      لا توجد نتائج • سيتم إنشاء جهة اتصال جديدة
+                    </div>
+                  )}
+                </div>
+              )}
+              {isNewContact && form.contactName && (
+                <p className="text-[10px] text-primary mt-1 font-medium">✨ سيتم إنشاء جهة اتصال جديدة تلقائياً</p>
+              )}
+              {contactDebtWarning && (
+                <div className="flex items-center gap-1.5 mt-1.5 p-2 rounded-lg bg-warning/10 border border-warning/20">
+                  <AlertTriangle className="h-3.5 w-3.5 text-warning flex-shrink-0" />
+                  <p className="text-[10px] text-warning font-medium">{contactDebtWarning}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Payment Method */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-[11px] text-muted-foreground mb-1 block font-medium">طريقة الدفع</label>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {([
+                    { val: "cash", icon: Banknote, label: "نقداً" },
+                    { val: "transfer", icon: Building2, label: "تحويل" },
+                    { val: "cheque", icon: CreditCard, label: "شيك" },
+                    { val: "credit", icon: Clock, label: "آجل" },
+                  ] as const).map(pm => (
+                    <button key={pm.val} onClick={() => setForm(p => ({ ...p, paymentMethod: pm.val }))}
+                      className={`py-2 rounded-lg text-[10px] font-semibold transition-all flex flex-col items-center gap-0.5 ${form.paymentMethod === pm.val ? "bg-primary/15 text-primary border border-primary/30" : "bg-muted/50 text-muted-foreground border border-transparent hover:bg-muted"}`}>
+                      <pm.icon className="h-3.5 w-3.5" />
+                      {pm.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="text-[11px] text-muted-foreground mb-1 block font-medium">العملة</label>
+                <Select value={form.currency} onValueChange={v => setForm(p => ({ ...p, currency: v }))}>
+                  <SelectTrigger className="rounded-xl text-sm"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {["شيكل", "دولار", "دينار", "يورو"].map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                {form.paymentMethod === "credit" && (
+                  <div className="mt-2">
+                    <label className="text-[10px] text-muted-foreground mb-0.5 block">تاريخ الاستحقاق</label>
+                    <Input type="date" value={form.dueDate} onChange={e => setForm(p => ({ ...p, dueDate: e.target.value }))} className="rounded-xl text-xs h-8" dir="ltr" />
+                  </div>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* ─── SECTION 2: Invoice Items ─── */}
+        <Card className="border-0 shadow-sm rounded-2xl">
+          <CardHeader className="pb-2 pt-4 px-4">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <Package className="h-4 w-4 text-primary" /> بنود الفاتورة
+              </CardTitle>
+              <div className="flex gap-1">
+                <Button variant="ghost" size="sm" className="text-[10px] gap-1 h-7 text-primary" onClick={() => setShowQuickAdd(true)}>
+                  <Plus className="h-3 w-3" /> صنف جديد
+                </Button>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="px-3 pb-4">
+            {/* Table Header */}
+            <div className="grid grid-cols-12 gap-1 px-1 mb-2">
+              <span className="col-span-4 text-[10px] font-semibold text-muted-foreground">المنتج</span>
+              <span className="col-span-1 text-[10px] font-semibold text-muted-foreground text-center">الكمية</span>
+              <span className="col-span-2 text-[10px] font-semibold text-muted-foreground text-center">السعر</span>
+              <span className="col-span-1 text-[10px] font-semibold text-muted-foreground text-center">خصم</span>
+              <span className="col-span-1 text-[10px] font-semibold text-muted-foreground text-center">ضريبة%</span>
+              <span className="col-span-2 text-[10px] font-semibold text-muted-foreground text-center">الإجمالي</span>
+              <span className="col-span-1"></span>
+            </div>
+
+            <div className="space-y-2">
+              {form.items.map((item) => (
+                <div key={item.id} className="grid grid-cols-12 gap-1 items-center bg-muted/20 rounded-xl p-2">
+                  {/* Product */}
+                  <div className="col-span-4">
+                    <Input
+                      placeholder="اختر أو اكتب..."
+                      value={item.description}
+                      onChange={e => updateItem(item.id, "description", e.target.value)}
+                      className="rounded-lg text-[11px] h-8 border-0 bg-background"
+                      list={`prod-${item.id}`}
+                    />
+                    <datalist id={`prod-${item.id}`}>
+                      {products.map(p => (
+                        <option key={p.id} value={p.name}>
+                          {form.type === "sales" ? `بيع: ₪${p.sell_price}` : `شراء: ₪${p.buy_price}`} • متوفر: {p.quantity}
+                        </option>
+                      ))}
+                    </datalist>
+                  </div>
+                  {/* Quantity */}
+                  <div className="col-span-1">
+                    <Input type="number" min={1} value={item.quantity} onChange={e => updateItem(item.id, "quantity", Math.max(1, Number(e.target.value)))} className="rounded-lg text-[11px] h-8 text-center border-0 bg-background" dir="ltr" />
+                  </div>
+                  {/* Price */}
+                  <div className="col-span-2">
+                    <Input type="number" min={0} value={item.unitPrice} onChange={e => updateItem(item.id, "unitPrice", Number(e.target.value))} className="rounded-lg text-[11px] h-8 text-center border-0 bg-background" dir="ltr" />
+                  </div>
+                  {/* Discount */}
+                  <div className="col-span-1">
+                    <Input type="number" min={0} value={item.discount} onChange={e => updateItem(item.id, "discount", Number(e.target.value))} className="rounded-lg text-[11px] h-8 text-center border-0 bg-background" dir="ltr" />
+                  </div>
+                  {/* Tax */}
+                  <div className="col-span-1">
+                    <Input type="number" min={0} max={100} value={item.taxRate} onChange={e => updateItem(item.id, "taxRate", Number(e.target.value))} className="rounded-lg text-[11px] h-8 text-center border-0 bg-background" dir="ltr" />
+                  </div>
+                  {/* Subtotal */}
+                  <div className="col-span-2 text-center">
+                    <span className="text-xs font-bold text-foreground tabular-nums">₪{calcItemSubtotal(item).toLocaleString()}</span>
+                  </div>
+                  {/* Delete */}
+                  <div className="col-span-1 text-center">
+                    <button onClick={() => removeItem(item.id)} className="text-destructive/60 hover:text-destructive transition-colors disabled:opacity-30" disabled={form.items.length <= 1}>
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <Button variant="outline" size="sm" className="w-full mt-3 rounded-xl text-xs gap-1.5 border-dashed h-9" onClick={addItem}>
+              <Plus className="h-3.5 w-3.5" /> إضافة بند
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* ─── SECTION 3: Invoice Summary ─── */}
+        <Card className="border-0 shadow-sm rounded-2xl bg-gradient-to-br from-card to-primary/5 border border-primary/10">
+          <CardContent className="p-4 space-y-2">
+            <div className="flex justify-between items-center">
+              <span className="text-xs text-muted-foreground">الإجمالي الفرعي</span>
+              <span className="text-sm font-semibold text-foreground tabular-nums">₪{summary.subtotal.toLocaleString()}</span>
+            </div>
+            {summary.totalDiscount > 0 && (
+              <div className="flex justify-between items-center">
+                <span className="text-xs text-destructive">الخصم</span>
+                <span className="text-sm font-semibold text-destructive tabular-nums">-₪{summary.totalDiscount.toLocaleString()}</span>
+              </div>
+            )}
+            {summary.totalTax > 0 && (
+              <div className="flex justify-between items-center">
+                <span className="text-xs text-muted-foreground">الضريبة</span>
+                <span className="text-sm font-semibold text-foreground tabular-nums">+₪{summary.totalTax.toLocaleString()}</span>
+              </div>
+            )}
+            <Separator className="my-1" />
+            <div className="flex justify-between items-center">
+              <span className="text-base font-bold text-foreground">الإجمالي النهائي</span>
+              <span className="text-2xl font-black text-primary tabular-nums glow-green">₪{summary.total.toLocaleString()}</span>
+            </div>
+            <Separator className="my-1" />
+            <div className="flex justify-between items-center">
+              <span className="text-xs text-muted-foreground">المدفوع</span>
+              <span className="text-sm font-semibold text-primary tabular-nums">₪{summary.paidAmount.toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-xs text-muted-foreground">المتبقي</span>
+              <span className={`text-sm font-bold tabular-nums ${summary.remainingAmount > 0 ? "text-destructive" : "text-primary"}`}>
+                ₪{summary.remainingAmount.toLocaleString()}
+              </span>
+            </div>
+            <div className="flex items-center gap-2 pt-1">
+              <Badge variant="outline" className="text-[10px] gap-1">
+                {paymentLabels[form.paymentMethod]}
+              </Badge>
+              {form.paymentMethod === "credit" && form.dueDate && (
+                <Badge variant="outline" className="text-[10px] gap-1 text-warning border-warning/30">
+                  <Clock className="h-3 w-3" /> استحقاق: {form.dueDate}
+                </Badge>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* ─── SECTION 4: Payment Details (Dynamic) ─── */}
+        {form.paymentMethod === "cheque" && (
+          <Card className="border-0 shadow-sm rounded-2xl">
+            <CardHeader className="pb-2 pt-4 px-4">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <CreditCard className="h-4 w-4 text-primary" /> بيانات الشيك
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="px-4 pb-4 space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[11px] text-muted-foreground mb-1 block">رقم الشيك</label>
+                  <Input value={form.chequeNumber} onChange={e => setForm(p => ({ ...p, chequeNumber: e.target.value }))} className="rounded-xl text-sm" placeholder="رقم الشيك" />
+                </div>
+                <div>
+                  <label className="text-[11px] text-muted-foreground mb-1 block">البنك</label>
+                  <Input value={form.chequeBank} onChange={e => setForm(p => ({ ...p, chequeBank: e.target.value }))} className="rounded-xl text-sm" placeholder="اسم البنك" />
+                </div>
+              </div>
+              <div>
+                <label className="text-[11px] text-muted-foreground mb-1 block">تاريخ استحقاق الشيك</label>
+                <Input type="date" value={form.chequeDueDate} onChange={e => setForm(p => ({ ...p, chequeDueDate: e.target.value }))} className="rounded-xl text-sm" dir="ltr" />
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {form.paymentMethod === "transfer" && (
+          <Card className="border-0 shadow-sm rounded-2xl">
+            <CardHeader className="pb-2 pt-4 px-4">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <Building2 className="h-4 w-4 text-primary" /> بيانات التحويل
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="px-4 pb-4 space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[11px] text-muted-foreground mb-1 block">رقم المرجع</label>
+                  <Input value={form.transferRef} onChange={e => setForm(p => ({ ...p, transferRef: e.target.value }))} className="rounded-xl text-sm" placeholder="رقم المرجع" />
+                </div>
+                <div>
+                  <label className="text-[11px] text-muted-foreground mb-1 block">البنك</label>
+                  <Input value={form.transferBank} onChange={e => setForm(p => ({ ...p, transferBank: e.target.value }))} className="rounded-xl text-sm" placeholder="اسم البنك" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Notes */}
+        <Card className="border-0 shadow-sm rounded-2xl">
+          <CardContent className="p-4">
+            <label className="text-[11px] text-muted-foreground mb-1 block font-medium">ملاحظات</label>
+            <Textarea placeholder="ملاحظات إضافية (اختياري)" value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} className="rounded-xl text-sm min-h-[60px] resize-none" />
+          </CardContent>
+        </Card>
+
+        {/* ─── Sticky Bottom Actions ─── */}
+        <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-md border-t border-border/50 p-3 z-50 flex gap-2">
+          <Button variant="outline" className="flex-1 rounded-xl gap-1.5 h-11 text-sm" onClick={() => handleCreate(true)} disabled={creating}>
+            <Save className="h-4 w-4" /> حفظ كمسودة
+          </Button>
+          <Button className="flex-[2] rounded-xl gap-1.5 h-11 text-sm font-bold shadow-lg shadow-primary/20" onClick={() => handleCreate(false)} disabled={creating}>
+            {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : <><FileText className="h-4 w-4" /> إنشاء الفاتورة</>}
+          </Button>
+        </div>
+
+        {/* PDF Preview Dialog */}
+        <Dialog open={showPDFPreview} onOpenChange={setShowPDFPreview}>
+          <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto bg-background" dir="rtl">
+            <DialogHeader>
+              <DialogTitle>معاينة الفاتورة</DialogTitle>
+              <DialogDescription>{generateInvoiceNumber(form.type)}</DialogDescription>
+            </DialogHeader>
+            <div className="bg-card rounded-2xl border border-border/50 p-5 text-sm">
+              <div className="flex justify-between items-start mb-4 pb-3 border-b-2 border-primary">
+                <div>
+                  <h2 className="text-xl font-bold text-primary">{form.type === "sales" ? "فاتورة مبيعات" : "فاتورة مشتريات"}</h2>
+                  <p className="text-xs text-muted-foreground mt-1">عبدالله AI للمحاسبة</p>
+                </div>
+                <div className="text-left text-xs text-muted-foreground space-y-0.5">
+                  <span className="block"><strong>رقم:</strong> {generateInvoiceNumber(form.type)}</span>
+                  <span className="block"><strong>تاريخ:</strong> {form.date}</span>
+                  <span className="block"><strong>الدفع:</strong> {paymentLabels[form.paymentMethod]}</span>
+                </div>
+              </div>
+              <p className="text-xs font-semibold text-primary mb-1">{form.type === "sales" ? "العميل" : "المورد"}</p>
+              <p className="text-sm font-bold mb-3">{form.contactName || "—"}</p>
+              <table className="w-full text-xs mb-3">
+                <thead>
+                  <tr className="bg-primary/5">
+                    <th className="text-right p-2 font-semibold text-primary border-b border-primary/20">#</th>
+                    <th className="text-right p-2 font-semibold text-primary border-b border-primary/20">الوصف</th>
+                    <th className="text-right p-2 font-semibold text-primary border-b border-primary/20">الكمية</th>
+                    <th className="text-right p-2 font-semibold text-primary border-b border-primary/20">السعر</th>
+                    <th className="text-right p-2 font-semibold text-primary border-b border-primary/20">خصم</th>
+                    <th className="text-right p-2 font-semibold text-primary border-b border-primary/20">ضريبة</th>
+                    <th className="text-right p-2 font-semibold text-primary border-b border-primary/20">المجموع</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {form.items.filter(i => i.description).map((item, idx) => (
+                    <tr key={idx}>
+                      <td className="p-2 border-b border-border/30">{idx + 1}</td>
+                      <td className="p-2 border-b border-border/30 font-medium">{item.description}</td>
+                      <td className="p-2 border-b border-border/30">{item.quantity}</td>
+                      <td className="p-2 border-b border-border/30">₪{item.unitPrice.toLocaleString()}</td>
+                      <td className="p-2 border-b border-border/30">{item.discount > 0 ? `₪${item.discount}` : "—"}</td>
+                      <td className="p-2 border-b border-border/30">{item.taxRate > 0 ? `${item.taxRate}%` : "—"}</td>
+                      <td className="p-2 border-b border-border/30 font-bold">₪{calcItemSubtotal(item).toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div className="space-y-1 text-xs">
+                <div className="flex justify-between"><span>الإجمالي الفرعي</span><span>₪{summary.subtotal.toLocaleString()}</span></div>
+                {summary.totalDiscount > 0 && <div className="flex justify-between text-destructive"><span>الخصم</span><span>-₪{summary.totalDiscount.toLocaleString()}</span></div>}
+                {summary.totalTax > 0 && <div className="flex justify-between"><span>الضريبة</span><span>+₪{summary.totalTax.toLocaleString()}</span></div>}
+                <Separator />
+                <div className="flex justify-between text-base font-bold text-primary"><span>الإجمالي النهائي</span><span>₪{summary.total.toLocaleString()}</span></div>
+              </div>
+              {form.notes && <div className="mt-3 p-2 bg-muted/30 rounded-lg text-xs text-muted-foreground"><strong>ملاحظات:</strong> {form.notes}</div>}
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Quick Add Product Dialog */}
+        <Dialog open={showQuickAdd} onOpenChange={setShowQuickAdd}>
+          <DialogContent dir="rtl" className="max-w-sm">
+            <DialogHeader><DialogTitle>إضافة صنف جديد</DialogTitle><DialogDescription>أضف صنف سريعاً واستخدمه في الفاتورة</DialogDescription></DialogHeader>
+            <div className="space-y-3">
+              <div><label className="text-xs text-muted-foreground">اسم الصنف *</label><Input value={quickAddForm.name} onChange={e => setQuickAddForm({ ...quickAddForm, name: e.target.value })} className="rounded-xl" /></div>
+              <div className="grid grid-cols-2 gap-3">
+                <div><label className="text-xs text-muted-foreground">سعر البيع</label><Input type="number" value={quickAddForm.sell_price} onChange={e => setQuickAddForm({ ...quickAddForm, sell_price: Number(e.target.value) })} className="rounded-xl" dir="ltr" /></div>
+                <div><label className="text-xs text-muted-foreground">سعر الشراء</label><Input type="number" value={quickAddForm.buy_price} onChange={e => setQuickAddForm({ ...quickAddForm, buy_price: Number(e.target.value) })} className="rounded-xl" dir="ltr" /></div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div><label className="text-xs text-muted-foreground">الوحدة</label>
+                  <Select value={quickAddForm.unit} onValueChange={v => setQuickAddForm({ ...quickAddForm, unit: v })}>
+                    <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
+                    <SelectContent>{["قطعة", "كغ", "طن", "متر", "لتر", "علبة", "كرتون", "حبة"].map(u => <SelectItem key={u} value={u}>{u}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <div><label className="text-xs text-muted-foreground">الكمية المبدئية</label><Input type="number" value={quickAddForm.quantity} onChange={e => setQuickAddForm({ ...quickAddForm, quantity: Number(e.target.value) })} className="rounded-xl" dir="ltr" /></div>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 mt-3"><Button variant="outline" onClick={() => setShowQuickAdd(false)}>إلغاء</Button><Button onClick={handleQuickAddProduct}>إضافة الصنف</Button></div>
+          </DialogContent>
+        </Dialog>
+      </div>
+    );
+  }
+
+  // ─── INVOICES LIST PAGE ───
   return (
     <div className="px-4 pt-6 pb-24 space-y-5" dir="rtl">
       {/* Header */}
@@ -305,7 +876,7 @@ const InvoicesPage = () => {
             <p className="text-xs text-muted-foreground">{invoices.length} فاتورة</p>
           </div>
         </div>
-        <Button variant="outline" size="sm" className="gap-1.5 rounded-xl" onClick={() => setShowCreateDialog(true)}>
+        <Button variant="outline" size="sm" className="gap-1.5 rounded-xl" onClick={() => setShowCreatePage(true)}>
           <Plus className="h-4 w-4" /> إنشاء فاتورة
         </Button>
       </div>
@@ -315,12 +886,12 @@ const InvoicesPage = () => {
         <div className="grid grid-cols-2 gap-3">
           <div className="rounded-2xl bg-gradient-to-br from-primary/5 to-primary/10 p-4 border border-primary/10">
             <Receipt className="h-5 w-5 text-primary mb-1" />
-            <p className="text-lg font-bold text-primary">₪{salesTotal.toLocaleString()}</p>
+            <p className="text-lg font-bold text-primary tabular-nums">₪{salesTotal.toLocaleString()}</p>
             <p className="text-[10px] text-primary/70 font-medium">فواتير المبيعات</p>
           </div>
           <div className="rounded-2xl bg-gradient-to-br from-destructive/5 to-destructive/10 p-4 border border-destructive/10">
             <ShoppingCart className="h-5 w-5 text-destructive mb-1" />
-            <p className="text-lg font-bold text-destructive">₪{purchaseTotal.toLocaleString()}</p>
+            <p className="text-lg font-bold text-destructive tabular-nums">₪{purchaseTotal.toLocaleString()}</p>
             <p className="text-[10px] text-destructive/70 font-medium">فواتير المشتريات</p>
           </div>
         </div>
@@ -343,14 +914,12 @@ const InvoicesPage = () => {
         </>
       )}
 
-      {/* Loading */}
       {loading && (
         <div className="flex items-center justify-center py-20">
           <Loader2 className="h-10 w-10 animate-spin text-primary" />
         </div>
       )}
 
-      {/* Empty State */}
       {!loading && invoices.length === 0 && (
         <div className="text-center py-16">
           <div className="w-20 h-20 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-4">
@@ -358,13 +927,12 @@ const InvoicesPage = () => {
           </div>
           <h3 className="text-base font-semibold text-foreground mb-1">لا توجد فواتير بعد</h3>
           <p className="text-xs text-muted-foreground mb-4">أنشئ أول فاتورة مبيعات أو مشتريات</p>
-          <Button className="rounded-xl gap-2 shadow-md shadow-primary/20" onClick={() => setShowCreateDialog(true)}>
+          <Button className="rounded-xl gap-2 shadow-md shadow-primary/20" onClick={() => setShowCreatePage(true)}>
             <Plus className="h-4 w-4" /> إنشاء فاتورة
           </Button>
         </div>
       )}
 
-      {/* Invoice List */}
       {!loading && filtered.length > 0 && (
         <div className="space-y-3">
           {filtered.map(inv => {
@@ -372,7 +940,7 @@ const InvoicesPage = () => {
             return (
               <Card key={inv.id} className="border-0 shadow-sm rounded-2xl cursor-pointer hover:shadow-md transition-all" onClick={() => { setSelectedInvoice(inv); setShowPreviewDialog(true); }}>
                 <CardContent className="p-4">
-                  <div className="flex items-start justify-between mb-2">
+                  <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
                       <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${inv.type === "sales" ? "bg-primary/10" : "bg-destructive/10"}`}>
                         {inv.type === "sales" ? <Receipt className="h-5 w-5 text-primary" /> : <ShoppingCart className="h-5 w-5 text-destructive" />}
@@ -380,11 +948,17 @@ const InvoicesPage = () => {
                       <div>
                         <p className="text-sm font-bold text-foreground">{inv.contactName}</p>
                         <p className="text-[10px] text-muted-foreground">{inv.invoiceNumber} • {inv.date}</p>
+                        <div className="flex gap-1 mt-1">
+                          <Badge className={`text-[9px] px-2 py-0 border-0 ${st.color}`}>{st.label}</Badge>
+                          {inv.paymentMethod && <Badge variant="outline" className="text-[9px] px-1.5 py-0">{paymentLabels[inv.paymentMethod] || inv.paymentMethod}</Badge>}
+                        </div>
                       </div>
                     </div>
                     <div className="text-left">
-                      <p className="text-sm font-bold text-foreground">₪{inv.total.toLocaleString()}</p>
-                      <Badge className={`text-[9px] px-2 py-0 border-0 ${st.color}`}>{st.label}</Badge>
+                      <p className="text-sm font-bold text-foreground tabular-nums">₪{inv.total.toLocaleString()}</p>
+                      {inv.remainingAmount > 0 && (
+                        <p className="text-[10px] text-destructive font-medium">متبقي: ₪{inv.remainingAmount.toLocaleString()}</p>
+                      )}
                     </div>
                   </div>
                 </CardContent>
@@ -393,150 +967,6 @@ const InvoicesPage = () => {
           })}
         </div>
       )}
-
-      {/* Create Invoice Dialog */}
-      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto bg-background" dir="rtl">
-          <DialogHeader>
-            <DialogTitle>إنشاء فاتورة جديدة</DialogTitle>
-            <DialogDescription>أدخل بيانات الفاتورة</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 mt-2">
-            {/* Type */}
-            <div className="flex gap-2">
-              <button onClick={() => setNewInvoice(p => ({ ...p, type: "sales" }))} className={`flex-1 py-3 rounded-xl text-sm font-semibold transition-all ${newInvoice.type === "sales" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
-                فاتورة مبيعات
-              </button>
-              <button onClick={() => setNewInvoice(p => ({ ...p, type: "purchase" }))} className={`flex-1 py-3 rounded-xl text-sm font-semibold transition-all ${newInvoice.type === "purchase" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
-                فاتورة مشتريات
-              </button>
-            </div>
-
-            {/* Contact & Date */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">جهة الاتصال</label>
-                <Input placeholder="اسم العميل/المورد" value={newInvoice.contactName} onChange={e => setNewInvoice(p => ({ ...p, contactName: e.target.value }))} className="rounded-xl text-sm" list="contacts-list" />
-                <datalist id="contacts-list">
-                  {contacts.map(c => (
-                    <option key={c.id} value={c.fields["Contact Name"] || ""} />
-                  ))}
-                </datalist>
-                {isNewContact && (
-                  <p className="text-[10px] text-primary mt-1 font-medium">✨ سيتم إنشاء جهة اتصال جديدة تلقائياً</p>
-                )}
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">التاريخ</label>
-                <Input type="date" value={newInvoice.date} onChange={e => setNewInvoice(p => ({ ...p, date: e.target.value }))} className="rounded-xl text-sm" dir="ltr" />
-              </div>
-            </div>
-
-            {/* Items */}
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="text-xs font-semibold text-foreground">بنود الفاتورة</label>
-                <div className="flex gap-1">
-                  <Button variant="ghost" size="sm" className="text-xs gap-1 h-7 text-primary" onClick={() => setShowQuickAdd(true)}>
-                    <Package className="h-3 w-3" /> إضافة صنف جديد
-                  </Button>
-                  <Button variant="ghost" size="sm" className="text-xs gap-1 h-7" onClick={addItem}>
-                    <Plus className="h-3 w-3" /> إضافة بند
-                  </Button>
-                </div>
-              </div>
-              <div className="space-y-2">
-                {newInvoice.items.map((item, idx) => (
-                  <div key={idx} className="grid grid-cols-12 gap-2 items-end">
-                    <div className="col-span-5">
-                      {idx === 0 && <label className="text-[10px] text-muted-foreground block mb-1">الصنف / الوصف</label>}
-                      <div className="relative">
-                        <Input
-                          placeholder="اختر صنف أو اكتب وصف..."
-                          value={item.description}
-                          onChange={e => updateItem(idx, "description", e.target.value)}
-                          className="rounded-lg text-xs"
-                          list={`products-list-${idx}`}
-                          onBlur={() => {
-                            // Auto-fill price from product
-                            const prod = products.find(p => p.name === item.description);
-                            if (prod) {
-                              const price = newInvoice.type === "sales" ? Number(prod.sell_price) : Number(prod.buy_price);
-                              if (price > 0 && item.unitPrice === 0) {
-                                updateItem(idx, "unitPrice", price);
-                              }
-                            }
-                          }}
-                        />
-                        <datalist id={`products-list-${idx}`}>
-                          {products.map(p => (
-                            <option key={p.id} value={p.name}>
-                              {newInvoice.type === "sales" ? `سعر البيع: ${Number(p.sell_price).toLocaleString()}` : `سعر الشراء: ${Number(p.buy_price).toLocaleString()}`} • المتوفر: {p.quantity} {p.unit}
-                            </option>
-                          ))}
-                        </datalist>
-                      </div>
-                    </div>
-                    <div className="col-span-2">
-                      {idx === 0 && <label className="text-[10px] text-muted-foreground block mb-1">الكمية</label>}
-                      <Input type="number" min={1} value={item.quantity} onChange={e => updateItem(idx, "quantity", Number(e.target.value))} className="rounded-lg text-xs" dir="ltr" />
-                    </div>
-                    <div className="col-span-3">
-                      {idx === 0 && <label className="text-[10px] text-muted-foreground block mb-1">السعر</label>}
-                      <Input type="number" min={0} value={item.unitPrice} onChange={e => updateItem(idx, "unitPrice", Number(e.target.value))} className="rounded-lg text-xs" dir="ltr" />
-                    </div>
-                    <div className="col-span-2 flex items-center justify-between">
-                      {idx === 0 && <label className="text-[10px] text-muted-foreground block mb-1 invisible">x</label>}
-                      <span className="text-xs font-bold text-foreground">₪{(item.quantity * item.unitPrice).toLocaleString()}</span>
-                      {newInvoice.items.length > 1 && (
-                        <button onClick={() => removeItem(idx)} className="text-destructive text-xs font-bold mr-1">✕</button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="flex justify-between items-center mt-3 pt-3 border-t border-border/50">
-                <span className="text-sm font-bold text-foreground">الإجمالي</span>
-                <span className="text-lg font-bold text-primary">₪{itemsTotal.toLocaleString()}</span>
-              </div>
-            </div>
-
-            {/* Notes */}
-            <div>
-              <label className="text-xs text-muted-foreground mb-1 block">ملاحظات</label>
-              <Input placeholder="ملاحظات إضافية (اختياري)" value={newInvoice.notes} onChange={e => setNewInvoice(p => ({ ...p, notes: e.target.value }))} className="rounded-xl text-sm" />
-            </div>
-
-            <Button onClick={handleCreate} className="w-full rounded-xl py-5 text-sm font-bold" disabled={creating}>
-              {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : "إنشاء الفاتورة"}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Quick Add Product Dialog */}
-      <Dialog open={showQuickAdd} onOpenChange={setShowQuickAdd}>
-        <DialogContent dir="rtl" className="max-w-sm">
-          <DialogHeader><DialogTitle>إضافة صنف جديد</DialogTitle><DialogDescription>أضف صنف سريعاً واستخدمه في الفاتورة</DialogDescription></DialogHeader>
-          <div className="space-y-3">
-            <div><label className="text-xs text-muted-foreground">اسم الصنف *</label><Input value={quickAddForm.name} onChange={e => setQuickAddForm({ ...quickAddForm, name: e.target.value })} className="rounded-xl" /></div>
-            <div className="grid grid-cols-2 gap-3">
-              <div><label className="text-xs text-muted-foreground">سعر البيع</label><Input type="number" value={quickAddForm.sell_price} onChange={e => setQuickAddForm({ ...quickAddForm, sell_price: Number(e.target.value) })} className="rounded-xl" dir="ltr" /></div>
-              <div><label className="text-xs text-muted-foreground">سعر الشراء</label><Input type="number" value={quickAddForm.buy_price} onChange={e => setQuickAddForm({ ...quickAddForm, buy_price: Number(e.target.value) })} className="rounded-xl" dir="ltr" /></div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div><label className="text-xs text-muted-foreground">الوحدة</label>
-                <Select value={quickAddForm.unit} onValueChange={v => setQuickAddForm({ ...quickAddForm, unit: v })}>
-                  <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
-                  <SelectContent>{["قطعة", "كغ", "طن", "متر", "لتر", "علبة", "كرتون", "حبة"].map(u => <SelectItem key={u} value={u}>{u}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-              <div><label className="text-xs text-muted-foreground">الكمية المبدئية</label><Input type="number" value={quickAddForm.quantity} onChange={e => setQuickAddForm({ ...quickAddForm, quantity: Number(e.target.value) })} className="rounded-xl" dir="ltr" /></div>
-            </div>
-          </div>
-          <div className="flex justify-end gap-2 mt-3"><Button variant="outline" onClick={() => setShowQuickAdd(false)}>إلغاء</Button><Button onClick={handleQuickAddProduct}>إضافة الصنف</Button></div>
-        </DialogContent>
-      </Dialog>
 
       {/* Preview/Print Dialog */}
       <Dialog open={showPreviewDialog} onOpenChange={setShowPreviewDialog}>
@@ -547,15 +977,12 @@ const InvoicesPage = () => {
           </DialogHeader>
           {selectedInvoice && (
             <div className="space-y-4">
-              {/* Actions */}
               <div className="flex gap-2 flex-wrap">
                 <Button size="sm" variant="outline" className="gap-1.5 rounded-xl" onClick={handlePrint}>
                   <Printer className="h-4 w-4" /> طباعة
                 </Button>
                 <Select value={selectedInvoice.status} onValueChange={(v) => updateStatus(selectedInvoice.id, v as Invoice["status"])}>
-                  <SelectTrigger className="w-32 text-xs rounded-xl h-9">
-                    <SelectValue />
-                  </SelectTrigger>
+                  <SelectTrigger className="w-32 text-xs rounded-xl h-9"><SelectValue /></SelectTrigger>
                   <SelectContent className="bg-background">
                     <SelectItem value="draft">مسودة</SelectItem>
                     <SelectItem value="sent">مُرسلة</SelectItem>
@@ -564,32 +991,28 @@ const InvoicesPage = () => {
                 </Select>
               </div>
 
-              {/* Printable Invoice */}
               <div ref={printRef} className="bg-card rounded-2xl border border-border/50 p-5">
-                <div className="invoice-header flex justify-between items-start mb-5 pb-4 border-b-2 border-primary">
+                <div className="inv-header flex justify-between items-start mb-5 pb-4 border-b-2 border-primary">
                   <div>
-                    <h2 className="invoice-title text-2xl font-bold text-primary">
-                      {selectedInvoice.type === "sales" ? "فاتورة مبيعات" : "فاتورة مشتريات"}
-                    </h2>
+                    <h2 className="inv-title text-2xl font-bold text-primary">{selectedInvoice.type === "sales" ? "فاتورة مبيعات" : "فاتورة مشتريات"}</h2>
                     <p className="text-xs text-muted-foreground mt-1">عبدالله AI للمحاسبة</p>
                   </div>
-                  <div className="invoice-meta text-left text-xs text-muted-foreground space-y-1">
-                    <span className="block"><strong>رقم الفاتورة:</strong> {selectedInvoice.invoiceNumber}</span>
-                    <span className="block"><strong>التاريخ:</strong> {selectedInvoice.date}</span>
+                  <div className="inv-meta text-left text-xs text-muted-foreground space-y-1">
+                    <span className="block"><strong>رقم:</strong> {selectedInvoice.invoiceNumber}</span>
+                    <span className="block"><strong>تاريخ:</strong> {selectedInvoice.date}</span>
                     <span className="block"><strong>الحالة:</strong> {statusConfig[selectedInvoice.status].label}</span>
+                    {selectedInvoice.paymentMethod && <span className="block"><strong>الدفع:</strong> {paymentLabels[selectedInvoice.paymentMethod]}</span>}
                   </div>
                 </div>
 
-                <div className="section mb-4">
-                  <p className="section-title text-xs font-semibold text-primary mb-1">
-                    {selectedInvoice.type === "sales" ? "العميل" : "المورد"}
-                  </p>
+                <div className="mb-4">
+                  <p className="text-xs font-semibold text-primary mb-1">{selectedInvoice.type === "sales" ? "العميل" : "المورد"}</p>
                   <p className="text-sm font-bold text-foreground">{selectedInvoice.contactName}</p>
                 </div>
 
                 <table className="w-full text-xs mb-4">
                   <thead>
-                    <tr className="bg-accent/30">
+                    <tr className="bg-primary/5">
                       <th className="text-right p-2.5 font-semibold text-primary border-b-2 border-primary/20">#</th>
                       <th className="text-right p-2.5 font-semibold text-primary border-b-2 border-primary/20">الوصف</th>
                       <th className="text-right p-2.5 font-semibold text-primary border-b-2 border-primary/20">الكمية</th>
@@ -604,23 +1027,29 @@ const InvoicesPage = () => {
                         <td className="p-2.5 border-b border-border/30 font-medium">{item.description}</td>
                         <td className="p-2.5 border-b border-border/30">{item.quantity}</td>
                         <td className="p-2.5 border-b border-border/30">₪{item.unitPrice.toLocaleString()}</td>
-                        <td className="p-2.5 border-b border-border/30 font-bold">₪{(item.quantity * item.unitPrice).toLocaleString()}</td>
+                        <td className="p-2.5 border-b border-border/30 font-bold">₪{calcItemSubtotal(item).toLocaleString()}</td>
                       </tr>
                     ))}
-                    <tr className="total-row bg-accent/20 font-bold text-sm">
-                      <td colSpan={4} className="p-2.5 border-t-2 border-primary/30">الإجمالي</td>
-                      <td className="p-2.5 border-t-2 border-primary/30 text-primary text-base">₪{selectedInvoice.total.toLocaleString()}</td>
-                    </tr>
                   </tbody>
                 </table>
 
+                <div className="space-y-1 text-xs">
+                  <div className="flex justify-between"><span>الإجمالي الفرعي</span><span className="font-semibold">₪{selectedInvoice.subtotal?.toLocaleString() || selectedInvoice.total.toLocaleString()}</span></div>
+                  {(selectedInvoice.totalDiscount || 0) > 0 && <div className="flex justify-between text-destructive"><span>الخصم</span><span>-₪{selectedInvoice.totalDiscount?.toLocaleString()}</span></div>}
+                  {(selectedInvoice.totalTax || 0) > 0 && <div className="flex justify-between"><span>الضريبة</span><span>+₪{selectedInvoice.totalTax?.toLocaleString()}</span></div>}
+                  <Separator />
+                  <div className="flex justify-between text-sm font-bold text-primary">
+                    <span>الإجمالي النهائي</span>
+                    <span>₪{selectedInvoice.total.toLocaleString()}</span>
+                  </div>
+                </div>
+
                 {selectedInvoice.notes && (
-                  <div className="notes bg-muted/30 rounded-xl p-3 text-xs text-muted-foreground">
+                  <div className="mt-3 bg-muted/30 rounded-xl p-3 text-xs text-muted-foreground">
                     <strong>ملاحظات:</strong> {selectedInvoice.notes}
                   </div>
                 )}
-
-                <div className="footer text-center mt-6 pt-4 border-t border-border/50 text-[10px] text-muted-foreground">
+                <div className="text-center mt-6 pt-4 border-t border-border/50 text-[10px] text-muted-foreground">
                   شكراً لتعاملكم معنا • عبدالله AI للمحاسبة
                 </div>
               </div>
