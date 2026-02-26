@@ -1,4 +1,4 @@
-import { ArrowRight, BarChart3, TrendingUp, Users, Package, Receipt, FileText, Sparkles, PieChart, Wallet, FileSpreadsheet } from "lucide-react";
+import { ArrowRight, BarChart3, TrendingUp, Users, Package, Receipt, FileText, Sparkles, PieChart, Wallet, FileSpreadsheet, Scale } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 
@@ -11,6 +11,14 @@ const reports = [
     iconColor: "text-primary",
     path: "/smart-report",
     featured: true,
+  },
+  {
+    icon: Scale,
+    label: "ميزان المراجعة",
+    description: "جميع الحسابات مع أرصدة المدين والدائن",
+    color: "bg-primary/10",
+    iconColor: "text-primary",
+    path: "/trial-balance",
   },
   {
     icon: BarChart3,
