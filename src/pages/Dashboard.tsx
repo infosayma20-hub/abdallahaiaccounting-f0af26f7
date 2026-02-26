@@ -521,12 +521,13 @@ const Dashboard = () => {
             <p className="text-[10px] text-muted-foreground">وضعك المالي اليوم جاهز للتحليل</p>
           </div>
         </div>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 relative z-10">
           <button
-            onClick={() => setShowHelpGuide(true)}
-            className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-secondary transition-colors"
+            onClick={(e) => { e.stopPropagation(); setShowHelpGuide(true); }}
+            className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-secondary transition-colors cursor-pointer"
+            type="button"
           >
-            <HelpCircle className="h-[18px] w-[18px] text-primary" />
+            <HelpCircle className="h-[18px] w-[18px] text-primary pointer-events-none" />
           </button>
           <button
             onClick={() => {
