@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 interface TopBarProps {
   onMenuClick: () => void;
   sidebarCollapsed: boolean;
+  onOpenHelpGuide?: () => void;
 }
 
 /* ═══ Reusable Icon Button ═══ */
@@ -173,7 +174,7 @@ const AppLogo = () => (
 /* ═══════════════════════════════════════════════ */
 /* ═══ MAIN HEADER COMPONENT ═══ */
 /* ═══════════════════════════════════════════════ */
-const TopBar = ({ onMenuClick, sidebarCollapsed }: TopBarProps) => {
+const TopBar = ({ onMenuClick, sidebarCollapsed, onOpenHelpGuide }: TopBarProps) => {
   const { user, signOut } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
@@ -268,7 +269,8 @@ const TopBar = ({ onMenuClick, sidebarCollapsed }: TopBarProps) => {
 
           <IconButton
             icon={HelpCircle}
-            title="المساعدة"
+            onClick={onOpenHelpGuide}
+            title="دليل الاستخدام"
             className="hidden sm:flex"
           />
 
