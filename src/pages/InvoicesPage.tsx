@@ -624,21 +624,64 @@ const InvoicesPage = () => {
               {form.items.map((item) => (
                 <div key={item.id} className="grid grid-cols-12 gap-1 items-center bg-muted/20 rounded-xl p-2">
                   {/* Product */}
-                  <div className="col-span-4">
-                    <Input
-                      placeholder="اختر أو اكتب..."
-                      value={item.description}
-                      onChange={e => updateItem(item.id, "description", e.target.value)}
-                      className="rounded-lg text-[11px] h-8 border-0 bg-background"
-                      list={`prod-${item.id}`}
-                    />
-                    <datalist id={`prod-${item.id}`}>
-                      {products.map(p => (
-                        <option key={p.id} value={p.name}>
-                          {form.type === "sales" ? `بيع: ₪${p.sell_price}` : `شراء: ₪${p.buy_price}`} • متوفر: {p.quantity}
-                        </option>
-                      ))}
-                    </datalist>
+                  <div className="col-span-4 relative">
+                    <Select
+                      value={item.productId || "__manual__"}
+                      onValueChange={val => {
+                        if (val === "__new__") {
+                          setShowQuickAdd(true);
+                          return;
+                        }
+                        if (val === "__manual__") {
+                          updateItem(item.id, "description", item.description);
+                          return;
+                        }
+                        const prod = products.find(p => p.id === val);
+                        if (prod) {
+                          setForm(prev => ({
+                            ...prev,
+                            items: prev.items.map(it => {
+                              if (it.id !== item.id) return it;
+                              const price = prev.type === "sales" ? Number(prod.sell_price) : Number(prod.buy_price);
+                              const updated = { ...it, productId: prod.id, description: prod.name, unitPrice: price > 0 ? price : it.unitPrice };
+                              updated.subtotal = calcItemSubtotal(updated);
+                              return updated;
+                            }),
+                          }));
+                        }
+                      }}
+                    >
+                      <SelectTrigger className="rounded-lg text-[11px] h-8 border-0 bg-background">
+                        <SelectValue placeholder="اختر منتج...">{item.description || "اختر منتج..."}</SelectValue>
+                      </SelectTrigger>
+                      <SelectContent className="max-h-60">
+                        <SelectItem value="__new__" className="text-primary font-semibold">
+                          <span className="flex items-center gap-1.5"><Plus className="h-3 w-3" /> إنشاء منتج جديد</span>
+                        </SelectItem>
+                        <SelectItem value="__manual__" className="text-muted-foreground">
+                          <span className="flex items-center gap-1.5">✏️ إدخال يدوي</span>
+                        </SelectItem>
+                        {products.map(p => (
+                          <SelectItem key={p.id} value={p.id}>
+                            <span className="flex items-center justify-between gap-2 w-full">
+                              <span>{p.name}</span>
+                              <span className="text-[9px] text-muted-foreground tabular-nums">
+                                {form.type === "sales" ? `₪${p.sell_price}` : `₪${p.buy_price}`} • {p.quantity} {p.unit}
+                              </span>
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {/* Manual input fallback */}
+                    {!item.productId && (
+                      <Input
+                        placeholder="وصف يدوي..."
+                        value={item.description}
+                        onChange={e => updateItem(item.id, "description", e.target.value)}
+                        className="rounded-lg text-[11px] h-7 border-0 bg-muted/30 mt-1"
+                      />
+                    )}
                   </div>
                   {/* Quantity */}
                   <div className="col-span-1">
