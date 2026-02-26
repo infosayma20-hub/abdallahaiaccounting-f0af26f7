@@ -47,10 +47,13 @@ Deno.serve(async (req) => {
     }
 
     const url = new URL(req.url);
-    const path = url.pathname.split("/").pop();
+    const pathParts = url.pathname.split("/").filter(Boolean);
+    const path = pathParts[pathParts.length - 1];
 
-    // GET /attendance/my
-    if (req.method === "GET" && path === "my") {
+    // GET /attendance/my or GET /attendance?action=my
+    const action = url.searchParams.get("action") || path;
+
+    if (req.method === "GET" && (action === "my" || path === "my")) {
       const from = url.searchParams.get("from");
       const to = url.searchParams.get("to");
       let query = supabase
@@ -68,9 +71,16 @@ Deno.serve(async (req) => {
     }
 
     // POST /attendance/checkin or /attendance/checkout
-    if (req.method === "POST" && (path === "checkin" || path === "checkout")) {
+    if (req.method === "POST") {
       const body = await req.json();
       const { branch_id, qr_token, latitude, longitude, device_info } = body;
+      // Support action from body or URL path
+      const bodyAction = body.action || path;
+      if (bodyAction !== "checkin" && bodyAction !== "checkout") {
+        return new Response(JSON.stringify({ error: "مسار غير موجود" }), {
+          status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
 
       if (!branch_id || !qr_token || latitude == null || longitude == null) {
         return new Response(
@@ -135,7 +145,7 @@ Deno.serve(async (req) => {
       }
 
       const today = new Date().toISOString().split("T")[0];
-      const eventType = path === "checkin" ? "check_in" : "check_out";
+      const eventType = bodyAction === "checkin" ? "check_in" : "check_out";
 
       // 5. Prevent duplicate check-in without check-out
       if (eventType === "check_in") {
