@@ -1,4 +1,4 @@
-import { ArrowRight, BarChart3, TrendingUp, Users, Package, Receipt, FileText, Sparkles, PieChart, Wallet, FileSpreadsheet, Scale } from "lucide-react";
+import { ArrowRight, BarChart3, TrendingUp, Users, Package, Receipt, FileText, Sparkles, PieChart, Wallet, FileSpreadsheet, Scale, Landmark } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 
@@ -22,11 +22,19 @@ const reports = [
   },
   {
     icon: BarChart3,
-    label: "الأرباح والخسائر",
+    label: "قائمة الدخل (الأرباح والخسائر)",
     description: "إيرادات ومصروفات وصافي الربح",
     color: "bg-warning/10",
     iconColor: "text-warning",
     path: "/profit-loss",
+  },
+  {
+    icon: Landmark,
+    label: "قائمة المركز المالي",
+    description: "الأصول والالتزامات وحقوق الملكية",
+    color: "bg-primary/10",
+    iconColor: "text-primary",
+    path: "/balance-sheet",
   },
   {
     icon: Receipt,

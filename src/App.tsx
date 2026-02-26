@@ -24,6 +24,7 @@ import InvoicesPage from "./pages/InvoicesPage";
 import InventoryPage from "./pages/InventoryPage";
 import StockMovementsPage from "./pages/StockMovementsPage";
 import InventoryValuationPage from "./pages/InventoryValuationPage";
+import BalanceSheetPage from "./pages/BalanceSheetPage";
 import ReportsPage from "./pages/ReportsPage";
 import ChequesPage from "./pages/ChequesPage";
 import TermsPage from "./pages/TermsPage";
@@ -80,6 +81,7 @@ const App = () => (
                       <Route path="/reports" element={<ReportsPage />} />
                       <Route path="/cheques" element={<ChequesPage />} />
                       <Route path="/profile" element={<ProfilePage />} />
+                      <Route path="/balance-sheet" element={<BalanceSheetPage />} />
                       <Route path="/settings" element={<ProfilePage />} />
                       <Route path="/journal-entries" element={<JournalEntriesPage />} />
                       <Route path="/trial-balance" element={<TrialBalancePage />} />
