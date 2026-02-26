@@ -1,8 +1,9 @@
 import { useState, useEffect, useMemo } from "react";
 import {
-  ArrowRight, Loader2, RefreshCw, Download, Search, Filter, Scale,
-  ChevronLeft, ChevronRight, AlertTriangle, CheckCircle2,
+  ArrowRight, Loader2, RefreshCw, Search, Filter, Scale,
+  ChevronLeft, ChevronRight, AlertTriangle, CheckCircle2, FileSpreadsheet,
 } from "lucide-react";
+import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
@@ -237,22 +238,29 @@ const TrialBalancePage = () => {
     return groups;
   }, [filteredRows]);
 
-  // Export CSV
+  // Export Excel
   const handleExport = () => {
-    const header = ["كود الحساب", "اسم الحساب", "النوع", "مدين", "دائن", "الرصيد"];
-    const csvRows = filteredRows.map(r => [
-      r.accountCode, r.accountName,
-      ACCOUNT_TYPE_LABELS[r.accountType] || r.accountType,
-      r.totalDebit, r.totalCredit, r.balance,
-    ]);
-    csvRows.push(["", "الإجمالي", "", grandTotalDebit, grandTotalCredit, grandTotalDebit - grandTotalCredit]);
-    const csv = "\uFEFF" + [header, ...csvRows].map(r => r.join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `ميزان_المراجعة_${dateFrom || "all"}_${dateTo || "all"}.csv`;
-    a.click();
+    const data = filteredRows.map(r => ({
+      "كود الحساب": r.accountCode,
+      "اسم الحساب": r.accountName,
+      "النوع": ACCOUNT_TYPE_LABELS[r.accountType] || r.accountType,
+      "مدين": r.totalDebit,
+      "دائن": r.totalCredit,
+      "الرصيد": r.balance,
+    }));
+    data.push({
+      "كود الحساب": "",
+      "اسم الحساب": "الإجمالي",
+      "النوع": "",
+      "مدين": grandTotalDebit,
+      "دائن": grandTotalCredit,
+      "الرصيد": grandTotalDebit - grandTotalCredit,
+    });
+    const ws = XLSX.utils.json_to_sheet(data);
+    ws["!cols"] = [{ wch: 12 }, { wch: 30 }, { wch: 15 }, { wch: 14 }, { wch: 14 }, { wch: 14 }];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "ميزان المراجعة");
+    XLSX.writeFile(wb, `ميزان_المراجعة_${dateFrom || "all"}_${dateTo || "all"}.xlsx`);
   };
 
   const companyName = profileData?.company_name || profileData?.display_name || "الشركة";
@@ -294,8 +302,8 @@ const TrialBalancePage = () => {
             تحديث
           </Button>
           <Button variant="outline" size="sm" onClick={handleExport} disabled={filteredRows.length === 0} className="gap-1.5">
-            <Download className="h-3.5 w-3.5" />
-            تصدير CSV
+            <FileSpreadsheet className="h-3.5 w-3.5" />
+            تصدير Excel
           </Button>
         </div>
       </div>
