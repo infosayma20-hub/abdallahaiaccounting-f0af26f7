@@ -1,9 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { authenticateRequest, corsHeaders } from "../_shared/auth.ts";
 
 interface SetupRequest {
   userId: string;
@@ -139,6 +135,11 @@ serve(async (req) => {
   }
 
   try {
+    // Authenticate request
+    const authResult = await authenticateRequest(req);
+    if (authResult instanceof Response) return authResult;
+    const authenticatedUserId = authResult.userId;
+
     const AIRTABLE_API_KEY = Deno.env.get('AIRTABLE_API_KEY');
     const AIRTABLE_BASE_ID = Deno.env.get('AIRTABLE_BASE_ID');
 
@@ -147,6 +148,13 @@ serve(async (req) => {
 
     const body: SetupRequest = await req.json();
     const { userId } = body;
+
+    // Verify userId matches authenticated user
+    if (userId !== authenticatedUserId) {
+      return new Response(JSON.stringify({ error: 'Forbidden' }), {
+        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     if (!userId) throw new Error('userId is required');
 

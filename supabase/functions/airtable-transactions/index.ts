@@ -1,9 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { authenticateRequest, corsHeaders, isValidUUID } from "../_shared/auth.ts";
 
 async function fetchAllRecords(baseUrl: string, apiKey: string): Promise<any[]> {
   let allRecords: any[] = [];
@@ -23,7 +19,6 @@ async function fetchAllRecords(baseUrl: string, apiKey: string): Promise<any[]> 
     allRecords = allRecords.concat(data.records || []);
 
     if (data.offset) {
-      const separator = currentUrl.includes('?') ? '&' : '?';
       const cleanUrl = baseUrl.replace(/&offset=[^&]*/, '');
       currentUrl = `${cleanUrl}&offset=${data.offset}`;
     } else {
@@ -40,6 +35,11 @@ serve(async (req) => {
   }
 
   try {
+    // Authenticate request
+    const authResult = await authenticateRequest(req);
+    if (authResult instanceof Response) return authResult;
+    const authenticatedUserId = authResult.userId;
+
     const AIRTABLE_API_KEY = Deno.env.get('AIRTABLE_API_KEY');
     const AIRTABLE_BASE_ID = Deno.env.get('AIRTABLE_BASE_ID');
     
@@ -51,6 +51,18 @@ serve(async (req) => {
     const view = url.searchParams.get('view') || 'ملخص الحركات المحاسبية';
     const showDeleted = url.searchParams.get('deleted') === 'true';
     
+    // Validate clientId matches authenticated user
+    if (clientId && !isValidUUID(clientId)) {
+      return new Response(JSON.stringify({ error: 'Invalid clientId format' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    if (clientId && clientId !== authenticatedUserId) {
+      return new Response(JSON.stringify({ error: 'Forbidden' }), {
+        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     // Build filter: client + deleted status
     let filterParts: string[] = [];
     if (clientId) filterParts.push(`{Client}="${clientId}"`);
@@ -103,7 +115,7 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error('Error:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: 'Internal server error' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

@@ -1,9 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { authenticateRequest, corsHeaders } from "../_shared/auth.ts";
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -11,6 +7,9 @@ serve(async (req) => {
   }
 
   try {
+    const authResult = await authenticateRequest(req);
+    if (authResult instanceof Response) return authResult;
+
     const AIRTABLE_API_KEY = Deno.env.get('AIRTABLE_API_KEY');
     const AIRTABLE_BASE_ID = Deno.env.get('AIRTABLE_BASE_ID');
 
@@ -32,15 +31,13 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        records: [
-          {
-            fields: {
-              "Account Name": accountName,
-              "Account Type": accountType,
-              ...(clientId ? { "Client": [clientId] } : {}),
-            },
+        records: [{
+          fields: {
+            "Account Name": accountName,
+            "Account Type": accountType,
+            ...(clientId ? { "Client": [clientId] } : {}),
           },
-        ],
+        }],
       }),
     });
 
@@ -56,7 +53,7 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error('Error creating account:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: 'Internal server error' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

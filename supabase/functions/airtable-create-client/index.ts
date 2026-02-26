@@ -1,9 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { authenticateRequest, corsHeaders, sanitizeForFormula } from "../_shared/auth.ts";
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -11,6 +7,10 @@ serve(async (req) => {
   }
 
   try {
+    const authResult = await authenticateRequest(req);
+    if (authResult instanceof Response) return authResult;
+    const authenticatedUserId = authResult.userId;
+
     const AIRTABLE_API_KEY = Deno.env.get('AIRTABLE_API_KEY');
     const AIRTABLE_BASE_ID = Deno.env.get('AIRTABLE_BASE_ID');
 
@@ -24,8 +24,18 @@ serve(async (req) => {
       throw new Error('Client name and contact email are required');
     }
 
-    // Step 1: Search for existing client by UUID (clientName) first, then by email
-    const searchByUUID = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Clients?filterByFormula={Client Name}="${clientName}"&maxRecords=1`;
+    // Verify clientName matches authenticated user
+    if (clientName !== authenticatedUserId) {
+      return new Response(JSON.stringify({ error: 'Forbidden' }), {
+        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const safeClientName = sanitizeForFormula(clientName);
+    const safeEmail = sanitizeForFormula(contactEmail);
+
+    // Step 1: Search for existing client by UUID
+    const searchByUUID = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Clients?filterByFormula={Client Name}="${safeClientName}"&maxRecords=1`;
     const uuidRes = await fetch(searchByUUID, {
       headers: { 'Authorization': `Bearer ${AIRTABLE_API_KEY}` },
     });
@@ -33,10 +43,8 @@ serve(async (req) => {
     if (uuidRes.ok) {
       const uuidData = await uuidRes.json();
       if (uuidData.records && uuidData.records.length > 0) {
-        // Client exists by UUID - update with any new profile data
         const existingRecordId = uuidData.records[0].id;
         const existingFields = uuidData.records[0].fields;
-        console.log(`Client exists with UUID: ${clientName}, updating profile data`);
 
         const updateUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Clients/${existingRecordId}`;
         await fetch(updateUrl, {
@@ -63,7 +71,7 @@ serve(async (req) => {
     }
 
     // Step 2: Search by email as fallback
-    const searchByEmail = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Clients?filterByFormula={Contact Email}="${contactEmail}"&maxRecords=1`;
+    const searchByEmail = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Clients?filterByFormula={Contact Email}="${safeEmail}"&maxRecords=1`;
     const emailRes = await fetch(searchByEmail, {
       headers: { 'Authorization': `Bearer ${AIRTABLE_API_KEY}` },
     });
@@ -71,10 +79,8 @@ serve(async (req) => {
     if (emailRes.ok) {
       const emailData = await emailRes.json();
       if (emailData.records && emailData.records.length > 0) {
-        // Client exists by email - update the UUID (Client Name) to link properly
         const existingRecordId = emailData.records[0].id;
-        console.log(`Client found by email: ${contactEmail}, updating UUID to: ${clientName}`);
-        
+
         const updateUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Clients/${existingRecordId}`;
         await fetch(updateUrl, {
           method: 'PATCH',
@@ -100,10 +106,8 @@ serve(async (req) => {
       }
     }
 
-    // Step 3: Not found - create new client
-    console.log(`Creating new client: ${clientName} (${contactEmail})`);
+    // Step 3: Create new client
     const airtableUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Clients`;
-
     const response = await fetch(airtableUrl, {
       method: 'POST',
       headers: {
@@ -111,19 +115,17 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        records: [
-          {
-            fields: {
-              "Client Name": clientName,
-              "Contact Email": contactEmail,
-              "Phone Number": phoneNumber || "",
-              "Company Name": companyName || "",
-              "Address": address || "",
-              "Country": country || "",
-              "Work Field": workField || "",
-            },
+        records: [{
+          fields: {
+            "Client Name": clientName,
+            "Contact Email": contactEmail,
+            "Phone Number": phoneNumber || "",
+            "Company Name": companyName || "",
+            "Address": address || "",
+            "Country": country || "",
+            "Work Field": workField || "",
           },
-        ],
+        }],
       }),
     });
 
@@ -139,7 +141,7 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error('Error creating client in Airtable:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: 'Internal server error' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

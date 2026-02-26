@@ -1,9 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { authenticateRequest, corsHeaders } from "../_shared/auth.ts";
 
 async function getClientRecordId(baseId: string, apiKey: string, clientUUID: string): Promise<string | null> {
   const filter = encodeURIComponent(`{Client Name}="${clientUUID}"`);
@@ -226,6 +222,11 @@ serve(async (req) => {
   }
 
   try {
+    // Authenticate request
+    const authResult = await authenticateRequest(req);
+    if (authResult instanceof Response) return authResult;
+    const authenticatedUserId = authResult.userId;
+
     const WEBHOOK_URL = Deno.env.get('MAKECOM_WEBHOOK_URL');
     const AIRTABLE_API_KEY = Deno.env.get('AIRTABLE_API_KEY');
     const AIRTABLE_BASE_ID = Deno.env.get('AIRTABLE_BASE_ID');
@@ -233,6 +234,13 @@ serve(async (req) => {
 
     const { text, userId, email, companyName, mentionedContactName, mentionedContactId } = await req.json();
     if (!text) throw new Error('Transaction text is required');
+
+    // Verify userId matches authenticated user
+    if (userId && userId !== authenticatedUserId) {
+      return new Response(JSON.stringify({ error: 'Forbidden' }), {
+        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     // Use explicitly mentioned contact if provided via @ mention, otherwise fall back to regex extraction
     let contactName: string | null = mentionedContactName || extractContactName(text);
@@ -429,7 +437,7 @@ ${contactAccountName ? `- استخدم حساب "${contactAccountName}" وليس
     });
   } catch (error) {
     console.error('Error:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: 'Internal server error' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
