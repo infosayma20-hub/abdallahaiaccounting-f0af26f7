@@ -35,8 +35,9 @@ serve(async (req) => {
 
     if (!contactId) throw new Error('contactId is required');
 
-    // Fetch all transactions (can't filter linked records by formula with UUID)
-    const txUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Transactions?view=${encodeURIComponent('ملخص الحركات المحاسبية')}&pageSize=100`;
+    // Fetch all transactions, excluding deleted ones
+    const deleteFilter = encodeURIComponent(`OR({Deleted}=BLANK(),{Deleted}=FALSE())`);
+    const txUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Transactions?view=${encodeURIComponent('ملخص الحركات المحاسبية')}&pageSize=100&filterByFormula=${deleteFilter}`;
     const accountsUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Accounts?pageSize=100`;
 
     // If clientId is a UUID, resolve to Airtable record ID
