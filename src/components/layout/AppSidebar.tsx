@@ -59,6 +59,7 @@ const navSections: NavSection[] = [
           { label: "العملاء", path: "/contacts?type=customer" },
           { label: "الفواتير", path: "/invoices" },
           { label: "سندات القبض", path: "/receipts" },
+          { label: "الطلبيات", path: "/orders" },
         ],
       },
       {
@@ -68,6 +69,13 @@ const navSections: NavSection[] = [
           { label: "الموردين", path: "/contacts?type=supplier" },
           { label: "فواتير مشتريات", path: "/bills" },
           { label: "سندات الصرف", path: "/payments" },
+        ],
+      },
+      {
+        label: "المندوبين",
+        module: "sales",
+        children: [
+          { label: "إدارة المندوبين", path: "/sales-reps" },
         ],
       },
       {
@@ -99,7 +107,7 @@ const navSections: NavSection[] = [
         label: "الموارد البشرية",
         module: "hr",
         children: [
-          { label: "الموظفون", path: "/contacts?type=employee" },
+          { label: "الموظفون", path: "/employees" },
         ],
       },
     ],

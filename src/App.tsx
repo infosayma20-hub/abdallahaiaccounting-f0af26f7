@@ -26,6 +26,9 @@ import StockMovementsPage from "./pages/StockMovementsPage";
 import InventoryValuationPage from "./pages/InventoryValuationPage";
 import BalanceSheetPage from "./pages/BalanceSheetPage";
 import ReportsPage from "./pages/ReportsPage";
+import EmployeesPage from "./pages/EmployeesPage";
+import SalesRepresentativesPage from "./pages/SalesRepresentativesPage";
+import OrdersPage from "./pages/OrdersPage";
 import ChequesPage from "./pages/ChequesPage";
 import TermsPage from "./pages/TermsPage";
 import PrivacyPage from "./pages/PrivacyPage";
@@ -90,6 +93,9 @@ const App = () => (
                       <Route path="/payments" element={<TransactionsPage />} />
                       <Route path="/inventory-movements" element={<StockMovementsPage />} />
                       <Route path="/inventory-valuation" element={<InventoryValuationPage />} />
+                      <Route path="/employees" element={<EmployeesPage />} />
+                      <Route path="/sales-reps" element={<SalesRepresentativesPage />} />
+                      <Route path="/orders" element={<OrdersPage />} />
                       <Route path="*" element={<NotFound />} />
                     </Routes>
                   </WebLayout>

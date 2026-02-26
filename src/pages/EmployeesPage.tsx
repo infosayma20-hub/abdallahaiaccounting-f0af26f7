@@ -1,0 +1,451 @@
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Plus, Search, Users, DollarSign, Calendar, FileText, Edit, Trash2, Eye } from "lucide-react";
+
+interface Employee {
+  id: string;
+  full_name: string;
+  id_number: string;
+  phone: string;
+  email: string;
+  photo_url: string;
+  position: string;
+  department: string;
+  job_title: string;
+  start_date: string;
+  end_date: string;
+  is_active: boolean;
+  salary_type: string;
+  base_salary: number;
+  hourly_rate: number;
+  work_days_per_week: number;
+  work_hours_per_day: number;
+  annual_leave_days: number;
+  sick_leave_days: number;
+  bank_name: string;
+  bank_account: string;
+  emergency_contact: string;
+  emergency_phone: string;
+  address: string;
+  notes: string;
+}
+
+const emptyEmployee: Partial<Employee> = {
+  full_name: "", id_number: "", phone: "", email: "", position: "", department: "",
+  job_title: "", start_date: new Date().toISOString().split("T")[0], salary_type: "شهري",
+  base_salary: 0, hourly_rate: 0, work_days_per_week: 6, work_hours_per_day: 8,
+  annual_leave_days: 14, sick_leave_days: 14, bank_name: "", bank_account: "",
+  emergency_contact: "", emergency_phone: "", address: "", notes: "", is_active: true,
+};
+
+const EmployeesPage = () => {
+  const { user } = useAuth();
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [form, setForm] = useState<Partial<Employee>>(emptyEmployee);
+  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+  const [activeTab, setActiveTab] = useState("info");
+
+  // Deductions & Allowances & Leaves state
+  const [deductions, setDeductions] = useState<any[]>([]);
+  const [allowances, setAllowances] = useState<any[]>([]);
+  const [leaves, setLeaves] = useState<any[]>([]);
+  const [showDeductionForm, setShowDeductionForm] = useState(false);
+  const [showAllowanceForm, setShowAllowanceForm] = useState(false);
+  const [showLeaveForm, setShowLeaveForm] = useState(false);
+  const [deductionForm, setDeductionForm] = useState({ deduction_type: "سلفة", amount: 0, deduction_date: new Date().toISOString().split("T")[0], description: "", notes: "" });
+  const [allowanceForm, setAllowanceForm] = useState({ allowance_name: "", allowance_type: "ثابت", amount: 0, percentage: 0, notes: "" });
+  const [leaveForm, setLeaveForm] = useState({ leave_type: "سنوية", start_date: new Date().toISOString().split("T")[0], end_date: new Date().toISOString().split("T")[0], days_count: 1, notes: "" });
+
+  const fetchEmployees = async () => {
+    if (!user) return;
+    setLoading(true);
+    const { data, error } = await supabase.from("employees").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
+    if (error) { toast.error("خطأ في جلب الموظفين"); console.error(error); }
+    else setEmployees((data as any[]) || []);
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchEmployees(); }, [user]);
+
+  const fetchEmployeeDetails = async (empId: string) => {
+    if (!user) return;
+    const [dedRes, allRes, levRes] = await Promise.all([
+      supabase.from("employee_deductions").select("*").eq("employee_id", empId).eq("user_id", user.id).order("deduction_date", { ascending: false }),
+      supabase.from("employee_allowances").select("*").eq("employee_id", empId).eq("user_id", user.id),
+      supabase.from("employee_leaves").select("*").eq("employee_id", empId).eq("user_id", user.id).order("start_date", { ascending: false }),
+    ]);
+    setDeductions((dedRes.data as any[]) || []);
+    setAllowances((allRes.data as any[]) || []);
+    setLeaves((levRes.data as any[]) || []);
+  };
+
+  const handleSave = async () => {
+    if (!user || !form.full_name) { toast.error("اسم الموظف مطلوب"); return; }
+    const payload = { ...form, user_id: user.id };
+    if (editingId) {
+      const { error } = await supabase.from("employees").update(payload as any).eq("id", editingId);
+      if (error) toast.error("خطأ في التحديث"); else { toast.success("تم التحديث"); setShowForm(false); setEditingId(null); fetchEmployees(); }
+    } else {
+      const { error } = await supabase.from("employees").insert(payload as any);
+      if (error) toast.error("خطأ في الإضافة"); else { toast.success("تمت الإضافة"); setShowForm(false); fetchEmployees(); }
+    }
+    setForm(emptyEmployee);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("هل أنت متأكد من حذف هذا الموظف؟")) return;
+    const { error } = await supabase.from("employees").delete().eq("id", id);
+    if (error) toast.error("خطأ في الحذف"); else { toast.success("تم الحذف"); fetchEmployees(); if (selectedEmployee?.id === id) setSelectedEmployee(null); }
+  };
+
+  const handleAddDeduction = async () => {
+    if (!user || !selectedEmployee) return;
+    const { error } = await supabase.from("employee_deductions").insert({ ...deductionForm, employee_id: selectedEmployee.id, user_id: user.id } as any);
+    if (error) toast.error("خطأ"); else { toast.success("تمت الإضافة"); setShowDeductionForm(false); setDeductionForm({ deduction_type: "سلفة", amount: 0, deduction_date: new Date().toISOString().split("T")[0], description: "", notes: "" }); fetchEmployeeDetails(selectedEmployee.id); }
+  };
+
+  const handleAddAllowance = async () => {
+    if (!user || !selectedEmployee) return;
+    const { error } = await supabase.from("employee_allowances").insert({ ...allowanceForm, employee_id: selectedEmployee.id, user_id: user.id, is_active: true } as any);
+    if (error) toast.error("خطأ"); else { toast.success("تمت الإضافة"); setShowAllowanceForm(false); setAllowanceForm({ allowance_name: "", allowance_type: "ثابت", amount: 0, percentage: 0, notes: "" }); fetchEmployeeDetails(selectedEmployee.id); }
+  };
+
+  const handleAddLeave = async () => {
+    if (!user || !selectedEmployee) return;
+    const { error } = await supabase.from("employee_leaves").insert({ ...leaveForm, employee_id: selectedEmployee.id, user_id: user.id, status: "معلقة" } as any);
+    if (error) toast.error("خطأ"); else { toast.success("تمت الإضافة"); setShowLeaveForm(false); setLeaveForm({ leave_type: "سنوية", start_date: new Date().toISOString().split("T")[0], end_date: new Date().toISOString().split("T")[0], days_count: 1, notes: "" }); fetchEmployeeDetails(selectedEmployee.id); }
+  };
+
+  const filtered = employees.filter(e => e.full_name.includes(search) || e.id_number?.includes(search) || e.job_title?.includes(search));
+  const activeCount = employees.filter(e => e.is_active).length;
+  const totalSalaries = employees.filter(e => e.is_active).reduce((s, e) => s + Number(e.base_salary || 0), 0);
+
+  return (
+    <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto" dir="rtl">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">إدارة الموظفين</h1>
+          <p className="text-sm text-muted-foreground">نظام الموارد البشرية - قانون العمل الفلسطيني</p>
+        </div>
+        <Button onClick={() => { setForm(emptyEmployee); setEditingId(null); setShowForm(true); }} className="gap-2">
+          <Plus className="h-4 w-4" /> إضافة موظف
+        </Button>
+      </div>
+
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card><CardContent className="p-4 text-center">
+          <Users className="h-5 w-5 mx-auto text-primary mb-1" />
+          <p className="text-2xl font-bold text-foreground">{activeCount}</p>
+          <p className="text-xs text-muted-foreground">موظف نشط</p>
+        </CardContent></Card>
+        <Card><CardContent className="p-4 text-center">
+          <DollarSign className="h-5 w-5 mx-auto text-accent mb-1" />
+          <p className="text-2xl font-bold text-foreground">{totalSalaries.toLocaleString()}</p>
+          <p className="text-xs text-muted-foreground">إجمالي الرواتب</p>
+        </CardContent></Card>
+        <Card><CardContent className="p-4 text-center">
+          <Calendar className="h-5 w-5 mx-auto text-warning mb-1" />
+          <p className="text-2xl font-bold text-foreground">{employees.length - activeCount}</p>
+          <p className="text-xs text-muted-foreground">غير نشط</p>
+        </CardContent></Card>
+        <Card><CardContent className="p-4 text-center">
+          <FileText className="h-5 w-5 mx-auto text-info mb-1" />
+          <p className="text-2xl font-bold text-foreground">{employees.length}</p>
+          <p className="text-xs text-muted-foreground">إجمالي السجلات</p>
+        </CardContent></Card>
+      </div>
+
+      {/* Search */}
+      <div className="relative max-w-md">
+        <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input placeholder="بحث بالاسم، رقم الهوية، الوظيفة..." value={search} onChange={e => setSearch(e.target.value)} className="pr-10" />
+      </div>
+
+      {/* Main Content: List + Detail */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Employee List */}
+        <div className="lg:col-span-1 space-y-2 max-h-[70vh] overflow-y-auto">
+          {loading ? <p className="text-muted-foreground text-center py-8">جاري التحميل...</p> :
+            filtered.length === 0 ? <p className="text-muted-foreground text-center py-8">لا يوجد موظفون</p> :
+            filtered.map(emp => (
+              <Card key={emp.id} className={`cursor-pointer transition-all hover:border-primary/50 ${selectedEmployee?.id === emp.id ? "border-primary bg-primary/5" : ""}`}
+                onClick={() => { setSelectedEmployee(emp); fetchEmployeeDetails(emp.id); setActiveTab("info"); }}>
+                <CardContent className="p-3 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm flex-shrink-0">
+                    {emp.full_name.charAt(0)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm text-foreground truncate">{emp.full_name}</p>
+                    <p className="text-xs text-muted-foreground truncate">{emp.job_title || emp.position || "—"}</p>
+                  </div>
+                  <Badge variant={emp.is_active ? "default" : "secondary"} className="text-[10px]">
+                    {emp.is_active ? "نشط" : "متوقف"}
+                  </Badge>
+                </CardContent>
+              </Card>
+            ))
+          }
+        </div>
+
+        {/* Detail Panel */}
+        <div className="lg:col-span-2">
+          {!selectedEmployee ? (
+            <Card className="h-full flex items-center justify-center min-h-[400px]">
+              <p className="text-muted-foreground">اختر موظفاً لعرض التفاصيل</p>
+            </Card>
+          ) : (
+            <Card>
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg">{selectedEmployee.full_name}</CardTitle>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="outline" onClick={() => { setForm(selectedEmployee); setEditingId(selectedEmployee.id); setShowForm(true); }}><Edit className="h-3 w-3" /></Button>
+                    <Button size="sm" variant="destructive" onClick={() => handleDelete(selectedEmployee.id)}><Trash2 className="h-3 w-3" /></Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <Tabs value={activeTab} onValueChange={setActiveTab}>
+                  <TabsList className="w-full grid grid-cols-4 mb-4">
+                    <TabsTrigger value="info">المعلومات</TabsTrigger>
+                    <TabsTrigger value="allowances">البدلات</TabsTrigger>
+                    <TabsTrigger value="deductions">المسحوبات</TabsTrigger>
+                    <TabsTrigger value="leaves">الإجازات</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="info">
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      {[
+                        ["رقم الهوية", selectedEmployee.id_number],
+                        ["الهاتف", selectedEmployee.phone],
+                        ["البريد", selectedEmployee.email],
+                        ["المنصب", selectedEmployee.position],
+                        ["القسم", selectedEmployee.department],
+                        ["المسمى الوظيفي", selectedEmployee.job_title],
+                        ["تاريخ البداية", selectedEmployee.start_date],
+                        ["نوع الراتب", selectedEmployee.salary_type],
+                        ["الراتب الأساسي", Number(selectedEmployee.base_salary || 0).toLocaleString()],
+                        ["معدل الساعة", Number(selectedEmployee.hourly_rate || 0).toLocaleString()],
+                        ["أيام العمل/أسبوع", selectedEmployee.work_days_per_week],
+                        ["ساعات العمل/يوم", selectedEmployee.work_hours_per_day],
+                        ["إجازات سنوية", `${selectedEmployee.annual_leave_days} يوم`],
+                        ["إجازات مرضية", `${selectedEmployee.sick_leave_days} يوم`],
+                        ["البنك", selectedEmployee.bank_name],
+                        ["رقم الحساب", selectedEmployee.bank_account],
+                        ["جهة طوارئ", selectedEmployee.emergency_contact],
+                        ["هاتف طوارئ", selectedEmployee.emergency_phone],
+                        ["العنوان", selectedEmployee.address],
+                      ].map(([label, val]) => (
+                        <div key={label as string} className="flex justify-between border-b border-border/30 pb-1">
+                          <span className="text-muted-foreground">{label}</span>
+                          <span className="font-medium text-foreground">{val || "—"}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="allowances">
+                    <div className="flex justify-between items-center mb-3">
+                      <h3 className="font-medium text-foreground">البدلات</h3>
+                      <Button size="sm" onClick={() => setShowAllowanceForm(true)} className="gap-1"><Plus className="h-3 w-3" /> إضافة بدل</Button>
+                    </div>
+                    <Table>
+                      <TableHeader><TableRow>
+                        <TableHead className="text-right">البدل</TableHead>
+                        <TableHead className="text-right">النوع</TableHead>
+                        <TableHead className="text-right">المبلغ</TableHead>
+                        <TableHead className="text-right">الحالة</TableHead>
+                      </TableRow></TableHeader>
+                      <TableBody>
+                        {allowances.map(a => (
+                          <TableRow key={a.id}>
+                            <TableCell className="font-medium">{a.allowance_name}</TableCell>
+                            <TableCell>{a.allowance_type}</TableCell>
+                            <TableCell>{a.allowance_type === "نسبة من الراتب" ? `${a.percentage}%` : Number(a.amount).toLocaleString()}</TableCell>
+                            <TableCell><Badge variant={a.is_active ? "default" : "secondary"}>{a.is_active ? "فعال" : "متوقف"}</Badge></TableCell>
+                          </TableRow>
+                        ))}
+                        {allowances.length === 0 && <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">لا توجد بدلات</TableCell></TableRow>}
+                      </TableBody>
+                    </Table>
+                  </TabsContent>
+
+                  <TabsContent value="deductions">
+                    <div className="flex justify-between items-center mb-3">
+                      <h3 className="font-medium text-foreground">المسحوبات والخصومات</h3>
+                      <Button size="sm" onClick={() => setShowDeductionForm(true)} className="gap-1"><Plus className="h-3 w-3" /> إضافة</Button>
+                    </div>
+                    <Table>
+                      <TableHeader><TableRow>
+                        <TableHead className="text-right">النوع</TableHead>
+                        <TableHead className="text-right">المبلغ</TableHead>
+                        <TableHead className="text-right">التاريخ</TableHead>
+                        <TableHead className="text-right">الوصف</TableHead>
+                        <TableHead className="text-right">الحالة</TableHead>
+                      </TableRow></TableHeader>
+                      <TableBody>
+                        {deductions.map(d => (
+                          <TableRow key={d.id}>
+                            <TableCell><Badge variant="outline">{d.deduction_type}</Badge></TableCell>
+                            <TableCell className="font-medium">{Number(d.amount).toLocaleString()}</TableCell>
+                            <TableCell>{d.deduction_date}</TableCell>
+                            <TableCell className="truncate max-w-[150px]">{d.description || "—"}</TableCell>
+                            <TableCell><Badge variant={d.is_repaid ? "default" : "destructive"}>{d.is_repaid ? "مسدد" : "غير مسدد"}</Badge></TableCell>
+                          </TableRow>
+                        ))}
+                        {deductions.length === 0 && <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">لا توجد مسحوبات</TableCell></TableRow>}
+                      </TableBody>
+                    </Table>
+                  </TabsContent>
+
+                  <TabsContent value="leaves">
+                    <div className="flex justify-between items-center mb-3">
+                      <h3 className="font-medium text-foreground">الإجازات</h3>
+                      <Button size="sm" onClick={() => setShowLeaveForm(true)} className="gap-1"><Plus className="h-3 w-3" /> طلب إجازة</Button>
+                    </div>
+                    <Table>
+                      <TableHeader><TableRow>
+                        <TableHead className="text-right">النوع</TableHead>
+                        <TableHead className="text-right">من</TableHead>
+                        <TableHead className="text-right">إلى</TableHead>
+                        <TableHead className="text-right">الأيام</TableHead>
+                        <TableHead className="text-right">الحالة</TableHead>
+                      </TableRow></TableHeader>
+                      <TableBody>
+                        {leaves.map(l => (
+                          <TableRow key={l.id}>
+                            <TableCell>{l.leave_type}</TableCell>
+                            <TableCell>{l.start_date}</TableCell>
+                            <TableCell>{l.end_date}</TableCell>
+                            <TableCell>{l.days_count}</TableCell>
+                            <TableCell><Badge variant={l.status === "موافق عليها" ? "default" : l.status === "مرفوضة" ? "destructive" : "secondary"}>{l.status}</Badge></TableCell>
+                          </TableRow>
+                        ))}
+                        {leaves.length === 0 && <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">لا توجد إجازات</TableCell></TableRow>}
+                      </TableBody>
+                    </Table>
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </div>
+
+      {/* Add/Edit Employee Dialog */}
+      <Dialog open={showForm} onOpenChange={setShowForm}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto" dir="rtl">
+          <DialogHeader><DialogTitle>{editingId ? "تعديل موظف" : "إضافة موظف جديد"}</DialogTitle></DialogHeader>
+          <div className="grid grid-cols-2 gap-3">
+            <div><label className="text-xs text-muted-foreground">الاسم الكامل *</label><Input value={form.full_name || ""} onChange={e => setForm({ ...form, full_name: e.target.value })} /></div>
+            <div><label className="text-xs text-muted-foreground">رقم الهوية</label><Input value={form.id_number || ""} onChange={e => setForm({ ...form, id_number: e.target.value })} /></div>
+            <div><label className="text-xs text-muted-foreground">الهاتف</label><Input value={form.phone || ""} onChange={e => setForm({ ...form, phone: e.target.value })} /></div>
+            <div><label className="text-xs text-muted-foreground">البريد</label><Input value={form.email || ""} onChange={e => setForm({ ...form, email: e.target.value })} /></div>
+            <div><label className="text-xs text-muted-foreground">المنصب</label><Input value={form.position || ""} onChange={e => setForm({ ...form, position: e.target.value })} /></div>
+            <div><label className="text-xs text-muted-foreground">القسم</label><Input value={form.department || ""} onChange={e => setForm({ ...form, department: e.target.value })} /></div>
+            <div><label className="text-xs text-muted-foreground">المسمى الوظيفي</label><Input value={form.job_title || ""} onChange={e => setForm({ ...form, job_title: e.target.value })} /></div>
+            <div><label className="text-xs text-muted-foreground">تاريخ البداية</label><Input type="date" value={form.start_date || ""} onChange={e => setForm({ ...form, start_date: e.target.value })} /></div>
+            <div><label className="text-xs text-muted-foreground">نوع الراتب</label>
+              <Select value={form.salary_type || "شهري"} onValueChange={v => setForm({ ...form, salary_type: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent><SelectItem value="شهري">شهري</SelectItem><SelectItem value="يومي">يومي</SelectItem><SelectItem value="بالساعة">بالساعة</SelectItem></SelectContent>
+              </Select>
+            </div>
+            <div><label className="text-xs text-muted-foreground">الراتب الأساسي</label><Input type="number" value={form.base_salary || 0} onChange={e => setForm({ ...form, base_salary: Number(e.target.value) })} /></div>
+            <div><label className="text-xs text-muted-foreground">معدل الساعة</label><Input type="number" value={form.hourly_rate || 0} onChange={e => setForm({ ...form, hourly_rate: Number(e.target.value) })} /></div>
+            <div><label className="text-xs text-muted-foreground">أيام العمل/أسبوع</label><Input type="number" value={form.work_days_per_week || 6} onChange={e => setForm({ ...form, work_days_per_week: Number(e.target.value) })} /></div>
+            <div><label className="text-xs text-muted-foreground">ساعات العمل/يوم</label><Input type="number" value={form.work_hours_per_day || 8} onChange={e => setForm({ ...form, work_hours_per_day: Number(e.target.value) })} /></div>
+            <div><label className="text-xs text-muted-foreground">إجازات سنوية (يوم)</label><Input type="number" value={form.annual_leave_days || 14} onChange={e => setForm({ ...form, annual_leave_days: Number(e.target.value) })} /></div>
+            <div><label className="text-xs text-muted-foreground">إجازات مرضية (يوم)</label><Input type="number" value={form.sick_leave_days || 14} onChange={e => setForm({ ...form, sick_leave_days: Number(e.target.value) })} /></div>
+            <div><label className="text-xs text-muted-foreground">البنك</label><Input value={form.bank_name || ""} onChange={e => setForm({ ...form, bank_name: e.target.value })} /></div>
+            <div><label className="text-xs text-muted-foreground">رقم الحساب البنكي</label><Input value={form.bank_account || ""} onChange={e => setForm({ ...form, bank_account: e.target.value })} /></div>
+            <div><label className="text-xs text-muted-foreground">جهة اتصال طوارئ</label><Input value={form.emergency_contact || ""} onChange={e => setForm({ ...form, emergency_contact: e.target.value })} /></div>
+            <div><label className="text-xs text-muted-foreground">هاتف الطوارئ</label><Input value={form.emergency_phone || ""} onChange={e => setForm({ ...form, emergency_phone: e.target.value })} /></div>
+            <div className="col-span-2"><label className="text-xs text-muted-foreground">العنوان</label><Input value={form.address || ""} onChange={e => setForm({ ...form, address: e.target.value })} /></div>
+            <div className="col-span-2"><label className="text-xs text-muted-foreground">ملاحظات</label><Input value={form.notes || ""} onChange={e => setForm({ ...form, notes: e.target.value })} /></div>
+          </div>
+          <div className="flex justify-end gap-2 mt-4">
+            <Button variant="outline" onClick={() => setShowForm(false)}>إلغاء</Button>
+            <Button onClick={handleSave}>{editingId ? "تحديث" : "حفظ"}</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Deduction Dialog */}
+      <Dialog open={showDeductionForm} onOpenChange={setShowDeductionForm}>
+        <DialogContent dir="rtl">
+          <DialogHeader><DialogTitle>إضافة مسحوبات / خصم</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div><label className="text-xs text-muted-foreground">النوع</label>
+              <Select value={deductionForm.deduction_type} onValueChange={v => setDeductionForm({ ...deductionForm, deduction_type: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>{["سلفة", "أكل", "مشتريات", "مخالفات", "توصيل", "عجز", "فائض", "غياب", "أخرى"].map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div><label className="text-xs text-muted-foreground">المبلغ</label><Input type="number" value={deductionForm.amount} onChange={e => setDeductionForm({ ...deductionForm, amount: Number(e.target.value) })} /></div>
+            <div><label className="text-xs text-muted-foreground">التاريخ</label><Input type="date" value={deductionForm.deduction_date} onChange={e => setDeductionForm({ ...deductionForm, deduction_date: e.target.value })} /></div>
+            <div><label className="text-xs text-muted-foreground">الوصف</label><Input value={deductionForm.description} onChange={e => setDeductionForm({ ...deductionForm, description: e.target.value })} /></div>
+          </div>
+          <div className="flex justify-end gap-2 mt-4"><Button variant="outline" onClick={() => setShowDeductionForm(false)}>إلغاء</Button><Button onClick={handleAddDeduction}>حفظ</Button></div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Allowance Dialog */}
+      <Dialog open={showAllowanceForm} onOpenChange={setShowAllowanceForm}>
+        <DialogContent dir="rtl">
+          <DialogHeader><DialogTitle>إضافة بدل</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div><label className="text-xs text-muted-foreground">اسم البدل</label><Input value={allowanceForm.allowance_name} onChange={e => setAllowanceForm({ ...allowanceForm, allowance_name: e.target.value })} /></div>
+            <div><label className="text-xs text-muted-foreground">النوع</label>
+              <Select value={allowanceForm.allowance_type} onValueChange={v => setAllowanceForm({ ...allowanceForm, allowance_type: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>{["ثابت", "نسبة من الراتب", "بالساعة", "بالیوم"].map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div><label className="text-xs text-muted-foreground">المبلغ</label><Input type="number" value={allowanceForm.amount} onChange={e => setAllowanceForm({ ...allowanceForm, amount: Number(e.target.value) })} /></div>
+            <div><label className="text-xs text-muted-foreground">النسبة (%)</label><Input type="number" value={allowanceForm.percentage} onChange={e => setAllowanceForm({ ...allowanceForm, percentage: Number(e.target.value) })} /></div>
+          </div>
+          <div className="flex justify-end gap-2 mt-4"><Button variant="outline" onClick={() => setShowAllowanceForm(false)}>إلغاء</Button><Button onClick={handleAddAllowance}>حفظ</Button></div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Leave Dialog */}
+      <Dialog open={showLeaveForm} onOpenChange={setShowLeaveForm}>
+        <DialogContent dir="rtl">
+          <DialogHeader><DialogTitle>طلب إجازة</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div><label className="text-xs text-muted-foreground">النوع</label>
+              <Select value={leaveForm.leave_type} onValueChange={v => setLeaveForm({ ...leaveForm, leave_type: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>{["سنوية", "مرضية", "بدون راتب", "أمومة", "أبوة", "طارئة", "أخرى"].map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div><label className="text-xs text-muted-foreground">من تاريخ</label><Input type="date" value={leaveForm.start_date} onChange={e => setLeaveForm({ ...leaveForm, start_date: e.target.value })} /></div>
+            <div><label className="text-xs text-muted-foreground">إلى تاريخ</label><Input type="date" value={leaveForm.end_date} onChange={e => setLeaveForm({ ...leaveForm, end_date: e.target.value })} /></div>
+            <div><label className="text-xs text-muted-foreground">عدد الأيام</label><Input type="number" value={leaveForm.days_count} onChange={e => setLeaveForm({ ...leaveForm, days_count: Number(e.target.value) })} /></div>
+            <div><label className="text-xs text-muted-foreground">ملاحظات</label><Input value={leaveForm.notes} onChange={e => setLeaveForm({ ...leaveForm, notes: e.target.value })} /></div>
+          </div>
+          <div className="flex justify-end gap-2 mt-4"><Button variant="outline" onClick={() => setShowLeaveForm(false)}>إلغاء</Button><Button onClick={handleAddLeave}>حفظ</Button></div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+export default EmployeesPage;
