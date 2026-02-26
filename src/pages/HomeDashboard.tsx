@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import {
   Plus, FileText, Receipt, Users, Package, Wallet, Landmark,
   TrendingUp, TrendingDown, Droplets, ArrowUpRight, Loader2,
@@ -48,9 +48,9 @@ interface KPIWidgetProps {
 }
 
 const statusMap = {
-  green: { text: "text-primary", bg: "bg-primary/10", border: "border-primary/15" },
-  yellow: { text: "text-warning", bg: "bg-warning/10", border: "border-warning/15" },
-  red: { text: "text-destructive", bg: "bg-destructive/10", border: "border-destructive/15" },
+  green: { text: "text-success", bg: "bg-success/8", tag: "bg-success/10 text-success" },
+  yellow: { text: "text-warning", bg: "bg-warning/8", tag: "bg-warning/10 text-warning" },
+  red: { text: "text-destructive", bg: "bg-destructive/8", tag: "bg-destructive/10 text-destructive" },
 };
 
 const KPIWidget = ({ title, value, prefix = "₪", icon: Icon, trend, trendLabel, status, linkTo, loading }: KPIWidgetProps) => {
@@ -60,28 +60,36 @@ const KPIWidget = ({ title, value, prefix = "₪", icon: Icon, trend, trendLabel
 
   return (
     <div
-      className={`bg-card rounded-xl border ${colors.border} p-4 hover:shadow-md transition-shadow cursor-pointer group`}
+      className="bg-card rounded-2xl p-5 hover:shadow-medium transition-all cursor-pointer group shadow-card"
       onClick={() => linkTo && navigate(linkTo)}
     >
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <div className={`w-8 h-8 rounded-lg ${colors.bg} flex items-center justify-center`}>
-            <Icon className={`h-4 w-4 ${colors.text}`} />
+      {/* Title row */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2.5">
+          <div className={`w-9 h-9 rounded-xl ${colors.bg} flex items-center justify-center`}>
+            <Icon className="h-[18px] w-[18px]" strokeWidth={1.8} />
           </div>
           <span className="text-xs font-medium text-muted-foreground">{title}</span>
         </div>
         {linkTo && (
-          <ChevronLeft className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+          <ChevronLeft className="h-4 w-4 text-muted-foreground/40 opacity-0 group-hover:opacity-100 transition-opacity" />
         )}
       </div>
-      <p className={`text-2xl font-bold tabular-nums ${colors.text}`}>
-        {prefix}{animValue.toLocaleString()}
+
+      {/* Value */}
+      <p className="text-3xl font-bold tabular-nums text-foreground leading-none mb-3">
+        <span className="text-lg font-medium text-muted-foreground ml-1">{prefix}</span>
+        {animValue.toLocaleString()}
       </p>
+
+      {/* Trend tag */}
       {trendLabel && (
-        <div className="flex items-center gap-1 mt-1.5">
-          {trend === "up" && <TrendingUp className="h-3 w-3 text-primary" />}
-          {trend === "down" && <TrendingDown className="h-3 w-3 text-destructive" />}
-          <span className="text-[11px] text-muted-foreground">{trendLabel}</span>
+        <div className="flex items-center gap-1.5">
+          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-medium ${colors.tag}`}>
+            {trend === "up" && <TrendingUp className="h-3 w-3" />}
+            {trend === "down" && <TrendingDown className="h-3 w-3" />}
+            {trendLabel}
+          </span>
         </div>
       )}
     </div>
@@ -191,7 +199,7 @@ const HomeDashboard = () => {
     fetchAlerts();
   }, [user, loadingTx, transactions]);
 
-  // ─── Smart Assistant Handler (simplified - reuses Dashboard logic) ───
+  // ─── Smart Assistant Handler ───
   const handleSend = async () => {
     if (!inputValue.trim()) return;
     setSending(true);
@@ -240,7 +248,6 @@ const HomeDashboard = () => {
         return;
       }
 
-      // Default: send to webhook
       const body: any = { text: inputValue, userId: user?.id, email: user?.email };
       if (contactMention) {
         body.mentionedContactName = contactMention.name;
@@ -312,32 +319,32 @@ const HomeDashboard = () => {
   const noActivity = revenue === 0 && expenses === 0;
 
   return (
-    <div className="space-y-6 max-w-[1400px] mx-auto" dir="rtl">
+    <div className="space-y-8 max-w-[1400px] mx-auto animate-fade-in" dir="rtl">
       {user && <CompleteProfileDialog open={showProfileDialog} onClose={() => setShowProfileDialog(false)} user={user} />}
 
       {/* ═══ WELCOME + CREATE ACTIONS ═══ */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+      <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-foreground">مرحباً {displayName.split(' ')[0]} 👋</h1>
-          <p className="text-sm text-muted-foreground">إليك نظرة عامة على وضعك المالي</p>
+          <h1 className="text-2xl font-bold text-foreground">مرحباً {displayName.split(' ')[0]} 👋</h1>
+          <p className="text-sm text-muted-foreground mt-1">إليك نظرة عامة على وضعك المالي</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           {createActions.map((action) => (
             <button
               key={action.label}
               onClick={() => navigate(action.path)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-xs font-medium text-foreground hover:bg-secondary transition-colors"
+              className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-secondary/60 text-xs font-medium text-foreground hover:bg-secondary transition-colors"
             >
-              <action.icon className="h-3.5 w-3.5" />
+              <action.icon className="h-3.5 w-3.5 text-muted-foreground" strokeWidth={1.8} />
               {action.label}
             </button>
           ))}
         </div>
       </div>
 
-      {/* ═══ LOADING STATE ═══ */}
+      {/* ═══ LOADING ═══ */}
       {loadingTx && (
-        <div className="flex items-center justify-center py-20">
+        <div className="flex items-center justify-center py-24">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       )}
@@ -345,7 +352,7 @@ const HomeDashboard = () => {
       {!loadingTx && (
         <>
           {/* ═══ KPI WIDGETS ═══ */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
             <KPIWidget
               title="صافي الربح"
               value={netProfit}
@@ -391,18 +398,20 @@ const HomeDashboard = () => {
           {/* ═══ MAIN CONTENT GRID ═══ */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* LEFT: Smart Assistant + Commands (2 cols) */}
-            <div className="lg:col-span-2 space-y-5">
+            <div className="lg:col-span-2 space-y-6">
               {/* Smart Financial Alert */}
               <SmartAlertCard alert={financialAlert} allAlerts={allAlerts} userId={user?.id} />
 
               {/* Smart Assistant */}
-              <div className="bg-card rounded-xl border border-border p-5 space-y-4">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="h-4 w-4 text-primary" />
+              <div className="bg-card rounded-2xl p-6 space-y-4 shadow-card">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
+                    <Sparkles className="h-4 w-4 text-primary" />
+                  </div>
                   <span className="text-sm font-bold text-foreground">المساعد المالي الذكي</span>
                 </div>
-                <div className="flex items-end gap-2 bg-secondary/40 rounded-xl px-3 py-2">
-                  <button onClick={handleSend} disabled={sending || !inputValue.trim()} className="flex-shrink-0 w-9 h-9 rounded-lg bg-primary flex items-center justify-center hover:opacity-90 transition-all disabled:opacity-40">
+                <div className="flex items-end gap-2 bg-secondary/40 rounded-xl px-3 py-2.5">
+                  <button onClick={handleSend} disabled={sending || !inputValue.trim()} className="flex-shrink-0 w-9 h-9 rounded-xl bg-primary flex items-center justify-center hover:opacity-90 transition-all disabled:opacity-40">
                     {sending ? <Loader2 className="h-4 w-4 text-primary-foreground animate-spin" /> : <Send className="h-4 w-4 text-primary-foreground" />}
                   </button>
                   <MentionInput
@@ -411,28 +420,28 @@ const HomeDashboard = () => {
                     onKeyDown={(e) => e.key === "Enter" && handleSend()}
                     onMentionSelect={(item) => setSelectedMentions(prev => [...prev, item])}
                     placeholder="شو صار معك اليوم مالياً؟ سجل عملياتك بكلامك…"
-                    className="flex-1 min-w-0 h-9 bg-transparent rounded-lg px-2 text-sm text-foreground placeholder:text-muted-foreground border-0 outline-none"
+                    className="flex-1 min-w-0 h-9 bg-transparent rounded-xl px-2 text-sm text-foreground placeholder:text-muted-foreground/50 border-0 outline-none"
                     userId={user?.id}
                   />
-                  <button onClick={() => navigate("/voice")} className="flex-shrink-0 w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center hover:bg-primary/20 transition-colors">
+                  <button onClick={() => navigate("/voice")} className="flex-shrink-0 w-9 h-9 rounded-xl bg-primary/8 flex items-center justify-center hover:bg-primary/15 transition-colors">
                     <Mic className="h-4 w-4 text-primary" />
                   </button>
                 </div>
                 {/* Chips */}
-                <div className="flex gap-1.5 flex-wrap">
+                <div className="flex gap-2 flex-wrap">
                   {["قبضت من أحمد 5,000 شيكل", "دفعت إيجار 2500", "استلمت شيك من أحمد 4000", "بعت طحين 50 كيلو نقداً"].map((chip) => (
-                    <button key={chip} onClick={() => setInputValue(chip)} className="px-2.5 py-1 rounded-lg bg-secondary text-[11px] text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all">
+                    <button key={chip} onClick={() => setInputValue(chip)} className="px-3 py-1.5 rounded-xl bg-secondary/60 text-[11px] text-muted-foreground hover:bg-primary/8 hover:text-primary transition-all">
                       {chip}
                     </button>
                   ))}
                 </div>
                 {invoiceMessage && (
-                  <div className="p-3 rounded-xl border border-primary/20 bg-primary/5 space-y-2">
+                  <div className="p-4 rounded-xl border border-primary/15 bg-primary/5 space-y-3">
                     <p className="text-xs text-foreground whitespace-pre-line">{invoiceMessage}</p>
                     {pendingInvoice ? (
                       <div className="flex gap-2">
-                        <button onClick={() => { /* confirm logic */ }} className="flex-1 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-bold">✅ أنشئ الفاتورة</button>
-                        <button onClick={() => { setPendingInvoice(null); setInvoiceMessage(null); }} className="px-4 py-2 rounded-lg bg-secondary text-xs">إلغاء</button>
+                        <button onClick={() => { /* confirm logic */ }} className="flex-1 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold">✅ أنشئ الفاتورة</button>
+                        <button onClick={() => { setPendingInvoice(null); setInvoiceMessage(null); }} className="px-4 py-2 rounded-xl bg-secondary text-xs">إلغاء</button>
                       </div>
                     ) : (
                       <button onClick={() => setInvoiceMessage(null)} className="text-[10px] text-primary font-medium hover:underline">فهمت ✓</button>
@@ -442,14 +451,18 @@ const HomeDashboard = () => {
               </div>
 
               {/* اطلب وتمنى */}
-              <div className="bg-card rounded-xl border border-border p-5 space-y-4">
-                <div className="flex items-center gap-2">
-                  <Database className="h-4 w-4 text-primary" />
-                  <span className="text-sm font-bold text-foreground">اطلب وتمنى ✨</span>
-                  <span className="text-[11px] text-muted-foreground">أضف زبون، مورد، حساب، منتج، أو سند قيد</span>
+              <div className="bg-card rounded-2xl p-6 space-y-4 shadow-card">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
+                    <Database className="h-4 w-4 text-primary" />
+                  </div>
+                  <div>
+                    <span className="text-sm font-bold text-foreground">اطلب وتمنى ✨</span>
+                    <span className="text-[11px] text-muted-foreground mr-2">أضف زبون، مورد، حساب، منتج، أو سند قيد</span>
+                  </div>
                 </div>
-                <div className="flex items-end gap-2 bg-secondary/40 rounded-xl px-3 py-2">
-                  <button onClick={handleDbCommand} disabled={dbSending || !dbCommand.trim()} className="flex-shrink-0 w-9 h-9 rounded-lg bg-primary flex items-center justify-center hover:opacity-90 transition-all disabled:opacity-40">
+                <div className="flex items-end gap-2 bg-secondary/40 rounded-xl px-3 py-2.5">
+                  <button onClick={handleDbCommand} disabled={dbSending || !dbCommand.trim()} className="flex-shrink-0 w-9 h-9 rounded-xl bg-primary flex items-center justify-center hover:opacity-90 transition-all disabled:opacity-40">
                     {dbSending ? <Loader2 className="h-4 w-4 text-primary-foreground animate-spin" /> : <Send className="h-4 w-4 text-primary-foreground" />}
                   </button>
                   <textarea
@@ -457,22 +470,22 @@ const HomeDashboard = () => {
                     onChange={(e) => setDbCommand(e.target.value)}
                     onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleDbCommand(); } }}
                     placeholder="أضف زبون أحمد جوال 0501234567"
-                    className="flex-1 min-w-0 h-9 bg-transparent rounded-lg px-2 py-1.5 text-sm text-foreground placeholder:text-muted-foreground border-0 outline-none text-right resize-none"
+                    className="flex-1 min-w-0 h-9 bg-transparent rounded-xl px-2 py-1.5 text-sm text-foreground placeholder:text-muted-foreground/50 border-0 outline-none text-right resize-none"
                     rows={1}
                   />
                 </div>
-                <div className="flex gap-1.5 flex-wrap">
+                <div className="flex gap-2 flex-wrap">
                   {["أضف زبون أحمد", "أضف مورد شركة الشمال", "أضف منتج سجاد شراء 80 بيع 120", "سند قيد مدين المشتريات دائن الصندوق 5000"].map((chip) => (
-                    <button key={chip} onClick={() => setDbCommand(chip)} className="px-2.5 py-1 rounded-lg bg-secondary text-[11px] text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all">
+                    <button key={chip} onClick={() => setDbCommand(chip)} className="px-3 py-1.5 rounded-xl bg-secondary/60 text-[11px] text-muted-foreground hover:bg-primary/8 hover:text-primary transition-all">
                       {chip}
                     </button>
                   ))}
-                  <button onClick={() => setShowJournalEntry(true)} className="px-2.5 py-1 rounded-lg bg-primary/10 text-[11px] font-bold text-primary hover:bg-primary/20 transition-all flex items-center gap-1">
+                  <button onClick={() => setShowJournalEntry(true)} className="px-3 py-1.5 rounded-xl bg-primary/10 text-[11px] font-bold text-primary hover:bg-primary/15 transition-all flex items-center gap-1">
                     <BookOpen className="h-3 w-3" /> سند قيد جديد
                   </button>
                 </div>
                 {dbResponseMessage && (
-                  <div className="p-3 rounded-xl border border-primary/20 bg-primary/5 space-y-2">
+                  <div className="p-4 rounded-xl border border-primary/15 bg-primary/5 space-y-2">
                     <p className="text-xs text-foreground whitespace-pre-line">{dbResponseMessage}</p>
                     <button onClick={() => setDbResponseMessage(null)} className="text-[10px] text-primary font-medium hover:underline">فهمت ✓</button>
                   </div>
@@ -481,12 +494,14 @@ const HomeDashboard = () => {
             </div>
 
             {/* RIGHT: Tasks & Insights Panel */}
-            <div className="space-y-5">
+            <div className="space-y-6">
               {/* Setup Checklist */}
               {showSetupWizard && user && (
-                <div className="bg-card rounded-xl border border-border p-5">
-                  <h3 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-primary" />
+                <div className="bg-card rounded-2xl p-5 shadow-card">
+                  <h3 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
+                      <Clock className="h-4 w-4 text-primary" />
+                    </div>
                     خطوات البدء
                   </h3>
                   <SetupWizard userId={user.id} onComplete={() => setShowSetupWizard(false)} />
@@ -494,9 +509,9 @@ const HomeDashboard = () => {
               )}
 
               {/* Quick Links */}
-              <div className="bg-card rounded-xl border border-border p-5 space-y-3">
-                <h3 className="text-sm font-bold text-foreground">اختصارات سريعة</h3>
-                <div className="space-y-1.5">
+              <div className="bg-card rounded-2xl p-5 space-y-3 shadow-card">
+                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">اختصارات سريعة</h3>
+                <div className="space-y-1">
                   {[
                     { label: "الأرباح والخسائر", path: "/profit-loss", icon: TrendingUp },
                     { label: "التقارير المالية", path: "/reports", icon: FileText },
@@ -507,11 +522,11 @@ const HomeDashboard = () => {
                     <button
                       key={link.path}
                       onClick={() => navigate(link.path)}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-foreground hover:bg-secondary transition-colors text-right"
+                      className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[13px] text-foreground hover:bg-secondary/60 transition-colors text-right"
                     >
-                      <link.icon className="h-4 w-4 text-muted-foreground" />
+                      <link.icon className="h-4 w-4 text-muted-foreground/60" strokeWidth={1.8} />
                       <span className="flex-1">{link.label}</span>
-                      <ChevronLeft className="h-3.5 w-3.5 text-muted-foreground" />
+                      <ChevronLeft className="h-3.5 w-3.5 text-muted-foreground/30" />
                     </button>
                   ))}
                 </div>
@@ -519,14 +534,14 @@ const HomeDashboard = () => {
 
               {/* Alerts Summary */}
               {allAlerts.length > 0 && (
-                <div className="bg-card rounded-xl border border-border p-5 space-y-3">
-                  <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-                    <AlertTriangle className="h-4 w-4 text-warning" />
+                <div className="bg-card rounded-2xl p-5 space-y-3 shadow-card">
+                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                    <AlertTriangle className="h-3.5 w-3.5 text-warning" />
                     تنبيهات
                   </h3>
                   <div className="space-y-2">
                     {allAlerts.slice(0, 3).map((alert, i) => (
-                      <div key={i} className="text-xs text-muted-foreground p-2 rounded-lg bg-secondary/50">
+                      <div key={i} className="text-xs text-muted-foreground p-3 rounded-xl bg-secondary/40">
                         {alert.message || alert.title}
                       </div>
                     ))}

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search, Bell, Sun, Moon, Menu, HelpCircle, ChevronDown, LogOut, User, Settings } from "lucide-react";
+import { Search, Bell, Sun, Moon, Menu, ChevronDown, LogOut, User, Settings } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/hooks/useTheme";
 import { useNavigate } from "react-router-dom";
@@ -26,82 +26,77 @@ const TopBar = ({ onMenuClick, sidebarCollapsed }: TopBarProps) => {
   const initials = displayName.split(" ").slice(0, 2).map((w: string) => w[0]).join("");
 
   return (
-    <header className="h-14 border-b border-border bg-card/50 backdrop-blur-sm flex items-center gap-3 px-4 flex-shrink-0">
-      {/* Mobile menu button */}
+    <header className="h-14 border-b border-border/50 bg-card/80 backdrop-blur-md flex items-center gap-4 px-5 flex-shrink-0">
+      {/* Mobile menu */}
       <button
         onClick={onMenuClick}
-        className="lg:hidden w-9 h-9 rounded-lg flex items-center justify-center hover:bg-secondary transition-colors"
+        className="lg:hidden w-9 h-9 rounded-xl flex items-center justify-center hover:bg-secondary transition-colors"
       >
-        <Menu className="h-5 w-5 text-muted-foreground" />
+        <Menu className="h-5 w-5 text-muted-foreground" strokeWidth={1.8} />
       </button>
 
       {/* Global Search */}
-      <div className="flex-1 max-w-xl">
+      <div className="flex-1 max-w-lg">
         <div className="relative">
-          <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+          <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60 pointer-events-none" strokeWidth={1.8} />
           <input
             type="text"
             value={searchValue}
             onChange={(e) => setSearchValue(e.target.value)}
             placeholder="ابحث عن معاملة، عميل، مورد، تقرير…"
-            className="w-full h-9 pr-10 pl-4 rounded-lg bg-secondary/50 border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-primary/50 transition-all"
+            className="w-full h-9 pr-10 pl-4 rounded-xl bg-secondary/60 border-0 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:bg-secondary transition-all"
           />
         </div>
       </div>
 
       {/* Actions */}
       <div className="flex items-center gap-1">
-        {/* Help */}
-        <button className="w-9 h-9 rounded-lg flex items-center justify-center hover:bg-secondary transition-colors">
-          <HelpCircle className="h-[18px] w-[18px] text-muted-foreground" />
-        </button>
-
         {/* Theme toggle */}
         <button
           onClick={toggleTheme}
-          className="w-9 h-9 rounded-lg flex items-center justify-center hover:bg-secondary transition-colors"
+          className="w-9 h-9 rounded-xl flex items-center justify-center hover:bg-secondary transition-colors"
         >
           {theme === "dark" ? (
-            <Moon className="h-[18px] w-[18px] text-muted-foreground" />
+            <Moon className="h-[18px] w-[18px] text-muted-foreground" strokeWidth={1.8} />
           ) : (
-            <Sun className="h-[18px] w-[18px] text-warning" />
+            <Sun className="h-[18px] w-[18px] text-warning" strokeWidth={1.8} />
           )}
         </button>
 
         {/* Notifications */}
-        <button className="w-9 h-9 rounded-lg flex items-center justify-center hover:bg-secondary transition-colors relative">
-          <Bell className="h-[18px] w-[18px] text-muted-foreground" />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-destructive" />
+        <button className="w-9 h-9 rounded-xl flex items-center justify-center hover:bg-secondary transition-colors relative">
+          <Bell className="h-[18px] w-[18px] text-muted-foreground" strokeWidth={1.8} />
+          <span className="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-primary" />
         </button>
 
         {/* User dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="flex items-center gap-2 h-9 px-2 rounded-lg hover:bg-secondary transition-colors">
-              <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-                <span className="text-xs font-bold text-primary">{initials}</span>
+            <button className="flex items-center gap-2 h-9 px-2 rounded-xl hover:bg-secondary transition-colors mr-1">
+              <div className="w-8 h-8 rounded-xl bg-primary/15 flex items-center justify-center">
+                <span className="text-xs font-semibold text-primary">{initials}</span>
               </div>
-              <span className="text-sm font-medium text-foreground hidden md:block max-w-[120px] truncate">{displayName}</span>
-              <ChevronDown className="h-3.5 w-3.5 text-muted-foreground hidden md:block" />
+              <span className="text-[13px] font-medium text-foreground hidden md:block max-w-[120px] truncate">{displayName}</span>
+              <ChevronDown className="h-3.5 w-3.5 text-muted-foreground/60 hidden md:block" />
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-56">
-            <div className="px-3 py-2">
-              <p className="text-sm font-medium text-foreground">{displayName}</p>
+          <DropdownMenuContent align="start" className="w-56 rounded-xl bg-popover border-border shadow-elevated z-50">
+            <div className="px-3 py-2.5">
+              <p className="text-sm font-semibold text-foreground">{displayName}</p>
               <p className="text-xs text-muted-foreground">{user?.email}</p>
             </div>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => navigate("/profile")} className="gap-2 cursor-pointer">
-              <User className="h-4 w-4" />
+            <DropdownMenuItem onClick={() => navigate("/profile")} className="gap-2.5 cursor-pointer rounded-lg mx-1">
+              <User className="h-4 w-4" strokeWidth={1.8} />
               الملف الشخصي
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => navigate("/settings")} className="gap-2 cursor-pointer">
-              <Settings className="h-4 w-4" />
+            <DropdownMenuItem onClick={() => navigate("/settings")} className="gap-2.5 cursor-pointer rounded-lg mx-1">
+              <Settings className="h-4 w-4" strokeWidth={1.8} />
               الإعدادات
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={signOut} className="gap-2 cursor-pointer text-destructive">
-              <LogOut className="h-4 w-4" />
+            <DropdownMenuItem onClick={signOut} className="gap-2.5 cursor-pointer text-destructive rounded-lg mx-1">
+              <LogOut className="h-4 w-4" strokeWidth={1.8} />
               تسجيل الخروج
             </DropdownMenuItem>
           </DropdownMenuContent>
