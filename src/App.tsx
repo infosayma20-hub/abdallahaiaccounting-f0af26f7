@@ -37,6 +37,7 @@ import NotFound from "./pages/NotFound";
 import LoadingScreen from "./components/LoadingScreen";
 import EmployeeAttendancePage from "./pages/EmployeeAttendancePage";
 import HRAttendancePage from "./pages/HRAttendancePage";
+import BranchDisplayPage from "./pages/BranchDisplayPage";
 
 const queryClient = new QueryClient();
 
@@ -100,6 +101,7 @@ const App = () => (
                       <Route path="/orders" element={<OrdersPage />} />
                       <Route path="/my-attendance" element={<EmployeeAttendancePage />} />
                       <Route path="/hr-attendance" element={<HRAttendancePage />} />
+                      <Route path="/branch-display/:branchId" element={<BranchDisplayPage />} />
                       <Route path="*" element={<NotFound />} />
                     </Routes>
                   </WebLayout>

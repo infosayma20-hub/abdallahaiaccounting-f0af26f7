@@ -135,21 +135,34 @@ export default function HRAttendancePage() {
 
   const generateQRToken = async (branch: Branch) => {
     setSelectedBranchForQR(branch);
-    // Generate a random token valid for 24 hours
-    const token = crypto.randomUUID().replace(/-/g, "").substring(0, 16);
-    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    try {
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+      const session = await supabase.auth.getSession();
+      const accessToken = session.data.session?.access_token;
 
-    const { error } = await supabase.from("qr_tokens").insert({
-      branch_id: branch.id,
-      token,
-      expires_at: expiresAt,
-    });
-    if (error) {
-      toast({ title: "خطأ", description: error.message, variant: "destructive" });
-      return;
+      const response = await fetch(
+        `https://${projectId}.supabase.co/functions/v1/branch-qr?action=generate&branch_id=${branch.id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+        }
+      );
+      const data = await response.json();
+      if (!response.ok) {
+        toast({ title: "خطأ", description: data.error || "حدث خطأ", variant: "destructive" });
+        return;
+      }
+      setQrToken(data.qr_payload);
+      setShowQRDialog(true);
+    } catch (e: any) {
+      toast({ title: "خطأ", description: e.message, variant: "destructive" });
     }
-    setQrToken(`${branch.id}:${token}`);
-    setShowQRDialog(true);
+  };
+
+  const openDisplayPage = (branchId: string) => {
+    window.open(`/branch-display/${branchId}`, "_blank");
   };
 
   const handleCorrection = async (id: string, action: "approved" | "rejected") => {
@@ -248,7 +261,7 @@ export default function HRAttendancePage() {
       {branches.length > 0 && (
         <div className="flex gap-2 overflow-x-auto pb-2">
           {branches.map(b => (
-            <Card key={b.id} className="min-w-[200px] p-3 cursor-pointer hover:border-primary/50 transition-colors" onClick={() => generateQRToken(b)}>
+            <Card key={b.id} className="min-w-[220px] p-3 hover:border-primary/50 transition-colors">
               <div className="flex items-center gap-2 mb-1">
                 <Building2 className="h-4 w-4 text-primary" />
                 <span className="font-medium text-sm">{b.name}</span>
@@ -257,9 +270,13 @@ export default function HRAttendancePage() {
                 <MapPin className="h-3 w-3" />
                 <span>{b.address || "—"}</span>
               </div>
-              <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
-                <QrCode className="h-3 w-3" />
-                <span>انقر لتوليد QR</span>
+              <div className="flex gap-1 mt-2">
+                <Button size="sm" variant="outline" className="gap-1 text-xs flex-1" onClick={() => generateQRToken(b)}>
+                  <QrCode className="h-3 w-3" /> عرض QR
+                </Button>
+                <Button size="sm" variant="ghost" className="gap-1 text-xs flex-1" onClick={() => openDisplayPage(b.id)}>
+                  <Eye className="h-3 w-3" /> شاشة العرض
+                </Button>
               </div>
             </Card>
           ))}
@@ -445,27 +462,34 @@ export default function HRAttendancePage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <QrCode className="h-5 w-5 text-primary" />
-              رمز QR للفرع
+              رمز QR الديناميكي
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 text-center">
             <p className="text-sm font-medium">{selectedBranchForQR?.name}</p>
-            <div className="bg-muted rounded-xl p-6">
-              <div className="bg-background rounded-lg p-4 inline-block">
-                <QrCode className="h-24 w-24 text-foreground mx-auto" />
-              </div>
+            <div className="bg-white rounded-xl p-4 shadow-inner">
+              <img
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(qrToken)}&format=svg`}
+                alt="رمز QR"
+                className="w-[250px] h-[250px] mx-auto"
+              />
             </div>
             <div className="bg-muted/50 rounded-lg p-3">
-              <p className="text-[10px] text-muted-foreground mb-1">رمز QR (انسخه وشاركه مع الموظفين)</p>
+              <p className="text-[10px] text-muted-foreground mb-1">الرمز يتجدد تلقائياً - لا يحتاج تدخل يدوي</p>
               <code className="text-xs font-mono break-all select-all">{qrToken}</code>
             </div>
-            <Button variant="outline" className="w-full gap-1" onClick={() => {
-              navigator.clipboard.writeText(qrToken);
-              toast({ title: "تم النسخ" });
-            }}>
-              <Copy className="h-3.5 w-3.5" /> نسخ الرمز
-            </Button>
-            <p className="text-[10px] text-muted-foreground">صالح لمدة 24 ساعة</p>
+            <div className="flex gap-2">
+              <Button variant="outline" className="flex-1 gap-1" onClick={() => {
+                navigator.clipboard.writeText(qrToken);
+                toast({ title: "تم النسخ" });
+              }}>
+                <Copy className="h-3.5 w-3.5" /> نسخ
+              </Button>
+              <Button variant="outline" className="flex-1 gap-1" onClick={() => selectedBranchForQR && openDisplayPage(selectedBranchForQR.id)}>
+                <Eye className="h-3.5 w-3.5" /> شاشة عرض
+              </Button>
+            </div>
+            <p className="text-[10px] text-muted-foreground">🔒 مشفر بتقنية HMAC-SHA256 ويتجدد تلقائياً</p>
           </div>
         </DialogContent>
       </Dialog>
