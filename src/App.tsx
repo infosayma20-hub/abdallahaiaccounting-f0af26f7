@@ -22,6 +22,8 @@ import ResetPasswordPage from "./pages/ResetPasswordPage";
 import PricingPage from "./pages/PricingPage";
 import InvoicesPage from "./pages/InvoicesPage";
 import InventoryPage from "./pages/InventoryPage";
+import StockMovementsPage from "./pages/StockMovementsPage";
+import InventoryValuationPage from "./pages/InventoryValuationPage";
 import ReportsPage from "./pages/ReportsPage";
 import ChequesPage from "./pages/ChequesPage";
 import TermsPage from "./pages/TermsPage";
@@ -84,8 +86,8 @@ const App = () => (
                       <Route path="/receipts" element={<TransactionsPage />} />
                       <Route path="/bills" element={<InvoicesPage />} />
                       <Route path="/payments" element={<TransactionsPage />} />
-                      <Route path="/inventory-movements" element={<InventoryPage />} />
-                      <Route path="/inventory-valuation" element={<InventoryPage />} />
+                      <Route path="/inventory-movements" element={<StockMovementsPage />} />
+                      <Route path="/inventory-valuation" element={<InventoryValuationPage />} />
                       <Route path="*" element={<NotFound />} />
                     </Routes>
                   </WebLayout>
