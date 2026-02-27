@@ -33,6 +33,21 @@ function getTimeWindowExpiry(rotationMinutes: number): string {
   return new Date(expiryMs).toISOString();
 }
 
+// Constant-time string comparison to prevent timing attacks
+function constantTimeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let result = 0;
+  for (let i = 0; i < a.length; i++) {
+    result |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return result === 0;
+}
+
+// UUID format validation
+function isValidUUID(str: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -48,18 +63,20 @@ Deno.serve(async (req) => {
     const pathParts = url.pathname.split("/").filter(Boolean);
     const action = url.searchParams.get("action") || pathParts[pathParts.length - 1];
 
-    // GET ?action=public&branch_id=xxx — Public QR generation (no auth needed)
+    // GET ?action=public&branch_id=xxx — Public QR generation (for display screens)
+    // SECURITY: Token is generated server-side. secret_key is NEVER returned to the client.
     if (req.method === "GET" && action === "public") {
       const branchId = url.searchParams.get("branch_id");
-      if (!branchId) {
+      if (!branchId || !isValidUUID(branchId)) {
         return new Response(JSON.stringify({ error: "branch_id مطلوب" }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
+      // Fetch branch info (safe fields only) and secret separately
       const { data: branch, error: branchErr } = await supabase
         .from("branches")
-        .select("id, secret_key, qr_rotation_minutes, name")
+        .select("id, qr_rotation_minutes, name, secret_key, is_active")
         .eq("id", branchId)
         .eq("is_active", true)
         .single();
@@ -74,6 +91,7 @@ Deno.serve(async (req) => {
       const qrToken = await computeToken(branch.id, timeWindow, branch.secret_key);
       const expiresAt = getTimeWindowExpiry(branch.qr_rotation_minutes);
 
+      // SECURITY: Return ONLY the computed token, NEVER the secret_key
       return new Response(JSON.stringify({
         qr_payload: `${branch.id}:${qrToken}`,
         branch_name: branch.name,
@@ -87,7 +105,7 @@ Deno.serve(async (req) => {
     // GET ?action=generate&branch_id=xxx — Authenticated QR generation
     if (req.method === "GET" && action === "generate") {
       const branchId = url.searchParams.get("branch_id");
-      if (!branchId) {
+      if (!branchId || !isValidUUID(branchId)) {
         return new Response(JSON.stringify({ error: "branch_id مطلوب" }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -110,7 +128,7 @@ Deno.serve(async (req) => {
       }
       const userId = user.id;
 
-      // Fetch branch with secret_key
+      // Fetch branch with secret_key (server-side only, never returned)
       const { data: branch, error: branchErr } = await supabase
         .from("branches")
         .select("id, secret_key, qr_rotation_minutes, name, user_id")
@@ -137,11 +155,9 @@ Deno.serve(async (req) => {
       const qrToken = await computeToken(branch.id, timeWindow, branch.secret_key);
       const expiresAt = getTimeWindowExpiry(branch.qr_rotation_minutes);
 
-      // QR payload: branch_id:token
-      const qrPayload = `${branch.id}:${qrToken}`;
-
+      // SECURITY: Return ONLY the computed token, NEVER the secret_key
       return new Response(JSON.stringify({
-        qr_payload: qrPayload,
+        qr_payload: `${branch.id}:${qrToken}`,
         branch_name: branch.name,
         expires_at: expiresAt,
         rotation_minutes: branch.qr_rotation_minutes,
@@ -155,8 +171,15 @@ Deno.serve(async (req) => {
       const body = await req.json();
       const { branch_id, qr_token } = body;
 
-      if (!branch_id || !qr_token) {
+      if (!branch_id || !qr_token || !isValidUUID(branch_id)) {
         return new Response(JSON.stringify({ valid: false, error: "بيانات ناقصة" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Validate token format (hex string)
+      if (typeof qr_token !== 'string' || !/^[0-9a-f]+$/i.test(qr_token) || qr_token.length > 128) {
+        return new Response(JSON.stringify({ valid: false, error: "رمز غير صالح" }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
@@ -180,7 +203,8 @@ Deno.serve(async (req) => {
       // Also check previous window for grace period
       const prevToken = await computeToken(branch.id, currentWindow - 1, branch.secret_key);
 
-      const isValid = qr_token === currentToken || qr_token === prevToken;
+      // SECURITY: Use constant-time comparison to prevent timing attacks
+      const isValid = constantTimeEqual(qr_token, currentToken) || constantTimeEqual(qr_token, prevToken);
 
       return new Response(JSON.stringify({ valid: isValid }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -191,7 +215,9 @@ Deno.serve(async (req) => {
       status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
-    return new Response(JSON.stringify({ error: err.message }), {
+    // SECURITY: Never expose internal error details
+    console.error("branch-qr error:", err);
+    return new Response(JSON.stringify({ error: "حدث خطأ في الخادم" }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
