@@ -373,29 +373,7 @@ ${JSON.stringify(productsList, null, 0)}
       });
       if (!res.ok) throw new Error(`Airtable error: ${await res.text()}`);
       result = await res.json();
-
-      // Auto-create a corresponding account
-      try {
-        const cType = parsed.data.type || 'زبون';
-        const isSupplier = cType.includes('مورد') || cType.toLowerCase().includes('supplier');
-        const prefix = isSupplier ? 'مورد' : 'زبون';
-        const accountName = `${prefix} ${parsed.data.name}`;
-        const accountType = isSupplier ? 'Liability' : 'Asset';
-
-        const accFields: any = {
-          "Account Name": accountName,
-          "Account Type": accountType,
-        };
-        if (clientRecordId) accFields["Client"] = [clientRecordId];
-
-        await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Accounts`, {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${AIRTABLE_API_KEY}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ records: [{ fields: accFields }] }),
-        });
-      } catch (accErr) {
-        console.error('Auto-create account error:', accErr);
-      }
+      // Note: No longer auto-creating accounts for contacts - contacts are managed separately from chart of accounts
 
     } else if (parsed.action === 'edit_contact' && parsed.recordId) {
       const fields: any = {};
