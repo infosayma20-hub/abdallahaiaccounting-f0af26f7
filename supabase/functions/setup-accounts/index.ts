@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { authenticateRequest, corsHeaders } from "../_shared/auth.ts";
 
 interface SetupRequest {
@@ -9,234 +10,158 @@ interface SetupRequest {
   hasEmployees: boolean;
 }
 
-function getAccountsForSetup(req: SetupRequest): { name: string; type: string }[] {
-  const accounts: { name: string; type: string }[] = [];
+// شجرة الحسابات الافتراضية الكاملة من Airtable
+const DEFAULT_ACCOUNTS: { code: string; name: string; type: string; parent: string | null }[] = [
+  // ═══════════ الأصول المتداولة (11xx) ═══════════
+  { code: "1110", name: "الصندوق", type: "أصول", parent: null },
+  { code: "1120", name: "البنك", type: "أصول", parent: null },
+  { code: "1121", name: "بنك فلسطين", type: "أصول", parent: "1120" },
+  { code: "1122", name: "البنك - حساب التوفير", type: "أصول", parent: "1120" },
+  { code: "1123", name: "البنك - حساب جاري شيكل فلسطين", type: "أصول", parent: "1120" },
+  { code: "1124", name: "البنك - حساب جاري دولار", type: "أصول", parent: "1120" },
+  { code: "1125", name: "البنك - حساب جاري دينار", type: "أصول", parent: "1120" },
+  { code: "1130", name: "ذمم عملاء", type: "أصول", parent: null },
+  { code: "1140", name: "المخزون", type: "أصول", parent: null },
+  { code: "1150", name: "شيكات واردة", type: "أصول", parent: null },
+  { code: "1160", name: "المصاريف المدفوعة مقدماً", type: "أصول", parent: null },
+  { code: "1170", name: "التأمينات المدفوعة", type: "أصول", parent: null },
 
-  // ══════════════════════════════════════════════
-  // 1000 - ASSETS (الأصول)
-  // ══════════════════════════════════════════════
-  accounts.push(
-    { name: "1110 - الصندوق", type: "Asset" },
-    { name: "1120 - البنك", type: "Asset" },
-  );
-  if (req.hasReceivables) {
-    accounts.push({ name: "1130 - ذمم عملاء", type: "Asset" });
-  }
-  if (req.hasInventory) {
-    accounts.push({ name: "1140 - المخزون", type: "Asset" });
-  }
-  accounts.push(
-    { name: "1210 - مركبات", type: "Asset" },
-    { name: "1220 - معدات وأجهزة", type: "Asset" },
-  );
+  // ═══════════ الأصول غير المتداولة (12xx) ═══════════
+  { code: "1210", name: "مركبات", type: "أصول", parent: null },
+  { code: "1220", name: "معدات وأجهزة", type: "أصول", parent: null },
+  { code: "1230", name: "المباني", type: "أصول", parent: null },
+  { code: "1250", name: "الأراضي", type: "أصول", parent: null },
+  { code: "1290", name: "مجمع الاستهلاك", type: "أصول", parent: null },
 
-  // ══════════════════════════════════════════════
-  // 2000 - LIABILITIES (الالتزامات)
-  // ══════════════════════════════════════════════
-  if (req.hasReceivables) {
-    accounts.push({ name: "2110 - ذمم موردين", type: "Liability" });
-  }
-  accounts.push(
-    { name: "2120 - أوراق دفع", type: "Liability" },
-  );
-  if (req.hasEmployees) {
-    accounts.push({ name: "2130 - التزامات رواتب", type: "Liability" });
-  }
-  accounts.push(
-    { name: "2210 - قروض بنكية", type: "Liability" },
-  );
+  // ═══════════ الالتزامات المتداولة (21xx) ═══════════
+  { code: "2110", name: "ذمم موردين", type: "خصوم", parent: null },
+  { code: "2120", name: "شيكات صادرة", type: "خصوم", parent: null },
+  { code: "2130", name: "الرواتب المستحقة", type: "خصوم", parent: null },
+  { code: "2140", name: "الضرائب المستحقة", type: "خصوم", parent: null },
+  { code: "2150", name: "الإيجار المستحق", type: "خصوم", parent: null },
+  { code: "2160", name: "الكهرباء والماء المستحق", type: "خصوم", parent: null },
+  { code: "2170", name: "القروض قصيرة الأجل", type: "خصوم", parent: null },
 
-  // ══════════════════════════════════════════════
-  // 3000 - EQUITY (حقوق الملكية)
-  // ══════════════════════════════════════════════
-  accounts.push(
-    { name: "3100 - رأس المال", type: "Owner's Equity" },
-    { name: "3200 - أرباح محتجزة", type: "Owner's Equity" },
-    { name: "3300 - أرباح العام الحالي", type: "Owner's Equity" },
-    { name: "3400 - أرصدة افتتاحية", type: "Owner's Equity" },
-  );
+  // ═══════════ الالتزامات غير المتداولة (22xx) ═══════════
+  { code: "2210", name: "قروض بنكية", type: "خصوم", parent: null },
+  { code: "2220", name: "القروض طويلة الأجل", type: "خصوم", parent: null },
 
-  // ══════════════════════════════════════════════
-  // 4000 - REVENUES (الإيرادات)
-  // ══════════════════════════════════════════════
-  accounts.push(
-    { name: "4100 - إيرادات مبيعات", type: "Revenue" },
-  );
-  if (req.businessType === "خدمات" || req.businessType === "مقاولات") {
-    accounts.push({ name: "4200 - إيرادات خدمات", type: "Revenue" });
-  }
-  if (req.businessType === "مقاولات") {
-    accounts.push({ name: "4210 - إيرادات مشاريع", type: "Revenue" });
-  }
-  accounts.push(
-    { name: "4300 - إيرادات أخرى", type: "Revenue" },
-    { name: "4400 - مردودات مبيعات", type: "Revenue" },
-    { name: "4500 - مردودات مشتريات", type: "Revenue" },
-  );
+  // ═══════════ حقوق الملكية (3xxx) ═══════════
+  { code: "3100", name: "رأس المال", type: "حقوق ملكية", parent: null },
+  { code: "3200", name: "أرباح محتجزة", type: "حقوق ملكية", parent: null },
+  { code: "3300", name: "الأرباح والخسائر", type: "حقوق ملكية", parent: null },
+  { code: "3400", name: "أرصدة افتتاحية", type: "حقوق ملكية", parent: null },
+  { code: "3500", name: "المسحوبات الشخصية", type: "حقوق ملكية", parent: null },
 
-  // ══════════════════════════════════════════════
-  // 5000 - EXPENSES (المصروفات)
-  // ══════════════════════════════════════════════
-  if (req.hasInventory) {
-    accounts.push({ name: "5100 - تكلفة البضاعة المباعة", type: "Expenses" });
-  }
-  if (req.hasEmployees) {
-    accounts.push({ name: "5200 - رواتب وأجور", type: "Expenses" });
-  }
-  accounts.push(
-    { name: "5300 - مصروف إيجار", type: "Expenses" },
-    { name: "5400 - كهرباء وماء", type: "Expenses" },
-    { name: "5500 - مصروفات إدارية وعمومية", type: "Expenses" },
-    { name: "5600 - مصروف تسويق وإعلان", type: "Expenses" },
-    { name: "5700 - استهلاكات وإطفاءات", type: "Expenses" },
-    { name: "5800 - مصروف هاتف وإنترنت", type: "Expenses" },
-  );
+  // ═══════════ الإيرادات (4xxx) ═══════════
+  { code: "4100", name: "إيرادات مبيعات", type: "إيرادات", parent: null },
+  { code: "4200", name: "إيرادات خدمات", type: "إيرادات", parent: null },
+  { code: "4300", name: "إيرادات أخرى", type: "إيرادات", parent: null },
+  { code: "4310", name: "إيرادات متنوعة", type: "إيرادات", parent: "4300" },
+  { code: "4320", name: "إيرادات الإيجار", type: "إيرادات", parent: "4300" },
+  { code: "4330", name: "إيرادات الفوائد", type: "إيرادات", parent: "4300" },
+  { code: "4340", name: "أرباح بيع الأصول", type: "إيرادات", parent: "4300" },
+  { code: "4350", name: "خصومات مكتسبة", type: "إيرادات", parent: "4300" },
+  { code: "4360", name: "إيرادات رواتب وأجور", type: "إيرادات", parent: "4300" },
+  { code: "4400", name: "مردودات مبيعات", type: "إيرادات", parent: null },
+  { code: "4500", name: "مردودات مشتريات", type: "إيرادات", parent: null },
 
-  // Business-specific expenses
-  switch (req.businessType) {
-    case "تجارة":
-      accounts.push(
-        { name: "5810 - مصروف نقل وشحن", type: "Expenses" },
-        { name: "5110 - مشتريات بضاعة", type: "Expenses" },
-      );
-      break;
-    case "مطعم":
-      accounts.push(
-        { name: "5410 - مصروف غاز", type: "Expenses" },
-        { name: "5810 - مصروف مواد خام", type: "Expenses" },
-        { name: "5820 - مصروف تغليف", type: "Expenses" },
-        { name: "5830 - مصروف نظافة", type: "Expenses" },
-      );
-      break;
-    case "متجر إلكتروني":
-      accounts.push(
-        { name: "5810 - مصروف شحن وتوصيل", type: "Expenses" },
-        { name: "5820 - مصروف تسويق إلكتروني", type: "Expenses" },
-        { name: "5830 - اشتراكات ومنصات", type: "Expenses" },
-        { name: "5840 - مصروف تغليف", type: "Expenses" },
-      );
-      break;
-    case "مقاولات":
-      accounts.push(
-        { name: "5810 - مصروف مواد بناء", type: "Expenses" },
-        { name: "5820 - مصروف معدات", type: "Expenses" },
-        { name: "5830 - مقاولين من الباطن", type: "Expenses" },
-        { name: "5840 - مصروف نقل", type: "Expenses" },
-      );
-      break;
-  }
+  // ═══════════ تكلفة المبيعات والمشتريات (51xx) ═══════════
+  { code: "5100", name: "تكلفة البضاعة المباعة", type: "مصاريف", parent: null },
+  { code: "5110", name: "المشتريات", type: "مصاريف", parent: "5100" },
 
-  return accounts;
-}
+  // ═══════════ المصروفات التشغيلية (52xx-59xx) ═══════════
+  { code: "5200", name: "رواتب وأجور", type: "مصاريف", parent: null },
+  { code: "5300", name: "مصروف إيجار", type: "مصاريف", parent: null },
+  { code: "5400", name: "كهرباء وماء", type: "مصاريف", parent: null },
+  { code: "5410", name: "مصروف غاز", type: "مصاريف", parent: "5400" },
+  { code: "5500", name: "مصروفات عمومية", type: "مصاريف", parent: null },
+  { code: "5510", name: "مصاريف الصيانة", type: "مصاريف", parent: "5500" },
+  { code: "5520", name: "مصاريف الضيافة", type: "مصاريف", parent: "5500" },
+  { code: "5530", name: "مصاريف التنقل والمواصلات", type: "مصاريف", parent: "5500" },
+  { code: "5540", name: "مصاريف القرطاسية والطباعة", type: "مصاريف", parent: "5500" },
+  { code: "5550", name: "مصاريف البريد والشحن", type: "مصاريف", parent: "5500" },
+  { code: "5560", name: "رسوم حكومية وتراخيص", type: "مصاريف", parent: "5500" },
+  { code: "5570", name: "مصاريف تأمين", type: "مصاريف", parent: "5500" },
+  { code: "5580", name: "مصاريف هاتف وإنترنت", type: "مصاريف", parent: "5500" },
+  { code: "5590", name: "مصاريف الاستشارات", type: "مصاريف", parent: "5500" },
+  { code: "5600", name: "مصاريف تسويق وإعلان", type: "مصاريف", parent: null },
+  { code: "5700", name: "مصروف استهلاك", type: "مصاريف", parent: null },
+  { code: "5800", name: "خسائر بيع أصول", type: "مصاريف", parent: null },
+  { code: "5810", name: "مصروف نقل وشحن", type: "مصاريف", parent: "5800" },
+  { code: "5900", name: "مصروفات أخرى", type: "مصاريف", parent: null },
+  { code: "5910", name: "خصومات ممنوحة", type: "مصاريف", parent: "5900" },
+  { code: "5920", name: "مصاريف بنكية", type: "مصاريف", parent: "5900" },
+  { code: "5930", name: "فروقات عملة", type: "مصاريف", parent: "5900" },
+  { code: "5940", name: "ضريبة الدخل", type: "مصاريف", parent: "5900" },
+  { code: "5950", name: "غرامات وجزاءات", type: "مصاريف", parent: "5900" },
+  { code: "5960", name: "ديون معدومة", type: "مصاريف", parent: "5900" },
+];
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
+  if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
   try {
-    // Authenticate request
     const authResult = await authenticateRequest(req);
     if (authResult instanceof Response) return authResult;
     const authenticatedUserId = authResult.userId;
 
-    const AIRTABLE_API_KEY = Deno.env.get('AIRTABLE_API_KEY');
-    const AIRTABLE_BASE_ID = Deno.env.get('AIRTABLE_BASE_ID');
-
-    if (!AIRTABLE_API_KEY) throw new Error('AIRTABLE_API_KEY not configured');
-    if (!AIRTABLE_BASE_ID) throw new Error('AIRTABLE_BASE_ID not configured');
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+    );
 
     const body: SetupRequest = await req.json();
     const { userId } = body;
 
-    // Verify userId matches authenticated user
     if (userId !== authenticatedUserId) {
       return new Response(JSON.stringify({ error: 'Forbidden' }), {
         status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    if (!userId) throw new Error('userId is required');
+    // Check if user already has accounts
+    const { count } = await supabaseAdmin
+      .from('accounts')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId);
 
-    // First, get the Airtable Client record ID for this user
-    const clientsUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Clients?filterByFormula={Name}="${userId}"&maxRecords=1`;
-    const clientRes = await fetch(clientsUrl, {
-      headers: { 'Authorization': `Bearer ${AIRTABLE_API_KEY}` },
-    });
-    const clientData = await clientRes.json();
-    const clientRecordId = clientData.records?.[0]?.id;
-
-    // Get existing accounts for this user to avoid duplicates
-    let existingAccountNames: string[] = [];
-    const existingUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Accounts?filterByFormula=OR({Client}=BLANK(),{Client}="${userId}")&fields[]=Account+Name`;
-    const existingRes = await fetch(existingUrl, {
-      headers: { 'Authorization': `Bearer ${AIRTABLE_API_KEY}` },
-    });
-    const existingData = await existingRes.json();
-    existingAccountNames = (existingData.records || []).map((r: any) => r.fields["Account Name"]);
-
-    // Generate accounts
-    const allAccounts = getAccountsForSetup(body);
-    
-    // Filter out already existing accounts (check by code prefix or full name)
-    const newAccounts = allAccounts.filter(a => {
-      const code = a.name.split(" - ")[0]?.trim();
-      return !existingAccountNames.some(existing => {
-        const existingCode = existing.split(" - ")[0]?.trim();
-        return existing === a.name || (code && existingCode && code === existingCode);
-      });
-    });
-
-    if (newAccounts.length === 0) {
-      return new Response(JSON.stringify({ 
-        success: true, 
-        message: "جميع الحسابات موجودة بالفعل",
-        created: 0 
+    if (count && count > 0) {
+      return new Response(JSON.stringify({
+        success: true,
+        message: "شجرة الحسابات موجودة بالفعل",
+        created: 0,
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // Airtable allows max 10 records per batch
-    const batches: { name: string; type: string }[][] = [];
-    for (let i = 0; i < newAccounts.length; i += 10) {
-      batches.push(newAccounts.slice(i, i + 10));
-    }
+    // Insert all default accounts for this user
+    const accountsToInsert = DEFAULT_ACCOUNTS.map(a => ({
+      user_id: userId,
+      account_code: a.code,
+      account_name: a.name,
+      account_type: a.type,
+      parent_code: a.parent,
+      is_system: true,
+      is_active: true,
+    }));
 
-    let totalCreated = 0;
-
-    for (const batch of batches) {
-      const records = batch.map(acc => ({
-        fields: {
-          "Account Name": acc.name,
-          "Account Type": acc.type,
-          ...(clientRecordId ? { "Client": [clientRecordId] } : {}),
-        },
-      }));
-
-      const response = await fetch(`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Accounts`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ records }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`Airtable batch error: ${errorText}`);
-        throw new Error(`Airtable API error [${response.status}]`);
+    let inserted = 0;
+    for (let i = 0; i < accountsToInsert.length; i += 50) {
+      const batch = accountsToInsert.slice(i, i + 50);
+      const { data, error } = await supabaseAdmin.from('accounts').insert(batch).select('id');
+      if (error) {
+        console.error(`Batch error at ${i}:`, error);
+      } else {
+        inserted += (data?.length || 0);
       }
-
-      const result = await response.json();
-      totalCreated += result.records?.length || 0;
     }
 
-    return new Response(JSON.stringify({ 
-      success: true, 
-      message: `تم إنشاء ${totalCreated} حساب بنجاح`,
-      created: totalCreated,
+    return new Response(JSON.stringify({
+      success: true,
+      message: `تم إنشاء ${inserted} حساب بنجاح`,
+      created: inserted,
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
