@@ -66,6 +66,22 @@ const accountTypeOptions = [
 
 const typeOrder = ["Asset", "Liability", "Owner's Equity", "Equity", "Revenue", "Purchases", "Expenses"];
 
+// Map Arabic account types to their English keys for consistent display
+const arabicTypeMap: Record<string, string> = {
+  "إيرادات": "Revenue",
+  "مصاريف": "Expenses",
+  "مصروفات": "Expenses",
+  "أصول": "Asset",
+  "التزامات": "Liability",
+  "خصوم": "Liability",
+  "حقوق ملكية": "Owner's Equity",
+  "مشتريات": "Purchases",
+};
+
+function normalizeType(type: string): string {
+  return arabicTypeMap[type] || type;
+}
+
 const AccountsPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -100,7 +116,7 @@ const AccountsPage = () => {
 
   useEffect(() => {
     if (accounts.length > 0) {
-      const types = [...new Set(accounts.map(a => a.account_type).filter(Boolean))];
+      const types = [...new Set(accounts.map(a => normalizeType(a.account_type)).filter(Boolean))];
       const initial: Record<string, boolean> = {};
       types.forEach(t => { initial[t] = true; });
       setOpenSections(initial);
@@ -136,13 +152,14 @@ const AccountsPage = () => {
   };
 
   const accountTypes = useMemo(() => {
-    return [...new Set(accounts.map(a => a.account_type).filter(Boolean))]
-      .sort((a, b) => (typeOrder.indexOf(a) === -1 ? 99 : typeOrder.indexOf(a)) - (typeOrder.indexOf(b) === -1 ? 99 : typeOrder.indexOf(b)));
+    // Normalize types and deduplicate
+    const normalizedTypes = [...new Set(accounts.map(a => normalizeType(a.account_type)).filter(Boolean))];
+    return normalizedTypes.sort((a, b) => (typeOrder.indexOf(a) === -1 ? 99 : typeOrder.indexOf(a)) - (typeOrder.indexOf(b) === -1 ? 99 : typeOrder.indexOf(b)));
   }, [accounts]);
 
   const filteredAccounts = useMemo(() => {
     return accounts.filter(a => {
-      if (typeFilter !== "all" && a.account_type !== typeFilter) return false;
+      if (typeFilter !== "all" && normalizeType(a.account_type) !== typeFilter) return false;
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         if (!a.account_name.toLowerCase().includes(q) && !a.account_code.includes(q)) return false;
@@ -154,7 +171,7 @@ const AccountsPage = () => {
   const groupedAccounts = useMemo(() => {
     const grouped: Record<string, Account[]> = {};
     accountTypes.forEach(type => {
-      grouped[type] = filteredAccounts.filter(a => a.account_type === type).sort((a, b) => a.account_code.localeCompare(b.account_code));
+      grouped[type] = filteredAccounts.filter(a => normalizeType(a.account_type) === type).sort((a, b) => a.account_code.localeCompare(b.account_code));
     });
     return grouped;
   }, [filteredAccounts, accountTypes]);
