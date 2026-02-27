@@ -479,6 +479,48 @@ export type Database = {
           },
         ]
       }
+      currencies: {
+        Row: {
+          code: string
+          created_at: string
+          decimal_places: number
+          id: string
+          is_active: boolean
+          is_base: boolean
+          name_ar: string
+          name_en: string | null
+          symbol: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          decimal_places?: number
+          id?: string
+          is_active?: boolean
+          is_base?: boolean
+          name_ar: string
+          name_en?: string | null
+          symbol: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          decimal_places?: number
+          id?: string
+          is_active?: boolean
+          is_base?: boolean
+          name_ar?: string
+          name_en?: string | null
+          symbol?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       employee_allowances: {
         Row: {
           allowance_name: string
@@ -874,6 +916,53 @@ export type Database = {
             columns: ["branch_id"]
             isOneToOne: false
             referencedRelation: "branches_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      exchange_rates: {
+        Row: {
+          buy_rate: number
+          created_at: string
+          currency_id: string
+          id: string
+          mid_rate: number
+          notes: string | null
+          rate_date: string
+          sell_rate: number
+          source: string
+          user_id: string
+        }
+        Insert: {
+          buy_rate?: number
+          created_at?: string
+          currency_id: string
+          id?: string
+          mid_rate?: number
+          notes?: string | null
+          rate_date?: string
+          sell_rate?: number
+          source?: string
+          user_id: string
+        }
+        Update: {
+          buy_rate?: number
+          created_at?: string
+          currency_id?: string
+          id?: string
+          mid_rate?: number
+          notes?: string | null
+          rate_date?: string
+          sell_rate?: number
+          source?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exchange_rates_currency_id_fkey"
+            columns: ["currency_id"]
+            isOneToOne: false
+            referencedRelation: "currencies"
             referencedColumns: ["id"]
           },
         ]

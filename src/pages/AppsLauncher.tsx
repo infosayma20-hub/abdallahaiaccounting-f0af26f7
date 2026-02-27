@@ -10,6 +10,7 @@ import {
   Store,
   Settings,
   FileSpreadsheet,
+  ArrowLeftRight,
 } from "lucide-react";
 
 interface AppModule {
@@ -103,6 +104,15 @@ const appModules: AppModule[] = [
     color: "text-cyan-500",
     bgColor: "bg-cyan-500/10",
     path: "/opening-balances-import",
+  },
+  {
+    id: "currency",
+    label: "إدارة العملات",
+    description: "أسعار صرف، تحويلات، وعملات أجنبية",
+    icon: ArrowLeftRight,
+    color: "text-indigo-500",
+    bgColor: "bg-indigo-500/10",
+    path: "/currency-management",
   },
   {
     id: "settings",
