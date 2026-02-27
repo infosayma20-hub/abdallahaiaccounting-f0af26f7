@@ -2176,6 +2176,51 @@ export type Database = {
           },
         ]
       }
+      user_onboarding: {
+        Row: {
+          created_at: string
+          dont_show_again: boolean
+          full_tour_completed: boolean
+          full_tour_completed_at: string | null
+          full_tour_skipped: boolean
+          id: string
+          last_whats_new_seen: string | null
+          module_first_visits: Json
+          modules_toured: Json
+          updated_at: string
+          user_id: string
+          welcome_modal_shown: boolean
+        }
+        Insert: {
+          created_at?: string
+          dont_show_again?: boolean
+          full_tour_completed?: boolean
+          full_tour_completed_at?: string | null
+          full_tour_skipped?: boolean
+          id?: string
+          last_whats_new_seen?: string | null
+          module_first_visits?: Json
+          modules_toured?: Json
+          updated_at?: string
+          user_id: string
+          welcome_modal_shown?: boolean
+        }
+        Update: {
+          created_at?: string
+          dont_show_again?: boolean
+          full_tour_completed?: boolean
+          full_tour_completed_at?: string | null
+          full_tour_skipped?: boolean
+          id?: string
+          last_whats_new_seen?: string | null
+          module_first_visits?: Json
+          modules_toured?: Json
+          updated_at?: string
+          user_id?: string
+          welcome_modal_shown?: boolean
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
