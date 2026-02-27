@@ -63,31 +63,13 @@ serve(async (req) => {
       });
     }
 
-    // Resolve clientId UUID to Airtable record ID for proper linked-record filtering
-    let clientRecordId = '';
-    if (clientId) {
-      const clientFilter = encodeURIComponent(`{Client Name}="${clientId}"`);
-      const clientLookupUrl = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/Clients?filterByFormula=${clientFilter}&pageSize=1`;
-      const clientRes = await fetch(clientLookupUrl, {
-        headers: { 'Authorization': `Bearer ${AIRTABLE_API_KEY}` },
-      });
-      if (clientRes.ok) {
-        const clientData = await clientRes.json();
-        clientRecordId = clientData.records?.[0]?.id || '';
-      }
-      if (!clientRecordId) {
-        console.log(`Client record not found for UUID: ${clientId}`);
-        return new Response(JSON.stringify({ records: [] }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-      console.log(`Resolved client UUID ${clientId} → record ID ${clientRecordId}`);
-    }
-
-    // Build filter: client + deleted status
+    // Build filter: client UUID + deleted status
+    // ARRAYJOIN({Client}) returns the primary field value (Client Name = UUID), not the record ID
     let filterParts: string[] = [];
-    if (clientRecordId) filterParts.push(`FIND("${clientRecordId}", ARRAYJOIN({Client}))`);
-    
+    if (clientId) {
+      filterParts.push(`FIND("${clientId}", ARRAYJOIN({Client}))`);
+      console.log(`Filtering transactions by client UUID: ${clientId}`);
+    }
     if (showDeleted) {
       filterParts.push(`{Deleted}=TRUE()`);
     } else {
