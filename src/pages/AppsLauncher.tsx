@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {
   Calculator, ShoppingCart, Users, Package, ShoppingBag, DollarSign,
   BarChart3, Store, Settings, FileSpreadsheet, ArrowLeftRight, Landmark,
-  Search, HelpCircle, RotateCcw, BookOpen, Headphones,
+  Search, HelpCircle, RotateCcw, BookOpen, Headphones, Puzzle,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useOnboarding } from "@/hooks/useOnboarding";
@@ -40,6 +40,7 @@ const appModules: AppModule[] = [
   { id: "import-data", label: "استيراد بيانات خارجية", description: "استيراد الأرصدة الافتتاحية من Excel", icon: FileSpreadsheet, color: "text-cyan-500", bgColor: "bg-cyan-500/10", path: "/opening-balances-import", keywords: ["استيراد", "اكسل", "أرصدة"] },
   { id: "currency", label: "إدارة العملات", description: "أسعار صرف، تحويلات، وعملات أجنبية", icon: ArrowLeftRight, color: "text-indigo-500", bgColor: "bg-indigo-500/10", path: "/currency-management", isNew: true, keywords: ["عملات", "صرف", "دولار"] },
   { id: "fixed-assets", label: "الأصول الثابتة", description: "سجل الأصول، الاستهلاك، والصيانة", icon: Landmark, color: "text-stone-600", bgColor: "bg-stone-500/10", path: "/fixed-assets", isNew: true, keywords: ["أصول", "استهلاك", "ثابتة"] },
+  { id: "customization", label: "التخصيص والدعم الفني", description: "تخصيص النظام وتذاكر الدعم", icon: Puzzle, color: "text-pink-500", bgColor: "bg-pink-500/10", path: "/customization", isNew: true, keywords: ["تخصيص", "دعم", "تذاكر", "قطاع"] },
   { id: "settings", label: "الإعدادات", description: "إعدادات النظام والملف الشخصي", icon: Settings, color: "text-muted-foreground", bgColor: "bg-muted", path: "/settings", keywords: ["إعدادات", "ملف", "شخصي"] },
 ];
 
