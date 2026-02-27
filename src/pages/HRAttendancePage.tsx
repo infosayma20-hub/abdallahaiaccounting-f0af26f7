@@ -436,16 +436,30 @@ export default function HRAttendancePage() {
               <Input type="number" value={branchForm.radius_meters} onChange={e => setBranchForm(p => ({ ...p, radius_meters: e.target.value }))} dir="ltr" placeholder="100" />
             </div>
             <Button onClick={() => {
-              if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(pos => {
+              if (!navigator.geolocation) {
+                toast({ title: "المتصفح لا يدعم تحديد الموقع", variant: "destructive" });
+                return;
+              }
+              navigator.geolocation.getCurrentPosition(
+                pos => {
                   setBranchForm(p => ({
                     ...p,
                     latitude: pos.coords.latitude.toFixed(6),
                     longitude: pos.coords.longitude.toFixed(6),
                   }));
-                  toast({ title: "تم تحديد الموقع" });
-                });
-              }
+                  toast({ title: "تم تحديد الموقع بنجاح ✅" });
+                },
+                err => {
+                  console.error("Geolocation error:", err);
+                  const msgs: Record<number, string> = {
+                    1: "تم رفض إذن الموقع. يرجى السماح بالوصول للموقع من إعدادات المتصفح.",
+                    2: "تعذّر تحديد الموقع. تأكد من تفعيل GPS وحاول مرة أخرى.",
+                    3: "انتهت مهلة تحديد الموقع. حاول مرة أخرى.",
+                  };
+                  toast({ title: msgs[err.code] || "خطأ في تحديد الموقع", variant: "destructive" });
+                },
+                { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+              );
             }} variant="outline" size="sm" className="w-full gap-1">
               <MapPin className="h-3.5 w-3.5" /> استخدام موقعي الحالي
             </Button>
