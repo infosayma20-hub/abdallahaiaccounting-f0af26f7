@@ -57,8 +57,16 @@ const SpotlightTour = ({ active, onComplete, onSkip }: SpotlightTourProps) => {
 
   if (!active || !rect) return null;
 
-  // Tooltip positioning
-  const tooltipTop = rect.top + rect.height + 16;
+  // Tooltip positioning — show above if near bottom of viewport
+  const viewportRect = {
+    top: rect.top - window.scrollY,
+    bottom: rect.top - window.scrollY + rect.height,
+  };
+  const spaceBelow = window.innerHeight - viewportRect.bottom;
+  const showAbove = spaceBelow < 280;
+  const tooltipTop = showAbove
+    ? rect.top - 280
+    : rect.top + rect.height + 16;
   const tooltipLeft = Math.min(Math.max(rect.left, 16), window.innerWidth - 396);
 
   return (
