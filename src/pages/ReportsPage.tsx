@@ -106,11 +106,11 @@ const sections: ReportSection[] = [
     icon: Users,
     color: "text-pink-500",
     reports: [
-      { slug: "payroll", label: "الرواتب الشهري", description: "تفاصيل رواتب جميع الموظفين", icon: Wallet, path: "/employees", available: true },
-      { slug: "attendance", label: "الحضور والانصراف", description: "سجل الحضور لجميع الموظفين", icon: Clock, path: "/hr-attendance", available: true },
-      { slug: "leave-balance", label: "رصيد الإجازات", description: "الرصيد المتبقي لكل موظف", icon: Calculator, path: "/employees", available: true },
+      { slug: "payroll", label: "الرواتب الشهري", description: "تفاصيل رواتب جميع الموظفين", icon: Wallet, path: "/reports/hr-payroll", available: true },
+      { slug: "attendance", label: "الحضور والانصراف", description: "سجل الحضور لجميع الموظفين", icon: Clock, path: "/reports/hr-attendance", available: true },
+      { slug: "leave-balance", label: "رصيد الإجازات", description: "الرصيد المتبقي لكل موظف", icon: Calculator, path: "/reports/hr-leaves", available: true },
       { slug: "employee-directory", label: "بيانات الموظفين", description: "دليل شامل لجميع الموظفين", icon: Users, path: "/employees", available: true },
-      { slug: "staff-cost", label: "تكلفة الموظفين حسب القسم", description: "توزيع تكاليف الرواتب", icon: PieChart, path: "#", available: false },
+      { slug: "staff-cost", label: "تكلفة الموظفين حسب القسم", description: "توزيع تكاليف الرواتب مع رسم بياني", icon: PieChart, path: "/reports/hr-staff-cost", available: true },
     ],
   },
   {
