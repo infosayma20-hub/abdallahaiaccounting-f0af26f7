@@ -1,0 +1,169 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
+};
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
+    // Authenticate the admin/owner
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "غير مصرح" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const {
+      data: { user: adminUser },
+      error: authError,
+    } = await supabase.auth.getUser(authHeader.replace("Bearer ", ""));
+    if (authError || !adminUser) {
+      return new Response(JSON.stringify({ error: "مستخدم غير صالح" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Check admin role
+    const { data: hasAdmin } = await supabase.rpc("has_role", {
+      _user_id: adminUser.id,
+      _role: "admin",
+    });
+    if (!hasAdmin) {
+      return new Response(
+        JSON.stringify({ error: "ليس لديك صلاحية لإنشاء حسابات" }),
+        {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    const { employee_id, email, password } = await req.json();
+
+    if (!employee_id || !email || !password) {
+      return new Response(
+        JSON.stringify({ error: "البيانات ناقصة: employee_id, email, password مطلوبة" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    if (password.length < 6) {
+      return new Response(
+        JSON.stringify({ error: "كلمة المرور يجب أن تكون 6 أحرف على الأقل" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // Verify the employee belongs to this admin
+    const { data: employee, error: empErr } = await supabase
+      .from("employees")
+      .select("id, full_name, auth_user_id, user_id")
+      .eq("id", employee_id)
+      .eq("user_id", adminUser.id)
+      .single();
+
+    if (empErr || !employee) {
+      return new Response(
+        JSON.stringify({ error: "الموظف غير موجود" }),
+        {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    if (employee.auth_user_id) {
+      return new Response(
+        JSON.stringify({ error: "هذا الموظف لديه حساب مسبقاً" }),
+        {
+          status: 409,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // Create auth user using admin API
+    const { data: newUser, error: createErr } =
+      await supabase.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: {
+          full_name: employee.full_name,
+          role: "employee",
+        },
+      });
+
+    if (createErr || !newUser?.user) {
+      const msg = createErr?.message || "فشل إنشاء الحساب";
+      return new Response(JSON.stringify({ error: msg }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const newUserId = newUser.user.id;
+
+    // Link auth_user_id to employee record
+    const { error: linkErr } = await supabase
+      .from("employees")
+      .update({ auth_user_id: newUserId, email })
+      .eq("id", employee_id);
+
+    if (linkErr) {
+      return new Response(
+        JSON.stringify({ error: "تم إنشاء الحساب لكن فشل الربط: " + linkErr.message }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // Assign employee role
+    const { error: roleErr } = await supabase
+      .from("user_roles")
+      .insert({ user_id: newUserId, role: "employee" });
+
+    if (roleErr) {
+      console.error("Role assignment error:", roleErr);
+      // Non-fatal — account is created and linked
+    }
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        message: `تم إنشاء حساب ${employee.full_name} بنجاح ✅`,
+        auth_user_id: newUserId,
+      }),
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
+  } catch (err) {
+    return new Response(JSON.stringify({ error: err.message }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+});

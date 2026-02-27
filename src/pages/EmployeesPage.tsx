@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Search, Users, DollarSign, Calendar, FileText, Edit, Trash2, Eye } from "lucide-react";
+import { Plus, Search, Users, DollarSign, Calendar, FileText, Edit, Trash2, Eye, UserPlus, Loader2 } from "lucide-react";
 
 interface Employee {
   id: string;
@@ -69,6 +69,44 @@ const EmployeesPage = () => {
   const [deductionForm, setDeductionForm] = useState({ deduction_type: "سلفة", amount: 0, deduction_date: new Date().toISOString().split("T")[0], description: "", notes: "" });
   const [allowanceForm, setAllowanceForm] = useState({ allowance_name: "", allowance_type: "ثابت", amount: 0, percentage: 0, notes: "" });
   const [leaveForm, setLeaveForm] = useState({ leave_type: "سنوية", start_date: new Date().toISOString().split("T")[0], end_date: new Date().toISOString().split("T")[0], days_count: 1, notes: "" });
+
+  // Create account state
+  const [showCreateAccount, setShowCreateAccount] = useState(false);
+  const [accountForm, setAccountForm] = useState({ email: "", password: "" });
+  const [creatingAccount, setCreatingAccount] = useState(false);
+
+  const handleCreateAccount = async () => {
+    if (!selectedEmployee || !accountForm.email || !accountForm.password) {
+      toast.error("الإيميل وكلمة المرور مطلوبين");
+      return;
+    }
+    if (accountForm.password.length < 6) {
+      toast.error("كلمة المرور يجب أن تكون 6 أحرف على الأقل");
+      return;
+    }
+    setCreatingAccount(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-employee-account", {
+        body: {
+          employee_id: selectedEmployee.id,
+          email: accountForm.email,
+          password: accountForm.password,
+        },
+      });
+      if (error || data?.error) {
+        toast.error(data?.error || error?.message || "فشل إنشاء الحساب");
+      } else {
+        toast.success(data.message || "تم إنشاء الحساب بنجاح");
+        setShowCreateAccount(false);
+        setAccountForm({ email: "", password: "" });
+        fetchEmployees();
+      }
+    } catch (err: any) {
+      toast.error(err.message || "خطأ غير متوقع");
+    } finally {
+      setCreatingAccount(false);
+    }
+  };
 
   const fetchEmployees = async () => {
     if (!user) return;
@@ -214,10 +252,18 @@ const EmployeesPage = () => {
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-lg">{selectedEmployee.full_name}</CardTitle>
-                  <div className="flex gap-2">
-                    <Button size="sm" variant="outline" onClick={() => { setForm(selectedEmployee); setEditingId(selectedEmployee.id); setShowForm(true); }}><Edit className="h-3 w-3" /></Button>
-                    <Button size="sm" variant="destructive" onClick={() => handleDelete(selectedEmployee.id)}><Trash2 className="h-3 w-3" /></Button>
-                  </div>
+                   <div className="flex gap-2">
+                     {!(selectedEmployee as any).auth_user_id && (
+                       <Button size="sm" variant="outline" className="gap-1 text-xs" onClick={() => { setAccountForm({ email: selectedEmployee.email || "", password: "" }); setShowCreateAccount(true); }}>
+                         <UserPlus className="h-3 w-3" /> إنشاء حساب
+                       </Button>
+                     )}
+                     {(selectedEmployee as any).auth_user_id && (
+                       <Badge variant="secondary" className="text-[10px]">لديه حساب ✓</Badge>
+                     )}
+                     <Button size="sm" variant="outline" onClick={() => { setForm(selectedEmployee); setEditingId(selectedEmployee.id); setShowForm(true); }}><Edit className="h-3 w-3" /></Button>
+                     <Button size="sm" variant="destructive" onClick={() => handleDelete(selectedEmployee.id)}><Trash2 className="h-3 w-3" /></Button>
+                   </div>
                 </div>
               </CardHeader>
               <CardContent>
@@ -442,6 +488,45 @@ const EmployeesPage = () => {
             <div><label className="text-xs text-muted-foreground">ملاحظات</label><Input value={leaveForm.notes} onChange={e => setLeaveForm({ ...leaveForm, notes: e.target.value })} /></div>
           </div>
           <div className="flex justify-end gap-2 mt-4"><Button variant="outline" onClick={() => setShowLeaveForm(false)}>إلغاء</Button><Button onClick={handleAddLeave}>حفظ</Button></div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Account Dialog */}
+      <Dialog open={showCreateAccount} onOpenChange={setShowCreateAccount}>
+        <DialogContent dir="rtl">
+          <DialogHeader>
+            <DialogTitle>إنشاء حساب للموظف: {selectedEmployee?.full_name}</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            سيتم إنشاء حساب دخول للموظف وربطه تلقائياً. يمكنه بعدها الدخول على تطبيق الموظف (/employee) وتسجيل البصمة.
+          </p>
+          <div className="space-y-3 mt-2">
+            <div>
+              <label className="text-xs text-muted-foreground">البريد الإلكتروني</label>
+              <Input
+                type="email"
+                placeholder="employee@example.com"
+                value={accountForm.email}
+                onChange={e => setAccountForm({ ...accountForm, email: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground">كلمة المرور (6 أحرف على الأقل)</label>
+              <Input
+                type="text"
+                placeholder="كلمة المرور"
+                value={accountForm.password}
+                onChange={e => setAccountForm({ ...accountForm, password: e.target.value })}
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 mt-4">
+            <Button variant="outline" onClick={() => setShowCreateAccount(false)}>إلغاء</Button>
+            <Button onClick={handleCreateAccount} disabled={creatingAccount} className="gap-2">
+              {creatingAccount && <Loader2 className="h-4 w-4 animate-spin" />}
+              إنشاء الحساب
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
