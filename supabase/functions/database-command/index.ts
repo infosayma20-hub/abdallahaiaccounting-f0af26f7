@@ -230,9 +230,18 @@ ${JSON.stringify(productsList, null, 0)}
 
     // ─── CONTACTS (Supabase) ───────────────────────────
     if (parsed.action === 'add_contact') {
+      const contactName = parsed.data?.name || parsed.data?.contact_name;
+      if (!contactName || typeof contactName !== 'string' || contactName.trim().length === 0) {
+        return new Response(JSON.stringify({
+          success: false,
+          action: 'need_info',
+          message: 'يرجى تحديد اسم جهة الاتصال.',
+          missing_fields: ['name'],
+        }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
       const { data, error } = await supabase.from('contacts').insert({
         user_id: userId,
-        contact_name: parsed.data.name,
+        contact_name: contactName.trim(),
         contact_type: parsed.data.type || 'عميل',
         phone: parsed.data.phone || null,
         email: parsed.data.email || null,
@@ -438,7 +447,8 @@ ${JSON.stringify(productsList, null, 0)}
 
   } catch (error) {
     console.error('Error:', error);
-    return new Response(JSON.stringify({ error: 'Internal server error' }), {
+    const msg = error instanceof Error ? error.message : 'Internal server error';
+    return new Response(JSON.stringify({ error: msg }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
