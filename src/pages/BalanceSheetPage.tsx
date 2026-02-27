@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { getAuthHeaders } from "@/lib/edge-helpers";
 import { Loader2, Landmark } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -54,7 +55,7 @@ const BalanceSheetPage = () => {
       try {
         const res = await fetch(
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-accounts?clientId=${user.id}`,
-          { headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` } }
+          { headers: await getAuthHeaders() }
         );
         if (!res.ok) throw new Error("Failed");
         const data = await res.json();

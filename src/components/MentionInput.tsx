@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { getAuthHeaders, getAuthHeadersJson } from "@/lib/edge-helpers";
 import { Users, AtSign, Package, PlusCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import QuickAddModal from "./QuickAddModal";
@@ -46,7 +47,7 @@ const MentionInput = ({ value, onChange, onKeyDown, onMentionSelect, placeholder
       try {
         const contactsPromise = fetch(
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-contacts?clientId=${userId}`,
-          { headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` } }
+          { headers: await getAuthHeaders() }
         ).then(r => r.ok ? r.json() : { records: [] });
 
         const productsPromise = supabase
@@ -229,7 +230,7 @@ const MentionInput = ({ value, onChange, onKeyDown, onMentionSelect, placeholder
             {
               method: "POST",
               headers: {
-                Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+                Authorization: (await getAuthHeaders()).Authorization,
                 "Content-Type": "application/json",
               },
               body: JSON.stringify({ command: `أضف زبون ${name}`, clientId: userId }),
@@ -486,7 +487,7 @@ const MentionInput = ({ value, onChange, onKeyDown, onMentionSelect, placeholder
               {
                 method: "POST",
                 headers: {
-                  Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+                  Authorization: (await getAuthHeaders()).Authorization,
                   "Content-Type": "application/json",
                 },
                 body: JSON.stringify({ command, clientId: userId }),

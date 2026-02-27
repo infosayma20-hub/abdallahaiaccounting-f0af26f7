@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { getAuthHeaders } from "@/lib/edge-helpers";
 import { ArrowRight, Loader2, RefreshCw, Download, FileSpreadsheet, FileText } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -51,10 +52,10 @@ const ExportPage = () => {
     try {
       const [txRes, accRes] = await Promise.all([
         fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-transactions?clientId=${user.id}`, {
-          headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+          headers: await getAuthHeaders(),
         }),
         fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-accounts?clientId=${user.id}`, {
-          headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+          headers: await getAuthHeaders(),
         }),
       ]);
       const txData = await txRes.json();

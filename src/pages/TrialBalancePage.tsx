@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { getAuthHeaders } from "@/lib/edge-helpers";
 import {
   ArrowRight, Loader2, RefreshCw, Search, Filter, Scale,
   ChevronLeft, ChevronRight, AlertTriangle, CheckCircle2, FileSpreadsheet,
@@ -96,10 +97,10 @@ const TrialBalancePage = () => {
     try {
       const [txRes, accRes, profileRes] = await Promise.all([
         fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-transactions?clientId=${user.id}`, {
-          headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+          headers: await getAuthHeaders(),
         }),
         fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-accounts?clientId=${user.id}`, {
-          headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+          headers: await getAuthHeaders(),
         }),
         supabase.from("profiles").select("display_name, company_name").eq("user_id", user.id).maybeSingle(),
       ]);

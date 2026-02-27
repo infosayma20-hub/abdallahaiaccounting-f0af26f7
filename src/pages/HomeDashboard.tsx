@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { getAuthHeaders, getAuthHeadersJson } from "@/lib/edge-helpers";
 import {
   FileText, Receipt, Users, Package, Wallet, Landmark,
   TrendingUp, Loader2,
@@ -113,7 +114,7 @@ const HomeDashboard = () => {
       try {
         const res = await fetch(
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-transactions?clientId=${user.id}`,
-          { headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` } }
+          { headers: await getAuthHeaders() }
         );
         if (!res.ok) throw new Error("Failed to fetch");
         const result = await res.json();
@@ -270,7 +271,7 @@ const HomeDashboard = () => {
     try {
       const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/database-command`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`, "Content-Type": "application/json" },
+        headers: await getAuthHeadersJson(),
         body: JSON.stringify({ command: dbCommand, clientId: user?.id }),
       });
       const data = await res.json();

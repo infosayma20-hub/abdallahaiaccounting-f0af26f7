@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { getAuthHeaders } from "@/lib/edge-helpers";
 import { ArrowRight, Loader2, RefreshCw, Plus, ChevronDown, Search, Wallet, TrendingUp, TrendingDown, Scale, DollarSign, Building2, Landmark, CreditCard, Package, Users, Receipt } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -116,7 +117,7 @@ const AccountsPage = () => {
     try {
       const res = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-accounts?clientId=${user.id}`,
-        { headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` } }
+        { headers: await getAuthHeaders() }
       );
       if (!res.ok) throw new Error("Failed to fetch accounts");
       const data = await res.json();

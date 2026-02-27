@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { getAuthHeaders, getAuthHeadersJson } from "@/lib/edge-helpers";
 import { Wallet, Mic, Send, Loader2, Bell, Sparkles, Database, FileText, Package, TrendingUp, TrendingDown, ArrowLeft, ChevronDown, Users, UserPlus, Plus, Paperclip, BarChart3, Clock, AlertTriangle, Sun, Moon, HelpCircle, AtSign, BookOpen } from "lucide-react";
 import SmartAlertCard from "@/components/SmartAlertCard";
 import { Badge } from "@/components/ui/badge";
@@ -131,7 +132,7 @@ const Dashboard = () => {
       try {
         const res = await fetch(
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-transactions?clientId=${user.id}`,
-          { headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` } }
+          { headers: await getAuthHeaders() }
         );
         if (!res.ok) throw new Error("Failed to fetch transactions");
         const result = await res.json();
@@ -459,7 +460,7 @@ const Dashboard = () => {
         try {
           const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/database-command`, {
             method: "POST",
-            headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`, "Content-Type": "application/json" },
+            headers: await getAuthHeadersJson(),
             body: JSON.stringify({ command: line, clientId: user?.id }),
           });
           const data = await res.json();

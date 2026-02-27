@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { getAuthHeaders, getAuthHeadersJson } from "@/lib/edge-helpers";
 import { ArrowRight, Loader2, RefreshCw, Plus, Phone, Mail, Building2, MapPin, User, Users, ShoppingBag, Search, ChevronDown, ChevronUp, Sparkles, Receipt, TrendingUp, TrendingDown, Calendar, FileText, Wallet, AlertTriangle, Pencil, Trash2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -117,7 +118,7 @@ const ContactsPage = () => {
     try {
       const res = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-contacts?clientId=${user.id}`,
-        { headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` } }
+        { headers: await getAuthHeaders() }
       );
       if (!res.ok) throw new Error("Failed to fetch contacts");
       const data = await res.json();
@@ -135,15 +136,17 @@ const ContactsPage = () => {
   // Fetch financials for all contacts once contacts are loaded
   useEffect(() => {
     if (!user || contacts.length === 0) return;
-    contacts.forEach((contact) => {
-      const contactId = contact.id;
-      if (contactFinancials[contactId]) return; // already fetched
-      setContactFinancials(prev => ({ ...prev, [contactId]: { balance: 0, invoiceCount: 0, lastTxDate: "-", totalDealing: 0, lastTransactions: [], totalSales: 0, totalCollections: 0, loading: true } }));
-      
-      fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-contact-transactions?contactId=${contactId}&clientId=${user.id}`,
-        { headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` } }
-      )
+    const fetchFinancials = async () => {
+      const headers = await getAuthHeaders();
+      contacts.forEach((contact) => {
+        const contactId = contact.id;
+        if (contactFinancials[contactId]) return;
+        setContactFinancials(prev => ({ ...prev, [contactId]: { balance: 0, invoiceCount: 0, lastTxDate: "-", totalDealing: 0, lastTransactions: [], totalSales: 0, totalCollections: 0, loading: true } }));
+        
+        fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-contact-transactions?contactId=${contactId}&clientId=${user.id}`,
+          { headers }
+        )
         .then(res => res.json())
         .then(data => {
           const txs: ContactTransaction[] = data?.records || [];
@@ -189,7 +192,9 @@ const ContactsPage = () => {
             [contactId]: { balance: 0, invoiceCount: 0, lastTxDate: "-", totalDealing: 0, lastTransactions: [], totalSales: 0, totalCollections: 0, loading: false }
           }));
         });
-    });
+      });
+    };
+    fetchFinancials();
   }, [user, contacts]);
 
   const handleAddContact = async () => {
@@ -201,7 +206,7 @@ const ContactsPage = () => {
         {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            ...await getAuthHeaders(),
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
@@ -240,7 +245,7 @@ const ContactsPage = () => {
         {
           method: "PATCH",
           headers: {
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            ...await getAuthHeaders(),
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
@@ -284,7 +289,7 @@ const ContactsPage = () => {
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-contacts?clientId=${user?.id}&contactId=${deleteContact.id}`,
         {
           method: "DELETE",
-          headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+          headers: await getAuthHeaders(),
         }
       );
       if (!res.ok) throw new Error("Failed to delete contact");

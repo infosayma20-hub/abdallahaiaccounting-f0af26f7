@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { getAuthHeaders, getAuthHeadersJson } from "@/lib/edge-helpers";
 import { useSearchParams } from "react-router-dom";
 import { ArrowRight, Loader2, RefreshCw, Pencil, Trash2, CheckSquare, X, RotateCcw, Archive, Search, Filter } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -121,10 +122,10 @@ const TransactionsPage = () => {
     try {
       const [txRes, accRes] = await Promise.all([
         fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-transactions?clientId=${user.id}`, {
-          headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+          headers: await getAuthHeaders(),
         }),
         fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-accounts?clientId=${user.id}`, {
-          headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+          headers: await getAuthHeaders(),
         }),
       ]);
       if (!txRes.ok) throw new Error("Failed to fetch transactions");
@@ -147,7 +148,7 @@ const TransactionsPage = () => {
     setLoadingTrash(true);
     try {
       const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-transactions?clientId=${user.id}&deleted=true`, {
-        headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+        headers: await getAuthHeaders(),
       });
       if (!res.ok) throw new Error("Failed to fetch deleted transactions");
       const data = await res.json();
@@ -185,7 +186,7 @@ const TransactionsPage = () => {
     try {
       const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-update-transaction`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`, "Content-Type": "application/json" },
+        headers: await getAuthHeadersJson(),
         body: JSON.stringify({
           recordId: editingTx.id,
           fields: {
@@ -217,7 +218,7 @@ const TransactionsPage = () => {
     try {
       const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-update-transaction`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`, "Content-Type": "application/json" },
+        headers: await getAuthHeadersJson(),
         body: JSON.stringify({ recordId: editingTx.id, action: "delete" }),
       });
       const data = await res.json();
@@ -258,11 +259,12 @@ const TransactionsPage = () => {
     setBulkDeleting(true);
     try {
       const ids = Array.from(selectedIds);
+      const headers = await getAuthHeadersJson();
       await Promise.all(
         ids.map(id =>
           fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-update-transaction`, {
             method: "POST",
-            headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`, "Content-Type": "application/json" },
+            headers,
             body: JSON.stringify({ recordId: id, action: "delete" }),
           })
         )
@@ -283,7 +285,7 @@ const TransactionsPage = () => {
     try {
       const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-update-transaction`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`, "Content-Type": "application/json" },
+        headers: await getAuthHeadersJson(),
         body: JSON.stringify({ recordId, action: "restore" }),
       });
       const data = await res.json();
@@ -301,11 +303,12 @@ const TransactionsPage = () => {
   const handleRestoreAll = async () => {
     setBulkDeleting(true);
     try {
+      const headers = await getAuthHeadersJson();
       await Promise.all(
         deletedTransactions.map(tx =>
           fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-update-transaction`, {
             method: "POST",
-            headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`, "Content-Type": "application/json" },
+            headers,
             body: JSON.stringify({ recordId: tx.id, action: "restore" }),
           })
         )

@@ -72,7 +72,7 @@ const JournalEntryPopup = ({ open, onClose, onSuccess, initialData, accounts: pr
       try {
         const res = await fetch(
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-accounts?clientId=${user.id}`,
-          { headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` } }
+          { headers: await (await import("@/lib/edge-helpers")).getAuthHeaders() }
         );
         if (res.ok) {
           const data = await res.json();

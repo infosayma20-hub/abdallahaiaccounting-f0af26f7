@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { getAuthHeaders } from "@/lib/edge-helpers";
 import { Search, Bell, Settings, HelpCircle, LogOut, User, Menu, Sun, Moon, FileText, Wallet, Users, X, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/hooks/useTheme";
@@ -71,15 +72,16 @@ const GlobalSearchBar = ({ collapsed, onToggle }: { collapsed: boolean; onToggle
     if (dataLoaded || !user) return;
     setLoading(true);
     try {
+      const headers = await getAuthHeaders();
       const [txRes, accRes, contactsRes] = await Promise.all([
         fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-transactions?clientId=${user.id}`, {
-          headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+          headers,
         }),
         fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-accounts?clientId=${user.id}`, {
-          headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+          headers,
         }),
         fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-contacts?clientId=${user.id}`, {
-          headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+          headers,
         }),
       ]);
       const [txData, accData, contactsData] = await Promise.all([

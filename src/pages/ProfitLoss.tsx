@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { getAuthHeaders } from "@/lib/edge-helpers";
 import { TrendingUp, TrendingDown, DollarSign, Loader2, BarChart3 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
@@ -47,7 +48,7 @@ const ProfitLoss = () => {
       try {
         const res = await fetch(
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-transactions?clientId=${user.id}`,
-          { headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` } }
+          { headers: await getAuthHeaders() }
         );
         if (!res.ok) throw new Error("Failed to fetch");
         const data = await res.json();

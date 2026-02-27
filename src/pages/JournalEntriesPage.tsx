@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { getAuthHeaders, getAuthHeadersJson } from "@/lib/edge-helpers";
 import {
   ArrowRight, Loader2, RefreshCw, Pencil, Search, Calendar,
   FileText, ChevronLeft, ChevronRight, Filter, FileSpreadsheet,
@@ -81,10 +82,10 @@ const JournalEntriesPage = () => {
     try {
       const [txRes, accRes, profileRes] = await Promise.all([
         fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-transactions?clientId=${user.id}`, {
-          headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+          headers: await getAuthHeaders(),
         }),
         fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-accounts?clientId=${user.id}`, {
-          headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+          headers: await getAuthHeaders(),
         }),
         supabase.from("profiles").select("display_name, company_name").eq("user_id", user.id).maybeSingle(),
       ]);
@@ -161,7 +162,7 @@ const JournalEntriesPage = () => {
     try {
       const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-update-transaction`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`, "Content-Type": "application/json" },
+        headers: await getAuthHeadersJson(),
         body: JSON.stringify({
           recordId: editingTx.id,
           fields: {
