@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Search, Users, DollarSign, Calendar, FileText, Edit, Trash2, Eye, UserPlus, Loader2 } from "lucide-react";
+import BackButton from "@/components/BackButton";
 
 interface Employee {
   id: string;
@@ -176,9 +177,12 @@ const EmployeesPage = () => {
     <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto" dir="rtl">
       {/* Header */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">إدارة الموظفين</h1>
-          <p className="text-sm text-muted-foreground">نظام الموارد البشرية - قانون العمل الفلسطيني</p>
+        <div className="flex items-center gap-3">
+          <BackButton />
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">إدارة الموظفين</h1>
+            <p className="text-sm text-muted-foreground">نظام الموارد البشرية - قانون العمل الفلسطيني</p>
+          </div>
         </div>
         <Button onClick={() => { setForm(emptyEmployee); setEditingId(null); setShowForm(true); }} className="gap-2">
           <Plus className="h-4 w-4" /> إضافة موظف

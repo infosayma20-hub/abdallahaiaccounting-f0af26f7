@@ -16,6 +16,7 @@ import {
   Calendar, FileText, Download, Loader2, Eye, Check, X, MapPin,
   QrCode, RefreshCw, Copy
 } from "lucide-react";
+import BackButton from "@/components/BackButton";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 
@@ -219,9 +220,12 @@ export default function HRAttendancePage() {
     <div className="space-y-6 p-4 max-w-6xl mx-auto" dir="rtl">
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-bold">لوحة إدارة الحضور</h1>
-          <p className="text-muted-foreground text-sm">إدارة حضور وانصراف الموظفين</p>
+        <div className="flex items-center gap-3">
+          <BackButton />
+          <div>
+            <h1 className="text-2xl font-bold">لوحة إدارة الحضور</h1>
+            <p className="text-muted-foreground text-sm">إدارة حضور وانصراف الموظفين</p>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={() => setShowBranchDialog(true)} className="gap-1">
