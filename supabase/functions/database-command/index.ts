@@ -90,10 +90,29 @@ serve(async (req) => {
 2. حسابات (Accounts): شجرة الحسابات المحاسبية بأكواد رقمية
 3. أصناف/منتجات (Products): المخزون والبضائع
 4. سندات قيد (Journal Entries): قيود محاسبية يدوية
+5. موظفين (Employees): إدارة الموارد البشرية
 
 أنواع الحسابات: Asset, Liability, Owner's Equity, Revenue, Purchases, Expenses
 فئات الأصناف: بضاعة عامة, مواد خام, مواد تعبئة, قطع غيار, أخرى
 وحدات القياس: قطعة, كيلو, لتر, متر, صندوق, كرتونة, طن
+
+━━━ كشف الموظفين ━━━
+إذا احتوى الأمر على: "أضف موظف", "إضافة موظف", "موظف جديد", "سجل موظف"
+فأعد action: "add_employee" مع:
+{
+  "action": "add_employee",
+  "data": {
+    "full_name": "اسم الموظف",
+    "phone": "رقم الهاتف أو null",
+    "email": "الإيميل أو null",
+    "id_number": "رقم الهوية أو null",
+    "job_title": "المسمى الوظيفي أو null",
+    "department": "القسم أو null",
+    "base_salary": رقم أو 0,
+    "salary_type": "شهري أو يومي أو بالساعة"
+  },
+  "message": "رسالة تأكيد"
+}
 
 ━━━ كشف سندات القيد ━━━
 إذا احتوى الأمر على: "سند قيد", "قيد محاسبي", "قيد يومية", "ترحيل", "سجل قيد", "من حساب ... إلى حساب", "مدين ... دائن"
@@ -113,7 +132,7 @@ serve(async (req) => {
 
 أعد JSON فقط:
 {
-  "action": "add_contact" | "edit_contact" | "delete_contact" | "add_account" | "edit_account" | "delete_account" | "add_product" | "edit_product" | "delete_product" | "add_journal_entry" | "need_info" | "unknown",
+  "action": "add_contact" | "edit_contact" | "delete_contact" | "add_account" | "edit_account" | "delete_account" | "add_product" | "edit_product" | "delete_product" | "add_journal_entry" | "add_employee" | "need_info" | "unknown",
   "data": { ... },
   "recordId": "UUID للتعديل/الحذف أو null",
   "message": "رسالة بالعربية",
@@ -198,7 +217,7 @@ ${JSON.stringify(productsList, null, 0)}
       }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    const allowedActions = ['add_contact', 'edit_contact', 'delete_contact', 'add_account', 'edit_account', 'delete_account', 'add_product', 'edit_product', 'delete_product', 'add_journal_entry', 'need_info', 'unknown'];
+    const allowedActions = ['add_contact', 'edit_contact', 'delete_contact', 'add_account', 'edit_account', 'delete_account', 'add_product', 'edit_product', 'delete_product', 'add_journal_entry', 'add_employee', 'need_info', 'unknown'];
     if (!allowedActions.includes(parsed.action)) {
       return new Response(JSON.stringify({
         success: false,
@@ -357,6 +376,32 @@ ${JSON.stringify(productsList, null, 0)}
         .delete().eq('id', parsed.recordId).eq('user_id', userId);
       if (error) throw new Error(`خطأ في حذف الصنف: ${error.message}`);
       result = { deleted: true };
+
+    // ─── EMPLOYEE (Supabase) ────────────────────────────
+    } else if (parsed.action === 'add_employee') {
+      const empData: any = {
+        user_id: userId,
+        full_name: parsed.data.full_name || parsed.data.name,
+        is_active: true,
+        start_date: new Date().toISOString().split('T')[0],
+        salary_type: parsed.data.salary_type || 'شهري',
+        base_salary: Number(parsed.data.base_salary) || 0,
+        hourly_rate: Number(parsed.data.hourly_rate) || 0,
+        work_days_per_week: 6,
+        work_hours_per_day: 8,
+        annual_leave_days: 14,
+        sick_leave_days: 14,
+      };
+      if (parsed.data.phone) empData.phone = parsed.data.phone;
+      if (parsed.data.email) empData.email = parsed.data.email;
+      if (parsed.data.id_number) empData.id_number = parsed.data.id_number;
+      if (parsed.data.job_title) empData.job_title = parsed.data.job_title;
+      if (parsed.data.department) empData.department = parsed.data.department;
+      if (parsed.data.position) empData.position = parsed.data.position;
+
+      const { data, error } = await supabase.from('employees').insert(empData).select().single();
+      if (error) throw new Error(`خطأ في إضافة الموظف: ${error.message}`);
+      result = data;
 
     // ─── JOURNAL ENTRY (return for confirmation) ─────
     } else if (parsed.action === 'add_journal_entry') {
