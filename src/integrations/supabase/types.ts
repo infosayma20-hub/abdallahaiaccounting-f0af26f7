@@ -482,8 +482,10 @@ export type Database = {
       currencies: {
         Row: {
           code: string
+          country_flag: string | null
           created_at: string
           decimal_places: number
+          display_order: number | null
           id: string
           is_active: boolean
           is_base: boolean
@@ -495,8 +497,10 @@ export type Database = {
         }
         Insert: {
           code: string
+          country_flag?: string | null
           created_at?: string
           decimal_places?: number
+          display_order?: number | null
           id?: string
           is_active?: boolean
           is_base?: boolean
@@ -508,8 +512,10 @@ export type Database = {
         }
         Update: {
           code?: string
+          country_flag?: string | null
           created_at?: string
           decimal_places?: number
+          display_order?: number | null
           id?: string
           is_active?: boolean
           is_base?: boolean
@@ -520,6 +526,84 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      currency_conversions: {
+        Row: {
+          commission_account: string | null
+          commission_amount: number | null
+          conversion_date: string
+          conversion_number: string | null
+          created_at: string
+          exchange_rate_used: number
+          from_account: string | null
+          from_amount: number
+          from_currency_id: string
+          gain_loss_amount: number | null
+          id: string
+          notes: string | null
+          status: string
+          to_account: string | null
+          to_amount: number
+          to_currency_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          commission_account?: string | null
+          commission_amount?: number | null
+          conversion_date?: string
+          conversion_number?: string | null
+          created_at?: string
+          exchange_rate_used: number
+          from_account?: string | null
+          from_amount: number
+          from_currency_id: string
+          gain_loss_amount?: number | null
+          id?: string
+          notes?: string | null
+          status?: string
+          to_account?: string | null
+          to_amount: number
+          to_currency_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          commission_account?: string | null
+          commission_amount?: number | null
+          conversion_date?: string
+          conversion_number?: string | null
+          created_at?: string
+          exchange_rate_used?: number
+          from_account?: string | null
+          from_amount?: number
+          from_currency_id?: string
+          gain_loss_amount?: number | null
+          id?: string
+          notes?: string | null
+          status?: string
+          to_account?: string | null
+          to_amount?: number
+          to_currency_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "currency_conversions_from_currency_id_fkey"
+            columns: ["from_currency_id"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "currency_conversions_to_currency_id_fkey"
+            columns: ["to_currency_id"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       employee_allowances: {
         Row: {
@@ -931,6 +1015,7 @@ export type Database = {
           rate_date: string
           sell_rate: number
           source: string
+          updated_at: string | null
           user_id: string
         }
         Insert: {
@@ -943,6 +1028,7 @@ export type Database = {
           rate_date?: string
           sell_rate?: number
           source?: string
+          updated_at?: string | null
           user_id: string
         }
         Update: {
@@ -955,6 +1041,7 @@ export type Database = {
           rate_date?: string
           sell_rate?: number
           source?: string
+          updated_at?: string | null
           user_id?: string
         }
         Relationships: [
@@ -1754,6 +1841,10 @@ export type Database = {
     }
     Functions: {
       cleanup_expired_webauthn_challenges: { Args: never; Returns: undefined }
+      get_exchange_rate: {
+        Args: { p_currency_code: string; p_date?: string; p_rate_type?: string }
+        Returns: number
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
