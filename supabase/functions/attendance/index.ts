@@ -89,10 +89,10 @@ Deno.serve(async (req) => {
         );
       }
 
-      // 1. Validate branch
+      // 1. Validate branch - only select needed fields (secret_key is needed server-side for HMAC)
       const { data: branch, error: branchErr } = await supabase
         .from("branches")
-        .select("*, secret_key, qr_rotation_minutes")
+        .select("id, name, latitude, longitude, radius_meters, secret_key, qr_rotation_minutes")
         .eq("id", branch_id)
         .eq("is_active", true)
         .single();

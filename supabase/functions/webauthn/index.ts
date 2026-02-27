@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
 function generateChallenge(): string {
@@ -11,6 +11,9 @@ function generateChallenge(): string {
   crypto.getRandomValues(array);
   return btoa(String.fromCharCode(...array)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
+
+// Generic error message to prevent user enumeration
+const GENERIC_AUTH_ERROR = "بيانات الاعتماد غير صالحة أو لم يتم العثور على مفتاح مرور";
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
@@ -24,11 +27,19 @@ serve(async (req) => {
     const authHeader = req.headers.get('Authorization');
     const { action, ...body } = await req.json();
 
+    // Validate action is one of the allowed values
+    const allowedActions = ['register-options', 'register-verify', 'auth-options', 'auth-verify'];
+    if (!allowedActions.includes(action)) {
+      return new Response(JSON.stringify({ error: 'Invalid action' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     if (action === 'register-options') {
       if (!authHeader) throw new Error('Auth required');
       const supabaseUser = createClient(
         Deno.env.get('SUPABASE_URL')!,
-        Deno.env.get('SUPABASE_PUBLISHABLE_KEY') || Deno.env.get('SUPABASE_ANON_KEY') || '',
+        Deno.env.get('SUPABASE_ANON_KEY')!,
         { global: { headers: { Authorization: authHeader } } }
       );
       const { data: { user }, error } = await supabaseUser.auth.getUser();
@@ -39,7 +50,6 @@ serve(async (req) => {
         user_id: user.id, challenge, type: 'registration'
       });
 
-      // Get existing credentials to exclude
       const { data: existing } = await supabaseAdmin
         .from('passkey_credentials')
         .select('credential_id')
@@ -64,7 +74,7 @@ serve(async (req) => {
       if (!authHeader) throw new Error('Auth required');
       const supabaseUser = createClient(
         Deno.env.get('SUPABASE_URL')!,
-        Deno.env.get('SUPABASE_PUBLISHABLE_KEY') || Deno.env.get('SUPABASE_ANON_KEY') || '',
+        Deno.env.get('SUPABASE_ANON_KEY')!,
         { global: { headers: { Authorization: authHeader } } }
       );
       const { data: { user }, error } = await supabaseUser.auth.getUser();
@@ -72,31 +82,33 @@ serve(async (req) => {
 
       const { credential, deviceName } = body;
 
-      // Verify challenge exists
+      // Verify challenge exists and is recent (10 min max)
       const { data: challenges } = await supabaseAdmin
         .from('webauthn_challenges')
         .select('*')
         .eq('user_id', user.id)
         .eq('type', 'registration')
+        .gte('created_at', new Date(Date.now() - 10 * 60 * 1000).toISOString())
         .order('created_at', { ascending: false })
         .limit(1);
 
-      if (!challenges?.length) throw new Error('No challenge found');
+      if (!challenges?.length) throw new Error('No valid challenge found');
 
-      // Store the credential
+      // Sanitize device name
+      const sanitizedDeviceName = (deviceName || 'جهازي').slice(0, 50).replace(/[<>"'&]/g, '');
+
       await supabaseAdmin.from('passkey_credentials').insert({
         user_id: user.id,
         credential_id: credential.id,
         public_key: credential.publicKey,
         counter: 0,
-        device_name: deviceName || 'جهازي',
+        device_name: sanitizedDeviceName,
       });
 
-      // Clean up challenge
+      // Clean up ALL challenges for this user (not just registration)
       await supabaseAdmin.from('webauthn_challenges')
         .delete()
-        .eq('user_id', user.id)
-        .eq('type', 'registration');
+        .eq('user_id', user.id);
 
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -105,20 +117,42 @@ serve(async (req) => {
 
     if (action === 'auth-options') {
       const { email } = body;
+      
+      // Validate email format
+      if (!email || typeof email !== 'string' || !email.includes('@') || email.length > 255) {
+        // Return generic error - don't reveal validation details
+        return new Response(JSON.stringify({ error: GENERIC_AUTH_ERROR }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
       const challenge = generateChallenge();
 
       // Find user by email
       const { data: { users }, error } = await supabaseAdmin.auth.admin.listUsers();
       const user = users?.find(u => u.email === email);
       
-      if (!user) throw new Error('User not found');
+      // SECURITY: Return same generic error whether user exists or not
+      if (!user) {
+        // Simulate same delay to prevent timing attacks
+        await new Promise(r => setTimeout(r, 100 + Math.random() * 200));
+        return new Response(JSON.stringify({ error: GENERIC_AUTH_ERROR }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
 
       const { data: credentials } = await supabaseAdmin
         .from('passkey_credentials')
         .select('credential_id')
         .eq('user_id', user.id);
 
-      if (!credentials?.length) throw new Error('No passkeys registered');
+      // SECURITY: Same generic error if no passkeys - prevents enumeration
+      if (!credentials?.length) {
+        await new Promise(r => setTimeout(r, 100 + Math.random() * 200));
+        return new Response(JSON.stringify({ error: GENERIC_AUTH_ERROR }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
 
       await supabaseAdmin.from('webauthn_challenges').insert({
         user_id: user.id, challenge, type: 'authentication'
@@ -136,9 +170,21 @@ serve(async (req) => {
     if (action === 'auth-verify') {
       const { credentialId, email } = body;
 
+      if (!credentialId || !email) {
+        return new Response(JSON.stringify({ error: GENERIC_AUTH_ERROR }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
       const { data: { users } } = await supabaseAdmin.auth.admin.listUsers();
       const user = users?.find(u => u.email === email);
-      if (!user) throw new Error('User not found');
+      
+      // SECURITY: Generic error
+      if (!user) {
+        return new Response(JSON.stringify({ error: GENERIC_AUTH_ERROR }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
 
       // Verify credential belongs to user
       const { data: cred } = await supabaseAdmin
@@ -148,7 +194,26 @@ serve(async (req) => {
         .eq('user_id', user.id)
         .single();
 
-      if (!cred) throw new Error('Invalid credential');
+      if (!cred) {
+        return new Response(JSON.stringify({ error: GENERIC_AUTH_ERROR }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      // Verify a valid challenge exists and is recent
+      const { data: validChallenge } = await supabaseAdmin
+        .from('webauthn_challenges')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('type', 'authentication')
+        .gte('created_at', new Date(Date.now() - 10 * 60 * 1000).toISOString())
+        .limit(1);
+
+      if (!validChallenge?.length) {
+        return new Response(JSON.stringify({ error: GENERIC_AUTH_ERROR }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
 
       // Generate a magic link token for sign-in
       const { data: signInData, error: signInError } = await supabaseAdmin.auth.admin.generateLink({
@@ -156,13 +221,16 @@ serve(async (req) => {
         email: user.email!,
       });
 
-      if (signInError) throw signInError;
+      if (signInError) {
+        return new Response(JSON.stringify({ error: GENERIC_AUTH_ERROR }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
 
-      // Clean up challenges
+      // Clean up ALL challenges for this user
       await supabaseAdmin.from('webauthn_challenges')
         .delete()
-        .eq('user_id', user.id)
-        .eq('type', 'authentication');
+        .eq('user_id', user.id);
 
       // Update counter
       await supabaseAdmin.from('passkey_credentials')
@@ -176,10 +244,13 @@ serve(async (req) => {
       }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    throw new Error('Invalid action');
+    return new Response(JSON.stringify({ error: 'Invalid action' }), {
+      status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   } catch (error) {
     console.error('WebAuthn error:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    // SECURITY: Never expose internal error details
+    return new Response(JSON.stringify({ error: GENERIC_AUTH_ERROR }), {
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
