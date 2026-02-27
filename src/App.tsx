@@ -51,6 +51,12 @@ import HRPayrollReport from "./pages/reports/HRPayrollReport";
 import HRAttendanceReport from "./pages/reports/HRAttendanceReport";
 import HRLeaveReport from "./pages/reports/HRLeaveReport";
 import HRStaffCostReport from "./pages/reports/HRStaffCostReport";
+import CustomizationPage from "./pages/CustomizationPage";
+import IndustryTemplatesPage from "./pages/IndustryTemplatesPage";
+import CustomizationRequestPage from "./pages/CustomizationRequestPage";
+import SupportTicketsPage from "./pages/SupportTicketsPage";
+import TicketDetailPage from "./pages/TicketDetailPage";
+import SupportAdminPage from "./pages/SupportAdminPage";
 
 const queryClient = new QueryClient();
 
@@ -133,6 +139,12 @@ const App = () => (
                       <Route path="/reports/hr-attendance" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><HRAttendanceReport /></RoleGuard>} />
                       <Route path="/reports/hr-leaves" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><HRLeaveReport /></RoleGuard>} />
                       <Route path="/reports/hr-staff-cost" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><HRStaffCostReport /></RoleGuard>} />
+                      <Route path="/customization" element={<CustomizationPage />} />
+                      <Route path="/customization/templates" element={<IndustryTemplatesPage />} />
+                      <Route path="/customization/request" element={<CustomizationRequestPage />} />
+                      <Route path="/support/tickets" element={<SupportTicketsPage />} />
+                      <Route path="/support/tickets/:id" element={<TicketDetailPage />} />
+                      <Route path="/support/admin" element={<RoleGuard allowedRoles={["admin"]}><SupportAdminPage /></RoleGuard>} />
                       <Route path="*" element={<NotFound />} />
                     </Routes>
                   </WebLayout>
