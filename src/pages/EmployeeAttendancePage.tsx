@@ -76,7 +76,7 @@ export default function EmployeeAttendancePage() {
     try {
       // Get employee
       const { data: emp } = await supabase
-        .from("employees")
+        .from("employees_safe")
         .select("id, full_name, branch_id")
         .eq("auth_user_id", user.id)
         .eq("is_active", true)
@@ -86,7 +86,7 @@ export default function EmployeeAttendancePage() {
       if (!emp) { setLoading(false); return; }
 
       // Get branches
-      const { data: br } = await supabase.from("branches").select("id, name").eq("is_active", true);
+      const { data: br } = await supabase.from("branches_safe").select("id, name").eq("is_active", true);
       setBranches(br || []);
 
       const today = new Date().toISOString().split("T")[0];

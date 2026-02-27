@@ -78,7 +78,7 @@ export default function HRAttendancePage() {
     if (!user) return;
     setLoading(true);
     try {
-      const { data: br } = await supabase.from("branches").select("id, name, address, latitude, longitude, radius_meters, is_active, qr_rotation_minutes, user_id, created_at, updated_at").eq("user_id", user.id);
+      const { data: br } = await supabase.from("branches_safe").select("*").eq("user_id", user.id);
       setBranches(br || []);
 
       // Fetch attendance for date - join with employees

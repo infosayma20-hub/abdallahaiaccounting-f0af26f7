@@ -60,7 +60,7 @@ export default function EmployeeApp() {
     setLoading(true);
     try {
       const { data: emp } = await supabase
-        .from("employees")
+        .from("employees_safe")
         .select("id, full_name, branch_id, position, department, phone, email")
         .eq("auth_user_id", user.id)
         .eq("is_active", true)
@@ -70,7 +70,7 @@ export default function EmployeeApp() {
 
       // Branch name
       if (emp.branch_id) {
-        const { data: br } = await supabase.from("branches").select("name").eq("id", emp.branch_id).single();
+        const { data: br } = await supabase.from("branches_safe").select("name").eq("id", emp.branch_id).single();
         setBranchName(br?.name || "");
       }
 
