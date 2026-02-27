@@ -97,6 +97,8 @@ const AccountsPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
 
+  const [settingUp, setSettingUp] = useState(false);
+
   const fetchAccounts = async () => {
     if (!user) return;
     setLoading(true);
@@ -109,6 +111,32 @@ const AccountsPage = () => {
       setError(err.message || "خطأ في جلب البيانات");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const setupDefaultAccounts = async () => {
+    if (!user) return;
+    setSettingUp(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("غير مصرح");
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/setup-accounts`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+          'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        },
+        body: JSON.stringify({ userId: user.id, businessType: 'general', hasInventory: true, hasReceivables: true, hasEmployees: true }),
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || "فشل الإعداد");
+      toast({ title: "✅ تم الإعداد", description: result.message });
+      await fetchAccounts();
+    } catch (err: any) {
+      toast({ title: "خطأ", description: err.message, variant: "destructive" });
+    } finally {
+      setSettingUp(false);
     }
   };
 
@@ -229,7 +257,25 @@ const AccountsPage = () => {
         </CardContent></Card>
       )}
 
-      {!loading && !error && (
+      {!loading && !error && accounts.length === 0 && (
+        <Card className="border-dashed border-2 border-primary/30">
+          <CardContent className="p-8 text-center space-y-4">
+            <div className="w-16 h-16 mx-auto rounded-2xl bg-primary/10 flex items-center justify-center">
+              <Wallet className="h-8 w-8 text-primary" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-foreground">لا توجد حسابات بعد</h3>
+              <p className="text-sm text-muted-foreground mt-1">اضغط الزر لإنشاء شجرة الحسابات الافتراضية تلقائياً</p>
+            </div>
+            <Button onClick={setupDefaultAccounts} disabled={settingUp} className="gap-2">
+              {settingUp ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+              {settingUp ? "جاري الإعداد..." : "إنشاء شجرة الحسابات"}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {!loading && !error && accounts.length > 0 && (
         <div className="space-y-3">
           {accountTypes.map((type) => {
             const typeAccounts = groupedAccounts[type] || [];
