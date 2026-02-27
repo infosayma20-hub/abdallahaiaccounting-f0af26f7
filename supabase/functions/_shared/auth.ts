@@ -21,15 +21,15 @@ export async function authenticateRequest(req: Request): Promise<{ userId: strin
   );
 
   const token = authHeader.replace('Bearer ', '');
-  const { data, error } = await supabaseAuth.auth.getClaims(token);
-  if (error || !data?.claims) {
+  const { data: { user }, error } = await supabaseAuth.auth.getUser(token);
+  if (error || !user) {
     return new Response(JSON.stringify({ error: 'Invalid token' }), {
       status: 401,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
 
-  return { userId: data.claims.sub as string };
+  return { userId: user.id };
 }
 
 export function isValidUUID(str: string): boolean {
