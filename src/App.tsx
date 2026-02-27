@@ -47,6 +47,7 @@ import OpeningBalancesImportPage from "./pages/OpeningBalancesImportPage";
 import CurrencyManagementPage from "./pages/CurrencyManagementPage";
 import FixedAssetsPage from "./pages/FixedAssetsPage";
 import GeneralLedgerPage from "./pages/GeneralLedgerPage";
+import AccountStatementPage from "./pages/AccountStatementPage";
 import HRPayrollReport from "./pages/reports/HRPayrollReport";
 import HRAttendanceReport from "./pages/reports/HRAttendanceReport";
 import HRLeaveReport from "./pages/reports/HRLeaveReport";
@@ -135,6 +136,7 @@ const App = () => (
                       <Route path="/currency-management" element={<CurrencyManagementPage />} />
                       <Route path="/fixed-assets" element={<FixedAssetsPage />} />
                       <Route path="/general-ledger" element={<GeneralLedgerPage />} />
+                      <Route path="/account-statement" element={<AccountStatementPage />} />
                       <Route path="/reports/hr-payroll" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><HRPayrollReport /></RoleGuard>} />
                       <Route path="/reports/hr-attendance" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><HRAttendanceReport /></RoleGuard>} />
                       <Route path="/reports/hr-leaves" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><HRLeaveReport /></RoleGuard>} />

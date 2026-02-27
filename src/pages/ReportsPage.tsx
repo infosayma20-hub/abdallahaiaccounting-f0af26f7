@@ -44,7 +44,7 @@ const sections: ReportSection[] = [
       { slug: "profit-loss", label: "قائمة الأرباح والخسائر", description: "إيرادات ومصروفات وصافي الربح", icon: BarChart3, path: "/profit-loss", available: true },
       { slug: "general-ledger", label: "دفتر الأستاذ العام", description: "جميع الحركات لحساب محدد مع الرصيد التراكمي", icon: BookOpen, path: "/general-ledger", available: true },
       { slug: "journal-entries", label: "دفتر اليومية", description: "جميع القيود المحاسبية للفترة", icon: FileText, path: "/journal-entries", available: true },
-      { slug: "account-statement", label: "كشف حساب", description: "كشف حساب تفصيلي لعميل أو مورد", icon: Receipt, path: "/contacts", available: true },
+      { slug: "account-statement", label: "كشف حساب", description: "حركات أي حساب بالتفصيل مع الأرصدة", icon: Receipt, path: "/account-statement", available: true },
       { slug: "cash-movement", label: "حركة الصندوق", description: "جميع حركات النقد الوارد والصادر", icon: Wallet, path: "/transactions", available: true },
       { slug: "bank-movement", label: "حركة البنوك", description: "حركات الحسابات البنكية", icon: Building2, path: "/transactions", available: true },
       { slug: "ar-aging", label: "أعمار الذمم المدينة", description: "أرصدة العملاء حسب العمر (30/60/90 يوم)", icon: Clock, path: "#", available: false },
