@@ -2,26 +2,6 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { authenticateRequest, corsHeaders } from "../_shared/auth.ts";
 
-// Extract contact name from Arabic text
-function extractContactName(text: string): string | null {
-  const patterns = [
-    /(?:(?:رصيد\s*(?:ابتدائي|افتتاحي|مدور)\s*(?:لل?|من\s*)?)(?:الزبون|العميل|الزبونة|العميلة|المورد|المورّد|حساب)?\s*)([^\d,،.]+?)(?:\s+مبلغ|\s+بقيمة|\s*\d)/i,
-    /(?:من\s+(?:الزبون|العميل|الزبونة|العميلة|المورد|المورّد|الشركة)\s+)([^\d,،.]+)/i,
-    /(?:(?:الزبون|العميل|الزبونة|العميلة|المورد|المورّد)\s+)([^\d,،.]+)/i,
-    /(?:من\s+)([^\d,،.]{3,}?)(?:\s+مبلغ|\s+قيمة|\s*$)/i,
-    /(?:لـ?\s*)([^\d,،.]{3,}?)(?:\s+مبلغ|\s+قيمة|\s*$)/i,
-  ];
-  for (const pattern of patterns) {
-    const match = text.match(pattern);
-    if (match && match[1]) {
-      const name = match[1].trim();
-      const skipWords = ["الصندوق", "البنك", "الكهرباء", "الماء", "الإيجار", "المشتريات", "شيكل", "دينار"];
-      if (!skipWords.some(w => name.includes(w)) && name.length >= 3) return name;
-    }
-  }
-  return null;
-}
-
 function isOpeningBalance(text: string): boolean {
   return [/رصيد\s*(ابتدائي|افتتاحي|مدور|أول\s*المدة)/i, /opening\s*balance/i].some(p => p.test(text));
 }
@@ -48,52 +28,162 @@ serve(async (req) => {
     // Fetch user's accounts and contacts for AI context
     const [accountsRes, contactsRes] = await Promise.all([
       supabaseAdmin.from('accounts').select('account_code, account_name, account_type').eq('user_id', userId),
-      supabaseAdmin.from('contacts').select('id, contact_name, contact_type').eq('user_id', userId),
+      supabaseAdmin.from('contacts').select('id, contact_name, contact_type, linked_account_code').eq('user_id', userId),
     ]);
 
     const accounts = accountsRes.data || [];
     const contacts = contactsRes.data || [];
     const accountsList = accounts.map(a => `${a.account_code} - ${a.account_name} (${a.account_type})`).join('\n');
-    const contactsList = contacts.map(c => `${c.contact_name} (${c.contact_type})`).join(', ');
-
-    const contactName = mentionedContactName || extractContactName(text);
-    const openingBalance = isOpeningBalance(text);
-
-    // Detect payment method
-    const lowerText = text.toLowerCase();
-    let paymentHint = '';
-    if (/آجل|على الحساب|بالدين|دين/.test(lowerText)) paymentHint = 'آجل: استخدم ذمم العملاء أو ذمم الموردين';
-    else if (/نقد|كاش|نقداً/.test(lowerText)) paymentHint = 'نقد: استخدم الصندوق';
-    else if (/شيك/.test(lowerText)) paymentHint = 'شيك: استخدم شيكات أو أوراق قبض/دفع';
-    else if (/تحويل|بنك/.test(lowerText)) paymentHint = 'تحويل: استخدم البنك';
 
     const today = new Date().toISOString().split('T')[0];
+    const openingBalance = isOpeningBalance(text);
 
-    // Call AI to parse the transaction
-    const systemPrompt = `أنت محاسب محترف. حلّل النص التالي واستخرج بيانات المعاملة المالية.
+    // Build contact context for the AI
+    let contactContext = '';
+    if (mentionedContactId) {
+      const c = contacts.find(ct => ct.id === mentionedContactId);
+      if (c) {
+        contactContext = `جهة الاتصال المحددة: "${c.contact_name}" (${c.contact_type})${c.linked_account_code ? ` - حسابها: ${c.linked_account_code}` : ''}`;
+      }
+    } else if (mentionedContactName) {
+      contactContext = `جهة الاتصال المذكورة: "${mentionedContactName}"`;
+    }
 
-شجرة الحسابات المتاحة:
+    // Full prompt matching Make.com ChatGPT module
+    const systemPrompt = `أنت محاسب قانوني خبير ونظام ذكاء محاسبي ذكي.
+
+مهمتك:
+تحليل النص العربي المُدخل من المستخدم وتحويله إلى JSON محاسبي دقيق ومتوافق مع شجرة الحسابات المعتمدة.
+
+================================
+القواعد العامة:
+أرجع JSON فقط بدون أي شرح أو نص إضافي.
+ممنوع استخدام Markdown أو \`\`\` أو أي تنسيق.
+القيم النصية تكون عربية واضحة.
+لو المعلومة غير موجودة صراحة، اتركها فارغة "".
+لا تخمّن أسماء أشخاص أو حسابات غير مذكورة.
+
+================================
+التواريخ:
+تاريخ العملية (التاريخ):
+هو تاريخ تنفيذ الحركة الفعلية، استخدم: ${today}
+
+تاريخ الشيك (تاريخ_الشيك):
+يُستخرج فقط إذا ذُكر: (شيك، مستحق، بتاريخ، آجل، بعد شهر، بعد 30 يوم، الخ)
+إذا لم يُذكر → اجعل "تاريخ_الشيك": ""
+
+================================
+العملة:
+"شيكل" أو "دولار" أو "دينار"
+إذا لم تُذكر العملة صراحة → استخدم "شيكل"
+
+================================
+المبلغ:
+رقم صحيح فقط، بدون فواصل، بدون كتابة عملة
+
+================================
+نوع الحركة (إلزامي):
+اختر واحدًا فقط:
+- سند قبض (قبضت، استلمت، دخل، قبض شيك، استلم شيك)
+- سند صرف (دفعت، صرفت، سحبت، دفعت شيك)
+- قيد يومية (تحويل، شيك آجل، راتب، مصروف، تسوية)
+- فاتورة مبيعات (بعت، أصدرت فاتورة، مبيعات)
+- فاتورة مشتريات (اشتريت، فاتورة مورد)
+${openingBalance ? '- رصيد ابتدائي (رصيد ابتدائي، رصيد افتتاحي، رصيد مدور)' : ''}
+
+================================
+الشيكات:
+إذا ذُكر شيك:
+طريقة_الدفع = "شيك"
+أضف: رقم_الشيك (إن وُجد)، بنك_الشيك (إن وُجد)
+حالة_الشيك: "آجل" إذا له تاريخ مستقبلي، "مستحق" إذا بتاريخ اليوم أو سابق
+وإلا: طريقة_الدفع = "نقدي"
+
+================================
+الحسابات (مدين / دائن):
+المدين = من يستلم المال
+الدائن = من يدفع المال
+استخدم فقط الحسابات من شجرة الحسابات التالية. لا تُنشئ حسابات جديدة خارجها.
+
 ${accountsList}
 
-جهات الاتصال: ${contactsList || 'لا يوجد'}
+================================
+العملاء والموردين (ذكاء مهم):
+${contactContext}
 
-${openingBalance ? 'تنبيه: هذه عملية رصيد افتتاحي. نوع المعاملة = "رصيد ابتدائي".' : ''}
-${paymentHint ? `تنبيه طريقة الدفع: ${paymentHint}` : ''}
-${contactName ? `جهة الاتصال المذكورة: "${contactName}" - استخدم حسابها الخاص إن وجد.` : ''}
+إذا ذُكر اسم شخص أو جهة:
+- إذا ذُكر (عميل، زبون) → النوع = "عميل"
+- إذا ذُكر (مورد، شركة، محل) → النوع = "مورد"
+- إذا لم يُذكر نوعه صراحة: في القبض → عميل، في الدفع → مورد
 
-أجب بصيغة JSON فقط بدون أي نص إضافي:
+أضف الحقول التالية:
+- الطرف_الاسم: الاسم الحقيقي فقط بدون أدوات الجر
+- الطرف_النوع: "عميل" أو "مورد"
+- إنشاء_طرف_جديد: true → إذا الاسم غير عام (ليس: البنك، الصندوق)، false → إذا حساب عام
+
+================================
+الرواتب (تفريق متقدم ودقيق):
+إذا ذُكرت كلمة (راتب / رواتب) وكان المقصود راتب مستلم للمستخدم نفسه مثل:
+"نزل راتبي"، "استلمت راتبي"، "راتب إلي"، "قبضت راتب"، "أعطوني راتب"
+عندها يُعامل الراتب كـ إيراد وليس مصروف:
+- نوع_الحركة = "سند قبض"
+- الحساب_المدين = "البنك - حساب جاري شيكل فلسطين" أو "الصندوق" حسب النص
+- الحساب_الدائن = "إيرادات الرواتب والأجور"
+- لا تستخدم "مصاريف الرواتب"
+
+إذا كان الراتب خارج من الشركة (دفعت رواتب، رواتب الموظفين):
+- الحساب_المدين = "مصاريف الرواتب"
+- الحساب_الدائن = "الصندوق" أو "البنك" حسب النص
+
+قاعدة ذهبية: الراتب الداخل على المستخدم = إيراد. الراتب الخارج من الشركة = مصروف.
+
+================================
+رأس المال:
+إذا احتوى النص على: (رأس مال / ضخ رأس مال / استثمار من المالك / تمويل من المالك)
+- نوع_الحركة = "قيد يومية"
+- الحساب_المدين: "الصندوق" إذا نقداً، "البنك" إذا بنك، إن لم يُذكر → "الصندوق"
+- الحساب_الدائن: "رأس المال"
+- حتى لو احتوى النص على كلمة "دفعت"، لا تعتبرها سند صرف
+- لا تُنشئ طرف جديد
+
+إذا احتوى النص على: (سحبت من رأس المال / سحب شخصي / مسحوبات)
+- نوع_الحركة = "قيد يومية"
+- الحساب_المدين = "رأس المال"
+- الحساب_الدائن: "الصندوق" إذا نقداً، "البنك" إذا بنك
+
+================================
+قواعد تحديد الحسابات:
+- دفع لمورد → مدين: الموردين / دائن: الصندوق (إلا إذا ذكر بنك)
+- قبض من زبون → مدين: الصندوق / دائن: العملاء
+- إذا ذُكر بنك → الدائن أو المدين يكون البنك حسب السياق
+
+================================
+قواعد مهمة جداً:
+1) لا تدمج كلمات مثل "المورد" أو "الزبون" داخل الاسم.
+2) استخرج الاسم الحقيقي فقط بدون أدوات الجر (لـ، للمورد، من المورد، إلى الزبون…).
+3) إذا ذُكر "مورد" اجعل الطرف_النوع = مورد.
+4) إذا ذُكر "زبون" أو "عميل" اجعل الطرف_النوع = عميل.
+
+================================
+شكل الـ JSON النهائي (إجباري):
 {
-  "description": "وصف المعاملة",
-  "amount": 0,
-  "currency": "شيكل",
-  "transaction_type": "سند صرف|سند قبض|قيد يومية|فاتورة مشتريات|فاتورة مبيعات|رصيد ابتدائي",
-  "debit_account_code": "كود الحساب المدين",
-  "credit_account_code": "كود الحساب الدائن",
-  "transaction_date": "${today}",
-  "contact_name": "اسم جهة الاتصال إن وجدت أو null"
-}
-
-ملاحظة مهمة: التاريخ الافتراضي هو ${today}. استخدم هذا التاريخ إذا لم يذكر المستخدم تاريخاً محدداً. يجب أن يكون التاريخ بصيغة YYYY-MM-DD (مثال: ${today}).`;
+"نوع_الحركة":"",
+"التاريخ":"${today}",
+"تاريخ_الشيك":"",
+"المبلغ":0,
+"العملة":"شيكل",
+"طريقة_الدفع":"نقدي",
+"رقم_الشيك":"",
+"بنك_الشيك":"",
+"حالة_الشيك":"",
+"الحساب_المدين":"",
+"الحساب_الدائن":"",
+"الطرف_الاسم":"",
+"الطرف_النوع":"",
+"إنشاء_طرف_جديد":false,
+"البيان":"",
+"المرجع":""
+}`;
 
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -130,34 +220,96 @@ ${contactName ? `جهة الاتصال المذكورة: "${contactName}" - اس
       throw new Error('فشل في تحليل رد الذكاء الاصطناعي');
     }
 
+    console.log('AI parsed result:', JSON.stringify(parsed));
+
+    // Map Arabic field names to English for DB insertion
+    const transactionType = parsed['نوع_الحركة'] || parsed.transaction_type || 'قيد يومية';
+    const amount = parsed['المبلغ'] || parsed.amount || 0;
+    const currency = parsed['العملة'] || parsed.currency || 'شيكل';
+    const description = parsed['البيان'] || parsed.description || text;
+    const contactNameParsed = parsed['الطرف_الاسم'] || parsed.contact_name || '';
+    const contactType = parsed['الطرف_النوع'] || '';
+    const shouldCreateContact = parsed['إنشاء_طرف_جديد'] || false;
+    const paymentMethod = parsed['طريقة_الدفع'] || 'نقدي';
+    const chequeNumber = parsed['رقم_الشيك'] || '';
+    const chequeBank = parsed['بنك_الشيك'] || '';
+    const chequeStatus = parsed['حالة_الشيك'] || '';
+    const chequeDate = parsed['تاريخ_الشيك'] || '';
+    const reference = parsed['المرجع'] || parsed.reference || `AI-${Date.now()}`;
+
     // Validate and fix transaction_date
     const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-    if (!parsed.transaction_date || !dateRegex.test(parsed.transaction_date)) {
-      parsed.transaction_date = today;
-    }
+    let transactionDate = parsed['التاريخ'] || parsed.transaction_date || today;
+    if (!dateRegex.test(transactionDate)) transactionDate = today;
+
+    // Resolve account codes - AI returns account NAMES, we need CODES
+    let debitAccountCode = parsed['الحساب_المدين'] || parsed.debit_account_code || '';
+    let creditAccountCode = parsed['الحساب_الدائن'] || parsed.credit_account_code || '';
+
+    // Try to match by name if the AI returned a name instead of a code
+    const resolveAccountCode = (nameOrCode: string): string => {
+      // If already a valid code
+      const directMatch = accounts.find(a => a.account_code === nameOrCode);
+      if (directMatch) return nameOrCode;
+
+      // Try matching by name (exact or partial)
+      const byName = accounts.find(a => 
+        a.account_name === nameOrCode || 
+        a.account_name.includes(nameOrCode) || 
+        nameOrCode.includes(a.account_name)
+      );
+      if (byName) return byName.account_code;
+
+      // Try matching "code - name" format
+      const codeMatch = nameOrCode.match(/^(\d+)\s*-/);
+      if (codeMatch) return codeMatch[1];
+
+      return nameOrCode;
+    };
+
+    debitAccountCode = resolveAccountCode(debitAccountCode);
+    creditAccountCode = resolveAccountCode(creditAccountCode);
 
     // Resolve contact ID
     let contactId = mentionedContactId || null;
-    if (!contactId && parsed.contact_name) {
+    if (!contactId && contactNameParsed) {
       const match = contacts.find(c => 
-        c.contact_name.includes(parsed.contact_name) || parsed.contact_name.includes(c.contact_name)
+        c.contact_name === contactNameParsed ||
+        c.contact_name.includes(contactNameParsed) || 
+        contactNameParsed.includes(c.contact_name)
       );
       if (match) contactId = match.id;
     }
 
-    // Insert transaction into local database
+    // Auto-create contact if AI says so and contact doesn't exist
+    if (shouldCreateContact && contactNameParsed && !contactId) {
+      const { data: newContact, error: contactErr } = await supabaseAdmin.from('contacts').insert({
+        user_id: userId,
+        contact_name: contactNameParsed,
+        contact_type: contactType === 'مورد' ? 'مورد' : 'عميل',
+      }).select('id').single();
+
+      if (!contactErr && newContact) {
+        contactId = newContact.id;
+        console.log('Auto-created contact:', contactNameParsed, newContact.id);
+      } else {
+        console.error('Failed to auto-create contact:', contactErr);
+      }
+    }
+
+    // Insert transaction
     const { data: txData, error: txError } = await supabaseAdmin.from('transactions').insert({
       user_id: userId,
-      description: parsed.description || text,
-      amount: parsed.amount || 0,
-      currency: parsed.currency || 'شيكل',
-      transaction_type: parsed.transaction_type || 'قيد يومية',
-      debit_account_code: parsed.debit_account_code || '',
-      credit_account_code: parsed.credit_account_code || '',
-      transaction_date: parsed.transaction_date || new Date().toISOString().split('T')[0],
+      description: description,
+      amount: amount,
+      currency: currency,
+      transaction_type: transactionType,
+      debit_account_code: debitAccountCode,
+      credit_account_code: creditAccountCode,
+      transaction_date: transactionDate,
       contact_id: contactId,
-      is_opening_balance: openingBalance,
-      reference: `AI-${Date.now()}`,
+      is_opening_balance: openingBalance || transactionType === 'رصيد ابتدائي',
+      reference: reference || `AI-${Date.now()}`,
     }).select().single();
 
     if (txError) {
@@ -165,21 +317,59 @@ ${contactName ? `جهة الاتصال المذكورة: "${contactName}" - اس
       throw new Error('فشل في حفظ المعاملة');
     }
 
+    // Auto-create cheque record if payment method is cheque
+    let chequeId = null;
+    if (paymentMethod === 'شيك' && amount > 0) {
+      const isReceived = ['سند قبض'].includes(transactionType);
+      const chequeType = isReceived ? 'صادر' : 'وارد';
+      
+      let parsedChequeDate = chequeDate;
+      if (chequeDate && !dateRegex.test(chequeDate)) {
+        parsedChequeDate = today;
+      }
+
+      const { data: chequeData, error: chequeErr } = await supabaseAdmin.from('cheques').insert({
+        user_id: userId,
+        cheque_type: isReceived ? 'وارد' : 'صادر',
+        amount: amount,
+        currency: currency,
+        cheque_date: parsedChequeDate || transactionDate,
+        cheque_number: chequeNumber || null,
+        bank_name: chequeBank || null,
+        party_name: contactNameParsed || 'غير محدد',
+        party_type: contactType === 'مورد' ? 'مورد' : 'عميل',
+        status: chequeStatus === 'آجل' ? 'مسجل' : 'مسجل',
+        linked_account: debitAccountCode,
+        notes: `تم إنشاؤه تلقائياً من المعاملة: ${txData.id}`,
+      }).select('id').single();
+
+      if (!chequeErr && chequeData) {
+        chequeId = chequeData.id;
+        console.log('Auto-created cheque:', chequeId);
+      } else {
+        console.error('Failed to auto-create cheque:', chequeErr);
+      }
+    }
+
     // Get account names for response
-    const debitAcc = accounts.find(a => a.account_code === parsed.debit_account_code);
-    const creditAcc = accounts.find(a => a.account_code === parsed.credit_account_code);
+    const debitAcc = accounts.find(a => a.account_code === debitAccountCode);
+    const creditAcc = accounts.find(a => a.account_code === creditAccountCode);
 
     return new Response(JSON.stringify({
       success: true,
       transaction: {
         id: txData.id,
-        description: parsed.description,
-        amount: parsed.amount,
-        currency: parsed.currency,
-        transaction_type: parsed.transaction_type,
-        debit_account: debitAcc ? `${debitAcc.account_code} - ${debitAcc.account_name}` : parsed.debit_account_code,
-        credit_account: creditAcc ? `${creditAcc.account_code} - ${creditAcc.account_name}` : parsed.credit_account_code,
-        date: parsed.transaction_date,
+        description: description,
+        amount: amount,
+        currency: currency,
+        transaction_type: transactionType,
+        debit_account: debitAcc ? `${debitAcc.account_code} - ${debitAcc.account_name}` : debitAccountCode,
+        credit_account: creditAcc ? `${creditAcc.account_code} - ${creditAcc.account_name}` : creditAccountCode,
+        date: transactionDate,
+        payment_method: paymentMethod,
+        contact_name: contactNameParsed,
+        contact_created: shouldCreateContact && contactId ? true : false,
+        cheque_id: chequeId,
       },
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
