@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Calculator, ShoppingCart, Users, Package, ShoppingBag, DollarSign,
@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import {
   Popover, PopoverContent, PopoverTrigger,
 } from "@/components/ui/popover";
+import HelpGuideModal from "@/components/HelpGuideModal";
 
 interface AppModule {
   id: string;
@@ -98,6 +99,8 @@ const AppsLauncher = () => {
     setTourActive(true);
   };
 
+  const [helpGuideOpen, setHelpGuideOpen] = useState(false);
+
   return (
     <div className="min-h-screen bg-background" dir="rtl">
       {/* Header */}
@@ -128,12 +131,15 @@ const AppsLauncher = () => {
                 <RotateCcw className="h-4 w-4 text-primary" />
                 جولة تعريفية سريعة
               </button>
-              <button className="flex items-center gap-2 w-full p-2.5 rounded-lg hover:bg-muted transition-colors text-sm text-foreground">
-                <BookOpen className="h-4 w-4 text-blue-500" />
+               <button
+                onClick={() => setHelpGuideOpen(true)}
+                className="flex items-center gap-2 w-full p-2.5 rounded-lg hover:bg-muted transition-colors text-sm text-foreground"
+              >
+                <BookOpen className="h-4 w-4 text-primary" />
                 دليل الاستخدام
               </button>
               <button className="flex items-center gap-2 w-full p-2.5 rounded-lg hover:bg-muted transition-colors text-sm text-foreground">
-                <Headphones className="h-4 w-4 text-violet-500" />
+                <Headphones className="h-4 w-4 text-muted-foreground" />
                 تواصل مع الدعم
               </button>
             </PopoverContent>
@@ -215,6 +221,8 @@ const AppsLauncher = () => {
           />
         </>
       )}
+
+      <HelpGuideModal open={helpGuideOpen} onClose={() => setHelpGuideOpen(false)} />
     </div>
   );
 };
