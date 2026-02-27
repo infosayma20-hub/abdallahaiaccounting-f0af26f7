@@ -271,7 +271,9 @@ ${contactContext}
     creditAccountCode = resolveAccountCode(creditAccountCode);
 
     // Resolve contact ID
-    let contactId = mentionedContactId || null;
+    // Resolve contact ID - only use mentionedContactId if it's a valid UUID
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    let contactId = (mentionedContactId && uuidRegex.test(mentionedContactId)) ? mentionedContactId : null;
     if (!contactId && contactNameParsed) {
       const match = contacts.find(c => 
         c.contact_name === contactNameParsed ||
