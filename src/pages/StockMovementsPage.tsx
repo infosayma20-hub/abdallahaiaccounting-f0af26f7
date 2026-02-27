@@ -1,10 +1,11 @@
 import { useState, useEffect, useMemo } from "react";
-import { ArrowRight, Loader2, Search, TrendingUp, TrendingDown, Pencil, FileSpreadsheet, Filter, X } from "lucide-react";
+import { ArrowRight, Loader2, Search, TrendingUp, TrendingDown, Pencil, FileSpreadsheet, Filter, X, LayoutGrid, Table2, ArrowUpDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -33,6 +34,11 @@ const movementMeta: Record<string, { label: string; color: string; icon: typeof 
   "تعديل يدوي": { label: "تعديل يدوي", color: "text-warning", icon: Pencil },
 };
 
+const PAGE_SIZE = 20;
+
+type SortKey = "created_at" | "product" | "type" | "quantity";
+type SortDir = "asc" | "desc";
+
 const StockMovementsPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -44,6 +50,10 @@ const StockMovementsPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
   const [productFilter, setProductFilter] = useState("all");
+  const [viewMode, setViewMode] = useState<"cards" | "table">("table");
+  const [page, setPage] = useState(1);
+  const [sortKey, setSortKey] = useState<SortKey>("created_at");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
 
   useEffect(() => {
     if (!user) return;
@@ -73,34 +83,45 @@ const StockMovementsPage = () => {
       if (productFilter !== "all" && mv.product_id !== productFilter) return false;
       if (q) {
         const prod = productMap.get(mv.product_id);
-        const searchable = [
-          prod?.name || "",
-          mv.movement_type,
-          mv.reference_note || "",
-          String(mv.quantity),
-          new Date(mv.created_at).toLocaleDateString("ar-EG"),
-        ].join(" ").toLowerCase();
+        const searchable = [prod?.name || "", mv.movement_type, mv.reference_note || "", String(mv.quantity), new Date(mv.created_at).toLocaleDateString("ar-EG")].join(" ").toLowerCase();
         if (!searchable.includes(q)) return false;
       }
       return true;
     });
   }, [movements, searchQuery, typeFilter, productFilter, productMap]);
 
-  // Summary stats
+  const sorted = useMemo(() => {
+    const arr = [...filtered];
+    arr.sort((a, b) => {
+      let cmp = 0;
+      switch (sortKey) {
+        case "created_at": cmp = new Date(a.created_at).getTime() - new Date(b.created_at).getTime(); break;
+        case "product": cmp = (productMap.get(a.product_id)?.name || "").localeCompare(productMap.get(b.product_id)?.name || ""); break;
+        case "type": cmp = a.movement_type.localeCompare(b.movement_type); break;
+        case "quantity": cmp = a.quantity - b.quantity; break;
+      }
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+    return arr;
+  }, [filtered, sortKey, sortDir, productMap]);
+
+  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
+  const paginated = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  useEffect(() => { setPage(1); }, [searchQuery, typeFilter, productFilter]);
+
   const totalIn = filtered.filter(m => m.movement_type === "وارد").reduce((s, m) => s + m.quantity, 0);
   const totalOut = filtered.filter(m => m.movement_type === "صادر").reduce((s, m) => s + m.quantity, 0);
 
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) setSortDir(d => d === "asc" ? "desc" : "asc");
+    else { setSortKey(key); setSortDir("desc"); }
+  };
+
   const handleExport = () => {
-    const rows = filtered.map(mv => {
+    const rows = sorted.map(mv => {
       const prod = productMap.get(mv.product_id);
-      return {
-        "التاريخ": new Date(mv.created_at).toLocaleDateString("ar-EG"),
-        "المنتج": prod?.name || "غير معروف",
-        "النوع": mv.movement_type,
-        "الكمية": mv.quantity,
-        "الوحدة": prod?.unit || "",
-        "ملاحظات": mv.reference_note || "",
-      };
+      return { "التاريخ": new Date(mv.created_at).toLocaleDateString("ar-EG"), "المنتج": prod?.name || "غير معروف", "النوع": mv.movement_type, "الكمية": mv.quantity, "الوحدة": prod?.unit || "", "ملاحظات": mv.reference_note || "" };
     });
     const ws = XLSX.utils.json_to_sheet(rows);
     ws["!cols"] = [{ wch: 14 }, { wch: 25 }, { wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 30 }];
@@ -109,6 +130,13 @@ const StockMovementsPage = () => {
     XLSX.writeFile(wb, `حركات_المخزون_${new Date().toISOString().slice(0, 10)}.xlsx`);
     toast({ title: "تم تصدير التقرير ✅" });
   };
+
+  const SortHeader = ({ label, field }: { label: string; field: SortKey }) => (
+    <button onClick={() => toggleSort(field)} className="flex items-center gap-1 hover:text-foreground transition-colors">
+      {label}
+      <ArrowUpDown className={`h-3 w-3 ${sortKey === field ? "text-primary" : "text-muted-foreground/40"}`} />
+    </button>
+  );
 
   return (
     <div className="px-4 pt-6 pb-24 space-y-5" dir="rtl">
@@ -123,9 +151,19 @@ const StockMovementsPage = () => {
             <p className="text-xs text-muted-foreground">{filtered.length} حركة</p>
           </div>
         </div>
-        <Button variant="outline" size="sm" className="gap-1.5 rounded-xl" onClick={handleExport} disabled={filtered.length === 0}>
-          <FileSpreadsheet className="h-4 w-4" /> تصدير Excel
-        </Button>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center bg-muted/50 rounded-xl p-0.5">
+            <button onClick={() => setViewMode("cards")} className={`p-1.5 rounded-lg transition-all ${viewMode === "cards" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground"}`}>
+              <LayoutGrid className="h-4 w-4" />
+            </button>
+            <button onClick={() => setViewMode("table")} className={`p-1.5 rounded-lg transition-all ${viewMode === "table" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground"}`}>
+              <Table2 className="h-4 w-4" />
+            </button>
+          </div>
+          <Button variant="outline" size="sm" className="gap-1.5 rounded-xl" onClick={handleExport} disabled={filtered.length === 0}>
+            <FileSpreadsheet className="h-4 w-4" /> تصدير Excel
+          </Button>
+        </div>
       </div>
 
       {/* Summary */}
@@ -153,12 +191,7 @@ const StockMovementsPage = () => {
         <div className="flex items-center gap-2">
           <div className="relative flex-1">
             <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 pointer-events-none" />
-            <Input
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              placeholder="ابحث بالمنتج أو الملاحظة..."
-              className="pr-9 rounded-xl text-sm"
-            />
+            <Input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="ابحث بالمنتج أو الملاحظة..." className="pr-9 rounded-xl text-sm" />
             {searchQuery && (
               <button onClick={() => setSearchQuery("")} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                 <X className="h-3.5 w-3.5" />
@@ -213,10 +246,56 @@ const StockMovementsPage = () => {
         </div>
       )}
 
-      {/* Movement List */}
-      {!loading && filtered.length > 0 && (
+      {/* TABLE VIEW */}
+      {!loading && viewMode === "table" && paginated.length > 0 && (
+        <Card className="border-0 shadow-sm rounded-2xl overflow-hidden">
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/30">
+                  <TableHead className="text-right"><SortHeader label="التاريخ" field="created_at" /></TableHead>
+                  <TableHead className="text-right"><SortHeader label="المنتج" field="product" /></TableHead>
+                  <TableHead className="text-right"><SortHeader label="النوع" field="type" /></TableHead>
+                  <TableHead className="text-right"><SortHeader label="الكمية" field="quantity" /></TableHead>
+                  <TableHead className="text-right">الوحدة</TableHead>
+                  <TableHead className="text-right">ملاحظات</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {paginated.map(mv => {
+                  const prod = productMap.get(mv.product_id);
+                  const meta = movementMeta[mv.movement_type] || movementMeta["تعديل يدوي"];
+                  return (
+                    <TableRow key={mv.id} className="hover:bg-muted/20">
+                      <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                        {new Date(mv.created_at).toLocaleDateString("ar-EG", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                      </TableCell>
+                      <TableCell className="font-medium text-sm">{prod?.name || "منتج محذوف"}</TableCell>
+                      <TableCell>
+                        <Badge variant="secondary" className={`text-[10px] ${
+                          mv.movement_type === "وارد" ? "bg-primary/10 text-primary" : mv.movement_type === "صادر" ? "bg-destructive/10 text-destructive" : "bg-warning/10 text-warning"
+                        }`}>
+                          {meta.label}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className={`font-bold tabular-nums ${meta.color}`}>
+                        {mv.movement_type === "صادر" ? "-" : "+"}{mv.quantity}
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground">{prod?.unit || ""}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate">{mv.reference_note || "—"}</TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* CARD VIEW */}
+      {!loading && viewMode === "cards" && paginated.length > 0 && (
         <div className="space-y-2">
-          {filtered.map(mv => {
+          {paginated.map(mv => {
             const prod = productMap.get(mv.product_id);
             const meta = movementMeta[mv.movement_type] || movementMeta["تعديل يدوي"];
             const Icon = meta.icon;
@@ -255,6 +334,19 @@ const StockMovementsPage = () => {
               </Card>
             );
           })}
+        </div>
+      )}
+
+      {/* Pagination */}
+      {!loading && sorted.length > PAGE_SIZE && (
+        <div className="flex items-center justify-center gap-3 pt-2">
+          <Button variant="outline" size="sm" className="rounded-xl gap-1" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
+            <ChevronRight className="h-4 w-4" /> السابق
+          </Button>
+          <span className="text-sm text-muted-foreground tabular-nums">{page} / {totalPages}</span>
+          <Button variant="outline" size="sm" className="rounded-xl gap-1" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>
+            التالي <ChevronLeft className="h-4 w-4" />
+          </Button>
         </div>
       )}
     </div>
