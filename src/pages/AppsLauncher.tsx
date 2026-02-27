@@ -9,6 +9,7 @@ import {
   BarChart3,
   Store,
   Settings,
+  FileSpreadsheet,
 } from "lucide-react";
 
 interface AppModule {
@@ -93,6 +94,15 @@ const appModules: AppModule[] = [
     color: "text-amber-500",
     bgColor: "bg-amber-500/10",
     path: "/orders",
+  },
+  {
+    id: "import-data",
+    label: "استيراد بيانات خارجية",
+    description: "استيراد الأرصدة الافتتاحية من Excel",
+    icon: FileSpreadsheet,
+    color: "text-cyan-500",
+    bgColor: "bg-cyan-500/10",
+    path: "/opening-balances-import",
   },
   {
     id: "settings",

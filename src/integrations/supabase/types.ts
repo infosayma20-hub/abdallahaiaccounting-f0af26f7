@@ -934,6 +934,101 @@ export type Database = {
           },
         ]
       }
+      opening_balance_batches: {
+        Row: {
+          batch_date: string
+          created_at: string
+          currency: string
+          id: string
+          notes: string | null
+          status: string
+          total_credit: number
+          total_debit: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          batch_date?: string
+          created_at?: string
+          currency?: string
+          id?: string
+          notes?: string | null
+          status?: string
+          total_credit?: number
+          total_debit?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          batch_date?: string
+          created_at?: string
+          currency?: string
+          id?: string
+          notes?: string | null
+          status?: string
+          total_credit?: number
+          total_debit?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      opening_balance_entries: {
+        Row: {
+          account_code: string | null
+          account_name: string | null
+          batch_id: string
+          created_at: string
+          credit_amount: number
+          currency: string
+          debit_amount: number
+          entity_name: string | null
+          entity_type: string
+          id: string
+          metadata: Json | null
+          notes: string | null
+          user_id: string
+        }
+        Insert: {
+          account_code?: string | null
+          account_name?: string | null
+          batch_id: string
+          created_at?: string
+          credit_amount?: number
+          currency?: string
+          debit_amount?: number
+          entity_name?: string | null
+          entity_type?: string
+          id?: string
+          metadata?: Json | null
+          notes?: string | null
+          user_id: string
+        }
+        Update: {
+          account_code?: string | null
+          account_name?: string | null
+          batch_id?: string
+          created_at?: string
+          credit_amount?: number
+          currency?: string
+          debit_amount?: number
+          entity_name?: string | null
+          entity_type?: string
+          id?: string
+          metadata?: Json | null
+          notes?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "opening_balance_entries_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "opening_balance_batches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_items: {
         Row: {
           created_at: string

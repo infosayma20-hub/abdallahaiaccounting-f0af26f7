@@ -42,6 +42,7 @@ import EmployeeApp from "./pages/EmployeeApp";
 import RoleGuard from "./components/RoleGuard";
 import VoucherPage from "./pages/VoucherPage";
 import AppsLauncher from "./pages/AppsLauncher";
+import OpeningBalancesImportPage from "./pages/OpeningBalancesImportPage";
 
 const queryClient = new QueryClient();
 
@@ -115,6 +116,7 @@ const App = () => (
                       <Route path="/orders" element={<OrdersPage />} />
                       <Route path="/my-attendance" element={<EmployeeAttendancePage />} />
                       <Route path="/hr-attendance" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><HRAttendancePage /></RoleGuard>} />
+                      <Route path="/opening-balances-import" element={<OpeningBalancesImportPage />} />
                       <Route path="*" element={<NotFound />} />
                     </Routes>
                   </WebLayout>
