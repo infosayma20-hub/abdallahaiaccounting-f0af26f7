@@ -4,8 +4,9 @@ import {
   FileText, Receipt, Users, Package, Wallet, Landmark,
   TrendingUp, Loader2,
   Sparkles, Send, Mic, AlertTriangle, Clock, ChevronLeft,
-  BookOpen, Database, ClipboardList, EyeOff, Eye,
+  BookOpen, Database, ClipboardList, EyeOff, Eye, X, Keyboard,
 } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -38,14 +39,76 @@ interface TransactionRecord {
 
 // ─── Create Actions ───
 const createActions = [
-  { label: "إنشاء فاتورة", icon: FileText, path: "/invoices" },
-  { label: "سند صرف", icon: Wallet, path: "/transactions" },
-  { label: "سند قبض", icon: Landmark, path: "/transactions" },
-  { label: "إنشاء شيك", icon: Receipt, path: "/cheques" },
-  { label: "إضافة عميل", icon: Users, path: "/contacts" },
-  { label: "إضافة منتج", icon: Package, path: "/inventory" },
-  { label: "سند قيد", icon: ClipboardList, action: "journal" },
+  { label: "إنشاء فاتورة", icon: FileText, path: "/invoices", shortcut: "F3" },
+  { label: "سند صرف", icon: Wallet, path: "/transactions", shortcut: "F2" },
+  { label: "سند قبض", icon: Landmark, path: "/transactions", shortcut: "F1" },
+  { label: "إنشاء شيك", icon: Receipt, path: "/cheques", shortcut: "F8" },
+  { label: "إضافة عميل", icon: Users, path: "/contacts", shortcut: null },
+  { label: "إضافة منتج", icon: Package, path: "/inventory", shortcut: null },
+  { label: "سند قيد", icon: ClipboardList, action: "journal", shortcut: "F4" },
 ];
+
+// ─── Shortcuts Help Dialog ───
+const ShortcutsHelpDialog = ({ open, onClose }: { open: boolean; onClose: () => void }) => {
+  if (!open) return null;
+
+  const shortcuts = [
+    { key: 'F1', label: 'سند قبض', icon: '🏦' },
+    { key: 'F2', label: 'سند صرف', icon: '💸' },
+    { key: 'F3', label: 'إنشاء فاتورة', icon: '🧾' },
+    { key: 'F4', label: 'سند قيد محاسبي', icon: '📋' },
+    { key: 'F5', label: 'كشف حساب عميل', icon: '👤' },
+    { key: 'F6', label: 'كشف حساب محاسبي', icon: '📊' },
+    { key: 'F7', label: 'التقرير الذكي', icon: '✨' },
+    { key: 'F8', label: 'إنشاء شيك', icon: '💳' },
+    { key: 'Esc', label: 'إغلاق النوافذ', icon: '✕' },
+    { key: '?', label: 'عرض / إخفاء هذه النافذة', icon: '⌨️' },
+  ];
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center" dir="rtl">
+      <div className="fixed inset-0 bg-background/80 backdrop-blur-sm" onClick={onClose} />
+      <div
+        className="relative w-full max-w-md mx-4 bg-card rounded-2xl border border-border/50 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between p-5 border-b border-border/30">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-lg">⌨️</div>
+            <div>
+              <h3 className="text-sm font-bold text-foreground">اختصارات لوحة المفاتيح</h3>
+              <p className="text-[11px] text-muted-foreground">اضغط ? في أي وقت لعرض هذه النافذة</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="w-8 h-8 rounded-full hover:bg-secondary flex items-center justify-center transition-colors">
+            <X className="h-4 w-4 text-muted-foreground" />
+          </button>
+        </div>
+
+        <div className="p-4 space-y-1.5 max-h-[60vh] overflow-y-auto">
+          {shortcuts.map(({ key, label, icon }) => (
+            <div key={key} className="flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-secondary/50 transition-colors">
+              <div className="flex items-center gap-2.5">
+                <span className="text-base">{icon}</span>
+                <span className="text-sm text-foreground">{label}</span>
+              </div>
+              <kbd className="px-2.5 py-1 rounded-lg bg-secondary border border-border text-xs font-mono font-bold text-muted-foreground min-w-[40px] text-center">
+                {key}
+              </kbd>
+            </div>
+          ))}
+        </div>
+
+        <div className="p-4 border-t border-border/30">
+          <p className="text-[11px] text-muted-foreground text-center flex items-center justify-center gap-1.5">
+            <Keyboard className="h-3.5 w-3.5" />
+            الاختصارات لا تعمل أثناء الكتابة في حقل النص
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const HomeDashboard = () => {
   const navigate = useNavigate();
@@ -80,6 +143,8 @@ const HomeDashboard = () => {
   const [showJournalEntry, setShowJournalEntry] = useState(false);
   const [journalEntryData, setJournalEntryData] = useState<any>(null);
   const [journalEntryAccounts, setJournalEntryAccounts] = useState<any[]>([]);
+
+  const [showShortcuts, setShowShortcuts] = useState(false);
 
   // ─── Data Loading ───
   useEffect(() => {
@@ -182,6 +247,44 @@ const HomeDashboard = () => {
     };
     fetchAlerts();
   }, [user, loadingTx, transactions]);
+
+  // ─── Keyboard Shortcuts ───
+  const isMobile = useIsMobile();
+  useEffect(() => {
+    if (isMobile) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      const isTyping = ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName) || target.isContentEditable;
+
+      if (e.key === 'Escape') {
+        setShowJournalEntry(false);
+        setShowShortcuts(false);
+        return;
+      }
+
+      if (e.key === '?' && !isTyping) {
+        e.preventDefault();
+        setShowShortcuts(prev => !prev);
+        return;
+      }
+
+      if (isTyping) return;
+
+      switch (e.key) {
+        case 'F1': e.preventDefault(); navigate('/transactions'); break;
+        case 'F2': e.preventDefault(); navigate('/transactions'); break;
+        case 'F3': e.preventDefault(); navigate('/invoices'); break;
+        case 'F4': e.preventDefault(); setShowJournalEntry(true); break;
+        case 'F5': e.preventDefault(); navigate('/contacts'); break;
+        case 'F6': e.preventDefault(); navigate('/account-statement'); break;
+        case 'F7': e.preventDefault(); navigate('/smart-report'); break;
+        case 'F8': e.preventDefault(); navigate('/cheques'); break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [navigate, isMobile]);
 
   // ─── Smart Assistant Handler ───
   const handleSend = async () => {
@@ -336,12 +439,27 @@ const HomeDashboard = () => {
             <button
               key={action.label}
               onClick={() => 'action' in action ? setShowJournalEntry(true) : navigate((action as any).path)}
-              className="flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/60 text-[13px] font-medium text-foreground hover:bg-secondary hover:shadow-soft transition-all"
+              className="relative group flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/60 text-[13px] font-medium text-foreground hover:bg-secondary hover:shadow-soft transition-all"
             >
               <action.icon className="h-4 w-4 text-muted-foreground" strokeWidth={1.8} />
               {action.label}
+              {action.shortcut && !isMobile && (
+                <kbd className="absolute -top-1.5 -left-1 text-[9px] bg-primary/10 text-primary border border-primary/20 rounded px-1 font-mono leading-tight opacity-0 group-hover:opacity-100 transition-opacity">
+                  {action.shortcut}
+                </kbd>
+              )}
             </button>
           ))}
+          {!isMobile && (
+            <button
+              onClick={() => setShowShortcuts(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-muted/60 hover:bg-muted text-xs text-muted-foreground hover:text-foreground transition-all"
+              title="اختصارات لوحة المفاتيح (?)"
+            >
+              <kbd className="text-xs font-mono bg-background border border-border rounded px-1">?</kbd>
+              <span>اختصارات</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -672,6 +790,7 @@ const HomeDashboard = () => {
         onClose={() => setShowHelpGuide(false)}
         onFillInput={(text) => setInputValue(text)}
       />
+      <ShortcutsHelpDialog open={showShortcuts} onClose={() => setShowShortcuts(false)} />
     </div>
   );
 };
