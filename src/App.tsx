@@ -44,6 +44,7 @@ import VoucherPage from "./pages/VoucherPage";
 import AppsLauncher from "./pages/AppsLauncher";
 import OpeningBalancesImportPage from "./pages/OpeningBalancesImportPage";
 import CurrencyManagementPage from "./pages/CurrencyManagementPage";
+import FixedAssetsPage from "./pages/FixedAssetsPage";
 
 const queryClient = new QueryClient();
 
@@ -119,6 +120,7 @@ const App = () => (
                       <Route path="/hr-attendance" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><HRAttendancePage /></RoleGuard>} />
                       <Route path="/opening-balances-import" element={<OpeningBalancesImportPage />} />
                       <Route path="/currency-management" element={<CurrencyManagementPage />} />
+                      <Route path="/fixed-assets" element={<FixedAssetsPage />} />
                       <Route path="*" element={<NotFound />} />
                     </Routes>
                   </WebLayout>

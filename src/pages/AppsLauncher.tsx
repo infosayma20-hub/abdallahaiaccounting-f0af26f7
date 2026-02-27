@@ -11,6 +11,7 @@ import {
   Settings,
   FileSpreadsheet,
   ArrowLeftRight,
+  Landmark,
 } from "lucide-react";
 
 interface AppModule {
@@ -113,6 +114,15 @@ const appModules: AppModule[] = [
     color: "text-indigo-500",
     bgColor: "bg-indigo-500/10",
     path: "/currency-management",
+  },
+  {
+    id: "fixed-assets",
+    label: "الأصول الثابتة",
+    description: "سجل الأصول، الاستهلاك، والصيانة",
+    icon: Landmark,
+    color: "text-stone-600",
+    bgColor: "bg-stone-500/10",
+    path: "/fixed-assets",
   },
   {
     id: "settings",
