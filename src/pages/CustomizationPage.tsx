@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowRight, Building2, FileEdit, Headset, MessageCircle, Shield } from "lucide-react";
+import BackButton from "@/components/BackButton";
 
 const WHATSAPP_NUMBER = "970000000000";
 
@@ -45,9 +46,12 @@ const CustomizationPage = () => {
 
   return (
     <div className="p-6 space-y-6 max-w-4xl mx-auto" dir="rtl">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">🧩 التخصيص والدعم الفني</h1>
-        <p className="text-sm text-muted-foreground mt-1">خصّص النظام حسب قطاعك وتواصل مع فريق الدعم</p>
+      <div className="flex items-center gap-3">
+        <BackButton />
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">🧩 التخصيص والدعم الفني</h1>
+          <p className="text-sm text-muted-foreground mt-1">خصّص النظام حسب قطاعك وتواصل مع فريق الدعم</p>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

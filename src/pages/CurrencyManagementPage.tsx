@@ -18,6 +18,7 @@ import {
   DollarSign, History, Trash2, Star, Download, ArrowRight,
   AlertTriangle, Globe, BarChart3
 } from "lucide-react";
+import BackButton from "@/components/BackButton";
 import { format } from "date-fns";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
@@ -302,13 +303,16 @@ const CurrencyManagementPage = () => {
     <div className="p-4 md:p-6 space-y-5" dir="rtl">
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            💱 إدارة العملات وأسعار الصرف
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            العملة الأساسية: <Badge variant="default" className="mr-1">🇮🇱 ₪ ILS</Badge>
-          </p>
+        <div className="flex items-center gap-3">
+          <BackButton />
+          <div>
+            <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+              💱 إدارة العملات وأسعار الصرف
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              العملة الأساسية: <Badge variant="default" className="mr-1">🇮🇱 ₪ ILS</Badge>
+            </p>
+          </div>
         </div>
         <div className="flex gap-2 flex-wrap">
           <Button onClick={() => fetchRatesMutation.mutate()} disabled={fetchRatesMutation.isPending} variant="outline">

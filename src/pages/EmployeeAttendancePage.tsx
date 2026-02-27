@@ -14,6 +14,7 @@ import {
   Clock, LogIn, LogOut, MapPin, QrCode, Calendar, AlertTriangle,
   CheckCircle2, XCircle, Timer, FileText, Send, Loader2
 } from "lucide-react";
+import BackButton from "@/components/BackButton";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 
@@ -253,9 +254,12 @@ export default function EmployeeAttendancePage() {
     <div className="space-y-6 p-4 max-w-4xl mx-auto" dir="rtl">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">نظام الحضور والانصراف</h1>
-          <p className="text-muted-foreground text-sm">مرحباً، {employee.full_name}</p>
+        <div className="flex items-center gap-3">
+          <BackButton />
+          <div>
+            <h1 className="text-2xl font-bold">نظام الحضور والانصراف</h1>
+            <p className="text-muted-foreground text-sm">مرحباً، {employee.full_name}</p>
+          </div>
         </div>
         <div className="text-left">
           <div className="text-3xl font-bold tabular-nums text-primary">

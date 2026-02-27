@@ -16,6 +16,7 @@ import {
   Pencil, Trash2, Eye, MoreHorizontal, Download, Wrench, ArrowRightLeft,
   RefreshCw, Calendar, DollarSign, Landmark
 } from "lucide-react";
+import BackButton from "@/components/BackButton";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
@@ -295,6 +296,7 @@ const FixedAssetsPage = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
+          <BackButton />
           <div className="p-2.5 rounded-xl bg-primary/10">
             <Landmark className="h-6 w-6 text-primary" />
           </div>

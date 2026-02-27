@@ -3,6 +3,7 @@ import { getAuthHeaders, getAuthHeadersJson } from "@/lib/edge-helpers";
 import {
   Sparkles, Send, Mic, Loader2, Database, BookOpen, BarChart3, ArrowLeft, AtSign,
 } from "lucide-react";
+import BackButton from "@/components/BackButton";
 import { Badge } from "@/components/ui/badge";
 import MentionInput, { MentionItem } from "@/components/MentionInput";
 import SmartDailySummary from "@/components/SmartDailySummary";
@@ -198,12 +199,15 @@ const SmartAccountantPage = () => {
 
   return (
     <div className="space-y-6 max-w-[900px] mx-auto animate-fade-in" dir="rtl">
-      <div className="text-center space-y-1">
-        <h1 className="text-2xl font-bold text-foreground flex items-center justify-center gap-2">
-          <Sparkles className="h-6 w-6 text-primary" />
-          المحاسب الذكي
-        </h1>
-        <p className="text-sm text-muted-foreground">سجّل عملياتك بلغتك الطبيعية — والذكاء الاصطناعي يتولى الباقي</p>
+      <div className="flex items-center gap-3">
+        <BackButton />
+        <div className="flex-1 text-center space-y-1">
+          <h1 className="text-2xl font-bold text-foreground flex items-center justify-center gap-2">
+            <Sparkles className="h-6 w-6 text-primary" />
+            المحاسب الذكي
+          </h1>
+          <p className="text-sm text-muted-foreground">سجّل عملياتك بلغتك الطبيعية — والذكاء الاصطناعي يتولى الباقي</p>
+        </div>
       </div>
 
       {/* ═══ 1. المساعد المالي الذكي ═══ */}
