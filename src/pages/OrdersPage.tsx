@@ -31,6 +31,13 @@ const statusColors: Record<string, string> = {
 const ALL_STATUSES = ["جديد", "قيد التجهيز", "جاهز للشحن", "تم الشحن", "تم التسليم", "مرتجع", "ملغي"];
 const PAYMENT_METHODS = ["كاش", "تحويل بنكي", "شيك", "دفع إلكتروني", "آجل"];
 const SOURCES = ["يدوي", "متجر إلكتروني", "واتساب", "هاتف", "أخرى"];
+
+const REGIONS: Record<string, string[]> = {
+  "الداخل 48": ["حيفا", "يافا", "عكا", "الناصرة", "اللد", "الرملة", "أم الفحم", "الطيبة", "باقة الغربية", "سخنين", "شفاعمرو", "طمرة", "عرعرة", "كفر قاسم", "كفر كنا", "المغار", "دبورية", "عرابة", "كفر ياسيف"],
+  "القدس": ["القدس", "أبو ديس", "العيزرية", "بيت حنينا", "شعفاط", "العيسوية", "سلوان", "الطور", "بيت صفافا", "صور باهر"],
+  "الضفة الغربية": ["رام الله", "نابلس", "الخليل", "بيت لحم", "جنين", "طولكرم", "قلقيلية", "أريحا", "سلفيت", "طوباس", "يطا", "دورا", "حلحول", "بيت جالا", "بيت ساحور", "العروب", "عزون", "قباطية", "بيتا", "حوارة", "بلاطة", "عصيرة الشمالية", "بيت فوريك", "ترمسعيا", "بيرزيت", "سلواد", "دير دبوان", "بيتونيا"],
+  "النقب والجنوب": ["بئر السبع", "رهط", "تل السبع", "حورة", "كسيفة", "اللقية", "عرعرة النقب", "شقيب السلام"],
+};
 const CHART_COLORS = ["hsl(var(--primary))", "hsl(var(--warning))", "hsl(var(--accent))", "hsl(var(--info))", "hsl(var(--destructive))"];
 
 type Order = {
@@ -757,7 +764,18 @@ const OrdersPage = () => {
           <div className="grid grid-cols-2 gap-3">
             <div><label className="text-xs text-muted-foreground">اسم العميل *</label><Input value={form.customer_name} onChange={e => setForm({ ...form, customer_name: e.target.value })} /></div>
             <div><label className="text-xs text-muted-foreground">الهاتف</label><Input value={form.customer_phone} onChange={e => setForm({ ...form, customer_phone: e.target.value })} /></div>
-            <div className="col-span-2"><label className="text-xs text-muted-foreground">العنوان</label><Input value={form.customer_address} onChange={e => setForm({ ...form, customer_address: e.target.value })} /></div>
+            <div><label className="text-xs text-muted-foreground">المنطقة</label>
+              <Select value={form.customer_address?.split(" - ")[0] || ""} onValueChange={v => setForm({ ...form, customer_address: v })}>
+                <SelectTrigger><SelectValue placeholder="اختر المنطقة" /></SelectTrigger>
+                <SelectContent>{Object.keys(REGIONS).map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div><label className="text-xs text-muted-foreground">المدينة</label>
+              <Select value={form.customer_address?.split(" - ")[1] || ""} onValueChange={v => { const region = form.customer_address?.split(" - ")[0] || ""; setForm({ ...form, customer_address: `${region} - ${v}` }); }}>
+                <SelectTrigger><SelectValue placeholder="اختر المدينة" /></SelectTrigger>
+                <SelectContent>{(REGIONS[form.customer_address?.split(" - ")[0] || ""] || []).map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
             <div><label className="text-xs text-muted-foreground">تاريخ الطلبية</label><Input type="date" value={form.order_date} onChange={e => setForm({ ...form, order_date: e.target.value })} /></div>
             <div><label className="text-xs text-muted-foreground">تاريخ التسليم</label><Input type="date" value={form.delivery_date} onChange={e => setForm({ ...form, delivery_date: e.target.value })} /></div>
             <div><label className="text-xs text-muted-foreground">طريقة الدفع</label>
