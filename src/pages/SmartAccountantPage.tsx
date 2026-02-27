@@ -209,7 +209,7 @@ const SmartAccountantPage = () => {
         const desc = chequeType === 'وارد'
           ? `استلام شيك من ${partyName} رقم ${line.chequeNumber}`
           : `إصدار شيك ل${partyName} رقم ${line.chequeNumber}`;
-        await supabase.functions.invoke("send-transaction", { body: { text: desc, userId: user.id, email: user.email } });
+        await supabase.functions.invoke("process-transaction", { body: { text: desc, userId: user.id, email: user.email } });
       }
       txToast.trigger();
       setPendingChequeData(null);
@@ -291,7 +291,7 @@ const SmartAccountantPage = () => {
                   try {
                     const body: any = { text: pendingInvoice.originalText, userId: user?.id, email: user?.email };
                     if (pendingInvoice.mentionedContactName) body.mentionedContactName = pendingInvoice.mentionedContactName;
-                    const { error } = await supabase.functions.invoke("send-transaction", { body });
+                    const { error } = await supabase.functions.invoke("process-transaction", { body });
                     if (error) throw error;
                     txToast.trigger();
                     setPendingInvoice(null);
