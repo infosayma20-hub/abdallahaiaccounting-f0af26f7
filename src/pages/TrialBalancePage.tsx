@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo } from "react";
-import { getAuthHeaders } from "@/lib/edge-helpers";
 import {
   ArrowRight, Loader2, RefreshCw, Search, Filter, Scale,
   ChevronLeft, ChevronRight, AlertTriangle, CheckCircle2, FileSpreadsheet,
@@ -11,32 +10,10 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-
-interface Transaction {
-  id: string;
-  fields: {
-    Description?: string;
-    "Debit Account"?: string | string[];
-    "Credit Account"?: string | string[];
-    "Debit Account Name"?: string;
-    "Credit Account Name"?: string;
-    "Transaction Type"?: string;
-    Amount?: number;
-    Currency?: string;
-    Date?: string;
-    Deleted?: boolean;
-  };
-}
-
-interface Account {
-  id: string;
-  fields: {
-    "Account Name"?: string;
-    "Account Code"?: string;
-    "Account Type"?: string;
-    Client?: string[];
-  };
-}
+import {
+  fetchTransactions, fetchAccounts, buildAccountMap, getAccountNameOnly,
+  SupabaseTransaction, SupabaseAccount,
+} from "@/lib/supabase-data";
 
 interface TrialBalanceRow {
   accountName: string;
@@ -48,24 +25,24 @@ interface TrialBalanceRow {
 }
 
 const ACCOUNT_TYPE_ORDER: Record<string, number> = {
-  "Assets": 1, "أصول": 1,
-  "Liabilities": 2, "التزامات": 2,
-  "Owner's Equity": 3, "حقوق ملكية": 3,
-  "Revenue": 4, "إيرادات": 4,
-  "Expenses": 5, "مصروفات": 5,
+  "Asset": 1, "أصول": 1, "أصل": 1,
+  "Liability": 2, "التزامات": 2, "التزام": 2, "خصوم": 2,
+  "Owner's Equity": 3, "Equity": 3, "حقوق ملكية": 3, "حقوق الملكية": 3, "رأس مال": 3,
+  "Revenue": 4, "إيرادات": 4, "إيراد": 4, "دخل": 4,
+  "Expenses": 5, "مصروفات": 5, "مصروف": 5, "المصروفات": 5,
 };
 
 const ACCOUNT_TYPE_LABELS: Record<string, string> = {
-  "Assets": "الأصول",
-  "Liabilities": "الالتزامات",
-  "Owner's Equity": "حقوق الملكية",
+  "Assets": "الأصول", "Asset": "الأصول",
+  "Liabilities": "الالتزامات", "Liability": "الالتزامات",
+  "Owner's Equity": "حقوق الملكية", "Equity": "حقوق الملكية",
   "Revenue": "الإيرادات",
   "Expenses": "المصروفات",
-  "أصول": "الأصول",
-  "التزامات": "الالتزامات",
-  "حقوق ملكية": "حقوق الملكية",
-  "إيرادات": "الإيرادات",
-  "مصروفات": "المصروفات",
+  "أصول": "الأصول", "أصل": "الأصول",
+  "التزامات": "الالتزامات", "التزام": "الالتزامات", "خصوم": "الالتزامات",
+  "حقوق ملكية": "حقوق الملكية", "حقوق الملكية": "حقوق الملكية", "رأس مال": "حقوق الملكية",
+  "إيرادات": "الإيرادات", "إيراد": "الإيرادات", "دخل": "الإيرادات",
+  "مصروفات": "المصروفات", "مصروف": "المصروفات", "المصروفات": "المصروفات",
 };
 
 const ACCOUNT_TYPE_COLORS: Record<string, string> = {
@@ -81,8 +58,8 @@ const TrialBalancePage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [transactions, setTransactions] = useState<SupabaseTransaction[]>([]);
+  const [accounts, setAccounts] = useState<SupabaseAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [profileData, setProfileData] = useState<any>(null);
 
@@ -95,22 +72,13 @@ const TrialBalancePage = () => {
     if (!user) return;
     setLoading(true);
     try {
-      const [txRes, accRes, profileRes] = await Promise.all([
-        fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-transactions?clientId=${user.id}`, {
-          headers: await getAuthHeaders(),
-        }),
-        fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-accounts?clientId=${user.id}`, {
-          headers: await getAuthHeaders(),
-        }),
+      const [txData, accData, profileRes] = await Promise.all([
+        fetchTransactions(user.id),
+        fetchAccounts(user.id),
         supabase.from("profiles").select("display_name, company_name").eq("user_id", user.id).maybeSingle(),
       ]);
-      if (!txRes.ok) throw new Error("Failed to fetch transactions");
-      const txData = await txRes.json();
-      setTransactions(txData?.records || []);
-      if (accRes.ok) {
-        const accData = await accRes.json();
-        setAccounts(accData?.records || []);
-      }
+      setTransactions(txData);
+      setAccounts(accData);
       if (profileRes.data) setProfileData(profileRes.data);
     } catch (err: any) {
       toast({ title: "خطأ", description: err.message, variant: "destructive" });
@@ -121,64 +89,41 @@ const TrialBalancePage = () => {
 
   useEffect(() => { fetchData(); }, [user]);
 
+  const accountMap = useMemo(() => buildAccountMap(accounts), [accounts]);
+
   // Build trial balance
   const { rows, grandTotalDebit, grandTotalCredit, isBalanced } = useMemo(() => {
-    // Build account info map
-    const accountInfoMap: Record<string, { name: string; code: string; type: string }> = {};
-    for (const acc of accounts) {
-      accountInfoMap[acc.id] = {
-        name: acc.fields["Account Name"] || acc.id,
-        code: acc.fields["Account Code"] || "",
-        type: acc.fields["Account Type"] || "",
-      };
-      // Also map by name
-      const name = acc.fields["Account Name"];
-      if (name) {
-        accountInfoMap[name] = accountInfoMap[acc.id];
-      }
-    }
+    // Filter transactions by date and not deleted
+    let filteredTx = transactions.filter(tx => !tx.is_deleted);
+    if (dateFrom) filteredTx = filteredTx.filter(tx => (tx.transaction_date || "") >= dateFrom);
+    if (dateTo) filteredTx = filteredTx.filter(tx => (tx.transaction_date || "") <= dateTo);
 
-    // Filter transactions by date
-    let filteredTx = transactions.filter(tx => !tx.fields.Deleted);
-    if (dateFrom) filteredTx = filteredTx.filter(tx => (tx.fields.Date || "") >= dateFrom);
-    if (dateTo) filteredTx = filteredTx.filter(tx => (tx.fields.Date || "") <= dateTo);
-
-    // Accumulate debits and credits per account
+    // Accumulate debits and credits per account code
     const debitMap: Record<string, number> = {};
     const creditMap: Record<string, number> = {};
 
     for (const tx of filteredTx) {
-      const amount = tx.fields.Amount || 0;
-      
-      // Debit accounts
-      const debitName = tx.fields["Debit Account Name"] || "";
-      if (debitName) {
-        debitName.split(", ").forEach(name => {
-          if (name) debitMap[name] = (debitMap[name] || 0) + amount;
-        });
+      const amount = tx.amount || 0;
+      if (tx.debit_account_code) {
+        debitMap[tx.debit_account_code] = (debitMap[tx.debit_account_code] || 0) + amount;
       }
-
-      // Credit accounts
-      const creditName = tx.fields["Credit Account Name"] || "";
-      if (creditName) {
-        creditName.split(", ").forEach(name => {
-          if (name) creditMap[name] = (creditMap[name] || 0) + amount;
-        });
+      if (tx.credit_account_code) {
+        creditMap[tx.credit_account_code] = (creditMap[tx.credit_account_code] || 0) + amount;
       }
     }
 
     // Combine into rows
-    const allAccountNames = new Set([...Object.keys(debitMap), ...Object.keys(creditMap)]);
+    const allCodes = new Set([...Object.keys(debitMap), ...Object.keys(creditMap)]);
     const rows: TrialBalanceRow[] = [];
 
-    for (const name of allAccountNames) {
-      const info = accountInfoMap[name];
-      const totalDebit = debitMap[name] || 0;
-      const totalCredit = creditMap[name] || 0;
+    for (const code of allCodes) {
+      const acc = accountMap[code];
+      const totalDebit = debitMap[code] || 0;
+      const totalCredit = creditMap[code] || 0;
       rows.push({
-        accountName: name,
-        accountCode: info?.code || "",
-        accountType: info?.type || "",
+        accountName: acc ? acc.account_name : code,
+        accountCode: acc ? acc.account_code : code,
+        accountType: acc ? acc.account_type : "",
         totalDebit,
         totalCredit,
         balance: totalDebit - totalCredit,
@@ -197,7 +142,7 @@ const TrialBalancePage = () => {
     const grandTotalCredit = rows.reduce((s, r) => s + r.totalCredit, 0);
 
     return { rows, grandTotalDebit, grandTotalCredit, isBalanced: Math.abs(grandTotalDebit - grandTotalCredit) < 0.01 };
-  }, [transactions, accounts, dateFrom, dateTo]);
+  }, [transactions, accounts, accountMap, dateFrom, dateTo]);
 
   // Search filter
   const filteredRows = useMemo(() => {

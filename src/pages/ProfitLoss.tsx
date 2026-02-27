@@ -18,6 +18,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { exportToExcel, exportToPDF } from "@/components/ReportComponents";
 import * as XLSX from "xlsx";
 import { format, startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear, startOfWeek, endOfWeek, subDays, subWeeks } from "date-fns";
+import {
+  fetchTransactions, fetchAccounts, buildAccountMap, normalizeAccountType, getAccountNameOnly,
+  SupabaseTransaction, SupabaseAccount, isOpeningBalance as isOBSupabase,
+} from "@/lib/supabase-data";
 
 // ── Types ──
 interface TransactionRecord {
