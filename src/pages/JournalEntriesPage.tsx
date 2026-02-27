@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import {
-  ArrowRight, Loader2, RefreshCw, Pencil, Search,
+  ArrowRight, Loader2, RefreshCw, Pencil, Search, Plus,
   FileText, ChevronLeft, ChevronRight, Filter, FileSpreadsheet,
 } from "lucide-react";
 import * as XLSX from "xlsx";
@@ -12,6 +12,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import JournalEntryPopup from "@/components/JournalEntryPopup";
 
 interface TransactionRow {
   id: string;
@@ -94,6 +95,7 @@ const JournalEntriesPage = () => {
     credit_account_code: "",
   });
   const [saving, setSaving] = useState(false);
+  const [showJournalEntry, setShowJournalEntry] = useState(false);
 
   // Build account code → name map
   const accountMap = useMemo(() => {
@@ -272,6 +274,9 @@ const JournalEntriesPage = () => {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <Button size="sm" onClick={() => setShowJournalEntry(true)} className="gap-1.5">
+            <Plus className="h-3.5 w-3.5" /> إنشاء قيد
+          </Button>
           <Button variant="outline" size="sm" onClick={fetchData} className="gap-1.5">
             <RefreshCw className="h-3.5 w-3.5" /> تحديث
           </Button>
@@ -531,6 +536,13 @@ const JournalEntriesPage = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      <JournalEntryPopup
+        open={showJournalEntry}
+        onClose={() => setShowJournalEntry(false)}
+        onSuccess={() => { setShowJournalEntry(false); fetchData(); }}
+        accounts={accounts.map(a => ({ id: a.id, name: a.account_name, type: a.account_type }))}
+      />
     </div>
   );
 };
