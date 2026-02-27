@@ -20,6 +20,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 
 const statusColors: Record<string, string> = {
   "جديد": "bg-info/10 text-info",
+  "مؤكد": "bg-primary/10 text-primary",
   "قيد التجهيز": "bg-warning/10 text-warning",
   "جاهز للشحن": "bg-accent/10 text-accent",
   "تم الشحن": "bg-primary/10 text-primary",
@@ -28,7 +29,7 @@ const statusColors: Record<string, string> = {
   "ملغي": "bg-muted text-muted-foreground",
 };
 
-const ALL_STATUSES = ["جديد", "قيد التجهيز", "جاهز للشحن", "تم الشحن", "تم التسليم", "مرتجع", "ملغي"];
+const ALL_STATUSES = ["جديد", "مؤكد", "قيد التجهيز", "جاهز للشحن", "تم الشحن", "تم التسليم", "مرتجع", "ملغي"];
 const PAYMENT_METHODS = ["كاش", "تحويل بنكي", "شيك", "دفع إلكتروني", "آجل"];
 const SOURCES = ["يدوي", "متجر إلكتروني", "واتساب", "هاتف", "أخرى"];
 
@@ -46,6 +47,7 @@ type Order = {
   subtotal: number; discount: number; shipping_cost: number; total: number; payment_status: string;
   payment_method: string | null; shipping_method: string | null; tracking_number: string | null;
   source: string | null; notes: string | null; created_at: string; user_id: string;
+  linked_invoice_id?: string | null;
 };
 
 const defaultForm = {
@@ -160,10 +162,97 @@ const OrdersPage = () => {
     toast.success("تم الحذف"); fetchOrders();
   };
 
+  const createInvoiceFromOrder = async (order: Order) => {
+    if (!user) return;
+    // Fetch order items
+    const { data: oItems } = await supabase.from("order_items").select("*").eq("order_id", order.id);
+    const orderItemsList = (oItems as any[]) || [];
+
+    // Generate invoice number
+    const existingInvoices = JSON.parse(localStorage.getItem(`invoices_${user.id}`) || "[]");
+    const salesCount = existingInvoices.filter((i: any) => i.type === "sales").length + 1;
+    const invoiceNumber = `INV-${String(salesCount).padStart(4, "0")}`;
+
+    const invoiceItems = orderItemsList.map((item: any) => ({
+      id: crypto.randomUUID(),
+      productId: item.product_id || undefined,
+      description: item.product_name,
+      quantity: Number(item.quantity),
+      unitPrice: Number(item.unit_price),
+      discount: Number(item.discount || 0),
+      taxRate: 0,
+      subtotal: Number(item.total),
+    }));
+
+    // Fallback if no items - create single item from order total
+    if (invoiceItems.length === 0) {
+      invoiceItems.push({
+        id: crypto.randomUUID(),
+        productId: undefined,
+        description: `طلبية ${order.order_number || order.id.slice(0, 8)}`,
+        quantity: 1,
+        unitPrice: Number(order.total),
+        discount: 0,
+        taxRate: 0,
+        subtotal: Number(order.total),
+      });
+    }
+
+    const subtotal = invoiceItems.reduce((s: number, i: any) => s + i.quantity * i.unitPrice, 0);
+    const totalDiscount = invoiceItems.reduce((s: number, i: any) => s + i.discount, 0);
+    const total = subtotal - totalDiscount;
+
+    const paymentMethodMap: Record<string, string> = {
+      "كاش": "cash", "تحويل بنكي": "transfer", "شيك": "cheque", "دفع إلكتروني": "transfer", "آجل": "credit"
+    };
+
+    const invoice = {
+      id: crypto.randomUUID(),
+      type: "sales",
+      invoiceNumber,
+      date: new Date().toISOString().split("T")[0],
+      dueDate: order.payment_method === "آجل" ? order.delivery_date : undefined,
+      contactName: order.customer_name,
+      items: invoiceItems,
+      notes: `تم الإنشاء تلقائياً من طلبية ${order.order_number || ""} • ${order.notes || ""}`.trim(),
+      status: "sent",
+      paymentMethod: paymentMethodMap[order.payment_method || "كاش"] || "cash",
+      subtotal,
+      totalDiscount,
+      totalTax: 0,
+      total,
+      paidAmount: order.payment_method === "آجل" ? 0 : total,
+      remainingAmount: order.payment_method === "آجل" ? total : 0,
+      currency: "ILS",
+    };
+
+    const updatedInvoices = [invoice, ...existingInvoices];
+    localStorage.setItem(`invoices_${user.id}`, JSON.stringify(updatedInvoices));
+
+    // Link invoice to order
+    await supabase.from("orders").update({ linked_invoice_id: invoice.id } as any).eq("id", order.id);
+
+    return invoice;
+  };
+
   const updateStatus = async (id: string, status: string) => {
     const { error } = await supabase.from("orders").update({ status } as any).eq("id", id);
     if (error) { toast.error("خطأ في تحديث الحالة"); return; }
-    toast.success(`تم تحديث الحالة: ${status}`);
+
+    // Auto-create invoice when confirming order
+    if (status === "مؤكد") {
+      const order = orders.find(o => o.id === id);
+      if (order && !order.linked_invoice_id) {
+        const invoice = await createInvoiceFromOrder(order);
+        if (invoice) {
+          toast.success(`تم تأكيد الطلبية وإنشاء فاتورة ${invoice.invoiceNumber} تلقائياً ✅`);
+        }
+      } else {
+        toast.success(`تم تحديث الحالة: ${status}`);
+      }
+    } else {
+      toast.success(`تم تحديث الحالة: ${status}`);
+    }
     fetchOrders();
   };
 
