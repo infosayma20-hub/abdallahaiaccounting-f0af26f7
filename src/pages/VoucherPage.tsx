@@ -1,12 +1,11 @@
 import { useState, useEffect, useMemo } from "react";
-import { getAuthHeaders, getAuthHeadersJson } from "@/lib/edge-helpers";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowRight, Loader2, RefreshCw, Plus, Search, X, FileText,
-  ArrowDownCircle, ArrowUpCircle, Pencil, Trash2, RotateCcw, Archive,
-  Calendar, Hash, DollarSign, User, BookOpen
+  ArrowDownCircle, ArrowUpCircle, Pencil, Trash2,
+  Calendar, DollarSign, BookOpen
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,30 +16,26 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Transaction {
   id: string;
-  fields: {
-    Description?: string;
-    "Debit Account"?: string | string[];
-    "Credit Account"?: string | string[];
-    "Debit Account Name"?: string;
-    "Credit Account Name"?: string;
-    "Transaction Type"?: string;
-    Amount?: number;
-    Currency?: string;
-    Date?: string;
-    Reference?: string;
-    Deleted?: boolean;
-  };
+  description: string | null;
+  transaction_type: string | null;
+  amount: number;
+  currency: string | null;
+  transaction_date: string | null;
+  debit_account_code: string | null;
+  credit_account_code: string | null;
+  reference: string | null;
+  is_deleted: boolean | null;
+  contact_id: string | null;
 }
 
 interface Account {
-  id: string;
-  fields: {
-    "Account Name"?: string;
-    "Account Type"?: string;
-  };
+  account_code: string;
+  account_name: string;
+  account_type: string;
 }
 
 interface VoucherPageProps {
@@ -70,8 +65,8 @@ const VoucherPage = ({ voucherType }: VoucherPageProps) => {
     Amount: "",
     Currency: "شيكل",
     Date: new Date().toISOString().split("T")[0],
-    "Debit Account Name": "",
-    "Credit Account Name": "",
+    DebitAccountCode: "",
+    CreditAccountCode: "",
   });
 
   // Edit state
@@ -81,12 +76,24 @@ const VoucherPage = ({ voucherType }: VoucherPageProps) => {
     Amount: "",
     Currency: "",
     Date: "",
-    "Debit Account Name": "",
-    "Credit Account Name": "",
+    DebitAccountCode: "",
+    CreditAccountCode: "",
   });
   const [saving, setSaving] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
+
+  // Build account code → name map
+  const accountMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    accounts.forEach(a => { map[a.account_code] = a.account_name; });
+    return map;
+  }, [accounts]);
+
+  const resolveAccountName = (code: string | null) => {
+    if (!code) return "—";
+    return accountMap[code] || code;
+  };
 
   const fetchData = async () => {
     if (!user) return;
@@ -94,21 +101,23 @@ const VoucherPage = ({ voucherType }: VoucherPageProps) => {
     setError(null);
     try {
       const [txRes, accRes] = await Promise.all([
-        fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-transactions?clientId=${user.id}`, {
-          headers: await getAuthHeaders(),
-        }),
-        fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-accounts?clientId=${user.id}`, {
-          headers: await getAuthHeaders(),
-        }),
+        supabase
+          .from("transactions")
+          .select("id, description, transaction_type, amount, currency, transaction_date, debit_account_code, credit_account_code, reference, is_deleted, contact_id")
+          .eq("user_id", user.id)
+          .eq("is_deleted", false)
+          .order("transaction_date", { ascending: false })
+          .limit(2000),
+        supabase
+          .from("accounts")
+          .select("account_code, account_name, account_type")
+          .eq("user_id", user.id)
+          .eq("is_active", true)
+          .order("account_code"),
       ]);
-      if (!txRes.ok) throw new Error("Failed to fetch transactions");
-      const txData = await txRes.json();
-      if (txData?.error) throw new Error(txData.error);
-      setTransactions(txData?.records || []);
-      if (accRes.ok) {
-        const accData = await accRes.json();
-        setAccounts(accData?.records || []);
-      }
+      if (txRes.error) throw txRes.error;
+      setTransactions(txRes.data || []);
+      if (!accRes.error) setAccounts(accRes.data || []);
     } catch (err: any) {
       setError(err.message || "خطأ في جلب البيانات");
     } finally {
@@ -118,8 +127,8 @@ const VoucherPage = ({ voucherType }: VoucherPageProps) => {
 
   useEffect(() => { fetchData(); }, [user]);
 
-  const accountNames = useMemo(
-    () => accounts.map(a => a.fields["Account Name"]).filter(Boolean) as string[],
+  const accountOptions = useMemo(
+    () => accounts.map(a => ({ code: a.account_code, label: `${a.account_code} - ${a.account_name}` })).sort((a, b) => a.code.localeCompare(b.code)),
     [accounts]
   );
 
@@ -127,60 +136,51 @@ const VoucherPage = ({ voucherType }: VoucherPageProps) => {
   const vouchers = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
     return transactions
-      .filter(tx => tx.fields["Transaction Type"] === voucherType)
+      .filter(tx => tx.transaction_type === voucherType)
       .filter(tx => {
         if (!q) return true;
         const searchable = [
-          tx.fields.Description || "",
-          tx.fields["Debit Account Name"] || "",
-          tx.fields["Credit Account Name"] || "",
-          tx.fields.Reference || "",
-          tx.fields.Date || "",
-          String(tx.fields.Amount || ""),
+          tx.description || "",
+          resolveAccountName(tx.debit_account_code),
+          resolveAccountName(tx.credit_account_code),
+          tx.reference || "",
+          tx.transaction_date || "",
+          String(tx.amount || ""),
         ].join(" ").toLowerCase();
         return searchable.includes(q);
       });
-  }, [transactions, voucherType, searchQuery]);
+  }, [transactions, voucherType, searchQuery, accountMap]);
 
   // Stats
-  const totalAmount = vouchers.reduce((s, v) => s + (v.fields.Amount || 0), 0);
+  const totalAmount = vouchers.reduce((s, v) => s + (v.amount || 0), 0);
   const thisMonthVouchers = vouchers.filter(v => {
-    const d = v.fields.Date;
+    const d = v.transaction_date;
     if (!d) return false;
     const now = new Date();
     const vDate = new Date(d);
     return vDate.getMonth() === now.getMonth() && vDate.getFullYear() === now.getFullYear();
   });
-  const thisMonthTotal = thisMonthVouchers.reduce((s, v) => s + (v.fields.Amount || 0), 0);
+  const thisMonthTotal = thisMonthVouchers.reduce((s, v) => s + (v.amount || 0), 0);
 
   const handleCreate = async () => {
-    if (!newVoucher.Amount || !newVoucher["Debit Account Name"] || !newVoucher["Credit Account Name"]) {
+    if (!newVoucher.Amount || !newVoucher.DebitAccountCode || !newVoucher.CreditAccountCode) {
       toast({ title: "يرجى ملء جميع الحقول المطلوبة", variant: "destructive" });
       return;
     }
     setCreating(true);
     try {
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-transaction`, {
-        method: "POST",
-        headers: {
-          ...await getAuthHeaders(),
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          clientId: user!.id,
-          fields: {
-            Description: newVoucher.Description,
-            "Transaction Type": voucherType,
-            Amount: Number(newVoucher.Amount),
-            Currency: newVoucher.Currency,
-            Date: newVoucher.Date,
-            "Debit Account Name": newVoucher["Debit Account Name"],
-            "Credit Account Name": newVoucher["Credit Account Name"],
-          },
-        }),
+      const { error } = await supabase.from("transactions").insert({
+        user_id: user!.id,
+        description: newVoucher.Description || null,
+        transaction_type: voucherType,
+        amount: Number(newVoucher.Amount),
+        currency: newVoucher.Currency || "شيكل",
+        transaction_date: newVoucher.Date || new Date().toISOString().split("T")[0],
+        debit_account_code: newVoucher.DebitAccountCode,
+        credit_account_code: newVoucher.CreditAccountCode,
+        is_deleted: false,
       });
-      const data = await res.json();
-      if (!res.ok || data.error) throw new Error(data.error || "فشل الإنشاء");
+      if (error) throw error;
       toast({ title: `تم إنشاء ${voucherType} بنجاح ✅` });
       setShowCreate(false);
       setNewVoucher({
@@ -188,8 +188,8 @@ const VoucherPage = ({ voucherType }: VoucherPageProps) => {
         Amount: "",
         Currency: "شيكل",
         Date: new Date().toISOString().split("T")[0],
-        "Debit Account Name": "",
-        "Credit Account Name": "",
+        DebitAccountCode: "",
+        CreditAccountCode: "",
       });
       fetchData();
     } catch (err: any) {
@@ -202,37 +202,29 @@ const VoucherPage = ({ voucherType }: VoucherPageProps) => {
   const openEdit = (tx: Transaction) => {
     setEditingTx(tx);
     setEditFields({
-      Description: tx.fields.Description || "",
-      Amount: String(tx.fields.Amount || ""),
-      Currency: tx.fields.Currency || "شيكل",
-      Date: tx.fields.Date || "",
-      "Debit Account Name": tx.fields["Debit Account Name"] || "",
-      "Credit Account Name": tx.fields["Credit Account Name"] || "",
+      Description: tx.description || "",
+      Amount: String(tx.amount || ""),
+      Currency: tx.currency || "شيكل",
+      Date: tx.transaction_date || "",
+      DebitAccountCode: tx.debit_account_code || "",
+      CreditAccountCode: tx.credit_account_code || "",
     });
   };
 
   const handleSave = async () => {
-    if (!editingTx) return;
+    if (!editingTx || !user) return;
     setSaving(true);
     try {
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-update-transaction`, {
-        method: "POST",
-        headers: await getAuthHeadersJson(),
-        body: JSON.stringify({
-          recordId: editingTx.id,
-          fields: {
-            Description: editFields.Description,
-            "Transaction Type": voucherType,
-            Amount: Number(editFields.Amount),
-            Currency: editFields.Currency,
-            Date: editFields.Date,
-            "Debit Account Name": editFields["Debit Account Name"],
-            "Credit Account Name": editFields["Credit Account Name"],
-          },
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok || data.error) throw new Error(data.error || "فشل التحديث");
+      const { error } = await supabase.from("transactions").update({
+        description: editFields.Description,
+        transaction_type: voucherType,
+        amount: Number(editFields.Amount),
+        currency: editFields.Currency,
+        transaction_date: editFields.Date,
+        debit_account_code: editFields.DebitAccountCode,
+        credit_account_code: editFields.CreditAccountCode,
+      }).eq("id", editingTx.id).eq("user_id", user.id);
+      if (error) throw error;
       toast({ title: "تم تعديل السند بنجاح ✅" });
       setEditingTx(null);
       fetchData();
@@ -244,16 +236,14 @@ const VoucherPage = ({ voucherType }: VoucherPageProps) => {
   };
 
   const handleDelete = async () => {
-    if (!editingTx) return;
+    if (!editingTx || !user) return;
     setDeleting(true);
     try {
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-update-transaction`, {
-        method: "POST",
-        headers: await getAuthHeadersJson(),
-        body: JSON.stringify({ recordId: editingTx.id, action: "delete" }),
-      });
-      const data = await res.json();
-      if (!res.ok || data.error) throw new Error(data.error || "فشل الحذف");
+      const { error } = await supabase.from("transactions")
+        .update({ is_deleted: true })
+        .eq("id", editingTx.id)
+        .eq("user_id", user.id);
+      if (error) throw error;
       toast({ title: "تم حذف السند 🗑️" });
       setEditingTx(null);
       setShowDeleteConfirm(false);
@@ -266,7 +256,7 @@ const VoucherPage = ({ voucherType }: VoucherPageProps) => {
   };
 
   const getPaymentMethod = (tx: Transaction) => {
-    const all = ((tx.fields["Debit Account Name"] || "") + " " + (tx.fields["Credit Account Name"] || "")).toLowerCase();
+    const all = (resolveAccountName(tx.debit_account_code) + " " + resolveAccountName(tx.credit_account_code)).toLowerCase();
     if (all.includes("صندوق")) return { label: "نقدي", color: "bg-emerald-500/10 text-emerald-600" };
     if (all.includes("بنك")) return { label: "تحويل بنكي", color: "bg-blue-500/10 text-blue-600" };
     if (all.includes("ذمم")) return { label: "آجل", color: "bg-amber-500/10 text-amber-600" };
@@ -414,12 +404,12 @@ const VoucherPage = ({ voucherType }: VoucherPageProps) => {
                       onClick={() => openEdit(v)}
                     >
                       <td className="p-3 text-muted-foreground tabular-nums">{idx + 1}</td>
-                      <td className="p-3 text-muted-foreground tabular-nums whitespace-nowrap">{v.fields.Date || "—"}</td>
-                      <td className="p-3 font-medium text-foreground max-w-[200px] truncate">{v.fields.Description || "بدون وصف"}</td>
-                      <td className="p-3 text-primary whitespace-nowrap">{v.fields["Debit Account Name"] || "—"}</td>
-                      <td className="p-3 text-destructive whitespace-nowrap">{v.fields["Credit Account Name"] || "—"}</td>
+                      <td className="p-3 text-muted-foreground tabular-nums whitespace-nowrap">{v.transaction_date || "—"}</td>
+                      <td className="p-3 font-medium text-foreground max-w-[200px] truncate">{v.description || "بدون وصف"}</td>
+                      <td className="p-3 text-primary whitespace-nowrap">{resolveAccountName(v.debit_account_code)}</td>
+                      <td className="p-3 text-destructive whitespace-nowrap">{resolveAccountName(v.credit_account_code)}</td>
                       <td className={`p-3 font-bold tabular-nums whitespace-nowrap ${isReceipt ? "text-primary" : "text-destructive"}`}>
-                        {v.fields.Amount?.toLocaleString()} {v.fields.Currency || ""}
+                        {v.amount?.toLocaleString()} {v.currency || ""}
                       </td>
                       <td className="p-3">
                         {pm && (
@@ -518,13 +508,13 @@ const VoucherPage = ({ voucherType }: VoucherPageProps) => {
                   الحساب المدين (من حـ/) *
                 </label>
                 <Select
-                  value={newVoucher["Debit Account Name"]}
-                  onValueChange={(v) => setNewVoucher(f => ({ ...f, "Debit Account Name": v }))}
+                  value={newVoucher.DebitAccountCode}
+                  onValueChange={(v) => setNewVoucher(f => ({ ...f, DebitAccountCode: v }))}
                   dir="rtl"
                 >
                   <SelectTrigger><SelectValue placeholder="اختر الحساب المدين" /></SelectTrigger>
                   <SelectContent className="bg-background z-50 max-h-48">
-                    {accountNames.map(name => (<SelectItem key={name} value={name}>{name}</SelectItem>))}
+                    {accountOptions.map(a => (<SelectItem key={a.code} value={a.code}>{a.label}</SelectItem>))}
                   </SelectContent>
                 </Select>
               </div>
@@ -533,28 +523,28 @@ const VoucherPage = ({ voucherType }: VoucherPageProps) => {
                   الحساب الدائن (إلى حـ/) *
                 </label>
                 <Select
-                  value={newVoucher["Credit Account Name"]}
-                  onValueChange={(v) => setNewVoucher(f => ({ ...f, "Credit Account Name": v }))}
+                  value={newVoucher.CreditAccountCode}
+                  onValueChange={(v) => setNewVoucher(f => ({ ...f, CreditAccountCode: v }))}
                   dir="rtl"
                 >
                   <SelectTrigger><SelectValue placeholder="اختر الحساب الدائن" /></SelectTrigger>
                   <SelectContent className="bg-background z-50 max-h-48">
-                    {accountNames.map(name => (<SelectItem key={name} value={name}>{name}</SelectItem>))}
+                    {accountOptions.map(a => (<SelectItem key={a.code} value={a.code}>{a.label}</SelectItem>))}
                   </SelectContent>
                 </Select>
               </div>
             </div>
 
             {/* Preview */}
-            {newVoucher.Amount && newVoucher["Debit Account Name"] && newVoucher["Credit Account Name"] && (
+            {newVoucher.Amount && newVoucher.DebitAccountCode && newVoucher.CreditAccountCode && (
               <div className="bg-muted/20 border border-border rounded-xl p-3 space-y-2">
                 <p className="text-[10px] font-semibold text-muted-foreground">معاينة القيد</p>
                 <div className="flex justify-between text-xs">
-                  <span className="text-primary font-medium">من حـ/ {newVoucher["Debit Account Name"]}</span>
+                  <span className="text-primary font-medium">من حـ/ {resolveAccountName(newVoucher.DebitAccountCode)}</span>
                   <span className="tabular-nums font-bold">{Number(newVoucher.Amount).toLocaleString()} {newVoucher.Currency}</span>
                 </div>
                 <div className="flex justify-between text-xs">
-                  <span className="text-destructive font-medium pr-4">إلى حـ/ {newVoucher["Credit Account Name"]}</span>
+                  <span className="text-destructive font-medium pr-4">إلى حـ/ {resolveAccountName(newVoucher.CreditAccountCode)}</span>
                   <span className="tabular-nums font-bold">{Number(newVoucher.Amount).toLocaleString()} {newVoucher.Currency}</span>
                 </div>
               </div>
@@ -614,19 +604,19 @@ const VoucherPage = ({ voucherType }: VoucherPageProps) => {
               <p className="text-xs font-semibold text-foreground">القيد المحاسبي</p>
               <div>
                 <label className="text-xs font-medium text-primary mb-1.5 block">الحساب المدين</label>
-                <Select value={editFields["Debit Account Name"]} onValueChange={(v) => setEditFields(f => ({ ...f, "Debit Account Name": v }))} dir="rtl">
+                <Select value={editFields.DebitAccountCode} onValueChange={(v) => setEditFields(f => ({ ...f, DebitAccountCode: v }))} dir="rtl">
                   <SelectTrigger><SelectValue placeholder="اختر الحساب المدين" /></SelectTrigger>
                   <SelectContent className="bg-background z-50 max-h-48">
-                    {accountNames.map(name => (<SelectItem key={name} value={name}>{name}</SelectItem>))}
+                    {accountOptions.map(a => (<SelectItem key={a.code} value={a.code}>{a.label}</SelectItem>))}
                   </SelectContent>
                 </Select>
               </div>
               <div>
                 <label className="text-xs font-medium text-destructive mb-1.5 block">الحساب الدائن</label>
-                <Select value={editFields["Credit Account Name"]} onValueChange={(v) => setEditFields(f => ({ ...f, "Credit Account Name": v }))} dir="rtl">
+                <Select value={editFields.CreditAccountCode} onValueChange={(v) => setEditFields(f => ({ ...f, CreditAccountCode: v }))} dir="rtl">
                   <SelectTrigger><SelectValue placeholder="اختر الحساب الدائن" /></SelectTrigger>
                   <SelectContent className="bg-background z-50 max-h-48">
-                    {accountNames.map(name => (<SelectItem key={name} value={name}>{name}</SelectItem>))}
+                    {accountOptions.map(a => (<SelectItem key={a.code} value={a.code}>{a.label}</SelectItem>))}
                   </SelectContent>
                 </Select>
               </div>
