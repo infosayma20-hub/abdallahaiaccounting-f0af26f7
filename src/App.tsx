@@ -102,7 +102,8 @@ const App = () => (
                 <ProtectedRoute>
                   <WebLayout>
                     <Routes>
-                      <Route path="/" element={<HomeDashboard />} />
+                      <Route path="/" element={<Navigate to="/apps" replace />} />
+                      <Route path="/dashboard" element={<HomeDashboard />} />
                       <Route path="/smart-accountant" element={<SmartAccountantPage />} />
                       <Route path="/menu" element={<MenuPage />} />
                       <Route path="/voice" element={<VoiceInput />} />
