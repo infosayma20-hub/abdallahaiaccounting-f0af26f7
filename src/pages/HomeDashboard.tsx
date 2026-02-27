@@ -436,18 +436,7 @@ const HomeDashboard = () => {
                     className="flex-1 min-w-0 h-9 bg-transparent rounded-xl px-2 text-sm text-foreground placeholder:text-muted-foreground/50 border-0 outline-none"
                     userId={user?.id}
                   />
-                  <button
-                    onClick={() => {
-                      const current = inputValue;
-                      const needsSpace = current.length > 0 && !current.endsWith(' ');
-                      setInputValue(current + (needsSpace ? ' @' : '@'));
-                    }}
-                    className="flex-shrink-0 w-9 h-9 rounded-xl bg-primary/8 flex items-center justify-center hover:bg-primary/15 transition-colors"
-                    title="إشارة لزبون أو منتج @"
-                  >
-                    <span className="text-primary font-bold text-base">@</span>
-                  </button>
-                  <button onClick={() => navigate("/voice")} className="flex-shrink-0 w-9 h-9 rounded-xl bg-primary/8 flex items-center justify-center hover:bg-primary/15 transition-colors" title="تسجيل صوتي">
+                   <button onClick={() => navigate("/voice")} className="flex-shrink-0 w-9 h-9 rounded-xl bg-primary/8 flex items-center justify-center hover:bg-primary/15 transition-colors" title="تسجيل صوتي">
                     <Mic className="h-4 w-4 text-primary" />
                   </button>
                 </div>
@@ -484,18 +473,29 @@ const HomeDashboard = () => {
                             { key: "productName", label: "المنتج" },
                             { key: "quantity", label: "الكمية", type: "number" },
                             { key: "unitPrice", label: "السعر", type: "number" },
-                            { key: "amount", label: "الإجمالي", type: "number" },
                           ].map(({ key, label, type }) => (
                             <div key={key} className="space-y-1">
                               <label className="text-[10px] text-muted-foreground">{label}</label>
                               <input
                                 type={type || "text"}
                                 value={pendingInvoice[key] || ""}
-                                onChange={(e) => setPendingInvoice((prev: any) => ({ ...prev, [key]: type === "number" ? Number(e.target.value) || 0 : e.target.value }))}
+                                onChange={(e) => setPendingInvoice((prev: any) => {
+                                  const updated = { ...prev, [key]: type === "number" ? Number(e.target.value) || 0 : e.target.value };
+                                  if (key === "quantity" || key === "unitPrice") {
+                                    updated.amount = (updated.quantity || 0) * (updated.unitPrice || 0);
+                                  }
+                                  return updated;
+                                })}
                                 className="w-full h-8 rounded-lg bg-secondary/60 border-0 text-xs text-foreground px-2 focus:ring-2 focus:ring-primary/20 text-right"
                               />
                             </div>
                           ))}
+                          <div className="space-y-1">
+                            <label className="text-[10px] text-muted-foreground">الإجمالي</label>
+                            <div className="w-full h-8 rounded-lg bg-secondary/30 border-0 text-xs text-foreground px-2 flex items-center justify-end font-bold tabular-nums">
+                              {((pendingInvoice.quantity || 0) * (pendingInvoice.unitPrice || 0)).toLocaleString() || "—"}
+                            </div>
+                          </div>
                           <div className="space-y-1">
                             <label className="text-[10px] text-muted-foreground">طريقة الدفع</label>
                             <select
