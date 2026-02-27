@@ -453,11 +453,11 @@ const HomeDashboard = () => {
           {!isMobile && (
             <button
               onClick={() => setShowShortcuts(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-muted/60 hover:bg-muted text-xs text-muted-foreground hover:text-foreground transition-all"
+              className="flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/60 text-[13px] font-medium text-foreground hover:bg-secondary hover:shadow-soft transition-all"
               title="اختصارات لوحة المفاتيح (?)"
             >
-              <kbd className="text-xs font-mono bg-background border border-border rounded px-1">?</kbd>
-              <span>اختصارات</span>
+              <Keyboard className="h-4 w-4 text-muted-foreground" strokeWidth={1.8} />
+              اختصارات
             </button>
           )}
         </div>
