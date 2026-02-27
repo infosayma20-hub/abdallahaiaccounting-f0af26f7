@@ -1,13 +1,47 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { authenticateRequest, corsHeaders } from "../_shared/auth.ts";
 
-async function getClientRecordId(baseId: string, apiKey: string, clientUUID: string): Promise<string | null> {
+async function getClientRecordId(baseId: string, apiKey: string, clientUUID: string, email?: string): Promise<string | null> {
   const filter = encodeURIComponent(`{Client Name}="${clientUUID}"`);
   const url = `https://api.airtable.com/v0/${baseId}/Clients?filterByFormula=${filter}&pageSize=1`;
   const res = await fetch(url, { headers: { 'Authorization': `Bearer ${apiKey}` } });
   if (!res.ok) return null;
   const data = await res.json();
-  return data.records?.[0]?.id || null;
+  const existingId = data.records?.[0]?.id || null;
+  
+  // Auto-create client record if not found
+  if (!existingId) {
+    console.log(`Client not found for UUID ${clientUUID}, auto-creating...`);
+    try {
+      const createRes = await fetch(`https://api.airtable.com/v0/${baseId}/Clients`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          records: [{
+            fields: {
+              "Client Name": clientUUID,
+              "Contact Email": email || "",
+            },
+          }],
+        }),
+      });
+      if (createRes.ok) {
+        const createData = await createRes.json();
+        const newId = createData.records?.[0]?.id || null;
+        console.log(`Auto-created client record: ${newId}`);
+        return newId;
+      } else {
+        console.error(`Failed to auto-create client: ${createRes.status}`);
+      }
+    } catch (e) {
+      console.error('Auto-create client error:', e);
+    }
+  }
+  
+  return existingId;
 }
 
 async function findContactByName(baseId: string, apiKey: string, clientUUID: string, name: string): Promise<string | null> {
@@ -258,7 +292,7 @@ serve(async (req) => {
     // Resolve client record ID once for all lookups
     let clientRecordId: string | null = null;
     if (AIRTABLE_API_KEY && AIRTABLE_BASE_ID && userId) {
-      clientRecordId = await getClientRecordId(AIRTABLE_BASE_ID, AIRTABLE_API_KEY, userId);
+      clientRecordId = await getClientRecordId(AIRTABLE_BASE_ID, AIRTABLE_API_KEY, userId, email);
     }
 
     // Look up the contact's corresponding account (Customer X / Supplier X)
