@@ -273,8 +273,8 @@ ${contactContext}
     if (!dateRegex.test(transactionDate)) transactionDate = today;
 
     // Resolve account codes - AI returns account NAMES, we need CODES
-    let debitAccountCode = parsed['الحساب_المدين'] || parsed.debit_account_code || '';
-    let creditAccountCode = parsed['الحساب_الدائن'] || parsed.credit_account_code || '';
+    let debitAccountCode = parsed['الحساب_المدين'] || parsed['الحساب_مدين'] || parsed.debit_account_code || '';
+    let creditAccountCode = parsed['الحساب_الدائن'] || parsed['الحساب_دائن'] || parsed.credit_account_code || '';
 
     // Try to match by name if the AI returned a name instead of a code
     const resolveAccountCode = (nameOrCode: string): string => {
