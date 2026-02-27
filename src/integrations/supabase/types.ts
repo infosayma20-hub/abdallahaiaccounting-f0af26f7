@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      accounts: {
+        Row: {
+          account_code: string
+          account_name: string
+          account_type: string
+          created_at: string
+          id: string
+          is_active: boolean | null
+          is_system: boolean | null
+          notes: string | null
+          parent_code: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_code: string
+          account_name: string
+          account_type?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          is_system?: boolean | null
+          notes?: string | null
+          parent_code?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_code?: string
+          account_name?: string
+          account_type?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          is_system?: boolean | null
+          notes?: string | null
+          parent_code?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       asset_categories: {
         Row: {
           accumulated_depreciation_account_code: string | null
@@ -949,6 +991,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      contacts: {
+        Row: {
+          address: string | null
+          contact_name: string
+          contact_type: string
+          created_at: string
+          email: string | null
+          id: string
+          is_active: boolean | null
+          linked_account_code: string | null
+          notes: string | null
+          phone: string | null
+          tax_number: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          address?: string | null
+          contact_name: string
+          contact_type?: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_active?: boolean | null
+          linked_account_code?: string | null
+          notes?: string | null
+          phone?: string | null
+          tax_number?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          address?: string | null
+          contact_name?: string
+          contact_type?: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_active?: boolean | null
+          linked_account_code?: string | null
+          notes?: string | null
+          phone?: string | null
+          tax_number?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       correction_requests: {
         Row: {
@@ -2287,6 +2377,71 @@ export type Database = {
             columns: ["ticket_id"]
             isOneToOne: false
             referencedRelation: "support_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transactions: {
+        Row: {
+          amount: number
+          contact_id: string | null
+          created_at: string
+          credit_account_code: string
+          currency: string
+          debit_account_code: string
+          description: string
+          id: string
+          is_deleted: boolean | null
+          is_opening_balance: boolean | null
+          notes: string | null
+          reference: string | null
+          transaction_date: string
+          transaction_type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          contact_id?: string | null
+          created_at?: string
+          credit_account_code: string
+          currency?: string
+          debit_account_code: string
+          description: string
+          id?: string
+          is_deleted?: boolean | null
+          is_opening_balance?: boolean | null
+          notes?: string | null
+          reference?: string | null
+          transaction_date?: string
+          transaction_type?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          contact_id?: string | null
+          created_at?: string
+          credit_account_code?: string
+          currency?: string
+          debit_account_code?: string
+          description?: string
+          id?: string
+          is_deleted?: boolean | null
+          is_opening_balance?: boolean | null
+          notes?: string | null
+          reference?: string | null
+          transaction_date?: string
+          transaction_type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transactions_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
             referencedColumns: ["id"]
           },
         ]
