@@ -885,6 +885,7 @@ export type Database = {
           id: string
           image_url: string | null
           linked_account: string | null
+          linked_transaction_id: string | null
           notes: string | null
           party_name: string
           party_type: string
@@ -903,6 +904,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           linked_account?: string | null
+          linked_transaction_id?: string | null
           notes?: string | null
           party_name: string
           party_type?: string
@@ -921,6 +923,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           linked_account?: string | null
+          linked_transaction_id?: string | null
           notes?: string | null
           party_name?: string
           party_type?: string
@@ -1462,6 +1465,7 @@ export type Database = {
           employee_id: string
           id: string
           is_paid: boolean
+          linked_transaction_id: string | null
           net_salary: number
           notes: string | null
           paid_date: string | null
@@ -1478,6 +1482,7 @@ export type Database = {
           employee_id: string
           id?: string
           is_paid?: boolean
+          linked_transaction_id?: string | null
           net_salary?: number
           notes?: string | null
           paid_date?: string | null
@@ -1494,6 +1499,7 @@ export type Database = {
           employee_id?: string
           id?: string
           is_paid?: boolean
+          linked_transaction_id?: string | null
           net_salary?: number
           notes?: string | null
           paid_date?: string | null
@@ -2383,6 +2389,8 @@ export type Database = {
       }
       transactions: {
         Row: {
+          account_id_credit: string | null
+          account_id_debit: string | null
           amount: number
           contact_id: string | null
           created_at: string
@@ -2391,9 +2399,11 @@ export type Database = {
           debit_account_code: string
           description: string
           id: string
+          idempotency_key: string | null
           is_deleted: boolean | null
           is_opening_balance: boolean | null
           notes: string | null
+          payment_method: string | null
           reference: string | null
           transaction_date: string
           transaction_type: string
@@ -2401,6 +2411,8 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          account_id_credit?: string | null
+          account_id_debit?: string | null
           amount?: number
           contact_id?: string | null
           created_at?: string
@@ -2409,9 +2421,11 @@ export type Database = {
           debit_account_code: string
           description: string
           id?: string
+          idempotency_key?: string | null
           is_deleted?: boolean | null
           is_opening_balance?: boolean | null
           notes?: string | null
+          payment_method?: string | null
           reference?: string | null
           transaction_date?: string
           transaction_type?: string
@@ -2419,6 +2433,8 @@ export type Database = {
           user_id: string
         }
         Update: {
+          account_id_credit?: string | null
+          account_id_debit?: string | null
           amount?: number
           contact_id?: string | null
           created_at?: string
@@ -2427,9 +2443,11 @@ export type Database = {
           debit_account_code?: string
           description?: string
           id?: string
+          idempotency_key?: string | null
           is_deleted?: boolean | null
           is_opening_balance?: boolean | null
           notes?: string | null
+          payment_method?: string | null
           reference?: string | null
           transaction_date?: string
           transaction_type?: string
