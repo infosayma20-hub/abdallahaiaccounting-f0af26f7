@@ -264,6 +264,14 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
       {/* Bottom */}
       <div className="border-t border-sidebar-border/50 py-3 px-3 space-y-0.5">
         <button
+          onClick={() => handleNavigate("/apps")}
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-all"
+          title={collapsed ? "التطبيقات" : undefined}
+        >
+          <LayoutGrid className="h-5 w-5 text-primary" strokeWidth={1.8} />
+          {!collapsed && <span className="flex-1 text-right truncate">التطبيقات</span>}
+        </button>
+        <button
           onClick={() => handleNavigate("/settings")}
           className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-all"
           title={collapsed ? "الإعدادات" : undefined}
