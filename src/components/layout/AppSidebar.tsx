@@ -104,6 +104,13 @@ const navSections: NavSection[] = [
       },
       { label: "الذكاء المالي", module: "ai", path: "/smart-report" },
       {
+        label: "الأصول الثابتة",
+        module: "accounting",
+        children: [
+          { label: "سجل الأصول", path: "/fixed-assets" },
+        ],
+      },
+      {
         label: "الموارد البشرية",
         module: "hr",
         children: [
