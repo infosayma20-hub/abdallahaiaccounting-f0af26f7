@@ -1,8 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
-import { getAuthHeaders } from "@/lib/edge-helpers";
 import { ArrowRight, Loader2, RefreshCw, Plus, ChevronDown, Search, Wallet, TrendingUp, TrendingDown, Scale, DollarSign, Building2, Landmark, CreditCard, Package, Users, Receipt } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -15,32 +13,20 @@ import { useToast } from "@/hooks/use-toast";
 
 interface Account {
   id: string;
-  fields: {
-    "Account Name"?: string;
-    "Account Type"?: string;
-  };
+  account_code: string;
+  account_name: string;
+  account_type: string;
+  is_system: boolean | null;
 }
 
-// Parse account code and name from "1110 - الصندوق" format
-function parseAccount(name: string): { code: string; label: string; codeNum: number } {
-  const match = name.match(/^(\d{4})\s*[-–]\s*(.+)/);
-  if (match) return { code: match[1], label: match[2].trim(), codeNum: parseInt(match[1]) };
-  return { code: "", label: name, codeNum: 99999 };
-}
-
-// Determine hierarchy level from code: 1000=cat, 1100=group, 1110=leaf
 function getLevel(code: string): number {
   if (!code) return 2;
-  if (code.endsWith("00") && code[2] === "0") return 0; // e.g., 1000
-  if (code.endsWith("00")) return 1; // e.g., 1100
-  return 2; // e.g., 1110
+  if (code.endsWith("00") && code[2] === "0") return 0;
+  if (code.endsWith("00")) return 1;
+  return 2;
 }
 
-// Subcategory grouping by code prefix
-interface SubCategory {
-  label: string;
-  prefixes: string[]; // first 2 digits
-}
+interface SubCategory { label: string; prefixes: string[]; }
 
 const subCategories: Record<string, SubCategory[]> = {
   "Asset": [
@@ -59,15 +45,6 @@ const subCategories: Record<string, SubCategory[]> = {
     { label: "مصاريف أخرى", prefixes: ["58", "59"] },
   ],
 };
-
-// Get parent group code: 1110 → 1100, 1100 → 1000
-function getParentCode(code: string): string {
-  if (!code || code.length < 4) return "";
-  const level = getLevel(code);
-  if (level === 2) return code.substring(0, 2) + "00"; // 1110 → 1100
-  if (level === 1) return code[0] + "000"; // 1100 → 1000
-  return "";
-}
 
 const categoryConfig: Record<string, { icon: typeof Wallet; color: string; bgColor: string; label: string }> = {
   "Asset": { icon: Wallet, color: "text-blue-600 dark:text-blue-400", bgColor: "bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800", label: "الأصول" },
@@ -89,12 +66,6 @@ const accountTypeOptions = [
 
 const typeOrder = ["Asset", "Liability", "Owner's Equity", "Equity", "Revenue", "Purchases", "Expenses"];
 
-// System accounts that cannot be deleted
-// System accounts that cannot be deleted (used internally for protection)
-const systemAccountCodes = [
-  "1110", "1120", "1130", "1140", "2110", "3100", "3200", "3400", "4100", "5100",
-];
-
 const AccountsPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -115,14 +86,9 @@ const AccountsPage = () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-accounts?clientId=${user.id}`,
-        { headers: await getAuthHeaders() }
-      );
-      if (!res.ok) throw new Error("Failed to fetch accounts");
-      const data = await res.json();
-      if (data?.error) throw new Error(data.error);
-      setAccounts(data?.records || []);
+      const { data, error } = await supabase.from('accounts').select('*').eq('user_id', user.id).order('account_code');
+      if (error) throw error;
+      setAccounts(data || []);
     } catch (err: any) {
       setError(err.message || "خطأ في جلب البيانات");
     } finally {
@@ -134,7 +100,7 @@ const AccountsPage = () => {
 
   useEffect(() => {
     if (accounts.length > 0) {
-      const types = [...new Set(accounts.map(a => a.fields["Account Type"]).filter(Boolean))] as string[];
+      const types = [...new Set(accounts.map(a => a.account_type).filter(Boolean))];
       const initial: Record<string, boolean> = {};
       types.forEach(t => { initial[t] = true; });
       setOpenSections(initial);
@@ -142,14 +108,21 @@ const AccountsPage = () => {
   }, [accounts]);
 
   const handleAddAccount = async () => {
-    if (!newAccountName.trim() || !newAccountType) return;
+    if (!newAccountName.trim() || !newAccountType || !user) return;
     setAdding(true);
     try {
-      const { data, error: fnError } = await supabase.functions.invoke("airtable-create-account", {
-        body: { accountName: newAccountName.trim(), accountType: newAccountType, clientId: user?.id },
+      // Parse code from name like "5910 - مصروف جديد"
+      const match = newAccountName.match(/^(\d{4})\s*[-–]\s*(.+)/);
+      const code = match ? match[1] : newAccountName.substring(0, 4);
+      const name = match ? match[2].trim() : newAccountName;
+
+      const { error } = await supabase.from('accounts').insert({
+        user_id: user.id,
+        account_code: code,
+        account_name: name,
+        account_type: newAccountType,
       });
-      if (fnError) throw fnError;
-      if (data?.error) throw new Error(data.error);
+      if (error) throw error;
       toast({ title: "تم إضافة الحساب بنجاح ✅" });
       setNewAccountName("");
       setNewAccountType("");
@@ -162,64 +135,38 @@ const AccountsPage = () => {
     }
   };
 
-  // Sorted account types
   const accountTypes = useMemo(() => {
-    return [...new Set(accounts.map(a => a.fields["Account Type"]).filter(Boolean))]
-      .sort((a, b) => (typeOrder.indexOf(a!) === -1 ? 99 : typeOrder.indexOf(a!)) - (typeOrder.indexOf(b!) === -1 ? 99 : typeOrder.indexOf(b!)));
+    return [...new Set(accounts.map(a => a.account_type).filter(Boolean))]
+      .sort((a, b) => (typeOrder.indexOf(a) === -1 ? 99 : typeOrder.indexOf(a)) - (typeOrder.indexOf(b) === -1 ? 99 : typeOrder.indexOf(b)));
   }, [accounts]);
 
-  // Filter and search
   const filteredAccounts = useMemo(() => {
     return accounts.filter(a => {
-      const name = a.fields["Account Name"] || "";
-      const type = a.fields["Account Type"] || "";
-      if (typeFilter !== "all" && type !== typeFilter) return false;
+      if (typeFilter !== "all" && a.account_type !== typeFilter) return false;
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
-        if (!name.toLowerCase().includes(q)) return false;
+        if (!a.account_name.toLowerCase().includes(q) && !a.account_code.includes(q)) return false;
       }
       return true;
     });
   }, [accounts, searchQuery, typeFilter]);
 
-  // Group by type
   const groupedAccounts = useMemo(() => {
     const grouped: Record<string, Account[]> = {};
     accountTypes.forEach(type => {
-      const typeAccounts = filteredAccounts
-        .filter(a => a.fields["Account Type"] === type)
-        .sort((a, b) => {
-          const pa = parseAccount(a.fields["Account Name"] || "");
-          const pb = parseAccount(b.fields["Account Name"] || "");
-          return pa.codeNum - pb.codeNum;
-        });
-      grouped[type!] = typeAccounts;
+      grouped[type] = filteredAccounts.filter(a => a.account_type === type).sort((a, b) => a.account_code.localeCompare(b.account_code));
     });
     return grouped;
   }, [filteredAccounts, accountTypes]);
 
-  const totalFiltered = filteredAccounts.length;
-
   const renderAccountRow = (acc: Account) => {
-    const { code, label } = parseAccount(acc.fields["Account Name"] || "");
-    const level = getLevel(code);
+    const level = getLevel(acc.account_code);
     const isGroup = level < 2;
-
     return (
-      <div
-        key={acc.id}
-        className={`flex items-center justify-between rounded-lg px-3 py-2.5 transition-all duration-150 hover:bg-muted/50 ${isGroup ? "bg-muted/20" : ""}`}
-        style={{ paddingRight: level === 2 ? "20px" : level === 1 ? "12px" : "4px" }}
-      >
+      <div key={acc.id} className={`flex items-center justify-between rounded-lg px-3 py-2.5 transition-all duration-150 hover:bg-muted/50 ${isGroup ? "bg-muted/20" : ""}`} style={{ paddingRight: level === 2 ? "20px" : level === 1 ? "12px" : "4px" }}>
         <div className="flex items-center gap-2.5 min-w-0">
-          {code && (
-            <span className="text-[11px] font-mono font-bold text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded shrink-0">
-              {code}
-            </span>
-          )}
-          <span className={`text-sm truncate ${isGroup ? "font-bold text-foreground" : "font-medium text-foreground"}`}>
-            {label}
-          </span>
+          <span className="text-[11px] font-mono font-bold text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded shrink-0">{acc.account_code}</span>
+          <span className={`text-sm truncate ${isGroup ? "font-bold text-foreground" : "font-medium text-foreground"}`}>{acc.account_name}</span>
         </div>
       </div>
     );
@@ -227,90 +174,58 @@ const AccountsPage = () => {
 
   return (
     <div className="px-4 pt-6 space-y-4 pb-8" dir="rtl">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate("/")} className="p-2 rounded-xl hover:bg-muted transition-colors">
-            <ArrowRight className="h-5 w-5 text-foreground" />
-          </button>
+          <button onClick={() => navigate("/")} className="p-2 rounded-xl hover:bg-muted transition-colors"><ArrowRight className="h-5 w-5 text-foreground" /></button>
           <div>
             <h1 className="text-lg font-bold text-foreground">شجرة الحسابات</h1>
-            <p className="text-xs text-muted-foreground">{totalFiltered} حساب</p>
+            <p className="text-xs text-muted-foreground">{filteredAccounts.length} حساب</p>
           </div>
         </div>
         <div className="flex items-center gap-1">
-          <Button variant="ghost" size="icon" onClick={() => setShowAddDialog(true)}>
-            <Plus className="h-4 w-4" />
-          </Button>
-          <Button variant="ghost" size="icon" onClick={fetchAccounts} disabled={loading}>
-            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-          </Button>
+          <Button variant="ghost" size="icon" onClick={() => setShowAddDialog(true)}><Plus className="h-4 w-4" /></Button>
+          <Button variant="ghost" size="icon" onClick={fetchAccounts} disabled={loading}><RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} /></Button>
         </div>
       </div>
 
-      {/* Search & Filter Bar */}
       {!loading && !error && accounts.length > 0 && (
         <div className="flex items-center gap-2">
           <div className="relative flex-1">
             <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="ابحث بالكود أو الاسم..."
-              className="pr-9 rounded-xl text-sm"
-              dir="rtl"
-            />
+            <Input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="ابحث بالكود أو الاسم..." className="pr-9 rounded-xl text-sm" dir="rtl" />
           </div>
           <Select value={typeFilter} onValueChange={setTypeFilter} dir="rtl">
-            <SelectTrigger className="w-[130px] rounded-xl text-xs">
-              <SelectValue placeholder="الكل" />
-            </SelectTrigger>
+            <SelectTrigger className="w-[130px] rounded-xl text-xs"><SelectValue placeholder="الكل" /></SelectTrigger>
             <SelectContent className="bg-background z-50">
               <SelectItem value="all">جميع الأنواع</SelectItem>
-              {accountTypeOptions.map(opt => (
-                <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-              ))}
+              {accountTypeOptions.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
       )}
 
-      {loading && (
-        <div className="flex items-center justify-center py-16">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      )}
-
+      {loading && <div className="flex items-center justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}
       {error && (
-        <Card className="border-destructive/30 bg-destructive/5">
-          <CardContent className="p-4 text-center">
-            <p className="text-sm text-destructive">{error}</p>
-            <Button variant="outline" size="sm" className="mt-2" onClick={fetchAccounts}>إعادة المحاولة</Button>
-          </CardContent>
-        </Card>
+        <Card className="border-destructive/30 bg-destructive/5"><CardContent className="p-4 text-center">
+          <p className="text-sm text-destructive">{error}</p>
+          <Button variant="outline" size="sm" className="mt-2" onClick={fetchAccounts}>إعادة المحاولة</Button>
+        </CardContent></Card>
       )}
 
       {!loading && !error && (
         <div className="space-y-3">
           {accountTypes.map((type) => {
-            const typeAccounts = groupedAccounts[type!] || [];
+            const typeAccounts = groupedAccounts[type] || [];
             if ((searchQuery || typeFilter !== "all") && typeAccounts.length === 0) return null;
-            const isOpen = openSections[type!] ?? true;
-            const config = categoryConfig[type!] || categoryConfig["Expenses"];
+            const isOpen = openSections[type] ?? true;
+            const config = categoryConfig[type] || categoryConfig["Expenses"];
             const Icon = config.icon;
-
             return (
-              <Collapsible
-                key={type}
-                open={isOpen}
-                onOpenChange={(open) => setOpenSections(prev => ({ ...prev, [type!]: open }))}
-              >
+              <Collapsible key={type} open={isOpen} onOpenChange={(open) => setOpenSections(prev => ({ ...prev, [type]: open }))}>
                 <CollapsibleTrigger className="w-full">
                   <div className={`flex items-center justify-between px-3.5 py-3 rounded-xl border transition-colors ${config.bgColor}`}>
                     <div className="flex items-center gap-2.5">
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${config.color} bg-white/60 dark:bg-black/20`}>
-                        <Icon className="h-4 w-4" />
-                      </div>
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${config.color} bg-white/60 dark:bg-black/20`}><Icon className="h-4 w-4" /></div>
                       <span className={`text-sm font-bold ${config.color}`}>{config.label}</span>
                       <span className="text-xs text-muted-foreground font-medium">({typeAccounts.length})</span>
                     </div>
@@ -320,15 +235,10 @@ const AccountsPage = () => {
                 <CollapsibleContent className="overflow-hidden data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up">
                   <div className="space-y-1 mt-1.5 mr-4 border-r-2 border-border/50 pr-3">
                     {(() => {
-                      const subs = subCategories[type!];
+                      const subs = subCategories[type];
                       if (subs) {
-                        // Group accounts by subcategory
                         return subs.map((sub) => {
-                          const subAccounts = typeAccounts.filter((acc) => {
-                            const { code } = parseAccount(acc.fields["Account Name"] || "");
-                            const prefix = code.substring(0, 2);
-                            return sub.prefixes.includes(prefix);
-                          });
+                          const subAccounts = typeAccounts.filter((acc) => sub.prefixes.includes(acc.account_code.substring(0, 2)));
                           if (subAccounts.length === 0) return null;
                           return (
                             <div key={sub.label} className="mb-2">
@@ -337,24 +247,18 @@ const AccountsPage = () => {
                                 <span className="text-[10px] font-bold text-muted-foreground/70 uppercase tracking-wide shrink-0">{sub.label}</span>
                                 <div className="h-px flex-1 bg-border/40" />
                               </div>
-                              {subAccounts.map((acc) => renderAccountRow(acc))}
+                              {subAccounts.map(renderAccountRow)}
                             </div>
                           );
                         });
                       }
-                      // No subcategories — render flat
-                      return typeAccounts.map((acc) => renderAccountRow(acc));
+                      return typeAccounts.map(renderAccountRow);
                     })()}
-                    {/* Accounts without matching subcategory */}
                     {(() => {
-                      const subs = subCategories[type!];
+                      const subs = subCategories[type];
                       if (!subs) return null;
                       const allPrefixes = subs.flatMap(s => s.prefixes);
-                      const unmatched = typeAccounts.filter((acc) => {
-                        const { code } = parseAccount(acc.fields["Account Name"] || "");
-                        const prefix = code.substring(0, 2);
-                        return !allPrefixes.includes(prefix) && code;
-                      });
+                      const unmatched = typeAccounts.filter(acc => !allPrefixes.includes(acc.account_code.substring(0, 2)));
                       if (unmatched.length === 0) return null;
                       return (
                         <div className="mb-2">
@@ -363,7 +267,7 @@ const AccountsPage = () => {
                             <span className="text-[10px] font-bold text-muted-foreground/70 uppercase tracking-wide shrink-0">أخرى</span>
                             <div className="h-px flex-1 bg-border/40" />
                           </div>
-                          {unmatched.map((acc) => renderAccountRow(acc))}
+                          {unmatched.map(renderAccountRow)}
                         </div>
                       );
                     })()}
@@ -375,23 +279,19 @@ const AccountsPage = () => {
         </div>
       )}
 
-      {/* Add Account Dialog */}
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
         <DialogContent className="max-w-sm" dir="rtl">
-          <DialogHeader>
-            <DialogTitle>إضافة حساب جديد</DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>إضافة حساب جديد</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <Input placeholder="اسم الحساب (مثال: 5910 - مصروف جديد)" value={newAccountName} onChange={(e) => setNewAccountName(e.target.value)} dir="rtl" />
             <Select value={newAccountType} onValueChange={setNewAccountType} dir="rtl">
               <SelectTrigger><SelectValue placeholder="نوع الحساب" /></SelectTrigger>
               <SelectContent className="bg-background z-50">
-                {accountTypeOptions.map((opt) => (<SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>))}
+                {accountTypeOptions.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
               </SelectContent>
             </Select>
-            <Button onClick={handleAddAccount} className="w-full gap-2 rounded-xl" disabled={adding || !newAccountName.trim() || !newAccountType}>
-              {adding && <Loader2 className="h-4 w-4 animate-spin" />}
-              إضافة
+            <Button onClick={handleAddAccount} disabled={adding || !newAccountName.trim() || !newAccountType} className="w-full rounded-xl">
+              {adding ? <Loader2 className="h-4 w-4 animate-spin" /> : "إضافة"}
             </Button>
           </div>
         </DialogContent>
