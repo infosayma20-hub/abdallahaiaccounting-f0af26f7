@@ -27,7 +27,10 @@ export default function RoleGuard({ children, allowedRoles, fallback = "/" }: Pr
         .eq("user_id", user.id);
 
       const userRoles = (data || []).map((r) => r.role);
-      const allowed = allowedRoles.some((role) => userRoles.includes(role));
+      
+      // If user has no roles assigned, treat as admin (business owner)
+      const effectiveRoles = userRoles.length === 0 ? ["admin"] : userRoles;
+      const allowed = allowedRoles.some((role) => effectiveRoles.includes(role));
       setHasAccess(allowed);
       setChecking(false);
     };
