@@ -2715,6 +2715,59 @@ export type Database = {
     }
     Functions: {
       cleanup_expired_webauthn_challenges: { Args: never; Returns: undefined }
+      create_invoice_with_entry: {
+        Args: {
+          p_amount: number
+          p_contact_id: string
+          p_contact_name: string
+          p_currency?: string
+          p_description: string
+          p_idempotency_key?: string
+          p_items?: Json
+          p_payment_method?: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      create_payment_with_entry: {
+        Args: {
+          p_amount: number
+          p_contact_id: string
+          p_contact_name: string
+          p_currency?: string
+          p_description?: string
+          p_idempotency_key?: string
+          p_payment_method?: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      create_purchase_with_entry: {
+        Args: {
+          p_amount: number
+          p_contact_id: string
+          p_contact_name: string
+          p_currency?: string
+          p_description: string
+          p_idempotency_key?: string
+          p_payment_method?: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      create_receipt_with_entry: {
+        Args: {
+          p_amount: number
+          p_contact_id: string
+          p_contact_name: string
+          p_currency?: string
+          p_description?: string
+          p_idempotency_key?: string
+          p_payment_method?: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       get_exchange_rate: {
         Args: { p_currency_code: string; p_date?: string; p_rate_type?: string }
         Returns: number
