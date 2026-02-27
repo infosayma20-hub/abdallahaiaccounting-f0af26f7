@@ -41,6 +41,7 @@ import BranchDisplayPage from "./pages/BranchDisplayPage";
 import EmployeeApp from "./pages/EmployeeApp";
 import RoleGuard from "./components/RoleGuard";
 import VoucherPage from "./pages/VoucherPage";
+import AppsLauncher from "./pages/AppsLauncher";
 
 const queryClient = new QueryClient();
 
@@ -51,10 +52,17 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+const AppsRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user, loading } = useAuth();
+  if (loading) return <LoadingScreen />;
+  if (!user) return <Navigate to="/auth" replace />;
+  return <>{children}</>;
+};
+
 const AuthRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
   if (loading) return <LoadingScreen />;
-  if (user) return <Navigate to="/" replace />;
+  if (user) return <Navigate to="/apps" replace />;
   return <>{children}</>;
 };
 
@@ -73,6 +81,7 @@ const App = () => (
               <Route path="/privacy" element={<PrivacyPage />} />
               <Route path="/branch-display/:branchId" element={<BranchDisplayPage />} />
               <Route path="/employee" element={<ProtectedRoute><RoleGuard allowedRoles={["employee"]} fallback="/auth"><EmployeeApp /></RoleGuard></ProtectedRoute>} />
+              <Route path="/apps" element={<AppsRoute><AppsLauncher /></AppsRoute>} />
               <Route path="/*" element={
                 <ProtectedRoute>
                   <WebLayout>
