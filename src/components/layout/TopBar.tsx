@@ -1,6 +1,5 @@
-import { useState, useEffect, useRef, useCallback } from "react";
-import { getAuthHeaders } from "@/lib/edge-helpers";
-import { Search, Bell, Settings, HelpCircle, LogOut, User, Menu, Sun, Moon, FileText, Wallet, Users, X, Loader2 } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Search, Bell, Settings, HelpCircle, LogOut, User, Menu, Sun, Moon, FileText, Wallet, Users, X } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/hooks/useTheme";
 import { useNavigate } from "react-router-dom";
@@ -62,119 +61,86 @@ const GlobalSearchBar = ({ collapsed, onToggle }: { collapsed: boolean; onToggle
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [showResults, setShowResults] = useState(false);
-  const [cachedTx, setCachedTx] = useState<any[]>([]);
-  const [cachedAccounts, setCachedAccounts] = useState<any[]>([]);
-  const [cachedContacts, setCachedContacts] = useState<any[]>([]);
-  const [dataLoaded, setDataLoaded] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 
-  // Load data once on first focus
-  const loadData = useCallback(async () => {
-    if (dataLoaded || !user) return;
-    setLoading(true);
-    try {
-      const headers = await getAuthHeaders();
-      const [txRes, accRes, contactsRes] = await Promise.all([
-        fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-transactions?clientId=${user.id}`, {
-          headers,
-        }),
-        fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-accounts?clientId=${user.id}`, {
-          headers,
-        }),
-        fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-contacts?clientId=${user.id}`, {
-          headers,
-        }),
-      ]);
-      const [txData, accData, contactsData] = await Promise.all([
-        txRes.ok ? txRes.json() : { records: [] },
-        accRes.ok ? accRes.json() : { records: [] },
-        contactsRes.ok ? contactsRes.json() : { records: [] },
-      ]);
-      setCachedTx(txData?.records || []);
-      setCachedAccounts(accData?.records || []);
-      setCachedContacts(contactsData?.records || []);
-      setDataLoaded(true);
-    } catch {
-      // silent fail
-    } finally {
-      setLoading(false);
-    }
-  }, [user, dataLoaded]);
-
-  // Search locally
+  // Search Supabase directly with user_id filter
   useEffect(() => {
-    if (!query.trim() || !dataLoaded) {
+    if (!query.trim() || !user) {
       setResults([]);
       return;
     }
 
-    const q = query.toLowerCase().trim();
-    const found: SearchResult[] = [];
+    clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(async () => {
+      setLoading(true);
+      const q = query.trim();
+      const found: SearchResult[] = [];
 
-    // Search transactions
-    for (const tx of cachedTx) {
-      if (found.length >= 20) break;
-      const f = tx.fields || {};
-      if (f.Deleted) continue;
-      const searchable = [
-        f.Description || "",
-        f["Debit Account Name"] || "",
-        f["Credit Account Name"] || "",
-        f["Transaction Type"] || "",
-        f.Reference || "",
-        f.Date || "",
-        String(f.Amount || ""),
-      ].join(" ").toLowerCase();
+      try {
+        const [txRes, accRes, contactsRes] = await Promise.all([
+          supabase.from('transactions')
+            .select('id, description, transaction_date, amount, transaction_type, reference, debit_account_code, credit_account_code')
+            .eq('user_id', user.id)
+            .or(`description.ilike.%${q}%,reference.ilike.%${q}%,transaction_type.ilike.%${q}%`)
+            .order('transaction_date', { ascending: false })
+            .limit(8),
+          supabase.from('accounts')
+            .select('id, account_name, account_code, account_type')
+            .eq('user_id', user.id)
+            .or(`account_name.ilike.%${q}%,account_code.ilike.%${q}%,account_type.ilike.%${q}%`)
+            .limit(8),
+          supabase.from('contacts')
+            .select('id, contact_name, contact_type, phone')
+            .eq('user_id', user.id)
+            .or(`contact_name.ilike.%${q}%,phone.ilike.%${q}%`)
+            .limit(8),
+        ]);
 
-      if (searchable.includes(q)) {
-        found.push({
-          id: tx.id,
-          type: "transaction",
-          title: f.Description || f["Transaction Type"] || "معاملة",
-          subtitle: `${f.Date || ""} • ₪${(f.Amount || 0).toLocaleString()} • ${f["Transaction Type"] || ""}`,
-          path: "/transactions",
-          icon: FileText,
+        // Map transactions
+        (txRes.data || []).forEach(tx => {
+          found.push({
+            id: tx.id,
+            type: "transaction",
+            title: tx.description || tx.transaction_type || "معاملة",
+            subtitle: `${tx.transaction_date || ""} • ₪${(tx.amount || 0).toLocaleString()} • ${tx.transaction_type || ""}`,
+            path: `/transactions?search=${encodeURIComponent(tx.description || tx.reference || "")}`,
+            icon: FileText,
+          });
         });
-      }
-    }
 
-    // Search accounts
-    for (const acc of cachedAccounts) {
-      if (found.length >= 25) break;
-      const name = acc.fields?.["Account Name"] || "";
-      const type = acc.fields?.["Account Type"] || "";
-      if (name.toLowerCase().includes(q) || type.toLowerCase().includes(q)) {
-        found.push({
-          id: acc.id,
-          type: "account",
-          title: name,
-          subtitle: type,
-          path: "/accounts",
-          icon: Wallet,
+        // Map accounts
+        (accRes.data || []).forEach(acc => {
+          found.push({
+            id: acc.id,
+            type: "account",
+            title: `${acc.account_code} - ${acc.account_name}`,
+            subtitle: acc.account_type,
+            path: `/accounts?search=${encodeURIComponent(acc.account_name)}`,
+            icon: Wallet,
+          });
         });
-      }
-    }
 
-    // Search contacts
-    for (const c of cachedContacts) {
-      if (found.length >= 30) break;
-      const name = c.fields?.["Contact Name"] || c.fields?.["Name"] || "";
-      const type = c.fields?.["Type"] || "";
-      const phone = c.fields?.["Phone"] || "";
-      const searchable = [name, type, phone].join(" ").toLowerCase();
-      if (searchable.includes(q)) {
-        found.push({
-          id: c.id,
-          type: "contact",
-          title: name,
-          subtitle: type === "Supplier" ? "مورد" : type === "Customer" ? "زبون" : type,
-          path: "/contacts",
-          icon: Users,
+        // Map contacts
+        (contactsRes.data || []).forEach(c => {
+          found.push({
+            id: c.id,
+            type: "contact",
+            title: c.contact_name,
+            subtitle: c.contact_type || "",
+            path: `/contacts?search=${encodeURIComponent(c.contact_name)}`,
+            icon: Users,
+          });
         });
+      } catch {
+        // silent
       }
-    }
 
-    setResults(found);
-  }, [query, dataLoaded, cachedTx, cachedAccounts, cachedContacts]);
+      setResults(found);
+      setLoading(false);
+    }, 300);
+
+    return () => clearTimeout(debounceRef.current);
+  }, [query, user]);
 
   // Close on click outside
   useEffect(() => {
@@ -187,18 +153,11 @@ const GlobalSearchBar = ({ collapsed, onToggle }: { collapsed: boolean; onToggle
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  const handleFocus = () => {
-    setShowResults(true);
-    loadData();
-  };
-
   const handleSelect = (result: SearchResult) => {
     setShowResults(false);
-    const searchTerm = result.title;
     setQuery("");
     if (result.path) {
-      const separator = result.path.includes("?") ? "&" : "?";
-      navigate(`${result.path}${separator}search=${encodeURIComponent(searchTerm)}`);
+      navigate(result.path);
     }
   };
 
@@ -218,7 +177,6 @@ const GlobalSearchBar = ({ collapsed, onToggle }: { collapsed: boolean; onToggle
     contact: "bg-accent text-accent-foreground",
   };
 
-  // Group results by type
   const grouped = results.reduce<Record<string, SearchResult[]>>((acc, r) => {
     (acc[r.type] = acc[r.type] || []).push(r);
     return acc;
@@ -227,7 +185,11 @@ const GlobalSearchBar = ({ collapsed, onToggle }: { collapsed: boolean; onToggle
   return (
     <div ref={containerRef} className="relative w-full max-w-[560px]">
       <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 pointer-events-none z-10" strokeWidth={2} />
-      {loading && <Loader2 className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-primary animate-spin z-10" />}
+      {loading && (
+        <div className="absolute left-3.5 top-1/2 -translate-y-1/2 z-10">
+          <div className="h-4 w-4 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
+        </div>
+      )}
       {query && !loading && (
         <button
           onClick={() => { setQuery(""); setResults([]); }}
@@ -241,7 +203,7 @@ const GlobalSearchBar = ({ collapsed, onToggle }: { collapsed: boolean; onToggle
         type="text"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        onFocus={handleFocus}
+        onFocus={() => setShowResults(true)}
         placeholder="ابحث عن معاملة، عميل، مورد، حساب..."
         className={cn(
           "w-full h-10 pr-10 pl-10 rounded-full",
@@ -260,6 +222,11 @@ const GlobalSearchBar = ({ collapsed, onToggle }: { collapsed: boolean; onToggle
             <div className="py-8 text-center">
               <Search className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
               <p className="text-sm text-muted-foreground">لا توجد نتائج لـ "{query}"</p>
+            </div>
+          ) : loading && results.length === 0 ? (
+            <div className="py-8 text-center">
+              <div className="h-6 w-6 rounded-full border-2 border-primary/30 border-t-primary animate-spin mx-auto mb-2" />
+              <p className="text-sm text-muted-foreground">جارٍ البحث...</p>
             </div>
           ) : (
             Object.entries(grouped).map(([type, items]) => (
