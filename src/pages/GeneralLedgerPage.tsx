@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo } from "react";
-import { getAuthHeaders } from "@/lib/edge-helpers";
 import {
   ArrowRight, Loader2, RefreshCw, Search, BookOpen, FileSpreadsheet,
 } from "lucide-react";
@@ -11,29 +10,10 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-
-interface Transaction {
-  id: string;
-  fields: {
-    Description?: string;
-    "Debit Account Name"?: string;
-    "Credit Account Name"?: string;
-    "Transaction Type"?: string;
-    Amount?: number;
-    Currency?: string;
-    Date?: string;
-    Deleted?: boolean;
-  };
-}
-
-interface Account {
-  id: string;
-  fields: {
-    "Account Name"?: string;
-    "Account Code"?: string;
-    "Account Type"?: string;
-  };
-}
+import {
+  fetchTransactions, fetchAccounts, buildAccountMap, getAccountNameOnly,
+  SupabaseTransaction, SupabaseAccount,
+} from "@/lib/supabase-data";
 
 interface LedgerRow {
   date: string;
@@ -48,8 +28,8 @@ const GeneralLedgerPage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [transactions, setTransactions] = useState<SupabaseTransaction[]>([]);
+  const [accounts, setAccounts] = useState<SupabaseAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [companyName, setCompanyName] = useState("");
 
@@ -57,30 +37,21 @@ const GeneralLedgerPage = () => {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
 
+  const accountMap = useMemo(() => buildAccountMap(accounts), [accounts]);
+
   const fetchData = async () => {
     if (!user) return;
     setLoading(true);
     try {
-      const [txRes, accRes, profileRes] = await Promise.all([
-        fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-transactions?clientId=${user.id}`, {
-          headers: await getAuthHeaders(),
-        }),
-        fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-accounts?clientId=${user.id}`, {
-          headers: await getAuthHeaders(),
-        }),
+      const [txData, accData, profileRes] = await Promise.all([
+        fetchTransactions(user.id),
+        fetchAccounts(user.id),
         supabase.from("profiles").select("display_name, company_name").eq("user_id", user.id).maybeSingle(),
       ]);
-      if (!txRes.ok) throw new Error("Failed to fetch transactions");
-      const txData = await txRes.json();
-      setTransactions(txData?.records || []);
-      if (accRes.ok) {
-        const accData = await accRes.json();
-        setAccounts(accData?.records || []);
-        // Auto-select first account if none selected
-        if (!selectedAccount && accData?.records?.length > 0) {
-          const firstName = accData.records[0]?.fields?.["Account Name"];
-          if (firstName) setSelectedAccount(firstName);
-        }
+      setTransactions(txData);
+      setAccounts(accData);
+      if (!selectedAccount && accData.length > 0) {
+        setSelectedAccount(accData[0].account_name);
       }
       if (profileRes.data) {
         setCompanyName(profileRes.data.company_name || profileRes.data.display_name || "");
@@ -96,10 +67,7 @@ const GeneralLedgerPage = () => {
 
   // Account names sorted
   const accountNames = useMemo(() =>
-    accounts
-      .map(a => a.fields["Account Name"] || "")
-      .filter(Boolean)
-      .sort(),
+    accounts.map(a => a.account_name).filter(Boolean).sort(),
     [accounts]
   );
 
@@ -107,11 +75,15 @@ const GeneralLedgerPage = () => {
   const { rows, openingBalance } = useMemo(() => {
     if (!selectedAccount) return { rows: [], openingBalance: 0 };
 
-    const filtered = transactions.filter(tx => !tx.fields.Deleted);
+    // Find the account code for the selected account name
+    const selectedAcc = accounts.find(a => a.account_name === selectedAccount);
+    const selectedCode = selectedAcc?.account_code || "";
+
+    const filtered = transactions.filter(tx => !tx.is_deleted);
 
     // Sort by date
     const sorted = [...filtered].sort((a, b) =>
-      (a.fields.Date || "").localeCompare(b.fields.Date || "")
+      (a.transaction_date || "").localeCompare(b.transaction_date || "")
     );
 
     // Calculate opening balance (before dateFrom)
@@ -119,15 +91,13 @@ const GeneralLedgerPage = () => {
     const ledgerTx: { date: string; description: string; debit: number; credit: number }[] = [];
 
     for (const tx of sorted) {
-      const amount = tx.fields.Amount || 0;
-      const debitNames = (tx.fields["Debit Account Name"] || "").split(", ");
-      const creditNames = (tx.fields["Credit Account Name"] || "").split(", ");
-      const isDebit = debitNames.includes(selectedAccount);
-      const isCredit = creditNames.includes(selectedAccount);
+      const amount = tx.amount || 0;
+      const isDebit = tx.debit_account_code === selectedCode;
+      const isCredit = tx.credit_account_code === selectedCode;
 
       if (!isDebit && !isCredit) continue;
 
-      const txDate = tx.fields.Date || "";
+      const txDate = tx.transaction_date || "";
 
       // Before period → opening balance
       if (dateFrom && txDate < dateFrom) {
@@ -141,7 +111,7 @@ const GeneralLedgerPage = () => {
 
       ledgerTx.push({
         date: txDate,
-        description: tx.fields.Description || tx.fields["Transaction Type"] || "—",
+        description: tx.description || tx.transaction_type || "—",
         debit: isDebit ? amount : 0,
         credit: isCredit ? amount : 0,
       });
@@ -155,7 +125,7 @@ const GeneralLedgerPage = () => {
     });
 
     return { rows, openingBalance: openBal };
-  }, [transactions, selectedAccount, dateFrom, dateTo]);
+  }, [transactions, accounts, selectedAccount, dateFrom, dateTo]);
 
   const totalDebit = rows.reduce((s, r) => s + r.debit, 0);
   const totalCredit = rows.reduce((s, r) => s + r.credit, 0);

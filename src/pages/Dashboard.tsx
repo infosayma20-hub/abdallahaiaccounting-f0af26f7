@@ -113,30 +113,51 @@ const Dashboard = () => {
   }, [user]);
 
   useEffect(() => {
-    const ensureAirtableClient = async () => {
-      if (!user || localStorage.getItem(`airtable_synced_${user.id}`)) return;
-      try {
-        await supabase.functions.invoke("airtable-create-client", {
-          body: { clientName: user.id, contactEmail: user.email || "", phoneNumber: user.user_metadata?.phone || "", companyName: user.user_metadata?.company_name || "", address: user.user_metadata?.address || "", country: user.user_metadata?.country || "", workField: user.user_metadata?.work_field || "" },
-        });
-        localStorage.setItem(`airtable_synced_${user.id}`, "true");
-      } catch (err) { console.error("Failed to sync user to Airtable:", err); }
-    };
-    ensureAirtableClient();
-  }, [user]);
-
-  useEffect(() => {
     if (!user) return;
     const fetchTx = async () => {
       setLoadingTx(true);
       try {
-        const res = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-transactions?clientId=${user.id}`,
-          { headers: await getAuthHeaders() }
-        );
-        if (!res.ok) throw new Error("Failed to fetch transactions");
-        const result = await res.json();
-        setTransactions(result.records || []);
+        const { data, error } = await supabase
+          .from("transactions")
+          .select("id, transaction_date, description, transaction_type, debit_account_code, credit_account_code, amount, currency, is_deleted")
+          .eq("user_id", user.id)
+          .order("transaction_date", { ascending: false })
+          .limit(2000);
+        if (error) throw error;
+        
+        // Fetch accounts to map types
+        const { data: accts } = await supabase
+          .from("accounts")
+          .select("account_code, account_type")
+          .eq("user_id", user.id);
+        
+        const typeMap: Record<string, string> = {};
+        (accts || []).forEach((a: any) => { typeMap[a.account_code] = a.account_type; });
+        
+        const normalizeType = (t: string) => {
+          const tl = t?.toLowerCase().trim() || "";
+          if (["asset", "أصول", "أصل"].includes(tl)) return "Asset";
+          if (["liability", "التزامات", "التزام", "خصوم"].includes(tl)) return "Liability";
+          if (["equity", "owner's equity", "حقوق ملكية", "حقوق الملكية", "رأس مال"].includes(tl)) return "Equity";
+          if (["revenue", "إيرادات", "إيراد", "دخل"].includes(tl)) return "Revenue";
+          if (["expenses", "expense", "مصروفات", "مصروف", "المصروفات"].includes(tl)) return "Expenses";
+          return t;
+        };
+        
+        // Convert to legacy TransactionRecord format for compatibility
+        const records: TransactionRecord[] = (data || []).filter((tx: any) => !tx.is_deleted).map((tx: any) => ({
+          id: tx.id,
+          fields: {
+            Amount: tx.amount,
+            Currency: tx.currency,
+            "Transaction Type": tx.transaction_type,
+            "Debit Account Rollup": normalizeType(typeMap[tx.debit_account_code] || ""),
+            "Credit Account Rollup": normalizeType(typeMap[tx.credit_account_code] || ""),
+            Description: tx.description,
+            Date: tx.transaction_date,
+          },
+        }));
+        setTransactions(records);
       } catch (err) { console.error("Error fetching transactions:", err); }
       finally { setLoadingTx(false); }
     };
@@ -145,10 +166,9 @@ const Dashboard = () => {
 
   const revenue = transactions.filter((tx) => tx.fields["Debit Account Rollup"] === "Asset" && tx.fields["Credit Account Rollup"] === "Revenue").reduce((sum, tx) => sum + (tx.fields.Amount || 0), 0);
   const expenses = transactions.filter((tx) => tx.fields["Debit Account Rollup"] === "Expenses").reduce((sum, tx) => sum + (tx.fields.Amount || 0), 0);
-  const totalIncome = transactions.filter((tx) => tx.fields["Transaction Type"] === "سند قبض").reduce((sum, tx) => sum + (tx.fields.Amount || 0), 0);
-  const totalOutcome = transactions.filter((tx) => tx.fields["Transaction Type"] === "سند صرف").reduce((sum, tx) => sum + (tx.fields.Amount || 0), 0);
-  // Cash balance: includes capital/equity injections (debit to asset, credit to equity)
-  const capitalInjections = transactions.filter((tx) => tx.fields["Debit Account Rollup"] === "Asset" && tx.fields["Credit Account Rollup"] === "Owner's Equity").reduce((sum, tx) => sum + (tx.fields.Amount || 0), 0);
+  const totalIncome = transactions.filter((tx) => tx.fields["Transaction Type"] === "سند قبض" || tx.fields["Transaction Type"] === "receipt").reduce((sum, tx) => sum + (tx.fields.Amount || 0), 0);
+  const totalOutcome = transactions.filter((tx) => tx.fields["Transaction Type"] === "سند صرف" || tx.fields["Transaction Type"] === "payment").reduce((sum, tx) => sum + (tx.fields.Amount || 0), 0);
+  const capitalInjections = transactions.filter((tx) => tx.fields["Debit Account Rollup"] === "Asset" && tx.fields["Credit Account Rollup"] === "Equity").reduce((sum, tx) => sum + (tx.fields.Amount || 0), 0);
   const cashBalance = totalIncome - totalOutcome + capitalInjections;
   const netProfit = revenue - expenses;
   const receivables = transactions.filter((tx) => tx.fields["Debit Account Rollup"] === "Asset" && tx.fields["Credit Account Rollup"] === "Revenue").reduce((sum, tx) => sum + (tx.fields.Amount || 0), 0);

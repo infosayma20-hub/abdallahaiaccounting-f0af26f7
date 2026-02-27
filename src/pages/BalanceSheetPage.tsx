@@ -1,20 +1,13 @@
 import { useState, useEffect, useMemo } from "react";
-import { getAuthHeaders } from "@/lib/edge-helpers";
 import { Loader2, Landmark } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { ReportHeader, ReportSummary, exportToExcel, exportToPDF } from "@/components/ReportComponents";
-
-interface AccountRecord {
-  id: string;
-  fields: {
-    "Account Name"?: string;
-    "Account Code"?: string;
-    "Account Type"?: string;
-    "Balance"?: number;
-  };
-}
+import {
+  fetchTransactions, fetchAccounts, buildAccountMap, normalizeAccountType,
+  SupabaseTransaction, SupabaseAccount,
+} from "@/lib/supabase-data";
 
 interface CategoryGroup {
   title: string;
@@ -38,7 +31,8 @@ const getSubcategory = (code: string, type: string): string => {
 const BalanceSheetPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [accounts, setAccounts] = useState<AccountRecord[]>([]);
+  const [transactions, setTransactions] = useState<SupabaseTransaction[]>([]);
+  const [accounts, setAccounts] = useState<SupabaseAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [companyName, setCompanyName] = useState("");
 
@@ -53,18 +47,34 @@ const BalanceSheetPage = () => {
     const load = async () => {
       setLoading(true);
       try {
-        const res = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-accounts?clientId=${user.id}`,
-          { headers: await getAuthHeaders() }
-        );
-        if (!res.ok) throw new Error("Failed");
-        const data = await res.json();
-        setAccounts(data?.records || []);
+        const [txData, accData] = await Promise.all([
+          fetchTransactions(user.id),
+          fetchAccounts(user.id),
+        ]);
+        setTransactions(txData);
+        setAccounts(accData);
       } catch { /* silent */ }
       setLoading(false);
     };
     load();
   }, [user]);
+
+  const accountMap = useMemo(() => buildAccountMap(accounts), [accounts]);
+
+  // Calculate balance per account from transactions
+  const accountBalances = useMemo(() => {
+    const balances: Record<string, number> = {};
+    transactions.filter(tx => !tx.is_deleted).forEach(tx => {
+      const amount = tx.amount || 0;
+      if (tx.debit_account_code) {
+        balances[tx.debit_account_code] = (balances[tx.debit_account_code] || 0) + amount;
+      }
+      if (tx.credit_account_code) {
+        balances[tx.credit_account_code] = (balances[tx.credit_account_code] || 0) - amount;
+      }
+    });
+    return balances;
+  }, [transactions]);
 
   const { assetGroups, liabilityGroups, equityGroups, totalAssets, totalLiabilities, totalEquity } = useMemo(() => {
     const assets: Record<string, CategoryGroup> = {};
@@ -73,11 +83,10 @@ const BalanceSheetPage = () => {
     let tAssets = 0, tLiab = 0, tEquity = 0;
 
     accounts.forEach(acc => {
-      const f = acc.fields;
-      const name = f["Account Name"] || "";
-      const code = f["Account Code"] || "0";
-      const type = f["Account Type"] || "";
-      const balance = f["Balance"] || 0;
+      const name = acc.account_name || "";
+      const code = acc.account_code || "0";
+      const type = normalizeAccountType(acc.account_type || "");
+      const balance = accountBalances[code] || 0;
       if (balance === 0) return;
 
       const sub = getSubcategory(code, type);
