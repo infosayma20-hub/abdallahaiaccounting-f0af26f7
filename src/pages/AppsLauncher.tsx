@@ -173,12 +173,8 @@ const AppsLauncher = () => {
               onClick={() => navigate(app.path)}
               className="relative flex items-center gap-4 p-5 rounded-2xl border border-border/60 bg-card hover:shadow-lg hover:border-border hover:-translate-y-0.5 transition-all duration-200 text-right group"
             >
-              {/* New Badge */}
-              {app.isNew && (
-                <span className="absolute top-2.5 left-2.5 text-[10px] font-bold px-2 py-0.5 rounded-full bg-gradient-to-l from-primary to-teal-500 text-primary-foreground">
-                  جديد 🆕
-                </span>
-              )}
+
+
 
               <div className={`p-3 rounded-xl ${app.bgColor} transition-transform group-hover:scale-110`}>
                 <app.icon className={`h-6 w-6 ${app.color}`} />
