@@ -18,6 +18,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { UserPlus } from "lucide-react";
 
 type ChequeStatus = 'مسجل' | 'آجل' | 'مستحق' | 'مودع' | 'محصل' | 'مرتجع' | 'ملغي';
 type ChequeType = 'وارد' | 'صادر';
@@ -106,6 +108,10 @@ const ChequesPage = () => {
   const [statusHistory, setStatusHistory] = useState<Record<string, StatusHistory[]>>({});
   const [deleteTarget, setDeleteTarget] = useState<Cheque | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [contacts, setContacts] = useState<{ id: string; contact_name: string; contact_type: string }[]>([]);
+  const [partySearch, setPartySearch] = useState("");
+  const [partyPopoverOpen, setPartyPopoverOpen] = useState(false);
+  const [quickAddingContact, setQuickAddingContact] = useState(false);
   const [newCheque, setNewCheque] = useState({
     cheque_type: 'وارد' as ChequeType,
     cheque_number: '',
@@ -117,6 +123,35 @@ const ChequesPage = () => {
     party_type: 'عميل',
     notes: '',
   });
+
+  const fetchContacts = async () => {
+    if (!user) return;
+    const { data } = await supabase.from('contacts').select('id, contact_name, contact_type').eq('user_id', user.id).eq('is_active', true);
+    setContacts(data || []);
+  };
+
+  const handleQuickAddContact = async (name: string) => {
+    if (!user || !name.trim()) return;
+    setQuickAddingContact(true);
+    try {
+      const contactType = newCheque.cheque_type === 'وارد' ? 'عميل' : 'مورد';
+      const { error } = await supabase.from('contacts').insert({
+        user_id: user.id,
+        contact_name: name.trim(),
+        contact_type: contactType,
+      });
+      if (error) throw error;
+      toast.success(`تم إضافة "${name.trim()}" كـ${contactType} جديد`);
+      setNewCheque(p => ({ ...p, party_name: name.trim() }));
+      setPartySearch(name.trim());
+      setPartyPopoverOpen(false);
+      fetchContacts();
+    } catch {
+      toast.error("خطأ في إضافة جهة الاتصال");
+    } finally {
+      setQuickAddingContact(false);
+    }
+  };
 
   const fetchCheques = async () => {
     if (!user) return;
@@ -134,7 +169,7 @@ const ChequesPage = () => {
     setLoading(false);
   };
 
-  useEffect(() => { fetchCheques(); }, [user]);
+  useEffect(() => { fetchCheques(); fetchContacts(); }, [user]);
 
   const fetchHistory = async (chequeId: string) => {
     if (statusHistory[chequeId]) return;
@@ -175,6 +210,7 @@ const ChequesPage = () => {
       toast.success(`تم تسجيل شيك ${newCheque.cheque_type} بنجاح`);
       setAddOpen(false);
       setNewCheque({ cheque_type: 'وارد', cheque_number: '', bank_name: '', cheque_date: '', amount: '', currency: 'شيكل', party_name: '', party_type: 'عميل', notes: '' });
+      setPartySearch('');
       fetchCheques();
     } catch (err: any) {
       toast.error("خطأ في حفظ الشيك");
@@ -322,7 +358,60 @@ const ChequesPage = () => {
               </div>
               <div>
                 <Label className="text-xs">اسم {newCheque.cheque_type === 'وارد' ? 'العميل' : 'المورد'} *</Label>
-                <Input className="h-9 rounded-xl" value={newCheque.party_name} onChange={e => setNewCheque(p => ({ ...p, party_name: e.target.value }))} placeholder="الاسم" />
+                <Popover open={partyPopoverOpen} onOpenChange={setPartyPopoverOpen}>
+                  <PopoverTrigger asChild>
+                    <Input 
+                      className="h-9 rounded-xl" 
+                      value={partySearch} 
+                      onChange={e => {
+                        setPartySearch(e.target.value);
+                        setNewCheque(p => ({ ...p, party_name: e.target.value }));
+                        setPartyPopoverOpen(true);
+                      }}
+                      onFocus={() => setPartyPopoverOpen(true)}
+                      placeholder={`ابحث أو أضف ${newCheque.cheque_type === 'وارد' ? 'عميل' : 'مورد'}`}
+                    />
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[--radix-popover-trigger-width] p-1 rounded-xl max-h-48 overflow-y-auto" align="start" sideOffset={4}>
+                    {(() => {
+                      const targetType = newCheque.cheque_type === 'وارد' ? 'عميل' : 'مورد';
+                      const filtered = contacts
+                        .filter(c => c.contact_type === targetType || c.contact_type === 'كلاهما')
+                        .filter(c => !partySearch || c.contact_name.toLowerCase().includes(partySearch.toLowerCase()));
+                      const exactMatch = contacts.some(c => c.contact_name === partySearch.trim());
+                      return (
+                        <>
+                          {filtered.length > 0 ? filtered.map(c => (
+                            <button
+                              key={c.id}
+                              className="w-full text-right px-3 py-2 text-sm rounded-lg hover:bg-muted transition-colors flex items-center gap-2"
+                              onClick={() => {
+                                setNewCheque(p => ({ ...p, party_name: c.contact_name }));
+                                setPartySearch(c.contact_name);
+                                setPartyPopoverOpen(false);
+                              }}
+                            >
+                              <User className="h-3.5 w-3.5 text-muted-foreground" />
+                              {c.contact_name}
+                            </button>
+                          )) : (
+                            <p className="text-xs text-muted-foreground text-center py-2">لا توجد نتائج</p>
+                          )}
+                          {partySearch.trim() && !exactMatch && (
+                            <button
+                              className="w-full text-right px-3 py-2 text-sm rounded-lg hover:bg-primary/10 transition-colors flex items-center gap-2 text-primary font-medium border-t border-border mt-1 pt-2"
+                              onClick={() => handleQuickAddContact(partySearch)}
+                              disabled={quickAddingContact}
+                            >
+                              <UserPlus className="h-3.5 w-3.5" />
+                              إضافة "{partySearch.trim()}" كـ{targetType} جديد
+                            </button>
+                          )}
+                        </>
+                      );
+                    })()}
+                  </PopoverContent>
+                </Popover>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
