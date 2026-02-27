@@ -156,7 +156,7 @@ const SmartAccountantPage = () => {
         body.mentionedContactName = contactMention.name;
         body.mentionedContactId = contactMention.id;
       }
-      const { error } = await supabase.functions.invoke("send-transaction", { body });
+      const { error } = await supabase.functions.invoke("process-transaction", { body });
       if (error) throw error;
       txToast.trigger();
       setInputValue("");
