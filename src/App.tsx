@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { ThemeProvider } from "@/hooks/useTheme";
 import WebLayout from "./components/layout/WebLayout";
 import HomeDashboard from "./pages/HomeDashboard";
+import SmartAccountantPage from "./pages/SmartAccountantPage";
 import MenuPage from "./pages/MenuPage";
 import VoiceInput from "./pages/VoiceInput";
 import ProfitLoss from "./pages/ProfitLoss";
@@ -90,6 +91,7 @@ const App = () => (
                   <WebLayout>
                     <Routes>
                       <Route path="/" element={<HomeDashboard />} />
+                      <Route path="/smart-accountant" element={<SmartAccountantPage />} />
                       <Route path="/menu" element={<MenuPage />} />
                       <Route path="/voice" element={<VoiceInput />} />
                       <Route path="/profit-loss" element={<ProfitLoss />} />
