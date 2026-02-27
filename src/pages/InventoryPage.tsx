@@ -37,6 +37,15 @@ interface StockMovement {
 const DEFAULT_CATEGORIES = ["بضاعة عامة", "مواد خام", "مواد تعبئة", "قطع غيار", "أخرى"];
 const DEFAULT_UNITS = ["قطعة", "كيلو", "لتر", "متر", "علبة", "كرتونة", "طن"];
 
+// Category code prefixes for auto-SKU
+const CATEGORY_PREFIXES: Record<string, string> = {
+  "بضاعة عامة": "GEN",
+  "مواد خام": "RAW",
+  "مواد تعبئة": "PKG",
+  "قطع غيار": "SPR",
+  "أخرى": "OTH",
+};
+
 const InventoryPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -65,7 +74,7 @@ const InventoryPage = () => {
   const [form, setForm] = useState({
     name: "",
     category: "بضاعة عامة",
-    sku: "",
+    skuPrefix: "GEN",
     buy_price: "",
     sell_price: "",
     quantity: "",
@@ -73,6 +82,20 @@ const InventoryPage = () => {
     unit: "قطعة",
     notes: "",
   });
+
+  // Generate auto SKU based on prefix + next sequential number
+  const generateSKU = (prefix: string) => {
+    const existingWithPrefix = products.filter(p => p.sku?.startsWith(prefix + "-"));
+    const maxNum = existingWithPrefix.reduce((max, p) => {
+      const num = parseInt(p.sku?.split("-")[1] || "0");
+      return num > max ? num : max;
+    }, 0);
+    return `${prefix}-${String(maxNum + 1).padStart(4, "0")}`;
+  };
+
+  const getCategoryPrefix = (category: string): string => {
+    return CATEGORY_PREFIXES[category] || category.substring(0, 3).toUpperCase();
+  };
 
   const fetchProducts = async () => {
     if (!user) return;
@@ -97,16 +120,17 @@ const InventoryPage = () => {
   }, [user]);
 
   const resetForm = () => {
-    setForm({ name: "", category: "بضاعة عامة", sku: "", buy_price: "", sell_price: "", quantity: "", min_quantity: "", unit: "قطعة", notes: "" });
+    setForm({ name: "", category: "بضاعة عامة", skuPrefix: "GEN", buy_price: "", sell_price: "", quantity: "", min_quantity: "", unit: "قطعة", notes: "" });
     setEditMode(false);
     setSelectedProduct(null);
   };
 
   const openEdit = (product: Product) => {
+    const prefix = product.sku?.split("-")[0] || getCategoryPrefix(product.category);
     setForm({
       name: product.name,
       category: product.category,
-      sku: product.sku || "",
+      skuPrefix: prefix,
       buy_price: String(product.buy_price),
       sell_price: String(product.sell_price),
       quantity: String(product.quantity),
@@ -126,11 +150,15 @@ const InventoryPage = () => {
     }
     setSaving(true);
 
+    const autoSKU = editMode && selectedProduct?.sku 
+      ? selectedProduct.sku 
+      : generateSKU(form.skuPrefix);
+
     const payload = {
       user_id: user.id,
       name: form.name.trim(),
       category: form.category as any,
-      sku: form.sku.trim() || null,
+      sku: autoSKU,
       buy_price: parseFloat(form.buy_price) || 0,
       sell_price: parseFloat(form.sell_price) || 0,
       quantity: parseFloat(form.quantity) || 0,
@@ -372,7 +400,8 @@ const InventoryPage = () => {
                       className="rounded-xl px-3"
                       disabled={!customCategoryInput.trim()}
                       onClick={() => {
-                        setForm(p => ({ ...p, category: customCategoryInput.trim() }));
+                        const cat = customCategoryInput.trim();
+                        setForm(p => ({ ...p, category: cat, skuPrefix: getCategoryPrefix(cat) }));
                         setShowCustomCategory(false);
                         setCustomCategoryInput("");
                       }}
@@ -392,7 +421,7 @@ const InventoryPage = () => {
                 ) : (
                   <Select value={form.category} onValueChange={v => {
                     if (v === "__custom__") { setShowCustomCategory(true); return; }
-                    setForm(p => ({ ...p, category: v }));
+                    setForm(p => ({ ...p, category: v, skuPrefix: getCategoryPrefix(v) }));
                   }}>
                     <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
                     <SelectContent>
@@ -456,8 +485,21 @@ const InventoryPage = () => {
             </div>
 
             <div>
-              <label className="text-xs text-muted-foreground mb-1 block">كود المنتج (SKU)</label>
-              <Input placeholder="اختياري" value={form.sku} onChange={e => setForm(p => ({ ...p, sku: e.target.value }))} className="rounded-xl" dir="ltr" />
+              <label className="text-xs text-muted-foreground mb-1 block">كود المنتج (SKU) - تلقائي</label>
+              <div className="flex gap-2">
+                <Input 
+                  placeholder="العائلة" 
+                  value={form.skuPrefix} 
+                  onChange={e => setForm(p => ({ ...p, skuPrefix: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").substring(0, 5) }))} 
+                  className="rounded-xl w-24 text-center font-mono" 
+                  dir="ltr" 
+                  maxLength={5}
+                />
+                <div className="flex-1 h-9 rounded-xl bg-muted/50 border border-border/50 flex items-center px-3 text-sm text-muted-foreground font-mono" dir="ltr">
+                  {editMode && selectedProduct?.sku ? selectedProduct.sku : generateSKU(form.skuPrefix)}
+                </div>
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-1">غيّر العائلة (مثل GEN, RAW, PKG) للتحكم بأنواع المخزون</p>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
