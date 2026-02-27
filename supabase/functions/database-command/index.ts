@@ -77,6 +77,31 @@ serve(async (req) => {
     // Input sanitization: limit command length to prevent prompt injection
     const sanitizedCommand = command.trim().slice(0, 500);
 
+    // SECURITY: Detect common prompt injection patterns
+    const injectionPatterns = [
+      /ignore\s+(all\s+)?(previous|above|prior)\s+(instructions|prompts|rules)/i,
+      /you\s+are\s+now\s+a/i,
+      /forget\s+(your|all)\s+(instructions|rules|prompts)/i,
+      /system\s*:\s*/i,
+      /\[\s*INST\s*\]/i,
+      /\<\s*\/?system\s*\>/i,
+      /override\s+(security|permissions|access)/i,
+      /execute\s+sql/i,
+      /drop\s+table/i,
+      /delete\s+from/i,
+      /alter\s+table/i,
+      /grant\s+/i,
+    ];
+    
+    const hasInjection = injectionPatterns.some(p => p.test(sanitizedCommand));
+    if (hasInjection) {
+      return new Response(JSON.stringify({
+        success: false,
+        message: 'أمر غير صالح. يرجى إدخال أمر محاسبي واضح.',
+        action: 'unknown',
+      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
     // Validate clientId matches authenticated user
     if (clientId && !isValidUUID(clientId)) {
       return new Response(JSON.stringify({ error: 'Invalid clientId format' }), {

@@ -1569,6 +1569,7 @@ export type Database = {
       }
     }
     Functions: {
+      cleanup_expired_webauthn_challenges: { Args: never; Returns: undefined }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
