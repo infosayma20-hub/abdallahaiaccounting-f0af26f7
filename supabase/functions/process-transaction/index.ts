@@ -67,6 +67,8 @@ serve(async (req) => {
     else if (/شيك/.test(lowerText)) paymentHint = 'شيك: استخدم شيكات أو أوراق قبض/دفع';
     else if (/تحويل|بنك/.test(lowerText)) paymentHint = 'تحويل: استخدم البنك';
 
+    const today = new Date().toISOString().split('T')[0];
+
     // Call AI to parse the transaction
     const systemPrompt = `أنت محاسب محترف. حلّل النص التالي واستخرج بيانات المعاملة المالية.
 
@@ -87,9 +89,11 @@ ${contactName ? `جهة الاتصال المذكورة: "${contactName}" - اس
   "transaction_type": "سند صرف|سند قبض|قيد يومية|فاتورة مشتريات|فاتورة مبيعات|رصيد ابتدائي",
   "debit_account_code": "كود الحساب المدين",
   "credit_account_code": "كود الحساب الدائن",
-  "transaction_date": "YYYY-MM-DD",
+  "transaction_date": "${today}",
   "contact_name": "اسم جهة الاتصال إن وجدت أو null"
-}`;
+}
+
+ملاحظة مهمة: التاريخ الافتراضي هو ${today}. استخدم هذا التاريخ إذا لم يذكر المستخدم تاريخاً محدداً. يجب أن يكون التاريخ بصيغة YYYY-MM-DD (مثال: ${today}).`;
 
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -124,6 +128,12 @@ ${contactName ? `جهة الاتصال المذكورة: "${contactName}" - اس
     } catch {
       console.error('Failed to parse AI response:', aiContent);
       throw new Error('فشل في تحليل رد الذكاء الاصطناعي');
+    }
+
+    // Validate and fix transaction_date
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!parsed.transaction_date || !dateRegex.test(parsed.transaction_date)) {
+      parsed.transaction_date = today;
     }
 
     // Resolve contact ID
