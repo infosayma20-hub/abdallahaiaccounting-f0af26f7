@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { getAuthHeadersJson } from "@/lib/edge-helpers";
 import { useLocation, useNavigate } from "react-router-dom";
 import { MessageCircle, X, Send, VolumeX, Volume2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
@@ -141,7 +142,7 @@ const AIAssistantWidget = () => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            Authorization: (await getAuthHeadersJson()).Authorization,
           },
           body: JSON.stringify({ messages: allMessages, currentPage: location.pathname, userName }),
         }

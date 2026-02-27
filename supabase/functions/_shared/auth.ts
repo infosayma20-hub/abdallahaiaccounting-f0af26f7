@@ -14,13 +14,20 @@ export async function authenticateRequest(req: Request): Promise<{ userId: strin
     });
   }
 
+  const token = authHeader.replace('Bearer ', '');
+
+  // Use service role key for server-side JWT validation
   const supabaseAuth = createClient(
     Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_ANON_KEY')!,
-    { global: { headers: { Authorization: authHeader } } }
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+    {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    }
   );
 
-  const token = authHeader.replace('Bearer ', '');
   const { data: { user }, error } = await supabaseAuth.auth.getUser(token);
   if (error || !user) {
     return new Response(JSON.stringify({ error: 'Invalid token' }), {

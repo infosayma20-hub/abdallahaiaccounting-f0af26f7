@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { getAuthHeadersJson } from "@/lib/edge-helpers";
 import { Loader2, Send, Sparkles } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
@@ -78,7 +79,7 @@ const SmartReportPage = () => {
         {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            ...await getAuthHeadersJson(),
             "Content-Type": "application/json",
           },
           body: JSON.stringify({ question: finalQ, clientId: user?.id }),

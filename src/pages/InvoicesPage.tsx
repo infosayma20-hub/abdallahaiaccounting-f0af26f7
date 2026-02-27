@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
+import { getAuthHeaders, getAuthHeadersJson } from "@/lib/edge-helpers";
 import { ArrowRight, Loader2, Plus, FileText, Printer, Search, ShoppingCart, Receipt, Package, Trash2, Save, Eye, AlertTriangle, CreditCard, Building2, Banknote, Clock, ChevronDown, X } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -126,7 +127,7 @@ const InvoicesPage = () => {
     try {
       const res = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-contacts?clientId=${user.id}`,
-        { headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` } }
+        { headers: await getAuthHeaders() }
       );
       const data = await res.json();
       setContacts(data?.records || []);
@@ -214,7 +215,7 @@ const InvoicesPage = () => {
     try {
       const res = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-contact-transactions?clientId=${user.id}&contactName=${encodeURIComponent(name)}`,
-        { headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` } }
+        { headers: await getAuthHeaders() }
       );
       const data = await res.json();
       const balance = data?.balance || 0;
@@ -249,7 +250,7 @@ const InvoicesPage = () => {
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-contacts?clientId=${user.id}`,
         {
           method: "POST",
-          headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`, "Content-Type": "application/json" },
+          headers: await getAuthHeadersJson(),
           body: JSON.stringify({ contactName: name, contactType: form.type === "sales" ? "عميل" : "مورد" }),
         }
       );

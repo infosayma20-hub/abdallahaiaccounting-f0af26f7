@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { getAuthHeaders, getAuthHeadersJson } from "@/lib/edge-helpers";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowRight, Loader2, RefreshCw, Plus, Search, X, FileText,
@@ -94,10 +95,10 @@ const VoucherPage = ({ voucherType }: VoucherPageProps) => {
     try {
       const [txRes, accRes] = await Promise.all([
         fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-transactions?clientId=${user.id}`, {
-          headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+          headers: await getAuthHeaders(),
         }),
         fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-accounts?clientId=${user.id}`, {
-          headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+          headers: await getAuthHeaders(),
         }),
       ]);
       if (!txRes.ok) throw new Error("Failed to fetch transactions");
@@ -162,7 +163,7 @@ const VoucherPage = ({ voucherType }: VoucherPageProps) => {
       const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-transaction`, {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          ...await getAuthHeaders(),
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -216,7 +217,7 @@ const VoucherPage = ({ voucherType }: VoucherPageProps) => {
     try {
       const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-update-transaction`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`, "Content-Type": "application/json" },
+        headers: await getAuthHeadersJson(),
         body: JSON.stringify({
           recordId: editingTx.id,
           fields: {
@@ -248,7 +249,7 @@ const VoucherPage = ({ voucherType }: VoucherPageProps) => {
     try {
       const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-update-transaction`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`, "Content-Type": "application/json" },
+        headers: await getAuthHeadersJson(),
         body: JSON.stringify({ recordId: editingTx.id, action: "delete" }),
       });
       const data = await res.json();
