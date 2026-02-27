@@ -152,7 +152,17 @@ status = "incomplete" مع missingFields
   "invoiceType": "sales" أو "purchase",
   "status": "incomplete",
   "missingFields": ["الكمية", "سعر الوحدة"],
-  "message": "تقريباً انتهينا 🙌\\nلكن أحتاج المعلومات التالية لإكمال العملية:",
+  "message": "تقريباً انتهينا 🙌\nلكن أحتاج المعلومات التالية لإكمال العملية:",
+
+ملاحظة مهمة جداً: يجب أن تكون أسماء الحقول في missingFields بالعربي دائماً. استخدم هذا التحويل:
+- contactName أو customerName أو supplierName → "اسم الجهة"
+- productName → "اسم المنتج"
+- quantity → "الكمية"
+- unitPrice → "سعر الوحدة"
+- paymentMethod → "طريقة الدفع"
+- amount → "المبلغ"
+- description → "الوصف"
+لا تستخدم أسماء إنجليزية أبداً في missingFields.
   "partialData": { الحقول المتوفرة }
 }
 
@@ -282,7 +292,14 @@ status = "incomplete" مع missingFields
           paymentMethod: parsed.paymentMethod || '',
           description: parsed.description || text,
         } : null,
-        missingFields: parsed.missingFields || [],
+        missingFields: (parsed.missingFields || []).map((f: string) => {
+          const fieldMap: Record<string, string> = {
+            'contactName': 'اسم الجهة', 'customerName': 'اسم الزبون', 'supplierName': 'اسم المورد',
+            'productName': 'اسم المنتج', 'quantity': 'الكمية', 'unitPrice': 'سعر الوحدة',
+            'paymentMethod': 'طريقة الدفع', 'amount': 'المبلغ', 'description': 'الوصف',
+          };
+          return fieldMap[f] || f;
+        }),
         message: parsed.status === 'complete'
           ? parsed.confirmationMessage
           : parsed.message,
