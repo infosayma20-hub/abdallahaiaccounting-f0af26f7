@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
-import { getAuthHeaders, getAuthHeadersJson } from "@/lib/edge-helpers";
 import {
-  ArrowRight, Loader2, RefreshCw, Pencil, Search, Calendar,
+  ArrowRight, Loader2, RefreshCw, Pencil, Search,
   FileText, ChevronLeft, ChevronRight, Filter, FileSpreadsheet,
 } from "lucide-react";
 import * as XLSX from "xlsx";
@@ -14,32 +13,57 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
-interface Transaction {
+interface TransactionRow {
   id: string;
-  fields: {
-    Description?: string;
-    "Debit Account"?: string | string[];
-    "Credit Account"?: string | string[];
-    "Debit Account Name"?: string;
-    "Credit Account Name"?: string;
-    "Debit Account Rollup"?: string;
-    "Credit Account Rollup"?: string;
-    "Transaction Type"?: string;
-    Amount?: number;
-    Currency?: string;
-    Date?: string;
-    Reference?: string;
-    Deleted?: boolean;
-  };
+  transaction_date: string | null;
+  description: string | null;
+  transaction_type: string | null;
+  debit_account_code: string | null;
+  credit_account_code: string | null;
+  amount: number;
+  currency: string | null;
+  reference: string | null;
+  payment_method: string | null;
+  is_deleted: boolean | null;
 }
 
-interface Account {
+interface AccountRow {
   id: string;
-  fields: {
-    "Account Name"?: string;
-    "Account Type"?: string;
-  };
+  account_name: string;
+  account_code: string;
+  account_type: string;
 }
+
+// Map English transaction types from RPCs to Arabic display labels
+const typeDisplayMap: Record<string, string> = {
+  "sale_cash": "فاتورة مبيعات",
+  "sale_bank": "فاتورة مبيعات",
+  "sale_cheque": "فاتورة مبيعات",
+  "sale_credit": "فاتورة مبيعات",
+  "purchase_cash": "فاتورة مشتريات",
+  "purchase_bank": "فاتورة مشتريات",
+  "purchase_cheque": "فاتورة مشتريات",
+  "purchase_credit": "فاتورة مشتريات",
+  "receipt": "سند قبض",
+  "payment": "سند صرف",
+  "salary": "راتب",
+  "cheque_collection": "تحصيل شيك",
+  "سند صرف": "سند صرف",
+  "سند قبض": "سند قبض",
+  "قيد يومية": "قيد يومية",
+  "فاتورة مشتريات": "فاتورة مشتريات",
+  "فاتورة مبيعات": "فاتورة مبيعات",
+};
+
+const typeStyle: Record<string, string> = {
+  "سند صرف": "bg-destructive/10 text-destructive",
+  "سند قبض": "bg-primary/10 text-primary",
+  "قيد يومية": "bg-warning/10 text-warning",
+  "فاتورة مشتريات": "bg-accent text-accent-foreground",
+  "فاتورة مبيعات": "bg-primary/10 text-primary",
+  "راتب": "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
+  "تحصيل شيك": "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+};
 
 const PAGE_SIZE = 20;
 
@@ -48,55 +72,62 @@ const JournalEntriesPage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [transactions, setTransactions] = useState<TransactionRow[]>([]);
+  const [accounts, setAccounts] = useState<AccountRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [profileData, setProfileData] = useState<any>(null);
+  const [companyName, setCompanyName] = useState("");
 
-  // Filters
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
-
-  // Pagination
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Edit dialog
-  const [editingTx, setEditingTx] = useState<Transaction | null>(null);
+  const [editingTx, setEditingTx] = useState<TransactionRow | null>(null);
   const [editFields, setEditFields] = useState({
-    Description: "",
-    "Transaction Type": "",
-    Amount: "",
-    Currency: "",
-    Date: "",
-    "Debit Account Name": "",
-    "Credit Account Name": "",
+    description: "",
+    transaction_type: "",
+    amount: "",
+    currency: "",
+    transaction_date: "",
+    debit_account_code: "",
+    credit_account_code: "",
   });
   const [saving, setSaving] = useState(false);
 
-  // Fetch data
+  // Build account code → name map
+  const accountMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    accounts.forEach(a => { map[a.account_code] = `${a.account_code} - ${a.account_name}`; });
+    return map;
+  }, [accounts]);
+
   const fetchData = async () => {
     if (!user) return;
     setLoading(true);
     try {
       const [txRes, accRes, profileRes] = await Promise.all([
-        fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-transactions?clientId=${user.id}`, {
-          headers: await getAuthHeaders(),
-        }),
-        fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-accounts?clientId=${user.id}`, {
-          headers: await getAuthHeaders(),
-        }),
-        supabase.from("profiles").select("display_name, company_name").eq("user_id", user.id).maybeSingle(),
+        supabase.from("transactions")
+          .select("id, transaction_date, description, transaction_type, debit_account_code, credit_account_code, amount, currency, reference, payment_method, is_deleted")
+          .eq("user_id", user.id)
+          .order("transaction_date", { ascending: false })
+          .limit(1000),
+        supabase.from("accounts")
+          .select("id, account_name, account_code, account_type")
+          .eq("user_id", user.id)
+          .order("account_code"),
+        supabase.from("profiles")
+          .select("display_name, company_name")
+          .eq("user_id", user.id)
+          .maybeSingle(),
       ]);
-      if (!txRes.ok) throw new Error("Failed to fetch");
-      const txData = await txRes.json();
-      setTransactions(txData?.records || []);
-      if (accRes.ok) {
-        const accData = await accRes.json();
-        setAccounts(accData?.records || []);
+
+      if (txRes.error) throw txRes.error;
+      setTransactions(txRes.data || []);
+      if (!accRes.error) setAccounts(accRes.data || []);
+      if (profileRes.data) {
+        setCompanyName(profileRes.data.company_name || profileRes.data.display_name || "");
       }
-      if (profileRes.data) setProfileData(profileRes.data);
     } catch (err: any) {
       toast({ title: "خطأ", description: err.message, variant: "destructive" });
     } finally {
@@ -106,78 +137,73 @@ const JournalEntriesPage = () => {
 
   useEffect(() => { fetchData(); }, [user]);
 
-  // Filtered & sorted entries
+  const getDisplayType = (type: string | null) => {
+    if (!type) return "—";
+    return typeDisplayMap[type] || type;
+  };
+
   const filtered = useMemo(() => {
-    let result = transactions.filter(tx => !tx.fields.Deleted);
+    let result = transactions.filter(tx => !tx.is_deleted);
 
-    // Date filter
-    if (dateFrom) result = result.filter(tx => (tx.fields.Date || "") >= dateFrom);
-    if (dateTo) result = result.filter(tx => (tx.fields.Date || "") <= dateTo);
+    if (dateFrom) result = result.filter(tx => (tx.transaction_date || "") >= dateFrom);
+    if (dateTo) result = result.filter(tx => (tx.transaction_date || "") <= dateTo);
 
-    // Type filter
-    if (typeFilter !== "all") result = result.filter(tx => tx.fields["Transaction Type"] === typeFilter);
+    if (typeFilter !== "all") {
+      result = result.filter(tx => getDisplayType(tx.transaction_type) === typeFilter);
+    }
 
-    // Search
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       result = result.filter(tx =>
-        (tx.fields.Description || "").toLowerCase().includes(q) ||
-        (tx.fields["Debit Account Name"] || "").toLowerCase().includes(q) ||
-        (tx.fields["Credit Account Name"] || "").toLowerCase().includes(q) ||
-        (tx.fields.Reference || "").toLowerCase().includes(q)
+        (tx.description || "").toLowerCase().includes(q) ||
+        (accountMap[tx.debit_account_code || ""] || "").toLowerCase().includes(q) ||
+        (accountMap[tx.credit_account_code || ""] || "").toLowerCase().includes(q) ||
+        (tx.reference || "").toLowerCase().includes(q)
       );
     }
 
-    // Sort by date descending
-    return result.sort((a, b) => (b.fields.Date || "").localeCompare(a.fields.Date || ""));
-  }, [transactions, dateFrom, dateTo, searchQuery, typeFilter]);
+    return result.sort((a, b) => (b.transaction_date || "").localeCompare(a.transaction_date || ""));
+  }, [transactions, dateFrom, dateTo, searchQuery, typeFilter, accountMap]);
 
-  // Pagination
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paginated = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   useEffect(() => { setCurrentPage(1); }, [dateFrom, dateTo, searchQuery, typeFilter]);
 
-  // Totals
-  const totalDebit = filtered.reduce((s, tx) => s + (tx.fields.Amount || 0), 0);
-  const totalCredit = totalDebit; // double-entry: debit always equals credit
+  const totalDebit = filtered.reduce((s, tx) => s + (tx.amount || 0), 0);
+  const totalCredit = totalDebit;
 
-  // Edit handlers
-  const openEdit = (tx: Transaction) => {
+  const openEdit = (tx: TransactionRow) => {
     setEditingTx(tx);
     setEditFields({
-      Description: tx.fields.Description || "",
-      "Transaction Type": tx.fields["Transaction Type"] || "",
-      Amount: String(tx.fields.Amount || ""),
-      Currency: tx.fields.Currency || "شيكل",
-      Date: tx.fields.Date || "",
-      "Debit Account Name": tx.fields["Debit Account Name"] || "",
-      "Credit Account Name": tx.fields["Credit Account Name"] || "",
+      description: tx.description || "",
+      transaction_type: tx.transaction_type || "",
+      amount: String(tx.amount || ""),
+      currency: tx.currency || "شيكل",
+      transaction_date: tx.transaction_date || "",
+      debit_account_code: tx.debit_account_code || "",
+      credit_account_code: tx.credit_account_code || "",
     });
   };
 
   const handleSave = async () => {
-    if (!editingTx) return;
+    if (!editingTx || !user) return;
     setSaving(true);
     try {
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-update-transaction`, {
-        method: "POST",
-        headers: await getAuthHeadersJson(),
-        body: JSON.stringify({
-          recordId: editingTx.id,
-          fields: {
-            Description: editFields.Description,
-            "Transaction Type": editFields["Transaction Type"],
-            Amount: Number(editFields.Amount),
-            Currency: editFields.Currency,
-            Date: editFields.Date,
-            "Debit Account Name": editFields["Debit Account Name"],
-            "Credit Account Name": editFields["Credit Account Name"],
-          },
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok || data.error) throw new Error(data.error || "فشل التحديث");
+      const { error } = await supabase.from("transactions")
+        .update({
+          description: editFields.description,
+          transaction_type: editFields.transaction_type,
+          amount: Number(editFields.amount),
+          currency: editFields.currency,
+          transaction_date: editFields.transaction_date,
+          debit_account_code: editFields.debit_account_code,
+          credit_account_code: editFields.credit_account_code,
+        })
+        .eq("id", editingTx.id)
+        .eq("user_id", user.id);
+
+      if (error) throw error;
       toast({ title: "✅ تم تعديل القيد بنجاح" });
       setEditingTx(null);
       fetchData();
@@ -188,17 +214,16 @@ const JournalEntriesPage = () => {
     }
   };
 
-  // Export Excel
   const handleExport = () => {
     const data = filtered.map(tx => ({
-      "التاريخ": tx.fields.Date || "",
-      "الوصف": tx.fields.Description || "",
-      "النوع": tx.fields["Transaction Type"] || "",
-      "الحساب المدين": tx.fields["Debit Account Name"] || "",
-      "الحساب الدائن": tx.fields["Credit Account Name"] || "",
-      "مدين": tx.fields.Amount || 0,
-      "دائن": tx.fields.Amount || 0,
-      "العملة": tx.fields.Currency || "شيكل",
+      "التاريخ": tx.transaction_date || "",
+      "الوصف": tx.description || "",
+      "النوع": getDisplayType(tx.transaction_type),
+      "الحساب المدين": accountMap[tx.debit_account_code || ""] || tx.debit_account_code || "",
+      "الحساب الدائن": accountMap[tx.credit_account_code || ""] || tx.credit_account_code || "",
+      "مدين": tx.amount || 0,
+      "دائن": tx.amount || 0,
+      "العملة": tx.currency || "شيكل",
     }));
     const ws = XLSX.utils.json_to_sheet(data);
     ws["!cols"] = [{ wch: 12 }, { wch: 30 }, { wch: 14 }, { wch: 22 }, { wch: 22 }, { wch: 14 }, { wch: 14 }, { wch: 10 }];
@@ -207,7 +232,6 @@ const JournalEntriesPage = () => {
     XLSX.writeFile(wb, `قيود_يومية_${dateFrom || "all"}_${dateTo || "all"}.xlsx`);
   };
 
-  const companyName = profileData?.company_name || profileData?.display_name || "الشركة";
   const dateRangeLabel = dateFrom && dateTo
     ? `${dateFrom} — ${dateTo}`
     : dateFrom ? `من ${dateFrom}` : dateTo ? `حتى ${dateTo}` : "جميع الفترات";
@@ -219,10 +243,12 @@ const JournalEntriesPage = () => {
     { value: "قيد يومية", label: "قيد يومية" },
     { value: "فاتورة مشتريات", label: "فاتورة مشتريات" },
     { value: "فاتورة مبيعات", label: "فاتورة مبيعات" },
+    { value: "راتب", label: "راتب" },
+    { value: "تحصيل شيك", label: "تحصيل شيك" },
   ];
 
-  const accountNames = useMemo(() =>
-    accounts.map(a => a.fields["Account Name"] || "").filter(Boolean).sort(),
+  const accountCodes = useMemo(() =>
+    accounts.map(a => ({ code: a.account_code, label: `${a.account_code} - ${a.account_name}` })).sort((a, b) => a.code.localeCompare(b.code)),
     [accounts]
   );
 
@@ -247,12 +273,10 @@ const JournalEntriesPage = () => {
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={fetchData} className="gap-1.5">
-            <RefreshCw className="h-3.5 w-3.5" />
-            تحديث
+            <RefreshCw className="h-3.5 w-3.5" /> تحديث
           </Button>
           <Button variant="outline" size="sm" onClick={handleExport} disabled={filtered.length === 0} className="gap-1.5">
-            <FileSpreadsheet className="h-3.5 w-3.5" />
-            تصدير Excel
+            <FileSpreadsheet className="h-3.5 w-3.5" /> تصدير Excel
           </Button>
         </div>
       </div>
@@ -288,21 +312,13 @@ const JournalEntriesPage = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <div className="space-y-1">
             <label className="text-[11px] text-muted-foreground">من تاريخ</label>
-            <Input
-              type="date"
-              value={dateFrom}
-              onChange={(e) => setDateFrom(e.target.value)}
-              className="h-9 rounded-lg bg-secondary/50 border-0 text-sm"
-            />
+            <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)}
+              className="h-9 rounded-lg bg-secondary/50 border-0 text-sm" />
           </div>
           <div className="space-y-1">
             <label className="text-[11px] text-muted-foreground">إلى تاريخ</label>
-            <Input
-              type="date"
-              value={dateTo}
-              onChange={(e) => setDateTo(e.target.value)}
-              className="h-9 rounded-lg bg-secondary/50 border-0 text-sm"
-            />
+            <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)}
+              className="h-9 rounded-lg bg-secondary/50 border-0 text-sm" />
           </div>
           <div className="space-y-1">
             <label className="text-[11px] text-muted-foreground">نوع العملية</label>
@@ -321,12 +337,9 @@ const JournalEntriesPage = () => {
             <label className="text-[11px] text-muted-foreground">بحث</label>
             <div className="relative">
               <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/50" />
-              <Input
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+              <Input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="ابحث في الوصف أو الحسابات..."
-                className="h-9 pr-8 rounded-lg bg-secondary/50 border-0 text-sm"
-              />
+                className="h-9 pr-8 rounded-lg bg-secondary/50 border-0 text-sm" />
             </div>
           </div>
         </div>
@@ -348,44 +361,38 @@ const JournalEntriesPage = () => {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border/60 bg-muted/30">
-                  <th className="text-right px-4 py-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider w-10">#</th>
-                  <th className="text-right px-4 py-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">التاريخ</th>
-                  <th className="text-right px-4 py-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider min-w-[200px]">الوصف</th>
-                  <th className="text-right px-4 py-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">النوع</th>
-                  <th className="text-right px-4 py-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">الحساب المدين</th>
-                  <th className="text-right px-4 py-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">الحساب الدائن</th>
-                  <th className="text-left px-4 py-3 text-[11px] font-semibold text-primary uppercase tracking-wider">مدين</th>
-                  <th className="text-left px-4 py-3 text-[11px] font-semibold text-destructive uppercase tracking-wider">دائن</th>
+                  <th className="text-right px-4 py-3 text-[11px] font-semibold text-muted-foreground w-10">#</th>
+                  <th className="text-right px-4 py-3 text-[11px] font-semibold text-muted-foreground">التاريخ</th>
+                  <th className="text-right px-4 py-3 text-[11px] font-semibold text-muted-foreground min-w-[200px]">الوصف</th>
+                  <th className="text-right px-4 py-3 text-[11px] font-semibold text-muted-foreground">النوع</th>
+                  <th className="text-right px-4 py-3 text-[11px] font-semibold text-muted-foreground">الحساب المدين</th>
+                  <th className="text-right px-4 py-3 text-[11px] font-semibold text-muted-foreground">الحساب الدائن</th>
+                  <th className="text-left px-4 py-3 text-[11px] font-semibold text-primary">مدين</th>
+                  <th className="text-left px-4 py-3 text-[11px] font-semibold text-destructive">دائن</th>
                   <th className="px-4 py-3 w-10"></th>
                 </tr>
               </thead>
               <tbody>
                 {paginated.map((tx, i) => {
                   const idx = (currentPage - 1) * PAGE_SIZE + i + 1;
-                  const typeStyle: Record<string, string> = {
-                    "سند صرف": "bg-destructive/10 text-destructive",
-                    "سند قبض": "bg-primary/10 text-primary",
-                    "قيد يومية": "bg-warning/10 text-warning",
-                    "فاتورة مشتريات": "bg-accent text-accent-foreground",
-                    "فاتورة مبيعات": "bg-primary/10 text-primary",
-                  };
+                  const displayType = getDisplayType(tx.transaction_type);
                   return (
                     <tr key={tx.id} className="border-b border-border/30 hover:bg-muted/20 transition-colors group">
                       <td className="px-4 py-3 text-xs text-muted-foreground tabular-nums">{idx}</td>
-                      <td className="px-4 py-3 text-xs text-foreground tabular-nums whitespace-nowrap">{tx.fields.Date || "—"}</td>
-                      <td className="px-4 py-3 text-xs text-foreground font-medium max-w-[250px] truncate">{tx.fields.Description || "—"}</td>
+                      <td className="px-4 py-3 text-xs text-foreground tabular-nums whitespace-nowrap">{tx.transaction_date || "—"}</td>
+                      <td className="px-4 py-3 text-xs text-foreground font-medium max-w-[250px] truncate">{tx.description || "—"}</td>
                       <td className="px-4 py-3">
-                        <span className={`text-[10px] font-semibold px-2 py-1 rounded-lg ${typeStyle[tx.fields["Transaction Type"] || ""] || "bg-muted text-muted-foreground"}`}>
-                          {tx.fields["Transaction Type"] || "—"}
+                        <span className={`text-[10px] font-semibold px-2.5 py-1 rounded-lg whitespace-nowrap inline-block ${typeStyle[displayType] || "bg-muted text-muted-foreground"}`}>
+                          {displayType}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-xs text-foreground">{tx.fields["Debit Account Name"] || "—"}</td>
-                      <td className="px-4 py-3 text-xs text-foreground">{tx.fields["Credit Account Name"] || "—"}</td>
+                      <td className="px-4 py-3 text-xs text-foreground">{accountMap[tx.debit_account_code || ""] || tx.debit_account_code || "—"}</td>
+                      <td className="px-4 py-3 text-xs text-foreground">{accountMap[tx.credit_account_code || ""] || tx.credit_account_code || "—"}</td>
                       <td className="px-4 py-3 text-xs font-bold text-primary tabular-nums text-left">
-                        ₪{(tx.fields.Amount || 0).toLocaleString()}
+                        ₪{(tx.amount || 0).toLocaleString()}
                       </td>
                       <td className="px-4 py-3 text-xs font-bold text-destructive tabular-nums text-left">
-                        ₪{(tx.fields.Amount || 0).toLocaleString()}
+                        ₪{(tx.amount || 0).toLocaleString()}
                       </td>
                       <td className="px-4 py-3">
                         <button
@@ -400,7 +407,6 @@ const JournalEntriesPage = () => {
                   );
                 })}
               </tbody>
-              {/* Totals footer */}
               <tfoot>
                 <tr className="bg-muted/40 border-t-2 border-primary/20">
                   <td colSpan={6} className="px-4 py-3 text-xs font-bold text-foreground text-right">الإجمالي</td>
@@ -412,26 +418,19 @@ const JournalEntriesPage = () => {
             </table>
           </div>
 
-          {/* Pagination */}
           {totalPages > 1 && (
             <div className="flex items-center justify-between px-4 py-3 border-t border-border/40">
               <p className="text-[11px] text-muted-foreground">
                 عرض {(currentPage - 1) * PAGE_SIZE + 1}–{Math.min(currentPage * PAGE_SIZE, filtered.length)} من {filtered.length}
               </p>
               <div className="flex items-center gap-1">
-                <Button
-                  variant="ghost" size="icon" className="h-8 w-8"
-                  disabled={currentPage === 1}
-                  onClick={() => setCurrentPage(p => p - 1)}
-                >
+                <Button variant="ghost" size="icon" className="h-8 w-8" disabled={currentPage === 1}
+                  onClick={() => setCurrentPage(p => p - 1)}>
                   <ChevronRight className="h-4 w-4" />
                 </Button>
                 <span className="text-xs text-muted-foreground px-2">{currentPage} / {totalPages}</span>
-                <Button
-                  variant="ghost" size="icon" className="h-8 w-8"
-                  disabled={currentPage === totalPages}
-                  onClick={() => setCurrentPage(p => p + 1)}
-                >
+                <Button variant="ghost" size="icon" className="h-8 w-8" disabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage(p => p + 1)}>
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
               </div>
@@ -452,50 +451,40 @@ const JournalEntriesPage = () => {
           <div className="space-y-4 mt-2">
             <div className="space-y-1">
               <label className="text-xs font-semibold text-muted-foreground">الوصف</label>
-              <Input
-                value={editFields.Description}
-                onChange={(e) => setEditFields(f => ({ ...f, Description: e.target.value }))}
-                className="h-10 rounded-xl bg-secondary/50 border-0"
-              />
+              <Input value={editFields.description} onChange={(e) => setEditFields(f => ({ ...f, description: e.target.value }))}
+                className="h-10 rounded-xl bg-secondary/50 border-0" />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-muted-foreground">التاريخ</label>
-                <Input
-                  type="date"
-                  value={editFields.Date}
-                  onChange={(e) => setEditFields(f => ({ ...f, Date: e.target.value }))}
-                  className="h-10 rounded-xl bg-secondary/50 border-0"
-                />
+                <Input type="date" value={editFields.transaction_date}
+                  onChange={(e) => setEditFields(f => ({ ...f, transaction_date: e.target.value }))}
+                  className="h-10 rounded-xl bg-secondary/50 border-0" />
               </div>
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-muted-foreground">المبلغ</label>
-                <Input
-                  type="number"
-                  value={editFields.Amount}
-                  onChange={(e) => setEditFields(f => ({ ...f, Amount: e.target.value }))}
-                  className="h-10 rounded-xl bg-secondary/50 border-0 text-left"
-                  dir="ltr"
-                />
+                <Input type="number" value={editFields.amount}
+                  onChange={(e) => setEditFields(f => ({ ...f, amount: e.target.value }))}
+                  className="h-10 rounded-xl bg-secondary/50 border-0 text-left" dir="ltr" />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-muted-foreground">النوع</label>
-                <Select value={editFields["Transaction Type"]} onValueChange={(v) => setEditFields(f => ({ ...f, "Transaction Type": v }))}>
+                <Select value={editFields.transaction_type} onValueChange={(v) => setEditFields(f => ({ ...f, transaction_type: v }))}>
                   <SelectTrigger className="h-10 rounded-xl bg-secondary/50 border-0">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {["سند صرف", "سند قبض", "قيد يومية", "فاتورة مشتريات", "فاتورة مبيعات"].map(t => (
-                      <SelectItem key={t} value={t}>{t}</SelectItem>
+                    {["سند صرف", "سند قبض", "قيد يومية", "فاتورة مشتريات", "فاتورة مبيعات", "receipt", "payment", "salary"].map(t => (
+                      <SelectItem key={t} value={t}>{typeDisplayMap[t] || t}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-muted-foreground">العملة</label>
-                <Select value={editFields.Currency} onValueChange={(v) => setEditFields(f => ({ ...f, Currency: v }))}>
+                <Select value={editFields.currency} onValueChange={(v) => setEditFields(f => ({ ...f, currency: v }))}>
                   <SelectTrigger className="h-10 rounded-xl bg-secondary/50 border-0">
                     <SelectValue />
                   </SelectTrigger>
@@ -510,26 +499,26 @@ const JournalEntriesPage = () => {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-primary text-[11px]">الحساب المدين</label>
-                <Select value={editFields["Debit Account Name"]} onValueChange={(v) => setEditFields(f => ({ ...f, "Debit Account Name": v }))}>
+                <Select value={editFields.debit_account_code} onValueChange={(v) => setEditFields(f => ({ ...f, debit_account_code: v }))}>
                   <SelectTrigger className="h-10 rounded-xl bg-secondary/50 border-0 text-xs">
                     <SelectValue placeholder="اختر حساب" />
                   </SelectTrigger>
                   <SelectContent className="max-h-60">
-                    {accountNames.map(name => (
-                      <SelectItem key={name} value={name} className="text-xs">{name}</SelectItem>
+                    {accountCodes.map(a => (
+                      <SelectItem key={a.code} value={a.code} className="text-xs">{a.label}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-destructive text-[11px]">الحساب الدائن</label>
-                <Select value={editFields["Credit Account Name"]} onValueChange={(v) => setEditFields(f => ({ ...f, "Credit Account Name": v }))}>
+                <Select value={editFields.credit_account_code} onValueChange={(v) => setEditFields(f => ({ ...f, credit_account_code: v }))}>
                   <SelectTrigger className="h-10 rounded-xl bg-secondary/50 border-0 text-xs">
                     <SelectValue placeholder="اختر حساب" />
                   </SelectTrigger>
                   <SelectContent className="max-h-60">
-                    {accountNames.map(name => (
-                      <SelectItem key={name} value={name} className="text-xs">{name}</SelectItem>
+                    {accountCodes.map(a => (
+                      <SelectItem key={a.code} value={a.code} className="text-xs">{a.label}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
