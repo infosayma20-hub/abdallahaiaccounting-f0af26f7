@@ -152,6 +152,36 @@ ${contactContext}
 - الحساب_الدائن: "الصندوق" إذا نقداً، "البنك" إذا بنك
 
 ================================
+قواعد المصروفات المباشرة (إلزامية):
+عندما يذكر المستخدم دفع مصروف مباشر (كهرباء، ماء، إيجار، محروقات، وقود، بنزين، ديزل، غاز، هاتف، إنترنت، صيانة، ضيافة، قرطاسية، تأمين، رسوم، غرامة، مواصلات، نقل):
+- نوع_الحركة = "سند صرف"
+- الحساب_المدين = حساب المصروف المناسب من (5xxx)
+- الحساب_الدائن = "الصندوق" أو "البنك" حسب السياق
+
+جدول تحويل المصروفات الشائعة (استخدمه حرفياً):
+- محروقات / وقود / بنزين / ديزل → "مصاريف التنقل والمواصلات" (5530)
+- غاز → "مصروف غاز" (5410)
+- كهرباء / ماء / كهرباء وماء → "كهرباء وماء" (5400)
+- إيجار → "مصروف إيجار" (5300)
+- راتب موظف / رواتب الموظفين → "رواتب وأجور" (5200)
+- صيانة → "مصاريف الصيانة" (5510)
+- ضيافة / قهوة / ضيوف → "مصاريف الضيافة" (5520)
+- هاتف / إنترنت / اتصالات → "مصاريف هاتف وإنترنت" (5580)
+- قرطاسية / طباعة / ورق → "مصاريف القرطاسية والطباعة" (5540)
+- تأمين → "مصاريف تأمين" (5570)
+- رسوم / تراخيص → "رسوم حكومية وتراخيص" (5560)
+- إعلان / تسويق → "مصاريف تسويق وإعلان" (5600)
+- شحن / بريد / توصيل → "مصاريف البريد والشحن" (5550)
+- غرامة / مخالفة → "غرامات وجزاءات" (5950)
+- عمولة بنكية / رسوم بنكية → "مصاريف بنكية" (5920)
+- أي مصروف غير مذكور أعلاه → "مصروفات أخرى" (5900)
+
+قاعدة ذهبية: سند الصرف دائماً:
+  مدين = حساب مصروف (يبدأ بـ 5) أو حساب أصل (يبدأ بـ 1 للموردين)
+  دائن = حساب أصل (1xxx) — الصندوق أو البنك فقط
+لا تضع حساب إيرادات (4xxx) في أي طرف لسند الصرف.
+
+================================
 قواعد تحديد الحسابات:
 - دفع لمورد → مدين: الموردين / دائن: الصندوق (إلا إذا ذكر بنك)
 - قبض من زبون → مدين: الصندوق / دائن: العملاء
@@ -248,27 +278,64 @@ ${contactContext}
 
     // Try to match by name if the AI returned a name instead of a code
     const resolveAccountCode = (nameOrCode: string): string => {
-      // If already a valid code
+      if (!nameOrCode) return '';
+      
+      // 1. Direct code match
       const directMatch = accounts.find(a => a.account_code === nameOrCode);
       if (directMatch) return nameOrCode;
 
-      // Try matching by name (exact or partial)
-      const byName = accounts.find(a => 
-        a.account_name === nameOrCode || 
-        a.account_name.includes(nameOrCode) || 
-        nameOrCode.includes(a.account_name)
-      );
-      if (byName) return byName.account_code;
-
-      // Try matching "code - name" format
+      // 2. "code - name" format
       const codeMatch = nameOrCode.match(/^(\d+)\s*-/);
-      if (codeMatch) return codeMatch[1];
+      if (codeMatch) {
+        const codeFound = accounts.find(a => a.account_code === codeMatch[1]);
+        if (codeFound) return codeMatch[1];
+      }
+
+      // 3. Exact name match
+      const exactName = accounts.find(a => a.account_name === nameOrCode);
+      if (exactName) return exactName.account_code;
+
+      // 4. Safe partial: account name contains the search term (not reverse)
+      const partialMatch = accounts.find(a => a.account_name.includes(nameOrCode));
+      if (partialMatch) return partialMatch.account_code;
 
       return nameOrCode;
     };
 
     debitAccountCode = resolveAccountCode(debitAccountCode);
     creditAccountCode = resolveAccountCode(creditAccountCode);
+
+    // ═══ Validation: debit ≠ credit ═══
+    if (debitAccountCode && creditAccountCode && debitAccountCode === creditAccountCode) {
+      const transType = parsed['نوع_الحركة'] || parsed.transaction_type || '';
+      if (['سند صرف', 'قيد يومية'].includes(transType)) {
+        if (accounts.find(a => a.account_code === '5900')) debitAccountCode = '5900';
+        if (accounts.find(a => a.account_code === '1110')) creditAccountCode = '1110';
+      } else if (transType === 'سند قبض') {
+        if (accounts.find(a => a.account_code === '1110')) debitAccountCode = '1110';
+        if (accounts.find(a => a.account_code === '4300')) creditAccountCode = '4300';
+      }
+      console.warn(`⚠️ debit === credit detected, applied fallback accounts`);
+    }
+
+    // ═══ Validation: سند صرف account type checks ═══
+    const transactionTypeParsed = parsed['نوع_الحركة'] || parsed.transaction_type || '';
+    if (transactionTypeParsed === 'سند صرف') {
+      const creditAccount = accounts.find(a => a.account_code === creditAccountCode);
+      if (creditAccount && ['إيرادات', 'مصاريف'].includes(creditAccount.account_type)) {
+        if (accounts.find(a => a.account_code === '1110')) {
+          console.warn(`⚠️ سند صرف: credit was ${creditAccountCode} (${creditAccount.account_type}) → fixed to 1110`);
+          creditAccountCode = '1110';
+        }
+      }
+      const debitAccount = accounts.find(a => a.account_code === debitAccountCode);
+      if (debitAccount && debitAccount.account_type === 'إيرادات') {
+        if (accounts.find(a => a.account_code === '5900')) {
+          console.warn(`⚠️ سند صرف: debit was ${debitAccountCode} (إيرادات) → fixed to 5900`);
+          debitAccountCode = '5900';
+        }
+      }
+    }
 
     // Resolve contact ID
     // Resolve contact ID - only use mentionedContactId if it's a valid UUID
