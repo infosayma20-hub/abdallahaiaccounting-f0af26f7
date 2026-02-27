@@ -1,6 +1,6 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { Home, Users, FileText, Receipt, Menu } from "lucide-react";
-import AIAssistantWidget from "./AIAssistantWidget";
+
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -26,7 +26,7 @@ const AppLayout = ({ children }: AppLayoutProps) => {
         {children}
       </main>
 
-      <AIAssistantWidget />
+      
 
       {/* Bottom Navigation - Premium Dark */}
       <nav className="fixed bottom-2 left-2 right-2 z-40">

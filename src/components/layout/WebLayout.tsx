@@ -1,7 +1,7 @@
 import { useState } from "react";
 import AppSidebar from "./AppSidebar";
 import TopBar from "./TopBar";
-import AIAssistantWidget from "../AIAssistantWidget";
+
 import HelpGuideModal from "../HelpGuideModal";
 
 interface WebLayoutProps {
@@ -37,8 +37,6 @@ const WebLayout = ({ children }: WebLayoutProps) => {
         </main>
       </div>
 
-      {/* AI Assistant Widget */}
-      <AIAssistantWidget />
 
       {/* Help Guide Modal - accessible from any page */}
       <HelpGuideModal
