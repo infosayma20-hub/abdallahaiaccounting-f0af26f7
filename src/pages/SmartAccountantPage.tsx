@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { getAuthHeaders, getAuthHeadersJson } from "@/lib/edge-helpers";
+import { getAuthHeadersJson } from "@/lib/edge-helpers";
 import {
   Sparkles, Send, Mic, Loader2, Database, BookOpen, BarChart3, ArrowLeft, AtSign,
 } from "lucide-react";
@@ -16,18 +16,11 @@ import ChequeDetailsDialog, { ChequeLineItem } from "@/components/ChequeDetailsD
 import JournalEntryPopup from "@/components/JournalEntryPopup";
 import SavedCommands from "@/components/SavedCommands";
 
-interface TransactionRecord {
-  id: string;
-  fields: {
-    Amount?: number;
-    Currency?: string;
-    "Transaction Type"?: string;
-    "Credit Account Rollup"?: string;
-    "Debit Account Rollup"?: string;
-    Description?: string;
-    Date?: string;
-    Client?: string;
-  };
+interface SummaryStats {
+  sales: number;
+  expenses: number;
+  netProfit: number;
+  receivables: number;
 }
 
 const SmartAccountantPage = () => {
@@ -49,37 +42,65 @@ const SmartAccountantPage = () => {
   const [showJournalEntry, setShowJournalEntry] = useState(false);
   const [journalEntryData, setJournalEntryData] = useState<any>(null);
   const [journalEntryAccounts, setJournalEntryAccounts] = useState<any[]>([]);
-  const [transactions, setTransactions] = useState<TransactionRecord[]>([]);
+  const [stats, setStats] = useState<SummaryStats>({ sales: 0, expenses: 0, netProfit: 0, receivables: 0 });
   const [loadingTx, setLoadingTx] = useState(true);
 
   useEffect(() => {
     if (!user) return;
-    const fetchTx = async () => {
+    const fetchStats = async () => {
       setLoadingTx(true);
       try {
-        const res = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-transactions?clientId=${user.id}`,
-          { headers: await getAuthHeaders() }
+        // Fetch transactions directly from Supabase (exclude opening balances and deleted)
+        const { data: txData, error } = await supabase
+          .from('transactions')
+          .select('amount, debit_account_code, credit_account_code, description, transaction_type, is_opening_balance, is_deleted')
+          .eq('user_id', user.id)
+          .eq('is_deleted', false);
+
+        if (error) throw error;
+
+        const txs = txData || [];
+
+        // Filter out opening balances for P&L
+        const plTx = txs.filter(tx =>
+          !tx.is_opening_balance &&
+          !/رصيد\s*(ابتدائي|افتتاحي|مدور)/i.test(tx.description || '') &&
+          tx.transaction_type !== 'رصيد ابتدائي'
         );
-        if (!res.ok) throw new Error("Failed to fetch");
-        const result = await res.json();
-        setTransactions(result.records || []);
+
+        // Sales: credit account starts with 4 (revenue accounts)
+        const sales = plTx
+          .filter(tx => tx.credit_account_code?.startsWith('4'))
+          .reduce((s, tx) => s + (Number(tx.amount) || 0), 0);
+
+        // Expenses: debit account starts with 5 (expense accounts)
+        const expenses = plTx
+          .filter(tx => tx.debit_account_code?.startsWith('5'))
+          .reduce((s, tx) => s + (Number(tx.amount) || 0), 0);
+
+        // Receivables: debit to 1130 (ذمم عملاء)
+        const receivables = txs
+          .filter(tx => tx.debit_account_code === '1130' && !tx.is_deleted)
+          .reduce((s, tx) => s + (Number(tx.amount) || 0), 0);
+
+        // Payments received against receivables
+        const receivablesPayments = txs
+          .filter(tx => tx.credit_account_code === '1130' && !tx.is_deleted)
+          .reduce((s, tx) => s + (Number(tx.amount) || 0), 0);
+
+        setStats({
+          sales,
+          expenses,
+          netProfit: sales - expenses,
+          receivables: receivables - receivablesPayments,
+        });
       } catch (err) { console.error(err); }
       finally { setLoadingTx(false); }
     };
-    fetchTx();
+    fetchStats();
   }, [user]);
 
-  // Computed values for summary
-  const plTx = transactions.filter(tx => {
-    const desc = (tx.fields.Description || "").trim();
-    const type = (tx.fields["Transaction Type"] || "").trim();
-    return !/رصيد\s*(ابتدائي|افتتاحي|مدور)/i.test(desc) && type !== "رصيد ابتدائي";
-  });
-  const sales = plTx.filter(tx => tx.fields["Credit Account Rollup"] === "Revenue").reduce((s, tx) => s + (tx.fields.Amount || 0), 0);
-  const expenses = plTx.filter(tx => tx.fields["Debit Account Rollup"] === "Expenses").reduce((s, tx) => s + (tx.fields.Amount || 0), 0);
-  const netProfit = sales - expenses;
-  const receivables = transactions.filter(tx => tx.fields["Debit Account Rollup"] === "Asset" && tx.fields["Credit Account Rollup"] === "Revenue").reduce((s, tx) => s + (tx.fields.Amount || 0), 0);
+  const { sales, expenses, netProfit, receivables } = stats;
 
   // ─── Smart Assistant Handler ───
   const handleSend = async () => {
