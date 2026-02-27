@@ -652,7 +652,7 @@ const HomeDashboard = () => {
                   </div>
                   <div>
                     <span className="text-sm font-bold text-foreground">اطلب وتمنى ✨</span>
-                    <span className="text-[11px] text-muted-foreground mr-2">أضف زبون، مورد، حساب، منتج، أو سند قيد</span>
+                    <span className="text-[11px] text-muted-foreground mr-2">أضف زبون، مورد، حساب، منتج، موظف، أو سند قيد</span>
                   </div>
                 </div>
                 <div className="flex items-end gap-2 bg-secondary/40 rounded-xl px-3 py-2.5">
@@ -669,14 +669,11 @@ const HomeDashboard = () => {
                   />
                 </div>
                 <div className="flex gap-2 flex-wrap">
-                  {["أضف زبون أحمد", "أضف مورد شركة الشمال", "أضف منتج سجاد شراء 80 بيع 120", "سند قيد مدين المشتريات دائن الصندوق 5000"].map((chip) => (
+                  {["أضف زبون أحمد", "أضف مورد شركة الشمال", "أضف منتج سجاد شراء 80 بيع 120", "أضف موظف محمد راتب 3000", "سند قيد مدين المشتريات دائن الصندوق 5000"].map((chip) => (
                     <button key={chip} onClick={() => setDbCommand(chip)} className="px-3 py-1.5 rounded-xl bg-secondary/60 text-[11px] text-muted-foreground hover:bg-primary/8 hover:text-primary transition-all">
                       {chip}
                     </button>
                   ))}
-                  <button onClick={() => setShowJournalEntry(true)} className="px-3 py-1.5 rounded-xl bg-primary/10 text-[11px] font-bold text-primary hover:bg-primary/15 transition-all flex items-center gap-1">
-                    <BookOpen className="h-3 w-3" /> سند قيد جديد
-                  </button>
                 </div>
                 {dbResponseMessage && (
                   <div className="p-4 rounded-xl border border-primary/15 bg-primary/5 space-y-2">
