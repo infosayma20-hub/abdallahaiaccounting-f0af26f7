@@ -24,6 +24,8 @@ import SetupWizard from "@/components/SetupWizard";
 import CompleteProfileDialog from "@/components/CompleteProfileDialog";
 import HelpGuideModal from "@/components/HelpGuideModal";
 import SmartReportWidget from "@/components/SmartReportWidget";
+import TransactionBuilder, { TransactionBuilderData } from "@/components/TransactionBuilder";
+import { AnimatePresence } from "framer-motion";
 
 interface TransactionRecord {
   id: string;
@@ -146,6 +148,40 @@ const HomeDashboard = () => {
   const [journalEntryAccounts, setJournalEntryAccounts] = useState<any[]>([]);
 
   const [showShortcuts, setShowShortcuts] = useState(false);
+  const [showTransactionBuilder, setShowTransactionBuilder] = useState(false);
+  const [builderType, setBuilderType] = useState<"بيع" | "شراء">("بيع");
+
+  // Transaction Builder trigger keywords
+  const TRIGGER_WORDS = ["بعت", "بيع", "اشتريت", "شراء", "اشترينا", "بعنا"];
+
+  const checkBuilderTrigger = useCallback((value: string) => {
+    const words = value.trim().split(/\s+/);
+    const lastWord = words[words.length - 1];
+    if (TRIGGER_WORDS.includes(lastWord)) {
+      const isSale = ["بعت", "بيع", "بعنا"].includes(lastWord);
+      setBuilderType(isSale ? "بيع" : "شراء");
+      setShowTransactionBuilder(true);
+      setInputValue("");
+      return true;
+    }
+    return false;
+  }, []);
+
+  const handleBuilderSubmit = async (data: TransactionBuilderData) => {
+    setSending(true);
+    try {
+      const desc = data.transaction_type === "بيع"
+        ? `بعت ${data.product.name} ${data.quantity} ${data.product.unit} بسعر ${data.unit_price} ${data.payment_method === "حساب" ? "آجل" : data.payment_method === "شيك" ? "شيك" : "نقداً"} ل${data.party.name}`
+        : `اشتريت ${data.product.name} ${data.quantity} ${data.product.unit} بسعر ${data.unit_price} ${data.payment_method === "حساب" ? "آجل" : data.payment_method === "شيك" ? "شيك" : "نقداً"} من ${data.party.name}`;
+      const body: any = { text: desc, userId: user?.id, email: user?.email, mentionedContactName: data.party.name, mentionedContactId: data.party.id };
+      const { error } = await supabase.functions.invoke("process-transaction", { body });
+      if (error) throw error;
+      txToast.trigger();
+      setShowTransactionBuilder(false);
+    } catch (err: any) {
+      toast({ title: "خطأ", description: err.message, variant: "destructive" });
+    } finally { setSending(false); }
+  };
 
   // ─── Data Loading ───
   useEffect(() => {
@@ -531,8 +567,19 @@ const HomeDashboard = () => {
                   </button>
                   <MentionInput
                     value={inputValue}
-                    onChange={setInputValue}
-                    onKeyDown={(e) => e.key === "Enter" && handleSend()}
+                    onChange={(val) => {
+                      setInputValue(val);
+                      // Check for transaction builder trigger on space
+                      if (val.endsWith(" ")) {
+                        checkBuilderTrigger(val);
+                      }
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        if (checkBuilderTrigger(inputValue)) return;
+                        handleSend();
+                      }
+                    }}
                     onMentionSelect={(item) => setSelectedMentions(prev => [...prev, item])}
                     placeholder="شو صار معك اليوم مالياً؟ سجل عملياتك بكلامك…"
                     className="flex-1 min-w-0 h-9 bg-transparent rounded-xl px-2 text-sm text-foreground placeholder:text-muted-foreground/50 border-0 outline-none"
@@ -643,8 +690,19 @@ const HomeDashboard = () => {
                     )}
                   </div>
                 )}
-              </div>
 
+                {/* Transaction Builder */}
+                <AnimatePresence>
+                  {showTransactionBuilder && (
+                    <TransactionBuilder
+                      transactionType={builderType}
+                      onClose={() => setShowTransactionBuilder(false)}
+                      onSubmit={handleBuilderSubmit}
+                      sending={sending}
+                    />
+                  )}
+                </AnimatePresence>
+              </div>
               {/* اطلب وتمنى */}
               <div className="bg-card rounded-2xl p-6 space-y-4 shadow-card">
                 <div className="flex items-center gap-2.5">
