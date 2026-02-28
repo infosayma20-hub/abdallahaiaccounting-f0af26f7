@@ -91,9 +91,18 @@ const POSPage = () => {
   
   // Payment
   const [paymentMethod, setPaymentMethod] = useState<string>("cash");
+  const [paymentCurrency, setPaymentCurrency] = useState<string>("ILS");
   const [tenderedAmount, setTenderedAmount] = useState("");
   const [customerName, setCustomerName] = useState("");
   const [processing, setProcessing] = useState(false);
+  const [exchangeRates, setExchangeRates] = useState<Record<string, number>>({});
+
+  const currencies = [
+    { code: "ILS", symbol: "₪", name: "شيكل", flag: "🇮🇱" },
+    { code: "USD", symbol: "$", name: "دولار", flag: "🇺🇸" },
+    { code: "JOD", symbol: "د.ا", name: "دينار", flag: "🇯🇴" },
+    { code: "EUR", symbol: "€", name: "يورو", flag: "🇪🇺" },
+  ];
 
   // Numpad
   const [numpadTarget, setNumpadTarget] = useState<"qty" | "unit_price" | "discount_pct" | null>(null);
@@ -190,8 +199,8 @@ const POSPage = () => {
         }
       }
 
-      // Load products
-      await loadProducts();
+      // Load products and exchange rates
+      await Promise.all([loadProducts(), loadExchangeRates()]);
     } catch (err) {
       console.error("POS init error:", err);
       toast.error("خطأ في تحميل نقطة البيع");
@@ -219,6 +228,28 @@ const POSPage = () => {
         quantity: Number(p.quantity),
       }))
     );
+  };
+
+  const loadExchangeRates = async () => {
+    if (!userId) return;
+    const { data } = await supabase
+      .from("exchange_rates")
+      .select("currency_id, mid_rate, currencies!inner(code)")
+      .eq("user_id", userId)
+      .order("rate_date", { ascending: false });
+
+    const rates: Record<string, number> = { ILS: 1 };
+    if (data) {
+      const seen = new Set<string>();
+      for (const r of data) {
+        const code = (r as any).currencies?.code;
+        if (code && !seen.has(code)) {
+          seen.add(code);
+          rates[code] = Number(r.mid_rate) || 1;
+        }
+      }
+    }
+    setExchangeRates(rates);
   };
 
   // Categories
@@ -439,6 +470,7 @@ const POSPage = () => {
       setTenderedAmount("");
       setCustomerName("");
       setPaymentMethod("cash");
+      setPaymentCurrency("ILS");
       setOrderDiscount(0);
       setSelectedCartIndex(null);
 
@@ -879,34 +911,86 @@ const POSPage = () => {
 
             {/* Tendered (cash only) */}
             {paymentMethod === "cash" && (
-              <div>
-                <label className="text-sm font-medium mb-1.5 block">المبلغ المدفوع</label>
-                <Input
-                  type="number"
-                  value={tenderedAmount}
-                  onChange={(e) => setTenderedAmount(e.target.value)}
-                  placeholder={cartTotals.total.toFixed(2)}
-                  className="h-12 text-lg text-center font-bold"
-                />
-                {parseFloat(tenderedAmount) > cartTotals.total && (
-                  <div className="text-center mt-2 p-2 bg-success/10 rounded-lg">
-                    <span className="text-sm text-muted-foreground">الباقي: </span>
-                    <span className="text-lg font-bold text-primary">
-                      ₪{(parseFloat(tenderedAmount) - cartTotals.total).toFixed(2)}
-                    </span>
+              <div className="space-y-3">
+                {/* Currency selector */}
+                <div>
+                  <label className="text-sm font-medium mb-1.5 block">العملة</label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {currencies.map((cur) => (
+                      <button
+                        key={cur.code}
+                        onClick={() => {
+                          setPaymentCurrency(cur.code);
+                          setTenderedAmount("");
+                        }}
+                        className={`p-2 rounded-xl border-2 text-center transition-all ${
+                          paymentCurrency === cur.code
+                            ? "border-primary bg-primary/10"
+                            : "border-border hover:border-primary/30"
+                        }`}
+                      >
+                        <span className="text-lg block">{cur.flag}</span>
+                        <span className="text-[10px] font-medium block mt-0.5">{cur.name}</span>
+                      </button>
+                    ))}
                   </div>
-                )}
-                {/* Quick amounts */}
-                <div className="flex gap-2 mt-2">
-                  {[10, 20, 50, 100, 200].map((amt) => (
-                    <button
-                      key={amt}
-                      onClick={() => setTenderedAmount(String(amt))}
-                      className="flex-1 py-1.5 text-xs rounded-lg bg-muted hover:bg-primary/10 transition"
-                    >
-                      ₪{amt}
-                    </button>
-                  ))}
+                  {paymentCurrency !== "ILS" && exchangeRates[paymentCurrency] && (
+                    <div className="mt-1.5 text-xs text-muted-foreground text-center bg-muted/50 rounded-lg p-1.5">
+                      سعر الصرف: 1 {currencies.find(c => c.code === paymentCurrency)?.symbol} = ₪{exchangeRates[paymentCurrency]?.toFixed(4)}
+                      <span className="mx-1">|</span>
+                      المطلوب: {currencies.find(c => c.code === paymentCurrency)?.symbol}
+                      {(cartTotals.total / (exchangeRates[paymentCurrency] || 1)).toFixed(2)}
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium mb-1.5 block">المبلغ المدفوع</label>
+                  <Input
+                    type="number"
+                    value={tenderedAmount}
+                    onChange={(e) => setTenderedAmount(e.target.value)}
+                    placeholder={paymentCurrency === "ILS" 
+                      ? cartTotals.total.toFixed(2) 
+                      : (cartTotals.total / (exchangeRates[paymentCurrency] || 1)).toFixed(2)}
+                    className="h-12 text-lg text-center font-bold"
+                  />
+                  {(() => {
+                    const tendered = parseFloat(tenderedAmount) || 0;
+                    const tenderedInILS = paymentCurrency === "ILS" 
+                      ? tendered 
+                      : tendered * (exchangeRates[paymentCurrency] || 1);
+                    const change = tenderedInILS - cartTotals.total;
+                    if (change > 0) {
+                      return (
+                        <div className="text-center mt-2 p-2 bg-primary/10 rounded-lg">
+                          <span className="text-sm text-muted-foreground">الباقي: </span>
+                          <span className="text-lg font-bold text-primary">₪{change.toFixed(2)}</span>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
+                  {/* Quick amounts */}
+                  <div className="flex gap-2 mt-2">
+                    {(paymentCurrency === "ILS" 
+                      ? [10, 20, 50, 100, 200] 
+                      : paymentCurrency === "USD" ? [5, 10, 20, 50, 100]
+                      : paymentCurrency === "JOD" ? [5, 10, 20, 50, 100]
+                      : [5, 10, 20, 50, 100]
+                    ).map((amt) => {
+                      const cur = currencies.find(c => c.code === paymentCurrency);
+                      return (
+                        <button
+                          key={amt}
+                          onClick={() => setTenderedAmount(String(amt))}
+                          className="flex-1 py-1.5 text-xs rounded-lg bg-muted hover:bg-primary/10 transition"
+                        >
+                          {cur?.symbol}{amt}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             )}
