@@ -98,6 +98,7 @@ const AccountsPage = () => {
   const [typeFilter, setTypeFilter] = useState("all");
 
   const [settingUp, setSettingUp] = useState(false);
+  const [autoSetupAttempted, setAutoSetupAttempted] = useState(false);
 
   const fetchAccounts = async () => {
     if (!user) return;
@@ -107,14 +108,16 @@ const AccountsPage = () => {
       const { data, error } = await supabase.from('accounts').select('*').eq('user_id', user.id).order('account_code');
       if (error) throw error;
       setAccounts(data || []);
+      return data || [];
     } catch (err: any) {
       setError(err.message || "خطأ في جلب البيانات");
+      return [];
     } finally {
       setLoading(false);
     }
   };
 
-  const setupDefaultAccounts = async () => {
+  const setupDefaultAccounts = async (silent = false) => {
     if (!user) return;
     setSettingUp(true);
     try {
@@ -131,16 +134,31 @@ const AccountsPage = () => {
       });
       const result = await res.json();
       if (!res.ok) throw new Error(result.error || "فشل الإعداد");
-      toast({ title: "✅ تم الإعداد", description: result.message });
+      if (!silent) toast({ title: "✅ تم الإعداد", description: result.message });
       await fetchAccounts();
+
+      // Also mark setup_completed in profiles
+      await supabase.from('profiles').update({ setup_completed: true }).eq('user_id', user.id);
     } catch (err: any) {
-      toast({ title: "خطأ", description: err.message, variant: "destructive" });
+      if (!silent) toast({ title: "خطأ", description: err.message, variant: "destructive" });
+      console.error("Setup accounts error:", err);
     } finally {
       setSettingUp(false);
     }
   };
 
-  useEffect(() => { fetchAccounts(); }, [user]);
+  // Fetch accounts, and auto-setup if empty
+  useEffect(() => {
+    if (!user) return;
+    const init = async () => {
+      const data = await fetchAccounts();
+      if (data && data.length === 0 && !autoSetupAttempted) {
+        setAutoSetupAttempted(true);
+        await setupDefaultAccounts(true);
+      }
+    };
+    init();
+  }, [user]);
 
   useEffect(() => {
     if (accounts.length > 0) {
@@ -267,7 +285,7 @@ const AccountsPage = () => {
               <h3 className="text-base font-bold text-foreground">لا توجد حسابات بعد</h3>
               <p className="text-sm text-muted-foreground mt-1">اضغط الزر لإنشاء شجرة الحسابات الافتراضية تلقائياً</p>
             </div>
-            <Button onClick={setupDefaultAccounts} disabled={settingUp} className="gap-2">
+            <Button onClick={() => setupDefaultAccounts(false)} disabled={settingUp} className="gap-2">
               {settingUp ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
               {settingUp ? "جاري الإعداد..." : "إنشاء شجرة الحسابات"}
             </Button>
