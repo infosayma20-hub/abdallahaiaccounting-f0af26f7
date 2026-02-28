@@ -8,7 +8,7 @@ import {
   X, Search, ArrowRight, ShoppingCart, Trash2, Plus, Minus,
   CreditCard, Banknote, Receipt, Clock, User, ChevronDown,
   Barcode, RotateCcw, LogOut, Package, Percent, Hash,
-  CheckCircle, AlertCircle, Wifi, WifiOff,
+  CheckCircle, AlertCircle, Wifi, WifiOff, MessageSquare, StickyNote,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,6 +28,7 @@ interface CartItem {
   tax_rate: number;
   unit: string;
   total: number;
+  note: string;
 }
 
 interface Product {
@@ -112,6 +113,7 @@ const POSPage = () => {
   // Discount
   const [orderDiscount, setOrderDiscount] = useState(0);
   const [orderDiscountType, setOrderDiscountType] = useState<"fixed" | "percent">("fixed");
+  const [orderNote, setOrderNote] = useState("");
 
   const userId = user?.id;
 
@@ -313,6 +315,7 @@ const POSPage = () => {
           tax_rate: product.tax_rate,
           unit: product.unit,
           total: lineTotal,
+          note: "",
         },
       ];
     });
@@ -472,6 +475,7 @@ const POSPage = () => {
       setPaymentMethod("cash");
       setPaymentCurrency("ILS");
       setOrderDiscount(0);
+      setOrderNote("");
       setSelectedCartIndex(null);
 
       toast.success(
@@ -798,12 +802,46 @@ const POSPage = () => {
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       </div>
+
+                      {/* Item note */}
+                      <div className="mt-1.5">
+                        <Input
+                          value={item.note}
+                          onChange={(e) => {
+                            e.stopPropagation();
+                            setCart(prev => {
+                              const updated = [...prev];
+                              updated[index] = { ...updated[index], note: e.target.value };
+                              return updated;
+                            });
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                          placeholder="ملاحظة على الصنف..."
+                          className="h-7 text-xs bg-muted/30 border-dashed"
+                        />
+                      </div>
                     </motion.div>
                   );
                 })
               )}
             </div>
           </ScrollArea>
+
+          {/* Order Note */}
+          {cart.length > 0 && (
+            <div className="px-3 pt-2">
+              <div className="flex items-center gap-1.5 mb-1">
+                <StickyNote className="h-3 w-3 text-muted-foreground" />
+                <label className="text-xs font-medium text-muted-foreground">ملاحظة على الفاتورة</label>
+              </div>
+              <Input
+                value={orderNote}
+                onChange={(e) => setOrderNote(e.target.value)}
+                placeholder="أضف ملاحظة..."
+                className="h-8 text-xs bg-muted/30 border-dashed"
+              />
+            </div>
+          )}
 
           {/* Totals */}
           <div className="border-t border-border p-3 space-y-1.5 bg-card">
