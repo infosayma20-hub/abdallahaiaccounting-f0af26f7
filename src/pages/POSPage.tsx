@@ -760,8 +760,18 @@ const POSPage = () => {
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-foreground truncate">{item.name}</p>
-                          <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground">
-                            <span>{item.qty} × ₪{item.unit_price.toFixed(2)}</span>
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            <span className="text-xs text-muted-foreground">{item.qty} ×</span>
+                            <Input
+                              type="number"
+                              value={item.unit_price}
+                              onChange={(e) => {
+                                e.stopPropagation();
+                                updateCartItem(index, "unit_price", parseFloat(e.target.value) || 0);
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                              className="h-6 w-20 text-xs text-center px-1 bg-muted/30 border-dashed"
+                            />
                             {item.discount_pct > 0 && (
                               <Badge variant="secondary" className="text-[10px] px-1">
                                 -{item.discount_pct}%
