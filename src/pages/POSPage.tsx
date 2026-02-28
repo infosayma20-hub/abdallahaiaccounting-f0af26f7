@@ -82,6 +82,9 @@ const POSPage = () => {
   const [company, setCompany] = useState<Company | null>(null);
   const [terminal, setTerminal] = useState<Terminal | null>(null);
   const [loading, setLoading] = useState(true);
+  const [contacts, setContacts] = useState<{ id: string; contact_name: string }[]>([]);
+  const [customerSearch, setCustomerSearch] = useState("");
+  const [showContactDropdown, setShowContactDropdown] = useState(false);
 
   // Dialogs
   const [showOpenShift, setShowOpenShift] = useState(false);
@@ -202,7 +205,7 @@ const POSPage = () => {
       }
 
       // Load products and exchange rates
-      await Promise.all([loadProducts(), loadExchangeRates()]);
+      await Promise.all([loadProducts(), loadExchangeRates(), loadContacts()]);
     } catch (err) {
       console.error("POS init error:", err);
       toast.error("خطأ في تحميل نقطة البيع");
@@ -253,6 +256,23 @@ const POSPage = () => {
     }
     setExchangeRates(rates);
   };
+
+  const loadContacts = async () => {
+    if (!userId) return;
+    const { data } = await supabase
+      .from("contacts")
+      .select("id, contact_name")
+      .eq("user_id", userId)
+      .eq("is_active", true)
+      .order("contact_name");
+    setContacts(data || []);
+  };
+
+  const filteredContacts = useMemo(() => {
+    if (!customerSearch) return contacts;
+    const q = customerSearch.toLowerCase();
+    return contacts.filter(c => c.contact_name.toLowerCase().includes(q));
+  }, [contacts, customerSearch]);
 
   // Categories
   const categories = useMemo(() => {
@@ -1071,14 +1091,40 @@ const POSPage = () => {
 
             {/* Customer for credit */}
             {paymentMethod === "credit" && (
-              <div>
+              <div className="relative">
                 <label className="text-sm font-medium mb-1.5 block">اسم العميل</label>
-                <Input
-                  value={customerName}
-                  onChange={(e) => setCustomerName(e.target.value)}
-                  placeholder="أدخل اسم العميل..."
-                  className="h-10"
-                />
+                <div className="relative">
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">@</span>
+                  <Input
+                    value={customerSearch || customerName}
+                    onChange={(e) => {
+                      setCustomerSearch(e.target.value);
+                      setCustomerName(e.target.value);
+                      setShowContactDropdown(true);
+                    }}
+                    onFocus={() => setShowContactDropdown(true)}
+                    placeholder="ابحث عن زبون..."
+                    className="h-10 pr-8"
+                  />
+                </div>
+                {showContactDropdown && filteredContacts.length > 0 && (
+                  <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-lg shadow-lg max-h-40 overflow-y-auto">
+                    {filteredContacts.map((contact) => (
+                      <button
+                        key={contact.id}
+                        onClick={() => {
+                          setCustomerName(contact.contact_name);
+                          setCustomerSearch("");
+                          setShowContactDropdown(false);
+                        }}
+                        className="w-full px-3 py-2 text-sm text-right hover:bg-muted/50 transition flex items-center gap-2"
+                      >
+                        <User className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                        <span>{contact.contact_name}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>
