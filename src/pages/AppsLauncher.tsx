@@ -194,51 +194,7 @@ const AppsLauncher = () => {
   const [helpGuideOpen, setHelpGuideOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-background" dir="rtl">
-      {/* Header */}
-      <div className="border-b border-border/50 bg-card/50 backdrop-blur-sm sticky top-0 z-10">
-        <div className="max-w-5xl mx-auto px-6 py-5 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-primary/10">
-              <Calculator className="h-6 w-6 text-primary" />
-            </div>
-            <div>
-              <h1 className="text-lg font-bold text-foreground">عبدالله AI</h1>
-              <p className="text-xs text-muted-foreground">مرحباً {displayName} 👋</p>
-            </div>
-          </div>
-
-          {/* Help Button */}
-          <Popover>
-            <PopoverTrigger asChild>
-              <button className="p-2 rounded-xl bg-muted hover:bg-muted/80 transition-colors text-muted-foreground hover:text-foreground">
-                <HelpCircle className="h-5 w-5" />
-              </button>
-            </PopoverTrigger>
-            <PopoverContent align="start" className="w-56 p-2" dir="rtl">
-              <button
-                onClick={handleRestartTour}
-                className="flex items-center gap-2 w-full p-2.5 rounded-lg hover:bg-muted transition-colors text-sm text-foreground"
-              >
-                <RotateCcw className="h-4 w-4 text-primary" />
-                جولة تعريفية سريعة
-              </button>
-               <button
-                onClick={() => setHelpGuideOpen(true)}
-                className="flex items-center gap-2 w-full p-2.5 rounded-lg hover:bg-muted transition-colors text-sm text-foreground"
-              >
-                <BookOpen className="h-4 w-4 text-primary" />
-                دليل الاستخدام
-              </button>
-              <button className="flex items-center gap-2 w-full p-2.5 rounded-lg hover:bg-muted transition-colors text-sm text-foreground">
-                <Headphones className="h-4 w-4 text-muted-foreground" />
-                تواصل مع الدعم
-              </button>
-            </PopoverContent>
-          </Popover>
-        </div>
-      </div>
-
+    <div className="min-h-full bg-background" dir="rtl">
       {/* Content */}
       <div className="max-w-5xl mx-auto px-6 py-8">
         {/* Title + Search */}
