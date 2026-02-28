@@ -1,5 +1,9 @@
-import { useState, useEffect, useMemo } from "react";
-import { ArrowRight, Loader2, RefreshCw, Search, FileSpreadsheet, TrendingUp, TrendingDown, Wallet, FileText } from "lucide-react";
+import { useState, useEffect, useMemo, useRef } from "react";
+import {
+  ArrowRight, Loader2, RefreshCw, Search, FileSpreadsheet,
+  TrendingUp, TrendingDown, Wallet, FileText, Printer,
+  AlertTriangle, Calendar, Hash, BookOpen
+} from "lucide-react";
 import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,7 +14,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { format, startOfMonth, endOfMonth } from "date-fns";
+import { format, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear } from "date-fns";
 
 interface Transaction {
   id: string;
@@ -50,6 +54,7 @@ const AccountStatementPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
+  const printRef = useRef<HTMLDivElement>(null);
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -59,6 +64,7 @@ const AccountStatementPage = () => {
   const [accountSearch, setAccountSearch] = useState("");
   const [dateFrom, setDateFrom] = useState(format(startOfMonth(new Date()), "yyyy-MM-dd"));
   const [dateTo, setDateTo] = useState(format(endOfMonth(new Date()), "yyyy-MM-dd"));
+  const [txSearch, setTxSearch] = useState("");
 
   const fetchData = async () => {
     if (!user) return;
@@ -101,8 +107,7 @@ const AccountStatementPage = () => {
     const q = accountSearch.toLowerCase().trim();
     if (!q) return accounts;
     return accounts.filter(a =>
-      a.account_name.toLowerCase().includes(q) ||
-      a.account_code.includes(q)
+      a.account_name.toLowerCase().includes(q) || a.account_code.includes(q)
     );
   }, [accounts, accountSearch]);
 
@@ -110,8 +115,7 @@ const AccountStatementPage = () => {
     if (!selectedAccountCode) return { rows: [] as StatementRow[], openingBalance: 0, closingBalance: 0, totalDebit: 0, totalCredit: 0 };
 
     const related = transactions.filter(tx =>
-      tx.debit_account_code === selectedAccountCode ||
-      tx.credit_account_code === selectedAccountCode
+      tx.debit_account_code === selectedAccountCode || tx.credit_account_code === selectedAccountCode
     );
 
     let openBal = 0;
@@ -157,56 +161,80 @@ const AccountStatementPage = () => {
       };
     });
 
-    return {
-      rows,
-      openingBalance: openBal,
-      closingBalance: runningBalance,
-      totalDebit: sumDebit,
-      totalCredit: sumCredit,
-    };
+    return { rows, openingBalance: openBal, closingBalance: runningBalance, totalDebit: sumDebit, totalCredit: sumCredit };
   }, [transactions, selectedAccountCode, dateFrom, dateTo]);
 
-  const typeColors: Record<string, string> = {
-    "سند صرف": "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
-    "سند قبض": "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
-    "قيد يومية": "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-    "فاتورة مبيعات": "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
-    "فاتورة مشتريات": "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400",
-    "رصيد ابتدائي": "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
-  };
+  const filteredRows = useMemo(() => {
+    if (!txSearch.trim()) return rows;
+    const q = txSearch.toLowerCase();
+    return rows.filter(r =>
+      r.description.toLowerCase().includes(q) ||
+      r.reference.toLowerCase().includes(q) ||
+      r.transaction_type.toLowerCase().includes(q)
+    );
+  }, [rows, txSearch]);
+
+  const formatAmount = (n: number) =>
+    n === 0 ? "—" : `₪${Math.abs(n).toLocaleString("ar-SA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+  const formatAmountRaw = (n: number) =>
+    Math.abs(n).toLocaleString("ar-SA", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   const handleExport = () => {
     if (!rows.length) return;
     const accName = selectedAccount ? `${selectedAccount.account_code} - ${selectedAccount.account_name}` : "";
     const exportRows = [
-      { "التاريخ": "", "البيان": "رصيد أول المدة", "النوع": "", "المرجع": "", "مدين ₪": "", "دائن ₪": "", "الرصيد ₪": openingBalance, "الجانب": openingBalance >= 0 ? "مدين" : "دائن" },
+      { "التاريخ": "", "المستند": "", "البيان": "رصيد أول المدة", "النوع": "", "مدين ₪": openingBalance > 0 ? openingBalance : "", "دائن ₪": openingBalance < 0 ? Math.abs(openingBalance) : "", "الرصيد التراكمي ₪": openingBalance, "الجانب": openingBalance >= 0 ? "مدين" : "دائن" },
       ...rows.map(r => ({
         "التاريخ": r.date,
+        "المستند": r.reference,
         "البيان": r.description,
         "النوع": r.transaction_type,
-        "المرجع": r.reference,
         "مدين ₪": r.debit || "",
         "دائن ₪": r.credit || "",
-        "الرصيد ₪": r.balance,
+        "الرصيد التراكمي ₪": r.balance,
         "الجانب": r.side,
       })),
-      { "التاريخ": "", "البيان": "الإجمالي", "النوع": "", "المرجع": "", "مدين ₪": totalDebit, "دائن ₪": totalCredit, "الرصيد ₪": "", "الجانب": "" },
-      { "التاريخ": "", "البيان": "رصيد آخر المدة", "النوع": "", "المرجع": "", "مدين ₪": "", "دائن ₪": "", "الرصيد ₪": closingBalance, "الجانب": closingBalance >= 0 ? "مدين" : "دائن" },
+      { "التاريخ": "", "المستند": "", "البيان": "الإجمالي", "النوع": "", "مدين ₪": totalDebit, "دائن ₪": totalCredit, "الرصيد التراكمي ₪": closingBalance, "الجانب": closingBalance >= 0 ? "مدين" : "دائن" },
     ];
     const ws = XLSX.utils.json_to_sheet(exportRows);
-    ws["!cols"] = [{ wch: 12 }, { wch: 40 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 14 }, { wch: 10 }];
+    ws["!cols"] = [{ wch: 12 }, { wch: 12 }, { wch: 40 }, { wch: 16 }, { wch: 14 }, { wch: 14 }, { wch: 16 }, { wch: 10 }];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "كشف الحساب");
     XLSX.writeFile(wb, `كشف-حساب-${accName}-${dateFrom}-${dateTo}.xlsx`);
   };
 
-  const formatAmount = (n: number) =>
-    n === 0 ? "—" : `₪${Math.abs(n).toLocaleString("ar-SA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const quickPeriods = [
+    { label: "هذا الشهر", from: format(startOfMonth(new Date()), "yyyy-MM-dd"), to: format(endOfMonth(new Date()), "yyyy-MM-dd") },
+    { label: "الربع الحالي", from: format(startOfQuarter(new Date()), "yyyy-MM-dd"), to: format(endOfQuarter(new Date()), "yyyy-MM-dd") },
+    { label: "هذه السنة", from: format(startOfYear(new Date()), "yyyy-MM-dd"), to: format(endOfYear(new Date()), "yyyy-MM-dd") },
+    { label: "كل الفترات", from: "2020-01-01", to: format(new Date(), "yyyy-MM-dd") },
+  ];
+
+  const balanceColorClass = (val: number) => {
+    if (val > 0) return "text-green-700 bg-green-50 dark:text-green-400 dark:bg-green-950/30";
+    if (val < 0) return "text-orange-700 bg-orange-50 dark:text-orange-400 dark:bg-orange-950/30";
+    return "text-muted-foreground bg-muted/30";
+  };
 
   return (
     <div className="min-h-screen bg-background" dir="rtl">
+      {/* Print styles */}
+      <style>{`
+        @media print {
+          body * { visibility: hidden; }
+          .print-area, .print-area * { visibility: visible; }
+          .print-area { position: absolute; inset: 0; background: white; padding: 20px; }
+          .no-print { display: none !important; }
+        }
+      `}</style>
+
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b px-4 py-3">
+      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b px-4 py-3 no-print">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button onClick={() => navigate(-1)} className="p-2 rounded-full hover:bg-muted transition-colors">
@@ -222,19 +250,24 @@ const AccountStatementPage = () => {
               <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
             </Button>
             {rows.length > 0 && (
-              <Button variant="outline" size="sm" onClick={handleExport}>
-                <FileSpreadsheet className="w-4 h-4 ml-1" />
-                تصدير Excel
-              </Button>
+              <>
+                <Button variant="outline" size="sm" onClick={handlePrint}>
+                  <Printer className="w-4 h-4 ml-1" />
+                  طباعة
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleExport}>
+                  <FileSpreadsheet className="w-4 h-4 ml-1" />
+                  Excel
+                </Button>
+              </>
             )}
           </div>
         </div>
       </div>
 
       {/* Filters */}
-      <div className="px-4 py-3 border-b bg-muted/30">
+      <div className="px-4 py-3 border-b bg-muted/30 no-print">
         <div className="space-y-3">
-          {/* Account selector */}
           <div className="space-y-1">
             <label className="text-xs font-medium text-muted-foreground">اختر الحساب</label>
             <Select value={selectedAccountCode} onValueChange={setSelectedAccountCode}>
@@ -245,12 +278,7 @@ const AccountStatementPage = () => {
                 <div className="p-2 sticky top-0 bg-popover">
                   <div className="relative">
                     <Search className="absolute right-2.5 top-2.5 w-4 h-4 text-muted-foreground" />
-                    <Input
-                      placeholder="ابحث بالاسم أو الكود..."
-                      value={accountSearch}
-                      onChange={e => setAccountSearch(e.target.value)}
-                      className="pr-9 h-9 text-sm"
-                    />
+                    <Input placeholder="ابحث بالاسم أو الكود..." value={accountSearch} onChange={e => setAccountSearch(e.target.value)} className="pr-9 h-9 text-sm" />
                   </div>
                 </div>
                 {filteredAccounts.map(acc => (
@@ -264,7 +292,6 @@ const AccountStatementPage = () => {
             </Select>
           </div>
 
-          {/* Date filters */}
           <div className="flex gap-3">
             <div className="flex-1 space-y-1">
               <label className="text-xs font-medium text-muted-foreground">من تاريخ</label>
@@ -276,18 +303,10 @@ const AccountStatementPage = () => {
             </div>
           </div>
 
-          {/* Quick period buttons */}
           <div className="flex gap-2 flex-wrap">
-            {[
-              { label: "هذا الشهر", from: format(startOfMonth(new Date()), "yyyy-MM-dd"), to: format(endOfMonth(new Date()), "yyyy-MM-dd") },
-              { label: "هذا العام", from: `${new Date().getFullYear()}-01-01`, to: `${new Date().getFullYear()}-12-31` },
-              { label: "كل الحركات", from: "2020-01-01", to: format(new Date(), "yyyy-MM-dd") },
-            ].map(p => (
-              <button
-                key={p.label}
-                onClick={() => { setDateFrom(p.from); setDateTo(p.to); }}
-                className="px-2.5 py-1 rounded-full bg-secondary text-xs hover:bg-primary/10 hover:text-primary transition-all"
-              >
+            {quickPeriods.map(p => (
+              <button key={p.label} onClick={() => { setDateFrom(p.from); setDateTo(p.to); }}
+                className="px-3 py-1.5 rounded-full bg-secondary text-xs font-medium hover:bg-primary/10 hover:text-primary transition-all">
                 {p.label}
               </button>
             ))}
@@ -302,159 +321,199 @@ const AccountStatementPage = () => {
         </div>
       )}
 
-      {/* Results */}
-      {!loading && selectedAccountCode && (
-        <>
-          {/* Account info + Summary */}
-          <div className="px-4 py-4">
-            <Card>
-              <CardContent className="pt-4">
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <p className="text-xs text-muted-foreground">الحساب</p>
-                    <p className="text-lg font-bold text-foreground">{selectedAccount?.account_name}</p>
-                    <p className="text-xs text-muted-foreground">{selectedAccount?.account_code} • {selectedAccount?.account_type}</p>
-                  </div>
-                  <Badge variant="secondary" className="text-xs">
-                    <FileText className="w-3 h-3 ml-1" />
-                    {rows.length} حركة
-                  </Badge>
-                </div>
+      {/* Print area wrapper */}
+      <div ref={printRef} className="print-area">
 
-                {/* Balance cards */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  <div className="bg-muted/50 rounded-lg p-3 text-center">
-                    <p className="text-[10px] text-muted-foreground">رصيد أول المدة</p>
-                    <p className={`text-base font-bold ${openingBalance >= 0 ? "text-primary" : "text-destructive"}`}>
-                      {formatAmount(openingBalance)}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground">{openingBalance >= 0 ? "مدين" : "دائن"}</p>
-                  </div>
-                  <div className="bg-muted/50 rounded-lg p-3 text-center">
-                    <p className="text-[10px] text-muted-foreground">رصيد آخر المدة</p>
-                    <p className={`text-base font-bold ${closingBalance >= 0 ? "text-primary" : "text-destructive"}`}>
-                      {formatAmount(closingBalance)}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground">{closingBalance >= 0 ? "مدين" : "دائن"}</p>
-                  </div>
-                  <div className="bg-muted/50 rounded-lg p-3 text-center">
-                    <p className="text-[10px] text-muted-foreground flex items-center justify-center gap-1">
-                      <TrendingUp className="w-3 h-3 text-green-500" /> إجمالي المدين
-                    </p>
-                    <p className="text-base font-bold text-foreground">{formatAmount(totalDebit)}</p>
-                  </div>
-                  <div className="bg-muted/50 rounded-lg p-3 text-center">
-                    <p className="text-[10px] text-muted-foreground flex items-center justify-center gap-1">
-                      <TrendingDown className="w-3 h-3 text-red-500" /> إجمالي الدائن
-                    </p>
-                    <p className="text-base font-bold text-foreground">{formatAmount(totalCredit)}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Transactions table */}
-          {rows.length === 0 ? (
-            <div className="px-4">
-              <Card className="py-12">
-                <p className="text-center text-muted-foreground">لا توجد حركات لهذا الحساب في الفترة المحددة</p>
-              </Card>
+        {/* Results */}
+        {!loading && selectedAccountCode && (
+          <>
+            {/* Account header for print */}
+            <div className="hidden print:block mb-4 text-center">
+              <h2 className="text-lg font-bold">{companyName}</h2>
+              <p className="font-semibold">كشف حساب: {selectedAccount?.account_name} ({selectedAccount?.account_code})</p>
+              <p className="text-sm">من {dateFrom} إلى {dateTo}</p>
             </div>
-          ) : (
-            <div className="px-4 pb-8">
-              <Card>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b bg-muted/50 text-xs text-muted-foreground">
-                        <th className="p-2 text-right w-8">#</th>
-                        <th className="p-2 text-right">التاريخ</th>
-                        <th className="p-2 text-right">البيان</th>
-                        <th className="p-2 text-right">النوع</th>
-                        <th className="p-2 text-left">مدين ₪</th>
-                        <th className="p-2 text-left">دائن ₪</th>
-                        <th className="p-2 text-left">الرصيد ₪</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {/* Opening balance */}
-                      <tr className="border-b bg-muted/30 font-medium text-xs">
-                        <td className="p-2 text-muted-foreground">—</td>
-                        <td className="p-2">{dateFrom}</td>
-                        <td className="p-2">رصيد أول المدة</td>
-                        <td className="p-2"></td>
-                        <td className="p-2 text-left">{openingBalance > 0 ? formatAmount(openingBalance) : "—"}</td>
-                        <td className="p-2 text-left">{openingBalance < 0 ? formatAmount(openingBalance) : "—"}</td>
-                        <td className="p-2 text-left">
-                          <span className={openingBalance >= 0 ? "text-primary" : "text-destructive"}>
-                            {formatAmount(openingBalance)}
-                          </span>
-                          <span className="text-[10px] text-muted-foreground mr-1">{openingBalance >= 0 ? "م" : "د"}</span>
-                        </td>
-                      </tr>
 
-                      {/* Transactions */}
-                      {rows.map((row, i) => (
-                        <tr key={row.transaction_id} className="border-b hover:bg-muted/20 text-xs">
-                          <td className="p-2 text-muted-foreground">{i + 1}</td>
-                          <td className="p-2">{row.date}</td>
-                          <td className="p-2">
-                            <p className="font-medium text-foreground">{row.description}</p>
-                            {row.reference && (
-                              <p className="text-[10px] text-muted-foreground">مرجع: {row.reference}</p>
-                            )}
-                          </td>
-                          <td className="p-2">
-                            <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] ${typeColors[row.transaction_type] || "bg-muted text-muted-foreground"}`}>
-                              {row.transaction_type}
+            {/* Summary Bar */}
+            <div className="px-4 py-3 no-print">
+              <div className="grid grid-cols-5 gap-2">
+                <div className="bg-muted/50 rounded-lg p-3 text-center border">
+                  <div className="flex items-center justify-center gap-1 mb-1">
+                    <Hash className="w-3 h-3 text-muted-foreground" />
+                    <p className="text-[10px] text-muted-foreground font-medium">عدد السجلات</p>
+                  </div>
+                  <p className="text-lg font-bold text-foreground tabular-nums">{rows.length}</p>
+                </div>
+                <div className="bg-muted/50 rounded-lg p-3 text-center border">
+                  <div className="flex items-center justify-center gap-1 mb-1">
+                    <BookOpen className="w-3 h-3 text-muted-foreground" />
+                    <p className="text-[10px] text-muted-foreground font-medium">رصيد افتتاحي</p>
+                  </div>
+                  <p className="text-lg font-bold text-foreground tabular-nums">{formatAmount(openingBalance)}</p>
+                  <p className="text-[10px] text-muted-foreground">{openingBalance >= 0 ? "مدين" : "دائن"}</p>
+                </div>
+                <div className="bg-blue-50 dark:bg-blue-950/30 rounded-lg p-3 text-center border border-blue-200 dark:border-blue-800">
+                  <div className="flex items-center justify-center gap-1 mb-1">
+                    <TrendingUp className="w-3 h-3 text-blue-600 dark:text-blue-400" />
+                    <p className="text-[10px] text-blue-700 dark:text-blue-400 font-medium">إجمالي المدين</p>
+                  </div>
+                  <p className="text-lg font-bold text-blue-700 dark:text-blue-400 tabular-nums">{formatAmount(totalDebit)}</p>
+                </div>
+                <div className="bg-green-50 dark:bg-green-950/30 rounded-lg p-3 text-center border border-green-200 dark:border-green-800">
+                  <div className="flex items-center justify-center gap-1 mb-1">
+                    <TrendingDown className="w-3 h-3 text-green-600 dark:text-green-400" />
+                    <p className="text-[10px] text-green-700 dark:text-green-400 font-medium">إجمالي الدائن</p>
+                  </div>
+                  <p className="text-lg font-bold text-green-700 dark:text-green-400 tabular-nums">{formatAmount(totalCredit)}</p>
+                </div>
+                <div className={`rounded-lg p-3 text-center border ${
+                  closingBalance > 0
+                    ? "bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800"
+                    : closingBalance < 0
+                    ? "bg-orange-50 dark:bg-orange-950/30 border-orange-200 dark:border-orange-800"
+                    : "bg-muted/50"
+                }`}>
+                  <div className="flex items-center justify-center gap-1 mb-1">
+                    <Wallet className="w-3 h-3" />
+                    <p className="text-[10px] font-medium">صافي الرصيد</p>
+                  </div>
+                  <p className={`text-lg font-bold tabular-nums ${
+                    closingBalance > 0 ? "text-green-700 dark:text-green-400" : closingBalance < 0 ? "text-orange-700 dark:text-orange-400" : "text-foreground"
+                  }`}>
+                    {formatAmount(closingBalance)}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground">{closingBalance > 0 ? "مدين" : closingBalance < 0 ? "دائن" : "متوازن"}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Credit balance warning */}
+            {closingBalance < 0 && (
+              <div className="px-4 pb-2 no-print">
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800 text-orange-800 dark:text-orange-300 text-sm">
+                  <AlertTriangle className="w-4 h-4 shrink-0" />
+                  <span>تنبيه: هذا الحساب لديه رصيد دائن (₪{formatAmountRaw(closingBalance)}) — يحتاج مراجعة</span>
+                </div>
+              </div>
+            )}
+
+            {/* Search within transactions */}
+            {rows.length > 0 && (
+              <div className="px-4 py-2 no-print">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">{filteredRows.length} سجل</span>
+                  <div className="relative w-60">
+                    <Search className="absolute right-2.5 top-2 w-4 h-4 text-muted-foreground" />
+                    <Input placeholder="بحث في الحركات..." value={txSearch} onChange={e => setTxSearch(e.target.value)} className="pr-9 h-8 text-xs" />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Transactions table */}
+            {rows.length === 0 ? (
+              <div className="px-4">
+                <Card className="py-12">
+                  <p className="text-center text-muted-foreground">لا توجد حركات لهذا الحساب في الفترة المحددة</p>
+                </Card>
+              </div>
+            ) : (
+              <div className="px-4 pb-8">
+                <Card>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b bg-muted/50 text-xs text-muted-foreground">
+                          <th className="p-2.5 text-right">التاريخ</th>
+                          <th className="p-2.5 text-right">المستند</th>
+                          <th className="p-2.5 text-right">النوع</th>
+                          <th className="p-2.5 text-right">البيان</th>
+                          <th className="p-2.5 text-left">مدين ₪</th>
+                          <th className="p-2.5 text-left">دائن ₪</th>
+                          <th className="p-2.5 text-left">الرصيد التراكمي</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {/* Opening balance row */}
+                        <tr className="border-b bg-muted/20 font-medium text-xs">
+                          <td className="p-2.5">{dateFrom}</td>
+                          <td className="p-2.5 text-muted-foreground">—</td>
+                          <td className="p-2.5"></td>
+                          <td className="p-2.5 font-semibold">رصيد أول المدة</td>
+                          <td className="p-2.5 text-left">{openingBalance > 0 ? formatAmount(openingBalance) : "—"}</td>
+                          <td className="p-2.5 text-left">{openingBalance < 0 ? formatAmount(openingBalance) : "—"}</td>
+                          <td className="p-2.5 text-left">
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold ${balanceColorClass(openingBalance)}`}>
+                              {formatAmount(openingBalance)}
+                              <span className="text-[10px] font-normal">{openingBalance >= 0 ? "م" : "د"}</span>
                             </span>
-                          </td>
-                          <td className="p-2 text-left text-green-600 dark:text-green-400">
-                            {row.debit > 0 ? formatAmount(row.debit) : "—"}
-                          </td>
-                          <td className="p-2 text-left text-red-600 dark:text-red-400">
-                            {row.credit > 0 ? formatAmount(row.credit) : "—"}
-                          </td>
-                          <td className="p-2 text-left">
-                            <span className={row.balance >= 0 ? "text-primary" : "text-destructive"}>
-                              {formatAmount(row.balance)}
-                            </span>
-                            <span className="text-[10px] text-muted-foreground mr-1">{row.balance >= 0 ? "م" : "د"}</span>
                           </td>
                         </tr>
-                      ))}
 
-                      {/* Totals */}
-                      <tr className="border-b bg-muted/50 font-bold text-xs">
-                        <td className="p-2" colSpan={4}>الإجمالي</td>
-                        <td className="p-2 text-left text-green-600 dark:text-green-400">{formatAmount(totalDebit)}</td>
-                        <td className="p-2 text-left text-red-600 dark:text-red-400">{formatAmount(totalCredit)}</td>
-                        <td className="p-2"></td>
-                      </tr>
+                        {/* Transaction rows */}
+                        {filteredRows.map((row) => (
+                          <tr key={row.transaction_id} className="border-b hover:bg-muted/20 text-xs transition-colors">
+                            <td className="p-2.5 tabular-nums">{row.date}</td>
+                            <td className="p-2.5">
+                              {row.reference ? (
+                                <button
+                                  onClick={() => navigate(`/journal-entries`)}
+                                  className="text-primary hover:underline font-medium"
+                                >
+                                  {row.reference}
+                                </button>
+                              ) : (
+                                <span className="text-muted-foreground">—</span>
+                              )}
+                            </td>
+                            <td className="p-2.5">
+                              <Badge variant="secondary" className="text-[10px] font-normal">
+                                {row.transaction_type}
+                              </Badge>
+                            </td>
+                            <td className="p-2.5">
+                              <p className="font-medium text-foreground">{row.description}</p>
+                            </td>
+                            <td className="p-2.5 text-left tabular-nums text-blue-700 dark:text-blue-400 font-medium">
+                              {row.debit > 0 ? formatAmount(row.debit) : "—"}
+                            </td>
+                            <td className="p-2.5 text-left tabular-nums text-green-700 dark:text-green-400 font-medium">
+                              {row.credit > 0 ? formatAmount(row.credit) : "—"}
+                            </td>
+                            <td className="p-2.5 text-left">
+                              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold ${balanceColorClass(row.balance)}`}>
+                                {formatAmount(row.balance)}
+                                <span className="text-[10px] font-normal">{row.balance > 0 ? "م" : row.balance < 0 ? "د" : ""}</span>
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
 
-                      {/* Closing balance */}
-                      <tr className="bg-primary/5 font-bold text-xs">
-                        <td className="p-2" colSpan={4}>رصيد آخر المدة</td>
-                        <td className="p-2 text-left">{closingBalance > 0 ? formatAmount(closingBalance) : "—"}</td>
-                        <td className="p-2 text-left">{closingBalance < 0 ? formatAmount(Math.abs(closingBalance)) : "—"}</td>
-                        <td className="p-2 text-left">
-                          <span className={closingBalance >= 0 ? "text-primary" : "text-destructive"}>
-                            {formatAmount(closingBalance)}
-                          </span>
-                          <Badge variant="outline" className="mr-1 text-[10px]">
-                            {closingBalance >= 0 ? "مدين" : "دائن"}
-                          </Badge>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </Card>
-            </div>
-          )}
-        </>
-      )}
+                        {/* Totals footer */}
+                        <tr className="border-t-2 border-border bg-[hsl(var(--muted)/0.5)] font-bold text-xs">
+                          <td className="p-2.5" colSpan={4}>
+                            <span className="font-bold">الإجمالي</span>
+                          </td>
+                          <td className="p-2.5 text-left tabular-nums text-blue-700 dark:text-blue-400">{formatAmount(totalDebit)}</td>
+                          <td className="p-2.5 text-left tabular-nums text-green-700 dark:text-green-400">{formatAmount(totalCredit)}</td>
+                          <td className="p-2.5 text-left">
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold ${balanceColorClass(closingBalance)}`}>
+                              {formatAmount(closingBalance)}
+                              <Badge variant="outline" className="text-[10px] mr-1 py-0">
+                                {closingBalance > 0 ? "مدين" : closingBalance < 0 ? "دائن" : "متوازن"}
+                              </Badge>
+                            </span>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </Card>
+              </div>
+            )}
+          </>
+        )}
+      </div>
 
       {/* Empty state */}
       {!loading && !selectedAccountCode && (
