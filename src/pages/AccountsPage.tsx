@@ -15,13 +15,59 @@ interface Account {
   account_name: string;
   account_type: string;
   is_system: boolean | null;
+  parent_code: string | null;
 }
 
-function getLevel(code: string): number {
-  if (!code) return 2;
-  if (code.endsWith("00") && code[2] === "0") return 0;
-  if (code.endsWith("00")) return 1;
-  return 2;
+// Calculate depth based on parent_code chain
+function getAccountDepth(acc: Account, accountsByCode: Map<string, Account>): number {
+  let depth = 0;
+  let current = acc;
+  while (current.parent_code && depth < 10) {
+    depth++;
+    const parent = accountsByCode.get(current.parent_code);
+    if (!parent) break;
+    current = parent;
+  }
+  return depth;
+}
+
+function hasChildAccounts(acc: Account, allAccounts: Account[]): boolean {
+  return allAccounts.some(a => a.parent_code === acc.account_code);
+}
+
+// Build ordered tree from flat list using parent_code
+function buildOrderedTree(accounts: Account[]): Account[] {
+  const byCode = new Map<string, Account>();
+  accounts.forEach(a => byCode.set(a.account_code, a));
+  
+  // Group children by parent
+  const childrenOf = new Map<string, Account[]>();
+  const roots: Account[] = [];
+  
+  accounts.forEach(a => {
+    if (!a.parent_code || !byCode.has(a.parent_code)) {
+      roots.push(a);
+    } else {
+      const siblings = childrenOf.get(a.parent_code) || [];
+      siblings.push(a);
+      childrenOf.set(a.parent_code, siblings);
+    }
+  });
+  
+  // Sort each group
+  const sort = (arr: Account[]) => arr.sort((a, b) => a.account_code.localeCompare(b.account_code));
+  sort(roots);
+  childrenOf.forEach(children => sort(children));
+  
+  // DFS flatten
+  const result: Account[] = [];
+  const walk = (node: Account) => {
+    result.push(node);
+    const children = childrenOf.get(node.account_code);
+    if (children) children.forEach(walk);
+  };
+  roots.forEach(walk);
+  return result;
 }
 
 const arabicTypeMap: Record<string, string> = {
@@ -190,7 +236,10 @@ const AccountsPage = () => {
   // Build tree with subcategory headers
   const treeRows = useMemo(() => {
     const rows: TreeRow[] = [];
-    // Group by normalized type first
+    const accountsByCode = new Map<string, Account>();
+    filteredAccounts.forEach(a => accountsByCode.set(a.account_code, a));
+
+    // Group by normalized type
     const byType: Record<string, Account[]> = {};
     filteredAccounts.forEach(acc => {
       const t = normalizeType(acc.account_type);
@@ -200,69 +249,69 @@ const AccountsPage = () => {
 
     const orderedTypes = typeOrder.filter(t => byType[t]?.length);
 
+    // Check if an account or any ancestor is collapsed
+    const isHiddenByCollapse = (acc: Account): boolean => {
+      let current = acc;
+      while (current.parent_code) {
+        if (collapsedGroups.has(current.parent_code)) return true;
+        const parent = accountsByCode.get(current.parent_code);
+        if (!parent) break;
+        current = parent;
+      }
+      return false;
+    };
+
     orderedTypes.forEach(type => {
       const typeAccs = byType[type];
       const subs = subCategories[type];
 
-      // Add type header row (virtual level 0 group)
+      // Type header
       const typeHeaderAcc: Account = {
         id: `type-${type}`,
         account_code: '',
         account_name: typeLabels[type] || type,
         account_type: type,
         is_system: null,
+        parent_code: null,
       };
       const isTypeCollapsed = collapsedGroups.has(`type-${type}`);
       rows.push({ type: 'account', account: typeHeaderAcc, level: 0, isGroup: true, hasChildren: true, isCollapsed: isTypeCollapsed });
 
       if (isTypeCollapsed) return;
 
+      const addAccountRows = (accs: Account[]) => {
+        // Order by parent_code tree
+        const ordered = buildOrderedTree(accs);
+        ordered.forEach(acc => {
+          if (isHiddenByCollapse(acc)) return;
+          const depth = getAccountDepth(acc, accountsByCode);
+          const hasKids = hasChildAccounts(acc, accs);
+          rows.push({
+            type: 'account',
+            account: acc,
+            level: depth + 1, // +1 because level 0 is the type header
+            isGroup: hasKids,
+            hasChildren: hasKids,
+            isCollapsed: collapsedGroups.has(acc.account_code),
+          });
+        });
+      };
+
       if (subs) {
-        // Group accounts into subcategories
         subs.forEach(sub => {
           const subAccs = typeAccs.filter(a => sub.prefixes.some(p => a.account_code.startsWith(p)));
           if (subAccs.length === 0) return;
           rows.push({ type: 'subcategory', label: sub.label, count: subAccs.length, parentType: type });
-          subAccs.forEach(acc => {
-            const level = getLevel(acc.account_code);
-            const isGroup = level < 2;
-            if (isGroup) {
-              const children = subAccs.filter(a => a.account_code.startsWith(acc.account_code.substring(0, 3)) && a.id !== acc.id && getLevel(a.account_code) === 2);
-              rows.push({ type: 'account', account: acc, level: 1, isGroup: true, hasChildren: children.length > 0, isCollapsed: collapsedGroups.has(acc.account_code) });
-            } else {
-              const parentL1 = subAccs.find(a => getLevel(a.account_code) === 1 && acc.account_code.startsWith(a.account_code.substring(0, 3)));
-              const l1Collapsed = parentL1 ? collapsedGroups.has(parentL1.account_code) : false;
-              if (!l1Collapsed) {
-                rows.push({ type: 'account', account: acc, level: 2, isGroup: false, hasChildren: false, isCollapsed: false });
-              }
-            }
-          });
+          addAccountRows(subAccs);
         });
-        // Unmatched accounts
         const allPrefixes = subs.flatMap(s => s.prefixes);
         const unmatched = typeAccs.filter(a => !allPrefixes.some(p => a.account_code.startsWith(p)));
         if (unmatched.length > 0) {
           rows.push({ type: 'subcategory', label: 'أخرى', count: unmatched.length, parentType: type });
-          unmatched.forEach(acc => {
-            rows.push({ type: 'account', account: acc, level: 2, isGroup: false, hasChildren: false, isCollapsed: false });
-          });
+          addAccountRows(unmatched);
         }
       } else {
-        // No subcategories - just list accounts
-        typeAccs.forEach(acc => {
-          const level = getLevel(acc.account_code);
-          const isGroup = level < 2;
-          if (isGroup) {
-            const children = typeAccs.filter(a => a.account_code.startsWith(acc.account_code.substring(0, 3)) && a.id !== acc.id && getLevel(a.account_code) === 2);
-            rows.push({ type: 'account', account: acc, level: 1, isGroup: true, hasChildren: children.length > 0, isCollapsed: collapsedGroups.has(acc.account_code) });
-          } else {
-            const parentL1 = typeAccs.find(a => getLevel(a.account_code) === 1 && acc.account_code.startsWith(a.account_code.substring(0, 3)));
-            const l1Collapsed = parentL1 ? collapsedGroups.has(parentL1.account_code) : false;
-            if (!l1Collapsed) {
-              rows.push({ type: 'account', account: acc, level: 2, isGroup: false, hasChildren: false, isCollapsed: false });
-            }
-          }
-        });
+        addAccountRows(typeAccs);
       }
     });
 
@@ -430,7 +479,7 @@ const AccountsPage = () => {
                     className={cn(
                       "grid grid-cols-[80px_1fr_100px_90px] sm:grid-cols-[100px_1fr_120px_100px_80px] px-3 py-2 text-sm transition-colors items-center group",
                       level === 0 && "bg-[hsl(210,20%,96%)] dark:bg-muted/20 border-t-2 border-[hsl(210,14%,85%)] dark:border-border",
-                      isGroup && level === 1 && "bg-[hsl(210,20%,98.5%)] dark:bg-muted/10",
+                      isGroup && level >= 1 && "bg-[hsl(210,20%,98.5%)] dark:bg-muted/10",
                       !isGroup && idx % 2 === 0 && "bg-white dark:bg-card",
                       !isGroup && idx % 2 !== 0 && "bg-[hsl(210,20%,99.5%)] dark:bg-card",
                       !isVirtualTypeHeader && "hover:bg-[hsl(142,71%,45%)]/[0.04] dark:hover:bg-primary/5"
@@ -446,7 +495,7 @@ const AccountsPage = () => {
                     {/* Name with hierarchy */}
                     <div
                       className="flex items-center gap-1.5 min-w-0"
-                      style={{ paddingRight: isVirtualTypeHeader ? 0 : level === 2 ? 40 : level === 1 ? 20 : 0 }}
+                      style={{ paddingRight: isVirtualTypeHeader ? 0 : (level - 1) * 24 }}
                     >
                       {isGroup && hasChildren && (
                         <button
@@ -456,13 +505,13 @@ const AccountsPage = () => {
                           <ChevronDown className={cn("h-3.5 w-3.5 text-[hsl(210,10%,42%)] dark:text-muted-foreground transition-transform", isCollapsed && "-rotate-90 rtl:rotate-90")} />
                         </button>
                       )}
-                      {!isGroup && level === 2 && (
+                      {!isGroup && level >= 2 && (
                         <span className="w-4 shrink-0 border-b border-[hsl(210,14%,89%)] dark:border-border mr-1" />
                       )}
                       <span className={cn(
                         "truncate",
                         level === 0 && "font-bold text-[hsl(240,10%,10%)] dark:text-foreground text-[14px]",
-                        isGroup && level === 1 && "font-semibold text-[hsl(240,10%,15%)] dark:text-foreground/90 text-[13px]",
+                        isGroup && level >= 1 && "font-semibold text-[hsl(240,10%,15%)] dark:text-foreground/90 text-[13px]",
                         !isGroup && "font-normal text-[hsl(240,10%,20%)] dark:text-foreground/80"
                       )}>
                         {acc.account_name}

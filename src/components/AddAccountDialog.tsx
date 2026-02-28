@@ -16,6 +16,7 @@ interface Account {
   account_name: string;
   account_type: string;
   is_system: boolean | null;
+  parent_code: string | null;
 }
 
 const accountTypeOptions = [
