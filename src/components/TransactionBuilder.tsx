@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import { X, Users, Package, Banknote, CreditCard, BookOpen, ChevronLeft, Loader2, Check, Plus } from "lucide-react";
+import { X, Users, Package, Banknote, CreditCard, BookOpen, ChevronLeft, ChevronRight, Loader2, Check, Plus, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -51,11 +51,19 @@ const TransactionBuilder = ({ transactionType, onClose, onSubmit, sending }: Tra
 
   const [showPartyDropdown, setShowPartyDropdown] = useState(true);
   const [showProductDropdown, setShowProductDropdown] = useState(false);
+
+  // Quick add product
   const [showQuickAddProduct, setShowQuickAddProduct] = useState(false);
   const [newProductName, setNewProductName] = useState("");
   const [newProductUnit, setNewProductUnit] = useState("قطعة");
   const [newProductPrice, setNewProductPrice] = useState("");
   const [addingProduct, setAddingProduct] = useState(false);
+
+  // Quick add contact
+  const [showQuickAddContact, setShowQuickAddContact] = useState(false);
+  const [newContactName, setNewContactName] = useState("");
+  const [newContactPhone, setNewContactPhone] = useState("");
+  const [addingContact, setAddingContact] = useState(false);
 
   const quantityRef = useRef<HTMLInputElement>(null);
   const priceRef = useRef<HTMLInputElement>(null);
@@ -105,8 +113,6 @@ const TransactionBuilder = ({ transactionType, onClose, onSubmit, sending }: Tra
     return q * p;
   }, [quantity, unitPrice]);
 
-  const canSubmit = selectedParty && selectedProduct && parseFloat(quantity) > 0 && paymentMethod;
-
   const selectParty = useCallback((p: PartyOption) => {
     setSelectedParty(p);
     setShowPartyDropdown(false);
@@ -135,18 +141,21 @@ const TransactionBuilder = ({ transactionType, onClose, onSubmit, sending }: Tra
     setActiveStep("payment");
   };
 
-  const handlePayment = (method: "نقد" | "حساب" | "شيك") => {
-    setPaymentMethod(method);
-    if (method !== "شيك" && canSubmitWith(method)) {
-      submitTransaction(method);
+  // Go back to previous step
+  const goBack = () => {
+    const currentIndex = STEPS.indexOf(activeStep);
+    if (currentIndex > 0) {
+      setActiveStep(STEPS[currentIndex - 1]);
     }
   };
 
-  const canSubmitWith = (method: string) => selectedParty && selectedProduct && parseFloat(quantity) > 0 && method;
+  // Payment selection - just select, don't submit
+  const handlePayment = (method: "نقد" | "حساب" | "شيك") => {
+    setPaymentMethod(method);
+  };
 
-  const submitTransaction = (method?: "نقد" | "حساب" | "شيك") => {
-    const pm = method || paymentMethod;
-    if (!selectedParty || !selectedProduct || !pm) return;
+  const submitTransaction = () => {
+    if (!selectedParty || !selectedProduct || !paymentMethod) return;
     onSubmit({
       transaction_type: transactionType,
       party: { id: selectedParty.id, name: selectedParty.name, type: isSale ? "زبون" : "مورد" },
@@ -154,13 +163,29 @@ const TransactionBuilder = ({ transactionType, onClose, onSubmit, sending }: Tra
       quantity: parseFloat(quantity) || 0,
       unit_price: parseFloat(unitPrice) || 0,
       total,
-      payment_method: pm,
-      cheque_info: pm === "شيك" ? chequeInfo || null : null,
+      payment_method: paymentMethod,
+      cheque_info: paymentMethod === "شيك" ? chequeInfo || null : null,
       timestamp: new Date().toISOString(),
     });
   };
 
+  const canSubmit = selectedParty && selectedProduct && parseFloat(quantity) > 0 && paymentMethod;
+
   const stepIndex = STEPS.indexOf(activeStep);
+
+  // Back button component
+  const BackButton = () => {
+    if (stepIndex === 0) return null;
+    return (
+      <button
+        onClick={goBack}
+        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors mb-2"
+      >
+        <ArrowRight className="h-3.5 w-3.5" />
+        <span>رجوع</span>
+      </button>
+    );
+  };
 
   return (
     <motion.div
@@ -191,10 +216,19 @@ const TransactionBuilder = ({ transactionType, onClose, onSubmit, sending }: Tra
         </button>
       </div>
 
-      {/* Progress */}
+      {/* Progress - clickable */}
       <div className="flex gap-1 px-4 pt-3">
         {STEPS.map((s, i) => (
-          <div key={s} className={`h-1 flex-1 rounded-full transition-colors ${i <= stepIndex ? "bg-primary" : "bg-secondary"}`} />
+          <button
+            key={s}
+            onClick={() => {
+              // Only allow going back to completed steps
+              if (i < stepIndex) setActiveStep(STEPS[i]);
+            }}
+            className={`h-1.5 flex-1 rounded-full transition-colors ${
+              i <= stepIndex ? "bg-primary cursor-pointer hover:bg-primary/80" : "bg-secondary cursor-default"
+            }`}
+          />
         ))}
       </div>
 
@@ -203,6 +237,7 @@ const TransactionBuilder = ({ transactionType, onClose, onSubmit, sending }: Tra
         {/* Step: Party */}
         {activeStep === "party" && (
           <div className="space-y-2">
+            <BackButton />
             <label className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
               <Users className="h-3.5 w-3.5" />
               {isSale ? "اختر الزبون" : "اختر المورد"} @
@@ -215,16 +250,98 @@ const TransactionBuilder = ({ transactionType, onClose, onSubmit, sending }: Tra
               placeholder={isSale ? "ابحث عن زبون..." : "ابحث عن مورد..."}
               className="w-full h-10 rounded-xl bg-secondary/50 px-3 text-sm text-foreground placeholder:text-muted-foreground/50 outline-none border-2 border-primary/40 focus:border-primary transition-colors"
             />
-            {showPartyDropdown && (
+            {showPartyDropdown && !showQuickAddContact && (
               <div className="max-h-40 overflow-y-auto rounded-xl border border-border bg-popover shadow-md">
                 {filteredParties.length === 0 ? (
-                  <p className="px-3 py-3 text-[11px] text-muted-foreground text-center">لا توجد نتائج</p>
-                ) : filteredParties.map(p => (
-                  <button key={p.id} onClick={() => selectParty(p)} className="w-full flex items-center gap-2 px-3 py-2.5 text-sm hover:bg-accent/50 transition-colors text-right">
-                    <Users className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                    <span className="text-xs text-foreground">{p.name}</span>
+                  <div className="p-3 space-y-2">
+                    <p className="text-[11px] text-muted-foreground text-center">لا توجد نتائج</p>
+                    <button
+                      onClick={() => { setShowQuickAddContact(true); setNewContactName(partySearch); }}
+                      className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg bg-primary/10 text-primary text-xs font-bold hover:bg-primary/20 transition-colors"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      إضافة "{partySearch || (isSale ? "زبون جديد" : "مورد جديد")}"
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    {filteredParties.map(p => (
+                      <button key={p.id} onClick={() => selectParty(p)} className="w-full flex items-center gap-2 px-3 py-2.5 text-sm hover:bg-accent/50 transition-colors text-right">
+                        <Users className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                        <span className="text-xs text-foreground">{p.name}</span>
+                      </button>
+                    ))}
+                    <button
+                      onClick={() => { setShowQuickAddContact(true); setNewContactName(partySearch); }}
+                      className="w-full flex items-center justify-center gap-1.5 py-2 border-t border-border text-primary text-xs font-bold hover:bg-primary/5 transition-colors"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      إضافة {isSale ? "زبون" : "مورد"} جديد
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* Quick Add Contact Form */}
+            {showQuickAddContact && (
+              <div className="rounded-xl border-2 border-primary/30 bg-secondary/30 p-3 space-y-2">
+                <p className="text-xs font-bold text-foreground">إضافة {isSale ? "زبون" : "مورد"} جديد</p>
+                <input
+                  autoFocus
+                  value={newContactName}
+                  onChange={e => setNewContactName(e.target.value)}
+                  placeholder="الاسم"
+                  className="w-full h-9 rounded-lg bg-background px-3 text-sm text-foreground outline-none border border-border focus:border-primary transition-colors"
+                />
+                <input
+                  value={newContactPhone}
+                  onChange={e => setNewContactPhone(e.target.value)}
+                  placeholder="رقم الهاتف (اختياري)"
+                  type="tel"
+                  inputMode="tel"
+                  className="w-full h-9 rounded-lg bg-background px-3 text-sm text-foreground outline-none border border-border focus:border-primary transition-colors"
+                />
+                <div className="flex gap-2">
+                  <button
+                    onClick={async () => {
+                      if (!newContactName.trim() || !user?.id) return;
+                      setAddingContact(true);
+                      const { data, error } = await supabase.from("contacts").insert({
+                        user_id: user.id,
+                        contact_name: newContactName.trim(),
+                        contact_type: contactType,
+                        phone: newContactPhone.trim() || null,
+                        is_active: true,
+                      }).select("id, contact_name, contact_type").single();
+                      setAddingContact(false);
+                      if (error) {
+                        toast.error("خطأ في إضافة الجهة");
+                        return;
+                      }
+                      if (data) {
+                        const newP = { id: data.id, name: data.contact_name, type: data.contact_type };
+                        setParties(prev => [...prev, newP]);
+                        selectParty(newP);
+                        setShowQuickAddContact(false);
+                        setNewContactName("");
+                        setNewContactPhone("");
+                        toast.success(`تم إضافة ${isSale ? "الزبون" : "المورد"} بنجاح`);
+                      }
+                    }}
+                    disabled={!newContactName.trim() || addingContact}
+                    className="flex-1 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-bold hover:opacity-90 transition-colors disabled:opacity-40 flex items-center justify-center gap-1"
+                  >
+                    {addingContact ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
+                    حفظ
                   </button>
-                ))}
+                  <button
+                    onClick={() => { setShowQuickAddContact(false); setNewContactName(""); setNewContactPhone(""); }}
+                    className="px-3 py-2 rounded-lg bg-secondary text-foreground text-xs font-bold hover:bg-secondary/70 transition-colors"
+                  >
+                    إلغاء
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -233,6 +350,7 @@ const TransactionBuilder = ({ transactionType, onClose, onSubmit, sending }: Tra
         {/* Step: Product */}
         {activeStep === "product" && (
           <div className="space-y-2">
+            <BackButton />
             <div className="flex items-center gap-2">
               {selectedParty && (
                 <span className="px-2.5 py-1 rounded-full bg-primary/10 text-[11px] font-medium text-primary">
@@ -372,6 +490,7 @@ const TransactionBuilder = ({ transactionType, onClose, onSubmit, sending }: Tra
         {/* Step: Quantity & Price side by side */}
         {(activeStep === "quantity" || activeStep === "price") && (
           <div className="space-y-3">
+            <BackButton />
             <div className="flex items-center gap-2 flex-wrap">
               {selectedParty && (
                 <span className="px-2.5 py-1 rounded-full bg-primary/10 text-[11px] font-medium text-primary">{selectedParty.name}</span>
@@ -433,6 +552,7 @@ const TransactionBuilder = ({ transactionType, onClose, onSubmit, sending }: Tra
         {/* Step: Payment */}
         {activeStep === "payment" && (
           <div className="space-y-3">
+            <BackButton />
             <div className="flex items-center gap-2 flex-wrap">
               {selectedParty && <span className="px-2.5 py-1 rounded-full bg-primary/10 text-[11px] font-medium text-primary">{selectedParty.name}</span>}
               {selectedProduct && <span className="px-2.5 py-1 rounded-full bg-accent/50 text-[11px] font-medium text-foreground">{selectedProduct.name} × {quantity}</span>}
@@ -462,32 +582,27 @@ const TransactionBuilder = ({ transactionType, onClose, onSubmit, sending }: Tra
             </div>
 
             {paymentMethod === "شيك" && (
-              <div className="space-y-2">
-                <input
-                  value={chequeInfo}
-                  onChange={e => setChequeInfo(e.target.value)}
-                  placeholder="رقم الشيك / تاريخ الاستحقاق"
-                  className="w-full h-10 rounded-xl bg-secondary/50 px-3 text-sm text-foreground placeholder:text-muted-foreground/50 outline-none border-2 border-primary/30 focus:border-primary transition-colors"
-                  dir="rtl"
-                />
-                <button
-                  onClick={() => submitTransaction()}
-                  disabled={sending}
-                  className={`w-full py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 ${
-                    sending ? "bg-primary/60 text-primary-foreground" : "bg-primary text-primary-foreground hover:opacity-90 animate-pulse-once"
-                  }`}
-                >
-                  {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-                  {sending ? "جاري الإرسال..." : "تأكيد وإرسال"}
-                </button>
-              </div>
+              <input
+                value={chequeInfo}
+                onChange={e => setChequeInfo(e.target.value)}
+                placeholder="رقم الشيك / تاريخ الاستحقاق"
+                className="w-full h-10 rounded-xl bg-secondary/50 px-3 text-sm text-foreground placeholder:text-muted-foreground/50 outline-none border-2 border-primary/30 focus:border-primary transition-colors"
+                dir="rtl"
+              />
             )}
 
-            {sending && paymentMethod !== "شيك" && (
-              <div className="flex items-center justify-center gap-2 py-2">
-                <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                <span className="text-xs text-muted-foreground">جاري تسجيل العملية...</span>
-              </div>
+            {/* Confirm button - always visible when payment selected */}
+            {paymentMethod && (
+              <button
+                onClick={submitTransaction}
+                disabled={sending || !canSubmit}
+                className={`w-full py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 ${
+                  sending ? "bg-primary/60 text-primary-foreground" : "bg-primary text-primary-foreground hover:opacity-90"
+                }`}
+              >
+                {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                {sending ? "جاري الإرسال..." : "تأكيد وإرسال"}
+              </button>
             )}
           </div>
         )}
