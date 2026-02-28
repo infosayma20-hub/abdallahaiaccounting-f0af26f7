@@ -1,14 +1,13 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { ArrowRight, Loader2, RefreshCw, Plus, ChevronDown, ChevronLeft, Search, Pencil, Eye, PlusCircle, MoreHorizontal } from "lucide-react";
+import { ArrowRight, Loader2, RefreshCw, Plus, ChevronDown, Search, Pencil, Eye, PlusCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import AddAccountDialog from "@/components/AddAccountDialog";
 
 interface Account {
   id: string;
@@ -82,13 +81,6 @@ const naturalBalance: Record<string, string> = {
   "Expenses": "مدين",
 };
 
-const accountTypeOptions = [
-  { value: "Asset", label: "أصول" },
-  { value: "Liability", label: "التزامات" },
-  { value: "Owner's Equity", label: "حقوق الملكية" },
-  { value: "Revenue", label: "إيرادات" },
-  { value: "Expenses", label: "مصروفات" },
-];
 
 const filterTabs = [
   { value: "all", label: "الكل" },
@@ -107,9 +99,6 @@ const AccountsPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showAddDialog, setShowAddDialog] = useState(false);
-  const [newAccountName, setNewAccountName] = useState("");
-  const [newAccountType, setNewAccountType] = useState("");
-  const [adding, setAdding] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
@@ -174,31 +163,6 @@ const AccountsPage = () => {
     init();
   }, [user]);
 
-  const handleAddAccount = async () => {
-    if (!newAccountName.trim() || !newAccountType || !user) return;
-    setAdding(true);
-    try {
-      const match = newAccountName.match(/^(\d{4})\s*[-–]\s*(.+)/);
-      const code = match ? match[1] : newAccountName.substring(0, 4);
-      const name = match ? match[2].trim() : newAccountName;
-      const { error } = await supabase.from('accounts').insert({
-        user_id: user.id,
-        account_code: code,
-        account_name: name,
-        account_type: newAccountType,
-      });
-      if (error) throw error;
-      toast({ title: "تم إضافة الحساب بنجاح ✅" });
-      setNewAccountName("");
-      setNewAccountType("");
-      setShowAddDialog(false);
-      fetchAccounts();
-    } catch (err: any) {
-      toast({ title: "خطأ", description: err.message, variant: "destructive" });
-    } finally {
-      setAdding(false);
-    }
-  };
 
   const toggleGroup = useCallback((code: string) => {
     setCollapsedGroups(prev => {
@@ -559,23 +523,31 @@ const AccountsPage = () => {
       </div>
 
       {/* Add Account Dialog */}
-      <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-        <DialogContent className="max-w-sm" dir="rtl">
-          <DialogHeader><DialogTitle>إضافة حساب جديد</DialogTitle></DialogHeader>
-          <div className="space-y-4">
-            <Input placeholder="اسم الحساب (مثال: 5910 - مصروف جديد)" value={newAccountName} onChange={(e) => setNewAccountName(e.target.value)} dir="rtl" />
-            <Select value={newAccountType} onValueChange={setNewAccountType} dir="rtl">
-              <SelectTrigger><SelectValue placeholder="نوع الحساب" /></SelectTrigger>
-              <SelectContent className="bg-background z-50">
-                {accountTypeOptions.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            <Button onClick={handleAddAccount} disabled={adding || !newAccountName.trim() || !newAccountType} className="w-full rounded-xl bg-[hsl(142,71%,45%)] hover:bg-[hsl(142,71%,38%)] text-white">
-              {adding ? <Loader2 className="h-4 w-4 animate-spin" /> : "إضافة"}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <AddAccountDialog
+        open={showAddDialog}
+        onOpenChange={setShowAddDialog}
+        accounts={accounts}
+        onAdd={async (data) => {
+          if (!user) return false;
+          try {
+            const { error } = await supabase.from('accounts').insert({
+              user_id: user.id,
+              account_code: data.account_code,
+              account_name: data.account_name,
+              account_type: data.account_type,
+              parent_code: data.parent_code,
+              notes: data.notes,
+            });
+            if (error) throw error;
+            toast({ title: "تم إضافة الحساب بنجاح ✅" });
+            fetchAccounts();
+            return true;
+          } catch (err: any) {
+            toast({ title: "خطأ", description: err.message, variant: "destructive" });
+            return false;
+          }
+        }}
+      />
     </div>
   );
 };
