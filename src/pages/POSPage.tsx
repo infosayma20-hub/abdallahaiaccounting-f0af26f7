@@ -697,42 +697,47 @@ const POSPage = () => {
                   <p className="text-xs mt-1">اضغط على منتج لإضافته</p>
                 </div>
               ) : (
-                cart.map((item, index) => (
-                  <motion.div
-                    key={item.id}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    className={`p-2.5 rounded-lg border transition-all cursor-pointer ${
-                      selectedCartIndex === index
-                        ? "border-primary bg-primary/5"
-                        : "border-transparent hover:bg-muted/50"
-                    }`}
-                    onClick={() => setSelectedCartIndex(selectedCartIndex === index ? null : index)}
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-foreground truncate">{item.name}</p>
-                        <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
-                          <span>{item.qty} × ₪{item.unit_price.toFixed(2)}</span>
-                          {item.discount_pct > 0 && (
-                            <Badge variant="secondary" className="text-[10px] px-1">
-                              -{item.discount_pct}%
-                            </Badge>
+                cart.map((item, index) => {
+                  const product = products.find(p => p.id === item.product_id);
+                  return (
+                    <motion.div
+                      key={item.id}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      className={`p-2.5 rounded-lg border transition-all ${
+                        selectedCartIndex === index
+                          ? "border-primary bg-primary/5"
+                          : "border-transparent hover:bg-muted/50"
+                      }`}
+                      onClick={() => setSelectedCartIndex(selectedCartIndex === index ? null : index)}
+                    >
+                      <div className="flex items-center gap-2">
+                        {/* Product image */}
+                        <div className="w-10 h-10 rounded-lg overflow-hidden bg-muted flex-shrink-0">
+                          {product?.image_url ? (
+                            <img src={product.image_url} alt={item.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: product?.color || 'hsl(var(--primary))' }}>
+                              <Package className="h-4 w-4 text-white" />
+                            </div>
                           )}
                         </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-foreground truncate">{item.name}</p>
+                          <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground">
+                            <span>{item.qty} × ₪{item.unit_price.toFixed(2)}</span>
+                            {item.discount_pct > 0 && (
+                              <Badge variant="secondary" className="text-[10px] px-1">
+                                -{item.discount_pct}%
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                        <p className="text-sm font-bold text-primary shrink-0">₪{item.total.toFixed(2)}</p>
                       </div>
-                      <div className="text-left shrink-0">
-                        <p className="text-sm font-bold text-primary">₪{item.total.toFixed(2)}</p>
-                      </div>
-                    </div>
 
-                    {/* Inline controls when selected */}
-                    {selectedCartIndex === index && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        className="mt-2 flex items-center gap-2"
-                      >
+                      {/* Always visible controls */}
+                      <div className="mt-2 flex items-center gap-2">
                         <div className="flex items-center gap-1 bg-muted rounded-lg">
                           <Button
                             variant="ghost"
@@ -755,15 +760,15 @@ const POSPage = () => {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-7 w-7 text-destructive"
+                          className="h-7 w-7 text-destructive hover:text-destructive"
                           onClick={(e) => { e.stopPropagation(); removeFromCart(index); }}
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
-                      </motion.div>
-                    )}
-                  </motion.div>
-                ))
+                      </div>
+                    </motion.div>
+                  );
+                })
               )}
             </div>
           </ScrollArea>
