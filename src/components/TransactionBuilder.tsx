@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import { X, Users, Package, Banknote, CreditCard, BookOpen, ChevronLeft, Loader2, Check } from "lucide-react";
+import { X, Users, Package, Banknote, CreditCard, BookOpen, ChevronLeft, Loader2, Check, Plus } from "lucide-react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { motion, AnimatePresence } from "framer-motion";
@@ -50,6 +51,11 @@ const TransactionBuilder = ({ transactionType, onClose, onSubmit, sending }: Tra
 
   const [showPartyDropdown, setShowPartyDropdown] = useState(true);
   const [showProductDropdown, setShowProductDropdown] = useState(false);
+  const [showQuickAddProduct, setShowQuickAddProduct] = useState(false);
+  const [newProductName, setNewProductName] = useState("");
+  const [newProductUnit, setNewProductUnit] = useState("قطعة");
+  const [newProductPrice, setNewProductPrice] = useState("");
+  const [addingProduct, setAddingProduct] = useState(false);
 
   const quantityRef = useRef<HTMLInputElement>(null);
   const priceRef = useRef<HTMLInputElement>(null);
@@ -247,9 +253,18 @@ const TransactionBuilder = ({ transactionType, onClose, onSubmit, sending }: Tra
               className="w-full h-10 rounded-xl bg-secondary/50 px-3 text-sm text-foreground placeholder:text-muted-foreground/50 outline-none border-2 border-primary/40 focus:border-primary transition-colors"
             />
             {showProductDropdown && (
-              <div className="max-h-40 overflow-y-auto rounded-xl border border-border bg-popover shadow-md">
-                {filteredProducts.length === 0 ? (
-                  <p className="px-3 py-3 text-[11px] text-muted-foreground text-center">لا توجد منتجات</p>
+              <div className="max-h-48 overflow-y-auto rounded-xl border border-border bg-popover shadow-md">
+                {filteredProducts.length === 0 && !showQuickAddProduct ? (
+                  <div className="p-3 space-y-2">
+                    <p className="text-[11px] text-muted-foreground text-center">لا توجد منتجات</p>
+                    <button
+                      onClick={() => { setShowQuickAddProduct(true); setNewProductName(productSearch); }}
+                      className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg bg-primary/10 text-primary text-xs font-bold hover:bg-primary/20 transition-colors"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      إضافة "{productSearch || "منتج جديد"}"
+                    </button>
+                  </div>
                 ) : filteredProducts.map(p => (
                   <button key={p.id} onClick={() => selectProduct(p)} className="w-full flex items-center justify-between px-3 py-2.5 text-sm hover:bg-accent/50 transition-colors text-right">
                     <div className="flex items-center gap-2">
@@ -262,6 +277,93 @@ const TransactionBuilder = ({ transactionType, onClose, onSubmit, sending }: Tra
                     </span>
                   </button>
                 ))}
+                {filteredProducts.length > 0 && !showQuickAddProduct && (
+                  <button
+                    onClick={() => { setShowQuickAddProduct(true); setNewProductName(productSearch); }}
+                    className="w-full flex items-center justify-center gap-1.5 py-2 border-t border-border text-primary text-xs font-bold hover:bg-primary/5 transition-colors"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    إضافة منتج جديد
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Quick Add Product Form */}
+            {showQuickAddProduct && (
+              <div className="rounded-xl border-2 border-primary/30 bg-secondary/30 p-3 space-y-2">
+                <p className="text-xs font-bold text-foreground">تعريف منتج جديد</p>
+                <input
+                  autoFocus
+                  value={newProductName}
+                  onChange={e => setNewProductName(e.target.value)}
+                  placeholder="اسم المنتج"
+                  className="w-full h-9 rounded-lg bg-background px-3 text-sm text-foreground outline-none border border-border focus:border-primary transition-colors"
+                />
+                <div className="grid grid-cols-2 gap-2">
+                  <select
+                    value={newProductUnit}
+                    onChange={e => setNewProductUnit(e.target.value)}
+                    className="h-9 rounded-lg bg-background px-2 text-xs text-foreground outline-none border border-border focus:border-primary transition-colors"
+                  >
+                    <option value="قطعة">قطعة</option>
+                    <option value="كغ">كغ</option>
+                    <option value="طن">طن</option>
+                    <option value="لتر">لتر</option>
+                    <option value="متر">متر</option>
+                    <option value="علبة">علبة</option>
+                    <option value="كرتون">كرتون</option>
+                  </select>
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    value={newProductPrice}
+                    onChange={e => setNewProductPrice(e.target.value)}
+                    placeholder="السعر"
+                    className="h-9 rounded-lg bg-background px-3 text-sm text-foreground text-center tabular-nums outline-none border border-border focus:border-primary transition-colors"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={async () => {
+                      if (!newProductName.trim() || !user?.id) return;
+                      setAddingProduct(true);
+                      const { data, error } = await supabase.from("products").insert({
+                        user_id: user.id,
+                        name: newProductName.trim(),
+                        unit: newProductUnit,
+                        sell_price: parseFloat(newProductPrice) || 0,
+                        buy_price: parseFloat(newProductPrice) || 0,
+                        quantity: 0,
+                      }).select("id, name, unit, sell_price, buy_price").single();
+                      setAddingProduct(false);
+                      if (error) {
+                        toast.error("خطأ في إضافة المنتج");
+                        return;
+                      }
+                      if (data) {
+                        const newP = { id: data.id, name: data.name, unit: data.unit || "قطعة", sell_price: data.sell_price, buy_price: data.buy_price };
+                        setProducts(prev => [...prev, newP]);
+                        selectProduct(newP);
+                        setShowQuickAddProduct(false);
+                        setNewProductName("");
+                        setNewProductPrice("");
+                        toast.success("تم إضافة المنتج بنجاح");
+                      }
+                    }}
+                    disabled={!newProductName.trim() || addingProduct}
+                    className="flex-1 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-bold hover:opacity-90 transition-colors disabled:opacity-40 flex items-center justify-center gap-1"
+                  >
+                    {addingProduct ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
+                    حفظ
+                  </button>
+                  <button
+                    onClick={() => { setShowQuickAddProduct(false); setNewProductName(""); setNewProductPrice(""); }}
+                    className="px-3 py-2 rounded-lg bg-secondary text-foreground text-xs font-bold hover:bg-secondary/70 transition-colors"
+                  >
+                    إلغاء
+                  </button>
+                </div>
               </div>
             )}
           </div>
