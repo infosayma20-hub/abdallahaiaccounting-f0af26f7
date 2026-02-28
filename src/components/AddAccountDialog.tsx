@@ -159,7 +159,7 @@ export default function AddAccountDialog({ open, onOpenChange, accounts, onAdd }
 
   // Parent accounts filtered by selected type
   const parentAccounts = useMemo(() => {
-    let filtered = accounts.filter(a => getLevel(a.account_code) <= 1);
+    let filtered = [...accounts];
     if (accountType) {
       filtered = filtered.filter(a => normalizeType(a.account_type) === accountType);
     }
