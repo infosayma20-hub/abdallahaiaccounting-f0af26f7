@@ -95,6 +95,96 @@ ${JSON.stringify(movementsSummary, null, 0)}
     );
 
     if (isAccountStatementQ && clientId) {
+      // ─── Check if this is a CONTACT-specific statement ───
+      const { data: contactsData } = await sb.from('contacts')
+        .select('id, contact_name, contact_type')
+        .eq('user_id', clientId)
+        .eq('is_active', true);
+      
+      const contacts = contactsData || [];
+      // Try to match a contact name in the question
+      let matchedContact: any = null;
+      for (const c of contacts) {
+        if (question.includes(c.contact_name)) {
+          matchedContact = c;
+          break;
+        }
+      }
+
+      if (matchedContact) {
+        // ─── Contact-specific account statement ───
+        const { data: contactTxData } = await sb.from('transactions')
+          .select('*')
+          .eq('user_id', clientId)
+          .eq('is_deleted', false)
+          .eq('contact_id', matchedContact.id)
+          .order('transaction_date', { ascending: true });
+
+        const contactTx = contactTxData || [];
+        const isSupplier = matchedContact.contact_type === 'مورد';
+
+        // Calculate running balance
+        let runningBalance = 0;
+        const movements = contactTx.map((tx: any) => {
+          const amount = tx.amount || 0;
+          let debit = 0, credit = 0;
+
+          if (isSupplier) {
+            // Supplier: purchases = credit (we owe them), payments = debit (we paid)
+            if (['شراء', 'purchase', 'فاتورة شراء'].some(t => (tx.transaction_type || '').includes(t))) {
+              credit = amount;
+              runningBalance -= amount;
+            } else {
+              debit = amount;
+              runningBalance += amount;
+            }
+          } else {
+            // Customer: sales = debit (they owe us), receipts = credit (they paid)
+            if (['بيع', 'sale', 'فاتورة بيع'].some(t => (tx.transaction_type || '').includes(t))) {
+              debit = amount;
+              runningBalance += amount;
+            } else {
+              credit = amount;
+              runningBalance -= amount;
+            }
+          }
+
+          return {
+            "التاريخ": tx.transaction_date,
+            "البيان": tx.description || tx.transaction_type || '',
+            "النوع": tx.transaction_type || '',
+            "مدين": debit,
+            "دائن": credit,
+            "الرصيد": Math.abs(runningBalance),
+            "الجانب": runningBalance >= 0 ? 'مدين' : 'دائن',
+          };
+        });
+
+        const totalDebit = movements.reduce((s: number, m: any) => s + (m["مدين"] || 0), 0);
+        const totalCredit = movements.reduce((s: number, m: any) => s + (m["دائن"] || 0), 0);
+        const finalBalance = runningBalance;
+        const balanceSide = finalBalance >= 0 ? 'مدين' : 'دائن';
+
+        const contactLabel = isSupplier ? 'المورد' : 'الزبون';
+        const answer = `كشف حساب ${contactLabel} "${matchedContact.contact_name}":\n` +
+          `• عدد الحركات: ${movements.length}\n` +
+          `• إجمالي المدين: ₪${totalDebit.toLocaleString()}\n` +
+          `• إجمالي الدائن: ₪${totalCredit.toLocaleString()}\n` +
+          `• الرصيد الختامي: ₪${Math.abs(finalBalance).toLocaleString()} ${balanceSide}`;
+
+        const result = {
+          answer,
+          total: Math.abs(finalBalance),
+          currency: "₪",
+          table: movements,
+        };
+
+        return new Response(JSON.stringify(result), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      // ─── Chart of accounts statement (original logic) ───
       const [{ data: txData }, { data: accData }] = await Promise.all([
         sb.from('transactions')
           .select('*')
