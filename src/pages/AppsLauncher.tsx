@@ -40,8 +40,7 @@ const appModules: AppModule[] = [
     id: "ai-accountant", label: "المحاسب الذكي", description: "محاسبة تحليلية بالذكاء الاصطناعي", icon: Calculator, color: "text-primary", bgColor: "bg-primary/10", path: "/dashboard",
     keywords: ["محاسب", "ذكاء", "قيد"],
     children: [
-      { label: "لوحة التحكم", path: "/dashboard" },
-      { label: "المحاسب الذكي", path: "/smart-accountant" },
+      { label: "لوحة المعلومات", path: "/dashboard" },
       { label: "التقرير الذكي", path: "/smart-report" },
     ],
   },

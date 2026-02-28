@@ -23,6 +23,7 @@ import SavedCommands from "@/components/SavedCommands";
 import SetupWizard from "@/components/SetupWizard";
 import CompleteProfileDialog from "@/components/CompleteProfileDialog";
 import HelpGuideModal from "@/components/HelpGuideModal";
+import SmartReportWidget from "@/components/SmartReportWidget";
 
 interface TransactionRecord {
   id: string;
@@ -682,6 +683,9 @@ const HomeDashboard = () => {
                   </div>
                 )}
               </div>
+
+              {/* Smart Report Widget */}
+              <SmartReportWidget companyName={profileData?.company_name || ""} />
 
               {/* Smart Financial Alert (below assistants) */}
               <SmartAlertCard alert={financialAlert} allAlerts={allAlerts} userId={user?.id} />
