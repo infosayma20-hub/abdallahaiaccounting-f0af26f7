@@ -58,6 +58,7 @@ import CustomizationRequestPage from "./pages/CustomizationRequestPage";
 import SupportTicketsPage from "./pages/SupportTicketsPage";
 import TicketDetailPage from "./pages/TicketDetailPage";
 import SupportAdminPage from "./pages/SupportAdminPage";
+import POSPage from "./pages/POSPage";
 
 const queryClient = new QueryClient();
 
@@ -97,6 +98,7 @@ const App = () => (
               <Route path="/privacy" element={<PrivacyPage />} />
               <Route path="/branch-display/:branchId" element={<BranchDisplayPage />} />
               <Route path="/employee" element={<ProtectedRoute><RoleGuard allowedRoles={["employee"]} fallback="/auth"><EmployeeApp /></RoleGuard></ProtectedRoute>} />
+              <Route path="/pos" element={<ProtectedRoute><POSPage /></ProtectedRoute>} />
               <Route path="/apps" element={<AppsRoute><WebLayout><AppsLauncher /></WebLayout></AppsRoute>} />
               <Route path="/*" element={
                 <ProtectedRoute>

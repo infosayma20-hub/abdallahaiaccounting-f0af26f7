@@ -4,6 +4,7 @@ import {
   Calculator, ShoppingCart, Users, Package, ShoppingBag, DollarSign,
   BarChart3, Store, Settings, FileSpreadsheet, ArrowLeftRight, Landmark,
   Search, HelpCircle, RotateCcw, BookOpen, Headphones, Puzzle, ChevronDown, ArrowLeft,
+  Monitor,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useOnboarding } from "@/hooks/useOnboarding";
@@ -36,6 +37,10 @@ interface AppModule {
 }
 
 const appModules: AppModule[] = [
+  {
+    id: "pos", label: "نقطة البيع", description: "نظام POS متكامل للمبيعات المباشرة", icon: Monitor, color: "text-emerald-400", bgColor: "bg-emerald-500/10", path: "/pos", isNew: true,
+    keywords: ["نقطة", "بيع", "كاشير", "pos"],
+  },
   {
     id: "ai-accountant", label: "المحاسب الذكي", description: "محاسبة تحليلية بالذكاء الاصطناعي", icon: Calculator, color: "text-primary", bgColor: "bg-primary/10", path: "/dashboard",
     keywords: ["محاسب", "ذكاء", "قيد"],
