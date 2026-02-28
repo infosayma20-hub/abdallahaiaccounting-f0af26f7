@@ -973,17 +973,21 @@ const POSPage = () => {
                     ))}
                   </div>
                   {paymentCurrency !== "ILS" && exchangeRates[paymentCurrency] && (
-                    <div className="mt-1.5 text-xs text-muted-foreground text-center bg-muted/50 rounded-lg p-1.5">
-                      سعر الصرف: 1 {currencies.find(c => c.code === paymentCurrency)?.symbol} = ₪{exchangeRates[paymentCurrency]?.toFixed(4)}
-                      <span className="mx-1">|</span>
-                      المطلوب: {currencies.find(c => c.code === paymentCurrency)?.symbol}
-                      {(cartTotals.total / (exchangeRates[paymentCurrency] || 1)).toFixed(2)}
+                    <div className="mt-2 p-2.5 bg-muted/50 rounded-xl space-y-1.5 text-sm">
+                      <div className="flex justify-between text-muted-foreground">
+                        <span>سعر الصرف</span>
+                        <span>1 {currencies.find(c => c.code === paymentCurrency)?.symbol} = ₪{exchangeRates[paymentCurrency]?.toFixed(4)}</span>
+                      </div>
+                      <div className="flex justify-between font-medium text-foreground">
+                        <span>المطلوب بال{currencies.find(c => c.code === paymentCurrency)?.name}</span>
+                        <span>{currencies.find(c => c.code === paymentCurrency)?.symbol}{(cartTotals.total / (exchangeRates[paymentCurrency] || 1)).toFixed(2)}</span>
+                      </div>
                     </div>
                   )}
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium mb-1.5 block">المبلغ المدفوع</label>
+                  <label className="text-sm font-medium mb-1.5 block">المبلغ المدفوع ({currencies.find(c => c.code === paymentCurrency)?.name})</label>
                   <Input
                     type="number"
                     value={tenderedAmount}
@@ -995,19 +999,41 @@ const POSPage = () => {
                   />
                   {(() => {
                     const tendered = parseFloat(tenderedAmount) || 0;
-                    const tenderedInILS = paymentCurrency === "ILS" 
-                      ? tendered 
-                      : tendered * (exchangeRates[paymentCurrency] || 1);
+                    if (tendered <= 0) return null;
+                    const rate = exchangeRates[paymentCurrency] || 1;
+                    const tenderedInILS = paymentCurrency === "ILS" ? tendered : tendered * rate;
                     const change = tenderedInILS - cartTotals.total;
-                    if (change > 0) {
-                      return (
-                        <div className="text-center mt-2 p-2 bg-primary/10 rounded-lg">
-                          <span className="text-sm text-muted-foreground">الباقي: </span>
-                          <span className="text-lg font-bold text-primary">₪{change.toFixed(2)}</span>
-                        </div>
-                      );
-                    }
-                    return null;
+                    const curSymbol = currencies.find(c => c.code === paymentCurrency)?.symbol || "";
+
+                    return (
+                      <div className="mt-2 p-3 rounded-xl border border-border space-y-2">
+                        {/* Show ILS equivalent when paying in foreign currency */}
+                        {paymentCurrency !== "ILS" && (
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">ما يعادل بالشيكل</span>
+                            <span className="font-bold text-foreground">₪{tenderedInILS.toFixed(2)}</span>
+                          </div>
+                        )}
+                        {change >= 0 ? (
+                          <div className="flex justify-between text-sm items-center">
+                            <span className="text-muted-foreground">الباقي للزبون</span>
+                            <span className="text-lg font-bold text-primary">₪{change.toFixed(2)}</span>
+                          </div>
+                        ) : (
+                          <div className="flex justify-between text-sm items-center">
+                            <span className="text-destructive">المبلغ غير كافٍ، ينقص</span>
+                            <span className="text-lg font-bold text-destructive">₪{Math.abs(change).toFixed(2)}</span>
+                          </div>
+                        )}
+                        {/* If foreign currency, also show change in that currency */}
+                        {paymentCurrency !== "ILS" && change > 0 && (
+                          <div className="flex justify-between text-xs text-muted-foreground border-t border-border pt-1.5">
+                            <span>أو الباقي بال{currencies.find(c => c.code === paymentCurrency)?.name}</span>
+                            <span className="font-medium">{curSymbol}{(change / rate).toFixed(2)}</span>
+                          </div>
+                        )}
+                      </div>
+                    );
                   })()}
                   {/* Quick amounts */}
                   <div className="flex gap-2 mt-2">
