@@ -42,6 +42,26 @@ function normalizeType(type: string): string {
 
 const typeOrder = ["Asset", "Liability", "Owner's Equity", "Equity", "Revenue", "Purchases", "Expenses"];
 
+interface SubCategory { label: string; prefixes: string[]; }
+
+const subCategories: Record<string, SubCategory[]> = {
+  "Asset": [
+    { label: "أصول متداولة", prefixes: ["11"] },
+    { label: "أصول غير متداولة", prefixes: ["12", "13", "14", "15", "16", "17", "18", "19"] },
+  ],
+  "Liability": [
+    { label: "التزامات متداولة", prefixes: ["21"] },
+    { label: "التزامات غير متداولة", prefixes: ["22", "23", "24", "25", "26", "27", "28", "29"] },
+  ],
+  "Expenses": [
+    { label: "مصاريف تشغيلية", prefixes: ["51"] },
+    { label: "إدارية وعمومية", prefixes: ["52", "53", "54", "55"] },
+    { label: "بيعية وتسويقية", prefixes: ["56"] },
+    { label: "استهلاكات وإطفاءات", prefixes: ["57"] },
+    { label: "مصاريف أخرى", prefixes: ["58", "59"] },
+  ],
+};
+
 const typeLabels: Record<string, string> = {
   "Asset": "أصول",
   "Liability": "التزامات",
@@ -199,37 +219,90 @@ const AccountsPage = () => {
     }).sort((a, b) => a.account_code.localeCompare(b.account_code));
   }, [accounts, searchQuery, typeFilter]);
 
-  // Build tree structure: group accounts under their parent (level 0/1)
+  type TreeRow = 
+    | { type: 'account'; account: Account; level: number; isGroup: boolean; hasChildren: boolean; isCollapsed: boolean }
+    | { type: 'subcategory'; label: string; count: number; parentType: string };
+
+  // Build tree with subcategory headers
   const treeRows = useMemo(() => {
-    const rows: { account: Account; level: number; isGroup: boolean; hasChildren: boolean; isCollapsed: boolean; isVisible: boolean }[] = [];
-    let currentL0: string | null = null;
-    let currentL1: string | null = null;
-
+    const rows: TreeRow[] = [];
+    // Group by normalized type first
+    const byType: Record<string, Account[]> = {};
     filteredAccounts.forEach(acc => {
-      const level = getLevel(acc.account_code);
-      const isGroup = level < 2;
+      const t = normalizeType(acc.account_type);
+      if (!byType[t]) byType[t] = [];
+      byType[t].push(acc);
+    });
 
-      if (level === 0) {
-        currentL0 = acc.account_code;
-        currentL1 = null;
-        const children = filteredAccounts.filter(a => a.account_code.startsWith(acc.account_code.substring(0, 2)) && a.account_code !== acc.account_code);
-        rows.push({ account: acc, level: 0, isGroup: true, hasChildren: children.length > 0, isCollapsed: collapsedGroups.has(acc.account_code), isVisible: true });
-      } else if (level === 1) {
-        currentL1 = acc.account_code;
-        const parentL0 = filteredAccounts.find(a => getLevel(a.account_code) === 0 && acc.account_code.startsWith(a.account_code.substring(0, 2)));
-        const parentCollapsed = parentL0 ? collapsedGroups.has(parentL0.account_code) : false;
-        const children = filteredAccounts.filter(a => a.account_code.startsWith(acc.account_code.substring(0, 3)) && a.account_code !== acc.account_code && getLevel(a.account_code) === 2);
-        rows.push({ account: acc, level: 1, isGroup: true, hasChildren: children.length > 0, isCollapsed: collapsedGroups.has(acc.account_code), isVisible: !parentCollapsed });
+    const orderedTypes = typeOrder.filter(t => byType[t]?.length);
+
+    orderedTypes.forEach(type => {
+      const typeAccs = byType[type];
+      const subs = subCategories[type];
+
+      // Add type header row (virtual level 0 group)
+      const typeHeaderAcc: Account = {
+        id: `type-${type}`,
+        account_code: '',
+        account_name: typeLabels[type] || type,
+        account_type: type,
+        is_system: null,
+      };
+      const isTypeCollapsed = collapsedGroups.has(`type-${type}`);
+      rows.push({ type: 'account', account: typeHeaderAcc, level: 0, isGroup: true, hasChildren: true, isCollapsed: isTypeCollapsed });
+
+      if (isTypeCollapsed) return;
+
+      if (subs) {
+        // Group accounts into subcategories
+        subs.forEach(sub => {
+          const subAccs = typeAccs.filter(a => sub.prefixes.some(p => a.account_code.startsWith(p)));
+          if (subAccs.length === 0) return;
+          rows.push({ type: 'subcategory', label: sub.label, count: subAccs.length, parentType: type });
+          subAccs.forEach(acc => {
+            const level = getLevel(acc.account_code);
+            const isGroup = level < 2;
+            if (isGroup) {
+              const children = subAccs.filter(a => a.account_code.startsWith(acc.account_code.substring(0, 3)) && a.id !== acc.id && getLevel(a.account_code) === 2);
+              rows.push({ type: 'account', account: acc, level: 1, isGroup: true, hasChildren: children.length > 0, isCollapsed: collapsedGroups.has(acc.account_code) });
+            } else {
+              const parentL1 = subAccs.find(a => getLevel(a.account_code) === 1 && acc.account_code.startsWith(a.account_code.substring(0, 3)));
+              const l1Collapsed = parentL1 ? collapsedGroups.has(parentL1.account_code) : false;
+              if (!l1Collapsed) {
+                rows.push({ type: 'account', account: acc, level: 2, isGroup: false, hasChildren: false, isCollapsed: false });
+              }
+            }
+          });
+        });
+        // Unmatched accounts
+        const allPrefixes = subs.flatMap(s => s.prefixes);
+        const unmatched = typeAccs.filter(a => !allPrefixes.some(p => a.account_code.startsWith(p)));
+        if (unmatched.length > 0) {
+          rows.push({ type: 'subcategory', label: 'أخرى', count: unmatched.length, parentType: type });
+          unmatched.forEach(acc => {
+            rows.push({ type: 'account', account: acc, level: 2, isGroup: false, hasChildren: false, isCollapsed: false });
+          });
+        }
       } else {
-        const parentL1Code = filteredAccounts.find(a => getLevel(a.account_code) === 1 && acc.account_code.startsWith(a.account_code.substring(0, 3)));
-        const parentL0Code = filteredAccounts.find(a => getLevel(a.account_code) === 0 && acc.account_code.startsWith(a.account_code.substring(0, 2)));
-        const l0Collapsed = parentL0Code ? collapsedGroups.has(parentL0Code.account_code) : false;
-        const l1Collapsed = parentL1Code ? collapsedGroups.has(parentL1Code.account_code) : false;
-        rows.push({ account: acc, level: 2, isGroup: false, hasChildren: false, isCollapsed: false, isVisible: !l0Collapsed && !l1Collapsed });
+        // No subcategories - just list accounts
+        typeAccs.forEach(acc => {
+          const level = getLevel(acc.account_code);
+          const isGroup = level < 2;
+          if (isGroup) {
+            const children = typeAccs.filter(a => a.account_code.startsWith(acc.account_code.substring(0, 3)) && a.id !== acc.id && getLevel(a.account_code) === 2);
+            rows.push({ type: 'account', account: acc, level: 1, isGroup: true, hasChildren: children.length > 0, isCollapsed: collapsedGroups.has(acc.account_code) });
+          } else {
+            const parentL1 = typeAccs.find(a => getLevel(a.account_code) === 1 && acc.account_code.startsWith(a.account_code.substring(0, 3)));
+            const l1Collapsed = parentL1 ? collapsedGroups.has(parentL1.account_code) : false;
+            if (!l1Collapsed) {
+              rows.push({ type: 'account', account: acc, level: 2, isGroup: false, hasChildren: false, isCollapsed: false });
+            }
+          }
+        });
       }
     });
 
-    return rows.filter(r => r.isVisible);
+    return rows;
   }, [filteredAccounts, collapsedGroups]);
 
   const typeCounts = useMemo(() => {
@@ -365,37 +438,55 @@ const AccountsPage = () => {
             {/* Table Body */}
             <div className="divide-y divide-[hsl(210,14%,93%)] dark:divide-border">
               {treeRows.map((row, idx) => {
+                // Subcategory separator row
+                if (row.type === 'subcategory') {
+                  return (
+                    <div key={`sub-${row.label}-${idx}`} className="grid grid-cols-[80px_1fr_100px_90px] sm:grid-cols-[100px_1fr_120px_100px_80px] px-3 py-1.5 items-center bg-[hsl(210,20%,98%)] dark:bg-muted/10">
+                      <span />
+                      <div className="flex items-center gap-2" style={{ paddingRight: 20 }}>
+                        <div className="h-px flex-1 max-w-[40px] bg-[hsl(210,14%,85%)] dark:bg-border" />
+                        <span className="text-[10px] font-bold text-[hsl(210,10%,50%)] dark:text-muted-foreground tracking-wide">{row.label}</span>
+                        <span className="text-[10px] text-[hsl(210,10%,60%)] dark:text-muted-foreground">({row.count})</span>
+                        <div className="h-px flex-1 bg-[hsl(210,14%,85%)] dark:bg-border" />
+                      </div>
+                      <span />
+                      <span />
+                      <span className="hidden sm:block" />
+                    </div>
+                  );
+                }
+
                 const { account: acc, level, isGroup, hasChildren, isCollapsed } = row;
                 const nType = normalizeType(acc.account_type);
-                const isHovered = hoveredRow === acc.id;
+                const isVirtualTypeHeader = acc.id.startsWith('type-');
 
                 return (
                   <div
                     key={acc.id}
                     className={cn(
                       "grid grid-cols-[80px_1fr_100px_90px] sm:grid-cols-[100px_1fr_120px_100px_80px] px-3 py-2 text-sm transition-colors items-center group",
-                      isGroup && level === 0 && "bg-[hsl(210,20%,97%)] dark:bg-muted/20",
+                      level === 0 && "bg-[hsl(210,20%,96%)] dark:bg-muted/20 border-t-2 border-[hsl(210,14%,85%)] dark:border-border",
                       isGroup && level === 1 && "bg-[hsl(210,20%,98.5%)] dark:bg-muted/10",
                       !isGroup && idx % 2 === 0 && "bg-white dark:bg-card",
                       !isGroup && idx % 2 !== 0 && "bg-[hsl(210,20%,99.5%)] dark:bg-card",
-                      "hover:bg-[hsl(142,71%,45%)]/[0.04] dark:hover:bg-primary/5"
+                      !isVirtualTypeHeader && "hover:bg-[hsl(142,71%,45%)]/[0.04] dark:hover:bg-primary/5"
                     )}
-                    onMouseEnter={() => setHoveredRow(acc.id)}
+                    onMouseEnter={() => !isVirtualTypeHeader && setHoveredRow(acc.id)}
                     onMouseLeave={() => setHoveredRow(null)}
                   >
                     {/* Code */}
                     <span className="font-mono text-[12px] font-semibold text-[hsl(210,10%,42%)] dark:text-muted-foreground tabular-nums">
-                      {acc.account_code}
+                      {isVirtualTypeHeader ? '' : acc.account_code}
                     </span>
 
                     {/* Name with hierarchy */}
                     <div
                       className="flex items-center gap-1.5 min-w-0"
-                      style={{ paddingRight: level === 2 ? 40 : level === 1 ? 20 : 0 }}
+                      style={{ paddingRight: isVirtualTypeHeader ? 0 : level === 2 ? 40 : level === 1 ? 20 : 0 }}
                     >
                       {isGroup && hasChildren && (
                         <button
-                          onClick={() => toggleGroup(acc.account_code)}
+                          onClick={() => toggleGroup(isVirtualTypeHeader ? acc.id : acc.account_code)}
                           className="p-0.5 rounded hover:bg-[hsl(210,14%,89%)] dark:hover:bg-muted transition-colors shrink-0"
                         >
                           <ChevronDown className={cn("h-3.5 w-3.5 text-[hsl(210,10%,42%)] dark:text-muted-foreground transition-transform", isCollapsed && "-rotate-90 rtl:rotate-90")} />
@@ -406,51 +497,51 @@ const AccountsPage = () => {
                       )}
                       <span className={cn(
                         "truncate",
-                        isGroup && level === 0 && "font-bold text-[hsl(240,10%,10%)] dark:text-foreground text-[13px]",
+                        level === 0 && "font-bold text-[hsl(240,10%,10%)] dark:text-foreground text-[14px]",
                         isGroup && level === 1 && "font-semibold text-[hsl(240,10%,15%)] dark:text-foreground/90 text-[13px]",
                         !isGroup && "font-normal text-[hsl(240,10%,20%)] dark:text-foreground/80"
                       )}>
                         {acc.account_name}
                       </span>
+                      {isVirtualTypeHeader && (
+                        <span className="text-[11px] text-[hsl(210,10%,50%)] dark:text-muted-foreground font-medium mr-1">
+                          ({typeCounts[nType] || 0})
+                        </span>
+                      )}
                     </div>
 
                     {/* Type */}
                     <span className="hidden sm:block text-[11px] text-[hsl(210,10%,42%)] dark:text-muted-foreground font-medium">
-                      {typeLabels[nType] || nType}
+                      {isVirtualTypeHeader ? '' : (typeLabels[nType] || nType)}
                     </span>
 
                     {/* Natural Balance */}
                     <span className={cn(
                       "text-[11px] font-medium",
+                      isVirtualTypeHeader && "hidden",
                       naturalBalance[nType] === "مدين"
                         ? "text-[hsl(142,71%,40%)] dark:text-green-400"
                         : "text-[hsl(0,72%,51%)] dark:text-red-400"
                     )}>
-                      {naturalBalance[nType] || "—"}
+                      {isVirtualTypeHeader ? '' : (naturalBalance[nType] || "—")}
                     </span>
 
                     {/* Row Actions (hover) */}
-                    <div className="hidden sm:flex items-center justify-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button
-                        className="p-1 rounded hover:bg-[hsl(210,14%,89%)] dark:hover:bg-muted transition-colors"
-                        title="تعديل"
-                      >
-                        <Pencil className="h-3.5 w-3.5 text-[hsl(210,10%,42%)] dark:text-muted-foreground" />
-                      </button>
-                      <button
-                        className="p-1 rounded hover:bg-[hsl(210,14%,89%)] dark:hover:bg-muted transition-colors"
-                        title="عرض الحركات"
-                        onClick={() => navigate(`/account-statement?code=${acc.account_code}&name=${encodeURIComponent(acc.account_name)}`)}
-                      >
-                        <Eye className="h-3.5 w-3.5 text-[hsl(210,10%,42%)] dark:text-muted-foreground" />
-                      </button>
-                      <button
-                        className="p-1 rounded hover:bg-[hsl(210,14%,89%)] dark:hover:bg-muted transition-colors"
-                        title="إضافة فرعي"
-                      >
-                        <PlusCircle className="h-3.5 w-3.5 text-[hsl(210,10%,42%)] dark:text-muted-foreground" />
-                      </button>
-                    </div>
+                    {!isVirtualTypeHeader && (
+                      <div className="hidden sm:flex items-center justify-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button className="p-1 rounded hover:bg-[hsl(210,14%,89%)] dark:hover:bg-muted transition-colors" title="تعديل">
+                          <Pencil className="h-3.5 w-3.5 text-[hsl(210,10%,42%)] dark:text-muted-foreground" />
+                        </button>
+                        <button className="p-1 rounded hover:bg-[hsl(210,14%,89%)] dark:hover:bg-muted transition-colors" title="عرض الحركات"
+                          onClick={() => navigate(`/account-statement?code=${acc.account_code}&name=${encodeURIComponent(acc.account_name)}`)}>
+                          <Eye className="h-3.5 w-3.5 text-[hsl(210,10%,42%)] dark:text-muted-foreground" />
+                        </button>
+                        <button className="p-1 rounded hover:bg-[hsl(210,14%,89%)] dark:hover:bg-muted transition-colors" title="إضافة فرعي">
+                          <PlusCircle className="h-3.5 w-3.5 text-[hsl(210,10%,42%)] dark:text-muted-foreground" />
+                        </button>
+                      </div>
+                    )}
+                    {isVirtualTypeHeader && <span className="hidden sm:block" />}
                   </div>
                 );
               })}
