@@ -97,7 +97,7 @@ const App = () => (
               <Route path="/privacy" element={<PrivacyPage />} />
               <Route path="/branch-display/:branchId" element={<BranchDisplayPage />} />
               <Route path="/employee" element={<ProtectedRoute><RoleGuard allowedRoles={["employee"]} fallback="/auth"><EmployeeApp /></RoleGuard></ProtectedRoute>} />
-              <Route path="/apps" element={<AppsRoute><AppsLauncher /></AppsRoute>} />
+              <Route path="/apps" element={<AppsRoute><WebLayout><AppsLauncher /></WebLayout></AppsRoute>} />
               <Route path="/*" element={
                 <ProtectedRoute>
                   <WebLayout>
