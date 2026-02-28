@@ -1,15 +1,14 @@
-import { useState, useEffect, useMemo } from "react";
-import { ArrowRight, Loader2, RefreshCw, Plus, ChevronDown, Search, Wallet, TrendingUp, TrendingDown, Scale, DollarSign, Building2, Landmark, CreditCard, Package, Users, Receipt } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { useState, useEffect, useMemo, useCallback } from "react";
+import { ArrowRight, Loader2, RefreshCw, Plus, ChevronDown, ChevronLeft, Search, Pencil, Eye, PlusCircle, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
 interface Account {
   id: string;
@@ -26,47 +25,6 @@ function getLevel(code: string): number {
   return 2;
 }
 
-interface SubCategory { label: string; prefixes: string[]; }
-
-const subCategories: Record<string, SubCategory[]> = {
-  "Asset": [
-    { label: "أصول متداولة", prefixes: ["11"] },
-    { label: "أصول غير متداولة", prefixes: ["12", "13", "14", "15", "16", "17", "18", "19"] },
-  ],
-  "Liability": [
-    { label: "التزامات متداولة", prefixes: ["21"] },
-    { label: "التزامات غير متداولة", prefixes: ["22", "23", "24", "25", "26", "27", "28", "29"] },
-  ],
-  "Expenses": [
-    { label: "مصاريف تشغيلية", prefixes: ["51"] },
-    { label: "إدارية وعمومية", prefixes: ["52", "53", "54", "55"] },
-    { label: "بيعية وتسويقية", prefixes: ["56"] },
-    { label: "استهلاكات وإطفاءات", prefixes: ["57"] },
-    { label: "مصاريف أخرى", prefixes: ["58", "59"] },
-  ],
-};
-
-const categoryConfig: Record<string, { icon: typeof Wallet; color: string; bgColor: string; label: string }> = {
-  "Asset": { icon: Wallet, color: "text-blue-600 dark:text-blue-400", bgColor: "bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800", label: "الأصول" },
-  "Liability": { icon: CreditCard, color: "text-amber-600 dark:text-amber-400", bgColor: "bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800", label: "الالتزامات" },
-  "Owner's Equity": { icon: Scale, color: "text-purple-600 dark:text-purple-400", bgColor: "bg-purple-50 dark:bg-purple-950/30 border-purple-200 dark:border-purple-800", label: "حقوق الملكية" },
-  "Equity": { icon: Scale, color: "text-purple-600 dark:text-purple-400", bgColor: "bg-purple-50 dark:bg-purple-950/30 border-purple-200 dark:border-purple-800", label: "حقوق الملكية" },
-  "Revenue": { icon: TrendingUp, color: "text-emerald-600 dark:text-emerald-400", bgColor: "bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800", label: "الإيرادات" },
-  "Expenses": { icon: TrendingDown, color: "text-red-600 dark:text-red-400", bgColor: "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800", label: "المصروفات" },
-  "Purchases": { icon: Package, color: "text-orange-600 dark:text-orange-400", bgColor: "bg-orange-50 dark:bg-orange-950/30 border-orange-200 dark:border-orange-800", label: "مشتريات" },
-};
-
-const accountTypeOptions = [
-  { value: "Asset", label: "أصول" },
-  { value: "Liability", label: "التزامات" },
-  { value: "Owner's Equity", label: "حقوق الملكية" },
-  { value: "Revenue", label: "إيرادات" },
-  { value: "Expenses", label: "مصروفات" },
-];
-
-const typeOrder = ["Asset", "Liability", "Owner's Equity", "Equity", "Revenue", "Purchases", "Expenses"];
-
-// Map Arabic account types to their English keys for consistent display
 const arabicTypeMap: Record<string, string> = {
   "إيرادات": "Revenue",
   "مصاريف": "Expenses",
@@ -82,6 +40,45 @@ function normalizeType(type: string): string {
   return arabicTypeMap[type] || type;
 }
 
+const typeOrder = ["Asset", "Liability", "Owner's Equity", "Equity", "Revenue", "Purchases", "Expenses"];
+
+const typeLabels: Record<string, string> = {
+  "Asset": "أصول",
+  "Liability": "التزامات",
+  "Owner's Equity": "حقوق ملكية",
+  "Equity": "حقوق ملكية",
+  "Revenue": "إيرادات",
+  "Purchases": "مشتريات",
+  "Expenses": "مصروفات",
+};
+
+const naturalBalance: Record<string, string> = {
+  "Asset": "مدين",
+  "Liability": "دائن",
+  "Owner's Equity": "دائن",
+  "Equity": "دائن",
+  "Revenue": "دائن",
+  "Purchases": "مدين",
+  "Expenses": "مدين",
+};
+
+const accountTypeOptions = [
+  { value: "Asset", label: "أصول" },
+  { value: "Liability", label: "التزامات" },
+  { value: "Owner's Equity", label: "حقوق الملكية" },
+  { value: "Revenue", label: "إيرادات" },
+  { value: "Expenses", label: "مصروفات" },
+];
+
+const filterTabs = [
+  { value: "all", label: "الكل" },
+  { value: "Asset", label: "أصول" },
+  { value: "Liability", label: "التزامات" },
+  { value: "Owner's Equity", label: "ملكية" },
+  { value: "Revenue", label: "إيرادات" },
+  { value: "Expenses", label: "مصروفات" },
+];
+
 const AccountsPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -93,10 +90,10 @@ const AccountsPage = () => {
   const [newAccountName, setNewAccountName] = useState("");
   const [newAccountType, setNewAccountType] = useState("");
   const [adding, setAdding] = useState(false);
-  const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
-
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+  const [hoveredRow, setHoveredRow] = useState<string | null>(null);
   const [settingUp, setSettingUp] = useState(false);
   const [autoSetupAttempted, setAutoSetupAttempted] = useState(false);
 
@@ -136,8 +133,6 @@ const AccountsPage = () => {
       if (!res.ok) throw new Error(result.error || "فشل الإعداد");
       if (!silent) toast({ title: "✅ تم الإعداد", description: result.message });
       await fetchAccounts();
-
-      // Also mark setup_completed in profiles
       await supabase.from('profiles').update({ setup_completed: true }).eq('user_id', user.id);
     } catch (err: any) {
       if (!silent) toast({ title: "خطأ", description: err.message, variant: "destructive" });
@@ -147,7 +142,6 @@ const AccountsPage = () => {
     }
   };
 
-  // Fetch accounts, and auto-setup if empty
   useEffect(() => {
     if (!user) return;
     const init = async () => {
@@ -160,24 +154,13 @@ const AccountsPage = () => {
     init();
   }, [user]);
 
-  useEffect(() => {
-    if (accounts.length > 0) {
-      const types = [...new Set(accounts.map(a => normalizeType(a.account_type)).filter(Boolean))];
-      const initial: Record<string, boolean> = {};
-      types.forEach(t => { initial[t] = true; });
-      setOpenSections(initial);
-    }
-  }, [accounts]);
-
   const handleAddAccount = async () => {
     if (!newAccountName.trim() || !newAccountType || !user) return;
     setAdding(true);
     try {
-      // Parse code from name like "5910 - مصروف جديد"
       const match = newAccountName.match(/^(\d{4})\s*[-–]\s*(.+)/);
       const code = match ? match[1] : newAccountName.substring(0, 4);
       const name = match ? match[2].trim() : newAccountName;
-
       const { error } = await supabase.from('accounts').insert({
         user_id: user.id,
         account_code: code,
@@ -197,11 +180,13 @@ const AccountsPage = () => {
     }
   };
 
-  const accountTypes = useMemo(() => {
-    // Normalize types and deduplicate
-    const normalizedTypes = [...new Set(accounts.map(a => normalizeType(a.account_type)).filter(Boolean))];
-    return normalizedTypes.sort((a, b) => (typeOrder.indexOf(a) === -1 ? 99 : typeOrder.indexOf(a)) - (typeOrder.indexOf(b) === -1 ? 99 : typeOrder.indexOf(b)));
-  }, [accounts]);
+  const toggleGroup = useCallback((code: string) => {
+    setCollapsedGroups(prev => {
+      const next = new Set(prev);
+      if (next.has(code)) next.delete(code); else next.add(code);
+      return next;
+    });
+  }, []);
 
   const filteredAccounts = useMemo(() => {
     return accounts.filter(a => {
@@ -211,155 +196,278 @@ const AccountsPage = () => {
         if (!a.account_name.toLowerCase().includes(q) && !a.account_code.includes(q)) return false;
       }
       return true;
-    });
+    }).sort((a, b) => a.account_code.localeCompare(b.account_code));
   }, [accounts, searchQuery, typeFilter]);
 
-  const groupedAccounts = useMemo(() => {
-    const grouped: Record<string, Account[]> = {};
-    accountTypes.forEach(type => {
-      grouped[type] = filteredAccounts.filter(a => normalizeType(a.account_type) === type).sort((a, b) => a.account_code.localeCompare(b.account_code));
-    });
-    return grouped;
-  }, [filteredAccounts, accountTypes]);
+  // Build tree structure: group accounts under their parent (level 0/1)
+  const treeRows = useMemo(() => {
+    const rows: { account: Account; level: number; isGroup: boolean; hasChildren: boolean; isCollapsed: boolean; isVisible: boolean }[] = [];
+    let currentL0: string | null = null;
+    let currentL1: string | null = null;
 
-  const renderAccountRow = (acc: Account) => {
-    const level = getLevel(acc.account_code);
-    const isGroup = level < 2;
-    return (
-      <div key={acc.id} className={`flex items-center justify-between rounded-lg px-3 py-2.5 transition-all duration-150 hover:bg-muted/50 ${isGroup ? "bg-muted/20" : ""}`} style={{ paddingRight: level === 2 ? "20px" : level === 1 ? "12px" : "4px" }}>
-        <div className="flex items-center gap-2.5 min-w-0">
-          <span className="text-[11px] font-mono font-bold text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded shrink-0">{acc.account_code}</span>
-          <span className={`text-sm truncate ${isGroup ? "font-bold text-foreground" : "font-medium text-foreground"}`}>{acc.account_name}</span>
-        </div>
-      </div>
-    );
-  };
+    filteredAccounts.forEach(acc => {
+      const level = getLevel(acc.account_code);
+      const isGroup = level < 2;
+
+      if (level === 0) {
+        currentL0 = acc.account_code;
+        currentL1 = null;
+        const children = filteredAccounts.filter(a => a.account_code.startsWith(acc.account_code.substring(0, 2)) && a.account_code !== acc.account_code);
+        rows.push({ account: acc, level: 0, isGroup: true, hasChildren: children.length > 0, isCollapsed: collapsedGroups.has(acc.account_code), isVisible: true });
+      } else if (level === 1) {
+        currentL1 = acc.account_code;
+        const parentL0 = filteredAccounts.find(a => getLevel(a.account_code) === 0 && acc.account_code.startsWith(a.account_code.substring(0, 2)));
+        const parentCollapsed = parentL0 ? collapsedGroups.has(parentL0.account_code) : false;
+        const children = filteredAccounts.filter(a => a.account_code.startsWith(acc.account_code.substring(0, 3)) && a.account_code !== acc.account_code && getLevel(a.account_code) === 2);
+        rows.push({ account: acc, level: 1, isGroup: true, hasChildren: children.length > 0, isCollapsed: collapsedGroups.has(acc.account_code), isVisible: !parentCollapsed });
+      } else {
+        const parentL1Code = filteredAccounts.find(a => getLevel(a.account_code) === 1 && acc.account_code.startsWith(a.account_code.substring(0, 3)));
+        const parentL0Code = filteredAccounts.find(a => getLevel(a.account_code) === 0 && acc.account_code.startsWith(a.account_code.substring(0, 2)));
+        const l0Collapsed = parentL0Code ? collapsedGroups.has(parentL0Code.account_code) : false;
+        const l1Collapsed = parentL1Code ? collapsedGroups.has(parentL1Code.account_code) : false;
+        rows.push({ account: acc, level: 2, isGroup: false, hasChildren: false, isCollapsed: false, isVisible: !l0Collapsed && !l1Collapsed });
+      }
+    });
+
+    return rows.filter(r => r.isVisible);
+  }, [filteredAccounts, collapsedGroups]);
+
+  const typeCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    accounts.forEach(a => {
+      const t = normalizeType(a.account_type);
+      counts[t] = (counts[t] || 0) + 1;
+    });
+    return counts;
+  }, [accounts]);
 
   return (
-    <div className="px-4 pt-6 space-y-4 pb-8" dir="rtl">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <button onClick={() => navigate("/")} className="p-2 rounded-xl hover:bg-muted transition-colors"><ArrowRight className="h-5 w-5 text-foreground" /></button>
-          <div>
-            <h1 className="text-lg font-bold text-foreground">شجرة الحسابات</h1>
-            <p className="text-xs text-muted-foreground">{filteredAccounts.length} حساب</p>
+    <div className="min-h-screen bg-[hsl(210,20%,98%)] dark:bg-background" dir="rtl">
+      {/* Top Header */}
+      <div className="bg-white dark:bg-card border-b border-[hsl(210,14%,89%)] dark:border-border sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="flex items-center justify-between h-14">
+            <div className="flex items-center gap-3">
+              <button onClick={() => navigate("/")} className="p-1.5 rounded-lg hover:bg-[hsl(210,20%,96%)] dark:hover:bg-muted transition-colors">
+                <ArrowRight className="h-5 w-5 text-[hsl(240,10%,10%)] dark:text-foreground" />
+              </button>
+              <div>
+                <h1 className="text-base font-bold text-[hsl(240,10%,10%)] dark:text-foreground">شجرة الحسابات</h1>
+                <p className="text-[11px] text-[hsl(210,10%,42%)] dark:text-muted-foreground">{accounts.length} حساب</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="icon" onClick={fetchAccounts} disabled={loading} className="h-8 w-8">
+                <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
+              </Button>
+              <Button onClick={() => setShowAddDialog(true)} size="sm" className="h-8 bg-[hsl(142,71%,45%)] hover:bg-[hsl(142,71%,38%)] text-white gap-1.5 rounded-lg text-xs font-semibold">
+                <Plus className="h-3.5 w-3.5" />
+                إضافة حساب
+              </Button>
+            </div>
           </div>
-        </div>
-        <div className="flex items-center gap-1">
-          <Button variant="ghost" size="icon" onClick={() => setShowAddDialog(true)}><Plus className="h-4 w-4" /></Button>
-          <Button variant="ghost" size="icon" onClick={fetchAccounts} disabled={loading}><RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} /></Button>
         </div>
       </div>
 
-      {!loading && !error && accounts.length > 0 && (
-        <div className="flex items-center gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="ابحث بالكود أو الاسم..." className="pr-9 rounded-xl text-sm" dir="rtl" />
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 space-y-4">
+        {/* Summary Cards */}
+        {!loading && accounts.length > 0 && (
+          <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+            {typeOrder.filter(t => typeCounts[t]).map(t => (
+              <div key={t} className="bg-white dark:bg-card rounded-lg border border-[hsl(210,14%,89%)] dark:border-border px-3 py-2.5 text-center">
+                <p className="text-[10px] text-[hsl(210,10%,42%)] dark:text-muted-foreground font-medium">{typeLabels[t]}</p>
+                <p className="text-lg font-bold text-[hsl(240,10%,10%)] dark:text-foreground tabular-nums">{typeCounts[t]}</p>
+              </div>
+            ))}
           </div>
-          <Select value={typeFilter} onValueChange={setTypeFilter} dir="rtl">
-            <SelectTrigger className="w-[130px] rounded-xl text-xs"><SelectValue placeholder="الكل" /></SelectTrigger>
-            <SelectContent className="bg-background z-50">
-              <SelectItem value="all">جميع الأنواع</SelectItem>
-              {accountTypeOptions.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
+        )}
 
-      {loading && <div className="flex items-center justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}
-      {error && (
-        <Card className="border-destructive/30 bg-destructive/5"><CardContent className="p-4 text-center">
-          <p className="text-sm text-destructive">{error}</p>
-          <Button variant="outline" size="sm" className="mt-2" onClick={fetchAccounts}>إعادة المحاولة</Button>
-        </CardContent></Card>
-      )}
+        {/* Filter Tabs + Search */}
+        {!loading && accounts.length > 0 && (
+          <div className="bg-white dark:bg-card rounded-lg border border-[hsl(210,14%,89%)] dark:border-border">
+            <div className="flex items-center border-b border-[hsl(210,14%,89%)] dark:border-border overflow-x-auto">
+              {filterTabs.map(tab => (
+                <button
+                  key={tab.value}
+                  onClick={() => setTypeFilter(tab.value)}
+                  className={cn(
+                    "px-4 py-2.5 text-xs font-semibold whitespace-nowrap transition-colors relative",
+                    typeFilter === tab.value
+                      ? "text-[hsl(142,71%,45%)]"
+                      : "text-[hsl(210,10%,42%)] dark:text-muted-foreground hover:text-[hsl(240,10%,10%)] dark:hover:text-foreground"
+                  )}
+                >
+                  {tab.label}
+                  {tab.value !== "all" && typeCounts[tab.value] ? ` (${typeCounts[tab.value]})` : ""}
+                  {typeFilter === tab.value && (
+                    <span className="absolute bottom-0 inset-x-0 h-[2px] bg-[hsl(142,71%,45%)] rounded-t" />
+                  )}
+                </button>
+              ))}
+            </div>
+            <div className="px-3 py-2">
+              <div className="relative">
+                <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[hsl(210,10%,42%)] dark:text-muted-foreground" />
+                <Input
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="ابحث بالكود أو الاسم..."
+                  className="pr-9 border-0 bg-[hsl(210,20%,98%)] dark:bg-muted/30 rounded-lg text-sm h-9 focus-visible:ring-1 focus-visible:ring-[hsl(142,71%,45%)]"
+                  dir="rtl"
+                />
+              </div>
+            </div>
+          </div>
+        )}
 
-      {!loading && !error && accounts.length === 0 && (
-        <Card className="border-dashed border-2 border-primary/30">
-          <CardContent className="p-8 text-center space-y-4">
-            <div className="w-16 h-16 mx-auto rounded-2xl bg-primary/10 flex items-center justify-center">
-              <Wallet className="h-8 w-8 text-primary" />
+        {/* Loading */}
+        {loading && (
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="h-8 w-8 animate-spin text-[hsl(142,71%,45%)]" />
+          </div>
+        )}
+
+        {/* Error */}
+        {error && (
+          <div className="bg-white dark:bg-card rounded-lg border border-destructive/30 p-6 text-center">
+            <p className="text-sm text-destructive">{error}</p>
+            <Button variant="outline" size="sm" className="mt-3" onClick={fetchAccounts}>إعادة المحاولة</Button>
+          </div>
+        )}
+
+        {/* Empty State */}
+        {!loading && !error && accounts.length === 0 && (
+          <div className="bg-white dark:bg-card rounded-lg border border-dashed border-[hsl(210,14%,89%)] dark:border-border p-10 text-center">
+            <div className="w-14 h-14 mx-auto rounded-xl bg-[hsl(142,71%,45%)]/10 flex items-center justify-center mb-4">
+              <Plus className="h-7 w-7 text-[hsl(142,71%,45%)]" />
             </div>
-            <div>
-              <h3 className="text-base font-bold text-foreground">لا توجد حسابات بعد</h3>
-              <p className="text-sm text-muted-foreground mt-1">اضغط الزر لإنشاء شجرة الحسابات الافتراضية تلقائياً</p>
-            </div>
-            <Button onClick={() => setupDefaultAccounts(false)} disabled={settingUp} className="gap-2">
+            <h3 className="text-base font-bold text-[hsl(240,10%,10%)] dark:text-foreground">لا توجد حسابات بعد</h3>
+            <p className="text-sm text-[hsl(210,10%,42%)] dark:text-muted-foreground mt-1 mb-4">اضغط الزر لإنشاء شجرة الحسابات الافتراضية</p>
+            <Button onClick={() => setupDefaultAccounts(false)} disabled={settingUp} className="gap-2 bg-[hsl(142,71%,45%)] hover:bg-[hsl(142,71%,38%)] text-white">
               {settingUp ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
               {settingUp ? "جاري الإعداد..." : "إنشاء شجرة الحسابات"}
             </Button>
-          </CardContent>
-        </Card>
-      )}
+          </div>
+        )}
 
-      {!loading && !error && accounts.length > 0 && (
-        <div className="space-y-3">
-          {accountTypes.map((type) => {
-            const typeAccounts = groupedAccounts[type] || [];
-            if ((searchQuery || typeFilter !== "all") && typeAccounts.length === 0) return null;
-            const isOpen = openSections[type] ?? true;
-            const config = categoryConfig[type] || categoryConfig["Expenses"];
-            const Icon = config.icon;
-            return (
-              <Collapsible key={type} open={isOpen} onOpenChange={(open) => setOpenSections(prev => ({ ...prev, [type]: open }))}>
-                <CollapsibleTrigger className="w-full">
-                  <div className={`flex items-center justify-between px-3.5 py-3 rounded-xl border transition-colors ${config.bgColor}`}>
-                    <div className="flex items-center gap-2.5">
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${config.color} bg-white/60 dark:bg-black/20`}><Icon className="h-4 w-4" /></div>
-                      <span className={`text-sm font-bold ${config.color}`}>{config.label}</span>
-                      <span className="text-xs text-muted-foreground font-medium">({typeAccounts.length})</span>
+        {/* Table */}
+        {!loading && !error && accounts.length > 0 && (
+          <div className="bg-white dark:bg-card rounded-lg border border-[hsl(210,14%,89%)] dark:border-border overflow-hidden">
+            {/* Table Header */}
+            <div className="grid grid-cols-[80px_1fr_100px_90px] sm:grid-cols-[100px_1fr_120px_100px_80px] bg-[hsl(210,20%,97%)] dark:bg-muted/30 border-b border-[hsl(210,14%,89%)] dark:border-border px-3 py-2.5 text-[11px] font-bold text-[hsl(210,10%,42%)] dark:text-muted-foreground uppercase tracking-wide">
+              <span>رمز الحساب</span>
+              <span>اسم الحساب</span>
+              <span className="hidden sm:block">النوع</span>
+              <span>الرصيد الطبيعي</span>
+              <span className="hidden sm:block text-center">إجراءات</span>
+            </div>
+
+            {/* Table Body */}
+            <div className="divide-y divide-[hsl(210,14%,93%)] dark:divide-border">
+              {treeRows.map((row, idx) => {
+                const { account: acc, level, isGroup, hasChildren, isCollapsed } = row;
+                const nType = normalizeType(acc.account_type);
+                const isHovered = hoveredRow === acc.id;
+
+                return (
+                  <div
+                    key={acc.id}
+                    className={cn(
+                      "grid grid-cols-[80px_1fr_100px_90px] sm:grid-cols-[100px_1fr_120px_100px_80px] px-3 py-2 text-sm transition-colors items-center group",
+                      isGroup && level === 0 && "bg-[hsl(210,20%,97%)] dark:bg-muted/20",
+                      isGroup && level === 1 && "bg-[hsl(210,20%,98.5%)] dark:bg-muted/10",
+                      !isGroup && idx % 2 === 0 && "bg-white dark:bg-card",
+                      !isGroup && idx % 2 !== 0 && "bg-[hsl(210,20%,99.5%)] dark:bg-card",
+                      "hover:bg-[hsl(142,71%,45%)]/[0.04] dark:hover:bg-primary/5"
+                    )}
+                    onMouseEnter={() => setHoveredRow(acc.id)}
+                    onMouseLeave={() => setHoveredRow(null)}
+                  >
+                    {/* Code */}
+                    <span className="font-mono text-[12px] font-semibold text-[hsl(210,10%,42%)] dark:text-muted-foreground tabular-nums">
+                      {acc.account_code}
+                    </span>
+
+                    {/* Name with hierarchy */}
+                    <div
+                      className="flex items-center gap-1.5 min-w-0"
+                      style={{ paddingRight: level === 2 ? 40 : level === 1 ? 20 : 0 }}
+                    >
+                      {isGroup && hasChildren && (
+                        <button
+                          onClick={() => toggleGroup(acc.account_code)}
+                          className="p-0.5 rounded hover:bg-[hsl(210,14%,89%)] dark:hover:bg-muted transition-colors shrink-0"
+                        >
+                          <ChevronDown className={cn("h-3.5 w-3.5 text-[hsl(210,10%,42%)] dark:text-muted-foreground transition-transform", isCollapsed && "-rotate-90 rtl:rotate-90")} />
+                        </button>
+                      )}
+                      {!isGroup && level === 2 && (
+                        <span className="w-4 shrink-0 border-b border-[hsl(210,14%,89%)] dark:border-border mr-1" />
+                      )}
+                      <span className={cn(
+                        "truncate",
+                        isGroup && level === 0 && "font-bold text-[hsl(240,10%,10%)] dark:text-foreground text-[13px]",
+                        isGroup && level === 1 && "font-semibold text-[hsl(240,10%,15%)] dark:text-foreground/90 text-[13px]",
+                        !isGroup && "font-normal text-[hsl(240,10%,20%)] dark:text-foreground/80"
+                      )}>
+                        {acc.account_name}
+                      </span>
                     </div>
-                    <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
-                  </div>
-                </CollapsibleTrigger>
-                <CollapsibleContent className="overflow-hidden data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up">
-                  <div className="space-y-1 mt-1.5 mr-4 border-r-2 border-border/50 pr-3">
-                    {(() => {
-                      const subs = subCategories[type];
-                      if (subs) {
-                        return subs.map((sub) => {
-                          const subAccounts = typeAccounts.filter((acc) => sub.prefixes.includes(acc.account_code.substring(0, 2)));
-                          if (subAccounts.length === 0) return null;
-                          return (
-                            <div key={sub.label} className="mb-2">
-                              <div className="flex items-center gap-2 py-1.5 px-2">
-                                <div className="h-px flex-1 bg-border/40" />
-                                <span className="text-[10px] font-bold text-muted-foreground/70 uppercase tracking-wide shrink-0">{sub.label}</span>
-                                <div className="h-px flex-1 bg-border/40" />
-                              </div>
-                              {subAccounts.map(renderAccountRow)}
-                            </div>
-                          );
-                        });
-                      }
-                      return typeAccounts.map(renderAccountRow);
-                    })()}
-                    {(() => {
-                      const subs = subCategories[type];
-                      if (!subs) return null;
-                      const allPrefixes = subs.flatMap(s => s.prefixes);
-                      const unmatched = typeAccounts.filter(acc => !allPrefixes.includes(acc.account_code.substring(0, 2)));
-                      if (unmatched.length === 0) return null;
-                      return (
-                        <div className="mb-2">
-                          <div className="flex items-center gap-2 py-1.5 px-2">
-                            <div className="h-px flex-1 bg-border/40" />
-                            <span className="text-[10px] font-bold text-muted-foreground/70 uppercase tracking-wide shrink-0">أخرى</span>
-                            <div className="h-px flex-1 bg-border/40" />
-                          </div>
-                          {unmatched.map(renderAccountRow)}
-                        </div>
-                      );
-                    })()}
-                  </div>
-                </CollapsibleContent>
-              </Collapsible>
-            );
-          })}
-        </div>
-      )}
 
+                    {/* Type */}
+                    <span className="hidden sm:block text-[11px] text-[hsl(210,10%,42%)] dark:text-muted-foreground font-medium">
+                      {typeLabels[nType] || nType}
+                    </span>
+
+                    {/* Natural Balance */}
+                    <span className={cn(
+                      "text-[11px] font-medium",
+                      naturalBalance[nType] === "مدين"
+                        ? "text-[hsl(142,71%,40%)] dark:text-green-400"
+                        : "text-[hsl(0,72%,51%)] dark:text-red-400"
+                    )}>
+                      {naturalBalance[nType] || "—"}
+                    </span>
+
+                    {/* Row Actions (hover) */}
+                    <div className="hidden sm:flex items-center justify-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        className="p-1 rounded hover:bg-[hsl(210,14%,89%)] dark:hover:bg-muted transition-colors"
+                        title="تعديل"
+                      >
+                        <Pencil className="h-3.5 w-3.5 text-[hsl(210,10%,42%)] dark:text-muted-foreground" />
+                      </button>
+                      <button
+                        className="p-1 rounded hover:bg-[hsl(210,14%,89%)] dark:hover:bg-muted transition-colors"
+                        title="عرض الحركات"
+                        onClick={() => navigate(`/account-statement?code=${acc.account_code}&name=${encodeURIComponent(acc.account_name)}`)}
+                      >
+                        <Eye className="h-3.5 w-3.5 text-[hsl(210,10%,42%)] dark:text-muted-foreground" />
+                      </button>
+                      <button
+                        className="p-1 rounded hover:bg-[hsl(210,14%,89%)] dark:hover:bg-muted transition-colors"
+                        title="إضافة فرعي"
+                      >
+                        <PlusCircle className="h-3.5 w-3.5 text-[hsl(210,10%,42%)] dark:text-muted-foreground" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Footer */}
+            <div className="border-t border-[hsl(210,14%,89%)] dark:border-border px-3 py-2 bg-[hsl(210,20%,97%)] dark:bg-muted/30">
+              <p className="text-[11px] text-[hsl(210,10%,42%)] dark:text-muted-foreground">
+                إجمالي: {filteredAccounts.length} حساب
+                {searchQuery && ` (من ${accounts.length})`}
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Add Account Dialog */}
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
         <DialogContent className="max-w-sm" dir="rtl">
           <DialogHeader><DialogTitle>إضافة حساب جديد</DialogTitle></DialogHeader>
@@ -371,7 +479,7 @@ const AccountsPage = () => {
                 {accountTypeOptions.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
               </SelectContent>
             </Select>
-            <Button onClick={handleAddAccount} disabled={adding || !newAccountName.trim() || !newAccountType} className="w-full rounded-xl">
+            <Button onClick={handleAddAccount} disabled={adding || !newAccountName.trim() || !newAccountType} className="w-full rounded-xl bg-[hsl(142,71%,45%)] hover:bg-[hsl(142,71%,38%)] text-white">
               {adding ? <Loader2 className="h-4 w-4 animate-spin" /> : "إضافة"}
             </Button>
           </div>
