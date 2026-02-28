@@ -42,16 +42,7 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
   const handleFinish = async () => {
     setSaving(true);
     try {
-      // Save to profiles
-      await supabase.from("profiles").update({
-        business_type: data.businessType,
-        has_inventory: data.hasInventory ?? false,
-        has_receivables: data.hasReceivables ?? false,
-        has_employees: data.hasEmployees ?? false,
-        setup_completed: true,
-      }).eq("user_id", userId);
-
-      // Create accounts via edge function
+      // Create accounts first (critical)
       const { error } = await supabase.functions.invoke("setup-accounts", {
         body: {
           userId,
@@ -63,6 +54,31 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
       });
 
       if (error) throw error;
+
+      // Verify accounts were created (or already exist)
+      const { count: accountsCount, error: countError } = await supabase
+        .from("accounts")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", userId);
+
+      if (countError) throw countError;
+      if (!accountsCount || accountsCount === 0) {
+        throw new Error("لم يتم إنشاء شجرة الحسابات، حاول مرة أخرى");
+      }
+
+      // Mark setup complete only after successful accounts creation
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .update({
+          business_type: data.businessType,
+          has_inventory: data.hasInventory ?? false,
+          has_receivables: data.hasReceivables ?? false,
+          has_employees: data.hasEmployees ?? false,
+          setup_completed: true,
+        })
+        .eq("user_id", userId);
+
+      if (profileError) throw profileError;
 
       toast({ title: "✅ تم إعداد نظامك المالي بنجاح!" });
       onComplete();

@@ -72,15 +72,23 @@ const Dashboard = () => {
   useEffect(() => {
     if (!user) return;
     const loadProfile = async () => {
-      const { data } = await supabase
-        .from("profiles")
-        .select("display_name, company_name, setup_completed")
-        .eq("user_id", user.id)
-        .maybeSingle();
-      if (data) {
-        setProfileData(data);
-        if (!data.setup_completed) setShowSetupWizard(true);
-      }
+      const [{ data: profileData }, { count: accountsCount }] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("display_name, company_name, setup_completed")
+          .eq("user_id", user.id)
+          .maybeSingle(),
+        supabase
+          .from("accounts")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", user.id),
+      ]);
+
+      if (profileData) setProfileData(profileData);
+
+      const hasNoAccounts = !accountsCount || accountsCount === 0;
+      const setupIncomplete = !!profileData && !profileData.setup_completed;
+      if (hasNoAccounts || setupIncomplete) setShowSetupWizard(true);
     };
     loadProfile();
   }, [user]);
