@@ -84,7 +84,7 @@ const ModuleIcon = ({ module, size = "md", active = false, className }: ModuleIc
         className
       )}
       style={{
-        backgroundColor: active ? colors.accent : colors.bg,
+        backgroundColor: active ? colors.accent : "hsl(var(--icon-bg))",
         boxShadow: active ? `0 0 12px ${colors.accent}40` : "none",
         ...(active ? { ringColor: colors.accent } : {}),
       }}
