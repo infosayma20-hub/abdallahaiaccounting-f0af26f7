@@ -59,6 +59,7 @@ import SupportTicketsPage from "./pages/SupportTicketsPage";
 import TicketDetailPage from "./pages/TicketDetailPage";
 import SupportAdminPage from "./pages/SupportAdminPage";
 import POSPage from "./pages/POSPage";
+import POSUserManagementPage from "./pages/POSUserManagementPage";
 
 const queryClient = new QueryClient();
 
@@ -150,6 +151,7 @@ const App = () => (
                       <Route path="/support/tickets" element={<SupportTicketsPage />} />
                       <Route path="/support/tickets/:id" element={<TicketDetailPage />} />
                       <Route path="/support/admin" element={<RoleGuard allowedRoles={["admin"]}><SupportAdminPage /></RoleGuard>} />
+                      <Route path="/pos-users" element={<POSUserManagementPage />} />
                       <Route path="*" element={<NotFound />} />
                     </Routes>
                   </WebLayout>

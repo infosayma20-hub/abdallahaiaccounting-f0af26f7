@@ -2015,6 +2015,63 @@ export type Database = {
         }
         Relationships: []
       }
+      pos_audit_logs: {
+        Row: {
+          action_type: string
+          actor_pos_user_id: string | null
+          company_id: string
+          created_at: string
+          device_fingerprint: string | null
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+          ip_address: string | null
+          metadata: Json | null
+          user_id: string
+        }
+        Insert: {
+          action_type: string
+          actor_pos_user_id?: string | null
+          company_id: string
+          created_at?: string
+          device_fingerprint?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          user_id: string
+        }
+        Update: {
+          action_type?: string
+          actor_pos_user_id?: string | null
+          company_id?: string
+          created_at?: string
+          device_fingerprint?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_audit_logs_actor_pos_user_id_fkey"
+            columns: ["actor_pos_user_id"]
+            isOneToOne: false
+            referencedRelation: "pos_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_audit_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "pos_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pos_categories: {
         Row: {
           color: string
@@ -2112,6 +2169,77 @@ export type Database = {
           vat_number?: string | null
         }
         Relationships: []
+      }
+      pos_devices: {
+        Row: {
+          branch_id: string | null
+          company_id: string
+          created_at: string
+          device_fingerprint: string
+          device_name: string
+          id: string
+          is_active: boolean
+          last_seen_at: string | null
+          terminal_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          branch_id?: string | null
+          company_id: string
+          created_at?: string
+          device_fingerprint: string
+          device_name: string
+          id?: string
+          is_active?: boolean
+          last_seen_at?: string | null
+          terminal_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          branch_id?: string | null
+          company_id?: string
+          created_at?: string
+          device_fingerprint?: string
+          device_name?: string
+          id?: string
+          is_active?: boolean
+          last_seen_at?: string | null
+          terminal_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_devices_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_devices_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_devices_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "pos_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_devices_terminal_id_fkey"
+            columns: ["terminal_id"]
+            isOneToOne: false
+            referencedRelation: "pos_terminals"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       pos_order_lines: {
         Row: {
@@ -2350,12 +2478,15 @@ export type Database = {
       }
       pos_sessions: {
         Row: {
+          approved_by_pos_user_id: string | null
           cash_variance: number | null
           cashier_name: string | null
+          cashier_pos_user_id: string | null
           closed_at: string | null
           closing_cash: number | null
           company_id: string
           created_at: string
+          device_id: string | null
           expected_cash: number | null
           id: string
           notes: string | null
@@ -2372,12 +2503,15 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          approved_by_pos_user_id?: string | null
           cash_variance?: number | null
           cashier_name?: string | null
+          cashier_pos_user_id?: string | null
           closed_at?: string | null
           closing_cash?: number | null
           company_id: string
           created_at?: string
+          device_id?: string | null
           expected_cash?: number | null
           id?: string
           notes?: string | null
@@ -2394,12 +2528,15 @@ export type Database = {
           user_id: string
         }
         Update: {
+          approved_by_pos_user_id?: string | null
           cash_variance?: number | null
           cashier_name?: string | null
+          cashier_pos_user_id?: string | null
           closed_at?: string | null
           closing_cash?: number | null
           company_id?: string
           created_at?: string
+          device_id?: string | null
           expected_cash?: number | null
           id?: string
           notes?: string | null
@@ -2417,10 +2554,31 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "pos_sessions_approved_by_pos_user_id_fkey"
+            columns: ["approved_by_pos_user_id"]
+            isOneToOne: false
+            referencedRelation: "pos_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_sessions_cashier_pos_user_id_fkey"
+            columns: ["cashier_pos_user_id"]
+            isOneToOne: false
+            referencedRelation: "pos_users"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "pos_sessions_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "pos_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_sessions_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "pos_devices"
             referencedColumns: ["id"]
           },
           {
@@ -2501,6 +2659,202 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "pos_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pos_user_device_access: {
+        Row: {
+          can_login: boolean
+          created_at: string
+          device_id: string
+          id: string
+          pos_user_id: string
+          user_id: string
+        }
+        Insert: {
+          can_login?: boolean
+          created_at?: string
+          device_id: string
+          id?: string
+          pos_user_id: string
+          user_id: string
+        }
+        Update: {
+          can_login?: boolean
+          created_at?: string
+          device_id?: string
+          id?: string
+          pos_user_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_user_device_access_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "pos_devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_user_device_access_pos_user_id_fkey"
+            columns: ["pos_user_id"]
+            isOneToOne: false
+            referencedRelation: "pos_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pos_user_permissions: {
+        Row: {
+          can_apply_discount: boolean
+          can_close_register: boolean
+          can_edit_prices: boolean
+          can_open_register: boolean
+          can_refund: boolean
+          can_view_profits: boolean
+          can_view_shift_details: boolean
+          can_void_sales: boolean
+          company_id: string
+          created_at: string
+          id: string
+          max_discount_percent: number
+          pos_user_id: string
+          require_manager_approval: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          can_apply_discount?: boolean
+          can_close_register?: boolean
+          can_edit_prices?: boolean
+          can_open_register?: boolean
+          can_refund?: boolean
+          can_view_profits?: boolean
+          can_view_shift_details?: boolean
+          can_void_sales?: boolean
+          company_id: string
+          created_at?: string
+          id?: string
+          max_discount_percent?: number
+          pos_user_id: string
+          require_manager_approval?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          can_apply_discount?: boolean
+          can_close_register?: boolean
+          can_edit_prices?: boolean
+          can_open_register?: boolean
+          can_refund?: boolean
+          can_view_profits?: boolean
+          can_view_shift_details?: boolean
+          can_void_sales?: boolean
+          company_id?: string
+          created_at?: string
+          id?: string
+          max_discount_percent?: number
+          pos_user_id?: string
+          require_manager_approval?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_user_permissions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "pos_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_user_permissions_pos_user_id_fkey"
+            columns: ["pos_user_id"]
+            isOneToOne: true
+            referencedRelation: "pos_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pos_users: {
+        Row: {
+          avatar_url: string | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          email: string | null
+          employee_id: string | null
+          id: string
+          is_active: boolean
+          last_login_at: string | null
+          name: string
+          phone: string | null
+          pin_failed_attempts: number
+          pin_hash: string
+          pin_locked_until: string | null
+          role: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          employee_id?: string | null
+          id?: string
+          is_active?: boolean
+          last_login_at?: string | null
+          name: string
+          phone?: string | null
+          pin_failed_attempts?: number
+          pin_hash: string
+          pin_locked_until?: string | null
+          role?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          employee_id?: string | null
+          id?: string
+          is_active?: boolean
+          last_login_at?: string | null
+          name?: string
+          phone?: string | null
+          pin_failed_attempts?: number
+          pin_hash?: string
+          pin_locked_until?: string | null
+          role?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_users_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "pos_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_users_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_users_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_safe"
             referencedColumns: ["id"]
           },
         ]
