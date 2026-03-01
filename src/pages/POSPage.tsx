@@ -128,10 +128,18 @@ const POSPage = () => {
   const [closingCash, setClosingCash] = useState("");
 
   // New product form
+  const PRESET_COLORS = [
+    "#16A34A", "#22C55E", "#84CC16", "#EAB308", "#F59E0B",
+    "#F97316", "#EF4444", "#DC2626", "#EC4899", "#D946EF",
+    "#A855F7", "#8B5CF6", "#6366F1", "#3B82F6", "#0EA5E9",
+    "#06B6D4", "#14B8A6", "#10B981", "#6B7280", "#374151",
+  ];
   const [newProduct, setNewProduct] = useState({
     name: "", sell_price: "", buy_price: "", category: "", pos_category_id: "" as string, unit: "قطعة",
     quantity: "", min_quantity: "", is_pos_available: true, newCategory: "",
   });
+  const [newCategoryColor, setNewCategoryColor] = useState("#16A34A");
+  const [showCustomColor, setShowCustomColor] = useState(false);
   const [showNewCategory, setShowNewCategory] = useState(false);
   const [savingProduct, setSavingProduct] = useState(false);
 
@@ -354,7 +362,7 @@ const POSPage = () => {
       const { data: newCat, error: catErr } = await supabase.from("pos_categories").insert({
         user_id: userId,
         name: newProduct.newCategory.trim(),
-        color: "#6B7280",
+        color: newCategoryColor,
         display_order: posCategories.length,
       }).select().single();
       if (catErr) { toast.error("خطأ في إنشاء التصنيف: " + catErr.message); return; }
@@ -1625,11 +1633,49 @@ const POSPage = () => {
                   </Button>
                 </div>
               ) : (
-                <div className="flex gap-2">
-                  <Input autoFocus value={newProduct.newCategory} onChange={(e) => setNewProduct(prev => ({ ...prev, newCategory: e.target.value }))} placeholder="اسم التصنيف الجديد..." className="h-10" />
-                  <Button type="button" variant="outline" size="icon" className="h-10 w-10 shrink-0" onClick={() => { setShowNewCategory(false); setNewProduct(prev => ({ ...prev, newCategory: "" })); }}>
-                    <X className="h-4 w-4" />
-                  </Button>
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <Input autoFocus value={newProduct.newCategory} onChange={(e) => setNewProduct(prev => ({ ...prev, newCategory: e.target.value }))} placeholder="اسم التصنيف الجديد..." className="h-10" />
+                    <Button type="button" variant="outline" size="icon" className="h-10 w-10 shrink-0" onClick={() => { setShowNewCategory(false); setShowCustomColor(false); setNewProduct(prev => ({ ...prev, newCategory: "" })); setNewCategoryColor("#16A34A"); }}>
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <div>
+                    <span className="text-xs font-medium text-muted-foreground mb-1.5 block">اللون</span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {PRESET_COLORS.map(color => (
+                        <button
+                          key={color}
+                          type="button"
+                          onClick={() => { setNewCategoryColor(color); setShowCustomColor(false); }}
+                          className="w-7 h-7 rounded-md border-2 transition-all duration-150 hover:scale-110"
+                          style={{
+                            backgroundColor: color,
+                            borderColor: newCategoryColor === color ? "#000" : "transparent",
+                            boxShadow: newCategoryColor === color ? "0 0 0 2px white, 0 0 0 4px " + color : "none",
+                          }}
+                        />
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => setShowCustomColor(!showCustomColor)}
+                        className="w-7 h-7 rounded-md border-2 border-dashed border-muted-foreground/40 flex items-center justify-center text-muted-foreground hover:border-primary hover:text-primary transition-colors"
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                    {showCustomColor && (
+                      <div className="flex items-center gap-2 mt-2">
+                        <input
+                          type="color"
+                          value={newCategoryColor}
+                          onChange={(e) => setNewCategoryColor(e.target.value)}
+                          className="w-10 h-8 rounded cursor-pointer border-0 p-0"
+                        />
+                        <span className="text-xs text-muted-foreground font-mono">{newCategoryColor}</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
