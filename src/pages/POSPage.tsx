@@ -11,6 +11,7 @@ import {
   CheckCircle, AlertCircle, Wifi, WifiOff, MessageSquare, StickyNote,
   UtensilsCrossed, Gamepad2, Shirt, Monitor, ShoppingBag, Printer,
   Apple, Zap, Coffee, Box, BarChart3, TrendingUp, PlusCircle, Tag,
+  Eye, EyeOff,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -138,6 +139,7 @@ const POSPage = () => {
   const [contacts, setContacts] = useState<{ id: string; contact_name: string }[]>([]);
   const [customerSearch, setCustomerSearch] = useState("");
   const [showContactDropdown, setShowContactDropdown] = useState(false);
+  const [showSalesSummary, setShowSalesSummary] = useState(true);
 
   // ── Multi-order tabs ──
   const [orders, setOrders] = useState<OrderTab[]>([createNewOrder(1)]);
@@ -905,12 +907,23 @@ const POSPage = () => {
         {/* Sales summary */}
         {session && (
           <div className="flex items-center gap-3 text-xs">
-            <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-primary/15">
-              <BarChart3 className="h-3.5 w-3.5 text-primary" />
-              <span className="text-white/60">مبيعات اليوم:</span>
-              <span className="font-bold text-primary tabular-nums">₪{session.total_sales.toFixed(0)}</span>
-            </div>
-            <span className="text-white/40">{session.total_orders} طلب</span>
+            <button
+              onClick={() => setShowSalesSummary(prev => !prev)}
+              className="p-1.5 rounded-lg hover:bg-white/10 transition-colors text-white/50 hover:text-white/80"
+              title={showSalesSummary ? "إخفاء المبيعات" : "إظهار المبيعات"}
+            >
+              {showSalesSummary ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+            </button>
+            {showSalesSummary && (
+              <>
+                <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-primary/15">
+                  <BarChart3 className="h-3.5 w-3.5 text-primary" />
+                  <span className="text-white/60">مبيعات اليوم:</span>
+                  <span className="font-bold text-primary tabular-nums">₪{session.total_sales.toFixed(0)}</span>
+                </div>
+                <span className="text-white/40">{session.total_orders} طلب</span>
+              </>
+            )}
           </div>
         )}
 
