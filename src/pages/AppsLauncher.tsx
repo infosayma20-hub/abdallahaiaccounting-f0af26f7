@@ -40,6 +40,10 @@ const appModules: AppModule[] = [
   {
     id: "pos", label: "نقطة البيع", description: "نظام POS متكامل للمبيعات المباشرة", icon: Monitor, color: "text-emerald-400", bgColor: "bg-emerald-500/10", path: "/pos", isNew: true,
     keywords: ["نقطة", "بيع", "كاشير", "pos"],
+    children: [
+      { label: "نقطة البيع", path: "/pos" },
+      { label: "إدارة مستخدمي POS", path: "/pos-users" },
+    ],
   },
   {
     id: "ai-accountant", label: "المحاسب الذكي", description: "محاسبة تحليلية بالذكاء الاصطناعي", icon: Calculator, color: "text-primary", bgColor: "bg-primary/10", path: "/dashboard",
