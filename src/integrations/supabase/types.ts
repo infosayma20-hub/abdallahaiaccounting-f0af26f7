@@ -2015,6 +2015,50 @@ export type Database = {
         }
         Relationships: []
       }
+      pos_categories: {
+        Row: {
+          color: string
+          created_at: string
+          display_order: number
+          id: string
+          is_active: boolean
+          name: string
+          parent_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          name: string
+          parent_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          name?: string
+          parent_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_categories_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "pos_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pos_companies: {
         Row: {
           address: string | null
@@ -2475,6 +2519,7 @@ export type Database = {
           min_quantity: number
           name: string
           notes: string | null
+          pos_category_id: string | null
           pos_sort_order: number | null
           quantity: number
           sell_price: number
@@ -2497,6 +2542,7 @@ export type Database = {
           min_quantity?: number
           name: string
           notes?: string | null
+          pos_category_id?: string | null
           pos_sort_order?: number | null
           quantity?: number
           sell_price?: number
@@ -2519,6 +2565,7 @@ export type Database = {
           min_quantity?: number
           name?: string
           notes?: string | null
+          pos_category_id?: string | null
           pos_sort_order?: number | null
           quantity?: number
           sell_price?: number
@@ -2528,7 +2575,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "products_pos_category_id_fkey"
+            columns: ["pos_category_id"]
+            isOneToOne: false
+            referencedRelation: "pos_categories"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
