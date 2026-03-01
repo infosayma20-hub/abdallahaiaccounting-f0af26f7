@@ -200,6 +200,10 @@ const POSPage = () => {
     });
   }, [orders.length]);
 
+  // Bottom panel toggles
+  const [showCustomerInput, setShowCustomerInput] = useState(false);
+  const [showOrderNoteInput, setShowOrderNoteInput] = useState(false);
+
   // Dialogs
   const [showOpenShift, setShowOpenShift] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
@@ -1058,10 +1062,10 @@ const POSPage = () => {
                         </div>
                       )}
 
-                      {/* Product visual */}
-                      <div className="p-3 pb-2">
+                       {/* Product visual */}
+                      <div className="p-2 pb-1.5">
                         {product.image_url ? (
-                          <div className="w-full aspect-square rounded-lg overflow-hidden mb-2 bg-muted/30">
+                          <div className="w-full aspect-[4/3] rounded-lg overflow-hidden mb-1.5 bg-muted/30">
                             <img
                               src={product.image_url}
                               alt={product.name}
@@ -1072,32 +1076,27 @@ const POSPage = () => {
                               }}
                             />
                             <div className="hidden w-full h-full flex items-center justify-center" style={{ backgroundColor: productColor + "12" }}>
-                              <CatIcon className="h-8 w-8" style={{ color: productColor }} />
+                              <CatIcon className="h-6 w-6" style={{ color: productColor }} />
                             </div>
                           </div>
                         ) : (
                           <div
-                            className="w-full aspect-square rounded-lg flex items-center justify-center mb-2 transition-colors"
+                            className="w-full aspect-[4/3] rounded-lg flex items-center justify-center mb-1.5 transition-colors"
                             style={{ backgroundColor: productColor + "10" }}
                           >
-                            <CatIcon className="h-8 w-8 transition-transform duration-200 group-hover:scale-110" style={{ color: productColor + "80" }} />
+                            <CatIcon className="h-6 w-6 transition-transform duration-200 group-hover:scale-110" style={{ color: productColor + "80" }} />
                           </div>
                         )}
 
                         {/* Name */}
-                        <p className="text-[13px] font-medium text-foreground leading-tight line-clamp-2 min-h-[2.4em] mb-1.5">
+                        <p className="text-[11px] font-medium text-foreground leading-tight line-clamp-2 min-h-[2.2em] mb-1">
                           {product.name}
                         </p>
 
                         {/* Price */}
-                        <p className="text-sm font-bold text-primary tabular-nums">
+                        <p className="text-xs font-bold text-primary tabular-nums">
                           ₪{product.sell_price.toFixed(2)}
                         </p>
-
-                        {/* Stock */}
-                        <div className="text-[10px] mt-1 tabular-nums text-muted-foreground/60">
-                          {product.unit}
-                        </div>
                       </div>
                     </motion.button>
                   );
@@ -1320,15 +1319,80 @@ const POSPage = () => {
           <div className="border-t border-border bg-card shrink-0">
             {/* Customer & Note row */}
             {cart.length > 0 && (
-              <div className="px-3 pt-2 pb-1 flex items-center gap-2 text-xs">
-                <button className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-muted/50 hover:bg-muted text-muted-foreground transition-colors">
-                  <User className="h-3 w-3" />
-                  العميل
-                </button>
-                <button className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-muted/50 hover:bg-muted text-muted-foreground transition-colors">
-                  <StickyNote className="h-3 w-3" />
-                  الملاحظات
-                </button>
+              <div className="px-3 pt-2 pb-1 space-y-1.5">
+                <div className="flex items-center gap-2 text-xs">
+                  <button
+                    onClick={() => setShowCustomerInput(!showCustomerInput)}
+                    className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg transition-colors ${
+                      showCustomerInput || customerName
+                        ? "bg-primary/10 text-primary border border-primary/20"
+                        : "bg-muted/50 hover:bg-muted text-muted-foreground"
+                    }`}
+                  >
+                    <User className="h-3 w-3" />
+                    {customerName || "العميل"}
+                  </button>
+                  <button
+                    onClick={() => setShowOrderNoteInput(!showOrderNoteInput)}
+                    className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg transition-colors ${
+                      showOrderNoteInput || orderNote
+                        ? "bg-primary/10 text-primary border border-primary/20"
+                        : "bg-muted/50 hover:bg-muted text-muted-foreground"
+                    }`}
+                  >
+                    <StickyNote className="h-3 w-3" />
+                    {orderNote ? "📝 ملاحظة" : "الملاحظات"}
+                  </button>
+                </div>
+
+                {/* Customer input */}
+                {showCustomerInput && (
+                  <div className="relative">
+                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">@</span>
+                    <Input
+                      value={customerSearch || customerName}
+                      onChange={(e) => {
+                        setCustomerSearch(e.target.value);
+                        setCustomerName(e.target.value);
+                        setShowContactDropdown(true);
+                      }}
+                      onFocus={() => setShowContactDropdown(true)}
+                      placeholder="ابحث عن زبون..."
+                      className="h-8 text-xs pr-7"
+                      autoFocus
+                    />
+                    {showContactDropdown && filteredContacts.length > 0 && (
+                      <div className="absolute z-50 w-full bottom-full mb-1 bg-popover border border-border rounded-lg shadow-lg max-h-32 overflow-y-auto">
+                        {filteredContacts.map((contact) => (
+                          <button
+                            key={contact.id}
+                            onClick={() => {
+                              setCustomerName(contact.contact_name);
+                              setCustomerSearch("");
+                              setShowContactDropdown(false);
+                              setShowCustomerInput(false);
+                            }}
+                            className="w-full px-3 py-1.5 text-xs text-right hover:bg-muted/50 transition flex items-center gap-2"
+                          >
+                            <User className="h-3 w-3 text-muted-foreground shrink-0" />
+                            <span>{contact.contact_name}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Order note input */}
+                {showOrderNoteInput && (
+                  <Input
+                    value={orderNote}
+                    onChange={(e) => setOrderNote(e.target.value)}
+                    placeholder="ملاحظة على الفاتورة..."
+                    className="h-8 text-xs bg-muted/30 border-dashed"
+                    autoFocus
+                  />
+                )}
               </div>
             )}
 

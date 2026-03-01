@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Printer, Mail, X, CheckCircle, Send } from "lucide-react";
+import { Printer, Mail, CheckCircle, Send, Download } from "lucide-react";
 import { toast } from "sonner";
 
 interface ReceiptItem {
@@ -73,33 +73,43 @@ export default function POSReceiptDialog({ open, onOpenChange, data }: POSReceip
           @page { margin: 0; size: 80mm auto; }
           * { margin: 0; padding: 0; box-sizing: border-box; }
           body {
-            font-family: 'Courier New', monospace;
+            font-family: 'Segoe UI', 'Arial', sans-serif;
             font-size: 12px;
             width: 80mm;
-            padding: 4mm;
-            color: #000;
+            padding: 3mm;
+            color: #1a1a1a;
             direction: rtl;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
           }
+          .receipt-container { max-width: 100%; }
           .center { text-align: center; }
-          .bold { font-weight: bold; }
-          .line { border-top: 1px dashed #000; margin: 4px 0; }
-          .double-line { border-top: 2px solid #000; margin: 6px 0; }
-          .row { display: flex; justify-content: space-between; padding: 1px 0; }
-          .item-row { padding: 2px 0; }
-          .item-name { font-weight: bold; }
-          .item-detail { font-size: 11px; color: #333; padding-right: 8px; }
-          .total-row { font-size: 16px; font-weight: bold; }
-          .header { font-size: 18px; font-weight: bold; margin-bottom: 4px; }
-          .sub-header { font-size: 11px; color: #555; }
-          .footer { font-size: 10px; color: #666; margin-top: 8px; }
-          .note { font-size: 10px; color: #555; padding-right: 8px; font-style: italic; }
-          .barcode { 
-            text-align: center; 
-            font-family: 'Libre Barcode 39', monospace;
-            font-size: 32px;
-            margin: 6px 0;
-            letter-spacing: 2px;
-          }
+          .bold { font-weight: 700; }
+          .divider { border: none; border-top: 1px solid #e0e0e0; margin: 6px 0; }
+          .divider-bold { border: none; border-top: 2px solid #1a1a1a; margin: 8px 0; }
+          .divider-dashed { border: none; border-top: 1px dashed #ccc; margin: 6px 0; }
+          .row { display: flex; justify-content: space-between; align-items: center; padding: 2px 0; }
+          .company-name { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; color: #0f172a; margin-bottom: 2px; }
+          .terminal-name { font-size: 11px; color: #64748b; font-weight: 500; }
+          .meta-text { font-size: 10px; color: #94a3b8; }
+          .section-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; text-align: center; margin: 4px 0; }
+          .item-name { font-size: 12px; font-weight: 600; color: #1e293b; }
+          .item-detail { font-size: 11px; color: #64748b; display: flex; justify-content: space-between; padding: 1px 0; }
+          .item-note { font-size: 10px; color: #94a3b8; font-style: italic; padding-right: 4px; }
+          .item-discount { font-size: 10px; color: #dc2626; padding-right: 4px; }
+          .total-label { font-size: 14px; font-weight: 700; color: #0f172a; }
+          .total-amount { font-size: 22px; font-weight: 800; color: #0f172a; font-variant-numeric: tabular-nums; }
+          .summary-row { display: flex; justify-content: space-between; padding: 2px 0; font-size: 11px; color: #475569; }
+          .summary-row .amount { font-variant-numeric: tabular-nums; font-weight: 500; }
+          .payment-badge { display: inline-block; background: #f1f5f9; border-radius: 4px; padding: 2px 8px; font-size: 10px; font-weight: 600; color: #475569; }
+          .qr-placeholder { width: 80px; height: 80px; margin: 8px auto; border: 2px solid #e2e8f0; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+          .qr-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; width: 40px; height: 40px; }
+          .qr-cell { background: #1e293b; border-radius: 1px; }
+          .qr-cell-empty { background: transparent; }
+          .barcode-text { text-align: center; font-family: monospace; font-size: 12px; letter-spacing: 4px; color: #64748b; margin: 4px 0; }
+          .footer-text { font-size: 10px; color: #94a3b8; text-align: center; line-height: 1.6; }
+          .footer-thanks { font-size: 12px; font-weight: 600; color: #475569; text-align: center; margin-bottom: 2px; }
+          .tag { background: #f0fdf4; color: #16a34a; font-size: 10px; font-weight: 600; padding: 1px 6px; border-radius: 3px; display: inline-block; }
         </style>
       </head>
       <body>
@@ -122,7 +132,6 @@ export default function POSReceiptDialog({ open, onOpenChange, data }: POSReceip
     }
     setSending(true);
     try {
-      // Build HTML receipt for email
       const receiptHtml = receiptRef.current?.innerHTML || "";
       
       const response = await fetch(
@@ -161,211 +170,252 @@ export default function POSReceiptDialog({ open, onOpenChange, data }: POSReceip
   const dateStr = now.toLocaleDateString("ar-PS", { year: "numeric", month: "2-digit", day: "2-digit" });
   const timeStr = now.toLocaleTimeString("ar-PS", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 
+  // Generate simple QR pattern (visual only)
+  const qrPattern = [
+    [1,1,1,0,1], [1,0,1,1,0], [1,1,1,0,1], [0,1,0,1,1], [1,0,1,1,1]
+  ];
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[380px] max-h-[90vh] overflow-y-auto" dir="rtl">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <CheckCircle className="h-5 w-5 text-green-500" />
-            تم البيع بنجاح
-          </DialogTitle>
-        </DialogHeader>
+      <DialogContent className="sm:max-w-[400px] max-h-[90vh] overflow-y-auto p-0" dir="rtl">
+        {/* Success header */}
+        <div className="bg-[#0f172a] text-white p-4 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-[#16a34a] flex items-center justify-center shrink-0">
+            <CheckCircle className="h-5 w-5" />
+          </div>
+          <div>
+            <h3 className="font-bold text-base">تم البيع بنجاح</h3>
+            <p className="text-white/60 text-xs">{data.orderNumber}</p>
+          </div>
+          <div className="mr-auto text-left">
+            <p className="text-xl font-bold tabular-nums">₪{data.total.toFixed(2)}</p>
+          </div>
+        </div>
 
         {/* Receipt Preview */}
-        <div className="bg-white text-black rounded-lg border border-border overflow-hidden">
-          <div
-            ref={receiptRef}
-            className="p-4 text-xs font-mono leading-relaxed"
-            style={{ fontFamily: "'Courier New', monospace", fontSize: "12px", direction: "rtl" }}
-          >
-            {/* Header */}
-            <div className="center" style={{ textAlign: "center" }}>
-              <div className="header" style={{ fontSize: "18px", fontWeight: "bold", marginBottom: "4px" }}>
-                {data.companyName}
-              </div>
-              <div className="sub-header" style={{ fontSize: "11px", color: "#555" }}>
-                {data.terminalName}
-              </div>
-              <div style={{ fontSize: "10px", color: "#888", marginTop: "2px" }}>
-                {dateStr} | {timeStr}
-              </div>
-            </div>
-
-            <div className="double-line" style={{ borderTop: "2px solid #000", margin: "6px 0" }} />
-
-            {/* Order info */}
-            <div className="row" style={{ display: "flex", justifyContent: "space-between", padding: "1px 0" }}>
-              <span>رقم الطلب:</span>
-              <span style={{ fontWeight: "bold" }}>{data.orderNumber}</span>
-            </div>
-            <div className="row" style={{ display: "flex", justifyContent: "space-between", padding: "1px 0" }}>
-              <span>الكاشير:</span>
-              <span>{data.cashierName}</span>
-            </div>
-            {data.customerName && (
-              <div className="row" style={{ display: "flex", justifyContent: "space-between", padding: "1px 0" }}>
-                <span>العميل:</span>
-                <span>{data.customerName}</span>
-              </div>
-            )}
-
-            <div className="line" style={{ borderTop: "1px dashed #000", margin: "4px 0" }} />
-
-            {/* Items */}
-            <div style={{ fontWeight: "bold", textAlign: "center", fontSize: "11px", padding: "2px 0" }}>
-              الأصناف
-            </div>
-            <div className="line" style={{ borderTop: "1px dashed #000", margin: "4px 0" }} />
-
-            {data.items.map((item, i) => (
-              <div key={i} style={{ padding: "3px 0" }}>
-                <div style={{ fontWeight: "bold" }}>{item.name}</div>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: "#333", paddingRight: "8px" }}>
-                  <span>{item.qty} × ₪{item.unit_price.toFixed(2)}</span>
-                  <span style={{ fontWeight: "bold" }}>₪{item.total.toFixed(2)}</span>
+        <div className="px-4 pb-2">
+          <div className="bg-white text-[#1a1a1a] rounded-xl border border-border overflow-hidden shadow-sm">
+            <div ref={receiptRef} className="p-5" style={{ fontFamily: "'Segoe UI', Arial, sans-serif", fontSize: "12px", direction: "rtl" }}>
+              
+              {/* ═══ HEADER ═══ */}
+              <div style={{ textAlign: "center", paddingBottom: "4px" }}>
+                <div className="company-name" style={{ fontSize: "20px", fontWeight: 800, color: "#0f172a", marginBottom: "2px", letterSpacing: "-0.5px" }}>
+                  {data.companyName}
                 </div>
-                {item.discount_pct > 0 && (
-                  <div style={{ fontSize: "10px", color: "#555", paddingRight: "8px" }}>
-                    خصم: {item.discount_pct}%
-                  </div>
-                )}
-                {item.note && (
-                  <div style={{ fontSize: "10px", color: "#555", paddingRight: "8px", fontStyle: "italic" }}>
-                    📝 {item.note}
-                  </div>
-                )}
-              </div>
-            ))}
-
-            <div className="line" style={{ borderTop: "1px dashed #000", margin: "4px 0" }} />
-
-            {/* Totals */}
-            <div className="row" style={{ display: "flex", justifyContent: "space-between", padding: "1px 0" }}>
-              <span>المجموع الفرعي:</span>
-              <span>₪{data.subtotal.toFixed(2)}</span>
-            </div>
-            {data.tax > 0 && (
-              <div className="row" style={{ display: "flex", justifyContent: "space-between", padding: "1px 0" }}>
-                <span>الضريبة:</span>
-                <span>₪{data.tax.toFixed(2)}</span>
-              </div>
-            )}
-            {data.discount > 0 && (
-              <div className="row" style={{ display: "flex", justifyContent: "space-between", padding: "1px 0", color: "#c00" }}>
-                <span>الخصم:</span>
-                <span>-₪{data.discount.toFixed(2)}</span>
-              </div>
-            )}
-
-            <div className="double-line" style={{ borderTop: "2px solid #000", margin: "6px 0" }} />
-
-            <div className="row total-row" style={{ display: "flex", justifyContent: "space-between", fontSize: "16px", fontWeight: "bold", padding: "2px 0" }}>
-              <span>الإجمالي:</span>
-              <span>₪{data.total.toFixed(2)}</span>
-            </div>
-
-            <div className="line" style={{ borderTop: "1px dashed #000", margin: "4px 0" }} />
-
-            {/* Payment info */}
-            <div className="row" style={{ display: "flex", justifyContent: "space-between", padding: "1px 0" }}>
-              <span>طريقة الدفع:</span>
-              <span>{paymentMethodLabel[data.paymentMethod] || data.paymentMethod}</span>
-            </div>
-            {data.paymentMethod === "cash" && (
-              <>
-                <div className="row" style={{ display: "flex", justifyContent: "space-between", padding: "1px 0" }}>
-                  <span>المبلغ المستلم:</span>
-                  <span>₪{data.tenderedAmount.toFixed(2)}</span>
+                <div className="terminal-name" style={{ fontSize: "11px", color: "#64748b", fontWeight: 500 }}>
+                  {data.terminalName}
                 </div>
-                {data.change > 0 && (
-                  <div className="row" style={{ display: "flex", justifyContent: "space-between", padding: "1px 0", fontWeight: "bold" }}>
-                    <span>الباقي:</span>
-                    <span>₪{data.change.toFixed(2)}</span>
-                  </div>
-                )}
-              </>
-            )}
-
-            {data.orderNote && (
-              <>
-                <div className="line" style={{ borderTop: "1px dashed #000", margin: "4px 0" }} />
-                <div style={{ fontSize: "10px", color: "#555" }}>
-                  ملاحظة: {data.orderNote}
+                <div style={{ fontSize: "10px", color: "#94a3b8", marginTop: "4px" }}>
+                  {dateStr} • {timeStr}
                 </div>
-              </>
-            )}
+              </div>
 
-            <div className="double-line" style={{ borderTop: "2px solid #000", margin: "6px 0" }} />
+              <hr style={{ border: "none", borderTop: "2px solid #0f172a", margin: "8px 0" }} />
 
-            {/* Barcode placeholder */}
-            <div style={{ textAlign: "center", fontFamily: "monospace", fontSize: "14px", letterSpacing: "3px", margin: "4px 0" }}>
-              ||| {data.orderNumber} |||
-            </div>
+              {/* ═══ ORDER META ═══ */}
+              <div style={{ display: "flex", justifyContent: "space-between", padding: "2px 0", fontSize: "11px" }}>
+                <span style={{ color: "#64748b" }}>رقم الطلب</span>
+                <span style={{ fontWeight: 700, color: "#0f172a", fontVariantNumeric: "tabular-nums" }}>{data.orderNumber}</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", padding: "2px 0", fontSize: "11px" }}>
+                <span style={{ color: "#64748b" }}>الكاشير</span>
+                <span style={{ fontWeight: 500, color: "#334155" }}>{data.cashierName}</span>
+              </div>
+              {data.customerName && (
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "2px 0", fontSize: "11px" }}>
+                  <span style={{ color: "#64748b" }}>العميل</span>
+                  <span style={{ fontWeight: 500, color: "#334155" }}>{data.customerName}</span>
+                </div>
+              )}
 
-            {/* Footer */}
-            <div className="footer" style={{ fontSize: "10px", color: "#666", marginTop: "8px", textAlign: "center" }}>
-              <div>شكراً لتعاملكم معنا</div>
-              <div style={{ marginTop: "2px" }}>Thank you for your purchase</div>
+              <hr style={{ border: "none", borderTop: "1px solid #e2e8f0", margin: "8px 0" }} />
+
+              {/* ═══ TABLE HEADER ═══ */}
+              <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", fontSize: "9px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px", color: "#94a3b8", borderBottom: "1px solid #f1f5f9" }}>
+                <span style={{ flex: 2 }}>الصنف</span>
+                <span style={{ flex: 1, textAlign: "center" }}>الكمية</span>
+                <span style={{ flex: 1, textAlign: "center" }}>السعر</span>
+                <span style={{ flex: 1, textAlign: "left" }}>المجموع</span>
+              </div>
+
+              {/* ═══ ITEMS ═══ */}
+              {data.items.map((item, i) => (
+                <div key={i} style={{ padding: "6px 0", borderBottom: i < data.items.length - 1 ? "1px solid #f8fafc" : "none" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                    <span style={{ flex: 2, fontSize: "12px", fontWeight: 600, color: "#1e293b", lineHeight: 1.3 }}>{item.name}</span>
+                    <span style={{ flex: 1, textAlign: "center", fontSize: "11px", color: "#475569", fontVariantNumeric: "tabular-nums" }}>{item.qty}</span>
+                    <span style={{ flex: 1, textAlign: "center", fontSize: "11px", color: "#475569", fontVariantNumeric: "tabular-nums" }}>₪{item.unit_price.toFixed(2)}</span>
+                    <span style={{ flex: 1, textAlign: "left", fontSize: "12px", fontWeight: 600, color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>₪{item.total.toFixed(2)}</span>
+                  </div>
+                  {item.discount_pct > 0 && (
+                    <div style={{ fontSize: "10px", color: "#dc2626", paddingRight: "4px", marginTop: "1px" }}>
+                      خصم {item.discount_pct}%
+                    </div>
+                  )}
+                  {item.note && (
+                    <div style={{ fontSize: "10px", color: "#94a3b8", fontStyle: "italic", paddingRight: "4px", marginTop: "1px" }}>
+                      📝 {item.note}
+                    </div>
+                  )}
+                </div>
+              ))}
+
+              <hr style={{ border: "none", borderTop: "1px solid #e2e8f0", margin: "8px 0" }} />
+
+              {/* ═══ SUMMARY ═══ */}
+              <div style={{ display: "flex", justifyContent: "space-between", padding: "2px 0", fontSize: "11px", color: "#475569" }}>
+                <span>المجموع الفرعي</span>
+                <span style={{ fontVariantNumeric: "tabular-nums", fontWeight: 500 }}>₪{data.subtotal.toFixed(2)}</span>
+              </div>
+              {data.tax > 0 && (
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "2px 0", fontSize: "11px", color: "#475569" }}>
+                  <span>الضريبة</span>
+                  <span style={{ fontVariantNumeric: "tabular-nums", fontWeight: 500 }}>₪{data.tax.toFixed(2)}</span>
+                </div>
+              )}
+              {data.discount > 0 && (
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "2px 0", fontSize: "11px", color: "#dc2626" }}>
+                  <span>الخصم</span>
+                  <span style={{ fontVariantNumeric: "tabular-nums", fontWeight: 500 }}>-₪{data.discount.toFixed(2)}</span>
+                </div>
+              )}
+
+              <hr style={{ border: "none", borderTop: "2px solid #0f172a", margin: "8px 0" }} />
+
+              {/* ═══ TOTAL ═══ */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "4px 0" }}>
+                <span style={{ fontSize: "14px", fontWeight: 700, color: "#0f172a" }}>الإجمالي</span>
+                <span style={{ fontSize: "22px", fontWeight: 800, color: "#0f172a", fontVariantNumeric: "tabular-nums" }}>₪{data.total.toFixed(2)}</span>
+              </div>
+
+              <hr style={{ border: "none", borderTop: "1px dashed #d1d5db", margin: "8px 0" }} />
+
+              {/* ═══ PAYMENT ═══ */}
+              <div style={{ background: "#f8fafc", borderRadius: "8px", padding: "8px 10px", margin: "4px 0" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "2px 0", fontSize: "11px" }}>
+                  <span style={{ color: "#64748b" }}>طريقة الدفع</span>
+                  <span style={{ background: "#e2e8f0", borderRadius: "4px", padding: "1px 8px", fontSize: "10px", fontWeight: 600, color: "#475569" }}>
+                    {paymentMethodLabel[data.paymentMethod] || data.paymentMethod}
+                  </span>
+                </div>
+                {data.paymentMethod === "cash" && (
+                  <>
+                    <div style={{ display: "flex", justifyContent: "space-between", padding: "2px 0", fontSize: "11px" }}>
+                      <span style={{ color: "#64748b" }}>المبلغ المستلم</span>
+                      <span style={{ fontWeight: 500, fontVariantNumeric: "tabular-nums", color: "#334155" }}>₪{data.tenderedAmount.toFixed(2)}</span>
+                    </div>
+                    {data.change > 0 && (
+                      <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", fontSize: "12px", fontWeight: 700 }}>
+                        <span style={{ color: "#16a34a" }}>الباقي</span>
+                        <span style={{ color: "#16a34a", fontVariantNumeric: "tabular-nums" }}>₪{data.change.toFixed(2)}</span>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+
+              {/* ═══ ORDER NOTE ═══ */}
+              {data.orderNote && (
+                <div style={{ background: "#fffbeb", borderRadius: "6px", padding: "6px 8px", margin: "6px 0", fontSize: "10px", color: "#92400e", border: "1px solid #fde68a" }}>
+                  <span style={{ fontWeight: 600 }}>ملاحظة:</span> {data.orderNote}
+                </div>
+              )}
+
+              <hr style={{ border: "none", borderTop: "1px dashed #d1d5db", margin: "8px 0" }} />
+
+              {/* ═══ QR CODE ═══ */}
+              <div style={{ textAlign: "center", margin: "8px 0" }}>
+                <div style={{ width: "72px", height: "72px", margin: "0 auto", border: "2px solid #e2e8f0", borderRadius: "8px", display: "flex", alignItems: "center", justifyContent: "center", padding: "8px" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "2px", width: "40px", height: "40px" }}>
+                    {qrPattern.flat().map((cell, idx) => (
+                      <div key={idx} style={{ background: cell ? "#1e293b" : "transparent", borderRadius: "1px" }} />
+                    ))}
+                  </div>
+                </div>
+                <div style={{ fontSize: "8px", color: "#94a3b8", marginTop: "4px" }}>امسح للتحقق من الإيصال</div>
+              </div>
+
+              {/* ═══ BARCODE ═══ */}
+              <div style={{ textAlign: "center", fontFamily: "monospace", fontSize: "11px", letterSpacing: "3px", color: "#64748b", margin: "4px 0" }}>
+                ║║║ {data.orderNumber} ║║║
+              </div>
+
+              {/* ═══ FOOTER ═══ */}
+              <hr style={{ border: "none", borderTop: "1px solid #e2e8f0", margin: "8px 0" }} />
+              <div style={{ textAlign: "center" }}>
+                <div style={{ fontSize: "12px", fontWeight: 600, color: "#475569", marginBottom: "2px" }}>شكراً لتعاملكم معنا 🙏</div>
+                <div style={{ fontSize: "10px", color: "#94a3b8" }}>Thank you for your purchase</div>
+                <div style={{ fontSize: "9px", color: "#cbd5e1", marginTop: "4px" }}>
+                  المرتجعات خلال 7 أيام مع الإيصال الأصلي
+                </div>
+                <div style={{ fontSize: "9px", color: "#cbd5e1" }}>
+                  Returns within 7 days with original receipt
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
         {/* Email section */}
         {showEmail && (
-          <div className="flex gap-2 items-end">
-            <div className="flex-1 space-y-1">
-              <label className="text-xs font-medium text-muted-foreground">البريد الإلكتروني</label>
-              <Input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="example@email.com"
-                className="h-10"
-                dir="ltr"
-                autoFocus
-              />
+          <div className="px-4 pb-2">
+            <div className="flex gap-2 items-end">
+              <div className="flex-1 space-y-1">
+                <label className="text-xs font-medium text-muted-foreground">البريد الإلكتروني</label>
+                <Input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="example@email.com"
+                  className="h-10"
+                  dir="ltr"
+                  autoFocus
+                />
+              </div>
+              <Button
+                onClick={handleSendEmail}
+                disabled={sending || !email.trim()}
+                className="h-10 gap-1"
+                size="sm"
+              >
+                {sending ? (
+                  <div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Send className="h-3.5 w-3.5" />
+                )}
+                إرسال
+              </Button>
             </div>
-            <Button
-              onClick={handleSendEmail}
-              disabled={sending || !email.trim()}
-              className="h-10 gap-1"
-              size="sm"
-            >
-              {sending ? (
-                <div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <Send className="h-3.5 w-3.5" />
-              )}
-              إرسال
-            </Button>
           </div>
         )}
 
         {/* Actions */}
-        <div className="flex gap-2 mt-2">
-          <Button onClick={handlePrint} className="flex-1 gap-2 h-11" variant="outline">
-            <Printer className="h-4 w-4" />
-            طباعة
-          </Button>
+        <div className="px-4 pb-2 space-y-2">
+          <div className="flex gap-2">
+            <Button onClick={handlePrint} className="flex-1 gap-2 h-10" variant="outline">
+              <Printer className="h-4 w-4" />
+              طباعة
+            </Button>
+            <Button
+              onClick={() => setShowEmail(!showEmail)}
+              className="flex-1 gap-2 h-10"
+              variant="outline"
+            >
+              <Mail className="h-4 w-4" />
+              إيميل
+            </Button>
+          </div>
+
           <Button
-            onClick={() => setShowEmail(!showEmail)}
-            className="flex-1 gap-2 h-11"
-            variant="outline"
+            onClick={() => onOpenChange(false)}
+            variant="default"
+            className="w-full h-11 gap-2 font-bold"
+            style={{ backgroundColor: "#16a34a" }}
           >
-            <Mail className="h-4 w-4" />
-            إرسال بالإيميل
+            <CheckCircle className="h-4 w-4" />
+            طلب جديد
           </Button>
         </div>
-
-        <Button
-          onClick={() => onOpenChange(false)}
-          variant="default"
-          className="w-full h-11 gap-2"
-          style={{ backgroundColor: "#16A34A" }}
-        >
-          <CheckCircle className="h-4 w-4" />
-          طلب جديد
-        </Button>
       </DialogContent>
     </Dialog>
   );
