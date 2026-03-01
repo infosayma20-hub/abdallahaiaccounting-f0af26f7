@@ -82,18 +82,18 @@ interface Terminal {
 }
 
 // ── Category config ──
-const CATEGORY_CONFIG: Record<string, { icon: typeof Package; color: string; borderColor: string; bgColor: string }> = {
-  "طعام": { icon: UtensilsCrossed, color: "#16A34A", borderColor: "border-green-500", bgColor: "bg-green-500" },
-  "أغذية": { icon: UtensilsCrossed, color: "#16A34A", borderColor: "border-green-500", bgColor: "bg-green-500" },
-  "مشروبات": { icon: Coffee, color: "#16A34A", borderColor: "border-green-500", bgColor: "bg-green-500" },
-  "إلكترونيات": { icon: Monitor, color: "#3B82F6", borderColor: "border-blue-500", bgColor: "bg-blue-500" },
-  "ملابس": { icon: Shirt, color: "#8B5CF6", borderColor: "border-violet-500", bgColor: "bg-violet-500" },
-  "ألعاب": { icon: Gamepad2, color: "#F97316", borderColor: "border-orange-500", bgColor: "bg-orange-500" },
-  "بضاعة عامة": { icon: Box, color: "#6B7280", borderColor: "border-gray-400", bgColor: "bg-gray-500" },
-  "عام": { icon: Box, color: "#6B7280", borderColor: "border-gray-400", bgColor: "bg-gray-500" },
+const CATEGORY_CONFIG: Record<string, { icon: typeof Package; color: string }> = {
+  "طعام": { icon: UtensilsCrossed, color: "#16A34A" },
+  "أغذية": { icon: UtensilsCrossed, color: "#16A34A" },
+  "مشروبات": { icon: Coffee, color: "#16A34A" },
+  "إلكترونيات": { icon: Monitor, color: "#3B82F6" },
+  "ملابس": { icon: Shirt, color: "#8B5CF6" },
+  "ألعاب": { icon: Gamepad2, color: "#F97316" },
+  "بضاعة عامة": { icon: Box, color: "#6B7280" },
+  "عام": { icon: Box, color: "#6B7280" },
 };
 
-const DEFAULT_CAT_CONFIG = { icon: Package, color: "#6B7280", borderColor: "border-gray-400", bgColor: "bg-gray-500" };
+const DEFAULT_CAT_CONFIG = { icon: Package, color: "#6B7280" };
 
 function getCatConfig(category: string) {
   return CATEGORY_CONFIG[category] || DEFAULT_CAT_CONFIG;
@@ -150,10 +150,10 @@ const POSPage = () => {
   const [exchangeRates, setExchangeRates] = useState<Record<string, number>>({});
 
   const currencies = [
-    { code: "ILS", symbol: "₪", name: "شيكل", flag: "🇮🇱" },
-    { code: "USD", symbol: "$", name: "دولار", flag: "🇺🇸" },
-    { code: "JOD", symbol: "د.ا", name: "دينار", flag: "🇯🇴" },
-    { code: "EUR", symbol: "€", name: "يورو", flag: "🇪🇺" },
+    { code: "ILS", symbol: "₪", name: "شيكل", flag: "IL" },
+    { code: "USD", symbol: "$", name: "دولار", flag: "US" },
+    { code: "JOD", symbol: "د.ا", name: "دينار", flag: "JO" },
+    { code: "EUR", symbol: "€", name: "يورو", flag: "EU" },
   ];
 
   // Numpad
@@ -305,10 +305,8 @@ const POSPage = () => {
     setPosCategories((data as POSCategory[]) || []);
   };
 
-  // Get unique categories from DB categories + legacy product categories
   const existingCategories = useMemo(() => {
     const cats = posCategories.map(c => c.name);
-    // Also add legacy product categories not in posCategories
     products.forEach(p => {
       if (p.category && !cats.includes(p.category)) cats.push(p.category);
     });
@@ -349,12 +347,10 @@ const POSPage = () => {
   const handleSaveNewProduct = async () => {
     if (!userId || !newProduct.name.trim() || savingProduct) return;
     
-    // Handle new category creation if needed
     let finalCategoryId = newProduct.pos_category_id || null;
     let finalCategoryName = "";
     
     if (showNewCategory && newProduct.newCategory.trim()) {
-      // Create new category first
       const { data: newCat, error: catErr } = await supabase.from("pos_categories").insert({
         user_id: userId,
         name: newProduct.newCategory.trim(),
@@ -439,12 +435,10 @@ const POSPage = () => {
     return contacts.filter(c => c.contact_name.toLowerCase().includes(q));
   }, [contacts, customerSearch]);
 
-  // Categories with counts - use posCategories from DB
   const categoriesWithCounts = useMemo(() => {
     const posProducts = products.filter(p => p.is_pos_available);
     const totalCount = posProducts.length;
     
-    // Count products per POS category
     const catCounts: { id: string; name: string; color: string; count: number }[] = posCategories.map(cat => ({
       id: cat.id,
       name: cat.name,
@@ -452,19 +446,13 @@ const POSPage = () => {
       count: posProducts.filter(p => p.pos_category_id === cat.id || p.category === cat.name).length,
     }));
 
-    // Products without a category
     const uncategorized = posProducts.filter(p => 
       !p.pos_category_id && !posCategories.some(c => c.name === p.category)
     ).length;
 
-    return {
-      all: totalCount,
-      categories: catCounts,
-      uncategorized,
-    };
+    return { all: totalCount, categories: catCounts, uncategorized };
   }, [products, posCategories]);
 
-  // Filtered products
   const filteredProducts = useMemo(() => {
     let filtered = products.filter((p) => p.is_pos_available);
     if (selectedCategory === "__uncategorized__") {
@@ -489,7 +477,6 @@ const POSPage = () => {
     return filtered;
   }, [products, selectedCategory, searchQuery, posCategories]);
 
-  // Get category color for a product
   const getProductCatColor = useCallback((product: Product) => {
     if (product.pos_category_id) {
       const cat = posCategories.find(c => c.id === product.pos_category_id);
@@ -502,11 +489,9 @@ const POSPage = () => {
 
   // Cart operations
   const addToCart = useCallback((product: Product) => {
-    // Allow selling even if stock is zero - just show warning
     if (product.quantity <= 0) {
       toast.warning(`⚠️ تنبيه: ${product.name} - المخزون صفر، سيتم البيع بالسالب`);
     }
-    // Check low stock warning
     const currentInCart = cart.find(i => i.product_id === product.id)?.qty || 0;
     if (product.quantity > 0 && product.min_quantity > 0 && (product.quantity - currentInCart - 1) <= product.min_quantity) {
       toast.warning(`⚠️ تنبيه: ${product.name} - باقي ${product.quantity - currentInCart - 1} قطع فقط`);
@@ -684,10 +669,8 @@ const POSPage = () => {
           : null
       );
 
-      // Reload products to get updated stock
       loadProducts();
 
-      // Build receipt data
       const receiptInfo = {
         orderNumber: res.order_number,
         date: new Date().toISOString(),
@@ -718,7 +701,6 @@ const POSPage = () => {
       setShowPayment(false);
       setShowReceipt(true);
 
-      // Reset cart
       setCart([]);
       setTenderedAmount("");
       setCustomerName("");
@@ -787,37 +769,40 @@ const POSPage = () => {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-background overflow-hidden" dir="rtl">
-      {/* ══════ HEADER ══════ */}
-      <header className="h-14 bg-card border-b border-border flex items-center px-4 gap-3 shrink-0">
-        <Button variant="ghost" size="icon" onClick={() => navigate("/apps")} className="shrink-0">
-          <ArrowRight className="h-5 w-5" />
-        </Button>
+    <div className="h-screen flex flex-col overflow-hidden pos-container" dir="rtl">
+      {/* ══════ TOP BAR ══════ */}
+      <header className="h-12 bg-[hsl(222,47%,5%)] flex items-center px-3 gap-2 shrink-0 text-white">
+        {/* Back */}
+        <button
+          onClick={() => navigate("/apps")}
+          className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-white/10 transition-colors"
+        >
+          <ArrowRight className="h-4 w-4" />
+        </button>
 
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center">
-            <ShoppingBag className="h-4 w-4 text-primary-foreground" />
-          </div>
-          <span className="font-bold text-sm text-foreground">{company?.name || "شركتي"}</span>
+        {/* Company badge */}
+        <div className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-primary/20">
+          <ShoppingBag className="h-3.5 w-3.5 text-primary" />
+          <span className="text-xs font-semibold">{company?.name || "شركتي"}</span>
         </div>
 
         {terminal && (
-          <Badge variant="secondary" className="text-xs gap-1 cursor-pointer hover:bg-muted">
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/8 text-white/70 text-xs">
             <Monitor className="h-3 w-3" />
-            {terminal.name}
-          </Badge>
+            <span>{terminal.name}</span>
+          </div>
         )}
 
-        <div className="w-px h-6 bg-border" />
+        <div className="w-px h-5 bg-white/10 mx-1" />
 
         {session && (
-          <div className="flex items-center gap-4 text-xs text-muted-foreground">
-            <div className="flex items-center gap-1.5">
-              <User className="h-3.5 w-3.5" />
-              <span className="font-medium">{session.cashier_name}</span>
+          <div className="flex items-center gap-3 text-xs text-white/60">
+            <div className="flex items-center gap-1">
+              <User className="h-3 w-3" />
+              <span>{session.cashier_name}</span>
             </div>
             <div className="flex items-center gap-1">
-              <Clock className="h-3.5 w-3.5" />
+              <Clock className="h-3 w-3" />
               <span>{new Date(session.opened_at).toLocaleTimeString("ar-PS", { hour: "2-digit", minute: "2-digit" })}</span>
             </div>
           </div>
@@ -825,115 +810,113 @@ const POSPage = () => {
 
         <div className="flex-1" />
 
-        {/* Live sales indicator */}
+        {/* Sales summary */}
         {session && (
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10">
-            <BarChart3 className="h-4 w-4 text-primary" />
-            <div className="text-xs">
-              <span className="text-muted-foreground">مبيعات اليوم: </span>
+          <div className="flex items-center gap-3 text-xs">
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-primary/15">
+              <BarChart3 className="h-3.5 w-3.5 text-primary" />
+              <span className="text-white/60">مبيعات اليوم:</span>
               <span className="font-bold text-primary tabular-nums">₪{session.total_sales.toFixed(0)}</span>
             </div>
-            <div className="w-px h-4 bg-border mx-1" />
-            <span className="text-xs text-muted-foreground">{session.total_orders} طلب</span>
+            <span className="text-white/40">{session.total_orders} طلب</span>
           </div>
         )}
 
-        <Button
-          variant="destructive"
-          size="sm"
+        <button
           onClick={() => setShowCloseShift(true)}
-          className="text-xs gap-1.5"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-destructive/20 text-destructive hover:bg-destructive/30 transition-colors text-xs font-medium"
         >
-          <X className="h-3.5 w-3.5" />
+          <X className="h-3 w-3" />
           إغلاق الوردية
-        </Button>
+        </button>
       </header>
 
-      {/* ══════ MAIN AREA ══════ */}
+      {/* ══════ MAIN ══════ */}
       <div className="flex-1 flex overflow-hidden">
-        {/* ── LEFT: Product Grid ── */}
-        <div className="flex-1 flex flex-col min-w-0 border-l border-border">
-          {/* Search */}
-          <div className="p-3 border-b border-border">
-            <div className="relative">
-              <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        {/* ── LEFT: Products ── */}
+        <div className="flex-1 flex flex-col min-w-0 bg-[hsl(var(--background))]">
+          {/* Search Bar */}
+          <div className="px-4 py-2.5 border-b border-border">
+            <div className="relative max-w-xl">
+              <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
               <Input
                 ref={searchRef}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="بحث عن منتج... (F2)"
-                className="pr-10 h-10 bg-muted/50 rounded-xl text-sm"
+                placeholder="البحث عن المنتجات... (F2)"
+                className="pr-10 pl-10 h-10 bg-card border-border rounded-xl text-sm shadow-none focus-visible:ring-1 focus-visible:ring-primary/30"
               />
-              <Barcode className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground cursor-pointer hover:text-primary" />
+              <Barcode className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 cursor-pointer hover:text-primary transition-colors" />
             </div>
           </div>
 
-          {/* ── Odoo-style Category Grid ── */}
-          <div className="px-3 py-2 border-b border-border">
-            <div className="flex flex-wrap gap-1.5 items-center">
-              {/* "الكل" tab */}
-              <button
+          {/* ── Odoo-Style Category Chips ── */}
+          <div className="px-4 py-2 border-b border-border">
+            <div className="flex flex-wrap gap-2 items-center">
+              {/* All */}
+              <motion.button
+                whileTap={{ scale: 0.95 }}
                 onClick={() => setSelectedCategory("الكل")}
-                className={`px-4 py-2.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
+                className={`h-9 px-4 rounded-lg text-xs font-semibold whitespace-nowrap transition-all duration-200 ${
                   selectedCategory === "الكل"
                     ? "bg-foreground text-background shadow-md"
-                    : "bg-muted/60 text-muted-foreground hover:bg-muted border border-border"
+                    : "bg-card text-muted-foreground hover:text-foreground border border-border hover:border-foreground/20"
                 }`}
               >
                 الكل ({categoriesWithCounts.all})
-              </button>
+              </motion.button>
 
-              {/* DB categories as colored chips */}
+              {/* Category chips - Odoo pastel style */}
               {categoriesWithCounts.categories.map((cat) => {
                 const isActive = selectedCategory === cat.name;
                 return (
-                  <button
+                  <motion.button
                     key={cat.id}
+                    whileTap={{ scale: 0.95 }}
                     onClick={() => setSelectedCategory(cat.name)}
-                    className={`px-4 py-2.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
-                      isActive ? "shadow-md ring-2 ring-offset-1 ring-foreground/20" : "hover:opacity-80"
-                    }`}
+                    className={`h-9 px-4 rounded-lg text-xs font-semibold whitespace-nowrap transition-all duration-200 border`}
                     style={{
-                      backgroundColor: cat.color + (isActive ? "" : "30"),
+                      backgroundColor: isActive ? cat.color : cat.color + "20",
+                      borderColor: isActive ? cat.color : cat.color + "50",
                       color: isActive ? "#fff" : cat.color,
-                      ...(isActive ? {} : { border: `1px solid ${cat.color}40` }),
+                      boxShadow: isActive ? `0 2px 8px ${cat.color}40` : "none",
                     }}
                   >
                     {cat.name}
                     {cat.count > 0 && (
-                      <span className="mr-1.5 text-[10px] opacity-80">({cat.count})</span>
+                      <span className="mr-1 opacity-75">({cat.count})</span>
                     )}
-                  </button>
+                  </motion.button>
                 );
               })}
 
-              {/* Uncategorized if any */}
               {categoriesWithCounts.uncategorized > 0 && (
-                <button
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
                   onClick={() => setSelectedCategory("__uncategorized__")}
-                  className={`px-4 py-2.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${
+                  className={`h-9 px-4 rounded-lg text-xs font-medium whitespace-nowrap transition-all duration-200 border ${
                     selectedCategory === "__uncategorized__"
-                      ? "bg-muted-foreground text-background shadow-md"
-                      : "bg-muted/60 text-muted-foreground hover:bg-muted border border-border"
+                      ? "bg-muted-foreground text-background border-muted-foreground shadow-md"
+                      : "bg-card text-muted-foreground border-border hover:border-muted-foreground/30"
                   }`}
                 >
                   أخرى ({categoriesWithCounts.uncategorized})
-                </button>
+                </motion.button>
               )}
 
-              {/* Add Category / Add Product buttons */}
+              {/* Management buttons */}
               <button
                 onClick={() => setShowCategoryManager(true)}
-                className="px-3 py-2.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all border-2 border-dashed border-muted-foreground/30 text-muted-foreground hover:border-primary hover:text-primary hover:bg-primary/5"
+                className="h-9 px-3 rounded-lg text-xs font-medium whitespace-nowrap transition-all border-2 border-dashed border-border text-muted-foreground hover:border-primary/40 hover:text-primary hover:bg-primary/5"
               >
-                <Plus className="h-3.5 w-3.5 inline-block ml-1" />
+                <Plus className="h-3 w-3 inline-block ml-0.5" />
                 تصنيف
               </button>
               <button
                 onClick={() => setShowAddProduct(true)}
-                className="px-3 py-2.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all border-2 border-dashed border-primary/40 text-primary hover:bg-primary/10 hover:border-primary"
+                className="h-9 px-3 rounded-lg text-xs font-medium whitespace-nowrap transition-all border-2 border-dashed border-primary/30 text-primary hover:bg-primary/10 hover:border-primary/50"
               >
-                <PlusCircle className="h-3.5 w-3.5 inline-block ml-1" />
+                <PlusCircle className="h-3 w-3 inline-block ml-0.5" />
                 منتج
               </button>
             </div>
@@ -941,341 +924,334 @@ const POSPage = () => {
 
           {/* ── Products Grid ── */}
           <ScrollArea className="flex-1">
-            <div className="p-3 grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2.5">
-              {filteredProducts.map((product) => {
-                const productColor = getProductCatColor(product);
-                const catConfig = getCatConfig(product.category);
-                const CatIcon = catConfig.icon;
-                const isOutOfStock = false; // Allow selling even with zero stock
-                const isLowStock = product.min_quantity > 0 && product.quantity <= product.min_quantity && product.quantity > 0;
-                const qtyInCart = cartQtyMap[product.id] || 0;
+            <div className="p-4 grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-3">
+              <AnimatePresence mode="popLayout">
+                {filteredProducts.map((product) => {
+                  const productColor = getProductCatColor(product);
+                  const catConfig = getCatConfig(product.category);
+                  const CatIcon = catConfig.icon;
+                  const isLowStock = product.min_quantity > 0 && product.quantity <= product.min_quantity && product.quantity > 0;
+                  const qtyInCart = cartQtyMap[product.id] || 0;
 
-                return (
-                  <motion.button
-                    key={product.id}
-                    whileTap={isOutOfStock ? {} : { scale: 0.95 }}
-                    onClick={() => addToCart(product)}
-                    disabled={isOutOfStock}
-                    className={`relative bg-card rounded-xl p-3 text-center transition-all group overflow-hidden ${
-                      isOutOfStock
-                        ? "opacity-60 cursor-not-allowed border-2 border-destructive/30"
-                        : isLowStock
-                        ? "border-2 border-destructive hover:shadow-lg"
-                        : "border-2 hover:shadow-lg hover:border-opacity-70"
-                    }`}
-                    style={{
-                      borderColor: isOutOfStock ? undefined : isLowStock ? undefined : productColor + "40",
-                    }}
-                  >
-                    {/* Top color bar */}
-                    <div
-                      className="absolute top-0 inset-x-0 h-1"
-                      style={{ backgroundColor: productColor }}
-                    />
-
-                    {/* Cart quantity badge */}
-                    {qtyInCart > 0 && (
-                      <div className="absolute top-1 left-1 z-10 w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center shadow-lg">
-                        {qtyInCart}
-                      </div>
-                    )}
-
-                    {/* Out of stock overlay */}
-                    {isOutOfStock && (
-                      <div className="absolute inset-0 bg-background/60 backdrop-blur-[1px] z-[5] flex items-center justify-center rounded-xl">
-                        <span className="text-xs font-bold text-destructive bg-destructive/10 px-3 py-1.5 rounded-full">
-                          نفد من المخزون
-                        </span>
-                      </div>
-                    )}
-
-                    {/* Product image or category icon */}
-                    {product.image_url ? (
-                      <img
-                        src={product.image_url}
-                        alt={product.name}
-                        className="w-12 h-12 mx-auto mb-2 rounded-lg object-cover"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).style.display = 'none';
-                          (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
-                        }}
-                      />
-                    ) : null}
-                    <div
-                      className={`w-12 h-12 mx-auto mb-2 rounded-lg flex items-center justify-center ${product.image_url ? 'hidden' : ''}`}
-                      style={{ backgroundColor: productColor + "18" }}
+                  return (
+                    <motion.button
+                      key={product.id}
+                      layout
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.9 }}
+                      whileHover={{ y: -2, boxShadow: "0 8px 25px -5px rgba(0,0,0,0.15)" }}
+                      whileTap={{ scale: 0.96 }}
+                      onClick={() => addToCart(product)}
+                      className="relative bg-card rounded-xl overflow-hidden text-center transition-all group border border-border hover:border-opacity-60"
+                      style={{
+                        borderBottomWidth: "3px",
+                        borderBottomColor: productColor + "60",
+                      }}
                     >
-                      <CatIcon className="h-6 w-6" style={{ color: productColor }} />
-                    </div>
+                      {/* Cart qty badge */}
+                      <AnimatePresence>
+                        {qtyInCart > 0 && (
+                          <motion.div
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            exit={{ scale: 0 }}
+                            className="absolute top-1.5 left-1.5 z-10 min-w-[22px] h-[22px] rounded-full bg-primary text-primary-foreground text-[11px] font-bold flex items-center justify-center px-1 shadow-lg"
+                          >
+                            {qtyInCart}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
 
-                    <p className="text-xs font-medium text-foreground leading-tight line-clamp-2 mb-1 min-h-[2rem]">
-                      {product.name}
-                    </p>
-                    <p className="text-sm font-bold text-primary tabular-nums">₪{product.sell_price.toFixed(2)}</p>
+                      {/* Low stock indicator */}
+                      {isLowStock && (
+                        <div className="absolute top-1.5 right-1.5 z-10">
+                          <div className="w-2 h-2 rounded-full bg-orange-400 animate-pulse" />
+                        </div>
+                      )}
 
-                    {/* Stock indicator */}
-                    <div className={`text-[10px] mt-1.5 px-2 py-0.5 rounded-full inline-block ${
-                      isOutOfStock
-                        ? "bg-destructive/10 text-destructive font-bold"
-                        : isLowStock
-                        ? "bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400 font-medium"
-                        : "bg-muted text-muted-foreground"
-                    }`}>
-                      {isOutOfStock ? "نفد" : `${product.quantity} ${product.unit}`}
-                    </div>
-                  </motion.button>
-                );
-              })}
+                      {/* Product visual */}
+                      <div className="p-3 pb-2">
+                        {product.image_url ? (
+                          <div className="w-full aspect-square rounded-lg overflow-hidden mb-2 bg-muted/30">
+                            <img
+                              src={product.image_url}
+                              alt={product.name}
+                              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).style.display = 'none';
+                                (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
+                              }}
+                            />
+                            <div className="hidden w-full h-full flex items-center justify-center" style={{ backgroundColor: productColor + "12" }}>
+                              <CatIcon className="h-8 w-8" style={{ color: productColor }} />
+                            </div>
+                          </div>
+                        ) : (
+                          <div
+                            className="w-full aspect-square rounded-lg flex items-center justify-center mb-2 transition-colors"
+                            style={{ backgroundColor: productColor + "10" }}
+                          >
+                            <CatIcon className="h-8 w-8 transition-transform duration-200 group-hover:scale-110" style={{ color: productColor + "80" }} />
+                          </div>
+                        )}
+
+                        {/* Name */}
+                        <p className="text-[13px] font-medium text-foreground leading-tight line-clamp-2 min-h-[2.4em] mb-1.5">
+                          {product.name}
+                        </p>
+
+                        {/* Price */}
+                        <p className="text-sm font-bold text-primary tabular-nums">
+                          ₪{product.sell_price.toFixed(2)}
+                        </p>
+
+                        {/* Stock */}
+                        <div className={`text-[10px] mt-1 tabular-nums ${
+                          isLowStock
+                            ? "text-orange-500 font-medium"
+                            : "text-muted-foreground/60"
+                        }`}>
+                          {product.quantity} {product.unit}
+                        </div>
+                      </div>
+                    </motion.button>
+                  );
+                })}
+              </AnimatePresence>
 
               {filteredProducts.length === 0 && (
-                <div className="col-span-full py-16 text-center text-muted-foreground">
-                  <Package className="h-8 w-8 mx-auto mb-2 opacity-40" />
-                  <p className="text-sm">لا توجد منتجات</p>
+                <div className="col-span-full py-20 text-center text-muted-foreground">
+                  <ShoppingCart className="h-12 w-12 mx-auto mb-3 opacity-20" />
+                  <p className="text-sm font-medium mb-1">ابدأ بإضافة المنتجات</p>
+                  <p className="text-xs text-muted-foreground/60">لا توجد منتجات في هذا التصنيف</p>
                 </div>
               )}
             </div>
           </ScrollArea>
         </div>
 
-        {/* ── RIGHT: Cart Panel ── */}
-        <div className="w-[380px] lg:w-[420px] flex flex-col bg-card shrink-0">
+        {/* ── RIGHT: Order Panel ── */}
+        <div className="w-[340px] lg:w-[380px] flex flex-col bg-card border-r border-border shrink-0">
           {/* Cart Header */}
-          <div className="p-3 border-b border-border flex items-center justify-between">
+          <div className="h-12 px-3 flex items-center justify-between border-b border-border shrink-0">
             <div className="flex items-center gap-2">
-              <ShoppingCart className="h-4 w-4 text-primary" />
-              <span className="font-bold text-sm text-foreground">السلة</span>
+              <span className="text-sm font-bold text-foreground">الطلب</span>
               {cartTotals.itemCount > 0 && (
-                <Badge className="text-xs bg-primary/10 text-primary border-0">
+                <span className="text-[11px] font-bold text-primary bg-primary/10 rounded-full px-2 py-0.5 tabular-nums">
                   {cartTotals.itemCount}
-                </Badge>
+                </span>
               )}
             </div>
             {cart.length > 0 && (
-              <Button
-                variant="ghost"
-                size="sm"
+              <button
                 onClick={() => { setCart([]); setSelectedCartIndex(null); }}
-                className="text-xs text-destructive hover:text-destructive"
+                className="text-[11px] text-destructive/70 hover:text-destructive transition-colors flex items-center gap-1"
               >
-                <Trash2 className="h-3.5 w-3.5 ml-1" />
+                <Trash2 className="h-3 w-3" />
                 إفراغ
-              </Button>
+              </button>
             )}
           </div>
 
           {/* Cart Items */}
           <ScrollArea className="flex-1">
-            <div className="p-2 space-y-1">
+            <div className="p-2">
               {cart.length === 0 ? (
-                <div className="py-12 px-4 text-center">
-                  <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-muted/50 flex items-center justify-center">
-                    <ShoppingCart className="h-8 w-8 text-muted-foreground/30" />
-                  </div>
-                  <p className="text-sm font-medium text-muted-foreground mb-1">السلة فارغة</p>
-                  <p className="text-xs text-muted-foreground/70">اضغط على منتج لإضافته</p>
-                  
-                  {/* Quick suggestions */}
-                  {products.filter(p => p.is_pos_available).slice(0, 3).length > 0 && (
-                    <div className="mt-6">
-                      <p className="text-[11px] text-muted-foreground/60 mb-2 flex items-center justify-center gap-1">
-                        <Zap className="h-3 w-3" />
-                        اختصارات سريعة
-                      </p>
-                      <div className="flex flex-wrap justify-center gap-1.5">
-                        {products.filter(p => p.is_pos_available).slice(0, 4).map(p => (
-                          <button
-                            key={p.id}
-                            onClick={() => addToCart(p)}
-                            className="px-3 py-1.5 text-[11px] rounded-full bg-muted hover:bg-primary/10 hover:text-primary transition-colors"
-                          >
-                            {p.name}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                <div className="py-16 text-center">
+                  <ShoppingCart className="h-16 w-16 mx-auto mb-4 text-muted-foreground/15" />
+                  <p className="text-sm font-medium text-muted-foreground/60">ابدأ بإضافة المنتجات</p>
                 </div>
               ) : (
-                cart.map((item, index) => {
-                  const product = products.find(p => p.id === item.product_id);
-                  const catConfig = product ? getCatConfig(product.category) : DEFAULT_CAT_CONFIG;
-                  const CatIcon = catConfig.icon;
-                  return (
-                    <motion.div
-                      key={item.id}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      className={`p-2.5 rounded-lg border transition-all ${
-                        selectedCartIndex === index
-                          ? "border-primary bg-primary/5"
-                          : "border-transparent hover:bg-muted/50"
-                      }`}
-                      onClick={() => setSelectedCartIndex(selectedCartIndex === index ? null : index)}
-                    >
-                      <div className="flex items-start gap-2">
-                        {/* Product image/icon */}
-                        <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0" style={{ backgroundColor: catConfig.color + "18" }}>
-                          {product?.image_url ? (
-                            <img src={product.image_url} alt={item.name} className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                              <CatIcon className="h-5 w-5" style={{ color: catConfig.color }} />
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between">
-                            <p className="text-sm font-medium text-foreground truncate">{item.name}</p>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6 text-muted-foreground hover:text-destructive shrink-0"
-                              onClick={(e) => { e.stopPropagation(); removeFromCart(index); }}
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
-                          </div>
-                          <div className="flex items-center gap-1.5 mt-0.5">
-                            <span className="text-xs text-muted-foreground">₪</span>
-                            <input
-                              type="number"
-                              value={item.unit_price}
-                              onChange={(e) => { e.stopPropagation(); updateCartItem(index, "unit_price", Math.max(0, Number(e.target.value))); }}
-                              onClick={(e) => e.stopPropagation()}
-                              className="w-16 text-xs tabular-nums bg-muted/30 border border-dashed border-border rounded px-1.5 py-0.5 text-foreground outline-none focus:ring-1 focus:ring-primary/40 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                              min={0}
-                              step={0.01}
-                            />
-                            {item.discount_pct > 0 && (
-                              <Badge variant="secondary" className="text-[10px] px-1 h-4">
-                                -{item.discount_pct}%
-                              </Badge>
+                <div className="space-y-0.5">
+                  {cart.map((item, index) => {
+                    const product = products.find(p => p.id === item.product_id);
+                    const catConfig = product ? getCatConfig(product.category) : DEFAULT_CAT_CONFIG;
+                    const CatIcon = catConfig.icon;
+                    const isSelected = selectedCartIndex === index;
+                    return (
+                      <motion.div
+                        key={item.id}
+                        initial={{ opacity: 0, x: -16 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className={`p-2.5 rounded-lg transition-all cursor-pointer ${
+                          isSelected
+                            ? "bg-primary/5 ring-1 ring-primary/20"
+                            : "hover:bg-muted/40"
+                        }`}
+                        onClick={() => setSelectedCartIndex(isSelected ? null : index)}
+                      >
+                        <div className="flex items-start gap-2.5">
+                          {/* Thumbnail */}
+                          <div className="w-9 h-9 rounded-lg overflow-hidden flex-shrink-0" style={{ backgroundColor: catConfig.color + "12" }}>
+                            {product?.image_url ? (
+                              <img src={product.image_url} alt={item.name} className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <CatIcon className="h-4 w-4" style={{ color: catConfig.color + "80" }} />
+                              </div>
                             )}
                           </div>
-                        </div>
-                      </div>
 
-                      {/* Qty controls + total */}
-                      <div className="mt-2 flex items-center justify-between">
-                        <div className="flex items-center gap-0.5 bg-muted rounded-lg">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            onClick={(e) => { e.stopPropagation(); updateCartItem(index, "qty", Math.max(1, item.qty - 1)); }}
-                          >
-                            <Minus className="h-3 w-3" />
-                          </Button>
-                          <span className="w-8 text-center text-sm font-bold tabular-nums">{item.qty}</span>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            onClick={(e) => { e.stopPropagation(); updateCartItem(index, "qty", item.qty + 1); }}
-                          >
-                            <Plus className="h-3 w-3" />
-                          </Button>
+                          {/* Info */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between gap-1">
+                              <p className="text-[13px] font-semibold text-foreground truncate leading-tight">{item.name}</p>
+                              <button
+                                className="p-0.5 text-muted-foreground/40 hover:text-destructive transition-colors shrink-0"
+                                onClick={(e) => { e.stopPropagation(); removeFromCart(index); }}
+                              >
+                                <X className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                            <div className="flex items-center gap-1 mt-0.5">
+                              <input
+                                type="number"
+                                value={item.unit_price}
+                                onChange={(e) => { e.stopPropagation(); updateCartItem(index, "unit_price", Math.max(0, Number(e.target.value))); }}
+                                onClick={(e) => e.stopPropagation()}
+                                className="w-14 text-[11px] tabular-nums bg-transparent border-b border-dashed border-border text-muted-foreground outline-none focus:border-primary/40 py-0 px-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                min={0}
+                                step={0.01}
+                              />
+                              <span className="text-[10px] text-muted-foreground/50">₪</span>
+                              {item.discount_pct > 0 && (
+                                <span className="text-[10px] text-destructive/70 font-medium">-{item.discount_pct}%</span>
+                              )}
+                            </div>
+                          </div>
                         </div>
-                        <span className="text-sm font-bold text-primary tabular-nums">= ₪{item.total.toFixed(2)}</span>
-                      </div>
 
-                      {/* Item note */}
-                      <div className="mt-1.5">
-                        <Input
-                          value={item.note}
-                          onChange={(e) => {
-                            e.stopPropagation();
-                            setCart(prev => {
-                              const updated = [...prev];
-                              updated[index] = { ...updated[index], note: e.target.value };
-                              return updated;
-                            });
-                          }}
-                          onClick={(e) => e.stopPropagation()}
-                          placeholder="ملاحظة..."
-                          className="h-6 text-[11px] bg-muted/30 border-dashed"
-                        />
-                      </div>
-                    </motion.div>
-                  );
-                })
+                        {/* Qty + total */}
+                        <div className="mt-2 flex items-center justify-between">
+                          <div className="flex items-center bg-muted/60 rounded-lg overflow-hidden">
+                            <button
+                              className="h-7 w-7 flex items-center justify-center hover:bg-muted transition-colors"
+                              onClick={(e) => { e.stopPropagation(); updateCartItem(index, "qty", Math.max(1, item.qty - 1)); }}
+                            >
+                              <Minus className="h-3 w-3" />
+                            </button>
+                            <span className="w-8 text-center text-xs font-bold tabular-nums">{item.qty}</span>
+                            <button
+                              className="h-7 w-7 flex items-center justify-center hover:bg-muted transition-colors"
+                              onClick={(e) => { e.stopPropagation(); updateCartItem(index, "qty", item.qty + 1); }}
+                            >
+                              <Plus className="h-3 w-3" />
+                            </button>
+                          </div>
+                          <motion.span
+                            key={item.total}
+                            initial={{ scale: 1.1, color: "hsl(var(--primary))" }}
+                            animate={{ scale: 1, color: "hsl(var(--foreground))" }}
+                            className="text-sm font-bold tabular-nums"
+                          >
+                            ₪{item.total.toFixed(2)}
+                          </motion.span>
+                        </div>
+
+                        {/* Note (expandable) */}
+                        {isSelected && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: "auto", opacity: 1 }}
+                            className="mt-2"
+                          >
+                            <Input
+                              value={item.note}
+                              onChange={(e) => {
+                                e.stopPropagation();
+                                setCart(prev => {
+                                  const updated = [...prev];
+                                  updated[index] = { ...updated[index], note: e.target.value };
+                                  return updated;
+                                });
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                              placeholder="ملاحظة..."
+                              className="h-7 text-[11px] bg-muted/30 border-dashed border-border"
+                            />
+                          </motion.div>
+                        )}
+                      </motion.div>
+                    );
+                  })}
+                </div>
               )}
             </div>
           </ScrollArea>
 
-          {/* Order Note */}
-          {cart.length > 0 && (
-            <div className="px-3 pt-2">
-              <div className="flex items-center gap-1.5 mb-1">
-                <StickyNote className="h-3 w-3 text-muted-foreground" />
-                <label className="text-xs font-medium text-muted-foreground">ملاحظة على الفاتورة</label>
-              </div>
-              <Input
-                value={orderNote}
-                onChange={(e) => setOrderNote(e.target.value)}
-                placeholder="أضف ملاحظة..."
-                className="h-8 text-xs bg-muted/30 border-dashed"
-              />
-            </div>
-          )}
-
-          {/* Totals */}
-          <div className="border-t border-border p-3 space-y-1.5 bg-card">
-            <div className="flex justify-between text-xs text-muted-foreground">
-              <span>المجموع الفرعي</span>
-              <span className="tabular-nums">₪{cartTotals.subtotal.toFixed(2)}</span>
-            </div>
-            {cartTotals.tax > 0 && (
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <span>الضريبة</span>
-                <span className="tabular-nums">₪{cartTotals.tax.toFixed(2)}</span>
+          {/* Bottom area - Customer + Note + Totals + Actions */}
+          <div className="border-t border-border bg-card shrink-0">
+            {/* Customer & Note row */}
+            {cart.length > 0 && (
+              <div className="px-3 pt-2 pb-1 flex items-center gap-2 text-xs">
+                <button className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-muted/50 hover:bg-muted text-muted-foreground transition-colors">
+                  <User className="h-3 w-3" />
+                  العميل
+                </button>
+                <button className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-muted/50 hover:bg-muted text-muted-foreground transition-colors">
+                  <StickyNote className="h-3 w-3" />
+                  الملاحظات
+                </button>
               </div>
             )}
-            {cartTotals.discount > 0 && (
-              <div className="flex justify-between text-xs text-destructive">
-                <span>الخصم</span>
-                <span className="tabular-nums">-₪{cartTotals.discount.toFixed(2)}</span>
-              </div>
-            )}
-            <div className="flex justify-between text-lg font-bold text-foreground pt-1.5 border-t border-border">
-              <span>الإجمالي</span>
-              <span className="text-primary tabular-nums">₪{cartTotals.total.toFixed(2)}</span>
-            </div>
-          </div>
 
-          {/* ── Action Buttons ── */}
-          <div className="p-3 border-t border-border flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={cart.length === 0}
-              onClick={() => { setCart([]); setSelectedCartIndex(null); setOrderDiscount(0); setOrderNote(""); }}
-              className="text-xs gap-1 text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-              مسح
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={cart.length === 0}
-              onClick={() => window.print()}
-              className="text-xs gap-1"
-            >
-              <Printer className="h-3.5 w-3.5" />
-              طباعة
-            </Button>
-            <Button
-              className="flex-1 h-12 text-base font-bold gap-2 rounded-xl"
-              style={{ backgroundColor: "#16A34A" }}
-              size="lg"
-              disabled={cart.length === 0 || !session}
-              onClick={() => setShowPayment(true)}
-            >
-              <CreditCard className="h-5 w-5" />
-              دفع ₪{cartTotals.total.toFixed(2)}
-              <span className="text-xs opacity-70 mr-1">F12</span>
-            </Button>
+            {/* Totals */}
+            <div className="px-3 py-2 space-y-1">
+              {cartTotals.tax > 0 && (
+                <div className="flex justify-between text-[11px] text-muted-foreground">
+                  <span>الضريبة</span>
+                  <span className="tabular-nums">₪{cartTotals.tax.toFixed(2)}</span>
+                </div>
+              )}
+              {cartTotals.discount > 0 && (
+                <div className="flex justify-between text-[11px] text-destructive/70">
+                  <span>الخصم</span>
+                  <span className="tabular-nums">-₪{cartTotals.discount.toFixed(2)}</span>
+                </div>
+              )}
+              <div className="flex justify-between items-baseline pt-1">
+                <span className="text-sm text-muted-foreground">الإجمالي</span>
+                <motion.span
+                  key={cartTotals.total}
+                  initial={{ scale: 1.05 }}
+                  animate={{ scale: 1 }}
+                  className="text-2xl font-bold text-primary tabular-nums"
+                >
+                  ₪{cartTotals.total.toFixed(2)}
+                </motion.span>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="p-3 pt-0 flex gap-2">
+              <button
+                disabled={cart.length === 0}
+                onClick={() => { setCart([]); setSelectedCartIndex(null); setOrderDiscount(0); setOrderNote(""); }}
+                className="h-11 w-11 rounded-xl flex items-center justify-center border border-border text-muted-foreground hover:text-destructive hover:border-destructive/30 hover:bg-destructive/5 transition-all disabled:opacity-30 disabled:pointer-events-none"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+              <button
+                disabled={cart.length === 0}
+                onClick={() => window.print()}
+                className="h-11 w-11 rounded-xl flex items-center justify-center border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-all disabled:opacity-30 disabled:pointer-events-none"
+              >
+                <Printer className="h-4 w-4" />
+              </button>
+              <motion.button
+                whileTap={{ scale: 0.97 }}
+                className="flex-1 h-11 rounded-xl text-sm font-bold flex items-center justify-center gap-2 text-white transition-all disabled:opacity-40 disabled:pointer-events-none"
+                style={{ backgroundColor: cart.length > 0 ? "#16A34A" : "hsl(var(--muted))" }}
+                disabled={cart.length === 0 || !session}
+                onClick={() => setShowPayment(true)}
+              >
+                <span className="text-xs bg-white/20 rounded px-1.5 py-0.5 font-mono">F12</span>
+                دفع ₪{cartTotals.total.toFixed(2)}
+                <Printer className="h-4 w-4 opacity-70" />
+              </motion.button>
+            </div>
           </div>
         </div>
       </div>
@@ -1314,142 +1290,167 @@ const POSPage = () => {
       <Dialog open={showPayment} onOpenChange={setShowPayment}>
         <DialogContent className="sm:max-w-lg" dir="rtl">
           <DialogHeader>
-            <DialogTitle className="text-xl">طريقة الدفع</DialogTitle>
+            <DialogTitle className="text-lg font-bold">طريقة الدفع</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            {/* Total */}
-            <div className="text-center p-5 bg-primary/10 rounded-2xl">
-              <p className="text-sm text-muted-foreground">المبلغ المطلوب</p>
-              <p className="text-4xl font-bold text-primary mt-1 tabular-nums">₪{cartTotals.total.toFixed(2)}</p>
+          <div className="space-y-5 py-2">
+            {/* Total display */}
+            <div className="text-center py-5 px-4 bg-primary/8 rounded-2xl border border-primary/10">
+              <p className="text-xs text-muted-foreground mb-1">المبلغ المطلوب</p>
+              <motion.p
+                key={cartTotals.total}
+                initial={{ scale: 1.05 }}
+                animate={{ scale: 1 }}
+                className="text-4xl font-bold text-primary tabular-nums"
+              >
+                ₪{cartTotals.total.toFixed(2)}
+              </motion.p>
             </div>
 
-            {/* Payment Methods */}
+            {/* Payment methods */}
             <div className="grid grid-cols-3 gap-3">
               {[
-                { key: "cash", label: "نقد", emoji: "💵" },
-                { key: "card", label: "شبكة", emoji: "💳" },
-                { key: "credit", label: "مختلط", emoji: "🔄" },
-              ].map((method) => (
-                <button
-                  key={method.key}
-                  onClick={() => setPaymentMethod(method.key)}
-                  className={`p-4 rounded-xl border-2 text-center transition-all ${
-                    paymentMethod === method.key
-                      ? "border-primary bg-primary/10 shadow-sm"
-                      : "border-border hover:border-primary/30"
-                  }`}
-                >
-                  <span className="text-3xl block mb-1.5">{method.emoji}</span>
-                  <span className="text-xs font-medium">{method.label}</span>
-                </button>
-              ))}
+                { key: "cash", label: "نقد", icon: Banknote, color: "#16A34A" },
+                { key: "card", label: "شبكة", icon: CreditCard, color: "#3B82F6" },
+                { key: "credit", label: "آجل", icon: Receipt, color: "#F59E0B" },
+              ].map((m) => {
+                const isActive = paymentMethod === m.key;
+                return (
+                  <motion.button
+                    key={m.key}
+                    whileTap={{ scale: 0.96 }}
+                    onClick={() => setPaymentMethod(m.key)}
+                    className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all duration-200 ${
+                      isActive
+                        ? "border-primary bg-primary/5 shadow-sm"
+                        : "border-border bg-card hover:border-muted-foreground/20"
+                    }`}
+                  >
+                    <m.icon className="h-6 w-6" style={{ color: isActive ? m.color : "hsl(var(--muted-foreground))" }} />
+                    <span className={`text-xs font-semibold ${isActive ? "text-foreground" : "text-muted-foreground"}`}>{m.label}</span>
+                  </motion.button>
+                );
+              })}
             </div>
 
-            {/* Tendered (cash only) */}
+            {/* Tendered amount for cash */}
             {paymentMethod === "cash" && (
               <div className="space-y-3">
                 {/* Currency selector */}
-                <div>
-                  <label className="text-sm font-medium mb-1.5 block">العملة</label>
+                <div className="space-y-1.5">
+                  <p className="text-xs font-medium text-muted-foreground text-left">العملة</p>
                   <div className="grid grid-cols-4 gap-2">
-                    {currencies.map((cur) => (
-                      <button
-                        key={cur.code}
-                        onClick={() => {
-                          setPaymentCurrency(cur.code);
-                          setTenderedAmount("");
-                        }}
-                        className={`p-2 rounded-xl border-2 text-center transition-all ${
-                          paymentCurrency === cur.code
-                            ? "border-primary bg-primary/10"
-                            : "border-border hover:border-primary/30"
-                        }`}
-                      >
-                        <span className="text-lg block">{cur.flag}</span>
-                        <span className="text-[10px] font-medium block mt-0.5">{cur.name}</span>
-                      </button>
-                    ))}
+                    {currencies.map((cur) => {
+                      const isActive = paymentCurrency === cur.code;
+                      return (
+                        <motion.button
+                          key={cur.code}
+                          whileTap={{ scale: 0.96 }}
+                          onClick={() => setPaymentCurrency(cur.code)}
+                          className={`flex flex-col items-center gap-1 p-2.5 rounded-xl border-2 transition-all ${
+                            isActive
+                              ? "border-primary bg-primary/5"
+                              : "border-border hover:border-muted-foreground/20"
+                          }`}
+                        >
+                          <span className="text-sm font-bold">{cur.flag}</span>
+                          <span className={`text-[11px] font-medium ${isActive ? "text-foreground" : "text-muted-foreground"}`}>{cur.name}</span>
+                        </motion.button>
+                      );
+                    })}
                   </div>
-                  {paymentCurrency !== "ILS" && exchangeRates[paymentCurrency] && (
-                    <div className="mt-2 p-2.5 bg-muted/50 rounded-xl space-y-1.5 text-sm">
-                      <div className="flex justify-between text-muted-foreground">
-                        <span>سعر الصرف</span>
-                        <span>1 {currencies.find(c => c.code === paymentCurrency)?.symbol} = ₪{exchangeRates[paymentCurrency]?.toFixed(4)}</span>
-                      </div>
-                      <div className="flex justify-between font-medium text-foreground">
-                        <span>المطلوب بال{currencies.find(c => c.code === paymentCurrency)?.name}</span>
-                        <span>{currencies.find(c => c.code === paymentCurrency)?.symbol}{(cartTotals.total / (exchangeRates[paymentCurrency] || 1)).toFixed(2)}</span>
-                      </div>
-                    </div>
-                  )}
                 </div>
 
-                <div>
-                  <label className="text-sm font-medium mb-1.5 block">المبلغ المستلم ({currencies.find(c => c.code === paymentCurrency)?.name})</label>
+                {/* Exchange rate info */}
+                {paymentCurrency !== "ILS" && exchangeRates[paymentCurrency] && (
+                  <div className="flex items-center justify-between text-xs p-2.5 rounded-lg bg-muted/50 border border-border">
+                    <div>
+                      <span className="text-muted-foreground">سعر الصرف</span>
+                    </div>
+                    <div className="text-left">
+                      <span className="font-medium tabular-nums">
+                        {currencies.find(c => c.code === paymentCurrency)?.symbol}1 = ₪{exchangeRates[paymentCurrency]?.toFixed(4)}
+                      </span>
+                      <div className="text-muted-foreground">
+                        المطلوب بال{currencies.find(c => c.code === paymentCurrency)?.name}:{" "}
+                        <span className="font-bold text-foreground tabular-nums">
+                          {currencies.find(c => c.code === paymentCurrency)?.symbol}
+                          {(cartTotals.total / (exchangeRates[paymentCurrency] || 1)).toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Amount input */}
+                <div className="space-y-1.5">
+                  <p className="text-xs font-medium text-muted-foreground text-left">
+                    المبلغ المستلم ({currencies.find(c => c.code === paymentCurrency)?.name})
+                  </p>
                   <Input
                     type="number"
                     value={tenderedAmount}
                     onChange={(e) => setTenderedAmount(e.target.value)}
-                    placeholder={paymentCurrency === "ILS"
-                      ? cartTotals.total.toFixed(2)
-                      : (cartTotals.total / (exchangeRates[paymentCurrency] || 1)).toFixed(2)}
-                    className="h-14 text-xl text-center font-bold"
+                    placeholder={(cartTotals.total / (exchangeRates[paymentCurrency] || 1)).toFixed(2)}
+                    className="text-xl h-14 text-center font-bold tabular-nums"
                     autoFocus
                   />
-                  {(() => {
-                    const tendered = parseFloat(tenderedAmount) || 0;
-                    if (tendered <= 0) return null;
-                    const rate = exchangeRates[paymentCurrency] || 1;
-                    const tenderedInILS = paymentCurrency === "ILS" ? tendered : tendered * rate;
-                    const change = tenderedInILS - cartTotals.total;
-                    const curSymbol = currencies.find(c => c.code === paymentCurrency)?.symbol || "";
+                </div>
 
+                {/* Change calculation */}
+                {(() => {
+                  const tendered = parseFloat(tenderedAmount) || 0;
+                  if (tendered <= 0) return null;
+                  const rate = exchangeRates[paymentCurrency] || 1;
+                  const tenderedInILS = paymentCurrency === "ILS" ? tendered : tendered * rate;
+                  const change = tenderedInILS - cartTotals.total;
+                  const curSymbol = currencies.find(c => c.code === paymentCurrency)?.symbol || "";
+
+                  return (
+                    <div className="p-3 rounded-xl border border-border space-y-2">
+                      {paymentCurrency !== "ILS" && (
+                        <div className="flex justify-between text-xs">
+                          <span className="text-muted-foreground">ما يعادل بالشيكل</span>
+                          <span className="font-bold tabular-nums">₪{tenderedInILS.toFixed(2)}</span>
+                        </div>
+                      )}
+                      {change >= 0 ? (
+                        <div className="flex justify-between items-center p-2.5 bg-primary/5 rounded-lg">
+                          <span className="text-xs text-muted-foreground">الباقي للزبون</span>
+                          <span className="text-xl font-bold text-primary tabular-nums">₪{change.toFixed(2)}</span>
+                        </div>
+                      ) : (
+                        <div className="flex justify-between items-center p-2.5 bg-destructive/5 rounded-lg">
+                          <span className="text-xs text-destructive">المبلغ غير كافٍ</span>
+                          <span className="text-lg font-bold text-destructive tabular-nums">-₪{Math.abs(change).toFixed(2)}</span>
+                        </div>
+                      )}
+                      {paymentCurrency !== "ILS" && change > 0 && (
+                        <div className="flex justify-between text-[11px] text-muted-foreground border-t border-border pt-1.5">
+                          <span>أو الباقي بال{currencies.find(c => c.code === paymentCurrency)?.name}</span>
+                          <span className="font-medium tabular-nums">{curSymbol}{(change / rate).toFixed(2)}</span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+
+                {/* Quick amounts */}
+                <div className="flex gap-2">
+                  {(paymentCurrency === "ILS"
+                    ? [10, 20, 50, 100, 200]
+                    : [5, 10, 20, 50, 100]
+                  ).map((amt) => {
+                    const cur = currencies.find(c => c.code === paymentCurrency);
                     return (
-                      <div className="mt-2 p-3 rounded-xl border border-border space-y-2">
-                        {paymentCurrency !== "ILS" && (
-                          <div className="flex justify-between text-sm">
-                            <span className="text-muted-foreground">ما يعادل بالشيكل</span>
-                            <span className="font-bold text-foreground tabular-nums">₪{tenderedInILS.toFixed(2)}</span>
-                          </div>
-                        )}
-                        {change >= 0 ? (
-                          <div className="flex justify-between text-sm items-center p-2 bg-primary/5 rounded-lg">
-                            <span className="text-muted-foreground">الباقي للزبون</span>
-                            <span className="text-xl font-bold text-primary tabular-nums">₪{change.toFixed(2)}</span>
-                          </div>
-                        ) : (
-                          <div className="flex justify-between text-sm items-center p-2 bg-destructive/5 rounded-lg">
-                            <span className="text-destructive">المبلغ غير كافٍ</span>
-                            <span className="text-lg font-bold text-destructive tabular-nums">-₪{Math.abs(change).toFixed(2)}</span>
-                          </div>
-                        )}
-                        {paymentCurrency !== "ILS" && change > 0 && (
-                          <div className="flex justify-between text-xs text-muted-foreground border-t border-border pt-1.5">
-                            <span>أو الباقي بال{currencies.find(c => c.code === paymentCurrency)?.name}</span>
-                            <span className="font-medium tabular-nums">{curSymbol}{(change / rate).toFixed(2)}</span>
-                          </div>
-                        )}
-                      </div>
+                      <button
+                        key={amt}
+                        onClick={() => setTenderedAmount(String(amt))}
+                        className="flex-1 py-2 text-xs rounded-lg bg-muted/60 hover:bg-primary/10 hover:text-primary transition-all font-medium tabular-nums"
+                      >
+                        {cur?.symbol}{amt}
+                      </button>
                     );
-                  })()}
-                  {/* Quick amounts */}
-                  <div className="flex gap-2 mt-2">
-                    {(paymentCurrency === "ILS"
-                      ? [10, 20, 50, 100, 200]
-                      : [5, 10, 20, 50, 100]
-                    ).map((amt) => {
-                      const cur = currencies.find(c => c.code === paymentCurrency);
-                      return (
-                        <button
-                          key={amt}
-                          onClick={() => setTenderedAmount(String(amt))}
-                          className="flex-1 py-2 text-xs rounded-lg bg-muted hover:bg-primary/10 transition font-medium"
-                        >
-                          {cur?.symbol}{amt}
-                        </button>
-                      );
-                    })}
-                  </div>
+                  })}
                 </div>
               </div>
             )}
@@ -1493,7 +1494,9 @@ const POSPage = () => {
               </div>
             )}
           </div>
-          <DialogFooter>
+
+          {/* Complete sale button */}
+          <motion.div whileTap={{ scale: 0.98 }}>
             <Button
               onClick={handleCompleteOrder}
               disabled={processing || (paymentMethod === "credit" && !customerName)}
@@ -1505,9 +1508,9 @@ const POSPage = () => {
               ) : (
                 <CheckCircle className="h-5 w-5" />
               )}
-              {processing ? "جاري المعالجة..." : `إتمام البيع ✅`}
+              {processing ? "جاري المعالجة..." : "إتمام البيع ✅"}
             </Button>
-          </DialogFooter>
+          </motion.div>
         </DialogContent>
       </Dialog>
 
@@ -1549,7 +1552,7 @@ const POSPage = () => {
               {closingCash && session && (
                 <div className={`text-center mt-2 p-2 rounded-lg text-sm font-bold ${
                   parseFloat(closingCash) - (session.opening_cash + session.total_sales) === 0
-                    ? "bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400"
+                    ? "bg-primary/10 text-primary"
                     : "bg-destructive/10 text-destructive"
                 }`}>
                   الفرق: ₪{(parseFloat(closingCash) - (session.opening_cash + session.total_sales)).toFixed(2)}
@@ -1576,7 +1579,6 @@ const POSPage = () => {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
-            {/* Product Name */}
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-muted-foreground">اسم المنتج *</label>
               <Input
@@ -1587,36 +1589,16 @@ const POSPage = () => {
                 className="h-10"
               />
             </div>
-
-            {/* Price row */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-muted-foreground">سعر البيع *</label>
-                <Input
-                  type="number"
-                  value={newProduct.sell_price}
-                  onChange={(e) => setNewProduct(prev => ({ ...prev, sell_price: e.target.value }))}
-                  placeholder="₪0.00"
-                  className="h-10"
-                  min={0}
-                  step={0.01}
-                />
+                <Input type="number" value={newProduct.sell_price} onChange={(e) => setNewProduct(prev => ({ ...prev, sell_price: e.target.value }))} placeholder="₪0.00" className="h-10" min={0} step={0.01} />
               </div>
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-muted-foreground">سعر الشراء</label>
-                <Input
-                  type="number"
-                  value={newProduct.buy_price}
-                  onChange={(e) => setNewProduct(prev => ({ ...prev, buy_price: e.target.value }))}
-                  placeholder="₪0.00"
-                  className="h-10"
-                  min={0}
-                  step={0.01}
-                />
+                <Input type="number" value={newProduct.buy_price} onChange={(e) => setNewProduct(prev => ({ ...prev, buy_price: e.target.value }))} placeholder="₪0.00" className="h-10" min={0} step={0.01} />
               </div>
             </div>
-
-            {/* Category - using posCategories from DB */}
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
                 <Tag className="h-3.5 w-3.5" />
@@ -1638,40 +1620,19 @@ const POSPage = () => {
                       <option key={cat.id} value={cat.id}>{cat.name}</option>
                     ))}
                   </select>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    className="h-10 w-10 shrink-0"
-                    onClick={() => setShowNewCategory(true)}
-                    title="إنشاء تصنيف جديد"
-                  >
+                  <Button type="button" variant="outline" size="icon" className="h-10 w-10 shrink-0" onClick={() => setShowNewCategory(true)}>
                     <Plus className="h-4 w-4" />
                   </Button>
                 </div>
               ) : (
                 <div className="flex gap-2">
-                  <Input
-                    autoFocus
-                    value={newProduct.newCategory}
-                    onChange={(e) => setNewProduct(prev => ({ ...prev, newCategory: e.target.value }))}
-                    placeholder="اسم التصنيف الجديد..."
-                    className="h-10"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    className="h-10 w-10 shrink-0"
-                    onClick={() => { setShowNewCategory(false); setNewProduct(prev => ({ ...prev, newCategory: "" })); }}
-                  >
+                  <Input autoFocus value={newProduct.newCategory} onChange={(e) => setNewProduct(prev => ({ ...prev, newCategory: e.target.value }))} placeholder="اسم التصنيف الجديد..." className="h-10" />
+                  <Button type="button" variant="outline" size="icon" className="h-10 w-10 shrink-0" onClick={() => { setShowNewCategory(false); setNewProduct(prev => ({ ...prev, newCategory: "" })); }}>
                     <X className="h-4 w-4" />
                   </Button>
                 </div>
               )}
             </div>
-
-            {/* Unit */}
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-muted-foreground">الوحدة</label>
               <select
@@ -1687,8 +1648,6 @@ const POSPage = () => {
                 <option value="كرتون">كرتون</option>
               </select>
             </div>
-
-            {/* Stock section */}
             <div className="p-3 rounded-xl bg-muted/50 border border-border space-y-3">
               <p className="text-xs font-bold text-foreground flex items-center gap-1.5">
                 <Package className="h-3.5 w-3.5 text-primary" />
@@ -1697,43 +1656,18 @@ const POSPage = () => {
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <label className="text-[11px] text-muted-foreground">الكمية الافتتاحية</label>
-                  <Input
-                    type="number"
-                    value={newProduct.quantity}
-                    onChange={(e) => setNewProduct(prev => ({ ...prev, quantity: e.target.value }))}
-                    placeholder="0"
-                    className="h-9 text-sm"
-                    min={0}
-                  />
+                  <Input type="number" value={newProduct.quantity} onChange={(e) => setNewProduct(prev => ({ ...prev, quantity: e.target.value }))} placeholder="0" className="h-9 text-sm" min={0} />
                 </div>
                 <div className="space-y-1">
                   <label className="text-[11px] text-muted-foreground">الحد الأدنى للتنبيه</label>
-                  <Input
-                    type="number"
-                    value={newProduct.min_quantity}
-                    onChange={(e) => setNewProduct(prev => ({ ...prev, min_quantity: e.target.value }))}
-                    placeholder="0"
-                    className="h-9 text-sm"
-                    min={0}
-                  />
+                  <Input type="number" value={newProduct.min_quantity} onChange={(e) => setNewProduct(prev => ({ ...prev, min_quantity: e.target.value }))} placeholder="0" className="h-9 text-sm" min={0} />
                 </div>
-              </div>
-              <div className="text-[11px] text-muted-foreground bg-background rounded-lg p-2 space-y-1">
-                <p className="flex items-center gap-1"><CheckCircle className="h-3 w-3 text-primary" /> سيظهر في نقطة البيع</p>
-                <p className="flex items-center gap-1"><CheckCircle className="h-3 w-3 text-primary" /> سيظهر في تطبيق المخزون</p>
-                <p className="flex items-center gap-1"><CheckCircle className="h-3 w-3 text-primary" /> سيظهر في تقارير المبيعات</p>
               </div>
             </div>
           </div>
           <DialogFooter className="gap-2 sm:gap-2">
-            <Button variant="outline" onClick={() => setShowAddProduct(false)} className="flex-1">
-              إلغاء
-            </Button>
-            <Button
-              onClick={handleSaveNewProduct}
-              disabled={!newProduct.name.trim() || savingProduct}
-              className="flex-1 gap-1"
-            >
+            <Button variant="outline" onClick={() => setShowAddProduct(false)} className="flex-1">إلغاء</Button>
+            <Button onClick={handleSaveNewProduct} disabled={!newProduct.name.trim() || savingProduct} className="flex-1 gap-1">
               {savingProduct ? "جارِ الحفظ..." : "حفظ وإضافة ✓"}
             </Button>
           </DialogFooter>
@@ -1750,48 +1684,23 @@ const POSPage = () => {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
-            {/* Create new category */}
             <div className="flex gap-2 items-end">
               <div className="flex-1 space-y-1">
                 <label className="text-xs font-medium text-muted-foreground">اسم التصنيف الجديد</label>
-                <Input
-                  value={newCatName}
-                  onChange={(e) => setNewCatName(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleSaveCategory()}
-                  placeholder="مثال: حلويات"
-                  className="h-10"
-                />
+                <Input value={newCatName} onChange={(e) => setNewCatName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleSaveCategory()} placeholder="مثال: حلويات" className="h-10" />
               </div>
               <div className="space-y-1">
                 <label className="text-xs font-medium text-muted-foreground">اللون</label>
-                <input
-                  type="color"
-                  value={newCatColor}
-                  onChange={(e) => setNewCatColor(e.target.value)}
-                  className="h-10 w-12 rounded-md border border-input cursor-pointer"
-                />
+                <input type="color" value={newCatColor} onChange={(e) => setNewCatColor(e.target.value)} className="h-10 w-12 rounded-md border border-input cursor-pointer" />
               </div>
-              <Button
-                onClick={handleSaveCategory}
-                disabled={!newCatName.trim() || savingCategory}
-                className="h-10"
-              >
+              <Button onClick={handleSaveCategory} disabled={!newCatName.trim() || savingCategory} className="h-10">
                 {savingCategory ? "..." : "إنشاء"}
               </Button>
             </div>
-
-            {/* Search */}
             <div className="relative">
               <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                value={catSearchQuery}
-                onChange={(e) => setCatSearchQuery(e.target.value)}
-                placeholder="بحث..."
-                className="pr-10 h-9 text-sm"
-              />
+              <Input value={catSearchQuery} onChange={(e) => setCatSearchQuery(e.target.value)} placeholder="بحث..." className="pr-10 h-9 text-sm" />
             </div>
-
-            {/* Category list */}
             <ScrollArea className="max-h-[350px]">
               <div className="space-y-1">
                 {posCategories
@@ -1799,15 +1708,9 @@ const POSPage = () => {
                   .map((cat) => {
                     const count = products.filter(p => p.is_pos_available && (p.pos_category_id === cat.id || p.category === cat.name)).length;
                     return (
-                      <div
-                        key={cat.id}
-                        className="flex items-center justify-between px-3 py-2.5 rounded-lg border border-border hover:bg-muted/50 group"
-                      >
+                      <div key={cat.id} className="flex items-center justify-between px-3 py-2.5 rounded-lg border border-border hover:bg-muted/50 group">
                         <div className="flex items-center gap-3">
-                          <div
-                            className="w-5 h-5 rounded-md shrink-0"
-                            style={{ backgroundColor: cat.color }}
-                          />
+                          <div className="w-5 h-5 rounded-md shrink-0" style={{ backgroundColor: cat.color }} />
                           <span className="text-sm font-medium">{cat.name}</span>
                           <span className="text-xs text-muted-foreground">({count} منتج)</span>
                         </div>
@@ -1826,26 +1729,19 @@ const POSPage = () => {
                   <div className="text-center py-8 text-muted-foreground">
                     <Tag className="h-8 w-8 mx-auto mb-2 opacity-30" />
                     <p className="text-sm">لا توجد تصنيفات بعد</p>
-                    <p className="text-xs">أنشئ تصنيفاً جديداً أعلاه</p>
                   </div>
                 )}
               </div>
             </ScrollArea>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCategoryManager(false)} className="w-full">
-              إغلاق
-            </Button>
+            <Button variant="outline" onClick={() => setShowCategoryManager(false)} className="w-full">إغلاق</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* ── Receipt Dialog ── */}
-      <POSReceiptDialog
-        open={showReceipt}
-        onOpenChange={setShowReceipt}
-        data={receiptData}
-      />
+      <POSReceiptDialog open={showReceipt} onOpenChange={setShowReceipt} data={receiptData} />
     </div>
   );
 };
