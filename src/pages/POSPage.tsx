@@ -34,6 +34,28 @@ interface CartItem {
   note: string;
 }
 
+interface OrderTab {
+  id: string;
+  name: string;
+  cart: CartItem[];
+  customerName: string;
+  orderDiscount: number;
+  orderDiscountType: "fixed" | "percent";
+  orderNote: string;
+  selectedCartIndex: number | null;
+}
+
+const createNewOrder = (index: number): OrderTab => ({
+  id: crypto.randomUUID(),
+  name: `طلب ${index}`,
+  cart: [],
+  customerName: "",
+  orderDiscount: 0,
+  orderDiscountType: "fixed",
+  orderNote: "",
+  selectedCartIndex: null,
+});
+
 interface Product {
   id: string;
   name: string;
@@ -107,7 +129,6 @@ const POSPage = () => {
   // State
   const [products, setProducts] = useState<Product[]>([]);
   const [posCategories, setPosCategories] = useState<POSCategory[]>([]);
-  const [cart, setCart] = useState<CartItem[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>("الكل");
   const [searchQuery, setSearchQuery] = useState("");
   const [session, setSession] = useState<Session | null>(null);
@@ -117,6 +138,67 @@ const POSPage = () => {
   const [contacts, setContacts] = useState<{ id: string; contact_name: string }[]>([]);
   const [customerSearch, setCustomerSearch] = useState("");
   const [showContactDropdown, setShowContactDropdown] = useState(false);
+
+  // ── Multi-order tabs ──
+  const [orders, setOrders] = useState<OrderTab[]>([createNewOrder(1)]);
+  const [activeOrderIndex, setActiveOrderIndex] = useState(0);
+  const activeOrder = orders[activeOrderIndex] || orders[0];
+  const orderCounter = useRef(1);
+
+  // Derived from active order
+  const cart = activeOrder.cart;
+  const customerName = activeOrder.customerName;
+  const orderDiscount = activeOrder.orderDiscount;
+  const orderDiscountType = activeOrder.orderDiscountType;
+  const orderNote = activeOrder.orderNote;
+  const selectedCartIndex = activeOrder.selectedCartIndex;
+
+  const updateActiveOrder = useCallback((updater: (order: OrderTab) => OrderTab) => {
+    setOrders(prev => prev.map((o, i) => i === activeOrderIndex ? updater(o) : o));
+  }, [activeOrderIndex]);
+
+  const setCart = useCallback((cartOrFn: CartItem[] | ((prev: CartItem[]) => CartItem[])) => {
+    updateActiveOrder(o => ({
+      ...o,
+      cart: typeof cartOrFn === "function" ? cartOrFn(o.cart) : cartOrFn,
+    }));
+  }, [updateActiveOrder]);
+
+  const setCustomerName = useCallback((name: string) => {
+    updateActiveOrder(o => ({ ...o, customerName: name }));
+  }, [updateActiveOrder]);
+
+  const setOrderDiscount = useCallback((d: number) => {
+    updateActiveOrder(o => ({ ...o, orderDiscount: d }));
+  }, [updateActiveOrder]);
+
+  const setOrderDiscountType = useCallback((t: "fixed" | "percent") => {
+    updateActiveOrder(o => ({ ...o, orderDiscountType: t }));
+  }, [updateActiveOrder]);
+
+  const setOrderNote = useCallback((n: string) => {
+    updateActiveOrder(o => ({ ...o, orderNote: n }));
+  }, [updateActiveOrder]);
+
+  const setSelectedCartIndex = useCallback((idx: number | null) => {
+    updateActiveOrder(o => ({ ...o, selectedCartIndex: idx }));
+  }, [updateActiveOrder]);
+
+  const addNewOrder = useCallback(() => {
+    orderCounter.current += 1;
+    const newOrder = createNewOrder(orderCounter.current);
+    setOrders(prev => [...prev, newOrder]);
+    setActiveOrderIndex(prev => prev + 1 < orders.length + 1 ? orders.length : prev);
+  }, [orders.length]);
+
+  const removeOrder = useCallback((index: number) => {
+    if (orders.length <= 1) return;
+    setOrders(prev => prev.filter((_, i) => i !== index));
+    setActiveOrderIndex(prev => {
+      if (prev >= index && prev > 0) return prev - 1;
+      return Math.min(prev, orders.length - 2);
+    });
+  }, [orders.length]);
 
   // Dialogs
   const [showOpenShift, setShowOpenShift] = useState(false);
@@ -153,7 +235,6 @@ const POSPage = () => {
   const [paymentMethod, setPaymentMethod] = useState<string>("cash");
   const [paymentCurrency, setPaymentCurrency] = useState<string>("ILS");
   const [tenderedAmount, setTenderedAmount] = useState("");
-  const [customerName, setCustomerName] = useState("");
   const [processing, setProcessing] = useState(false);
   const [exchangeRates, setExchangeRates] = useState<Record<string, number>>({});
 
@@ -164,17 +245,9 @@ const POSPage = () => {
     { code: "EUR", symbol: "€", name: "يورو", flag: "EU" },
   ];
 
-  // Numpad
-  const [selectedCartIndex, setSelectedCartIndex] = useState<number | null>(null);
-
   // Receipt
   const [showReceipt, setShowReceipt] = useState(false);
   const [receiptData, setReceiptData] = useState<any>(null);
-
-  // Discount
-  const [orderDiscount, setOrderDiscount] = useState(0);
-  const [orderDiscountType, setOrderDiscountType] = useState<"fixed" | "percent">("fixed");
-  const [orderNote, setOrderNote] = useState("");
 
   const userId = user?.id;
 
@@ -709,14 +782,19 @@ const POSPage = () => {
       setShowPayment(false);
       setShowReceipt(true);
 
-      setCart([]);
+      // If multiple orders, remove the completed one; otherwise reset it
+      if (orders.length > 1) {
+        removeOrder(activeOrderIndex);
+      } else {
+        setCart([]);
+        setCustomerName("");
+        setOrderDiscount(0);
+        setOrderNote("");
+        setSelectedCartIndex(null);
+      }
       setTenderedAmount("");
-      setCustomerName("");
       setPaymentMethod("cash");
       setPaymentCurrency("ILS");
-      setOrderDiscount(0);
-      setOrderNote("");
-      setSelectedCartIndex(null);
     } catch (err: any) {
       toast.error(err.message || "خطأ في إتمام الطلب");
     } finally {
@@ -744,7 +822,9 @@ const POSPage = () => {
 
     setShowCloseShift(false);
     setSession(null);
-    setCart([]);
+    setOrders([createNewOrder(1)]);
+    setActiveOrderIndex(0);
+    orderCounter.current = 1;
     toast.success("تم إغلاق الوردية بنجاح");
     navigate("/apps");
   };
@@ -1037,19 +1117,70 @@ const POSPage = () => {
 
         {/* ── RIGHT: Order Panel ── */}
         <div className="w-[340px] lg:w-[380px] flex flex-col bg-card border-r border-border shrink-0">
+          {/* Order Tabs */}
+          <div className="flex items-center border-b border-border shrink-0 overflow-x-auto">
+            {orders.map((order, idx) => {
+              const isActive = idx === activeOrderIndex;
+              const itemCount = order.cart.reduce((s, i) => s + i.qty, 0);
+              return (
+                <button
+                  key={order.id}
+                  onClick={() => setActiveOrderIndex(idx)}
+                  className={`group relative flex items-center gap-1.5 px-3 h-11 text-xs font-medium whitespace-nowrap transition-all border-b-2 ${
+                    isActive
+                      ? "border-primary text-primary bg-primary/5"
+                      : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/40"
+                  }`}
+                >
+                  <ShoppingCart className="h-3 w-3" />
+                  <span>{order.name}</span>
+                  {itemCount > 0 && (
+                    <span className={`text-[10px] font-bold rounded-full px-1.5 py-0 ${
+                      isActive ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"
+                    }`}>
+                      {itemCount}
+                    </span>
+                  )}
+                  {orders.length > 1 && (
+                    <span
+                      onClick={(e) => { e.stopPropagation(); removeOrder(idx); }}
+                      className="opacity-0 group-hover:opacity-100 text-muted-foreground/50 hover:text-destructive transition-all mr-0.5"
+                    >
+                      <X className="h-3 w-3" />
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+            <button
+              onClick={() => {
+                orderCounter.current += 1;
+                const newOrder = createNewOrder(orderCounter.current);
+                setOrders(prev => [...prev, newOrder]);
+                setActiveOrderIndex(orders.length);
+              }}
+              className="h-11 px-2.5 flex items-center justify-center text-muted-foreground/50 hover:text-primary hover:bg-primary/5 transition-colors shrink-0"
+              title="طلب جديد"
+            >
+              <Plus className="h-3.5 w-3.5" />
+            </button>
+          </div>
+
           {/* Cart Header */}
-          <div className="h-12 px-3 flex items-center justify-between border-b border-border shrink-0">
+          <div className="h-10 px-3 flex items-center justify-between shrink-0">
             <div className="flex items-center gap-2">
-              <span className="text-sm font-bold text-foreground">الطلب</span>
-              {cartTotals.itemCount > 0 && (
-                <span className="text-[11px] font-bold text-primary bg-primary/10 rounded-full px-2 py-0.5 tabular-nums">
-                  {cartTotals.itemCount}
+              {activeOrder.customerName ? (
+                <span className="text-xs font-medium text-foreground flex items-center gap-1">
+                  <User className="h-3 w-3" />
+                  {activeOrder.customerName}
                 </span>
+              ) : (
+                <span className="text-xs text-muted-foreground/60">بدون زبون</span>
               )}
             </div>
             {cart.length > 0 && (
               <button
-                onClick={() => { setCart([]); setSelectedCartIndex(null); }}
+                onClick={() => { setCart([]); setSelectedCartIndex(null); setOrderDiscount(0); setOrderNote(""); }}
                 className="text-[11px] text-destructive/70 hover:text-destructive transition-colors flex items-center gap-1"
               >
                 <Trash2 className="h-3 w-3" />
