@@ -335,13 +335,13 @@ const POSPage = () => {
 
   // Cart operations
   const addToCart = useCallback((product: Product) => {
+    // Allow selling even if stock is zero - just show warning
     if (product.quantity <= 0) {
-      toast.error(`${product.name} - نفد من المخزون`);
-      return;
+      toast.warning(`⚠️ تنبيه: ${product.name} - المخزون صفر، سيتم البيع بالسالب`);
     }
     // Check low stock warning
     const currentInCart = cart.find(i => i.product_id === product.id)?.qty || 0;
-    if (product.min_quantity > 0 && (product.quantity - currentInCart - 1) <= product.min_quantity) {
+    if (product.quantity > 0 && product.min_quantity > 0 && (product.quantity - currentInCart - 1) <= product.min_quantity) {
       toast.warning(`⚠️ تنبيه: ${product.name} - باقي ${product.quantity - currentInCart - 1} قطع فقط`);
     }
 
@@ -719,7 +719,7 @@ const POSPage = () => {
               {filteredProducts.map((product) => {
                 const catConfig = getCatConfig(product.category);
                 const CatIcon = catConfig.icon;
-                const isOutOfStock = product.quantity <= 0;
+                const isOutOfStock = false; // Allow selling even with zero stock
                 const isLowStock = product.min_quantity > 0 && product.quantity <= product.min_quantity && product.quantity > 0;
                 const qtyInCart = cartQtyMap[product.id] || 0;
 
@@ -848,14 +848,14 @@ const POSPage = () => {
                   <p className="text-xs text-muted-foreground/70">اضغط على منتج لإضافته</p>
                   
                   {/* Quick suggestions */}
-                  {products.filter(p => p.is_pos_available && p.quantity > 0).slice(0, 3).length > 0 && (
+                  {products.filter(p => p.is_pos_available).slice(0, 3).length > 0 && (
                     <div className="mt-6">
                       <p className="text-[11px] text-muted-foreground/60 mb-2 flex items-center justify-center gap-1">
                         <Zap className="h-3 w-3" />
                         اختصارات سريعة
                       </p>
                       <div className="flex flex-wrap justify-center gap-1.5">
-                        {products.filter(p => p.is_pos_available && p.quantity > 0).slice(0, 4).map(p => (
+                        {products.filter(p => p.is_pos_available).slice(0, 4).map(p => (
                           <button
                             key={p.id}
                             onClick={() => addToCart(p)}
