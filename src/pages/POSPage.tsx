@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import POSReceiptDialog from "@/components/POSReceiptDialog";
 
 // Types
 interface CartItem {
@@ -157,6 +158,10 @@ const POSPage = () => {
 
   // Numpad
   const [selectedCartIndex, setSelectedCartIndex] = useState<number | null>(null);
+
+  // Receipt
+  const [showReceipt, setShowReceipt] = useState(false);
+  const [receiptData, setReceiptData] = useState<any>(null);
 
   // Discount
   const [orderDiscount, setOrderDiscount] = useState(0);
@@ -682,8 +687,39 @@ const POSPage = () => {
       // Reload products to get updated stock
       loadProducts();
 
-      setCart([]);
+      // Build receipt data
+      const receiptInfo = {
+        orderNumber: res.order_number,
+        date: new Date().toISOString(),
+        cashierName: session.cashier_name,
+        companyName: company?.name || "شركتي",
+        terminalName: terminal?.name || "نقطة بيع",
+        customerName: customerName,
+        items: cart.map(item => ({
+          name: item.name,
+          qty: item.qty,
+          unit_price: item.unit_price,
+          discount_pct: item.discount_pct,
+          total: item.total,
+          note: item.note,
+        })),
+        subtotal: cartTotals.subtotal,
+        tax: cartTotals.tax,
+        discount: cartTotals.discount,
+        total: cartTotals.total,
+        paymentMethod,
+        tenderedAmount: tendered,
+        change,
+        currency: paymentCurrency,
+        orderNote,
+      };
+
+      setReceiptData(receiptInfo);
       setShowPayment(false);
+      setShowReceipt(true);
+
+      // Reset cart
+      setCart([]);
       setTenderedAmount("");
       setCustomerName("");
       setPaymentMethod("cash");
@@ -691,15 +727,6 @@ const POSPage = () => {
       setOrderDiscount(0);
       setOrderNote("");
       setSelectedCartIndex(null);
-
-      toast.success(
-        <div className="flex flex-col gap-1" dir="rtl">
-          <span className="font-bold">✅ تم إتمام البيع</span>
-          <span className="text-sm">رقم الطلب: {res.order_number}</span>
-          <span className="text-sm">المبلغ: ₪{cartTotals.total.toFixed(2)}</span>
-          {change > 0 && <span className="text-sm">الباقي: ₪{change.toFixed(2)}</span>}
-        </div>
-      );
     } catch (err: any) {
       toast.error(err.message || "خطأ في إتمام الطلب");
     } finally {
@@ -1812,6 +1839,13 @@ const POSPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* ── Receipt Dialog ── */}
+      <POSReceiptDialog
+        open={showReceipt}
+        onOpenChange={setShowReceipt}
+        data={receiptData}
+      />
     </div>
   );
 };
