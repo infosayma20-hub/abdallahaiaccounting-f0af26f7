@@ -2005,16 +2005,42 @@ const POSPage = () => {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
-            <div className="flex gap-2 items-end">
-              <div className="flex-1 space-y-1">
+            <div className="space-y-3">
+              <div className="space-y-1">
                 <label className="text-xs font-medium text-muted-foreground">اسم التصنيف الجديد</label>
                 <Input value={newCatName} onChange={(e) => setNewCatName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleSaveCategory()} placeholder="مثال: حلويات" className="h-10" />
               </div>
-              <div className="space-y-1">
+              <div className="space-y-1.5">
                 <label className="text-xs font-medium text-muted-foreground">اللون</label>
-                <input type="color" value={newCatColor} onChange={(e) => setNewCatColor(e.target.value)} className="h-10 w-12 rounded-md border border-input cursor-pointer" />
+                <div className="flex flex-wrap gap-2 items-center">
+                  {[
+                    "#EF4444", "#F97316", "#F59E0B", "#EAB308", "#84CC16",
+                    "#22C55E", "#10B981", "#14B8A6", "#06B6D4", "#0EA5E9",
+                    "#3B82F6", "#6366F1", "#8B5CF6", "#A855F7", "#D946EF",
+                    "#EC4899", "#F43F5E", "#78716C", "#6B7280", "#1E293B",
+                  ].map((color) => (
+                    <button
+                      key={color}
+                      type="button"
+                      onClick={() => setNewCatColor(color)}
+                      className={`w-7 h-7 rounded-lg border-2 transition-all hover:scale-110 ${newCatColor === color ? "border-foreground ring-2 ring-primary/30 scale-110" : "border-transparent"}`}
+                      style={{ backgroundColor: color }}
+                    />
+                  ))}
+                  <div className="relative">
+                    <input
+                      type="color"
+                      value={newCatColor}
+                      onChange={(e) => setNewCatColor(e.target.value)}
+                      className="absolute inset-0 w-7 h-7 opacity-0 cursor-pointer"
+                    />
+                    <div className="w-7 h-7 rounded-lg border-2 border-dashed border-muted-foreground/40 flex items-center justify-center hover:border-primary/60 transition-colors cursor-pointer">
+                      <Plus className="h-3.5 w-3.5 text-muted-foreground" />
+                    </div>
+                  </div>
+                </div>
               </div>
-              <Button onClick={handleSaveCategory} disabled={!newCatName.trim() || savingCategory} className="h-10">
+              <Button onClick={handleSaveCategory} disabled={!newCatName.trim() || savingCategory} className="h-10 w-full">
                 {savingCategory ? "..." : "إنشاء"}
               </Button>
             </div>
