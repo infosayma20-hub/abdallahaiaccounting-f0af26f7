@@ -19,6 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import POSReceiptDialog from "@/components/POSReceiptDialog";
+import ShiftSummaryReceipt from "@/components/ShiftSummaryReceipt";
 
 // Types
 interface CartItem {
@@ -254,6 +255,10 @@ const POSPage = () => {
   // Receipt
   const [showReceipt, setShowReceipt] = useState(false);
   const [receiptData, setReceiptData] = useState<any>(null);
+
+  // Shift Summary
+  const [showShiftSummary, setShowShiftSummary] = useState(false);
+  const [shiftSummaryData, setShiftSummaryData] = useState<any>(null);
 
   const userId = user?.id;
 
@@ -814,6 +819,7 @@ const POSPage = () => {
     const cash = parseFloat(closingCash) || 0;
     const expected = session.opening_cash + session.total_sales;
     const variance = cash - expected;
+    const closedAt = new Date().toISOString();
 
     await supabase
       .from("pos_sessions")
@@ -822,11 +828,84 @@ const POSPage = () => {
         closing_cash: cash,
         expected_cash: expected,
         cash_variance: variance,
-        closed_at: new Date().toISOString(),
+        closed_at: closedAt,
       })
       .eq("id", session.id);
 
+    // Record variance as employee deduction/surplus in HR if employee exists
+    if (variance !== 0) {
+      // Find employee linked to this auth user
+      const { data: emp } = await supabase
+        .from("employees")
+        .select("id, full_name")
+        .eq("auth_user_id", userId)
+        .eq("is_active", true)
+        .maybeSingle();
+
+      // Find contact linked to employee name for account statement
+      let contactId: string | null = null;
+      if (emp) {
+        const { data: contact } = await supabase
+          .from("contacts")
+          .select("id")
+          .eq("user_id", userId)
+          .eq("contact_name", emp.full_name)
+          .maybeSingle();
+        contactId = contact?.id || null;
+      }
+
+      if (emp) {
+        const isShortage = variance < 0;
+        // Add to employee_deductions
+        await supabase.from("employee_deductions").insert({
+          user_id: userId,
+          employee_id: emp.id,
+          deduction_type: isShortage ? "عجز صندوق" : "فائض صندوق",
+          amount: Math.abs(variance),
+          description: `${isShortage ? "عجز" : "فائض"} وردية POS - ${session.cashier_name} - ${new Date().toLocaleDateString("ar-PS")}`,
+          deduction_date: new Date().toISOString().split("T")[0],
+          notes: `جلسة: ${session.id}`,
+        });
+
+        // Create accounting entry linked to employee contact
+        await supabase.from("transactions").insert({
+          user_id: userId,
+          transaction_date: new Date().toISOString().split("T")[0],
+          description: `${isShortage ? "عجز" : "فائض"} صندوق - ${session.cashier_name}`,
+          debit_account_code: isShortage ? "1130" : "1110",
+          credit_account_code: isShortage ? "1110" : "1130",
+          amount: Math.abs(variance),
+          currency: "شيكل",
+          transaction_type: isShortage ? "cash_shortage" : "cash_surplus",
+          contact_id: contactId,
+          reference: `SHIFT-${session.id.slice(0, 8)}`,
+          idempotency_key: `SHIFT-VAR-${session.id}`,
+        });
+      }
+    }
+
+    // Prepare shift summary data
+    setShiftSummaryData({
+      companyName: company?.name || "شركتي",
+      terminalName: terminal?.name || "نقطة بيع",
+      cashierName: session.cashier_name,
+      openedAt: session.opened_at,
+      closedAt,
+      openingCash: session.opening_cash,
+      totalSales: session.total_sales,
+      totalOrders: session.total_orders,
+      closingCash: cash,
+      expectedCash: expected,
+      variance,
+      sessionId: session.id,
+    });
+
     setShowCloseShift(false);
+    setShowShiftSummary(true);
+  };
+
+  const handleShiftSummaryClosed = () => {
+    setShowShiftSummary(false);
     setSession(null);
     setOrders([createNewOrder(1)]);
     setActiveOrderIndex(0);
@@ -1726,60 +1805,52 @@ const POSPage = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Close Shift Dialog */}
+      {/* Close Shift Dialog - Employee sees only cash count input */}
       <Dialog open={showCloseShift} onOpenChange={setShowCloseShift}>
         <DialogContent className="sm:max-w-md" dir="rtl">
           <DialogHeader>
-            <DialogTitle className="text-xl">إغلاق الوردية</DialogTitle>
+            <DialogTitle className="text-xl">تسليم العهدة</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div className="bg-muted/50 rounded-xl p-4 space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">النقدية الافتتاحية</span>
-                <span className="font-medium tabular-nums">₪{session?.opening_cash.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">إجمالي المبيعات</span>
-                <span className="font-medium text-primary tabular-nums">₪{session?.total_sales.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">عدد الطلبات</span>
-                <span className="font-medium">{session?.total_orders}</span>
-              </div>
-              <div className="flex justify-between font-bold pt-2 border-t border-border">
-                <span>المتوقع في الصندوق</span>
-                <span className="tabular-nums">₪{((session?.opening_cash || 0) + (session?.total_sales || 0)).toFixed(2)}</span>
-              </div>
+            <div className="bg-muted/50 rounded-xl p-4 text-center space-y-2">
+              <div className="text-sm text-muted-foreground">قم بعد النقدية الموجودة في الصندوق وأدخل المبلغ أدناه</div>
+              <div className="text-xs text-muted-foreground/70">سيتم مقارنة المبلغ مع السجلات تلقائياً</div>
             </div>
 
             <div>
-              <label className="text-sm font-medium mb-1.5 block">عد النقدية الفعلي (₪)</label>
+              <label className="text-sm font-medium mb-1.5 block">المبلغ الموجود في الصندوق (₪)</label>
               <Input
                 type="number"
                 value={closingCash}
                 onChange={(e) => setClosingCash(e.target.value)}
                 placeholder="0.00"
-                className="text-lg h-12 text-center font-bold"
+                className="text-2xl h-14 text-center font-bold"
+                autoFocus
               />
-              {closingCash && session && (
-                <div className={`text-center mt-2 p-2 rounded-lg text-sm font-bold ${
-                  parseFloat(closingCash) - (session.opening_cash + session.total_sales) === 0
-                    ? "bg-primary/10 text-primary"
-                    : "bg-destructive/10 text-destructive"
-                }`}>
-                  الفرق: ₪{(parseFloat(closingCash) - (session.opening_cash + session.total_sales)).toFixed(2)}
-                </div>
-              )}
             </div>
           </div>
           <DialogFooter>
-            <Button onClick={handleCloseShift} variant="destructive" className="w-full h-12 text-base font-bold gap-2">
+            <Button 
+              onClick={handleCloseShift} 
+              variant="destructive" 
+              className="w-full h-12 text-base font-bold gap-2"
+              disabled={!closingCash}
+            >
               <LogOut className="h-5 w-5" />
-              إغلاق الوردية
+              تسليم العهدة وإغلاق الوردية
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Shift Summary Receipt */}
+      <ShiftSummaryReceipt
+        open={showShiftSummary}
+        onOpenChange={(open) => {
+          if (!open) handleShiftSummaryClosed();
+        }}
+        data={shiftSummaryData}
+      />
 
       {/* ── Add Product Dialog ── */}
       <Dialog open={showAddProduct} onOpenChange={setShowAddProduct}>
