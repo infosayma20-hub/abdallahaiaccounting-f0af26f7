@@ -10,7 +10,7 @@ import {
   Barcode, RotateCcw, LogOut, Package, Percent, Hash,
   CheckCircle, AlertCircle, Wifi, WifiOff, MessageSquare, StickyNote,
   UtensilsCrossed, Gamepad2, Shirt, Monitor, ShoppingBag, Printer,
-  Apple, Zap, Coffee, Box, BarChart3, TrendingUp,
+  Apple, Zap, Coffee, Box, BarChart3, TrendingUp, PlusCircle, Tag,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -111,8 +111,17 @@ const POSPage = () => {
   const [showOpenShift, setShowOpenShift] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
   const [showCloseShift, setShowCloseShift] = useState(false);
+  const [showAddProduct, setShowAddProduct] = useState(false);
   const [openingCash, setOpeningCash] = useState("");
   const [closingCash, setClosingCash] = useState("");
+
+  // New product form
+  const [newProduct, setNewProduct] = useState({
+    name: "", sell_price: "", buy_price: "", category: "بضاعة عامة", unit: "قطعة",
+    quantity: "", min_quantity: "", is_pos_available: true, newCategory: "",
+  });
+  const [showNewCategory, setShowNewCategory] = useState(false);
+  const [savingProduct, setSavingProduct] = useState(false);
   
   // Payment
   const [paymentMethod, setPaymentMethod] = useState<string>("cash");
@@ -260,6 +269,52 @@ const POSPage = () => {
         min_quantity: Number(p.min_quantity) || 0,
       }))
     );
+  };
+
+  // Get unique categories from products
+  const existingCategories = useMemo(() => {
+    const cats = new Set(products.map(p => p.category).filter(Boolean));
+    // Add default categories
+    ["بضاعة عامة", "طعام", "مشروبات", "إلكترونيات", "ملابس", "ألعاب"].forEach(c => cats.add(c));
+    return Array.from(cats).sort();
+  }, [products]);
+
+  const handleSaveNewProduct = async () => {
+    if (!userId || !newProduct.name.trim() || savingProduct) return;
+    const finalCategory = showNewCategory && newProduct.newCategory.trim()
+      ? newProduct.newCategory.trim()
+      : newProduct.category;
+    
+    if (!finalCategory) {
+      toast.error("يرجى اختيار أو إدخال تصنيف");
+      return;
+    }
+
+    setSavingProduct(true);
+    try {
+      const { data, error } = await supabase.from("products").insert({
+        user_id: userId,
+        name: newProduct.name.trim(),
+        sell_price: Number(newProduct.sell_price) || 0,
+        buy_price: Number(newProduct.buy_price) || 0,
+        category: finalCategory,
+        unit: newProduct.unit || "قطعة",
+        quantity: Number(newProduct.quantity) || 0,
+        min_quantity: Number(newProduct.min_quantity) || 0,
+        is_pos_available: newProduct.is_pos_available,
+      }).select().single();
+
+      if (error) throw error;
+      toast.success(`✅ تم إضافة "${newProduct.name}" بنجاح`);
+      setShowAddProduct(false);
+      setNewProduct({ name: "", sell_price: "", buy_price: "", category: "بضاعة عامة", unit: "قطعة", quantity: "", min_quantity: "", is_pos_available: true, newCategory: "" });
+      setShowNewCategory(false);
+      await loadProducts();
+    } catch (err: any) {
+      toast.error("خطأ: " + err.message);
+    } finally {
+      setSavingProduct(false);
+    }
   };
 
   const loadExchangeRates = async () => {
@@ -681,7 +736,7 @@ const POSPage = () => {
 
           {/* ── Category Tabs ── */}
           <div className="px-3 py-2 border-b border-border">
-            <div className="flex gap-2 overflow-x-auto scrollbar-none pb-0.5">
+            <div className="flex gap-2 overflow-x-auto scrollbar-none pb-0.5 items-center">
               {categoriesWithCounts.map((cat) => {
                 const isActive = selectedCategory === cat.name;
                 const config = cat.name === "الكل"
@@ -710,6 +765,15 @@ const POSPage = () => {
                   </button>
                 );
               })}
+              
+              {/* Add Product Button */}
+              <button
+                onClick={() => setShowAddProduct(true)}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium whitespace-nowrap transition-all shrink-0 border-2 border-dashed border-primary/40 text-primary hover:bg-primary/10 hover:border-primary"
+              >
+                <PlusCircle className="h-3.5 w-3.5" />
+                <span>إضافة منتج</span>
+              </button>
             </div>
           </div>
 
@@ -1334,6 +1398,175 @@ const POSPage = () => {
             <Button onClick={handleCloseShift} variant="destructive" className="w-full h-12 text-base font-bold gap-2">
               <LogOut className="h-5 w-5" />
               إغلاق الوردية
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Add Product Dialog ── */}
+      <Dialog open={showAddProduct} onOpenChange={setShowAddProduct}>
+        <DialogContent className="max-w-md" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-lg">
+              <PlusCircle className="h-5 w-5 text-primary" />
+              إضافة منتج جديد
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            {/* Product Name */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">اسم المنتج *</label>
+              <Input
+                autoFocus
+                value={newProduct.name}
+                onChange={(e) => setNewProduct(prev => ({ ...prev, name: e.target.value }))}
+                placeholder="مثال: شوكولاته"
+                className="h-10"
+              />
+            </div>
+
+            {/* Price row */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground">سعر البيع *</label>
+                <Input
+                  type="number"
+                  value={newProduct.sell_price}
+                  onChange={(e) => setNewProduct(prev => ({ ...prev, sell_price: e.target.value }))}
+                  placeholder="₪0.00"
+                  className="h-10"
+                  min={0}
+                  step={0.01}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground">سعر الشراء</label>
+                <Input
+                  type="number"
+                  value={newProduct.buy_price}
+                  onChange={(e) => setNewProduct(prev => ({ ...prev, buy_price: e.target.value }))}
+                  placeholder="₪0.00"
+                  className="h-10"
+                  min={0}
+                  step={0.01}
+                />
+              </div>
+            </div>
+
+            {/* Category */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                <Tag className="h-3.5 w-3.5" />
+                التصنيف *
+              </label>
+              {!showNewCategory ? (
+                <div className="flex gap-2">
+                  <select
+                    value={newProduct.category}
+                    onChange={(e) => setNewProduct(prev => ({ ...prev, category: e.target.value }))}
+                    className="flex-1 h-10 rounded-md border border-input bg-background px-3 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    {existingCategories.map(cat => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="h-10 w-10 shrink-0"
+                    onClick={() => setShowNewCategory(true)}
+                    title="إنشاء تصنيف جديد"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <Input
+                    autoFocus
+                    value={newProduct.newCategory}
+                    onChange={(e) => setNewProduct(prev => ({ ...prev, newCategory: e.target.value }))}
+                    placeholder="اسم التصنيف الجديد..."
+                    className="h-10"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="h-10 w-10 shrink-0"
+                    onClick={() => { setShowNewCategory(false); setNewProduct(prev => ({ ...prev, newCategory: "" })); }}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            {/* Unit */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">الوحدة</label>
+              <select
+                value={newProduct.unit}
+                onChange={(e) => setNewProduct(prev => ({ ...prev, unit: e.target.value }))}
+                className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <option value="قطعة">قطعة</option>
+                <option value="كغ">كغ</option>
+                <option value="لتر">لتر</option>
+                <option value="متر">متر</option>
+                <option value="علبة">علبة</option>
+                <option value="كرتون">كرتون</option>
+              </select>
+            </div>
+
+            {/* Stock section */}
+            <div className="p-3 rounded-xl bg-muted/50 border border-border space-y-3">
+              <p className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                <Package className="h-3.5 w-3.5 text-primary" />
+                ربط مع المخزون
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[11px] text-muted-foreground">الكمية الافتتاحية</label>
+                  <Input
+                    type="number"
+                    value={newProduct.quantity}
+                    onChange={(e) => setNewProduct(prev => ({ ...prev, quantity: e.target.value }))}
+                    placeholder="0"
+                    className="h-9 text-sm"
+                    min={0}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[11px] text-muted-foreground">الحد الأدنى للتنبيه</label>
+                  <Input
+                    type="number"
+                    value={newProduct.min_quantity}
+                    onChange={(e) => setNewProduct(prev => ({ ...prev, min_quantity: e.target.value }))}
+                    placeholder="0"
+                    className="h-9 text-sm"
+                    min={0}
+                  />
+                </div>
+              </div>
+              <div className="text-[11px] text-muted-foreground bg-background rounded-lg p-2 space-y-1">
+                <p className="flex items-center gap-1"><CheckCircle className="h-3 w-3 text-primary" /> سيظهر في نقطة البيع</p>
+                <p className="flex items-center gap-1"><CheckCircle className="h-3 w-3 text-primary" /> سيظهر في تطبيق المخزون</p>
+                <p className="flex items-center gap-1"><CheckCircle className="h-3 w-3 text-primary" /> سيظهر في تقارير المبيعات</p>
+              </div>
+            </div>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button variant="outline" onClick={() => setShowAddProduct(false)} className="flex-1">
+              إلغاء
+            </Button>
+            <Button
+              onClick={handleSaveNewProduct}
+              disabled={!newProduct.name.trim() || savingProduct}
+              className="flex-1 gap-1"
+            >
+              {savingProduct ? "جارِ الحفظ..." : "حفظ وإضافة ✓"}
             </Button>
           </DialogFooter>
         </DialogContent>
