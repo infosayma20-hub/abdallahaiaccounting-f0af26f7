@@ -40,6 +40,7 @@ interface Product {
   buy_price: number;
   quantity: number;
   category: string;
+  pos_category_id: string | null;
   unit: string;
   sku: string | null;
   barcode: string | null;
@@ -48,6 +49,14 @@ interface Product {
   color: string;
   image_url: string | null;
   min_quantity: number;
+}
+
+interface POSCategory {
+  id: string;
+  name: string;
+  color: string;
+  display_order: number;
+  is_active: boolean;
 }
 
 interface Session {
@@ -96,6 +105,7 @@ const POSPage = () => {
 
   // State
   const [products, setProducts] = useState<Product[]>([]);
+  const [posCategories, setPosCategories] = useState<POSCategory[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>("الكل");
   const [searchQuery, setSearchQuery] = useState("");
@@ -112,16 +122,23 @@ const POSPage = () => {
   const [showPayment, setShowPayment] = useState(false);
   const [showCloseShift, setShowCloseShift] = useState(false);
   const [showAddProduct, setShowAddProduct] = useState(false);
+  const [showCategoryManager, setShowCategoryManager] = useState(false);
   const [openingCash, setOpeningCash] = useState("");
   const [closingCash, setClosingCash] = useState("");
 
   // New product form
   const [newProduct, setNewProduct] = useState({
-    name: "", sell_price: "", buy_price: "", category: "بضاعة عامة", unit: "قطعة",
+    name: "", sell_price: "", buy_price: "", category: "", pos_category_id: "" as string, unit: "قطعة",
     quantity: "", min_quantity: "", is_pos_available: true, newCategory: "",
   });
   const [showNewCategory, setShowNewCategory] = useState(false);
   const [savingProduct, setSavingProduct] = useState(false);
+
+  // Category management
+  const [newCatName, setNewCatName] = useState("");
+  const [newCatColor, setNewCatColor] = useState("#6B7280");
+  const [savingCategory, setSavingCategory] = useState(false);
+  const [catSearchQuery, setCatSearchQuery] = useState("");
   
   // Payment
   const [paymentMethod, setPaymentMethod] = useState<string>("cash");
@@ -240,7 +257,7 @@ const POSPage = () => {
         }
       }
 
-      await Promise.all([loadProducts(), loadExchangeRates(), loadContacts()]);
+      await Promise.all([loadProducts(), loadCategories(), loadExchangeRates(), loadContacts()]);
     } catch (err) {
       console.error("POS init error:", err);
       toast.error("خطأ في تحميل نقطة البيع");
@@ -253,13 +270,14 @@ const POSPage = () => {
     if (!userId) return;
     const { data } = await supabase
       .from("products")
-      .select("id, name, sell_price, buy_price, quantity, category, unit, sku, barcode, tax_rate, is_pos_available, color, image_url, min_quantity")
+      .select("id, name, sell_price, buy_price, quantity, category, pos_category_id, unit, sku, barcode, tax_rate, is_pos_available, color, image_url, min_quantity")
       .eq("user_id", userId)
       .order("name");
 
     setProducts(
       (data || []).map((p) => ({
         ...p,
+        pos_category_id: (p as any).pos_category_id || null,
         tax_rate: Number(p.tax_rate) || 0,
         is_pos_available: p.is_pos_available !== false,
         color: p.color || "#3B82F6",
@@ -271,45 +289,105 @@ const POSPage = () => {
     );
   };
 
-  // Get unique categories from products
+  const loadCategories = async () => {
+    if (!userId) return;
+    const { data } = await supabase
+      .from("pos_categories")
+      .select("id, name, color, display_order, is_active")
+      .eq("user_id", userId)
+      .eq("is_active", true)
+      .order("display_order");
+    setPosCategories((data as POSCategory[]) || []);
+  };
+
+  // Get unique categories from DB categories + legacy product categories
   const existingCategories = useMemo(() => {
-    const cats = new Set(products.map(p => p.category).filter(Boolean));
-    // Add default categories
-    ["بضاعة عامة", "طعام", "مشروبات", "إلكترونيات", "ملابس", "ألعاب"].forEach(c => cats.add(c));
-    return Array.from(cats).sort();
-  }, [products]);
+    const cats = posCategories.map(c => c.name);
+    // Also add legacy product categories not in posCategories
+    products.forEach(p => {
+      if (p.category && !cats.includes(p.category)) cats.push(p.category);
+    });
+    return cats.sort();
+  }, [products, posCategories]);
+
+  const handleSaveCategory = async () => {
+    if (!userId || !newCatName.trim() || savingCategory) return;
+    setSavingCategory(true);
+    try {
+      const { error } = await supabase.from("pos_categories").insert({
+        user_id: userId,
+        name: newCatName.trim(),
+        color: newCatColor,
+        display_order: posCategories.length,
+      });
+      if (error) throw error;
+      toast.success(`✅ تم إنشاء تصنيف "${newCatName}"`);
+      setNewCatName("");
+      setNewCatColor("#6B7280");
+      await loadCategories();
+    } catch (err: any) {
+      toast.error("خطأ: " + err.message);
+    } finally {
+      setSavingCategory(false);
+    }
+  };
+
+  const handleDeleteCategory = async (catId: string) => {
+    if (!userId) return;
+    const { error } = await supabase.from("pos_categories").delete().eq("id", catId).eq("user_id", userId);
+    if (error) { toast.error("خطأ: " + error.message); return; }
+    toast.success("تم حذف التصنيف");
+    await loadCategories();
+    if (selectedCategory !== "الكل") setSelectedCategory("الكل");
+  };
 
   const handleSaveNewProduct = async () => {
     if (!userId || !newProduct.name.trim() || savingProduct) return;
-    const finalCategory = showNewCategory && newProduct.newCategory.trim()
-      ? newProduct.newCategory.trim()
-      : newProduct.category;
     
-    if (!finalCategory) {
-      toast.error("يرجى اختيار أو إدخال تصنيف");
-      return;
+    // Handle new category creation if needed
+    let finalCategoryId = newProduct.pos_category_id || null;
+    let finalCategoryName = "";
+    
+    if (showNewCategory && newProduct.newCategory.trim()) {
+      // Create new category first
+      const { data: newCat, error: catErr } = await supabase.from("pos_categories").insert({
+        user_id: userId,
+        name: newProduct.newCategory.trim(),
+        color: "#6B7280",
+        display_order: posCategories.length,
+      }).select().single();
+      if (catErr) { toast.error("خطأ في إنشاء التصنيف: " + catErr.message); return; }
+      finalCategoryId = (newCat as any).id;
+      finalCategoryName = newProduct.newCategory.trim();
+    } else if (finalCategoryId) {
+      const cat = posCategories.find(c => c.id === finalCategoryId);
+      finalCategoryName = cat?.name || newProduct.category;
+    } else {
+      finalCategoryName = newProduct.category || "عام";
     }
 
     setSavingProduct(true);
     try {
-      const { data, error } = await supabase.from("products").insert({
+      const insertData: any = {
         user_id: userId,
         name: newProduct.name.trim(),
         sell_price: Number(newProduct.sell_price) || 0,
         buy_price: Number(newProduct.buy_price) || 0,
-        category: finalCategory,
+        category: finalCategoryName,
         unit: newProduct.unit || "قطعة",
         quantity: Number(newProduct.quantity) || 0,
         min_quantity: Number(newProduct.min_quantity) || 0,
         is_pos_available: newProduct.is_pos_available,
-      }).select().single();
+      };
+      if (finalCategoryId) insertData.pos_category_id = finalCategoryId;
 
+      const { error } = await supabase.from("products").insert(insertData).select().single();
       if (error) throw error;
       toast.success(`✅ تم إضافة "${newProduct.name}" بنجاح`);
       setShowAddProduct(false);
-      setNewProduct({ name: "", sell_price: "", buy_price: "", category: "بضاعة عامة", unit: "قطعة", quantity: "", min_quantity: "", is_pos_available: true, newCategory: "" });
+      setNewProduct({ name: "", sell_price: "", buy_price: "", category: "", pos_category_id: "", unit: "قطعة", quantity: "", min_quantity: "", is_pos_available: true, newCategory: "" });
       setShowNewCategory(false);
-      await loadProducts();
+      await Promise.all([loadProducts(), loadCategories()]);
     } catch (err: any) {
       toast.error("خطأ: " + err.message);
     } finally {
@@ -356,25 +434,43 @@ const POSPage = () => {
     return contacts.filter(c => c.contact_name.toLowerCase().includes(q));
   }, [contacts, customerSearch]);
 
-  // Categories with counts
+  // Categories with counts - use posCategories from DB
   const categoriesWithCounts = useMemo(() => {
     const posProducts = products.filter(p => p.is_pos_available);
-    const cats = new Map<string, number>();
-    posProducts.forEach(p => {
-      const c = p.category || "عام";
-      cats.set(c, (cats.get(c) || 0) + 1);
-    });
-    return [
-      { name: "الكل", count: posProducts.length },
-      ...Array.from(cats.entries()).map(([name, count]) => ({ name, count }))
-    ];
-  }, [products]);
+    const totalCount = posProducts.length;
+    
+    // Count products per POS category
+    const catCounts: { id: string; name: string; color: string; count: number }[] = posCategories.map(cat => ({
+      id: cat.id,
+      name: cat.name,
+      color: cat.color,
+      count: posProducts.filter(p => p.pos_category_id === cat.id || p.category === cat.name).length,
+    }));
+
+    // Products without a category
+    const uncategorized = posProducts.filter(p => 
+      !p.pos_category_id && !posCategories.some(c => c.name === p.category)
+    ).length;
+
+    return {
+      all: totalCount,
+      categories: catCounts,
+      uncategorized,
+    };
+  }, [products, posCategories]);
 
   // Filtered products
   const filteredProducts = useMemo(() => {
     let filtered = products.filter((p) => p.is_pos_available);
-    if (selectedCategory !== "الكل") {
-      filtered = filtered.filter((p) => p.category === selectedCategory);
+    if (selectedCategory === "__uncategorized__") {
+      filtered = filtered.filter(p => 
+        !p.pos_category_id && !posCategories.some(c => c.name === p.category)
+      );
+    } else if (selectedCategory !== "الكل") {
+      const cat = posCategories.find(c => c.name === selectedCategory);
+      filtered = filtered.filter((p) => 
+        p.pos_category_id === cat?.id || p.category === selectedCategory
+      );
     }
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
@@ -386,7 +482,18 @@ const POSPage = () => {
       );
     }
     return filtered;
-  }, [products, selectedCategory, searchQuery]);
+  }, [products, selectedCategory, searchQuery, posCategories]);
+
+  // Get category color for a product
+  const getProductCatColor = useCallback((product: Product) => {
+    if (product.pos_category_id) {
+      const cat = posCategories.find(c => c.id === product.pos_category_id);
+      if (cat) return cat.color;
+    }
+    const cat = posCategories.find(c => c.name === product.category);
+    if (cat) return cat.color;
+    return getCatConfig(product.category).color;
+  }, [posCategories]);
 
   // Cart operations
   const addToCart = useCallback((product: Product) => {
@@ -734,45 +841,73 @@ const POSPage = () => {
             </div>
           </div>
 
-          {/* ── Category Tabs ── */}
+          {/* ── Odoo-style Category Grid ── */}
           <div className="px-3 py-2 border-b border-border">
-            <div className="flex gap-2 overflow-x-auto scrollbar-none pb-0.5 items-center">
-              {categoriesWithCounts.map((cat) => {
-                const isActive = selectedCategory === cat.name;
-                const config = cat.name === "الكل"
-                  ? { icon: ShoppingCart, color: "hsl(var(--primary))", bgColor: "bg-primary", borderColor: "" }
-                  : getCatConfig(cat.name);
-                const Icon = config.icon;
+            <div className="flex flex-wrap gap-1.5 items-center">
+              {/* "الكل" tab */}
+              <button
+                onClick={() => setSelectedCategory("الكل")}
+                className={`px-4 py-2.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
+                  selectedCategory === "الكل"
+                    ? "bg-foreground text-background shadow-md"
+                    : "bg-muted/60 text-muted-foreground hover:bg-muted border border-border"
+                }`}
+              >
+                الكل ({categoriesWithCounts.all})
+              </button>
 
+              {/* DB categories as colored chips */}
+              {categoriesWithCounts.categories.map((cat) => {
+                const isActive = selectedCategory === cat.name;
                 return (
                   <button
-                    key={cat.name}
+                    key={cat.id}
                     onClick={() => setSelectedCategory(cat.name)}
-                    className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-medium whitespace-nowrap transition-all shrink-0 ${
-                      isActive
-                        ? "text-white shadow-md"
-                        : "bg-card border border-border text-muted-foreground hover:bg-muted/80"
+                    className={`px-4 py-2.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
+                      isActive ? "shadow-md ring-2 ring-offset-1 ring-foreground/20" : "hover:opacity-80"
                     }`}
-                    style={isActive ? { backgroundColor: config.color } : {}}
+                    style={{
+                      backgroundColor: cat.color + (isActive ? "" : "30"),
+                      color: isActive ? "#fff" : cat.color,
+                      ...(isActive ? {} : { border: `1px solid ${cat.color}40` }),
+                    }}
                   >
-                    <Icon className="h-3.5 w-3.5" />
-                    <span>{cat.name}</span>
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
-                      isActive ? "bg-white/25 text-white" : "bg-muted text-muted-foreground"
-                    }`}>
-                      {cat.count}
-                    </span>
+                    {cat.name}
+                    {cat.count > 0 && (
+                      <span className="mr-1.5 text-[10px] opacity-80">({cat.count})</span>
+                    )}
                   </button>
                 );
               })}
-              
-              {/* Add Product Button */}
+
+              {/* Uncategorized if any */}
+              {categoriesWithCounts.uncategorized > 0 && (
+                <button
+                  onClick={() => setSelectedCategory("__uncategorized__")}
+                  className={`px-4 py-2.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${
+                    selectedCategory === "__uncategorized__"
+                      ? "bg-muted-foreground text-background shadow-md"
+                      : "bg-muted/60 text-muted-foreground hover:bg-muted border border-border"
+                  }`}
+                >
+                  أخرى ({categoriesWithCounts.uncategorized})
+                </button>
+              )}
+
+              {/* Add Category / Add Product buttons */}
+              <button
+                onClick={() => setShowCategoryManager(true)}
+                className="px-3 py-2.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all border-2 border-dashed border-muted-foreground/30 text-muted-foreground hover:border-primary hover:text-primary hover:bg-primary/5"
+              >
+                <Plus className="h-3.5 w-3.5 inline-block ml-1" />
+                تصنيف
+              </button>
               <button
                 onClick={() => setShowAddProduct(true)}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium whitespace-nowrap transition-all shrink-0 border-2 border-dashed border-primary/40 text-primary hover:bg-primary/10 hover:border-primary"
+                className="px-3 py-2.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all border-2 border-dashed border-primary/40 text-primary hover:bg-primary/10 hover:border-primary"
               >
-                <PlusCircle className="h-3.5 w-3.5" />
-                <span>إضافة منتج</span>
+                <PlusCircle className="h-3.5 w-3.5 inline-block ml-1" />
+                منتج
               </button>
             </div>
           </div>
@@ -781,6 +916,7 @@ const POSPage = () => {
           <ScrollArea className="flex-1">
             <div className="p-3 grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2.5">
               {filteredProducts.map((product) => {
+                const productColor = getProductCatColor(product);
                 const catConfig = getCatConfig(product.category);
                 const CatIcon = catConfig.icon;
                 const isOutOfStock = false; // Allow selling even with zero stock
@@ -801,13 +937,13 @@ const POSPage = () => {
                         : "border-2 hover:shadow-lg hover:border-opacity-70"
                     }`}
                     style={{
-                      borderColor: isOutOfStock ? undefined : isLowStock ? undefined : catConfig.color + "40",
+                      borderColor: isOutOfStock ? undefined : isLowStock ? undefined : productColor + "40",
                     }}
                   >
                     {/* Top color bar */}
                     <div
                       className="absolute top-0 inset-x-0 h-1"
-                      style={{ backgroundColor: catConfig.color }}
+                      style={{ backgroundColor: productColor }}
                     />
 
                     {/* Cart quantity badge */}
@@ -840,9 +976,9 @@ const POSPage = () => {
                     ) : null}
                     <div
                       className={`w-12 h-12 mx-auto mb-2 rounded-lg flex items-center justify-center ${product.image_url ? 'hidden' : ''}`}
-                      style={{ backgroundColor: catConfig.color + "18" }}
+                      style={{ backgroundColor: productColor + "18" }}
                     >
-                      <CatIcon className="h-6 w-6" style={{ color: catConfig.color }} />
+                      <CatIcon className="h-6 w-6" style={{ color: productColor }} />
                     </div>
 
                     <p className="text-xs font-medium text-foreground leading-tight line-clamp-2 mb-1 min-h-[2rem]">
@@ -1453,21 +1589,26 @@ const POSPage = () => {
               </div>
             </div>
 
-            {/* Category */}
+            {/* Category - using posCategories from DB */}
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
                 <Tag className="h-3.5 w-3.5" />
-                التصنيف *
+                فئة نقطة البيع
               </label>
               {!showNewCategory ? (
                 <div className="flex gap-2">
                   <select
-                    value={newProduct.category}
-                    onChange={(e) => setNewProduct(prev => ({ ...prev, category: e.target.value }))}
+                    value={newProduct.pos_category_id}
+                    onChange={(e) => {
+                      const catId = e.target.value;
+                      const cat = posCategories.find(c => c.id === catId);
+                      setNewProduct(prev => ({ ...prev, pos_category_id: catId, category: cat?.name || "" }));
+                    }}
                     className="flex-1 h-10 rounded-md border border-input bg-background px-3 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
-                    {existingCategories.map(cat => (
-                      <option key={cat} value={cat}>{cat}</option>
+                    <option value="">— بدون تصنيف —</option>
+                    {posCategories.map(cat => (
+                      <option key={cat.id} value={cat.id}>{cat.name}</option>
                     ))}
                   </select>
                   <Button
@@ -1567,6 +1708,106 @@ const POSPage = () => {
               className="flex-1 gap-1"
             >
               {savingProduct ? "جارِ الحفظ..." : "حفظ وإضافة ✓"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Category Manager Dialog ── */}
+      <Dialog open={showCategoryManager} onOpenChange={setShowCategoryManager}>
+        <DialogContent className="max-w-lg" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-lg">
+              <Tag className="h-5 w-5 text-primary" />
+              إدارة التصنيفات
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            {/* Create new category */}
+            <div className="flex gap-2 items-end">
+              <div className="flex-1 space-y-1">
+                <label className="text-xs font-medium text-muted-foreground">اسم التصنيف الجديد</label>
+                <Input
+                  value={newCatName}
+                  onChange={(e) => setNewCatName(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleSaveCategory()}
+                  placeholder="مثال: حلويات"
+                  className="h-10"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground">اللون</label>
+                <input
+                  type="color"
+                  value={newCatColor}
+                  onChange={(e) => setNewCatColor(e.target.value)}
+                  className="h-10 w-12 rounded-md border border-input cursor-pointer"
+                />
+              </div>
+              <Button
+                onClick={handleSaveCategory}
+                disabled={!newCatName.trim() || savingCategory}
+                className="h-10"
+              >
+                {savingCategory ? "..." : "إنشاء"}
+              </Button>
+            </div>
+
+            {/* Search */}
+            <div className="relative">
+              <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                value={catSearchQuery}
+                onChange={(e) => setCatSearchQuery(e.target.value)}
+                placeholder="بحث..."
+                className="pr-10 h-9 text-sm"
+              />
+            </div>
+
+            {/* Category list */}
+            <ScrollArea className="max-h-[350px]">
+              <div className="space-y-1">
+                {posCategories
+                  .filter(c => !catSearchQuery || c.name.toLowerCase().includes(catSearchQuery.toLowerCase()))
+                  .map((cat) => {
+                    const count = products.filter(p => p.is_pos_available && (p.pos_category_id === cat.id || p.category === cat.name)).length;
+                    return (
+                      <div
+                        key={cat.id}
+                        className="flex items-center justify-between px-3 py-2.5 rounded-lg border border-border hover:bg-muted/50 group"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div
+                            className="w-5 h-5 rounded-md shrink-0"
+                            style={{ backgroundColor: cat.color }}
+                          />
+                          <span className="text-sm font-medium">{cat.name}</span>
+                          <span className="text-xs text-muted-foreground">({count} منتج)</span>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 opacity-0 group-hover:opacity-100 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={() => handleDeleteCategory(cat.id)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    );
+                  })}
+                {posCategories.length === 0 && (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Tag className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                    <p className="text-sm">لا توجد تصنيفات بعد</p>
+                    <p className="text-xs">أنشئ تصنيفاً جديداً أعلاه</p>
+                  </div>
+                )}
+              </div>
+            </ScrollArea>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCategoryManager(false)} className="w-full">
+              إغلاق
             </Button>
           </DialogFooter>
         </DialogContent>
