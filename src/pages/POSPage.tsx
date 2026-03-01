@@ -909,7 +909,16 @@ const POSPage = () => {
                             </Button>
                           </div>
                           <div className="flex items-center gap-1.5 mt-0.5">
-                            <span className="text-xs text-muted-foreground tabular-nums">₪{item.unit_price.toFixed(2)}</span>
+                            <span className="text-xs text-muted-foreground">₪</span>
+                            <input
+                              type="number"
+                              value={item.unit_price}
+                              onChange={(e) => { e.stopPropagation(); updateCartItem(index, "unit_price", Math.max(0, Number(e.target.value))); }}
+                              onClick={(e) => e.stopPropagation()}
+                              className="w-16 text-xs tabular-nums bg-muted/30 border border-dashed border-border rounded px-1.5 py-0.5 text-foreground outline-none focus:ring-1 focus:ring-primary/40 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                              min={0}
+                              step={0.01}
+                            />
                             {item.discount_pct > 0 && (
                               <Badge variant="secondary" className="text-[10px] px-1 h-4">
                                 -{item.discount_pct}%
