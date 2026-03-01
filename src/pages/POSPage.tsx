@@ -1015,12 +1015,8 @@ const POSPage = () => {
                         </p>
 
                         {/* Stock */}
-                        <div className={`text-[10px] mt-1 tabular-nums ${
-                          isLowStock
-                            ? "text-orange-500 font-medium"
-                            : "text-muted-foreground/60"
-                        }`}>
-                          {product.quantity} {product.unit}
+                        <div className="text-[10px] mt-1 tabular-nums text-muted-foreground/60">
+                          {product.unit}
                         </div>
                       </div>
                     </motion.button>
