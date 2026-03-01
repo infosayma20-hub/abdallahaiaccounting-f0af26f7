@@ -659,12 +659,12 @@ const POSPage = () => {
       const { data: result, error: completeError } = await supabase.rpc("complete_pos_order", {
         p_order_id: order.id,
         p_user_id: userId,
-        p_payments: JSON.stringify([{
+        p_payments: [{
           method: paymentMethod,
           amount: cartTotals.total,
           tendered: tendered,
           change: change,
-        }]),
+        }],
       });
 
       if (completeError) throw completeError;
