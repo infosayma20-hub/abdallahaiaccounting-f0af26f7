@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Search, Users, DollarSign, Calendar, FileText, Edit, Trash2, Eye, UserPlus, Loader2 } from "lucide-react";
+import { Plus, Search, Users, DollarSign, Calendar, FileText, Edit, Trash2, Eye, UserPlus, Loader2, KeyRound } from "lucide-react";
 import BackButton from "@/components/BackButton";
 
 interface Employee {
@@ -108,6 +108,29 @@ const EmployeesPage = () => {
       setCreatingAccount(false);
     }
   };
+  const [resettingPassword, setResettingPassword] = useState(false);
+
+  const handleResetPassword = async () => {
+    if (!selectedEmployee || !(selectedEmployee as any).auth_user_id) return;
+    const empEmail = selectedEmployee.email;
+    if (!empEmail) {
+      toast.error("لا يوجد بريد إلكتروني مسجل لهذا الموظف");
+      return;
+    }
+    setResettingPassword(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(empEmail, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) throw error;
+      toast.success(`تم إرسال رابط إعادة تعيين كلمة المرور إلى ${empEmail}`);
+    } catch (err: any) {
+      toast.error(err.message || "فشل إرسال رابط إعادة التعيين");
+    } finally {
+      setResettingPassword(false);
+    }
+  };
+
 
   const fetchEmployees = async () => {
     if (!user) return;
@@ -262,9 +285,15 @@ const EmployeesPage = () => {
                          <UserPlus className="h-3 w-3" /> إنشاء حساب
                        </Button>
                      )}
-                     {(selectedEmployee as any).auth_user_id && (
-                       <Badge variant="secondary" className="text-[10px]">لديه حساب ✓</Badge>
-                     )}
+                      {(selectedEmployee as any).auth_user_id && (
+                        <>
+                          <Badge variant="secondary" className="text-[10px]">لديه حساب ✓</Badge>
+                          <Button size="sm" variant="outline" className="gap-1 text-xs" onClick={handleResetPassword} disabled={resettingPassword}>
+                            {resettingPassword ? <Loader2 className="h-3 w-3 animate-spin" /> : <KeyRound className="h-3 w-3" />}
+                            إعادة تعيين كلمة المرور
+                          </Button>
+                        </>
+                      )}
                      <Button size="sm" variant="outline" onClick={() => { setForm(selectedEmployee); setEditingId(selectedEmployee.id); setShowForm(true); }}><Edit className="h-3 w-3" /></Button>
                      <Button size="sm" variant="destructive" onClick={() => handleDelete(selectedEmployee.id)}><Trash2 className="h-3 w-3" /></Button>
                    </div>
