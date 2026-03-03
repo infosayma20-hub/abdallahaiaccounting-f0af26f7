@@ -5,7 +5,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { NotificationsPanel, useNotifications } from "@/components/NotificationsPanel";
-import RealtimeNotificationsPanel from "@/components/RealtimeNotificationsPanel";
+import { useRealtimeNotifications } from "@/hooks/useRealtimeNotifications";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -325,7 +325,9 @@ const TopBar = ({ onMenuClick, sidebarCollapsed, onOpenHelpGuide }: TopBarProps)
   const [profileName, setProfileName] = useState<string | null>(null);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const { unreadCount } = useNotifications();
+  const { unreadCount: financialUnread } = useNotifications();
+  const { unreadCount: realtimeUnread } = useRealtimeNotifications();
+  const unreadCount = financialUnread + realtimeUnread;
 
   useEffect(() => {
     if (!user?.id) return;
