@@ -30,7 +30,9 @@ export default function RoleGuard({ children, allowedRoles, fallback = "/" }: Pr
       
       // If user has no roles assigned, treat as admin (business owner)
       const effectiveRoles = userRoles.length === 0 ? ["admin"] : userRoles;
-      const allowed = allowedRoles.some((role) => effectiveRoles.includes(role));
+      // super_admin has access to everything
+      const isSuperAdmin = effectiveRoles.includes("super_admin");
+      const allowed = isSuperAdmin || allowedRoles.some((role) => effectiveRoles.includes(role));
       setHasAccess(allowed);
       setChecking(false);
     };
