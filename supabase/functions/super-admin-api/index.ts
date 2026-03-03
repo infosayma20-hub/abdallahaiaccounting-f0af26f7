@@ -124,26 +124,49 @@ Deno.serve(async (req) => {
         .select("*")
         .order("created_at", { ascending: false });
 
-      // Get roles for all users
-      const { data: roles } = await admin.from("user_roles").select("*");
-
       // Get auth users for email/last sign in
       const { data: { users: authUsers } } = await admin.auth.admin.listUsers({ perPage: 1000 });
 
       const enriched = (profiles || []).map((p: any) => {
         const authUser = authUsers?.find((u: any) => u.id === p.user_id);
-        const userRoles = (roles || []).filter((r: any) => r.user_id === p.user_id).map((r: any) => r.role);
         return {
           ...p,
           email: authUser?.email,
           phone: authUser?.phone,
           last_sign_in: authUser?.last_sign_in_at,
           is_banned: authUser?.banned_until ? new Date(authUser.banned_until) > new Date() : false,
-          roles: userRoles,
+          role: p.role || 'admin',
         };
       });
 
       return new Response(JSON.stringify({ users: enriched }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (action === "update_role") {
+      const body = await req.json();
+      const { target_user_id, new_role } = body;
+      const validRoles = ['super_admin', 'admin', 'accountant', 'cashier', 'viewer'];
+      
+      if (!target_user_id || !new_role || !validRoles.includes(new_role)) {
+        return new Response(JSON.stringify({ error: "بيانات غير صالحة" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Update profile role
+      await admin.from("profiles").update({ role: new_role }).eq("user_id", target_user_id);
+      
+      // Update user_roles table - delete all existing, insert new
+      await admin.from("user_roles").delete().eq("user_id", target_user_id);
+      
+      // Map to app_role enum values
+      const enumRole = new_role === 'accountant' ? 'accountant_senior' : new_role;
+      await admin.from("user_roles").insert({ user_id: target_user_id, role: enumRole });
+
+      await logAction("update_role", "user", target_user_id, { new_role });
+      return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
