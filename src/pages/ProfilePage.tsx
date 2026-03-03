@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { ArrowRight, Camera, User, Mail, Building2, MapPin, Globe, Briefcase, Save, Loader2, LogOut } from "lucide-react";
+import { ArrowRight, Camera, User, Mail, Building2, MapPin, Globe, Briefcase, Save, Loader2, LogOut, Users, ChevronLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -188,6 +188,25 @@ const ProfilePage = () => {
               />
             </div>
           ))}
+        </CardContent>
+      </Card>
+
+      {/* Team Management Link */}
+      <Card
+        className="border-0 shadow-sm cursor-pointer hover:bg-muted/50 transition-colors"
+        onClick={() => navigate("/team")}
+      >
+        <CardContent className="p-4 flex items-center justify-between">
+          <ChevronLeft className="h-4 w-4 text-muted-foreground" />
+          <div className="flex items-center gap-3">
+            <div>
+              <p className="text-sm font-bold text-foreground">إدارة الفريق والصلاحيات</p>
+              <p className="text-[11px] text-muted-foreground">إضافة مستخدمين وتعيين الأدوار</p>
+            </div>
+            <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+              <Users className="h-5 w-5 text-primary" />
+            </div>
+          </div>
         </CardContent>
       </Card>
 

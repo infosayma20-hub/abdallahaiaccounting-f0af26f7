@@ -140,7 +140,11 @@ const appModules: AppModule[] = [
   },
   {
     id: "settings", label: "الإعدادات", description: "إعدادات النظام والملف الشخصي", icon: Settings, color: "text-muted-foreground", bgColor: "bg-muted", path: "/settings",
-    keywords: ["إعدادات", "ملف", "شخصي"],
+    keywords: ["إعدادات", "ملف", "شخصي", "فريق", "مستخدمين", "صلاحيات"],
+    children: [
+      { label: "الملف الشخصي", path: "/settings" },
+      { label: "إدارة الفريق والصلاحيات", path: "/team" },
+    ],
   },
 ];
 
