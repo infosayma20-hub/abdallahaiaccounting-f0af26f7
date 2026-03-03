@@ -37,10 +37,18 @@ Deno.serve(async (req) => {
     const { action } = body;
 
     if (action === 'create_team_member') {
-      const { email, password, full_name, role } = body;
+      const { email: rawEmail, password, full_name, role } = body;
+      const email = (rawEmail || '').trim().toLowerCase();
 
       if (!email || !password || !full_name || !role) {
         return new Response(JSON.stringify({ error: 'Missing fields' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        return new Response(JSON.stringify({ error: 'صيغة البريد الإلكتروني غير صحيحة' }), {
           status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }

@@ -86,13 +86,20 @@ export default function TeamManagementPage() {
   }, [user]);
 
   const handleAdd = async () => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!addForm.email || !addForm.password || !addForm.full_name) {
       toast.error("يرجى تعبئة جميع الحقول"); return;
+    }
+    if (!emailRegex.test(addForm.email.trim())) {
+      toast.error("صيغة البريد الإلكتروني غير صحيحة"); return;
+    }
+    if (addForm.password.length < 6) {
+      toast.error("كلمة المرور يجب أن تكون 6 أحرف على الأقل"); return;
     }
     setAdding(true);
     try {
       const { data, error } = await supabase.functions.invoke("team-management", {
-        body: { action: "create_team_member", ...addForm },
+        body: { action: "create_team_member", ...addForm, email: addForm.email.trim().toLowerCase() },
       });
       if (error) throw error;
       if (data.error) throw new Error(data.error);
