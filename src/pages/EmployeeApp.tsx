@@ -8,8 +8,9 @@ import QRScannerDialog from "@/components/employee/QRScannerDialog";
 import AttendanceCalendarTab from "@/components/employee/AttendanceCalendarTab";
 import AlertsTab from "@/components/employee/AlertsTab";
 import EmployeeProfileTab from "@/components/employee/EmployeeProfileTab";
+import EmployeeRequestsTab from "@/components/employee/EmployeeRequestsTab";
 
-type Tab = "home" | "scan" | "history" | "alerts" | "profile";
+type Tab = "home" | "scan" | "history" | "alerts" | "requests" | "profile";
 
 type AttendanceDay = {
   id: string;
@@ -68,7 +69,6 @@ export default function EmployeeApp() {
       setEmployee(emp);
       if (!emp) { setLoading(false); return; }
 
-      // Branch name
       if (emp.branch_id) {
         const { data: br } = await supabase.from("branches_safe").select("name").eq("id", emp.branch_id).single();
         setBranchName(br?.name || "");
@@ -127,19 +127,29 @@ export default function EmployeeApp() {
 
   return (
     <div className="min-h-screen bg-background" style={{ fontFamily: "'IBM Plex Sans Arabic', sans-serif" }}>
-      {/* Safe area top padding */}
       <div className="h-[env(safe-area-inset-top,0px)]" />
 
       {activeTab === "home" && (
         <EmployeeHomeTab
           employeeName={employee.full_name}
           todayRecord={todayRecord}
+          history={history}
           onScanTap={() => handleNavigate("scan")}
+          onNavigate={(tab) => setActiveTab(tab as Tab)}
         />
       )}
 
       {activeTab === "history" && (
         <AttendanceCalendarTab history={history} />
+      )}
+
+      {activeTab === "requests" && (
+        <EmployeeRequestsTab
+          corrections={corrections}
+          employeeId={employee.id}
+          userId={user!.id}
+          onRefresh={fetchData}
+        />
       )}
 
       {activeTab === "alerts" && (

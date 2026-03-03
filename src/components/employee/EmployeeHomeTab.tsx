@@ -3,11 +3,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   LogIn, LogOut, Clock, CheckCircle2, XCircle, AlertTriangle,
-  Calendar, Timer, MapPin
+  Calendar, Timer, MapPin, QrCode, ClipboardList, Send, User, ChevronLeft
 } from "lucide-react";
-import { format } from "date-fns";
+import { format, differenceInMinutes } from "date-fns";
 import { ar } from "date-fns/locale";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 
 type AttendanceDay = {
   id: string;
@@ -26,17 +26,19 @@ const statusMap: Record<string, { label: string; color: string; icon: React.Reac
   late: { label: "متأخر", color: "bg-warning/10 text-warning border-warning/20", icon: <Clock className="h-4 w-4" /> },
   absent: { label: "غائب", color: "bg-destructive/10 text-destructive border-destructive/20", icon: <XCircle className="h-4 w-4" /> },
   incomplete: { label: "ناقص", color: "bg-orange-500/10 text-orange-500 border-orange-500/20", icon: <AlertTriangle className="h-4 w-4" /> },
-  leave: { label: "إجازة", color: "bg-info/10 text-info border-info/20", icon: <Calendar className="h-4 w-4" /> },
+  leave: { label: "إجازة", color: "bg-blue-500/10 text-blue-400 border-blue-500/20", icon: <Calendar className="h-4 w-4" /> },
   holiday: { label: "عطلة", color: "bg-purple-500/10 text-purple-400 border-purple-500/20", icon: <Calendar className="h-4 w-4" /> },
 };
 
 interface Props {
   employeeName: string;
   todayRecord: AttendanceDay | null;
+  history: AttendanceDay[];
   onScanTap: () => void;
+  onNavigate: (tab: string) => void;
 }
 
-export default function EmployeeHomeTab({ employeeName, todayRecord, onScanTap }: Props) {
+export default function EmployeeHomeTab({ employeeName, todayRecord, history, onScanTap, onNavigate }: Props) {
   const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
@@ -46,10 +48,57 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, onScanTap }
 
   const canCheckIn = !todayRecord || !todayRecord.first_check_in;
   const canCheckOut = todayRecord?.first_check_in && !todayRecord?.last_check_out;
-  const status = todayRecord ? statusMap[todayRecord.status] || statusMap.absent : null;
+  const dayComplete = todayRecord?.first_check_in && todayRecord?.last_check_out;
+  const status = todayRecord ? statusMap[todayRecord.status] || null : null;
+
+  // Elapsed time since check-in
+  const elapsed = useMemo(() => {
+    if (!todayRecord?.first_check_in || todayRecord?.last_check_out) return null;
+    const mins = differenceInMinutes(currentTime, new Date(todayRecord.first_check_in));
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    return `${h} ساعة و ${m} دقيقة`;
+  }, [todayRecord, currentTime]);
+
+  // Completed day summary
+  const completedSummary = useMemo(() => {
+    if (!dayComplete || !todayRecord) return null;
+    const totalMins = differenceInMinutes(new Date(todayRecord.last_check_out!), new Date(todayRecord.first_check_in!));
+    const h = Math.floor(totalMins / 60);
+    const m = totalMins % 60;
+    return `${h} ساعة و ${m} دقيقة`;
+  }, [dayComplete, todayRecord]);
+
+  // Monthly stats
+  const stats = useMemo(() => {
+    const now = new Date();
+    const monthDays = history.filter(d => {
+      const date = new Date(d.attendance_date);
+      return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+    });
+    return {
+      present: monthDays.filter(d => d.status === "present").length,
+      late: monthDays.filter(d => d.status === "late").length,
+      absent: monthDays.filter(d => d.status === "absent").length,
+      totalHours: monthDays.reduce((s, d) => s + (d.total_hours || 0), 0),
+    };
+  }, [history]);
+
+  // Last 5 days
+  const last5 = useMemo(() => history.slice(0, 5), [history]);
+
+  const statusIcon = (s: string) => {
+    switch (s) {
+      case "present": return <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />;
+      case "late": return <AlertTriangle className="h-3.5 w-3.5 text-warning" />;
+      case "absent": return <XCircle className="h-3.5 w-3.5 text-destructive" />;
+      case "incomplete": return <AlertTriangle className="h-3.5 w-3.5 text-orange-500" />;
+      default: return <Clock className="h-3.5 w-3.5 text-muted-foreground" />;
+    }
+  };
 
   return (
-    <div className="space-y-5 px-4 pt-2 pb-24" dir="rtl">
+    <div className="space-y-4 px-4 pt-2 pb-24" dir="rtl">
       {/* Greeting */}
       <div className="pt-2">
         <p className="text-sm text-muted-foreground">مرحباً 👋</p>
@@ -68,7 +117,7 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, onScanTap }
         </CardContent>
       </Card>
 
-      {/* Today Status */}
+      {/* Today Status & Action */}
       <Card className="border-border bg-card">
         <CardContent className="p-5">
           <div className="flex items-center justify-between mb-4">
@@ -84,7 +133,7 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, onScanTap }
                     <span className="mr-1">{status.label}</span>
                   </Badge>
                 ) : (
-                  <span className="text-xs text-muted-foreground">لم تسجّل بعد</span>
+                  <span className="text-xs text-muted-foreground">🟡 لم تسجّل بعد</span>
                 )}
               </div>
             </div>
@@ -118,38 +167,165 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, onScanTap }
             </div>
           </div>
 
-          {/* Action Button */}
-          {(canCheckIn || canCheckOut) && (
-            <Button
-              size="lg"
-              className="w-full h-14 text-base rounded-2xl gap-2 font-semibold"
-              variant={canCheckOut ? "outline" : "default"}
-              onClick={onScanTap}
-            >
-              {canCheckOut ? (
-                <>
-                  <LogOut className="h-5 w-5" />
-                  تسجيل خروج
-                </>
-              ) : (
-                <>
-                  <LogIn className="h-5 w-5" />
-                  تسجيل دخول
-                </>
-              )}
-            </Button>
+          {/* Elapsed time */}
+          {elapsed && (
+            <p className="text-xs text-center text-muted-foreground mb-3">
+              ⏱️ دخلت منذ {elapsed}
+            </p>
           )}
 
-          {!canCheckIn && !canCheckOut && todayRecord && (
-            <div className="text-center py-3">
-              <p className="text-sm text-muted-foreground flex items-center justify-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-primary" />
-                تم تسجيل حضورك وانصرافك لهذا اليوم
+          {/* Action Buttons */}
+          {canCheckIn && (
+            <div className="flex gap-2">
+              <Button
+                size="lg"
+                className="flex-1 h-14 text-base rounded-2xl gap-2 font-semibold bg-emerald-600 hover:bg-emerald-700 text-white"
+                onClick={onScanTap}
+              >
+                <LogIn className="h-5 w-5" />
+                تسجيل دخول
+              </Button>
+              <Button
+                size="lg"
+                variant="outline"
+                className="h-14 w-14 rounded-2xl"
+                onClick={onScanTap}
+              >
+                <QrCode className="h-5 w-5" />
+              </Button>
+            </div>
+          )}
+
+          {canCheckOut && (
+            <div className="flex gap-2">
+              <Button
+                size="lg"
+                className="flex-1 h-14 text-base rounded-2xl gap-2 font-semibold bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+                onClick={onScanTap}
+              >
+                <LogOut className="h-5 w-5" />
+                تسجيل خروج
+              </Button>
+              <Button
+                size="lg"
+                variant="outline"
+                className="h-14 w-14 rounded-2xl"
+                onClick={onScanTap}
+              >
+                <QrCode className="h-5 w-5" />
+              </Button>
+            </div>
+          )}
+
+          {dayComplete && (
+            <div className="text-center py-3 space-y-1">
+              <p className="text-sm font-medium text-emerald-500 flex items-center justify-center gap-2">
+                <CheckCircle2 className="h-4 w-4" />
+                انتهى يوم عملك ✅
+              </p>
+              <p className="text-xs text-muted-foreground">
+                إجمالي العمل: {completedSummary}
               </p>
             </div>
           )}
         </CardContent>
       </Card>
+
+      {/* Monthly Stats */}
+      <Card className="border-border bg-card">
+        <CardContent className="p-4">
+          <h3 className="text-sm font-semibold mb-3">📊 إحصائيات الشهر</h3>
+          <div className="grid grid-cols-4 gap-2">
+            <div className="text-center">
+              <div className="text-lg font-bold tabular-nums text-emerald-500">{stats.present}</div>
+              <div className="text-[10px] text-muted-foreground">✅ حاضر</div>
+            </div>
+            <div className="text-center">
+              <div className="text-lg font-bold tabular-nums text-warning">{stats.late}</div>
+              <div className="text-[10px] text-muted-foreground">⚠️ متأخر</div>
+            </div>
+            <div className="text-center">
+              <div className="text-lg font-bold tabular-nums text-destructive">{stats.absent}</div>
+              <div className="text-[10px] text-muted-foreground">❌ غياب</div>
+            </div>
+            <div className="text-center">
+              <div className="text-lg font-bold tabular-nums text-foreground">{stats.totalHours.toFixed(0)}</div>
+              <div className="text-[10px] text-muted-foreground">⏱️ ساعة</div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Last 5 Days */}
+      {last5.length > 0 && (
+        <Card className="border-border bg-card">
+          <CardContent className="p-4">
+            <h3 className="text-sm font-semibold mb-3">📅 آخر 5 أيام</h3>
+            <div className="space-y-2">
+              {last5.map(day => (
+                <div key={day.id} className="flex items-center justify-between bg-secondary/30 rounded-xl p-2.5">
+                  <div className="flex items-center gap-2">
+                    {statusIcon(day.status)}
+                    <span className="text-xs font-medium">
+                      {format(new Date(day.attendance_date), "dd/MM EEEE", { locale: ar }).slice(0, 12)}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3 text-[11px] tabular-nums text-muted-foreground">
+                    {day.status === "absent" ? (
+                      <span className="text-destructive">غياب</span>
+                    ) : (
+                      <>
+                        <span>{day.first_check_in ? format(new Date(day.first_check_in), "HH:mm") : "—"}</span>
+                        <ChevronLeft className="h-3 w-3" />
+                        <span>{day.last_check_out ? format(new Date(day.last_check_out), "HH:mm") : "—"}</span>
+                        {day.total_hours > 0 && (
+                          <span className="text-foreground font-medium">({day.total_hours.toFixed(1)}h)</span>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Quick Links */}
+      <div className="grid grid-cols-2 gap-3">
+        <Button
+          variant="outline"
+          className="h-14 rounded-2xl gap-2 text-sm border-border"
+          onClick={() => onNavigate("history")}
+        >
+          <ClipboardList className="h-4 w-4" />
+          سجلي الكامل
+        </Button>
+        <Button
+          variant="outline"
+          className="h-14 rounded-2xl gap-2 text-sm border-border"
+          onClick={() => onNavigate("requests")}
+        >
+          <Send className="h-4 w-4" />
+          طلب إجازة / سلفة
+        </Button>
+        <Button
+          variant="outline"
+          className="h-14 rounded-2xl gap-2 text-sm border-border"
+          onClick={() => onNavigate("alerts")}
+        >
+          <AlertTriangle className="h-4 w-4" />
+          تنبيهات وتصحيحات
+        </Button>
+        <Button
+          variant="outline"
+          className="h-14 rounded-2xl gap-2 text-sm border-border"
+          onClick={() => onNavigate("profile")}
+        >
+          <User className="h-4 w-4" />
+          ملفي الشخصي
+        </Button>
+      </div>
 
       {/* Geofence note */}
       <div className="flex items-center gap-2 text-[11px] text-muted-foreground px-1">
