@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import LoadingScreen from "@/components/LoadingScreen";
 
-type AllowedRole = "admin" | "hr_manager" | "employee";
+type AllowedRole = "super_admin" | "admin" | "accountant_senior" | "accountant_sales" | "accountant_purchases" | "cashier" | "hr_manager" | "employee";
 
 interface Props {
   children: React.ReactNode;
