@@ -194,7 +194,7 @@ const ProfilePage = () => {
       {/* Team Management Link */}
       <Card
         className="border-0 shadow-sm cursor-pointer hover:bg-muted/50 transition-colors"
-        onClick={() => navigate("/team")}
+        onClick={() => navigate("/team-management")}
       >
         <CardContent className="p-4 flex items-center justify-between">
           <ChevronLeft className="h-4 w-4 text-muted-foreground" />
