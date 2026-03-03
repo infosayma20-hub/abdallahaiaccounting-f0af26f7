@@ -7,7 +7,7 @@ import {
   Lock, Unlock, Trash2, KeyRound, Eye, RefreshCw, AlertTriangle,
   ChevronLeft, ChevronRight, Search, X, LogOut, Database, FileText,
   TrendingUp, Wifi, Download, Table2, Play, Pause, Settings, Package,
-  Zap, Server, Bell, HardDrive,
+  Zap, Server, Bell, HardDrive, CreditCard,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -524,7 +524,208 @@ function LiveMonitor() {
   );
 }
 
-// ─── Platform Settings Component ───
+// ─── Subscriptions Manager Component ───
+function SubscriptionsManager() {
+  const [subs, setSubs] = useState<any[]>([]);
+  const [plans, setPlans] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [editSub, setEditSub] = useState<any | null>(null);
+  const [editPlanId, setEditPlanId] = useState("");
+  const [editStatus, setEditStatus] = useState("");
+  const [editBilling, setEditBilling] = useState("");
+
+  useEffect(() => { loadData(); }, []);
+
+  const loadData = async () => {
+    setLoading(true);
+    const [subsRes, plansRes] = await Promise.all([
+      apiCall("subscriptions"),
+      supabase.from("plans").select("*").order("display_order"),
+    ]);
+    setSubs(subsRes.subscriptions || []);
+    setPlans(plansRes.data || []);
+    setLoading(false);
+  };
+
+  const statusLabel: Record<string, { text: string; cls: string }> = {
+    trial: { text: "تجريبي", cls: "bg-blue-500/10 text-blue-400 border-blue-500/20" },
+    active: { text: "نشط", cls: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" },
+    expired: { text: "منتهي", cls: "bg-red-500/10 text-red-400 border-red-500/20" },
+    cancelled: { text: "ملغي", cls: "bg-white/5 text-white/30 border-white/10" },
+    suspended: { text: "موقوف", cls: "bg-amber-500/10 text-amber-400 border-amber-500/20" },
+  };
+
+  const openEdit = (sub: any) => {
+    setEditSub(sub);
+    setEditPlanId(sub.plan_id);
+    setEditStatus(sub.status);
+    setEditBilling(sub.billing_cycle);
+  };
+
+  const saveEdit = async () => {
+    if (!editSub) return;
+    try {
+      await apiCall("update_subscription", undefined, {
+        subscription_id: editSub.id,
+        plan_id: editPlanId,
+        status: editStatus,
+        billing_cycle: editBilling,
+      });
+      toast.success("تم تحديث الاشتراك");
+      setEditSub(null);
+      loadData();
+    } catch (e: any) { toast.error(e.message); }
+  };
+
+  const filtered = subs.filter((s) =>
+    !search || s.display_name?.toLowerCase().includes(search.toLowerCase()) || s.email?.toLowerCase().includes(search.toLowerCase())
+  );
+
+  // Stats
+  const trialCount = subs.filter(s => s.status === "trial").length;
+  const activeCount = subs.filter(s => s.status === "active").length;
+  const expiredCount = subs.filter(s => s.status === "expired").length;
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-bold text-white flex items-center gap-2">
+          <CreditCard className="h-5 w-5 text-amber-400" /> إدارة الاشتراكات
+        </h2>
+        <Button variant="ghost" size="sm" onClick={loadData} disabled={loading} className="text-white/40">
+          <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+        </Button>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-4">
+        <div className="rounded-2xl bg-blue-500/5 border border-blue-500/10 p-4 text-center">
+          <p className="text-2xl font-bold text-blue-400">{trialCount}</p>
+          <p className="text-xs text-white/30">تجريبي</p>
+        </div>
+        <div className="rounded-2xl bg-emerald-500/5 border border-emerald-500/10 p-4 text-center">
+          <p className="text-2xl font-bold text-emerald-400">{activeCount}</p>
+          <p className="text-xs text-white/30">نشط</p>
+        </div>
+        <div className="rounded-2xl bg-red-500/5 border border-red-500/10 p-4 text-center">
+          <p className="text-2xl font-bold text-red-400">{expiredCount}</p>
+          <p className="text-xs text-white/30">منتهي</p>
+        </div>
+      </div>
+
+      {/* Search */}
+      <div className="relative max-w-md">
+        <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/20" />
+        <Input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="بحث بالاسم أو الإيميل..."
+          className="pr-10 bg-white/[0.03] border-white/[0.06] text-white placeholder:text-white/20"
+        />
+      </div>
+
+      {/* Table */}
+      <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-white/[0.06]">
+                <th className="text-right text-white/30 font-medium px-4 py-3">المستخدم</th>
+                <th className="text-right text-white/30 font-medium px-4 py-3">الباقة</th>
+                <th className="text-right text-white/30 font-medium px-4 py-3">الدورة</th>
+                <th className="text-right text-white/30 font-medium px-4 py-3">الحالة</th>
+                <th className="text-right text-white/30 font-medium px-4 py-3">انتهاء الفترة</th>
+                <th className="text-center text-white/30 font-medium px-4 py-3">إجراءات</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/[0.04]">
+              {filtered.map((sub) => {
+                const st = statusLabel[sub.status] || statusLabel.trial;
+                return (
+                  <tr key={sub.id} className="hover:bg-white/[0.02]">
+                    <td className="px-4 py-3">
+                      <div>
+                        <p className="text-white/80 font-medium text-sm">{sub.display_name}</p>
+                        <p className="text-white/25 text-xs font-mono">{sub.email}</p>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <Badge variant="outline" className="text-[10px] border-white/10 text-white/60">
+                        {sub.plans?.name || "—"}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-3 text-white/40 text-xs">
+                      {sub.billing_cycle === "annual" ? "سنوي" : "شهري"}
+                    </td>
+                    <td className="px-4 py-3">
+                      <Badge className={`text-[10px] ${st.cls}`}>{st.text}</Badge>
+                    </td>
+                    <td className="px-4 py-3 text-white/30 text-xs tabular-nums">
+                      {sub.current_period_end ? format(new Date(sub.current_period_end), "dd/MM/yyyy") : "—"}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <Button size="sm" variant="ghost" onClick={() => openEdit(sub)} className="text-amber-400 hover:bg-amber-500/10 text-xs h-7">
+                        ✏️ تعديل
+                      </Button>
+                    </td>
+                  </tr>
+                );
+              })}
+              {filtered.length === 0 && (
+                <tr><td colSpan={6} className="text-center py-8 text-white/20">لا توجد اشتراكات</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Edit Dialog */}
+      {editSub && (
+        <Dialog open={!!editSub} onOpenChange={() => setEditSub(null)}>
+          <DialogContent className="bg-[#0f1629] border-white/10 text-white" dir="rtl">
+            <DialogHeader>
+              <DialogTitle className="text-white">تعديل اشتراك {editSub.display_name}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs text-white/40 block mb-1">الباقة</label>
+                <select value={editPlanId} onChange={e => setEditPlanId(e.target.value)} className="w-full h-10 rounded-md bg-white/5 border border-white/10 text-white px-3 text-sm">
+                  {plans.map(p => (
+                    <option key={p.id} value={p.id} className="bg-[#0f1629]">{p.name} (₪{p.monthly_price}/شهر)</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-white/40 block mb-1">الحالة</label>
+                <select value={editStatus} onChange={e => setEditStatus(e.target.value)} className="w-full h-10 rounded-md bg-white/5 border border-white/10 text-white px-3 text-sm">
+                  <option value="trial" className="bg-[#0f1629]">تجريبي</option>
+                  <option value="active" className="bg-[#0f1629]">نشط</option>
+                  <option value="expired" className="bg-[#0f1629]">منتهي</option>
+                  <option value="cancelled" className="bg-[#0f1629]">ملغي</option>
+                  <option value="suspended" className="bg-[#0f1629]">موقوف</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-white/40 block mb-1">دورة الفوترة</label>
+                <select value={editBilling} onChange={e => setEditBilling(e.target.value)} className="w-full h-10 rounded-md bg-white/5 border border-white/10 text-white px-3 text-sm">
+                  <option value="monthly" className="bg-[#0f1629]">شهري</option>
+                  <option value="annual" className="bg-[#0f1629]">سنوي</option>
+                </select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => setEditSub(null)} className="text-white/40">إلغاء</Button>
+              <Button onClick={saveEdit} className="bg-amber-500 hover:bg-amber-600 text-black">حفظ</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+    </div>
+  );
+}
+
+
 function PlatformSettings() {
   const [settingsTab, setSettingsTab] = useState("plans");
   const [maintenanceMode, setMaintenanceMode] = useState(false);
@@ -1100,6 +1301,9 @@ export default function SuperAdminDashboard() {
             <TabsTrigger value="settings" className="data-[state=active]:bg-amber-500/20 data-[state=active]:text-amber-400 text-white/40">
               <Settings className="h-4 w-4 ml-1" /> إعدادات المنصة
             </TabsTrigger>
+            <TabsTrigger value="subscriptions" className="data-[state=active]:bg-amber-500/20 data-[state=active]:text-amber-400 text-white/40">
+              <CreditCard className="h-4 w-4 ml-1" /> الاشتراكات
+            </TabsTrigger>
           </TabsList>
 
           {/* ─── DASHBOARD TAB ─── */}
@@ -1313,6 +1517,11 @@ export default function SuperAdminDashboard() {
                 </div>
               )}
             </div>
+          </TabsContent>
+
+          {/* ─── SUBSCRIPTIONS TAB ─── */}
+          <TabsContent value="subscriptions">
+            <SubscriptionsManager />
           </TabsContent>
 
           {/* ─── SETTINGS TAB ─── */}

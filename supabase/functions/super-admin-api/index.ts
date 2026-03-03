@@ -295,6 +295,7 @@ Deno.serve(async (req) => {
         "profiles", "accounts", "transactions", "contacts", "employees",
         "pos_sessions", "pos_orders", "cheques", "currencies", "branches",
         "user_roles", "products", "invoices", "employee_payroll",
+        "plans", "subscriptions",
       ];
 
       if (!tableName || !allowedTables.includes(tableName)) {
@@ -312,6 +313,118 @@ Deno.serve(async (req) => {
         .range(page * limit, (page + 1) * limit - 1);
 
       return new Response(JSON.stringify({ data: data || [], total: count || 0, page }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ─── SUBSCRIPTIONS ───
+    if (action === "subscriptions") {
+      await logAction("view_subscriptions");
+
+      const { data: subs } = await admin
+        .from("subscriptions")
+        .select("*, plans(name, plan_key, monthly_price)")
+        .order("created_at", { ascending: false });
+
+      // Enrich with user info
+      const { data: profiles } = await admin.from("profiles").select("user_id, display_name, company_name");
+      const { data: { users: authUsers } } = await admin.auth.admin.listUsers({ perPage: 1000 });
+
+      const enriched = (subs || []).map((s: any) => {
+        const profile = (profiles || []).find((p: any) => p.user_id === s.user_id);
+        const authUser = authUsers?.find((u: any) => u.id === s.user_id);
+        return {
+          ...s,
+          display_name: profile?.display_name || "—",
+          company_name: profile?.company_name || "",
+          email: authUser?.email || "",
+        };
+      });
+
+      return new Response(JSON.stringify({ subscriptions: enriched }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (action === "update_subscription") {
+      const body = await req.json();
+      const { subscription_id, plan_id, status, billing_cycle } = body;
+
+      if (!subscription_id) {
+        return new Response(JSON.stringify({ error: "subscription_id مطلوب" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const updateData: any = {};
+      if (plan_id) updateData.plan_id = plan_id;
+      if (status) updateData.status = status;
+      if (billing_cycle) updateData.billing_cycle = billing_cycle;
+
+      // If activating, set period
+      if (status === "active") {
+        updateData.current_period_start = new Date().toISOString();
+        const end = new Date();
+        end.setMonth(end.getMonth() + (billing_cycle === "annual" ? 12 : 1));
+        updateData.current_period_end = end.toISOString();
+      }
+
+      if (status === "cancelled") {
+        updateData.cancelled_at = new Date().toISOString();
+      }
+
+      const { error } = await admin.from("subscriptions").update(updateData).eq("id", subscription_id);
+      if (error) {
+        return new Response(JSON.stringify({ error: error.message }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      await logAction("update_subscription", "subscription", subscription_id, updateData);
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (action === "assign_subscription") {
+      const body = await req.json();
+      const { target_user_id, plan_id, billing_cycle, status } = body;
+
+      if (!target_user_id || !plan_id) {
+        return new Response(JSON.stringify({ error: "user_id و plan_id مطلوبين" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Check if user already has subscription
+      const { data: existing } = await admin.from("subscriptions").select("id").eq("user_id", target_user_id).maybeSingle();
+
+      if (existing) {
+        // Update existing
+        const end = new Date();
+        end.setMonth(end.getMonth() + (billing_cycle === "annual" ? 12 : 1));
+        await admin.from("subscriptions").update({
+          plan_id,
+          billing_cycle: billing_cycle || "monthly",
+          status: status || "active",
+          current_period_start: new Date().toISOString(),
+          current_period_end: end.toISOString(),
+        }).eq("id", existing.id);
+      } else {
+        const end = new Date();
+        end.setMonth(end.getMonth() + (billing_cycle === "annual" ? 12 : 1));
+        await admin.from("subscriptions").insert({
+          user_id: target_user_id,
+          plan_id,
+          billing_cycle: billing_cycle || "monthly",
+          status: status || "active",
+          current_period_start: new Date().toISOString(),
+          current_period_end: end.toISOString(),
+        });
+      }
+
+      await logAction("assign_subscription", "user", target_user_id, { plan_id, billing_cycle });
+      return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
