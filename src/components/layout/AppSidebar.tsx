@@ -129,7 +129,7 @@ const navSections: NavSection[] = [
 const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarProps) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const [expandedGroups, setExpandedGroups] = useState<string[]>(["المحاسبة"]);
+  const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
 
   const isActive = (path?: string) => {
     if (!path) return false;
