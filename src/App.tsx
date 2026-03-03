@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
+import { useRoleRedirect } from "@/hooks/useRoleRedirect";
 import { ThemeProvider } from "@/hooks/useTheme";
 import WebLayout from "./components/layout/WebLayout";
 import HomeDashboard from "./pages/HomeDashboard";
@@ -79,10 +80,16 @@ const AppsRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 const AuthRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, loading } = useAuth();
-  if (loading) return <LoadingScreen />;
-  if (user) return <Navigate to="/apps" replace />;
+  const { targetPath, checking, user } = useRoleRedirect();
+  if (checking) return <LoadingScreen />;
+  if (user && targetPath) return <Navigate to={targetPath} replace />;
   return <>{children}</>;
+};
+
+const SmartRedirect = () => {
+  const { targetPath, checking } = useRoleRedirect();
+  if (checking) return <LoadingScreen />;
+  return <Navigate to={targetPath || "/apps"} replace />;
 };
 
 const App = () => (
@@ -107,7 +114,7 @@ const App = () => (
                 <ProtectedRoute>
                   <WebLayout>
                     <Routes>
-                      <Route path="/" element={<Navigate to="/apps" replace />} />
+                      <Route path="/" element={<SmartRedirect />} />
                       <Route path="/dashboard" element={<HomeDashboard />} />
                       <Route path="/smart-accountant" element={<SmartAccountantPage />} />
                       <Route path="/menu" element={<MenuPage />} />

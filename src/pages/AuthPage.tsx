@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
@@ -29,6 +29,18 @@ const AuthPage = () => {
     if (stored) setSavedEmail(stored);
   }, []);
 
+  const resolveRedirect = useCallback(async (userId: string): Promise<string> => {
+    const { data } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId);
+    const roles = (data || []).map((r) => r.role);
+    if (roles.includes("super_admin")) return "/super-admin/dashboard";
+    if (roles.includes("employee") && roles.length === 1) return "/employee";
+    if (roles.includes("cashier") && !roles.includes("admin")) return "/pos";
+    return "/apps";
+  }, []);
+
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -53,9 +65,15 @@ const AuthPage = () => {
         toast({ title: "تم إنشاء الحساب ✅", description: "تحقق من بريدك الإلكتروني لتأكيد الحساب" });
         setMode("login");
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { error, data } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        navigate("/");
+        // Role-based redirect
+        if (data.user) {
+          const dest = await resolveRedirect(data.user.id);
+          navigate(dest);
+        } else {
+          navigate("/apps");
+        }
       }
     } catch (err: any) {
       toast({ title: "خطأ", description: err.message, variant: "destructive" });
@@ -112,7 +130,13 @@ const AuthPage = () => {
         if (verifyErr) throw verifyErr;
       }
       toast({ title: "تم تسجيل الدخول بنجاح ✅" });
-      navigate("/");
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      if (currentUser) {
+        const dest = await resolveRedirect(currentUser.id);
+        navigate(dest);
+      } else {
+        navigate("/apps");
+      }
     } catch (err: any) {
       const msg = err.message || "فشل التحقق البيومتري";
       if (msg.includes("No passkeys")) {
