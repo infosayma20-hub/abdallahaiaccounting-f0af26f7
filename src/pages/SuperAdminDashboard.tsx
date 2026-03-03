@@ -528,12 +528,50 @@ function LiveMonitor() {
 function PlatformSettings() {
   const [settingsTab, setSettingsTab] = useState("plans");
   const [maintenanceMode, setMaintenanceMode] = useState(false);
+  const [dbPlans, setDbPlans] = useState<any[]>([]);
+  const [loadingPlans, setLoadingPlans] = useState(true);
+  const [editingPlan, setEditingPlan] = useState<any | null>(null);
+  const [editPrice, setEditPrice] = useState("");
+  const [editDiscount, setEditDiscount] = useState("");
+  const [editMaxUsers, setEditMaxUsers] = useState("");
+  const [editMaxCompanies, setEditMaxCompanies] = useState("");
 
-  const plans = [
-    { name: "Starter", price: 19, users: 1, storage: "500MB", color: "border-blue-500/30", features: ["محاسبة أساسية", "تقارير محدودة", "دعم عبر البريد"] },
-    { name: "Growth", price: 39, users: 5, storage: "2GB", color: "border-emerald-500/30", popular: true, features: ["كل ميزات Starter", "نقاط البيع", "مندوبين", "تقارير متقدمة", "دعم أولوية"] },
-    { name: "Business", price: 79, users: 15, storage: "10GB", color: "border-amber-500/30", features: ["كل ميزات Growth", "فروع متعددة", "API وصول", "مدير حساب مخصص", "نسخ احتياطي يومي"] },
-  ];
+  useEffect(() => { loadPlans(); }, []);
+
+  const loadPlans = async () => {
+    setLoadingPlans(true);
+    const { data } = await supabase.from("plans").select("*").order("display_order");
+    if (data) setDbPlans(data);
+    setLoadingPlans(false);
+  };
+
+  const openEditPlan = (plan: any) => {
+    setEditingPlan(plan);
+    setEditPrice(String(plan.monthly_price));
+    setEditDiscount(String(plan.annual_discount_pct));
+    setEditMaxUsers(String(plan.max_users));
+    setEditMaxCompanies(String(plan.max_companies));
+  };
+
+  const savePlan = async () => {
+    if (!editingPlan) return;
+    const { error } = await supabase.from("plans").update({
+      monthly_price: Number(editPrice),
+      annual_discount_pct: Number(editDiscount),
+      max_users: Number(editMaxUsers),
+      max_companies: Number(editMaxCompanies),
+    }).eq("id", editingPlan.id);
+    if (error) { toast.error("فشل التحديث: " + error.message); return; }
+    toast.success(`تم تحديث ${editingPlan.name}`);
+    setEditingPlan(null);
+    loadPlans();
+  };
+
+  const togglePlanActive = async (plan: any) => {
+    await supabase.from("plans").update({ is_active: !plan.is_active }).eq("id", plan.id);
+    toast.success(plan.is_active ? `تم تعطيل ${plan.name}` : `تم تفعيل ${plan.name}`);
+    loadPlans();
+  };
 
   const currencies = [
     { code: "USD", name: "دولار أمريكي", flag: "🇺🇸", rate: 3.65, auto: true },
@@ -574,10 +612,16 @@ function PlatformSettings() {
       {/* Plans */}
       {settingsTab === "plans" && (
         <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-white/40">إدارة الباقات والأسعار</p>
+            <Button variant="ghost" size="sm" onClick={loadPlans} disabled={loadingPlans} className="text-white/40">
+              <RefreshCw className={`h-4 w-4 ${loadingPlans ? "animate-spin" : ""}`} />
+            </Button>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {plans.map((plan) => (
-              <div key={plan.name} className={`rounded-2xl bg-white/[0.03] border ${plan.popular ? "border-emerald-500/40" : "border-white/[0.06]"} p-6 space-y-4 relative`}>
-                {plan.popular && (
+            {dbPlans.map((plan) => (
+              <div key={plan.id} className={`rounded-2xl bg-white/[0.03] border ${plan.plan_key === "growth" ? "border-emerald-500/40" : "border-white/[0.06]"} p-6 space-y-4 relative ${!plan.is_active ? "opacity-50" : ""}`}>
+                {plan.plan_key === "growth" && (
                   <div className="absolute -top-3 right-4">
                     <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-[10px]">
                       ⭐ الأكثر اختياراً
@@ -586,33 +630,74 @@ function PlatformSettings() {
                 )}
                 <div>
                   <h3 className="text-lg font-bold text-white">{plan.name}</h3>
+                  <p className="text-xs text-white/25">{plan.name_ar}</p>
                   <div className="flex items-baseline gap-1 mt-2">
-                    <span className="text-3xl font-bold text-white">₪{plan.price}</span>
+                    <span className="text-3xl font-bold text-white">₪{plan.monthly_price}</span>
                     <span className="text-sm text-white/30">/شهر</span>
                   </div>
-                  <p className="text-xs text-white/30 mt-1">₪{Math.round(plan.price * 12 * 0.8)} سنوياً (خصم 20%)</p>
+                  <p className="text-xs text-white/30 mt-1">₪{Math.round(plan.monthly_price * 12 * (1 - plan.annual_discount_pct / 100))} سنوياً (خصم {plan.annual_discount_pct}%)</p>
                 </div>
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span className="text-white/40">المستخدمون</span>
-                    <span className="text-white/70">{plan.users}</span>
+                    <span className="text-white/70">{plan.max_users === -1 ? "غير محدود" : plan.max_users}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-white/40">التخزين</span>
-                    <span className="text-white/70">{plan.storage}</span>
+                    <span className="text-white/40">الشركات</span>
+                    <span className="text-white/70">{plan.max_companies === -1 ? "غير محدود" : plan.max_companies}</span>
                   </div>
                 </div>
                 <div className="border-t border-white/[0.06] pt-3 space-y-1.5">
-                  {plan.features.map((f) => (
+                  {((plan.features as any[]) || []).map((f: string) => (
                     <p key={f} className="text-xs text-white/40 flex items-center gap-1.5">
                       <span className="text-emerald-400">✓</span> {f}
                     </p>
                   ))}
                 </div>
+                <div className="flex gap-2 pt-2">
+                  <Button size="sm" className="flex-1 bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 text-xs" onClick={() => openEditPlan(plan)}>
+                    ✏️ تعديل
+                  </Button>
+                  <Button size="sm" variant="ghost" className={`text-xs ${plan.is_active ? "text-red-400 hover:bg-red-500/10" : "text-emerald-400 hover:bg-emerald-500/10"}`} onClick={() => togglePlanActive(plan)}>
+                    {plan.is_active ? "تعطيل" : "تفعيل"}
+                  </Button>
+                </div>
               </div>
             ))}
           </div>
-          <p className="text-xs text-white/20 text-center">* تعديل الباقات يتطلب تحديث من لوحة الإعدادات المتقدمة</p>
+
+          {/* Edit Plan Dialog */}
+          {editingPlan && (
+            <Dialog open={!!editingPlan} onOpenChange={() => setEditingPlan(null)}>
+              <DialogContent className="bg-[#0f1629] border-white/10 text-white">
+                <DialogHeader>
+                  <DialogTitle className="text-white">تعديل باقة {editingPlan.name}</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-xs text-white/40 block mb-1">السعر الشهري (₪)</label>
+                    <Input value={editPrice} onChange={e => setEditPrice(e.target.value)} className="bg-white/5 border-white/10 text-white" type="number" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-white/40 block mb-1">نسبة خصم السنوي (%)</label>
+                    <Input value={editDiscount} onChange={e => setEditDiscount(e.target.value)} className="bg-white/5 border-white/10 text-white" type="number" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-white/40 block mb-1">عدد المستخدمين (-1 = غير محدود)</label>
+                    <Input value={editMaxUsers} onChange={e => setEditMaxUsers(e.target.value)} className="bg-white/5 border-white/10 text-white" type="number" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-white/40 block mb-1">عدد الشركات (-1 = غير محدود)</label>
+                    <Input value={editMaxCompanies} onChange={e => setEditMaxCompanies(e.target.value)} className="bg-white/5 border-white/10 text-white" type="number" />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="ghost" onClick={() => setEditingPlan(null)} className="text-white/40">إلغاء</Button>
+                  <Button onClick={savePlan} className="bg-amber-500 hover:bg-amber-600 text-black">حفظ التعديلات</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          )}
         </div>
       )}
 

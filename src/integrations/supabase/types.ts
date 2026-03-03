@@ -2015,6 +2015,54 @@ export type Database = {
         }
         Relationships: []
       }
+      plans: {
+        Row: {
+          annual_discount_pct: number
+          created_at: string
+          display_order: number
+          features: Json
+          id: string
+          is_active: boolean
+          max_companies: number
+          max_users: number
+          monthly_price: number
+          name: string
+          name_ar: string
+          plan_key: string
+          updated_at: string
+        }
+        Insert: {
+          annual_discount_pct?: number
+          created_at?: string
+          display_order?: number
+          features?: Json
+          id?: string
+          is_active?: boolean
+          max_companies?: number
+          max_users?: number
+          monthly_price?: number
+          name: string
+          name_ar: string
+          plan_key: string
+          updated_at?: string
+        }
+        Update: {
+          annual_discount_pct?: number
+          created_at?: string
+          display_order?: number
+          features?: Json
+          id?: string
+          is_active?: boolean
+          max_companies?: number
+          max_users?: number
+          monthly_price?: number
+          name?: string
+          name_ar?: string
+          plan_key?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       pos_audit_logs: {
         Row: {
           action_type: string
@@ -3204,6 +3252,56 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscriptions: {
+        Row: {
+          billing_cycle: string
+          cancelled_at: string | null
+          created_at: string
+          current_period_end: string
+          current_period_start: string
+          id: string
+          plan_id: string
+          status: string
+          trial_ends_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          billing_cycle?: string
+          cancelled_at?: string | null
+          created_at?: string
+          current_period_end?: string
+          current_period_start?: string
+          id?: string
+          plan_id: string
+          status?: string
+          trial_ends_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          billing_cycle?: string
+          cancelled_at?: string | null
+          created_at?: string
+          current_period_end?: string
+          current_period_start?: string
+          id?: string
+          plan_id?: string
+          status?: string
+          trial_ends_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
             referencedColumns: ["id"]
           },
         ]
