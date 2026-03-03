@@ -7,7 +7,7 @@ import {
   Lock, Unlock, Trash2, KeyRound, Eye, RefreshCw, AlertTriangle,
   ChevronLeft, ChevronRight, Search, X, LogOut, Database, FileText,
   TrendingUp, Wifi, Download, Table2, Play, Pause, Settings, Package,
-  Zap, Server, Bell, HardDrive, CreditCard,
+  Zap, Server, Bell, HardDrive, CreditCard, BarChart3, PieChart, ArrowUpRight, ArrowDownRight, CalendarDays,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -1045,6 +1045,201 @@ function PlatformSettings() {
     </div>
   );
 }
+// ─── Revenue Reports Component ───
+function RevenueReports() {
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => { loadStats(); }, []);
+
+  const loadStats = async () => {
+    setLoading(true);
+    try {
+      const res = await apiCall("revenue_stats");
+      setData(res);
+    } catch (e: any) { toast.error(e.message); }
+    setLoading(false);
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <RefreshCw className="h-6 w-6 animate-spin text-amber-400" />
+      </div>
+    );
+  }
+
+  if (!data) return <p className="text-center text-white/20 py-12">فشل تحميل البيانات</p>;
+
+  const maxBarRevenue = Math.max(...(data.monthly_trend || []).map((m: any) => m.revenue), 1);
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-bold text-white flex items-center gap-2">
+          <BarChart3 className="h-5 w-5 text-amber-400" /> إحصائيات الإيرادات
+        </h2>
+        <Button variant="ghost" size="sm" onClick={loadStats} disabled={loading} className="text-white/40">
+          <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+        </Button>
+      </div>
+
+      {/* Main KPIs */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="rounded-2xl bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 border border-emerald-500/20 p-5 space-y-2">
+          <div className="flex items-center gap-2">
+            <DollarSign className="h-5 w-5 text-emerald-400" />
+            <span className="text-sm text-white/40">MRR</span>
+          </div>
+          <p className="text-3xl font-bold text-emerald-400">₪{data.mrr?.toLocaleString()}</p>
+          <p className="text-[11px] text-white/25">الإيراد الشهري المتكرر</p>
+        </div>
+        <div className="rounded-2xl bg-gradient-to-br from-blue-500/10 to-blue-600/5 border border-blue-500/20 p-5 space-y-2">
+          <div className="flex items-center gap-2">
+            <TrendingUp className="h-5 w-5 text-blue-400" />
+            <span className="text-sm text-white/40">ARR</span>
+          </div>
+          <p className="text-3xl font-bold text-blue-400">₪{data.arr?.toLocaleString()}</p>
+          <p className="text-[11px] text-white/25">الإيراد السنوي المتكرر</p>
+        </div>
+        <div className="rounded-2xl bg-gradient-to-br from-amber-500/10 to-amber-600/5 border border-amber-500/20 p-5 space-y-2">
+          <div className="flex items-center gap-2">
+            <Users className="h-5 w-5 text-amber-400" />
+            <span className="text-sm text-white/40">المشتركون النشطون</span>
+          </div>
+          <p className="text-3xl font-bold text-amber-400">{data.active_subscribers}</p>
+          <p className="text-[11px] text-white/25">من أصل {data.total_subscribers} إجمالي</p>
+        </div>
+        <div className="rounded-2xl bg-gradient-to-br from-purple-500/10 to-purple-600/5 border border-purple-500/20 p-5 space-y-2">
+          <div className="flex items-center gap-2">
+            <CalendarDays className="h-5 w-5 text-purple-400" />
+            <span className="text-sm text-white/40">تجريبي</span>
+          </div>
+          <p className="text-3xl font-bold text-purple-400">{data.trial_subscribers}</p>
+          <p className="text-[11px] text-white/25">في فترة تجريبية</p>
+        </div>
+      </div>
+
+      {/* Secondary Stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-4 text-center space-y-1">
+          <p className="text-xs text-white/30">شهري / سنوي</p>
+          <p className="text-lg font-bold text-white">{data.monthly_count} / {data.annual_count}</p>
+        </div>
+        <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-4 text-center space-y-1">
+          <p className="text-xs text-white/30">إلغاءات (30 يوم)</p>
+          <p className="text-lg font-bold text-red-400 flex items-center justify-center gap-1">
+            <ArrowDownRight className="h-4 w-4" /> {data.recent_cancelled}
+          </p>
+        </div>
+        <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-4 text-center space-y-1">
+          <p className="text-xs text-white/30">تنتهي قريباً (7 أيام)</p>
+          <p className="text-lg font-bold text-amber-400">{data.expiring_soon}</p>
+        </div>
+        <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-4 text-center space-y-1">
+          <p className="text-xs text-white/30">معدل التحويل</p>
+          <p className="text-lg font-bold text-emerald-400 flex items-center justify-center gap-1">
+            <ArrowUpRight className="h-4 w-4" />
+            {data.total_subscribers > 0 ? Math.round((data.converted_from_trial / data.total_subscribers) * 100) : 0}%
+          </p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Monthly Trend Chart */}
+        <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-5 space-y-4">
+          <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+            <BarChart3 className="h-4 w-4 text-amber-400" /> الاتجاه الشهري (آخر 6 أشهر)
+          </h3>
+          <div className="space-y-3">
+            {(data.monthly_trend || []).map((m: any) => (
+              <div key={m.month} className="flex items-center gap-3">
+                <span className="text-xs text-white/30 w-16 shrink-0 font-mono">{m.month}</span>
+                <div className="flex-1 h-7 bg-white/[0.03] rounded-lg overflow-hidden relative">
+                  <div
+                    className="h-full bg-gradient-to-r from-amber-500/40 to-amber-400/20 rounded-lg transition-all"
+                    style={{ width: `${Math.max((m.revenue / maxBarRevenue) * 100, 2)}%` }}
+                  />
+                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-white/50">
+                    ₪{m.revenue.toLocaleString()} · {m.count} مشترك
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Revenue by Plan */}
+        <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-5 space-y-4">
+          <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+            <PieChart className="h-4 w-4 text-amber-400" /> الإيرادات حسب الباقة
+          </h3>
+          {(data.revenue_by_plan || []).length === 0 ? (
+            <p className="text-sm text-white/20 text-center py-6">لا توجد بيانات بعد</p>
+          ) : (
+            <div className="space-y-4">
+              {(data.revenue_by_plan || []).map((p: any, i: number) => {
+                const colors = ["from-emerald-500 to-emerald-400", "from-blue-500 to-blue-400", "from-purple-500 to-purple-400"];
+                const bgColors = ["bg-emerald-500/10 text-emerald-400", "bg-blue-500/10 text-blue-400", "bg-purple-500/10 text-purple-400"];
+                return (
+                  <div key={p.name} className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-3 h-3 rounded-full bg-gradient-to-r ${colors[i % 3]}`} />
+                        <span className="text-sm text-white/70 font-medium">{p.name}</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <Badge className={`text-[10px] border-0 ${bgColors[i % 3]}`}>{p.count} مشترك</Badge>
+                        <span className="text-sm text-white/50 font-mono">₪{p.revenue.toLocaleString()}/شهر</span>
+                      </div>
+                    </div>
+                    <div className="h-2 bg-white/[0.03] rounded-full overflow-hidden">
+                      <div
+                        className={`h-full bg-gradient-to-r ${colors[i % 3]} rounded-full opacity-60`}
+                        style={{ width: `${data.mrr > 0 ? (p.revenue / data.mrr) * 100 : 0}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+              <div className="pt-3 border-t border-white/[0.06]">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-white/40">إجمالي MRR</span>
+                  <span className="text-lg font-bold text-white">₪{data.mrr?.toLocaleString()}</span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Status Distribution */}
+        <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-5 space-y-4 lg:col-span-2">
+          <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+            <Activity className="h-4 w-4 text-amber-400" /> توزيع حالات الاشتراكات
+          </h3>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+            {Object.entries(data.status_breakdown || {}).map(([status, count]) => {
+              const styles: Record<string, { bg: string; text: string; label: string }> = {
+                trial: { bg: "bg-blue-500/10 border-blue-500/20", text: "text-blue-400", label: "تجريبي" },
+                active: { bg: "bg-emerald-500/10 border-emerald-500/20", text: "text-emerald-400", label: "نشط" },
+                expired: { bg: "bg-red-500/10 border-red-500/20", text: "text-red-400", label: "منتهي" },
+                cancelled: { bg: "bg-white/5 border-white/10", text: "text-white/40", label: "ملغي" },
+                suspended: { bg: "bg-amber-500/10 border-amber-500/20", text: "text-amber-400", label: "موقوف" },
+              };
+              const s = styles[status] || styles.cancelled;
+              return (
+                <div key={status} className={`rounded-xl border p-4 text-center ${s.bg}`}>
+                  <p className={`text-2xl font-bold ${s.text}`}>{count as number}</p>
+                  <p className="text-xs text-white/30 mt-1">{s.label}</p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // ─── Main Component ───
 export default function SuperAdminDashboard() {
@@ -1243,6 +1438,10 @@ export default function SuperAdminDashboard() {
     delete_user: "حذف مستخدم",
     verify_password: "تأكيد الهوية",
     view_table: "تصفح جدول",
+    view_subscriptions: "عرض الاشتراكات",
+    update_subscription: "تحديث اشتراك",
+    assign_subscription: "تعيين اشتراك",
+    view_revenue_stats: "عرض إحصائيات الإيرادات",
   };
 
   if (checking) {
@@ -1303,6 +1502,9 @@ export default function SuperAdminDashboard() {
             </TabsTrigger>
             <TabsTrigger value="subscriptions" className="data-[state=active]:bg-amber-500/20 data-[state=active]:text-amber-400 text-white/40">
               <CreditCard className="h-4 w-4 ml-1" /> الاشتراكات
+            </TabsTrigger>
+            <TabsTrigger value="revenue" className="data-[state=active]:bg-amber-500/20 data-[state=active]:text-amber-400 text-white/40">
+              <BarChart3 className="h-4 w-4 ml-1" /> الإيرادات
             </TabsTrigger>
           </TabsList>
 
@@ -1527,6 +1729,11 @@ export default function SuperAdminDashboard() {
           {/* ─── SETTINGS TAB ─── */}
           <TabsContent value="settings">
             <PlatformSettings />
+          </TabsContent>
+
+          {/* ─── REVENUE TAB ─── */}
+          <TabsContent value="revenue">
+            <RevenueReports />
           </TabsContent>
         </Tabs>
       </div>
