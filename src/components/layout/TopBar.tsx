@@ -5,6 +5,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { NotificationsPanel, useNotifications } from "@/components/NotificationsPanel";
+import RealtimeNotificationsPanel from "@/components/RealtimeNotificationsPanel";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -367,8 +368,9 @@ const TopBar = ({ onMenuClick, sidebarCollapsed, onOpenHelpGuide }: TopBarProps)
         {/* Left icons */}
         <div className="flex items-center gap-1">
           <IconButton icon={theme === "dark" ? Moon : Sun} onClick={toggleTheme} title={theme === "dark" ? "وضع فاتح" : "وضع داكن"} />
+          <RealtimeNotificationsPanel />
           <div className="relative">
-            <IconButton icon={Bell} badge={unreadCount > 0} onClick={() => setNotificationsOpen(!notificationsOpen)} title="الإشعارات" />
+            <IconButton icon={Bell} badge={unreadCount > 0} onClick={() => setNotificationsOpen(!notificationsOpen)} title="التنبيهات المالية" />
             {unreadCount > 0 && (
               <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 rounded-full bg-destructive text-destructive-foreground text-[9px] font-bold flex items-center justify-center px-1 pointer-events-none">{unreadCount > 9 ? "9+" : unreadCount}</span>
             )}
