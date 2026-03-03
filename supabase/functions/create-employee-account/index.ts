@@ -111,6 +111,8 @@ Deno.serve(async (req) => {
         user_metadata: {
           full_name: employee.full_name,
           role: "employee",
+          invited_by: adminUser.id,
+          company_name: "شركتي",
         },
       });
 
@@ -143,12 +145,19 @@ Deno.serve(async (req) => {
     // Assign employee role
     const { error: roleErr } = await supabase
       .from("user_roles")
-      .insert({ user_id: newUserId, role: "employee" });
+      .insert({ user_id: newUserId, role: "employee" })
+      .select();
 
-    if (roleErr) {
+    if (roleErr && !roleErr.message?.includes("duplicate")) {
       console.error("Role assignment error:", roleErr);
-      // Non-fatal — account is created and linked
     }
+
+    // Ensure profile has invited_by set
+    await supabase
+      .from("profiles")
+      .update({ invited_by: adminUser.id })
+      .eq("user_id", newUserId)
+      .is("invited_by", null);
 
     return new Response(
       JSON.stringify({
