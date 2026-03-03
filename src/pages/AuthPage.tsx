@@ -72,21 +72,16 @@ const AuthPage = () => {
   const handleGoogleSignIn = async () => {
     setLoading(true);
     try {
-      if (isStandalonePWA()) {
-        // In standalone PWA mode, open in external browser to avoid state loss
-        const { error } = await lovable.auth.signInWithOAuth("google", {
-          redirect_uri: window.location.origin,
-          extraParams: {
-            prompt: "select_account",
-          },
-        });
-        if (error) throw error;
-      } else {
-        const { error } = await lovable.auth.signInWithOAuth("google", {
-          redirect_uri: window.location.origin,
-        });
-        if (error) throw error;
-      }
+      // Always sign out first to clear any cached session
+      await supabase.auth.signOut();
+      
+      const { error } = await lovable.auth.signInWithOAuth("google", {
+        redirect_uri: window.location.origin,
+        extraParams: {
+          prompt: "select_account",
+        },
+      });
+      if (error) throw error;
     } catch (err: any) {
       toast({ title: "خطأ", description: err.message, variant: "destructive" });
       setLoading(false);

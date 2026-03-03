@@ -56,6 +56,45 @@ export type Database = {
         }
         Relationships: []
       }
+      activity_log: {
+        Row: {
+          action: string
+          actor_id: string
+          actor_name: string
+          created_at: string
+          details: Json | null
+          entity_id: string | null
+          entity_label: string | null
+          entity_type: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          action: string
+          actor_id: string
+          actor_name?: string
+          created_at?: string
+          details?: Json | null
+          entity_id?: string | null
+          entity_label?: string | null
+          entity_type: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string
+          actor_name?: string
+          created_at?: string
+          details?: Json | null
+          entity_id?: string | null
+          entity_label?: string | null
+          entity_type?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       asset_categories: {
         Row: {
           accumulated_depreciation_account_code: string | null
@@ -994,6 +1033,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      companies: {
+        Row: {
+          address: string | null
+          created_at: string
+          email: string | null
+          id: string
+          is_active: boolean
+          logo_url: string | null
+          name: string
+          owner_id: string
+          phone: string | null
+          tax_number: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          logo_url?: string | null
+          name?: string
+          owner_id: string
+          phone?: string | null
+          tax_number?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          logo_url?: string | null
+          name?: string
+          owner_id?: string
+          phone?: string | null
+          tax_number?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       contacts: {
         Row: {
@@ -2991,15 +3072,20 @@ export type Database = {
         Row: {
           address: string | null
           business_type: string | null
+          company_id: string | null
           company_name: string | null
           country: string | null
           created_at: string
           display_name: string | null
+          full_name: string | null
           has_employees: boolean | null
           has_inventory: boolean | null
           has_receivables: boolean | null
           id: string
           invited_by: string | null
+          is_suspended: boolean
+          last_seen_at: string | null
+          role: string
           setup_completed: boolean | null
           updated_at: string
           user_id: string
@@ -3008,15 +3094,20 @@ export type Database = {
         Insert: {
           address?: string | null
           business_type?: string | null
+          company_id?: string | null
           company_name?: string | null
           country?: string | null
           created_at?: string
           display_name?: string | null
+          full_name?: string | null
           has_employees?: boolean | null
           has_inventory?: boolean | null
           has_receivables?: boolean | null
           id?: string
           invited_by?: string | null
+          is_suspended?: boolean
+          last_seen_at?: string | null
+          role?: string
           setup_completed?: boolean | null
           updated_at?: string
           user_id: string
@@ -3025,21 +3116,34 @@ export type Database = {
         Update: {
           address?: string | null
           business_type?: string | null
+          company_id?: string | null
           company_name?: string | null
           country?: string | null
           created_at?: string
           display_name?: string | null
+          full_name?: string | null
           has_employees?: boolean | null
           has_inventory?: boolean | null
           has_receivables?: boolean | null
           id?: string
           invited_by?: string | null
+          is_suspended?: boolean
+          last_seen_at?: string | null
+          role?: string
           setup_completed?: boolean | null
           updated_at?: string
           user_id?: string
           work_field?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       qr_tokens: {
         Row: {
@@ -3872,6 +3976,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      update_last_seen: { Args: never; Returns: undefined }
       user_can_access: {
         Args: { _module: string; _user_id: string }
         Returns: boolean
