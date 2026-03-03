@@ -6,7 +6,8 @@ import {
   Crown, Users, ShoppingCart, DollarSign, Activity, Shield, Clock,
   Lock, Unlock, Trash2, KeyRound, Eye, RefreshCw, AlertTriangle,
   ChevronLeft, ChevronRight, Search, X, LogOut, Database, FileText,
-  TrendingUp, Wifi, Download, Table2, Play, Pause,
+  TrendingUp, Wifi, Download, Table2, Play, Pause, Settings, Package,
+  Zap, Server, Bell, HardDrive,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -523,6 +524,242 @@ function LiveMonitor() {
   );
 }
 
+// ─── Platform Settings Component ───
+function PlatformSettings() {
+  const [settingsTab, setSettingsTab] = useState("plans");
+  const [maintenanceMode, setMaintenanceMode] = useState(false);
+
+  const plans = [
+    { name: "Starter", price: 19, users: 1, storage: "500MB", color: "border-blue-500/30", features: ["محاسبة أساسية", "تقارير محدودة", "دعم عبر البريد"] },
+    { name: "Growth", price: 39, users: 5, storage: "2GB", color: "border-emerald-500/30", popular: true, features: ["كل ميزات Starter", "نقاط البيع", "مندوبين", "تقارير متقدمة", "دعم أولوية"] },
+    { name: "Business", price: 79, users: 15, storage: "10GB", color: "border-amber-500/30", features: ["كل ميزات Growth", "فروع متعددة", "API وصول", "مدير حساب مخصص", "نسخ احتياطي يومي"] },
+  ];
+
+  const currencies = [
+    { code: "USD", name: "دولار أمريكي", flag: "🇺🇸", rate: 3.65, auto: true },
+    { code: "JOD", name: "دينار أردني", flag: "🇯🇴", rate: 5.15, auto: true },
+    { code: "EUR", name: "يورو", flag: "🇪🇺", rate: 4.05, auto: true },
+    { code: "EGP", name: "جنيه مصري", flag: "🇪🇬", rate: 0.075, auto: false },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <h2 className="text-xl font-bold text-white flex items-center gap-2">
+        <Settings className="h-5 w-5 text-amber-400" /> إعدادات المنصة
+      </h2>
+
+      {/* Sub-tabs */}
+      <div className="flex gap-2 flex-wrap">
+        {[
+          { key: "plans", label: "الباقات", icon: Package },
+          { key: "rates", label: "أسعار الصرف", icon: DollarSign },
+          { key: "notifications", label: "الإشعارات", icon: Bell },
+          { key: "maintenance", label: "الصيانة", icon: Server },
+        ].map((t) => (
+          <button
+            key={t.key}
+            onClick={() => setSettingsTab(t.key)}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm transition-colors ${
+              settingsTab === t.key
+                ? "bg-amber-500/20 text-amber-400 font-medium"
+                : "bg-white/[0.03] text-white/40 hover:bg-white/[0.06] hover:text-white/60"
+            }`}
+          >
+            <t.icon className="h-4 w-4" />
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Plans */}
+      {settingsTab === "plans" && (
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {plans.map((plan) => (
+              <div key={plan.name} className={`rounded-2xl bg-white/[0.03] border ${plan.popular ? "border-emerald-500/40" : "border-white/[0.06]"} p-6 space-y-4 relative`}>
+                {plan.popular && (
+                  <div className="absolute -top-3 right-4">
+                    <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-[10px]">
+                      ⭐ الأكثر اختياراً
+                    </Badge>
+                  </div>
+                )}
+                <div>
+                  <h3 className="text-lg font-bold text-white">{plan.name}</h3>
+                  <div className="flex items-baseline gap-1 mt-2">
+                    <span className="text-3xl font-bold text-white">₪{plan.price}</span>
+                    <span className="text-sm text-white/30">/شهر</span>
+                  </div>
+                  <p className="text-xs text-white/30 mt-1">₪{Math.round(plan.price * 12 * 0.8)} سنوياً (خصم 20%)</p>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-white/40">المستخدمون</span>
+                    <span className="text-white/70">{plan.users}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-white/40">التخزين</span>
+                    <span className="text-white/70">{plan.storage}</span>
+                  </div>
+                </div>
+                <div className="border-t border-white/[0.06] pt-3 space-y-1.5">
+                  {plan.features.map((f) => (
+                    <p key={f} className="text-xs text-white/40 flex items-center gap-1.5">
+                      <span className="text-emerald-400">✓</span> {f}
+                    </p>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+          <p className="text-xs text-white/20 text-center">* تعديل الباقات يتطلب تحديث من لوحة الإعدادات المتقدمة</p>
+        </div>
+      )}
+
+      {/* Exchange Rates */}
+      {settingsTab === "rates" && (
+        <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] overflow-hidden">
+          <div className="px-5 py-4 border-b border-white/[0.06] flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+              💱 أسعار الصرف مقابل الشيكل
+            </h3>
+            <Button size="sm" variant="ghost" className="text-amber-400 h-7 text-xs">
+              <RefreshCw className="h-3 w-3 ml-1" /> تحديث من API
+            </Button>
+          </div>
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-white/[0.06]">
+                <th className="text-right text-white/30 font-medium px-5 py-3">العملة</th>
+                <th className="text-right text-white/30 font-medium px-5 py-3">السعر (₪)</th>
+                <th className="text-right text-white/30 font-medium px-5 py-3">تحديث تلقائي</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/[0.04]">
+              {currencies.map((c) => (
+                <tr key={c.code} className="hover:bg-white/[0.02]">
+                  <td className="px-5 py-3">
+                    <span className="text-lg ml-2">{c.flag}</span>
+                    <span className="text-white/70 font-medium">{c.name}</span>
+                    <span className="text-white/20 text-xs mr-2">({c.code})</span>
+                  </td>
+                  <td className="px-5 py-3">
+                    <Input
+                      defaultValue={c.rate}
+                      className="w-24 h-8 text-xs bg-white/5 border-white/10 text-white inline-block"
+                    />
+                  </td>
+                  <td className="px-5 py-3">
+                    <Badge className={`text-[10px] border-0 ${c.auto ? "bg-emerald-500/10 text-emerald-400" : "bg-white/5 text-white/30"}`}>
+                      {c.auto ? "☑ مفعّل" : "☐ يدوي"}
+                    </Badge>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Notifications */}
+      {settingsTab === "notifications" && (
+        <div className="space-y-4">
+          <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-5 space-y-4">
+            <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+              <Bell className="h-4 w-4 text-amber-400" /> إعدادات التنبيهات
+            </h3>
+            {[
+              { label: "تسجيل مستخدم جديد", desc: "تنبيه عند إنشاء حساب جديد", enabled: true },
+              { label: "محاولة دخول فاشلة (3+)", desc: "تنبيه عند فشل تسجيل الدخول متكرر", enabled: true },
+              { label: "انتهاء اشتراك", desc: "تنبيه قبل 7 أيام من انتهاء الباقة", enabled: true },
+              { label: "إغلاق وردية بمبلغ عالي", desc: "تنبيه عند إغلاق وردية تتجاوز ₪10,000", enabled: false },
+              { label: "حذف بيانات", desc: "تنبيه عند حذف سجلات مهمة", enabled: true },
+            ].map((notif) => (
+              <div key={notif.label} className="flex items-center justify-between py-2 border-b border-white/[0.04] last:border-0">
+                <div>
+                  <p className="text-sm text-white/70">{notif.label}</p>
+                  <p className="text-[11px] text-white/25">{notif.desc}</p>
+                </div>
+                <Badge className={`text-[10px] border-0 cursor-pointer ${notif.enabled ? "bg-emerald-500/10 text-emerald-400" : "bg-white/5 text-white/30"}`}>
+                  {notif.enabled ? "مفعّل" : "معطّل"}
+                </Badge>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Maintenance */}
+      {settingsTab === "maintenance" && (
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Maintenance Mode */}
+            <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-5 space-y-4">
+              <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                <Server className="h-4 w-4 text-amber-400" /> وضع الصيانة
+              </h3>
+              <p className="text-xs text-white/30">عند التفعيل، سيظهر للمستخدمين رسالة "النظام تحت الصيانة"</p>
+              <Button
+                onClick={() => {
+                  setMaintenanceMode(!maintenanceMode);
+                  toast.success(maintenanceMode ? "تم إلغاء وضع الصيانة" : "تم تفعيل وضع الصيانة");
+                }}
+                className={`w-full ${maintenanceMode ? "bg-red-500 hover:bg-red-600" : "bg-white/5 hover:bg-white/10"} text-white`}
+              >
+                {maintenanceMode ? "🔴 إيقاف الصيانة" : "⚙️ تفعيل وضع الصيانة"}
+              </Button>
+            </div>
+
+            {/* Backup */}
+            <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-5 space-y-4">
+              <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                <HardDrive className="h-4 w-4 text-amber-400" /> النسخ الاحتياطي
+              </h3>
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-white/40">آخر نسخة</span>
+                  <span className="text-white/50 text-xs">منذ ساعتين</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-white/40">الحجم الكلي</span>
+                  <span className="text-white/50 text-xs">~45 MB</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-white/40">تكرار تلقائي</span>
+                  <Badge className="bg-emerald-500/10 text-emerald-400 border-0 text-[10px]">كل 6 ساعات</Badge>
+                </div>
+              </div>
+              <Button className="w-full bg-white/5 hover:bg-white/10 text-white" onClick={() => toast.success("جاري إنشاء نسخة احتياطية...")}>
+                <HardDrive className="h-4 w-4 ml-1" /> نسخة احتياطية الآن
+              </Button>
+            </div>
+
+            {/* System Info */}
+            <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-5 space-y-4 md:col-span-2">
+              <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                <Zap className="h-4 w-4 text-amber-400" /> معلومات النظام
+              </h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {[
+                  { label: "الإصدار", value: "v2.4.0" },
+                  { label: "قاعدة البيانات", value: "PostgreSQL 15" },
+                  { label: "المنطقة", value: "EU Central" },
+                  { label: "الحالة", value: "🟢 يعمل" },
+                ].map((info) => (
+                  <div key={info.label} className="space-y-1">
+                    <p className="text-[11px] text-white/25">{info.label}</p>
+                    <p className="text-sm text-white/60 font-medium">{info.value}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Main Component ───
 export default function SuperAdminDashboard() {
   const { user } = useAuth();
@@ -775,6 +1012,9 @@ export default function SuperAdminDashboard() {
             <TabsTrigger value="audit" className="data-[state=active]:bg-amber-500/20 data-[state=active]:text-amber-400 text-white/40">
               <FileText className="h-4 w-4 ml-1" /> سجل التدقيق
             </TabsTrigger>
+            <TabsTrigger value="settings" className="data-[state=active]:bg-amber-500/20 data-[state=active]:text-amber-400 text-white/40">
+              <Settings className="h-4 w-4 ml-1" /> إعدادات المنصة
+            </TabsTrigger>
           </TabsList>
 
           {/* ─── DASHBOARD TAB ─── */}
@@ -988,6 +1228,11 @@ export default function SuperAdminDashboard() {
                 </div>
               )}
             </div>
+          </TabsContent>
+
+          {/* ─── SETTINGS TAB ─── */}
+          <TabsContent value="settings">
+            <PlatformSettings />
           </TabsContent>
         </Tabs>
       </div>
