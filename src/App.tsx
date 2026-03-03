@@ -93,16 +93,9 @@ const AppsRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 const AuthRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, loading } = useAuth();
-  const { roles, loading: rolesLoading } = useUserRole();
-  if (loading || rolesLoading) return <LoadingScreen />;
-  if (user) {
-    // Redirect employees to their dedicated app
-    if (roles.includes("employee") && !roles.includes("admin") && !roles.includes("super_admin") && !roles.includes("hr_manager")) {
-      return <Navigate to="/employee" replace />;
-    }
-    return <Navigate to="/apps" replace />;
-  }
+  const { loading } = useAuth();
+  if (loading) return <LoadingScreen />;
+  // Allow opening /auth even when already logged in (account switching)
   return <>{children}</>;
 };
 
