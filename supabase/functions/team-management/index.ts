@@ -107,6 +107,25 @@ Deno.serve(async (req) => {
         role,
       });
 
+      // Also add to employees table so they appear in HR management
+      await supabaseAdmin.from('employees').insert({
+        user_id: callerId,
+        auth_user_id: newUserId,
+        full_name,
+        email,
+        position: role,
+        job_title: body.job_title || '',
+        is_active: true,
+        base_salary: 0,
+        hourly_rate: 0,
+        work_days_per_week: 6,
+        work_hours_per_day: 8,
+        annual_leave_days: 14,
+        sick_leave_days: 14,
+        salary_type: 'شهري',
+        start_date: new Date().toISOString().split('T')[0],
+      });
+
       return new Response(JSON.stringify({ success: true, user_id: newUserId }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
