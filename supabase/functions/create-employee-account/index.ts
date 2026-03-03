@@ -111,6 +111,7 @@ Deno.serve(async (req) => {
         user_metadata: {
           full_name: employee.full_name,
           role: "employee",
+          invited_by: adminUser.id,
         },
       });
 
