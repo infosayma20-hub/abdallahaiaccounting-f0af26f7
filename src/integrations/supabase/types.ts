@@ -1034,6 +1034,48 @@ export type Database = {
           },
         ]
       }
+      companies: {
+        Row: {
+          address: string | null
+          created_at: string
+          email: string | null
+          id: string
+          is_active: boolean
+          logo_url: string | null
+          name: string
+          owner_id: string
+          phone: string | null
+          tax_number: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          logo_url?: string | null
+          name?: string
+          owner_id: string
+          phone?: string | null
+          tax_number?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          logo_url?: string | null
+          name?: string
+          owner_id?: string
+          phone?: string | null
+          tax_number?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       contacts: {
         Row: {
           address: string | null
@@ -3030,6 +3072,7 @@ export type Database = {
         Row: {
           address: string | null
           business_type: string | null
+          company_id: string | null
           company_name: string | null
           country: string | null
           created_at: string
@@ -3042,6 +3085,7 @@ export type Database = {
           invited_by: string | null
           is_suspended: boolean
           last_seen_at: string | null
+          role: string
           setup_completed: boolean | null
           updated_at: string
           user_id: string
@@ -3050,6 +3094,7 @@ export type Database = {
         Insert: {
           address?: string | null
           business_type?: string | null
+          company_id?: string | null
           company_name?: string | null
           country?: string | null
           created_at?: string
@@ -3062,6 +3107,7 @@ export type Database = {
           invited_by?: string | null
           is_suspended?: boolean
           last_seen_at?: string | null
+          role?: string
           setup_completed?: boolean | null
           updated_at?: string
           user_id: string
@@ -3070,6 +3116,7 @@ export type Database = {
         Update: {
           address?: string | null
           business_type?: string | null
+          company_id?: string | null
           company_name?: string | null
           country?: string | null
           created_at?: string
@@ -3082,12 +3129,21 @@ export type Database = {
           invited_by?: string | null
           is_suspended?: boolean
           last_seen_at?: string | null
+          role?: string
           setup_completed?: boolean | null
           updated_at?: string
           user_id?: string
           work_field?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       qr_tokens: {
         Row: {
