@@ -356,7 +356,7 @@ const TrialBalancePage = () => {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b-2 border-primary/20 bg-muted/40">
-                  <th className="text-right px-4 py-3.5 text-[11px] font-bold text-muted-foreground uppercase tracking-wider w-[80px]">الكود</th>
+                  <th className="text-right px-4 py-3.5 text-[11px] font-bold text-muted-foreground uppercase tracking-wider w-[100px]">الكود</th>
                   <th className="text-right px-4 py-3.5 text-[11px] font-bold text-muted-foreground uppercase tracking-wider min-w-[200px]">اسم الحساب</th>
                   <th className="text-right px-4 py-3.5 text-[11px] font-bold text-muted-foreground uppercase tracking-wider w-[120px]">النوع</th>
                   <th className="text-left px-4 py-3.5 text-[11px] font-bold text-primary uppercase tracking-wider w-[130px]">مدين (₪)</th>
