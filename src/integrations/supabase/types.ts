@@ -2999,6 +2999,7 @@ export type Database = {
           has_inventory: boolean | null
           has_receivables: boolean | null
           id: string
+          invited_by: string | null
           setup_completed: boolean | null
           updated_at: string
           user_id: string
@@ -3015,6 +3016,7 @@ export type Database = {
           has_inventory?: boolean | null
           has_receivables?: boolean | null
           id?: string
+          invited_by?: string | null
           setup_completed?: boolean | null
           updated_at?: string
           user_id: string
@@ -3031,6 +3033,7 @@ export type Database = {
           has_inventory?: boolean | null
           has_receivables?: boolean | null
           id?: string
+          invited_by?: string | null
           setup_completed?: boolean | null
           updated_at?: string
           user_id?: string
@@ -3846,6 +3849,7 @@ export type Database = {
         Args: { p_currency_code: string; p_date?: string; p_rate_type?: string }
         Returns: number
       }
+      get_team_owner_id: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -3854,6 +3858,10 @@ export type Database = {
         Returns: boolean
       }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_team_member: {
+        Args: { _data_owner_id: string; _user_id: string }
+        Returns: boolean
+      }
       log_sensitive_access: {
         Args: {
           _action: string
@@ -3864,9 +3872,21 @@ export type Database = {
         }
         Returns: undefined
       }
+      user_can_access: {
+        Args: { _module: string; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
-      app_role: "admin" | "hr_manager" | "employee" | "super_admin"
+      app_role:
+        | "admin"
+        | "hr_manager"
+        | "employee"
+        | "super_admin"
+        | "accountant_senior"
+        | "accountant_sales"
+        | "accountant_purchases"
+        | "cashier"
       cheque_status:
         | "مسجل"
         | "آجل"
@@ -4010,7 +4030,16 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "hr_manager", "employee", "super_admin"],
+      app_role: [
+        "admin",
+        "hr_manager",
+        "employee",
+        "super_admin",
+        "accountant_senior",
+        "accountant_sales",
+        "accountant_purchases",
+        "cashier",
+      ],
       cheque_status: ["مسجل", "آجل", "مستحق", "مودع", "محصل", "مرتجع", "ملغي"],
       cheque_type: ["وارد", "صادر"],
       product_category: [
