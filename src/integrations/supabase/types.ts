@@ -56,6 +56,45 @@ export type Database = {
         }
         Relationships: []
       }
+      activity_log: {
+        Row: {
+          action: string
+          actor_id: string
+          actor_name: string
+          created_at: string
+          details: Json | null
+          entity_id: string | null
+          entity_label: string | null
+          entity_type: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          action: string
+          actor_id: string
+          actor_name?: string
+          created_at?: string
+          details?: Json | null
+          entity_id?: string | null
+          entity_label?: string | null
+          entity_type: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string
+          actor_name?: string
+          created_at?: string
+          details?: Json | null
+          entity_id?: string | null
+          entity_label?: string | null
+          entity_type?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       asset_categories: {
         Row: {
           accumulated_depreciation_account_code: string | null
