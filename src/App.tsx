@@ -60,6 +60,7 @@ import TicketDetailPage from "./pages/TicketDetailPage";
 import SupportAdminPage from "./pages/SupportAdminPage";
 import POSPage from "./pages/POSPage";
 import POSUserManagementPage from "./pages/POSUserManagementPage";
+import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 
 const queryClient = new QueryClient();
 
@@ -98,6 +99,7 @@ const App = () => (
               <Route path="/terms" element={<TermsPage />} />
               <Route path="/privacy" element={<PrivacyPage />} />
               <Route path="/branch-display/:branchId" element={<BranchDisplayPage />} />
+              <Route path="/super-admin/dashboard" element={<ProtectedRoute><SuperAdminDashboard /></ProtectedRoute>} />
               <Route path="/employee" element={<ProtectedRoute><RoleGuard allowedRoles={["employee"]} fallback="/auth"><EmployeeApp /></RoleGuard></ProtectedRoute>} />
               <Route path="/pos" element={<ProtectedRoute><POSPage /></ProtectedRoute>} />
               <Route path="/apps" element={<AppsRoute><WebLayout><AppsLauncher /></WebLayout></AppsRoute>} />
