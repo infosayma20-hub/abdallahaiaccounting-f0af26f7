@@ -131,7 +131,7 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
   const location = useLocation();
   const navigate = useNavigate();
   const { canAccessSidebarModule, loading: roleLoading } = useUserRole();
-  const [expandedGroups, setExpandedGroups] = useState<string[]>(["المحاسبة"]);
+  const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
 
   // Filter nav sections based on role
   const filteredSections = useMemo(() => {
