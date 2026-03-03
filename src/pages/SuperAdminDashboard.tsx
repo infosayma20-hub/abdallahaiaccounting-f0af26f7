@@ -6,7 +6,7 @@ import {
   Crown, Users, ShoppingCart, DollarSign, Activity, Shield, Clock,
   Lock, Unlock, Trash2, KeyRound, Eye, RefreshCw, AlertTriangle,
   ChevronLeft, ChevronRight, Search, X, LogOut, Database, FileText,
-  TrendingUp, Wifi,
+  TrendingUp, Wifi, Download, Table2, Play, Pause,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +18,7 @@ import {
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
+import * as XLSX from "xlsx";
 
 type DashboardStats = {
   total_users: number;
@@ -54,7 +55,33 @@ type UserRecord = {
   business_type?: string;
 };
 
+type LiveEvent = {
+  id: string;
+  time: string;
+  user: string;
+  action: string;
+  details?: string;
+  type: "transaction" | "auth" | "system" | "pos";
+};
+
 const API_BASE = `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/super-admin-api`;
+
+const ALLOWED_TABLES = [
+  { key: "profiles", label: "المستخدمون", icon: "👥" },
+  { key: "accounts", label: "الحسابات", icon: "📊" },
+  { key: "transactions", label: "المعاملات", icon: "💰" },
+  { key: "contacts", label: "جهات الاتصال", icon: "📇" },
+  { key: "employees", label: "الموظفون", icon: "👷" },
+  { key: "pos_sessions", label: "ورديات POS", icon: "🕐" },
+  { key: "pos_orders", label: "طلبات POS", icon: "🛒" },
+  { key: "cheques", label: "الشيكات", icon: "📝" },
+  { key: "currencies", label: "العملات", icon: "💱" },
+  { key: "branches", label: "الفروع", icon: "🏢" },
+  { key: "user_roles", label: "الأدوار", icon: "🔑" },
+  { key: "products", label: "المنتجات", icon: "📦" },
+  { key: "invoices", label: "الفواتير", icon: "🧾" },
+  { key: "employee_payroll", label: "الرواتب", icon: "💳" },
+];
 
 async function apiCall(action: string, params?: Record<string, string>, body?: any) {
   const { data: { session } } = await supabase.auth.getSession();
@@ -148,6 +175,350 @@ function KPICard({ icon: Icon, label, value, sub, color }: {
       </div>
       <div className="text-3xl font-bold text-white tabular-nums">{value}</div>
       {sub && <p className="text-xs text-white/30">{sub}</p>}
+    </div>
+  );
+}
+
+// ─── Database Browser Component ───
+function DatabaseBrowser() {
+  const [selectedTable, setSelectedTable] = useState("profiles");
+  const [tableData, setTableData] = useState<any[]>([]);
+  const [tablePage, setTablePage] = useState(0);
+  const [tableTotal, setTableTotal] = useState(0);
+  const [loadingTable, setLoadingTable] = useState(false);
+  const [tableSearch, setTableSearch] = useState("");
+
+  const loadTableData = useCallback(async (table: string, page = 0) => {
+    setLoadingTable(true);
+    try {
+      const res = await apiCall("table_data", { table, page: String(page) });
+      setTableData(res.data || []);
+      setTableTotal(res.total || 0);
+      setTablePage(page);
+    } catch (e: any) {
+      toast.error(e.message);
+    }
+    setLoadingTable(false);
+  }, []);
+
+  useEffect(() => {
+    loadTableData(selectedTable, 0);
+  }, [selectedTable, loadTableData]);
+
+  const columns = tableData.length > 0 ? Object.keys(tableData[0]) : [];
+  
+  const filteredData = tableSearch
+    ? tableData.filter((row) =>
+        Object.values(row).some((v) =>
+          String(v ?? "").toLowerCase().includes(tableSearch.toLowerCase())
+        )
+      )
+    : tableData;
+
+  const exportToExcel = () => {
+    if (tableData.length === 0) return;
+    const ws = XLSX.utils.json_to_sheet(tableData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, selectedTable);
+    XLSX.writeFile(wb, `${selectedTable}_export.xlsx`);
+    toast.success("تم التصدير بنجاح");
+  };
+
+  const tableInfo = ALLOWED_TABLES.find((t) => t.key === selectedTable);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-col lg:flex-row gap-4">
+        {/* Sidebar - Table List */}
+        <div className="w-full lg:w-56 shrink-0 space-y-1">
+          <p className="text-xs text-white/30 font-medium px-2 mb-2">📋 الجداول</p>
+          {ALLOWED_TABLES.map((t) => (
+            <button
+              key={t.key}
+              onClick={() => { setSelectedTable(t.key); setTableSearch(""); }}
+              className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors text-right ${
+                selectedTable === t.key
+                  ? "bg-amber-500/20 text-amber-400 font-medium"
+                  : "text-white/40 hover:bg-white/5 hover:text-white/60"
+              }`}
+            >
+              <span>{t.icon}</span>
+              <span>{t.label}</span>
+              {selectedTable === t.key && tableTotal > 0 && (
+                <Badge className="mr-auto bg-amber-500/10 text-amber-400 border-0 text-[10px]">{tableTotal}</Badge>
+              )}
+            </button>
+          ))}
+        </div>
+
+        {/* Main - Data Table */}
+        <div className="flex-1 min-w-0 space-y-3">
+          <div className="flex items-center gap-3 flex-wrap">
+            <h3 className="text-lg font-bold text-white flex items-center gap-2">
+              <Table2 className="h-5 w-5 text-amber-400" />
+              {tableInfo?.icon} {tableInfo?.label}
+              <Badge className="bg-white/5 text-white/30 border-0 text-xs">{tableTotal} سجل</Badge>
+            </h3>
+            <div className="mr-auto flex items-center gap-2">
+              <div className="relative">
+                <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/20" />
+                <Input
+                  value={tableSearch}
+                  onChange={(e) => setTableSearch(e.target.value)}
+                  placeholder="بحث في البيانات..."
+                  className="pr-8 h-8 text-xs w-48 bg-white/[0.03] border-white/[0.06] text-white placeholder:text-white/20"
+                />
+              </div>
+              <Button size="sm" variant="ghost" onClick={exportToExcel} className="text-white/40 h-8" title="تصدير Excel">
+                <Download className="h-3.5 w-3.5 ml-1" /> تصدير
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => loadTableData(selectedTable, tablePage)} disabled={loadingTable} className="text-white/40 h-8">
+                <RefreshCw className={`h-3.5 w-3.5 ${loadingTable ? "animate-spin" : ""}`} />
+              </Button>
+            </div>
+          </div>
+
+          <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] overflow-hidden">
+            <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
+              <table className="w-full text-xs">
+                <thead className="sticky top-0 bg-[#0a1020]">
+                  <tr className="border-b border-white/[0.06]">
+                    {columns.map((col) => (
+                      <th key={col} className="text-right text-white/30 font-medium px-3 py-2.5 whitespace-nowrap">
+                        {col}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/[0.04]">
+                  {loadingTable ? (
+                    <tr>
+                      <td colSpan={columns.length || 1} className="text-center py-12 text-white/20">
+                        <RefreshCw className="h-5 w-5 animate-spin mx-auto mb-2 text-amber-400" />
+                        جاري التحميل...
+                      </td>
+                    </tr>
+                  ) : filteredData.length === 0 ? (
+                    <tr>
+                      <td colSpan={columns.length || 1} className="text-center py-12 text-white/20">لا توجد بيانات</td>
+                    </tr>
+                  ) : (
+                    filteredData.map((row, i) => (
+                      <tr key={i} className="hover:bg-white/[0.02]">
+                        {columns.map((col) => (
+                          <td key={col} className="px-3 py-2 text-white/50 max-w-[200px] truncate whitespace-nowrap" title={String(row[col] ?? "")}>
+                            {row[col] === null ? <span className="text-white/15 italic">null</span> :
+                             typeof row[col] === "object" ? <span className="text-amber-400/50 font-mono">{JSON.stringify(row[col]).substring(0, 50)}</span> :
+                             typeof row[col] === "boolean" ? (
+                              <Badge className={`text-[9px] ${row[col] ? "bg-emerald-500/10 text-emerald-400" : "bg-red-500/10 text-red-400"} border-0`}>
+                                {row[col] ? "true" : "false"}
+                              </Badge>
+                             ) : String(row[col])}
+                          </td>
+                        ))}
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {tableTotal > 50 && (
+              <div className="px-4 py-2.5 border-t border-white/[0.06] flex items-center justify-between">
+                <span className="text-[11px] text-white/20">
+                  صفحة {tablePage + 1} من {Math.ceil(tableTotal / 50)}
+                </span>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="ghost" disabled={tablePage === 0} onClick={() => loadTableData(selectedTable, tablePage - 1)} className="text-white/40 h-7">
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button size="sm" variant="ghost" disabled={(tablePage + 1) * 50 >= tableTotal} onClick={() => loadTableData(selectedTable, tablePage + 1)} className="text-white/40 h-7">
+                    <ChevronLeft className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Live Monitor Component ───
+function LiveMonitor() {
+  const [events, setEvents] = useState<LiveEvent[]>([]);
+  const [isPaused, setIsPaused] = useState(false);
+  const [filter, setFilter] = useState("");
+  const eventsRef = useRef<LiveEvent[]>([]);
+  const pausedRef = useRef(false);
+
+  useEffect(() => {
+    pausedRef.current = isPaused;
+  }, [isPaused]);
+
+  useEffect(() => {
+    // Subscribe to realtime changes on key tables
+    const channel = supabase
+      .channel("super-admin-live")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "transactions" }, (payload) => {
+        if (pausedRef.current) return;
+        const t = payload.new as any;
+        const ev: LiveEvent = {
+          id: t.id,
+          time: new Date().toISOString(),
+          user: t.user_id?.substring(0, 8) || "—",
+          action: `معاملة ${t.transaction_type || "جديدة"}`,
+          details: t.amount ? `₪${Number(t.amount).toLocaleString()}` : undefined,
+          type: "transaction",
+        };
+        eventsRef.current = [ev, ...eventsRef.current].slice(0, 100);
+        setEvents([...eventsRef.current]);
+      })
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "pos_sessions" }, (payload) => {
+        if (pausedRef.current) return;
+        const s = payload.new as any;
+        const ev: LiveEvent = {
+          id: s.id,
+          time: new Date().toISOString(),
+          user: s.user_id?.substring(0, 8) || "—",
+          action: "فتح وردية جديدة",
+          type: "pos",
+        };
+        eventsRef.current = [ev, ...eventsRef.current].slice(0, 100);
+        setEvents([...eventsRef.current]);
+      })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "pos_sessions" }, (payload) => {
+        if (pausedRef.current) return;
+        const s = payload.new as any;
+        if (s.status === "closed") {
+          const ev: LiveEvent = {
+            id: s.id + "-close",
+            time: new Date().toISOString(),
+            user: s.user_id?.substring(0, 8) || "—",
+            action: "إغلاق وردية",
+            details: s.total_sales ? `₪${Number(s.total_sales).toLocaleString()}` : undefined,
+            type: "pos",
+          };
+          eventsRef.current = [ev, ...eventsRef.current].slice(0, 100);
+          setEvents([...eventsRef.current]);
+        }
+      })
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "pos_orders" }, (payload) => {
+        if (pausedRef.current) return;
+        const o = payload.new as any;
+        const ev: LiveEvent = {
+          id: o.id,
+          time: new Date().toISOString(),
+          user: o.user_id?.substring(0, 8) || "—",
+          action: "طلب POS جديد",
+          details: o.total_amount ? `₪${Number(o.total_amount).toLocaleString()}` : undefined,
+          type: "pos",
+        };
+        eventsRef.current = [ev, ...eventsRef.current].slice(0, 100);
+        setEvents([...eventsRef.current]);
+      })
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "super_admin_audit_logs" }, (payload) => {
+        if (pausedRef.current) return;
+        const l = payload.new as any;
+        const ev: LiveEvent = {
+          id: l.id,
+          time: new Date().toISOString(),
+          user: "Super Admin",
+          action: l.action,
+          type: "system",
+        };
+        eventsRef.current = [ev, ...eventsRef.current].slice(0, 100);
+        setEvents([...eventsRef.current]);
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  const filteredEvents = filter
+    ? events.filter((e) => e.action.includes(filter) || e.user.includes(filter) || e.details?.includes(filter))
+    : events;
+
+  const typeColors: Record<string, string> = {
+    transaction: "bg-emerald-500/20 text-emerald-400",
+    auth: "bg-blue-500/20 text-blue-400",
+    system: "bg-amber-500/20 text-amber-400",
+    pos: "bg-purple-500/20 text-purple-400",
+  };
+
+  const typeIcons: Record<string, string> = {
+    transaction: "💰",
+    auth: "🔐",
+    system: "⚙️",
+    pos: "🛒",
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-bold text-white flex items-center gap-2">
+          <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full ${isPaused ? "bg-yellow-500/10 border border-yellow-500/20" : "bg-red-500/10 border border-red-500/20"}`}>
+            <div className={`w-2 h-2 rounded-full ${isPaused ? "bg-yellow-400" : "bg-red-400 animate-pulse"}`} />
+            <span className={`text-[11px] font-medium ${isPaused ? "text-yellow-400" : "text-red-400"}`}>
+              {isPaused ? "متوقف" : "LIVE"}
+            </span>
+          </div>
+          مراقبة النشاط
+        </h2>
+        <div className="flex items-center gap-2">
+          <div className="relative">
+            <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/20" />
+            <Input
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              placeholder="فلتر..."
+              className="pr-8 h-8 text-xs w-40 bg-white/[0.03] border-white/[0.06] text-white placeholder:text-white/20"
+            />
+          </div>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => setIsPaused(!isPaused)}
+            className={`h-8 ${isPaused ? "text-yellow-400" : "text-white/40"}`}
+          >
+            {isPaused ? <Play className="h-3.5 w-3.5 ml-1" /> : <Pause className="h-3.5 w-3.5 ml-1" />}
+            {isPaused ? "استئناف" : "إيقاف"}
+          </Button>
+        </div>
+      </div>
+
+      <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] overflow-hidden">
+        <div className="divide-y divide-white/[0.04] max-h-[600px] overflow-y-auto">
+          {filteredEvents.length === 0 ? (
+            <div className="text-center py-16 space-y-3">
+              <Activity className="h-8 w-8 text-white/10 mx-auto" />
+              <p className="text-sm text-white/20">في انتظار النشاط...</p>
+              <p className="text-[11px] text-white/10">ستظهر الأحداث هنا فور حدوثها في الوقت الفعلي</p>
+            </div>
+          ) : (
+            filteredEvents.map((ev) => (
+              <div key={ev.id} className="px-4 py-3 flex items-center gap-3 hover:bg-white/[0.02] transition-colors">
+                <span className="text-lg shrink-0">{typeIcons[ev.type]}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-white/70">{ev.action}</span>
+                    {ev.details && (
+                      <Badge className={`text-[10px] border-0 ${typeColors[ev.type]}`}>{ev.details}</Badge>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-white/25 font-mono">{ev.user}</p>
+                </div>
+                <span className="text-[11px] text-white/20 tabular-nums font-mono shrink-0">
+                  {format(new Date(ev.time), "HH:mm:ss")}
+                </span>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -351,7 +722,6 @@ export default function SuperAdminDashboard() {
     view_table: "تصفح جدول",
   };
 
-  // ─── LOADING / UNAUTHORIZED ───
   if (checking) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: "#080d18" }}>
@@ -389,12 +759,18 @@ export default function SuperAdminDashboard() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="bg-white/[0.03] border border-white/[0.06] p-1 mb-6">
+          <TabsList className="bg-white/[0.03] border border-white/[0.06] p-1 mb-6 flex-wrap h-auto gap-1">
             <TabsTrigger value="dashboard" className="data-[state=active]:bg-amber-500/20 data-[state=active]:text-amber-400 text-white/40">
               <Activity className="h-4 w-4 ml-1" /> لوحة التحكم
             </TabsTrigger>
             <TabsTrigger value="users" className="data-[state=active]:bg-amber-500/20 data-[state=active]:text-amber-400 text-white/40">
               <Users className="h-4 w-4 ml-1" /> المستخدمون
+            </TabsTrigger>
+            <TabsTrigger value="database" className="data-[state=active]:bg-amber-500/20 data-[state=active]:text-amber-400 text-white/40">
+              <Database className="h-4 w-4 ml-1" /> قاعدة البيانات
+            </TabsTrigger>
+            <TabsTrigger value="live" className="data-[state=active]:bg-amber-500/20 data-[state=active]:text-amber-400 text-white/40">
+              <Wifi className="h-4 w-4 ml-1" /> مراقبة حية
             </TabsTrigger>
             <TabsTrigger value="audit" className="data-[state=active]:bg-amber-500/20 data-[state=active]:text-amber-400 text-white/40">
               <FileText className="h-4 w-4 ml-1" /> سجل التدقيق
@@ -544,6 +920,16 @@ export default function SuperAdminDashboard() {
                 </table>
               </div>
             </div>
+          </TabsContent>
+
+          {/* ─── DATABASE BROWSER TAB ─── */}
+          <TabsContent value="database">
+            <DatabaseBrowser />
+          </TabsContent>
+
+          {/* ─── LIVE MONITOR TAB ─── */}
+          <TabsContent value="live">
+            <LiveMonitor />
           </TabsContent>
 
           {/* ─── AUDIT TAB ─── */}
