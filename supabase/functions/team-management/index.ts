@@ -72,7 +72,10 @@ Deno.serve(async (req) => {
       });
 
       if (createErr) {
-        return new Response(JSON.stringify({ error: createErr.message }), {
+        const msg = createErr.message.includes('already been registered')
+          ? 'هذا البريد الإلكتروني مسجل مسبقاً'
+          : createErr.message;
+        return new Response(JSON.stringify({ error: msg }), {
           status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
