@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
+import { useUserRole } from "@/hooks/useUserRole";
 import { ThemeProvider } from "@/hooks/useTheme";
 import WebLayout from "./components/layout/WebLayout";
 import HomeDashboard from "./pages/HomeDashboard";
@@ -72,6 +73,18 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+const EmployeeRedirectGuard = ({ children }: { children: React.ReactNode }) => {
+  const { user, loading } = useAuth();
+  const { roles, loading: rolesLoading } = useUserRole();
+  if (loading || rolesLoading) return <LoadingScreen />;
+  if (!user) return <Navigate to="/auth" replace />;
+  // If user is only an employee, redirect to employee app
+  if (roles.includes("employee") && !roles.includes("admin") && !roles.includes("super_admin") && !roles.includes("hr_manager") && !roles.includes("accountant_senior")) {
+    return <Navigate to="/employee" replace />;
+  }
+  return <>{children}</>;
+};
+
 const AppsRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
   if (loading) return <LoadingScreen />;
@@ -81,8 +94,15 @@ const AppsRoute = ({ children }: { children: React.ReactNode }) => {
 
 const AuthRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
-  if (loading) return <LoadingScreen />;
-  if (user) return <Navigate to="/apps" replace />;
+  const { roles, loading: rolesLoading } = useUserRole();
+  if (loading || rolesLoading) return <LoadingScreen />;
+  if (user) {
+    // Redirect employees to their dedicated app
+    if (roles.includes("employee") && !roles.includes("admin") && !roles.includes("super_admin") && !roles.includes("hr_manager")) {
+      return <Navigate to="/employee" replace />;
+    }
+    return <Navigate to="/apps" replace />;
+  }
   return <>{children}</>;
 };
 
@@ -104,9 +124,9 @@ const App = () => (
               <Route path="/team-management" element={<ProtectedRoute><RoleGuard allowedRoles={["admin"]} fallback="/"><TeamManagementPage /></RoleGuard></ProtectedRoute>} />
               <Route path="/employee" element={<ProtectedRoute><RoleGuard allowedRoles={["employee"]} fallback="/auth"><EmployeeApp /></RoleGuard></ProtectedRoute>} />
               <Route path="/pos" element={<ProtectedRoute><POSPage /></ProtectedRoute>} />
-              <Route path="/apps" element={<AppsRoute><WebLayout><AppsLauncher /></WebLayout></AppsRoute>} />
+              <Route path="/apps" element={<EmployeeRedirectGuard><WebLayout><AppsLauncher /></WebLayout></EmployeeRedirectGuard>} />
               <Route path="/*" element={
-                <ProtectedRoute>
+                <EmployeeRedirectGuard>
                   <WebLayout>
                     <Routes>
                       <Route path="/" element={<Navigate to="/apps" replace />} />
@@ -159,7 +179,7 @@ const App = () => (
                       <Route path="*" element={<NotFound />} />
                     </Routes>
                   </WebLayout>
-                </ProtectedRoute>
+                </EmployeeRedirectGuard>
               } />
             </Routes>
           </AuthProvider>
