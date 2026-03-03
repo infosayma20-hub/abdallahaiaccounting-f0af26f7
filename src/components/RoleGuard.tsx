@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import LoadingScreen from "@/components/LoadingScreen";
 
-type AllowedRole = "super_admin" | "admin" | "hr_manager" | "employee" | "accountant_senior" | "accountant_sales" | "accountant_purchases" | "cashier";
+type AllowedRole = "admin" | "hr_manager" | "employee";
 
 interface Props {
   children: React.ReactNode;
@@ -30,8 +30,7 @@ export default function RoleGuard({ children, allowedRoles, fallback = "/" }: Pr
       
       // If user has no roles assigned, treat as admin (business owner)
       const effectiveRoles = userRoles.length === 0 ? ["admin"] : userRoles;
-      // super_admin always has access to everything
-      const allowed = effectiveRoles.includes("super_admin") || allowedRoles.some((role) => effectiveRoles.includes(role));
+      const allowed = allowedRoles.some((role) => effectiveRoles.includes(role));
       setHasAccess(allowed);
       setChecking(false);
     };

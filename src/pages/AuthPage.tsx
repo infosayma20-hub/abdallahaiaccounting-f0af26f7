@@ -64,6 +64,11 @@ const AuthPage = () => {
     }
   };
 
+  const isStandalonePWA = () => {
+    return window.matchMedia('(display-mode: standalone)').matches || 
+           (window.navigator as any).standalone === true;
+  };
+
   const handleGoogleSignIn = async () => {
     setLoading(true);
     try {
