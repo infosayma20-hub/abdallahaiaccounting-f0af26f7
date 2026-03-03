@@ -3208,6 +3208,42 @@ export type Database = {
           },
         ]
       }
+      super_admin_audit_logs: {
+        Row: {
+          action: string
+          admin_user_id: string
+          created_at: string
+          details: Json | null
+          id: string
+          ip_address: string | null
+          target_id: string | null
+          target_type: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          action: string
+          admin_user_id: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          ip_address?: string | null
+          target_id?: string | null
+          target_type?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          action?: string
+          admin_user_id?: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          ip_address?: string | null
+          target_id?: string | null
+          target_type?: string | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       support_tickets: {
         Row: {
           assigned_to: string | null
@@ -3719,6 +3755,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_super_admin: { Args: { _user_id: string }; Returns: boolean }
       log_sensitive_access: {
         Args: {
           _action: string
@@ -3731,7 +3768,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "hr_manager" | "employee"
+      app_role: "admin" | "hr_manager" | "employee" | "super_admin"
       cheque_status:
         | "مسجل"
         | "آجل"
@@ -3875,7 +3912,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "hr_manager", "employee"],
+      app_role: ["admin", "hr_manager", "employee", "super_admin"],
       cheque_status: ["مسجل", "آجل", "مستحق", "مودع", "محصل", "مرتجع", "ملغي"],
       cheque_type: ["وارد", "صادر"],
       product_category: [
