@@ -111,7 +111,6 @@ Deno.serve(async (req) => {
         user_metadata: {
           full_name: employee.full_name,
           role: "employee",
-          invited_by: adminUser.id,
         },
       });
 
@@ -141,24 +140,10 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Update profile: link to admin's company and set invited_by
-    const { error: profileErr } = await supabase
-      .from("profiles")
-      .update({
-        invited_by: adminUser.id,
-        role: "employee",
-      })
-      .eq("user_id", newUserId);
-
-    if (profileErr) {
-      console.error("Profile update error:", profileErr);
-    }
-
     // Assign employee role
     const { error: roleErr } = await supabase
       .from("user_roles")
-      .insert({ user_id: newUserId, role: "employee" })
-      .select();
+      .insert({ user_id: newUserId, role: "employee" });
 
     if (roleErr) {
       console.error("Role assignment error:", roleErr);

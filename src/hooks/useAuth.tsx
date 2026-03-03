@@ -24,38 +24,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let isMounted = true;
-
-    const applySession = (nextSession: Session | null) => {
-      if (!isMounted) return;
-      setSession(nextSession);
-      setUser(nextSession?.user ?? null);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      setUser(session?.user ?? null);
       setLoading(false);
-    };
-
-    // Fail-safe: never keep auth loading forever
-    const loadingTimeout = window.setTimeout(() => {
-      if (isMounted) setLoading(false);
-    }, 8000);
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-      applySession(nextSession);
     });
 
-    supabase.auth
-      .getSession()
-      .then(({ data: { session: initialSession } }) => {
-        applySession(initialSession);
-      })
-      .catch(() => {
-        if (isMounted) setLoading(false);
-      });
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      setLoading(false);
+    });
 
-    return () => {
-      isMounted = false;
-      window.clearTimeout(loadingTimeout);
-      subscription.unsubscribe();
-    };
+    return () => subscription.unsubscribe();
   }, []);
 
   const signOut = async () => {

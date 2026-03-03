@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
@@ -22,7 +22,6 @@ const AuthPage = () => {
   const [loading, setLoading] = useState(false);
   const [supportsPasskeys, setSupportsPasskeys] = useState(false);
   const [savedEmail, setSavedEmail] = useState("");
-  const googleAutostartedRef = useRef(false);
 
   useEffect(() => {
     setSupportsPasskeys(browserSupportsWebAuthn());
@@ -70,35 +69,11 @@ const AuthPage = () => {
            (window.navigator as any).standalone === true;
   };
 
-  const startGoogleSignIn = async (skipIframeNewTab: boolean) => {
-    const isInIframe = window.self !== window.top;
-
-    // In preview iframe, start OAuth in a top-level tab to avoid blank popup/cookie blocking
-    if (isInIframe && !skipIframeNewTab) {
-      const authUrl = new URL(window.location.href);
-      authUrl.searchParams.set("oauth", "google");
-      const popup = window.open(authUrl.toString(), "_blank", "noopener,noreferrer");
-
-      if (!popup) {
-        toast({
-          title: "تم حظر النافذة المنبثقة",
-          description: "اسمح بالنوافذ المنبثقة أو افتح الصفحة في تبويب جديد ثم أعد المحاولة",
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "فتحنا صفحة تسجيل الدخول",
-          description: "أكمل تسجيل Google في التبويب الجديد",
-        });
-      }
-      return;
-    }
-
+  const handleGoogleSignIn = async () => {
     setLoading(true);
-    const loadingTimeout = window.setTimeout(() => setLoading(false), 12000);
-
     try {
       if (isStandalonePWA()) {
+        // In standalone PWA mode, open in external browser to avoid state loss
         const { error } = await lovable.auth.signInWithOAuth("google", {
           redirect_uri: window.location.origin,
           extraParams: {
@@ -114,28 +89,9 @@ const AuthPage = () => {
       }
     } catch (err: any) {
       toast({ title: "خطأ", description: err.message, variant: "destructive" });
-    } finally {
-      window.clearTimeout(loadingTimeout);
       setLoading(false);
     }
   };
-
-  const handleGoogleSignIn = () => {
-    void startGoogleSignIn(false);
-  };
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("oauth") !== "google") return;
-    if (googleAutostartedRef.current) return;
-
-    googleAutostartedRef.current = true;
-    params.delete("oauth");
-    const nextUrl = `${window.location.pathname}${params.toString() ? `?${params.toString()}` : ""}${window.location.hash}`;
-    window.history.replaceState({}, "", nextUrl);
-
-    void startGoogleSignIn(true);
-  }, []);
 
   const handleBiometricSignIn = async () => {
     const biometricEmail = savedEmail || email;
