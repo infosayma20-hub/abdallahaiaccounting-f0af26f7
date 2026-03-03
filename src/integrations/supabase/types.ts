@@ -3034,11 +3034,14 @@ export type Database = {
           country: string | null
           created_at: string
           display_name: string | null
+          full_name: string | null
           has_employees: boolean | null
           has_inventory: boolean | null
           has_receivables: boolean | null
           id: string
           invited_by: string | null
+          is_suspended: boolean
+          last_seen_at: string | null
           setup_completed: boolean | null
           updated_at: string
           user_id: string
@@ -3051,11 +3054,14 @@ export type Database = {
           country?: string | null
           created_at?: string
           display_name?: string | null
+          full_name?: string | null
           has_employees?: boolean | null
           has_inventory?: boolean | null
           has_receivables?: boolean | null
           id?: string
           invited_by?: string | null
+          is_suspended?: boolean
+          last_seen_at?: string | null
           setup_completed?: boolean | null
           updated_at?: string
           user_id: string
@@ -3068,11 +3074,14 @@ export type Database = {
           country?: string | null
           created_at?: string
           display_name?: string | null
+          full_name?: string | null
           has_employees?: boolean | null
           has_inventory?: boolean | null
           has_receivables?: boolean | null
           id?: string
           invited_by?: string | null
+          is_suspended?: boolean
+          last_seen_at?: string | null
           setup_completed?: boolean | null
           updated_at?: string
           user_id?: string
@@ -3911,6 +3920,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      update_last_seen: { Args: never; Returns: undefined }
       user_can_access: {
         Args: { _module: string; _user_id: string }
         Returns: boolean
