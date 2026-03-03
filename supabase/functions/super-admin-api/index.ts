@@ -429,6 +429,101 @@ Deno.serve(async (req) => {
       });
     }
 
+    if (action === "revenue_stats") {
+      await logAction("view_revenue_stats");
+
+      // Get all subscriptions with plan info
+      const { data: allSubs } = await admin
+        .from("subscriptions")
+        .select("*, plans(name, plan_key, monthly_price)");
+
+      const subs = allSubs || [];
+
+      // Calculate MRR (Monthly Recurring Revenue)
+      const activeSubs = subs.filter((s: any) => s.status === "active");
+      const mrr = activeSubs.reduce((sum: number, s: any) => {
+        const price = s.plans?.monthly_price || 0;
+        return sum + (s.billing_cycle === "annual" ? price * 0.8 : price);
+      }, 0);
+
+      // ARR
+      const arr = mrr * 12;
+
+      // Revenue by plan
+      const revenueByPlan: Record<string, { count: number; revenue: number; name: string }> = {};
+      activeSubs.forEach((s: any) => {
+        const key = s.plans?.plan_key || "unknown";
+        if (!revenueByPlan[key]) revenueByPlan[key] = { count: 0, revenue: 0, name: s.plans?.name || key };
+        revenueByPlan[key].count++;
+        const price = s.plans?.monthly_price || 0;
+        revenueByPlan[key].revenue += (s.billing_cycle === "annual" ? price * 0.8 : price);
+      });
+
+      // Status breakdown
+      const statusBreakdown: Record<string, number> = {};
+      subs.forEach((s: any) => {
+        statusBreakdown[s.status] = (statusBreakdown[s.status] || 0) + 1;
+      });
+
+      // Billing cycle breakdown
+      const monthlyCount = activeSubs.filter((s: any) => s.billing_cycle === "monthly").length;
+      const annualCount = activeSubs.filter((s: any) => s.billing_cycle === "annual").length;
+
+      // Churn (cancelled in last 30 days)
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      const recentCancelled = subs.filter((s: any) => 
+        s.status === "cancelled" && s.cancelled_at && new Date(s.cancelled_at) >= thirtyDaysAgo
+      ).length;
+
+      // Trial conversion
+      const trialSubs = subs.filter((s: any) => s.status === "trial");
+      const convertedFromTrial = subs.filter((s: any) => s.status === "active").length;
+
+      // Monthly trend (last 6 months) from created_at
+      const monthlyTrend: { month: string; count: number; revenue: number }[] = [];
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date();
+        d.setMonth(d.getMonth() - i);
+        const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+        const monthSubs = subs.filter((s: any) => s.created_at?.startsWith(monthKey));
+        const monthRevenue = monthSubs
+          .filter((s: any) => s.status === "active" || s.status === "trial")
+          .reduce((sum: number, s: any) => sum + (s.plans?.monthly_price || 0), 0);
+        monthlyTrend.push({
+          month: monthKey,
+          count: monthSubs.length,
+          revenue: monthRevenue,
+        });
+      }
+
+      // Expiring soon (next 7 days)
+      const sevenDaysFromNow = new Date();
+      sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
+      const expiringSoon = subs.filter((s: any) =>
+        (s.status === "active" || s.status === "trial") &&
+        s.current_period_end && new Date(s.current_period_end) <= sevenDaysFromNow
+      ).length;
+
+      return new Response(JSON.stringify({
+        mrr,
+        arr,
+        total_subscribers: subs.length,
+        active_subscribers: activeSubs.length,
+        trial_subscribers: trialSubs.length,
+        revenue_by_plan: Object.values(revenueByPlan),
+        status_breakdown: statusBreakdown,
+        monthly_count: monthlyCount,
+        annual_count: annualCount,
+        recent_cancelled: recentCancelled,
+        converted_from_trial: convertedFromTrial,
+        monthly_trend: monthlyTrend,
+        expiring_soon: expiringSoon,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     return new Response(JSON.stringify({ error: "إجراء غير معروف" }), {
       status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
