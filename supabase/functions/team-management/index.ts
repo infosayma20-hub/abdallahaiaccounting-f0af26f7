@@ -2,7 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
 const sanitizeEmail = (value: string) =>
@@ -31,15 +31,16 @@ Deno.serve(async (req) => {
 
     const token = authHeader.replace('Bearer ', '');
 
-    // Use anon key client to verify token (ES256 compatible)
+    // ES256 signing-keys compatible validation
     const supabaseAuth = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_ANON_KEY')!,
       { global: { headers: { Authorization: authHeader } } }
     );
-    const { data: { user: caller }, error: authErr } = await supabaseAuth.auth.getUser(token);
-    if (authErr || !caller) {
-      return new Response(JSON.stringify({ error: 'Invalid token' }), {
+    const { data: claimsData, error: authErr } = await supabaseAuth.auth.getClaims(token);
+    const callerId = claimsData?.claims?.sub;
+    if (authErr || !callerId) {
+      return new Response(JSON.stringify({ error: 'Invalid or expired token. Please sign in again.' }), {
         status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
@@ -91,7 +92,7 @@ Deno.serve(async (req) => {
 
       // Update profile with invited_by and full_name
       await supabaseAdmin.from('profiles').update({
-        invited_by: caller.id,
+        invited_by: callerId,
         full_name,
         display_name: full_name,
         setup_completed: true,
@@ -118,7 +119,7 @@ Deno.serve(async (req) => {
       const { data: profile } = await supabaseAdmin.from('profiles')
         .select('invited_by').eq('user_id', target_user_id).single();
 
-      if (!profile || profile.invited_by !== caller.id) {
+      if (!profile || profile.invited_by !== callerId) {
         return new Response(JSON.stringify({ error: 'Not your team member' }), {
           status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
@@ -146,7 +147,7 @@ Deno.serve(async (req) => {
       const { data: profile } = await supabaseAdmin.from('profiles')
         .select('invited_by').eq('user_id', target_user_id).single();
 
-      if (!profile || profile.invited_by !== caller.id) {
+      if (!profile || profile.invited_by !== callerId) {
         return new Response(JSON.stringify({ error: 'Not your team member' }), {
           status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
@@ -164,7 +165,7 @@ Deno.serve(async (req) => {
       // Get all team members (profiles where invited_by = caller)
       const { data: members } = await supabaseAdmin.from('profiles')
         .select('user_id, display_name, full_name, is_suspended, last_seen_at, created_at')
-        .eq('invited_by', caller.id);
+        .eq('invited_by', callerId);
 
       // Get their roles
       const memberIds = (members || []).map(m => m.user_id);
