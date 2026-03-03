@@ -97,15 +97,14 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess 
       try {
         const pos = await new Promise<GeolocationPosition>((resolve, reject) =>
           navigator.geolocation.getCurrentPosition(resolve, reject, {
-            enableHighAccuracy: true, timeout: 10000,
+            enableHighAccuracy: true, timeout: 15000,
           })
         );
         lat = pos.coords.latitude;
         lng = pos.coords.longitude;
-      } catch {
-        setResult({ success: false, message: "يرجى تفعيل خدمات الموقع" });
-        setProcessing(false);
-        return;
+      } catch (geoErr) {
+        console.warn("Geolocation failed, proceeding without location:", geoErr);
+        // Continue without location - server will decide if location is required
       }
 
       const session = await supabase.auth.getSession();
