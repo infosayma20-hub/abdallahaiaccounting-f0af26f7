@@ -102,17 +102,21 @@ Deno.serve(async (req) => {
         });
       }
 
-      // 2. Geofencing check
-      const dist = haversineDistance(latitude, longitude, branch.latitude, branch.longitude);
-      if (dist > branch.radius_meters) {
-        return new Response(
-          JSON.stringify({
-            error: `أنت خارج نطاق الفرع (${Math.round(dist)}م بعيد، الحد الأقصى ${branch.radius_meters}م)`,
-            distance: Math.round(dist),
-            max_radius: branch.radius_meters,
-          }),
-          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+      // 2. Geofencing check (skip if geolocation failed - lat/lng are 0)
+      if (latitude !== 0 || longitude !== 0) {
+        const dist = haversineDistance(latitude, longitude, branch.latitude, branch.longitude);
+        if (dist > branch.radius_meters) {
+          return new Response(
+            JSON.stringify({
+              error: `أنت خارج نطاق الفرع (${Math.round(dist)}م بعيد، الحد الأقصى ${branch.radius_meters}م)`,
+              distance: Math.round(dist),
+              max_radius: branch.radius_meters,
+              your_location: { latitude, longitude },
+              branch_location: { latitude: branch.latitude, longitude: branch.longitude },
+            }),
+            { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
       }
 
       // 3. Validate QR token dynamically using HMAC
