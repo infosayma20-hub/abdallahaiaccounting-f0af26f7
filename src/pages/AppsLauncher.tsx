@@ -143,7 +143,7 @@ const appModules: AppModule[] = [
     keywords: ["إعدادات", "ملف", "شخصي", "فريق", "مستخدمين", "صلاحيات"],
     children: [
       { label: "الملف الشخصي", path: "/settings" },
-      { label: "إدارة الفريق والصلاحيات", path: "/team" },
+      { label: "إدارة الفريق والصلاحيات", path: "/team-management" },
     ],
   },
 ];
