@@ -71,9 +71,11 @@ const AuthPage = () => {
 
   const handleGoogleSignIn = async () => {
     setLoading(true);
+    // Fail-safe in case redirect flow is interrupted by browser/PWA state
+    const loadingTimeout = window.setTimeout(() => setLoading(false), 12000);
+
     try {
       if (isStandalonePWA()) {
-        // In standalone PWA mode, open in external browser to avoid state loss
         const { error } = await lovable.auth.signInWithOAuth("google", {
           redirect_uri: window.location.origin,
           extraParams: {
@@ -89,6 +91,8 @@ const AuthPage = () => {
       }
     } catch (err: any) {
       toast({ title: "خطأ", description: err.message, variant: "destructive" });
+    } finally {
+      window.clearTimeout(loadingTimeout);
       setLoading(false);
     }
   };

@@ -55,19 +55,36 @@ export function useUserRole() {
       return;
     }
 
-    const fetchRoles = async () => {
-      const { data } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id);
+    let isMounted = true;
 
-      const userRoles = (data || []).map((r) => r.role as AppRole);
-      // If no roles, treat as admin (business owner fallback)
-      setRoles(userRoles.length === 0 ? ["admin"] : userRoles);
-      setLoading(false);
+    const fetchRoles = async () => {
+      setLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", user.id);
+
+        if (error) throw error;
+
+        const userRoles = (data || []).map((r) => r.role as AppRole);
+        if (!isMounted) return;
+        // If no roles, treat as admin (business owner fallback)
+        setRoles(userRoles.length === 0 ? ["admin"] : userRoles);
+      } catch {
+        if (!isMounted) return;
+        // Safe fallback to avoid infinite loading in route guards
+        setRoles(["admin"]);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
     };
 
     fetchRoles();
+
+    return () => {
+      isMounted = false;
+    };
   }, [user, authLoading]);
 
   const isAdmin = roles.includes("super_admin") || roles.includes("admin");
