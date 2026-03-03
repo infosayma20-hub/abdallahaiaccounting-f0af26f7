@@ -79,9 +79,8 @@ const AppsRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 const AuthRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, loading } = useAuth();
+  const { loading } = useAuth();
   if (loading) return <LoadingScreen />;
-  if (user) return <Navigate to="/apps" replace />;
   return <>{children}</>;
 };
 
