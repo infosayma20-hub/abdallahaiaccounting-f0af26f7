@@ -7,7 +7,6 @@ import {
   Monitor,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { useUserRole } from "@/hooks/useUserRole";
 import { useOnboarding } from "@/hooks/useOnboarding";
 import WelcomeModal from "@/components/onboarding/WelcomeModal";
 import SpotlightTour from "@/components/onboarding/SpotlightTour";
@@ -141,18 +140,13 @@ const appModules: AppModule[] = [
   },
   {
     id: "settings", label: "الإعدادات", description: "إعدادات النظام والملف الشخصي", icon: Settings, color: "text-muted-foreground", bgColor: "bg-muted", path: "/settings",
-    keywords: ["إعدادات", "ملف", "شخصي", "فريق", "مستخدمين", "صلاحيات"],
-    children: [
-      { label: "الملف الشخصي", path: "/settings" },
-      { label: "إدارة الفريق والصلاحيات", path: "/team-management" },
-    ],
+    keywords: ["إعدادات", "ملف", "شخصي"],
   },
 ];
 
 const AppsLauncher = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { canAccessModule, roles, loading: roleLoading } = useUserRole();
   const { shouldShowWelcome, shouldShowTour, update, loading: onboardingLoading } = useOnboarding();
   const [tourActive, setTourActive] = useState(false);
   const [showCompletion, setShowCompletion] = useState(false);
@@ -162,17 +156,15 @@ const AppsLauncher = () => {
   const displayName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "المستخدم";
 
   const filteredModules = useMemo(() => {
-    // First filter by role
-    const roleFiltered = appModules.filter((app) => canAccessModule(app.id));
-    if (!search.trim()) return roleFiltered;
+    if (!search.trim()) return appModules;
     const q = search.trim();
-    return roleFiltered.filter(
+    return appModules.filter(
       (app) =>
         app.label.includes(q) ||
         app.description.includes(q) ||
         app.keywords?.some((k) => k.includes(q))
     );
-  }, [search, canAccessModule]);
+  }, [search]);
 
   const handleStartTour = () => {
     update({ welcome_modal_shown: true });

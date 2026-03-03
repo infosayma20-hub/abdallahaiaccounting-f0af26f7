@@ -1,9 +1,8 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ChevronDown, X, PanelLeftClose, PanelLeftOpen, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ModuleIcon from "@/components/ModuleIcon";
-import { useUserRole } from "@/hooks/useUserRole";
 
 interface SidebarProps {
   collapsed: boolean;
@@ -130,19 +129,7 @@ const navSections: NavSection[] = [
 const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarProps) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { canAccessSidebarModule, loading: roleLoading } = useUserRole();
-  const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
-
-  // Filter nav sections based on role
-  const filteredSections = useMemo(() => {
-    if (roleLoading) return [];
-    return navSections
-      .map((section) => ({
-        ...section,
-        items: section.items.filter((item) => canAccessSidebarModule(item.module)),
-      }))
-      .filter((section) => section.items.length > 0);
-  }, [roleLoading, canAccessSidebarModule]);
+  const [expandedGroups, setExpandedGroups] = useState<string[]>(["المحاسبة"]);
 
   const isActive = (path?: string) => {
     if (!path) return false;
@@ -267,7 +254,7 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
 
       {/* Navigation Sections */}
       <nav className="flex-1 overflow-y-auto py-2 px-3 space-y-5">
-        {filteredSections.map((section) => (
+        {navSections.map((section) => (
           <div key={section.title}>
             {!collapsed && (
               <p className="text-[10px] font-semibold text-muted-foreground/60 uppercase tracking-wider px-3 mb-2">

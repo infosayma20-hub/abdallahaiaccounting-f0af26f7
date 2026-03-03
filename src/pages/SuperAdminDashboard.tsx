@@ -50,10 +50,9 @@ type UserRecord = {
   phone?: string;
   last_sign_in?: string;
   is_banned?: boolean;
-  role: string;
+  roles: string[];
   created_at: string;
   company_name?: string;
-  company_id?: string;
   business_type?: string;
 };
 
@@ -1582,94 +1581,69 @@ export default function SuperAdminDashboard() {
                     <tr className="border-b border-white/[0.06]">
                       <th className="text-right text-white/30 font-medium px-4 py-3">المستخدم</th>
                       <th className="text-right text-white/30 font-medium px-4 py-3">الإيميل</th>
-                      <th className="text-right text-white/30 font-medium px-4 py-3">الشركة</th>
-                      <th className="text-right text-white/30 font-medium px-4 py-3">الدور</th>
+                      <th className="text-right text-white/30 font-medium px-4 py-3">الأدوار</th>
                       <th className="text-right text-white/30 font-medium px-4 py-3">آخر دخول</th>
                       <th className="text-right text-white/30 font-medium px-4 py-3">الحالة</th>
                       <th className="text-center text-white/30 font-medium px-4 py-3">إجراءات</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/[0.04]">
-                    {filteredUsers.map((u) => {
-                      const roleConfig: Record<string, { label: string; cls: string; icon: string }> = {
-                        super_admin: { label: "مدير النظام", cls: "bg-amber-500/15 text-amber-400 border-amber-500/30", icon: "👑" },
-                        admin: { label: "مدير", cls: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30", icon: "🟢" },
-                        accountant: { label: "محاسب", cls: "bg-blue-500/15 text-blue-400 border-blue-500/30", icon: "🔵" },
-                        cashier: { label: "كاشير", cls: "bg-purple-500/15 text-purple-400 border-purple-500/30", icon: "🟣" },
-                        viewer: { label: "مشاهد", cls: "bg-white/5 text-white/40 border-white/10", icon: "⚪" },
-                      };
-                      const rc = roleConfig[u.role] || roleConfig.admin;
-                      
-                      return (
-                        <tr key={u.user_id} className="hover:bg-white/[0.02]">
-                          <td className="px-4 py-3">
-                            <div className="flex items-center gap-2">
-                              <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-white/40 font-bold text-xs">
-                                {(u.display_name || "?")[0]}
-                              </div>
-                              <span className="text-white/80 font-medium">{u.display_name || "—"}</span>
+                    {filteredUsers.map((u) => (
+                      <tr key={u.user_id} className="hover:bg-white/[0.02]">
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-white/40 font-bold text-xs">
+                              {(u.display_name || "?")[0]}
                             </div>
-                          </td>
-                          <td className="px-4 py-3 text-white/50 font-mono text-xs">{u.email || "—"}</td>
-                          <td className="px-4 py-3 text-white/40 text-xs">{u.company_name || "—"}</td>
-                          <td className="px-4 py-3">
-                            <select
-                              value={u.role}
-                              onChange={async (e) => {
-                                const newRole = e.target.value;
-                                try {
-                                  await apiCall("update_role", undefined, { target_user_id: u.user_id, new_role: newRole });
-                                  toast.success(`تم تغيير دور ${u.display_name} إلى ${roleConfig[newRole]?.label || newRole}`);
-                                  loadUsers();
-                                } catch (err: any) { toast.error(err.message); }
-                              }}
-                              className={`text-[11px] font-medium px-2 py-1 rounded-lg border cursor-pointer ${rc.cls}`}
-                              style={{ background: 'transparent' }}
-                            >
-                              <option value="super_admin" className="bg-[#0f1524]">👑 مدير النظام</option>
-                              <option value="admin" className="bg-[#0f1524]">🟢 مدير</option>
-                              <option value="accountant" className="bg-[#0f1524]">🔵 محاسب</option>
-                              <option value="cashier" className="bg-[#0f1524]">🟣 كاشير</option>
-                              <option value="viewer" className="bg-[#0f1524]">⚪ مشاهد</option>
-                            </select>
-                          </td>
-                          <td className="px-4 py-3 text-white/30 text-xs">
-                            {u.last_sign_in ? format(new Date(u.last_sign_in), "dd/MM HH:mm", { locale: ar }) : "—"}
-                          </td>
-                          <td className="px-4 py-3">
+                            <span className="text-white/80 font-medium">{u.display_name || "—"}</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-white/50 font-mono text-xs">{u.email || "—"}</td>
+                        <td className="px-4 py-3">
+                          <div className="flex gap-1 flex-wrap">
+                            {u.roles.map((r) => (
+                              <Badge key={r} variant="outline" className={`text-[10px] border-white/10 ${r === "super_admin" ? "text-amber-400 border-amber-400/30" : r === "admin" ? "text-blue-400 border-blue-400/30" : "text-white/40"}`}>
+                                {r}
+                              </Badge>
+                            ))}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-white/30 text-xs">
+                          {u.last_sign_in ? format(new Date(u.last_sign_in), "dd/MM HH:mm", { locale: ar }) : "—"}
+                        </td>
+                        <td className="px-4 py-3">
+                          {u.is_banned ? (
+                            <Badge className="bg-red-500/10 text-red-400 border-red-500/20 text-[10px]">معلق</Badge>
+                          ) : (
+                            <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-[10px]">نشط</Badge>
+                          )}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center justify-center gap-1">
                             {u.is_banned ? (
-                              <Badge className="bg-red-500/10 text-red-400 border-red-500/20 text-[10px]">معلق</Badge>
+                              <Button size="icon" variant="ghost" onClick={() => handleUnsuspendUser(u.user_id, u.display_name)} className="h-7 w-7 text-emerald-400 hover:bg-emerald-500/10" title="إلغاء التعليق">
+                                <Unlock className="h-3.5 w-3.5" />
+                              </Button>
                             ) : (
-                              <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-[10px]">نشط</Badge>
+                              <Button size="icon" variant="ghost" onClick={() => handleSuspendUser(u.user_id, u.display_name)} className="h-7 w-7 text-amber-400 hover:bg-amber-500/10" title="تعليق">
+                                <Lock className="h-3.5 w-3.5" />
+                              </Button>
                             )}
-                          </td>
-                          <td className="px-4 py-3">
-                            <div className="flex items-center justify-center gap-1">
-                              {u.is_banned ? (
-                                <Button size="icon" variant="ghost" onClick={() => handleUnsuspendUser(u.user_id, u.display_name)} className="h-7 w-7 text-emerald-400 hover:bg-emerald-500/10" title="إلغاء التعليق">
-                                  <Unlock className="h-3.5 w-3.5" />
-                                </Button>
-                              ) : (
-                                <Button size="icon" variant="ghost" onClick={() => handleSuspendUser(u.user_id, u.display_name)} className="h-7 w-7 text-amber-400 hover:bg-amber-500/10" title="تعليق">
-                                  <Lock className="h-3.5 w-3.5" />
-                                </Button>
-                              )}
-                              <Button size="icon" variant="ghost" onClick={() => handleResetPassword(u.user_id, u.display_name)} className="h-7 w-7 text-blue-400 hover:bg-blue-500/10" title="إعادة تعيين كلمة المرور">
-                                <KeyRound className="h-3.5 w-3.5" />
-                              </Button>
-                              <Button
-                                size="icon" variant="ghost"
-                                onClick={() => setDeleteDialog({ open: true, userId: u.user_id, name: u.display_name })}
-                                className="h-7 w-7 text-red-400 hover:bg-red-500/10" title="حذف"
-                                disabled={u.role === "super_admin"}
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
+                            <Button size="icon" variant="ghost" onClick={() => handleResetPassword(u.user_id, u.display_name)} className="h-7 w-7 text-blue-400 hover:bg-blue-500/10" title="إعادة تعيين كلمة المرور">
+                              <KeyRound className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              size="icon" variant="ghost"
+                              onClick={() => setDeleteDialog({ open: true, userId: u.user_id, name: u.display_name })}
+                              className="h-7 w-7 text-red-400 hover:bg-red-500/10" title="حذف"
+                              disabled={u.roles.includes("super_admin")}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
                     {filteredUsers.length === 0 && (
                       <tr><td colSpan={6} className="text-center py-8 text-white/20">لا توجد نتائج</td></tr>
                     )}
