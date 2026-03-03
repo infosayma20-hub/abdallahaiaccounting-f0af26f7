@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -14,7 +15,7 @@ import { toast } from "@/hooks/use-toast";
 import {
   Users, Building2, Clock, CheckCircle2, XCircle, AlertTriangle,
   Calendar, FileText, Download, Loader2, Eye, Check, X, MapPin,
-  QrCode, RefreshCw, Copy
+  QrCode, RefreshCw, Copy, MoreVertical, Pencil, Trash2
 } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import { format } from "date-fns";
@@ -74,6 +75,10 @@ export default function HRAttendancePage() {
   const [branchForm, setBranchForm] = useState({ name: "", address: "", latitude: "", longitude: "", radius_meters: "100" });
   const [reviewDialog, setReviewDialog] = useState<CorrectionReq | null>(null);
   const [reviewNotes, setReviewNotes] = useState("");
+  const [editingBranch, setEditingBranch] = useState<Branch | null>(null);
+  const [editForm, setEditForm] = useState({ name: "", address: "", latitude: "", longitude: "", radius_meters: "" });
+  const [deletingBranch, setDeletingBranch] = useState<Branch | null>(null);
+  const [deleteConfirmName, setDeleteConfirmName] = useState("");
 
   const fetchData = useCallback(async () => {
     if (!user) return;
@@ -196,19 +201,77 @@ export default function HRAttendancePage() {
     }
   };
 
-  const exportCSV = () => {
+  const exportExcel = () => {
     if (records.length === 0) return;
-    const header = "الموظف,التاريخ,الدخول,الخروج,الساعات,الإضافي,الحالة\n";
-    const rows = records.map(r => {
-      const emp = (r as any).employees?.full_name || "";
-      return `${emp},${r.attendance_date},${r.first_check_in || ""},${r.last_check_out || ""},${r.total_hours},${r.overtime_hours},${statusLabels[r.status] || r.status}`;
-    }).join("\n");
-    const blob = new Blob(["\ufeff" + header + rows], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `attendance-${selectedDate}.csv`;
-    a.click();
+    import("xlsx").then(XLSX => {
+      // Sheet 1: Summary
+      const summaryData = records.map(r => ({
+        "الموظف": (r as any).employees?.full_name || "—",
+        "التاريخ": r.attendance_date,
+        "الدخول": r.first_check_in ? format(new Date(r.first_check_in), "hh:mm a") : "—",
+        "الخروج": r.last_check_out ? format(new Date(r.last_check_out), "hh:mm a") : "—",
+        "ساعات العمل": r.total_hours || 0,
+        "ساعات إضافية": r.overtime_hours || 0,
+        "الحالة": statusLabels[r.status] || r.status,
+      }));
+
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(summaryData);
+      ws["!cols"] = [
+        { wch: 25 }, { wch: 12 }, { wch: 12 },
+        { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 },
+      ];
+      XLSX.utils.book_append_sheet(wb, ws, "سجل الحضور");
+      XLSX.writeFile(wb, `سجل_الحضور_${selectedDate}.xlsx`);
+    });
+  };
+
+  const openEditBranch = (b: Branch) => {
+    setEditingBranch(b);
+    setEditForm({
+      name: b.name,
+      address: b.address || "",
+      latitude: String(b.latitude),
+      longitude: String(b.longitude),
+      radius_meters: String(b.radius_meters),
+    });
+  };
+
+  const updateBranch = async () => {
+    if (!editingBranch || !editForm.name || !editForm.latitude || !editForm.longitude) return;
+    const { error } = await supabase
+      .from("branches")
+      .update({
+        name: editForm.name,
+        address: editForm.address || null,
+        latitude: parseFloat(editForm.latitude),
+        longitude: parseFloat(editForm.longitude),
+        radius_meters: parseInt(editForm.radius_meters) || 100,
+      })
+      .eq("id", editingBranch.id);
+    if (error) {
+      toast({ title: "خطأ", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "تم تحديث الفرع بنجاح ✅" });
+      setEditingBranch(null);
+      fetchData();
+    }
+  };
+
+  const deleteBranch = async () => {
+    if (!deletingBranch || deleteConfirmName !== deletingBranch.name) return;
+    const { error } = await supabase
+      .from("branches")
+      .update({ is_active: false })
+      .eq("id", deletingBranch.id);
+    if (error) {
+      toast({ title: "خطأ", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "تم حذف الفرع" });
+      setDeletingBranch(null);
+      setDeleteConfirmName("");
+      fetchData();
+    }
   };
 
   const presentCount = records.filter(r => r.status === "present" || r.status === "late").length;
@@ -231,8 +294,8 @@ export default function HRAttendancePage() {
           <Button variant="outline" size="sm" onClick={() => setShowBranchDialog(true)} className="gap-1">
             <Building2 className="h-3.5 w-3.5" /> إضافة فرع
           </Button>
-          <Button variant="outline" size="sm" onClick={exportCSV} className="gap-1">
-            <Download className="h-3.5 w-3.5" /> تصدير CSV
+          <Button variant="outline" size="sm" onClick={exportExcel} className="gap-1">
+            <Download className="h-3.5 w-3.5" /> تصدير Excel
           </Button>
         </div>
       </div>
@@ -266,9 +329,26 @@ export default function HRAttendancePage() {
         <div className="flex gap-2 overflow-x-auto pb-2">
           {branches.map(b => (
             <Card key={b.id} className="min-w-[220px] p-3 hover:border-primary/50 transition-colors">
-              <div className="flex items-center gap-2 mb-1">
-                <Building2 className="h-4 w-4 text-primary" />
-                <span className="font-medium text-sm">{b.name}</span>
+              <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center gap-2">
+                  <Building2 className="h-4 w-4 text-primary" />
+                  <span className="font-medium text-sm">{b.name}</span>
+                </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                      <MoreVertical className="h-3.5 w-3.5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => openEditBranch(b)} className="gap-2">
+                      <Pencil className="h-3.5 w-3.5" /> تعديل الفرع
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setDeletingBranch(b)} className="gap-2 text-destructive">
+                      <Trash2 className="h-3.5 w-3.5" /> حذف الفرع
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
               <div className="flex items-center gap-1 text-xs text-muted-foreground">
                 <MapPin className="h-3 w-3" />
@@ -380,7 +460,11 @@ export default function HRAttendancePage() {
                   <Badge variant="outline">
                     {req.request_type === "missing_checkin" ? "دخول مفقود" :
                      req.request_type === "missing_checkout" ? "خروج مفقود" :
-                     req.request_type === "wrong_time" ? "وقت خاطئ" : "أخرى"}
+                     req.request_type === "wrong_time" ? "وقت خاطئ" :
+                     req.request_type === "leave_request" ? "🏖️ طلب إجازة" :
+                     req.request_type === "advance_request" ? "💰 طلب سلفة" :
+                     req.request_type === "overtime_request" ? "⏰ أوفرتايم" :
+                     req.request_type === "hr_message" ? "💬 رسالة HR" : "أخرى"}
                   </Badge>
                 </div>
                 <p className="text-sm text-muted-foreground mb-3">{req.reason}</p>
@@ -400,8 +484,8 @@ export default function HRAttendancePage() {
             <Calendar className="h-12 w-12 mx-auto mb-3 text-muted-foreground/30" />
             <h3 className="font-medium mb-1">التقارير الشهرية</h3>
             <p className="text-sm text-muted-foreground mb-4">استخدم أزرار التصدير لتنزيل تقارير مفصلة</p>
-            <Button variant="outline" onClick={exportCSV} className="gap-1">
-              <Download className="h-4 w-4" /> تصدير تقرير اليوم
+            <Button variant="outline" onClick={exportExcel} className="gap-1">
+              <Download className="h-4 w-4" /> تصدير تقرير Excel
             </Button>
           </Card>
         </TabsContent>
@@ -551,6 +635,84 @@ export default function HRAttendancePage() {
             </Button>
             <Button className="gap-1 flex-1" onClick={() => reviewDialog && handleCorrection(reviewDialog.id, "approved")}>
               <Check className="h-4 w-4" /> قبول
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Branch Dialog */}
+      <Dialog open={!!editingBranch} onOpenChange={(o) => !o && setEditingBranch(null)}>
+        <DialogContent dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Pencil className="h-5 w-5 text-primary" />
+              تعديل فرع {editingBranch?.name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">اسم الفرع *</label>
+              <Input value={editForm.name} onChange={e => setEditForm(p => ({ ...p, name: e.target.value }))} />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">العنوان</label>
+              <Input value={editForm.address} onChange={e => setEditForm(p => ({ ...p, address: e.target.value }))} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">خط العرض (Latitude) *</label>
+                <Input type="number" step="any" value={editForm.latitude} onChange={e => setEditForm(p => ({ ...p, latitude: e.target.value }))} dir="ltr" />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">خط الطول (Longitude) *</label>
+                <Input type="number" step="any" value={editForm.longitude} onChange={e => setEditForm(p => ({ ...p, longitude: e.target.value }))} dir="ltr" />
+              </div>
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">النطاق (بالأمتار)</label>
+              <Input type="number" value={editForm.radius_meters} onChange={e => setEditForm(p => ({ ...p, radius_meters: e.target.value }))} dir="ltr" />
+            </div>
+            <Button onClick={() => {
+              navigator.geolocation.getCurrentPosition(
+                pos => {
+                  setEditForm(p => ({ ...p, latitude: pos.coords.latitude.toFixed(6), longitude: pos.coords.longitude.toFixed(6) }));
+                  toast({ title: "تم تحديد الموقع ✅" });
+                },
+                () => toast({ title: "تعذر تحديد الموقع", variant: "destructive" }),
+                { enableHighAccuracy: true, timeout: 15000 }
+              );
+            }} variant="outline" size="sm" className="w-full gap-1">
+              <MapPin className="h-3.5 w-3.5" /> استخدام موقعي الحالي
+            </Button>
+          </div>
+          <DialogFooter>
+            <Button onClick={updateBranch} className="w-full">حفظ التعديلات</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Branch Dialog */}
+      <Dialog open={!!deletingBranch} onOpenChange={(o) => { if (!o) { setDeletingBranch(null); setDeleteConfirmName(""); } }}>
+        <DialogContent dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <Trash2 className="h-5 w-5" />
+              حذف فرع {deletingBranch?.name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="bg-destructive/10 rounded-lg p-4 text-sm">
+              <p className="font-semibold mb-1">⚠️ تحذير</p>
+              <p>حذف الفرع سيؤثر على سجلات الحضور المرتبطة به. لن يتم حذف السجلات السابقة لكن لن يمكن استخدام الفرع بعد الآن.</p>
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">اكتب اسم الفرع للتأكيد: <strong>{deletingBranch?.name}</strong></label>
+              <Input value={deleteConfirmName} onChange={e => setDeleteConfirmName(e.target.value)} placeholder={deletingBranch?.name} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="destructive" onClick={deleteBranch} disabled={deleteConfirmName !== deletingBranch?.name} className="w-full gap-1">
+              <Trash2 className="h-4 w-4" /> حذف نهائي
             </Button>
           </DialogFooter>
         </DialogContent>

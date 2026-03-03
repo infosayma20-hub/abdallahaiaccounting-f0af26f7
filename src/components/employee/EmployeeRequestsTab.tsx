@@ -77,15 +77,26 @@ export default function EmployeeRequestsTab({ corrections, employeeId, userId, o
       : activeForm === "message" ? "hr_message"
       : form.type;
 
-    const { error } = await supabase.from("correction_requests").insert({
+    const insertData: Record<string, any> = {
       employee_id: employeeId,
       auth_user_id: userId,
       attendance_date: form.date || new Date().toISOString().split("T")[0],
       request_type: requestType,
       reason: form.reason,
-      requested_time: activeForm === "advance" ? form.amount : (activeForm === "leave" ? `${form.date} to ${form.endDate}` : null),
       status: "pending",
-    });
+    };
+
+    // Handle advance amount separately - don't put it in requested_time (timestamp field)
+    if (activeForm === "advance" && form.amount) {
+      insertData.amount = parseFloat(form.amount);
+      insertData.requested_time = null;
+    } else if (activeForm === "leave") {
+      insertData.requested_time = null; // Don't put date range in timestamp field
+    } else {
+      insertData.requested_time = null;
+    }
+
+    const { error } = await supabase.from("correction_requests").insert(insertData as any);
 
     setSubmitting(false);
 

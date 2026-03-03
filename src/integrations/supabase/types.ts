@@ -1126,6 +1126,7 @@ export type Database = {
       }
       correction_requests: {
         Row: {
+          amount: number | null
           attendance_date: string
           attendance_day_id: string | null
           auth_user_id: string
@@ -1141,6 +1142,7 @@ export type Database = {
           status: string
         }
         Insert: {
+          amount?: number | null
           attendance_date: string
           attendance_day_id?: string | null
           auth_user_id: string
@@ -1156,6 +1158,7 @@ export type Database = {
           status?: string
         }
         Update: {
+          amount?: number | null
           attendance_date?: string
           attendance_day_id?: string | null
           auth_user_id?: string
