@@ -5,6 +5,17 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const sanitizeEmail = (value: string) =>
+  value
+    .normalize('NFKC')
+    .replace(/[\u0000-\u001F\u007F-\u009F]/g, '')
+    .replace(/[\u200B-\u200F\u061C\u202A-\u202E\u2066-\u2069]/g, '')
+    .replace(/[^\x20-\x7E]/g, '')
+    .trim()
+    .toLowerCase();
+
+const strictEmailRegex = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -38,7 +49,7 @@ Deno.serve(async (req) => {
 
     if (action === 'create_team_member') {
       const { email: rawEmail, password, full_name, role } = body;
-      const email = (rawEmail || '').trim().toLowerCase();
+      const email = sanitizeEmail(rawEmail || '');
 
       if (!email || !password || !full_name || !role) {
         return new Response(JSON.stringify({ error: 'Missing fields' }), {
@@ -46,9 +57,8 @@ Deno.serve(async (req) => {
         });
       }
 
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(email)) {
-        return new Response(JSON.stringify({ error: 'صيغة البريد الإلكتروني غير صحيحة' }), {
+      if (!strictEmailRegex.test(email)) {
+        return new Response(JSON.stringify({ error: 'صيغة البريد الإلكتروني غير صحيحة (استخدم أحرف إنجليزية فقط)' }), {
           status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }

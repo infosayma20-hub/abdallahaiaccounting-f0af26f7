@@ -46,6 +46,17 @@ interface TeamMember {
   created_at: string;
 }
 
+const sanitizeEmail = (value: string) =>
+  value
+    .normalize("NFKC")
+    .replace(/[\u0000-\u001F\u007F-\u009F]/g, "")
+    .replace(/[\u200B-\u200F\u061C\u202A-\u202E\u2066-\u2069]/g, "")
+    .replace(/[^\x20-\x7E]/g, "")
+    .trim()
+    .toLowerCase();
+
+const strictEmailRegex = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+
 export default function TeamManagementPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -86,12 +97,13 @@ export default function TeamManagementPage() {
   }, [user]);
 
   const handleAdd = async () => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!addForm.email || !addForm.password || !addForm.full_name) {
+    const cleanEmail = sanitizeEmail(addForm.email);
+
+    if (!cleanEmail || !addForm.password || !addForm.full_name) {
       toast.error("يرجى تعبئة جميع الحقول"); return;
     }
-    if (!emailRegex.test(addForm.email.trim())) {
-      toast.error("صيغة البريد الإلكتروني غير صحيحة"); return;
+    if (!strictEmailRegex.test(cleanEmail)) {
+      toast.error("صيغة البريد الإلكتروني غير صحيحة (استخدم أحرف إنجليزية فقط)"); return;
     }
     if (addForm.password.length < 6) {
       toast.error("كلمة المرور يجب أن تكون 6 أحرف على الأقل"); return;
@@ -99,7 +111,7 @@ export default function TeamManagementPage() {
     setAdding(true);
     try {
       const { data, error } = await supabase.functions.invoke("team-management", {
-        body: { action: "create_team_member", ...addForm, email: addForm.email.trim().toLowerCase() },
+        body: { action: "create_team_member", ...addForm, email: cleanEmail },
       });
       if (error) throw error;
       if (data.error) throw new Error(data.error);
