@@ -1325,11 +1325,15 @@ export type Database = {
       }
       employee_allowances: {
         Row: {
+          activation_date: string | null
+          activation_months: number | null
           allowance_name: string
           allowance_type: string
           amount: number
+          amount_per_day: number | null
           created_at: string
           employee_id: string
+          fixed_amount: number | null
           id: string
           is_active: boolean
           notes: string | null
@@ -1337,11 +1341,15 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          activation_date?: string | null
+          activation_months?: number | null
           allowance_name: string
           allowance_type?: string
           amount?: number
+          amount_per_day?: number | null
           created_at?: string
           employee_id: string
+          fixed_amount?: number | null
           id?: string
           is_active?: boolean
           notes?: string | null
@@ -1349,11 +1357,15 @@ export type Database = {
           user_id: string
         }
         Update: {
+          activation_date?: string | null
+          activation_months?: number | null
           allowance_name?: string
           allowance_type?: string
           amount?: number
+          amount_per_day?: number | null
           created_at?: string
           employee_id?: string
+          fixed_amount?: number | null
           id?: string
           is_active?: boolean
           notes?: string | null
@@ -1614,31 +1626,47 @@ export type Database = {
       employees: {
         Row: {
           address: string | null
+          annual_leave_balance: number | null
           annual_leave_days: number
           auth_user_id: string | null
           bank_account: string | null
           bank_name: string | null
           base_salary: number
           branch_id: string | null
+          child_allowance_per_child: number | null
+          children_count: number | null
+          contract_type: string | null
           created_at: string
+          date_of_birth: string | null
           department: string | null
           email: string | null
           emergency_contact: string | null
           emergency_phone: string | null
           end_date: string | null
           full_name: string
+          gender: string | null
           hourly_rate: number
           id: string
           id_number: string | null
           is_active: boolean
+          is_terminated: boolean | null
           job_title: string | null
+          marital_status: string | null
+          meal_allowance_per_day: number | null
+          nationality: string | null
           notes: string | null
           phone: string | null
           photo_url: string | null
           position: string | null
+          previous_year_balance: number | null
           salary_type: string
+          shift_id: string | null
           sick_leave_days: number
+          spouse_allowance_amount: number | null
           start_date: string
+          terminated_at: string | null
+          termination_reason: string | null
+          transportation_allowance_per_day: number | null
           updated_at: string
           user_id: string
           work_days_per_week: number
@@ -1646,31 +1674,47 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          annual_leave_balance?: number | null
           annual_leave_days?: number
           auth_user_id?: string | null
           bank_account?: string | null
           bank_name?: string | null
           base_salary?: number
           branch_id?: string | null
+          child_allowance_per_child?: number | null
+          children_count?: number | null
+          contract_type?: string | null
           created_at?: string
+          date_of_birth?: string | null
           department?: string | null
           email?: string | null
           emergency_contact?: string | null
           emergency_phone?: string | null
           end_date?: string | null
           full_name: string
+          gender?: string | null
           hourly_rate?: number
           id?: string
           id_number?: string | null
           is_active?: boolean
+          is_terminated?: boolean | null
           job_title?: string | null
+          marital_status?: string | null
+          meal_allowance_per_day?: number | null
+          nationality?: string | null
           notes?: string | null
           phone?: string | null
           photo_url?: string | null
           position?: string | null
+          previous_year_balance?: number | null
           salary_type?: string
+          shift_id?: string | null
           sick_leave_days?: number
+          spouse_allowance_amount?: number | null
           start_date?: string
+          terminated_at?: string | null
+          termination_reason?: string | null
+          transportation_allowance_per_day?: number | null
           updated_at?: string
           user_id: string
           work_days_per_week?: number
@@ -1678,31 +1722,47 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          annual_leave_balance?: number | null
           annual_leave_days?: number
           auth_user_id?: string | null
           bank_account?: string | null
           bank_name?: string | null
           base_salary?: number
           branch_id?: string | null
+          child_allowance_per_child?: number | null
+          children_count?: number | null
+          contract_type?: string | null
           created_at?: string
+          date_of_birth?: string | null
           department?: string | null
           email?: string | null
           emergency_contact?: string | null
           emergency_phone?: string | null
           end_date?: string | null
           full_name?: string
+          gender?: string | null
           hourly_rate?: number
           id?: string
           id_number?: string | null
           is_active?: boolean
+          is_terminated?: boolean | null
           job_title?: string | null
+          marital_status?: string | null
+          meal_allowance_per_day?: number | null
+          nationality?: string | null
           notes?: string | null
           phone?: string | null
           photo_url?: string | null
           position?: string | null
+          previous_year_balance?: number | null
           salary_type?: string
+          shift_id?: string | null
           sick_leave_days?: number
+          spouse_allowance_amount?: number | null
           start_date?: string
+          terminated_at?: string | null
+          termination_reason?: string | null
+          transportation_allowance_per_day?: number | null
           updated_at?: string
           user_id?: string
           work_days_per_week?: number
@@ -1721,6 +1781,13 @@ export type Database = {
             columns: ["branch_id"]
             isOneToOne: false
             referencedRelation: "branches_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "work_shifts"
             referencedColumns: ["id"]
           },
         ]
@@ -1830,6 +1897,114 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      leave_requests: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string | null
+          days_count: number | null
+          employee_id: string
+          end_date: string
+          id: string
+          leave_type: string
+          reason: string | null
+          review_notes: string | null
+          start_date: string
+          status: string | null
+          temporary_exit_hours: number | null
+          temporary_exit_return_time: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string | null
+          days_count?: number | null
+          employee_id: string
+          end_date: string
+          id?: string
+          leave_type?: string
+          reason?: string | null
+          review_notes?: string | null
+          start_date: string
+          status?: string | null
+          temporary_exit_hours?: number | null
+          temporary_exit_return_time?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string | null
+          days_count?: number | null
+          employee_id?: string
+          end_date?: string
+          id?: string
+          leave_type?: string
+          reason?: string | null
+          review_notes?: string | null
+          start_date?: string
+          status?: string | null
+          temporary_exit_hours?: number | null
+          temporary_exit_return_time?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leave_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leave_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      official_holidays: {
+        Row: {
+          created_at: string | null
+          holiday_date: string
+          id: string
+          is_recurring: boolean | null
+          multiplier: number | null
+          name: string
+          recurring_day: number | null
+          recurring_month: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          holiday_date: string
+          id?: string
+          is_recurring?: boolean | null
+          multiplier?: number | null
+          name: string
+          recurring_day?: number | null
+          recurring_month?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          holiday_date?: string
+          id?: string
+          is_recurring?: boolean | null
+          multiplier?: number | null
+          name?: string
+          recurring_day?: number | null
+          recurring_month?: number | null
+          user_id?: string
+        }
+        Relationships: []
       }
       opening_balance_batches: {
         Row: {
@@ -3187,6 +3362,126 @@ export type Database = {
           },
         ]
       }
+      salary_slips: {
+        Row: {
+          absence_deduction: number | null
+          absent_days: number | null
+          advance_deduction: number | null
+          annual_leave_days: number | null
+          basic_salary: number | null
+          children_allowance: number | null
+          created_at: string | null
+          employee_id: string
+          id: string
+          is_paid: boolean | null
+          late_deduction: number | null
+          meal_allowance: number | null
+          net_salary: number | null
+          notes: string | null
+          official_holiday_days: number | null
+          other_allowances: number | null
+          other_deductions: number | null
+          overtime_amount: number | null
+          paid_date: string | null
+          period_month: number
+          period_year: number
+          present_days: number | null
+          sick_leave_days: number | null
+          social_insurance: number | null
+          spouse_allowance: number | null
+          total_deductions: number | null
+          total_earnings: number | null
+          total_paid_days: number | null
+          transportation_allowance: number | null
+          user_id: string
+          weekly_days_off: number | null
+          work_days: number | null
+        }
+        Insert: {
+          absence_deduction?: number | null
+          absent_days?: number | null
+          advance_deduction?: number | null
+          annual_leave_days?: number | null
+          basic_salary?: number | null
+          children_allowance?: number | null
+          created_at?: string | null
+          employee_id: string
+          id?: string
+          is_paid?: boolean | null
+          late_deduction?: number | null
+          meal_allowance?: number | null
+          net_salary?: number | null
+          notes?: string | null
+          official_holiday_days?: number | null
+          other_allowances?: number | null
+          other_deductions?: number | null
+          overtime_amount?: number | null
+          paid_date?: string | null
+          period_month: number
+          period_year: number
+          present_days?: number | null
+          sick_leave_days?: number | null
+          social_insurance?: number | null
+          spouse_allowance?: number | null
+          total_deductions?: number | null
+          total_earnings?: number | null
+          total_paid_days?: number | null
+          transportation_allowance?: number | null
+          user_id: string
+          weekly_days_off?: number | null
+          work_days?: number | null
+        }
+        Update: {
+          absence_deduction?: number | null
+          absent_days?: number | null
+          advance_deduction?: number | null
+          annual_leave_days?: number | null
+          basic_salary?: number | null
+          children_allowance?: number | null
+          created_at?: string | null
+          employee_id?: string
+          id?: string
+          is_paid?: boolean | null
+          late_deduction?: number | null
+          meal_allowance?: number | null
+          net_salary?: number | null
+          notes?: string | null
+          official_holiday_days?: number | null
+          other_allowances?: number | null
+          other_deductions?: number | null
+          overtime_amount?: number | null
+          paid_date?: string | null
+          period_month?: number
+          period_year?: number
+          present_days?: number | null
+          sick_leave_days?: number | null
+          social_insurance?: number | null
+          spouse_allowance?: number | null
+          total_deductions?: number | null
+          total_earnings?: number | null
+          total_paid_days?: number | null
+          transportation_allowance?: number | null
+          user_id?: string
+          weekly_days_off?: number | null
+          work_days?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salary_slips_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salary_slips_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sales_representatives: {
         Row: {
           collection_commission_rate: number
@@ -3494,6 +3789,78 @@ export type Database = {
         }
         Relationships: []
       }
+      termination_records: {
+        Row: {
+          advance_balance: number | null
+          created_at: string | null
+          current_month_salary: number | null
+          employee_id: string
+          id: string
+          is_paid: boolean | null
+          notes: string | null
+          other_deductions: number | null
+          paid_date: string | null
+          severance_pay: number | null
+          termination_date: string
+          termination_reason: string | null
+          total_dues: number | null
+          unused_leave_pay: number | null
+          user_id: string
+          years_worked: number | null
+        }
+        Insert: {
+          advance_balance?: number | null
+          created_at?: string | null
+          current_month_salary?: number | null
+          employee_id: string
+          id?: string
+          is_paid?: boolean | null
+          notes?: string | null
+          other_deductions?: number | null
+          paid_date?: string | null
+          severance_pay?: number | null
+          termination_date: string
+          termination_reason?: string | null
+          total_dues?: number | null
+          unused_leave_pay?: number | null
+          user_id: string
+          years_worked?: number | null
+        }
+        Update: {
+          advance_balance?: number | null
+          created_at?: string | null
+          current_month_salary?: number | null
+          employee_id?: string
+          id?: string
+          is_paid?: boolean | null
+          notes?: string | null
+          other_deductions?: number | null
+          paid_date?: string | null
+          severance_pay?: number | null
+          termination_date?: string
+          termination_reason?: string | null
+          total_dues?: number | null
+          unused_leave_pay?: number | null
+          user_id?: string
+          years_worked?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "termination_records_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "termination_records_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ticket_attachments: {
         Row: {
           created_at: string
@@ -3731,6 +4098,51 @@ export type Database = {
           id?: string
           type?: string
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      work_shifts: {
+        Row: {
+          break_duration_minutes: number | null
+          created_at: string | null
+          days_of_week: number[] | null
+          end_time: string
+          id: string
+          is_active: boolean | null
+          late_tolerance_minutes: number | null
+          name: string
+          overtime_after_minutes: number | null
+          start_time: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          break_duration_minutes?: number | null
+          created_at?: string | null
+          days_of_week?: number[] | null
+          end_time?: string
+          id?: string
+          is_active?: boolean | null
+          late_tolerance_minutes?: number | null
+          name: string
+          overtime_after_minutes?: number | null
+          start_time?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          break_duration_minutes?: number | null
+          created_at?: string | null
+          days_of_week?: number[] | null
+          end_time?: string
+          id?: string
+          is_active?: boolean | null
+          late_tolerance_minutes?: number | null
+          name?: string
+          overtime_after_minutes?: number | null
+          start_time?: string
+          updated_at?: string | null
+          user_id?: string
         }
         Relationships: []
       }

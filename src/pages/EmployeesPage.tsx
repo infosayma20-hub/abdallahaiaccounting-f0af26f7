@@ -6,12 +6,17 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Search, Users, DollarSign, Calendar, FileText, Edit, Trash2, Eye, UserPlus, Loader2 } from "lucide-react";
+import { Plus, Search, Users, DollarSign, Calendar, FileText, Edit, Trash2, UserPlus, Loader2, Upload, CalendarDays, LogOut as LogOutIcon } from "lucide-react";
 import BackButton from "@/components/BackButton";
+import EmployeeImportDialog from "@/components/hr/EmployeeImportDialog";
+import OfficialHolidaysDialog from "@/components/hr/OfficialHolidaysDialog";
+import TerminationDialog from "@/components/hr/TerminationDialog";
+import SalarySlipDialog from "@/components/hr/SalarySlipDialog";
+import { calculateSalarySlip, calculateLeaveBalance, getWorkDaysInMonth, getWeeklyDaysOffInMonth, formatCurrency, type SalarySlip } from "@/lib/hr-utils";
 
 interface Employee {
   id: string;
@@ -39,6 +44,21 @@ interface Employee {
   emergency_phone: string;
   address: string;
   notes: string;
+  // New HR fields
+  marital_status?: string;
+  children_count?: number;
+  spouse_allowance_amount?: number;
+  child_allowance_per_child?: number;
+  gender?: string;
+  nationality?: string;
+  date_of_birth?: string;
+  contract_type?: string;
+  transportation_allowance_per_day?: number;
+  meal_allowance_per_day?: number;
+  annual_leave_balance?: number;
+  previous_year_balance?: number;
+  is_terminated?: boolean;
+  auth_user_id?: string;
 }
 
 const emptyEmployee: Partial<Employee> = {
@@ -47,6 +67,9 @@ const emptyEmployee: Partial<Employee> = {
   base_salary: 0, hourly_rate: 0, work_days_per_week: 6, work_hours_per_day: 8,
   annual_leave_days: 14, sick_leave_days: 14, bank_name: "", bank_account: "",
   emergency_contact: "", emergency_phone: "", address: "", notes: "", is_active: true,
+  marital_status: "single", children_count: 0, spouse_allowance_amount: 0,
+  child_allowance_per_child: 0, gender: "male", nationality: "", contract_type: "permanent",
+  transportation_allowance_per_day: 0, meal_allowance_per_day: 0,
 };
 
 const EmployeesPage = () => {
@@ -60,7 +83,7 @@ const EmployeesPage = () => {
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [activeTab, setActiveTab] = useState("info");
 
-  // Deductions & Allowances & Leaves state
+  // Sub-data
   const [deductions, setDeductions] = useState<any[]>([]);
   const [allowances, setAllowances] = useState<any[]>([]);
   const [leaves, setLeaves] = useState<any[]>([]);
@@ -71,10 +94,17 @@ const EmployeesPage = () => {
   const [allowanceForm, setAllowanceForm] = useState({ allowance_name: "", allowance_type: "ثابت", amount: 0, percentage: 0, notes: "" });
   const [leaveForm, setLeaveForm] = useState({ leave_type: "سنوية", start_date: new Date().toISOString().split("T")[0], end_date: new Date().toISOString().split("T")[0], days_count: 1, notes: "" });
 
-  // Create account state
+  // Create account
   const [showCreateAccount, setShowCreateAccount] = useState(false);
   const [accountForm, setAccountForm] = useState({ email: "", password: "" });
   const [creatingAccount, setCreatingAccount] = useState(false);
+
+  // New dialogs
+  const [showImport, setShowImport] = useState(false);
+  const [showHolidays, setShowHolidays] = useState(false);
+  const [showTermination, setShowTermination] = useState(false);
+  const [showSalarySlip, setShowSalarySlip] = useState(false);
+  const [salarySlip, setSalarySlip] = useState<SalarySlip | null>(null);
 
   const handleCreateAccount = async () => {
     if (!selectedEmployee || !accountForm.email || !accountForm.password) {
@@ -88,25 +118,12 @@ const EmployeesPage = () => {
     setCreatingAccount(true);
     try {
       const { data, error } = await supabase.functions.invoke("create-employee-account", {
-        body: {
-          employee_id: selectedEmployee.id,
-          email: accountForm.email,
-          password: accountForm.password,
-        },
+        body: { employee_id: selectedEmployee.id, email: accountForm.email, password: accountForm.password },
       });
-      if (error || data?.error) {
-        toast.error(data?.error || error?.message || "فشل إنشاء الحساب");
-      } else {
-        toast.success(data.message || "تم إنشاء الحساب بنجاح");
-        setShowCreateAccount(false);
-        setAccountForm({ email: "", password: "" });
-        fetchEmployees();
-      }
-    } catch (err: any) {
-      toast.error(err.message || "خطأ غير متوقع");
-    } finally {
-      setCreatingAccount(false);
-    }
+      if (error || data?.error) toast.error(data?.error || error?.message || "فشل إنشاء الحساب");
+      else { toast.success(data.message || "تم إنشاء الحساب بنجاح"); setShowCreateAccount(false); setAccountForm({ email: "", password: "" }); fetchEmployees(); }
+    } catch (err: any) { toast.error(err.message || "خطأ غير متوقع"); }
+    finally { setCreatingAccount(false); }
   };
 
   const fetchEmployees = async () => {
@@ -169,9 +186,52 @@ const EmployeesPage = () => {
     if (error) toast.error("خطأ"); else { toast.success("تمت الإضافة"); setShowLeaveForm(false); setLeaveForm({ leave_type: "سنوية", start_date: new Date().toISOString().split("T")[0], end_date: new Date().toISOString().split("T")[0], days_count: 1, notes: "" }); fetchEmployeeDetails(selectedEmployee.id); }
   };
 
+  const generateSalarySlip = () => {
+    if (!selectedEmployee) return;
+    const now = new Date();
+    const month = now.getMonth() + 1;
+    const year = now.getFullYear();
+    const workDays = getWorkDaysInMonth(year, month);
+    const weeklyOff = getWeeklyDaysOffInMonth(year, month);
+    const customAllowancesTotal = allowances.filter(a => a.is_active).reduce((s: number, a: any) => s + Number(a.amount || 0), 0);
+
+    const slip = calculateSalarySlip({
+      baseSalary: Number(selectedEmployee.base_salary) || 0,
+      hourlyRate: Number(selectedEmployee.hourly_rate) || 0,
+      workDaysPerWeek: selectedEmployee.work_days_per_week || 6,
+      workHoursPerDay: selectedEmployee.work_hours_per_day || 8,
+      presentDays: workDays, // Assume full attendance for preview
+      annualLeaveDays: 0,
+      sickLeaveDays: 0,
+      officialHolidayDays: 0,
+      weeklyDaysOff: weeklyOff,
+      totalWorkDays: workDays,
+      transportationPerDay: Number((selectedEmployee as any).transportation_allowance_per_day) || 0,
+      mealPerDay: Number((selectedEmployee as any).meal_allowance_per_day) || 0,
+      spouseAllowance: Number((selectedEmployee as any).spouse_allowance_amount) || 0,
+      childrenCount: Number((selectedEmployee as any).children_count) || 0,
+      childAllowancePerChild: Number((selectedEmployee as any).child_allowance_per_child) || 0,
+      overtimeHours: 0,
+      overtimeAmount: 0,
+      advanceDeductions: deductions.filter(d => !d.is_repaid).reduce((s: number, d: any) => s + Number(d.amount || 0), 0),
+      otherDeductions: 0,
+      customAllowances: customAllowancesTotal,
+      socialInsuranceRate: 0.075,
+    });
+
+    setSalarySlip(slip);
+    setShowSalarySlip(true);
+  };
+
   const filtered = employees.filter(e => e.full_name.includes(search) || e.id_number?.includes(search) || e.job_title?.includes(search));
   const activeCount = employees.filter(e => e.is_active).length;
   const totalSalaries = employees.filter(e => e.is_active).reduce((s, e) => s + Number(e.base_salary || 0), 0);
+
+  const leaveBalance = selectedEmployee ? calculateLeaveBalance(
+    selectedEmployee.start_date,
+    Number((selectedEmployee as any).previous_year_balance) || 0,
+    leaves.filter(l => l.status === "موافق عليها" && new Date(l.start_date).getFullYear() === new Date().getFullYear()).reduce((s: number, l: any) => s + Number(l.days_count || 0), 0)
+  ) : null;
 
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto" dir="rtl">
@@ -184,32 +244,40 @@ const EmployeesPage = () => {
             <p className="text-sm text-muted-foreground">نظام الموارد البشرية - قانون العمل الفلسطيني</p>
           </div>
         </div>
-        <Button onClick={() => { setForm(emptyEmployee); setEditingId(null); setShowForm(true); }} className="gap-2">
-          <Plus className="h-4 w-4" /> إضافة موظف
-        </Button>
+        <div className="flex gap-2 flex-wrap">
+          <Button variant="outline" size="sm" onClick={() => setShowHolidays(true)} className="gap-1">
+            <CalendarDays className="h-4 w-4" /> العطل الرسمية
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setShowImport(true)} className="gap-1">
+            <Upload className="h-4 w-4" /> استيراد Excel
+          </Button>
+          <Button onClick={() => { setForm(emptyEmployee); setEditingId(null); setShowForm(true); }} className="gap-2">
+            <Plus className="h-4 w-4" /> إضافة موظف
+          </Button>
+        </div>
       </div>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card><CardContent className="p-4 text-center">
-          <Users className="h-5 w-5 mx-auto text-primary mb-1" />
-          <p className="text-2xl font-bold text-foreground">{activeCount}</p>
-          <p className="text-xs text-muted-foreground">موظف نشط</p>
+          <FileText className="h-5 w-5 mx-auto text-muted-foreground mb-1" />
+          <p className="text-2xl font-bold text-foreground">{employees.length}</p>
+          <p className="text-xs text-muted-foreground">إجمالي السجلات</p>
         </CardContent></Card>
         <Card><CardContent className="p-4 text-center">
-          <DollarSign className="h-5 w-5 mx-auto text-accent mb-1" />
-          <p className="text-2xl font-bold text-foreground">{totalSalaries.toLocaleString()}</p>
-          <p className="text-xs text-muted-foreground">إجمالي الرواتب</p>
-        </CardContent></Card>
-        <Card><CardContent className="p-4 text-center">
-          <Calendar className="h-5 w-5 mx-auto text-warning mb-1" />
+          <Calendar className="h-5 w-5 mx-auto text-muted-foreground mb-1" />
           <p className="text-2xl font-bold text-foreground">{employees.length - activeCount}</p>
           <p className="text-xs text-muted-foreground">غير نشط</p>
         </CardContent></Card>
         <Card><CardContent className="p-4 text-center">
-          <FileText className="h-5 w-5 mx-auto text-info mb-1" />
-          <p className="text-2xl font-bold text-foreground">{employees.length}</p>
-          <p className="text-xs text-muted-foreground">إجمالي السجلات</p>
+          <DollarSign className="h-5 w-5 mx-auto text-muted-foreground mb-1" />
+          <p className="text-2xl font-bold text-foreground">{totalSalaries.toLocaleString()}</p>
+          <p className="text-xs text-muted-foreground">إجمالي الرواتب</p>
+        </CardContent></Card>
+        <Card><CardContent className="p-4 text-center">
+          <Users className="h-5 w-5 mx-auto text-primary mb-1" />
+          <p className="text-2xl font-bold text-foreground">{activeCount}</p>
+          <p className="text-xs text-muted-foreground">موظف نشط</p>
         </CardContent></Card>
       </div>
 
@@ -219,7 +287,7 @@ const EmployeesPage = () => {
         <Input placeholder="بحث بالاسم، رقم الهوية، الوظيفة..." value={search} onChange={e => setSearch(e.target.value)} className="pr-10" />
       </div>
 
-      {/* Main Content: List + Detail */}
+      {/* Main Content */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Employee List */}
         <div className="lg:col-span-1 space-y-2 max-h-[70vh] overflow-y-auto">
@@ -254,29 +322,36 @@ const EmployeesPage = () => {
           ) : (
             <Card>
               <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between flex-wrap gap-2">
                   <CardTitle className="text-lg">{selectedEmployee.full_name}</CardTitle>
-                   <div className="flex gap-2">
-                     {!(selectedEmployee as any).auth_user_id && (
-                       <Button size="sm" variant="outline" className="gap-1 text-xs" onClick={() => { setAccountForm({ email: selectedEmployee.email || "", password: "" }); setShowCreateAccount(true); }}>
-                         <UserPlus className="h-3 w-3" /> إنشاء حساب
-                       </Button>
-                     )}
-                     {(selectedEmployee as any).auth_user_id && (
-                       <Badge variant="secondary" className="text-[10px]">لديه حساب ✓</Badge>
-                     )}
-                     <Button size="sm" variant="outline" onClick={() => { setForm(selectedEmployee); setEditingId(selectedEmployee.id); setShowForm(true); }}><Edit className="h-3 w-3" /></Button>
-                     <Button size="sm" variant="destructive" onClick={() => handleDelete(selectedEmployee.id)}><Trash2 className="h-3 w-3" /></Button>
-                   </div>
+                  <div className="flex gap-1.5 flex-wrap">
+                    {!selectedEmployee.auth_user_id && (
+                      <Button size="sm" variant="outline" className="gap-1 text-xs" onClick={() => { setAccountForm({ email: selectedEmployee.email || "", password: "" }); setShowCreateAccount(true); }}>
+                        <UserPlus className="h-3 w-3" /> إنشاء حساب
+                      </Button>
+                    )}
+                    {selectedEmployee.auth_user_id && <Badge variant="secondary" className="text-[10px]">لديه حساب ✓</Badge>}
+                    <Button size="sm" variant="outline" className="gap-1 text-xs" onClick={generateSalarySlip}>
+                      <DollarSign className="h-3 w-3" /> قسيمة راتب
+                    </Button>
+                    {selectedEmployee.is_active && (
+                      <Button size="sm" variant="outline" className="gap-1 text-xs text-destructive" onClick={() => setShowTermination(true)}>
+                        <LogOutIcon className="h-3 w-3" /> إنهاء خدمة
+                      </Button>
+                    )}
+                    <Button size="sm" variant="outline" onClick={() => { setForm(selectedEmployee); setEditingId(selectedEmployee.id); setShowForm(true); }}><Edit className="h-3 w-3" /></Button>
+                    <Button size="sm" variant="destructive" onClick={() => handleDelete(selectedEmployee.id)}><Trash2 className="h-3 w-3" /></Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
                 <Tabs value={activeTab} onValueChange={setActiveTab}>
-                  <TabsList className="w-full grid grid-cols-4 mb-4">
+                  <TabsList className="w-full grid grid-cols-5 mb-4">
                     <TabsTrigger value="info">المعلومات</TabsTrigger>
                     <TabsTrigger value="allowances">البدلات</TabsTrigger>
                     <TabsTrigger value="deductions">المسحوبات</TabsTrigger>
                     <TabsTrigger value="leaves">الإجازات</TabsTrigger>
+                    <TabsTrigger value="hr">HR</TabsTrigger>
                   </TabsList>
 
                   <TabsContent value="info">
@@ -285,13 +360,21 @@ const EmployeesPage = () => {
                         ["رقم الهوية", selectedEmployee.id_number],
                         ["الهاتف", selectedEmployee.phone],
                         ["البريد", selectedEmployee.email],
+                        ["الجنس", (selectedEmployee as any).gender === "female" ? "أنثى" : "ذكر"],
+                        ["الحالة الاجتماعية", (selectedEmployee as any).marital_status === "married" ? "متزوج" : (selectedEmployee as any).marital_status === "divorced" ? "مطلق" : "أعزب"],
+                        ["عدد الأبناء", (selectedEmployee as any).children_count || 0],
                         ["المنصب", selectedEmployee.position],
                         ["القسم", selectedEmployee.department],
                         ["المسمى الوظيفي", selectedEmployee.job_title],
+                        ["نوع العقد", (selectedEmployee as any).contract_type || "دائم"],
                         ["تاريخ البداية", selectedEmployee.start_date],
                         ["نوع الراتب", selectedEmployee.salary_type],
-                        ["الراتب الأساسي", Number(selectedEmployee.base_salary || 0).toLocaleString()],
+                        ["الراتب الأساسي", formatCurrency(Number(selectedEmployee.base_salary || 0))],
                         ["معدل الساعة", Number(selectedEmployee.hourly_rate || 0).toLocaleString()],
+                        ["بدل مواصلات/يوم", formatCurrency(Number((selectedEmployee as any).transportation_allowance_per_day || 0))],
+                        ["بدل وجبات/يوم", formatCurrency(Number((selectedEmployee as any).meal_allowance_per_day || 0))],
+                        ["علاوة زوجة", formatCurrency(Number((selectedEmployee as any).spouse_allowance_amount || 0))],
+                        ["علاوة أبناء/طفل", formatCurrency(Number((selectedEmployee as any).child_allowance_per_child || 0))],
                         ["أيام العمل/أسبوع", selectedEmployee.work_days_per_week],
                         ["ساعات العمل/يوم", selectedEmployee.work_hours_per_day],
                         ["إجازات سنوية", `${selectedEmployee.annual_leave_days} يوم`],
@@ -300,7 +383,6 @@ const EmployeesPage = () => {
                         ["رقم الحساب", selectedEmployee.bank_account],
                         ["جهة طوارئ", selectedEmployee.emergency_contact],
                         ["هاتف طوارئ", selectedEmployee.emergency_phone],
-                        ["العنوان", selectedEmployee.address],
                       ].map(([label, val]) => (
                         <div key={label as string} className="flex justify-between border-b border-border/30 pb-1">
                           <span className="text-muted-foreground">{label}</span>
@@ -369,6 +451,14 @@ const EmployeesPage = () => {
                       <h3 className="font-medium text-foreground">الإجازات</h3>
                       <Button size="sm" onClick={() => setShowLeaveForm(true)} className="gap-1"><Plus className="h-3 w-3" /> طلب إجازة</Button>
                     </div>
+                    {leaveBalance && (
+                      <div className="bg-muted/30 rounded-xl p-3 mb-3 flex flex-wrap gap-4 text-xs">
+                        <span>الاستحقاق السنوي: <b>{leaveBalance.entitlement} يوم</b></span>
+                        <span>مرحّل: <b>{leaveBalance.carriedOver}</b></span>
+                        <span>مستخدم: <b>{leaveBalance.used}</b></span>
+                        <span className="text-primary font-bold">المتاح: {leaveBalance.available} يوم</span>
+                      </div>
+                    )}
                     <Table>
                       <TableHeader><TableRow>
                         <TableHead className="text-right">النوع</TableHead>
@@ -391,6 +481,27 @@ const EmployeesPage = () => {
                       </TableBody>
                     </Table>
                   </TabsContent>
+
+                  <TabsContent value="hr">
+                    <div className="space-y-4">
+                      <h3 className="font-medium text-foreground">معلومات HR إضافية</h3>
+                      <div className="grid grid-cols-2 gap-3 text-sm">
+                        {[
+                          ["الجنسية", (selectedEmployee as any).nationality],
+                          ["تاريخ الميلاد", (selectedEmployee as any).date_of_birth],
+                          ["رصيد الإجازة الحالي", `${Number((selectedEmployee as any).annual_leave_balance || 0)} يوم`],
+                          ["رصيد السنة السابقة", `${Number((selectedEmployee as any).previous_year_balance || 0)} يوم`],
+                          ["العنوان", selectedEmployee.address],
+                          ["ملاحظات", selectedEmployee.notes],
+                        ].map(([label, val]) => (
+                          <div key={label as string} className="flex justify-between border-b border-border/30 pb-1">
+                            <span className="text-muted-foreground">{label}</span>
+                            <span className="font-medium text-foreground">{val || "—"}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </TabsContent>
                 </Tabs>
               </CardContent>
             </Card>
@@ -405,12 +516,26 @@ const EmployeesPage = () => {
           <div className="grid grid-cols-2 gap-3">
             <div><label className="text-xs text-muted-foreground">الاسم الكامل *</label><Input value={form.full_name || ""} onChange={e => setForm({ ...form, full_name: e.target.value })} /></div>
             <div><label className="text-xs text-muted-foreground">رقم الهوية</label><Input value={form.id_number || ""} onChange={e => setForm({ ...form, id_number: e.target.value })} /></div>
+            <div><label className="text-xs text-muted-foreground">الجنس</label>
+              <Select value={form.gender || "male"} onValueChange={v => setForm({ ...form, gender: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent><SelectItem value="male">ذكر</SelectItem><SelectItem value="female">أنثى</SelectItem></SelectContent>
+              </Select>
+            </div>
+            <div><label className="text-xs text-muted-foreground">تاريخ الميلاد</label><Input type="date" value={form.date_of_birth || ""} onChange={e => setForm({ ...form, date_of_birth: e.target.value })} /></div>
+            <div><label className="text-xs text-muted-foreground">الجنسية</label><Input value={form.nationality || ""} onChange={e => setForm({ ...form, nationality: e.target.value })} placeholder="فلسطينية" /></div>
             <div><label className="text-xs text-muted-foreground">الهاتف</label><Input value={form.phone || ""} onChange={e => setForm({ ...form, phone: e.target.value })} /></div>
             <div><label className="text-xs text-muted-foreground">البريد</label><Input value={form.email || ""} onChange={e => setForm({ ...form, email: e.target.value })} /></div>
             <div><label className="text-xs text-muted-foreground">المنصب</label><Input value={form.position || ""} onChange={e => setForm({ ...form, position: e.target.value })} /></div>
             <div><label className="text-xs text-muted-foreground">القسم</label><Input value={form.department || ""} onChange={e => setForm({ ...form, department: e.target.value })} /></div>
             <div><label className="text-xs text-muted-foreground">المسمى الوظيفي</label><Input value={form.job_title || ""} onChange={e => setForm({ ...form, job_title: e.target.value })} /></div>
             <div><label className="text-xs text-muted-foreground">تاريخ البداية</label><Input type="date" value={form.start_date || ""} onChange={e => setForm({ ...form, start_date: e.target.value })} /></div>
+            <div><label className="text-xs text-muted-foreground">نوع العقد</label>
+              <Select value={form.contract_type || "permanent"} onValueChange={v => setForm({ ...form, contract_type: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent><SelectItem value="permanent">دائم</SelectItem><SelectItem value="temporary">مؤقت</SelectItem><SelectItem value="parttime">دوام جزئي</SelectItem></SelectContent>
+              </Select>
+            </div>
             <div><label className="text-xs text-muted-foreground">نوع الراتب</label>
               <Select value={form.salary_type || "شهري"} onValueChange={v => setForm({ ...form, salary_type: v })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
@@ -421,6 +546,26 @@ const EmployeesPage = () => {
             <div><label className="text-xs text-muted-foreground">معدل الساعة</label><Input type="number" value={form.hourly_rate || 0} onChange={e => setForm({ ...form, hourly_rate: Number(e.target.value) })} /></div>
             <div><label className="text-xs text-muted-foreground">أيام العمل/أسبوع</label><Input type="number" value={form.work_days_per_week || 6} onChange={e => setForm({ ...form, work_days_per_week: Number(e.target.value) })} /></div>
             <div><label className="text-xs text-muted-foreground">ساعات العمل/يوم</label><Input type="number" value={form.work_hours_per_day || 8} onChange={e => setForm({ ...form, work_hours_per_day: Number(e.target.value) })} /></div>
+
+            {/* New HR fields */}
+            <div className="col-span-2 border-t border-border pt-3 mt-2">
+              <h4 className="text-sm font-bold text-foreground mb-2">البدلات اليومية والعائلية</h4>
+            </div>
+            <div><label className="text-xs text-muted-foreground">بدل مواصلات/يوم (₪)</label><Input type="number" value={form.transportation_allowance_per_day || 0} onChange={e => setForm({ ...form, transportation_allowance_per_day: Number(e.target.value) })} /></div>
+            <div><label className="text-xs text-muted-foreground">بدل وجبات/يوم (₪)</label><Input type="number" value={form.meal_allowance_per_day || 0} onChange={e => setForm({ ...form, meal_allowance_per_day: Number(e.target.value) })} /></div>
+            <div><label className="text-xs text-muted-foreground">الحالة الاجتماعية</label>
+              <Select value={form.marital_status || "single"} onValueChange={v => setForm({ ...form, marital_status: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent><SelectItem value="single">أعزب</SelectItem><SelectItem value="married">متزوج</SelectItem><SelectItem value="divorced">مطلق</SelectItem></SelectContent>
+              </Select>
+            </div>
+            <div><label className="text-xs text-muted-foreground">عدد الأبناء</label><Input type="number" value={form.children_count || 0} onChange={e => setForm({ ...form, children_count: Number(e.target.value) })} /></div>
+            <div><label className="text-xs text-muted-foreground">علاوة زوجة (₪/شهر)</label><Input type="number" value={form.spouse_allowance_amount || 0} onChange={e => setForm({ ...form, spouse_allowance_amount: Number(e.target.value) })} /></div>
+            <div><label className="text-xs text-muted-foreground">علاوة أبناء/طفل (₪/شهر)</label><Input type="number" value={form.child_allowance_per_child || 0} onChange={e => setForm({ ...form, child_allowance_per_child: Number(e.target.value) })} /></div>
+
+            <div className="col-span-2 border-t border-border pt-3 mt-2">
+              <h4 className="text-sm font-bold text-foreground mb-2">الإجازات والبنك</h4>
+            </div>
             <div><label className="text-xs text-muted-foreground">إجازات سنوية (يوم)</label><Input type="number" value={form.annual_leave_days || 14} onChange={e => setForm({ ...form, annual_leave_days: Number(e.target.value) })} /></div>
             <div><label className="text-xs text-muted-foreground">إجازات مرضية (يوم)</label><Input type="number" value={form.sick_leave_days || 14} onChange={e => setForm({ ...form, sick_leave_days: Number(e.target.value) })} /></div>
             <div><label className="text-xs text-muted-foreground">البنك</label><Input value={form.bank_name || ""} onChange={e => setForm({ ...form, bank_name: e.target.value })} /></div>
@@ -465,7 +610,7 @@ const EmployeesPage = () => {
             <div><label className="text-xs text-muted-foreground">النوع</label>
               <Select value={allowanceForm.allowance_type} onValueChange={v => setAllowanceForm({ ...allowanceForm, allowance_type: v })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{["ثابت", "نسبة من الراتب", "بالساعة", "بالیوم"].map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
+                <SelectContent>{["ثابت", "نسبة من الراتب", "بالساعة", "باليوم"].map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div><label className="text-xs text-muted-foreground">المبلغ</label><Input type="number" value={allowanceForm.amount} onChange={e => setAllowanceForm({ ...allowanceForm, amount: Number(e.target.value) })} /></div>
@@ -483,7 +628,17 @@ const EmployeesPage = () => {
             <div><label className="text-xs text-muted-foreground">النوع</label>
               <Select value={leaveForm.leave_type} onValueChange={v => setLeaveForm({ ...leaveForm, leave_type: v })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{["سنوية", "مرضية", "بدون راتب", "أمومة", "أبوة", "طارئة", "أخرى"].map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
+                <SelectContent>
+                  {[
+                    { v: "سنوية", l: "🏖️ سنوية" },
+                    { v: "مرضية", l: "🤒 مرضية" },
+                    { v: "طارئة", l: "🚨 طارئة" },
+                    { v: "أمومة", l: "🤱 أمومة (70 يوم)" },
+                    { v: "أبوة", l: "👨‍🍼 أبوة" },
+                    { v: "بدون راتب", l: "⏸️ بدون راتب" },
+                    { v: "مغادرة مؤقتة", l: "🚪 مغادرة مؤقتة" },
+                  ].map(t => <SelectItem key={t.v} value={t.v}>{t.l}</SelectItem>)}
+                </SelectContent>
               </Select>
             </div>
             <div><label className="text-xs text-muted-foreground">من تاريخ</label><Input type="date" value={leaveForm.start_date} onChange={e => setLeaveForm({ ...leaveForm, start_date: e.target.value })} /></div>
@@ -498,31 +653,11 @@ const EmployeesPage = () => {
       {/* Create Account Dialog */}
       <Dialog open={showCreateAccount} onOpenChange={setShowCreateAccount}>
         <DialogContent dir="rtl">
-          <DialogHeader>
-            <DialogTitle>إنشاء حساب للموظف: {selectedEmployee?.full_name}</DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-muted-foreground">
-            سيتم إنشاء حساب دخول للموظف وربطه تلقائياً. يمكنه بعدها الدخول على تطبيق الموظف (/employee) وتسجيل البصمة.
-          </p>
+          <DialogHeader><DialogTitle>إنشاء حساب للموظف: {selectedEmployee?.full_name}</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">سيتم إنشاء حساب دخول للموظف وربطه تلقائياً.</p>
           <div className="space-y-3 mt-2">
-            <div>
-              <label className="text-xs text-muted-foreground">البريد الإلكتروني</label>
-              <Input
-                type="email"
-                placeholder="employee@example.com"
-                value={accountForm.email}
-                onChange={e => setAccountForm({ ...accountForm, email: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="text-xs text-muted-foreground">كلمة المرور (6 أحرف على الأقل)</label>
-              <Input
-                type="text"
-                placeholder="كلمة المرور"
-                value={accountForm.password}
-                onChange={e => setAccountForm({ ...accountForm, password: e.target.value })}
-              />
-            </div>
+            <div><label className="text-xs text-muted-foreground">البريد الإلكتروني</label><Input type="email" placeholder="employee@example.com" value={accountForm.email} onChange={e => setAccountForm({ ...accountForm, email: e.target.value })} /></div>
+            <div><label className="text-xs text-muted-foreground">كلمة المرور (6 أحرف على الأقل)</label><Input type="text" placeholder="كلمة المرور" value={accountForm.password} onChange={e => setAccountForm({ ...accountForm, password: e.target.value })} /></div>
           </div>
           <div className="flex justify-end gap-2 mt-4">
             <Button variant="outline" onClick={() => setShowCreateAccount(false)}>إلغاء</Button>
@@ -533,6 +668,27 @@ const EmployeesPage = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Import Dialog */}
+      {user && <EmployeeImportDialog open={showImport} onClose={() => setShowImport(false)} userId={user.id} onSuccess={fetchEmployees} />}
+
+      {/* Official Holidays Dialog */}
+      {user && <OfficialHolidaysDialog open={showHolidays} onClose={() => setShowHolidays(false)} userId={user.id} />}
+
+      {/* Termination Dialog */}
+      {user && <TerminationDialog open={showTermination} onClose={() => setShowTermination(false)} employee={selectedEmployee} userId={user.id} onSuccess={() => { fetchEmployees(); setSelectedEmployee(null); }} />}
+
+      {/* Salary Slip Dialog */}
+      <SalarySlipDialog
+        open={showSalarySlip}
+        onClose={() => setShowSalarySlip(false)}
+        slip={salarySlip}
+        employeeName={selectedEmployee?.full_name || ""}
+        department={selectedEmployee?.department || ""}
+        startDate={selectedEmployee?.start_date || ""}
+        month={new Date().getMonth() + 1}
+        year={new Date().getFullYear()}
+      />
     </div>
   );
 };
