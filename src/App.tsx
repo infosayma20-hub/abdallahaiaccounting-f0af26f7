@@ -54,6 +54,7 @@ import HRAttendanceReport from "./pages/reports/HRAttendanceReport";
 import HRLeaveReport from "./pages/reports/HRLeaveReport";
 import HRStaffCostReport from "./pages/reports/HRStaffCostReport";
 import CustomizationPage from "./pages/CustomizationPage";
+import SettingsPage from "./pages/SettingsPage";
 import IndustryTemplatesPage from "./pages/IndustryTemplatesPage";
 import CustomizationRequestPage from "./pages/CustomizationRequestPage";
 import SupportTicketsPage from "./pages/SupportTicketsPage";
@@ -132,7 +133,7 @@ const App = () => (
                       <Route path="/cheques" element={<ChequesPage />} />
                       <Route path="/profile" element={<ProfilePage />} />
                       <Route path="/balance-sheet" element={<BalanceSheetPage />} />
-                      <Route path="/settings" element={<ProfilePage />} />
+                      <Route path="/settings" element={<SettingsPage />} />
                       <Route path="/journal-entries" element={<JournalEntriesPage />} />
                       <Route path="/trial-balance" element={<TrialBalancePage />} />
                       <Route path="/receipts" element={<VoucherPage voucherType="سند قبض" />} />
