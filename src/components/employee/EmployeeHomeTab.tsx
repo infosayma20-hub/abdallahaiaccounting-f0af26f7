@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   LogIn, LogOut, Clock, CheckCircle2, XCircle, AlertTriangle,
-  Calendar, Timer, MapPin, QrCode, ClipboardList, Send, User, ChevronLeft
+  Calendar, Timer, MapPin, QrCode, ClipboardList, Send, User, ChevronLeft, ShoppingCart
 } from "lucide-react";
 import { format, differenceInMinutes } from "date-fns";
 import { ar } from "date-fns/locale";
@@ -36,9 +36,11 @@ interface Props {
   history: AttendanceDay[];
   onScanTap: () => void;
   onNavigate: (tab: string) => void;
+  isCashier?: boolean;
+  onOpenPOS?: () => void;
 }
 
-export default function EmployeeHomeTab({ employeeName, todayRecord, history, onScanTap, onNavigate }: Props) {
+export default function EmployeeHomeTab({ employeeName, todayRecord, history, onScanTap, onNavigate, isCashier, onOpenPOS }: Props) {
   const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
@@ -104,6 +106,17 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, history, on
         <p className="text-sm text-muted-foreground">مرحباً 👋</p>
         <h1 className="text-xl font-bold text-foreground">{employeeName}</h1>
       </div>
+
+      {/* POS Quick Access for Cashiers */}
+      {isCashier && onOpenPOS && (
+        <Button
+          onClick={onOpenPOS}
+          className="w-full h-14 text-lg gap-3 bg-emerald-600 hover:bg-emerald-500"
+        >
+          <ShoppingCart className="w-6 h-6" />
+          فتح نقطة البيع
+        </Button>
+      )}
 
       {/* Clock Card */}
       <Card className="border-border bg-card overflow-hidden">

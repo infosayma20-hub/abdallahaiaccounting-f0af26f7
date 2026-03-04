@@ -3389,12 +3389,15 @@ export type Database = {
       }
       pos_users: {
         Row: {
+          account_status: string | null
+          auth_user_id: string | null
           avatar_url: string | null
           company_id: string
           created_at: string
           created_by: string | null
           email: string | null
           employee_id: string | null
+          has_account: boolean | null
           id: string
           is_active: boolean
           last_login_at: string | null
@@ -3408,12 +3411,15 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          account_status?: string | null
+          auth_user_id?: string | null
           avatar_url?: string | null
           company_id: string
           created_at?: string
           created_by?: string | null
           email?: string | null
           employee_id?: string | null
+          has_account?: boolean | null
           id?: string
           is_active?: boolean
           last_login_at?: string | null
@@ -3427,12 +3433,15 @@ export type Database = {
           user_id: string
         }
         Update: {
+          account_status?: string | null
+          auth_user_id?: string | null
           avatar_url?: string | null
           company_id?: string
           created_at?: string
           created_by?: string | null
           email?: string | null
           employee_id?: string | null
+          has_account?: boolean | null
           id?: string
           is_active?: boolean
           last_login_at?: string | null

@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Lock, Delete, AlertTriangle, Fingerprint, Loader2, User } from "lucide-react";
+import { Lock, Delete, AlertTriangle, Fingerprint, Loader2, User, Mail, KeyRound, ArrowRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { getDeviceFingerprint } from "@/lib/device-fingerprint";
 import { toast } from "sonner";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 interface POSUser {
   id: string;
@@ -22,10 +24,11 @@ interface POSPinLoginProps {
     deviceId: string;
     existingSession: { id: string } | null;
   }) => void;
+  onAccountLogin?: (user: { id: string; email: string }) => void;
   onBack: () => void;
 }
 
-export default function POSPinLogin({ companyId, companyName, onLogin, onBack }: POSPinLoginProps) {
+export default function POSPinLogin({ companyId, companyName, onLogin, onAccountLogin, onBack }: POSPinLoginProps) {
   const [users, setUsers] = useState<POSUser[]>([]);
   const [selectedUser, setSelectedUser] = useState<POSUser | null>(null);
   const [pin, setPin] = useState("");
@@ -35,6 +38,12 @@ export default function POSPinLogin({ companyId, companyName, onLogin, onBack }:
   const [shake, setShake] = useState(false);
   const [deviceFingerprint, setDeviceFingerprint] = useState("");
   const [deviceNotRegistered, setDeviceNotRegistered] = useState(false);
+
+  // Full account login state
+  const [loginMode, setLoginMode] = useState<"pin" | "account">("pin");
+  const [accountEmail, setAccountEmail] = useState("");
+  const [accountPassword, setAccountPassword] = useState("");
+  const [accountLoggingIn, setAccountLoggingIn] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -117,7 +126,6 @@ export default function POSPinLogin({ companyId, companyName, onLogin, onBack }:
         setTimeout(() => setShake(false), 600);
 
         if (data.locked) {
-          // Refresh users to show locked state
           await loadUsers(deviceFingerprint);
           setSelectedUser(null);
         }
@@ -130,7 +138,54 @@ export default function POSPinLogin({ companyId, companyName, onLogin, onBack }:
     }
   };
 
+  const handleAccountLogin = async () => {
+    if (!accountEmail || !accountPassword) {
+      setError("أدخل البريد وكلمة المرور");
+      return;
+    }
+    setAccountLoggingIn(true);
+    setError("");
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: accountEmail,
+        password: accountPassword,
+      });
+      if (error) throw error;
+      if (data.user) {
+        // Check if user has cashier role
+        const { data: roles } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", data.user.id);
+        
+        const userRoles = (roles || []).map(r => r.role);
+        const isCashier = userRoles.includes("cashier") || userRoles.includes("admin");
+        
+        if (!isCashier) {
+          await supabase.auth.signOut();
+          setError("هذا الحساب ليس لديه صلاحية الدخول لنقطة البيع");
+          return;
+        }
+
+        if (onAccountLogin) {
+          onAccountLogin({ id: data.user.id, email: data.user.email || "" });
+        } else {
+          // Reload page to trigger role redirect
+          window.location.reload();
+        }
+      }
+    } catch (e: any) {
+      setError(e.message === "Invalid login credentials" ? "بريد أو كلمة مرور خاطئة" : e.message);
+    } finally {
+      setAccountLoggingIn(false);
+    }
+  };
+
   const digits = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "", "0", "⌫"];
+
+  const now = new Date();
+  const dateStr = now.toLocaleDateString("ar", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+  const timeStr = now.toLocaleTimeString("ar", { hour: "2-digit", minute: "2-digit" });
 
   // Device not registered screen
   if (deviceNotRegistered) {
@@ -151,6 +206,17 @@ export default function POSPinLogin({ companyId, companyName, onLogin, onBack }:
           <p className="text-xs text-slate-600 font-mono break-all max-w-sm">
             بصمة الجهاز: {deviceFingerprint.substring(0, 16)}...
           </p>
+
+          {/* Still allow full account login even if device not registered */}
+          <div className="border-t border-slate-700 pt-4 mt-4">
+            <button
+              onClick={() => { setDeviceNotRegistered(false); setLoginMode("account"); }}
+              className="text-emerald-400 hover:text-emerald-300 text-sm transition-colors"
+            >
+              أو سجل دخول بحساب كامل ←
+            </button>
+          </div>
+
           <button
             onClick={onBack}
             className="px-6 py-3 rounded-xl bg-slate-700 text-white hover:bg-slate-600 transition-colors"
@@ -171,7 +237,103 @@ export default function POSPinLogin({ companyId, companyName, onLogin, onBack }:
     );
   }
 
-  // User selection grid
+  // Full Account Login mode
+  if (loginMode === "account") {
+    return (
+      <div className="fixed inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col items-center justify-center z-50 p-4" dir="rtl">
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center mb-8"
+        >
+          <h1 className="text-3xl font-bold text-white mb-2">{companyName}</h1>
+          <p className="text-slate-400">{dateStr} • {timeStr}</p>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="w-full max-w-sm space-y-4"
+        >
+          <div className="bg-slate-800/80 rounded-2xl p-6 space-y-4 border border-slate-700">
+            <div className="text-center mb-2">
+              <div className="w-14 h-14 mx-auto rounded-full bg-emerald-500/20 flex items-center justify-center mb-3">
+                <User className="w-7 h-7 text-emerald-400" />
+              </div>
+              <h2 className="text-lg font-bold text-white">تسجيل دخول بحساب كامل</h2>
+              <p className="text-xs text-slate-400 mt-1">البريد الإلكتروني + كلمة المرور</p>
+            </div>
+
+            <div className="space-y-3">
+              <Input
+                type="email"
+                placeholder="البريد الإلكتروني"
+                value={accountEmail}
+                onChange={e => setAccountEmail(e.target.value)}
+                className="bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-500"
+                dir="ltr"
+              />
+              <Input
+                type="password"
+                placeholder="كلمة المرور"
+                value={accountPassword}
+                onChange={e => setAccountPassword(e.target.value)}
+                className="bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-500"
+                dir="ltr"
+                onKeyDown={e => e.key === "Enter" && handleAccountLogin()}
+              />
+            </div>
+
+            <AnimatePresence>
+              {error && (
+                <motion.p
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  className="text-red-400 text-xs flex items-center gap-1"
+                >
+                  <AlertTriangle className="w-3 h-3" />
+                  {error}
+                </motion.p>
+              )}
+            </AnimatePresence>
+
+            <Button
+              onClick={handleAccountLogin}
+              disabled={accountLoggingIn}
+              className="w-full bg-emerald-600 hover:bg-emerald-500 text-white"
+            >
+              {accountLoggingIn ? <Loader2 className="w-4 h-4 animate-spin ml-2" /> : <ArrowRight className="w-4 h-4 ml-2" />}
+              تسجيل الدخول
+            </Button>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="flex-1 border-t border-slate-700" />
+            <span className="text-xs text-slate-500">أو</span>
+            <div className="flex-1 border-t border-slate-700" />
+          </div>
+
+          <button
+            onClick={() => { setLoginMode("pin"); setError(""); }}
+            className="w-full py-3 rounded-xl bg-slate-800/60 text-slate-300 hover:bg-slate-700 transition-colors text-sm flex items-center justify-center gap-2"
+          >
+            <KeyRound className="w-4 h-4" />
+            دخول سريع بـ PIN
+          </button>
+
+          <button
+            onClick={onBack}
+            className="w-full text-slate-500 hover:text-white text-sm transition-colors py-2"
+          >
+            رجوع
+          </button>
+        </motion.div>
+      </div>
+    );
+  }
+
+  // User selection grid (PIN mode)
   if (!selectedUser) {
     return (
       <div className="fixed inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col items-center justify-center z-50 p-4" dir="rtl">
@@ -181,7 +343,8 @@ export default function POSPinLogin({ companyId, companyName, onLogin, onBack }:
           className="text-center mb-8"
         >
           <h1 className="text-3xl font-bold text-white mb-2">{companyName}</h1>
-          <p className="text-slate-400">اختر حسابك للدخول</p>
+          <p className="text-slate-400 mb-1">{dateStr}</p>
+          <p className="text-slate-500 text-sm">🔢 اختر حسابك للدخول بـ PIN</p>
         </motion.div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 max-w-2xl w-full">
@@ -216,7 +379,7 @@ export default function POSPinLogin({ companyId, companyName, onLogin, onBack }:
                 {user.avatar_url ? (
                   <img src={user.avatar_url} alt={user.name} className="w-full h-full object-cover" />
                 ) : (
-                  <User className="w-8 h-8 text-white" />
+                  <span className="text-white font-bold text-xl">{user.name[0]}</span>
                 )}
               </div>
               <span className="text-white font-medium text-sm">{user.name}</span>
@@ -234,9 +397,25 @@ export default function POSPinLogin({ companyId, companyName, onLogin, onBack }:
           </div>
         )}
 
+        {/* Divider + Full Account Login */}
+        <div className="mt-8 w-full max-w-md">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="flex-1 border-t border-slate-700" />
+            <span className="text-xs text-slate-500">أو</span>
+            <div className="flex-1 border-t border-slate-700" />
+          </div>
+          <button
+            onClick={() => { setLoginMode("account"); setError(""); }}
+            className="w-full py-3 rounded-xl bg-slate-800/60 text-slate-300 hover:bg-slate-700 border border-slate-700 transition-colors text-sm flex items-center justify-center gap-2"
+          >
+            <User className="w-4 h-4" />
+            تسجيل دخول بحساب كامل (بريد + كلمة مرور)
+          </button>
+        </div>
+
         <button
           onClick={onBack}
-          className="mt-8 px-6 py-2 rounded-xl text-slate-400 hover:text-white transition-colors"
+          className="mt-4 px-6 py-2 rounded-xl text-slate-400 hover:text-white transition-colors"
         >
           رجوع
         </button>
@@ -262,7 +441,7 @@ export default function POSPinLogin({ companyId, companyName, onLogin, onBack }:
           {selectedUser.avatar_url ? (
             <img src={selectedUser.avatar_url} alt={selectedUser.name} className="w-full h-full object-cover" />
           ) : (
-            <User className="w-10 h-10 text-white" />
+            <span className="text-white font-bold text-2xl">{selectedUser.name[0]}</span>
           )}
         </div>
         <h2 className="text-2xl font-bold text-white">{selectedUser.name}</h2>
