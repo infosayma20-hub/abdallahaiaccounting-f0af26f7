@@ -10,13 +10,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Search, Users, DollarSign, Calendar, FileText, Edit, Trash2, UserPlus, Loader2, Upload, CalendarDays, LogOut as LogOutIcon } from "lucide-react";
+import { Plus, Search, Users, DollarSign, Calendar, FileText, Edit, Trash2, UserPlus, Loader2, Upload, CalendarDays, LogOut as LogOutIcon, Download } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import EmployeeMovementsTab from "@/components/hr/EmployeeMovementsTab";
 import EmployeeImportDialog from "@/components/hr/EmployeeImportDialog";
 import OfficialHolidaysDialog from "@/components/hr/OfficialHolidaysDialog";
 import TerminationDialog from "@/components/hr/TerminationDialog";
 import SalarySlipDialog from "@/components/hr/SalarySlipDialog";
+import DeductionsExportDialog from "@/components/hr/DeductionsExportDialog";
 import { calculateSalarySlip, calculateLeaveBalance, getWorkDaysInMonth, getWeeklyDaysOffInMonth, formatCurrency, type SalarySlip } from "@/lib/hr-utils";
 
 interface Employee {
@@ -106,6 +107,7 @@ const EmployeesPage = () => {
   const [showTermination, setShowTermination] = useState(false);
   const [showSalarySlip, setShowSalarySlip] = useState(false);
   const [salarySlip, setSalarySlip] = useState<SalarySlip | null>(null);
+  const [showDeductionsExport, setShowDeductionsExport] = useState(false);
 
   const handleCreateAccount = async () => {
     if (!selectedEmployee || !accountForm.email || !accountForm.password) {
@@ -265,6 +267,9 @@ const EmployeesPage = () => {
           </Button>
           <Button variant="outline" size="sm" onClick={() => setShowImport(true)} className="gap-1">
             <Upload className="h-4 w-4" /> استيراد Excel
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setShowDeductionsExport(true)} className="gap-1">
+            <Download className="h-4 w-4" /> تصدير المسحوبات
           </Button>
           <Button onClick={() => { setForm(emptyEmployee); setEditingId(null); setShowForm(true); }} className="gap-2">
             <Plus className="h-4 w-4" /> إضافة موظف
@@ -714,7 +719,35 @@ const EmployeesPage = () => {
         startDate={selectedEmployee?.start_date || ""}
         month={new Date().getMonth() + 1}
         year={new Date().getFullYear()}
+        employee={selectedEmployee ? {
+          id: selectedEmployee.id,
+          id_number: selectedEmployee.id_number,
+          job_title: selectedEmployee.job_title,
+          base_salary: selectedEmployee.base_salary,
+          salary_type: selectedEmployee.salary_type,
+          bank_name: selectedEmployee.bank_name,
+          bank_account: selectedEmployee.bank_account,
+          annual_leave_balance: selectedEmployee.annual_leave_balance,
+          annual_leave_days: selectedEmployee.annual_leave_days,
+          previous_year_balance: selectedEmployee.previous_year_balance,
+          transportation_allowance_per_day: selectedEmployee.transportation_allowance_per_day,
+          meal_allowance_per_day: selectedEmployee.meal_allowance_per_day,
+          spouse_allowance_amount: selectedEmployee.spouse_allowance_amount,
+          children_count: selectedEmployee.children_count,
+          child_allowance_per_child: selectedEmployee.child_allowance_per_child,
+        } : undefined}
+        userId={user?.id}
       />
+
+      {/* Deductions Export Dialog */}
+      {user && (
+        <DeductionsExportDialog
+          open={showDeductionsExport}
+          onClose={() => setShowDeductionsExport(false)}
+          userId={user.id}
+          employees={employees.map(e => ({ id: e.id, full_name: e.full_name, department: e.department, job_title: e.job_title }))}
+        />
+      )}
     </div>
   );
 };
