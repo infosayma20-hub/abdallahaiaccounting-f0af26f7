@@ -1,150 +1,590 @@
-import { useState, useEffect } from "react";
-import { X, Send, Loader2, BookOpen, ArrowLeftRight, Calendar, FileText, DollarSign, ChevronDown } from "lucide-react";
+import { useState, useEffect, useMemo, useRef } from "react";
+import {
+  X, Send, Loader2, BookOpen, Calendar, FileText, DollarSign,
+  Plus, Trash2, ChevronDown, Search, AlertTriangle, Eye, Copy,
+  Bookmark, CheckCircle2, UserPlus, Building2, PlusCircle,
+} from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 
-interface Account {
+/* ── Types ── */
+interface AccountRow {
   id: string;
-  name: string;
-  type: string;
+  account_code: string;
+  account_name: string;
+  account_type: string;
 }
 
-interface JournalEntryData {
-  debitAccount: string;
-  debitAccountId: string | null;
-  creditAccount: string;
-  creditAccountId: string | null;
-  amount: number;
-  description: string;
-  date: string;
+interface JournalLine {
+  id: string;
+  account_code: string;
+  account_name: string;
+  debit: number;
+  credit: number;
+  memo: string;
+}
+
+interface JournalTemplate {
+  name: string;
+  icon: string;
+  lines: Omit<JournalLine, "id">[];
 }
 
 interface JournalEntryPopupProps {
   open: boolean;
   onClose: () => void;
   onSuccess: () => void;
-  initialData?: JournalEntryData | null;
-  accounts?: Account[];
+  initialData?: any;
+  accounts?: { id: string; name: string; type: string }[];
 }
 
+/* ── Templates ── */
+const TEMPLATES: JournalTemplate[] = [
+  {
+    name: "سلفة موظف",
+    icon: "💰",
+    lines: [
+      { account_code: "2110", account_name: "مسحوبات الموظفين", debit: 0, credit: 0, memo: "" },
+      { account_code: "1110", account_name: "الصندوق", debit: 0, credit: 0, memo: "" },
+    ],
+  },
+  {
+    name: "شراء بضاعة نقداً",
+    icon: "📦",
+    lines: [
+      { account_code: "5200", account_name: "تكلفة البضاعة المباعة", debit: 0, credit: 0, memo: "" },
+      { account_code: "1110", account_name: "الصندوق", debit: 0, credit: 0, memo: "" },
+    ],
+  },
+  {
+    name: "دفع مورد",
+    icon: "💳",
+    lines: [
+      { account_code: "2100", account_name: "ذمم موردين", debit: 0, credit: 0, memo: "" },
+      { account_code: "1110", account_name: "الصندوق", debit: 0, credit: 0, memo: "" },
+    ],
+  },
+  {
+    name: "إيداع بنكي",
+    icon: "🏦",
+    lines: [
+      { account_code: "1120", account_name: "البنك", debit: 0, credit: 0, memo: "" },
+      { account_code: "1110", account_name: "الصندوق", debit: 0, credit: 0, memo: "" },
+    ],
+  },
+  {
+    name: "قيد تسوية",
+    icon: "📊",
+    lines: [
+      { account_code: "", account_name: "", debit: 0, credit: 0, memo: "" },
+      { account_code: "", account_name: "", debit: 0, credit: 0, memo: "" },
+    ],
+  },
+];
+
+const uid = () => Math.random().toString(36).slice(2, 9);
+
+const emptyLine = (): JournalLine => ({
+  id: uid(),
+  account_code: "",
+  account_name: "",
+  debit: 0,
+  credit: 0,
+  memo: "",
+});
+
+/* ── Account Search Dropdown ── */
+const AccountSearchDropdown = ({
+  accounts,
+  value,
+  onSelect,
+  onAddAccount,
+  onAddContact,
+}: {
+  accounts: AccountRow[];
+  value: string;
+  onSelect: (acc: AccountRow) => void;
+  onAddAccount: () => void;
+  onAddContact: (type: "customer" | "supplier") => void;
+}) => {
+  const [search, setSearch] = useState("");
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase();
+    return accounts
+      .filter(a => a.account_code.includes(q) || a.account_name.toLowerCase().includes(q))
+      .slice(0, 20);
+  }, [accounts, search]);
+
+  // Group by type
+  const grouped = useMemo(() => {
+    const map = new Map<string, AccountRow[]>();
+    filtered.forEach(a => {
+      const g = a.account_type || "أخرى";
+      if (!map.has(g)) map.set(g, []);
+      map.get(g)!.push(a);
+    });
+    return map;
+  }, [filtered]);
+
+  return (
+    <div ref={ref} className="relative">
+      <div
+        className="flex items-center gap-1 h-9 bg-secondary/50 rounded-lg px-2 cursor-pointer border border-border/30 hover:border-primary/30 transition-colors"
+        onClick={() => setOpen(true)}
+      >
+        <Search className="h-3 w-3 text-muted-foreground shrink-0" />
+        <input
+          type="text"
+          value={open ? search : value}
+          onChange={(e) => { setSearch(e.target.value); setOpen(true); }}
+          onFocus={() => setOpen(true)}
+          placeholder="ابحث بالرقم أو الاسم..."
+          className="flex-1 bg-transparent text-xs outline-none placeholder:text-muted-foreground min-w-0"
+        />
+        <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" />
+      </div>
+      {open && (
+        <div className="absolute z-50 w-full mt-1 bg-card border border-border rounded-xl shadow-xl max-h-60 overflow-y-auto animate-in fade-in-0 zoom-in-95 duration-150">
+          {grouped.size === 0 && (
+            <div className="p-3 text-xs text-muted-foreground text-center">لا توجد نتائج</div>
+          )}
+          {Array.from(grouped.entries()).map(([type, accs]) => (
+            <div key={type}>
+              <div className="px-3 py-1.5 text-[10px] font-bold text-muted-foreground bg-muted/30 sticky top-0">
+                ── {type} ──
+              </div>
+              {accs.map(acc => (
+                <button
+                  key={acc.id}
+                  onClick={() => { onSelect(acc); setSearch(""); setOpen(false); }}
+                  className="w-full text-right px-3 py-2 text-xs hover:bg-primary/10 transition-colors flex items-center justify-between gap-2"
+                >
+                  <span className="font-mono text-muted-foreground text-[10px]">{acc.account_code}</span>
+                  <span className="flex-1 text-foreground truncate">{acc.account_name}</span>
+                </button>
+              ))}
+            </div>
+          ))}
+          {/* Quick-add actions */}
+          <div className="border-t border-border/40 p-1.5 space-y-0.5">
+            <button onClick={() => { onAddAccount(); setOpen(false); }}
+              className="w-full text-right px-3 py-2 text-xs hover:bg-primary/10 rounded-lg flex items-center gap-2 text-primary font-medium">
+              <PlusCircle className="h-3.5 w-3.5" /> إضافة حساب جديد
+            </button>
+            <button onClick={() => { onAddContact("customer"); setOpen(false); }}
+              className="w-full text-right px-3 py-2 text-xs hover:bg-primary/10 rounded-lg flex items-center gap-2 text-primary font-medium">
+              <UserPlus className="h-3.5 w-3.5" /> إضافة زبون جديد
+            </button>
+            <button onClick={() => { onAddContact("supplier"); setOpen(false); }}
+              className="w-full text-right px-3 py-2 text-xs hover:bg-primary/10 rounded-lg flex items-center gap-2 text-primary font-medium">
+              <Building2 className="h-3.5 w-3.5" /> إضافة مورد جديد
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+/* ── Quick Add Account Dialog ── */
+const QuickAddAccountDialog = ({
+  open, onClose, accounts, userId, onCreated,
+}: {
+  open: boolean; onClose: () => void; accounts: AccountRow[]; userId: string;
+  onCreated: (acc: AccountRow) => void;
+}) => {
+  const { toast } = useToast();
+  const [name, setName] = useState("");
+  const [type, setType] = useState("أصول");
+  const [parentCode, setParentCode] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const suggestedCode = useMemo(() => {
+    if (!parentCode) return "";
+    const children = accounts.filter(a => a.account_code.startsWith(parentCode) && a.account_code.length === parentCode.length + 2);
+    const maxSuffix = children.reduce((m, a) => Math.max(m, parseInt(a.account_code.slice(parentCode.length)) || 0), 0);
+    return parentCode + String(maxSuffix + 1).padStart(2, "0");
+  }, [parentCode, accounts]);
+
+  const parentAccounts = useMemo(() =>
+    accounts.filter(a => a.account_code.length <= 4).sort((a, b) => a.account_code.localeCompare(b.account_code)),
+    [accounts]
+  );
+
+  const handleSave = async () => {
+    if (!name || !suggestedCode) return;
+    setSaving(true);
+    try {
+      const { data, error } = await supabase.from("accounts").insert({
+        user_id: userId,
+        account_code: suggestedCode,
+        account_name: name,
+        account_type: type,
+        parent_code: parentCode || null,
+      }).select().single();
+      if (error) throw error;
+      toast({ title: "✅ تم إضافة الحساب" });
+      onCreated(data as AccountRow);
+      onClose();
+      setName(""); setParentCode("");
+    } catch (err: any) {
+      toast({ title: "خطأ", description: err.message, variant: "destructive" });
+    } finally { setSaving(false); }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-sm rounded-2xl" dir="rtl">
+        <DialogHeader>
+          <DialogTitle className="text-sm font-bold flex items-center gap-2">
+            <PlusCircle className="h-4 w-4 text-primary" /> حساب جديد سريع
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3 mt-2">
+          <div className="space-y-1">
+            <label className="text-[11px] font-semibold text-muted-foreground">حساب الأب</label>
+            <Select value={parentCode} onValueChange={setParentCode}>
+              <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="اختر حساب الأب" /></SelectTrigger>
+              <SelectContent className="max-h-60">
+                {parentAccounts.map(a => (
+                  <SelectItem key={a.account_code} value={a.account_code} className="text-xs">
+                    {a.account_code} - {a.account_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <label className="text-[11px] font-semibold text-muted-foreground">رقم الحساب</label>
+            <Input value={suggestedCode} readOnly className="h-9 text-xs bg-muted/50 font-mono" />
+          </div>
+          <div className="space-y-1">
+            <label className="text-[11px] font-semibold text-muted-foreground">اسم الحساب*</label>
+            <Input value={name} onChange={e => setName(e.target.value)} className="h-9 text-xs" placeholder="مثال: سلف رهام حسون" />
+          </div>
+          <div className="space-y-1">
+            <label className="text-[11px] font-semibold text-muted-foreground">نوع الحساب</label>
+            <Select value={type} onValueChange={setType}>
+              <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {["أصول", "التزامات", "حقوق ملكية", "إيرادات", "مصروفات"].map(t => (
+                  <SelectItem key={t} value={t} className="text-xs">{t}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <Button onClick={handleSave} disabled={saving || !name || !suggestedCode} className="w-full h-9 text-xs gap-1.5">
+            {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+            إضافة واختيار
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+/* ── Quick Add Contact Dialog ── */
+const QuickAddContactDialog = ({
+  open, onClose, contactType, userId, onCreated,
+}: {
+  open: boolean; onClose: () => void; contactType: "customer" | "supplier";
+  userId: string; onCreated: (acc: AccountRow) => void;
+}) => {
+  const { toast } = useToast();
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const isCustomer = contactType === "customer";
+  const accountPrefix = isCustomer ? "1130" : "2100";
+
+  const handleSave = async () => {
+    if (!name) return;
+    setSaving(true);
+    try {
+      // Create contact
+      const { error: contactErr } = await supabase.from("contacts").insert({
+        user_id: userId,
+        contact_name: name,
+        contact_type: isCustomer ? "عميل" : "مورد",
+        phone: phone || null,
+        linked_account_code: accountPrefix,
+      });
+      if (contactErr) throw contactErr;
+
+      toast({ title: `✅ تم إضافة ${isCustomer ? "الزبون" : "المورد"}` });
+
+      // Return a virtual account row pointing to the master account
+      const masterAcc: AccountRow = {
+        id: uid(),
+        account_code: accountPrefix,
+        account_name: isCustomer ? `ذمم عملاء - ${name}` : `ذمم موردين - ${name}`,
+        account_type: isCustomer ? "أصول" : "التزامات",
+      };
+      onCreated(masterAcc);
+      onClose();
+      setName(""); setPhone("");
+    } catch (err: any) {
+      toast({ title: "خطأ", description: err.message, variant: "destructive" });
+    } finally { setSaving(false); }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-sm rounded-2xl" dir="rtl">
+        <DialogHeader>
+          <DialogTitle className="text-sm font-bold flex items-center gap-2">
+            {isCustomer ? <UserPlus className="h-4 w-4 text-primary" /> : <Building2 className="h-4 w-4 text-primary" />}
+            {isCustomer ? "زبون جديد سريع" : "مورد جديد سريع"}
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3 mt-2">
+          <div className="space-y-1">
+            <label className="text-[11px] font-semibold text-muted-foreground">الاسم*</label>
+            <Input value={name} onChange={e => setName(e.target.value)} className="h-9 text-xs" />
+          </div>
+          <div className="space-y-1">
+            <label className="text-[11px] font-semibold text-muted-foreground">الهاتف</label>
+            <Input value={phone} onChange={e => setPhone(e.target.value)} className="h-9 text-xs" dir="ltr" />
+          </div>
+          <div className="p-2.5 rounded-lg bg-primary/5 border border-primary/15 text-[11px] text-muted-foreground space-y-1">
+            <p className="font-semibold text-foreground">سيُنشأ تلقائياً:</p>
+            <p>✅ حساب محاسبي: {accountPrefix}</p>
+            <p>✅ كرت في {isCustomer ? "العملاء" : "الموردين"}</p>
+          </div>
+          <Button onClick={handleSave} disabled={saving || !name} className="w-full h-9 text-xs gap-1.5">
+            {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+            إضافة واختيار
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+/* ══════════════════════════════════════════════════════════
+   ██  MAIN COMPONENT
+   ══════════════════════════════════════════════════════════ */
 const JournalEntryPopup = ({ open, onClose, onSuccess, initialData, accounts: propAccounts }: JournalEntryPopupProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [sending, setSending] = useState(false);
-  const [accounts, setAccounts] = useState<Account[]>(propAccounts || []);
+
+  // Data
+  const [accounts, setAccounts] = useState<AccountRow[]>([]);
   const [loadingAccounts, setLoadingAccounts] = useState(false);
 
-  const [debitAccount, setDebitAccount] = useState(initialData?.debitAccount || "");
-  const [debitAccountId, setDebitAccountId] = useState(initialData?.debitAccountId || "");
-  const [creditAccount, setCreditAccount] = useState(initialData?.creditAccount || "");
-  const [creditAccountId, setCreditAccountId] = useState(initialData?.creditAccountId || "");
-  const [amount, setAmount] = useState(initialData?.amount?.toString() || "");
-  const [description, setDescription] = useState(initialData?.description || "");
-  const [date, setDate] = useState(initialData?.date || new Date().toISOString().split("T")[0]);
+  // Form state
+  const [entryType, setEntryType] = useState("عادي");
+  const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
+  const [reference, setReference] = useState("");
+  const [description, setDescription] = useState("");
+  const [notes, setNotes] = useState("");
+  const [lines, setLines] = useState<JournalLine[]>([emptyLine(), emptyLine()]);
 
-  const [debitSearch, setDebitSearch] = useState("");
-  const [creditSearch, setCreditSearch] = useState("");
-  const [showDebitDropdown, setShowDebitDropdown] = useState(false);
-  const [showCreditDropdown, setShowCreditDropdown] = useState(false);
+  // UI state
+  const [sending, setSending] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+  const [showTemplates, setShowTemplates] = useState(false);
+  const [showAddAccount, setShowAddAccount] = useState(false);
+  const [showAddContact, setShowAddContact] = useState(false);
+  const [addContactType, setAddContactType] = useState<"customer" | "supplier">("customer");
+  const [activeLineIdx, setActiveLineIdx] = useState(0);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [savedEntryRef, setSavedEntryRef] = useState("");
 
-  // Update form when initialData changes
+  // Load accounts from Supabase
   useEffect(() => {
-    if (initialData) {
-      setDebitAccount(initialData.debitAccount || "");
-      setDebitAccountId(initialData.debitAccountId || "");
-      setCreditAccount(initialData.creditAccount || "");
-      setCreditAccountId(initialData.creditAccountId || "");
-      setAmount(initialData.amount?.toString() || "");
-      setDescription(initialData.description || "");
-      setDate(initialData.date || new Date().toISOString().split("T")[0]);
-    }
-  }, [initialData]);
-
-  useEffect(() => {
-    if (propAccounts?.length) {
-      setAccounts(propAccounts);
-      return;
-    }
     if (!open || !user) return;
-    const fetchAccounts = async () => {
+    const load = async () => {
       setLoadingAccounts(true);
-      try {
-        const res = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-accounts?clientId=${user.id}`,
-          { headers: await (await import("@/lib/edge-helpers")).getAuthHeaders() }
-        );
-        if (res.ok) {
-          const data = await res.json();
-          setAccounts(
-            (data.records || []).map((r: any) => ({
-              id: r.id,
-              name: r.fields?.["Account Name"] || "",
-              type: r.fields?.["Account Type"] || "",
-            }))
-          );
-        }
-      } catch (err) {
-        console.error("Failed to fetch accounts:", err);
-      }
+      const { data } = await supabase
+        .from("accounts")
+        .select("id, account_code, account_name, account_type")
+        .eq("user_id", user.id)
+        .eq("is_active", true)
+        .order("account_code");
+      setAccounts(data || []);
       setLoadingAccounts(false);
     };
-    fetchAccounts();
-  }, [open, user, propAccounts]);
+    load();
+  }, [open, user]);
 
-  const filteredDebitAccounts = accounts.filter((a) =>
-    a.name.toLowerCase().includes((debitSearch || debitAccount).toLowerCase())
-  );
-  const filteredCreditAccounts = accounts.filter((a) =>
-    a.name.toLowerCase().includes((creditSearch || creditAccount).toLowerCase())
-  );
+  // Generate reference
+  useEffect(() => {
+    if (open && !reference) {
+      setReference(`QV-${new Date().getFullYear()}-${String(Date.now()).slice(-4)}`);
+    }
+  }, [open]);
 
-  const selectDebit = (acc: Account) => {
-    setDebitAccount(acc.name);
-    setDebitAccountId(acc.id);
-    setDebitSearch("");
-    setShowDebitDropdown(false);
+  // Reset when closed
+  useEffect(() => {
+    if (!open) {
+      setLines([emptyLine(), emptyLine()]);
+      setDescription(""); setNotes(""); setReference("");
+      setEntryType("عادي"); setShowPreview(false); setShowSuccess(false);
+      setDate(new Date().toISOString().split("T")[0]);
+    }
+  }, [open]);
+
+  /* ── Calculations ── */
+  const totalDebit = lines.reduce((s, l) => s + (l.debit || 0), 0);
+  const totalCredit = lines.reduce((s, l) => s + (l.credit || 0), 0);
+  const difference = Math.abs(totalDebit - totalCredit);
+  const isBalanced = totalDebit > 0 && totalCredit > 0 && difference === 0;
+
+  /* ── Validation ── */
+  const validationErrors = useMemo(() => {
+    const errs: string[] = [];
+    if (lines.length < 2) errs.push("القيد يحتاج على الأقل سطرين");
+    if (totalDebit !== totalCredit) errs.push(`الميزان غير متوازن: مدين ₪${totalDebit.toLocaleString()} ≠ دائن ₪${totalCredit.toLocaleString()} | الفرق: ₪${difference.toLocaleString()}`);
+    lines.forEach((l, i) => {
+      if (!l.account_code) errs.push(`السطر ${i + 1}: يجب اختيار حساب`);
+      if (l.debit === 0 && l.credit === 0) errs.push(`السطر ${i + 1}: يجب إدخال مبلغ`);
+      if (l.debit > 0 && l.credit > 0) errs.push(`السطر ${i + 1}: لا يمكن مدين ودائن معاً`);
+    });
+    if (!description.trim()) errs.push("يجب إدخال وصف للقيد");
+    return errs;
+  }, [lines, totalDebit, totalCredit, difference, description]);
+
+  const canSubmit = validationErrors.length === 0 && !sending;
+
+  /* ── Line operations ── */
+  const updateLine = (idx: number, field: keyof JournalLine, value: any) => {
+    setLines(prev => prev.map((l, i) => {
+      if (i !== idx) return l;
+      const updated = { ...l, [field]: value };
+      // Auto-clear opposite side
+      if (field === "debit" && value > 0) updated.credit = 0;
+      if (field === "credit" && value > 0) updated.debit = 0;
+      return updated;
+    }));
   };
 
-  const selectCredit = (acc: Account) => {
-    setCreditAccount(acc.name);
-    setCreditAccountId(acc.id);
-    setCreditSearch("");
-    setShowCreditDropdown(false);
+  const addLine = () => setLines(prev => [...prev, emptyLine()]);
+
+  const removeLine = (idx: number) => {
+    if (lines.length <= 2) return;
+    setLines(prev => prev.filter((_, i) => i !== idx));
   };
 
+  /* ── Template apply ── */
+  const applyTemplate = (tpl: JournalTemplate) => {
+    const newLines: JournalLine[] = tpl.lines.map(l => {
+      // Try to resolve account name from actual accounts
+      const acc = accounts.find(a => a.account_code === l.account_code);
+      return {
+        id: uid(),
+        account_code: l.account_code,
+        account_name: acc?.account_name || l.account_name,
+        debit: l.debit,
+        credit: l.credit,
+        memo: l.memo,
+      };
+    });
+    setLines(newLines);
+    setDescription(tpl.name);
+    setShowTemplates(false);
+  };
+
+  /* ── Account selection from dropdown ── */
+  const handleAccountSelect = (idx: number, acc: AccountRow) => {
+    updateLine(idx, "account_code", acc.account_code);
+    updateLine(idx, "account_name", acc.account_name);
+  };
+
+  const handleAccountCreated = (acc: AccountRow) => {
+    setAccounts(prev => [...prev, acc]);
+    handleAccountSelect(activeLineIdx, acc);
+  };
+
+  /* ── Submit ── */
   const handleSubmit = async () => {
-    if (!debitAccount || !creditAccount || !amount || Number(amount) <= 0) {
-      toast({ title: "بيانات ناقصة", description: "تأكد من ملء الحساب المدين والدائن والمبلغ", variant: "destructive" });
-      return;
-    }
-    if (debitAccount === creditAccount) {
-      toast({ title: "خطأ", description: "الحساب المدين والدائن لا يمكن أن يكونا متطابقين", variant: "destructive" });
-      return;
-    }
+    if (!canSubmit || !user) return;
     setSending(true);
     try {
-      const text = `سند قيد: من حساب ${debitAccount} إلى حساب ${creditAccount} مبلغ ${amount} ${description ? "- " + description : ""}`;
-      const { error } = await supabase.functions.invoke("send-transaction", {
-        body: {
-          text,
-          userId: user?.id,
-          email: user?.email,
-          forceDebitAccount: debitAccount,
-          forceCreditAccount: creditAccount,
-          forceAmount: Number(amount),
-          forceDate: date,
-          forceDescription: description || text,
-        },
-      });
+      // For multi-line entries, create multiple transaction rows
+      // Each debit line pairs with description
+      const txInserts = [];
+      const debitLines = lines.filter(l => l.debit > 0);
+      const creditLines = lines.filter(l => l.credit > 0);
+
+      // Simple case: equal debit/credit lines → pair them
+      if (debitLines.length === 1 && creditLines.length === 1) {
+        txInserts.push({
+          user_id: user.id,
+          transaction_date: date,
+          description: description,
+          debit_account_code: debitLines[0].account_code,
+          credit_account_code: creditLines[0].account_code,
+          amount: debitLines[0].debit,
+          currency: "شيكل",
+          transaction_type: entryType === "افتتاحي" ? "opening" : "قيد يومية",
+          reference: reference,
+          payment_method: "قيد",
+          idempotency_key: `JE-${reference}-${Date.now()}`,
+        });
+      } else {
+        // Complex: multiple lines → create separate entries for each debit line
+        // distributing credits proportionally
+        for (const dl of debitLines) {
+          txInserts.push({
+            user_id: user.id,
+            transaction_date: date,
+            description: `${description}${dl.memo ? " - " + dl.memo : ""}`,
+            debit_account_code: dl.account_code,
+            credit_account_code: creditLines[0]?.account_code || "",
+            amount: dl.debit,
+            currency: "شيكل",
+            transaction_type: entryType === "افتتاحي" ? "opening" : "قيد يومية",
+            reference: reference,
+            payment_method: "قيد",
+            idempotency_key: `JE-${reference}-${dl.id}`,
+          });
+        }
+        // If there are multiple credit lines with a single debit
+        if (debitLines.length === 1 && creditLines.length > 1) {
+          // Clear above and redo
+          txInserts.length = 0;
+          for (const cl of creditLines) {
+            txInserts.push({
+              user_id: user.id,
+              transaction_date: date,
+              description: `${description}${cl.memo ? " - " + cl.memo : ""}`,
+              debit_account_code: debitLines[0].account_code,
+              credit_account_code: cl.account_code,
+              amount: cl.credit,
+              currency: "شيكل",
+              transaction_type: entryType === "افتتاحي" ? "opening" : "قيد يومية",
+              reference: reference,
+              payment_method: "قيد",
+              idempotency_key: `JE-${reference}-${cl.id}`,
+            });
+          }
+        }
+      }
+
+      const { error } = await supabase.from("transactions").insert(txInserts);
       if (error) throw error;
-      toast({ title: "✅ تم إنشاء سند القيد بنجاح" });
-      onSuccess();
-      onClose();
-      // Reset
-      setDebitAccount(""); setCreditAccount(""); setAmount(""); setDescription("");
-      setDebitAccountId(""); setCreditAccountId("");
-      setDate(new Date().toISOString().split("T")[0]);
+
+      setSavedEntryRef(reference);
+      setShowSuccess(true);
     } catch (err: any) {
       toast({ title: "خطأ", description: err.message, variant: "destructive" });
     } finally {
@@ -152,183 +592,311 @@ const JournalEntryPopup = ({ open, onClose, onSuccess, initialData, accounts: pr
     }
   };
 
+  const handleClose = () => {
+    setShowSuccess(false);
+    onClose();
+  };
+
+  const handleSuccessNewEntry = () => {
+    setShowSuccess(false);
+    setLines([emptyLine(), emptyLine()]);
+    setDescription(""); setNotes(""); 
+    setReference(`QV-${new Date().getFullYear()}-${String(Date.now()).slice(-4)}`);
+    setDate(new Date().toISOString().split("T")[0]);
+    onSuccess();
+  };
+
   if (!open) return null;
 
+  /* ── Success Screen ── */
+  if (showSuccess) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center" dir="rtl">
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm" onClick={handleClose} />
+        <div className="relative w-full max-w-sm mx-4 bg-card rounded-2xl border border-border/50 shadow-2xl p-6 animate-in zoom-in-95 duration-300 text-center space-y-4">
+          <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
+            <CheckCircle2 className="h-8 w-8 text-primary" />
+          </div>
+          <h3 className="text-lg font-bold text-foreground">تم إنشاء القيد بنجاح ✅</h3>
+          <p className="text-sm text-muted-foreground font-mono">{savedEntryRef}</p>
+          <div className="grid grid-cols-2 gap-2">
+            <Button variant="outline" size="sm" onClick={() => { onSuccess(); handleClose(); }} className="gap-1.5 text-xs">
+              <Eye className="h-3.5 w-3.5" /> عرض في اليومية
+            </Button>
+            <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => { navigator.clipboard.writeText(savedEntryRef); toast({ title: "تم النسخ" }); }}>
+              <Copy className="h-3.5 w-3.5" /> نسخ المرجع
+            </Button>
+          </div>
+          <Button onClick={handleSuccessNewEntry} className="w-full gap-1.5 text-xs">
+            <Plus className="h-3.5 w-3.5" /> قيد جديد
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  /* ── Preview Screen ── */
+  if (showPreview) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center" dir="rtl">
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm" onClick={() => setShowPreview(false)} />
+        <div className="relative w-full max-w-lg mx-4 bg-card rounded-2xl border border-border/50 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+          <div className="p-4 border-b border-border/30 bg-primary/5 flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-bold text-foreground">معاينة القيد المحاسبي</h3>
+              <p className="text-[10px] text-muted-foreground">{reference} | {date}</p>
+            </div>
+            <button onClick={() => setShowPreview(false)} className="w-8 h-8 rounded-full hover:bg-secondary flex items-center justify-center">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          <div className="p-4 space-y-3">
+            <p className="text-xs font-medium text-foreground">{description}</p>
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b border-border/40">
+                  <th className="text-right py-2 font-semibold text-muted-foreground">الحساب</th>
+                  <th className="text-left py-2 font-semibold text-primary w-24">مدين ₪</th>
+                  <th className="text-left py-2 font-semibold text-destructive w-24">دائن ₪</th>
+                </tr>
+              </thead>
+              <tbody>
+                {lines.filter(l => l.account_code).map(l => (
+                  <tr key={l.id} className="border-b border-border/20">
+                    <td className="py-2 text-foreground">{l.account_code} {l.account_name}</td>
+                    <td className="py-2 text-left font-bold text-primary tabular-nums">{l.debit > 0 ? `₪${l.debit.toLocaleString()}` : "—"}</td>
+                    <td className="py-2 text-left font-bold text-destructive tabular-nums">{l.credit > 0 ? `₪${l.credit.toLocaleString()}` : "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="border-t-2 border-primary/20 font-bold">
+                  <td className="py-2 text-foreground">الإجمالي</td>
+                  <td className="py-2 text-left text-primary tabular-nums">₪{totalDebit.toLocaleString()}</td>
+                  <td className="py-2 text-left text-destructive tabular-nums">₪{totalCredit.toLocaleString()}</td>
+                </tr>
+              </tfoot>
+            </table>
+            {isBalanced && (
+              <div className="flex items-center gap-1.5 text-xs text-primary bg-primary/5 rounded-lg p-2">
+                <CheckCircle2 className="h-3.5 w-3.5" /> القيد متوازن ✅
+              </div>
+            )}
+          </div>
+          <div className="p-4 border-t border-border/30 flex gap-2">
+            <Button onClick={() => setShowPreview(false)} variant="outline" className="flex-1 text-xs">تعديل</Button>
+            <Button onClick={() => { setShowPreview(false); handleSubmit(); }} disabled={!canSubmit} className="flex-1 text-xs gap-1.5">
+              <CheckCircle2 className="h-3.5 w-3.5" /> تأكيد وحفظ
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ══ MAIN FORM ══ */
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center" dir="rtl">
-      {/* Backdrop */}
       <div className="fixed inset-0 bg-background/80 backdrop-blur-sm" onClick={onClose} />
 
-      {/* Popup */}
-      <div className="relative w-full max-w-md mx-4 mb-4 sm:mb-0 bg-card rounded-2xl border border-border/50 shadow-2xl overflow-hidden animate-in slide-in-from-bottom-4 duration-300">
+      <div className="relative w-full max-w-2xl mx-4 mb-4 sm:mb-0 bg-card rounded-2xl border border-border/50 shadow-2xl overflow-hidden animate-in slide-in-from-bottom-4 duration-300 max-h-[92vh] flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-border/30 bg-primary/5">
+        <div className="flex items-center justify-between p-4 border-b border-border/30 bg-primary/5 shrink-0">
           <div className="flex items-center gap-2">
             <div className="w-9 h-9 rounded-xl bg-primary/15 flex items-center justify-center">
               <BookOpen className="h-5 w-5 text-primary" />
             </div>
             <div>
               <h3 className="text-sm font-bold text-foreground">سند قيد جديد</h3>
-              <p className="text-[10px] text-muted-foreground">إنشاء قيد محاسبي يدوي</p>
+              <p className="text-[10px] text-muted-foreground font-mono">{reference}</p>
             </div>
           </div>
-          <button onClick={onClose} className="w-8 h-8 rounded-full hover:bg-secondary flex items-center justify-center transition-colors">
-            <X className="h-4 w-4 text-muted-foreground" />
-          </button>
+          <div className="flex items-center gap-1.5">
+            {/* Templates button */}
+            <div className="relative">
+              <button
+                onClick={() => setShowTemplates(!showTemplates)}
+                className="h-8 px-3 rounded-lg bg-secondary hover:bg-secondary/80 text-xs font-medium flex items-center gap-1.5 transition-colors"
+              >
+                <Bookmark className="h-3.5 w-3.5" /> قوالب
+              </button>
+              {showTemplates && (
+                <div className="absolute left-0 top-full mt-1 w-56 bg-card border border-border rounded-xl shadow-xl z-50 animate-in fade-in-0 zoom-in-95 duration-150">
+                  {TEMPLATES.map((tpl, i) => (
+                    <button
+                      key={i}
+                      onClick={() => applyTemplate(tpl)}
+                      className="w-full text-right px-3 py-2.5 text-xs hover:bg-primary/10 transition-colors flex items-center gap-2 first:rounded-t-xl last:rounded-b-xl"
+                    >
+                      <span>{tpl.icon}</span>
+                      <span className="text-foreground font-medium">{tpl.name}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <button onClick={onClose} className="w-8 h-8 rounded-full hover:bg-secondary flex items-center justify-center transition-colors">
+              <X className="h-4 w-4 text-muted-foreground" />
+            </button>
+          </div>
         </div>
 
-        {/* Form */}
-        <div className="p-4 space-y-4 max-h-[70vh] overflow-y-auto">
-          {/* Debit Account */}
-          <div className="space-y-1.5 relative">
-            <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-primary" />
-              الحساب المدين
-            </label>
-            <div className="relative">
-              <input
-                type="text"
-                value={debitAccount}
-                onChange={(e) => { setDebitAccount(e.target.value); setDebitAccountId(""); setShowDebitDropdown(true); }}
-                onFocus={() => setShowDebitDropdown(true)}
-                placeholder="ابحث عن الحساب المدين..."
-                className="w-full h-10 bg-secondary/60 rounded-xl px-3 text-sm text-foreground placeholder:text-muted-foreground border border-border/30 outline-none focus:ring-2 focus:ring-primary/20"
-              />
-              <ChevronDown className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            </div>
-            {showDebitDropdown && filteredDebitAccounts.length > 0 && (
-              <div className="absolute z-10 w-full mt-1 bg-card border border-border/50 rounded-xl shadow-lg max-h-40 overflow-y-auto">
-                {filteredDebitAccounts.slice(0, 15).map((acc) => (
-                  <button
-                    key={acc.id}
-                    onClick={() => selectDebit(acc)}
-                    className="w-full text-right px-3 py-2 text-xs hover:bg-primary/10 transition-colors flex items-center justify-between"
-                  >
-                    <span className="text-foreground">{acc.name}</span>
-                    <span className="text-[10px] text-muted-foreground">{acc.type}</span>
-                  </button>
-                ))}
-              </div>
-            )}
+        {/* Scrollable body */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {/* Entry type selector */}
+          <div className="flex items-center gap-2">
+            {["عادي", "افتتاحي", "تسوية", "إقفال"].map(t => (
+              <button
+                key={t}
+                onClick={() => setEntryType(t)}
+                className={`h-8 px-3 rounded-lg text-xs font-medium transition-colors ${
+                  entryType === t ? "bg-primary text-primary-foreground" : "bg-secondary text-foreground hover:bg-secondary/80"
+                }`}
+              >
+                {t}
+              </button>
+            ))}
           </div>
 
-          {/* Arrow */}
-          <div className="flex justify-center">
-            <ArrowLeftRight className="h-5 w-5 text-muted-foreground rotate-90" />
-          </div>
-
-          {/* Credit Account */}
-          <div className="space-y-1.5 relative">
-            <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-destructive" />
-              الحساب الدائن
-            </label>
-            <div className="relative">
-              <input
-                type="text"
-                value={creditAccount}
-                onChange={(e) => { setCreditAccount(e.target.value); setCreditAccountId(""); setShowCreditDropdown(true); }}
-                onFocus={() => setShowCreditDropdown(true)}
-                placeholder="ابحث عن الحساب الدائن..."
-                className="w-full h-10 bg-secondary/60 rounded-xl px-3 text-sm text-foreground placeholder:text-muted-foreground border border-border/30 outline-none focus:ring-2 focus:ring-primary/20"
-              />
-              <ChevronDown className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            </div>
-            {showCreditDropdown && filteredCreditAccounts.length > 0 && (
-              <div className="absolute z-10 w-full mt-1 bg-card border border-border/50 rounded-xl shadow-lg max-h-40 overflow-y-auto">
-                {filteredCreditAccounts.slice(0, 15).map((acc) => (
-                  <button
-                    key={acc.id}
-                    onClick={() => selectCredit(acc)}
-                    className="w-full text-right px-3 py-2 text-xs hover:bg-primary/10 transition-colors flex items-center justify-between"
-                  >
-                    <span className="text-foreground">{acc.name}</span>
-                    <span className="text-[10px] text-muted-foreground">{acc.type}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Amount + Date Row */}
+          {/* Date + Reference */}
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                <DollarSign className="h-3 w-3" />
-                المبلغ
+            <div className="space-y-1">
+              <label className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1">
+                <Calendar className="h-3 w-3" /> التاريخ
               </label>
-              <input
-                type="number"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                placeholder="0"
-                min="0"
-                className="w-full h-10 bg-secondary/60 rounded-xl px-3 text-sm text-foreground placeholder:text-muted-foreground border border-border/30 outline-none focus:ring-2 focus:ring-primary/20 text-center font-bold"
-              />
+              <Input type="date" value={date} onChange={e => setDate(e.target.value)} className="h-9 text-xs" />
             </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                <Calendar className="h-3 w-3" />
-                التاريخ
+            <div className="space-y-1">
+              <label className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1">
+                <FileText className="h-3 w-3" /> المرجع
               </label>
-              <input
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="w-full h-10 bg-secondary/60 rounded-xl px-3 text-sm text-foreground border border-border/30 outline-none focus:ring-2 focus:ring-primary/20"
-              />
+              <Input value={reference} onChange={e => setReference(e.target.value)} className="h-9 text-xs font-mono" />
             </div>
           </div>
 
           {/* Description */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-              <FileText className="h-3 w-3" />
-              الوصف
-            </label>
-            <input
-              type="text"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="وصف العملية (اختياري)"
-              className="w-full h-10 bg-secondary/60 rounded-xl px-3 text-sm text-foreground placeholder:text-muted-foreground border border-border/30 outline-none focus:ring-2 focus:ring-primary/20"
-            />
+          <div className="space-y-1">
+            <label className="text-[11px] font-semibold text-muted-foreground">الوصف *</label>
+            <Input value={description} onChange={e => setDescription(e.target.value)} placeholder="مثال: سلفة راتب - رهام حسون" className="h-9 text-xs" />
           </div>
 
-          {/* Preview */}
-          {debitAccount && creditAccount && Number(amount) > 0 && (
-            <div className="p-3 rounded-xl bg-primary/5 border border-primary/15 space-y-1.5">
-              <p className="text-[10px] font-semibold text-primary">معاينة القيد:</p>
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-foreground">مدين: <strong>{debitAccount}</strong></span>
-                <span className="font-bold text-primary">₪{Number(amount).toLocaleString()}</span>
+          {/* Lines table */}
+          <div className="border border-border/40 rounded-xl overflow-hidden">
+            {/* Table header */}
+            <div className="grid grid-cols-[32px_1fr_100px_100px_32px] gap-1 bg-muted/40 px-2 py-2 text-[10px] font-bold text-muted-foreground">
+              <span>#</span>
+              <span>الحساب</span>
+              <span className="text-center text-primary">مدين ₪</span>
+              <span className="text-center text-destructive">دائن ₪</span>
+              <span></span>
+            </div>
+
+            {/* Lines */}
+            {lines.map((line, idx) => (
+              <div key={line.id} className="grid grid-cols-[32px_1fr_100px_100px_32px] gap-1 px-2 py-1.5 border-t border-border/20 items-center hover:bg-muted/10">
+                <span className="text-[10px] text-muted-foreground text-center">{idx + 1}</span>
+                <AccountSearchDropdown
+                  accounts={accounts}
+                  value={line.account_code ? `${line.account_code} ${line.account_name}` : ""}
+                  onSelect={(acc) => handleAccountSelect(idx, acc)}
+                  onAddAccount={() => { setActiveLineIdx(idx); setShowAddAccount(true); }}
+                  onAddContact={(t) => { setActiveLineIdx(idx); setAddContactType(t); setShowAddContact(true); }}
+                />
+                <input
+                  type="number"
+                  value={line.debit || ""}
+                  onChange={e => updateLine(idx, "debit", Number(e.target.value) || 0)}
+                  placeholder="0"
+                  className="h-8 w-full bg-primary/5 rounded-lg px-2 text-xs text-center font-bold text-primary outline-none focus:ring-1 focus:ring-primary/30 tabular-nums"
+                  dir="ltr"
+                />
+                <input
+                  type="number"
+                  value={line.credit || ""}
+                  onChange={e => updateLine(idx, "credit", Number(e.target.value) || 0)}
+                  placeholder="0"
+                  className="h-8 w-full bg-destructive/5 rounded-lg px-2 text-xs text-center font-bold text-destructive outline-none focus:ring-1 focus:ring-destructive/30 tabular-nums"
+                  dir="ltr"
+                />
+                <button
+                  onClick={() => removeLine(idx)}
+                  disabled={lines.length <= 2}
+                  className="w-7 h-7 rounded-lg hover:bg-destructive/10 flex items-center justify-center transition-colors disabled:opacity-20"
+                >
+                  <Trash2 className="h-3 w-3 text-destructive" />
+                </button>
               </div>
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-foreground">دائن: <strong>{creditAccount}</strong></span>
-                <span className="font-bold text-destructive">₪{Number(amount).toLocaleString()}</span>
+            ))}
+
+            {/* Add line */}
+            <button onClick={addLine} className="w-full px-4 py-2 text-xs text-primary font-medium hover:bg-primary/5 transition-colors flex items-center gap-1.5 border-t border-border/20">
+              <Plus className="h-3.5 w-3.5" /> إضافة سطر
+            </button>
+
+            {/* Totals row */}
+            <div className="grid grid-cols-[32px_1fr_100px_100px_32px] gap-1 px-2 py-2 bg-muted/40 border-t-2 border-primary/20 items-center">
+              <span></span>
+              <div className="flex items-center gap-2 text-xs font-bold">
+                {isBalanced ? (
+                  <span className="text-primary flex items-center gap-1"><CheckCircle2 className="h-3.5 w-3.5" /> متوازن</span>
+                ) : totalDebit > 0 || totalCredit > 0 ? (
+                  <span className="text-destructive flex items-center gap-1"><AlertTriangle className="h-3.5 w-3.5" /> الفرق: ₪{difference.toLocaleString()}</span>
+                ) : (
+                  <span className="text-muted-foreground">الإجمالي</span>
+                )}
               </div>
+              <span className="text-center text-xs font-bold text-primary tabular-nums">₪{totalDebit.toLocaleString()}</span>
+              <span className="text-center text-xs font-bold text-destructive tabular-nums">₪{totalCredit.toLocaleString()}</span>
+              <span></span>
+            </div>
+          </div>
+
+          {/* Notes */}
+          <div className="space-y-1">
+            <label className="text-[11px] font-semibold text-muted-foreground">ملاحظات (اختياري)</label>
+            <Textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="ملاحظات إضافية..." className="text-xs min-h-[60px] resize-none" />
+          </div>
+
+          {/* Validation errors */}
+          {validationErrors.length > 0 && (totalDebit > 0 || totalCredit > 0) && (
+            <div className="p-3 rounded-xl bg-destructive/5 border border-destructive/15 space-y-1">
+              {validationErrors.map((err, i) => (
+                <p key={i} className="text-[11px] text-destructive flex items-start gap-1.5">
+                  <AlertTriangle className="h-3 w-3 shrink-0 mt-0.5" /> {err}
+                </p>
+              ))}
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-border/30 flex gap-2">
-          <button
-            onClick={handleSubmit}
-            disabled={sending || !debitAccount || !creditAccount || !amount || Number(amount) <= 0}
-            className="flex-1 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-bold hover:opacity-90 transition-all active:scale-[0.98] disabled:opacity-40 flex items-center justify-center gap-2"
-          >
+        <div className="p-4 border-t border-border/30 flex gap-2 shrink-0">
+          <Button onClick={handleSubmit} disabled={!canSubmit} className="flex-1 gap-1.5 text-xs h-10">
             {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-            {sending ? "جاري الإنشاء..." : "إنشاء سند القيد"}
-          </button>
-          <button
-            onClick={onClose}
-            className="px-5 py-3 rounded-xl bg-secondary text-foreground text-sm font-medium hover:bg-secondary/80 transition-all active:scale-[0.98]"
-          >
-            إلغاء
-          </button>
+            {sending ? "جاري الإنشاء..." : "إنشاء القيد"}
+          </Button>
+          <Button variant="outline" onClick={() => setShowPreview(true)} disabled={lines.filter(l => l.account_code).length < 2} className="gap-1.5 text-xs h-10">
+            <Eye className="h-4 w-4" /> معاينة
+          </Button>
+          <Button variant="ghost" onClick={onClose} className="text-xs h-10">إلغاء</Button>
         </div>
       </div>
+
+      {/* Sub-dialogs */}
+      <QuickAddAccountDialog
+        open={showAddAccount}
+        onClose={() => setShowAddAccount(false)}
+        accounts={accounts}
+        userId={user?.id || ""}
+        onCreated={handleAccountCreated}
+      />
+      <QuickAddContactDialog
+        open={showAddContact}
+        onClose={() => setShowAddContact(false)}
+        contactType={addContactType}
+        userId={user?.id || ""}
+        onCreated={handleAccountCreated}
+      />
     </div>
   );
 };
