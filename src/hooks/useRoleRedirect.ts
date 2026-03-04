@@ -29,7 +29,12 @@ export function useRoleRedirect() {
         // Pure employee — only has employee role
         setTargetPath("/employee");
       } else if (roles.includes("cashier") && !roles.includes("admin")) {
-        setTargetPath("/pos");
+        // Cashier with full account → employee portal (they can open POS from there)
+        if (roles.includes("employee")) {
+          setTargetPath("/employee");
+        } else {
+          setTargetPath("/pos");
+        }
       } else {
         // admin, accountant, or no roles (business owner fallback)
         setTargetPath("/apps");

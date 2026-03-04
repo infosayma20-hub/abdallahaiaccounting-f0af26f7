@@ -6,11 +6,12 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus, User, Shield, ShieldCheck, Eye, Pencil, Trash2,
   Smartphone, Lock, Unlock, ChevronDown, Search, Loader2,
-  Monitor, Copy, CheckCircle, X,
+  Monitor, Copy, CheckCircle, X, Mail, KeyRound, UserPlus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -34,6 +35,9 @@ interface POSUserRow {
   last_login_at: string | null;
   company_id: string;
   employee_id: string | null;
+  has_account: boolean;
+  auth_user_id: string | null;
+  account_status: string | null;
 }
 
 interface POSDevice {
@@ -101,6 +105,10 @@ export default function POSUserManagementPage() {
   const [userForm, setUserForm] = useState({
     name: "", phone: "", email: "", role: "cashier", pin: "", confirmPin: "",
   });
+  const [createAccount, setCreateAccount] = useState(false);
+  const [accountPassword, setAccountPassword] = useState("");
+  const [accountConfirmPassword, setAccountConfirmPassword] = useState("");
+  const [creatingAccount, setCreatingAccount] = useState(false);
   const [userPerms, setUserPerms] = useState<Permission>(DEFAULT_PERMS);
   const [assignedDevices, setAssignedDevices] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
@@ -146,6 +154,9 @@ export default function POSUserManagementPage() {
     setUserForm({ name: "", phone: "", email: "", role: "cashier", pin: "", confirmPin: "" });
     setUserPerms(DEFAULT_PERMS);
     setAssignedDevices([]);
+    setCreateAccount(false);
+    setAccountPassword("");
+    setAccountConfirmPassword("");
     setShowUserDialog(true);
   };
 
@@ -182,15 +193,20 @@ export default function POSUserManagementPage() {
     if (editingUser && userForm.pin && userForm.pin.length !== 4) { toast.error("رمز PIN يجب أن يكون 4 أرقام"); return; }
     if (editingUser && userForm.pin && userForm.pin !== userForm.confirmPin) { toast.error("رمز PIN غير متطابق"); return; }
 
+    // Validate account creation fields
+    if (createAccount && !editingUser) {
+      if (!userForm.email) { toast.error("البريد الإلكتروني مطلوب لإنشاء الحساب"); return; }
+      if (!accountPassword || accountPassword.length < 6) { toast.error("كلمة المرور يجب أن تكون 6 أحرف على الأقل"); return; }
+      if (accountPassword !== accountConfirmPassword) { toast.error("كلمة المرور غير متطابقة"); return; }
+    }
+
     setSaving(true);
     try {
       if (editingUser) {
-        // Update user
         const updates: Record<string, unknown> = {
           name: userForm.name, phone: userForm.phone || null, email: userForm.email || null, role: userForm.role,
         };
 
-        // If PIN changed, hash it
         if (userForm.pin) {
           const { data: hashData } = await supabase.functions.invoke("pos-pin-auth", {
             body: { action: "hash_pin", pin: userForm.pin, pos_user_id: editingUser.id },
@@ -200,7 +216,6 @@ export default function POSUserManagementPage() {
 
         await supabase.from("pos_users").update(updates).eq("id", editingUser.id);
 
-        // Update permissions
         await supabase.from("pos_user_permissions").upsert({
           user_id: user!.id,
           pos_user_id: editingUser.id,
@@ -208,7 +223,6 @@ export default function POSUserManagementPage() {
           ...userPerms,
         }, { onConflict: "pos_user_id" });
 
-        // Update device access
         await supabase.from("pos_user_device_access").delete().eq("pos_user_id", editingUser.id);
         if (assignedDevices.length > 0) {
           await supabase.from("pos_user_device_access").insert(
@@ -220,7 +234,6 @@ export default function POSUserManagementPage() {
 
         toast.success("تم تحديث المستخدم");
       } else {
-        // Create new user - first get PIN hash
         const tempId = crypto.randomUUID();
         const { data: hashData } = await supabase.functions.invoke("pos-pin-auth", {
           body: { action: "hash_pin", pin: userForm.pin, pos_user_id: tempId },
@@ -242,7 +255,6 @@ export default function POSUserManagementPage() {
 
         if (insertErr) throw insertErr;
 
-        // Create permissions
         await supabase.from("pos_user_permissions").insert({
           user_id: user!.id,
           pos_user_id: newUser.id,
@@ -250,7 +262,6 @@ export default function POSUserManagementPage() {
           ...userPerms,
         });
 
-        // Create device access
         if (assignedDevices.length > 0) {
           await supabase.from("pos_user_device_access").insert(
             assignedDevices.map(did => ({
@@ -259,7 +270,21 @@ export default function POSUserManagementPage() {
           );
         }
 
-        toast.success("تم إضافة المستخدم بنجاح");
+        // Create full account if requested
+        if (createAccount && userForm.email) {
+          try {
+            const { data: acctData, error: acctErr } = await supabase.functions.invoke("create-pos-employee-account", {
+              body: { pos_user_id: newUser.id, email: userForm.email, password: accountPassword },
+            });
+            if (acctErr) throw acctErr;
+            if (acctData?.error) toast.error("تم إنشاء الموظف لكن فشل الحساب: " + acctData.error);
+            else toast.success("تم إنشاء الموظف والحساب بنجاح ✅");
+          } catch {
+            toast.success("تم إنشاء الموظف لكن فشل إنشاء الحساب");
+          }
+        } else {
+          toast.success("تم إضافة المستخدم بنجاح");
+        }
       }
 
       setShowUserDialog(false);
@@ -281,6 +306,27 @@ export default function POSUserManagementPage() {
     await supabase.from("pos_users").update({ pin_failed_attempts: 0, pin_locked_until: null }).eq("id", u.id);
     toast.success("تم فتح القفل");
     loadData();
+  };
+
+  const handleCreateAccountForUser = async (u: POSUserRow) => {
+    if (!u.email) { toast.error("يجب إدخال بريد إلكتروني أولاً"); return; }
+    const password = prompt("أدخل كلمة مرور للموظف (6 أحرف على الأقل):");
+    if (!password || password.length < 6) { toast.error("كلمة المرور يجب أن تكون 6 أحرف على الأقل"); return; }
+    
+    setCreatingAccount(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-pos-employee-account", {
+        body: { pos_user_id: u.id, email: u.email, password },
+      });
+      if (error) throw error;
+      if (data.error) { toast.error(data.error); return; }
+      toast.success(data.message || "تم إنشاء الحساب بنجاح");
+      loadData();
+    } catch (e: any) {
+      toast.error(e.message || "فشل إنشاء الحساب");
+    } finally {
+      setCreatingAccount(false);
+    }
   };
 
   const registerCurrentDevice = async () => {
@@ -382,18 +428,33 @@ export default function POSUserManagementPage() {
                         {u.avatar_url ? <img src={u.avatar_url} className="w-full h-full rounded-full object-cover" /> : u.name[0]}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <h3 className="font-semibold truncate">{u.name}</h3>
                           <Badge className={`text-xs ${ROLE_COLORS[u.role] || "bg-muted"}`}>{ROLE_LABELS[u.role] || u.role}</Badge>
                           {isLocked && <Badge variant="destructive" className="text-xs gap-1"><Lock className="w-3 h-3" />مقفل</Badge>}
                           {!u.is_active && <Badge variant="secondary" className="text-xs">معطل</Badge>}
+                          {u.has_account && u.account_status === "active" && (
+                            <Badge className="text-xs bg-emerald-500/20 text-emerald-600 gap-1"><CheckCircle className="w-3 h-3" />حساب مفعّل</Badge>
+                          )}
+                          {u.account_status === "invited" && (
+                            <Badge className="text-xs bg-amber-500/20 text-amber-600 gap-1"><Mail className="w-3 h-3" />دعوة مُرسلة</Badge>
+                          )}
+                          {(!u.has_account || u.account_status === "none") && (
+                            <Badge variant="outline" className="text-xs gap-1"><KeyRound className="w-3 h-3" />PIN فقط</Badge>
+                          )}
                         </div>
                         <p className="text-xs text-muted-foreground mt-0.5">
-                          {u.phone || u.email || "—"}
+                          {u.email && <span className="inline-flex items-center gap-1"><Mail className="w-3 h-3" />{u.email}</span>}
+                          {u.phone && <span className="mr-2">{u.phone}</span>}
                           {u.last_login_at && ` • آخر دخول: ${new Date(u.last_login_at).toLocaleDateString("ar")}`}
                         </p>
                       </div>
                       <div className="flex items-center gap-1">
+                        {!u.has_account && u.email && (
+                          <Button variant="ghost" size="icon" onClick={() => handleCreateAccountForUser(u)} title="إنشاء حساب كامل" disabled={creatingAccount}>
+                            <UserPlus className="w-4 h-4 text-primary" />
+                          </Button>
+                        )}
                         {isLocked && (
                           <Button variant="ghost" size="icon" onClick={() => unlockUser(u)} title="فتح القفل"><Unlock className="w-4 h-4 text-amber-500" /></Button>
                         )}
@@ -508,6 +569,84 @@ export default function POSUserManagementPage() {
                 />
               </div>
             </div>
+
+            {/* Account Creation Section */}
+            {!editingUser && (
+              <div className="border border-dashed border-primary/30 rounded-lg p-4 space-y-3 bg-primary/5">
+                <div className="flex items-center gap-3">
+                  <Checkbox
+                    id="create-account"
+                    checked={createAccount}
+                    onCheckedChange={(v) => setCreateAccount(!!v)}
+                  />
+                  <label htmlFor="create-account" className="text-sm font-semibold cursor-pointer flex items-center gap-2">
+                    <KeyRound className="w-4 h-4" />
+                    إنشاء حساب كامل للموظف (يوزر وباسورد)
+                  </label>
+                </div>
+                <p className="text-xs text-muted-foreground mr-7">
+                  يتيح للموظف الدخول ببريده وكلمة مروره إلى بوابة الموظف ونقطة البيع
+                </p>
+                {createAccount && (
+                  <div className="grid grid-cols-2 gap-4 mt-3 mr-7">
+                    <div>
+                      <Label>كلمة المرور *</Label>
+                      <Input
+                        type="password"
+                        value={accountPassword}
+                        onChange={e => setAccountPassword(e.target.value)}
+                        placeholder="6 أحرف على الأقل"
+                      />
+                    </div>
+                    <div>
+                      <Label>تأكيد كلمة المرور *</Label>
+                      <Input
+                        type="password"
+                        value={accountConfirmPassword}
+                        onChange={e => setAccountConfirmPassword(e.target.value)}
+                        placeholder="أعد إدخال كلمة المرور"
+                      />
+                    </div>
+                    <p className="col-span-2 text-xs text-muted-foreground">
+                      ⚠️ تأكد من إدخال بريد إلكتروني صالح في حقل البريد أعلاه
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Show account status for existing users */}
+            {editingUser && (
+              <div className="border rounded-lg p-4 bg-muted/30">
+                <h3 className="font-semibold mb-2 flex items-center gap-2"><KeyRound className="w-4 h-4" /> حالة الحساب</h3>
+                {editingUser.has_account ? (
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4 text-emerald-500" />
+                    <span className="text-sm">حساب كامل مفعّل</span>
+                    {editingUser.email && <span className="text-xs text-muted-foreground">({editingUser.email})</span>}
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <KeyRound className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-sm">دخول بـ PIN فقط</span>
+                    </div>
+                    {editingUser.email && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleCreateAccountForUser(editingUser)}
+                        disabled={creatingAccount}
+                        className="gap-1"
+                      >
+                        <UserPlus className="w-3 h-3" />
+                        إنشاء حساب
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Permissions */}
             <div>

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, AlertTriangle } from "lucide-react";
@@ -46,6 +47,7 @@ type Employee = {
 
 export default function EmployeeApp() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<Tab>("home");
   const [employee, setEmployee] = useState<Employee | null>(null);
   const [todayRecord, setTodayRecord] = useState<AttendanceDay | null>(null);
@@ -55,11 +57,20 @@ export default function EmployeeApp() {
   const [branchName, setBranchName] = useState("");
   const [scanOpen, setScanOpen] = useState(false);
   const [scanAction, setScanAction] = useState<"checkin" | "checkout">("checkin");
+  const [isCashier, setIsCashier] = useState(false);
 
   const fetchData = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     try {
+      // Check if user has cashier role
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id);
+      const userRoles = (roles || []).map(r => r.role);
+      setIsCashier(userRoles.includes("cashier"));
+
       const { data: emp } = await supabase
         .from("employees_safe")
         .select("id, full_name, branch_id, position, department, phone, email")
@@ -136,6 +147,8 @@ export default function EmployeeApp() {
           history={history}
           onScanTap={() => handleNavigate("scan")}
           onNavigate={(tab) => setActiveTab(tab as Tab)}
+          isCashier={isCashier}
+          onOpenPOS={() => navigate("/pos")}
         />
       )}
 
