@@ -1,9 +1,14 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
-import { Clock, AlertTriangle, TrendingUp, TrendingDown, User, Timer } from "lucide-react";
+import { Clock, AlertTriangle, TrendingUp, TrendingDown, User, Timer, MoreVertical, Trash2, Eraser } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface Session {
   id: string;
@@ -24,9 +29,51 @@ interface Session {
 
 interface Props {
   sessions: Session[];
+  onRefresh?: () => void;
 }
 
-export default function POSShiftsReport({ sessions }: Props) {
+export default function POSShiftsReport({ sessions, onRefresh }: Props) {
+  const [confirmAction, setConfirmAction] = useState<{ type: "clear" | "delete"; session: Session } | null>(null);
+  const [actionLoading, setActionLoading] = useState(false);
+
+  const handleAction = async () => {
+    if (!confirmAction) return;
+    setActionLoading(true);
+    try {
+      const { session, type } = confirmAction;
+      if (type === "clear") {
+        // Reset session totals to zero
+        const { error } = await supabase
+          .from("pos_sessions")
+          .update({
+            total_sales: 0,
+            total_orders: 0,
+            total_returns: 0,
+            closing_cash: null,
+            expected_cash: null,
+            cash_variance: null,
+          })
+          .eq("id", session.id);
+        if (error) throw error;
+        toast.success("تم إفراغ بيانات الوردية بنجاح");
+      } else {
+        // Delete session
+        const { error } = await supabase
+          .from("pos_sessions")
+          .delete()
+          .eq("id", session.id);
+        if (error) throw error;
+        toast.success("تم حذف الوردية بنجاح");
+      }
+      onRefresh?.();
+    } catch (err: any) {
+      toast.error("حدث خطأ: " + (err.message || "غير معروف"));
+    } finally {
+      setActionLoading(false);
+      setConfirmAction(null);
+    }
+  };
+
   const sorted = useMemo(
     () => [...sessions].sort((a, b) => new Date(b.opened_at).getTime() - new Date(a.opened_at).getTime()),
     [sessions]
@@ -138,6 +185,7 @@ export default function POSShiftsReport({ sessions }: Props) {
                   <th className="p-3 text-left">المبيعات</th>
                   <th className="p-3 text-left">الطلبات</th>
                   <th className="p-3 text-center">الحالة</th>
+                  <th className="p-3 text-center">تحكم</th>
                 </tr>
               </thead>
               <tbody>
@@ -194,6 +242,25 @@ export default function POSShiftsReport({ sessions }: Props) {
                           {s.state === "open" ? "مفتوحة" : "مغلقة"}
                         </Badge>
                       </td>
+                      <td className="p-3 text-center">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-7 w-7">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => setConfirmAction({ type: "clear", session: s })}>
+                              <Eraser className="h-4 w-4 ml-2" />
+                              إفراغ البيانات
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="text-destructive" onClick={() => setConfirmAction({ type: "delete", session: s })}>
+                              <Trash2 className="h-4 w-4 ml-2" />
+                              حذف الوردية
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </td>
                     </tr>
                   );
                 })}
@@ -202,6 +269,33 @@ export default function POSShiftsReport({ sessions }: Props) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Confirmation Dialog */}
+      <AlertDialog open={!!confirmAction} onOpenChange={(open) => !open && setConfirmAction(null)}>
+        <AlertDialogContent dir="rtl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {confirmAction?.type === "clear" ? "إفراغ بيانات الوردية" : "حذف الوردية"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmAction?.type === "clear"
+                ? `سيتم إعادة تعيين بيانات المبيعات والأرصدة للوردية الخاصة بـ "${confirmAction?.session.cashier_name || "غير محدد"}". هل أنت متأكد؟`
+                : `سيتم حذف الوردية الخاصة بـ "${confirmAction?.session.cashier_name || "غير محدد"}" نهائياً. هذا الإجراء لا يمكن التراجع عنه.`
+              }
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-row-reverse gap-2">
+            <AlertDialogCancel disabled={actionLoading}>إلغاء</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleAction}
+              disabled={actionLoading}
+              className={confirmAction?.type === "delete" ? "bg-destructive text-destructive-foreground hover:bg-destructive/90" : ""}
+            >
+              {actionLoading ? "جارٍ التنفيذ..." : confirmAction?.type === "clear" ? "إفراغ" : "حذف"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
