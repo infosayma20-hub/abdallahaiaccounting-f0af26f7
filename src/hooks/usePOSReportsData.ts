@@ -77,12 +77,21 @@ export function usePOSReportsData() {
   const [customFrom, setCustomFrom] = useState<Date>(startOfMonth(new Date()));
   const [customTo, setCustomTo] = useState<Date>(new Date());
   const [loading, setLoading] = useState(true);
+  const [dataOwnerId, setDataOwnerId] = useState<string | null>(null);
 
   const [orders, setOrders] = useState<POSOrder[]>([]);
   const [orderLines, setOrderLines] = useState<POSOrderLine[]>([]);
   const [payments, setPayments] = useState<POSPayment[]>([]);
   const [sessions, setSessions] = useState<POSSession[]>([]);
   const [products, setProducts] = useState<ProductInfo[]>([]);
+
+  // Resolve team owner for multi-tenant access
+  useEffect(() => {
+    if (!user) return;
+    supabase.rpc("get_team_owner_id", { _user_id: user.id }).then(({ data }) => {
+      setDataOwnerId(data || user.id);
+    });
+  }, [user]);
 
   const { dateFrom, dateTo } = useMemo(() => {
     const now = new Date();
@@ -101,7 +110,7 @@ export function usePOSReportsData() {
   }, [preset, customFrom, customTo]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !dataOwnerId) return;
     const fetchAll = async () => {
       setLoading(true);
       const from = dateFrom.toISOString();
@@ -111,33 +120,33 @@ export function usePOSReportsData() {
         supabase
           .from("pos_orders")
           .select("id, created_at, total, subtotal, discount_amount, tax_amount, state, is_return, return_reason, session_id, customer_id, customer_name, order_number")
-          .eq("user_id", user.id)
+          .eq("user_id", dataOwnerId)
           .gte("created_at", from)
           .lte("created_at", to)
           .order("created_at", { ascending: false }),
         supabase
           .from("pos_order_lines")
           .select("id, order_id, product_id, product_name, qty, unit_price, cost_price, subtotal, total, discount_amount, tax_amount")
-          .eq("user_id", user.id)
+          .eq("user_id", dataOwnerId)
           .gte("created_at", from)
           .lte("created_at", to),
         supabase
           .from("pos_payments")
           .select("id, order_id, payment_method, amount, created_at")
-          .eq("user_id", user.id)
+          .eq("user_id", dataOwnerId)
           .gte("created_at", from)
           .lte("created_at", to),
         supabase
           .from("pos_sessions")
           .select("id, cashier_name, cashier_pos_user_id, opened_at, closed_at, opening_cash, closing_cash, expected_cash, cash_variance, total_sales, total_orders, total_returns, terminal_id, state")
-          .eq("user_id", user.id)
+          .eq("user_id", dataOwnerId)
           .gte("opened_at", from)
           .lte("opened_at", to)
           .order("opened_at", { ascending: false }),
         supabase
           .from("products")
           .select("id, name, buy_price, sell_price, quantity, min_quantity, category, pos_category_id")
-          .eq("user_id", user.id),
+          .eq("user_id", dataOwnerId),
       ]);
 
       setOrders((ordersRes.data || []) as POSOrder[]);
@@ -148,7 +157,7 @@ export function usePOSReportsData() {
       setLoading(false);
     };
     fetchAll();
-  }, [user, dateFrom, dateTo]);
+  }, [user, dataOwnerId, dateFrom, dateTo]);
 
   // Computed KPIs
   const paidOrders = useMemo(() => orders.filter(o => o.state === "paid" && !o.is_return), [orders]);
