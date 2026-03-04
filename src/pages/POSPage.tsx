@@ -1145,7 +1145,7 @@ const POSPage = () => {
                     style={{
                       backgroundColor: isActive ? cat.color : cat.color + "20",
                       borderColor: isActive ? cat.color : cat.color + "50",
-                      color: isActive ? "#fff" : cat.color,
+                      color: isActive ? "#fff" : "#1E293B",
                       boxShadow: isActive ? `0 2px 8px ${cat.color}40` : "none",
                     }}
                   >
