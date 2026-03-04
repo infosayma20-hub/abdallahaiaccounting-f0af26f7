@@ -25,16 +25,12 @@ export function useRoleRedirect() {
 
       if (roles.includes("super_admin")) {
         setTargetPath("/super-admin/dashboard");
+      } else if (roles.includes("cashier") && !roles.includes("admin")) {
+        // Cashier always goes directly to POS — no apps, no employee portal
+        setTargetPath("/pos");
       } else if (roles.includes("employee") && roles.length === 1) {
         // Pure employee — only has employee role
         setTargetPath("/employee");
-      } else if (roles.includes("cashier") && !roles.includes("admin")) {
-        // Cashier with full account → employee portal (they can open POS from there)
-        if (roles.includes("employee")) {
-          setTargetPath("/employee");
-        } else {
-          setTargetPath("/pos");
-        }
       } else {
         // admin, accountant, or no roles (business owner fallback)
         setTargetPath("/apps");
