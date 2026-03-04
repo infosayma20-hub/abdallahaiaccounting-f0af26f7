@@ -309,6 +309,7 @@ const POSPage = () => {
   const [showOpenShift, setShowOpenShift] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
   const [showCloseShift, setShowCloseShift] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [showCategoryManager, setShowCategoryManager] = useState(false);
   const [openingCash, setOpeningCash] = useState("");
@@ -1158,7 +1159,12 @@ const POSPage = () => {
     setActiveOrderIndex(0);
     orderCounter.current = 1;
     toast.success("تم إغلاق الوردية بنجاح");
-    navigate("/apps");
+    setShowLogoutConfirm(true);
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate("/auth");
   };
 
   // Keyboard shortcut
@@ -2250,6 +2256,45 @@ const POSPage = () => {
         }}
         data={shiftSummaryData}
       />
+
+      {/* Logout Confirmation after Shift Close */}
+      <Dialog open={showLogoutConfirm} onOpenChange={() => {}}>
+        <DialogContent className="sm:max-w-sm" dir="rtl" onPointerDownOutside={(e) => e.preventDefault()}>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-lg">
+              <LogOut className="h-5 w-5 text-destructive" />
+              تسجيل الخروج
+            </DialogTitle>
+          </DialogHeader>
+          <div className="text-center py-4 space-y-3">
+            <div className="w-16 h-16 mx-auto rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+              <CheckCircle className="h-8 w-8 text-green-600" />
+            </div>
+            <p className="text-muted-foreground text-sm">
+              تم إغلاق الوردية بنجاح. هل تريد تسجيل الخروج من النظام؟
+            </p>
+          </div>
+          <DialogFooter className="flex gap-2 sm:gap-2">
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() => {
+                setShowLogoutConfirm(false);
+              }}
+            >
+              البقاء
+            </Button>
+            <Button
+              variant="destructive"
+              className="flex-1 gap-2"
+              onClick={handleLogout}
+            >
+              <LogOut className="h-4 w-4" />
+              تسجيل الخروج
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* ── Add Product Dialog ── */}
       <Dialog open={showAddProduct} onOpenChange={setShowAddProduct}>
