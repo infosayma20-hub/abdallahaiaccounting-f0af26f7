@@ -2260,13 +2260,13 @@ const POSPage = () => {
         data={shiftSummaryData}
       />
 
-      {/* Logout Confirmation after Shift Close */}
+      {/* Logout after Shift Close — cashier must log out, admin can stay */}
       <Dialog open={showLogoutConfirm} onOpenChange={() => {}}>
         <DialogContent className="sm:max-w-sm" dir="rtl" onPointerDownOutside={(e) => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-lg">
-              <LogOut className="h-5 w-5 text-destructive" />
-              تسجيل الخروج
+              <CheckCircle className="h-5 w-5 text-green-600" />
+              تم إغلاق الوردية
             </DialogTitle>
           </DialogHeader>
           <div className="text-center py-4 space-y-3">
@@ -2274,22 +2274,24 @@ const POSPage = () => {
               <CheckCircle className="h-8 w-8 text-green-600" />
             </div>
             <p className="text-muted-foreground text-sm">
-              تم إغلاق الوردية بنجاح. هل تريد تسجيل الخروج من النظام؟
+              {isAdmin
+                ? "تم إغلاق الوردية بنجاح. هل تريد تسجيل الخروج؟"
+                : "تم إغلاق الوردية بنجاح. سيتم تسجيل خروجك الآن."}
             </p>
           </div>
           <DialogFooter className="flex gap-2 sm:gap-2">
-            <Button
-              variant="outline"
-              className="flex-1"
-              onClick={() => {
-                setShowLogoutConfirm(false);
-              }}
-            >
-              البقاء
-            </Button>
+            {isAdmin && (
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => setShowLogoutConfirm(false)}
+              >
+                البقاء
+              </Button>
+            )}
             <Button
               variant="destructive"
-              className="flex-1 gap-2"
+              className={isAdmin ? "flex-1 gap-2" : "w-full gap-2"}
               onClick={handleLogout}
             >
               <LogOut className="h-4 w-4" />
