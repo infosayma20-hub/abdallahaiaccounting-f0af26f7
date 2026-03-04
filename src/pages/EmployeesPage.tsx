@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Search, Users, DollarSign, Calendar, FileText, Edit, Trash2, UserPlus, Loader2, Upload, CalendarDays, LogOut as LogOutIcon } from "lucide-react";
 import BackButton from "@/components/BackButton";
+import EmployeeMovementsTab from "@/components/hr/EmployeeMovementsTab";
 import EmployeeImportDialog from "@/components/hr/EmployeeImportDialog";
 import OfficialHolidaysDialog from "@/components/hr/OfficialHolidaysDialog";
 import TerminationDialog from "@/components/hr/TerminationDialog";
@@ -186,8 +187,8 @@ const EmployeesPage = () => {
     if (error) toast.error("خطأ"); else { toast.success("تمت الإضافة"); setShowLeaveForm(false); setLeaveForm({ leave_type: "سنوية", start_date: new Date().toISOString().split("T")[0], end_date: new Date().toISOString().split("T")[0], days_count: 1, notes: "" }); fetchEmployeeDetails(selectedEmployee.id); }
   };
 
-  const generateSalarySlip = () => {
-    if (!selectedEmployee) return;
+  const generateSalarySlip = async () => {
+    if (!selectedEmployee || !user) return;
     const now = new Date();
     const month = now.getMonth() + 1;
     const year = now.getFullYear();
@@ -195,12 +196,26 @@ const EmployeesPage = () => {
     const weeklyOff = getWeeklyDaysOffInMonth(year, month);
     const customAllowancesTotal = allowances.filter(a => a.is_active).reduce((s: number, a: any) => s + Number(a.amount || 0), 0);
 
+    // Fetch approved movements for this month
+    const { data: movementsData } = await supabase
+      .from("employee_financial_movements")
+      .select("*")
+      .eq("employee_id", selectedEmployee.id)
+      .eq("user_id", user.id)
+      .eq("salary_month", month)
+      .eq("salary_year", year)
+      .eq("status", "approved")
+      .eq("movement_type", "debit");
+
+    const movementsTotal = (movementsData || []).reduce((s: number, m: any) => s + Number(m.amount || 0), 0);
+    const legacyDeductions = deductions.filter(d => !d.is_repaid).reduce((s: number, d: any) => s + Number(d.amount || 0), 0);
+
     const slip = calculateSalarySlip({
       baseSalary: Number(selectedEmployee.base_salary) || 0,
       hourlyRate: Number(selectedEmployee.hourly_rate) || 0,
       workDaysPerWeek: selectedEmployee.work_days_per_week || 6,
       workHoursPerDay: selectedEmployee.work_hours_per_day || 8,
-      presentDays: workDays, // Assume full attendance for preview
+      presentDays: workDays,
       annualLeaveDays: 0,
       sickLeaveDays: 0,
       officialHolidayDays: 0,
@@ -213,7 +228,7 @@ const EmployeesPage = () => {
       childAllowancePerChild: Number((selectedEmployee as any).child_allowance_per_child) || 0,
       overtimeHours: 0,
       overtimeAmount: 0,
-      advanceDeductions: deductions.filter(d => !d.is_repaid).reduce((s: number, d: any) => s + Number(d.amount || 0), 0),
+      advanceDeductions: legacyDeductions + movementsTotal,
       otherDeductions: 0,
       customAllowances: customAllowancesTotal,
       socialInsuranceRate: 0.075,
@@ -346,10 +361,11 @@ const EmployeesPage = () => {
               </CardHeader>
               <CardContent>
                 <Tabs value={activeTab} onValueChange={setActiveTab}>
-                  <TabsList className="w-full grid grid-cols-5 mb-4">
+                  <TabsList className="w-full grid grid-cols-6 mb-4">
                     <TabsTrigger value="info">المعلومات</TabsTrigger>
                     <TabsTrigger value="allowances">البدلات</TabsTrigger>
                     <TabsTrigger value="deductions">المسحوبات</TabsTrigger>
+                    <TabsTrigger value="movements">الحركات المالية</TabsTrigger>
                     <TabsTrigger value="leaves">الإجازات</TabsTrigger>
                     <TabsTrigger value="hr">HR</TabsTrigger>
                   </TabsList>
@@ -444,6 +460,16 @@ const EmployeesPage = () => {
                         {deductions.length === 0 && <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">لا توجد مسحوبات</TableCell></TableRow>}
                       </TableBody>
                     </Table>
+                  </TabsContent>
+
+                  <TabsContent value="movements">
+                    {user && selectedEmployee && (
+                      <EmployeeMovementsTab
+                        employeeId={selectedEmployee.id}
+                        employeeName={selectedEmployee.full_name}
+                        userId={user.id}
+                      />
+                    )}
                   </TabsContent>
 
                   <TabsContent value="leaves">

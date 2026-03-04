@@ -1500,6 +1500,90 @@ export type Database = {
           },
         ]
       }
+      employee_financial_movements: {
+        Row: {
+          amount: number
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          created_by: string | null
+          description: string
+          employee_id: string
+          id: string
+          journal_entry_id: string | null
+          movement_date: string
+          movement_type: string
+          notes: string | null
+          salary_month: number | null
+          salary_year: number | null
+          source_id: string | null
+          source_reference: string | null
+          source_type: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          description: string
+          employee_id: string
+          id?: string
+          journal_entry_id?: string | null
+          movement_date?: string
+          movement_type: string
+          notes?: string | null
+          salary_month?: number | null
+          salary_year?: number | null
+          source_id?: string | null
+          source_reference?: string | null
+          source_type: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          employee_id?: string
+          id?: string
+          journal_entry_id?: string | null
+          movement_date?: string
+          movement_type?: string
+          notes?: string | null
+          salary_month?: number | null
+          salary_year?: number | null
+          source_id?: string | null
+          source_reference?: string | null
+          source_type?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_financial_movements_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_financial_movements_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employee_leaves: {
         Row: {
           created_at: string
