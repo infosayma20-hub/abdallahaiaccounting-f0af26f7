@@ -19,7 +19,6 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import POSReceiptDialog from "@/components/POSReceiptDialog";
-import POSPinLogin from "@/components/pos/POSPinLogin";
 import ShiftSummaryReceipt from "@/components/ShiftSummaryReceipt";
 import {
   DndContext,
@@ -207,15 +206,6 @@ const POSPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const searchRef = useRef<HTMLInputElement>(null);
-
-  // POS User authentication state
-  const [posUserAuth, setPosUserAuth] = useState<{
-    posUser: { id: string; name: string; role: string; avatar_url: string | null; company_id: string };
-    permissions: Record<string, boolean | number>;
-    deviceId: string;
-  } | null>(null);
-  const [hasPosUsers, setHasPosUsers] = useState<boolean | null>(null); // null = checking
-  const [posCompanyForLogin, setPosCompanyForLogin] = useState<{ id: string; name: string } | null>(null);
 
   // State
   const [products, setProducts] = useState<Product[]>([]);
@@ -418,22 +408,6 @@ const POSPage = () => {
       setCompany(comp ? { id: comp.id, name: comp.name } : null);
 
       if (comp) {
-        // Check if there are POS users registered for this company
-        const { count } = await supabase
-          .from("pos_users")
-          .select("id", { count: "exact", head: true })
-          .eq("company_id", comp.id)
-          .eq("is_active", true);
-
-        if (count && count > 0 && !posUserAuth) {
-          // There are POS users - require PIN login
-          setPosCompanyForLogin({ id: comp.id, name: comp.name });
-          setHasPosUsers(true);
-          setLoading(false);
-          return; // Stop initialization until PIN login is done
-        }
-        setHasPosUsers(false);
-
         let { data: terminals } = await supabase
           .from("pos_terminals")
           .select("*")
@@ -850,7 +824,7 @@ const POSPage = () => {
   const handleOpenShift = async () => {
     if (!userId || !company || !terminal) return;
     const cash = parseFloat(openingCash) || 0;
-    const displayName = posUserAuth?.posUser?.name || user?.user_metadata?.full_name || user?.email?.split("@")[0] || "";
+    const displayName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "";
 
     const { data, error } = await supabase
       .from("pos_sessions")
@@ -1172,27 +1146,6 @@ const POSPage = () => {
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
   }, [cart]);
-
-  // Show PIN login if POS users exist and not yet authenticated
-  if (hasPosUsers === true && !posUserAuth && posCompanyForLogin) {
-    return (
-      <POSPinLogin
-        companyId={posCompanyForLogin.id}
-        companyName={posCompanyForLogin.name}
-        onLogin={(data) => {
-          setPosUserAuth({
-            posUser: data.posUser,
-            permissions: data.permissions,
-            deviceId: data.deviceId,
-          });
-          setHasPosUsers(false); // Allow initialization to continue
-          // Re-run initialization after PIN login
-          setTimeout(() => initializePOS(), 100);
-        }}
-        onBack={() => navigate("/apps")}
-      />
-    );
-  }
 
   if (loading) {
     return (
