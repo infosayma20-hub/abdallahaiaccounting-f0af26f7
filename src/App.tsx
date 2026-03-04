@@ -67,17 +67,21 @@ import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 
 const queryClient = new QueryClient();
 
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+const ProtectedRoute = ({ children, blockCashier }: { children: React.ReactNode; blockCashier?: boolean }) => {
   const { user, loading } = useAuth();
-  if (loading) return <LoadingScreen />;
+  const { targetPath, checking } = useRoleRedirect();
+  if (loading || (blockCashier && checking)) return <LoadingScreen />;
   if (!user) return <Navigate to="/auth" replace />;
+  if (blockCashier && targetPath === "/pos") return <Navigate to="/pos" replace />;
   return <>{children}</>;
 };
 
 const AppsRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, loading } = useAuth();
-  if (loading) return <LoadingScreen />;
+  const { targetPath, checking, user } = useRoleRedirect();
+  if (checking) return <LoadingScreen />;
   if (!user) return <Navigate to="/auth" replace />;
+  // Cashiers go straight to POS, not the apps launcher
+  if (targetPath === "/pos") return <Navigate to="/pos" replace />;
   return <>{children}</>;
 };
 
@@ -113,7 +117,7 @@ const App = () => (
               <Route path="/pos" element={<ProtectedRoute><POSPage /></ProtectedRoute>} />
               <Route path="/apps" element={<AppsRoute><WebLayout><AppsLauncher /></WebLayout></AppsRoute>} />
               <Route path="/*" element={
-                <ProtectedRoute>
+                <ProtectedRoute blockCashier>
                   <WebLayout>
                     <Routes>
                       <Route path="/" element={<SmartRedirect />} />
