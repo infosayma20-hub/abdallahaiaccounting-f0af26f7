@@ -1239,8 +1239,8 @@ const POSPage = () => {
 
         <div className="flex-1" />
 
-        {/* Sales summary */}
-        {session && (
+        {/* Sales summary - admin only */}
+        {session && isAdmin && (
           <div className="flex items-center gap-3 text-xs">
             <button
               onClick={() => setShowSalesSummary(prev => !prev)}
