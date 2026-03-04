@@ -29,6 +29,7 @@ import POSPeakHoursReport from "@/components/pos-reports/POSPeakHoursReport";
 import POSInventoryReport from "@/components/pos-reports/POSInventoryReport";
 import POSReturnsReport from "@/components/pos-reports/POSReturnsReport";
 import POSProfitReport from "@/components/pos-reports/POSProfitReport";
+import POSShiftsReport from "@/components/pos-reports/POSShiftsReport";
 import * as XLSX from "xlsx";
 
 const PRESETS: { key: DatePreset; label: string }[] = [
@@ -92,6 +93,24 @@ const POSReportsPage = () => {
         "العجز": c.variance,
       })));
       XLSX.utils.book_append_sheet(wb, ws4, "أداء الكاشير");
+    }
+
+    // Shifts sheet
+    if (data.sessions.length > 0) {
+      const ws5 = XLSX.utils.json_to_sheet(data.sessions.map(s => ({
+        "الكاشير": s.cashier_name || "",
+        "تاريخ الفتح": format(new Date(s.opened_at), "yyyy-MM-dd"),
+        "وقت الفتح": format(new Date(s.opened_at), "HH:mm"),
+        "وقت الإغلاق": s.closed_at ? format(new Date(s.closed_at), "HH:mm") : "مفتوحة",
+        "رصيد الفتح": s.opening_cash,
+        "رصيد الإغلاق": s.closing_cash ?? "",
+        "المتوقع": s.expected_cash ?? "",
+        "الفرق": s.cash_variance ?? "",
+        "المبيعات": s.total_sales,
+        "الطلبات": s.total_orders,
+        "الحالة": s.state === "open" ? "مفتوحة" : "مغلقة",
+      })));
+      XLSX.utils.book_append_sheet(wb, ws5, "الورديات");
     }
 
     XLSX.writeFile(wb, `تقارير-POS-${format(data.dateFrom, "yyyy-MM-dd")}.xlsx`);
@@ -174,6 +193,7 @@ const POSReportsPage = () => {
           <TabsTrigger value="inventory" className="text-xs sm:text-sm">📦 المخزون</TabsTrigger>
           <TabsTrigger value="returns" className="text-xs sm:text-sm">🔄 المرتجعات</TabsTrigger>
           <TabsTrigger value="profit" className="text-xs sm:text-sm">📊 الربحية</TabsTrigger>
+          <TabsTrigger value="shifts" className="text-xs sm:text-sm">🕐 الورديات</TabsTrigger>
         </TabsList>
 
         {data.loading ? (
@@ -219,6 +239,9 @@ const POSReportsPage = () => {
                 totalReturns={data.totalReturns}
                 totalDiscounts={totalDiscounts}
               />
+            </TabsContent>
+            <TabsContent value="shifts">
+              <POSShiftsReport sessions={data.sessions} />
             </TabsContent>
           </>
         )}
