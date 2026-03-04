@@ -441,11 +441,14 @@ const POSPage = () => {
         }
         setTerminal(term ? { id: term.id, name: term.name, company_id: term.company_id } : null);
 
+        const displayName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "";
         const { data: sessions } = await supabase
           .from("pos_sessions")
           .select("*")
           .eq("user_id", dataOwnerId)
           .eq("state", "open")
+          .eq("cashier_name", displayName)
+          .order("opened_at", { ascending: false })
           .limit(1);
 
         if (sessions?.[0]) {
