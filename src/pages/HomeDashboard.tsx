@@ -25,6 +25,9 @@ import CompleteProfileDialog from "@/components/CompleteProfileDialog";
 import HelpGuideModal from "@/components/HelpGuideModal";
 import SmartReportWidget from "@/components/SmartReportWidget";
 import TransactionBuilder, { TransactionBuilderData } from "@/components/TransactionBuilder";
+import QuickActionsBar from "@/components/QuickActionsBar";
+import AccountStatementModal from "@/components/AccountStatementModal";
+import ContactStatementModal from "@/components/ContactStatementModal";
 import { AnimatePresence } from "framer-motion";
 
 interface TransactionRecord {
@@ -40,16 +43,7 @@ interface TransactionRecord {
   contact_id: string | null;
 }
 
-// ─── Create Actions ───
-const createActions = [
-  { label: "إنشاء فاتورة", icon: FileText, path: "/invoices", shortcut: "F3" },
-  { label: "سند صرف", icon: Wallet, path: "/transactions", shortcut: "F2" },
-  { label: "سند قبض", icon: Landmark, path: "/transactions", shortcut: "F1" },
-  { label: "إنشاء شيك", icon: Receipt, path: "/cheques", shortcut: "F8" },
-  { label: "إضافة عميل", icon: Users, path: "/contacts", shortcut: null },
-  { label: "إضافة منتج", icon: Package, path: "/inventory", shortcut: null },
-  { label: "سند قيد", icon: ClipboardList, action: "journal", shortcut: "F4" },
-];
+// createActions moved to QuickActionsBar component
 
 // ─── Shortcuts Help Dialog ───
 const ShortcutsHelpDialog = ({ open, onClose }: { open: boolean; onClose: () => void }) => {
@@ -150,6 +144,8 @@ const HomeDashboard = () => {
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [showTransactionBuilder, setShowTransactionBuilder] = useState(false);
   const [builderType, setBuilderType] = useState<"بيع" | "شراء">("بيع");
+  const [showAccountStatement, setShowAccountStatement] = useState(false);
+  const [showContactStatement, setShowContactStatement] = useState(false);
 
   // Transaction Builder trigger keywords
   const TRIGGER_WORDS = ["بعت", "بيع", "اشتريت", "شراء", "اشترينا", "بعنا"];
@@ -320,8 +316,8 @@ const HomeDashboard = () => {
         case 'F2': e.preventDefault(); navigate('/transactions'); break;
         case 'F3': e.preventDefault(); navigate('/invoices'); break;
         case 'F4': e.preventDefault(); setShowJournalEntry(true); break;
-        case 'F5': e.preventDefault(); navigate('/contacts'); break;
-        case 'F6': e.preventDefault(); navigate('/account-statement'); break;
+        case 'F5': e.preventDefault(); setShowContactStatement(true); break;
+        case 'F6': e.preventDefault(); setShowAccountStatement(true); break;
         case 'F7': e.preventDefault(); navigate('/smart-report'); break;
         case 'F8': e.preventDefault(); navigate('/cheques'); break;
       }
@@ -478,34 +474,15 @@ const HomeDashboard = () => {
         </div>
 
         {/* Create Actions Strip */}
-        <div className="flex items-center justify-center gap-2 flex-wrap">
-          <span className="text-sm font-medium text-muted-foreground ml-2">إنشاء</span>
-          {createActions.map((action) => (
-            <button
-              key={action.label}
-              onClick={() => 'action' in action ? setShowJournalEntry(true) : navigate((action as any).path)}
-              className="relative group flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/60 text-[13px] font-medium text-foreground hover:bg-secondary hover:shadow-soft transition-all"
-            >
-              <action.icon className="h-4 w-4 text-muted-foreground" strokeWidth={1.8} />
-              {action.label}
-              {action.shortcut && !isMobile && (
-                <kbd className="absolute -top-1.5 -left-1 text-[9px] bg-primary/10 text-primary border border-primary/20 rounded px-1 font-mono leading-tight opacity-0 group-hover:opacity-100 transition-opacity">
-                  {action.shortcut}
-                </kbd>
-              )}
-            </button>
-          ))}
-          {!isMobile && (
-            <button
-              onClick={() => setShowShortcuts(true)}
-              className="flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/60 text-[13px] font-medium text-foreground hover:bg-secondary hover:shadow-soft transition-all"
-              title="اختصارات لوحة المفاتيح (?)"
-            >
-              <Keyboard className="h-4 w-4 text-muted-foreground" strokeWidth={1.8} />
-              اختصارات
-            </button>
-          )}
-        </div>
+        <QuickActionsBar
+          onAction={(target) => {
+            if (target === "journal") setShowJournalEntry(true);
+            else if (target === "account_statement") setShowAccountStatement(true);
+            else if (target === "contact_statement") setShowContactStatement(true);
+          }}
+          isMobile={isMobile}
+          onShowShortcuts={() => setShowShortcuts(true)}
+        />
       </div>
 
       {/* ═══ LOADING ═══ */}
@@ -858,6 +835,8 @@ const HomeDashboard = () => {
         onFillInput={(text) => setInputValue(text)}
       />
       <ShortcutsHelpDialog open={showShortcuts} onClose={() => setShowShortcuts(false)} />
+      <AccountStatementModal open={showAccountStatement} onClose={() => setShowAccountStatement(false)} />
+      <ContactStatementModal open={showContactStatement} onClose={() => setShowContactStatement(false)} />
     </div>
   );
 };
