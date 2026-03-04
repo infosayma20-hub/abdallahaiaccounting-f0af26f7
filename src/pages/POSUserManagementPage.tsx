@@ -113,6 +113,11 @@ export default function POSUserManagementPage() {
   const [assignedDevices, setAssignedDevices] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
+  // Delete confirmation
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deletingUser, setDeletingUser] = useState<POSUserRow | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
   // Device dialog
   const [showDeviceDialog, setShowDeviceDialog] = useState(false);
   const [deviceForm, setDeviceForm] = useState({ device_name: "" });
@@ -329,6 +334,35 @@ export default function POSUserManagementPage() {
     }
   };
 
+  const confirmDeleteUser = (u: POSUserRow) => {
+    setDeletingUser(u);
+    setShowDeleteDialog(true);
+  };
+
+  const handleDeleteUser = async () => {
+    if (!deletingUser) return;
+    setDeleting(true);
+    try {
+      // Delete related data first
+      await supabase.from("pos_user_device_access").delete().eq("pos_user_id", deletingUser.id);
+      await supabase.from("pos_user_permissions").delete().eq("pos_user_id", deletingUser.id);
+      // Delete audit logs using rpc or ignore if table doesn't exist
+      await (supabase as any).from("pos_audit_logs").delete().eq("pos_user_id", deletingUser.id);
+
+      const { error } = await supabase.from("pos_users").delete().eq("id", deletingUser.id);
+      if (error) throw error;
+
+      toast.success(`تم حذف ${deletingUser.name} بنجاح`);
+      setShowDeleteDialog(false);
+      setDeletingUser(null);
+      loadData();
+    } catch (e: any) {
+      toast.error(e.message || "فشل حذف الموظف");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const registerCurrentDevice = async () => {
     if (!deviceForm.device_name.trim()) { toast.error("أدخل اسم الجهاز"); return; }
     setSaving(true);
@@ -461,6 +495,9 @@ export default function POSUserManagementPage() {
                         <Button variant="ghost" size="icon" onClick={() => openEditUser(u)}><Pencil className="w-4 h-4" /></Button>
                         <Button variant="ghost" size="icon" onClick={() => toggleUserActive(u)}>
                           {u.is_active ? <Lock className="w-4 h-4 text-muted-foreground" /> : <Unlock className="w-4 h-4 text-emerald-500" />}
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => confirmDeleteUser(u)} title="حذف الموظف">
+                          <Trash2 className="w-4 h-4 text-destructive" />
                         </Button>
                       </div>
                     </CardContent>
@@ -739,6 +776,36 @@ export default function POSUserManagementPage() {
               تسجيل
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ═══ DELETE CONFIRMATION DIALOG ═══ */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent className="max-w-md" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="text-destructive flex items-center gap-2">
+              <Trash2 className="w-5 h-5" /> حذف موظف POS
+            </DialogTitle>
+            <DialogDescription>
+              هل أنت متأكد من حذف <strong>{deletingUser?.name}</strong> وجميع بياناته؟
+              <br />
+              سيتم حذف: الصلاحيات، سجلات الأجهزة، وسجلات التدقيق.
+              {deletingUser?.has_account && (
+                <span className="block mt-2 text-amber-600 font-medium">
+                  ⚠️ ملاحظة: حساب الدخول (Auth) لن يُحذف، فقط سجل الموظف من POS.
+                </span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-3 justify-end mt-4">
+            <Button variant="outline" onClick={() => setShowDeleteDialog(false)} disabled={deleting}>
+              إلغاء
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteUser} disabled={deleting}>
+              {deleting ? <Loader2 className="w-4 h-4 animate-spin ml-2" /> : <Trash2 className="w-4 h-4 ml-2" />}
+              حذف نهائي
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
