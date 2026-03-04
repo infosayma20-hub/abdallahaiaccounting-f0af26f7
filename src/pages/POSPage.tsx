@@ -204,7 +204,7 @@ const SortableProductCard = ({ id, children, isSortMode }: {
 
 const POSPage = () => {
   const navigate = useNavigate();
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
   const searchRef = useRef<HTMLInputElement>(null);
 
   // State
@@ -1151,20 +1151,14 @@ const POSPage = () => {
     setShowShiftSummary(true);
   };
 
-  const handleShiftSummaryClosed = async () => {
+  const handleShiftSummaryClosed = () => {
     setShowShiftSummary(false);
     setSession(null);
     setOrders([createNewOrder(1)]);
     setActiveOrderIndex(0);
     orderCounter.current = 1;
     toast.success("تم إغلاق الوردية بنجاح");
-    if (!isAdmin) {
-      // Cashier employee: auto sign out
-      await signOut();
-      navigate("/auth", { replace: true });
-    } else {
-      navigate("/apps");
-    }
+    navigate("/apps");
   };
 
   // Keyboard shortcut
