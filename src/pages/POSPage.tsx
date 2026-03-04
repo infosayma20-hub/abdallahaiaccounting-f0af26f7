@@ -11,7 +11,7 @@ import {
   CheckCircle, AlertCircle, Wifi, WifiOff, MessageSquare, StickyNote,
   UtensilsCrossed, Gamepad2, Shirt, Monitor, ShoppingBag, Printer,
   Apple, Zap, Coffee, Box, BarChart3, TrendingUp, PlusCircle, Tag,
-  Eye, EyeOff, UserCheck,
+  Eye, EyeOff, UserCheck, LayoutGrid, Grid3X3, Grid2X2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -141,6 +141,9 @@ const POSPage = () => {
   const [customerSearch, setCustomerSearch] = useState("");
   const [showContactDropdown, setShowContactDropdown] = useState(false);
   const [showSalesSummary, setShowSalesSummary] = useState(true);
+  const [cardSize, setCardSize] = useState<"S" | "M" | "L">(() => {
+    return (localStorage.getItem("pos-card-size") as "S" | "M" | "L") || "M";
+  });
 
   // Employee account payment
   const [employees, setEmployees] = useState<{ id: string; full_name: string; base_salary: number }[]>([]);
@@ -1089,6 +1092,27 @@ const POSPage = () => {
           </div>
         )}
 
+        {/* Card size toggle */}
+        <div className="flex items-center gap-0.5 bg-white/10 rounded-lg p-0.5">
+          {(["S", "M", "L"] as const).map(size => (
+            <button
+              key={size}
+              onClick={() => {
+                setCardSize(size);
+                localStorage.setItem("pos-card-size", size);
+              }}
+              className={`px-2 py-1 rounded-md text-[10px] font-bold transition-all ${
+                cardSize === size
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-white/50 hover:text-white/80 hover:bg-white/10"
+              }`}
+              title={size === "S" ? "بطاقات صغيرة" : size === "M" ? "بطاقات متوسطة" : "بطاقات كبيرة"}
+            >
+              {size}
+            </button>
+          ))}
+        </div>
+
         <button
           onClick={() => setShowCloseShift(true)}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-destructive/20 text-destructive hover:bg-destructive/30 transition-colors text-xs font-medium"
@@ -1191,7 +1215,13 @@ const POSPage = () => {
 
           {/* ── Products Grid ── */}
           <ScrollArea className="flex-1">
-            <div className="p-4 grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-3">
+            <div className={`p-3 grid gap-2 ${
+              cardSize === "S" 
+                ? "grid-cols-5 sm:grid-cols-6 lg:grid-cols-7 xl:grid-cols-8 2xl:grid-cols-10 gap-1.5" 
+                : cardSize === "M" 
+                  ? "grid-cols-4 sm:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8 gap-2" 
+                  : "grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-3"
+            }`}>
               <AnimatePresence mode="popLayout">
                 {filteredProducts.map((product) => {
                   const productColor = getProductCatColor(product);
@@ -1207,12 +1237,14 @@ const POSPage = () => {
                       initial={{ opacity: 0, scale: 0.9 }}
                       animate={{ opacity: 1, scale: 1 }}
                       exit={{ opacity: 0, scale: 0.9 }}
-                      whileHover={{ y: -2, boxShadow: "0 8px 25px -5px rgba(0,0,0,0.15)" }}
+                      whileHover={{ y: -1, boxShadow: "0 4px 15px -3px rgba(0,0,0,0.12)" }}
                       whileTap={{ scale: 0.96 }}
                       onClick={() => addToCart(product)}
-                      className="relative bg-card rounded-xl overflow-hidden text-center transition-all group border border-border hover:border-opacity-60"
+                      className={`relative bg-card rounded-xl overflow-hidden text-center transition-all group border border-border hover:border-opacity-60 ${
+                        cardSize === "S" ? "rounded-lg" : "rounded-xl"
+                      }`}
                       style={{
-                        borderBottomWidth: "3px",
+                        borderBottomWidth: cardSize === "S" ? "2px" : "3px",
                         borderBottomColor: productColor + "60",
                       }}
                     >
@@ -1223,7 +1255,11 @@ const POSPage = () => {
                             initial={{ scale: 0 }}
                             animate={{ scale: 1 }}
                             exit={{ scale: 0 }}
-                            className="absolute top-1.5 left-1.5 z-10 min-w-[22px] h-[22px] rounded-full bg-primary text-primary-foreground text-[11px] font-bold flex items-center justify-center px-1 shadow-lg"
+                            className={`absolute top-1 left-1 z-10 rounded-full bg-primary text-primary-foreground font-bold flex items-center justify-center shadow-lg ${
+                              cardSize === "S" 
+                                ? "min-w-[18px] h-[18px] text-[9px] px-0.5" 
+                                : "min-w-[22px] h-[22px] text-[11px] px-1"
+                            }`}
                           >
                             {qtyInCart}
                           </motion.div>
@@ -1232,44 +1268,66 @@ const POSPage = () => {
 
                       {/* Low stock indicator */}
                       {isLowStock && (
-                        <div className="absolute top-1.5 right-1.5 z-10">
+                        <div className="absolute top-1 right-1 z-10">
                           <div className="w-2 h-2 rounded-full bg-orange-400 animate-pulse" />
                         </div>
                       )}
 
-                       {/* Product visual */}
-                      <div className="p-2 pb-1.5">
-                        {product.image_url ? (
-                          <div className="w-full aspect-[4/3] rounded-lg overflow-hidden mb-1.5 bg-muted/30">
-                            <img
-                              src={product.image_url}
-                              alt={product.name}
-                              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                              onError={(e) => {
-                                (e.target as HTMLImageElement).style.display = 'none';
-                                (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
-                              }}
-                            />
-                            <div className="hidden w-full h-full flex items-center justify-center" style={{ backgroundColor: productColor + "12" }}>
-                              <CatIcon className="h-6 w-6" style={{ color: productColor }} />
+                      {/* Product visual */}
+                      <div className={
+                        cardSize === "S" ? "p-1.5 pb-1" : cardSize === "M" ? "p-2 pb-1.5" : "p-2 pb-1.5"
+                      }>
+                        {/* Icon/Image - hidden in S size */}
+                        {cardSize !== "S" && (
+                          product.image_url ? (
+                            <div className={`w-full rounded-lg overflow-hidden mb-1 bg-muted/30 ${
+                              cardSize === "M" ? "aspect-[5/3]" : "aspect-[4/3]"
+                            }`}>
+                              <img
+                                src={product.image_url}
+                                alt={product.name}
+                                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).style.display = 'none';
+                                  (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
+                                }}
+                              />
+                              <div className="hidden w-full h-full flex items-center justify-center" style={{ backgroundColor: productColor + "12" }}>
+                                <CatIcon className={cardSize === "M" ? "h-5 w-5" : "h-6 w-6"} style={{ color: productColor }} />
+                              </div>
                             </div>
-                          </div>
-                        ) : (
-                          <div
-                            className="w-full aspect-[4/3] rounded-lg flex items-center justify-center mb-1.5 transition-colors"
-                            style={{ backgroundColor: productColor + "10" }}
-                          >
-                            <CatIcon className="h-6 w-6 transition-transform duration-200 group-hover:scale-110" style={{ color: productColor + "80" }} />
-                          </div>
+                          ) : (
+                            <div
+                              className={`w-full rounded-lg flex items-center justify-center mb-1 transition-colors ${
+                                cardSize === "M" ? "aspect-[5/3]" : "aspect-[4/3]"
+                              }`}
+                              style={{ backgroundColor: productColor + "10" }}
+                            >
+                              <CatIcon 
+                                className={`transition-transform duration-200 group-hover:scale-110 ${
+                                  cardSize === "M" ? "h-5 w-5" : "h-6 w-6"
+                                }`} 
+                                style={{ color: productColor + "80" }} 
+                              />
+                            </div>
+                          )
                         )}
 
                         {/* Name */}
-                        <p className="text-[11px] font-medium text-foreground leading-tight line-clamp-2 min-h-[2.2em] mb-1">
+                        <p className={`font-medium text-foreground leading-tight mb-0.5 ${
+                          cardSize === "S" 
+                            ? "text-[10px] line-clamp-2 min-h-[2.4em] font-bold" 
+                            : cardSize === "M"
+                              ? "text-[11px] line-clamp-1 min-h-[1.3em]"
+                              : "text-[11px] line-clamp-2 min-h-[2.2em]"
+                        }`}>
                           {product.name}
                         </p>
 
                         {/* Price */}
-                        <p className="text-xs font-bold text-primary tabular-nums">
+                        <p className={`font-bold text-primary tabular-nums ${
+                          cardSize === "S" ? "text-[10px]" : "text-xs"
+                        }`}>
                           ₪{product.sell_price.toFixed(2)}
                         </p>
                       </div>
