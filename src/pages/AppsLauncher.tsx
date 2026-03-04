@@ -93,6 +93,7 @@ const appModules: AppModule[] = [
     keywords: ["نقطة", "بيع", "كاشير", "pos"],
     children: [
       { label: "نقطة البيع", path: "/pos" },
+      { label: "تقارير نقطة البيع", path: "/pos-reports" },
       { label: "إدارة مستخدمي POS", path: "/pos-users" },
     ],
   },
