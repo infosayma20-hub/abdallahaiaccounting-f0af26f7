@@ -37,60 +37,7 @@ interface AppModule {
 }
 
 const appModules: AppModule[] = [
-  {
-    id: "pos", label: "نقطة البيع", description: "نظام POS متكامل للمبيعات المباشرة", icon: Monitor, color: "text-emerald-400", bgColor: "bg-emerald-500/10", path: "/pos", isNew: true,
-    keywords: ["نقطة", "بيع", "كاشير", "pos"],
-    children: [
-      { label: "نقطة البيع", path: "/pos" },
-      { label: "إدارة مستخدمي POS", path: "/pos-users" },
-    ],
-  },
-  {
-    id: "ai-accountant", label: "المحاسب الذكي", description: "محاسبة تحليلية بالذكاء الاصطناعي", icon: Calculator, color: "text-primary", bgColor: "bg-primary/10", path: "/dashboard",
-    keywords: ["محاسب", "ذكاء", "قيد"],
-    children: [
-      { label: "لوحة المعلومات", path: "/dashboard" },
-      { label: "التقرير الذكي", path: "/smart-report" },
-    ],
-  },
-  {
-    id: "sales", label: "المبيعات", description: "فواتير، نقاط بيع، وعملاء", icon: ShoppingCart, color: "text-orange-500", bgColor: "bg-orange-500/10", path: "/invoices",
-    keywords: ["فواتير", "بيع", "عملاء", "فات"],
-    children: [
-      { label: "العملاء", path: "/contacts?type=customer" },
-      { label: "الفواتير", path: "/invoices" },
-      { label: "سندات القبض", path: "/receipts" },
-      { label: "الطلبيات", path: "/orders" },
-      { label: "المندوبين", path: "/sales-reps" },
-    ],
-  },
-  {
-    id: "hr", label: "الموارد البشرية", description: "موظفون، حضور، ورواتب", icon: Users, color: "text-violet-500", bgColor: "bg-violet-500/10", path: "/employees",
-    keywords: ["موظف", "حضور", "رواتب", "موارد"],
-    children: [
-      { label: "الموظفون", path: "/employees" },
-      { label: "لوحة الحضور (HR)", path: "/hr-attendance" },
-      { label: "بصمتي", path: "/my-attendance" },
-    ],
-  },
-  {
-    id: "inventory", label: "المخزون", description: "منتجات، حركات، وتقييم", icon: Package, color: "text-teal-500", bgColor: "bg-teal-500/10", path: "/inventory",
-    keywords: ["مخزون", "منتج", "بضاعة"],
-    children: [
-      { label: "المنتجات", path: "/inventory" },
-      { label: "حركات المخزون", path: "/inventory-movements" },
-      { label: "تقييم المخزون", path: "/inventory-valuation" },
-    ],
-  },
-  {
-    id: "purchases", label: "المشتريات", description: "موردين وفواتير مشتريات", icon: ShoppingBag, color: "text-sky-500", bgColor: "bg-sky-500/10", path: "/bills",
-    keywords: ["مشتريات", "مورد", "فات"],
-    children: [
-      { label: "الموردين", path: "/contacts?type=supplier" },
-      { label: "فواتير مشتريات", path: "/bills" },
-      { label: "سندات الصرف", path: "/payments" },
-    ],
-  },
+  // Row 1: Core
   {
     id: "finance", label: "المالية", description: "حسابات، قيود، وميزان مراجعة", icon: DollarSign, color: "text-emerald-500", bgColor: "bg-emerald-500/10", path: "/accounts",
     keywords: ["مالية", "حسابات", "قيود", "ميزان"],
@@ -103,6 +50,14 @@ const appModules: AppModule[] = [
     ],
   },
   {
+    id: "ai-accountant", label: "المحاسب الذكي", description: "محاسبة تحليلية بالذكاء الاصطناعي", icon: Calculator, color: "text-primary", bgColor: "bg-primary/10", path: "/dashboard",
+    keywords: ["محاسب", "ذكاء", "قيد"],
+    children: [
+      { label: "لوحة المعلومات", path: "/dashboard" },
+      { label: "التقرير الذكي", path: "/smart-report" },
+    ],
+  },
+  {
     id: "reports", label: "التقارير", description: "أرباح وخسائر، ميزانية عمومية، وتحليلات مالية", icon: BarChart3, color: "text-rose-500", bgColor: "bg-rose-500/10", path: "/reports",
     keywords: ["تقارير", "تقر", "تحليل"],
     children: [
@@ -112,21 +67,75 @@ const appModules: AppModule[] = [
       { label: "ميزان المراجعة", path: "/trial-balance" },
     ],
   },
+  // Row 2: Sales cycle
   {
-    id: "ecommerce", label: "إدارة المتاجر الإلكترونية", description: "إدارة مالية للمتاجر والصفحات الإلكترونية", icon: Store, color: "text-amber-500", bgColor: "bg-amber-500/10", path: "/orders",
-    keywords: ["متجر", "طلبات", "أونلاين", "إلكتروني", "صفحات"],
+    id: "sales", label: "المبيعات", description: "فواتير، نقاط بيع، وعملاء", icon: ShoppingCart, color: "text-orange-500", bgColor: "bg-orange-500/10", path: "/invoices",
+    keywords: ["فواتير", "بيع", "عملاء", "فات"],
+    children: [
+      { label: "العملاء", path: "/contacts?type=customer" },
+      { label: "الفواتير", path: "/invoices" },
+      { label: "سندات القبض", path: "/receipts" },
+      { label: "الطلبيات", path: "/orders" },
+      { label: "المندوبين", path: "/sales-reps" },
+    ],
   },
   {
-    id: "import-data", label: "استيراد بيانات خارجية", description: "استيراد الأرصدة الافتتاحية من Excel", icon: FileSpreadsheet, color: "text-cyan-500", bgColor: "bg-cyan-500/10", path: "/opening-balances-import",
-    keywords: ["استيراد", "اكسل", "أرصدة"],
+    id: "purchases", label: "المشتريات", description: "موردين وفواتير مشتريات", icon: ShoppingBag, color: "text-sky-500", bgColor: "bg-sky-500/10", path: "/bills",
+    keywords: ["مشتريات", "مورد", "فات"],
+    children: [
+      { label: "الموردين", path: "/contacts?type=supplier" },
+      { label: "فواتير مشتريات", path: "/bills" },
+      { label: "سندات الصرف", path: "/payments" },
+    ],
+  },
+  {
+    id: "pos", label: "نقطة البيع", description: "نظام POS متكامل للمبيعات المباشرة", icon: Monitor, color: "text-emerald-400", bgColor: "bg-emerald-500/10", path: "/pos", isNew: true,
+    keywords: ["نقطة", "بيع", "كاشير", "pos"],
+    children: [
+      { label: "نقطة البيع", path: "/pos" },
+      { label: "إدارة مستخدمي POS", path: "/pos-users" },
+    ],
+  },
+  // Row 3: Operations
+  {
+    id: "inventory", label: "المخزون", description: "منتجات، حركات، وتقييم", icon: Package, color: "text-teal-500", bgColor: "bg-teal-500/10", path: "/inventory",
+    keywords: ["مخزون", "منتج", "بضاعة"],
+    children: [
+      { label: "المنتجات", path: "/inventory" },
+      { label: "حركات المخزون", path: "/inventory-movements" },
+      { label: "تقييم المخزون", path: "/inventory-valuation" },
+    ],
+  },
+  {
+    id: "hr", label: "الموارد البشرية", description: "موظفون، حضور، ورواتب", icon: Users, color: "text-violet-500", bgColor: "bg-violet-500/10", path: "/employees",
+    keywords: ["موظف", "حضور", "رواتب", "موارد"],
+    children: [
+      { label: "الموظفون", path: "/employees" },
+      { label: "لوحة الحضور (HR)", path: "/hr-attendance" },
+      { label: "بصمتي", path: "/my-attendance" },
+    ],
   },
   {
     id: "currency", label: "إدارة العملات", description: "أسعار صرف، تحويلات، وعملات أجنبية", icon: ArrowLeftRight, color: "text-indigo-500", bgColor: "bg-indigo-500/10", path: "/currency-management", isNew: true,
     keywords: ["عملات", "صرف", "دولار"],
   },
+  // Row 4
   {
     id: "fixed-assets", label: "الأصول الثابتة", description: "سجل الأصول، الاستهلاك، والصيانة", icon: Landmark, color: "text-stone-600", bgColor: "bg-stone-500/10", path: "/fixed-assets", isNew: true,
     keywords: ["أصول", "استهلاك", "ثابتة"],
+  },
+  {
+    id: "ecommerce", label: "إدارة المتاجر الإلكترونية", description: "إدارة مالية للمتاجر والصفحات الإلكترونية", icon: Store, color: "text-amber-500", bgColor: "bg-amber-500/10", path: "/orders",
+    keywords: ["متجر", "طلبات", "أونلاين", "إلكتروني", "صفحات"],
+  },
+  // Row 5: Utilities
+  {
+    id: "import-data", label: "استيراد بيانات خارجية", description: "استيراد الأرصدة الافتتاحية من Excel", icon: FileSpreadsheet, color: "text-cyan-500", bgColor: "bg-cyan-500/10", path: "/opening-balances-import",
+    keywords: ["استيراد", "اكسل", "أرصدة"],
+  },
+  {
+    id: "settings", label: "الإعدادات", description: "إعدادات النظام والملف الشخصي", icon: Settings, color: "text-muted-foreground", bgColor: "bg-muted", path: "/settings",
+    keywords: ["إعدادات", "ملف", "شخصي"],
   },
   {
     id: "customization", label: "التخصيص والدعم الفني", description: "قوالب قطاعات، طلبات تخصيص، وتذاكر دعم فني", icon: Puzzle, color: "text-pink-500", bgColor: "bg-pink-500/10", path: "/customization", isNew: true,
@@ -137,10 +146,6 @@ const appModules: AppModule[] = [
       { label: "طلب تخصيص", path: "/customization/request" },
       { label: "تذاكر الدعم", path: "/support/tickets" },
     ],
-  },
-  {
-    id: "settings", label: "الإعدادات", description: "إعدادات النظام والملف الشخصي", icon: Settings, color: "text-muted-foreground", bgColor: "bg-muted", path: "/settings",
-    keywords: ["إعدادات", "ملف", "شخصي"],
   },
 ];
 
