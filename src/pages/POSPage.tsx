@@ -11,7 +11,7 @@ import {
   CheckCircle, AlertCircle, Wifi, WifiOff, MessageSquare, StickyNote,
   UtensilsCrossed, Gamepad2, Shirt, Monitor, ShoppingBag, Printer,
   Apple, Zap, Coffee, Box, BarChart3, TrendingUp, PlusCircle, Tag,
-  Eye, EyeOff, UserCheck, LayoutGrid, Grid3X3, Grid2X2,
+  Eye, EyeOff, UserCheck, LayoutGrid, Grid3X3, Grid2X2, GripVertical,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +20,25 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { ScrollArea } from "@/components/ui/scroll-area";
 import POSReceiptDialog from "@/components/POSReceiptDialog";
 import ShiftSummaryReceipt from "@/components/ShiftSummaryReceipt";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  DragOverlay,
+  type DragStartEvent,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  rectSortingStrategy,
+  horizontalListSortingStrategy,
+  arrayMove,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 // Types
 interface CartItem {
@@ -123,6 +142,66 @@ function getCatConfig(category: string) {
   return CATEGORY_CONFIG[category] || DEFAULT_CAT_CONFIG;
 }
 
+// ── Sortable Category Chip ──
+const SortableCategoryChip = ({ cat, isActive, isSortMode, isDragging, onClick }: {
+  cat: { id: string; name: string; color: string; count: number };
+  isActive: boolean;
+  isSortMode: boolean;
+  isDragging: boolean;
+  onClick: () => void;
+}) => {
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
+    id: cat.id,
+    disabled: !isSortMode,
+  });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : 1,
+    backgroundColor: isActive ? cat.color : cat.color + "20",
+    borderColor: isSortMode ? "hsl(var(--primary))" : isActive ? cat.color : cat.color + "50",
+    color: isActive ? "#fff" : "#1E293B",
+    boxShadow: isDragging ? "0 8px 25px rgba(0,0,0,0.2)" : isActive ? `0 2px 8px ${cat.color}40` : "none",
+    borderStyle: isSortMode ? "dashed" as const : "solid" as const,
+    cursor: isSortMode ? "grab" as const : "pointer" as const,
+  };
+  return (
+    <button
+      ref={setNodeRef}
+      {...attributes}
+      {...(isSortMode ? listeners : {})}
+      onClick={onClick}
+      className={`h-9 px-4 rounded-lg text-xs font-semibold whitespace-nowrap transition-all duration-200 border select-none ${
+        isSortMode ? "ring-1 ring-amber-400/50" : ""
+      }`}
+      style={style}
+    >
+      {isSortMode && <GripVertical className="h-3 w-3 inline-block ml-1 opacity-60" />}
+      {cat.name}
+      {cat.count > 0 && <span className="mr-1 opacity-75">({cat.count})</span>}
+    </button>
+  );
+};
+
+// ── Sortable Product Card wrapper ──
+const SortableProductCard = ({ id, children, isSortMode }: {
+  id: string;
+  children: (props: { isDragging: boolean; style: React.CSSProperties; ref: (el: HTMLElement | null) => void; listeners: any; attributes: any }) => React.ReactNode;
+  isSortMode: boolean;
+}) => {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id,
+    disabled: !isSortMode,
+  });
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.3 : 1,
+    zIndex: isDragging ? 999 : "auto",
+  };
+  return <>{children({ isDragging, style, ref: setNodeRef, listeners: isSortMode ? listeners : {}, attributes })}</>;
+};
+
 const POSPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -151,6 +230,15 @@ const POSPage = () => {
   const [employeeSearch, setEmployeeSearch] = useState("");
   const [showEmployeeDropdown, setShowEmployeeDropdown] = useState(false);
   const [employeeBalance, setEmployeeBalance] = useState(0);
+
+  // Sort mode
+  const [isSortMode, setIsSortMode] = useState(false);
+  const [dragActiveId, setDragActiveId] = useState<string | null>(null);
+
+  const dndSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { delay: 400, tolerance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 400, tolerance: 5 } })
+  );
 
   // ── Multi-order tabs ──
   const [orders, setOrders] = useState<OrderTab[]>([createNewOrder(1)]);
@@ -377,8 +465,9 @@ const POSPage = () => {
     if (!userId) return;
     const { data } = await supabase
       .from("products")
-      .select("id, name, sell_price, buy_price, quantity, category, pos_category_id, unit, sku, barcode, tax_rate, is_pos_available, color, image_url, min_quantity")
+      .select("id, name, sell_price, buy_price, quantity, category, pos_category_id, unit, sku, barcode, tax_rate, is_pos_available, color, image_url, min_quantity, sort_order")
       .eq("user_id", userId)
+      .order("sort_order")
       .order("name");
 
     setProducts(
@@ -618,6 +707,48 @@ const POSPage = () => {
     if (cat) return cat.color;
     return getCatConfig(product.category).color;
   }, [posCategories]);
+
+  // ── DnD Handlers ──
+  const handleCategoryDragEnd = useCallback(async (event: DragEndEvent) => {
+    const { active, over } = event;
+    setDragActiveId(null);
+    if (!over || active.id === over.id || !userId) return;
+    const oldIndex = posCategories.findIndex(c => c.id === active.id);
+    const newIndex = posCategories.findIndex(c => c.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+    const reordered = arrayMove(posCategories, oldIndex, newIndex);
+    setPosCategories(reordered);
+    // Save to DB
+    for (let i = 0; i < reordered.length; i++) {
+      await supabase.from("pos_categories" as any).update({ display_order: i, sort_order: i } as any).eq("id", reordered[i].id);
+    }
+    toast.success("تم حفظ ترتيب التصنيفات");
+  }, [posCategories, userId]);
+
+  const handleProductDragEnd = useCallback(async (event: DragEndEvent) => {
+    const { active, over } = event;
+    setDragActiveId(null);
+    if (!over || active.id === over.id || !userId) return;
+    const currentProducts = filteredProducts;
+    const oldIndex = currentProducts.findIndex(p => p.id === active.id);
+    const newIndex = currentProducts.findIndex(p => p.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+    const reordered = arrayMove(currentProducts, oldIndex, newIndex);
+    // Update local state
+    setProducts(prev => {
+      const updated = [...prev];
+      reordered.forEach((p, i) => {
+        const idx = updated.findIndex(u => u.id === p.id);
+        if (idx !== -1) updated[idx] = { ...updated[idx], sort_order: i } as any;
+      });
+      return updated.sort((a, b) => ((a as any).sort_order || 0) - ((b as any).sort_order || 0));
+    });
+    // Save to DB
+    for (let i = 0; i < reordered.length; i++) {
+      await supabase.from("products" as any).update({ sort_order: i } as any).eq("id", reordered[i].id);
+    }
+    toast.success("تم حفظ ترتيب المنتجات");
+  }, [filteredProducts, userId]);
 
   // Cart operations
   const addToCart = useCallback((product: Product) => {
@@ -1113,6 +1244,19 @@ const POSPage = () => {
           ))}
         </div>
 
+        {/* Sort mode toggle */}
+        <button
+          onClick={() => setIsSortMode(!isSortMode)}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+            isSortMode
+              ? "bg-amber-500 text-white shadow-md"
+              : "bg-white/10 text-white/60 hover:text-white/90 hover:bg-white/15"
+          }`}
+        >
+          <GripVertical className="h-3 w-3" />
+          {isSortMode ? "✅ تم" : "ترتيب"}
+        </button>
+
         <button
           onClick={() => setShowCloseShift(true)}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-destructive/20 text-destructive hover:bg-destructive/30 transition-colors text-xs font-medium"
@@ -1143,207 +1287,236 @@ const POSPage = () => {
 
           {/* ── Odoo-Style Category Chips ── */}
           <div className="px-4 py-2 border-b border-border">
-            <div className="flex flex-wrap gap-2 items-center">
-              {/* All */}
-              <motion.button
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setSelectedCategory("الكل")}
-                className={`h-9 px-4 rounded-lg text-xs font-semibold whitespace-nowrap transition-all duration-200 ${
-                  selectedCategory === "الكل"
-                    ? "bg-foreground text-background shadow-md"
-                    : "bg-card text-muted-foreground hover:text-foreground border border-border hover:border-foreground/20"
-                }`}
+            {/* Sort mode banner */}
+            {isSortMode && (
+              <div className="mb-2 flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400 text-xs">
+                <GripVertical className="h-3.5 w-3.5" />
+                <span className="font-medium">وضع الترتيب — اسحب التصنيفات أو المنتجات لإعادة ترتيبها</span>
+              </div>
+            )}
+            <DndContext
+              sensors={dndSensors}
+              collisionDetection={closestCenter}
+              onDragStart={(e: DragStartEvent) => setDragActiveId(String(e.active.id))}
+              onDragEnd={handleCategoryDragEnd}
+            >
+              <SortableContext
+                items={categoriesWithCounts.categories.map(c => c.id)}
+                strategy={horizontalListSortingStrategy}
+                disabled={!isSortMode}
               >
-                الكل ({categoriesWithCounts.all})
-              </motion.button>
-
-              {/* Category chips - Odoo pastel style */}
-              {categoriesWithCounts.categories.map((cat) => {
-                const isActive = selectedCategory === cat.name;
-                return (
+                <div className="flex flex-wrap gap-2 items-center">
+                  {/* All */}
                   <motion.button
-                    key={cat.id}
                     whileTap={{ scale: 0.95 }}
-                    onClick={() => setSelectedCategory(cat.name)}
-                    className={`h-9 px-4 rounded-lg text-xs font-semibold whitespace-nowrap transition-all duration-200 border`}
-                    style={{
-                      backgroundColor: isActive ? cat.color : cat.color + "20",
-                      borderColor: isActive ? cat.color : cat.color + "50",
-                      color: isActive ? "#fff" : "#1E293B",
-                      boxShadow: isActive ? `0 2px 8px ${cat.color}40` : "none",
-                    }}
+                    onClick={() => !isSortMode && setSelectedCategory("الكل")}
+                    className={`h-9 px-4 rounded-lg text-xs font-semibold whitespace-nowrap transition-all duration-200 ${
+                      selectedCategory === "الكل"
+                        ? "bg-foreground text-background shadow-md"
+                        : "bg-card text-muted-foreground hover:text-foreground border border-border hover:border-foreground/20"
+                    }`}
                   >
-                    {cat.name}
-                    {cat.count > 0 && (
-                      <span className="mr-1 opacity-75">({cat.count})</span>
-                    )}
+                    الكل ({categoriesWithCounts.all})
                   </motion.button>
-                );
-              })}
 
-              {categoriesWithCounts.uncategorized > 0 && (
-                <motion.button
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setSelectedCategory("__uncategorized__")}
-                  className={`h-9 px-4 rounded-lg text-xs font-medium whitespace-nowrap transition-all duration-200 border ${
-                    selectedCategory === "__uncategorized__"
-                      ? "bg-muted-foreground text-background border-muted-foreground shadow-md"
-                      : "bg-card text-muted-foreground border-border hover:border-muted-foreground/30"
-                  }`}
-                >
-                  أخرى ({categoriesWithCounts.uncategorized})
-                </motion.button>
-              )}
+                  {/* Sortable category chips */}
+                  {categoriesWithCounts.categories.map((cat) => (
+                    <SortableCategoryChip
+                      key={cat.id}
+                      cat={cat}
+                      isActive={selectedCategory === cat.name}
+                      isSortMode={isSortMode}
+                      isDragging={dragActiveId === cat.id}
+                      onClick={() => !isSortMode && setSelectedCategory(cat.name)}
+                    />
+                  ))}
 
-              {/* Management buttons */}
-              <button
-                onClick={() => setShowCategoryManager(true)}
-                className="h-9 px-3 rounded-lg text-xs font-medium whitespace-nowrap transition-all border-2 border-dashed border-border text-muted-foreground hover:border-primary/40 hover:text-primary hover:bg-primary/5"
-              >
-                <Plus className="h-3 w-3 inline-block ml-0.5" />
-                تصنيف
-              </button>
-              <button
-                onClick={() => setShowAddProduct(true)}
-                className="h-9 px-3 rounded-lg text-xs font-medium whitespace-nowrap transition-all border-2 border-dashed border-primary/30 text-primary hover:bg-primary/10 hover:border-primary/50"
-              >
-                <PlusCircle className="h-3 w-3 inline-block ml-0.5" />
-                منتج
-              </button>
-            </div>
+                  {categoriesWithCounts.uncategorized > 0 && (
+                    <motion.button
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => !isSortMode && setSelectedCategory("__uncategorized__")}
+                      className={`h-9 px-4 rounded-lg text-xs font-medium whitespace-nowrap transition-all duration-200 border ${
+                        selectedCategory === "__uncategorized__"
+                          ? "bg-muted-foreground text-background border-muted-foreground shadow-md"
+                          : "bg-card text-muted-foreground border-border hover:border-muted-foreground/30"
+                      }`}
+                    >
+                      أخرى ({categoriesWithCounts.uncategorized})
+                    </motion.button>
+                  )}
+
+                  {/* Management buttons */}
+                  {!isSortMode && (
+                    <>
+                      <button
+                        onClick={() => setShowCategoryManager(true)}
+                        className="h-9 px-3 rounded-lg text-xs font-medium whitespace-nowrap transition-all border-2 border-dashed border-border text-muted-foreground hover:border-primary/40 hover:text-primary hover:bg-primary/5"
+                      >
+                        <Plus className="h-3 w-3 inline-block ml-0.5" />
+                        تصنيف
+                      </button>
+                      <button
+                        onClick={() => setShowAddProduct(true)}
+                        className="h-9 px-3 rounded-lg text-xs font-medium whitespace-nowrap transition-all border-2 border-dashed border-primary/30 text-primary hover:bg-primary/10 hover:border-primary/50"
+                      >
+                        <PlusCircle className="h-3 w-3 inline-block ml-0.5" />
+                        منتج
+                      </button>
+                    </>
+                  )}
+                </div>
+              </SortableContext>
+            </DndContext>
           </div>
 
           {/* ── Products Grid ── */}
           <ScrollArea className="flex-1">
-            <div className={`p-3 grid gap-2 ${
-              cardSize === "S" 
-                ? "grid-cols-5 sm:grid-cols-6 lg:grid-cols-7 xl:grid-cols-8 2xl:grid-cols-10 gap-1.5" 
-                : cardSize === "M" 
-                  ? "grid-cols-4 sm:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8 gap-2" 
-                  : "grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-3"
-            }`}>
-              <AnimatePresence mode="popLayout">
-                {filteredProducts.map((product) => {
-                  const productColor = getProductCatColor(product);
-                  const catConfig = getCatConfig(product.category);
-                  const CatIcon = catConfig.icon;
-                  const isLowStock = product.min_quantity > 0 && product.quantity <= product.min_quantity && product.quantity > 0;
-                  const qtyInCart = cartQtyMap[product.id] || 0;
+            <DndContext
+              sensors={dndSensors}
+              collisionDetection={closestCenter}
+              onDragStart={(e: DragStartEvent) => setDragActiveId(String(e.active.id))}
+              onDragEnd={handleProductDragEnd}
+            >
+              <SortableContext
+                items={filteredProducts.map(p => p.id)}
+                strategy={rectSortingStrategy}
+                disabled={!isSortMode}
+              >
+                <div className={`p-3 grid gap-2 ${
+                  cardSize === "S" 
+                    ? "grid-cols-5 sm:grid-cols-6 lg:grid-cols-7 xl:grid-cols-8 2xl:grid-cols-10 gap-1.5" 
+                    : cardSize === "M" 
+                      ? "grid-cols-4 sm:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8 gap-2" 
+                      : "grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-3"
+                }`}>
+                  {filteredProducts.map((product) => {
+                    const productColor = getProductCatColor(product);
+                    const catConfig = getCatConfig(product.category);
+                    const CatIcon = catConfig.icon;
+                    const isLowStock = product.min_quantity > 0 && product.quantity <= product.min_quantity && product.quantity > 0;
+                    const qtyInCart = cartQtyMap[product.id] || 0;
 
-                  return (
-                    <motion.button
-                      key={product.id}
-                      layout
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.9 }}
-                      whileHover={{ y: -1, boxShadow: "0 4px 15px -3px rgba(0,0,0,0.12)" }}
-                      whileTap={{ scale: 0.96 }}
-                      onClick={() => addToCart(product)}
-                      className={`relative bg-card rounded-xl overflow-hidden text-center transition-all group border border-border hover:border-opacity-60 ${
-                        cardSize === "S" ? "rounded-lg" : "rounded-xl"
-                      }`}
-                      style={{
-                        borderBottomWidth: cardSize === "S" ? "2px" : "3px",
-                        borderBottomColor: productColor + "60",
-                      }}
-                    >
-                      {/* Cart qty badge */}
-                      <AnimatePresence>
-                        {qtyInCart > 0 && (
-                          <motion.div
-                            initial={{ scale: 0 }}
-                            animate={{ scale: 1 }}
-                            exit={{ scale: 0 }}
-                            className={`absolute top-1 left-1 z-10 rounded-full bg-primary text-primary-foreground font-bold flex items-center justify-center shadow-lg ${
-                              cardSize === "S" 
-                                ? "min-w-[18px] h-[18px] text-[9px] px-0.5" 
-                                : "min-w-[22px] h-[22px] text-[11px] px-1"
-                            }`}
+                    return (
+                      <SortableProductCard key={product.id} id={product.id} isSortMode={isSortMode}>
+                        {({ isDragging, style, ref, listeners, attributes }) => (
+                          <div
+                            ref={ref}
+                            {...attributes}
+                            {...listeners}
+                            onClick={() => !isSortMode && addToCart(product)}
+                            className={`relative bg-card overflow-hidden text-center transition-all group border select-none ${
+                              cardSize === "S" ? "rounded-lg" : "rounded-xl"
+                            } ${isSortMode 
+                              ? "border-dashed border-amber-400/60 cursor-grab ring-1 ring-amber-400/20" 
+                              : "border-border hover:border-opacity-60 cursor-pointer"
+                            } ${isDragging ? "shadow-2xl scale-105 rotate-1" : "hover:shadow-md"}`}
+                            style={{
+                              ...style,
+                              borderBottomWidth: cardSize === "S" ? "2px" : "3px",
+                              borderBottomColor: isSortMode ? "hsl(var(--primary))" : productColor + "60",
+                            }}
                           >
-                            {qtyInCart}
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-
-                      {/* Low stock indicator */}
-                      {isLowStock && (
-                        <div className="absolute top-1 right-1 z-10">
-                          <div className="w-2 h-2 rounded-full bg-orange-400 animate-pulse" />
-                        </div>
-                      )}
-
-                      {/* Product visual */}
-                      <div className={
-                        cardSize === "S" ? "p-1.5 pb-1" : cardSize === "M" ? "p-2 pb-1.5" : "p-2 pb-1.5"
-                      }>
-                        {/* Icon/Image - hidden in S size */}
-                        {cardSize !== "S" && (
-                          product.image_url ? (
-                            <div className={`w-full rounded-lg overflow-hidden mb-1 bg-muted/30 ${
-                              cardSize === "M" ? "aspect-[5/3]" : "aspect-[4/3]"
-                            }`}>
-                              <img
-                                src={product.image_url}
-                                alt={product.name}
-                                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                                onError={(e) => {
-                                  (e.target as HTMLImageElement).style.display = 'none';
-                                  (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
-                                }}
-                              />
-                              <div className="hidden w-full h-full flex items-center justify-center" style={{ backgroundColor: productColor + "12" }}>
-                                <CatIcon className={cardSize === "M" ? "h-5 w-5" : "h-6 w-6"} style={{ color: productColor }} />
+                            {/* Sort mode grip icon */}
+                            {isSortMode && (
+                              <div className="absolute top-0.5 right-0.5 z-10">
+                                <GripVertical className="h-3 w-3 text-amber-500/70" />
                               </div>
+                            )}
+
+                            {/* Cart qty badge */}
+                            {qtyInCart > 0 && !isSortMode && (
+                              <div
+                                className={`absolute top-1 left-1 z-10 rounded-full bg-primary text-primary-foreground font-bold flex items-center justify-center shadow-lg ${
+                                  cardSize === "S" 
+                                    ? "min-w-[18px] h-[18px] text-[9px] px-0.5" 
+                                    : "min-w-[22px] h-[22px] text-[11px] px-1"
+                                }`}
+                              >
+                                {qtyInCart}
+                              </div>
+                            )}
+
+                            {/* Low stock indicator */}
+                            {isLowStock && !isSortMode && (
+                              <div className="absolute top-1 right-1 z-10">
+                                <div className="w-2 h-2 rounded-full bg-orange-400 animate-pulse" />
+                              </div>
+                            )}
+
+                            {/* Product visual */}
+                            <div className={
+                              cardSize === "S" ? "p-1.5 pb-1" : cardSize === "M" ? "p-2 pb-1.5" : "p-2 pb-1.5"
+                            }>
+                              {/* Icon/Image - hidden in S size */}
+                              {cardSize !== "S" && (
+                                product.image_url ? (
+                                  <div className={`w-full rounded-lg overflow-hidden mb-1 bg-muted/30 ${
+                                    cardSize === "M" ? "aspect-[5/3]" : "aspect-[4/3]"
+                                  }`}>
+                                    <img
+                                      src={product.image_url}
+                                      alt={product.name}
+                                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                                      onError={(e) => {
+                                        (e.target as HTMLImageElement).style.display = 'none';
+                                        (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
+                                      }}
+                                    />
+                                    <div className="hidden w-full h-full flex items-center justify-center" style={{ backgroundColor: productColor + "12" }}>
+                                      <CatIcon className={cardSize === "M" ? "h-5 w-5" : "h-6 w-6"} style={{ color: productColor }} />
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div
+                                    className={`w-full rounded-lg flex items-center justify-center mb-1 transition-colors ${
+                                      cardSize === "M" ? "aspect-[5/3]" : "aspect-[4/3]"
+                                    }`}
+                                    style={{ backgroundColor: productColor + "10" }}
+                                  >
+                                    <CatIcon 
+                                      className={`transition-transform duration-200 group-hover:scale-110 ${
+                                        cardSize === "M" ? "h-5 w-5" : "h-6 w-6"
+                                      }`} 
+                                      style={{ color: productColor + "80" }} 
+                                    />
+                                  </div>
+                                )
+                              )}
+
+                              {/* Name */}
+                              <p className={`font-medium text-foreground leading-tight mb-0.5 ${
+                                cardSize === "S" 
+                                  ? "text-[10px] line-clamp-2 min-h-[2.4em] font-bold" 
+                                  : cardSize === "M"
+                                    ? "text-[11px] line-clamp-1 min-h-[1.3em]"
+                                    : "text-[11px] line-clamp-2 min-h-[2.2em]"
+                              }`}>
+                                {product.name}
+                              </p>
+
+                              {/* Price */}
+                              <p className={`font-bold text-primary tabular-nums ${
+                                cardSize === "S" ? "text-[10px]" : "text-xs"
+                              }`}>
+                                ₪{product.sell_price.toFixed(2)}
+                              </p>
                             </div>
-                          ) : (
-                            <div
-                              className={`w-full rounded-lg flex items-center justify-center mb-1 transition-colors ${
-                                cardSize === "M" ? "aspect-[5/3]" : "aspect-[4/3]"
-                              }`}
-                              style={{ backgroundColor: productColor + "10" }}
-                            >
-                              <CatIcon 
-                                className={`transition-transform duration-200 group-hover:scale-110 ${
-                                  cardSize === "M" ? "h-5 w-5" : "h-6 w-6"
-                                }`} 
-                                style={{ color: productColor + "80" }} 
-                              />
-                            </div>
-                          )
+                          </div>
                         )}
+                      </SortableProductCard>
+                    );
+                  })}
 
-                        {/* Name */}
-                        <p className={`font-medium text-foreground leading-tight mb-0.5 ${
-                          cardSize === "S" 
-                            ? "text-[10px] line-clamp-2 min-h-[2.4em] font-bold" 
-                            : cardSize === "M"
-                              ? "text-[11px] line-clamp-1 min-h-[1.3em]"
-                              : "text-[11px] line-clamp-2 min-h-[2.2em]"
-                        }`}>
-                          {product.name}
-                        </p>
-
-                        {/* Price */}
-                        <p className={`font-bold text-primary tabular-nums ${
-                          cardSize === "S" ? "text-[10px]" : "text-xs"
-                        }`}>
-                          ₪{product.sell_price.toFixed(2)}
-                        </p>
-                      </div>
-                    </motion.button>
-                  );
-                })}
-              </AnimatePresence>
-
-              {filteredProducts.length === 0 && (
-                <div className="col-span-full py-20 text-center text-muted-foreground">
-                  <ShoppingCart className="h-12 w-12 mx-auto mb-3 opacity-20" />
-                  <p className="text-sm font-medium mb-1">ابدأ بإضافة المنتجات</p>
-                  <p className="text-xs text-muted-foreground/60">لا توجد منتجات في هذا التصنيف</p>
+                  {filteredProducts.length === 0 && (
+                    <div className="col-span-full py-20 text-center text-muted-foreground">
+                      <ShoppingCart className="h-12 w-12 mx-auto mb-3 opacity-20" />
+                      <p className="text-sm font-medium mb-1">ابدأ بإضافة المنتجات</p>
+                      <p className="text-xs text-muted-foreground/60">لا توجد منتجات في هذا التصنيف</p>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
+              </SortableContext>
+            </DndContext>
           </ScrollArea>
         </div>
 
