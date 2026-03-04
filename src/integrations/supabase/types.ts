@@ -2688,6 +2688,7 @@ export type Database = {
           is_active: boolean
           name: string
           parent_id: string | null
+          sort_order: number | null
           updated_at: string
           user_id: string
         }
@@ -2699,6 +2700,7 @@ export type Database = {
           is_active?: boolean
           name: string
           parent_id?: string | null
+          sort_order?: number | null
           updated_at?: string
           user_id: string
         }
@@ -2710,6 +2712,7 @@ export type Database = {
           is_active?: boolean
           name?: string
           parent_id?: string | null
+          sort_order?: number | null
           updated_at?: string
           user_id?: string
         }
@@ -3485,6 +3488,7 @@ export type Database = {
           quantity: number
           sell_price: number
           sku: string | null
+          sort_order: number | null
           tax_rate: number | null
           unit: string
           updated_at: string
@@ -3508,6 +3512,7 @@ export type Database = {
           quantity?: number
           sell_price?: number
           sku?: string | null
+          sort_order?: number | null
           tax_rate?: number | null
           unit?: string
           updated_at?: string
@@ -3531,6 +3536,7 @@ export type Database = {
           quantity?: number
           sell_price?: number
           sku?: string | null
+          sort_order?: number | null
           tax_rate?: number | null
           unit?: string
           updated_at?: string
