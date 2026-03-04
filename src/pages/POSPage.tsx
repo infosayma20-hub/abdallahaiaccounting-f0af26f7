@@ -359,6 +359,7 @@ const POSPage = () => {
   const [shiftSummaryData, setShiftSummaryData] = useState<any>(null);
 
   const userId = user?.id;
+  const [dataOwnerId, setDataOwnerId] = useState<string | null>(null);
 
   // ── Cart quantity map for badges on product cards ──
   const cartQtyMap = useMemo(() => {
@@ -371,20 +372,28 @@ const POSPage = () => {
     return map;
   }, [cart]);
 
-  // Initialize
+  // Resolve team owner ID for multi-tenant data access
   useEffect(() => {
     if (!userId) return;
-    initializePOS();
+    supabase.rpc("get_team_owner_id", { _user_id: userId }).then(({ data }) => {
+      setDataOwnerId(data || userId);
+    });
   }, [userId]);
 
+  // Initialize
+  useEffect(() => {
+    if (!userId || !dataOwnerId) return;
+    initializePOS();
+  }, [userId, dataOwnerId]);
+
   const initializePOS = async () => {
-    if (!userId) return;
+    if (!userId || !dataOwnerId) return;
     setLoading(true);
     try {
       let { data: companies } = await supabase
         .from("pos_companies")
         .select("*")
-        .eq("user_id", userId)
+        .eq("user_id", dataOwnerId)
         .limit(1);
 
       let comp = companies?.[0];
@@ -392,13 +401,13 @@ const POSPage = () => {
         const { data: profile } = await supabase
           .from("profiles")
           .select("company_name, display_name")
-          .eq("user_id", userId)
+          .eq("user_id", dataOwnerId)
           .single();
 
         const { data: newComp } = await supabase
           .from("pos_companies")
           .insert({
-            user_id: userId,
+            user_id: dataOwnerId,
             name: profile?.company_name || "شركتي",
           })
           .select()
@@ -411,7 +420,7 @@ const POSPage = () => {
         let { data: terminals } = await supabase
           .from("pos_terminals")
           .select("*")
-          .eq("user_id", userId)
+          .eq("user_id", dataOwnerId)
           .eq("company_id", comp.id)
           .limit(1);
 
@@ -420,7 +429,7 @@ const POSPage = () => {
           const { data: newTerm } = await supabase
             .from("pos_terminals")
             .insert({
-              user_id: userId,
+              user_id: dataOwnerId,
               company_id: comp.id,
               name: "نقطة بيع 1",
             })
@@ -433,7 +442,7 @@ const POSPage = () => {
         const { data: sessions } = await supabase
           .from("pos_sessions")
           .select("*")
-          .eq("user_id", userId)
+          .eq("user_id", dataOwnerId)
           .eq("state", "open")
           .limit(1);
 
@@ -462,11 +471,11 @@ const POSPage = () => {
   };
 
   const loadProducts = async () => {
-    if (!userId) return;
+    if (!dataOwnerId) return;
     const { data } = await supabase
       .from("products")
       .select("id, name, sell_price, buy_price, quantity, category, pos_category_id, unit, sku, barcode, tax_rate, is_pos_available, color, image_url, min_quantity, sort_order")
-      .eq("user_id", userId)
+      .eq("user_id", dataOwnerId)
       .order("sort_order")
       .order("name");
 
@@ -486,11 +495,11 @@ const POSPage = () => {
   };
 
   const loadCategories = async () => {
-    if (!userId) return;
+    if (!dataOwnerId) return;
     const { data } = await supabase
       .from("pos_categories")
       .select("id, name, color, display_order, is_active")
-      .eq("user_id", userId)
+      .eq("user_id", dataOwnerId)
       .eq("is_active", true)
       .order("display_order");
     setPosCategories((data as POSCategory[]) || []);
@@ -509,7 +518,7 @@ const POSPage = () => {
     setSavingCategory(true);
     try {
       const { error } = await supabase.from("pos_categories").insert({
-        user_id: userId,
+        user_id: dataOwnerId,
         name: newCatName.trim(),
         color: newCatColor,
         display_order: posCategories.length,
@@ -528,7 +537,7 @@ const POSPage = () => {
 
   const handleDeleteCategory = async (catId: string) => {
     if (!userId) return;
-    const { error } = await supabase.from("pos_categories").delete().eq("id", catId).eq("user_id", userId);
+    const { error } = await supabase.from("pos_categories").delete().eq("id", catId).eq("user_id", dataOwnerId);
     if (error) { toast.error("خطأ: " + error.message); return; }
     toast.success("تم حذف التصنيف");
     await loadCategories();
@@ -543,7 +552,7 @@ const POSPage = () => {
     
     if (showNewCategory && newProduct.newCategory.trim()) {
       const { data: newCat, error: catErr } = await supabase.from("pos_categories").insert({
-        user_id: userId,
+        user_id: dataOwnerId,
         name: newProduct.newCategory.trim(),
         color: newCategoryColor,
         display_order: posCategories.length,
@@ -561,7 +570,7 @@ const POSPage = () => {
     setSavingProduct(true);
     try {
       const insertData: any = {
-        user_id: userId,
+        user_id: dataOwnerId,
         name: newProduct.name.trim(),
         sell_price: Number(newProduct.sell_price) || 0,
         buy_price: Number(newProduct.buy_price) || 0,
@@ -588,11 +597,11 @@ const POSPage = () => {
   };
 
   const loadExchangeRates = async () => {
-    if (!userId) return;
+    if (!dataOwnerId) return;
     const { data } = await supabase
       .from("exchange_rates")
       .select("currency_id, mid_rate, currencies!inner(code)")
-      .eq("user_id", userId)
+      .eq("user_id", dataOwnerId)
       .order("rate_date", { ascending: false });
 
     const rates: Record<string, number> = { ILS: 1 };
@@ -610,22 +619,22 @@ const POSPage = () => {
   };
 
   const loadContacts = async () => {
-    if (!userId) return;
+    if (!dataOwnerId) return;
     const { data } = await supabase
       .from("contacts")
       .select("id, contact_name")
-      .eq("user_id", userId)
+      .eq("user_id", dataOwnerId)
       .eq("is_active", true)
       .order("contact_name");
     setContacts(data || []);
   };
 
   const loadEmployees = async () => {
-    if (!userId) return;
+    if (!dataOwnerId) return;
     const { data } = await supabase
       .from("employees")
       .select("id, full_name, base_salary")
-      .eq("user_id", userId)
+      .eq("user_id", dataOwnerId)
       .eq("is_active", true)
       .order("full_name");
     setEmployees(data || []);
@@ -829,7 +838,7 @@ const POSPage = () => {
     const { data, error } = await supabase
       .from("pos_sessions")
       .insert({
-        user_id: userId,
+        user_id: dataOwnerId,
         company_id: company.id,
         terminal_id: terminal.id,
         cashier_name: displayName,
@@ -871,7 +880,7 @@ const POSPage = () => {
       const { data: order, error: orderError } = await supabase
         .from("pos_orders")
         .insert({
-          user_id: userId,
+          user_id: dataOwnerId,
           company_id: company.id,
           session_id: session.id,
           customer_name: customerName || null,
@@ -887,7 +896,7 @@ const POSPage = () => {
       if (orderError) throw orderError;
 
       const lines = cart.map((item) => ({
-        user_id: userId,
+        user_id: dataOwnerId,
         order_id: order.id,
         product_id: item.product_id,
         product_name: item.name,
@@ -910,7 +919,7 @@ const POSPage = () => {
 
       const { data: result, error: completeError } = await supabase.rpc("complete_pos_order", {
         p_order_id: order.id,
-        p_user_id: userId,
+        p_user_id: dataOwnerId,
         p_payments: [{
           method: paymentMethod,
           amount: cartTotals.total,
@@ -941,7 +950,7 @@ const POSPage = () => {
         const now = new Date();
         const itemsSummary = cart.map(i => `${i.name} x${i.qty}`).join(", ");
         await supabase.from("employee_financial_movements").insert({
-          user_id: userId,
+          user_id: dataOwnerId,
           employee_id: selectedEmployee.id,
           source_type: "pos_meal",
           source_id: order.id,
@@ -1047,7 +1056,7 @@ const POSPage = () => {
         const { data: contact } = await supabase
           .from("contacts")
           .select("id")
-          .eq("user_id", userId)
+          .eq("user_id", dataOwnerId)
           .eq("contact_name", emp.full_name)
           .maybeSingle();
         contactId = contact?.id || null;
@@ -1057,7 +1066,7 @@ const POSPage = () => {
         const isShortage = variance < 0;
         // Add to employee_deductions
         await supabase.from("employee_deductions").insert({
-          user_id: userId,
+          user_id: dataOwnerId,
           employee_id: emp.id,
           deduction_type: isShortage ? "عجز صندوق" : "فائض صندوق",
           amount: Math.abs(variance),
@@ -1068,7 +1077,7 @@ const POSPage = () => {
 
         // Create accounting entry linked to employee contact
         await supabase.from("transactions").insert({
-          user_id: userId,
+          user_id: dataOwnerId,
           transaction_date: new Date().toISOString().split("T")[0],
           description: `${isShortage ? "عجز" : "فائض"} صندوق - ${session.cashier_name}`,
           debit_account_code: isShortage ? "1130" : "1110",
@@ -1084,7 +1093,7 @@ const POSPage = () => {
         // Also record in centralized financial movements
         const now = new Date();
         await supabase.from("employee_financial_movements").insert({
-          user_id: userId,
+          user_id: dataOwnerId,
           employee_id: emp.id,
           source_type: "pos_shortage",
           source_id: session.id,
