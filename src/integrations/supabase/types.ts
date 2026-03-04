@@ -1076,6 +1076,222 @@ export type Database = {
         }
         Relationships: []
       }
+      company_settings: {
+        Row: {
+          address: string | null
+          allow_discount: boolean | null
+          allow_invoice_edit_after_approval: boolean | null
+          base_currency: string | null
+          calendar_type: string | null
+          city: string | null
+          commercial_register: string | null
+          company_name: string | null
+          default_bank_account: string | null
+          default_cash_account: string | null
+          default_expense_account: string | null
+          default_invoice_currency: string | null
+          default_invoice_language: string | null
+          default_payable_account: string | null
+          default_payment_terms: string | null
+          default_receivable_account: string | null
+          default_revenue_account: string | null
+          e_invoice_enabled: boolean | null
+          email: string | null
+          exchange_rate_source: string | null
+          extra_currencies: Json | null
+          fiscal_year_start: number | null
+          id: string
+          income_tax_enabled: boolean | null
+          income_tax_rate: number | null
+          invoice_default_notes: string | null
+          invoice_font: string | null
+          invoice_footer: string | null
+          invoice_prefix: string | null
+          journal_prefix: string | null
+          last_locked_period: string | null
+          logo_url: string | null
+          max_discount_percent: number | null
+          paper_size: string | null
+          payment_prefix: string | null
+          period_lock_mode: string | null
+          phone: string | null
+          pos_auto_print: boolean | null
+          pos_auto_update_stock: boolean | null
+          pos_branch_id: string | null
+          pos_default_opening_balance: number | null
+          pos_deficit_alert: boolean | null
+          pos_deficit_threshold: number | null
+          pos_name: string | null
+          pos_payment_methods: Json | null
+          pos_prevent_zero_stock: boolean | null
+          pos_receipt_copies: number | null
+          pos_receipt_size: string | null
+          pos_require_shift: boolean | null
+          pos_show_tax: boolean | null
+          pos_warn_out_of_stock: boolean | null
+          primary_color: string | null
+          purchase_order_prefix: string | null
+          receipt_prefix: string | null
+          reset_numbering_yearly: boolean | null
+          show_address_on_invoice: boolean | null
+          show_bank_on_invoice: boolean | null
+          show_logo_on_invoice: boolean | null
+          show_tax_on_invoice: boolean | null
+          tax_number: string | null
+          updated_at: string | null
+          updated_by: string | null
+          user_id: string
+          vat_enabled: boolean | null
+          vat_inclusive: boolean | null
+          vat_purchases_account: string | null
+          vat_rate: number | null
+          vat_sales_account: string | null
+          website: string | null
+        }
+        Insert: {
+          address?: string | null
+          allow_discount?: boolean | null
+          allow_invoice_edit_after_approval?: boolean | null
+          base_currency?: string | null
+          calendar_type?: string | null
+          city?: string | null
+          commercial_register?: string | null
+          company_name?: string | null
+          default_bank_account?: string | null
+          default_cash_account?: string | null
+          default_expense_account?: string | null
+          default_invoice_currency?: string | null
+          default_invoice_language?: string | null
+          default_payable_account?: string | null
+          default_payment_terms?: string | null
+          default_receivable_account?: string | null
+          default_revenue_account?: string | null
+          e_invoice_enabled?: boolean | null
+          email?: string | null
+          exchange_rate_source?: string | null
+          extra_currencies?: Json | null
+          fiscal_year_start?: number | null
+          id?: string
+          income_tax_enabled?: boolean | null
+          income_tax_rate?: number | null
+          invoice_default_notes?: string | null
+          invoice_font?: string | null
+          invoice_footer?: string | null
+          invoice_prefix?: string | null
+          journal_prefix?: string | null
+          last_locked_period?: string | null
+          logo_url?: string | null
+          max_discount_percent?: number | null
+          paper_size?: string | null
+          payment_prefix?: string | null
+          period_lock_mode?: string | null
+          phone?: string | null
+          pos_auto_print?: boolean | null
+          pos_auto_update_stock?: boolean | null
+          pos_branch_id?: string | null
+          pos_default_opening_balance?: number | null
+          pos_deficit_alert?: boolean | null
+          pos_deficit_threshold?: number | null
+          pos_name?: string | null
+          pos_payment_methods?: Json | null
+          pos_prevent_zero_stock?: boolean | null
+          pos_receipt_copies?: number | null
+          pos_receipt_size?: string | null
+          pos_require_shift?: boolean | null
+          pos_show_tax?: boolean | null
+          pos_warn_out_of_stock?: boolean | null
+          primary_color?: string | null
+          purchase_order_prefix?: string | null
+          receipt_prefix?: string | null
+          reset_numbering_yearly?: boolean | null
+          show_address_on_invoice?: boolean | null
+          show_bank_on_invoice?: boolean | null
+          show_logo_on_invoice?: boolean | null
+          show_tax_on_invoice?: boolean | null
+          tax_number?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+          user_id: string
+          vat_enabled?: boolean | null
+          vat_inclusive?: boolean | null
+          vat_purchases_account?: string | null
+          vat_rate?: number | null
+          vat_sales_account?: string | null
+          website?: string | null
+        }
+        Update: {
+          address?: string | null
+          allow_discount?: boolean | null
+          allow_invoice_edit_after_approval?: boolean | null
+          base_currency?: string | null
+          calendar_type?: string | null
+          city?: string | null
+          commercial_register?: string | null
+          company_name?: string | null
+          default_bank_account?: string | null
+          default_cash_account?: string | null
+          default_expense_account?: string | null
+          default_invoice_currency?: string | null
+          default_invoice_language?: string | null
+          default_payable_account?: string | null
+          default_payment_terms?: string | null
+          default_receivable_account?: string | null
+          default_revenue_account?: string | null
+          e_invoice_enabled?: boolean | null
+          email?: string | null
+          exchange_rate_source?: string | null
+          extra_currencies?: Json | null
+          fiscal_year_start?: number | null
+          id?: string
+          income_tax_enabled?: boolean | null
+          income_tax_rate?: number | null
+          invoice_default_notes?: string | null
+          invoice_font?: string | null
+          invoice_footer?: string | null
+          invoice_prefix?: string | null
+          journal_prefix?: string | null
+          last_locked_period?: string | null
+          logo_url?: string | null
+          max_discount_percent?: number | null
+          paper_size?: string | null
+          payment_prefix?: string | null
+          period_lock_mode?: string | null
+          phone?: string | null
+          pos_auto_print?: boolean | null
+          pos_auto_update_stock?: boolean | null
+          pos_branch_id?: string | null
+          pos_default_opening_balance?: number | null
+          pos_deficit_alert?: boolean | null
+          pos_deficit_threshold?: number | null
+          pos_name?: string | null
+          pos_payment_methods?: Json | null
+          pos_prevent_zero_stock?: boolean | null
+          pos_receipt_copies?: number | null
+          pos_receipt_size?: string | null
+          pos_require_shift?: boolean | null
+          pos_show_tax?: boolean | null
+          pos_warn_out_of_stock?: boolean | null
+          primary_color?: string | null
+          purchase_order_prefix?: string | null
+          receipt_prefix?: string | null
+          reset_numbering_yearly?: boolean | null
+          show_address_on_invoice?: boolean | null
+          show_bank_on_invoice?: boolean | null
+          show_logo_on_invoice?: boolean | null
+          show_tax_on_invoice?: boolean | null
+          tax_number?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+          user_id?: string
+          vat_enabled?: boolean | null
+          vat_inclusive?: boolean | null
+          vat_purchases_account?: string | null
+          vat_rate?: number | null
+          vat_sales_account?: string | null
+          website?: string | null
+        }
+        Relationships: []
+      }
       contacts: {
         Row: {
           address: string | null
