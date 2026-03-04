@@ -515,7 +515,7 @@ const POSPage = () => {
   }, [products, posCategories]);
 
   const handleSaveCategory = async () => {
-    if (!userId || !newCatName.trim() || savingCategory) return;
+    if (!userId || !dataOwnerId || !isAdmin || !newCatName.trim() || savingCategory) return;
     setSavingCategory(true);
     try {
       const { error } = await supabase.from("pos_categories").insert({
@@ -537,7 +537,7 @@ const POSPage = () => {
   };
 
   const handleDeleteCategory = async (catId: string) => {
-    if (!userId) return;
+    if (!dataOwnerId || !isAdmin) return;
     const { error } = await supabase.from("pos_categories").delete().eq("id", catId).eq("user_id", dataOwnerId);
     if (error) { toast.error("خطأ: " + error.message); return; }
     toast.success("تم حذف التصنيف");
@@ -546,7 +546,7 @@ const POSPage = () => {
   };
 
   const handleSaveNewProduct = async () => {
-    if (!userId || !newProduct.name.trim() || savingProduct) return;
+    if (!userId || !dataOwnerId || !isAdmin || !newProduct.name.trim() || savingProduct) return;
     
     let finalCategoryId = newProduct.pos_category_id || null;
     let finalCategoryName = "";
@@ -669,16 +669,36 @@ const POSPage = () => {
   const categoriesWithCounts = useMemo(() => {
     const posProducts = products.filter(p => p.is_pos_available);
     const totalCount = posProducts.length;
-    
-    const catCounts: { id: string; name: string; color: string; count: number }[] = posCategories.map(cat => ({
+
+    const productCategoryNames = Array.from(
+      new Set(
+        posProducts
+          .map((p) => (p.category || "").trim())
+          .filter(Boolean)
+      )
+    );
+
+    const missingCategoryRows = productCategoryNames
+      .filter((name) => !posCategories.some((c) => c.name === name))
+      .map((name) => ({
+        id: `legacy-${name}`,
+        name,
+        color: "#6B7280",
+        display_order: 999,
+        is_active: true,
+      }));
+
+    const mergedCategories = [...posCategories, ...missingCategoryRows];
+
+    const catCounts: { id: string; name: string; color: string; count: number }[] = mergedCategories.map(cat => ({
       id: cat.id,
       name: cat.name,
       color: cat.color,
       count: posProducts.filter(p => p.pos_category_id === cat.id || p.category === cat.name).length,
     }));
 
-    const uncategorized = posProducts.filter(p => 
-      !p.pos_category_id && !posCategories.some(c => c.name === p.category)
+    const uncategorized = posProducts.filter(p =>
+      !p.pos_category_id && !mergedCategories.some(c => c.name === p.category)
     ).length;
 
     return { all: totalCount, categories: catCounts, uncategorized };
@@ -722,7 +742,7 @@ const POSPage = () => {
   const handleCategoryDragEnd = useCallback(async (event: DragEndEvent) => {
     const { active, over } = event;
     setDragActiveId(null);
-    if (!over || active.id === over.id || !userId) return;
+    if (!isAdmin || !over || active.id === over.id || !userId) return;
     const oldIndex = posCategories.findIndex(c => c.id === active.id);
     const newIndex = posCategories.findIndex(c => c.id === over.id);
     if (oldIndex === -1 || newIndex === -1) return;
@@ -733,12 +753,12 @@ const POSPage = () => {
       await supabase.from("pos_categories" as any).update({ display_order: i, sort_order: i } as any).eq("id", reordered[i].id);
     }
     toast.success("تم حفظ ترتيب التصنيفات");
-  }, [posCategories, userId]);
+  }, [posCategories, userId, isAdmin]);
 
   const handleProductDragEnd = useCallback(async (event: DragEndEvent) => {
     const { active, over } = event;
     setDragActiveId(null);
-    if (!over || active.id === over.id || !userId) return;
+    if (!isAdmin || !over || active.id === over.id || !userId) return;
     const currentProducts = filteredProducts;
     const oldIndex = currentProducts.findIndex(p => p.id === active.id);
     const newIndex = currentProducts.findIndex(p => p.id === over.id);
@@ -758,7 +778,7 @@ const POSPage = () => {
       await supabase.from("products" as any).update({ sort_order: i } as any).eq("id", reordered[i].id);
     }
     toast.success("تم حفظ ترتيب المنتجات");
-  }, [filteredProducts, userId]);
+  }, [filteredProducts, userId, isAdmin]);
 
   // Cart operations
   const addToCart = useCallback((product: Product) => {
