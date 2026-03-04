@@ -59,24 +59,48 @@ Deno.serve(async (req) => {
       .eq("user_id", userId)
       .single();
 
-    // Create auth user
-    const { data: newUser, error: createErr } = await supabase.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true,
-      user_metadata: {
-        full_name: posUser.name,
-        role: "employee",
-        invited_by: userId,
-        company_name: adminProfile?.company_name || "شركتي",
-      },
-    });
+    // Check if user with this email already exists
+    const { data: existingUsers } = await supabase.auth.admin.listUsers();
+    const existingUser = existingUsers?.users?.find(
+      (u) => u.email?.toLowerCase() === email.toLowerCase()
+    );
 
-    if (createErr || !newUser?.user) {
-      return json({ error: createErr?.message || "فشل إنشاء الحساب" }, 400);
+    let newUserId: string;
+
+    if (existingUser) {
+      // User already exists - check if already linked to another POS user
+      const { data: linkedPOS } = await supabase
+        .from("pos_users")
+        .select("id")
+        .eq("auth_user_id", existingUser.id)
+        .neq("id", pos_user_id)
+        .maybeSingle();
+
+      if (linkedPOS) {
+        return json({ error: "هذا البريد مرتبط بموظف POS آخر" }, 409);
+      }
+
+      newUserId = existingUser.id;
+    } else {
+      // Create new auth user
+      const { data: newUser, error: createErr } = await supabase.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: {
+          full_name: posUser.name,
+          role: "employee",
+          invited_by: userId,
+          company_name: adminProfile?.company_name || "شركتي",
+        },
+      });
+
+      if (createErr || !newUser?.user) {
+        return json({ error: createErr?.message || "فشل إنشاء الحساب" }, 400);
+      }
+
+      newUserId = newUser.user.id;
     }
-
-    const newUserId = newUser.user.id;
 
     // Assign cashier role (in addition to employee role assigned by trigger)
     await supabase
