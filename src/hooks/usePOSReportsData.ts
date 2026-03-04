@@ -77,6 +77,7 @@ export function usePOSReportsData() {
   const [customFrom, setCustomFrom] = useState<Date>(startOfMonth(new Date()));
   const [customTo, setCustomTo] = useState<Date>(new Date());
   const [loading, setLoading] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
   const [dataOwnerId, setDataOwnerId] = useState<string | null>(null);
 
   const [orders, setOrders] = useState<POSOrder[]>([]);
@@ -157,7 +158,9 @@ export function usePOSReportsData() {
       setLoading(false);
     };
     fetchAll();
-  }, [user, dataOwnerId, dateFrom, dateTo]);
+  }, [user, dataOwnerId, dateFrom, dateTo, refreshKey]);
+
+  const refetch = () => setRefreshKey(k => k + 1);
 
   // Computed KPIs
   const paidOrders = useMemo(() => orders.filter(o => o.state === "paid" && !o.is_return), [orders]);
@@ -288,5 +291,6 @@ export function usePOSReportsData() {
     totalSales, totalReturns, netSales, totalOrders, avgOrderValue,
     totalCOGS, grossProfit, grossMargin,
     dailySales, topProducts, paymentBreakdown, cashierPerformance, peakHoursData, inventoryReport,
+    refetch,
   };
 }

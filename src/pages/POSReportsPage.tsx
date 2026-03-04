@@ -241,7 +241,7 @@ const POSReportsPage = () => {
               />
             </TabsContent>
             <TabsContent value="shifts">
-              <POSShiftsReport sessions={data.sessions} />
+              <POSShiftsReport sessions={data.sessions} onRefresh={data.refetch} />
             </TabsContent>
           </>
         )}
