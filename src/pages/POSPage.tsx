@@ -11,7 +11,7 @@ import {
   CheckCircle, AlertCircle, Wifi, WifiOff, MessageSquare, StickyNote,
   UtensilsCrossed, Gamepad2, Shirt, Monitor, ShoppingBag, Printer,
   Apple, Zap, Coffee, Box, BarChart3, TrendingUp, PlusCircle, Tag,
-  Eye, EyeOff,
+  Eye, EyeOff, UserCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -141,6 +141,13 @@ const POSPage = () => {
   const [customerSearch, setCustomerSearch] = useState("");
   const [showContactDropdown, setShowContactDropdown] = useState(false);
   const [showSalesSummary, setShowSalesSummary] = useState(true);
+
+  // Employee account payment
+  const [employees, setEmployees] = useState<{ id: string; full_name: string; base_salary: number }[]>([]);
+  const [selectedEmployee, setSelectedEmployee] = useState<{ id: string; full_name: string } | null>(null);
+  const [employeeSearch, setEmployeeSearch] = useState("");
+  const [showEmployeeDropdown, setShowEmployeeDropdown] = useState(false);
+  const [employeeBalance, setEmployeeBalance] = useState(0);
 
   // ── Multi-order tabs ──
   const [orders, setOrders] = useState<OrderTab[]>([createNewOrder(1)]);
@@ -354,7 +361,7 @@ const POSPage = () => {
         }
       }
 
-      await Promise.all([loadProducts(), loadCategories(), loadExchangeRates(), loadContacts()]);
+      await Promise.all([loadProducts(), loadCategories(), loadExchangeRates(), loadContacts(), loadEmployees()]);
     } catch (err) {
       console.error("POS init error:", err);
       toast.error("خطأ في تحميل نقطة البيع");
@@ -519,6 +526,36 @@ const POSPage = () => {
       .eq("is_active", true)
       .order("contact_name");
     setContacts(data || []);
+  };
+
+  const loadEmployees = async () => {
+    if (!userId) return;
+    const { data } = await supabase
+      .from("employees")
+      .select("id, full_name, base_salary")
+      .eq("user_id", userId)
+      .eq("is_active", true)
+      .order("full_name");
+    setEmployees(data || []);
+  };
+
+  const filteredEmployees = useMemo(() => {
+    if (!employeeSearch) return employees;
+    const q = employeeSearch.toLowerCase();
+    return employees.filter(e => e.full_name.toLowerCase().includes(q));
+  }, [employees, employeeSearch]);
+
+  const loadEmployeeBalance = async (empId: string) => {
+    const now = new Date();
+    const { data } = await supabase
+      .from("employee_financial_movements")
+      .select("amount")
+      .eq("employee_id", empId)
+      .eq("status", "approved")
+      .eq("movement_type", "debit")
+      .eq("salary_month", now.getMonth() + 1)
+      .eq("salary_year", now.getFullYear());
+    setEmployeeBalance((data || []).reduce((s, m) => s + Number(m.amount), 0));
   };
 
   const filteredContacts = useMemo(() => {
@@ -690,6 +727,10 @@ const POSPage = () => {
   const handleCompleteOrder = async () => {
     if (!userId || !session || cart.length === 0) return;
     if (!company) return;
+    if (paymentMethod === "employee_account" && !selectedEmployee) {
+      toast.error("يرجى اختيار الموظف أولاً");
+      return;
+    }
 
     setProcessing(true);
     try {
@@ -761,6 +802,27 @@ const POSPage = () => {
           : null
       );
 
+      // Record employee account movement
+      if (paymentMethod === "employee_account" && selectedEmployee) {
+        const now = new Date();
+        const itemsSummary = cart.map(i => `${i.name} x${i.qty}`).join(", ");
+        await supabase.from("employee_financial_movements").insert({
+          user_id: userId,
+          employee_id: selectedEmployee.id,
+          source_type: "pos_meal",
+          source_id: order.id,
+          source_reference: res.order_number,
+          description: `مسحوبات POS - ${itemsSummary}`.slice(0, 200),
+          amount: cartTotals.total,
+          movement_type: "debit",
+          status: "approved",
+          movement_date: now.toISOString().split("T")[0],
+          salary_month: now.getMonth() + 1,
+          salary_year: now.getFullYear(),
+          created_by: userId,
+        } as any);
+      }
+
       loadProducts();
 
       const receiptInfo = {
@@ -803,6 +865,9 @@ const POSPage = () => {
         setOrderNote("");
         setSelectedCartIndex(null);
       }
+      setSelectedEmployee(null);
+      setEmployeeSearch("");
+      setEmployeeBalance(0);
       setTenderedAmount("");
       setPaymentMethod("cash");
       setPaymentCurrency("ILS");
@@ -881,6 +946,24 @@ const POSPage = () => {
           reference: `SHIFT-${session.id.slice(0, 8)}`,
           idempotency_key: `SHIFT-VAR-${session.id}`,
         });
+
+        // Also record in centralized financial movements
+        const now = new Date();
+        await supabase.from("employee_financial_movements").insert({
+          user_id: userId,
+          employee_id: emp.id,
+          source_type: "pos_shortage",
+          source_id: session.id,
+          source_reference: `SHIFT-${session.id.slice(0, 8)}`,
+          description: `${isShortage ? "عجز" : "فائض"} صندوق - وردية ${new Date(session.opened_at).toLocaleDateString("ar-PS")}`,
+          amount: Math.abs(variance),
+          movement_type: isShortage ? "debit" : "credit",
+          status: "pending",
+          movement_date: now.toISOString().split("T")[0],
+          salary_month: now.getMonth() + 1,
+          salary_year: now.getFullYear(),
+          created_by: userId,
+        } as any);
       }
     }
 
@@ -1598,11 +1681,12 @@ const POSPage = () => {
             </div>
 
             {/* Payment methods */}
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-4 gap-3">
               {[
                 { key: "cash", label: "نقد", icon: Banknote, color: "#16A34A" },
                 { key: "card", label: "شبكة", icon: CreditCard, color: "#3B82F6" },
                 { key: "credit", label: "آجل", icon: Receipt, color: "#F59E0B" },
+                { key: "employee_account", label: "حساب موظف", icon: UserCheck, color: "#8B5CF6" },
               ].map((m) => {
                 const isActive = paymentMethod === m.key;
                 return (
@@ -1784,13 +1868,65 @@ const POSPage = () => {
                 )}
               </div>
             )}
+
+            {/* Employee selector for employee_account */}
+            {paymentMethod === "employee_account" && (
+              <div className="relative space-y-2">
+                <label className="text-sm font-medium mb-1.5 block">اختر الموظف</label>
+                <div className="relative">
+                  <UserCheck className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                  <Input
+                    value={selectedEmployee ? selectedEmployee.full_name : employeeSearch}
+                    onChange={(e) => {
+                      setEmployeeSearch(e.target.value);
+                      setSelectedEmployee(null);
+                      setShowEmployeeDropdown(true);
+                    }}
+                    onFocus={() => setShowEmployeeDropdown(true)}
+                    placeholder="ابحث عن موظف..."
+                    className="h-10 pr-10"
+                  />
+                </div>
+                {showEmployeeDropdown && filteredEmployees.length > 0 && !selectedEmployee && (
+                  <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-lg shadow-lg max-h-40 overflow-y-auto">
+                    {filteredEmployees.map((emp) => (
+                      <button
+                        key={emp.id}
+                        onClick={() => {
+                          setSelectedEmployee({ id: emp.id, full_name: emp.full_name });
+                          setEmployeeSearch("");
+                          setShowEmployeeDropdown(false);
+                          loadEmployeeBalance(emp.id);
+                        }}
+                        className="w-full px-3 py-2 text-sm text-right hover:bg-muted/50 transition flex items-center gap-2"
+                      >
+                        <UserCheck className="h-3.5 w-3.5 text-purple-500 shrink-0" />
+                        <span>{emp.full_name}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {selectedEmployee && (
+                  <div className="p-3 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <UserCheck className="h-4 w-4 text-purple-500" />
+                      <span className="text-sm font-medium">{selectedEmployee.full_name}</span>
+                    </div>
+                    <div className="text-left">
+                      <p className="text-[10px] text-muted-foreground">رصيد مسحوبات الشهر</p>
+                      <p className="text-sm font-bold text-destructive tabular-nums">₪{employeeBalance.toFixed(0)}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Complete sale button */}
           <motion.div whileTap={{ scale: 0.98 }}>
             <Button
               onClick={handleCompleteOrder}
-              disabled={processing || (paymentMethod === "credit" && !customerName)}
+              disabled={processing || (paymentMethod === "credit" && !customerName) || (paymentMethod === "employee_account" && !selectedEmployee)}
               className="w-full h-14 text-lg font-bold gap-2 rounded-xl"
               style={{ backgroundColor: "#16A34A" }}
             >
