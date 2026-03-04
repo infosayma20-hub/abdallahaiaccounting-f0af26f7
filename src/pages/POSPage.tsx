@@ -360,6 +360,7 @@ const POSPage = () => {
 
   const userId = user?.id;
   const [dataOwnerId, setDataOwnerId] = useState<string | null>(null);
+  const isAdmin = userId === dataOwnerId; // Employee has different dataOwnerId
 
   // ── Cart quantity map for badges on product cards ──
   const cartQtyMap = useMemo(() => {
@@ -1253,18 +1254,20 @@ const POSPage = () => {
           ))}
         </div>
 
-        {/* Sort mode toggle */}
-        <button
-          onClick={() => setIsSortMode(!isSortMode)}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-            isSortMode
-              ? "bg-amber-500 text-white shadow-md"
-              : "bg-white/10 text-white/60 hover:text-white/90 hover:bg-white/15"
-          }`}
-        >
-          <GripVertical className="h-3 w-3" />
-          {isSortMode ? "✅ تم" : "ترتيب"}
-        </button>
+        {/* Sort mode toggle - admin only */}
+        {isAdmin && (
+          <button
+            onClick={() => setIsSortMode(!isSortMode)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+              isSortMode
+                ? "bg-amber-500 text-white shadow-md"
+                : "bg-white/10 text-white/60 hover:text-white/90 hover:bg-white/15"
+            }`}
+          >
+            <GripVertical className="h-3 w-3" />
+            {isSortMode ? "✅ تم" : "ترتيب"}
+          </button>
+        )}
 
         <button
           onClick={() => setShowCloseShift(true)}
@@ -1297,7 +1300,7 @@ const POSPage = () => {
           {/* ── Odoo-Style Category Chips ── */}
           <div className="px-4 py-2 border-b border-border">
             {/* Sort mode banner */}
-            {isSortMode && (
+            {isSortMode && isAdmin && (
               <div className="mb-2 flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400 text-xs">
                 <GripVertical className="h-3.5 w-3.5" />
                 <span className="font-medium">وضع الترتيب — اسحب التصنيفات أو المنتجات لإعادة ترتيبها</span>
@@ -1354,8 +1357,8 @@ const POSPage = () => {
                     </motion.button>
                   )}
 
-                  {/* Management buttons */}
-                  {!isSortMode && (
+                  {/* Management buttons - admin only */}
+                  {!isSortMode && isAdmin && (
                     <>
                       <button
                         onClick={() => setShowCategoryManager(true)}
