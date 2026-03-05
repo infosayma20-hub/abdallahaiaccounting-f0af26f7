@@ -931,7 +931,13 @@ const POSPage = () => {
           tax_amount: cartTotals.tax,
           total: cartTotals.total,
           state: "draft",
-        })
+          ...(activeOrder.tableId ? {
+            table_id: activeOrder.tableId,
+            guest_count: activeOrder.guestCount,
+            guest_name: activeOrder.guestName || null,
+            order_type: "dine_in",
+          } : {}),
+        } as any)
         .select()
         .single();
 
@@ -1017,6 +1023,8 @@ const POSPage = () => {
         companyName: company?.name || "شركتي",
         terminalName: terminal?.name || "نقطة بيع",
         customerName: customerName,
+        tableName: activeOrder.tableName || undefined,
+        guestCount: activeOrder.tableId ? activeOrder.guestCount : undefined,
         items: cart.map(item => ({
           name: item.name,
           qty: item.qty,
