@@ -2068,14 +2068,19 @@ const POSPage = () => {
                           {availableTables.map(t => (
                             <button
                               key={t.id}
-                              onClick={() => {
+                              onClick={async () => {
+                                if (t.status === "occupied" && t.id !== activeOrder.tableId) {
+                                  // Load existing order from occupied table
+                                  await loadTableOrder(t.id, t.name);
+                                  setShowTablePicker(false);
+                                  return;
+                                }
                                 updateActiveOrder(o => ({ ...o, tableId: t.id, tableName: t.name, name: t.name }));
                                 setShowTablePicker(false);
                               }}
-                              disabled={t.status === "occupied" && t.id !== activeOrder.tableId}
                               className={`w-full px-3 py-1.5 text-xs text-right hover:bg-muted/50 transition flex items-center justify-between gap-2 ${
                                 t.id === activeOrder.tableId ? "bg-primary/10" : ""
-                              } ${t.status === "occupied" && t.id !== activeOrder.tableId ? "opacity-40 cursor-not-allowed" : ""}`}
+                              }`}
                             >
                               <div className="flex items-center gap-2">
                                 <UtensilsCrossed className="h-3 w-3 text-muted-foreground shrink-0" />
@@ -2087,7 +2092,7 @@ const POSPage = () => {
                                 t.status === "occupied" ? "text-red-500" :
                                 t.status === "reserved" ? "text-amber-500" : "text-sky-500"
                               }`}>
-                                {t.status === "available" ? "فارغة" : t.status === "occupied" ? "مشغولة" : t.status === "reserved" ? "محجوزة" : "تنظيف"}
+                                {t.status === "available" ? "فارغة" : t.status === "occupied" ? "📋 عرض الطلب" : t.status === "reserved" ? "محجوزة" : "تنظيف"}
                               </span>
                             </button>
                           ))}
