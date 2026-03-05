@@ -2176,32 +2176,53 @@ const POSPage = () => {
             </div>
 
             {/* Action Buttons */}
-            <div className="p-3 pt-0 flex gap-2">
-              <button
-                disabled={cart.length === 0}
-                onClick={() => { setCart([]); setSelectedCartIndex(null); setOrderDiscount(0); setOrderNote(""); }}
-                className="h-11 w-11 rounded-xl flex items-center justify-center border border-border text-muted-foreground hover:text-destructive hover:border-destructive/30 hover:bg-destructive/5 transition-all disabled:opacity-30 disabled:pointer-events-none"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
-              <button
-                disabled={cart.length === 0}
-                onClick={() => window.print()}
-                className="h-11 w-11 rounded-xl flex items-center justify-center border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-all disabled:opacity-30 disabled:pointer-events-none"
-              >
-                <Printer className="h-4 w-4" />
-              </button>
-              <motion.button
-                whileTap={{ scale: 0.97 }}
-                className="flex-1 h-11 rounded-xl text-sm font-bold flex items-center justify-center gap-2 text-white transition-all disabled:opacity-40 disabled:pointer-events-none"
-                style={{ backgroundColor: cart.length > 0 ? "#16A34A" : "hsl(var(--muted))" }}
-                disabled={cart.length === 0 || !session}
-                onClick={() => setShowPayment(true)}
-              >
-                <span className="text-xs bg-white/20 rounded px-1.5 py-0.5 font-mono">F12</span>
-                دفع ₪{cartTotals.total.toFixed(2)}
-                <Printer className="h-4 w-4 opacity-70" />
-              </motion.button>
+            <div className="p-3 pt-0 space-y-2">
+              {/* Top row: Kitchen + Save (only when table is selected) */}
+              {activeOrder.tableId && cart.length > 0 && (
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleSendToKitchen}
+                    className="flex-1 h-10 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 border-2 border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400 hover:bg-amber-500/20 transition-all"
+                  >
+                    🍳 إرسال للمطبخ
+                  </button>
+                  <button
+                    onClick={handleSaveToTable}
+                    disabled={savingToTable}
+                    className="flex-1 h-10 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 border-2 border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-400 hover:bg-sky-500/20 transition-all disabled:opacity-40"
+                  >
+                    💾 {savingToTable ? "جاري الحفظ..." : "حفظ الطلب"}
+                  </button>
+                </div>
+              )}
+              {/* Bottom row: Delete + Print + Pay */}
+              <div className="flex gap-2">
+                <button
+                  disabled={cart.length === 0}
+                  onClick={() => { setCart([]); setSelectedCartIndex(null); setOrderDiscount(0); setOrderNote(""); }}
+                  className="h-11 w-11 rounded-xl flex items-center justify-center border border-border text-muted-foreground hover:text-destructive hover:border-destructive/30 hover:bg-destructive/5 transition-all disabled:opacity-30 disabled:pointer-events-none"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+                <button
+                  disabled={cart.length === 0}
+                  onClick={() => window.print()}
+                  className="h-11 w-11 rounded-xl flex items-center justify-center border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-all disabled:opacity-30 disabled:pointer-events-none"
+                >
+                  <Printer className="h-4 w-4" />
+                </button>
+                <motion.button
+                  whileTap={{ scale: 0.97 }}
+                  className="flex-1 h-11 rounded-xl text-sm font-bold flex items-center justify-center gap-2 text-white transition-all disabled:opacity-40 disabled:pointer-events-none"
+                  style={{ backgroundColor: cart.length > 0 ? "#16A34A" : "hsl(var(--muted))" }}
+                  disabled={cart.length === 0 || !session}
+                  onClick={() => setShowPayment(true)}
+                >
+                  <span className="text-xs bg-white/20 rounded px-1.5 py-0.5 font-mono">F12</span>
+                  دفع ₪{cartTotals.total.toFixed(2)}
+                  <Printer className="h-4 w-4 opacity-70" />
+                </motion.button>
+              </div>
             </div>
           </div>
         </div>
