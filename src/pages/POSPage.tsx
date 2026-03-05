@@ -1324,6 +1324,14 @@ const POSPage = () => {
         )}
 
         <button
+          onClick={() => navigate("/pos/floor-plan")}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors text-xs font-medium"
+        >
+          <UtensilsCrossed className="h-3 w-3" />
+          الطاولات
+        </button>
+
+        <button
           onClick={() => setShowCloseShift(true)}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-destructive/20 text-destructive hover:bg-destructive/30 transition-colors text-xs font-medium"
         >
