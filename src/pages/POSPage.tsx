@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -64,17 +65,25 @@ interface OrderTab {
   orderDiscountType: "fixed" | "percent";
   orderNote: string;
   selectedCartIndex: number | null;
+  tableId: string | null;
+  tableName: string | null;
+  guestCount: number;
+  guestName: string;
 }
 
-const createNewOrder = (index: number): OrderTab => ({
+const createNewOrder = (index: number, tableId?: string | null, tableName?: string | null, guestCount?: number, guestName?: string): OrderTab => ({
   id: crypto.randomUUID(),
-  name: `طلب ${index}`,
+  name: tableName ? `${tableName}` : `طلب ${index}`,
   cart: [],
-  customerName: "",
+  customerName: guestName || "",
   orderDiscount: 0,
   orderDiscountType: "fixed",
   orderNote: "",
   selectedCartIndex: null,
+  tableId: tableId || null,
+  tableName: tableName || null,
+  guestCount: guestCount || 1,
+  guestName: guestName || "",
 });
 
 interface Product {
