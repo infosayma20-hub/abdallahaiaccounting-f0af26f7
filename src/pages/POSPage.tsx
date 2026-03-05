@@ -372,6 +372,11 @@ const POSPage = () => {
   const [showReceipt, setShowReceipt] = useState(false);
   const [receiptData, setReceiptData] = useState<any>(null);
 
+  // Kitchen
+  const [showKitchenTicket, setShowKitchenTicket] = useState(false);
+  const [kitchenTicketData, setKitchenTicketData] = useState<any>(null);
+  const [savingToTable, setSavingToTable] = useState(false);
+
   // Shift Summary
   const [showShiftSummary, setShowShiftSummary] = useState(false);
   const [shiftSummaryData, setShiftSummaryData] = useState<any>(null);
