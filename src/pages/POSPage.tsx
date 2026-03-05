@@ -319,6 +319,8 @@ const POSPage = () => {
   // Bottom panel toggles
   const [showCustomerInput, setShowCustomerInput] = useState(false);
   const [showOrderNoteInput, setShowOrderNoteInput] = useState(false);
+  const [showTablePicker, setShowTablePicker] = useState(false);
+  const [availableTables, setAvailableTables] = useState<{ id: string; name: string; seats: number; status: string; section_name: string }[]>([]);
 
   // Dialogs
   const [showOpenShift, setShowOpenShift] = useState(false);
