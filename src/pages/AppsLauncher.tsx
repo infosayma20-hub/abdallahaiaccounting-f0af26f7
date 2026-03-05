@@ -80,9 +80,10 @@ const appModules: AppModule[] = [
     ],
   },
   {
-    id: "purchases", label: "المشتريات", description: "موردين وفواتير مشتريات", icon: ShoppingBag, color: "text-sky-500", bgColor: "bg-sky-500/10", path: "/bills",
-    keywords: ["مشتريات", "مورد", "فات"],
+    id: "purchases", label: "المشتريات", description: "موردين، فواتير مشتريات، ونقطة المشتريات", icon: ShoppingBag, color: "text-sky-500", bgColor: "bg-sky-500/10", path: "/bills",
+    keywords: ["مشتريات", "مورد", "فات", "استلام"],
     children: [
+      { label: "نقطة المشتريات", path: "/purchase-point" },
       { label: "الموردين", path: "/contacts?type=supplier" },
       { label: "فواتير مشتريات", path: "/bills" },
       { label: "سندات الصرف", path: "/payments" },
