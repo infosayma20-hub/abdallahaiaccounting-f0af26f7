@@ -32,7 +32,7 @@ interface Props {
   order: OrderInfo | null;
   onClose: () => void;
   onOpenOrder: (table: Table, guestCount: number, guestName: string) => void;
-  onViewOrder: (table: Table) => void;
+  onViewOrder: (table: Table, action?: string) => void;
   onTransfer: (table: Table) => void;
   onMarkAvailable: (tableId: string) => void;
 }
@@ -141,11 +141,11 @@ export default function TableActionModal({
                 <Plus className="w-4 h-4 ml-1" />
                 إضافة أصناف
               </Button>
-              <Button variant="outline" onClick={() => onTransfer(table)}>
+              <Button variant="outline" onClick={() => { onTransfer(table); onClose(); }}>
                 <ArrowRightLeft className="w-4 h-4 ml-1" />
                 نقل لطاولة
               </Button>
-              <Button variant="outline" onClick={() => { onViewOrder(table); onClose(); }}>
+              <Button variant="outline" onClick={() => { onViewOrder(table, "pay"); onClose(); }}>
                 <CreditCard className="w-4 h-4 ml-1" />
                 تسوية ودفع
               </Button>

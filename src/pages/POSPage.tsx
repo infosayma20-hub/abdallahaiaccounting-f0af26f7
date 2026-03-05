@@ -221,6 +221,9 @@ const POSPage = () => {
   const urlTableName = searchParams.get("table_name");
   const urlGuests = parseInt(searchParams.get("guests") || "1");
   const urlGuestName = decodeURIComponent(searchParams.get("guest_name") || "");
+  const urlOrderId = searchParams.get("order_id");
+  const urlAction = searchParams.get("action"); // e.g. "pay"
+  const orderLoadedRef = useRef(false);
 
   // State
   const [products, setProducts] = useState<Product[]>([]);
@@ -409,6 +412,64 @@ const POSPage = () => {
     if (!userId || !dataOwnerId) return;
     initializePOS();
   }, [userId, dataOwnerId]);
+
+  // Auto-load order from URL params (when coming from floor plan)
+  useEffect(() => {
+    if (!urlTableId || !urlOrderId || loading || orderLoadedRef.current) return;
+    orderLoadedRef.current = true;
+    
+    const loadOrderFromUrl = async () => {
+      try {
+        const { data: orderData } = await supabase
+          .from("pos_orders")
+          .select("id, guest_count, guest_name, customer_name, subtotal, total, discount_amount, tax_amount")
+          .eq("id", urlOrderId)
+          .maybeSingle();
+
+        if (!orderData) return;
+
+        const { data: lines } = await supabase
+          .from("pos_order_lines")
+          .select("*")
+          .eq("order_id", orderData.id);
+
+        if (!lines || lines.length === 0) return;
+
+        const cartItems: CartItem[] = lines.map((line: any) => ({
+          id: crypto.randomUUID(),
+          product_id: line.product_id,
+          name: line.product_name,
+          qty: line.qty,
+          unit_price: Number(line.unit_price),
+          cost_price: Number(line.cost_price) || 0,
+          discount_pct: Number(line.discount_pct) || 0,
+          tax_rate: Number(line.tax_rate) || 0,
+          unit: line.unit || "قطعة",
+          total: Number(line.total),
+          note: "",
+        }));
+
+        setOrders(prev => prev.map((o, i) => i === 0 ? {
+          ...o,
+          cart: cartItems,
+          tableId: urlTableId,
+          tableName: urlTableName || o.tableName,
+          guestCount: (orderData as any).guest_count || 1,
+          guestName: (orderData as any).guest_name || "",
+          customerName: orderData.customer_name || "",
+        } : o));
+
+        // If action is "pay", auto-open payment dialog
+        if (urlAction === "pay" && cartItems.length > 0) {
+          setTimeout(() => setShowPayment(true), 500);
+        }
+      } catch (err) {
+        console.error("Error loading order from URL:", err);
+      }
+    };
+
+    loadOrderFromUrl();
+  }, [urlTableId, urlOrderId, urlTableName, urlAction, loading]);
 
   const initializePOS = async () => {
     if (!userId || !dataOwnerId) return;

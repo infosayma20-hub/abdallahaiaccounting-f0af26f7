@@ -209,9 +209,11 @@ export default function FloorPlanPage() {
     toast.success("تم تحرير الطاولة");
   };
 
-  const handleViewOrder = (table: Table) => {
+  const handleViewOrder = (table: Table, action?: string) => {
     if (table.current_order_id) {
-      navigate(`/pos?table_id=${table.id}&table_name=${table.name}&order_id=${table.current_order_id}`);
+      let url = `/pos?table_id=${table.id}&table_name=${table.name}&order_id=${table.current_order_id}`;
+      if (action) url += `&action=${action}`;
+      navigate(url);
     }
   };
 
