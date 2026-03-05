@@ -1900,7 +1900,8 @@ const POSPage = () => {
                       )}
                     </div>
                   </div>
-                )
+                )}
+
                 {/* Customer input */}
                 {showCustomerInput && (
                   <div className="relative">
