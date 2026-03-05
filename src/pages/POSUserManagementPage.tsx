@@ -4,9 +4,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Plus, User, Shield, Pencil, Trash2,
-  Smartphone, Lock, Unlock, Search, Loader2,
-  Monitor, CheckCircle, Mail, KeyRound, UserPlus,
+  Plus, Users, ShieldCheck, Pencil, Trash2,
+  Smartphone, LockKeyhole, UnlockKeyhole, Search, Loader2,
+  Monitor, CheckCircle2, Mail, KeyRound, UserPlus,
+  DoorOpen, DoorClosed, Percent, Eye, PencilLine,
+  Ban, RotateCcw, ClipboardList, UserCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -378,19 +380,16 @@ export default function POSUserManagementPage() {
 
   const filteredUsers = users.filter(u => u.name.includes(search) || u.phone?.includes(search) || u.email?.includes(search));
 
-  const permLabel = (key: string): string => {
-    const labels: Record<string, string> = {
-      can_open_register: "فتح الوردية",
-      can_close_register: "إغلاق الوردية",
-      can_apply_discount: "تطبيق خصم",
-      can_view_profits: "مشاهدة الأرباح",
-      can_edit_prices: "تعديل الأسعار",
-      can_void_sales: "إلغاء عمليات بيع",
-      can_refund: "استرجاع",
-      can_view_shift_details: "مشاهدة تفاصيل الوردية",
-      require_manager_approval: "يتطلب موافقة مدير",
-    };
-    return labels[key] || key;
+  const permConfig: Record<string, { label: string; icon: React.ReactNode }> = {
+    can_open_register: { label: "فتح الوردية", icon: <DoorOpen className="w-4 h-4" /> },
+    can_close_register: { label: "إغلاق الوردية", icon: <DoorClosed className="w-4 h-4" /> },
+    can_apply_discount: { label: "تطبيق خصم", icon: <Percent className="w-4 h-4" /> },
+    can_view_profits: { label: "مشاهدة الأرباح", icon: <Eye className="w-4 h-4" /> },
+    can_edit_prices: { label: "تعديل الأسعار", icon: <PencilLine className="w-4 h-4" /> },
+    can_void_sales: { label: "إلغاء عمليات بيع", icon: <Ban className="w-4 h-4" /> },
+    can_refund: { label: "استرجاع", icon: <RotateCcw className="w-4 h-4" /> },
+    can_view_shift_details: { label: "مشاهدة تفاصيل الوردية", icon: <ClipboardList className="w-4 h-4" /> },
+    require_manager_approval: { label: "يتطلب موافقة مدير", icon: <UserCheck className="w-4 h-4" /> },
   };
 
   return (
@@ -415,7 +414,7 @@ export default function POSUserManagementPage() {
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid grid-cols-2 w-full max-w-md">
-          <TabsTrigger value="users" className="flex items-center gap-2"><User className="w-4 h-4" /> المستخدمون</TabsTrigger>
+          <TabsTrigger value="users" className="flex items-center gap-2"><Users className="w-4 h-4" /> المستخدمون</TabsTrigger>
           <TabsTrigger value="devices" className="flex items-center gap-2"><Monitor className="w-4 h-4" /> الأجهزة</TabsTrigger>
         </TabsList>
 
@@ -448,7 +447,7 @@ export default function POSUserManagementPage() {
                           <Badge className={`text-xs ${ROLE_COLORS[u.role] || "bg-muted"}`}>{ROLE_LABELS[u.role] || u.role}</Badge>
                           {!u.is_active && <Badge variant="secondary" className="text-xs">معطل</Badge>}
                           {u.has_account && u.account_status === "active" && (
-                            <Badge className="text-xs bg-emerald-500/20 text-emerald-600 gap-1"><CheckCircle className="w-3 h-3" />حساب مفعّل</Badge>
+                            <Badge className="text-xs bg-emerald-500/20 text-emerald-600 gap-1"><CheckCircle2 className="w-3 h-3" />حساب مفعّل</Badge>
                           )}
                           {u.account_status === "invited" && (
                             <Badge className="text-xs bg-amber-500/20 text-amber-600 gap-1"><Mail className="w-3 h-3" />دعوة مُرسلة</Badge>
@@ -469,9 +468,9 @@ export default function POSUserManagementPage() {
                             <UserPlus className="w-4 h-4 text-primary" />
                           </Button>
                         )}
-                        <Button variant="ghost" size="icon" onClick={() => openEditUser(u)}><Pencil className="w-4 h-4" /></Button>
+                         <Button variant="ghost" size="icon" onClick={() => openEditUser(u)}><Pencil className="w-4 h-4" /></Button>
                         <Button variant="ghost" size="icon" onClick={() => toggleUserActive(u)}>
-                          {u.is_active ? <Lock className="w-4 h-4 text-muted-foreground" /> : <Unlock className="w-4 h-4 text-emerald-500" />}
+                          {u.is_active ? <LockKeyhole className="w-4 h-4 text-muted-foreground" /> : <UnlockKeyhole className="w-4 h-4 text-emerald-500" />}
                         </Button>
                         <Button variant="ghost" size="icon" onClick={() => confirmDeleteUser(u)} title="حذف الموظف">
                           <Trash2 className="w-4 h-4 text-destructive" />
@@ -519,9 +518,9 @@ export default function POSUserManagementPage() {
                       {d.device_fingerprint === currentFingerprint && (
                         <Badge className="bg-emerald-500/20 text-emerald-400 text-xs">هذا الجهاز</Badge>
                       )}
-                      <Button variant="ghost" size="icon" onClick={() => toggleDeviceActive(d)}>
-                        {d.is_active ? <Lock className="w-4 h-4 text-muted-foreground" /> : <Unlock className="w-4 h-4 text-emerald-500" />}
-                      </Button>
+                       <Button variant="ghost" size="icon" onClick={() => toggleDeviceActive(d)}>
+                         {d.is_active ? <LockKeyhole className="w-4 h-4 text-muted-foreground" /> : <UnlockKeyhole className="w-4 h-4 text-emerald-500" />}
+                       </Button>
                     </div>
                   </CardContent>
                 </Card>
@@ -607,7 +606,7 @@ export default function POSUserManagementPage() {
                 <h3 className="font-semibold mb-2 flex items-center gap-2"><KeyRound className="w-4 h-4" /> حالة الحساب</h3>
                 {editingUser.has_account ? (
                   <div className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-emerald-500" />
+                    <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                     <span className="text-sm">حساب كامل مفعّل</span>
                     {editingUser.email && <span className="text-xs text-muted-foreground">({editingUser.email})</span>}
                   </div>
@@ -636,11 +635,14 @@ export default function POSUserManagementPage() {
 
             {/* Permissions */}
             <div>
-              <h3 className="font-semibold mb-3 flex items-center gap-2"><Shield className="w-4 h-4" /> الصلاحيات</h3>
+              <h3 className="font-semibold mb-3 flex items-center gap-2"><ShieldCheck className="w-4 h-4" /> الصلاحيات</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {(Object.keys(userPerms) as (keyof Permission)[]).filter(k => k !== "max_discount_percent").map(key => (
-                  <div key={key} className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
-                    <Label className="text-sm cursor-pointer">{permLabel(key)}</Label>
+                  <div key={key} className="flex items-center justify-between p-3 rounded-xl border border-border bg-card">
+                    <div className="flex items-center gap-2">
+                      <span className="text-muted-foreground">{permConfig[key]?.icon}</span>
+                      <Label className="text-sm cursor-pointer">{permConfig[key]?.label || key}</Label>
+                    </div>
                     <Switch
                       checked={userPerms[key] as boolean}
                       onCheckedChange={v => setUserPerms(p => ({ ...p, [key]: v }))}
@@ -678,7 +680,7 @@ export default function POSUserManagementPage() {
                     >
                       <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors
                         ${assignedDevices.includes(d.id) ? "border-primary bg-primary" : "border-muted-foreground"}`}>
-                        {assignedDevices.includes(d.id) && <CheckCircle className="w-3 h-3 text-primary-foreground" />}
+                        {assignedDevices.includes(d.id) && <CheckCircle2 className="w-3 h-3 text-primary-foreground" />}
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium">{d.device_name}</p>
