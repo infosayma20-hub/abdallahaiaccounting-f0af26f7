@@ -372,6 +372,11 @@ const POSPage = () => {
   const [showReceipt, setShowReceipt] = useState(false);
   const [receiptData, setReceiptData] = useState<any>(null);
 
+  // Kitchen
+  const [showKitchenTicket, setShowKitchenTicket] = useState(false);
+  const [kitchenTicketData, setKitchenTicketData] = useState<any>(null);
+  const [savingToTable, setSavingToTable] = useState(false);
+
   // Shift Summary
   const [showShiftSummary, setShowShiftSummary] = useState(false);
   const [shiftSummaryData, setShiftSummaryData] = useState<any>(null);
@@ -906,6 +911,182 @@ const POSPage = () => {
     });
     setShowOpenShift(false);
     toast.success("تم فتح الوردية بنجاح");
+  };
+
+  // Save order to table (draft - no payment)
+  const handleSaveToTable = async () => {
+    if (!userId || !session || cart.length === 0 || !activeOrder.tableId || !company) return;
+    setSavingToTable(true);
+    try {
+      // Check if there's already an open order for this table
+      const { data: existingOrder } = await supabase
+        .from("pos_orders")
+        .select("id")
+        .eq("table_id", activeOrder.tableId)
+        .in("state", ["draft", "open"] as any)
+        .maybeSingle();
+
+      if (existingOrder) {
+        // Add items to existing order
+        const lines = cart.map((item) => ({
+          user_id: dataOwnerId,
+          order_id: existingOrder.id,
+          product_id: item.product_id,
+          product_name: item.name,
+          qty: item.qty,
+          unit: item.unit,
+          unit_price: item.unit_price,
+          discount_pct: item.discount_pct,
+          discount_amount: item.unit_price * item.qty * item.discount_pct / 100,
+          tax_rate: item.tax_rate,
+          tax_amount: item.total * item.tax_rate / 100,
+          subtotal: item.qty * item.unit_price,
+          total: item.total,
+          cost_price: item.cost_price,
+        }));
+        await supabase.from("pos_order_lines").insert(lines);
+        // Update order totals
+        await supabase.from("pos_orders").update({
+          subtotal: cartTotals.subtotal,
+          total: cartTotals.total,
+          tax_amount: cartTotals.tax,
+          discount_amount: cartTotals.discount,
+        } as any).eq("id", existingOrder.id);
+      } else {
+        // Create new draft order
+        const { data: order, error } = await supabase
+          .from("pos_orders")
+          .insert({
+            user_id: dataOwnerId,
+            company_id: company.id,
+            session_id: session.id,
+            customer_name: customerName || null,
+            subtotal: cartTotals.subtotal,
+            discount_amount: cartTotals.discount,
+            tax_amount: cartTotals.tax,
+            total: cartTotals.total,
+            state: "draft",
+            table_id: activeOrder.tableId,
+            guest_count: activeOrder.guestCount,
+            guest_name: activeOrder.guestName || null,
+            order_type: "dine_in",
+          } as any)
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        const lines = cart.map((item) => ({
+          user_id: dataOwnerId,
+          order_id: order.id,
+          product_id: item.product_id,
+          product_name: item.name,
+          qty: item.qty,
+          unit: item.unit,
+          unit_price: item.unit_price,
+          discount_pct: item.discount_pct,
+          discount_amount: item.unit_price * item.qty * item.discount_pct / 100,
+          tax_rate: item.tax_rate,
+          tax_amount: item.total * item.tax_rate / 100,
+          subtotal: item.qty * item.unit_price,
+          total: item.total,
+          cost_price: item.cost_price,
+        }));
+        await supabase.from("pos_order_lines").insert(lines);
+      }
+
+      toast.success(`✅ تم حفظ الطلب على ${activeOrder.tableName}`);
+
+      // Clear this order tab or remove it
+      if (orders.length > 1) {
+        removeOrder(activeOrderIndex);
+      } else {
+        orderCounter.current += 1;
+        setOrders([createNewOrder(orderCounter.current)]);
+        setActiveOrderIndex(0);
+      }
+    } catch (err: any) {
+      toast.error(err.message || "خطأ في حفظ الطلب");
+    } finally {
+      setSavingToTable(false);
+    }
+  };
+
+  // Send to kitchen (print kitchen ticket)
+  const handleSendToKitchen = () => {
+    if (cart.length === 0) return;
+    setKitchenTicketData({
+      tableName: activeOrder.tableName || "بدون طاولة",
+      guestCount: activeOrder.guestCount,
+      cashierName: session?.cashier_name || "",
+      time: new Date().toLocaleTimeString("ar-PS", { hour: "2-digit", minute: "2-digit" }),
+      items: cart.map(item => ({
+        name: item.name,
+        qty: item.qty,
+        note: item.note,
+      })),
+      orderNote: activeOrder.orderNote,
+    });
+    setShowKitchenTicket(true);
+  };
+
+  // Load existing table order into cart
+  const loadTableOrder = async (tableId: string, tableName: string) => {
+    const { data: order } = await supabase
+      .from("pos_orders")
+      .select("id, guest_count, guest_name, customer_name, subtotal, total, discount_amount, tax_amount")
+      .eq("table_id", tableId)
+      .in("state", ["draft", "open"] as any)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (!order) return;
+
+    const { data: lines } = await supabase
+      .from("pos_order_lines")
+      .select("*")
+      .eq("order_id", order.id);
+
+    if (!lines || lines.length === 0) return;
+
+    const cartItems: CartItem[] = lines.map((line: any) => ({
+      id: crypto.randomUUID(),
+      product_id: line.product_id,
+      name: line.product_name,
+      qty: line.qty,
+      unit_price: Number(line.unit_price),
+      cost_price: Number(line.cost_price) || 0,
+      discount_pct: Number(line.discount_pct) || 0,
+      tax_rate: Number(line.tax_rate) || 0,
+      unit: line.unit || "قطعة",
+      total: Number(line.total),
+      note: "",
+    }));
+
+    // Find or create order tab for this table
+    const existingTabIdx = orders.findIndex(o => o.tableId === tableId);
+    if (existingTabIdx >= 0) {
+      setActiveOrderIndex(existingTabIdx);
+      updateActiveOrder(o => ({ ...o, cart: cartItems }));
+    } else {
+      const newOrder: OrderTab = {
+        id: crypto.randomUUID(),
+        name: tableName,
+        cart: cartItems,
+        customerName: order.customer_name || "",
+        orderDiscount: Number(order.discount_amount) || 0,
+        orderDiscountType: "fixed",
+        orderNote: "",
+        selectedCartIndex: null,
+        tableId,
+        tableName,
+        guestCount: (order as any).guest_count || 1,
+        guestName: (order as any).guest_name || "",
+      };
+      setOrders(prev => [...prev, newOrder]);
+      setActiveOrderIndex(orders.length);
+    }
   };
 
   // Complete order
@@ -1887,14 +2068,19 @@ const POSPage = () => {
                           {availableTables.map(t => (
                             <button
                               key={t.id}
-                              onClick={() => {
+                              onClick={async () => {
+                                if (t.status === "occupied" && t.id !== activeOrder.tableId) {
+                                  // Load existing order from occupied table
+                                  await loadTableOrder(t.id, t.name);
+                                  setShowTablePicker(false);
+                                  return;
+                                }
                                 updateActiveOrder(o => ({ ...o, tableId: t.id, tableName: t.name, name: t.name }));
                                 setShowTablePicker(false);
                               }}
-                              disabled={t.status === "occupied" && t.id !== activeOrder.tableId}
                               className={`w-full px-3 py-1.5 text-xs text-right hover:bg-muted/50 transition flex items-center justify-between gap-2 ${
                                 t.id === activeOrder.tableId ? "bg-primary/10" : ""
-                              } ${t.status === "occupied" && t.id !== activeOrder.tableId ? "opacity-40 cursor-not-allowed" : ""}`}
+                              }`}
                             >
                               <div className="flex items-center gap-2">
                                 <UtensilsCrossed className="h-3 w-3 text-muted-foreground shrink-0" />
@@ -1906,7 +2092,7 @@ const POSPage = () => {
                                 t.status === "occupied" ? "text-red-500" :
                                 t.status === "reserved" ? "text-amber-500" : "text-sky-500"
                               }`}>
-                                {t.status === "available" ? "فارغة" : t.status === "occupied" ? "مشغولة" : t.status === "reserved" ? "محجوزة" : "تنظيف"}
+                                {t.status === "available" ? "فارغة" : t.status === "occupied" ? "📋 عرض الطلب" : t.status === "reserved" ? "محجوزة" : "تنظيف"}
                               </span>
                             </button>
                           ))}
@@ -1995,32 +2181,53 @@ const POSPage = () => {
             </div>
 
             {/* Action Buttons */}
-            <div className="p-3 pt-0 flex gap-2">
-              <button
-                disabled={cart.length === 0}
-                onClick={() => { setCart([]); setSelectedCartIndex(null); setOrderDiscount(0); setOrderNote(""); }}
-                className="h-11 w-11 rounded-xl flex items-center justify-center border border-border text-muted-foreground hover:text-destructive hover:border-destructive/30 hover:bg-destructive/5 transition-all disabled:opacity-30 disabled:pointer-events-none"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
-              <button
-                disabled={cart.length === 0}
-                onClick={() => window.print()}
-                className="h-11 w-11 rounded-xl flex items-center justify-center border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-all disabled:opacity-30 disabled:pointer-events-none"
-              >
-                <Printer className="h-4 w-4" />
-              </button>
-              <motion.button
-                whileTap={{ scale: 0.97 }}
-                className="flex-1 h-11 rounded-xl text-sm font-bold flex items-center justify-center gap-2 text-white transition-all disabled:opacity-40 disabled:pointer-events-none"
-                style={{ backgroundColor: cart.length > 0 ? "#16A34A" : "hsl(var(--muted))" }}
-                disabled={cart.length === 0 || !session}
-                onClick={() => setShowPayment(true)}
-              >
-                <span className="text-xs bg-white/20 rounded px-1.5 py-0.5 font-mono">F12</span>
-                دفع ₪{cartTotals.total.toFixed(2)}
-                <Printer className="h-4 w-4 opacity-70" />
-              </motion.button>
+            <div className="p-3 pt-0 space-y-2">
+              {/* Top row: Kitchen + Save (only when table is selected) */}
+              {activeOrder.tableId && cart.length > 0 && (
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleSendToKitchen}
+                    className="flex-1 h-10 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 border-2 border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400 hover:bg-amber-500/20 transition-all"
+                  >
+                    🍳 إرسال للمطبخ
+                  </button>
+                  <button
+                    onClick={handleSaveToTable}
+                    disabled={savingToTable}
+                    className="flex-1 h-10 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 border-2 border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-400 hover:bg-sky-500/20 transition-all disabled:opacity-40"
+                  >
+                    💾 {savingToTable ? "جاري الحفظ..." : "حفظ الطلب"}
+                  </button>
+                </div>
+              )}
+              {/* Bottom row: Delete + Print + Pay */}
+              <div className="flex gap-2">
+                <button
+                  disabled={cart.length === 0}
+                  onClick={() => { setCart([]); setSelectedCartIndex(null); setOrderDiscount(0); setOrderNote(""); }}
+                  className="h-11 w-11 rounded-xl flex items-center justify-center border border-border text-muted-foreground hover:text-destructive hover:border-destructive/30 hover:bg-destructive/5 transition-all disabled:opacity-30 disabled:pointer-events-none"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+                <button
+                  disabled={cart.length === 0}
+                  onClick={() => window.print()}
+                  className="h-11 w-11 rounded-xl flex items-center justify-center border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-all disabled:opacity-30 disabled:pointer-events-none"
+                >
+                  <Printer className="h-4 w-4" />
+                </button>
+                <motion.button
+                  whileTap={{ scale: 0.97 }}
+                  className="flex-1 h-11 rounded-xl text-sm font-bold flex items-center justify-center gap-2 text-white transition-all disabled:opacity-40 disabled:pointer-events-none"
+                  style={{ backgroundColor: cart.length > 0 ? "#16A34A" : "hsl(var(--muted))" }}
+                  disabled={cart.length === 0 || !session}
+                  onClick={() => setShowPayment(true)}
+                >
+                  <span className="text-xs bg-white/20 rounded px-1.5 py-0.5 font-mono">F12</span>
+                  دفع ₪{cartTotals.total.toFixed(2)}
+                  <Printer className="h-4 w-4 opacity-70" />
+                </motion.button>
+              </div>
             </div>
           </div>
         </div>
@@ -2662,6 +2869,51 @@ const POSPage = () => {
 
       {/* ── Receipt Dialog ── */}
       <POSReceiptDialog open={showReceipt} onOpenChange={setShowReceipt} data={receiptData} />
+
+      {/* ── Kitchen Ticket Dialog ── */}
+      <Dialog open={showKitchenTicket} onOpenChange={setShowKitchenTicket}>
+        <DialogContent className="max-w-xs" dir="rtl">
+          <div className="text-center space-y-1 pb-2 border-b border-dashed border-border">
+            <p className="text-lg font-bold">🍳 طلب مطبخ</p>
+            <p className="text-xs text-muted-foreground">{new Date().toLocaleDateString("ar-PS")}</p>
+          </div>
+          {kitchenTicketData && (
+            <div className="space-y-3 py-2">
+              <div className="flex justify-between text-sm">
+                <span className="font-bold text-foreground">طاولة: {kitchenTicketData.tableName}</span>
+                <span className="text-muted-foreground">{kitchenTicketData.time}</span>
+              </div>
+              {kitchenTicketData.guestCount > 0 && (
+                <p className="text-xs text-muted-foreground">عدد الضيوف: {kitchenTicketData.guestCount}</p>
+              )}
+              <div className="border-t border-dashed border-border pt-2 space-y-2">
+                {kitchenTicketData.items.map((item: any, idx: number) => (
+                  <div key={idx} className="flex items-start gap-2">
+                    <span className="text-lg font-bold text-primary min-w-[28px]">{item.qty}×</span>
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-foreground">{item.name}</p>
+                      {item.note && <p className="text-xs text-amber-600 mt-0.5">📝 {item.note}</p>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {kitchenTicketData.orderNote && (
+                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-2 text-xs text-amber-800 dark:text-amber-300">
+                  📝 {kitchenTicketData.orderNote}
+                </div>
+              )}
+              <p className="text-[10px] text-muted-foreground text-center pt-1">كاشير: {kitchenTicketData.cashierName}</p>
+            </div>
+          )}
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setShowKitchenTicket(false)} className="flex-1">إغلاق</Button>
+            <Button onClick={() => { window.print(); setShowKitchenTicket(false); }} className="flex-1 gap-1">
+              <Printer className="h-4 w-4" />
+              طباعة
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
