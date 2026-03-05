@@ -256,7 +256,7 @@ const POSPage = () => {
   );
 
   // ── Multi-order tabs ──
-  const [orders, setOrders] = useState<OrderTab[]>([createNewOrder(1)]);
+  const [orders, setOrders] = useState<OrderTab[]>([createNewOrder(1, urlTableId, urlTableName, urlGuests, urlGuestName)]);
   const [activeOrderIndex, setActiveOrderIndex] = useState(0);
   const activeOrder = orders[activeOrderIndex] || orders[0];
   const orderCounter = useRef(1);
