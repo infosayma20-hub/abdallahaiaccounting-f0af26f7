@@ -114,17 +114,27 @@ Deno.serve(async (req) => {
       newUserId = newUser.user.id;
     }
 
-    // Assign cashier role (ignore duplicates)
+    // ── CRITICAL: Clean up auto-assigned roles from triggers ──
+    // The handle_new_user trigger assigns 'employee' role and
+    // auto_assign_admin_role trigger assigns 'admin' role.
+    // A cashier should ONLY have the 'cashier' role.
     await supabase
       .from("user_roles")
-      .upsert({ user_id: newUserId, role: "cashier" }, { onConflict: "user_id,role" });
+      .delete()
+      .eq("user_id", newUserId);
 
-    // Ensure profile has invited_by and company_id set
+    // Assign ONLY cashier role
+    await supabase
+      .from("user_roles")
+      .insert({ user_id: newUserId, role: "cashier" });
+
+    // ── Ensure profile is correctly linked to admin's team ──
     await supabase
       .from("profiles")
       .update({
         invited_by: userId,
         company_id: adminProfile?.company_id || null,
+        role: "cashier",
       })
       .eq("user_id", newUserId);
 
@@ -159,7 +169,7 @@ Deno.serve(async (req) => {
 
     return json({
       success: true,
-      message: `تم ربط حساب ${posUser.name} بنجاح ✅`,
+      message: `تم ربط حساب ${posUser.name} بنجاح وتفعيل صلاحيات الكاشير ✅`,
       auth_user_id: newUserId,
     });
   } catch (err) {
