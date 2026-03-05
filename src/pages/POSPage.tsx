@@ -212,8 +212,15 @@ const SortableProductCard = ({ id, children, isSortMode }: {
 
 const POSPage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const searchRef = useRef<HTMLInputElement>(null);
+
+  // URL params for table context
+  const urlTableId = searchParams.get("table_id");
+  const urlTableName = searchParams.get("table_name");
+  const urlGuests = parseInt(searchParams.get("guests") || "1");
+  const urlGuestName = decodeURIComponent(searchParams.get("guest_name") || "");
 
   // State
   const [products, setProducts] = useState<Product[]>([]);
