@@ -2869,6 +2869,51 @@ const POSPage = () => {
 
       {/* ── Receipt Dialog ── */}
       <POSReceiptDialog open={showReceipt} onOpenChange={setShowReceipt} data={receiptData} />
+
+      {/* ── Kitchen Ticket Dialog ── */}
+      <Dialog open={showKitchenTicket} onOpenChange={setShowKitchenTicket}>
+        <DialogContent className="max-w-xs" dir="rtl">
+          <div className="text-center space-y-1 pb-2 border-b border-dashed border-border">
+            <p className="text-lg font-bold">🍳 طلب مطبخ</p>
+            <p className="text-xs text-muted-foreground">{new Date().toLocaleDateString("ar-PS")}</p>
+          </div>
+          {kitchenTicketData && (
+            <div className="space-y-3 py-2">
+              <div className="flex justify-between text-sm">
+                <span className="font-bold text-foreground">طاولة: {kitchenTicketData.tableName}</span>
+                <span className="text-muted-foreground">{kitchenTicketData.time}</span>
+              </div>
+              {kitchenTicketData.guestCount > 0 && (
+                <p className="text-xs text-muted-foreground">عدد الضيوف: {kitchenTicketData.guestCount}</p>
+              )}
+              <div className="border-t border-dashed border-border pt-2 space-y-2">
+                {kitchenTicketData.items.map((item: any, idx: number) => (
+                  <div key={idx} className="flex items-start gap-2">
+                    <span className="text-lg font-bold text-primary min-w-[28px]">{item.qty}×</span>
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-foreground">{item.name}</p>
+                      {item.note && <p className="text-xs text-amber-600 mt-0.5">📝 {item.note}</p>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {kitchenTicketData.orderNote && (
+                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-2 text-xs text-amber-800 dark:text-amber-300">
+                  📝 {kitchenTicketData.orderNote}
+                </div>
+              )}
+              <p className="text-[10px] text-muted-foreground text-center pt-1">كاشير: {kitchenTicketData.cashierName}</p>
+            </div>
+          )}
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setShowKitchenTicket(false)} className="flex-1">إغلاق</Button>
+            <Button onClick={() => { window.print(); setShowKitchenTicket(false); }} className="flex-1 gap-1">
+              <Printer className="h-4 w-4" />
+              طباعة
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
