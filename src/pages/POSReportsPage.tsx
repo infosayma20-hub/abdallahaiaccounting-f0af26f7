@@ -1,8 +1,5 @@
 import { useState, useMemo } from "react";
 import { usePOSReportsData, type DatePreset } from "@/hooks/usePOSReportsData";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -15,12 +12,16 @@ import {
   Printer,
   TrendingUp,
   TrendingDown,
-  ShoppingCart,
-  DollarSign,
-  Receipt,
-  BarChart3,
+  BarChart2,
+  Package,
+  CreditCard,
+  Users,
+  Clock,
+  Archive,
+  RotateCcw,
+  Timer,
+  ArrowRight,
 } from "lucide-react";
-import BackButton from "@/components/BackButton";
 import POSSalesReport from "@/components/pos-reports/POSSalesReport";
 import POSProductsReport from "@/components/pos-reports/POSProductsReport";
 import POSPaymentsReport from "@/components/pos-reports/POSPaymentsReport";
@@ -31,260 +32,244 @@ import POSReturnsReport from "@/components/pos-reports/POSReturnsReport";
 import POSProfitReport from "@/components/pos-reports/POSProfitReport";
 import POSShiftsReport from "@/components/pos-reports/POSShiftsReport";
 import * as XLSX from "xlsx";
+import { useNavigate } from "react-router-dom";
 
 const PRESETS: { key: DatePreset; label: string }[] = [
   { key: "today", label: "اليوم" },
   { key: "yesterday", label: "أمس" },
   { key: "week", label: "هذا الأسبوع" },
   { key: "month", label: "هذا الشهر" },
-  { key: "custom", label: "مخصص 📅" },
+  { key: "custom", label: "مخصص" },
+];
+
+const TABS = [
+  { id: "sales", label: "المبيعات", icon: BarChart2 },
+  { id: "products", label: "المنتجات", icon: Package },
+  { id: "payments", label: "طرق الدفع", icon: CreditCard },
+  { id: "cashier", label: "الكاشير", icon: Users },
+  { id: "peak", label: "الأوقات", icon: Clock },
+  { id: "inventory", label: "المخزون", icon: Archive },
+  { id: "returns", label: "المرتجعات", icon: RotateCcw },
+  { id: "profit", label: "الربحية", icon: TrendingUp },
+  { id: "shifts", label: "الورديات", icon: Timer },
 ];
 
 const POSReportsPage = () => {
   const data = usePOSReportsData();
   const [activeTab, setActiveTab] = useState("sales");
+  const navigate = useNavigate();
 
-  // Export to Excel
   const handleExportExcel = () => {
     const wb = XLSX.utils.book_new();
-
-    // Daily sales sheet
     if (data.dailySales.length > 0) {
       const ws = XLSX.utils.json_to_sheet(data.dailySales.map(d => ({
-        "التاريخ": d.date,
-        "الطلبات": d.orders,
-        "المبيعات": d.sales,
-        "المرتجعات": d.returns,
-        "الصافي": d.net,
+        "التاريخ": d.date, "الطلبات": d.orders, "المبيعات": d.sales, "المرتجعات": d.returns, "الصافي": d.net,
       })));
       XLSX.utils.book_append_sheet(wb, ws, "المبيعات اليومية");
     }
-
-    // Products sheet
     if (data.topProducts.length > 0) {
       const ws2 = XLSX.utils.json_to_sheet(data.topProducts.map(p => ({
-        "المنتج": p.name,
-        "الكمية": p.qty,
-        "الإيراد": p.revenue,
-        "التكلفة": p.cost,
-        "الربح": p.revenue - p.cost,
+        "المنتج": p.name, "الكمية": p.qty, "الإيراد": p.revenue, "التكلفة": p.cost, "الربح": p.revenue - p.cost,
       })));
       XLSX.utils.book_append_sheet(wb, ws2, "المنتجات");
     }
-
-    // Payment methods sheet
     if (data.paymentBreakdown.length > 0) {
       const ws3 = XLSX.utils.json_to_sheet(data.paymentBreakdown.map(p => ({
-        "طريقة الدفع": p.method,
-        "المبلغ": p.amount,
+        "طريقة الدفع": p.method, "المبلغ": p.amount,
         "%": data.totalSales > 0 ? ((p.amount / data.totalSales) * 100).toFixed(1) : 0,
       })));
       XLSX.utils.book_append_sheet(wb, ws3, "طرق الدفع");
     }
-
-    // Cashier sheet
     if (data.cashierPerformance.length > 0) {
       const ws4 = XLSX.utils.json_to_sheet(data.cashierPerformance.map(c => ({
-        "الكاشير": c.name,
-        "الورديات": c.shifts,
-        "الطلبات": c.orders,
-        "المبيعات": c.sales,
-        "المتوسط": Math.round(c.avgOrder),
-        "العجز": c.variance,
+        "الكاشير": c.name, "الورديات": c.shifts, "الطلبات": c.orders,
+        "المبيعات": c.sales, "المتوسط": Math.round(c.avgOrder), "العجز": c.variance,
       })));
       XLSX.utils.book_append_sheet(wb, ws4, "أداء الكاشير");
     }
-
-    // Shifts sheet
     if (data.sessions.length > 0) {
       const ws5 = XLSX.utils.json_to_sheet(data.sessions.map(s => ({
         "الكاشير": s.cashier_name || "",
         "تاريخ الفتح": format(new Date(s.opened_at), "yyyy-MM-dd"),
         "وقت الفتح": format(new Date(s.opened_at), "HH:mm"),
         "وقت الإغلاق": s.closed_at ? format(new Date(s.closed_at), "HH:mm") : "مفتوحة",
-        "رصيد الفتح": s.opening_cash,
-        "رصيد الإغلاق": s.closing_cash ?? "",
-        "المتوقع": s.expected_cash ?? "",
-        "الفرق": s.cash_variance ?? "",
-        "المبيعات": s.total_sales,
-        "الطلبات": s.total_orders,
+        "رصيد الفتح": s.opening_cash, "رصيد الإغلاق": s.closing_cash ?? "",
+        "المتوقع": s.expected_cash ?? "", "الفرق": s.cash_variance ?? "",
+        "المبيعات": s.total_sales, "الطلبات": s.total_orders,
         "الحالة": s.state === "open" ? "مفتوحة" : "مغلقة",
       })));
       XLSX.utils.book_append_sheet(wb, ws5, "الورديات");
     }
-
     XLSX.writeFile(wb, `تقارير-POS-${format(data.dateFrom, "yyyy-MM-dd")}.xlsx`);
   };
 
   const handlePrint = () => window.print();
 
-  // Calculate discounts total
   const totalDiscounts = useMemo(() =>
     data.paidOrders.reduce((s, o) => s + o.discount_amount, 0), [data.paidOrders]);
 
   return (
-    <div className="p-4 md:p-6 space-y-6 max-w-7xl mx-auto print:p-2" dir="rtl">
-      {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <BackButton />
-          <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <BarChart3 className="h-6 w-6 text-primary" />
-              تقارير نقطة البيع
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              {format(data.dateFrom, "dd MMMM yyyy", { locale: ar })} — {format(data.dateTo, "dd MMMM yyyy", { locale: ar })}
-            </p>
+    <div className="min-h-screen bg-[#F8F9FA]" dir="rtl">
+      {/* ── Header ── */}
+      <div className="bg-white border-b border-[#E2E8F0] px-6 py-4 print:py-2">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-3">
+              <button onClick={() => navigate(-1)} className="p-1.5 rounded-md hover:bg-gray-100 transition-colors print:hidden">
+                <ArrowRight className="w-5 h-5 text-[#637381]" />
+              </button>
+              <div>
+                <h1 className="text-xl font-semibold text-[#1A2332] tracking-tight">
+                  تقارير نقطة البيع
+                </h1>
+                <p className="text-sm text-[#637381] mt-0.5">
+                  {format(data.dateFrom, "dd MMMM yyyy", { locale: ar })} — {format(data.dateTo, "dd MMMM yyyy", { locale: ar })}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 print:hidden">
+              <button
+                onClick={handleExportExcel}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-[#637381] border border-[#E2E8F0] rounded-md hover:bg-gray-50 transition-colors"
+              >
+                <Download className="w-4 h-4" />
+                تصدير Excel
+              </button>
+              <button
+                onClick={handlePrint}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-[#637381] border border-[#E2E8F0] rounded-md hover:bg-gray-50 transition-colors"
+              >
+                <Printer className="w-4 h-4" />
+                طباعة
+              </button>
+            </div>
           </div>
-        </div>
-        <div className="flex gap-2 print:hidden">
-          <Button variant="outline" size="sm" onClick={handleExportExcel}>
-            <Download className="h-4 w-4 ml-1" /> تصدير Excel
-          </Button>
-          <Button variant="outline" size="sm" onClick={handlePrint}>
-            <Printer className="h-4 w-4 ml-1" /> طباعة
-          </Button>
+
+          {/* Date presets */}
+          <div className="flex flex-wrap gap-1.5 mt-3 print:hidden">
+            {PRESETS.map(p => (
+              <button
+                key={p.key}
+                onClick={() => data.setPreset(p.key)}
+                className={cn(
+                  "px-3 py-1.5 text-xs rounded-md border transition-colors font-medium",
+                  data.preset === p.key
+                    ? "bg-[#0070F2] text-white border-[#0070F2]"
+                    : "text-[#637381] border-[#E2E8F0] hover:border-[#94A3B8] hover:text-[#1A2332]"
+                )}
+              >
+                {p.key === "custom" && <CalendarIcon className="w-3 h-3 inline-block ml-1" />}
+                {p.label}
+              </button>
+            ))}
+            {data.preset === "custom" && (
+              <div className="flex gap-2 items-center mr-2">
+                <DatePicker date={data.customFrom} onSelect={data.setCustomFrom} label="من" />
+                <DatePicker date={data.customTo} onSelect={data.setCustomTo} label="إلى" />
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Date presets */}
-      <div className="flex flex-wrap gap-2 print:hidden">
-        {PRESETS.map(p => (
-          <Button
-            key={p.key}
-            variant={data.preset === p.key ? "default" : "outline"}
-            size="sm"
-            onClick={() => data.setPreset(p.key)}
-          >
-            {p.label}
-          </Button>
-        ))}
-        {data.preset === "custom" && (
-          <div className="flex gap-2 items-center">
-            <DatePicker date={data.customFrom} onSelect={data.setCustomFrom} label="من" />
-            <DatePicker date={data.customTo} onSelect={data.setCustomTo} label="إلى" />
-          </div>
-        )}
-      </div>
-
-      {/* KPI Cards */}
-      {data.loading ? (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-28 rounded-xl" />)}
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <KPICard title="المبيعات" value={`₪${data.totalSales.toLocaleString()}`} icon={<DollarSign className="h-5 w-5" />} color="primary" />
-          <KPICard title="الطلبات" value={data.totalOrders.toString()} icon={<ShoppingCart className="h-5 w-5" />} color="info" />
-          <KPICard title="متوسط الفاتورة" value={`₪${Math.round(data.avgOrderValue).toLocaleString()}`} icon={<Receipt className="h-5 w-5" />} color="warning" />
-          <KPICard title="إجمالي الربح" value={`₪${data.grossProfit.toLocaleString()}`} icon={<TrendingUp className="h-5 w-5" />} color="success" subtitle={`هامش ${data.grossMargin.toFixed(1)}%`} />
-        </div>
-      )}
-
-      {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} dir="rtl">
-        <TabsList className="flex flex-wrap h-auto gap-1 bg-muted/50 p-1 print:hidden">
-          <TabsTrigger value="sales" className="text-xs sm:text-sm">📈 المبيعات</TabsTrigger>
-          <TabsTrigger value="products" className="text-xs sm:text-sm">🥇 المنتجات</TabsTrigger>
-          <TabsTrigger value="payments" className="text-xs sm:text-sm">💳 الدفع</TabsTrigger>
-          <TabsTrigger value="cashier" className="text-xs sm:text-sm">👤 الكاشير</TabsTrigger>
-          <TabsTrigger value="peak" className="text-xs sm:text-sm">⏰ الأوقات</TabsTrigger>
-          <TabsTrigger value="inventory" className="text-xs sm:text-sm">📦 المخزون</TabsTrigger>
-          <TabsTrigger value="returns" className="text-xs sm:text-sm">🔄 المرتجعات</TabsTrigger>
-          <TabsTrigger value="profit" className="text-xs sm:text-sm">📊 الربحية</TabsTrigger>
-          <TabsTrigger value="shifts" className="text-xs sm:text-sm">🕐 الورديات</TabsTrigger>
-        </TabsList>
-
+      <div className="max-w-7xl mx-auto px-6 py-5 space-y-5 print:px-2 print:py-2">
+        {/* ── KPI Cards ── */}
         {data.loading ? (
-          <div className="mt-6 space-y-4">
-            <Skeleton className="h-[300px] rounded-xl" />
-            <Skeleton className="h-[200px] rounded-xl" />
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-24 rounded-lg" />)}
           </div>
         ) : (
-          <>
-            <TabsContent value="sales">
-              <POSSalesReport dailySales={data.dailySales} />
-            </TabsContent>
-            <TabsContent value="products">
-              <POSProductsReport topProducts={data.topProducts} totalRevenue={data.totalSales} />
-            </TabsContent>
-            <TabsContent value="payments">
-              <POSPaymentsReport paymentBreakdown={data.paymentBreakdown} totalSales={data.totalSales} paidOrders={data.paidOrders} />
-            </TabsContent>
-            <TabsContent value="cashier">
-              <POSCashierReport cashierPerformance={data.cashierPerformance} />
-            </TabsContent>
-            <TabsContent value="peak">
-              <POSPeakHoursReport peakHoursData={data.peakHoursData} />
-            </TabsContent>
-            <TabsContent value="inventory">
-              <POSInventoryReport inventoryReport={data.inventoryReport} />
-            </TabsContent>
-            <TabsContent value="returns">
-              <POSReturnsReport
-                returnOrders={data.returnOrders}
-                orderLines={data.orderLines}
-                sessions={data.sessions}
-                paidOrders={data.paidOrders}
-                totalSales={data.totalSales}
-              />
-            </TabsContent>
-            <TabsContent value="profit">
-              <POSProfitReport
-                totalSales={data.totalSales}
-                totalCOGS={data.totalCOGS}
-                grossProfit={data.grossProfit}
-                grossMargin={data.grossMargin}
-                totalReturns={data.totalReturns}
-                totalDiscounts={totalDiscounts}
-              />
-            </TabsContent>
-            <TabsContent value="shifts">
-              <POSShiftsReport sessions={data.sessions} onRefresh={data.refetch} />
-            </TabsContent>
-          </>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <KPICard title="المبيعات الصافية" value={data.totalSales} prefix="₪" />
+            <KPICard title="عدد الطلبات" value={data.totalOrders} />
+            <KPICard title="متوسط قيمة الفاتورة" value={Math.round(data.avgOrderValue)} prefix="₪" />
+            <KPICard title="هامش الربح الإجمالي" value={data.grossMargin} suffix="%" decimals={1} />
+          </div>
         )}
-      </Tabs>
+
+        {/* ── Navigation Tabs ── */}
+        <div className="border-b border-[#E2E8F0] bg-white rounded-t-lg print:hidden">
+          <nav className="flex -mb-px overflow-x-auto">
+            {TABS.map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={cn(
+                  "flex items-center gap-2 px-4 py-3 text-sm whitespace-nowrap border-b-2 transition-colors",
+                  activeTab === tab.id
+                    ? "border-[#0070F2] text-[#0070F2] font-medium"
+                    : "border-transparent text-[#637381] hover:text-[#1A2332]"
+                )}
+              >
+                <tab.icon className="w-4 h-4" />
+                {tab.label}
+              </button>
+            ))}
+          </nav>
+        </div>
+
+        {/* ── Tab Content ── */}
+        {data.loading ? (
+          <div className="space-y-4">
+            <Skeleton className="h-[300px] rounded-lg" />
+            <Skeleton className="h-[200px] rounded-lg" />
+          </div>
+        ) : (
+          <div className="mt-0">
+            {activeTab === "sales" && <POSSalesReport dailySales={data.dailySales} />}
+            {activeTab === "products" && <POSProductsReport topProducts={data.topProducts} totalRevenue={data.totalSales} />}
+            {activeTab === "payments" && <POSPaymentsReport paymentBreakdown={data.paymentBreakdown} totalSales={data.totalSales} paidOrders={data.paidOrders} />}
+            {activeTab === "cashier" && <POSCashierReport cashierPerformance={data.cashierPerformance} />}
+            {activeTab === "peak" && <POSPeakHoursReport peakHoursData={data.peakHoursData} />}
+            {activeTab === "inventory" && <POSInventoryReport inventoryReport={data.inventoryReport} />}
+            {activeTab === "returns" && (
+              <POSReturnsReport
+                returnOrders={data.returnOrders} orderLines={data.orderLines}
+                sessions={data.sessions} paidOrders={data.paidOrders} totalSales={data.totalSales}
+              />
+            )}
+            {activeTab === "profit" && (
+              <POSProfitReport
+                totalSales={data.totalSales} totalCOGS={data.totalCOGS}
+                grossProfit={data.grossProfit} grossMargin={data.grossMargin}
+                totalReturns={data.totalReturns} totalDiscounts={totalDiscounts}
+              />
+            )}
+            {activeTab === "shifts" && <POSShiftsReport sessions={data.sessions} onRefresh={data.refetch} />}
+          </div>
+        )}
+      </div>
     </div>
   );
 };
 
-// KPI Card component
-const KPICard = ({ title, value, icon, color, subtitle }: {
-  title: string; value: string; icon: React.ReactNode; color: string; subtitle?: string;
+// ── KPI Card ──
+const KPICard = ({ title, value, prefix, suffix, decimals = 0 }: {
+  title: string; value: number; prefix?: string; suffix?: string; decimals?: number;
 }) => (
-  <Card className="overflow-hidden">
-    <CardContent className="p-4">
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-xs text-muted-foreground">{title}</p>
-          <p className="text-xl md:text-2xl font-bold mt-1">{value}</p>
-          {subtitle && <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>}
-        </div>
-        <div className={`p-2 rounded-lg bg-${color}/10`} style={{ color: `hsl(var(--${color}))` }}>
-          {icon}
-        </div>
-      </div>
-    </CardContent>
-  </Card>
+  <div className="bg-white border border-[#E2E8F0] rounded-lg p-4">
+    <p className="text-xs font-medium text-[#637381] uppercase tracking-wider">{title}</p>
+    <p className="text-2xl font-bold text-[#1A2332] mt-2 font-mono tabular-nums">
+      {prefix && <span className="text-base ml-0.5">{prefix}</span>}
+      {decimals > 0 ? value.toFixed(decimals) : value.toLocaleString()}
+      {suffix && <span className="text-base mr-0.5">{suffix}</span>}
+    </p>
+  </div>
 );
 
-// Date picker helper
+// ── Date Picker ──
 const DatePicker = ({ date, onSelect, label }: { date: Date; onSelect: (d: Date) => void; label: string }) => (
   <Popover>
     <PopoverTrigger asChild>
-      <Button variant="outline" size="sm" className="text-xs">
-        <CalendarIcon className="h-3 w-3 ml-1" />
+      <button className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-[#637381] border border-[#E2E8F0] rounded-md hover:bg-gray-50">
+        <CalendarIcon className="h-3 w-3" />
         {label}: {format(date, "dd/MM/yyyy")}
-      </Button>
+      </button>
     </PopoverTrigger>
     <PopoverContent className="w-auto p-0" align="start">
       <Calendar
-        mode="single"
-        selected={date}
-        onSelect={(d) => d && onSelect(d)}
-        initialFocus
+        mode="single" selected={date}
+        onSelect={(d) => d && onSelect(d)} initialFocus
         className={cn("p-3 pointer-events-auto")}
       />
     </PopoverContent>
