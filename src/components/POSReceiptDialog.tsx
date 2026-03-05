@@ -21,6 +21,8 @@ interface ReceiptData {
   companyName: string;
   terminalName: string;
   customerName: string;
+  tableName?: string;
+  guestCount?: number;
   items: ReceiptItem[];
   subtotal: number;
   tax: number;
@@ -221,6 +223,12 @@ export default function POSReceiptDialog({ open, onOpenChange, data }: POSReceip
                 <span style={{ color: "#64748b" }}>الكاشير</span>
                 <span style={{ fontWeight: 500, color: "#334155" }}>{data.cashierName}</span>
               </div>
+              {data.tableName && (
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "2px 0", fontSize: "11px" }}>
+                  <span style={{ color: "#64748b" }}>الطاولة</span>
+                  <span style={{ fontWeight: 700, color: "#0f172a" }}>{data.tableName}{data.guestCount ? ` (${data.guestCount} ضيوف)` : ""}</span>
+                </div>
+              )}
               {data.customerName && (
                 <div style={{ display: "flex", justifyContent: "space-between", padding: "2px 0", fontSize: "11px" }}>
                   <span style={{ color: "#64748b" }}>العميل</span>
