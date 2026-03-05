@@ -913,6 +913,182 @@ const POSPage = () => {
     toast.success("تم فتح الوردية بنجاح");
   };
 
+  // Save order to table (draft - no payment)
+  const handleSaveToTable = async () => {
+    if (!userId || !session || cart.length === 0 || !activeOrder.tableId || !company) return;
+    setSavingToTable(true);
+    try {
+      // Check if there's already an open order for this table
+      const { data: existingOrder } = await supabase
+        .from("pos_orders")
+        .select("id")
+        .eq("table_id", activeOrder.tableId)
+        .in("state", ["draft", "open"] as any)
+        .maybeSingle();
+
+      if (existingOrder) {
+        // Add items to existing order
+        const lines = cart.map((item) => ({
+          user_id: dataOwnerId,
+          order_id: existingOrder.id,
+          product_id: item.product_id,
+          product_name: item.name,
+          qty: item.qty,
+          unit: item.unit,
+          unit_price: item.unit_price,
+          discount_pct: item.discount_pct,
+          discount_amount: item.unit_price * item.qty * item.discount_pct / 100,
+          tax_rate: item.tax_rate,
+          tax_amount: item.total * item.tax_rate / 100,
+          subtotal: item.qty * item.unit_price,
+          total: item.total,
+          cost_price: item.cost_price,
+        }));
+        await supabase.from("pos_order_lines").insert(lines);
+        // Update order totals
+        await supabase.from("pos_orders").update({
+          subtotal: cartTotals.subtotal,
+          total: cartTotals.total,
+          tax_amount: cartTotals.tax,
+          discount_amount: cartTotals.discount,
+        } as any).eq("id", existingOrder.id);
+      } else {
+        // Create new draft order
+        const { data: order, error } = await supabase
+          .from("pos_orders")
+          .insert({
+            user_id: dataOwnerId,
+            company_id: company.id,
+            session_id: session.id,
+            customer_name: customerName || null,
+            subtotal: cartTotals.subtotal,
+            discount_amount: cartTotals.discount,
+            tax_amount: cartTotals.tax,
+            total: cartTotals.total,
+            state: "draft",
+            table_id: activeOrder.tableId,
+            guest_count: activeOrder.guestCount,
+            guest_name: activeOrder.guestName || null,
+            order_type: "dine_in",
+          } as any)
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        const lines = cart.map((item) => ({
+          user_id: dataOwnerId,
+          order_id: order.id,
+          product_id: item.product_id,
+          product_name: item.name,
+          qty: item.qty,
+          unit: item.unit,
+          unit_price: item.unit_price,
+          discount_pct: item.discount_pct,
+          discount_amount: item.unit_price * item.qty * item.discount_pct / 100,
+          tax_rate: item.tax_rate,
+          tax_amount: item.total * item.tax_rate / 100,
+          subtotal: item.qty * item.unit_price,
+          total: item.total,
+          cost_price: item.cost_price,
+        }));
+        await supabase.from("pos_order_lines").insert(lines);
+      }
+
+      toast.success(`✅ تم حفظ الطلب على ${activeOrder.tableName}`);
+
+      // Clear this order tab or remove it
+      if (orders.length > 1) {
+        removeOrder(activeOrderIndex);
+      } else {
+        orderCounter.current += 1;
+        setOrders([createNewOrder(orderCounter.current)]);
+        setActiveOrderIndex(0);
+      }
+    } catch (err: any) {
+      toast.error(err.message || "خطأ في حفظ الطلب");
+    } finally {
+      setSavingToTable(false);
+    }
+  };
+
+  // Send to kitchen (print kitchen ticket)
+  const handleSendToKitchen = () => {
+    if (cart.length === 0) return;
+    setKitchenTicketData({
+      tableName: activeOrder.tableName || "بدون طاولة",
+      guestCount: activeOrder.guestCount,
+      cashierName: session?.cashier_name || "",
+      time: new Date().toLocaleTimeString("ar-PS", { hour: "2-digit", minute: "2-digit" }),
+      items: cart.map(item => ({
+        name: item.name,
+        qty: item.qty,
+        note: item.note,
+      })),
+      orderNote: activeOrder.orderNote,
+    });
+    setShowKitchenTicket(true);
+  };
+
+  // Load existing table order into cart
+  const loadTableOrder = async (tableId: string, tableName: string) => {
+    const { data: order } = await supabase
+      .from("pos_orders")
+      .select("id, guest_count, guest_name, customer_name, subtotal, total, discount_amount, tax_amount")
+      .eq("table_id", tableId)
+      .in("state", ["draft", "open"] as any)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (!order) return;
+
+    const { data: lines } = await supabase
+      .from("pos_order_lines")
+      .select("*")
+      .eq("order_id", order.id);
+
+    if (!lines || lines.length === 0) return;
+
+    const cartItems: CartItem[] = lines.map((line: any) => ({
+      id: crypto.randomUUID(),
+      product_id: line.product_id,
+      name: line.product_name,
+      qty: line.qty,
+      unit_price: Number(line.unit_price),
+      cost_price: Number(line.cost_price) || 0,
+      discount_pct: Number(line.discount_pct) || 0,
+      tax_rate: Number(line.tax_rate) || 0,
+      unit: line.unit || "قطعة",
+      total: Number(line.total),
+      note: "",
+    }));
+
+    // Find or create order tab for this table
+    const existingTabIdx = orders.findIndex(o => o.tableId === tableId);
+    if (existingTabIdx >= 0) {
+      setActiveOrderIndex(existingTabIdx);
+      updateActiveOrder(o => ({ ...o, cart: cartItems }));
+    } else {
+      const newOrder: OrderTab = {
+        id: crypto.randomUUID(),
+        name: tableName,
+        cart: cartItems,
+        customerName: order.customer_name || "",
+        orderDiscount: Number(order.discount_amount) || 0,
+        orderDiscountType: "fixed",
+        orderNote: "",
+        selectedCartIndex: null,
+        tableId,
+        tableName,
+        guestCount: (order as any).guest_count || 1,
+        guestName: (order as any).guest_name || "",
+      };
+      setOrders(prev => [...prev, newOrder]);
+      setActiveOrderIndex(orders.length);
+    }
+  };
+
   // Complete order
   const handleCompleteOrder = async () => {
     if (!userId || !session || cart.length === 0) return;
