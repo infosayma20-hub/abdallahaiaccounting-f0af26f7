@@ -41,3 +41,6 @@ verify_jwt = false
 
 [functions.migrate-from-airtable]
 verify_jwt = false
+
+[functions.pos-pin-auth]
+verify_jwt = false
