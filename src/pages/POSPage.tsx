@@ -1640,13 +1640,19 @@ const POSPage = () => {
           {/* Cart Header */}
           <div className="h-10 px-3 flex items-center justify-between shrink-0">
             <div className="flex items-center gap-2">
+              {activeOrder.tableName && (
+                <span className="text-xs font-semibold text-primary flex items-center gap-1 bg-primary/10 px-2 py-0.5 rounded-md">
+                  <UtensilsCrossed className="h-3 w-3" />
+                  {activeOrder.tableName}
+                </span>
+              )}
               {activeOrder.customerName ? (
                 <span className="text-xs font-medium text-foreground flex items-center gap-1">
                   <User className="h-3 w-3" />
                   {activeOrder.customerName}
                 </span>
               ) : (
-                <span className="text-xs text-muted-foreground/60">بدون زبون</span>
+                <span className="text-xs text-muted-foreground/60">{activeOrder.tableName ? "" : "بدون زبون"}</span>
               )}
             </div>
             {cart.length > 0 && (
