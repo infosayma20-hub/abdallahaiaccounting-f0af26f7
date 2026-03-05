@@ -1,6 +1,3 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-
 interface Props {
   totalSales: number;
   totalCOGS: number;
@@ -16,46 +13,65 @@ const POSProfitReport = ({ totalSales, totalCOGS, grossProfit, grossMargin, tota
   const netMargin = netRevenue > 0 ? (netProfit / netRevenue) * 100 : 0;
 
   return (
-    <div className="space-y-6">
-      <Card className="max-w-lg mx-auto">
-        <CardHeader>
-          <CardTitle className="text-lg text-center">📊 تقرير الربحية</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-3">
-            <Row label="إجمالي المبيعات" value={totalSales} />
-            <Row label="المرتجعات" value={-totalReturns} negative />
-            <Row label="الحسومات" value={-totalDiscounts} negative />
-            <Separator />
-            <Row label="صافي الإيرادات" value={netRevenue} bold />
-            <Row label="تكلفة البضاعة المباعة" value={-totalCOGS} negative />
-            <Separator />
-            <Row label="إجمالي الربح" value={grossProfit} bold primary />
-            <div className="flex justify-between items-center text-sm">
-              <span className="text-muted-foreground">هامش الربح الإجمالي</span>
-              <span className="font-bold text-primary">{grossMargin.toFixed(1)}%</span>
-            </div>
-            <Separator className="border-2" />
-            <Row label="صافي الربح" value={netProfit} bold primary large />
-            <div className="flex justify-between items-center text-sm">
-              <span className="text-muted-foreground">هامش الربح الصافي</span>
-              <span className="font-bold" style={{ color: netMargin >= 0 ? "hsl(var(--primary))" : "hsl(var(--destructive))" }}>{netMargin.toFixed(1)}%</span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+    <div className="max-w-2xl mx-auto">
+      <div className="bg-white border border-[#E2E8F0] rounded-lg">
+        <div className="px-6 py-4 border-b border-[#E2E8F0]">
+          <h3 className="text-sm font-semibold text-[#1A2332]">قائمة الدخل — نقطة البيع</h3>
+        </div>
+        <div className="px-6 py-4 space-y-0">
+          {/* Revenue Section */}
+          <PLSection title="الإيرادات" />
+          <PLRow label="إجمالي المبيعات" value={totalSales} />
+          <PLRow label="(-) المرتجعات" value={-totalReturns} indent />
+          <PLRow label="(-) الحسومات" value={-totalDiscounts} indent />
+          <PLTotal label="صافي الإيرادات" value={netRevenue} />
+
+          <div className="border-t border-[#E2E8F0] my-3" />
+
+          {/* COGS Section */}
+          <PLSection title="تكلفة المبيعات" />
+          <PLRow label="تكلفة البضاعة المباعة" value={-totalCOGS} indent />
+          <PLTotal label="إجمالي الربح" value={grossProfit} sub={`هامش ${grossMargin.toFixed(1)}%`} />
+
+          <div className="border-t border-[#E2E8F0] my-3" />
+
+          {/* Net Profit */}
+          <PLTotal label="صافي الربح التشغيلي" value={netProfit} highlight sub={`هامش ${netMargin.toFixed(1)}%`} />
+        </div>
+      </div>
     </div>
   );
 };
 
-const Row = ({ label, value, negative, bold, primary, large }: {
-  label: string; value: number; negative?: boolean; bold?: boolean; primary?: boolean; large?: boolean;
+const PLSection = ({ title }: { title: string }) => (
+  <div className="pt-3 pb-1">
+    <p className="text-xs font-bold text-[#637381] uppercase tracking-widest">{title}</p>
+  </div>
+);
+
+const PLRow = ({ label, value, indent }: { label: string; value: number; indent?: boolean }) => (
+  <div className={`flex justify-between py-1.5 ${indent ? "pr-4" : ""}`}>
+    <span className="text-sm text-[#637381]">{label}</span>
+    <span className={`text-sm font-mono font-medium ${value < 0 ? "text-[#C53030]" : "text-[#1A2332]"}`}>
+      {value < 0 ? "-" : ""}₪{Math.abs(value).toLocaleString("en", { minimumFractionDigits: 2 })}
+    </span>
+  </div>
+);
+
+const PLTotal = ({ label, value, sub, highlight }: {
+  label: string; value: number; sub?: string; highlight?: boolean;
 }) => (
-  <div className="flex justify-between items-center">
-    <span className={`${bold ? "font-bold" : ""} ${large ? "text-lg" : "text-sm"} ${primary ? "" : "text-muted-foreground"}`}>{label}</span>
-    <span className={`font-mono ${bold ? "font-bold" : "font-medium"} ${large ? "text-xl" : ""}`}
-      style={{ color: negative ? "hsl(var(--destructive))" : primary ? "hsl(var(--primary))" : "hsl(var(--foreground))" }}>
-      {negative && value < 0 ? "-" : ""}₪{Math.abs(value).toLocaleString()}
+  <div className={`flex justify-between py-2 border-t border-[#E2E8F0] ${
+    highlight ? "bg-[#EBF5FF] px-4 -mx-4 rounded-lg border-2 border-[#BEE3F8] mt-3" : ""
+  }`}>
+    <div>
+      <span className={`text-sm font-bold ${highlight ? "text-[#1A2332]" : "text-[#1A2332]"}`}>
+        {label}
+      </span>
+      {sub && <span className="text-xs text-[#637381] mr-2">({sub})</span>}
+    </div>
+    <span className={`font-mono font-bold ${highlight ? "text-[#0070F2] text-base" : "text-sm text-[#1A2332]"}`}>
+      ₪{value.toLocaleString("en", { minimumFractionDigits: 2 })}
     </span>
   </div>
 );
