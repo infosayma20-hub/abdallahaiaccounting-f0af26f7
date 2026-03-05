@@ -2938,16 +2938,20 @@ export type Database = {
           customer_name: string | null
           discount_amount: number
           discount_type: string | null
+          guest_count: number | null
+          guest_name: string | null
           id: string
           is_return: boolean
           linked_transaction_id: string | null
           notes: string | null
           order_number: string | null
+          order_type: string | null
           return_of_order_id: string | null
           return_reason: string | null
           session_id: string
           state: string
           subtotal: number
+          table_id: string | null
           tax_amount: number
           total: number
           updated_at: string
@@ -2961,16 +2965,20 @@ export type Database = {
           customer_name?: string | null
           discount_amount?: number
           discount_type?: string | null
+          guest_count?: number | null
+          guest_name?: string | null
           id?: string
           is_return?: boolean
           linked_transaction_id?: string | null
           notes?: string | null
           order_number?: string | null
+          order_type?: string | null
           return_of_order_id?: string | null
           return_reason?: string | null
           session_id: string
           state?: string
           subtotal?: number
+          table_id?: string | null
           tax_amount?: number
           total?: number
           updated_at?: string
@@ -2984,16 +2992,20 @@ export type Database = {
           customer_name?: string | null
           discount_amount?: number
           discount_type?: string | null
+          guest_count?: number | null
+          guest_name?: string | null
           id?: string
           is_return?: boolean
           linked_transaction_id?: string | null
           notes?: string | null
           order_number?: string | null
+          order_type?: string | null
           return_of_order_id?: string | null
           return_reason?: string | null
           session_id?: string
           state?: string
           subtotal?: number
+          table_id?: string | null
           tax_amount?: number
           total?: number
           updated_at?: string
@@ -3026,6 +3038,13 @@ export type Database = {
             columns: ["session_id"]
             isOneToOne: false
             referencedRelation: "pos_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_orders_table_id_fkey"
+            columns: ["table_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_tables"
             referencedColumns: ["id"]
           },
         ]
@@ -3855,6 +3874,128 @@ export type Database = {
           },
         ]
       }
+      restaurant_sections: {
+        Row: {
+          branch_id: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          sort_order: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          branch_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          sort_order?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          branch_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          sort_order?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restaurant_sections_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "restaurant_sections_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      restaurant_tables: {
+        Row: {
+          created_at: string | null
+          current_guests: number | null
+          current_order_id: string | null
+          height: number | null
+          id: string
+          is_active: boolean | null
+          name: string
+          occupied_at: string | null
+          pos_x: number | null
+          pos_y: number | null
+          rotation: number | null
+          seats: number | null
+          section_id: string | null
+          shape: string | null
+          status: string | null
+          updated_at: string | null
+          user_id: string
+          width: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          current_guests?: number | null
+          current_order_id?: string | null
+          height?: number | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          occupied_at?: string | null
+          pos_x?: number | null
+          pos_y?: number | null
+          rotation?: number | null
+          seats?: number | null
+          section_id?: string | null
+          shape?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id: string
+          width?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          current_guests?: number | null
+          current_order_id?: string | null
+          height?: number | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          occupied_at?: string | null
+          pos_x?: number | null
+          pos_y?: number | null
+          rotation?: number | null
+          seats?: number | null
+          section_id?: string | null
+          shape?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string
+          width?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restaurant_tables_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_sections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       salary_slips: {
         Row: {
           absence_deduction: number | null
@@ -4332,6 +4473,59 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      table_reservations: {
+        Row: {
+          created_at: string | null
+          duration_minutes: number | null
+          guest_name: string
+          guest_phone: string | null
+          id: string
+          notes: string | null
+          party_size: number | null
+          reservation_date: string
+          reservation_time: string
+          status: string | null
+          table_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          duration_minutes?: number | null
+          guest_name: string
+          guest_phone?: string | null
+          id?: string
+          notes?: string | null
+          party_size?: number | null
+          reservation_date: string
+          reservation_time: string
+          status?: string | null
+          table_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          duration_minutes?: number | null
+          guest_name?: string
+          guest_phone?: string | null
+          id?: string
+          notes?: string | null
+          party_size?: number | null
+          reservation_date?: string
+          reservation_time?: string
+          status?: string | null
+          table_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "table_reservations_table_id_fkey"
+            columns: ["table_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_tables"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       termination_records: {
         Row: {
