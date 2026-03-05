@@ -4,14 +4,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Plus, User, Shield, ShieldCheck, Eye, Pencil, Trash2,
-  Smartphone, Lock, Unlock, ChevronDown, Search, Loader2,
-  Monitor, Copy, CheckCircle, X, Mail, KeyRound, UserPlus,
+  Plus, User, Shield, Pencil, Trash2,
+  Smartphone, Lock, Unlock, Search, Loader2,
+  Monitor, CheckCircle, Mail, KeyRound, UserPlus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -30,8 +29,6 @@ interface POSUserRow {
   avatar_url: string | null;
   role: string;
   is_active: boolean;
-  pin_failed_attempts: number;
-  pin_locked_until: string | null;
   last_login_at: string | null;
   company_id: string;
   employee_id: string | null;
@@ -103,7 +100,7 @@ export default function POSUserManagementPage() {
   const [showUserDialog, setShowUserDialog] = useState(false);
   const [editingUser, setEditingUser] = useState<POSUserRow | null>(null);
   const [userForm, setUserForm] = useState({
-    name: "", phone: "", email: "", role: "cashier", pin: "", confirmPin: "",
+    name: "", phone: "", email: "", role: "cashier",
   });
   const [createAccount, setCreateAccount] = useState(false);
   const [accountPassword, setAccountPassword] = useState("");
@@ -156,10 +153,10 @@ export default function POSUserManagementPage() {
 
   const openAddUser = () => {
     setEditingUser(null);
-    setUserForm({ name: "", phone: "", email: "", role: "cashier", pin: "", confirmPin: "" });
+    setUserForm({ name: "", phone: "", email: "", role: "cashier" });
     setUserPerms(DEFAULT_PERMS);
     setAssignedDevices([]);
-    setCreateAccount(false);
+    setCreateAccount(true); // Always create account by default
     setAccountPassword("");
     setAccountConfirmPassword("");
     setShowUserDialog(true);
@@ -167,7 +164,7 @@ export default function POSUserManagementPage() {
 
   const openEditUser = async (u: POSUserRow) => {
     setEditingUser(u);
-    setUserForm({ name: u.name, phone: u.phone || "", email: u.email || "", role: u.role, pin: "", confirmPin: "" });
+    setUserForm({ name: u.name, phone: u.phone || "", email: u.email || "", role: u.role });
 
     // Load permissions
     const { data: perms } = await supabase.from("pos_user_permissions").select("*").eq("pos_user_id", u.id).single();
@@ -193,14 +190,10 @@ export default function POSUserManagementPage() {
 
   const handleSaveUser = async () => {
     if (!userForm.name.trim()) { toast.error("أدخل اسم الموظف"); return; }
-    if (!editingUser && (!userForm.pin || userForm.pin.length !== 4)) { toast.error("رمز PIN يجب أن يكون 4 أرقام"); return; }
-    if (!editingUser && userForm.pin !== userForm.confirmPin) { toast.error("رمز PIN غير متطابق"); return; }
-    if (editingUser && userForm.pin && userForm.pin.length !== 4) { toast.error("رمز PIN يجب أن يكون 4 أرقام"); return; }
-    if (editingUser && userForm.pin && userForm.pin !== userForm.confirmPin) { toast.error("رمز PIN غير متطابق"); return; }
+    if (!userForm.email) { toast.error("البريد الإلكتروني مطلوب"); return; }
 
-    // Validate account creation fields
-    if (createAccount && !editingUser) {
-      if (!userForm.email) { toast.error("البريد الإلكتروني مطلوب لإنشاء الحساب"); return; }
+    // Validate account creation fields for new users
+    if (!editingUser) {
       if (!accountPassword || accountPassword.length < 6) { toast.error("كلمة المرور يجب أن تكون 6 أحرف على الأقل"); return; }
       if (accountPassword !== accountConfirmPassword) { toast.error("كلمة المرور غير متطابقة"); return; }
     }
@@ -211,13 +204,6 @@ export default function POSUserManagementPage() {
         const updates: Record<string, unknown> = {
           name: userForm.name, phone: userForm.phone || null, email: userForm.email || null, role: userForm.role,
         };
-
-        if (userForm.pin) {
-          const { data: hashData } = await supabase.functions.invoke("pos-pin-auth", {
-            body: { action: "hash_pin", pin: userForm.pin, pos_user_id: editingUser.id },
-          });
-          if (hashData?.hash) updates.pin_hash = hashData.hash;
-        }
 
         await supabase.from("pos_users").update(updates).eq("id", editingUser.id);
 
@@ -240,11 +226,6 @@ export default function POSUserManagementPage() {
         toast.success("تم تحديث المستخدم");
       } else {
         const tempId = crypto.randomUUID();
-        const { data: hashData } = await supabase.functions.invoke("pos-pin-auth", {
-          body: { action: "hash_pin", pin: userForm.pin, pos_user_id: tempId },
-        });
-
-        if (!hashData?.hash) { toast.error("فشل تشفير الرمز"); setSaving(false); return; }
 
         const { data: newUser, error: insertErr } = await supabase.from("pos_users").insert({
           id: tempId,
@@ -254,7 +235,7 @@ export default function POSUserManagementPage() {
           phone: userForm.phone || null,
           email: userForm.email || null,
           role: userForm.role,
-          pin_hash: hashData.hash,
+          pin_hash: "no-pin", // Placeholder - PIN system removed
           created_by: user!.id,
         }).select("id").single();
 
@@ -275,20 +256,16 @@ export default function POSUserManagementPage() {
           );
         }
 
-        // Create full account if requested
-        if (createAccount && userForm.email) {
-          try {
-            const { data: acctData, error: acctErr } = await supabase.functions.invoke("create-pos-employee-account", {
-              body: { pos_user_id: newUser.id, email: userForm.email, password: accountPassword },
-            });
-            if (acctErr) throw acctErr;
-            if (acctData?.error) toast.error("تم إنشاء الموظف لكن فشل الحساب: " + acctData.error);
-            else toast.success("تم إنشاء الموظف والحساب بنجاح ✅");
-          } catch {
-            toast.success("تم إنشاء الموظف لكن فشل إنشاء الحساب");
-          }
-        } else {
-          toast.success("تم إضافة المستخدم بنجاح");
+        // Always create auth account for the employee
+        try {
+          const { data: acctData, error: acctErr } = await supabase.functions.invoke("create-pos-employee-account", {
+            body: { pos_user_id: newUser.id, email: userForm.email, password: accountPassword },
+          });
+          if (acctErr) throw acctErr;
+          if (acctData?.error) toast.error("تم إنشاء الموظف لكن فشل الحساب: " + acctData.error);
+          else toast.success("تم إنشاء الموظف والحساب بنجاح ✅");
+        } catch {
+          toast.success("تم إنشاء الموظف لكن فشل إنشاء الحساب");
         }
       }
 
@@ -307,11 +284,6 @@ export default function POSUserManagementPage() {
     loadData();
   };
 
-  const unlockUser = async (u: POSUserRow) => {
-    await supabase.from("pos_users").update({ pin_failed_attempts: 0, pin_locked_until: null }).eq("id", u.id);
-    toast.success("تم فتح القفل");
-    loadData();
-  };
 
   const handleCreateAccountForUser = async (u: POSUserRow) => {
     if (!u.email) { toast.error("يجب إدخال بريد إلكتروني أولاً"); return; }
@@ -367,17 +339,27 @@ export default function POSUserManagementPage() {
     if (!deviceForm.device_name.trim()) { toast.error("أدخل اسم الجهاز"); return; }
     setSaving(true);
     try {
-      const { data, error } = await supabase.functions.invoke("pos-pin-auth", {
-        body: {
-          action: "register_device",
-          device_fingerprint: currentFingerprint,
-          device_name: deviceForm.device_name,
+      // Check if device already exists
+      const { data: existing } = await supabase
+        .from("pos_devices")
+        .select("id")
+        .eq("device_fingerprint", currentFingerprint)
+        .eq("company_id", selectedCompany)
+        .single();
+
+      if (existing) {
+        toast.success("الجهاز مسجل مسبقاً");
+      } else {
+        const { error: devErr } = await supabase.from("pos_devices").insert({
+          user_id: user!.id,
           company_id: selectedCompany,
-        },
-      });
-      if (error) throw error;
-      if (data.error) { toast.error(data.error); return; }
-      toast.success(data.existing ? "الجهاز مسجل مسبقاً" : "تم تسجيل الجهاز بنجاح");
+          device_name: deviceForm.device_name,
+          device_fingerprint: currentFingerprint,
+          last_seen_at: new Date().toISOString(),
+        });
+        if (devErr) throw devErr;
+        toast.success("تم تسجيل الجهاز بنجاح");
+      }
       setShowDeviceDialog(false);
       setDeviceForm({ device_name: "" });
       loadData();
@@ -454,7 +436,6 @@ export default function POSUserManagementPage() {
           ) : (
             <div className="grid gap-3">
               {filteredUsers.map(u => {
-                const isLocked = u.pin_locked_until && new Date(u.pin_locked_until) > new Date();
                 return (
                   <Card key={u.id} className={`${!u.is_active ? "opacity-60" : ""}`}>
                     <CardContent className="flex items-center gap-4 p-4">
@@ -465,7 +446,6 @@ export default function POSUserManagementPage() {
                         <div className="flex items-center gap-2 flex-wrap">
                           <h3 className="font-semibold truncate">{u.name}</h3>
                           <Badge className={`text-xs ${ROLE_COLORS[u.role] || "bg-muted"}`}>{ROLE_LABELS[u.role] || u.role}</Badge>
-                          {isLocked && <Badge variant="destructive" className="text-xs gap-1"><Lock className="w-3 h-3" />مقفل</Badge>}
                           {!u.is_active && <Badge variant="secondary" className="text-xs">معطل</Badge>}
                           {u.has_account && u.account_status === "active" && (
                             <Badge className="text-xs bg-emerald-500/20 text-emerald-600 gap-1"><CheckCircle className="w-3 h-3" />حساب مفعّل</Badge>
@@ -474,7 +454,7 @@ export default function POSUserManagementPage() {
                             <Badge className="text-xs bg-amber-500/20 text-amber-600 gap-1"><Mail className="w-3 h-3" />دعوة مُرسلة</Badge>
                           )}
                           {(!u.has_account || u.account_status === "none") && (
-                            <Badge variant="outline" className="text-xs gap-1"><KeyRound className="w-3 h-3" />PIN فقط</Badge>
+                            <Badge variant="outline" className="text-xs gap-1"><KeyRound className="w-3 h-3" />بدون حساب</Badge>
                           )}
                         </div>
                         <p className="text-xs text-muted-foreground mt-0.5">
@@ -488,9 +468,6 @@ export default function POSUserManagementPage() {
                           <Button variant="ghost" size="icon" onClick={() => handleCreateAccountForUser(u)} title="إنشاء حساب كامل" disabled={creatingAccount}>
                             <UserPlus className="w-4 h-4 text-primary" />
                           </Button>
-                        )}
-                        {isLocked && (
-                          <Button variant="ghost" size="icon" onClick={() => unlockUser(u)} title="فتح القفل"><Unlock className="w-4 h-4 text-amber-500" /></Button>
                         )}
                         <Button variant="ghost" size="icon" onClick={() => openEditUser(u)}><Pencil className="w-4 h-4" /></Button>
                         <Button variant="ghost" size="icon" onClick={() => toggleUserActive(u)}>
@@ -574,8 +551,8 @@ export default function POSUserManagementPage() {
                 <Input value={userForm.phone} onChange={e => setUserForm(f => ({ ...f, phone: e.target.value }))} placeholder="0599..." />
               </div>
               <div>
-                <Label>البريد</Label>
-                <Input value={userForm.email} onChange={e => setUserForm(f => ({ ...f, email: e.target.value }))} type="email" />
+                <Label>البريد الإلكتروني *</Label>
+                <Input value={userForm.email} onChange={e => setUserForm(f => ({ ...f, email: e.target.value }))} type="email" placeholder="user@example.com" />
               </div>
               <div>
                 <Label>الدور</Label>
@@ -589,66 +566,38 @@ export default function POSUserManagementPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div>
-                <Label>رمز PIN (4 أرقام) {editingUser && "(اتركه فارغاً لعدم التغيير)"}</Label>
-                <Input
-                  value={userForm.pin}
-                  onChange={e => { if (/^\d{0,4}$/.test(e.target.value)) setUserForm(f => ({ ...f, pin: e.target.value })); }}
-                  type="password" maxLength={4} placeholder="••••" className="text-center tracking-[0.5em]"
-                />
-              </div>
-              <div className="col-span-2 sm:col-span-1">
-                <Label>تأكيد رمز PIN</Label>
-                <Input
-                  value={userForm.confirmPin}
-                  onChange={e => { if (/^\d{0,4}$/.test(e.target.value)) setUserForm(f => ({ ...f, confirmPin: e.target.value })); }}
-                  type="password" maxLength={4} placeholder="••••" className="text-center tracking-[0.5em]"
-                />
-              </div>
             </div>
 
-            {/* Account Creation Section */}
+            {/* Password Section - only for new users */}
             {!editingUser && (
-              <div className="border border-dashed border-primary/30 rounded-lg p-4 space-y-3 bg-primary/5">
-                <div className="flex items-center gap-3">
-                  <Checkbox
-                    id="create-account"
-                    checked={createAccount}
-                    onCheckedChange={(v) => setCreateAccount(!!v)}
-                  />
-                  <label htmlFor="create-account" className="text-sm font-semibold cursor-pointer flex items-center gap-2">
-                    <KeyRound className="w-4 h-4" />
-                    إنشاء حساب كامل للموظف (يوزر وباسورد)
-                  </label>
+              <div className="border border-primary/30 rounded-lg p-4 space-y-3 bg-primary/5">
+                <div className="flex items-center gap-2">
+                  <KeyRound className="w-4 h-4 text-primary" />
+                  <span className="text-sm font-semibold">بيانات الدخول</span>
                 </div>
-                <p className="text-xs text-muted-foreground mr-7">
-                  يتيح للموظف الدخول ببريده وكلمة مروره إلى بوابة الموظف ونقطة البيع
+                <p className="text-xs text-muted-foreground">
+                  سيتم إنشاء حساب للموظف يتيح له الدخول ببريده وكلمة مروره إلى نقطة البيع
                 </p>
-                {createAccount && (
-                  <div className="grid grid-cols-2 gap-4 mt-3 mr-7">
-                    <div>
-                      <Label>كلمة المرور *</Label>
-                      <Input
-                        type="password"
-                        value={accountPassword}
-                        onChange={e => setAccountPassword(e.target.value)}
-                        placeholder="6 أحرف على الأقل"
-                      />
-                    </div>
-                    <div>
-                      <Label>تأكيد كلمة المرور *</Label>
-                      <Input
-                        type="password"
-                        value={accountConfirmPassword}
-                        onChange={e => setAccountConfirmPassword(e.target.value)}
-                        placeholder="أعد إدخال كلمة المرور"
-                      />
-                    </div>
-                    <p className="col-span-2 text-xs text-muted-foreground">
-                      ⚠️ تأكد من إدخال بريد إلكتروني صالح في حقل البريد أعلاه
-                    </p>
+                <div className="grid grid-cols-2 gap-4 mt-3">
+                  <div>
+                    <Label>كلمة المرور *</Label>
+                    <Input
+                      type="password"
+                      value={accountPassword}
+                      onChange={e => setAccountPassword(e.target.value)}
+                      placeholder="6 أحرف على الأقل"
+                    />
                   </div>
-                )}
+                  <div>
+                    <Label>تأكيد كلمة المرور *</Label>
+                    <Input
+                      type="password"
+                      value={accountConfirmPassword}
+                      onChange={e => setAccountConfirmPassword(e.target.value)}
+                      placeholder="أعد إدخال كلمة المرور"
+                    />
+                  </div>
+                </div>
               </div>
             )}
 
@@ -666,7 +615,7 @@ export default function POSUserManagementPage() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <KeyRound className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-sm">دخول بـ PIN فقط</span>
+                      <span className="text-sm">بدون حساب</span>
                     </div>
                     {editingUser.email && (
                       <Button
