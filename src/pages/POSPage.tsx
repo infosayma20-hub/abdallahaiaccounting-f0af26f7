@@ -1815,8 +1815,92 @@ const POSPage = () => {
                     <StickyNote className="h-3 w-3" />
                     {orderNote ? "📝 ملاحظة" : "الملاحظات"}
                   </button>
+                  <button
+                    onClick={async () => {
+                      setShowTablePicker(!showTablePicker);
+                      if (availableTables.length === 0) {
+                        const ownerId = dataOwnerId;
+                        const { data } = await supabase
+                          .from("restaurant_tables")
+                          .select("id, name, seats, status, section_id")
+                          .eq("user_id", ownerId)
+                          .eq("is_active", true)
+                          .order("name");
+                        if (data) {
+                          const { data: secs } = await supabase
+                            .from("restaurant_sections")
+                            .select("id, name")
+                            .eq("user_id", ownerId);
+                          const secMap = Object.fromEntries((secs || []).map(s => [s.id, s.name]));
+                          setAvailableTables(data.map(t => ({
+                            ...t,
+                            section_name: secMap[t.section_id] || "",
+                          })));
+                        }
+                      }
+                    }}
+                    className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg transition-colors ${
+                      activeOrder.tableId
+                        ? "bg-primary/10 text-primary border border-primary/20"
+                        : "bg-muted/50 hover:bg-muted text-muted-foreground"
+                    }`}
+                  >
+                    <UtensilsCrossed className="h-3 w-3" />
+                    {activeOrder.tableName || "الطاولة"}
+                  </button>
                 </div>
 
+                {/* Table picker */}
+                {showTablePicker && (
+                  <div className="relative">
+                    <div className="absolute z-50 w-full bottom-full mb-1 bg-popover border border-border rounded-lg shadow-lg max-h-40 overflow-y-auto p-1">
+                      {availableTables.length === 0 ? (
+                        <p className="text-xs text-muted-foreground p-2 text-center">لا توجد طاولات. <button onClick={() => navigate("/pos/floor-plan/edit")} className="text-primary underline">أنشئ طاولات</button></p>
+                      ) : (
+                        <>
+                          {activeOrder.tableId && (
+                            <button
+                              onClick={() => {
+                                updateActiveOrder(o => ({ ...o, tableId: null, tableName: null, name: `طلب ${activeOrderIndex + 1}` }));
+                                setShowTablePicker(false);
+                              }}
+                              className="w-full px-3 py-1.5 text-xs text-right hover:bg-muted/50 transition flex items-center gap-2 text-destructive"
+                            >
+                              <X className="h-3 w-3 shrink-0" />
+                              <span>إزالة الطاولة</span>
+                            </button>
+                          )}
+                          {availableTables.map(t => (
+                            <button
+                              key={t.id}
+                              onClick={() => {
+                                updateActiveOrder(o => ({ ...o, tableId: t.id, tableName: t.name, name: t.name }));
+                                setShowTablePicker(false);
+                              }}
+                              disabled={t.status === "occupied" && t.id !== activeOrder.tableId}
+                              className={`w-full px-3 py-1.5 text-xs text-right hover:bg-muted/50 transition flex items-center justify-between gap-2 ${
+                                t.id === activeOrder.tableId ? "bg-primary/10" : ""
+                              } ${t.status === "occupied" && t.id !== activeOrder.tableId ? "opacity-40 cursor-not-allowed" : ""}`}
+                            >
+                              <div className="flex items-center gap-2">
+                                <UtensilsCrossed className="h-3 w-3 text-muted-foreground shrink-0" />
+                                <span className="font-medium">{t.name}</span>
+                                <span className="text-muted-foreground">({t.seats} كرسي)</span>
+                              </div>
+                              <span className={`text-[10px] ${
+                                t.status === "available" ? "text-emerald-600" :
+                                t.status === "occupied" ? "text-red-500" :
+                                t.status === "reserved" ? "text-amber-500" : "text-sky-500"
+                              }`}>
+                                {t.status === "available" ? "فارغة" : t.status === "occupied" ? "مشغولة" : t.status === "reserved" ? "محجوزة" : "تنظيف"}
+                              </span>
+                            </button>
+                          ))}
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )
                 {/* Customer input */}
                 {showCustomerInput && (
                   <div className="relative">
