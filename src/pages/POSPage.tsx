@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -64,17 +64,25 @@ interface OrderTab {
   orderDiscountType: "fixed" | "percent";
   orderNote: string;
   selectedCartIndex: number | null;
+  tableId: string | null;
+  tableName: string | null;
+  guestCount: number;
+  guestName: string;
 }
 
-const createNewOrder = (index: number): OrderTab => ({
+const createNewOrder = (index: number, tableId?: string | null, tableName?: string | null, guestCount?: number, guestName?: string): OrderTab => ({
   id: crypto.randomUUID(),
-  name: `طلب ${index}`,
+  name: tableName ? `${tableName}` : `طلب ${index}`,
   cart: [],
-  customerName: "",
+  customerName: guestName || "",
   orderDiscount: 0,
   orderDiscountType: "fixed",
   orderNote: "",
   selectedCartIndex: null,
+  tableId: tableId || null,
+  tableName: tableName || null,
+  guestCount: guestCount || 1,
+  guestName: guestName || "",
 });
 
 interface Product {
@@ -204,8 +212,15 @@ const SortableProductCard = ({ id, children, isSortMode }: {
 
 const POSPage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const searchRef = useRef<HTMLInputElement>(null);
+
+  // URL params for table context
+  const urlTableId = searchParams.get("table_id");
+  const urlTableName = searchParams.get("table_name");
+  const urlGuests = parseInt(searchParams.get("guests") || "1");
+  const urlGuestName = decodeURIComponent(searchParams.get("guest_name") || "");
 
   // State
   const [products, setProducts] = useState<Product[]>([]);
@@ -241,7 +256,7 @@ const POSPage = () => {
   );
 
   // ── Multi-order tabs ──
-  const [orders, setOrders] = useState<OrderTab[]>([createNewOrder(1)]);
+  const [orders, setOrders] = useState<OrderTab[]>([createNewOrder(1, urlTableId, urlTableName, urlGuests, urlGuestName)]);
   const [activeOrderIndex, setActiveOrderIndex] = useState(0);
   const activeOrder = orders[activeOrderIndex] || orders[0];
   const orderCounter = useRef(1);
@@ -304,6 +319,8 @@ const POSPage = () => {
   // Bottom panel toggles
   const [showCustomerInput, setShowCustomerInput] = useState(false);
   const [showOrderNoteInput, setShowOrderNoteInput] = useState(false);
+  const [showTablePicker, setShowTablePicker] = useState(false);
+  const [availableTables, setAvailableTables] = useState<{ id: string; name: string; seats: number; status: string; section_name: string }[]>([]);
 
   // Dialogs
   const [showOpenShift, setShowOpenShift] = useState(false);
@@ -914,7 +931,13 @@ const POSPage = () => {
           tax_amount: cartTotals.tax,
           total: cartTotals.total,
           state: "draft",
-        })
+          ...(activeOrder.tableId ? {
+            table_id: activeOrder.tableId,
+            guest_count: activeOrder.guestCount,
+            guest_name: activeOrder.guestName || null,
+            order_type: "dine_in",
+          } : {}),
+        } as any)
         .select()
         .single();
 
@@ -1000,6 +1023,8 @@ const POSPage = () => {
         companyName: company?.name || "شركتي",
         terminalName: terminal?.name || "نقطة بيع",
         customerName: customerName,
+        tableName: activeOrder.tableName || undefined,
+        guestCount: activeOrder.tableId ? activeOrder.guestCount : undefined,
         items: cart.map(item => ({
           name: item.name,
           qty: item.qty,
@@ -1297,6 +1322,14 @@ const POSPage = () => {
             {isSortMode ? "✅ تم" : "ترتيب"}
           </button>
         )}
+
+        <button
+          onClick={() => navigate("/pos/floor-plan")}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors text-xs font-medium"
+        >
+          <UtensilsCrossed className="h-3 w-3" />
+          الطاولات
+        </button>
 
         <button
           onClick={() => setShowCloseShift(true)}
@@ -1615,13 +1648,19 @@ const POSPage = () => {
           {/* Cart Header */}
           <div className="h-10 px-3 flex items-center justify-between shrink-0">
             <div className="flex items-center gap-2">
+              {activeOrder.tableName && (
+                <span className="text-xs font-semibold text-primary flex items-center gap-1 bg-primary/10 px-2 py-0.5 rounded-md">
+                  <UtensilsCrossed className="h-3 w-3" />
+                  {activeOrder.tableName}
+                </span>
+              )}
               {activeOrder.customerName ? (
                 <span className="text-xs font-medium text-foreground flex items-center gap-1">
                   <User className="h-3 w-3" />
                   {activeOrder.customerName}
                 </span>
               ) : (
-                <span className="text-xs text-muted-foreground/60">بدون زبون</span>
+                <span className="text-xs text-muted-foreground/60">{activeOrder.tableName ? "" : "بدون زبون"}</span>
               )}
             </div>
             {cart.length > 0 && (
@@ -1790,7 +1829,92 @@ const POSPage = () => {
                     <StickyNote className="h-3 w-3" />
                     {orderNote ? "📝 ملاحظة" : "الملاحظات"}
                   </button>
+                  <button
+                    onClick={async () => {
+                      setShowTablePicker(!showTablePicker);
+                      if (availableTables.length === 0) {
+                        const ownerId = dataOwnerId;
+                        const { data } = await supabase
+                          .from("restaurant_tables")
+                          .select("id, name, seats, status, section_id")
+                          .eq("user_id", ownerId)
+                          .eq("is_active", true)
+                          .order("name");
+                        if (data) {
+                          const { data: secs } = await supabase
+                            .from("restaurant_sections")
+                            .select("id, name")
+                            .eq("user_id", ownerId);
+                          const secMap = Object.fromEntries((secs || []).map(s => [s.id, s.name]));
+                          setAvailableTables(data.map(t => ({
+                            ...t,
+                            section_name: secMap[t.section_id] || "",
+                          })));
+                        }
+                      }
+                    }}
+                    className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg transition-colors ${
+                      activeOrder.tableId
+                        ? "bg-primary/10 text-primary border border-primary/20"
+                        : "bg-muted/50 hover:bg-muted text-muted-foreground"
+                    }`}
+                  >
+                    <UtensilsCrossed className="h-3 w-3" />
+                    {activeOrder.tableName || "الطاولة"}
+                  </button>
                 </div>
+
+                {/* Table picker */}
+                {showTablePicker && (
+                  <div className="relative">
+                    <div className="absolute z-50 w-full bottom-full mb-1 bg-popover border border-border rounded-lg shadow-lg max-h-40 overflow-y-auto p-1">
+                      {availableTables.length === 0 ? (
+                        <p className="text-xs text-muted-foreground p-2 text-center">لا توجد طاولات. <button onClick={() => navigate("/pos/floor-plan/edit")} className="text-primary underline">أنشئ طاولات</button></p>
+                      ) : (
+                        <>
+                          {activeOrder.tableId && (
+                            <button
+                              onClick={() => {
+                                updateActiveOrder(o => ({ ...o, tableId: null, tableName: null, name: `طلب ${activeOrderIndex + 1}` }));
+                                setShowTablePicker(false);
+                              }}
+                              className="w-full px-3 py-1.5 text-xs text-right hover:bg-muted/50 transition flex items-center gap-2 text-destructive"
+                            >
+                              <X className="h-3 w-3 shrink-0" />
+                              <span>إزالة الطاولة</span>
+                            </button>
+                          )}
+                          {availableTables.map(t => (
+                            <button
+                              key={t.id}
+                              onClick={() => {
+                                updateActiveOrder(o => ({ ...o, tableId: t.id, tableName: t.name, name: t.name }));
+                                setShowTablePicker(false);
+                              }}
+                              disabled={t.status === "occupied" && t.id !== activeOrder.tableId}
+                              className={`w-full px-3 py-1.5 text-xs text-right hover:bg-muted/50 transition flex items-center justify-between gap-2 ${
+                                t.id === activeOrder.tableId ? "bg-primary/10" : ""
+                              } ${t.status === "occupied" && t.id !== activeOrder.tableId ? "opacity-40 cursor-not-allowed" : ""}`}
+                            >
+                              <div className="flex items-center gap-2">
+                                <UtensilsCrossed className="h-3 w-3 text-muted-foreground shrink-0" />
+                                <span className="font-medium">{t.name}</span>
+                                <span className="text-muted-foreground">({t.seats} كرسي)</span>
+                              </div>
+                              <span className={`text-[10px] ${
+                                t.status === "available" ? "text-emerald-600" :
+                                t.status === "occupied" ? "text-red-500" :
+                                t.status === "reserved" ? "text-amber-500" : "text-sky-500"
+                              }`}>
+                                {t.status === "available" ? "فارغة" : t.status === "occupied" ? "مشغولة" : t.status === "reserved" ? "محجوزة" : "تنظيف"}
+                              </span>
+                            </button>
+                          ))}
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 {/* Customer input */}
                 {showCustomerInput && (
