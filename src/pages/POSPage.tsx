@@ -743,6 +743,7 @@ const POSPage = () => {
       .select("id, contact_name")
       .eq("user_id", dataOwnerId)
       .eq("is_active", true)
+      .eq("contact_type", "عميل")
       .order("contact_name");
     setContacts(data || []);
   };
