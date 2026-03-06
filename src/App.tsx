@@ -15,6 +15,8 @@ import ProfitLoss from "./pages/ProfitLoss";
 import TransactionsPage from "./pages/TransactionsPage";
 import AccountsPage from "./pages/AccountsPage";
 import ContactsPage from "./pages/ContactsPage";
+import ContactDetailPage from "./pages/ContactDetailPage";
+import ContactPoliciesPage from "./pages/ContactPoliciesPage";
 import ExportPage from "./pages/ExportPage";
 import SmartReportPage from "./pages/SmartReportPage";
 import JournalEntriesPage from "./pages/JournalEntriesPage";
@@ -146,6 +148,8 @@ const App = () => (
                       <Route path="/transactions" element={<TransactionsPage />} />
                       <Route path="/accounts" element={<AccountsPage />} />
                       <Route path="/contacts" element={<ContactsPage />} />
+                      <Route path="/contacts/policies" element={<ContactPoliciesPage />} />
+                      <Route path="/contacts/:id" element={<ContactDetailPage />} />
                       <Route path="/export" element={<ExportPage />} />
                       <Route path="/smart-report" element={<SmartReportPage />} />
                       <Route path="/pricing" element={<PricingPage />} />
