@@ -380,17 +380,17 @@ const StatementPrintView = ({
 
             {/* Closing balance */}
             <tr style={{ background: "#1B3A5C", color: "white", fontWeight: 700 }}>
-              <td style={{ padding: "5px 8px" }}>—</td>
-              <td style={{ padding: "5px 8px" }}>—</td>
-              <td style={{ padding: "5px 8px", fontWeight: 700 }}>رصيد ختامي</td>
-              <td style={{ padding: "5px 8px" }}></td>
-              <td style={{ padding: "5px 8px", textAlign: "left", fontFeatureSettings: "'tnum'" }}>{fmtAmount(totalDebit)}</td>
-              <td style={{ padding: "5px 8px", textAlign: "left", fontFeatureSettings: "'tnum'" }}>{fmtAmount(totalCredit)}</td>
-              <td style={{ padding: "5px 8px", textAlign: "left", fontFeatureSettings: "'tnum'" }}>
-                <span style={{ color: "#C9A84C", fontWeight: 800, fontSize: "12px" }}>
+              <td style={{ padding: "5px 4px" }}>—</td>
+              <td style={{ padding: "5px 4px" }}>—</td>
+              <td style={{ padding: "5px 4px", fontWeight: 700 }}>رصيد ختامي</td>
+              <td style={{ padding: "5px 4px" }}></td>
+              <td style={{ padding: "5px 4px", textAlign: "left", fontFeatureSettings: "'tnum'" }}>{fmtAmount(totalDebit)}</td>
+              <td style={{ padding: "5px 4px", textAlign: "left", fontFeatureSettings: "'tnum'" }}>{fmtAmount(totalCredit)}</td>
+              <td style={{ padding: "5px 4px", textAlign: "left", fontFeatureSettings: "'tnum'" }}>
+                <span style={{ color: "#C9A84C", fontWeight: 800, fontSize: "11px" }}>
                   {fmtAmount(closingBalance)}
                 </span>
-                <span style={{ fontSize: "9px", marginRight: "4px", color: "#C9A84C" }}>
+                <span style={{ fontSize: "8px", marginRight: "3px", color: "#C9A84C" }}>
                   {isDebit ? "مدين" : "دائن"}
                 </span>
               </td>
