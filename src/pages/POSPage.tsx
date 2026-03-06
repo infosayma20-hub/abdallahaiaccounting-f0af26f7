@@ -1469,7 +1469,8 @@ const POSPage = () => {
       setTenderedAmount("");
       setPaymentMethod("cash");
       setPaymentCurrency("ILS");
-      setEditedRate(null);
+      setForeignAmount("");
+      setComputedRate(1);
       setRateEdited(false);
       setCustomerDataDiscount(null);
 
