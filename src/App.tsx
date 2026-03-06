@@ -72,6 +72,9 @@ import SurveyPage from "./pages/SurveyPage";
 import CustomerReportsPage from "./pages/CustomerReportsPage";
 import ModifierManagerPage from "./pages/ModifierManagerPage";
 import ContractorApp from "./pages/ContractorApp";
+import ContractsListPage from "./pages/ContractsListPage";
+import ContractFormPage from "./pages/ContractFormPage";
+import ContractPreviewPage from "./pages/ContractPreviewPage";
 
 const queryClient = new QueryClient();
 
