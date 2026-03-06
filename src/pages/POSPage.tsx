@@ -2397,6 +2397,19 @@ const POSPage = () => {
                   </button>
                 </div>
               )}
+              {/* Customer data discount button */}
+              {cart.length > 0 && (
+                <button
+                  onClick={() => setShowCustomerDataModal(true)}
+                  className={`w-full h-9 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
+                    customerDataDiscount
+                      ? "border-2 border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                      : "border border-dashed border-amber-400/50 bg-amber-500/5 text-amber-700 dark:text-amber-400 hover:bg-amber-500/10"
+                  }`}
+                >
+                  {customerDataDiscount ? `✅ خصم ${customerDataDiscount.discountPct}% مطبّق — ${customerDataDiscount.customerName || customerDataDiscount.contactValue}` : "🎁 خصم مقابل بيانات العميل"}
+                </button>
+              )}
               {/* Bottom row: Delete + Print + Pay */}
               <div className="flex gap-2">
                 <button
@@ -2404,8 +2417,8 @@ const POSPage = () => {
                   onClick={async () => {
                     const tableId = activeOrder.tableId;
                     setCart([]); setSelectedCartIndex(null); setOrderDiscount(0); setOrderNote("");
+                    setCustomerDataDiscount(null);
                     if (tableId) {
-                      // Cancel any draft/open order for this table
                       const { data: existingOrder } = await supabase
                         .from("pos_orders")
                         .select("id")
@@ -2416,7 +2429,6 @@ const POSPage = () => {
                         await supabase.from("pos_order_lines").delete().eq("order_id", existingOrder.id);
                         await supabase.from("pos_orders").update({ state: "cancelled" } as any).eq("id", existingOrder.id);
                       }
-                      // Release the table
                       await supabase.from("restaurant_tables").update({
                         status: "available", current_order_id: null, current_guests: 0, occupied_at: null,
                       }).eq("id", tableId);
@@ -2443,7 +2455,7 @@ const POSPage = () => {
                   onClick={() => setShowPayment(true)}
                 >
                   <span className="text-xs bg-white/20 rounded px-1.5 py-0.5 font-mono">F12</span>
-                  دفع ₪{cartTotals.total.toFixed(2)}
+                  دفع ₪{(customerDataDiscount ? cartTotals.total - customerDataDiscount.discountAmount : cartTotals.total).toFixed(2)}
                   <Printer className="h-4 w-4 opacity-70" />
                 </motion.button>
               </div>
