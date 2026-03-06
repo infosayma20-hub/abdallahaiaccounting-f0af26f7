@@ -15,6 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { format, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear } from "date-fns";
 import { cn } from "@/lib/utils";
+import StatementPrintView from "@/components/StatementPrintView";
 
 // ─── TYPES ───
 interface Contact {
@@ -116,6 +117,9 @@ const AccountStatementPage = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [companyName, setCompanyName] = useState("");
+  const [companyInfo, setCompanyInfo] = useState({
+    name: "", logo_url: "", address: "", phone: "", email: "", website: "", tax_number: "",
+  });
   const [activeTab, setActiveTab] = useState<EntityTab>(
     urlEmployeeName ? "employees" : urlContactType === "مورد" ? "suppliers" : "customers"
   );
@@ -135,7 +139,7 @@ const AccountStatementPage = () => {
     if (!user) return;
     setLoading(true);
     try {
-      const [{ data: contactData }, { data: accData }, { data: txData }, profileRes, { data: empData }] = await Promise.all([
+      const [{ data: contactData }, { data: accData }, { data: txData }, profileRes, { data: empData }, { data: csData }] = await Promise.all([
         supabase
           .from("contacts")
           .select("id, contact_name, contact_type, phone, email, address, linked_account_code")
@@ -162,11 +166,32 @@ const AccountStatementPage = () => {
           .eq("user_id", user.id)
           .eq("is_active", true)
           .order("full_name"),
+        supabase
+          .from("company_settings")
+          .select("company_name, logo_url, address, phone, email, website, tax_number")
+          .eq("user_id", user.id)
+          .maybeSingle(),
       ]);
       setContacts((contactData as Contact[]) || []);
       setAccounts((accData as Account[]) || []);
       setTransactions((txData as Transaction[]) || []);
       if (profileRes.data?.company_name) setCompanyName(profileRes.data.company_name);
+
+      // Company info from settings
+      const cs = csData as any;
+      if (cs) {
+        setCompanyInfo({
+          name: cs.company_name || profileRes.data?.company_name || "",
+          logo_url: cs.logo_url || "",
+          address: cs.address || "",
+          phone: cs.phone || "",
+          email: cs.email || "",
+          website: cs.website || "",
+          tax_number: cs.tax_number || "",
+        });
+      } else if (profileRes.data) {
+        setCompanyInfo(prev => ({ ...prev, name: profileRes.data?.company_name || profileRes.data?.display_name || "" }));
+      }
 
       // Map employees to their linked account codes (accounts under 1180)
       const allAccounts = (accData as Account[]) || [];
@@ -411,20 +436,46 @@ const AccountStatementPage = () => {
   // ─── EXPORT ───
   const handleExport = () => {
     if (!rows.length || !selectedEntityName) return;
-    const exportRows = [
-      { "التاريخ": "", "المرجع": "", "البيان": "رصيد أول المدة", "مدين ₪": openingBalance > 0 ? openingBalance : "", "دائن ₪": openingBalance < 0 ? Math.abs(openingBalance) : "", "الرصيد ₪": openingBalance },
-      ...rows.map(r => ({
-        "التاريخ": r.date,
-        "المرجع": r.reference,
-        "البيان": r.description,
-        "مدين ₪": r.debit || "",
-        "دائن ₪": r.credit || "",
-        "الرصيد ₪": r.balance,
-      })),
-      { "التاريخ": "", "المرجع": "", "البيان": "الإجمالي", "مدين ₪": totalDebit, "دائن ₪": totalCredit, "الرصيد ₪": closingBalance },
+
+    const headerRows = [
+      [companyInfo.name || companyName || "كشف حساب"],
+      [`كشف حساب - ${selectedEntityName}`],
+      [`الفترة: من ${dateFrom} إلى ${dateTo}`],
+      [companyInfo.phone ? `📞 ${companyInfo.phone}` : "", "", "", companyInfo.email ? `✉️ ${companyInfo.email}` : "", "", companyInfo.tax_number ? `رقم ضريبي: ${companyInfo.tax_number}` : ""],
+      [],
+      ["التاريخ", "المرجع", "البيان", "النوع", "مدين ₪", "دائن ₪", "الرصيد ₪"],
     ];
-    const ws = XLSX.utils.json_to_sheet(exportRows);
-    ws["!cols"] = [{ wch: 12 }, { wch: 16 }, { wch: 40 }, { wch: 14 }, { wch: 14 }, { wch: 16 }];
+
+    const dataRows = [
+      ["", "", "رصيد أول المدة", "", openingBalance > 0 ? openingBalance : "", openingBalance < 0 ? Math.abs(openingBalance) : "", openingBalance],
+      ...rows.map(r => [
+        r.date,
+        r.reference || "",
+        r.description,
+        r.debit > 0 ? "مدين" : "دائن",
+        r.debit || "",
+        r.credit || "",
+        r.balance,
+      ]),
+      ["", "", "الإجمالي", "", totalDebit, totalCredit, closingBalance],
+    ];
+
+    const allRows = [...headerRows, ...dataRows];
+    const ws = XLSX.utils.aoa_to_sheet(allRows);
+
+    // Column widths
+    ws["!cols"] = [
+      { wch: 12 }, { wch: 18 }, { wch: 38 }, { wch: 8 },
+      { wch: 14 }, { wch: 14 }, { wch: 16 },
+    ];
+
+    // Merge header cells
+    ws["!merges"] = [
+      { s: { r: 0, c: 0 }, e: { r: 0, c: 6 } },
+      { s: { r: 1, c: 0 }, e: { r: 1, c: 6 } },
+      { s: { r: 2, c: 0 }, e: { r: 2, c: 6 } },
+    ];
+
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "كشف الحساب");
     XLSX.writeFile(wb, `كشف-حساب-${selectedEntityName}-${dateFrom}.xlsx`);
@@ -442,9 +493,14 @@ const AccountStatementPage = () => {
         @media print {
           body * { visibility: hidden; }
           .print-area, .print-area * { visibility: visible; }
-          .print-area { position: absolute; inset: 0; background: white; padding: 24px; }
+          .print-area {
+            position: absolute; inset: 0; background: white; padding: 0;
+            width: 210mm !important;
+          }
           .no-print { display: none !important; }
           .print-only { display: block !important; }
+          .screen-table { display: none !important; }
+          @page { size: A4 portrait; margin: 0; }
         }
         .print-only { display: none; }
       `}</style>
@@ -579,11 +635,25 @@ const AccountStatementPage = () => {
         <div className="flex-1 flex flex-col overflow-y-auto">
           <div ref={printRef} className="print-area flex-1">
 
-            {/* Print header */}
-            <div className="print-only text-center mb-6">
-              <h2 className="text-lg font-bold">{companyName}</h2>
-              <p className="font-semibold">كشف حساب: {selectedEntityName}</p>
-              <p className="text-sm text-muted-foreground">من {fmtDate(dateFrom)} إلى {fmtDate(dateTo)}</p>
+            {/* Professional Print View */}
+            <div className="print-only">
+              <StatementPrintView
+                company={companyInfo}
+                contact={{
+                  name: selectedEntityName,
+                  type: selectedEntityInfo.type,
+                  phone: selectedEntityInfo.phone,
+                  address: selectedEntityInfo.address,
+                  email: selectedContact?.email || "",
+                }}
+                rows={rows}
+                openingBalance={openingBalance}
+                closingBalance={closingBalance}
+                totalDebit={totalDebit}
+                totalCredit={totalCredit}
+                dateFrom={dateFrom}
+                dateTo={dateTo}
+              />
             </div>
 
             {!selectedEntityId ? (
@@ -808,10 +878,7 @@ const AccountStatementPage = () => {
                   )}
                 </div>
 
-                {/* Print footer */}
-                <div className="print-only text-center mt-6 text-xs text-muted-foreground border-t pt-3">
-                  طُبع بتاريخ: {fmtDate(format(new Date(), "yyyy-MM-dd"))} — نظام عبدالله AI للمحاسبة
-                </div>
+                {/* Print footer is included in StatementPrintView */}
               </>
             )}
           </div>
