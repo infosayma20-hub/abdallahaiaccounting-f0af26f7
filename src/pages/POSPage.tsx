@@ -3208,6 +3208,24 @@ const POSPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Customer Data Modal */}
+      <CustomerDataModal
+        open={showCustomerDataModal}
+        onOpenChange={setShowCustomerDataModal}
+        subtotal={cartTotals.subtotal}
+        discountPct={10}
+        dataOwnerId={dataOwnerId || ""}
+        onApply={(data) => {
+          setCustomerDataDiscount(data);
+          setShowCustomerDataModal(false);
+          toast.success(`✅ تم تطبيق خصم ${data.discountPct}% — وفّر العميل ₪${data.discountAmount.toFixed(2)}`);
+        }}
+        onSkip={() => {
+          setCustomerDataDiscount(null);
+          setShowCustomerDataModal(false);
+        }}
+      />
     </div>
   );
 };
