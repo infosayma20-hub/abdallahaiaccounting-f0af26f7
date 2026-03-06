@@ -70,6 +70,7 @@ import FloorPlanEditorPage from "./pages/FloorPlanEditorPage";
 import DigitalReceiptPage from "./pages/DigitalReceiptPage";
 import SurveyPage from "./pages/SurveyPage";
 import CustomerReportsPage from "./pages/CustomerReportsPage";
+import ModifierManagerPage from "./pages/ModifierManagerPage";
 
 const queryClient = new QueryClient();
 
@@ -125,6 +126,7 @@ const App = () => (
               <Route path="/pos" element={<ProtectedRoute><POSPage /></ProtectedRoute>} />
               <Route path="/pos/floor-plan" element={<ProtectedRoute><FloorPlanPage /></ProtectedRoute>} />
               <Route path="/pos/floor-plan/edit" element={<ProtectedRoute><FloorPlanEditorPage /></ProtectedRoute>} />
+              <Route path="/pos/modifiers" element={<ProtectedRoute><ModifierManagerPage /></ProtectedRoute>} />
               <Route path="/purchase-point" element={<ProtectedRoute><PurchasePointPage /></ProtectedRoute>} />
               <Route path="/apps" element={<AppsRoute><WebLayout><AppsLauncher /></WebLayout></AppsRoute>} />
               <Route path="/*" element={

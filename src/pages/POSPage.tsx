@@ -22,6 +22,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import POSReceiptDialog from "@/components/POSReceiptDialog";
 import ShiftSummaryReceipt from "@/components/ShiftSummaryReceipt";
 import CustomerDataModal from "@/components/pos/CustomerDataModal";
+import ModifierModal, { type SelectedModifier } from "@/components/pos/ModifierModal";
+import QuickModifierBar from "@/components/pos/QuickModifierBar";
 import {
   DndContext,
   closestCenter,
@@ -55,6 +57,7 @@ interface CartItem {
   unit: string;
   total: number;
   note: string;
+  modifiers?: SelectedModifier[];
 }
 
 interface OrderTab {
@@ -391,13 +394,20 @@ const POSPage = () => {
   const [kitchenTicketData, setKitchenTicketData] = useState<any>(null);
   const [savingToTable, setSavingToTable] = useState(false);
 
-  // Shift Summary
-  const [showShiftSummary, setShowShiftSummary] = useState(false);
-  const [shiftSummaryData, setShiftSummaryData] = useState<any>(null);
+   // Shift Summary
+   const [showShiftSummary, setShowShiftSummary] = useState(false);
+   const [shiftSummaryData, setShiftSummaryData] = useState<any>(null);
 
-  const userId = user?.id;
-  const [dataOwnerId, setDataOwnerId] = useState<string | null>(null);
-  const isAdmin = userId === dataOwnerId; // Employee has different dataOwnerId
+   // Modifiers
+   const [modifierGroups, setModifierGroups] = useState<any[]>([]);
+   const [productModifierMap, setProductModifierMap] = useState<Record<string, string[]>>({});
+   const [showModifierModal, setShowModifierModal] = useState(false);
+   const [modifierProduct, setModifierProduct] = useState<Product | null>(null);
+   const [activeQuickMod, setActiveQuickMod] = useState<string | null>(null);
+
+   const userId = user?.id;
+   const [dataOwnerId, setDataOwnerId] = useState<string | null>(null);
+   const isAdmin = userId === dataOwnerId; // Employee has different dataOwnerId
 
   // ── Cart quantity map for badges on product cards ──
   const cartQtyMap = useMemo(() => {
@@ -560,7 +570,7 @@ const POSPage = () => {
         }
       }
 
-      await Promise.all([loadProducts(), loadCategories(), loadExchangeRates(), loadContacts(), loadEmployees()]);
+      await Promise.all([loadProducts(), loadCategories(), loadExchangeRates(), loadContacts(), loadEmployees(), loadModifiers()]);
     } catch (err) {
       console.error("POS init error:", err);
       toast.error("خطأ في تحميل نقطة البيع");
@@ -737,7 +747,41 @@ const POSPage = () => {
     setContacts(data || []);
   };
 
-  const loadEmployees = async () => {
+   const loadModifiers = async () => {
+     if (!dataOwnerId) return;
+     const { data: groups } = await supabase
+       .from("modifier_groups")
+       .select("id, name, selection_type, is_required, min_select, max_select, sort_order, is_active")
+       .eq("user_id", dataOwnerId)
+       .eq("is_active", true)
+       .order("sort_order");
+     if (!groups || groups.length === 0) { setModifierGroups([]); return; }
+     const groupIds = groups.map(g => g.id);
+     const { data: options } = await supabase
+       .from("modifier_options")
+       .select("id, group_id, name, extra_price, is_default, color, sort_order, is_active")
+       .in("group_id", groupIds)
+       .eq("is_active", true)
+       .order("sort_order");
+     const fullGroups = groups.map(g => ({
+       ...g,
+       options: (options || []).filter(o => o.group_id === g.id).map(o => ({ ...o, extra_price: Number(o.extra_price) })),
+     }));
+     setModifierGroups(fullGroups);
+     // Load product-modifier links
+     const { data: links } = await supabase
+       .from("product_modifier_groups")
+       .select("product_id, group_id")
+       .in("group_id", groupIds);
+     const map: Record<string, string[]> = {};
+     (links || []).forEach(l => {
+       if (!map[l.product_id]) map[l.product_id] = [];
+       map[l.product_id].push(l.group_id);
+     });
+     setProductModifierMap(map);
+   };
+
+   const loadEmployees = async () => {
     if (!dataOwnerId) return;
     const { data } = await supabase
       .from("employees")
@@ -889,6 +933,18 @@ const POSPage = () => {
 
   // Cart operations
   const addToCart = useCallback((product: Product) => {
+    // Check if product has modifier groups
+    const groupIds = productModifierMap[product.id];
+    if (groupIds && groupIds.length > 0) {
+      setModifierProduct(product);
+      setShowModifierModal(true);
+      return;
+    }
+
+    addToCartDirect(product);
+  }, [cart, productModifierMap]);
+
+  const addToCartDirect = useCallback((product: Product, modifiers?: SelectedModifier[], note?: string, qty?: number) => {
     if (product.quantity <= 0) {
       toast.warning(`⚠️ تنبيه: ${product.name} - المخزون صفر، سيتم البيع بالسالب`);
     }
@@ -897,8 +953,34 @@ const POSPage = () => {
       toast.warning(`⚠️ تنبيه: ${product.name} - باقي ${product.quantity - currentInCart - 1} قطع فقط`);
     }
 
+    const modifierExtra = (modifiers || []).reduce((s, m) => s + m.extra_price, 0);
+    const unitPrice = product.sell_price + modifierExtra;
+    const itemQty = qty || 1;
+
+    // If product has modifiers, always add as new line (don't merge)
+    if (modifiers && modifiers.length > 0) {
+      setCart((prev) => [
+        ...prev,
+        {
+          id: crypto.randomUUID(),
+          product_id: product.id,
+          name: product.name,
+          qty: itemQty,
+          unit_price: unitPrice,
+          cost_price: product.buy_price,
+          discount_pct: 0,
+          tax_rate: product.tax_rate,
+          unit: product.unit,
+          total: itemQty * unitPrice,
+          note: note || "",
+          modifiers,
+        },
+      ]);
+      return;
+    }
+
     setCart((prev) => {
-      const existing = prev.findIndex((item) => item.product_id === product.id);
+      const existing = prev.findIndex((item) => item.product_id === product.id && (!item.modifiers || item.modifiers.length === 0));
       if (existing >= 0) {
         const updated = [...prev];
         updated[existing] = {
@@ -922,6 +1004,7 @@ const POSPage = () => {
           unit: product.unit,
           total: product.sell_price,
           note: "",
+          modifiers: [],
         },
       ];
     });
@@ -1111,6 +1194,7 @@ const POSPage = () => {
         name: item.name,
         qty: item.qty,
         note: item.note,
+        modifiers: item.modifiers || [],
       })),
       orderNote: activeOrder.orderNote,
     });
@@ -1873,6 +1957,19 @@ const POSPage = () => {
             onNewTable={() => navigate("/pos/floor-plan/edit")}
           />
 
+          {/* ── Quick Modifier Bar ── */}
+          {modifierGroups.length > 0 && (
+            <QuickModifierBar
+              quickModifiers={modifierGroups.flatMap(g => g.options.slice(0, 2).map((o: any) => ({
+                id: o.id, label: `${o.name}${o.extra_price > 0 ? ` +₪${o.extra_price}` : ''}`, optionId: o.id, groupId: g.id,
+              }))).slice(0, 8)}
+              activeModId={activeQuickMod}
+              onQuickModifier={(mod) => setActiveQuickMod(prev => prev === mod.id ? null : mod.id)}
+              onManage={() => navigate("/pos/modifiers")}
+              isAdmin={isAdmin}
+            />
+          )}
+
           {/* ── Products Grid ── */}
           <ScrollArea className="flex-1">
             <DndContext
@@ -2199,6 +2296,25 @@ const POSPage = () => {
                             ₪{item.total.toFixed(2)}
                           </motion.span>
                         </div>
+
+                        {/* Modifier sub-items */}
+                        {item.modifiers && item.modifiers.length > 0 && (
+                          <div className="mr-11 mt-1 space-y-0.5">
+                            {item.modifiers.map((mod, mi) => (
+                              <div key={mi} className="flex justify-between items-center">
+                                <span className="text-[11px] text-muted-foreground flex items-center gap-1">
+                                  <span className="text-muted-foreground/30">└</span>
+                                  {mod.option_name}
+                                </span>
+                                {mod.extra_price !== 0 && (
+                                  <span className={`text-[10px] font-mono ${mod.extra_price > 0 ? "text-primary" : "text-destructive"}`}>
+                                    {mod.extra_price > 0 ? "+" : ""}₪{Math.abs(mod.extra_price).toFixed(2)}
+                                  </span>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
 
                         {/* Note (expandable) */}
                         {isSelected && (
@@ -3242,6 +3358,9 @@ const POSPage = () => {
                     <span className="text-lg font-bold text-primary min-w-[28px]">{item.qty}×</span>
                     <div className="flex-1">
                       <p className="text-sm font-semibold text-foreground">{item.name}</p>
+                      {item.modifiers?.map((m: any, mi: number) => (
+                        <p key={mi} className="text-xs text-muted-foreground">← {m.option_name}{m.extra_price > 0 ? ` +₪${m.extra_price}` : ''}</p>
+                      ))}
                       {item.note && <p className="text-xs text-amber-600 mt-0.5">📝 {item.note}</p>}
                     </div>
                   </div>
@@ -3282,6 +3401,20 @@ const POSPage = () => {
           setShowCustomerDataModal(false);
         }}
       />
+
+      {/* Modifier Modal */}
+      {showModifierModal && modifierProduct && (
+        <ModifierModal
+          product={{ id: modifierProduct.id, name: modifierProduct.name, sell_price: modifierProduct.sell_price }}
+          groups={modifierGroups.filter(g => productModifierMap[modifierProduct.id]?.includes(g.id))}
+          onConfirm={(data) => {
+            addToCartDirect(modifierProduct, data.modifiers, data.note, data.quantity);
+            setShowModifierModal(false);
+            setModifierProduct(null);
+          }}
+          onClose={() => { setShowModifierModal(false); setModifierProduct(null); }}
+        />
+      )}
     </div>
   );
 };

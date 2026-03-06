@@ -2360,6 +2360,95 @@ export type Database = {
           },
         ]
       }
+      modifier_groups: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          is_required: boolean | null
+          max_select: number | null
+          min_select: number | null
+          name: string
+          name_en: string | null
+          selection_type: string | null
+          sort_order: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_required?: boolean | null
+          max_select?: number | null
+          min_select?: number | null
+          name: string
+          name_en?: string | null
+          selection_type?: string | null
+          sort_order?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_required?: boolean | null
+          max_select?: number | null
+          min_select?: number | null
+          name?: string
+          name_en?: string | null
+          selection_type?: string | null
+          sort_order?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      modifier_options: {
+        Row: {
+          color: string | null
+          created_at: string | null
+          extra_price: number | null
+          group_id: string
+          id: string
+          is_active: boolean | null
+          is_default: boolean | null
+          name: string
+          name_en: string | null
+          sort_order: number | null
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string | null
+          extra_price?: number | null
+          group_id: string
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          name: string
+          name_en?: string | null
+          sort_order?: number | null
+        }
+        Update: {
+          color?: string | null
+          created_at?: string | null
+          extra_price?: number | null
+          group_id?: string
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          name?: string
+          name_en?: string | null
+          sort_order?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "modifier_options_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "modifier_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       official_holidays: {
         Row: {
           created_at: string | null
@@ -2487,6 +2576,57 @@ export type Database = {
             columns: ["batch_id"]
             isOneToOne: false
             referencedRelation: "opening_balance_batches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_item_modifiers: {
+        Row: {
+          created_at: string | null
+          extra_price: number | null
+          group_name: string | null
+          id: string
+          modifier_group_id: string | null
+          modifier_option_id: string | null
+          option_name: string
+          order_line_id: string
+          quantity: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          extra_price?: number | null
+          group_name?: string | null
+          id?: string
+          modifier_group_id?: string | null
+          modifier_option_id?: string | null
+          option_name: string
+          order_line_id: string
+          quantity?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          extra_price?: number | null
+          group_name?: string | null
+          id?: string
+          modifier_group_id?: string | null
+          modifier_option_id?: string | null
+          option_name?: string
+          order_line_id?: string
+          quantity?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_item_modifiers_modifier_group_id_fkey"
+            columns: ["modifier_group_id"]
+            isOneToOne: false
+            referencedRelation: "modifier_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_item_modifiers_modifier_option_id_fkey"
+            columns: ["modifier_option_id"]
+            isOneToOne: false
+            referencedRelation: "modifier_options"
             referencedColumns: ["id"]
           },
         ]
@@ -3674,6 +3814,42 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "employees_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_modifier_groups: {
+        Row: {
+          group_id: string
+          id: string
+          product_id: string
+          sort_order: number | null
+        }
+        Insert: {
+          group_id: string
+          id?: string
+          product_id: string
+          sort_order?: number | null
+        }
+        Update: {
+          group_id?: string
+          id?: string
+          product_id?: string
+          sort_order?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_modifier_groups_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "modifier_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_modifier_groups_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
             referencedColumns: ["id"]
           },
         ]
