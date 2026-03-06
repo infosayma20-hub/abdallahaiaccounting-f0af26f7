@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { getAuthHeaders } from "@/lib/edge-helpers";
 import {
   TrendingUp, TrendingDown, DollarSign, Loader2, BarChart3, ChevronDown, ChevronUp,
   Download, FileSpreadsheet, Printer, ArrowRight, Percent, Eye, EyeOff, Calendar,
@@ -15,29 +14,26 @@ import {
 } from "recharts";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { exportToExcel, exportToPDF } from "@/components/ReportComponents";
 import * as XLSX from "xlsx";
-import { format, startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear, startOfWeek, endOfWeek, subDays, subWeeks } from "date-fns";
+import { format, startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear, startOfWeek, endOfWeek, subDays } from "date-fns";
 import {
   fetchTransactions, fetchAccounts, buildAccountMap, normalizeAccountType, getAccountNameOnly,
-  SupabaseTransaction, SupabaseAccount, isOpeningBalance as isOBSupabase,
+  SupabaseTransaction, SupabaseAccount, isOpeningBalance,
 } from "@/lib/supabase-data";
 
 // ── Types ──
-interface TransactionRecord {
+interface TxRecord {
   id: string;
-  fields: {
-    Amount?: number;
-    Currency?: string;
-    "Transaction Type"?: string;
-    "Credit Account Rollup"?: string;
-    "Debit Account Rollup"?: string;
-    "Debit Account Name"?: string;
-    "Credit Account Name"?: string;
-    Description?: string;
-    Date?: string;
-    Client?: string;
-  };
+  date: string;
+  description: string;
+  amount: number;
+  debitCode: string;
+  creditCode: string;
+  debitAccountName: string;
+  creditAccountName: string;
+  debitType: string;
+  creditType: string;
+  transactionType: string;
 }
 
 interface StatementLine {
@@ -47,7 +43,7 @@ interface StatementLine {
   level: 0 | 1 | 2 | 3;
   type: "header" | "item" | "subtotal" | "total" | "grand-total" | "spacer";
   section?: string;
-  transactions?: TransactionRecord[];
+  transactions?: TxRecord[];
 }
 
 // ── Constants ──
@@ -83,24 +79,12 @@ const quickPeriods = [
 ];
 
 // ── Helpers ──
-const isOpeningBalance = (tx: TransactionRecord) => {
-  const type = (tx.fields["Transaction Type"] || "").trim();
-  const desc = (tx.fields.Description || "").trim();
-  return /رصيد\s*(ابتدائي|افتتاحي|مدور|أول\s*المدة)/i.test(desc) ||
-    /رصيد\s*(ابتدائي|افتتاحي|مدور)/i.test(type) || type === "رصيد ابتدائي";
-};
-
-const txMatch = (tx: TransactionRecord, keywords: string[]) => {
-  const all = `${tx.fields.Description || ""} ${tx.fields["Transaction Type"] || ""} ${tx.fields["Debit Account Name"] || ""} ${tx.fields["Credit Account Name"] || ""}`.toLowerCase();
-  return keywords.some(k => all.includes(k));
-};
-
-const fmtAmount = (n: number, showSign = false) => {
+const fmtAmount = (n: number) => {
   if (n === 0) return "₪ 0";
   const abs = Math.abs(n);
   const formatted = `₪ ${abs.toLocaleString("en", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
   if (n < 0) return `(${formatted})`;
-  return showSign && n > 0 ? formatted : formatted;
+  return formatted;
 };
 
 const pctChange = (current: number, previous: number) => {
@@ -108,11 +92,19 @@ const pctChange = (current: number, previous: number) => {
   return ((current - previous) / Math.abs(previous)) * 100;
 };
 
+// Account code classification helpers
+const isRevenueCode = (code: string) => code.startsWith("4") && !["4400", "4500"].includes(code);
+const isSalesReturnCode = (code: string) => code === "4400";
+const isPurchaseReturnCode = (code: string) => code === "4500";
+const isDiscountEarnedCode = (code: string) => code === "4350";
+const isPurchasesCode = (code: string) => code.startsWith("51");
+const isExpenseCode = (code: string) => code.startsWith("5") && !code.startsWith("51");
+
 // ── Main Component ──
 const ProfitLoss = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [transactions, setTransactions] = useState<TransactionRecord[]>([]);
+  const [allTxRecords, setAllTxRecords] = useState<TxRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [companyName, setCompanyName] = useState("");
   const [activePeriod, setActivePeriod] = useState("this-month");
@@ -122,10 +114,10 @@ const ProfitLoss = () => {
   const [showComparison, setShowComparison] = useState(false);
   const [showZeroAccounts, setShowZeroAccounts] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
-  const [drillDownAccount, setDrillDownAccount] = useState<{ label: string; txs: TransactionRecord[] } | null>(null);
+  const [drillDownAccount, setDrillDownAccount] = useState<{ label: string; txs: TxRecord[] } | null>(null);
   const [showCharts, setShowCharts] = useState(true);
 
-  // Fetch data
+  // Fetch data from Supabase
   useEffect(() => {
     if (!user) return;
     supabase.from("profiles").select("company_name").eq("user_id", user.id).maybeSingle()
@@ -134,26 +126,41 @@ const ProfitLoss = () => {
 
   useEffect(() => {
     if (!user) return;
-    const fetchTx = async () => {
+    const load = async () => {
       setLoading(true);
       try {
-        const res = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/airtable-transactions?clientId=${user.id}`,
-          { headers: await getAuthHeaders() }
-        );
-        if (!res.ok) throw new Error("Failed to fetch");
-        const data = await res.json();
-        setTransactions(data.records || []);
+        const [txs, accounts] = await Promise.all([
+          fetchTransactions(user.id),
+          fetchAccounts(user.id),
+        ]);
+        const accMap = buildAccountMap(accounts);
+
+        const records: TxRecord[] = txs
+          .filter(tx => !tx.is_deleted && !isOpeningBalance(tx))
+          .map(tx => ({
+            id: tx.id,
+            date: tx.transaction_date,
+            description: tx.description || "",
+            amount: tx.amount || 0,
+            debitCode: tx.debit_account_code || "",
+            creditCode: tx.credit_account_code || "",
+            debitAccountName: getAccountNameOnly(tx.debit_account_code || "", accMap),
+            creditAccountName: getAccountNameOnly(tx.credit_account_code || "", accMap),
+            debitType: normalizeAccountType(accMap[tx.debit_account_code || ""]?.account_type || ""),
+            creditType: normalizeAccountType(accMap[tx.credit_account_code || ""]?.account_type || ""),
+            transactionType: tx.transaction_type || "",
+          }));
+
+        setAllTxRecords(records);
       } catch (err) {
         console.error("Error fetching P&L data:", err);
       } finally {
         setLoading(false);
       }
     };
-    fetchTx();
+    load();
   }, [user]);
 
-  // Quick period selection
   const handleQuickPeriod = useCallback((key: string) => {
     setActivePeriod(key);
     const [from, to] = getQuickPeriod(key);
@@ -161,17 +168,12 @@ const ProfitLoss = () => {
     setDateTo(format(to, "yyyy-MM-dd"));
   }, []);
 
-  // Filter transactions by date range, exclude OB
+  // Filter transactions by date range
   const plTransactions = useMemo(() => {
-    return transactions.filter(tx => {
-      if (isOpeningBalance(tx)) return false;
-      const d = tx.fields.Date;
-      if (!d) return false;
-      return d >= dateFrom && d <= dateTo;
-    });
-  }, [transactions, dateFrom, dateTo]);
+    return allTxRecords.filter(tx => tx.date >= dateFrom && tx.date <= dateTo);
+  }, [allTxRecords, dateFrom, dateTo]);
 
-  // Previous period transactions for comparison
+  // Previous period transactions
   const prevPeriodTxs = useMemo(() => {
     if (!showComparison) return [];
     const fromDate = new Date(dateFrom);
@@ -179,55 +181,60 @@ const ProfitLoss = () => {
     const duration = toDate.getTime() - fromDate.getTime();
     const prevFrom = format(new Date(fromDate.getTime() - duration - 86400000), "yyyy-MM-dd");
     const prevTo = format(new Date(fromDate.getTime() - 86400000), "yyyy-MM-dd");
-    return transactions.filter(tx => {
-      if (isOpeningBalance(tx)) return false;
-      const d = tx.fields.Date;
-      if (!d) return false;
-      return d >= prevFrom && d <= prevTo;
-    });
-  }, [transactions, dateFrom, dateTo, showComparison]);
+    return allTxRecords.filter(tx => tx.date >= prevFrom && tx.date <= prevTo);
+  }, [allTxRecords, dateFrom, dateTo, showComparison]);
 
   // ── Compute P&L ──
-  const computePL = useCallback((txs: TransactionRecord[]) => {
-    const calc = (filter: (tx: TransactionRecord) => boolean) => ({
-      total: txs.filter(filter).reduce((s, tx) => s + (tx.fields.Amount || 0), 0),
+  const computePL = useCallback((txs: TxRecord[]) => {
+    const calc = (filter: (tx: TxRecord) => boolean) => ({
+      total: txs.filter(filter).reduce((s, tx) => s + tx.amount, 0),
       txs: txs.filter(filter),
     });
 
-    // Revenue
-    const salesData = calc(tx => tx.fields["Credit Account Rollup"] === "Revenue" && !txMatch(tx, ["مردود", "خصم"]));
-    const salesDiscountData = calc(tx => txMatch(tx, ["خصم مسموح", "خصم مبيعات"]));
-    const salesReturnData = calc(tx => txMatch(tx, ["مردود مبيعات", "مرتجع مبيعات"]));
+    // Revenue: credit to 4xxx accounts (except returns 4400, 4500)
+    const salesData = calc(tx => isRevenueCode(tx.creditCode) && !isDiscountEarnedCode(tx.creditCode));
 
-    // COGS
-    const purchasesData = calc(tx => (txMatch(tx, ["مشتريات", "شراء", "بضاعة"]) && tx.fields["Debit Account Rollup"] === "Expenses") || (tx.fields["Transaction Type"] || "").includes("فاتورة مشتريات"));
-    const purchaseDiscountData = calc(tx => txMatch(tx, ["خصم مكتسب", "خصم مشتريات"]));
-    const purchaseReturnData = calc(tx => txMatch(tx, ["مردود مشتريات", "مرتجع مشتريات"]));
+    // Sales returns (debit to 4400)
+    const salesReturnData = calc(tx => isSalesReturnCode(tx.debitCode));
 
-    // Expense categories
-    const categorizeExpense = (tx: TransactionRecord) => {
-      if (tx.fields["Debit Account Rollup"] !== "Expenses") return null;
-      if (txMatch(tx, ["مشتريات", "شراء", "بضاعة", "مردود", "خصم"])) return null;
-      const name = (tx.fields["Debit Account Name"] || tx.fields.Description || "أخرى").trim();
-      return name;
-    };
+    // Sales discount (خصم مسموح) - typically description-based or specific account
+    const salesDiscountData = calc(tx => {
+      const desc = tx.description.toLowerCase();
+      return desc.includes("خصم مسموح") || desc.includes("خصم مبيعات");
+    });
 
-    const expenseMap = new Map<string, { total: number; txs: TransactionRecord[] }>();
+    // Purchases (debit to 51xx)
+    const purchasesData = calc(tx => isPurchasesCode(tx.debitCode));
+
+    // Purchase returns (credit to 4500 or description)
+    const purchaseReturnData = calc(tx => isPurchaseReturnCode(tx.creditCode));
+
+    // Purchase discount (خصم مكتسب - credit to 4350)
+    const purchaseDiscountData = calc(tx => isDiscountEarnedCode(tx.creditCode));
+
+    // Operating expenses by account name (5xxx except 51xx)
+    const expenseMap = new Map<string, { total: number; txs: TxRecord[] }>();
     txs.forEach(tx => {
-      const cat = categorizeExpense(tx);
-      if (!cat) return;
-      const curr = expenseMap.get(cat) || { total: 0, txs: [] };
-      curr.total += tx.fields.Amount || 0;
+      if (!isExpenseCode(tx.debitCode)) return;
+      const name = tx.debitAccountName || tx.debitCode;
+      const curr = expenseMap.get(name) || { total: 0, txs: [] };
+      curr.total += tx.amount;
       curr.txs.push(tx);
-      expenseMap.set(cat, curr);
+      expenseMap.set(name, curr);
     });
 
     const expenseEntries = Array.from(expenseMap.entries()).sort((a, b) => b[1].total - a[1].total);
     const totalOpExpenses = expenseEntries.reduce((s, [, v]) => s + v.total, 0);
 
     // Other income/expenses
-    const otherIncome = calc(tx => txMatch(tx, ["فوائد بنكية", "أرباح فروقات", "أرباح بيع أصول", "إيرادات أخرى"]) && !txMatch(tx, ["خسائر"]));
-    const otherExpenses = calc(tx => txMatch(tx, ["خسائر فروقات", "مصاريف فوائد", "خسائر استبعاد", "خسائر بيع"]));
+    const otherIncome = calc(tx => {
+      const desc = tx.description.toLowerCase();
+      return desc.includes("فوائد بنكية") || desc.includes("أرباح فروقات") || desc.includes("إيرادات أخرى");
+    });
+    const otherExpenses = calc(tx => {
+      const desc = tx.description.toLowerCase();
+      return desc.includes("خسائر فروقات") || desc.includes("مصاريف فوائد") || desc.includes("خسائر بيع");
+    });
 
     const totalRevenue = salesData.total - salesDiscountData.total - salesReturnData.total;
     const totalCOGS = purchasesData.total - purchaseDiscountData.total - purchaseReturnData.total;
@@ -254,10 +261,8 @@ const ProfitLoss = () => {
   // ── Build statement lines ──
   const statementLines = useMemo((): StatementLine[] => {
     const lines: StatementLine[] = [];
-    const rev = current.totalRevenue;
-    const pct = (n: number) => rev > 0 ? (n / rev) * 100 : 0;
 
-    const addLine = (label: string, amount: number, level: StatementLine["level"], type: StatementLine["type"], section?: string, txs?: TransactionRecord[], compareAmt?: number) => {
+    const addLine = (label: string, amount: number, level: StatementLine["level"], type: StatementLine["type"], section?: string, txs?: TxRecord[], compareAmt?: number) => {
       if (!showZeroAccounts && type === "item" && amount === 0) return;
       lines.push({ label, amount, level, type, section, transactions: txs, compareAmount: compareAmt });
     };
@@ -303,7 +308,6 @@ const ProfitLoss = () => {
       lines.push({ label: "", amount: 0, level: 0, type: "spacer" });
     }
 
-    // Net Profit
     addLine("صافي الربح / (الخسارة)", current.netProfit, 0, "grand-total", undefined, undefined, previous?.netProfit);
 
     return lines;
@@ -313,11 +317,11 @@ const ProfitLoss = () => {
   const monthlyChartData = useMemo(() => {
     const map: Record<number, { revenue: number; expenses: number; profit: number }> = {};
     plTransactions.forEach(tx => {
-      if (!tx.fields.Date) return;
-      const m = new Date(tx.fields.Date).getMonth();
+      if (!tx.date) return;
+      const m = new Date(tx.date).getMonth();
       if (!map[m]) map[m] = { revenue: 0, expenses: 0, profit: 0 };
-      if (tx.fields["Credit Account Rollup"] === "Revenue") map[m].revenue += tx.fields.Amount || 0;
-      if (tx.fields["Debit Account Rollup"] === "Expenses") map[m].expenses += tx.fields.Amount || 0;
+      if (isRevenueCode(tx.creditCode)) map[m].revenue += tx.amount;
+      if (isExpenseCode(tx.debitCode) || isPurchasesCode(tx.debitCode)) map[m].expenses += tx.amount;
     });
     return Object.entries(map).sort(([a], [b]) => Number(a) - Number(b)).map(([m, d]) => ({
       month: monthNames[Number(m)],
@@ -336,7 +340,6 @@ const ProfitLoss = () => {
     return data;
   }, [current.expenseEntries]);
 
-  // Toggle section
   const toggleSection = (section: string) => {
     setCollapsedSections(prev => {
       const next = new Set(prev);
@@ -446,7 +449,6 @@ ${rows.map(l => {
             <Input type="date" value={dateTo} onChange={e => { setDateTo(e.target.value); setActivePeriod("custom"); }} className="w-[140px] h-8 text-xs" />
           </div>
         </div>
-        {/* Quick Periods */}
         <div className="flex gap-1.5 flex-wrap">
           {quickPeriods.map(p => (
             <button key={p.key} onClick={() => handleQuickPeriod(p.key)}
@@ -455,7 +457,6 @@ ${rows.map(l => {
             </button>
           ))}
         </div>
-        {/* Options */}
         <div className="flex items-center gap-4 flex-wrap text-xs">
           <label className="flex items-center gap-1.5 cursor-pointer">
             <Checkbox checked={showPercentages} onCheckedChange={(v) => setShowPercentages(!!v)} />
@@ -470,7 +471,6 @@ ${rows.map(l => {
             <span className="text-muted-foreground">الحسابات الصفرية</span>
           </label>
         </div>
-        {/* Export */}
         <div className="flex items-center gap-2 flex-wrap">
           <Button variant="outline" size="sm" className="h-7 text-[10px] gap-1" onClick={handleExportExcel} disabled={loading}>
             <FileSpreadsheet className="h-3 w-3" /> Excel
@@ -502,7 +502,7 @@ ${rows.map(l => {
               { label: "هامش الربح الصافي", value: margin, prev: previous ? (previous.totalRevenue > 0 ? (previous.netProfit / previous.totalRevenue) * 100 : 0) : undefined, color: "border-violet-500/30 bg-violet-50 dark:bg-violet-950/20", textColor: "text-violet-600 dark:text-violet-400", isPercent: true },
             ].map((card, i) => {
               const change = card.prev !== undefined ? pctChange(card.value, card.prev) : null;
-              const favorable = card.invertTrend ? change !== null && change < 0 : change !== null && change > 0;
+              const favorable = (card as any).invertTrend ? change !== null && change < 0 : change !== null && change > 0;
               return (
                 <Card key={i} className={`p-3 border ${card.color}`}>
                   <p className="text-[10px] text-muted-foreground mb-1">{card.label}</p>
@@ -522,7 +522,6 @@ ${rows.map(l => {
 
           {/* ── Statement Table ── */}
           <Card className="overflow-hidden">
-            {/* Table Title */}
             <div className="px-4 py-3 border-b border-border bg-muted/30">
               <p className="text-xs font-bold text-foreground text-center">{companyName || "النظام المالي"}</p>
               <p className="text-[10px] text-muted-foreground text-center">قائمة الدخل — {periodLabel}</p>
@@ -603,7 +602,6 @@ ${rows.map(l => {
           {/* ── Charts ── */}
           {showCharts && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {/* Bar Chart */}
               {monthlyChartData.length > 0 && (
                 <Card className="p-4">
                   <h3 className="text-xs font-bold text-foreground mb-3">الإيرادات مقابل المصروفات</h3>
@@ -626,7 +624,6 @@ ${rows.map(l => {
                 </Card>
               )}
 
-              {/* Expense Pie */}
               {expensePieData.length > 0 && (
                 <Card className="p-4">
                   <h3 className="text-xs font-bold text-foreground mb-3">توزيع المصروفات</h3>
@@ -644,7 +641,6 @@ ${rows.map(l => {
                 </Card>
               )}
 
-              {/* Profit Trend */}
               {monthlyChartData.length > 1 && (
                 <Card className="p-4 lg:col-span-2">
                   <h3 className="text-xs font-bold text-foreground mb-3">اتجاه صافي الربح</h3>
@@ -662,7 +658,6 @@ ${rows.map(l => {
                 </Card>
               )}
 
-              {/* Margin Gauges */}
               <Card className="p-4">
                 <h3 className="text-xs font-bold text-foreground mb-3">هامش الربح الإجمالي</h3>
                 <div className="flex flex-col items-center">
@@ -706,14 +701,14 @@ ${rows.map(l => {
                 <tbody>
                   {drillDownAccount.txs.map((tx, i) => (
                     <tr key={i} className="border-b border-border/40 hover:bg-muted/20">
-                      <td className="p-2">{tx.fields.Date || "-"}</td>
-                      <td className="p-2">{tx.fields.Description || "-"}</td>
-                      <td className="p-2 font-medium tabular-nums">{fmtAmount(tx.fields.Amount || 0)}</td>
+                      <td className="p-2">{tx.date || "-"}</td>
+                      <td className="p-2">{tx.description || "-"}</td>
+                      <td className="p-2 font-medium tabular-nums">{fmtAmount(tx.amount)}</td>
                     </tr>
                   ))}
                   <tr className="border-t-2 border-border font-bold bg-muted/30">
                     <td className="p-2" colSpan={2}>المجموع</td>
-                    <td className="p-2 tabular-nums">{fmtAmount(drillDownAccount.txs.reduce((s, tx) => s + (tx.fields.Amount || 0), 0))}</td>
+                    <td className="p-2 tabular-nums">{fmtAmount(drillDownAccount.txs.reduce((s, tx) => s + tx.amount, 0))}</td>
                   </tr>
                 </tbody>
               </table>
