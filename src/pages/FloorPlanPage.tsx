@@ -8,7 +8,7 @@ import {
   Plus, LogOut, Settings, Users, Clock, ChevronDown,
   UtensilsCrossed, Circle, Square, RectangleHorizontal,
   ArrowRightLeft, Printer, CreditCard, ShoppingCart,
-  Armchair, AlertTriangle, Sparkles, CalendarClock,
+  Armchair, AlertTriangle, Sparkles, CalendarClock, ArrowRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
