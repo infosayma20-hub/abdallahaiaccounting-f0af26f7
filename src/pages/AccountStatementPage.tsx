@@ -139,7 +139,7 @@ const AccountStatementPage = () => {
     if (!user) return;
     setLoading(true);
     try {
-      const [{ data: contactData }, { data: accData }, { data: txData }, profileRes, { data: empData }] = await Promise.all([
+      const [{ data: contactData }, { data: accData }, { data: txData }, profileRes, { data: empData }, { data: csData }] = await Promise.all([
         supabase
           .from("contacts")
           .select("id, contact_name, contact_type, phone, email, address, linked_account_code")
@@ -166,11 +166,32 @@ const AccountStatementPage = () => {
           .eq("user_id", user.id)
           .eq("is_active", true)
           .order("full_name"),
+        supabase
+          .from("company_settings")
+          .select("company_name, logo_url, address, phone, email, website, tax_number")
+          .eq("user_id", user.id)
+          .maybeSingle(),
       ]);
       setContacts((contactData as Contact[]) || []);
       setAccounts((accData as Account[]) || []);
       setTransactions((txData as Transaction[]) || []);
       if (profileRes.data?.company_name) setCompanyName(profileRes.data.company_name);
+
+      // Company info from settings
+      const cs = csData as any;
+      if (cs) {
+        setCompanyInfo({
+          name: cs.company_name || profileRes.data?.company_name || "",
+          logo_url: cs.logo_url || "",
+          address: cs.address || "",
+          phone: cs.phone || "",
+          email: cs.email || "",
+          website: cs.website || "",
+          tax_number: cs.tax_number || "",
+        });
+      } else if (profileRes.data) {
+        setCompanyInfo(prev => ({ ...prev, name: profileRes.data?.company_name || profileRes.data?.display_name || "" }));
+      }
 
       // Map employees to their linked account codes (accounts under 1180)
       const allAccounts = (accData as Account[]) || [];
