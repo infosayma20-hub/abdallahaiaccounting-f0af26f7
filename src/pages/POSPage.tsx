@@ -989,7 +989,9 @@ const POSPage = () => {
         .maybeSingle();
 
       if (existingOrder) {
-        // Add items to existing order
+        // Replace all items in existing order with current cart
+        await supabase.from("pos_order_lines").delete().eq("order_id", existingOrder.id);
+
         const lines = cart.map((item) => ({
           user_id: dataOwnerId,
           order_id: existingOrder.id,
@@ -1007,12 +1009,16 @@ const POSPage = () => {
           cost_price: item.cost_price,
         }));
         await supabase.from("pos_order_lines").insert(lines);
+
         // Update order totals
         await supabase.from("pos_orders").update({
           subtotal: cartTotals.subtotal,
           total: cartTotals.total,
           tax_amount: cartTotals.tax,
           discount_amount: cartTotals.discount,
+          customer_name: customerName || null,
+          guest_count: activeOrder.guestCount,
+          guest_name: activeOrder.guestName || null,
         } as any).eq("id", existingOrder.id);
       } else {
         // Create new draft order
@@ -1057,7 +1063,7 @@ const POSPage = () => {
         await supabase.from("pos_order_lines").insert(lines);
       }
 
-      toast.success(`✅ تم حفظ الطلب على ${activeOrder.tableName}`);
+      toast.success(`💾 تم حفظ الطلب على ${activeOrder.tableName}`);
 
       // Clear this order tab or remove it
       if (orders.length > 1) {
