@@ -2504,13 +2504,16 @@ const POSPage = () => {
             {/* Total display */}
             <div className="text-center py-5 px-4 bg-primary/8 rounded-2xl border border-primary/10">
               <p className="text-xs text-muted-foreground mb-1">المبلغ المطلوب</p>
+              {customerDataDiscount && (
+                <p className="text-xs text-emerald-600 mb-1">🎁 خصم {customerDataDiscount.discountPct}% = -₪{customerDataDiscount.discountAmount.toFixed(2)}</p>
+              )}
               <motion.p
                 key={cartTotals.total}
                 initial={{ scale: 1.05 }}
                 animate={{ scale: 1 }}
                 className="text-4xl font-bold text-primary tabular-nums"
               >
-                ₪{cartTotals.total.toFixed(2)}
+                ₪{(customerDataDiscount ? cartTotals.total - customerDataDiscount.discountAmount : cartTotals.total).toFixed(2)}
               </motion.p>
             </div>
 
