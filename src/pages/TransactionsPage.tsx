@@ -638,36 +638,37 @@ const TransactionsPage = () => {
                       className={`group border-b border-[#F1F5F9] hover:bg-[#F0F4FF] transition-colors cursor-pointer ${isSelected ? "bg-[#EFF6FF]" : "bg-white"}`}
                       onClick={() => toggleExpand(tx.id)}
                     >
-                      <td className="px-3 py-2.5 text-center" onClick={e => e.stopPropagation()}>
+                      <td className="px-2 py-2.5 text-center" onClick={e => e.stopPropagation()}>
                         <Checkbox checked={isSelected} onCheckedChange={() => toggleSelect(tx.id)} />
                       </td>
-                      <td className="px-3 py-2.5">
+                      <td className="px-2 py-2.5">
                         <span className="text-sm font-mono text-[#637381]">{formatDate(tx.transaction_date)}</span>
                       </td>
-                      <td className="px-3 py-2.5">
+                      <td className="px-2 py-2.5 overflow-hidden">
                         <button
                           onClick={e => { e.stopPropagation(); openEdit(tx); }}
-                          className="text-sm font-medium text-[#1A56DB] hover:text-[#1648B8] hover:underline font-mono"
+                          title={tx.reference || ""}
+                          className="text-sm font-medium text-[#1A56DB] hover:text-[#1648B8] hover:underline font-mono truncate block max-w-full text-right"
                         >
                           {tx.reference || "—"}
                         </button>
                       </td>
-                      <td className="px-3 py-2.5">
-                        <div className="flex items-center gap-2">
-                          <ChevronRightIcon className={`w-4 h-4 text-[#94A3B8] transition-transform flex-shrink-0 ${isExpanded ? "rotate-90" : ""}`} />
-                          <span className="text-sm text-[#1A2332] font-medium truncate">{tx.description || "بدون وصف"}</span>
+                      <td className="px-2 py-2.5 overflow-hidden">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <ChevronRightIcon className={`w-3.5 h-3.5 text-[#94A3B8] transition-transform flex-shrink-0 ${isExpanded ? "rotate-90" : ""}`} />
+                          <span title={tx.description || ""} className="text-sm text-[#1A2332] font-medium truncate">{tx.description || "بدون وصف"}</span>
                         </div>
                       </td>
-                      <td className="px-3 py-2.5">
+                      <td className="px-2 py-2.5">
                         <TypeBadge type={tx.transaction_type} />
                       </td>
-                      <td className="px-3 py-2.5 text-left">
+                      <td className="px-2 py-2.5 text-left">
                         <span className="font-mono font-semibold text-sm text-[#1A56DB]">₪{tx.amount?.toFixed(2)}</span>
                       </td>
-                      <td className="px-3 py-2.5 text-left">
+                      <td className="px-2 py-2.5 text-left">
                         <span className="font-mono font-semibold text-sm text-[#0E9F6E]">₪{tx.amount?.toFixed(2)}</span>
                       </td>
-                      <td className="px-3 py-2.5 text-center" onClick={e => e.stopPropagation()}>
+                      <td className="px-1 py-2.5 text-center" onClick={e => e.stopPropagation()}>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <button className="p-1 rounded hover:bg-[#E2E8F0] opacity-0 group-hover:opacity-100 transition-opacity">
