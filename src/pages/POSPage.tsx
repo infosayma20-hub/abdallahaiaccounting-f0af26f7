@@ -22,6 +22,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import POSReceiptDialog from "@/components/POSReceiptDialog";
 import ShiftSummaryReceipt from "@/components/ShiftSummaryReceipt";
 import CustomerDataModal from "@/components/pos/CustomerDataModal";
+import ModifierModal, { type SelectedModifier } from "@/components/pos/ModifierModal";
+import QuickModifierBar from "@/components/pos/QuickModifierBar";
 import {
   DndContext,
   closestCenter,
@@ -55,6 +57,7 @@ interface CartItem {
   unit: string;
   total: number;
   note: string;
+  modifiers?: SelectedModifier[];
 }
 
 interface OrderTab {
@@ -391,13 +394,20 @@ const POSPage = () => {
   const [kitchenTicketData, setKitchenTicketData] = useState<any>(null);
   const [savingToTable, setSavingToTable] = useState(false);
 
-  // Shift Summary
-  const [showShiftSummary, setShowShiftSummary] = useState(false);
-  const [shiftSummaryData, setShiftSummaryData] = useState<any>(null);
+   // Shift Summary
+   const [showShiftSummary, setShowShiftSummary] = useState(false);
+   const [shiftSummaryData, setShiftSummaryData] = useState<any>(null);
 
-  const userId = user?.id;
-  const [dataOwnerId, setDataOwnerId] = useState<string | null>(null);
-  const isAdmin = userId === dataOwnerId; // Employee has different dataOwnerId
+   // Modifiers
+   const [modifierGroups, setModifierGroups] = useState<any[]>([]);
+   const [productModifierMap, setProductModifierMap] = useState<Record<string, string[]>>({});
+   const [showModifierModal, setShowModifierModal] = useState(false);
+   const [modifierProduct, setModifierProduct] = useState<Product | null>(null);
+   const [activeQuickMod, setActiveQuickMod] = useState<string | null>(null);
+
+   const userId = user?.id;
+   const [dataOwnerId, setDataOwnerId] = useState<string | null>(null);
+   const isAdmin = userId === dataOwnerId; // Employee has different dataOwnerId
 
   // ── Cart quantity map for badges on product cards ──
   const cartQtyMap = useMemo(() => {
@@ -560,7 +570,7 @@ const POSPage = () => {
         }
       }
 
-      await Promise.all([loadProducts(), loadCategories(), loadExchangeRates(), loadContacts(), loadEmployees()]);
+      await Promise.all([loadProducts(), loadCategories(), loadExchangeRates(), loadContacts(), loadEmployees(), loadModifiers()]);
     } catch (err) {
       console.error("POS init error:", err);
       toast.error("خطأ في تحميل نقطة البيع");
@@ -737,7 +747,41 @@ const POSPage = () => {
     setContacts(data || []);
   };
 
-  const loadEmployees = async () => {
+   const loadModifiers = async () => {
+     if (!dataOwnerId) return;
+     const { data: groups } = await supabase
+       .from("modifier_groups")
+       .select("id, name, selection_type, is_required, min_select, max_select, sort_order, is_active")
+       .eq("user_id", dataOwnerId)
+       .eq("is_active", true)
+       .order("sort_order");
+     if (!groups || groups.length === 0) { setModifierGroups([]); return; }
+     const groupIds = groups.map(g => g.id);
+     const { data: options } = await supabase
+       .from("modifier_options")
+       .select("id, group_id, name, extra_price, is_default, color, sort_order, is_active")
+       .in("group_id", groupIds)
+       .eq("is_active", true)
+       .order("sort_order");
+     const fullGroups = groups.map(g => ({
+       ...g,
+       options: (options || []).filter(o => o.group_id === g.id).map(o => ({ ...o, extra_price: Number(o.extra_price) })),
+     }));
+     setModifierGroups(fullGroups);
+     // Load product-modifier links
+     const { data: links } = await supabase
+       .from("product_modifier_groups")
+       .select("product_id, group_id")
+       .in("group_id", groupIds);
+     const map: Record<string, string[]> = {};
+     (links || []).forEach(l => {
+       if (!map[l.product_id]) map[l.product_id] = [];
+       map[l.product_id].push(l.group_id);
+     });
+     setProductModifierMap(map);
+   };
+
+   const loadEmployees = async () => {
     if (!dataOwnerId) return;
     const { data } = await supabase
       .from("employees")
