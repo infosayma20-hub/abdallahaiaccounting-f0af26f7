@@ -47,7 +47,7 @@ export default function TableActionModal({
 
   const isAvailable = table.status === "available";
   const isOccupied = table.status === "occupied";
-  const isCleaning = false; // cleaning status removed - tables go directly to available
+  const isReserved = table.status === "reserved";
 
   const elapsed = table.occupied_at
     ? Math.floor((Date.now() - new Date(table.occupied_at).getTime()) / 60000)
