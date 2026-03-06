@@ -480,6 +480,7 @@ const POSPage = () => {
           guestCount: (orderData as any).guest_count || 1,
           guestName: (orderData as any).guest_name || "",
           customerName: orderData.customer_name || "",
+          customerId: (orderData as any).customer_id || null,
         } : o));
 
         // If action is "pay", auto-open payment dialog
