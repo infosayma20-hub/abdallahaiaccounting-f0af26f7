@@ -1292,51 +1292,188 @@ export type Database = {
         }
         Relationships: []
       }
-      contacts: {
+      contact_alerts: {
         Row: {
-          address: string | null
-          contact_name: string
-          contact_type: string
-          created_at: string
-          email: string | null
+          alert_type: string
+          amount: number | null
+          contact_id: string | null
+          contact_name: string | null
+          created_at: string | null
+          days_overdue: number | null
           id: string
-          is_active: boolean | null
-          linked_account_code: string | null
-          notes: string | null
-          phone: string | null
-          tax_number: string | null
-          updated_at: string
+          is_read: boolean | null
           user_id: string
         }
         Insert: {
-          address?: string | null
-          contact_name: string
-          contact_type?: string
-          created_at?: string
-          email?: string | null
+          alert_type: string
+          amount?: number | null
+          contact_id?: string | null
+          contact_name?: string | null
+          created_at?: string | null
+          days_overdue?: number | null
           id?: string
-          is_active?: boolean | null
-          linked_account_code?: string | null
-          notes?: string | null
-          phone?: string | null
-          tax_number?: string | null
-          updated_at?: string
+          is_read?: boolean | null
           user_id: string
         }
         Update: {
+          alert_type?: string
+          amount?: number | null
+          contact_id?: string | null
+          contact_name?: string | null
+          created_at?: string | null
+          days_overdue?: number | null
+          id?: string
+          is_read?: boolean | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_alerts_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contact_class_policies: {
+        Row: {
+          class: string
+          color: string | null
+          created_at: string | null
+          credit_limit_default: number | null
+          description: string | null
+          discount_pct: number | null
+          followup_days: number | null
+          id: string
+          label: string | null
+          payment_terms_days: number | null
+          user_id: string
+        }
+        Insert: {
+          class: string
+          color?: string | null
+          created_at?: string | null
+          credit_limit_default?: number | null
+          description?: string | null
+          discount_pct?: number | null
+          followup_days?: number | null
+          id?: string
+          label?: string | null
+          payment_terms_days?: number | null
+          user_id: string
+        }
+        Update: {
+          class?: string
+          color?: string | null
+          created_at?: string | null
+          credit_limit_default?: number | null
+          description?: string | null
+          discount_pct?: number | null
+          followup_days?: number | null
+          id?: string
+          label?: string | null
+          payment_terms_days?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      contacts: {
+        Row: {
+          address: string | null
+          avg_payment_days: number | null
+          company_size: string | null
+          contact_class: string | null
+          contact_name: string
+          contact_segment: string | null
+          contact_type: string
+          created_at: string
+          credit_limit: number | null
+          current_balance: number | null
+          early_pay_discount: number | null
+          email: string | null
+          id: string
+          industry: string | null
+          is_active: boolean | null
+          last_transaction_date: string | null
+          linked_account_code: string | null
+          notes: string | null
+          overdue_amount: number | null
+          payment_terms_days: number | null
+          phone: string | null
+          purchase_limit: number | null
+          sales_rep_id: string | null
+          tax_number: string | null
+          total_paid: number | null
+          total_purchases: number | null
+          total_sales: number | null
+          updated_at: string
+          user_id: string
+          website: string | null
+        }
+        Insert: {
           address?: string | null
-          contact_name?: string
+          avg_payment_days?: number | null
+          company_size?: string | null
+          contact_class?: string | null
+          contact_name: string
+          contact_segment?: string | null
           contact_type?: string
           created_at?: string
+          credit_limit?: number | null
+          current_balance?: number | null
+          early_pay_discount?: number | null
           email?: string | null
           id?: string
+          industry?: string | null
           is_active?: boolean | null
+          last_transaction_date?: string | null
           linked_account_code?: string | null
           notes?: string | null
+          overdue_amount?: number | null
+          payment_terms_days?: number | null
           phone?: string | null
+          purchase_limit?: number | null
+          sales_rep_id?: string | null
           tax_number?: string | null
+          total_paid?: number | null
+          total_purchases?: number | null
+          total_sales?: number | null
+          updated_at?: string
+          user_id: string
+          website?: string | null
+        }
+        Update: {
+          address?: string | null
+          avg_payment_days?: number | null
+          company_size?: string | null
+          contact_class?: string | null
+          contact_name?: string
+          contact_segment?: string | null
+          contact_type?: string
+          created_at?: string
+          credit_limit?: number | null
+          current_balance?: number | null
+          early_pay_discount?: number | null
+          email?: string | null
+          id?: string
+          industry?: string | null
+          is_active?: boolean | null
+          last_transaction_date?: string | null
+          linked_account_code?: string | null
+          notes?: string | null
+          overdue_amount?: number | null
+          payment_terms_days?: number | null
+          phone?: string | null
+          purchase_limit?: number | null
+          sales_rep_id?: string | null
+          tax_number?: string | null
+          total_paid?: number | null
+          total_purchases?: number | null
+          total_sales?: number | null
           updated_at?: string
           user_id?: string
+          website?: string | null
         }
         Relationships: []
       }
