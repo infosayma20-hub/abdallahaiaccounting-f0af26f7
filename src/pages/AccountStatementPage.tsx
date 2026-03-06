@@ -609,11 +609,25 @@ const AccountStatementPage = () => {
         <div className="flex-1 flex flex-col overflow-y-auto">
           <div ref={printRef} className="print-area flex-1">
 
-            {/* Print header */}
-            <div className="print-only text-center mb-6">
-              <h2 className="text-lg font-bold">{companyName}</h2>
-              <p className="font-semibold">كشف حساب: {selectedEntityName}</p>
-              <p className="text-sm text-muted-foreground">من {fmtDate(dateFrom)} إلى {fmtDate(dateTo)}</p>
+            {/* Professional Print View */}
+            <div className="print-only">
+              <StatementPrintView
+                company={companyInfo}
+                contact={{
+                  name: selectedEntityName,
+                  type: selectedEntityInfo.type,
+                  phone: selectedEntityInfo.phone,
+                  address: selectedEntityInfo.address,
+                  email: selectedContact?.email || "",
+                }}
+                rows={rows}
+                openingBalance={openingBalance}
+                closingBalance={closingBalance}
+                totalDebit={totalDebit}
+                totalCredit={totalCredit}
+                dateFrom={dateFrom}
+                dateTo={dateTo}
+              />
             </div>
 
             {!selectedEntityId ? (
