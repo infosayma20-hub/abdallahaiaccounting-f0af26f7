@@ -16,9 +16,10 @@ import { format } from "date-fns";
 import {
   Plus, ArrowRight, Building2, TrendingDown, TrendingUp,
   Receipt, Search, Trash2, Edit, DollarSign, CreditCard,
-  BarChart3, Download, Printer, Phone, MapPin,
+  BarChart3, Download, Printer, Phone, MapPin, Mail,
 } from "lucide-react";
 import * as XLSX from "xlsx";
+import FinancialClaimModal from "@/components/contractor/FinancialClaimModal";
 
 interface Project {
   id: string;
@@ -78,6 +79,7 @@ export default function ContractorApp() {
   const [showProjectDialog, setShowProjectDialog] = useState(false);
   const [showTxDialog, setShowTxDialog] = useState(false);
   const [showContractDialog, setShowContractDialog] = useState(false);
+  const [showClaimModal, setShowClaimModal] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
@@ -605,6 +607,9 @@ export default function ContractorApp() {
             <Button variant="outline" size="sm" onClick={exportExcel}>
               <Download className="h-4 w-4 ml-1" /> تصدير
             </Button>
+            <Button size="sm" className="bg-red-600 hover:bg-red-700 text-white" onClick={() => setShowClaimModal(true)}>
+              <Mail className="h-4 w-4 ml-1" /> 📩 مطالبة مالية
+            </Button>
           </div>
         </div>
 
@@ -768,6 +773,19 @@ export default function ContractorApp() {
 
         {projectDialogJSX}
         {contractPrintJSX}
+
+        {/* Financial Claim Modal */}
+        <FinancialClaimModal
+          open={showClaimModal}
+          onOpenChange={setShowClaimModal}
+          project={selectedProject}
+          userId={user!.id}
+          companyName={settings.company_name || "الشركة"}
+          companyPhone={settings.phone || ""}
+          companyAddress={settings.address || ""}
+          companyEmail={settings.email || ""}
+          logoUrl={settings.logo_url || ""}
+        />
       </div>
     );
   }
