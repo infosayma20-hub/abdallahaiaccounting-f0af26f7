@@ -1,20 +1,31 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import {
   ArrowRight, Loader2, RefreshCw, Search, FileSpreadsheet,
-  TrendingUp, TrendingDown, Wallet, FileText, Printer,
-  AlertTriangle, Calendar, Hash, BookOpen
+  TrendingUp, TrendingDown, Wallet, Printer, Calendar,
+  BookOpen, Users, Truck, UserCheck, Filter, ChevronLeft,
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useNavigate } from "react-router-dom";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { format, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear } from "date-fns";
+import { cn } from "@/lib/utils";
+
+// ─── TYPES ───
+interface Contact {
+  id: string;
+  contact_name: string;
+  contact_type: string;
+  phone: string | null;
+  email: string | null;
+  address: string | null;
+  linked_account_code: string | null;
+}
 
 interface Transaction {
   id: string;
@@ -27,15 +38,7 @@ interface Transaction {
   credit_account_code: string;
   reference: string | null;
   is_deleted: boolean;
-  is_opening_balance: boolean;
-  contacts?: { contact_name: string } | null;
-}
-
-interface Account {
-  account_code: string;
-  account_name: string;
-  account_type: string;
-  parent_code: string | null;
+  contact_id: string | null;
 }
 
 interface StatementRow {
@@ -46,51 +49,91 @@ interface StatementRow {
   debit: number;
   credit: number;
   balance: number;
-  side: "مدين" | "دائن" | "متوازن";
   transaction_id: string;
 }
 
+type EntityTab = "customers" | "suppliers" | "employees";
+
+// ─── CONSTANTS ───
+const ENTITY_TABS: { key: EntityTab; label: string; icon: any; color: string; accountCode: string; type: string }[] = [
+  { key: "customers", label: "العملاء", icon: Users, color: "text-blue-500", accountCode: "1130", type: "عميل" },
+  { key: "suppliers", label: "الموردين", icon: Truck, color: "text-amber-500", accountCode: "2100", type: "مورد" },
+  { key: "employees", label: "الموظفين", icon: UserCheck, color: "text-emerald-500", accountCode: "", type: "موظف" },
+];
+
+const QUICK_PERIODS = [
+  { label: "هذا الشهر", from: () => format(startOfMonth(new Date()), "yyyy-MM-dd"), to: () => format(endOfMonth(new Date()), "yyyy-MM-dd") },
+  { label: "الربع الحالي", from: () => format(startOfQuarter(new Date()), "yyyy-MM-dd"), to: () => format(endOfQuarter(new Date()), "yyyy-MM-dd") },
+  { label: "هذه السنة", from: () => format(startOfYear(new Date()), "yyyy-MM-dd"), to: () => format(endOfYear(new Date()), "yyyy-MM-dd") },
+  { label: "كل الفترات", from: () => "2020-01-01", to: () => format(new Date(), "yyyy-MM-dd") },
+];
+
+// ─── FORMAT HELPERS ───
+const fmtAmount = (n: number) =>
+  n === 0 ? "—" : `₪${Math.abs(n).toLocaleString("ar-SA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+const fmtDate = (d: string) => {
+  if (!d) return "—";
+  const parts = d.split("-");
+  return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : d;
+};
+
+// ─── MAIN COMPONENT ───
 const AccountStatementPage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const { toast } = useToast();
   const printRef = useRef<HTMLDivElement>(null);
 
+  // URL params
+  const urlContactId = searchParams.get("contact_id") || "";
+  const urlContactType = searchParams.get("contact_type") || "";
+
+  // State
+  const [contacts, setContacts] = useState<Contact[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
   const [companyName, setCompanyName] = useState("");
-  const [selectedAccountCode, setSelectedAccountCode] = useState("");
-  const [accountSearch, setAccountSearch] = useState("");
-  const [dateFrom, setDateFrom] = useState(format(startOfMonth(new Date()), "yyyy-MM-dd"));
-  const [dateTo, setDateTo] = useState(format(endOfMonth(new Date()), "yyyy-MM-dd"));
+  const [activeTab, setActiveTab] = useState<EntityTab>(
+    urlContactType === "مورد" ? "suppliers" : "customers"
+  );
+  const [selectedContactId, setSelectedContactId] = useState(urlContactId);
+  const [entitySearch, setEntitySearch] = useState("");
   const [txSearch, setTxSearch] = useState("");
+  const [dateFrom, setDateFrom] = useState(format(startOfYear(new Date()), "yyyy-MM-dd"));
+  const [dateTo, setDateTo] = useState(format(endOfMonth(new Date()), "yyyy-MM-dd"));
+  const [activePeriod, setActivePeriod] = useState("");
+  const [leftPanelOpen, setLeftPanelOpen] = useState(true);
 
+  const activeTabConfig = ENTITY_TABS.find(t => t.key === activeTab)!;
+
+  // ─── FETCH DATA ───
   const fetchData = async () => {
     if (!user) return;
     setLoading(true);
     try {
-      const [{ data: txData }, { data: accData }, profileRes] = await Promise.all([
+      const [{ data: contactData }, { data: txData }, profileRes] = await Promise.all([
+        supabase
+          .from("contacts")
+          .select("id, contact_name, contact_type, phone, email, address, linked_account_code")
+          .eq("user_id", user.id)
+          .eq("is_active", true)
+          .order("contact_name"),
         supabase
           .from("transactions")
-          .select("*, contacts(contact_name)")
+          .select("id, description, transaction_type, amount, currency, transaction_date, debit_account_code, credit_account_code, reference, is_deleted, contact_id")
           .eq("user_id", user.id)
           .eq("is_deleted", false)
           .order("transaction_date", { ascending: true })
           .order("created_at", { ascending: true }),
-        supabase
-          .from("accounts")
-          .select("account_code, account_name, account_type, parent_code")
-          .eq("user_id", user.id)
-          .eq("is_active", true)
-          .order("account_code"),
         supabase.from("profiles").select("company_name, display_name").eq("user_id", user.id).maybeSingle(),
       ]);
-      setTransactions((txData as any) || []);
-      setAccounts((accData as any) || []);
+      setContacts((contactData as Contact[]) || []);
+      setTransactions((txData as Transaction[]) || []);
       if (profileRes.data?.company_name) setCompanyName(profileRes.data.company_name);
     } catch (err: any) {
-      toast({ title: "خطأ في جلب البيانات", description: err.message, variant: "destructive" });
+      toast({ title: "خطأ", description: err.message, variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -98,32 +141,59 @@ const AccountStatementPage = () => {
 
   useEffect(() => { fetchData(); }, [user]);
 
-  const selectedAccount = useMemo(
-    () => accounts.find(a => a.account_code === selectedAccountCode),
-    [accounts, selectedAccountCode]
+  // ─── FILTERED CONTACTS BY TAB ───
+  const tabContacts = useMemo(() => {
+    const type = activeTabConfig.type;
+    return contacts.filter(c => c.contact_type === type);
+  }, [contacts, activeTab]);
+
+  // Compute balance per contact
+  const contactBalances = useMemo(() => {
+    const map: Record<string, number> = {};
+    const accountCode = activeTabConfig.accountCode;
+    
+    for (const c of tabContacts) {
+      let bal = 0;
+      for (const tx of transactions) {
+        if (tx.contact_id !== c.id) continue;
+        const isDebit = tx.debit_account_code === accountCode;
+        const isCredit = tx.credit_account_code === accountCode;
+        if (isDebit) bal += tx.amount || 0;
+        if (isCredit) bal -= tx.amount || 0;
+      }
+      map[c.id] = bal;
+    }
+    return map;
+  }, [tabContacts, transactions, activeTab]);
+
+  const filteredContacts = useMemo(() => {
+    const q = entitySearch.toLowerCase().trim();
+    if (!q) return tabContacts;
+    return tabContacts.filter(c =>
+      c.contact_name.toLowerCase().includes(q) ||
+      (c.phone || "").includes(q)
+    );
+  }, [tabContacts, entitySearch]);
+
+  const selectedContact = useMemo(
+    () => contacts.find(c => c.id === selectedContactId),
+    [contacts, selectedContactId]
   );
 
-  const filteredAccounts = useMemo(() => {
-    const q = accountSearch.toLowerCase().trim();
-    if (!q) return accounts;
-    return accounts.filter(a =>
-      a.account_name.toLowerCase().includes(q) || a.account_code.includes(q)
-    );
-  }, [accounts, accountSearch]);
-
+  // ─── STATEMENT ROWS ───
   const { rows, openingBalance, closingBalance, totalDebit, totalCredit } = useMemo(() => {
-    if (!selectedAccountCode) return { rows: [] as StatementRow[], openingBalance: 0, closingBalance: 0, totalDebit: 0, totalCredit: 0 };
+    if (!selectedContactId) return { rows: [] as StatementRow[], openingBalance: 0, closingBalance: 0, totalDebit: 0, totalCredit: 0 };
 
-    const related = transactions.filter(tx =>
-      tx.debit_account_code === selectedAccountCode || tx.credit_account_code === selectedAccountCode
-    );
+    const accountCode = activeTabConfig.accountCode;
+    const related = transactions.filter(tx => tx.contact_id === selectedContactId);
 
     let openBal = 0;
     const periodTx: Transaction[] = [];
 
     for (const tx of related) {
-      const isDebit = tx.debit_account_code === selectedAccountCode;
-      const isCredit = tx.credit_account_code === selectedAccountCode;
+      const isDebit = tx.debit_account_code === accountCode;
+      const isCredit = tx.credit_account_code === accountCode;
+      if (!isDebit && !isCredit) continue;
       const amount = tx.amount || 0;
 
       if (dateFrom && tx.transaction_date < dateFrom) {
@@ -139,394 +209,484 @@ const AccountStatementPage = () => {
     let sumCredit = 0;
 
     const rows: StatementRow[] = periodTx.map(tx => {
-      const isDebit = tx.debit_account_code === selectedAccountCode;
+      const isDebit = tx.debit_account_code === accountCode;
       const amount = tx.amount || 0;
       const debit = isDebit ? amount : 0;
       const credit = !isDebit ? amount : 0;
-
       runningBalance += debit - credit;
       sumDebit += debit;
       sumCredit += credit;
-
       return {
         date: tx.transaction_date,
         description: tx.description || tx.transaction_type || "—",
-        transaction_type: tx.transaction_type,
+        transaction_type: tx.transaction_type || "",
         reference: tx.reference || "",
-        debit,
-        credit,
+        debit, credit,
         balance: runningBalance,
-        side: runningBalance > 0 ? "مدين" : runningBalance < 0 ? "دائن" : "متوازن",
         transaction_id: tx.id,
       };
     });
 
     return { rows, openingBalance: openBal, closingBalance: runningBalance, totalDebit: sumDebit, totalCredit: sumCredit };
-  }, [transactions, selectedAccountCode, dateFrom, dateTo]);
+  }, [transactions, selectedContactId, dateFrom, dateTo, activeTab]);
 
   const filteredRows = useMemo(() => {
     if (!txSearch.trim()) return rows;
     const q = txSearch.toLowerCase();
     return rows.filter(r =>
       r.description.toLowerCase().includes(q) ||
-      r.reference.toLowerCase().includes(q) ||
-      r.transaction_type.toLowerCase().includes(q)
+      r.reference.toLowerCase().includes(q)
     );
   }, [rows, txSearch]);
 
-  const formatAmount = (n: number) =>
-    n === 0 ? "—" : `₪${Math.abs(n).toLocaleString("ar-SA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-
-  const formatAmountRaw = (n: number) =>
-    Math.abs(n).toLocaleString("ar-SA", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
+  // ─── EXPORT ───
   const handleExport = () => {
-    if (!rows.length) return;
-    const accName = selectedAccount ? `${selectedAccount.account_code} - ${selectedAccount.account_name}` : "";
+    if (!rows.length || !selectedContact) return;
     const exportRows = [
-      { "التاريخ": "", "المستند": "", "البيان": "رصيد أول المدة", "النوع": "", "مدين ₪": openingBalance > 0 ? openingBalance : "", "دائن ₪": openingBalance < 0 ? Math.abs(openingBalance) : "", "الرصيد التراكمي ₪": openingBalance, "الجانب": openingBalance >= 0 ? "مدين" : "دائن" },
+      { "التاريخ": "", "المرجع": "", "البيان": "رصيد أول المدة", "مدين ₪": openingBalance > 0 ? openingBalance : "", "دائن ₪": openingBalance < 0 ? Math.abs(openingBalance) : "", "الرصيد ₪": openingBalance },
       ...rows.map(r => ({
         "التاريخ": r.date,
-        "المستند": r.reference,
+        "المرجع": r.reference,
         "البيان": r.description,
-        "النوع": r.transaction_type,
         "مدين ₪": r.debit || "",
         "دائن ₪": r.credit || "",
-        "الرصيد التراكمي ₪": r.balance,
-        "الجانب": r.side,
+        "الرصيد ₪": r.balance,
       })),
-      { "التاريخ": "", "المستند": "", "البيان": "الإجمالي", "النوع": "", "مدين ₪": totalDebit, "دائن ₪": totalCredit, "الرصيد التراكمي ₪": closingBalance, "الجانب": closingBalance >= 0 ? "مدين" : "دائن" },
+      { "التاريخ": "", "المرجع": "", "البيان": "الإجمالي", "مدين ₪": totalDebit, "دائن ₪": totalCredit, "الرصيد ₪": closingBalance },
     ];
     const ws = XLSX.utils.json_to_sheet(exportRows);
-    ws["!cols"] = [{ wch: 12 }, { wch: 12 }, { wch: 40 }, { wch: 16 }, { wch: 14 }, { wch: 14 }, { wch: 16 }, { wch: 10 }];
+    ws["!cols"] = [{ wch: 12 }, { wch: 16 }, { wch: 40 }, { wch: 14 }, { wch: 14 }, { wch: 16 }];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "كشف الحساب");
-    XLSX.writeFile(wb, `كشف-حساب-${accName}-${dateFrom}-${dateTo}.xlsx`);
+    XLSX.writeFile(wb, `كشف-حساب-${selectedContact.contact_name}-${dateFrom}.xlsx`);
   };
 
-  const handlePrint = () => {
-    window.print();
-  };
+  const totalBalance = useMemo(() => {
+    return Object.values(contactBalances).reduce((s, b) => s + b, 0);
+  }, [contactBalances]);
 
-  const quickPeriods = [
-    { label: "هذا الشهر", from: format(startOfMonth(new Date()), "yyyy-MM-dd"), to: format(endOfMonth(new Date()), "yyyy-MM-dd") },
-    { label: "الربع الحالي", from: format(startOfQuarter(new Date()), "yyyy-MM-dd"), to: format(endOfQuarter(new Date()), "yyyy-MM-dd") },
-    { label: "هذه السنة", from: format(startOfYear(new Date()), "yyyy-MM-dd"), to: format(endOfYear(new Date()), "yyyy-MM-dd") },
-    { label: "كل الفترات", from: "2020-01-01", to: format(new Date(), "yyyy-MM-dd") },
-  ];
+  const debitCount = useMemo(() => Object.values(contactBalances).filter(b => b > 0).length, [contactBalances]);
+  const creditCount = useMemo(() => Object.values(contactBalances).filter(b => b < 0).length, [contactBalances]);
 
-  const balanceColorClass = (val: number) => {
-    if (val > 0) return "text-green-700 bg-green-50 dark:text-green-400 dark:bg-green-950/30";
-    if (val < 0) return "text-orange-700 bg-orange-50 dark:text-orange-400 dark:bg-orange-950/30";
-    return "text-muted-foreground bg-muted/30";
-  };
-
+  // ─── RENDER ───
   return (
-    <div className="min-h-screen bg-background" dir="rtl">
+    <div className="min-h-screen bg-background flex flex-col" dir="rtl">
       {/* Print styles */}
       <style>{`
         @media print {
           body * { visibility: hidden; }
           .print-area, .print-area * { visibility: visible; }
-          .print-area { position: absolute; inset: 0; background: white; padding: 20px; }
+          .print-area { position: absolute; inset: 0; background: white; padding: 24px; }
           .no-print { display: none !important; }
+          .print-only { display: block !important; }
         }
+        .print-only { display: none; }
       `}</style>
 
-      {/* Header */}
-      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b px-4 py-3 no-print">
-        <div className="flex items-center justify-between">
+      {/* ─── TOP BAR ─── */}
+      <div className="sticky top-0 z-20 bg-card/95 backdrop-blur border-b border-border no-print">
+        <div className="flex items-center justify-between px-4 py-2.5">
           <div className="flex items-center gap-3">
-            <button onClick={() => navigate(-1)} className="p-2 rounded-full hover:bg-muted transition-colors">
-              <ArrowRight className="w-5 h-5" />
+            <button onClick={() => navigate(-1)} className="p-1.5 rounded-lg hover:bg-muted transition-colors">
+              <ArrowRight className="w-5 h-5 text-foreground" />
             </button>
-            <div>
-              <h1 className="text-xl font-bold text-foreground">كشف الحساب</h1>
-              <p className="text-xs text-muted-foreground">{companyName}</p>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span>المحاسبة</span>
+              <ChevronLeft className="w-3 h-3" />
+              <span className="text-foreground font-semibold text-sm">كشف الحساب</span>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" onClick={fetchData} disabled={loading}>
-              <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+
+          {/* Entity type tabs */}
+          <div className="flex items-center gap-1 bg-muted/50 rounded-lg p-0.5">
+            {ENTITY_TABS.map(tab => (
+              <button
+                key={tab.key}
+                onClick={() => { setActiveTab(tab.key); setSelectedContactId(""); }}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all",
+                  activeTab === tab.key
+                    ? "bg-card text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <tab.icon className={cn("w-3.5 h-3.5", activeTab === tab.key && tab.color)} />
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center gap-1.5">
+            <Button variant="ghost" size="icon" onClick={fetchData} disabled={loading} className="h-8 w-8">
+              <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
             </Button>
-            {rows.length > 0 && (
+            <Button variant="outline" size="sm" onClick={() => window.print()} disabled={!selectedContactId || rows.length === 0} className="h-8 gap-1.5 text-xs">
+              <Printer className="w-3.5 h-3.5" /> طباعة
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleExport} disabled={!selectedContactId || rows.length === 0} className="h-8 gap-1.5 text-xs">
+              <FileSpreadsheet className="w-3.5 h-3.5" /> Excel
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* ─── BODY: Left Panel + Main ─── */}
+      <div className="flex flex-1 overflow-hidden">
+
+        {/* ─── LEFT PANEL ─── */}
+        <div className={cn(
+          "border-l border-border bg-card flex flex-col shrink-0 transition-all duration-200 no-print",
+          leftPanelOpen ? "w-[280px]" : "w-0 overflow-hidden"
+        )}>
+          {/* Search */}
+          <div className="p-3 border-b border-border space-y-2">
+            <div className="relative">
+              <Search className="absolute right-2.5 top-2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="ابحث بالاسم أو الرقم..."
+                value={entitySearch}
+                onChange={e => setEntitySearch(e.target.value)}
+                className="pr-9 h-8 text-xs bg-muted/50 border-0"
+              />
+            </div>
+            {/* Summary line */}
+            <div className="flex items-center justify-between text-[10px] text-muted-foreground px-1">
+              <span>الرصيد الإجمالي: <strong className="text-foreground">{fmtAmount(totalBalance)}</strong></span>
+              <span>
+                <span className="text-emerald-500">↑{debitCount} مدين</span>
+                {" "}
+                <span className="text-red-400">↓{creditCount} دائن</span>
+              </span>
+            </div>
+          </div>
+
+          {/* Entity list */}
+          <div className="flex-1 overflow-y-auto">
+            {loading ? (
+              <div className="p-3 space-y-3">
+                {[1,2,3].map(i => (
+                  <div key={i} className="space-y-2">
+                    <Skeleton className="h-4 w-3/4" />
+                    <Skeleton className="h-3 w-1/2" />
+                  </div>
+                ))}
+              </div>
+            ) : filteredContacts.length === 0 ? (
+              <div className="p-6 text-center text-xs text-muted-foreground">
+                لا توجد جهات اتصال
+              </div>
+            ) : (
+              filteredContacts.map(contact => {
+                const bal = contactBalances[contact.id] || 0;
+                const isActive = contact.id === selectedContactId;
+                return (
+                  <button
+                    key={contact.id}
+                    onClick={() => setSelectedContactId(contact.id)}
+                    className={cn(
+                      "w-full text-right px-3 py-2.5 border-b border-border/50 transition-all hover:bg-muted/50",
+                      isActive && "bg-primary/5 border-r-2 border-r-primary"
+                    )}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className={cn("text-xs font-semibold truncate", isActive ? "text-primary" : "text-foreground")}>
+                          {contact.contact_name}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
+                          {contact.phone || contact.address || "—"}
+                        </p>
+                      </div>
+                      <span className={cn(
+                        "shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-md tabular-nums",
+                        bal > 0 ? "bg-emerald-500/10 text-emerald-500" :
+                        bal < 0 ? "bg-red-500/10 text-red-400" :
+                        "bg-muted text-muted-foreground"
+                      )}>
+                        {fmtAmount(bal)}
+                      </span>
+                    </div>
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </div>
+
+        {/* ─── MAIN CONTENT ─── */}
+        <div className="flex-1 flex flex-col overflow-y-auto">
+          <div ref={printRef} className="print-area flex-1">
+
+            {/* Print header */}
+            <div className="print-only text-center mb-6">
+              <h2 className="text-lg font-bold">{companyName}</h2>
+              <p className="font-semibold">كشف حساب: {selectedContact?.contact_name}</p>
+              <p className="text-sm text-muted-foreground">من {fmtDate(dateFrom)} إلى {fmtDate(dateTo)}</p>
+            </div>
+
+            {!selectedContactId ? (
+              /* ─── EMPTY STATE ─── */
+              <div className="flex-1 flex items-center justify-center py-32">
+                <div className="text-center space-y-3">
+                  <div className="w-16 h-16 rounded-2xl bg-muted/50 flex items-center justify-center mx-auto">
+                    <BookOpen className="w-8 h-8 text-muted-foreground/40" />
+                  </div>
+                  <p className="text-sm font-semibold text-muted-foreground">اختر حساباً لعرض كشفه المالي</p>
+                  <p className="text-xs text-muted-foreground/60">يمكنك البحث بالاسم أو الكود من القائمة</p>
+                </div>
+              </div>
+            ) : (
               <>
-                <Button variant="outline" size="sm" onClick={handlePrint}>
-                  <Printer className="w-4 h-4 ml-1" />
-                  طباعة
-                </Button>
-                <Button variant="outline" size="sm" onClick={handleExport}>
-                  <FileSpreadsheet className="w-4 h-4 ml-1" />
-                  Excel
-                </Button>
+                {/* ─── ENTITY INFO CARD ─── */}
+                <div className="p-4 no-print">
+                  <div className="bg-card rounded-xl border border-border p-4">
+                    <div className="flex items-start justify-between mb-4">
+                      <div>
+                        <h2 className="text-base font-bold text-foreground">{selectedContact?.contact_name}</h2>
+                        <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                          {selectedContact?.phone && <span>📞 {selectedContact.phone}</span>}
+                          {selectedContact?.address && <span>📍 {selectedContact.address}</span>}
+                          <Badge variant="secondary" className="text-[10px]">{selectedContact?.contact_type}</Badge>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 4 KPI cards */}
+                    <div className="grid grid-cols-4 gap-3">
+                      <KPIChip label="رصيد افتتاحي" value={openingBalance} icon={BookOpen} />
+                      <KPIChip label="إجمالي مدين" value={totalDebit} icon={TrendingUp} variant="debit" />
+                      <KPIChip label="إجمالي دائن" value={totalCredit} icon={TrendingDown} variant="credit" />
+                      <KPIChip label="رصيد ختامي" value={closingBalance} icon={Wallet} variant="closing" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* ─── FILTER BAR ─── */}
+                <div className="px-4 pb-3 no-print">
+                  <div className="bg-card rounded-xl border border-border p-3">
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <div className="flex items-center gap-2">
+                        <label className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">من</label>
+                        <Input type="date" value={dateFrom} onChange={e => { setDateFrom(e.target.value); setActivePeriod(""); }} className="h-8 w-36 text-xs bg-muted/50 border-0" />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <label className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">إلى</label>
+                        <Input type="date" value={dateTo} onChange={e => { setDateTo(e.target.value); setActivePeriod(""); }} className="h-8 w-36 text-xs bg-muted/50 border-0" />
+                      </div>
+
+                      <div className="h-5 w-px bg-border" />
+
+                      {QUICK_PERIODS.map(p => (
+                        <button
+                          key={p.label}
+                          onClick={() => { setDateFrom(p.from()); setDateTo(p.to()); setActivePeriod(p.label); }}
+                          className={cn(
+                            "px-2.5 py-1 rounded-full text-[11px] font-medium transition-all",
+                            activePeriod === p.label
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
+                          )}
+                        >
+                          {p.label}
+                        </button>
+                      ))}
+
+                      <div className="flex-1" />
+
+                      <div className="relative">
+                        <Search className="absolute right-2 top-2 w-3.5 h-3.5 text-muted-foreground" />
+                        <Input
+                          placeholder="بحث في الحركات..."
+                          value={txSearch}
+                          onChange={e => setTxSearch(e.target.value)}
+                          className="pr-8 h-8 w-48 text-xs bg-muted/50 border-0"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* ─── TABLE ─── */}
+                <div className="px-4 pb-4 flex-1">
+                  {loading ? (
+                    <div className="space-y-2">
+                      {[1,2,3,4,5,6].map(i => <Skeleton key={i} className="h-10 w-full" />)}
+                    </div>
+                  ) : rows.length === 0 ? (
+                    <div className="bg-card rounded-xl border border-border py-16 text-center">
+                      <Calendar className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
+                      <p className="text-sm text-muted-foreground font-medium">لا توجد حركات في هذه الفترة</p>
+                      <button onClick={() => { setDateFrom("2020-01-01"); setDateTo(format(new Date(), "yyyy-MM-dd")); setActivePeriod("كل الفترات"); }}
+                        className="mt-2 text-xs text-primary hover:underline">
+                        عرض كل الفترات
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="bg-card rounded-xl border border-border overflow-hidden">
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-[13px]" style={{ tableLayout: "fixed" }}>
+                          <colgroup>
+                            <col style={{ width: "100px" }} />
+                            <col style={{ width: "120px" }} />
+                            <col />
+                            <col style={{ width: "80px" }} />
+                            <col style={{ width: "110px" }} />
+                            <col style={{ width: "110px" }} />
+                            <col style={{ width: "130px" }} />
+                          </colgroup>
+                          <thead>
+                            <tr className="border-b-2 border-border bg-muted/40">
+                              <th className="text-right px-3 py-2.5 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">التاريخ</th>
+                              <th className="text-right px-3 py-2.5 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">المرجع</th>
+                              <th className="text-right px-3 py-2.5 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">البيان</th>
+                              <th className="text-center px-3 py-2.5 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">النوع</th>
+                              <th className="text-left px-3 py-2.5 text-[11px] font-bold uppercase tracking-wider" style={{ color: "hsl(var(--destructive))" }}>مدين ₪</th>
+                              <th className="text-left px-3 py-2.5 text-[11px] font-bold uppercase tracking-wider" style={{ color: "hsl(var(--success))" }}>دائن ₪</th>
+                              <th className="text-left px-3 py-2.5 text-[11px] font-bold text-foreground uppercase tracking-wider">الرصيد ₪</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {/* Opening balance */}
+                            <tr className="bg-muted/20 border-b border-border/50">
+                              <td className="px-3 py-2 text-xs text-muted-foreground italic">{fmtDate(dateFrom)}</td>
+                              <td className="px-3 py-2 text-xs text-muted-foreground">—</td>
+                              <td className="px-3 py-2 text-xs font-semibold text-foreground italic">رصيد مُرحَّل</td>
+                              <td className="px-3 py-2"></td>
+                              <td className="px-3 py-2 text-xs text-left tabular-nums text-muted-foreground">
+                                {openingBalance > 0 ? fmtAmount(openingBalance) : "—"}
+                              </td>
+                              <td className="px-3 py-2 text-xs text-left tabular-nums text-muted-foreground">
+                                {openingBalance < 0 ? fmtAmount(openingBalance) : "—"}
+                              </td>
+                              <td className="px-3 py-2 text-xs text-left font-bold tabular-nums">
+                                <BalanceCell value={openingBalance} />
+                              </td>
+                            </tr>
+
+                            {/* Transaction rows */}
+                            {filteredRows.map((row) => (
+                              <tr key={row.transaction_id} className="border-b border-border/30 hover:bg-[hsl(210,80%,96%)]/10 transition-colors" style={{ height: "40px" }}>
+                                <td className="px-3 py-2 text-xs tabular-nums text-muted-foreground">{fmtDate(row.date)}</td>
+                                <td className="px-3 py-2 text-xs">
+                                  {row.reference ? (
+                                    <button onClick={() => navigate("/journal-entries")} className="text-primary hover:underline font-mono text-[11px]">
+                                      {row.reference}
+                                    </button>
+                                  ) : <span className="text-muted-foreground">—</span>}
+                                </td>
+                                <td className="px-3 py-2 text-xs text-foreground truncate">{row.description}</td>
+                                <td className="px-3 py-2 text-center">
+                                  <span className={cn(
+                                    "inline-block text-[10px] font-semibold px-1.5 py-0.5 rounded border",
+                                    row.debit > 0
+                                      ? "border-red-500/30 text-red-500 bg-red-500/5"
+                                      : "border-emerald-500/30 text-emerald-500 bg-emerald-500/5"
+                                  )}>
+                                    {row.debit > 0 ? "مدين" : "دائن"}
+                                  </span>
+                                </td>
+                                <td className="px-3 py-2 text-left tabular-nums font-semibold" style={{ color: row.debit > 0 ? "hsl(var(--destructive))" : undefined }}>
+                                  {row.debit > 0 ? fmtAmount(row.debit) : "—"}
+                                </td>
+                                <td className="px-3 py-2 text-left tabular-nums font-semibold" style={{ color: row.credit > 0 ? "hsl(var(--success))" : undefined }}>
+                                  {row.credit > 0 ? fmtAmount(row.credit) : "—"}
+                                </td>
+                                <td className="px-3 py-2 text-left">
+                                  <BalanceCell value={row.balance} />
+                                </td>
+                              </tr>
+                            ))}
+
+                            {/* Closing balance */}
+                            <tr className="bg-primary/10 border-t-2 border-primary/30">
+                              <td className="px-3 py-3 text-xs font-bold text-foreground">—</td>
+                              <td className="px-3 py-3 text-xs font-bold text-foreground">—</td>
+                              <td className="px-3 py-3 text-xs font-bold text-foreground">رصيد ختامي</td>
+                              <td className="px-3 py-3"></td>
+                              <td className="px-3 py-3 text-left tabular-nums font-bold" style={{ color: "hsl(var(--destructive))" }}>{fmtAmount(totalDebit)}</td>
+                              <td className="px-3 py-3 text-left tabular-nums font-bold" style={{ color: "hsl(var(--success))" }}>{fmtAmount(totalCredit)}</td>
+                              <td className="px-3 py-3 text-left">
+                                <BalanceCell value={closingBalance} bold />
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+
+                      {/* Footer totals bar */}
+                      <div className="bg-muted/60 border-t border-border px-4 py-2.5 flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">إجمالي الحركات: <strong className="text-foreground">{filteredRows.length} قيد</strong></span>
+                        <div className="flex items-center gap-4">
+                          <span>مدين: <strong style={{ color: "hsl(var(--destructive))" }}>{fmtAmount(totalDebit)}</strong></span>
+                          <span>دائن: <strong style={{ color: "hsl(var(--success))" }}>{fmtAmount(totalCredit)}</strong></span>
+                          <span className="border-r border-border pr-4">رصيد الفترة: <strong className="text-foreground">{fmtAmount(totalDebit - totalCredit)}</strong></span>
+                          <span>رصيد ختامي: <strong className="text-foreground">{fmtAmount(closingBalance)}</strong> ({closingBalance >= 0 ? "مدين" : "دائن"})</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Print footer */}
+                <div className="print-only text-center mt-6 text-xs text-muted-foreground border-t pt-3">
+                  طُبع بتاريخ: {fmtDate(format(new Date(), "yyyy-MM-dd"))} — نظام عبدالله AI للمحاسبة
+                </div>
               </>
             )}
           </div>
         </div>
       </div>
-
-      {/* Filters */}
-      <div className="px-4 py-3 border-b bg-muted/30 no-print">
-        <div className="space-y-3">
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground">اختر الحساب</label>
-            <Select value={selectedAccountCode} onValueChange={setSelectedAccountCode}>
-              <SelectTrigger className="h-10">
-                <SelectValue placeholder="ابحث واختر حساباً..." />
-              </SelectTrigger>
-              <SelectContent>
-                <div className="p-2 sticky top-0 bg-popover">
-                  <div className="relative">
-                    <Search className="absolute right-2.5 top-2.5 w-4 h-4 text-muted-foreground" />
-                    <Input placeholder="ابحث بالاسم أو الكود..." value={accountSearch} onChange={e => setAccountSearch(e.target.value)} className="pr-9 h-9 text-sm" />
-                  </div>
-                </div>
-                {filteredAccounts.map(acc => (
-                  <SelectItem key={acc.account_code} value={acc.account_code}>
-                    <span className="font-mono text-xs ml-2">{acc.account_code}</span>
-                    <span>{acc.account_name}</span>
-                    <span className="text-muted-foreground text-xs mr-1">({acc.account_type})</span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="flex gap-3">
-            <div className="flex-1 space-y-1">
-              <label className="text-xs font-medium text-muted-foreground">من تاريخ</label>
-              <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="h-9 text-sm" />
-            </div>
-            <div className="flex-1 space-y-1">
-              <label className="text-xs font-medium text-muted-foreground">إلى تاريخ</label>
-              <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="h-9 text-sm" />
-            </div>
-          </div>
-
-          <div className="flex gap-2 flex-wrap">
-            {quickPeriods.map(p => (
-              <button key={p.label} onClick={() => { setDateFrom(p.from); setDateTo(p.to); }}
-                className="px-3 py-1.5 rounded-full bg-secondary text-xs font-medium hover:bg-primary/10 hover:text-primary transition-all">
-                {p.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Loading */}
-      {loading && (
-        <div className="flex items-center justify-center py-20">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
-        </div>
-      )}
-
-      {/* Print area wrapper */}
-      <div ref={printRef} className="print-area">
-
-        {/* Results */}
-        {!loading && selectedAccountCode && (
-          <>
-            {/* Account header for print */}
-            <div className="hidden print:block mb-4 text-center">
-              <h2 className="text-lg font-bold">{companyName}</h2>
-              <p className="font-semibold">كشف حساب: {selectedAccount?.account_name} ({selectedAccount?.account_code})</p>
-              <p className="text-sm">من {dateFrom} إلى {dateTo}</p>
-            </div>
-
-            {/* Summary Bar */}
-            <div className="px-4 py-3 no-print">
-              <div className="grid grid-cols-5 gap-2">
-                <div className="bg-muted/50 rounded-lg p-3 text-center border">
-                  <div className="flex items-center justify-center gap-1 mb-1">
-                    <Hash className="w-3 h-3 text-muted-foreground" />
-                    <p className="text-[10px] text-muted-foreground font-medium">عدد السجلات</p>
-                  </div>
-                  <p className="text-lg font-bold text-foreground tabular-nums">{rows.length}</p>
-                </div>
-                <div className="bg-muted/50 rounded-lg p-3 text-center border">
-                  <div className="flex items-center justify-center gap-1 mb-1">
-                    <BookOpen className="w-3 h-3 text-muted-foreground" />
-                    <p className="text-[10px] text-muted-foreground font-medium">رصيد افتتاحي</p>
-                  </div>
-                  <p className="text-lg font-bold text-foreground tabular-nums">{formatAmount(openingBalance)}</p>
-                  <p className="text-[10px] text-muted-foreground">{openingBalance >= 0 ? "مدين" : "دائن"}</p>
-                </div>
-                <div className="bg-blue-50 dark:bg-blue-950/30 rounded-lg p-3 text-center border border-blue-200 dark:border-blue-800">
-                  <div className="flex items-center justify-center gap-1 mb-1">
-                    <TrendingUp className="w-3 h-3 text-blue-600 dark:text-blue-400" />
-                    <p className="text-[10px] text-blue-700 dark:text-blue-400 font-medium">إجمالي المدين</p>
-                  </div>
-                  <p className="text-lg font-bold text-blue-700 dark:text-blue-400 tabular-nums">{formatAmount(totalDebit)}</p>
-                </div>
-                <div className="bg-green-50 dark:bg-green-950/30 rounded-lg p-3 text-center border border-green-200 dark:border-green-800">
-                  <div className="flex items-center justify-center gap-1 mb-1">
-                    <TrendingDown className="w-3 h-3 text-green-600 dark:text-green-400" />
-                    <p className="text-[10px] text-green-700 dark:text-green-400 font-medium">إجمالي الدائن</p>
-                  </div>
-                  <p className="text-lg font-bold text-green-700 dark:text-green-400 tabular-nums">{formatAmount(totalCredit)}</p>
-                </div>
-                <div className={`rounded-lg p-3 text-center border ${
-                  closingBalance > 0
-                    ? "bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800"
-                    : closingBalance < 0
-                    ? "bg-orange-50 dark:bg-orange-950/30 border-orange-200 dark:border-orange-800"
-                    : "bg-muted/50"
-                }`}>
-                  <div className="flex items-center justify-center gap-1 mb-1">
-                    <Wallet className="w-3 h-3" />
-                    <p className="text-[10px] font-medium">صافي الرصيد</p>
-                  </div>
-                  <p className={`text-lg font-bold tabular-nums ${
-                    closingBalance > 0 ? "text-green-700 dark:text-green-400" : closingBalance < 0 ? "text-orange-700 dark:text-orange-400" : "text-foreground"
-                  }`}>
-                    {formatAmount(closingBalance)}
-                  </p>
-                  <p className="text-[10px] text-muted-foreground">{closingBalance > 0 ? "مدين" : closingBalance < 0 ? "دائن" : "متوازن"}</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Credit balance warning */}
-            {closingBalance < 0 && (
-              <div className="px-4 pb-2 no-print">
-                <div className="flex items-center gap-2 p-3 rounded-lg bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800 text-orange-800 dark:text-orange-300 text-sm">
-                  <AlertTriangle className="w-4 h-4 shrink-0" />
-                  <span>تنبيه: هذا الحساب لديه رصيد دائن (₪{formatAmountRaw(closingBalance)}) — يحتاج مراجعة</span>
-                </div>
-              </div>
-            )}
-
-            {/* Search within transactions */}
-            {rows.length > 0 && (
-              <div className="px-4 py-2 no-print">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">{filteredRows.length} سجل</span>
-                  <div className="relative w-60">
-                    <Search className="absolute right-2.5 top-2 w-4 h-4 text-muted-foreground" />
-                    <Input placeholder="بحث في الحركات..." value={txSearch} onChange={e => setTxSearch(e.target.value)} className="pr-9 h-8 text-xs" />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Transactions table */}
-            {rows.length === 0 ? (
-              <div className="px-4">
-                <Card className="py-12">
-                  <p className="text-center text-muted-foreground">لا توجد حركات لهذا الحساب في الفترة المحددة</p>
-                </Card>
-              </div>
-            ) : (
-              <div className="px-4 pb-8">
-                <Card>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b bg-muted/50 text-xs text-muted-foreground">
-                          <th className="p-2.5 text-right">التاريخ</th>
-                          <th className="p-2.5 text-right">المستند</th>
-                          <th className="p-2.5 text-right">النوع</th>
-                          <th className="p-2.5 text-right">البيان</th>
-                          <th className="p-2.5 text-left">مدين ₪</th>
-                          <th className="p-2.5 text-left">دائن ₪</th>
-                          <th className="p-2.5 text-left">الرصيد التراكمي</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {/* Opening balance row */}
-                        <tr className="border-b bg-muted/20 font-medium text-xs">
-                          <td className="p-2.5">{dateFrom}</td>
-                          <td className="p-2.5 text-muted-foreground">—</td>
-                          <td className="p-2.5"></td>
-                          <td className="p-2.5 font-semibold">رصيد أول المدة</td>
-                          <td className="p-2.5 text-left">{openingBalance > 0 ? formatAmount(openingBalance) : "—"}</td>
-                          <td className="p-2.5 text-left">{openingBalance < 0 ? formatAmount(openingBalance) : "—"}</td>
-                          <td className="p-2.5 text-left">
-                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold ${balanceColorClass(openingBalance)}`}>
-                              {formatAmount(openingBalance)}
-                              <span className="text-[10px] font-normal">{openingBalance >= 0 ? "م" : "د"}</span>
-                            </span>
-                          </td>
-                        </tr>
-
-                        {/* Transaction rows */}
-                        {filteredRows.map((row) => (
-                          <tr key={row.transaction_id} className="border-b hover:bg-muted/20 text-xs transition-colors">
-                            <td className="p-2.5 tabular-nums">{row.date}</td>
-                            <td className="p-2.5">
-                              {row.reference ? (
-                                <button
-                                  onClick={() => navigate(`/journal-entries`)}
-                                  className="text-primary hover:underline font-medium"
-                                >
-                                  {row.reference}
-                                </button>
-                              ) : (
-                                <span className="text-muted-foreground">—</span>
-                              )}
-                            </td>
-                            <td className="p-2.5">
-                              <Badge variant="secondary" className="text-[10px] font-normal">
-                                {row.transaction_type}
-                              </Badge>
-                            </td>
-                            <td className="p-2.5">
-                              <p className="font-medium text-foreground">{row.description}</p>
-                            </td>
-                            <td className="p-2.5 text-left tabular-nums text-blue-700 dark:text-blue-400 font-medium">
-                              {row.debit > 0 ? formatAmount(row.debit) : "—"}
-                            </td>
-                            <td className="p-2.5 text-left tabular-nums text-green-700 dark:text-green-400 font-medium">
-                              {row.credit > 0 ? formatAmount(row.credit) : "—"}
-                            </td>
-                            <td className="p-2.5 text-left">
-                              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold ${balanceColorClass(row.balance)}`}>
-                                {formatAmount(row.balance)}
-                                <span className="text-[10px] font-normal">{row.balance > 0 ? "م" : row.balance < 0 ? "د" : ""}</span>
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
-
-                        {/* Totals footer */}
-                        <tr className="border-t-2 border-border bg-[hsl(var(--muted)/0.5)] font-bold text-xs">
-                          <td className="p-2.5" colSpan={4}>
-                            <span className="font-bold">الإجمالي</span>
-                          </td>
-                          <td className="p-2.5 text-left tabular-nums text-blue-700 dark:text-blue-400">{formatAmount(totalDebit)}</td>
-                          <td className="p-2.5 text-left tabular-nums text-green-700 dark:text-green-400">{formatAmount(totalCredit)}</td>
-                          <td className="p-2.5 text-left">
-                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold ${balanceColorClass(closingBalance)}`}>
-                              {formatAmount(closingBalance)}
-                              <Badge variant="outline" className="text-[10px] mr-1 py-0">
-                                {closingBalance > 0 ? "مدين" : closingBalance < 0 ? "دائن" : "متوازن"}
-                              </Badge>
-                            </span>
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </Card>
-              </div>
-            )}
-          </>
-        )}
-      </div>
-
-      {/* Empty state */}
-      {!loading && !selectedAccountCode && (
-        <div className="px-4 py-20">
-          <div className="text-center space-y-3">
-            <Wallet className="w-12 h-12 mx-auto text-muted-foreground/40" />
-            <p className="text-lg font-medium text-muted-foreground">اختر حساباً لعرض كشفه المالي</p>
-            <p className="text-sm text-muted-foreground/70">يمكنك البحث بالاسم أو الكود من القائمة أعلاه</p>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
+
+// ─── SUB-COMPONENTS ───
+
+function KPIChip({ label, value, icon: Icon, variant }: { label: string; value: number; icon: any; variant?: "debit" | "credit" | "closing" }) {
+  const colorClass = variant === "debit"
+    ? "border-red-500/20 bg-red-500/5"
+    : variant === "credit"
+    ? "border-emerald-500/20 bg-emerald-500/5"
+    : variant === "closing"
+    ? "border-primary/20 bg-primary/5"
+    : "border-border bg-muted/30";
+
+  const valueColor = variant === "debit"
+    ? "text-red-500"
+    : variant === "credit"
+    ? "text-emerald-500"
+    : variant === "closing"
+    ? (value >= 0 ? "text-primary" : "text-red-500")
+    : "text-foreground";
+
+  return (
+    <div className={cn("rounded-lg border p-3 text-center", colorClass)}>
+      <div className="flex items-center justify-center gap-1 mb-1">
+        <Icon className="w-3 h-3 text-muted-foreground" />
+        <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">{label}</span>
+      </div>
+      <p className={cn("text-lg font-bold tabular-nums", valueColor)}>{fmtAmount(value)}</p>
+      {(variant === "closing" || !variant) && (
+        <p className="text-[10px] text-muted-foreground mt-0.5">{value >= 0 ? "مدين" : "دائن"}</p>
+      )}
+    </div>
+  );
+}
+
+function BalanceCell({ value, bold }: { value: number; bold?: boolean }) {
+  return (
+    <span className={cn(
+      "inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs tabular-nums",
+      bold ? "font-bold text-sm" : "font-semibold",
+      value > 0 ? "text-primary bg-primary/10" :
+      value < 0 ? "text-red-500 bg-red-500/10" :
+      "text-muted-foreground"
+    )}>
+      {fmtAmount(value)}
+      <span className="text-[9px] font-normal opacity-70">{value > 0 ? "م" : value < 0 ? "د" : ""}</span>
+    </span>
+  );
+}
 
 export default AccountStatementPage;
