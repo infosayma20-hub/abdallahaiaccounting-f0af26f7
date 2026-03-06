@@ -1362,17 +1362,14 @@ const POSPage = () => {
         } as any);
       }
 
-      // Save POS rate override if cashier edited the rate
+      // Save POS rate override if cashier adjusted the rate
       if (rateEdited && paymentCurrency !== "ILS" && rate !== 1) {
-        const currencyDetail = exchangeRateDetails[paymentCurrency];
-        if (currencyDetail) {
-          await supabase
-            .from("exchange_rates")
-            .update({ pos_rate_override: rate } as any)
-            .eq("user_id", dataOwnerId)
-            .order("rate_date", { ascending: false })
-            .limit(1);
-        }
+        await supabase
+          .from("exchange_rates")
+          .update({ pos_rate_override: rate } as any)
+          .eq("user_id", dataOwnerId)
+          .order("rate_date", { ascending: false })
+          .limit(1);
       }
 
       loadProducts();
