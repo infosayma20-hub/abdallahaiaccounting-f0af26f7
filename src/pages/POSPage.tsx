@@ -373,6 +373,7 @@ const POSPage = () => {
     { code: "USD", symbol: "$", name: "دولار", flag: "US" },
     { code: "JOD", symbol: "د.ا", name: "دينار", flag: "JO" },
     { code: "EUR", symbol: "€", name: "يورو", flag: "EU" },
+    { code: "EGP", symbol: "ج.م", name: "جنيه", flag: "EG" },
   ];
 
   // Receipt
