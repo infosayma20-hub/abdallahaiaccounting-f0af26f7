@@ -302,8 +302,8 @@ export default function ContractorApp() {
               <Input placeholder="اسم العميل" value={pForm.client_name} onChange={e => setPForm(f => ({ ...f, client_name: e.target.value }))} />
               <Input type="number" placeholder="الميزانية" value={pForm.budget} onChange={e => setPForm(f => ({ ...f, budget: e.target.value }))} />
               <div className="grid grid-cols-2 gap-2">
-                <div><label className="text-xs text-muted-foreground">تاريخ البداية</label><Input type="date" value={pForm.start_date} onChange={e => setPForm(f => ({ ...f, start_date: e.target.value }))} /></div>
-                <div><label className="text-xs text-muted-foreground">تاريخ النهاية</label><Input type="date" value={pForm.end_date} onChange={e => setPForm(f => ({ ...f, end_date: e.target.value }))} /></div>
+                <div><label className="text-xs text-muted-foreground">تاريخ البداية</label><Input type="date" max="9999-12-31" value={pForm.start_date} onChange={e => setPForm(f => ({ ...f, start_date: e.target.value }))} /></div>
+                <div><label className="text-xs text-muted-foreground">تاريخ النهاية</label><Input type="date" max="9999-12-31" value={pForm.end_date} onChange={e => setPForm(f => ({ ...f, end_date: e.target.value }))} /></div>
               </div>
               <Textarea placeholder="ملاحظات" value={pForm.notes} onChange={e => setPForm(f => ({ ...f, notes: e.target.value }))} rows={2} />
             </div>
@@ -462,12 +462,12 @@ export default function ContractorApp() {
               {(txForm.payment_method === "شيك" || txForm.type === "cheque") && (
                 <div className="grid grid-cols-2 gap-2">
                   <Input placeholder="رقم الشيك" value={txForm.cheque_number} onChange={e => setTxForm(f => ({ ...f, cheque_number: e.target.value }))} />
-                  <Input type="date" value={txForm.cheque_date} onChange={e => setTxForm(f => ({ ...f, cheque_date: e.target.value }))} />
+                  <Input type="date" max="9999-12-31" value={txForm.cheque_date} onChange={e => setTxForm(f => ({ ...f, cheque_date: e.target.value }))} />
                 </div>
               )}
               <div>
                 <label className="text-xs text-muted-foreground">تاريخ العملية</label>
-                <Input type="date" value={txForm.transaction_date} onChange={e => setTxForm(f => ({ ...f, transaction_date: e.target.value }))} />
+                <Input type="date" max="9999-12-31" value={txForm.transaction_date} onChange={e => setTxForm(f => ({ ...f, transaction_date: e.target.value }))} />
               </div>
               <Textarea placeholder="ملاحظات" value={txForm.notes} onChange={e => setTxForm(f => ({ ...f, notes: e.target.value }))} rows={2} />
             </div>
