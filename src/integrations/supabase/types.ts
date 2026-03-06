@@ -1539,6 +1539,90 @@ export type Database = {
           },
         ]
       }
+      customer_surveys: {
+        Row: {
+          cashier_user_id: string | null
+          comment: string | null
+          completed_at: string | null
+          created_at: string | null
+          customer_id: string | null
+          expires_at: string | null
+          id: string
+          opened_at: string | null
+          order_id: string | null
+          overall_rating: number | null
+          product_rating: number | null
+          recommend: boolean | null
+          sent_at: string | null
+          service_rating: number | null
+          status: string | null
+          survey_age_group: string | null
+          survey_gender: string | null
+          survey_nationality: string | null
+          survey_token: string
+          user_id: string
+        }
+        Insert: {
+          cashier_user_id?: string | null
+          comment?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          customer_id?: string | null
+          expires_at?: string | null
+          id?: string
+          opened_at?: string | null
+          order_id?: string | null
+          overall_rating?: number | null
+          product_rating?: number | null
+          recommend?: boolean | null
+          sent_at?: string | null
+          service_rating?: number | null
+          status?: string | null
+          survey_age_group?: string | null
+          survey_gender?: string | null
+          survey_nationality?: string | null
+          survey_token: string
+          user_id: string
+        }
+        Update: {
+          cashier_user_id?: string | null
+          comment?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          customer_id?: string | null
+          expires_at?: string | null
+          id?: string
+          opened_at?: string | null
+          order_id?: string | null
+          overall_rating?: number | null
+          product_rating?: number | null
+          recommend?: boolean | null
+          sent_at?: string | null
+          service_rating?: number | null
+          status?: string | null
+          survey_age_group?: string | null
+          survey_gender?: string | null
+          survey_nationality?: string | null
+          survey_token?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_surveys_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "pos_customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_surveys_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "pos_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employee_allowances: {
         Row: {
           activation_date: string | null
@@ -2786,6 +2870,60 @@ export type Database = {
         }
         Relationships: []
       }
+      pos_customers: {
+        Row: {
+          age_group: string | null
+          consent_date: string | null
+          created_at: string | null
+          email: string | null
+          gender: string | null
+          id: string
+          last_visit: string | null
+          marketing_consent: boolean | null
+          name: string | null
+          nationality: string | null
+          total_discounts: number | null
+          total_spent: number | null
+          total_visits: number | null
+          user_id: string
+          whatsapp: string | null
+        }
+        Insert: {
+          age_group?: string | null
+          consent_date?: string | null
+          created_at?: string | null
+          email?: string | null
+          gender?: string | null
+          id?: string
+          last_visit?: string | null
+          marketing_consent?: boolean | null
+          name?: string | null
+          nationality?: string | null
+          total_discounts?: number | null
+          total_spent?: number | null
+          total_visits?: number | null
+          user_id: string
+          whatsapp?: string | null
+        }
+        Update: {
+          age_group?: string | null
+          consent_date?: string | null
+          created_at?: string | null
+          email?: string | null
+          gender?: string | null
+          id?: string
+          last_visit?: string | null
+          marketing_consent?: boolean | null
+          name?: string | null
+          nationality?: string | null
+          total_discounts?: number | null
+          total_spent?: number | null
+          total_visits?: number | null
+          user_id?: string
+          whatsapp?: string | null
+        }
+        Relationships: []
+      }
       pos_devices: {
         Row: {
           branch_id: string | null
@@ -2940,8 +3078,10 @@ export type Database = {
           company_id: string
           created_at: string
           currency: string
+          customer_discount_pct: number | null
           customer_id: string | null
           customer_name: string | null
+          digital_receipt_sent: boolean | null
           discount_amount: number
           discount_type: string | null
           guest_count: number | null
@@ -2956,12 +3096,15 @@ export type Database = {
           payment_currency: string | null
           payment_currency_amount: number | null
           payment_currency_rate: number | null
+          pos_customer_id: string | null
           rate_source: string | null
           return_of_order_id: string | null
           return_reason: string | null
           session_id: string
           state: string
           subtotal: number
+          survey_sent: boolean | null
+          survey_token: string | null
           table_id: string | null
           tax_amount: number
           total: number
@@ -2972,8 +3115,10 @@ export type Database = {
           company_id: string
           created_at?: string
           currency?: string
+          customer_discount_pct?: number | null
           customer_id?: string | null
           customer_name?: string | null
+          digital_receipt_sent?: boolean | null
           discount_amount?: number
           discount_type?: string | null
           guest_count?: number | null
@@ -2988,12 +3133,15 @@ export type Database = {
           payment_currency?: string | null
           payment_currency_amount?: number | null
           payment_currency_rate?: number | null
+          pos_customer_id?: string | null
           rate_source?: string | null
           return_of_order_id?: string | null
           return_reason?: string | null
           session_id: string
           state?: string
           subtotal?: number
+          survey_sent?: boolean | null
+          survey_token?: string | null
           table_id?: string | null
           tax_amount?: number
           total?: number
@@ -3004,8 +3152,10 @@ export type Database = {
           company_id?: string
           created_at?: string
           currency?: string
+          customer_discount_pct?: number | null
           customer_id?: string | null
           customer_name?: string | null
+          digital_receipt_sent?: boolean | null
           discount_amount?: number
           discount_type?: string | null
           guest_count?: number | null
@@ -3020,12 +3170,15 @@ export type Database = {
           payment_currency?: string | null
           payment_currency_amount?: number | null
           payment_currency_rate?: number | null
+          pos_customer_id?: string | null
           rate_source?: string | null
           return_of_order_id?: string | null
           return_reason?: string | null
           session_id?: string
           state?: string
           subtotal?: number
+          survey_sent?: boolean | null
+          survey_token?: string | null
           table_id?: string | null
           tax_amount?: number
           total?: number
@@ -3045,6 +3198,13 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_orders_pos_customer_id_fkey"
+            columns: ["pos_customer_id"]
+            isOneToOne: false
+            referencedRelation: "pos_customers"
             referencedColumns: ["id"]
           },
           {

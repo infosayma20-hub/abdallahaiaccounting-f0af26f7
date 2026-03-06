@@ -67,6 +67,9 @@ import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import PurchasePointPage from "./pages/PurchasePointPage";
 import FloorPlanPage from "./pages/FloorPlanPage";
 import FloorPlanEditorPage from "./pages/FloorPlanEditorPage";
+import DigitalReceiptPage from "./pages/DigitalReceiptPage";
+import SurveyPage from "./pages/SurveyPage";
+import CustomerReportsPage from "./pages/CustomerReportsPage";
 
 const queryClient = new QueryClient();
 
@@ -117,6 +120,8 @@ const App = () => (
               <Route path="/branch-display/:branchId" element={<BranchDisplayPage />} />
               <Route path="/super-admin/dashboard" element={<ProtectedRoute><SuperAdminDashboard /></ProtectedRoute>} />
               <Route path="/employee" element={<ProtectedRoute><RoleGuard allowedRoles={["employee"]} fallback="/auth"><EmployeeApp /></RoleGuard></ProtectedRoute>} />
+              <Route path="/receipt/:orderId" element={<DigitalReceiptPage />} />
+              <Route path="/survey/:token" element={<SurveyPage />} />
               <Route path="/pos" element={<ProtectedRoute><POSPage /></ProtectedRoute>} />
               <Route path="/pos/floor-plan" element={<ProtectedRoute><FloorPlanPage /></ProtectedRoute>} />
               <Route path="/pos/floor-plan/edit" element={<ProtectedRoute><FloorPlanEditorPage /></ProtectedRoute>} />
@@ -174,6 +179,7 @@ const App = () => (
                       <Route path="/support/admin" element={<RoleGuard allowedRoles={["admin"]}><SupportAdminPage /></RoleGuard>} />
                       <Route path="/pos-users" element={<POSUserManagementPage />} />
                       <Route path="/pos-reports" element={<POSReportsPage />} />
+                      <Route path="/customer-reports" element={<CustomerReportsPage />} />
                       <Route path="*" element={<NotFound />} />
                     </Routes>
                   </WebLayout>

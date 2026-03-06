@@ -21,6 +21,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { ScrollArea } from "@/components/ui/scroll-area";
 import POSReceiptDialog from "@/components/POSReceiptDialog";
 import ShiftSummaryReceipt from "@/components/ShiftSummaryReceipt";
+import CustomerDataModal from "@/components/pos/CustomerDataModal";
 import {
   DndContext,
   closestCenter,
@@ -333,6 +334,11 @@ const POSPage = () => {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [showCategoryManager, setShowCategoryManager] = useState(false);
+  const [showCustomerDataModal, setShowCustomerDataModal] = useState(false);
+  const [customerDataDiscount, setCustomerDataDiscount] = useState<{
+    discountPct: number; discountAmount: number; customerId: string | null;
+    contactType: string; contactValue: string; customerName: string;
+  } | null>(null);
   const [openingCash, setOpeningCash] = useState("");
   const [closingCash, setClosingCash] = useState("");
 
@@ -1183,6 +1189,12 @@ const POSPage = () => {
     try {
       let orderId: string;
       let orderObj: any;
+      
+      // Apply customer data discount
+      const effectiveTotal = customerDataDiscount 
+        ? cartTotals.total - customerDataDiscount.discountAmount 
+        : cartTotals.total;
+      const effectiveDiscount = cartTotals.discount + (customerDataDiscount?.discountAmount || 0);
 
       // Check if there's an existing draft/open order for this table (saved earlier)
       if (activeOrder.tableId) {
@@ -1199,9 +1211,10 @@ const POSPage = () => {
           await supabase.from("pos_orders").update({
             customer_name: customerName || null,
             subtotal: cartTotals.subtotal,
-            discount_amount: cartTotals.discount,
+            discount_amount: effectiveDiscount,
             tax_amount: cartTotals.tax,
-            total: cartTotals.total,
+            total: effectiveTotal,
+            ...(customerDataDiscount ? { pos_customer_id: customerDataDiscount.customerId, customer_discount_pct: customerDataDiscount.discountPct } as any : {}),
             session_id: session.id,
           } as any).eq("id", existingOrder.id);
           orderId = existingOrder.id;
@@ -1216,14 +1229,15 @@ const POSPage = () => {
               session_id: session.id,
               customer_name: customerName || null,
               subtotal: cartTotals.subtotal,
-              discount_amount: cartTotals.discount,
+              discount_amount: effectiveDiscount,
               tax_amount: cartTotals.tax,
-              total: cartTotals.total,
+              total: effectiveTotal,
               state: "draft",
               table_id: activeOrder.tableId,
               guest_count: activeOrder.guestCount,
               guest_name: activeOrder.guestName || null,
               order_type: "dine_in",
+              ...(customerDataDiscount ? { pos_customer_id: customerDataDiscount.customerId, customer_discount_pct: customerDataDiscount.discountPct } as any : {}),
             } as any)
             .select()
             .single();
@@ -1232,7 +1246,6 @@ const POSPage = () => {
           orderObj = order;
         }
       } else {
-        // No table - create new order
         const { data: order, error: orderError } = await supabase
           .from("pos_orders")
           .insert({
@@ -1241,10 +1254,11 @@ const POSPage = () => {
             session_id: session.id,
             customer_name: customerName || null,
             subtotal: cartTotals.subtotal,
-            discount_amount: cartTotals.discount,
+            discount_amount: effectiveDiscount,
             tax_amount: cartTotals.tax,
-            total: cartTotals.total,
+            total: effectiveTotal,
             state: "draft",
+            ...(customerDataDiscount ? { pos_customer_id: customerDataDiscount.customerId, customer_discount_pct: customerDataDiscount.discountPct } as any : {}),
           } as any)
           .select()
           .single();
@@ -1273,10 +1287,13 @@ const POSPage = () => {
       await supabase.from("pos_order_lines").insert(lines);
 
       const rate = exchangeRates[paymentCurrency] || 1;
-      const foreignTotal = paymentCurrency === "ILS" ? cartTotals.total : cartTotals.total / rate;
+      const foreignTotal = paymentCurrency === "ILS" ? effectiveTotal : effectiveTotal / rate;
       const tendered = parseFloat(tenderedAmount) || foreignTotal;
       const changeInForeign = Math.max(0, tendered - foreignTotal);
       const change = paymentCurrency === "ILS" ? changeInForeign : changeInForeign * rate;
+
+      // Generate survey token if customer data was collected
+      const surveyToken = customerDataDiscount ? crypto.randomUUID() : null;
 
       const { data: result, error: completeError } = await supabase.rpc("complete_pos_order", {
         p_order_id: orderId,
@@ -1317,7 +1334,7 @@ const POSPage = () => {
         prev
           ? {
               ...prev,
-              total_sales: prev.total_sales + cartTotals.total,
+              total_sales: prev.total_sales + effectiveTotal,
               total_orders: prev.total_orders + 1,
             }
           : null
@@ -1379,8 +1396,8 @@ const POSPage = () => {
         })),
         subtotal: cartTotals.subtotal,
         tax: cartTotals.tax,
-        discount: cartTotals.discount,
-        total: cartTotals.total,
+        discount: effectiveDiscount,
+        total: effectiveTotal,
         paymentMethod,
         tenderedAmount: tendered,
         change,
@@ -1393,6 +1410,46 @@ const POSPage = () => {
       setReceiptData(receiptInfo);
       setShowPayment(false);
       setShowReceipt(true);
+
+      // Send digital receipt & survey if customer data was collected
+      if (customerDataDiscount && surveyToken) {
+        try {
+          // Create survey record
+          await supabase.from("customer_surveys").insert({
+            user_id: dataOwnerId,
+            order_id: orderId,
+            customer_id: customerDataDiscount.customerId,
+            cashier_user_id: userId,
+            survey_token: surveyToken,
+            status: "sent",
+          } as any);
+
+          // Update order with survey token
+          await supabase.from("pos_orders").update({
+            digital_receipt_sent: true,
+            survey_sent: true,
+            survey_token: surveyToken,
+          } as any).eq("id", orderId);
+
+          // Send via edge function
+          const { data: sendResult } = await supabase.functions.invoke("send-customer-receipt", {
+            body: {
+              orderId,
+              contactType: customerDataDiscount.contactType,
+              contactValue: customerDataDiscount.contactValue,
+              customerName: customerDataDiscount.customerName,
+              companyName: company?.name || "شركتي",
+              surveyToken,
+            },
+          });
+
+          if (sendResult?.whatsappUrl) {
+            window.open(sendResult.whatsappUrl, "_blank");
+          }
+        } catch (e) {
+          console.error("Failed to send receipt:", e);
+        }
+      }
 
       // Reset order tab
       if (orders.length > 1) {
@@ -1413,6 +1470,7 @@ const POSPage = () => {
       setPaymentCurrency("ILS");
       setEditedRate(null);
       setRateEdited(false);
+      setCustomerDataDiscount(null);
 
       if (tableName) {
         toast.success(`✅ تم السداد - ${tableName} متاحة الآن`);
@@ -2391,6 +2449,19 @@ const POSPage = () => {
                   </button>
                 </div>
               )}
+              {/* Customer data discount button */}
+              {cart.length > 0 && (
+                <button
+                  onClick={() => setShowCustomerDataModal(true)}
+                  className={`w-full h-9 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
+                    customerDataDiscount
+                      ? "border-2 border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                      : "border border-dashed border-amber-400/50 bg-amber-500/5 text-amber-700 dark:text-amber-400 hover:bg-amber-500/10"
+                  }`}
+                >
+                  {customerDataDiscount ? `✅ خصم ${customerDataDiscount.discountPct}% مطبّق — ${customerDataDiscount.customerName || customerDataDiscount.contactValue}` : "🎁 خصم مقابل بيانات العميل"}
+                </button>
+              )}
               {/* Bottom row: Delete + Print + Pay */}
               <div className="flex gap-2">
                 <button
@@ -2398,8 +2469,8 @@ const POSPage = () => {
                   onClick={async () => {
                     const tableId = activeOrder.tableId;
                     setCart([]); setSelectedCartIndex(null); setOrderDiscount(0); setOrderNote("");
+                    setCustomerDataDiscount(null);
                     if (tableId) {
-                      // Cancel any draft/open order for this table
                       const { data: existingOrder } = await supabase
                         .from("pos_orders")
                         .select("id")
@@ -2410,7 +2481,6 @@ const POSPage = () => {
                         await supabase.from("pos_order_lines").delete().eq("order_id", existingOrder.id);
                         await supabase.from("pos_orders").update({ state: "cancelled" } as any).eq("id", existingOrder.id);
                       }
-                      // Release the table
                       await supabase.from("restaurant_tables").update({
                         status: "available", current_order_id: null, current_guests: 0, occupied_at: null,
                       }).eq("id", tableId);
@@ -2437,7 +2507,7 @@ const POSPage = () => {
                   onClick={() => setShowPayment(true)}
                 >
                   <span className="text-xs bg-white/20 rounded px-1.5 py-0.5 font-mono">F12</span>
-                  دفع ₪{cartTotals.total.toFixed(2)}
+                  دفع ₪{(customerDataDiscount ? cartTotals.total - customerDataDiscount.discountAmount : cartTotals.total).toFixed(2)}
                   <Printer className="h-4 w-4 opacity-70" />
                 </motion.button>
               </div>
@@ -2486,13 +2556,16 @@ const POSPage = () => {
             {/* Total display */}
             <div className="text-center py-5 px-4 bg-primary/8 rounded-2xl border border-primary/10">
               <p className="text-xs text-muted-foreground mb-1">المبلغ المطلوب</p>
+              {customerDataDiscount && (
+                <p className="text-xs text-emerald-600 mb-1">🎁 خصم {customerDataDiscount.discountPct}% = -₪{customerDataDiscount.discountAmount.toFixed(2)}</p>
+              )}
               <motion.p
                 key={cartTotals.total}
                 initial={{ scale: 1.05 }}
                 animate={{ scale: 1 }}
                 className="text-4xl font-bold text-primary tabular-nums"
               >
-                ₪{cartTotals.total.toFixed(2)}
+                ₪{(customerDataDiscount ? cartTotals.total - customerDataDiscount.discountAmount : cartTotals.total).toFixed(2)}
               </motion.p>
             </div>
 
@@ -2654,9 +2727,10 @@ const POSPage = () => {
                 {(() => {
                   const tendered = parseFloat(tenderedAmount) || 0;
                   if (tendered <= 0) return null;
-                  const rate = exchangeRates[paymentCurrency] || 1;
-                  const tenderedInILS = paymentCurrency === "ILS" ? tendered : tendered * rate;
-                  const change = tenderedInILS - cartTotals.total;
+                   const rate = exchangeRates[paymentCurrency] || 1;
+                   const tenderedInILS = paymentCurrency === "ILS" ? tendered : tendered * rate;
+                   const effectiveT = customerDataDiscount ? cartTotals.total - customerDataDiscount.discountAmount : cartTotals.total;
+                   const change = tenderedInILS - effectiveT;
                   const curSymbol = currencies.find(c => c.code === paymentCurrency)?.symbol || "";
 
                   return (
@@ -3190,6 +3264,24 @@ const POSPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Customer Data Modal */}
+      <CustomerDataModal
+        open={showCustomerDataModal}
+        onOpenChange={setShowCustomerDataModal}
+        subtotal={cartTotals.subtotal}
+        discountPct={10}
+        dataOwnerId={dataOwnerId || ""}
+        onApply={(data) => {
+          setCustomerDataDiscount(data);
+          setShowCustomerDataModal(false);
+          toast.success(`✅ تم تطبيق خصم ${data.discountPct}% — وفّر العميل ₪${data.discountAmount.toFixed(2)}`);
+        }}
+        onSkip={() => {
+          setCustomerDataDiscount(null);
+          setShowCustomerDataModal(false);
+        }}
+      />
     </div>
   );
 };
