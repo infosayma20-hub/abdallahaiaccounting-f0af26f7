@@ -692,22 +692,31 @@ const POSPage = () => {
     if (!dataOwnerId) return;
     const { data } = await supabase
       .from("exchange_rates")
-      .select("currency_id, mid_rate, currencies!inner(code)")
+      .select("currency_id, mid_rate, sell_rate, buy_rate, rate_date, source, pos_rate_override, allow_pos_edit, currencies!inner(code)")
       .eq("user_id", dataOwnerId)
       .order("rate_date", { ascending: false });
 
     const rates: Record<string, number> = { ILS: 1 };
+    const details: Record<string, { rate: number; date: string; source: string; posOverride: number | null }> = {};
     if (data) {
       const seen = new Set<string>();
       for (const r of data) {
         const code = (r as any).currencies?.code;
         if (code && !seen.has(code)) {
           seen.add(code);
-          rates[code] = Number(r.mid_rate) || 1;
+          const sellRate = Number((r as any).sell_rate) || Number(r.mid_rate) || 1;
+          rates[code] = Number((r as any).pos_rate_override) || sellRate;
+          details[code] = {
+            rate: sellRate,
+            date: (r as any).rate_date,
+            source: (r as any).source || 'auto',
+            posOverride: (r as any).pos_rate_override ? Number((r as any).pos_rate_override) : null,
+          };
         }
       }
     }
     setExchangeRates(rates);
+    setExchangeRateDetails(details);
   };
 
   const loadContacts = async () => {
