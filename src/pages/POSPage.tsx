@@ -2656,61 +2656,149 @@ const POSPage = () => {
 
                     {/* System rate info */}
                     <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-                      <span>السعر في النظام: {exchangeRateDetails[paymentCurrency]?.rate?.toFixed(4) || '—'} ₪/{paymentCurrency}</span>
+                      <span>السعر الرسمي: {exchangeRateDetails[paymentCurrency]?.rate?.toFixed(4) || '—'} ₪/{paymentCurrency}</span>
                       <span>{exchangeRateDetails[paymentCurrency]?.date ? `آخر تحديث: ${new Date(exchangeRateDetails[paymentCurrency].date).toLocaleDateString("ar-PS")}` : ''}</span>
                     </div>
 
-                    {/* Editable rate */}
-                    <div className="flex items-center gap-2">
-                      <div className="flex-1 relative">
+                    {/* Foreign amount input */}
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-muted-foreground">المبلغ بال{currencies.find(c => c.code === paymentCurrency)?.name}:</label>
+                      <div className="relative">
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground font-bold text-lg">
+                          {currencies.find(c => c.code === paymentCurrency)?.symbol}
+                        </span>
                         <Input
                           type="number"
-                          value={editedRate !== null ? editedRate : (exchangeRates[paymentCurrency] || 0)}
+                          value={foreignAmount}
                           onChange={(e) => {
-                            const val = parseFloat(e.target.value);
-                            if (val > 0) {
-                              setEditedRate(val);
-                              setRateEdited(true);
-                              setExchangeRates(prev => ({ ...prev, [paymentCurrency]: val }));
+                            const val = e.target.value;
+                            setForeignAmount(val);
+                            const amt = parseFloat(val);
+                            const effectiveT = customerDataDiscount ? cartTotals.total - customerDataDiscount.discountAmount : cartTotals.total;
+                            if (amt && amt > 0 && effectiveT > 0) {
+                              const newRate = effectiveT / amt;
+                              setComputedRate(parseFloat(newRate.toFixed(4)));
+                              const officialRate = exchangeRateDetails[paymentCurrency]?.rate || exchangeRates[paymentCurrency] || 1;
+                              const diffPct = Math.abs(newRate - officialRate) / officialRate * 100;
+                              setRateEdited(diffPct >= 0.5);
                             }
                           }}
-                          step="0.0001"
-                          className={`text-sm font-mono h-9 ${rateEdited ? 'border-amber-400 bg-amber-50 dark:bg-amber-950/20' : ''}`}
+                          step="0.01"
+                          className="text-xl h-14 text-center font-bold tabular-nums pr-10"
+                          dir="ltr"
+                          autoFocus
                         />
-                        {rateEdited && (
-                          <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-amber-600 font-medium">✏️ معدّل</span>
-                        )}
                       </div>
-                      <span className="text-xs text-muted-foreground whitespace-nowrap">₪/{paymentCurrency}</span>
-                      {rateEdited && (
-                        <button
-                          onClick={() => {
-                            const original = exchangeRateDetails[paymentCurrency]?.rate || 1;
-                            setEditedRate(null);
-                            setRateEdited(false);
-                            setExchangeRates(prev => ({ ...prev, [paymentCurrency]: exchangeRateDetails[paymentCurrency]?.posOverride || original }));
-                          }}
-                          className="text-[10px] text-primary hover:underline whitespace-nowrap"
-                        >
-                          ← الرسمي
-                        </button>
-                      )}
+                      <p className="text-[10px] text-muted-foreground text-center">
+                        السعر الرسمي يتطلب: {((customerDataDiscount ? cartTotals.total - customerDataDiscount.discountAmount : cartTotals.total) / (exchangeRateDetails[paymentCurrency]?.rate || exchangeRates[paymentCurrency] || 1)).toFixed(2)} {paymentCurrency}
+                      </p>
                     </div>
-                    {rateEdited && (
-                      <p className="text-[10px] text-amber-600">⚠️ سيُسجَّل السعر المعدَّل في سجل المعاملات</p>
-                    )}
 
-                    {/* Required in foreign */}
-                    <div className="flex justify-between items-center pt-1 border-t border-border">
-                      <span className="text-xs text-muted-foreground">المطلوب بال{currencies.find(c => c.code === paymentCurrency)?.name}</span>
-                      <span className="font-mono font-bold text-sm tabular-nums">
-                        {currencies.find(c => c.code === paymentCurrency)?.symbol}
-                        {(cartTotals.total / (exchangeRates[paymentCurrency] || 1)).toFixed(2)}
-                      </span>
+                    {/* Quick amounts for foreign currency */}
+                    <div className="flex gap-2">
+                      {[5, 10, 20, 50, 100].map((amt) => {
+                        const curSymbol = currencies.find(c => c.code === paymentCurrency)?.symbol || "";
+                        return (
+                          <button
+                            key={amt}
+                            onClick={() => {
+                              setForeignAmount(String(amt));
+                              const effectiveT = customerDataDiscount ? cartTotals.total - customerDataDiscount.discountAmount : cartTotals.total;
+                              if (effectiveT > 0) {
+                                const newRate = effectiveT / amt;
+                                setComputedRate(parseFloat(newRate.toFixed(4)));
+                                const officialRate = exchangeRateDetails[paymentCurrency]?.rate || exchangeRates[paymentCurrency] || 1;
+                                setRateEdited(Math.abs(newRate - officialRate) / officialRate * 100 >= 0.5);
+                              }
+                            }}
+                            className={`flex-1 py-2 text-xs rounded-lg font-medium tabular-nums transition-all ${
+                              foreignAmount === String(amt)
+                                ? "bg-primary text-primary-foreground"
+                                : "bg-muted/60 hover:bg-primary/10 hover:text-primary"
+                            }`}
+                          >
+                            {curSymbol}{amt}
+                          </button>
+                        );
+                      })}
                     </div>
+
+                    {/* Computed rate indicator */}
+                    {(() => {
+                      const officialRate = exchangeRateDetails[paymentCurrency]?.rate || exchangeRates[paymentCurrency] || 1;
+                      const diff = computedRate - officialRate;
+                      const diffPct = officialRate > 0 ? Math.abs(diff) / officialRate * 100 : 0;
+                      
+                      if (diffPct < 0.5) {
+                        return (
+                          <div className="flex items-center justify-between p-2 bg-primary/5 rounded-lg border border-primary/20">
+                            <span className="text-[11px] text-muted-foreground">سعر الصرف المحسوب:</span>
+                            <span className="text-sm font-mono font-bold text-primary tabular-nums">
+                              {computedRate.toFixed(4)} ₪/{paymentCurrency}
+                              <span className="text-primary mr-1 text-[10px]">✅ مطابق</span>
+                            </span>
+                          </div>
+                        );
+                      }
+                      
+                      return (
+                        <div className={`flex items-center justify-between p-2 rounded-lg border ${
+                          diffPct > 2 ? 'bg-destructive/5 border-destructive/20' : 'bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800'
+                        }`}>
+                          <div>
+                            <span className="text-[11px] text-muted-foreground">سعر الصرف المحسوب:</span>
+                            <p className="text-[10px] text-muted-foreground mt-0.5">
+                              رسمي: {officialRate.toFixed(4)} | فرق: {diff > 0 ? '+' : ''}{diff.toFixed(4)} ({diffPct.toFixed(1)}%)
+                            </p>
+                          </div>
+                          <span className={`text-sm font-mono font-bold tabular-nums ${
+                            diffPct > 2 ? 'text-destructive' : 'text-amber-700 dark:text-amber-400'
+                          }`}>
+                            {computedRate.toFixed(4)}
+                            <span className="text-[10px] mr-1">{diffPct > 2 ? '⚠️ فرق كبير' : '🔶 معدَّل'}</span>
+                          </span>
+                        </div>
+                      );
+                    })()}
+
+                    {/* Change in foreign currency */}
+                    {(() => {
+                      const fAmt = parseFloat(foreignAmount) || 0;
+                      const effectiveT = customerDataDiscount ? cartTotals.total - customerDataDiscount.discountAmount : cartTotals.total;
+                      const requiredForeign = computedRate > 0 ? effectiveT / computedRate : 0;
+                      const changeForeign = Math.max(0, fAmt - requiredForeign);
+                      const changeILS = changeForeign * computedRate;
+                      const curSymbol = currencies.find(c => c.code === paymentCurrency)?.symbol || "";
+                      
+                      if (fAmt <= 0) return null;
+                      
+                      return (
+                        <div className="p-3 rounded-xl border border-border space-y-2">
+                          {changeForeign >= 0.001 ? (
+                            <div className="flex justify-between items-center p-2.5 bg-primary/5 rounded-lg">
+                              <span className="text-xs text-muted-foreground">الباقي</span>
+                              <div className="text-left">
+                                <span className="text-lg font-bold text-primary tabular-nums">{curSymbol}{changeForeign.toFixed(2)}</span>
+                                <p className="text-[10px] text-muted-foreground">≈ ₪{changeILS.toFixed(2)}</p>
+                              </div>
+                            </div>
+                          ) : fAmt < requiredForeign - 0.001 ? (
+                            <div className="flex justify-between items-center p-2.5 bg-destructive/5 rounded-lg">
+                              <span className="text-xs text-destructive">المبلغ غير كافٍ</span>
+                              <span className="text-lg font-bold text-destructive tabular-nums">-{curSymbol}{Math.abs(fAmt - requiredForeign).toFixed(2)}</span>
+                            </div>
+                          ) : (
+                            <div className="flex justify-between items-center p-2.5 bg-primary/5 rounded-lg">
+                              <span className="text-xs text-muted-foreground">الباقي</span>
+                              <span className="text-lg font-bold text-primary tabular-nums">{curSymbol}0.00</span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
 
                     {/* Account info */}
-                    <div className="text-[10px] text-muted-foreground flex items-center gap-1 pt-1">
+                    <div className="text-[10px] text-muted-foreground flex items-center gap-1">
                       <span>📒 سيُسجَّل في:</span>
                       <span className="font-medium">
                         {paymentCurrency === 'USD' ? 'صندوق الدولار (1111)' :
@@ -2722,39 +2810,32 @@ const POSPage = () => {
                   </div>
                 )}
 
-                {/* Amount input */}
-                <div className="space-y-1.5">
-                  <p className="text-xs font-medium text-muted-foreground text-left">
-                    المبلغ المستلم ({currencies.find(c => c.code === paymentCurrency)?.name})
-                  </p>
-                  <Input
-                    type="number"
-                    value={tenderedAmount}
-                    onChange={(e) => setTenderedAmount(e.target.value)}
-                    placeholder={(cartTotals.total / (exchangeRates[paymentCurrency] || 1)).toFixed(2)}
-                    className="text-xl h-14 text-center font-bold tabular-nums"
-                    autoFocus
-                  />
-                </div>
+                {/* Amount input for ILS */}
+                {paymentCurrency === "ILS" && (
+                  <div className="space-y-1.5">
+                    <p className="text-xs font-medium text-muted-foreground text-left">
+                      المبلغ المستلم (شيكل)
+                    </p>
+                    <Input
+                      type="number"
+                      value={tenderedAmount}
+                      onChange={(e) => setTenderedAmount(e.target.value)}
+                      placeholder={cartTotals.total.toFixed(2)}
+                      className="text-xl h-14 text-center font-bold tabular-nums"
+                      autoFocus
+                    />
+                  </div>
+                )}
 
-                {/* Change calculation */}
-                {(() => {
+                {/* Change calculation for ILS */}
+                {paymentCurrency === "ILS" && (() => {
                   const tendered = parseFloat(tenderedAmount) || 0;
                   if (tendered <= 0) return null;
-                   const rate = exchangeRates[paymentCurrency] || 1;
-                   const tenderedInILS = paymentCurrency === "ILS" ? tendered : tendered * rate;
-                   const effectiveT = customerDataDiscount ? cartTotals.total - customerDataDiscount.discountAmount : cartTotals.total;
-                   const change = tenderedInILS - effectiveT;
-                  const curSymbol = currencies.find(c => c.code === paymentCurrency)?.symbol || "";
-
+                  const effectiveT = customerDataDiscount ? cartTotals.total - customerDataDiscount.discountAmount : cartTotals.total;
+                  const change = tendered - effectiveT;
+                  
                   return (
                     <div className="p-3 rounded-xl border border-border space-y-2">
-                      {paymentCurrency !== "ILS" && (
-                        <div className="flex justify-between text-xs">
-                          <span className="text-muted-foreground">ما يعادل بالشيكل</span>
-                          <span className="font-bold tabular-nums">₪{tenderedInILS.toFixed(2)}</span>
-                        </div>
-                      )}
                       {change >= 0 ? (
                         <div className="flex justify-between items-center p-2.5 bg-primary/5 rounded-lg">
                           <span className="text-xs text-muted-foreground">الباقي للزبون</span>
@@ -2766,34 +2847,24 @@ const POSPage = () => {
                           <span className="text-lg font-bold text-destructive tabular-nums">-₪{Math.abs(change).toFixed(2)}</span>
                         </div>
                       )}
-                      {paymentCurrency !== "ILS" && change > 0 && (
-                        <div className="flex justify-between text-[11px] text-muted-foreground border-t border-border pt-1.5">
-                          <span>أو الباقي بال{currencies.find(c => c.code === paymentCurrency)?.name}</span>
-                          <span className="font-medium tabular-nums">{curSymbol}{(change / rate).toFixed(2)}</span>
-                        </div>
-                      )}
                     </div>
                   );
                 })()}
 
-                {/* Quick amounts */}
-                <div className="flex gap-2">
-                  {(paymentCurrency === "ILS"
-                    ? [10, 20, 50, 100, 200]
-                    : [5, 10, 20, 50, 100]
-                  ).map((amt) => {
-                    const cur = currencies.find(c => c.code === paymentCurrency);
-                    return (
+                {/* Quick amounts for ILS */}
+                {paymentCurrency === "ILS" && (
+                  <div className="flex gap-2">
+                    {[10, 20, 50, 100, 200].map((amt) => (
                       <button
                         key={amt}
                         onClick={() => setTenderedAmount(String(amt))}
                         className="flex-1 py-2 text-xs rounded-lg bg-muted/60 hover:bg-primary/10 hover:text-primary transition-all font-medium tabular-nums"
                       >
-                        {cur?.symbol}{amt}
+                        ₪{amt}
                       </button>
-                    );
-                  })}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
