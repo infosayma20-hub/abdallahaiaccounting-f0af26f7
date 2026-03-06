@@ -371,7 +371,8 @@ const POSPage = () => {
   const [processing, setProcessing] = useState(false);
   const [exchangeRates, setExchangeRates] = useState<Record<string, number>>({});
   const [exchangeRateDetails, setExchangeRateDetails] = useState<Record<string, { rate: number; date: string; source: string; posOverride: number | null }>>({});
-  const [editedRate, setEditedRate] = useState<number | null>(null);
+  const [foreignAmount, setForeignAmount] = useState<string>("");
+  const [computedRate, setComputedRate] = useState<number>(1);
   const [rateEdited, setRateEdited] = useState(false);
 
   const currencies = [
@@ -2609,7 +2610,20 @@ const POSPage = () => {
                         <motion.button
                           key={cur.code}
                           whileTap={{ scale: 0.96 }}
-                          onClick={() => { setPaymentCurrency(cur.code); setEditedRate(null); setRateEdited(false); setTenderedAmount(""); }}
+                          onClick={() => {
+                            setPaymentCurrency(cur.code);
+                            setRateEdited(false);
+                            setTenderedAmount("");
+                            if (cur.code === "ILS") {
+                              setForeignAmount("");
+                              setComputedRate(1);
+                            } else {
+                              const officialRate = exchangeRates[cur.code] || 1;
+                              const defaultForeign = (customerDataDiscount ? cartTotals.total - customerDataDiscount.discountAmount : cartTotals.total) / officialRate;
+                              setForeignAmount(parseFloat(defaultForeign.toFixed(2)).toString());
+                              setComputedRate(officialRate);
+                            }
+                          }}
                           className={`flex flex-col items-center gap-1 p-2.5 rounded-xl border-2 transition-all ${
                             isActive
                               ? "border-primary bg-primary/5"
