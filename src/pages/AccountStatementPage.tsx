@@ -117,6 +117,9 @@ const AccountStatementPage = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [companyName, setCompanyName] = useState("");
+  const [companyInfo, setCompanyInfo] = useState({
+    name: "", logo_url: "", address: "", phone: "", email: "", website: "", tax_number: "",
+  });
   const [activeTab, setActiveTab] = useState<EntityTab>(
     urlEmployeeName ? "employees" : urlContactType === "مورد" ? "suppliers" : "customers"
   );
