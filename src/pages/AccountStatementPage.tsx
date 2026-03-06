@@ -34,6 +34,16 @@ interface Account {
   account_type: string;
 }
 
+interface EmployeeEntity {
+  id: string;
+  full_name: string;
+  department: string | null;
+  job_title: string | null;
+  phone: string | null;
+  base_salary: number;
+  account_code: string | null; // linked account code from accounts table
+}
+
 interface Transaction {
   id: string;
   description: string;
@@ -65,7 +75,7 @@ type EntityTab = "customers" | "suppliers" | "employees" | "accounts";
 const ENTITY_TABS: { key: EntityTab; label: string; icon: any; color: string; accountCode: string; type: string }[] = [
   { key: "customers", label: "العملاء", icon: Users, color: "text-blue-500", accountCode: "1130", type: "عميل" },
   { key: "suppliers", label: "الموردين", icon: Truck, color: "text-amber-500", accountCode: "2100", type: "مورد" },
-  { key: "employees", label: "الموظفين", icon: UserCheck, color: "text-emerald-500", accountCode: "", type: "موظف" },
+  { key: "employees", label: "الموظفين", icon: UserCheck, color: "text-emerald-500", accountCode: "1180", type: "موظف" },
   { key: "accounts", label: "الحسابات", icon: LayoutGrid, color: "text-purple-500", accountCode: "", type: "account" },
 ];
 
@@ -97,15 +107,17 @@ const AccountStatementPage = () => {
   // URL params
   const urlContactId = searchParams.get("contact_id") || "";
   const urlContactType = searchParams.get("contact_type") || "";
+  const urlEmployeeName = searchParams.get("employee_name") || "";
 
   // State
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
+  const [employeeEntities, setEmployeeEntities] = useState<EmployeeEntity[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [companyName, setCompanyName] = useState("");
   const [activeTab, setActiveTab] = useState<EntityTab>(
-    urlContactType === "مورد" ? "suppliers" : "customers"
+    urlEmployeeName ? "employees" : urlContactType === "مورد" ? "suppliers" : "customers"
   );
   const [selectedEntityId, setSelectedEntityId] = useState(urlContactId);
   const [entitySearch, setEntitySearch] = useState("");
@@ -116,13 +128,14 @@ const AccountStatementPage = () => {
 
   const activeTabConfig = ENTITY_TABS.find(t => t.key === activeTab)!;
   const isAccountsTab = activeTab === "accounts";
+  const isEmployeesTab = activeTab === "employees";
 
   // ─── FETCH DATA ───
   const fetchData = async () => {
     if (!user) return;
     setLoading(true);
     try {
-      const [{ data: contactData }, { data: accData }, { data: txData }, profileRes] = await Promise.all([
+      const [{ data: contactData }, { data: accData }, { data: txData }, profileRes, { data: empData }] = await Promise.all([
         supabase
           .from("contacts")
           .select("id, contact_name, contact_type, phone, email, address, linked_account_code")
@@ -143,11 +156,37 @@ const AccountStatementPage = () => {
           .order("transaction_date", { ascending: true })
           .order("created_at", { ascending: true }),
         supabase.from("profiles").select("company_name, display_name").eq("user_id", user.id).maybeSingle(),
+        supabase
+          .from("employees")
+          .select("id, full_name, department, job_title, phone, base_salary")
+          .eq("user_id", user.id)
+          .eq("is_active", true)
+          .order("full_name"),
       ]);
       setContacts((contactData as Contact[]) || []);
       setAccounts((accData as Account[]) || []);
       setTransactions((txData as Transaction[]) || []);
       if (profileRes.data?.company_name) setCompanyName(profileRes.data.company_name);
+
+      // Map employees to their linked account codes (accounts under 1180)
+      const allAccounts = (accData as Account[]) || [];
+      const empList = ((empData as any[]) || []).map((emp: any) => {
+        // Find a matching account: "ذمم موظف - {name}" under parent 1180
+        const linkedAcc = allAccounts.find(
+          a => a.account_name === `ذمم موظف - ${emp.full_name}` && a.account_type === "أصول"
+        );
+        return {
+          ...emp,
+          account_code: linkedAcc?.account_code || null,
+        } as EmployeeEntity;
+      });
+      setEmployeeEntities(empList);
+
+      // Auto-select employee from URL param
+      if (urlEmployeeName && empList.length > 0) {
+        const found = empList.find(e => e.full_name === urlEmployeeName);
+        if (found) setSelectedEntityId(found.id);
+      }
     } catch (err: any) {
       toast({ title: "خطأ", description: err.message, variant: "destructive" });
     } finally {
@@ -159,7 +198,7 @@ const AccountStatementPage = () => {
 
   // ─── FILTERED CONTACTS BY TAB ───
   const tabContacts = useMemo(() => {
-    if (isAccountsTab) return [];
+    if (isAccountsTab || isEmployeesTab) return [];
     const type = activeTabConfig.type;
     return contacts.filter(c => c.contact_type === type);
   }, [contacts, activeTab]);
@@ -179,9 +218,25 @@ const AccountStatementPage = () => {
     return map;
   }, [accounts, transactions, isAccountsTab]);
 
+  // ─── EMPLOYEE BALANCES ───
+  const employeeBalances = useMemo(() => {
+    if (!isEmployeesTab) return {};
+    const map: Record<string, number> = {};
+    for (const emp of employeeEntities) {
+      if (!emp.account_code) { map[emp.id] = 0; continue; }
+      let bal = 0;
+      for (const tx of transactions) {
+        if (tx.debit_account_code === emp.account_code) bal += tx.amount || 0;
+        if (tx.credit_account_code === emp.account_code) bal -= tx.amount || 0;
+      }
+      map[emp.id] = bal;
+    }
+    return map;
+  }, [employeeEntities, transactions, isEmployeesTab]);
+
   // ─── CONTACT BALANCES ───
   const contactBalances = useMemo(() => {
-    if (isAccountsTab) return {};
+    if (isAccountsTab || isEmployeesTab) return {};
     const map: Record<string, number> = {};
     const accountCode = activeTabConfig.accountCode;
     for (const c of tabContacts) {
@@ -210,6 +265,18 @@ const AccountStatementPage = () => {
         balance: accountBalances[a.id] || 0,
         accountCode: a.account_code,
       }));
+    } else if (isEmployeesTab) {
+      const q = entitySearch.toLowerCase().trim();
+      const filtered = q
+        ? employeeEntities.filter(e => e.full_name.toLowerCase().includes(q) || (e.department || "").toLowerCase().includes(q))
+        : employeeEntities;
+      return filtered.map(e => ({
+        id: e.id,
+        name: e.full_name,
+        subtitle: `${e.job_title || e.department || "—"} · ${e.account_code || "بدون حساب"}`,
+        balance: employeeBalances[e.id] || 0,
+        accountCode: e.account_code || "",
+      }));
     } else {
       const q = entitySearch.toLowerCase().trim();
       const filtered = q
@@ -223,7 +290,7 @@ const AccountStatementPage = () => {
         accountCode: "",
       }));
     }
-  }, [isAccountsTab, accounts, tabContacts, entitySearch, accountBalances, contactBalances]);
+  }, [isAccountsTab, isEmployeesTab, accounts, employeeEntities, tabContacts, entitySearch, accountBalances, employeeBalances, contactBalances]);
 
   const selectedContact = useMemo(
     () => contacts.find(c => c.id === selectedEntityId),
@@ -235,12 +302,21 @@ const AccountStatementPage = () => {
     [accounts, selectedEntityId]
   );
 
+  const selectedEmployee = useMemo(
+    () => employeeEntities.find(e => e.id === selectedEntityId),
+    [employeeEntities, selectedEntityId]
+  );
+
   const selectedEntityName = isAccountsTab
     ? selectedAccount?.account_name || ""
+    : isEmployeesTab
+    ? selectedEmployee?.full_name || ""
     : selectedContact?.contact_name || "";
 
   const selectedEntityInfo = isAccountsTab
     ? { type: selectedAccount?.account_type || "", code: selectedAccount?.account_code || "", phone: "", address: "" }
+    : isEmployeesTab
+    ? { type: "موظف", code: selectedEmployee?.account_code || "", phone: selectedEmployee?.phone || "", address: selectedEmployee?.job_title || selectedEmployee?.department || "" }
     : { type: selectedContact?.contact_type || "", code: "", phone: selectedContact?.phone || "", address: selectedContact?.address || "" };
 
   // ─── STATEMENT ROWS ───
@@ -259,6 +335,19 @@ const AccountStatementPage = () => {
         isDebit: tx.debit_account_code === code,
         isCredit: tx.credit_account_code === code,
       });
+    } else if (isEmployeesTab && selectedEmployee?.account_code) {
+      // Employee: use their linked account code from accounts tree
+      const code = selectedEmployee.account_code;
+      related = transactions.filter(tx =>
+        tx.debit_account_code === code || tx.credit_account_code === code
+      );
+      resolveDebitCredit = (tx) => ({
+        isDebit: tx.debit_account_code === code,
+        isCredit: tx.credit_account_code === code,
+      });
+    } else if (isEmployeesTab && !selectedEmployee?.account_code) {
+      // No linked account - no transactions
+      return { rows: [] as StatementRow[], openingBalance: 0, closingBalance: 0, totalDebit: 0, totalCredit: 0 };
     } else {
       const accountCode = activeTabConfig.accountCode;
       related = transactions.filter(tx => tx.contact_id === selectedEntityId);
@@ -308,7 +397,7 @@ const AccountStatementPage = () => {
     });
 
     return { rows, openingBalance: openBal, closingBalance: runningBalance, totalDebit: sumDebit, totalCredit: sumCredit };
-  }, [transactions, selectedEntityId, dateFrom, dateTo, activeTab, selectedAccount]);
+  }, [transactions, selectedEntityId, dateFrom, dateTo, activeTab, selectedAccount, selectedEmployee]);
 
   const filteredRows = useMemo(() => {
     if (!txSearch.trim()) return rows;
@@ -341,7 +430,7 @@ const AccountStatementPage = () => {
     XLSX.writeFile(wb, `كشف-حساب-${selectedEntityName}-${dateFrom}.xlsx`);
   };
 
-  const allBalances = isAccountsTab ? accountBalances : contactBalances;
+  const allBalances = isAccountsTab ? accountBalances : isEmployeesTab ? employeeBalances : contactBalances;
   const totalBalance = useMemo(() => Object.values(allBalances).reduce((s, b) => s + b, 0), [allBalances]);
   const debitCount = useMemo(() => Object.values(allBalances).filter(b => b > 0).length, [allBalances]);
   const creditCount = useMemo(() => Object.values(allBalances).filter(b => b < 0).length, [allBalances]);
@@ -447,7 +536,7 @@ const AccountStatementPage = () => {
               </div>
             ) : entityList.length === 0 ? (
               <div className="p-6 text-center text-xs text-muted-foreground">
-                {isAccountsTab ? "لا توجد حسابات" : "لا توجد جهات اتصال"}
+                {isAccountsTab ? "لا توجد حسابات" : isEmployeesTab ? "لا يوجد موظفون" : "لا توجد جهات اتصال"}
               </div>
             ) : (
               entityList.map(entity => {
@@ -522,7 +611,17 @@ const AccountStatementPage = () => {
                               <Badge variant="secondary" className="text-[10px]">{selectedAccount.account_type}</Badge>
                             </>
                           )}
-                          {!isAccountsTab && selectedContact && (
+                          {isEmployeesTab && selectedEmployee && (
+                            <>
+                              {selectedEmployee.account_code && <span className="font-mono">{selectedEmployee.account_code}</span>}
+                              {selectedEmployee.job_title && <span>💼 {selectedEmployee.job_title}</span>}
+                              {selectedEmployee.department && <span>🏢 {selectedEmployee.department}</span>}
+                              {selectedEmployee.phone && <span>📞 {selectedEmployee.phone}</span>}
+                              <Badge variant="secondary" className="text-[10px]">موظف</Badge>
+                              {!selectedEmployee.account_code && <Badge variant="destructive" className="text-[10px]">بدون حساب محاسبي</Badge>}
+                            </>
+                          )}
+                          {!isAccountsTab && !isEmployeesTab && selectedContact && (
                             <>
                               {selectedContact.phone && <span>📞 {selectedContact.phone}</span>}
                               {selectedContact.address && <span>📍 {selectedContact.address}</span>}
