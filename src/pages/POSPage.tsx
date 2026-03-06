@@ -3057,31 +3057,20 @@ const POSPage = () => {
             <div className="w-16 h-16 mx-auto rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
               <CheckCircle className="h-8 w-8 text-green-600" />
             </div>
-            <p className="text-muted-foreground text-sm">
-              {isAdmin
-                ? "تم إغلاق الوردية بنجاح. هل تريد تسجيل الخروج؟"
-                : "تم إغلاق الوردية بنجاح. سيتم تسجيل خروجك الآن."}
-            </p>
-          </div>
-          <DialogFooter className="flex gap-2 sm:gap-2">
-            {isAdmin && (
-              <Button
-                variant="outline"
-                className="flex-1"
-                onClick={() => setShowLogoutConfirm(false)}
-              >
-                البقاء
-              </Button>
-            )}
-            <Button
-              variant="destructive"
-              className={isAdmin ? "flex-1 gap-2" : "w-full gap-2"}
-              onClick={handleLogout}
-            >
-              <LogOut className="h-4 w-4" />
-              تسجيل الخروج
-            </Button>
-          </DialogFooter>
+             <p className="text-muted-foreground text-sm">
+               تم إغلاق الوردية بنجاح. سيتم تسجيل خروجك الآن.
+             </p>
+           </div>
+           <DialogFooter className="flex gap-2 sm:gap-2">
+             <Button
+               variant="destructive"
+               className="w-full gap-2"
+               onClick={handleLogout}
+             >
+               <LogOut className="h-4 w-4" />
+               تسجيل الخروج
+             </Button>
+           </DialogFooter>
         </DialogContent>
       </Dialog>
 
