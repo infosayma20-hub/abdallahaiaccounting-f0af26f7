@@ -85,10 +85,11 @@ const StatementPrintView = ({
 
   return (
     <div
-      className="statement-print-page statement-page bg-white text-black"
+      id="statement-print-wrapper"
+      className="statement-print-page statement-page bg-white text-black print-only"
       style={{
-        width: "210mm",
-        maxHeight: "297mm",
+        width: "100%",
+        maxWidth: "794px",
         margin: "0 auto",
         padding: "0",
         fontFamily: "'Cairo', 'Segoe UI', sans-serif",
@@ -97,6 +98,7 @@ const StatementPrintView = ({
         lineHeight: 1.4,
         position: "relative",
         overflow: "hidden",
+        boxSizing: "border-box",
       }}
     >
       {/* ━━━ HEADER BAR ━━━ */}
