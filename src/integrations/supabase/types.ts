@@ -2094,12 +2094,14 @@ export type Database = {
       }
       exchange_rates: {
         Row: {
+          allow_pos_edit: boolean | null
           buy_rate: number
           created_at: string
           currency_id: string
           id: string
           mid_rate: number
           notes: string | null
+          pos_rate_override: number | null
           rate_date: string
           sell_rate: number
           source: string
@@ -2107,12 +2109,14 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          allow_pos_edit?: boolean | null
           buy_rate?: number
           created_at?: string
           currency_id: string
           id?: string
           mid_rate?: number
           notes?: string | null
+          pos_rate_override?: number | null
           rate_date?: string
           sell_rate?: number
           source?: string
@@ -2120,12 +2124,14 @@ export type Database = {
           user_id: string
         }
         Update: {
+          allow_pos_edit?: boolean | null
           buy_rate?: number
           created_at?: string
           currency_id?: string
           id?: string
           mid_rate?: number
           notes?: string | null
+          pos_rate_override?: number | null
           rate_date?: string
           sell_rate?: number
           source?: string
@@ -2941,11 +2947,16 @@ export type Database = {
           guest_count: number | null
           guest_name: string | null
           id: string
+          ils_equivalent: number | null
           is_return: boolean
           linked_transaction_id: string | null
           notes: string | null
           order_number: string | null
           order_type: string | null
+          payment_currency: string | null
+          payment_currency_amount: number | null
+          payment_currency_rate: number | null
+          rate_source: string | null
           return_of_order_id: string | null
           return_reason: string | null
           session_id: string
@@ -2968,11 +2979,16 @@ export type Database = {
           guest_count?: number | null
           guest_name?: string | null
           id?: string
+          ils_equivalent?: number | null
           is_return?: boolean
           linked_transaction_id?: string | null
           notes?: string | null
           order_number?: string | null
           order_type?: string | null
+          payment_currency?: string | null
+          payment_currency_amount?: number | null
+          payment_currency_rate?: number | null
+          rate_source?: string | null
           return_of_order_id?: string | null
           return_reason?: string | null
           session_id: string
@@ -2995,11 +3011,16 @@ export type Database = {
           guest_count?: number | null
           guest_name?: string | null
           id?: string
+          ils_equivalent?: number | null
           is_return?: boolean
           linked_transaction_id?: string | null
           notes?: string | null
           order_number?: string | null
           order_type?: string | null
+          payment_currency?: string | null
+          payment_currency_amount?: number | null
+          payment_currency_rate?: number | null
+          rate_source?: string | null
           return_of_order_id?: string | null
           return_reason?: string | null
           session_id?: string

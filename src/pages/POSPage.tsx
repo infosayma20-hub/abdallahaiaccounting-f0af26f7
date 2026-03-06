@@ -364,12 +364,16 @@ const POSPage = () => {
   const [tenderedAmount, setTenderedAmount] = useState("");
   const [processing, setProcessing] = useState(false);
   const [exchangeRates, setExchangeRates] = useState<Record<string, number>>({});
+  const [exchangeRateDetails, setExchangeRateDetails] = useState<Record<string, { rate: number; date: string; source: string; posOverride: number | null }>>({});
+  const [editedRate, setEditedRate] = useState<number | null>(null);
+  const [rateEdited, setRateEdited] = useState(false);
 
   const currencies = [
     { code: "ILS", symbol: "₪", name: "شيكل", flag: "IL" },
     { code: "USD", symbol: "$", name: "دولار", flag: "US" },
     { code: "JOD", symbol: "د.ا", name: "دينار", flag: "JO" },
     { code: "EUR", symbol: "€", name: "يورو", flag: "EU" },
+    { code: "EGP", symbol: "ج.م", name: "جنيه", flag: "EG" },
   ];
 
   // Receipt
@@ -689,22 +693,31 @@ const POSPage = () => {
     if (!dataOwnerId) return;
     const { data } = await supabase
       .from("exchange_rates")
-      .select("currency_id, mid_rate, currencies!inner(code)")
+      .select("currency_id, mid_rate, sell_rate, buy_rate, rate_date, source, pos_rate_override, allow_pos_edit, currencies!inner(code)")
       .eq("user_id", dataOwnerId)
       .order("rate_date", { ascending: false });
 
     const rates: Record<string, number> = { ILS: 1 };
+    const details: Record<string, { rate: number; date: string; source: string; posOverride: number | null }> = {};
     if (data) {
       const seen = new Set<string>();
       for (const r of data) {
         const code = (r as any).currencies?.code;
         if (code && !seen.has(code)) {
           seen.add(code);
-          rates[code] = Number(r.mid_rate) || 1;
+          const sellRate = Number((r as any).sell_rate) || Number(r.mid_rate) || 1;
+          rates[code] = Number((r as any).pos_rate_override) || sellRate;
+          details[code] = {
+            rate: sellRate,
+            date: (r as any).rate_date,
+            source: (r as any).source || 'auto',
+            posOverride: (r as any).pos_rate_override ? Number((r as any).pos_rate_override) : null,
+          };
         }
       }
     }
     setExchangeRates(rates);
+    setExchangeRateDetails(details);
   };
 
   const loadContacts = async () => {
@@ -1259,8 +1272,11 @@ const POSPage = () => {
 
       await supabase.from("pos_order_lines").insert(lines);
 
-      const tendered = parseFloat(tenderedAmount) || cartTotals.total;
-      const change = Math.max(0, tendered - cartTotals.total);
+      const rate = exchangeRates[paymentCurrency] || 1;
+      const foreignTotal = paymentCurrency === "ILS" ? cartTotals.total : cartTotals.total / rate;
+      const tendered = parseFloat(tenderedAmount) || foreignTotal;
+      const changeInForeign = Math.max(0, tendered - foreignTotal);
+      const change = paymentCurrency === "ILS" ? changeInForeign : changeInForeign * rate;
 
       const { data: result, error: completeError } = await supabase.rpc("complete_pos_order", {
         p_order_id: orderId,
@@ -1268,8 +1284,12 @@ const POSPage = () => {
         p_payments: [{
           method: paymentMethod,
           amount: cartTotals.total,
-          tendered: tendered,
+          tendered: paymentCurrency === "ILS" ? tendered : tendered * rate,
           change: change,
+          currency: paymentCurrency,
+          exchange_rate: rate,
+          foreign_amount: foreignTotal,
+          rate_source: rateEdited ? "cashier" : "system",
         }],
       });
 
@@ -1324,6 +1344,19 @@ const POSPage = () => {
         } as any);
       }
 
+      // Save POS rate override if cashier edited the rate
+      if (rateEdited && paymentCurrency !== "ILS" && rate !== 1) {
+        const currencyDetail = exchangeRateDetails[paymentCurrency];
+        if (currencyDetail) {
+          await supabase
+            .from("exchange_rates")
+            .update({ pos_rate_override: rate } as any)
+            .eq("user_id", dataOwnerId)
+            .order("rate_date", { ascending: false })
+            .limit(1);
+        }
+      }
+
       loadProducts();
 
       const tableName = activeOrder.tableName;
@@ -1352,6 +1385,8 @@ const POSPage = () => {
         tenderedAmount: tendered,
         change,
         currency: paymentCurrency,
+        exchangeRate: rate,
+        foreignAmount: foreignTotal,
         orderNote,
       };
 
@@ -1376,6 +1411,8 @@ const POSPage = () => {
       setTenderedAmount("");
       setPaymentMethod("cash");
       setPaymentCurrency("ILS");
+      setEditedRate(null);
+      setRateEdited(false);
 
       if (tableName) {
         toast.success(`✅ تم السداد - ${tableName} متاحة الآن`);
@@ -2492,14 +2529,14 @@ const POSPage = () => {
                 {/* Currency selector */}
                 <div className="space-y-1.5">
                   <p className="text-xs font-medium text-muted-foreground text-left">العملة</p>
-                  <div className="grid grid-cols-4 gap-2">
+                  <div className="grid grid-cols-5 gap-2">
                     {currencies.map((cur) => {
                       const isActive = paymentCurrency === cur.code;
                       return (
                         <motion.button
                           key={cur.code}
                           whileTap={{ scale: 0.96 }}
-                          onClick={() => setPaymentCurrency(cur.code)}
+                          onClick={() => { setPaymentCurrency(cur.code); setEditedRate(null); setRateEdited(false); setTenderedAmount(""); }}
                           className={`flex flex-col items-center gap-1 p-2.5 rounded-xl border-2 transition-all ${
                             isActive
                               ? "border-primary bg-primary/5"
@@ -2514,23 +2551,86 @@ const POSPage = () => {
                   </div>
                 </div>
 
-                {/* Exchange rate info */}
+                {/* Exchange rate info - enhanced */}
                 {paymentCurrency !== "ILS" && exchangeRates[paymentCurrency] && (
-                  <div className="flex items-center justify-between text-xs p-2.5 rounded-lg bg-muted/50 border border-border">
-                    <div>
-                      <span className="text-muted-foreground">سعر الصرف</span>
-                    </div>
-                    <div className="text-left">
-                      <span className="font-medium tabular-nums">
-                        {currencies.find(c => c.code === paymentCurrency)?.symbol}1 = ₪{exchangeRates[paymentCurrency]?.toFixed(4)}
+                  <div className="space-y-2 p-3 rounded-xl bg-muted/50 border border-border">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-foreground flex items-center gap-1">
+                        💱 سعر الصرف — {currencies.find(c => c.code === paymentCurrency)?.name}
                       </span>
-                      <div className="text-muted-foreground">
-                        المطلوب بال{currencies.find(c => c.code === paymentCurrency)?.name}:{" "}
-                        <span className="font-bold text-foreground tabular-nums">
-                          {currencies.find(c => c.code === paymentCurrency)?.symbol}
-                          {(cartTotals.total / (exchangeRates[paymentCurrency] || 1)).toFixed(2)}
-                        </span>
+                      {exchangeRateDetails[paymentCurrency] && (() => {
+                        const rateDate = exchangeRateDetails[paymentCurrency].date;
+                        const isStale = rateDate && new Date(rateDate).toDateString() !== new Date().toDateString();
+                        return isStale ? (
+                          <span className="text-[10px] text-amber-600 flex items-center gap-0.5">⚠️ لم يُحدَّث اليوم</span>
+                        ) : null;
+                      })()}
+                    </div>
+
+                    {/* System rate info */}
+                    <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                      <span>السعر في النظام: {exchangeRateDetails[paymentCurrency]?.rate?.toFixed(4) || '—'} ₪/{paymentCurrency}</span>
+                      <span>{exchangeRateDetails[paymentCurrency]?.date ? `آخر تحديث: ${new Date(exchangeRateDetails[paymentCurrency].date).toLocaleDateString("ar-PS")}` : ''}</span>
+                    </div>
+
+                    {/* Editable rate */}
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 relative">
+                        <Input
+                          type="number"
+                          value={editedRate !== null ? editedRate : (exchangeRates[paymentCurrency] || 0)}
+                          onChange={(e) => {
+                            const val = parseFloat(e.target.value);
+                            if (val > 0) {
+                              setEditedRate(val);
+                              setRateEdited(true);
+                              setExchangeRates(prev => ({ ...prev, [paymentCurrency]: val }));
+                            }
+                          }}
+                          step="0.0001"
+                          className={`text-sm font-mono h-9 ${rateEdited ? 'border-amber-400 bg-amber-50 dark:bg-amber-950/20' : ''}`}
+                        />
+                        {rateEdited && (
+                          <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-amber-600 font-medium">✏️ معدّل</span>
+                        )}
                       </div>
+                      <span className="text-xs text-muted-foreground whitespace-nowrap">₪/{paymentCurrency}</span>
+                      {rateEdited && (
+                        <button
+                          onClick={() => {
+                            const original = exchangeRateDetails[paymentCurrency]?.rate || 1;
+                            setEditedRate(null);
+                            setRateEdited(false);
+                            setExchangeRates(prev => ({ ...prev, [paymentCurrency]: exchangeRateDetails[paymentCurrency]?.posOverride || original }));
+                          }}
+                          className="text-[10px] text-primary hover:underline whitespace-nowrap"
+                        >
+                          ← الرسمي
+                        </button>
+                      )}
+                    </div>
+                    {rateEdited && (
+                      <p className="text-[10px] text-amber-600">⚠️ سيُسجَّل السعر المعدَّل في سجل المعاملات</p>
+                    )}
+
+                    {/* Required in foreign */}
+                    <div className="flex justify-between items-center pt-1 border-t border-border">
+                      <span className="text-xs text-muted-foreground">المطلوب بال{currencies.find(c => c.code === paymentCurrency)?.name}</span>
+                      <span className="font-mono font-bold text-sm tabular-nums">
+                        {currencies.find(c => c.code === paymentCurrency)?.symbol}
+                        {(cartTotals.total / (exchangeRates[paymentCurrency] || 1)).toFixed(2)}
+                      </span>
+                    </div>
+
+                    {/* Account info */}
+                    <div className="text-[10px] text-muted-foreground flex items-center gap-1 pt-1">
+                      <span>📒 سيُسجَّل في:</span>
+                      <span className="font-medium">
+                        {paymentCurrency === 'USD' ? 'صندوق الدولار (1111)' :
+                         paymentCurrency === 'JOD' ? 'صندوق الدينار (1112)' :
+                         paymentCurrency === 'EUR' ? 'صندوق اليورو (1113)' :
+                         paymentCurrency === 'EGP' ? 'صندوق الجنيه (1114)' : 'الصندوق (1110)'}
+                      </span>
                     </div>
                   </div>
                 )}
