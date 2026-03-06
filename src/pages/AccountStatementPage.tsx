@@ -489,21 +489,7 @@ const AccountStatementPage = () => {
   // ─── RENDER ───
   return (
     <div className="min-h-screen bg-background flex flex-col" dir="rtl">
-      <style>{`
-        @media print {
-          body * { visibility: hidden; }
-          .print-area, .print-area * { visibility: visible; }
-          .print-area {
-            position: absolute; inset: 0; background: white; padding: 0;
-            width: 210mm !important;
-          }
-          .no-print { display: none !important; }
-          .print-only { display: block !important; }
-          .screen-table { display: none !important; }
-          @page { size: A4 portrait; margin: 0; }
-        }
-        .print-only { display: none; }
-      `}</style>
+      {/* Print CSS is handled globally in index.css */}
 
       {/* ─── TOP BAR ─── */}
       <div className="sticky top-0 z-20 bg-card/95 backdrop-blur border-b border-border no-print">
@@ -758,7 +744,7 @@ const AccountStatementPage = () => {
                 </div>
 
                 {/* ─── TABLE ─── */}
-                <div className="px-4 pb-4 flex-1">
+                <div className="px-4 pb-4 flex-1 no-print">
                   {loading ? (
                     <div className="space-y-2">
                       {[1,2,3,4,5,6].map(i => <Skeleton key={i} className="h-10 w-full" />)}
