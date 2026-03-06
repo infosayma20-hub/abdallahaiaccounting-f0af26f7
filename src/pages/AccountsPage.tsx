@@ -616,7 +616,7 @@ const AccountsPage = () => {
         open={showAddDialog}
         onOpenChange={(open) => { setShowAddDialog(open); if (!open) setAddSubParentCode(null); }}
         accounts={accounts}
-        defaultParentCode={addSubParentCode}
+        
         onAdd={async (data) => {
           if (!user) return false;
           try {
