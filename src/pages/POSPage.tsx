@@ -2469,7 +2469,7 @@ const POSPage = () => {
                       value={customerSearch || customerName}
                       onChange={(e) => {
                         setCustomerSearch(e.target.value);
-                        setCustomerName(e.target.value);
+                        setCustomerName(e.target.value, null);
                         setShowContactDropdown(true);
                       }}
                       onFocus={() => setShowContactDropdown(true)}
@@ -2483,7 +2483,7 @@ const POSPage = () => {
                           <button
                             key={contact.id}
                             onClick={() => {
-                              setCustomerName(contact.contact_name);
+                              setCustomerName(contact.contact_name, contact.id);
                               setCustomerSearch("");
                               setShowContactDropdown(false);
                               setShowCustomerInput(false);
@@ -2903,7 +2903,7 @@ const POSPage = () => {
                     value={customerSearch || customerName}
                     onChange={(e) => {
                       setCustomerSearch(e.target.value);
-                      setCustomerName(e.target.value);
+                      setCustomerName(e.target.value, null);
                       setShowContactDropdown(true);
                     }}
                     onFocus={() => setShowContactDropdown(true)}
@@ -2917,7 +2917,7 @@ const POSPage = () => {
                       <button
                         key={contact.id}
                         onClick={() => {
-                          setCustomerName(contact.contact_name);
+                          setCustomerName(contact.contact_name, contact.id);
                           setCustomerSearch("");
                           setShowContactDropdown(false);
                         }}
