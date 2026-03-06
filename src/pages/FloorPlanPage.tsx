@@ -241,7 +241,7 @@ export default function FloorPlanPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
+          <Button variant="ghost" size="sm" onClick={() => navigate("/apps")}>
             <ArrowRight className="w-4 h-4 ml-1" />
             رجوع
           </Button>
