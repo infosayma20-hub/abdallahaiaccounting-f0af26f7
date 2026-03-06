@@ -1956,6 +1956,19 @@ const POSPage = () => {
             onNewTable={() => navigate("/pos/floor-plan/edit")}
           />
 
+          {/* ── Quick Modifier Bar ── */}
+          {modifierGroups.length > 0 && (
+            <QuickModifierBar
+              quickModifiers={modifierGroups.flatMap(g => g.options.slice(0, 2).map((o: any) => ({
+                id: o.id, label: `${o.name}${o.extra_price > 0 ? ` +₪${o.extra_price}` : ''}`, optionId: o.id, groupId: g.id,
+              }))).slice(0, 8)}
+              activeModId={activeQuickMod}
+              onQuickModifier={(mod) => setActiveQuickMod(prev => prev === mod.id ? null : mod.id)}
+              onManage={() => navigate("/pos/modifiers")}
+              isAdmin={isAdmin}
+            />
+          )}
+
           {/* ── Products Grid ── */}
           <ScrollArea className="flex-1">
             <DndContext
@@ -2282,6 +2295,25 @@ const POSPage = () => {
                             ₪{item.total.toFixed(2)}
                           </motion.span>
                         </div>
+
+                        {/* Modifier sub-items */}
+                        {item.modifiers && item.modifiers.length > 0 && (
+                          <div className="mr-11 mt-1 space-y-0.5">
+                            {item.modifiers.map((mod, mi) => (
+                              <div key={mi} className="flex justify-between items-center">
+                                <span className="text-[11px] text-muted-foreground flex items-center gap-1">
+                                  <span className="text-muted-foreground/30">└</span>
+                                  {mod.option_name}
+                                </span>
+                                {mod.extra_price !== 0 && (
+                                  <span className={`text-[10px] font-mono ${mod.extra_price > 0 ? "text-primary" : "text-destructive"}`}>
+                                    {mod.extra_price > 0 ? "+" : ""}₪{Math.abs(mod.extra_price).toFixed(2)}
+                                  </span>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
 
                         {/* Note (expandable) */}
                         {isSelected && (
