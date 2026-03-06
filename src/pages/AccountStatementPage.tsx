@@ -536,7 +536,7 @@ const AccountStatementPage = () => {
               </div>
             ) : entityList.length === 0 ? (
               <div className="p-6 text-center text-xs text-muted-foreground">
-                {isAccountsTab ? "لا توجد حسابات" : "لا توجد جهات اتصال"}
+                {isAccountsTab ? "لا توجد حسابات" : isEmployeesTab ? "لا يوجد موظفون" : "لا توجد جهات اتصال"}
               </div>
             ) : (
               entityList.map(entity => {
