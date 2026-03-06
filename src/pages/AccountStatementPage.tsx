@@ -611,7 +611,17 @@ const AccountStatementPage = () => {
                               <Badge variant="secondary" className="text-[10px]">{selectedAccount.account_type}</Badge>
                             </>
                           )}
-                          {!isAccountsTab && selectedContact && (
+                          {isEmployeesTab && selectedEmployee && (
+                            <>
+                              {selectedEmployee.account_code && <span className="font-mono">{selectedEmployee.account_code}</span>}
+                              {selectedEmployee.job_title && <span>💼 {selectedEmployee.job_title}</span>}
+                              {selectedEmployee.department && <span>🏢 {selectedEmployee.department}</span>}
+                              {selectedEmployee.phone && <span>📞 {selectedEmployee.phone}</span>}
+                              <Badge variant="secondary" className="text-[10px]">موظف</Badge>
+                              {!selectedEmployee.account_code && <Badge variant="destructive" className="text-[10px]">بدون حساب محاسبي</Badge>}
+                            </>
+                          )}
+                          {!isAccountsTab && !isEmployeesTab && selectedContact && (
                             <>
                               {selectedContact.phone && <span>📞 {selectedContact.phone}</span>}
                               {selectedContact.address && <span>📍 {selectedContact.address}</span>}
