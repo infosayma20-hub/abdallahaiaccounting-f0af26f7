@@ -16,9 +16,10 @@ import { format } from "date-fns";
 import {
   Plus, ArrowRight, Building2, TrendingDown, TrendingUp,
   Receipt, Search, Trash2, Edit, DollarSign, CreditCard,
-  BarChart3, Download, Printer, Phone, MapPin,
+  BarChart3, Download, Printer, Phone, MapPin, Mail,
 } from "lucide-react";
 import * as XLSX from "xlsx";
+import FinancialClaimModal from "@/components/contractor/FinancialClaimModal";
 
 interface Project {
   id: string;
