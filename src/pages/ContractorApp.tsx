@@ -263,8 +263,8 @@ export default function ContractorApp() {
     }));
   };
 
-  // ============= PROJECT FORM DIALOG =============
-  const ProjectDialog = () => (
+  // ============= PROJECT FORM DIALOG (inline JSX) =============
+  const projectDialogJSX = (
     <Dialog open={showProjectDialog} onOpenChange={setShowProjectDialog}>
       <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto" dir="rtl">
         <DialogHeader><DialogTitle>{editingProject ? "تعديل المشروع" : "مشروع جديد"}</DialogTitle></DialogHeader>
