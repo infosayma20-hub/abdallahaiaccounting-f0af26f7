@@ -852,10 +852,7 @@ const AccountStatementPage = () => {
                   )}
                 </div>
 
-                {/* Print footer */}
-                <div className="print-only text-center mt-6 text-xs text-muted-foreground border-t pt-3">
-                  طُبع بتاريخ: {fmtDate(format(new Date(), "yyyy-MM-dd"))} — نظام عبدالله AI للمحاسبة
-                </div>
+                {/* Print footer is included in StatementPrintView */}
               </>
             )}
           </div>
