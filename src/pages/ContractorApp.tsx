@@ -773,6 +773,19 @@ export default function ContractorApp() {
 
         {projectDialogJSX}
         {contractPrintJSX}
+
+        {/* Financial Claim Modal */}
+        <FinancialClaimModal
+          open={showClaimModal}
+          onOpenChange={setShowClaimModal}
+          project={selectedProject}
+          userId={user!.id}
+          companyName={settings.company_name || "الشركة"}
+          companyPhone={settings.phone || ""}
+          companyAddress={settings.address || ""}
+          companyEmail={settings.email || ""}
+          logoUrl={settings.logo_url || ""}
+        />
       </div>
     );
   }
