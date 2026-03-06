@@ -1271,8 +1271,11 @@ const POSPage = () => {
 
       await supabase.from("pos_order_lines").insert(lines);
 
-      const tendered = parseFloat(tenderedAmount) || cartTotals.total;
-      const change = Math.max(0, tendered - cartTotals.total);
+      const rate = exchangeRates[paymentCurrency] || 1;
+      const foreignTotal = paymentCurrency === "ILS" ? cartTotals.total : cartTotals.total / rate;
+      const tendered = parseFloat(tenderedAmount) || foreignTotal;
+      const changeInForeign = Math.max(0, tendered - foreignTotal);
+      const change = paymentCurrency === "ILS" ? changeInForeign : changeInForeign * rate;
 
       const { data: result, error: completeError } = await supabase.rpc("complete_pos_order", {
         p_order_id: orderId,
@@ -1280,8 +1283,12 @@ const POSPage = () => {
         p_payments: [{
           method: paymentMethod,
           amount: cartTotals.total,
-          tendered: tendered,
+          tendered: paymentCurrency === "ILS" ? tendered : tendered * rate,
           change: change,
+          currency: paymentCurrency,
+          exchange_rate: rate,
+          foreign_amount: foreignTotal,
+          rate_source: rateEdited ? "cashier" : "system",
         }],
       });
 
