@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,16 +9,15 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import {
-  Plus, ArrowRight, ArrowLeft, Building2, TrendingDown, TrendingUp,
-  Receipt, FileText, Search, Trash2, Edit, DollarSign, CreditCard,
-  BarChart3, Calendar, Filter, Download,
+  Plus, ArrowRight, Building2, TrendingDown, TrendingUp,
+  Receipt, Search, Trash2, Edit, DollarSign, CreditCard,
+  BarChart3, Download, Printer, Phone, MapPin,
 } from "lucide-react";
-import BackButton from "@/components/BackButton";
 import * as XLSX from "xlsx";
 
 interface Project {
@@ -31,6 +31,11 @@ interface Project {
   start_date: string | null;
   end_date: string | null;
   notes: string | null;
+  phone: string | null;
+  address: string | null;
+  execution_duration: string | null;
+  payment_terms: string | null;
+  tasks: string[] | null;
   created_at: string;
 }
 
@@ -56,21 +61,29 @@ const defaultCategories = [
   "دهانات", "حديد", "خرسانة", "تشطيبات", "إدارة", "أخرى",
 ];
 
+const taskOptions = ["تشطيب", "إشراف", "بناء هيكل", "كهرباء", "سباكة", "دهانات", "تصميم", "هدم وإزالة"];
+
+const defaultPForm = {
+  name: "", client_name: "", budget: "", start_date: "", end_date: "", notes: "",
+  phone: "", address: "", execution_duration: "", payment_terms: "", tasks: [] as string[], custom_task: "",
+};
+
 export default function ContractorApp() {
   const { user } = useAuth();
+  const { settings } = useCompanySettings();
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [view, setView] = useState<"projects" | "project" | "reports">("projects");
   const [showProjectDialog, setShowProjectDialog] = useState(false);
   const [showTxDialog, setShowTxDialog] = useState(false);
+  const [showContractDialog, setShowContractDialog] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
-  const [reportTab, setReportTab] = useState("summary");
+  const contractRef = useRef<HTMLDivElement>(null);
 
-  // Form states
-  const [pForm, setPForm] = useState({ name: "", client_name: "", budget: "", start_date: "", end_date: "", notes: "" });
+  const [pForm, setPForm] = useState({ ...defaultPForm });
   const [txForm, setTxForm] = useState({
     type: "expense", amount: "", description: "", category: "", supplier: "",
     payment_method: "نقدي", cheque_number: "", cheque_date: "", transaction_date: format(new Date(), "yyyy-MM-dd"), notes: "",
@@ -95,17 +108,21 @@ export default function ContractorApp() {
   }, []);
 
   useEffect(() => { fetchProjects(); }, [fetchProjects]);
-
   useEffect(() => {
     if (selectedProject) fetchTransactions(selectedProject.id);
   }, [selectedProject, fetchTransactions]);
 
   const saveProject = async () => {
     if (!pForm.name.trim()) { toast.error("اسم المشروع مطلوب"); return; }
+    const allTasks = [...pForm.tasks];
+    if (pForm.custom_task.trim()) allTasks.push(pForm.custom_task.trim());
     const payload = {
       name: pForm.name, client_name: pForm.client_name || null,
       budget: parseFloat(pForm.budget) || 0, start_date: pForm.start_date || null,
       end_date: pForm.end_date || null, notes: pForm.notes || null, user_id: user!.id,
+      phone: pForm.phone || null, address: pForm.address || null,
+      execution_duration: pForm.execution_duration || null,
+      payment_terms: pForm.payment_terms || null, tasks: allTasks,
     };
     if (editingProject) {
       const { error } = await supabase.from("contractor_projects").update(payload).eq("id", editingProject.id);
@@ -118,7 +135,7 @@ export default function ContractorApp() {
     }
     setShowProjectDialog(false);
     setEditingProject(null);
-    setPForm({ name: "", client_name: "", budget: "", start_date: "", end_date: "", notes: "" });
+    setPForm({ ...defaultPForm });
     fetchProjects();
   };
 
@@ -159,7 +176,13 @@ export default function ContractorApp() {
 
   const openEditProject = (p: Project) => {
     setEditingProject(p);
-    setPForm({ name: p.name, client_name: p.client_name || "", budget: String(p.budget), start_date: p.start_date || "", end_date: p.end_date || "", notes: p.notes || "" });
+    setPForm({
+      name: p.name, client_name: p.client_name || "", budget: String(p.budget),
+      start_date: p.start_date || "", end_date: p.end_date || "", notes: p.notes || "",
+      phone: p.phone || "", address: p.address || "",
+      execution_duration: p.execution_duration || "", payment_terms: p.payment_terms || "",
+      tasks: p.tasks || [], custom_task: "",
+    });
     setShowProjectDialog(true);
   };
 
@@ -168,25 +191,56 @@ export default function ContractorApp() {
     setView("project");
   };
 
+  const printContract = () => {
+    const printWindow = window.open("", "_blank");
+    if (!printWindow || !contractRef.current) return;
+    printWindow.document.write(`<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="utf-8"><title>عقد اتفاق - ${selectedProject?.name || ""}</title>
+      <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap');
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Cairo', sans-serif; padding: 0; color: #1a1a1a; background: white; direction: rtl; }
+        .contract { max-width: 800px; margin: 0 auto; padding: 30px 40px; }
+        .header { text-align: center; border-bottom: 3px solid #1a6b3c; padding-bottom: 20px; margin-bottom: 25px; }
+        .logo { max-height: 80px; max-width: 200px; margin-bottom: 10px; }
+        .company-name { font-size: 22px; font-weight: 700; color: #1a6b3c; margin-bottom: 4px; }
+        .company-info { font-size: 12px; color: #666; }
+        .title { text-align: center; font-size: 20px; font-weight: 700; margin: 20px 0; padding: 10px; background: #f0faf4; border-radius: 8px; color: #1a6b3c; }
+        .section { margin-bottom: 18px; }
+        .section-title { font-size: 15px; font-weight: 700; color: #1a6b3c; border-bottom: 1px solid #e0e0e0; padding-bottom: 5px; margin-bottom: 10px; }
+        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 20px; }
+        .info-item { display: flex; gap: 6px; font-size: 13px; padding: 4px 0; }
+        .info-label { font-weight: 600; min-width: 100px; color: #333; }
+        .info-value { color: #555; }
+        .tasks-list { list-style: none; padding: 0; }
+        .tasks-list li { padding: 4px 0; font-size: 13px; }
+        .tasks-list li::before { content: "✓ "; color: #1a6b3c; font-weight: bold; }
+        .summary-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        .summary-table th, .summary-table td { padding: 8px 12px; border: 1px solid #ddd; font-size: 13px; text-align: right; }
+        .summary-table th { background: #f0faf4; font-weight: 600; color: #1a6b3c; }
+        .signatures { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 50px; padding-top: 20px; }
+        .sig-box { text-align: center; }
+        .sig-label { font-weight: 600; font-size: 14px; margin-bottom: 40px; }
+        .sig-line { border-top: 1px solid #333; padding-top: 8px; font-size: 12px; color: #666; }
+        .footer { text-align: center; margin-top: 30px; padding-top: 15px; border-top: 2px solid #1a6b3c; font-size: 11px; color: #888; }
+        .amount { font-weight: 700; color: #1a6b3c; }
+        @media print { body { padding: 0; } .contract { padding: 20px 30px; } }
+      </style></head><body>`);
+    printWindow.document.write(contractRef.current.innerHTML);
+    printWindow.document.write("</body></html>");
+    printWindow.document.close();
+    setTimeout(() => { printWindow.print(); }, 500);
+  };
+
   const exportExcel = () => {
-    const data = (view === "reports" ? getAllTransactions() : transactions).map(t => ({
-      "التاريخ": t.transaction_date,
-      "النوع": t.type === "expense" ? "مصروف" : t.type === "receipt" ? "سند قبض" : "شيك",
-      "المبلغ": t.amount,
-      "الوصف": t.description || "",
-      "التصنيف": t.category || "",
-      "المورد": t.supplier || "",
-      "طريقة الدفع": t.payment_method,
+    const data = transactions.map(t => ({
+      "التاريخ": t.transaction_date, "النوع": t.type === "expense" ? "مصروف" : t.type === "receipt" ? "سند قبض" : "شيك",
+      "المبلغ": t.amount, "الوصف": t.description || "", "التصنيف": t.category || "",
+      "المورد": t.supplier || "", "طريقة الدفع": t.payment_method,
     }));
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "الحركات");
     XLSX.writeFile(wb, "contractor-report.xlsx");
-  };
-
-  const getAllTransactions = (): (Transaction & { projectName?: string })[] => {
-    // For reports, we'd need all transactions across projects
-    return transactions;
   };
 
   const filteredTx = transactions.filter(t => {
@@ -200,6 +254,160 @@ export default function ContractorApp() {
   );
 
   const fmtNum = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  const fmtDate = (d: string | null) => d ? format(new Date(d), "dd/MM/yyyy") : "-";
+
+  const toggleTask = (task: string) => {
+    setPForm(f => ({
+      ...f,
+      tasks: f.tasks.includes(task) ? f.tasks.filter(t => t !== task) : [...f.tasks, task],
+    }));
+  };
+
+  // ============= PROJECT FORM DIALOG =============
+  const ProjectDialog = () => (
+    <Dialog open={showProjectDialog} onOpenChange={setShowProjectDialog}>
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto" dir="rtl">
+        <DialogHeader><DialogTitle>{editingProject ? "تعديل المشروع" : "مشروع جديد"}</DialogTitle></DialogHeader>
+        <div className="space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Input placeholder="اسم المشروع *" value={pForm.name} onChange={e => setPForm(f => ({ ...f, name: e.target.value }))} />
+            <Input placeholder="اسم العميل" value={pForm.client_name} onChange={e => setPForm(f => ({ ...f, client_name: e.target.value }))} />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="relative">
+              <Phone className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input placeholder="رقم الجوال" value={pForm.phone} onChange={e => setPForm(f => ({ ...f, phone: e.target.value }))} className="pr-10" />
+            </div>
+            <Input type="number" placeholder="الميزانية (₪)" value={pForm.budget} onChange={e => setPForm(f => ({ ...f, budget: e.target.value }))} />
+          </div>
+          <div className="relative">
+            <MapPin className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input placeholder="العنوان / موقع المشروع" value={pForm.address} onChange={e => setPForm(f => ({ ...f, address: e.target.value }))} className="pr-10" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div><label className="text-xs text-muted-foreground">تاريخ البداية</label><Input type="date" max="9999-12-31" value={pForm.start_date} onChange={e => setPForm(f => ({ ...f, start_date: e.target.value }))} /></div>
+            <div><label className="text-xs text-muted-foreground">تاريخ النهاية</label><Input type="date" max="9999-12-31" value={pForm.end_date} onChange={e => setPForm(f => ({ ...f, end_date: e.target.value }))} /></div>
+          </div>
+          <Input placeholder="مدة التنفيذ (مثال: 3 أشهر)" value={pForm.execution_duration} onChange={e => setPForm(f => ({ ...f, execution_duration: e.target.value }))} />
+          <Select value={pForm.payment_terms} onValueChange={v => setPForm(f => ({ ...f, payment_terms: v }))}>
+            <SelectTrigger><SelectValue placeholder="آلية الدفع" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="نقدي عند الاستلام">نقدي عند الاستلام</SelectItem>
+              <SelectItem value="دفعات شهرية">دفعات شهرية</SelectItem>
+              <SelectItem value="50% مقدم - 50% عند الانتهاء">50% مقدم - 50% عند الانتهاء</SelectItem>
+              <SelectItem value="30% مقدم - 40% أثناء - 30% عند الانتهاء">30%-40%-30%</SelectItem>
+              <SelectItem value="حسب الاتفاق">حسب الاتفاق</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {/* Tasks */}
+          <div>
+            <label className="text-xs font-medium text-foreground mb-2 block">المهام المطلوبة</label>
+            <div className="grid grid-cols-2 gap-2">
+              {taskOptions.map(task => (
+                <label key={task} className="flex items-center gap-2 text-sm cursor-pointer">
+                  <Checkbox checked={pForm.tasks.includes(task)} onCheckedChange={() => toggleTask(task)} />
+                  {task}
+                </label>
+              ))}
+            </div>
+            <Input placeholder="مهمة أخرى (اكتب هنا)" value={pForm.custom_task} onChange={e => setPForm(f => ({ ...f, custom_task: e.target.value }))} className="mt-2" />
+          </div>
+
+          <Textarea placeholder="ملاحظات إضافية" value={pForm.notes} onChange={e => setPForm(f => ({ ...f, notes: e.target.value }))} rows={2} />
+        </div>
+        <DialogFooter><Button onClick={saveProject}>{editingProject ? "تحديث" : "إنشاء"}</Button></DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+
+  // ============= PRINTABLE CONTRACT (hidden, used for print) =============
+  const ContractPrintView = () => {
+    if (!selectedProject) return null;
+    const p = selectedProject;
+    const companyName = settings.company_name || "الشركة";
+    const companyPhone = settings.phone || "";
+    const companyAddress = settings.address || "";
+    const companyEmail = settings.email || "";
+    const logoUrl = settings.logo_url || "";
+
+    return (
+      <div ref={contractRef} style={{ display: "none" }}>
+        <div className="contract">
+          <div className="header">
+            {logoUrl && <img src={logoUrl} alt="logo" className="logo" />}
+            <div className="company-name">{companyName}</div>
+            <div className="company-info">
+              {companyPhone && `هاتف: ${companyPhone}`}
+              {companyAddress && ` | ${companyAddress}`}
+              {companyEmail && ` | ${companyEmail}`}
+            </div>
+          </div>
+
+          <div className="title">عقد اتفاق مشروع</div>
+
+          <div className="section">
+            <div className="section-title">بيانات المشروع</div>
+            <div className="info-grid">
+              <div className="info-item"><span className="info-label">اسم المشروع:</span><span className="info-value">{p.name}</span></div>
+              <div className="info-item"><span className="info-label">اسم العميل:</span><span className="info-value">{p.client_name || "-"}</span></div>
+              <div className="info-item"><span className="info-label">رقم الجوال:</span><span className="info-value">{p.phone || "-"}</span></div>
+              <div className="info-item"><span className="info-label">العنوان:</span><span className="info-value">{p.address || "-"}</span></div>
+              <div className="info-item"><span className="info-label">تاريخ البداية:</span><span className="info-value">{fmtDate(p.start_date)}</span></div>
+              <div className="info-item"><span className="info-label">تاريخ النهاية:</span><span className="info-value">{fmtDate(p.end_date)}</span></div>
+              <div className="info-item"><span className="info-label">مدة التنفيذ:</span><span className="info-value">{p.execution_duration || "-"}</span></div>
+              <div className="info-item"><span className="info-label">آلية الدفع:</span><span className="info-value">{p.payment_terms || "-"}</span></div>
+            </div>
+          </div>
+
+          {p.tasks && p.tasks.length > 0 && (
+            <div className="section">
+              <div className="section-title">المهام المطلوبة</div>
+              <ul className="tasks-list">
+                {p.tasks.map((t, i) => <li key={i}>{t}</li>)}
+              </ul>
+            </div>
+          )}
+
+          <div className="section">
+            <div className="section-title">الملخص المالي</div>
+            <table className="summary-table">
+              <thead><tr><th>البند</th><th>المبلغ (₪)</th></tr></thead>
+              <tbody>
+                <tr><td>الميزانية المتفق عليها</td><td className="amount">{fmtNum(p.budget)}</td></tr>
+                <tr><td>إجمالي المصروفات</td><td style={{color:"#dc2626"}}>{fmtNum(p.total_expenses)}</td></tr>
+                <tr><td>إجمالي المقبوضات</td><td style={{color:"#16a34a"}}>{fmtNum(p.total_receipts)}</td></tr>
+                <tr><td><strong>المتبقي</strong></td><td className="amount"><strong>{fmtNum(p.budget - p.total_expenses)}</strong></td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          {p.notes && (
+            <div className="section">
+              <div className="section-title">ملاحظات</div>
+              <p style={{fontSize:"13px", color:"#555"}}>{p.notes}</p>
+            </div>
+          )}
+
+          <div className="signatures">
+            <div className="sig-box">
+              <div className="sig-label">الطرف الأول (المقاول)</div>
+              <div className="sig-line">التوقيع: ________________</div>
+            </div>
+            <div className="sig-box">
+              <div className="sig-label">الطرف الثاني (العميل)</div>
+              <div className="sig-line">التوقيع: ________________</div>
+            </div>
+          </div>
+
+          <div className="footer">
+            تم إنشاء هذا العقد بتاريخ {format(new Date(), "dd/MM/yyyy")} | {companyName}
+            {companyPhone && ` | ${companyPhone}`}
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   // ============ RENDER ============
 
@@ -216,7 +424,7 @@ export default function ContractorApp() {
             <Button variant="outline" onClick={() => setView("reports")}>
               <BarChart3 className="h-4 w-4 ml-1" /> التقارير
             </Button>
-            <Button onClick={() => { setEditingProject(null); setPForm({ name: "", client_name: "", budget: "", start_date: "", end_date: "", notes: "" }); setShowProjectDialog(true); }}>
+            <Button onClick={() => { setEditingProject(null); setPForm({ ...defaultPForm }); setShowProjectDialog(true); }}>
               <Plus className="h-4 w-4 ml-1" /> مشروع جديد
             </Button>
           </div>
@@ -260,12 +468,19 @@ export default function ContractorApp() {
                     <div>
                       <h3 className="font-semibold text-foreground">{p.name}</h3>
                       {p.client_name && <p className="text-xs text-muted-foreground">{p.client_name}</p>}
+                      {p.phone && <p className="text-[11px] text-muted-foreground flex items-center gap-1"><Phone className="h-3 w-3" />{p.phone}</p>}
                     </div>
                     <div className="flex gap-1">
                       <Button size="icon" variant="ghost" className="h-7 w-7" onClick={e => { e.stopPropagation(); openEditProject(p); }}><Edit className="h-3 w-3" /></Button>
                       <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={e => { e.stopPropagation(); deleteProject(p.id); }}><Trash2 className="h-3 w-3" /></Button>
                     </div>
                   </div>
+                  {p.tasks && p.tasks.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {p.tasks.slice(0, 3).map((t, i) => <Badge key={i} variant="outline" className="text-[9px] px-1.5">{t}</Badge>)}
+                      {p.tasks.length > 3 && <Badge variant="outline" className="text-[9px] px-1.5">+{p.tasks.length - 3}</Badge>}
+                    </div>
+                  )}
                   <div className="flex justify-between text-xs">
                     <span className="text-muted-foreground">الميزانية: <span className="font-medium text-foreground">{fmtNum(p.budget)}</span></span>
                     <Badge variant={remaining >= 0 ? "default" : "destructive"} className="text-[10px]">
@@ -285,7 +500,7 @@ export default function ContractorApp() {
           })}
 
           {/* Add Project Card */}
-          <Card className="cursor-pointer border-dashed border-2 border-muted hover:border-primary/50 transition-colors" onClick={() => { setEditingProject(null); setPForm({ name: "", client_name: "", budget: "", start_date: "", end_date: "", notes: "" }); setShowProjectDialog(true); }}>
+          <Card className="cursor-pointer border-dashed border-2 border-muted hover:border-primary/50 transition-colors" onClick={() => { setEditingProject(null); setPForm({ ...defaultPForm }); setShowProjectDialog(true); }}>
             <CardContent className="p-4 flex flex-col items-center justify-center h-full min-h-[140px] text-muted-foreground">
               <Plus className="h-8 w-8 mb-2" />
               <span className="text-sm font-medium">مشروع جديد</span>
@@ -293,23 +508,7 @@ export default function ContractorApp() {
           </Card>
         </div>
 
-        {/* Project Dialog */}
-        <Dialog open={showProjectDialog} onOpenChange={setShowProjectDialog}>
-          <DialogContent className="sm:max-w-md" dir="rtl">
-            <DialogHeader><DialogTitle>{editingProject ? "تعديل المشروع" : "مشروع جديد"}</DialogTitle></DialogHeader>
-            <div className="space-y-3">
-              <Input placeholder="اسم المشروع *" value={pForm.name} onChange={e => setPForm(f => ({ ...f, name: e.target.value }))} />
-              <Input placeholder="اسم العميل" value={pForm.client_name} onChange={e => setPForm(f => ({ ...f, client_name: e.target.value }))} />
-              <Input type="number" placeholder="الميزانية" value={pForm.budget} onChange={e => setPForm(f => ({ ...f, budget: e.target.value }))} />
-              <div className="grid grid-cols-2 gap-2">
-                <div><label className="text-xs text-muted-foreground">تاريخ البداية</label><Input type="date" max="9999-12-31" value={pForm.start_date} onChange={e => setPForm(f => ({ ...f, start_date: e.target.value }))} /></div>
-                <div><label className="text-xs text-muted-foreground">تاريخ النهاية</label><Input type="date" max="9999-12-31" value={pForm.end_date} onChange={e => setPForm(f => ({ ...f, end_date: e.target.value }))} /></div>
-              </div>
-              <Textarea placeholder="ملاحظات" value={pForm.notes} onChange={e => setPForm(f => ({ ...f, notes: e.target.value }))} rows={2} />
-            </div>
-            <DialogFooter><Button onClick={saveProject}>{editingProject ? "تحديث" : "إنشاء"}</Button></DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <ProjectDialog />
       </div>
     );
   }
@@ -317,7 +516,6 @@ export default function ContractorApp() {
   // Project Detail View
   if (view === "project" && selectedProject) {
     const remaining = selectedProject.budget - selectedProject.total_expenses;
-    const netCash = selectedProject.total_receipts - selectedProject.total_expenses;
 
     return (
       <div className="p-4 md:p-6 max-w-6xl mx-auto space-y-5" dir="rtl">
@@ -333,9 +531,34 @@ export default function ContractorApp() {
             </div>
           </div>
           <div className="flex gap-2 flex-wrap">
-            <Button variant="outline" size="sm" onClick={exportExcel}><Download className="h-4 w-4 ml-1" /> تصدير</Button>
+            <Button variant="outline" size="sm" onClick={printContract}>
+              <Printer className="h-4 w-4 ml-1" /> طباعة العقد
+            </Button>
+            <Button variant="outline" size="sm" onClick={exportExcel}>
+              <Download className="h-4 w-4 ml-1" /> تصدير
+            </Button>
           </div>
         </div>
+
+        {/* Project Info Summary */}
+        {(selectedProject.phone || selectedProject.address || selectedProject.execution_duration || selectedProject.payment_terms) && (
+          <Card>
+            <CardContent className="p-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                {selectedProject.phone && <div><span className="text-muted-foreground text-xs">الجوال:</span><p className="font-medium">{selectedProject.phone}</p></div>}
+                {selectedProject.address && <div><span className="text-muted-foreground text-xs">العنوان:</span><p className="font-medium">{selectedProject.address}</p></div>}
+                {selectedProject.execution_duration && <div><span className="text-muted-foreground text-xs">مدة التنفيذ:</span><p className="font-medium">{selectedProject.execution_duration}</p></div>}
+                {selectedProject.payment_terms && <div><span className="text-muted-foreground text-xs">آلية الدفع:</span><p className="font-medium">{selectedProject.payment_terms}</p></div>}
+              </div>
+              {selectedProject.tasks && selectedProject.tasks.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  <span className="text-xs text-muted-foreground ml-1">المهام:</span>
+                  {selectedProject.tasks.map((t, i) => <Badge key={i} variant="secondary" className="text-xs">{t}</Badge>)}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* KPI Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -411,7 +634,7 @@ export default function ContractorApp() {
                   <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">لا توجد حركات</TableCell></TableRow>
                 ) : filteredTx.map(t => (
                   <TableRow key={t.id}>
-                    <TableCell className="text-sm">{t.transaction_date}</TableCell>
+                    <TableCell className="text-sm">{fmtDate(t.transaction_date)}</TableCell>
                     <TableCell>
                       <Badge variant={t.type === "expense" ? "destructive" : t.type === "receipt" ? "default" : "outline"} className="text-[10px]">
                         {t.type === "expense" ? "مصروف" : t.type === "receipt" ? "قبض" : "شيك"}
@@ -433,7 +656,7 @@ export default function ContractorApp() {
           </CardContent>
         </Card>
 
-        {/* Add Transaction Dialog */}
+        {/* Transaction Dialog */}
         <Dialog open={showTxDialog} onOpenChange={setShowTxDialog}>
           <DialogContent className="sm:max-w-md" dir="rtl">
             <DialogHeader>
@@ -474,6 +697,9 @@ export default function ContractorApp() {
             <DialogFooter><Button onClick={saveTx}>حفظ</Button></DialogFooter>
           </DialogContent>
         </Dialog>
+
+        <ProjectDialog />
+        <ContractPrintView />
       </div>
     );
   }
@@ -497,7 +723,6 @@ export default function ContractorApp() {
           <Button variant="outline" size="sm" onClick={exportExcel}><Download className="h-4 w-4 ml-1" /> تصدير Excel</Button>
         </div>
 
-        {/* Summary KPIs */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <Card><CardContent className="pt-4 text-center">
             <p className="text-xs text-muted-foreground">إجمالي الميزانيات</p>
@@ -517,7 +742,6 @@ export default function ContractorApp() {
           </CardContent></Card>
         </div>
 
-        {/* Projects Summary Table */}
         <Card>
           <CardHeader><CardTitle className="text-base">ملخص المشاريع</CardTitle></CardHeader>
           <CardContent className="p-0">
@@ -545,9 +769,7 @@ export default function ContractorApp() {
                       <TableCell className="text-destructive">{fmtNum(p.total_expenses)}</TableCell>
                       <TableCell className="text-emerald-600">{fmtNum(p.total_receipts)}</TableCell>
                       <TableCell className={rem >= 0 ? "text-primary" : "text-destructive"}>{fmtNum(rem)}</TableCell>
-                      <TableCell>
-                        <Badge variant={Number(pct) > 90 ? "destructive" : "outline"}>{pct}%</Badge>
-                      </TableCell>
+                      <TableCell><Badge variant={Number(pct) > 90 ? "destructive" : "outline"}>{pct}%</Badge></TableCell>
                     </TableRow>
                   );
                 })}

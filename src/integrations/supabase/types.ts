@@ -1342,45 +1342,60 @@ export type Database = {
       }
       contractor_projects: {
         Row: {
+          address: string | null
           budget: number | null
           client_name: string | null
           created_at: string | null
           end_date: string | null
+          execution_duration: string | null
           id: string
           name: string
           notes: string | null
+          payment_terms: string | null
+          phone: string | null
           start_date: string | null
           status: string | null
+          tasks: string[] | null
           total_expenses: number | null
           total_receipts: number | null
           updated_at: string | null
           user_id: string
         }
         Insert: {
+          address?: string | null
           budget?: number | null
           client_name?: string | null
           created_at?: string | null
           end_date?: string | null
+          execution_duration?: string | null
           id?: string
           name: string
           notes?: string | null
+          payment_terms?: string | null
+          phone?: string | null
           start_date?: string | null
           status?: string | null
+          tasks?: string[] | null
           total_expenses?: number | null
           total_receipts?: number | null
           updated_at?: string | null
           user_id: string
         }
         Update: {
+          address?: string | null
           budget?: number | null
           client_name?: string | null
           created_at?: string | null
           end_date?: string | null
+          execution_duration?: string | null
           id?: string
           name?: string
           notes?: string | null
+          payment_terms?: string | null
+          phone?: string | null
           start_date?: string | null
           status?: string | null
+          tasks?: string[] | null
           total_expenses?: number | null
           total_receipts?: number | null
           updated_at?: string | null
