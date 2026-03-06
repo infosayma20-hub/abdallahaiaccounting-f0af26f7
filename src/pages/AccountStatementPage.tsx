@@ -302,12 +302,21 @@ const AccountStatementPage = () => {
     [accounts, selectedEntityId]
   );
 
+  const selectedEmployee = useMemo(
+    () => employeeEntities.find(e => e.id === selectedEntityId),
+    [employeeEntities, selectedEntityId]
+  );
+
   const selectedEntityName = isAccountsTab
     ? selectedAccount?.account_name || ""
+    : isEmployeesTab
+    ? selectedEmployee?.full_name || ""
     : selectedContact?.contact_name || "";
 
   const selectedEntityInfo = isAccountsTab
     ? { type: selectedAccount?.account_type || "", code: selectedAccount?.account_code || "", phone: "", address: "" }
+    : isEmployeesTab
+    ? { type: "موظف", code: selectedEmployee?.account_code || "", phone: selectedEmployee?.phone || "", address: selectedEmployee?.job_title || selectedEmployee?.department || "" }
     : { type: selectedContact?.contact_type || "", code: "", phone: selectedContact?.phone || "", address: selectedContact?.address || "" };
 
   // ─── STATEMENT ROWS ───
@@ -326,6 +335,19 @@ const AccountStatementPage = () => {
         isDebit: tx.debit_account_code === code,
         isCredit: tx.credit_account_code === code,
       });
+    } else if (isEmployeesTab && selectedEmployee?.account_code) {
+      // Employee: use their linked account code from accounts tree
+      const code = selectedEmployee.account_code;
+      related = transactions.filter(tx =>
+        tx.debit_account_code === code || tx.credit_account_code === code
+      );
+      resolveDebitCredit = (tx) => ({
+        isDebit: tx.debit_account_code === code,
+        isCredit: tx.credit_account_code === code,
+      });
+    } else if (isEmployeesTab && !selectedEmployee?.account_code) {
+      // No linked account - no transactions
+      return { rows: [] as StatementRow[], openingBalance: 0, closingBalance: 0, totalDebit: 0, totalCredit: 0 };
     } else {
       const accountCode = activeTabConfig.accountCode;
       related = transactions.filter(tx => tx.contact_id === selectedEntityId);
