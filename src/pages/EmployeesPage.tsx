@@ -414,6 +414,9 @@ const EmployeesPage = () => {
                 <div className="flex items-center justify-between flex-wrap gap-2">
                   <CardTitle className="text-lg">{selectedEmployee.full_name}</CardTitle>
                   <div className="flex gap-1.5 flex-wrap">
+                    <Button size="sm" variant="outline" className="gap-1 text-xs" onClick={() => navigate(`/account-statement?employee_name=${encodeURIComponent(selectedEmployee.full_name)}`)}>
+                      <FileBarChart className="h-3 w-3" /> كشف حساب
+                    </Button>
                     {!selectedEmployee.auth_user_id && (
                       <Button size="sm" variant="outline" className="gap-1 text-xs" onClick={() => { setAccountForm({ email: selectedEmployee.email || "", password: "" }); setShowCreateAccount(true); }}>
                         <UserPlus className="h-3 w-3" /> إنشاء حساب
