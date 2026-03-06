@@ -1249,6 +1249,7 @@ const POSPage = () => {
         name: tableName,
         cart: cartItems,
         customerName: order.customer_name || "",
+        customerId: (order as any).customer_id || null,
         orderDiscount: Number(order.discount_amount) || 0,
         orderDiscountType: "fixed",
         orderNote: "",
