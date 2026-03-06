@@ -607,6 +607,9 @@ export default function ContractorApp() {
             <Button variant="outline" size="sm" onClick={exportExcel}>
               <Download className="h-4 w-4 ml-1" /> تصدير
             </Button>
+            <Button size="sm" className="bg-red-600 hover:bg-red-700 text-white" onClick={() => setShowClaimModal(true)}>
+              <Mail className="h-4 w-4 ml-1" /> 📩 مطالبة مالية
+            </Button>
           </div>
         </div>
 
