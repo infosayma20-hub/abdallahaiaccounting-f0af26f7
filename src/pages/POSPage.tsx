@@ -1287,10 +1287,13 @@ const POSPage = () => {
       await supabase.from("pos_order_lines").insert(lines);
 
       const rate = exchangeRates[paymentCurrency] || 1;
-      const foreignTotal = paymentCurrency === "ILS" ? cartTotals.total : cartTotals.total / rate;
+      const foreignTotal = paymentCurrency === "ILS" ? effectiveTotal : effectiveTotal / rate;
       const tendered = parseFloat(tenderedAmount) || foreignTotal;
       const changeInForeign = Math.max(0, tendered - foreignTotal);
       const change = paymentCurrency === "ILS" ? changeInForeign : changeInForeign * rate;
+
+      // Generate survey token if customer data was collected
+      const surveyToken = customerDataDiscount ? crypto.randomUUID() : null;
 
       const { data: result, error: completeError } = await supabase.rpc("complete_pos_order", {
         p_order_id: orderId,
