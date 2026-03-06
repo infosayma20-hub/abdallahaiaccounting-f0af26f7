@@ -1395,6 +1395,8 @@ const POSPage = () => {
       setTenderedAmount("");
       setPaymentMethod("cash");
       setPaymentCurrency("ILS");
+      setEditedRate(null);
+      setRateEdited(false);
 
       if (tableName) {
         toast.success(`✅ تم السداد - ${tableName} متاحة الآن`);
