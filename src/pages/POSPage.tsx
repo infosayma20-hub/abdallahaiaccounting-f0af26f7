@@ -1682,7 +1682,9 @@ const POSPage = () => {
     setActiveOrderIndex(0);
     orderCounter.current = 1;
     toast.success("تم إغلاق الوردية بنجاح");
-    if (!isAdmin) {
+    if (isAdmin) {
+      navigate("/apps");
+    } else {
       setShowLogoutConfirm(true);
     }
   };
