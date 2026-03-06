@@ -252,19 +252,30 @@ const StatementPrintView = ({
 
       {/* ━━━ TABLE ━━━ */}
       <div style={{ padding: "0 28px 4px" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "10px" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "10px", tableLayout: "fixed" }}>
+          <colgroup>
+            <col style={{ width: "12%" }} /> {/* التاريخ */}
+            <col style={{ width: "12%" }} /> {/* المرجع */}
+            <col style={{ width: "28%" }} /> {/* البيان */}
+            <col style={{ width: "8%" }} />  {/* النوع */}
+            <col style={{ width: "13%" }} /> {/* مدين */}
+            <col style={{ width: "13%" }} /> {/* دائن */}
+            <col style={{ width: "14%" }} /> {/* الرصيد */}
+          </colgroup>
           <thead>
             <tr style={{ background: "#1B3A5C", color: "white" }}>
               {["التاريخ", "المرجع", "البيان", "النوع", "مدين ₪", "دائن ₪", "الرصيد ₪"].map((h, i) => (
                 <th
                   key={i}
                   style={{
-                    padding: "5px 8px",
+                    padding: "5px 4px",
                     textAlign: i >= 4 ? "left" : "right",
                     fontWeight: 700,
-                    fontSize: "10px",
+                    fontSize: "9px",
                     borderBottom: "2px solid #C9A84C",
                     whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
                   }}
                 >
                   {h}
