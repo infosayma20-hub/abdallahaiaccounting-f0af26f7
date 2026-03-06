@@ -2516,7 +2516,7 @@ const POSPage = () => {
                 {/* Currency selector */}
                 <div className="space-y-1.5">
                   <p className="text-xs font-medium text-muted-foreground text-left">العملة</p>
-                  <div className="grid grid-cols-4 gap-2">
+                  <div className="grid grid-cols-5 gap-2">
                     {currencies.map((cur) => {
                       const isActive = paymentCurrency === cur.code;
                       return (
