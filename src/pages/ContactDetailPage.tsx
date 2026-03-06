@@ -203,7 +203,7 @@ const ContactDetailPage = () => {
                     ) : invoices.map(tx => (
                       <tr key={tx.id} className="border-b hover:bg-muted/20">
                         <td className="p-3 text-xs font-mono">{tx.reference || "—"}</td>
-                        <td className="p-3 text-xs tabular-nums">{new Date(tx.transaction_date).toLocaleDateString('ar-EG')}</td>
+                        <td className="p-3 text-xs tabular-nums">{new Date(tx.transaction_date).toLocaleDateString('en-GB')}</td>
                         <td className="p-3 text-xs">{tx.description}</td>
                         <td className="p-3 text-xs font-semibold tabular-nums">₪{(tx.amount || 0).toLocaleString()}</td>
                         <td className="p-3 text-xs">{tx.currency}</td>
@@ -236,7 +236,7 @@ const ContactDetailPage = () => {
                     ) : payments.map(tx => (
                       <tr key={tx.id} className="border-b hover:bg-muted/20">
                         <td className="p-3 text-xs font-mono">{tx.reference || "—"}</td>
-                        <td className="p-3 text-xs tabular-nums">{new Date(tx.transaction_date).toLocaleDateString('ar-EG')}</td>
+                        <td className="p-3 text-xs tabular-nums">{new Date(tx.transaction_date).toLocaleDateString('en-GB')}</td>
                         <td className="p-3 text-xs">{tx.description}</td>
                         <td className="p-3 text-xs font-semibold tabular-nums text-emerald-600">₪{(tx.amount || 0).toLocaleString()}</td>
                         <td className="p-3 text-xs">{tx.payment_method || "—"}</td>
@@ -307,7 +307,7 @@ const ContactDetailPage = () => {
                       <tr><td colSpan={4} className="text-center py-8 text-muted-foreground">لا توجد حركات</td></tr>
                     ) : transactions.slice(0, 50).map(tx => (
                       <tr key={tx.id} className="border-b hover:bg-muted/20">
-                        <td className="p-3 text-xs tabular-nums">{new Date(tx.transaction_date).toLocaleDateString('ar-EG')}</td>
+                        <td className="p-3 text-xs tabular-nums">{new Date(tx.transaction_date).toLocaleDateString('en-GB')}</td>
                         <td className="p-3"><Badge variant="secondary" className="text-[10px]">{tx.transaction_type}</Badge></td>
                         <td className="p-3 text-xs">{tx.description}</td>
                         <td className="p-3 text-xs font-semibold tabular-nums">₪{(tx.amount || 0).toLocaleString()}</td>

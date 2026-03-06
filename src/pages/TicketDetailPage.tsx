@@ -114,7 +114,7 @@ const TicketDetailPage = () => {
         {comments.map((c, i) => (
           <div key={i} className={`p-4 rounded-xl ${c.user_id === user?.id ? "bg-primary/5 border border-primary/10" : "bg-muted/50"}`}>
             <p className="text-sm text-foreground">{c.content}</p>
-            <p className="text-[10px] text-muted-foreground mt-2">{new Date(c.created_at).toLocaleString("ar")}</p>
+            <p className="text-[10px] text-muted-foreground mt-2">{new Date(c.created_at).toLocaleString("en-US")}</p>
           </div>
         ))}
       </div>

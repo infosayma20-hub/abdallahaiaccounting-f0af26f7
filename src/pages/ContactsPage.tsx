@@ -549,7 +549,7 @@ const ContactsPage = () => {
                       </td>
                       <td className="p-3">
                         <span className="text-xs text-muted-foreground tabular-nums">
-                          {contact.last_transaction_date ? new Date(contact.last_transaction_date).toLocaleDateString('ar-EG', { day: '2-digit', month: '2-digit' }) : "—"}
+                          {contact.last_transaction_date ? new Date(contact.last_transaction_date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit' }) : "—"}
                         </span>
                       </td>
                       <td className="p-3 text-center">

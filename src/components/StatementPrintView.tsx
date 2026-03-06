@@ -46,7 +46,7 @@ interface StatementPrintViewProps {
 }
 
 const fmtAmount = (n: number) =>
-  `₪${Math.abs(n).toLocaleString("ar-SA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  `₪${Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 const fmtDate = (d: string) => {
   if (!d) return "—";

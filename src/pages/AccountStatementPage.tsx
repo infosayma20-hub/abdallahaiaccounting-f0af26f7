@@ -89,7 +89,7 @@ const QUICK_PERIODS = [
 
 // ─── FORMAT HELPERS ───
 const fmtAmount = (n: number) =>
-  n === 0 ? "—" : `₪${Math.abs(n).toLocaleString("ar-SA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  n === 0 ? "—" : `₪${Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 const fmtDate = (d: string) => {
   if (!d) return "—";
