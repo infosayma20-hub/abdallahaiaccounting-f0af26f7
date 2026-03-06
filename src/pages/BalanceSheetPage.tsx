@@ -1,9 +1,10 @@
 import { useState, useEffect, useMemo } from "react";
-import { Loader2, Landmark } from "lucide-react";
+import { Loader2, Landmark, Printer } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { ReportHeader, ReportSummary, exportToExcel, exportToPDF } from "@/components/ReportComponents";
+import { ReportHeader, ReportSummary, exportToExcel } from "@/components/ReportComponents";
+import { generateProfessionalPDFHtml, openPrintWindow, useCompanyInfo } from "@/components/ReportPrintLayout";
 import {
   fetchTransactions, fetchAccounts, buildAccountMap, normalizeAccountType,
   SupabaseTransaction, SupabaseAccount,
@@ -31,6 +32,7 @@ const getSubcategory = (code: string, type: string): string => {
 const BalanceSheetPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const companyInfo = useCompanyInfo();
   const [transactions, setTransactions] = useState<SupabaseTransaction[]>([]);
   const [accounts, setAccounts] = useState<SupabaseAccount[]>([]);
   const [loading, setLoading] = useState(true);
@@ -155,22 +157,41 @@ const BalanceSheetPage = () => {
   };
 
   const handleExportPDF = () => {
-    const rows: Record<string, any>[] = [];
-    const addSection = (groups: CategoryGroup[]) => {
+    const tableHeaders = ["البيان", "الكود", "الرصيد ₪"];
+    const tableRows: string[][] = [];
+    
+    const addSection = (title: string, groups: CategoryGroup[]) => {
+      tableRows.push([`<strong style="color:#1B3A5C;font-size:12px">═══ ${title} ═══</strong>`, "", ""]);
       groups.forEach(g => {
-        g.accounts.forEach(a => rows.push({ "البيان": a.name, "الكود": a.code, "الرصيد": `₪${a.balance.toLocaleString()}` }));
+        tableRows.push([`<strong>── ${g.title}</strong>`, "", ""]);
+        g.accounts.forEach(a => tableRows.push([a.name, a.code, `₪${a.balance.toLocaleString()}`]));
+        tableRows.push([`<strong>إجمالي ${g.title}</strong>`, "", `<strong>₪${g.total.toLocaleString()}</strong>`]);
       });
     };
-    addSection(assetGroups);
-    addSection(liabilityGroups);
-    addSection(equityGroups);
+    addSection("الأصول", assetGroups);
+    addSection("الالتزامات", liabilityGroups);
+    addSection("حقوق الملكية", equityGroups);
 
-    exportToPDF("قائمة المركز المالي", companyName, periodLabel, {
-      "إجمالي الأصول": `₪${totalAssets.toLocaleString()}`,
-      "إجمالي الالتزامات": `₪${totalLiabilities.toLocaleString()}`,
-      "حقوق الملكية": `₪${totalEquity.toLocaleString()}`,
-      "التوازن": isBalanced ? "✅ متوازن" : "⚠️ غير متوازن",
-    }, rows);
+    const company = companyInfo.name ? companyInfo : { name: companyName, logo_url: "", address: "", phone: "", email: "", website: "", tax_number: "" };
+    const html = generateProfessionalPDFHtml({
+      company,
+      reportTitle: "قائمة المركز المالي",
+      reportTitleEn: "BALANCE SHEET",
+      periodLabel: `كما في ${periodLabel}`,
+      summaryItems: [
+        { label: "إجمالي الأصول", value: `₪${totalAssets.toLocaleString()}`, color: "#2563EB" },
+        { label: "إجمالي الالتزامات", value: `₪${totalLiabilities.toLocaleString()}`, color: "#DC2626" },
+        { label: "حقوق الملكية", value: `₪${totalEquity.toLocaleString()}`, color: "#7C3AED" },
+        { label: "التوازن", value: isBalanced ? "✅ متوازن" : "⚠️ غير متوازن", color: isBalanced ? "#16A34A" : "#DC2626" },
+      ],
+      tableHeaders,
+      tableRows,
+      notes: [
+        "أُعد هذا التقرير وفقاً لمعايير المحاسبة الدولية (IAS 1)",
+        `المعادلة: الأصول (₪${totalAssets.toLocaleString()}) = الالتزامات (₪${totalLiabilities.toLocaleString()}) + حقوق الملكية (₪${totalEquity.toLocaleString()})`,
+      ],
+    });
+    openPrintWindow(html);
   };
 
   const renderSection = (title: string, groups: CategoryGroup[], total: number, color: string) => (
