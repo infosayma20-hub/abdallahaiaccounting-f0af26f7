@@ -3401,6 +3401,20 @@ const POSPage = () => {
           setShowCustomerDataModal(false);
         }}
       />
+
+      {/* Modifier Modal */}
+      {showModifierModal && modifierProduct && (
+        <ModifierModal
+          product={{ id: modifierProduct.id, name: modifierProduct.name, sell_price: modifierProduct.sell_price }}
+          groups={modifierGroups.filter(g => productModifierMap[modifierProduct.id]?.includes(g.id))}
+          onConfirm={(data) => {
+            addToCartDirect(modifierProduct, data.modifiers, data.note, data.quantity);
+            setShowModifierModal(false);
+            setModifierProduct(null);
+          }}
+          onClose={() => { setShowModifierModal(false); setModifierProduct(null); }}
+        />
+      )}
     </div>
   );
 };
