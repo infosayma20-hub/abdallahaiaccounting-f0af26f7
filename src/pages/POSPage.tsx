@@ -290,8 +290,8 @@ const POSPage = () => {
     }));
   }, [updateActiveOrder]);
 
-  const setCustomerName = useCallback((name: string) => {
-    updateActiveOrder(o => ({ ...o, customerName: name }));
+  const setCustomerName = useCallback((name: string, contactId?: string | null) => {
+    updateActiveOrder(o => ({ ...o, customerName: name, customerId: contactId !== undefined ? contactId : o.customerId }));
   }, [updateActiveOrder]);
 
   const setOrderDiscount = useCallback((d: number) => {
