@@ -263,8 +263,8 @@ export default function ContractorApp() {
     }));
   };
 
-  // ============= PROJECT FORM DIALOG =============
-  const ProjectDialog = () => (
+  // ============= PROJECT FORM DIALOG (inline JSX) =============
+  const projectDialogJSX = (
     <Dialog open={showProjectDialog} onOpenChange={setShowProjectDialog}>
       <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto" dir="rtl">
         <DialogHeader><DialogTitle>{editingProject ? "تعديل المشروع" : "مشروع جديد"}</DialogTitle></DialogHeader>
@@ -322,8 +322,7 @@ export default function ContractorApp() {
   );
 
   // ============= PRINTABLE CONTRACT (hidden, used for print) =============
-  const ContractPrintView = () => {
-    if (!selectedProject) return null;
+  const contractPrintJSX = selectedProject ? (() => {
     const p = selectedProject;
     const companyName = settings.company_name || "الشركة";
     const companyPhone = settings.phone || "";
@@ -407,7 +406,7 @@ export default function ContractorApp() {
         </div>
       </div>
     );
-  };
+  })() : null;
 
   // ============ RENDER ============
 
@@ -508,7 +507,7 @@ export default function ContractorApp() {
           </Card>
         </div>
 
-        <ProjectDialog />
+        {projectDialogJSX}
       </div>
     );
   }
@@ -698,8 +697,8 @@ export default function ContractorApp() {
           </DialogContent>
         </Dialog>
 
-        <ProjectDialog />
-        <ContractPrintView />
+        {projectDialogJSX}
+        {contractPrintJSX}
       </div>
     );
   }
