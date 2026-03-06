@@ -196,34 +196,70 @@ export default function ContractorApp() {
     if (!printWindow || !contractRef.current) return;
     printWindow.document.write(`<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="utf-8"><title>عقد اتفاق - ${selectedProject?.name || ""}</title>
       <style>
-        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap');
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Cairo', sans-serif; padding: 0; color: #1a1a1a; background: white; direction: rtl; }
-        .contract { max-width: 800px; margin: 0 auto; padding: 30px 40px; }
-        .header { text-align: center; border-bottom: 3px solid #1a6b3c; padding-bottom: 20px; margin-bottom: 25px; }
-        .logo { max-height: 80px; max-width: 200px; margin-bottom: 10px; }
-        .company-name { font-size: 22px; font-weight: 700; color: #1a6b3c; margin-bottom: 4px; }
-        .company-info { font-size: 12px; color: #666; }
-        .title { text-align: center; font-size: 20px; font-weight: 700; margin: 20px 0; padding: 10px; background: #f0faf4; border-radius: 8px; color: #1a6b3c; }
-        .section { margin-bottom: 18px; }
-        .section-title { font-size: 15px; font-weight: 700; color: #1a6b3c; border-bottom: 1px solid #e0e0e0; padding-bottom: 5px; margin-bottom: 10px; }
-        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 20px; }
-        .info-item { display: flex; gap: 6px; font-size: 13px; padding: 4px 0; }
-        .info-label { font-weight: 600; min-width: 100px; color: #333; }
-        .info-value { color: #555; }
-        .tasks-list { list-style: none; padding: 0; }
-        .tasks-list li { padding: 4px 0; font-size: 13px; }
-        .tasks-list li::before { content: "✓ "; color: #1a6b3c; font-weight: bold; }
-        .summary-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        .summary-table th, .summary-table td { padding: 8px 12px; border: 1px solid #ddd; font-size: 13px; text-align: right; }
-        .summary-table th { background: #f0faf4; font-weight: 600; color: #1a6b3c; }
-        .signatures { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 50px; padding-top: 20px; }
+        body { font-family: 'IBM Plex Sans Arabic', 'Cairo', sans-serif; padding: 0; color: #1a1a1a; background: white; direction: rtl; }
+        .contract { max-width: 780px; margin: 0 auto; padding: 0 40px 40px; }
+        
+        /* Header */
+        .header { display: flex; justify-content: space-between; align-items: center; padding: 30px 0 20px; border-bottom: 3px solid #1f5c3a; }
+        .header-right { display: flex; align-items: center; gap: 14px; }
+        .logo { max-height: 64px; max-width: 64px; border-radius: 6px; }
+        .company-name { font-size: 22px; font-weight: 700; color: #1f5c3a; }
+        .header-left { text-align: left; }
+        .header-left .subtitle { font-size: 13px; color: #888; letter-spacing: 0.5px; }
+        .header-left .contract-label { font-size: 11px; color: #aaa; text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
+        
+        /* Title */
+        .title { text-align: center; font-size: 18px; font-weight: 700; margin: 28px 0 24px; padding: 12px 0; background: linear-gradient(135deg, #f0f9f4, #e8f5ee); border: 1px solid #c8e6d0; border-radius: 6px; color: #1f5c3a; }
+        
+        /* Sections */
+        .section { margin-bottom: 22px; }
+        .section-title { font-size: 14px; font-weight: 700; color: #1f5c3a; padding-bottom: 6px; margin-bottom: 12px; border-bottom: 1.5px solid #d4e8dc; }
+        
+        /* Parties Info */
+        .parties-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 30px; }
+        .info-row { display: flex; gap: 8px; font-size: 13px; padding: 5px 0; border-bottom: 1px dotted #e8e8e8; }
+        .info-label { font-weight: 600; min-width: 95px; color: #333; white-space: nowrap; }
+        .info-value { color: #1a1a1a; }
+        
+        /* Tasks */
+        .tasks-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 30px; }
+        .task-item { display: flex; align-items: center; gap: 8px; font-size: 13px; padding: 5px 0; }
+        .task-check { color: #1f5c3a; font-weight: 700; font-size: 15px; }
+        
+        /* Financial Table */
+        .summary-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+        .summary-table th, .summary-table td { padding: 10px 14px; font-size: 13px; text-align: right; }
+        .summary-table th { background: #1f5c3a; color: white; font-weight: 600; }
+        .summary-table td { border-bottom: 1px solid #e5e5e5; }
+        .summary-table tr:last-child td { border-bottom: 2px solid #1f5c3a; font-weight: 700; background: #f7faf8; }
+        .amount-positive { color: #1f5c3a; font-weight: 600; }
+        .amount-negative { color: #c0392b; font-weight: 600; }
+        
+        /* Notes */
+        .notes-box { font-size: 13px; color: #444; padding: 10px 14px; background: #fafafa; border: 1px solid #eee; border-radius: 4px; line-height: 1.7; }
+        
+        /* Signatures */
+        .signatures { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; margin-top: 50px; padding-top: 10px; }
         .sig-box { text-align: center; }
-        .sig-label { font-weight: 600; font-size: 14px; margin-bottom: 40px; }
-        .sig-line { border-top: 1px solid #333; padding-top: 8px; font-size: 12px; color: #666; }
-        .footer { text-align: center; margin-top: 30px; padding-top: 15px; border-top: 2px solid #1a6b3c; font-size: 11px; color: #888; }
-        .amount { font-weight: 700; color: #1a6b3c; }
-        @media print { body { padding: 0; } .contract { padding: 20px 30px; } }
+        .sig-title { font-weight: 700; font-size: 13px; color: #1f5c3a; margin-bottom: 6px; }
+        .sig-field { font-size: 12px; color: #555; margin-top: 14px; padding-top: 4px; }
+        .sig-field span { display: inline-block; border-bottom: 1px solid #333; min-width: 160px; margin-right: 6px; }
+        .sig-date { text-align: center; margin-top: 30px; font-size: 12px; color: #555; }
+        .sig-date span { display: inline-block; border-bottom: 1px solid #333; min-width: 160px; margin-right: 6px; }
+        
+        /* Footer */
+        .footer { text-align: center; margin-top: 40px; padding-top: 14px; border-top: 2px solid #1f5c3a; font-size: 10px; color: #999; letter-spacing: 0.3px; }
+        
+        /* Separator */
+        .sep { border: none; border-top: 1px solid #e0e0e0; margin: 20px 0; }
+        
+        @media print { 
+          body { padding: 0; } 
+          .contract { padding: 15px 30px; }
+          @page { margin: 15mm; }
+        }
       </style></head><body>`);
     printWindow.document.write(contractRef.current.innerHTML);
     printWindow.document.write("</body></html>");
