@@ -1162,33 +1162,81 @@ const POSPage = () => {
 
     setProcessing(true);
     try {
-      const { data: order, error: orderError } = await supabase
-        .from("pos_orders")
-        .insert({
-          user_id: dataOwnerId,
-          company_id: company.id,
-          session_id: session.id,
-          customer_name: customerName || null,
-          subtotal: cartTotals.subtotal,
-          discount_amount: cartTotals.discount,
-          tax_amount: cartTotals.tax,
-          total: cartTotals.total,
-          state: "draft",
-          ...(activeOrder.tableId ? {
-            table_id: activeOrder.tableId,
-            guest_count: activeOrder.guestCount,
-            guest_name: activeOrder.guestName || null,
-            order_type: "dine_in",
-          } : {}),
-        } as any)
-        .select()
-        .single();
+      let orderId: string;
+      let orderObj: any;
 
-      if (orderError) throw orderError;
+      // Check if there's an existing draft/open order for this table (saved earlier)
+      if (activeOrder.tableId) {
+        const { data: existingOrder } = await supabase
+          .from("pos_orders")
+          .select("id")
+          .eq("table_id", activeOrder.tableId)
+          .in("state", ["draft", "open"] as any)
+          .maybeSingle();
+
+        if (existingOrder) {
+          // Use existing order - update its totals and delete old lines
+          await supabase.from("pos_order_lines").delete().eq("order_id", existingOrder.id);
+          await supabase.from("pos_orders").update({
+            customer_name: customerName || null,
+            subtotal: cartTotals.subtotal,
+            discount_amount: cartTotals.discount,
+            tax_amount: cartTotals.tax,
+            total: cartTotals.total,
+            session_id: session.id,
+          } as any).eq("id", existingOrder.id);
+          orderId = existingOrder.id;
+          orderObj = { id: existingOrder.id };
+        } else {
+          // Create new order
+          const { data: order, error: orderError } = await supabase
+            .from("pos_orders")
+            .insert({
+              user_id: dataOwnerId,
+              company_id: company.id,
+              session_id: session.id,
+              customer_name: customerName || null,
+              subtotal: cartTotals.subtotal,
+              discount_amount: cartTotals.discount,
+              tax_amount: cartTotals.tax,
+              total: cartTotals.total,
+              state: "draft",
+              table_id: activeOrder.tableId,
+              guest_count: activeOrder.guestCount,
+              guest_name: activeOrder.guestName || null,
+              order_type: "dine_in",
+            } as any)
+            .select()
+            .single();
+          if (orderError) throw orderError;
+          orderId = order.id;
+          orderObj = order;
+        }
+      } else {
+        // No table - create new order
+        const { data: order, error: orderError } = await supabase
+          .from("pos_orders")
+          .insert({
+            user_id: dataOwnerId,
+            company_id: company.id,
+            session_id: session.id,
+            customer_name: customerName || null,
+            subtotal: cartTotals.subtotal,
+            discount_amount: cartTotals.discount,
+            tax_amount: cartTotals.tax,
+            total: cartTotals.total,
+            state: "draft",
+          } as any)
+          .select()
+          .single();
+        if (orderError) throw orderError;
+        orderId = order.id;
+        orderObj = order;
+      }
 
       const lines = cart.map((item) => ({
         user_id: dataOwnerId,
-        order_id: order.id,
+        order_id: orderId,
         product_id: item.product_id,
         product_name: item.name,
         qty: item.qty,
@@ -1209,7 +1257,7 @@ const POSPage = () => {
       const change = Math.max(0, tendered - cartTotals.total);
 
       const { data: result, error: completeError } = await supabase.rpc("complete_pos_order", {
-        p_order_id: order.id,
+        p_order_id: orderId,
         p_user_id: dataOwnerId,
         p_payments: [{
           method: paymentMethod,
@@ -1224,6 +1272,19 @@ const POSPage = () => {
       const res = result as any;
       if (!res?.success) {
         throw new Error(res?.error || "خطأ في إتمام الطلب");
+      }
+
+      // Fallback: manually release table if trigger didn't fire
+      if (activeOrder.tableId) {
+        await supabase
+          .from("restaurant_tables")
+          .update({
+            status: "available",
+            current_order_id: null,
+            current_guests: 0,
+            occupied_at: null,
+          })
+          .eq("id", activeOrder.tableId);
       }
 
       setSession((prev) =>
@@ -1244,7 +1305,7 @@ const POSPage = () => {
           user_id: dataOwnerId,
           employee_id: selectedEmployee.id,
           source_type: "pos_meal",
-          source_id: order.id,
+          source_id: orderId,
           source_reference: res.order_number,
           description: `مسحوبات POS - ${itemsSummary}`.slice(0, 200),
           amount: cartTotals.total,
@@ -1259,6 +1320,7 @@ const POSPage = () => {
 
       loadProducts();
 
+      const tableName = activeOrder.tableName;
       const receiptInfo = {
         orderNumber: res.order_number,
         date: new Date().toISOString(),
@@ -1266,7 +1328,7 @@ const POSPage = () => {
         companyName: company?.name || "شركتي",
         terminalName: terminal?.name || "نقطة بيع",
         customerName: customerName,
-        tableName: activeOrder.tableName || undefined,
+        tableName: tableName || undefined,
         guestCount: activeOrder.tableId ? activeOrder.guestCount : undefined,
         items: cart.map(item => ({
           name: item.name,
@@ -1291,7 +1353,7 @@ const POSPage = () => {
       setShowPayment(false);
       setShowReceipt(true);
 
-      // If multiple orders, remove the completed one; otherwise reset it
+      // Reset order tab
       if (orders.length > 1) {
         removeOrder(activeOrderIndex);
       } else {
@@ -1300,6 +1362,7 @@ const POSPage = () => {
         setOrderDiscount(0);
         setOrderNote("");
         setSelectedCartIndex(null);
+        updateActiveOrder(o => ({ ...o, tableId: null, tableName: null, guestCount: 1, guestName: "" }));
       }
       setSelectedEmployee(null);
       setEmployeeSearch("");
@@ -1307,6 +1370,10 @@ const POSPage = () => {
       setTenderedAmount("");
       setPaymentMethod("cash");
       setPaymentCurrency("ILS");
+
+      if (tableName) {
+        toast.success(`✅ تم السداد - ${tableName} متاحة الآن`);
+      }
     } catch (err: any) {
       toast.error(err.message || "خطأ في إتمام الطلب");
     } finally {
