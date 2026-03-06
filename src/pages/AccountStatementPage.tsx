@@ -397,7 +397,7 @@ const AccountStatementPage = () => {
     });
 
     return { rows, openingBalance: openBal, closingBalance: runningBalance, totalDebit: sumDebit, totalCredit: sumCredit };
-  }, [transactions, selectedEntityId, dateFrom, dateTo, activeTab, selectedAccount]);
+  }, [transactions, selectedEntityId, dateFrom, dateTo, activeTab, selectedAccount, selectedEmployee]);
 
   const filteredRows = useMemo(() => {
     if (!txSearch.trim()) return rows;
@@ -430,7 +430,7 @@ const AccountStatementPage = () => {
     XLSX.writeFile(wb, `كشف-حساب-${selectedEntityName}-${dateFrom}.xlsx`);
   };
 
-  const allBalances = isAccountsTab ? accountBalances : contactBalances;
+  const allBalances = isAccountsTab ? accountBalances : isEmployeesTab ? employeeBalances : contactBalances;
   const totalBalance = useMemo(() => Object.values(allBalances).reduce((s, b) => s + b, 0), [allBalances]);
   const debitCount = useMemo(() => Object.values(allBalances).filter(b => b > 0).length, [allBalances]);
   const creditCount = useMemo(() => Object.values(allBalances).filter(b => b < 0).length, [allBalances]);
