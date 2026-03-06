@@ -416,7 +416,7 @@ export default function ContractorApp() {
       <div className="p-4 md:p-6 max-w-6xl mx-auto space-y-6" dir="rtl">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">🏗️ محاسبك السريع</h1>
+            <h1 className="text-2xl font-bold text-foreground">🏗️ محاسب المشاريع والمقاولات</h1>
             <p className="text-muted-foreground text-sm">إدارة مشاريع المقاولات والحركات المالية</p>
           </div>
           <div className="flex gap-2">
