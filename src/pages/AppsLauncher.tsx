@@ -4,7 +4,7 @@ import {
   Calculator, ShoppingCart, Users, Package, ShoppingBag, DollarSign,
   BarChart3, Store, Settings, FileSpreadsheet, ArrowLeftRight, Landmark,
   Search, HelpCircle, RotateCcw, BookOpen, Headphones, Puzzle, ChevronDown, ArrowLeft,
-  Monitor,
+  Monitor, Building2,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useOnboarding } from "@/hooks/useOnboarding";
