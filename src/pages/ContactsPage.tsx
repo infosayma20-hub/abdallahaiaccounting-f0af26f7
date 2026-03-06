@@ -325,6 +325,16 @@ const ContactsPage = () => {
                         </div>
                       )}
                       {fin?.loading && <div className="flex justify-center py-2"><Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /></div>}
+                      
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="w-full rounded-xl gap-2 mt-1"
+                        onClick={() => navigate(`/account-statement?contact_id=${contact.id}&contact_name=${encodeURIComponent(contact.contact_name)}&contact_type=${encodeURIComponent(contact.contact_type)}`)}
+                      >
+                        <FileText className="h-4 w-4" />
+                        كشف حساب
+                      </Button>
                     </div>
                   )}
                 </CardContent>
