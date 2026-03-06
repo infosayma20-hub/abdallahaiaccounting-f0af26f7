@@ -48,7 +48,7 @@ export default function POSShiftsReport({ sessions, onRefresh }: Props) {
         if (error) throw error;
         toast.success("تم إفراغ بيانات الوردية بنجاح");
       } else {
-        const { error } = await supabase.from("pos_sessions").delete().eq("id", session.id);
+        const { error } = await supabase.from("pos_sessions").update({ is_deleted: true }).eq("id", session.id);
         if (error) throw error;
         toast.success("تم حذف الوردية بنجاح");
       }

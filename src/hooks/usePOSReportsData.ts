@@ -141,6 +141,7 @@ export function usePOSReportsData() {
           .from("pos_sessions")
           .select("id, cashier_name, cashier_pos_user_id, opened_at, closed_at, opening_cash, closing_cash, expected_cash, cash_variance, total_sales, total_orders, total_returns, terminal_id, state")
           .eq("user_id", dataOwnerId)
+          .eq("is_deleted", false)
           .gte("opened_at", from)
           .lte("opened_at", to)
           .order("opened_at", { ascending: false }),
