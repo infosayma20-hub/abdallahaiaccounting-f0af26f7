@@ -35,7 +35,6 @@ const navSections: NavSection[] = [
         children: [
           { label: "شجرة الحسابات", path: "/accounts" },
           { label: "تقرير الحركات المحاسبية", path: "/transactions" },
-          { label: "القيود", path: "/journal-entries" },
           { label: "ميزان المراجعة", path: "/trial-balance" },
         ],
       },

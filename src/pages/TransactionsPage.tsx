@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
+import JournalEntryPopup from "@/components/JournalEntryPopup";
 import {
   ArrowRight, Loader2, RefreshCw, Pencil, Trash2, CheckSquare, X,
   RotateCcw, Archive, Search, ChevronLeft, ChevronRight as ChevronRightIcon,
@@ -114,6 +115,9 @@ const TransactionsPage = () => {
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
+
+  // Journal Entry Modal
+  const [showJournalEntry, setShowJournalEntry] = useState(false);
 
   // Trash
   const [showTrash, setShowTrash] = useState(false);
@@ -477,7 +481,7 @@ const TransactionsPage = () => {
             <Printer className="w-4 h-4" />
             طباعة
           </Button>
-          <Button size="sm" className="gap-1.5 text-sm bg-[#1A56DB] hover:bg-[#1648B8] text-white" onClick={() => navigate("/journal-entries")}>
+          <Button size="sm" className="gap-1.5 text-sm bg-[#1A56DB] hover:bg-[#1648B8] text-white" onClick={() => setShowJournalEntry(true)}>
             <Plus className="w-4 h-4" />
             قيد يدوي
           </Button>
@@ -874,6 +878,12 @@ const TransactionsPage = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      {/* ━━ Journal Entry Modal ━━ */}
+      <JournalEntryPopup
+        open={showJournalEntry}
+        onClose={() => setShowJournalEntry(false)}
+        onSuccess={() => { setShowJournalEntry(false); fetchData(); }}
+      />
     </div>
   );
 };

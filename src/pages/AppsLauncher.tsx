@@ -44,7 +44,6 @@ const appModules: AppModule[] = [
     children: [
       { label: "شجرة الحسابات", path: "/accounts" },
       { label: "دفتر اليومية", path: "/transactions" },
-      { label: "القيود", path: "/journal-entries" },
       { label: "ميزان المراجعة", path: "/trial-balance" },
       { label: "الشيكات", path: "/cheques" },
     ],

@@ -43,7 +43,7 @@ const sections: ReportSection[] = [
       { slug: "balance-sheet", label: "الميزانية العمومية", description: "الأصول والالتزامات وحقوق الملكية", icon: Landmark, path: "/balance-sheet", available: true },
       { slug: "profit-loss", label: "قائمة الأرباح والخسائر", description: "إيرادات ومصروفات وصافي الربح", icon: BarChart3, path: "/profit-loss", available: true },
       { slug: "general-ledger", label: "دفتر الأستاذ العام", description: "جميع الحركات لحساب محدد مع الرصيد التراكمي", icon: BookOpen, path: "/general-ledger", available: true },
-      { slug: "journal-entries", label: "دفتر اليومية", description: "جميع القيود المحاسبية للفترة", icon: FileText, path: "/journal-entries", available: true },
+      { slug: "journal-entries", label: "دفتر اليومية", description: "جميع القيود المحاسبية للفترة", icon: FileText, path: "/transactions", available: true },
       { slug: "account-statement", label: "كشف حساب", description: "حركات أي حساب بالتفصيل مع الأرصدة", icon: Receipt, path: "/account-statement", available: true },
       { slug: "cash-movement", label: "حركة الصندوق", description: "جميع حركات النقد الوارد والصادر", icon: Wallet, path: "/transactions", available: true },
       { slug: "bank-movement", label: "حركة البنوك", description: "حركات الحسابات البنكية", icon: Building2, path: "/transactions", available: true },
