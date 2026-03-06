@@ -2686,9 +2686,10 @@ const POSPage = () => {
                 {(() => {
                   const tendered = parseFloat(tenderedAmount) || 0;
                   if (tendered <= 0) return null;
-                  const rate = exchangeRates[paymentCurrency] || 1;
-                  const tenderedInILS = paymentCurrency === "ILS" ? tendered : tendered * rate;
-                  const change = tenderedInILS - cartTotals.total;
+                   const rate = exchangeRates[paymentCurrency] || 1;
+                   const tenderedInILS = paymentCurrency === "ILS" ? tendered : tendered * rate;
+                   const effectiveT = customerDataDiscount ? cartTotals.total - customerDataDiscount.discountAmount : cartTotals.total;
+                   const change = tenderedInILS - effectiveT;
                   const curSymbol = currencies.find(c => c.code === paymentCurrency)?.symbol || "";
 
                   return (
