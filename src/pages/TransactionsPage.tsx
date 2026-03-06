@@ -560,7 +560,7 @@ const TransactionsPage = () => {
       )}
 
       {/* ━━━ TABLE ━━━ */}
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-x-hidden overflow-y-auto">
         {loading && (
           <div className="flex items-center justify-center py-20">
             <Loader2 className="h-8 w-8 animate-spin text-[#1A56DB]" />
@@ -581,38 +581,48 @@ const TransactionsPage = () => {
         )}
 
         {!loading && !error && filteredTransactions.length > 0 && (
-          <table className="w-full border-collapse min-w-[900px]">
+          <table className="w-full border-collapse table-fixed">
+            <colgroup>
+              <col className="w-[3%]" />
+              <col className="w-[9%]" />
+              <col className="w-[12%]" />
+              <col style={{ width: 'auto' }} />
+              <col className="w-[10%]" />
+              <col className="w-[11%]" />
+              <col className="w-[11%]" />
+              <col className="w-[4%]" />
+            </colgroup>
             {/* ━━ Header ━━ */}
             <thead className="sticky top-0 z-10">
               <tr className="bg-[#F8F9FA] border-b-2 border-[#E2E8F0]">
-                <th className="w-10 px-3 py-2.5 text-center">
+                <th className="px-2 py-2.5 text-center">
                   <Checkbox
                     checked={selectedIds.size === paginatedTransactions.length && paginatedTransactions.length > 0}
                     onCheckedChange={toggleSelectAll}
                   />
                 </th>
                 <th
-                  className="text-right px-3 py-2.5 text-xs font-semibold text-[#637381] uppercase tracking-wider cursor-pointer hover:bg-[#EFF6FF] w-24 select-none"
+                  className="text-right px-2 py-2.5 text-xs font-semibold text-[#637381] uppercase tracking-wider cursor-pointer hover:bg-[#EFF6FF] select-none"
                   onClick={() => toggleSort("date")}
                 >
                   <div className="flex items-center gap-1">التاريخ <SortIcon field="date" /></div>
                 </th>
-                <th className="text-right px-3 py-2.5 text-xs font-semibold text-[#637381] uppercase tracking-wider w-36">المرجع</th>
-                <th className="text-right px-3 py-2.5 text-xs font-semibold text-[#637381] uppercase tracking-wider">الوصف / الحسابات</th>
-                <th className="text-right px-3 py-2.5 text-xs font-semibold text-[#637381] uppercase tracking-wider w-28">النوع</th>
+                <th className="text-right px-2 py-2.5 text-xs font-semibold text-[#637381] uppercase tracking-wider">المرجع</th>
+                <th className="text-right px-2 py-2.5 text-xs font-semibold text-[#637381] uppercase tracking-wider">الوصف / الحسابات</th>
+                <th className="text-right px-2 py-2.5 text-xs font-semibold text-[#637381] uppercase tracking-wider">النوع</th>
                 <th
-                  className="text-left px-3 py-2.5 text-xs font-semibold text-[#1A56DB] uppercase tracking-wider w-28 cursor-pointer hover:bg-[#EFF6FF] select-none"
+                  className="text-left px-2 py-2.5 text-xs font-semibold text-[#1A56DB] uppercase tracking-wider cursor-pointer hover:bg-[#EFF6FF] select-none"
                   onClick={() => toggleSort("debit")}
                 >
                   <div className="flex items-center justify-end gap-1"><SortIcon field="debit" /> مدين ₪</div>
                 </th>
                 <th
-                  className="text-left px-3 py-2.5 text-xs font-semibold text-[#0E9F6E] uppercase tracking-wider w-28 cursor-pointer hover:bg-[#EFF6FF] select-none"
+                  className="text-left px-2 py-2.5 text-xs font-semibold text-[#0E9F6E] uppercase tracking-wider cursor-pointer hover:bg-[#EFF6FF] select-none"
                   onClick={() => toggleSort("credit")}
                 >
                   <div className="flex items-center justify-end gap-1"><SortIcon field="credit" /> دائن ₪</div>
                 </th>
-                <th className="w-10" />
+                <th className="px-1" />
               </tr>
             </thead>
 
@@ -628,36 +638,37 @@ const TransactionsPage = () => {
                       className={`group border-b border-[#F1F5F9] hover:bg-[#F0F4FF] transition-colors cursor-pointer ${isSelected ? "bg-[#EFF6FF]" : "bg-white"}`}
                       onClick={() => toggleExpand(tx.id)}
                     >
-                      <td className="px-3 py-2.5 text-center" onClick={e => e.stopPropagation()}>
+                      <td className="px-2 py-2.5 text-center" onClick={e => e.stopPropagation()}>
                         <Checkbox checked={isSelected} onCheckedChange={() => toggleSelect(tx.id)} />
                       </td>
-                      <td className="px-3 py-2.5">
+                      <td className="px-2 py-2.5">
                         <span className="text-sm font-mono text-[#637381]">{formatDate(tx.transaction_date)}</span>
                       </td>
-                      <td className="px-3 py-2.5">
+                      <td className="px-2 py-2.5 overflow-hidden">
                         <button
                           onClick={e => { e.stopPropagation(); openEdit(tx); }}
-                          className="text-sm font-medium text-[#1A56DB] hover:text-[#1648B8] hover:underline font-mono"
+                          title={tx.reference || ""}
+                          className="text-sm font-medium text-[#1A56DB] hover:text-[#1648B8] hover:underline font-mono truncate block max-w-full text-right"
                         >
                           {tx.reference || "—"}
                         </button>
                       </td>
-                      <td className="px-3 py-2.5">
-                        <div className="flex items-center gap-2">
-                          <ChevronRightIcon className={`w-4 h-4 text-[#94A3B8] transition-transform flex-shrink-0 ${isExpanded ? "rotate-90" : ""}`} />
-                          <span className="text-sm text-[#1A2332] font-medium truncate">{tx.description || "بدون وصف"}</span>
+                      <td className="px-2 py-2.5 overflow-hidden">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <ChevronRightIcon className={`w-3.5 h-3.5 text-[#94A3B8] transition-transform flex-shrink-0 ${isExpanded ? "rotate-90" : ""}`} />
+                          <span title={tx.description || ""} className="text-sm text-[#1A2332] font-medium truncate">{tx.description || "بدون وصف"}</span>
                         </div>
                       </td>
-                      <td className="px-3 py-2.5">
+                      <td className="px-2 py-2.5">
                         <TypeBadge type={tx.transaction_type} />
                       </td>
-                      <td className="px-3 py-2.5 text-left">
+                      <td className="px-2 py-2.5 text-left">
                         <span className="font-mono font-semibold text-sm text-[#1A56DB]">₪{tx.amount?.toFixed(2)}</span>
                       </td>
-                      <td className="px-3 py-2.5 text-left">
+                      <td className="px-2 py-2.5 text-left">
                         <span className="font-mono font-semibold text-sm text-[#0E9F6E]">₪{tx.amount?.toFixed(2)}</span>
                       </td>
-                      <td className="px-3 py-2.5 text-center" onClick={e => e.stopPropagation()}>
+                      <td className="px-1 py-2.5 text-center" onClick={e => e.stopPropagation()}>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <button className="p-1 rounded hover:bg-[#E2E8F0] opacity-0 group-hover:opacity-100 transition-opacity">
