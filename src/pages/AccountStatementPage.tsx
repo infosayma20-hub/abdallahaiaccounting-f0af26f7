@@ -34,6 +34,16 @@ interface Account {
   account_type: string;
 }
 
+interface EmployeeEntity {
+  id: string;
+  full_name: string;
+  department: string | null;
+  job_title: string | null;
+  phone: string | null;
+  base_salary: number;
+  account_code: string | null; // linked account code from accounts table
+}
+
 interface Transaction {
   id: string;
   description: string;
@@ -65,7 +75,7 @@ type EntityTab = "customers" | "suppliers" | "employees" | "accounts";
 const ENTITY_TABS: { key: EntityTab; label: string; icon: any; color: string; accountCode: string; type: string }[] = [
   { key: "customers", label: "العملاء", icon: Users, color: "text-blue-500", accountCode: "1130", type: "عميل" },
   { key: "suppliers", label: "الموردين", icon: Truck, color: "text-amber-500", accountCode: "2100", type: "مورد" },
-  { key: "employees", label: "الموظفين", icon: UserCheck, color: "text-emerald-500", accountCode: "", type: "موظف" },
+  { key: "employees", label: "الموظفين", icon: UserCheck, color: "text-emerald-500", accountCode: "1180", type: "موظف" },
   { key: "accounts", label: "الحسابات", icon: LayoutGrid, color: "text-purple-500", accountCode: "", type: "account" },
 ];
 
