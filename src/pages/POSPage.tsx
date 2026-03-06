@@ -3357,6 +3357,9 @@ const POSPage = () => {
                     <span className="text-lg font-bold text-primary min-w-[28px]">{item.qty}×</span>
                     <div className="flex-1">
                       <p className="text-sm font-semibold text-foreground">{item.name}</p>
+                      {item.modifiers?.map((m: any, mi: number) => (
+                        <p key={mi} className="text-xs text-muted-foreground">← {m.option_name}{m.extra_price > 0 ? ` +₪${m.extra_price}` : ''}</p>
+                      ))}
                       {item.note && <p className="text-xs text-amber-600 mt-0.5">📝 {item.note}</p>}
                     </div>
                   </div>
