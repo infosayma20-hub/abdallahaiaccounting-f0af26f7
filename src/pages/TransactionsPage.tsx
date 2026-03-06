@@ -454,18 +454,13 @@ const TransactionsPage = () => {
             <ArrowRight className="h-5 w-5 text-[#1A2332]" />
           </button>
           <div>
-            <h1 className="text-xl font-semibold text-[#1A2332] tracking-tight">دفتر اليومية</h1>
+            <h1 className="text-xl font-semibold text-[#1A2332] tracking-tight">تقرير الحركات المحاسبية</h1>
             <p className="text-sm text-[#637381] mt-0.5">
               {filteredTransactions.length} قيد
               {" • "}
               <span className="text-[#1A56DB] font-medium">مدين: ₪{totalDebit.toFixed(2)}</span>
               {" • "}
               <span className="text-[#0E9F6E] font-medium">دائن: ₪{totalCredit.toFixed(2)}</span>
-              {" "}
-              {isBalanced
-                ? <span className="text-[#059669] font-medium">✅ متطابق</span>
-                : <span className="text-[#DC2626] font-medium">⚠️ فرق: ₪{Math.abs(totalDebit - totalCredit).toFixed(2)}</span>
-              }
             </p>
           </div>
         </div>
@@ -736,8 +731,14 @@ const TransactionsPage = () => {
             {/* ━━ Footer Totals ━━ */}
             <tfoot className="sticky bottom-0 bg-white border-t-2 border-[#D1D5DB] shadow-[0_-2px_8px_rgba(0,0,0,0.06)]">
               <tr>
-                <td colSpan={5} className="px-3 py-3">
+                <td colSpan={3} className="px-3 py-3">
                   <span className="text-sm font-bold text-[#374151]">الإجمالي — {filteredTransactions.length} قيد</span>
+                </td>
+                <td colSpan={2} className="px-3 py-3">
+                  {isBalanced
+                    ? <span className="text-xs font-bold text-[#059669] bg-[#ECFDF5] px-2 py-1 rounded-full">✅ متطابق</span>
+                    : <span className="text-xs font-bold text-[#DC2626] bg-[#FEF2F2] px-2 py-1 rounded-full">⚠️ فرق: ₪{Math.abs(totalDebit - totalCredit).toFixed(2)}</span>
+                  }
                 </td>
                 <td className="px-3 py-3 text-left">
                   <span className="font-mono font-bold text-base text-[#1A56DB]">₪{totalDebit.toFixed(2)}</span>
@@ -745,12 +746,7 @@ const TransactionsPage = () => {
                 <td className="px-3 py-3 text-left">
                   <span className="font-mono font-bold text-base text-[#0E9F6E]">₪{totalCredit.toFixed(2)}</span>
                 </td>
-                <td className="px-3 py-3 text-center">
-                  {isBalanced
-                    ? <span className="text-xs font-bold text-[#059669] bg-[#ECFDF5] px-2 py-1 rounded-full">✅ متطابق</span>
-                    : <span className="text-xs font-bold text-[#DC2626] bg-[#FEF2F2] px-2 py-1 rounded-full">⚠️ فرق</span>
-                  }
-                </td>
+                <td />
               </tr>
             </tfoot>
           </table>
