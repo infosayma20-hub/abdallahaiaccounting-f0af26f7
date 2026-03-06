@@ -15,6 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { format, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear } from "date-fns";
 import { cn } from "@/lib/utils";
+import StatementPrintView from "@/components/StatementPrintView";
 
 // ─── TYPES ───
 interface Contact {
