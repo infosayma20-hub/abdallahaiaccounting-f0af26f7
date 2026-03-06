@@ -47,7 +47,6 @@ export default function TableActionModal({
 
   const isAvailable = table.status === "available";
   const isOccupied = table.status === "occupied";
-  const isCleaning = table.status === "cleaning";
   const isReserved = table.status === "reserved";
 
   const elapsed = table.occupied_at
@@ -153,18 +152,6 @@ export default function TableActionModal({
           </div>
         )}
 
-        {/* Cleaning: mark as available */}
-        {isCleaning && (
-          <div className="space-y-4 text-center">
-            <div className="py-4">
-              <Sparkles className="w-10 h-10 text-sky-500 mx-auto mb-2" />
-              <p className="text-sm text-muted-foreground">الطاولة قيد التنظيف</p>
-            </div>
-            <Button className="w-full" onClick={() => onMarkAvailable(table.id)}>
-              تم التنظيف — جاهزة
-            </Button>
-          </div>
-        )}
       </DialogContent>
     </Dialog>
   );
