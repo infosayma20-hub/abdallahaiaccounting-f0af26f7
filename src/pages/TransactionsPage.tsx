@@ -881,10 +881,8 @@ const TransactionsPage = () => {
       {/* ━━ Journal Entry Modal ━━ */}
       <JournalEntryPopup
         open={showJournalEntry}
-        onOpenChange={(open) => {
-          setShowJournalEntry(open);
-          if (!open) fetchData();
-        }}
+        onClose={() => setShowJournalEntry(false)}
+        onSuccess={() => { setShowJournalEntry(false); fetchData(); }}
       />
     </div>
   );
