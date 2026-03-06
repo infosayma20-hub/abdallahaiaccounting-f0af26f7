@@ -481,7 +481,7 @@ const TransactionsPage = () => {
             <Printer className="w-4 h-4" />
             طباعة
           </Button>
-          <Button size="sm" className="gap-1.5 text-sm bg-[#1A56DB] hover:bg-[#1648B8] text-white" onClick={() => navigate("/journal-entries")}>
+          <Button size="sm" className="gap-1.5 text-sm bg-[#1A56DB] hover:bg-[#1648B8] text-white" onClick={() => setShowJournalEntry(true)}>
             <Plus className="w-4 h-4" />
             قيد يدوي
           </Button>
@@ -878,6 +878,14 @@ const TransactionsPage = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      {/* ━━ Journal Entry Modal ━━ */}
+      <JournalEntryPopup
+        open={showJournalEntry}
+        onOpenChange={(open) => {
+          setShowJournalEntry(open);
+          if (!open) fetchData();
+        }}
+      />
     </div>
   );
 };
