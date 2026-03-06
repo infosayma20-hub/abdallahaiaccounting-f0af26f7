@@ -265,8 +265,8 @@ const HomeDashboard = () => {
   const totalOutcome = transactions.filter(tx => tx.transaction_type === "سند صرف").reduce((sum, tx) => sum + (tx.amount || 0), 0);
   const capitalInjections = transactions.filter(tx => tx.debit_account_code?.startsWith("1") && tx.credit_account_code?.startsWith("3")).reduce((sum, tx) => sum + (tx.amount || 0), 0);
   const cashBalance = totalIncome - totalOutcome + capitalInjections;
-  const receivablesDebit = transactions.filter(tx => tx.debit_account_code?.startsWith("1") && tx.credit_account_code?.startsWith("4")).reduce((sum, tx) => sum + (tx.amount || 0), 0);
-  const receivablesCredit = transactions.filter(tx => tx.credit_account_code?.startsWith("1") && tx.debit_account_code?.startsWith("4")).reduce((sum, tx) => sum + (tx.amount || 0), 0);
+  const receivablesDebit = transactions.filter(tx => tx.debit_account_code === "1130").reduce((sum, tx) => sum + (tx.amount || 0), 0);
+  const receivablesCredit = transactions.filter(tx => tx.credit_account_code === "1130").reduce((sum, tx) => sum + (tx.amount || 0), 0);
   const receivables = receivablesDebit - receivablesCredit;
   const payablesCredit = transactions.filter(tx => tx.credit_account_code?.startsWith("2")).reduce((sum, tx) => sum + (tx.amount || 0), 0);
   const payablesDebit = transactions.filter(tx => tx.debit_account_code?.startsWith("2")).reduce((sum, tx) => sum + (tx.amount || 0), 0);
