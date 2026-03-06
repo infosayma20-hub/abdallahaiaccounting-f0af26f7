@@ -560,7 +560,7 @@ const TransactionsPage = () => {
       )}
 
       {/* ━━━ TABLE ━━━ */}
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-x-hidden overflow-y-auto">
         {loading && (
           <div className="flex items-center justify-center py-20">
             <Loader2 className="h-8 w-8 animate-spin text-[#1A56DB]" />
