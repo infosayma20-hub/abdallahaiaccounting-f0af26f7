@@ -1,5 +1,9 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { ArrowRight, Loader2, RefreshCw, Plus, ChevronDown, Search, Pencil, Eye, PlusCircle } from "lucide-react";
+import { ArrowRight, Loader2, RefreshCw, Plus, ChevronDown, Search, Pencil, Eye, PlusCircle, Save } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
@@ -584,8 +588,9 @@ const AccountsPage = () => {
       {/* Add Account Dialog */}
       <AddAccountDialog
         open={showAddDialog}
-        onOpenChange={setShowAddDialog}
+        onOpenChange={(open) => { setShowAddDialog(open); if (!open) setAddSubParentCode(null); }}
         accounts={accounts}
+        defaultParentCode={addSubParentCode}
         onAdd={async (data) => {
           if (!user) return false;
           try {
@@ -599,6 +604,7 @@ const AccountsPage = () => {
             });
             if (error) throw error;
             toast({ title: "تم إضافة الحساب بنجاح ✅" });
+            setAddSubParentCode(null);
             fetchAccounts();
             return true;
           } catch (err: any) {
@@ -607,6 +613,33 @@ const AccountsPage = () => {
           }
         }}
       />
+
+      {/* Edit Account Dialog */}
+      <Dialog open={!!editingAccount} onOpenChange={(o) => !o && setEditingAccount(null)}>
+        <DialogContent className="max-w-sm" dir="rtl">
+          <DialogHeader><DialogTitle>تعديل الحساب</DialogTitle></DialogHeader>
+          {editingAccount && (
+            <EditAccountForm
+              account={editingAccount}
+              onSave={async (name, notes) => {
+                if (!user || !editingAccount) return;
+                const { error } = await supabase.from('accounts').update({
+                  account_name: name,
+                  notes: notes || null,
+                }).eq('id', editingAccount.id);
+                if (error) {
+                  toast({ title: "خطأ", description: error.message, variant: "destructive" });
+                } else {
+                  toast({ title: "تم تعديل الحساب بنجاح ✅" });
+                  setEditingAccount(null);
+                  fetchAccounts();
+                }
+              }}
+              onCancel={() => setEditingAccount(null)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
