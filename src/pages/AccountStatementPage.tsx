@@ -107,15 +107,17 @@ const AccountStatementPage = () => {
   // URL params
   const urlContactId = searchParams.get("contact_id") || "";
   const urlContactType = searchParams.get("contact_type") || "";
+  const urlEmployeeName = searchParams.get("employee_name") || "";
 
   // State
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
+  const [employeeEntities, setEmployeeEntities] = useState<EmployeeEntity[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [companyName, setCompanyName] = useState("");
   const [activeTab, setActiveTab] = useState<EntityTab>(
-    urlContactType === "مورد" ? "suppliers" : "customers"
+    urlEmployeeName ? "employees" : urlContactType === "مورد" ? "suppliers" : "customers"
   );
   const [selectedEntityId, setSelectedEntityId] = useState(urlContactId);
   const [entitySearch, setEntitySearch] = useState("");
@@ -126,13 +128,14 @@ const AccountStatementPage = () => {
 
   const activeTabConfig = ENTITY_TABS.find(t => t.key === activeTab)!;
   const isAccountsTab = activeTab === "accounts";
+  const isEmployeesTab = activeTab === "employees";
 
   // ─── FETCH DATA ───
   const fetchData = async () => {
     if (!user) return;
     setLoading(true);
     try {
-      const [{ data: contactData }, { data: accData }, { data: txData }, profileRes] = await Promise.all([
+      const [{ data: contactData }, { data: accData }, { data: txData }, profileRes, { data: empData }] = await Promise.all([
         supabase
           .from("contacts")
           .select("id, contact_name, contact_type, phone, email, address, linked_account_code")
@@ -153,6 +156,12 @@ const AccountStatementPage = () => {
           .order("transaction_date", { ascending: true })
           .order("created_at", { ascending: true }),
         supabase.from("profiles").select("company_name, display_name").eq("user_id", user.id).maybeSingle(),
+        supabase
+          .from("employees")
+          .select("id, full_name, department, job_title, phone, base_salary")
+          .eq("user_id", user.id)
+          .eq("is_active", true)
+          .order("full_name"),
       ]);
       setContacts((contactData as Contact[]) || []);
       setAccounts((accData as Account[]) || []);
