@@ -507,7 +507,7 @@ export default function ContractorApp() {
           </Card>
         </div>
 
-        <ProjectDialog />
+        {projectDialogJSX}
       </div>
     );
   }
@@ -697,8 +697,8 @@ export default function ContractorApp() {
           </DialogContent>
         </Dialog>
 
-        <ProjectDialog />
-        <ContractPrintView />
+        {projectDialogJSX}
+        {contractPrintJSX}
       </div>
     );
   }
