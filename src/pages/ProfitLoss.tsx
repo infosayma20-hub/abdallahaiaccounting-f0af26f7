@@ -16,6 +16,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import * as XLSX from "xlsx";
 import { format, startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear, startOfWeek, endOfWeek, subDays } from "date-fns";
+import { generateProfessionalPDFHtml, openPrintWindow, useCompanyInfo } from "@/components/ReportPrintLayout";
 import {
   fetchTransactions, fetchAccounts, buildAccountMap, normalizeAccountType, getAccountNameOnly,
   SupabaseTransaction, SupabaseAccount, isOpeningBalance,
@@ -104,6 +105,7 @@ const isExpenseCode = (code: string) => code.startsWith("5") && !code.startsWith
 const ProfitLoss = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const companyInfo = useCompanyInfo();
   const [allTxRecords, setAllTxRecords] = useState<TxRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [companyName, setCompanyName] = useState("");
@@ -365,58 +367,44 @@ const ProfitLoss = () => {
 
   // ── Export PDF ──
   const handleExportPDF = () => {
-    const exportDate = new Date().toLocaleDateString("ar-EG", { year: "numeric", month: "long", day: "numeric" });
-    const rows = statementLines.filter(l => l.type !== "spacer");
+    const rows = statementLines.filter(l => l.type !== "spacer" && l.type !== "header");
+    const tableHeaders = ["البند", "المبلغ", ...(showPercentages ? ["%"] : []), ...(showComparison ? ["الفترة السابقة"] : [])];
+    const tableRows = rows.map(l => {
+      const isNeg = l.amount < 0;
+      const pctVal = current.totalRevenue > 0 ? ((Math.abs(l.amount) / current.totalRevenue) * 100).toFixed(1) + "%" : "";
+      const indent = l.level * 16;
+      const isBold = l.type === "subtotal" || l.type === "total" || l.type === "grand-total";
+      const style = isBold ? 'font-weight:700;' : '';
+      const bgStyle = l.type === "grand-total" ? 'background:#F0FDF4;' : l.type === "total" ? 'background:#F8FAFC;' : '';
+      return [
+        `<span style="padding-right:${indent}px;${style}">${l.label}</span>`,
+        `<span style="${style}${isNeg ? 'color:#DC2626;' : ''}">${l.type === "header" ? "" : fmtAmount(l.amount)}</span>`,
+        ...(showPercentages ? [pctVal] : []),
+        ...(showComparison && l.compareAmount !== undefined ? [fmtAmount(l.compareAmount)] : showComparison ? [""] : []),
+      ];
+    });
 
-    const html = `<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="UTF-8">
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap');
-*{margin:0;padding:0;box-sizing:border-box;font-family:'Cairo',sans-serif}
-body{padding:40px;color:#1a1a2e;background:#fff}
-.header{text-align:center;border-bottom:3px double #16a34a;padding-bottom:16px;margin-bottom:24px}
-.header h1{font-size:18px;color:#333}.header h2{font-size:22px;font-weight:700;color:#16a34a;margin-top:4px}
-.header h3{font-size:12px;color:#666;margin-top:4px}
-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:16px}
-th{background:#f3f4f6;font-weight:700;padding:10px 8px;border:1px solid #d1d5db;text-align:right}
-td{padding:8px;border-bottom:1px solid #e5e7eb;text-align:right}
-.header-row{background:#f8fafc;font-weight:700;font-size:13px;color:#1e40af}
-.subtotal-row{border-top:2px solid #d1d5db;font-weight:700;background:#f1f5f9}
-.total-row{border-top:3px double #64748b;font-weight:700;font-size:14px;background:#e2e8f0}
-.grand-total-row{border-top:3px double #16a34a;font-weight:700;font-size:15px;background:#dcfce7;color:#15803d}
-.negative{color:#dc2626}
-.notes{margin-top:24px;font-size:10px;color:#666;border-top:1px solid #e5e7eb;padding-top:12px}
-.footer{margin-top:16px;text-align:center;font-size:10px;color:#999}
-@media print{body{padding:20px}}
-</style></head><body>
-<div class="header">
-  <h1>${companyName || "النظام المالي"}</h1>
-  <h2>قائمة الدخل</h2>
-  <h3>للفترة من ${dateFrom} إلى ${dateTo}</h3>
-  <h3>(المبالغ بالشيكل الإسرائيلي)</h3>
-</div>
-<table>
-<thead><tr><th style="width:55%">البند</th><th>المبلغ</th>${showPercentages ? '<th>%</th>' : ''}${showComparison ? '<th>المقارنة</th>' : ''}</tr></thead>
-<tbody>
-${rows.map(l => {
-  const cls = l.type === "header" ? "header-row" : l.type === "subtotal" ? "subtotal-row" : l.type === "total" ? "total-row" : l.type === "grand-total" ? "grand-total-row" : "";
-  const neg = l.amount < 0 ? "negative" : "";
-  const indent = l.level * 16;
-  const pctVal = current.totalRevenue > 0 && l.type !== "header" ? ((l.amount / current.totalRevenue) * 100).toFixed(1) + "%" : "";
-  return `<tr class="${cls}"><td style="padding-right:${8 + indent}px">${l.label}</td><td class="${neg}">${l.type === "header" ? "" : fmtAmount(l.amount)}</td>${showPercentages ? `<td>${pctVal}</td>` : ""}${showComparison && l.compareAmount !== undefined ? `<td>${fmtAmount(l.compareAmount)}</td>` : showComparison ? "<td></td>" : ""}</tr>`;
-}).join("")}
-</tbody></table>
-<div class="notes">
-<p>1. أُعدت هذه القائمة وفقاً لمعايير المحاسبة الدولية (IAS 1)</p>
-<p>2. المبالغ بين أقواس تمثل مبالغ سالبة</p>
-<p>3. تم استبعاد الأرصدة الافتتاحية من هذه القائمة</p>
-</div>
-<div class="footer">تاريخ الطباعة: ${exportDate} — تم إنشاؤه بواسطة عبدالله AI للمحاسبة</div>
-</body></html>`;
-
-    const blob = new Blob([html], { type: "text/html;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const win = window.open(url, "_blank");
-    if (win) win.onload = () => setTimeout(() => win.print(), 500);
+    const company = companyInfo.name ? companyInfo : { name: companyName, logo_url: "", address: "", phone: "", email: "", website: "", tax_number: "" };
+    const html = generateProfessionalPDFHtml({
+      company,
+      reportTitle: "قائمة الدخل",
+      reportTitleEn: "INCOME STATEMENT",
+      periodLabel: `للفترة من ${dateFrom} إلى ${dateTo} (المبالغ بالشيكل الإسرائيلي)`,
+      summaryItems: [
+        { label: "إجمالي الإيرادات", value: fmtAmount(current.totalRevenue), color: "#2563EB" },
+        { label: "إجمالي المصروفات", value: fmtAmount(current.totalCOGS + current.totalOpExpenses), color: "#DC2626" },
+        { label: current.netProfit >= 0 ? "صافي الربح" : "صافي الخسارة", value: fmtAmount(current.netProfit), color: current.netProfit >= 0 ? "#16A34A" : "#DC2626" },
+        { label: "هامش الربح", value: `${margin.toFixed(1)}%`, color: "#7C3AED" },
+      ],
+      tableHeaders,
+      tableRows: tableRows.map(r => r.map(String)),
+      notes: [
+        "أُعدت هذه القائمة وفقاً لمعايير المحاسبة الدولية (IAS 1)",
+        "المبالغ بين أقواس تمثل مبالغ سالبة",
+        "تم استبعاد الأرصدة الافتتاحية من هذه القائمة",
+      ],
+    });
+    openPrintWindow(html);
   };
 
   const periodLabel = `${dateFrom} — ${dateTo}`;

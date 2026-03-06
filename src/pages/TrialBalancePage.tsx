@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import {
   ArrowRight, Loader2, RefreshCw, Search, Filter, Scale,
-  ChevronLeft, ChevronRight, AlertTriangle, CheckCircle2, FileSpreadsheet,
+  ChevronLeft, ChevronRight, AlertTriangle, CheckCircle2, FileSpreadsheet, Printer,
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { generateProfessionalPDFHtml, openPrintWindow, useCompanyInfo } from "@/components/ReportPrintLayout";
 import {
   fetchTransactions, fetchAccounts, buildAccountMap, getAccountNameOnly,
   SupabaseTransaction, SupabaseAccount,
@@ -57,6 +58,7 @@ const TrialBalancePage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
+  const companyInfo = useCompanyInfo();
 
   const [transactions, setTransactions] = useState<SupabaseTransaction[]>([]);
   const [accounts, setAccounts] = useState<SupabaseAccount[]>([]);
@@ -209,6 +211,39 @@ const TrialBalancePage = () => {
     XLSX.writeFile(wb, `ميزان_المراجعة_${dateFrom || "all"}_${dateTo || "all"}.xlsx`);
   };
 
+  // Export PDF
+  const handleExportPDF = () => {
+    const tableHeaders = ["الكود", "اسم الحساب", "النوع", "مدين ₪", "دائن ₪", "الرصيد ₪"];
+    const tableRows = filteredRows.map(r => [
+      r.accountCode,
+      r.accountName,
+      ACCOUNT_TYPE_LABELS[r.accountType] || r.accountType,
+      r.totalDebit > 0 ? r.totalDebit.toLocaleString() : "—",
+      r.totalCredit > 0 ? r.totalCredit.toLocaleString() : "—",
+      r.balance !== 0 ? Math.abs(r.balance).toLocaleString() : "—",
+    ]);
+
+    const html = generateProfessionalPDFHtml({
+      company: companyInfo,
+      reportTitle: "ميزان المراجعة",
+      reportTitleEn: "TRIAL BALANCE",
+      periodLabel: dateRangeLabel,
+      summaryItems: [
+        { label: "عدد الحسابات", value: String(filteredRows.length), color: "#1B3A5C" },
+        { label: "إجمالي المدين", value: `₪${grandTotalDebit.toLocaleString()}`, color: "#2563EB" },
+        { label: "إجمالي الدائن", value: `₪${grandTotalCredit.toLocaleString()}`, color: "#DC2626" },
+        { label: "التوازن", value: isBalanced ? "✅ متوازن" : `فرق: ₪${Math.abs(grandTotalDebit - grandTotalCredit).toLocaleString()}`, color: isBalanced ? "#16A34A" : "#DC2626" },
+      ],
+      tableHeaders,
+      tableRows,
+      notes: [
+        "أُعد هذا التقرير وفقاً لمعايير المحاسبة الدولية",
+        `عدد الحسابات: ${filteredRows.length} حساب`,
+      ],
+    });
+    openPrintWindow(html);
+  };
+
   const companyName = profileData?.company_name || profileData?.display_name || "الشركة";
   const dateRangeLabel = dateFrom && dateTo
     ? `${dateFrom} — ${dateTo}`
@@ -250,6 +285,10 @@ const TrialBalancePage = () => {
           <Button variant="outline" size="sm" onClick={handleExport} disabled={filteredRows.length === 0} className="gap-1.5">
             <FileSpreadsheet className="h-3.5 w-3.5" />
             تصدير Excel
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleExportPDF} disabled={filteredRows.length === 0} className="gap-1.5">
+            <Printer className="h-3.5 w-3.5" />
+            PDF
           </Button>
         </div>
       </div>
