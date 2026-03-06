@@ -1299,6 +1299,7 @@ const POSPage = () => {
           await supabase.from("pos_order_lines").delete().eq("order_id", existingOrder.id);
           await supabase.from("pos_orders").update({
             customer_name: customerName || null,
+            customer_id: activeOrder.customerId || null,
             subtotal: cartTotals.subtotal,
             discount_amount: effectiveDiscount,
             tax_amount: cartTotals.tax,
