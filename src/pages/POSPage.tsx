@@ -2654,11 +2654,11 @@ const POSPage = () => {
 
       {/* Payment Dialog */}
       <Dialog open={showPayment} onOpenChange={setShowPayment}>
-        <DialogContent className="sm:max-w-lg" dir="rtl">
-          <DialogHeader>
+        <DialogContent className="sm:max-w-lg max-h-[90vh] flex flex-col" dir="rtl">
+          <DialogHeader className="flex-shrink-0">
             <DialogTitle className="text-lg font-bold">طريقة الدفع</DialogTitle>
           </DialogHeader>
-          <div className="space-y-5 py-2">
+          <div className="space-y-5 py-2 overflow-y-auto flex-1 min-h-0">
             {/* Total display */}
             <div className="text-center py-5 px-4 bg-primary/8 rounded-2xl border border-primary/10">
               <p className="text-xs text-muted-foreground mb-1">المبلغ المطلوب</p>
