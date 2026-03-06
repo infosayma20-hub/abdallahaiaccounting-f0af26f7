@@ -10,7 +10,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Search, Users, DollarSign, Calendar, FileText, Edit, Trash2, UserPlus, Loader2, Upload, CalendarDays, LogOut as LogOutIcon, Download } from "lucide-react";
+import { Plus, Search, Users, DollarSign, Calendar, FileText, Edit, Trash2, UserPlus, Loader2, Upload, CalendarDays, LogOut as LogOutIcon, Download, FileBarChart } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import BackButton from "@/components/BackButton";
 import EmployeeMovementsTab from "@/components/hr/EmployeeMovementsTab";
 import EmployeeImportDialog from "@/components/hr/EmployeeImportDialog";
@@ -76,6 +77,7 @@ const emptyEmployee: Partial<Employee> = {
 
 const EmployeesPage = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -152,6 +154,66 @@ const EmployeesPage = () => {
     setLeaves((levRes.data as any[]) || []);
   };
 
+  // Auto-create accounting sub-account for employee under "1180 - ذمم موظفين"
+  const ensureEmployeeAccount = async (employeeName: string) => {
+    if (!user) return;
+    try {
+      // Check if parent account 1180 exists, create if not
+      const { data: parentExists } = await supabase
+        .from("accounts")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("account_code", "1180")
+        .maybeSingle();
+
+      if (!parentExists) {
+        await supabase.from("accounts").insert({
+          user_id: user.id,
+          account_code: "1180",
+          account_name: "ذمم موظفين",
+          account_type: "أصول",
+          is_system: true,
+          is_active: true,
+        });
+      }
+
+      // Generate next sub-account code (1181, 1182, etc.)
+      const { data: existingSubs } = await supabase
+        .from("accounts")
+        .select("account_code")
+        .eq("user_id", user.id)
+        .like("account_code", "118%")
+        .neq("account_code", "1180")
+        .order("account_code", { ascending: false })
+        .limit(1);
+
+      const lastCode = existingSubs?.[0]?.account_code;
+      const nextCode = lastCode ? String(Number(lastCode) + 1) : "1181";
+
+      // Check if account already exists for this employee name
+      const { data: alreadyExists } = await supabase
+        .from("accounts")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("account_name", `ذمم موظف - ${employeeName}`)
+        .maybeSingle();
+
+      if (!alreadyExists) {
+        await supabase.from("accounts").insert({
+          user_id: user.id,
+          account_code: nextCode,
+          account_name: `ذمم موظف - ${employeeName}`,
+          account_type: "أصول",
+          parent_code: "1180",
+          is_system: false,
+          is_active: true,
+        });
+      }
+    } catch (err) {
+      console.error("Error creating employee account:", err);
+    }
+  };
+
   const handleSave = async () => {
     if (!user || !form.full_name) { toast.error("اسم الموظف مطلوب"); return; }
     const payload = { ...form, user_id: user.id };
@@ -160,7 +222,14 @@ const EmployeesPage = () => {
       if (error) toast.error("خطأ في التحديث"); else { toast.success("تم التحديث"); setShowForm(false); setEditingId(null); fetchEmployees(); }
     } else {
       const { error } = await supabase.from("employees").insert(payload as any);
-      if (error) toast.error("خطأ في الإضافة"); else { toast.success("تمت الإضافة"); setShowForm(false); fetchEmployees(); }
+      if (error) toast.error("خطأ في الإضافة"); 
+      else { 
+        toast.success("تمت الإضافة"); 
+        setShowForm(false); 
+        fetchEmployees();
+        // Auto-create accounting account for the new employee
+        await ensureEmployeeAccount(form.full_name!);
+      }
     }
     setForm(emptyEmployee);
   };
