@@ -36,6 +36,7 @@ const navSections: NavSection[] = [
           { label: "شجرة الحسابات", path: "/accounts" },
           { label: "تقرير الحركات المحاسبية", path: "/transactions" },
           { label: "ميزان المراجعة", path: "/trial-balance" },
+          { label: "كشف حساب", path: "/account-statement" },
         ],
       },
       {
