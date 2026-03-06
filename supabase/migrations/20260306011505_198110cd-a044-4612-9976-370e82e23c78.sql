@@ -1,0 +1,1 @@
+ALTER TABLE public.pos_sessions ADD COLUMN is_deleted boolean NOT NULL DEFAULT false;

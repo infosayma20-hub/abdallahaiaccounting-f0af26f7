@@ -3439,6 +3439,7 @@ export type Database = {
           device_id: string | null
           expected_cash: number | null
           id: string
+          is_deleted: boolean
           notes: string | null
           opened_at: string
           opening_cash: number
@@ -3464,6 +3465,7 @@ export type Database = {
           device_id?: string | null
           expected_cash?: number | null
           id?: string
+          is_deleted?: boolean
           notes?: string | null
           opened_at?: string
           opening_cash?: number
@@ -3489,6 +3491,7 @@ export type Database = {
           device_id?: string | null
           expected_cash?: number | null
           id?: string
+          is_deleted?: boolean
           notes?: string | null
           opened_at?: string
           opening_cash?: number

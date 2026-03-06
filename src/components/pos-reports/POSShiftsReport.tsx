@@ -48,7 +48,7 @@ export default function POSShiftsReport({ sessions, onRefresh }: Props) {
         if (error) throw error;
         toast.success("تم إفراغ بيانات الوردية بنجاح");
       } else {
-        const { error } = await supabase.from("pos_sessions").delete().eq("id", session.id);
+        const { error } = await supabase.from("pos_sessions").update({ is_deleted: true }).eq("id", session.id);
         if (error) throw error;
         toast.success("تم حذف الوردية بنجاح");
       }
@@ -214,7 +214,7 @@ export default function POSShiftsReport({ sessions, onRefresh }: Props) {
             <AlertDialogDescription>
               {confirmAction?.type === "clear"
                 ? `سيتم إعادة تعيين بيانات المبيعات والأرصدة للوردية الخاصة بـ "${confirmAction?.session.cashier_name || "غير محدد"}". هل أنت متأكد؟`
-                : `سيتم حذف الوردية الخاصة بـ "${confirmAction?.session.cashier_name || "غير محدد"}" نهائياً. هذا الإجراء لا يمكن التراجع عنه.`
+                : `سيتم إخفاء الوردية الخاصة بـ "${confirmAction?.session.cashier_name || "غير محدد"}" من التقارير. البيانات المالية المرتبطة ستبقى محفوظة.`
               }
             </AlertDialogDescription>
           </AlertDialogHeader>
