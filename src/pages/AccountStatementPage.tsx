@@ -467,9 +467,14 @@ const AccountStatementPage = () => {
         @media print {
           body * { visibility: hidden; }
           .print-area, .print-area * { visibility: visible; }
-          .print-area { position: absolute; inset: 0; background: white; padding: 24px; }
+          .print-area {
+            position: absolute; inset: 0; background: white; padding: 0;
+            width: 210mm !important;
+          }
           .no-print { display: none !important; }
           .print-only { display: block !important; }
+          .screen-table { display: none !important; }
+          @page { size: A4 portrait; margin: 0; }
         }
         .print-only { display: none; }
       `}</style>
