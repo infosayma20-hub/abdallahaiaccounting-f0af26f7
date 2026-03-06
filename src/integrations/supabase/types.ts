@@ -4145,6 +4145,104 @@ export type Database = {
           },
         ]
       }
+      project_contracts: {
+        Row: {
+          advance_payment: number | null
+          advance_payment_note: string | null
+          client_address: string | null
+          client_name: string
+          client_phone: string | null
+          contract_number: string | null
+          contract_value: number | null
+          created_at: string | null
+          duration_text: string | null
+          end_date: string | null
+          id: string
+          logo_url: string | null
+          notes: string | null
+          payment_terms: string | null
+          project_id: string | null
+          project_location: string | null
+          project_name: string
+          scope_items: string[] | null
+          start_date: string | null
+          status: string | null
+          terms_disputes: string | null
+          terms_obligations: string | null
+          terms_payment: string | null
+          total_expenses: number | null
+          total_receipts: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          advance_payment?: number | null
+          advance_payment_note?: string | null
+          client_address?: string | null
+          client_name: string
+          client_phone?: string | null
+          contract_number?: string | null
+          contract_value?: number | null
+          created_at?: string | null
+          duration_text?: string | null
+          end_date?: string | null
+          id?: string
+          logo_url?: string | null
+          notes?: string | null
+          payment_terms?: string | null
+          project_id?: string | null
+          project_location?: string | null
+          project_name: string
+          scope_items?: string[] | null
+          start_date?: string | null
+          status?: string | null
+          terms_disputes?: string | null
+          terms_obligations?: string | null
+          terms_payment?: string | null
+          total_expenses?: number | null
+          total_receipts?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          advance_payment?: number | null
+          advance_payment_note?: string | null
+          client_address?: string | null
+          client_name?: string
+          client_phone?: string | null
+          contract_number?: string | null
+          contract_value?: number | null
+          created_at?: string | null
+          duration_text?: string | null
+          end_date?: string | null
+          id?: string
+          logo_url?: string | null
+          notes?: string | null
+          payment_terms?: string | null
+          project_id?: string | null
+          project_location?: string | null
+          project_name?: string
+          scope_items?: string[] | null
+          start_date?: string | null
+          status?: string | null
+          terms_disputes?: string | null
+          terms_obligations?: string | null
+          terms_payment?: string | null
+          total_expenses?: number | null
+          total_receipts?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_contracts_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "contractor_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       purchase_invoice_items: {
         Row: {
           created_at: string | null

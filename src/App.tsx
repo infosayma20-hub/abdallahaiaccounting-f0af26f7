@@ -72,6 +72,9 @@ import SurveyPage from "./pages/SurveyPage";
 import CustomerReportsPage from "./pages/CustomerReportsPage";
 import ModifierManagerPage from "./pages/ModifierManagerPage";
 import ContractorApp from "./pages/ContractorApp";
+import ContractsListPage from "./pages/ContractsListPage";
+import ContractFormPage from "./pages/ContractFormPage";
+import ContractPreviewPage from "./pages/ContractPreviewPage";
 
 const queryClient = new QueryClient();
 
@@ -184,6 +187,10 @@ const App = () => (
                       <Route path="/pos-reports" element={<POSReportsPage />} />
                       <Route path="/customer-reports" element={<CustomerReportsPage />} />
                       <Route path="/contractor" element={<ContractorApp />} />
+                      <Route path="/contracts" element={<ContractsListPage />} />
+                      <Route path="/contracts/new" element={<ContractFormPage />} />
+                      <Route path="/contracts/:id/edit" element={<ContractFormPage />} />
+                      <Route path="/contracts/:id/preview" element={<ContractPreviewPage />} />
                       <Route path="*" element={<NotFound />} />
                     </Routes>
                   </WebLayout>
