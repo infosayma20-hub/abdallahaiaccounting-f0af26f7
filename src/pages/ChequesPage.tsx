@@ -294,10 +294,10 @@ const ChequesPage = () => {
   };
 
   const fmtDate = (d: string) => {
-    try { return new Date(d).toLocaleDateString('ar-PS', { day: 'numeric', month: 'short', year: 'numeric' }); } catch { return d; }
+    try { return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }); } catch { return d; }
   };
   const fmtTime = (d: string) => {
-    try { return new Date(d).toLocaleDateString('ar-PS', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }); } catch { return d; }
+    try { return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }); } catch { return d; }
   };
 
   const kpiCards = [

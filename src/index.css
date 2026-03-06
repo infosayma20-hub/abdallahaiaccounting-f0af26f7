@@ -279,3 +279,12 @@ table th { font-weight: 700; }
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
+
+/* ── Force Western Arabic Numerals (123) everywhere ── */
+* {
+  font-variant-numeric: tabular-nums;
+}
+
+html, body, input, textarea, select, button, table, th, td, p, span, div, a, label, h1, h2, h3, h4, h5, h6 {
+  unicode-bidi: plaintext;
+}
