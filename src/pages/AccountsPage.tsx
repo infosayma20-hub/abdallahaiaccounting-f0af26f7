@@ -151,6 +151,8 @@ const AccountsPage = () => {
   const [hoveredRow, setHoveredRow] = useState<string | null>(null);
   const [settingUp, setSettingUp] = useState(false);
   const [autoSetupAttempted, setAutoSetupAttempted] = useState(false);
+  const [editingAccount, setEditingAccount] = useState<Account | null>(null);
+  const [addSubParentCode, setAddSubParentCode] = useState<string | null>(null);
 
   const fetchAccounts = async () => {
     if (!user) return;
