@@ -436,20 +436,46 @@ const AccountStatementPage = () => {
   // ─── EXPORT ───
   const handleExport = () => {
     if (!rows.length || !selectedEntityName) return;
-    const exportRows = [
-      { "التاريخ": "", "المرجع": "", "البيان": "رصيد أول المدة", "مدين ₪": openingBalance > 0 ? openingBalance : "", "دائن ₪": openingBalance < 0 ? Math.abs(openingBalance) : "", "الرصيد ₪": openingBalance },
-      ...rows.map(r => ({
-        "التاريخ": r.date,
-        "المرجع": r.reference,
-        "البيان": r.description,
-        "مدين ₪": r.debit || "",
-        "دائن ₪": r.credit || "",
-        "الرصيد ₪": r.balance,
-      })),
-      { "التاريخ": "", "المرجع": "", "البيان": "الإجمالي", "مدين ₪": totalDebit, "دائن ₪": totalCredit, "الرصيد ₪": closingBalance },
+
+    const headerRows = [
+      [companyInfo.name || companyName || "كشف حساب"],
+      [`كشف حساب - ${selectedEntityName}`],
+      [`الفترة: من ${dateFrom} إلى ${dateTo}`],
+      [companyInfo.phone ? `📞 ${companyInfo.phone}` : "", "", "", companyInfo.email ? `✉️ ${companyInfo.email}` : "", "", companyInfo.tax_number ? `رقم ضريبي: ${companyInfo.tax_number}` : ""],
+      [],
+      ["التاريخ", "المرجع", "البيان", "النوع", "مدين ₪", "دائن ₪", "الرصيد ₪"],
     ];
-    const ws = XLSX.utils.json_to_sheet(exportRows);
-    ws["!cols"] = [{ wch: 12 }, { wch: 16 }, { wch: 40 }, { wch: 14 }, { wch: 14 }, { wch: 16 }];
+
+    const dataRows = [
+      ["", "", "رصيد أول المدة", "", openingBalance > 0 ? openingBalance : "", openingBalance < 0 ? Math.abs(openingBalance) : "", openingBalance],
+      ...rows.map(r => [
+        r.date,
+        r.reference || "",
+        r.description,
+        r.debit > 0 ? "مدين" : "دائن",
+        r.debit || "",
+        r.credit || "",
+        r.balance,
+      ]),
+      ["", "", "الإجمالي", "", totalDebit, totalCredit, closingBalance],
+    ];
+
+    const allRows = [...headerRows, ...dataRows];
+    const ws = XLSX.utils.aoa_to_sheet(allRows);
+
+    // Column widths
+    ws["!cols"] = [
+      { wch: 12 }, { wch: 18 }, { wch: 38 }, { wch: 8 },
+      { wch: 14 }, { wch: 14 }, { wch: 16 },
+    ];
+
+    // Merge header cells
+    ws["!merges"] = [
+      { s: { r: 0, c: 0 }, e: { r: 0, c: 6 } },
+      { s: { r: 1, c: 0 }, e: { r: 1, c: 6 } },
+      { s: { r: 2, c: 0 }, e: { r: 2, c: 6 } },
+    ];
+
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "كشف الحساب");
     XLSX.writeFile(wb, `كشف-حساب-${selectedEntityName}-${dateFrom}.xlsx`);
