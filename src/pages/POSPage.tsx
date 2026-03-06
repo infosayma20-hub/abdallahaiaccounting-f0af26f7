@@ -13,6 +13,7 @@ import {
   Apple, Zap, Coffee, Box, BarChart3, TrendingUp, PlusCircle, Tag,
   Eye, EyeOff, UserCheck, LayoutGrid, Grid3X3, Grid2X2, GripVertical,
 } from "lucide-react";
+import TableSelectorBar, { type TableBarItem } from "@/components/pos/TableSelectorBar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -1684,6 +1685,25 @@ const POSPage = () => {
               </SortableContext>
             </DndContext>
           </div>
+
+          {/* ── Table Selector Bar ── */}
+          <TableSelectorBar
+            dataOwnerId={dataOwnerId || ""}
+            activeTableId={activeOrder.tableId}
+            onTableSelect={(table: TableBarItem) => {
+              if (table.status === "occupied" && table.id !== activeOrder.tableId) {
+                // Load the existing order from this occupied table
+                loadTableOrder(table.id, table.name);
+              } else if (table.status === "available" || table.status === "cleaning") {
+                // Assign this table to the current order
+                updateActiveOrder(o => ({ ...o, tableId: table.id, tableName: table.name, name: table.name }));
+              } else if (table.id === activeOrder.tableId) {
+                // Clicking the active table again - deselect
+                updateActiveOrder(o => ({ ...o, tableId: null, tableName: null, name: `طلب ${activeOrderIndex + 1}` }));
+              }
+            }}
+            onNewTable={() => navigate("/pos/floor-plan/edit")}
+          />
 
           {/* ── Products Grid ── */}
           <ScrollArea className="flex-1">
