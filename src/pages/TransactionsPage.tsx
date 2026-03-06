@@ -1,18 +1,23 @@
-import { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
-import { ArrowRight, Loader2, RefreshCw, Pencil, Trash2, CheckSquare, X, RotateCcw, Archive, Search, Filter } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { useState, useEffect, useMemo } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
+import {
+  ArrowRight, Loader2, RefreshCw, Pencil, Trash2, CheckSquare, X,
+  RotateCcw, Archive, Search, ChevronLeft, ChevronRight as ChevronRightIcon,
+  Download, Printer, Plus, CalendarDays, MoreVertical, Check, AlertTriangle
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Checkbox } from "@/components/ui/checkbox";
-import { useNavigate } from "react-router-dom";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import * as XLSX from "xlsx";
 
 interface Transaction {
   id: string;
@@ -28,6 +33,7 @@ interface Transaction {
   is_opening_balance: boolean;
   contact_id: string | null;
   notes: string | null;
+  payment_method: string | null;
 }
 
 interface Account {
@@ -37,33 +43,38 @@ interface Account {
   account_type: string;
 }
 
-const typeColors: Record<string, string> = {
-  "سند صرف": "bg-destructive/10 text-destructive",
-  "سند قبض": "bg-primary/10 text-primary",
-  "قيد يومية": "bg-warning/10 text-warning",
-  "فاتورة مشتريات": "bg-accent text-accent-foreground",
-  "فاتورة مبيعات": "bg-primary/10 text-primary",
-  "رصيد ابتدائي": "bg-muted text-muted-foreground",
+// ━━ Type Badge ━━
+const typeBadgeConfig: Record<string, { label: string; bg: string; text: string }> = {
+  pos_sale:           { label: "مبيعات POS",     bg: "bg-[#DBEAFE]", text: "text-[#1E40AF]" },
+  pos_cogs:           { label: "تكلفة مبيعات",   bg: "bg-[#FEF3C7]", text: "text-[#92400E]" },
+  sale_cash:          { label: "بيع نقدي",       bg: "bg-[#DBEAFE]", text: "text-[#1E40AF]" },
+  sale_credit:        { label: "بيع آجل",        bg: "bg-[#E0E7FF]", text: "text-[#3730A3]" },
+  sale_bank:          { label: "بيع بنكي",       bg: "bg-[#DBEAFE]", text: "text-[#1E40AF]" },
+  sale_cheque:        { label: "بيع شيك",        bg: "bg-[#DBEAFE]", text: "text-[#1E40AF]" },
+  purchase_cash:      { label: "شراء نقدي",      bg: "bg-[#EDE9FE]", text: "text-[#5B21B6]" },
+  purchase_credit:    { label: "شراء آجل",       bg: "bg-[#EDE9FE]", text: "text-[#5B21B6]" },
+  purchase_bank:      { label: "شراء بنكي",      bg: "bg-[#EDE9FE]", text: "text-[#5B21B6]" },
+  purchase_cheque:    { label: "شراء شيك",       bg: "bg-[#EDE9FE]", text: "text-[#5B21B6]" },
+  receipt:            { label: "سند قبض",        bg: "bg-[#D1FAE5]", text: "text-[#065F46]" },
+  payment:            { label: "سند صرف",        bg: "bg-[#FEE2E2]", text: "text-[#991B1B]" },
+  salary:             { label: "رواتب",          bg: "bg-[#FFEDD5]", text: "text-[#9A3412]" },
+  exchange_diff:      { label: "فروق عملة",      bg: "bg-[#FEF9C3]", text: "text-[#854D0E]" },
+  opening_balance:    { label: "رصيد افتتاحي",   bg: "bg-[#F3F4F6]", text: "text-[#374151]" },
+  manual:             { label: "قيد يدوي",       bg: "bg-[#F3F4F6]", text: "text-[#374151]" },
+  cheque_collection:  { label: "تحصيل شيك",      bg: "bg-[#D1FAE5]", text: "text-[#065F46]" },
+  journal:            { label: "قيد يومية",      bg: "bg-[#F3F4F6]", text: "text-[#374151]" },
 };
 
-const getPaymentMethodTag = (tx: Transaction, accounts: Account[]): { label: string; emoji: string } | null => {
-  const debitAcc = accounts.find(a => a.account_code === tx.debit_account_code);
-  const creditAcc = accounts.find(a => a.account_code === tx.credit_account_code);
-  const allNames = ((debitAcc?.account_name || '') + ' ' + (creditAcc?.account_name || '')).toLowerCase();
-  if (allNames.includes("صندوق")) return { label: "نقدي", emoji: "🟢" };
-  if (allNames.includes("ذمم")) return { label: "آجل", emoji: "📋" };
-  if (allNames.includes("بنك")) return { label: "تحويل", emoji: "💳" };
-  return null;
-};
+function TypeBadge({ type }: { type: string }) {
+  const c = typeBadgeConfig[type] || { label: type || "—", bg: "bg-[#F3F4F6]", text: "text-[#374151]" };
+  return (
+    <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium whitespace-nowrap ${c.bg} ${c.text}`}>
+      {c.label}
+    </span>
+  );
+}
 
-const transactionTypes = [
-  { value: "سند صرف", label: "سند صرف" },
-  { value: "سند قبض", label: "سند قبض" },
-  { value: "قيد يومية", label: "قيد يومية" },
-  { value: "فاتورة مشتريات", label: "فاتورة مشتريات" },
-  { value: "فاتورة مبيعات", label: "فاتورة مبيعات" },
-  { value: "رصيد ابتدائي", label: "رصيد ابتدائي" },
-];
+const PAGE_SIZE_OPTIONS = [25, 50, 100];
 
 const TransactionsPage = () => {
   const navigate = useNavigate();
@@ -75,28 +86,36 @@ const TransactionsPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Edit state
   const [editingTx, setEditingTx] = useState<Transaction | null>(null);
-  const [editFields, setEditFields] = useState({
-    description: "",
-    transaction_type: "",
-    amount: "",
-    currency: "",
-    transaction_date: "",
-    debit_account_code: "",
-    credit_account_code: "",
-  });
+  const [editFields, setEditFields] = useState({ description: "", transaction_type: "", amount: "", currency: "", transaction_date: "", debit_account_code: "", credit_account_code: "" });
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  const [selectMode, setSelectMode] = useState(false);
+  // Selection
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
 
+  // Filters
   const [searchQuery, setSearchQuery] = useState(searchParams.get("search") || "");
   const [typeFilter, setTypeFilter] = useState("all");
+  const [accountFilter, setAccountFilter] = useState("all");
+  const [dateFilter, setDateFilter] = useState("all");
 
+  // Expansion
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+
+  // Sort
+  const [sortField, setSortField] = useState<"date" | "debit" | "credit">("date");
+  const [sortAsc, setSortAsc] = useState(false);
+
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+
+  // Trash
   const [showTrash, setShowTrash] = useState(false);
   const [deletedTransactions, setDeletedTransactions] = useState<Transaction[]>([]);
   const [loadingTrash, setLoadingTrash] = useState(false);
@@ -139,22 +158,144 @@ const TransactionsPage = () => {
   useEffect(() => { fetchData(); }, [user]);
   useEffect(() => { if (showTrash) fetchDeletedTransactions(); }, [showTrash]);
 
-  const getAccountDisplay = (code: string) => {
+  const getAccountName = (code: string) => {
     const acc = accounts.find(a => a.account_code === code);
-    return acc ? `${acc.account_code} - ${acc.account_name}` : code;
+    return acc?.account_name || code;
   };
 
+  // ━━ Unique transaction types for filter ━━
+  const uniqueTypes = useMemo(() => {
+    const types = new Set(transactions.map(t => t.transaction_type).filter(Boolean));
+    return Array.from(types);
+  }, [transactions]);
+
+  // ━━ Unique accounts used ━━
+  const usedAccounts = useMemo(() => {
+    const codes = new Set<string>();
+    transactions.forEach(t => {
+      codes.add(t.debit_account_code);
+      codes.add(t.credit_account_code);
+    });
+    return accounts.filter(a => codes.has(a.account_code));
+  }, [transactions, accounts]);
+
+  // ━━ Date filter logic ━━
+  const getDateRange = (filter: string): { from: string; to: string } | null => {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = now.getMonth();
+    const d = now.getDate();
+    switch (filter) {
+      case "today": {
+        const ds = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        return { from: ds, to: ds };
+      }
+      case "this_week": {
+        const day = now.getDay();
+        const start = new Date(now);
+        start.setDate(d - day);
+        const end = new Date(start);
+        end.setDate(start.getDate() + 6);
+        return { from: start.toISOString().slice(0,10), to: end.toISOString().slice(0,10) };
+      }
+      case "this_month": {
+        return { from: `${y}-${String(m+1).padStart(2,'0')}-01`, to: `${y}-${String(m+1).padStart(2,'0')}-31` };
+      }
+      case "last_month": {
+        const lm = m === 0 ? 11 : m - 1;
+        const ly = m === 0 ? y - 1 : y;
+        return { from: `${ly}-${String(lm+1).padStart(2,'0')}-01`, to: `${ly}-${String(lm+1).padStart(2,'0')}-31` };
+      }
+      default: return null;
+    }
+  };
+
+  // ━━ Filtered + sorted transactions ━━
+  const filteredTransactions = useMemo(() => {
+    let result = transactions.filter(tx => {
+      if (typeFilter !== "all" && tx.transaction_type !== typeFilter) return false;
+      if (accountFilter !== "all" && tx.debit_account_code !== accountFilter && tx.credit_account_code !== accountFilter) return false;
+      if (dateFilter !== "all") {
+        const range = getDateRange(dateFilter);
+        if (range && (tx.transaction_date < range.from || tx.transaction_date > range.to)) return false;
+      }
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const matchDesc = (tx.description || '').toLowerCase().includes(q);
+        const matchRef = (tx.reference || '').toLowerCase().includes(q);
+        const matchDebit = getAccountName(tx.debit_account_code).toLowerCase().includes(q);
+        const matchCredit = getAccountName(tx.credit_account_code).toLowerCase().includes(q);
+        if (!matchDesc && !matchRef && !matchDebit && !matchCredit) return false;
+      }
+      return true;
+    });
+
+    result.sort((a, b) => {
+      let cmp = 0;
+      if (sortField === "date") cmp = a.transaction_date.localeCompare(b.transaction_date);
+      else if (sortField === "debit") cmp = a.amount - b.amount;
+      else if (sortField === "credit") cmp = a.amount - b.amount;
+      return sortAsc ? cmp : -cmp;
+    });
+
+    return result;
+  }, [transactions, typeFilter, accountFilter, dateFilter, searchQuery, sortField, sortAsc, accounts]);
+
+  // ━━ Totals ━━
+  const totalDebit = useMemo(() => filteredTransactions.reduce((s, t) => s + (t.amount || 0), 0), [filteredTransactions]);
+  const totalCredit = useMemo(() => filteredTransactions.reduce((s, t) => s + (t.amount || 0), 0), [filteredTransactions]);
+  const isBalanced = Math.abs(totalDebit - totalCredit) < 0.01;
+
+  // ━━ Pagination ━━
+  const totalPages = Math.max(1, Math.ceil(filteredTransactions.length / pageSize));
+  const paginatedTransactions = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredTransactions.slice(start, start + pageSize);
+  }, [filteredTransactions, currentPage, pageSize]);
+
+  useEffect(() => { setCurrentPage(1); }, [typeFilter, accountFilter, dateFilter, searchQuery, pageSize]);
+
+  // ━━ Expand/Collapse ━━
+  const toggleExpand = (id: string) => {
+    setExpandedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  // ━━ Sort ━━
+  const toggleSort = (field: "date" | "debit" | "credit") => {
+    if (sortField === field) setSortAsc(!sortAsc);
+    else { setSortField(field); setSortAsc(false); }
+  };
+
+  const SortIcon = ({ field }: { field: string }) => {
+    if (sortField !== field) return <span className="text-[#94A3B8] text-[10px]">⇅</span>;
+    return <span className="text-[#1A56DB] text-[10px]">{sortAsc ? "↑" : "↓"}</span>;
+  };
+
+  // ━━ Selection ━━
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+  const toggleSelectAll = () => {
+    if (selectedIds.size === paginatedTransactions.length) setSelectedIds(new Set());
+    else setSelectedIds(new Set(paginatedTransactions.map(t => t.id)));
+  };
+
+  // ━━ CRUD operations ━━
   const openEdit = (tx: Transaction) => {
-    if (selectMode) return;
     setEditingTx(tx);
     setEditFields({
-      description: tx.description || "",
-      transaction_type: tx.transaction_type || "",
-      amount: String(tx.amount || ""),
-      currency: tx.currency || "شيكل",
+      description: tx.description || "", transaction_type: tx.transaction_type || "",
+      amount: String(tx.amount || ""), currency: tx.currency || "شيكل",
       transaction_date: tx.transaction_date || "",
-      debit_account_code: tx.debit_account_code || "",
-      credit_account_code: tx.credit_account_code || "",
+      debit_account_code: tx.debit_account_code || "", credit_account_code: tx.credit_account_code || "",
     });
   };
 
@@ -163,13 +304,10 @@ const TransactionsPage = () => {
     setSaving(true);
     try {
       const { error } = await supabase.from('transactions').update({
-        description: editFields.description,
-        transaction_type: editFields.transaction_type,
-        amount: Number(editFields.amount),
-        currency: editFields.currency,
+        description: editFields.description, transaction_type: editFields.transaction_type,
+        amount: Number(editFields.amount), currency: editFields.currency,
         transaction_date: editFields.transaction_date,
-        debit_account_code: editFields.debit_account_code,
-        credit_account_code: editFields.credit_account_code,
+        debit_account_code: editFields.debit_account_code, credit_account_code: editFields.credit_account_code,
       }).eq('id', editingTx.id);
       if (error) throw error;
       toast({ title: "تم تعديل المعاملة بنجاح ✅" });
@@ -177,9 +315,7 @@ const TransactionsPage = () => {
       fetchData();
     } catch (err: any) {
       toast({ title: "خطأ", description: err.message, variant: "destructive" });
-    } finally {
-      setSaving(false);
-    }
+    } finally { setSaving(false); }
   };
 
   const handleDelete = async () => {
@@ -188,31 +324,12 @@ const TransactionsPage = () => {
     try {
       const { error } = await supabase.from('transactions').update({ is_deleted: true }).eq('id', editingTx.id);
       if (error) throw error;
-      toast({ title: "تم نقل المعاملة إلى سلة المحذوفات 🗑️" });
-      setEditingTx(null);
-      setShowDeleteConfirm(false);
-      fetchData();
+      toast({ title: "تم نقل المعاملة إلى سلة المحذوفات" });
+      setEditingTx(null); setShowDeleteConfirm(false); fetchData();
     } catch (err: any) {
       toast({ title: "خطأ", description: err.message, variant: "destructive" });
-    } finally {
-      setDeleting(false);
-    }
+    } finally { setDeleting(false); }
   };
-
-  const toggleSelect = (id: string) => {
-    setSelectedIds(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      return next;
-    });
-  };
-
-  const toggleSelectAll = () => {
-    if (selectedIds.size === filteredTransactions.length) setSelectedIds(new Set());
-    else setSelectedIds(new Set(filteredTransactions.map(tx => tx.id)));
-  };
-
-  const exitSelectMode = () => { setSelectMode(false); setSelectedIds(new Set()); };
 
   const handleBulkDelete = async () => {
     setBulkDeleting(true);
@@ -220,15 +337,11 @@ const TransactionsPage = () => {
       const ids = Array.from(selectedIds);
       const { error } = await supabase.from('transactions').update({ is_deleted: true }).in('id', ids);
       if (error) throw error;
-      toast({ title: `تم نقل ${ids.length} معاملة إلى سلة المحذوفات 🗑️` });
-      setShowBulkDeleteConfirm(false);
-      exitSelectMode();
-      fetchData();
+      toast({ title: `تم نقل ${ids.length} معاملة إلى سلة المحذوفات` });
+      setShowBulkDeleteConfirm(false); setSelectedIds(new Set()); fetchData();
     } catch (err: any) {
       toast({ title: "خطأ", description: err.message, variant: "destructive" });
-    } finally {
-      setBulkDeleting(false);
-    }
+    } finally { setBulkDeleting(false); }
   };
 
   const handleRestore = async (id: string) => {
@@ -237,13 +350,10 @@ const TransactionsPage = () => {
       const { error } = await supabase.from('transactions').update({ is_deleted: false }).eq('id', id);
       if (error) throw error;
       toast({ title: "تم استرجاع المعاملة بنجاح ✅" });
-      fetchDeletedTransactions();
-      fetchData();
+      fetchDeletedTransactions(); fetchData();
     } catch (err: any) {
       toast({ title: "خطأ", description: err.message, variant: "destructive" });
-    } finally {
-      setRestoringId(null);
-    }
+    } finally { setRestoringId(null); }
   };
 
   const handleRestoreAll = async () => {
@@ -253,209 +363,447 @@ const TransactionsPage = () => {
       const { error } = await supabase.from('transactions').update({ is_deleted: false }).in('id', ids);
       if (error) throw error;
       toast({ title: `تم استرجاع ${ids.length} معاملة بنجاح ✅` });
-      fetchDeletedTransactions();
-      fetchData();
+      fetchDeletedTransactions(); fetchData();
     } catch (err: any) {
       toast({ title: "خطأ", description: err.message, variant: "destructive" });
-    } finally {
-      setBulkDeleting(false);
-    }
+    } finally { setBulkDeleting(false); }
   };
 
-  // Filter transactions
-  const filteredTransactions = transactions.filter(tx => {
-    if (typeFilter !== "all" && tx.transaction_type !== typeFilter) return false;
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      if (!(tx.description || '').toLowerCase().includes(q) &&
-          !getAccountDisplay(tx.debit_account_code).toLowerCase().includes(q) &&
-          !getAccountDisplay(tx.credit_account_code).toLowerCase().includes(q)) return false;
-    }
-    return true;
-  });
+  // ━━ Export ━━
+  const handleExportExcel = () => {
+    const rows = filteredTransactions.map(tx => ({
+      "التاريخ": tx.transaction_date,
+      "المرجع": tx.reference || "",
+      "الوصف": tx.description || "",
+      "النوع": typeBadgeConfig[tx.transaction_type]?.label || tx.transaction_type,
+      "الحساب المدين": `${tx.debit_account_code} - ${getAccountName(tx.debit_account_code)}`,
+      "الحساب الدائن": `${tx.credit_account_code} - ${getAccountName(tx.credit_account_code)}`,
+      "المدين": tx.amount,
+      "الدائن": tx.amount,
+      "العملة": tx.currency,
+    }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "دفتر اليومية");
+    XLSX.writeFile(wb, `دفتر_اليومية_${new Date().toISOString().slice(0,10)}.xlsx`);
+  };
 
-  const accountNames = accounts.map(a => `${a.account_code} - ${a.account_name}`);
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const formatDate = (d: string) => {
+    if (!d) return "—";
+    const parts = d.split("-");
+    if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0].slice(2)}`;
+    return d;
+  };
+
+  // ━━ Trash View ━━
+  if (showTrash) {
+    return (
+      <div className="px-6 pt-6 space-y-4 max-w-7xl mx-auto" dir="rtl">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button onClick={() => setShowTrash(false)} className="p-2 rounded-lg hover:bg-[#F1F5F9] transition-colors">
+              <ArrowRight className="h-5 w-5 text-[#1A2332]" />
+            </button>
+            <div>
+              <h1 className="text-xl font-semibold text-[#1A2332]">سلة المحذوفات</h1>
+              <p className="text-sm text-[#637381] mt-0.5">{deletedTransactions.length} معاملة محذوفة</p>
+            </div>
+          </div>
+          {deletedTransactions.length > 0 && (
+            <Button variant="outline" size="sm" className="gap-1.5" onClick={handleRestoreAll} disabled={bulkDeleting}>
+              {bulkDeleting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCcw className="h-3.5 w-3.5" />}
+              استرجاع الكل ({deletedTransactions.length})
+            </Button>
+          )}
+        </div>
+        {loadingTrash && <div className="flex items-center justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-[#1A56DB]" /></div>}
+        {!loadingTrash && deletedTransactions.length === 0 && (
+          <div className="text-center py-16 space-y-2">
+            <Archive className="h-12 w-12 text-[#CBD5E1] mx-auto" />
+            <p className="text-sm text-[#637381]">سلة المحذوفات فارغة</p>
+          </div>
+        )}
+        {!loadingTrash && deletedTransactions.map(tx => (
+          <Card key={tx.id} className="border border-[#E2E8F0] shadow-none opacity-75">
+            <CardContent className="p-4 flex items-center justify-between">
+              <div className="flex-1">
+                <p className="text-sm font-medium text-[#1A2332] line-through">{tx.description || "بدون وصف"}</p>
+                <p className="text-xs text-[#637381] mt-1">{tx.transaction_date} — ₪{tx.amount?.toFixed(2)}</p>
+              </div>
+              <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => handleRestore(tx.id)} disabled={restoringId === tx.id}>
+                {restoringId === tx.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <RotateCcw className="h-3 w-3" />}
+                استرجاع
+              </Button>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  }
 
   return (
-    <div className="px-4 pt-6 space-y-4" dir="rtl">
-      <div className="flex items-center justify-between">
+    <div className="flex flex-col h-full bg-white" dir="rtl">
+      {/* ━━━ HEADER ━━━ */}
+      <div className="flex items-center justify-between px-6 py-4 border-b border-[#E2E8F0]">
         <div className="flex items-center gap-3">
-          <button onClick={() => showTrash ? setShowTrash(false) : navigate("/")} className="p-2 rounded-xl hover:bg-muted transition-colors">
-            <ArrowRight className="h-5 w-5 text-foreground" />
+          <button onClick={() => navigate("/")} className="p-2 rounded-lg hover:bg-[#F1F5F9] transition-colors">
+            <ArrowRight className="h-5 w-5 text-[#1A2332]" />
           </button>
           <div>
-            <h1 className="text-lg font-bold text-foreground">{showTrash ? "سلة المحذوفات" : "المعاملات"}</h1>
-            <p className="text-xs text-muted-foreground">
-              {showTrash ? `${deletedTransactions.length} معاملة محذوفة` : `${filteredTransactions.length} معاملة`}
+            <h1 className="text-xl font-semibold text-[#1A2332] tracking-tight">دفتر اليومية</h1>
+            <p className="text-sm text-[#637381] mt-0.5">
+              {filteredTransactions.length} قيد
+              {" • "}
+              <span className="text-[#1A56DB] font-medium">مدين: ₪{totalDebit.toFixed(2)}</span>
+              {" • "}
+              <span className="text-[#0E9F6E] font-medium">دائن: ₪{totalCredit.toFixed(2)}</span>
+              {" "}
+              {isBalanced
+                ? <span className="text-[#059669] font-medium">✅ متطابق</span>
+                : <span className="text-[#DC2626] font-medium">⚠️ فرق: ₪{Math.abs(totalDebit - totalCredit).toFixed(2)}</span>
+              }
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-1">
-          {!showTrash && (
-            <>
-              {!selectMode ? (
-                <Button variant="ghost" size="icon" onClick={() => setSelectMode(true)} disabled={loading || transactions.length === 0}>
-                  <CheckSquare className="h-4 w-4" />
-                </Button>
-              ) : (
-                <Button variant="ghost" size="icon" onClick={exitSelectMode}>
-                  <X className="h-4 w-4" />
-                </Button>
-              )}
-              <Button variant="ghost" size="icon" onClick={() => setShowTrash(true)} className="relative">
-                <Archive className="h-4 w-4" />
-              </Button>
-            </>
-          )}
-          <Button variant="ghost" size="icon" onClick={showTrash ? fetchDeletedTransactions : fetchData} disabled={loading || loadingTrash}>
-            <RefreshCw className={`h-4 w-4 ${(loading || loadingTrash) ? "animate-spin" : ""}`} />
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" className="gap-1.5 text-sm text-[#374151] border-[#D1D5DB]" onClick={() => setShowTrash(true)}>
+            <Archive className="w-4 h-4" />
+            المحذوفات
+          </Button>
+          <Button variant="outline" size="sm" className="gap-1.5 text-sm text-[#374151] border-[#D1D5DB]" onClick={handleExportExcel}>
+            <Download className="w-4 h-4" />
+            Excel
+          </Button>
+          <Button variant="outline" size="sm" className="gap-1.5 text-sm text-[#374151] border-[#D1D5DB]" onClick={handlePrint}>
+            <Printer className="w-4 h-4" />
+            طباعة
+          </Button>
+          <Button size="sm" className="gap-1.5 text-sm bg-[#1A56DB] hover:bg-[#1648B8] text-white" onClick={() => navigate("/journal-entries")}>
+            <Plus className="w-4 h-4" />
+            قيد يدوي
           </Button>
         </div>
       </div>
 
-      {/* Select mode toolbar */}
-      {selectMode && !showTrash && (
-        <div className="flex items-center justify-between bg-muted/50 rounded-xl p-3 border border-border">
-          <div className="flex items-center gap-3">
-            <Checkbox checked={selectedIds.size === filteredTransactions.length && filteredTransactions.length > 0} onCheckedChange={toggleSelectAll} />
-            <span className="text-sm text-foreground">{selectedIds.size > 0 ? `تم تحديد ${selectedIds.size}` : "حدد المعاملات"}</span>
-          </div>
-          <Button variant="destructive" size="sm" className="gap-1.5 rounded-xl" disabled={selectedIds.size === 0} onClick={() => setShowBulkDeleteConfirm(true)}>
-            <Trash2 className="h-3.5 w-3.5" />
-            حذف ({selectedIds.size})
-          </Button>
+      {/* ━━━ FILTERS BAR ━━━ */}
+      <div className="flex items-center gap-3 px-6 py-3 bg-[#F8F9FA] border-b border-[#E2E8F0] flex-wrap">
+        <div className="flex items-center gap-1.5">
+          <CalendarDays className="w-4 h-4 text-[#94A3B8]" />
+          <select
+            value={dateFilter}
+            onChange={e => setDateFilter(e.target.value)}
+            className="text-sm border border-[#D1D5DB] rounded-lg px-3 py-1.5 bg-white text-[#374151] focus:border-[#1A56DB] focus:ring-1 focus:ring-[#1A56DB] outline-none"
+          >
+            <option value="all">كل الفترات</option>
+            <option value="today">اليوم</option>
+            <option value="this_week">هذا الأسبوع</option>
+            <option value="this_month">هذا الشهر</option>
+            <option value="last_month">الشهر السابق</option>
+          </select>
         </div>
-      )}
 
-      {/* Search & Filter */}
-      {!showTrash && !loading && !error && transactions.length > 0 && (
-        <div className="flex items-center gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="ابحث في المعاملات..." className="pr-9 rounded-xl text-sm" dir="rtl" />
-          </div>
-          <Select value={typeFilter} onValueChange={setTypeFilter} dir="rtl">
-            <SelectTrigger className="w-[130px] rounded-xl text-xs"><SelectValue placeholder="الكل" /></SelectTrigger>
-            <SelectContent className="bg-background z-50">
-              <SelectItem value="all">جميع الأنواع</SelectItem>
-              {transactionTypes.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
-
-      {/* Trash view */}
-      {showTrash && (
-        <>
-          {deletedTransactions.length > 0 && (
-            <div className="flex justify-end">
-              <Button variant="outline" size="sm" className="gap-1.5 rounded-xl" onClick={handleRestoreAll} disabled={bulkDeleting}>
-                {bulkDeleting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCcw className="h-3.5 w-3.5" />}
-                استرجاع الكل ({deletedTransactions.length})
-              </Button>
-            </div>
-          )}
-          {loadingTrash && <div className="flex items-center justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}
-          {!loadingTrash && deletedTransactions.length === 0 && (
-            <div className="text-center py-16 space-y-2">
-              <Archive className="h-12 w-12 text-muted-foreground/30 mx-auto" />
-              <p className="text-sm text-muted-foreground">سلة المحذوفات فارغة</p>
-            </div>
-          )}
-          {!loadingTrash && deletedTransactions.map((tx) => (
-            <Card key={tx.id} className="border-0 shadow-sm overflow-hidden opacity-75">
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between mb-2">
-                  <p className="text-sm font-semibold text-foreground line-through flex-1">{tx.description || "بدون وصف"}</p>
-                  <p className="text-sm font-bold text-foreground tabular-nums">{tx.amount?.toLocaleString()} {tx.currency}</p>
-                </div>
-                <div className="flex items-center justify-between mt-2">
-                  {tx.transaction_type && <Badge variant="secondary" className={`text-[10px] ${typeColors[tx.transaction_type] || ""}`}>{tx.transaction_type}</Badge>}
-                  <Button variant="outline" size="sm" className="gap-1.5 rounded-xl text-xs" onClick={() => handleRestore(tx.id)} disabled={restoringId === tx.id}>
-                    {restoringId === tx.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <RotateCcw className="h-3 w-3" />}
-                    استرجاع
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+        <select
+          value={typeFilter}
+          onChange={e => setTypeFilter(e.target.value)}
+          className="text-sm border border-[#D1D5DB] rounded-lg px-3 py-1.5 bg-white text-[#374151] focus:border-[#1A56DB] focus:ring-1 focus:ring-[#1A56DB] outline-none"
+        >
+          <option value="all">كل الأنواع</option>
+          {uniqueTypes.map(t => (
+            <option key={t} value={t}>{typeBadgeConfig[t]?.label || t}</option>
           ))}
-        </>
-      )}
+        </select>
 
-      {/* Main transactions list */}
-      {!showTrash && loading && <div className="flex items-center justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}
-      
-      {!showTrash && error && (
-        <Card className="border-destructive/30 bg-destructive/5">
-          <CardContent className="p-4 text-center">
-            <p className="text-sm text-destructive">{error}</p>
-            <Button variant="outline" size="sm" className="mt-2" onClick={fetchData}>إعادة المحاولة</Button>
-          </CardContent>
-        </Card>
-      )}
+        <select
+          value={accountFilter}
+          onChange={e => setAccountFilter(e.target.value)}
+          className="text-sm border border-[#D1D5DB] rounded-lg px-3 py-1.5 bg-white text-[#374151] focus:border-[#1A56DB] focus:ring-1 focus:ring-[#1A56DB] outline-none max-w-[200px]"
+        >
+          <option value="all">كل الحسابات</option>
+          {usedAccounts.map(a => (
+            <option key={a.account_code} value={a.account_code}>{a.account_code} - {a.account_name}</option>
+          ))}
+        </select>
 
-      {!showTrash && !loading && !error && filteredTransactions.length === 0 && (
-        <div className="text-center py-16 space-y-2">
-          <p className="text-sm text-muted-foreground">لا توجد معاملات</p>
+        <div className="flex-1 relative min-w-[180px]">
+          <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#94A3B8]" />
+          <input
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            placeholder="ابحث بالمرجع، الوصف، الحساب..."
+            className="w-full pr-9 pl-3 py-1.5 text-sm border border-[#D1D5DB] rounded-lg bg-white focus:border-[#1A56DB] focus:ring-1 focus:ring-[#1A56DB] outline-none"
+          />
+        </div>
+
+        <span className="text-xs text-[#637381] whitespace-nowrap">{filteredTransactions.length} نتيجة</span>
+
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={fetchData} disabled={loading}>
+          <RefreshCw className={`h-4 w-4 text-[#637381] ${loading ? "animate-spin" : ""}`} />
+        </Button>
+      </div>
+
+      {/* ━━ Bulk selection bar ━━ */}
+      {selectedIds.size > 0 && (
+        <div className="flex items-center justify-between px-6 py-2 bg-[#EFF6FF] border-b border-[#BFDBFE]">
+          <span className="text-sm text-[#1E40AF] font-medium">تم تحديد {selectedIds.size} قيد</span>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" className="text-[#1E40AF]" onClick={() => setSelectedIds(new Set())}>إلغاء التحديد</Button>
+            <Button variant="destructive" size="sm" className="gap-1.5" onClick={() => setShowBulkDeleteConfirm(true)}>
+              <Trash2 className="h-3.5 w-3.5" />
+              حذف ({selectedIds.size})
+            </Button>
+          </div>
         </div>
       )}
 
-      {!showTrash && !loading && !error && (
-        <div className="space-y-2.5 pb-24">
-          {filteredTransactions.map((tx) => {
-            const payTag = getPaymentMethodTag(tx, accounts);
-            const isSelected = selectedIds.has(tx.id);
+      {/* ━━━ TABLE ━━━ */}
+      <div className="flex-1 overflow-auto">
+        {loading && (
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="h-8 w-8 animate-spin text-[#1A56DB]" />
+          </div>
+        )}
 
-            return (
-              <Card
-                key={tx.id}
-                className={`border-0 shadow-sm overflow-hidden transition-all duration-200 active:scale-[0.98] cursor-pointer ${isSelected ? "ring-2 ring-primary bg-primary/5" : ""}`}
-                onClick={() => selectMode ? toggleSelect(tx.id) : openEdit(tx)}
-              >
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="flex items-start gap-2.5 flex-1">
-                      {selectMode && <Checkbox checked={isSelected} className="mt-0.5" />}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-foreground leading-relaxed">{tx.description || "بدون وصف"}</p>
-                        {tx.transaction_date && <p className="text-[10px] text-muted-foreground mt-1">{tx.transaction_date}</p>}
-                      </div>
-                    </div>
-                    <p className="text-sm font-bold text-foreground tabular-nums">{tx.amount?.toLocaleString()} {tx.currency}</p>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      {tx.transaction_type && <Badge variant="secondary" className={`text-[10px] ${typeColors[tx.transaction_type] || ""}`}>{tx.transaction_type}</Badge>}
-                      {payTag && <Badge variant="outline" className="text-[9px] gap-1">{payTag.emoji} {payTag.label}</Badge>}
-                    </div>
-                    <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                      <span>{getAccountDisplay(tx.debit_account_code).split(' - ')[1] || tx.debit_account_code}</span>
-                      <span>←</span>
-                      <span>{getAccountDisplay(tx.credit_account_code).split(' - ')[1] || tx.credit_account_code}</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
+        {error && (
+          <div className="text-center py-16">
+            <p className="text-sm text-[#DC2626]">{error}</p>
+            <Button variant="outline" size="sm" className="mt-3" onClick={fetchData}>إعادة المحاولة</Button>
+          </div>
+        )}
+
+        {!loading && !error && filteredTransactions.length === 0 && (
+          <div className="text-center py-20 space-y-2">
+            <p className="text-sm text-[#637381]">لا توجد قيود مطابقة</p>
+          </div>
+        )}
+
+        {!loading && !error && filteredTransactions.length > 0 && (
+          <table className="w-full border-collapse min-w-[900px]">
+            {/* ━━ Header ━━ */}
+            <thead className="sticky top-0 z-10">
+              <tr className="bg-[#F8F9FA] border-b-2 border-[#E2E8F0]">
+                <th className="w-10 px-3 py-2.5 text-center">
+                  <Checkbox
+                    checked={selectedIds.size === paginatedTransactions.length && paginatedTransactions.length > 0}
+                    onCheckedChange={toggleSelectAll}
+                  />
+                </th>
+                <th
+                  className="text-right px-3 py-2.5 text-xs font-semibold text-[#637381] uppercase tracking-wider cursor-pointer hover:bg-[#EFF6FF] w-24 select-none"
+                  onClick={() => toggleSort("date")}
+                >
+                  <div className="flex items-center gap-1">التاريخ <SortIcon field="date" /></div>
+                </th>
+                <th className="text-right px-3 py-2.5 text-xs font-semibold text-[#637381] uppercase tracking-wider w-36">المرجع</th>
+                <th className="text-right px-3 py-2.5 text-xs font-semibold text-[#637381] uppercase tracking-wider">الوصف / الحسابات</th>
+                <th className="text-right px-3 py-2.5 text-xs font-semibold text-[#637381] uppercase tracking-wider w-28">النوع</th>
+                <th
+                  className="text-left px-3 py-2.5 text-xs font-semibold text-[#1A56DB] uppercase tracking-wider w-28 cursor-pointer hover:bg-[#EFF6FF] select-none"
+                  onClick={() => toggleSort("debit")}
+                >
+                  <div className="flex items-center justify-end gap-1"><SortIcon field="debit" /> مدين ₪</div>
+                </th>
+                <th
+                  className="text-left px-3 py-2.5 text-xs font-semibold text-[#0E9F6E] uppercase tracking-wider w-28 cursor-pointer hover:bg-[#EFF6FF] select-none"
+                  onClick={() => toggleSort("credit")}
+                >
+                  <div className="flex items-center justify-end gap-1"><SortIcon field="credit" /> دائن ₪</div>
+                </th>
+                <th className="w-10" />
+              </tr>
+            </thead>
+
+            {/* ━━ Body ━━ */}
+            <tbody>
+              {paginatedTransactions.map((tx) => {
+                const isExpanded = expandedIds.has(tx.id);
+                const isSelected = selectedIds.has(tx.id);
+                return (
+                  <tr key={tx.id} className="contents">
+                    {/* Main Row */}
+                    <tr
+                      className={`group border-b border-[#F1F5F9] hover:bg-[#F0F4FF] transition-colors cursor-pointer ${isSelected ? "bg-[#EFF6FF]" : "bg-white"}`}
+                      onClick={() => toggleExpand(tx.id)}
+                    >
+                      <td className="px-3 py-2.5 text-center" onClick={e => e.stopPropagation()}>
+                        <Checkbox checked={isSelected} onCheckedChange={() => toggleSelect(tx.id)} />
+                      </td>
+                      <td className="px-3 py-2.5">
+                        <span className="text-sm font-mono text-[#637381]">{formatDate(tx.transaction_date)}</span>
+                      </td>
+                      <td className="px-3 py-2.5">
+                        <button
+                          onClick={e => { e.stopPropagation(); openEdit(tx); }}
+                          className="text-sm font-medium text-[#1A56DB] hover:text-[#1648B8] hover:underline font-mono"
+                        >
+                          {tx.reference || "—"}
+                        </button>
+                      </td>
+                      <td className="px-3 py-2.5">
+                        <div className="flex items-center gap-2">
+                          <ChevronRightIcon className={`w-4 h-4 text-[#94A3B8] transition-transform flex-shrink-0 ${isExpanded ? "rotate-90" : ""}`} />
+                          <span className="text-sm text-[#1A2332] font-medium truncate">{tx.description || "بدون وصف"}</span>
+                        </div>
+                      </td>
+                      <td className="px-3 py-2.5">
+                        <TypeBadge type={tx.transaction_type} />
+                      </td>
+                      <td className="px-3 py-2.5 text-left">
+                        <span className="font-mono font-semibold text-sm text-[#1A56DB]">₪{tx.amount?.toFixed(2)}</span>
+                      </td>
+                      <td className="px-3 py-2.5 text-left">
+                        <span className="font-mono font-semibold text-sm text-[#0E9F6E]">₪{tx.amount?.toFixed(2)}</span>
+                      </td>
+                      <td className="px-3 py-2.5 text-center" onClick={e => e.stopPropagation()}>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button className="p-1 rounded hover:bg-[#E2E8F0] opacity-0 group-hover:opacity-100 transition-opacity">
+                              <MoreVertical className="w-4 h-4 text-[#637381]" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => openEdit(tx)}>
+                              <Pencil className="h-4 w-4 ml-2" /> تعديل
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="text-[#DC2626]" onClick={() => { setEditingTx(tx); setShowDeleteConfirm(true); }}>
+                              <Trash2 className="h-4 w-4 ml-2" /> حذف
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </td>
+                    </tr>
+
+                    {/* ━━ Expanded detail lines ━━ */}
+                    {isExpanded && (
+                      <>
+                        <tr className="bg-[#FAFAFA] border-b border-[#F1F5F9]">
+                          <td />
+                          <td />
+                          <td />
+                          <td className="px-3 py-2">
+                            <div className="flex items-center gap-2 pr-8">
+                              <span className="text-[#CBD5E1] text-lg leading-none">├</span>
+                              <span className="font-mono text-[10px] text-[#637381] bg-[#F1F5F9] px-1.5 py-0.5 rounded">{tx.debit_account_code}</span>
+                              <span className="text-[#374151] text-xs">{getAccountName(tx.debit_account_code)}</span>
+                            </div>
+                          </td>
+                          <td />
+                          <td className="px-3 py-2 text-left">
+                            <span className="font-mono text-xs font-semibold text-[#1A56DB]">₪{tx.amount?.toFixed(2)}</span>
+                          </td>
+                          <td className="px-3 py-2 text-left" />
+                          <td />
+                        </tr>
+                        <tr className="bg-[#FAFAFA] border-b border-[#E2E8F0]">
+                          <td />
+                          <td />
+                          <td />
+                          <td className="px-3 py-2">
+                            <div className="flex items-center gap-2 pr-8">
+                              <span className="text-[#CBD5E1] text-lg leading-none">└</span>
+                              <span className="font-mono text-[10px] text-[#637381] bg-[#F1F5F9] px-1.5 py-0.5 rounded">{tx.credit_account_code}</span>
+                              <span className="text-[#374151] text-xs">{getAccountName(tx.credit_account_code)}</span>
+                            </div>
+                          </td>
+                          <td />
+                          <td className="px-3 py-2 text-left" />
+                          <td className="px-3 py-2 text-left">
+                            <span className="font-mono text-xs font-semibold text-[#0E9F6E]">₪{tx.amount?.toFixed(2)}</span>
+                          </td>
+                          <td />
+                        </tr>
+                      </>
+                    )}
+                  </tr>
+                );
+              })}
+            </tbody>
+
+            {/* ━━ Footer Totals ━━ */}
+            <tfoot className="sticky bottom-0 bg-white border-t-2 border-[#D1D5DB] shadow-[0_-2px_8px_rgba(0,0,0,0.06)]">
+              <tr>
+                <td colSpan={5} className="px-3 py-3">
+                  <span className="text-sm font-bold text-[#374151]">الإجمالي — {filteredTransactions.length} قيد</span>
+                </td>
+                <td className="px-3 py-3 text-left">
+                  <span className="font-mono font-bold text-base text-[#1A56DB]">₪{totalDebit.toFixed(2)}</span>
+                </td>
+                <td className="px-3 py-3 text-left">
+                  <span className="font-mono font-bold text-base text-[#0E9F6E]">₪{totalCredit.toFixed(2)}</span>
+                </td>
+                <td className="px-3 py-3 text-center">
+                  {isBalanced
+                    ? <span className="text-xs font-bold text-[#059669] bg-[#ECFDF5] px-2 py-1 rounded-full">✅ متطابق</span>
+                    : <span className="text-xs font-bold text-[#DC2626] bg-[#FEF2F2] px-2 py-1 rounded-full">⚠️ فرق</span>
+                  }
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        )}
+      </div>
+
+      {/* ━━━ Pagination ━━━ */}
+      {!loading && !error && filteredTransactions.length > 0 && (
+        <div className="flex items-center justify-between px-6 py-3 bg-white border-t border-[#E2E8F0]">
+          <div className="flex items-center gap-2 text-sm text-[#637381]">
+            <span>عرض</span>
+            <select
+              value={pageSize}
+              onChange={e => setPageSize(Number(e.target.value))}
+              className="border border-[#D1D5DB] rounded px-2 py-1 text-sm bg-white"
+            >
+              {PAGE_SIZE_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+            <span>من {filteredTransactions.length} قيد</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <button
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage(p => p - 1)}
+              className="px-3 py-1.5 text-sm border border-[#D1D5DB] rounded-lg hover:bg-[#F1F5F9] disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              ← السابق
+            </button>
+            {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+              let page: number;
+              if (totalPages <= 5) page = i + 1;
+              else if (currentPage <= 3) page = i + 1;
+              else if (currentPage >= totalPages - 2) page = totalPages - 4 + i;
+              else page = currentPage - 2 + i;
+              return (
+                <button
+                  key={page}
+                  onClick={() => setCurrentPage(page)}
+                  className={`w-8 h-8 text-sm rounded-lg ${currentPage === page ? "bg-[#1A56DB] text-white" : "hover:bg-[#F1F5F9] text-[#374151]"}`}
+                >
+                  {page}
+                </button>
+              );
+            })}
+            <button
+              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage(p => p + 1)}
+              className="px-3 py-1.5 text-sm border border-[#D1D5DB] rounded-lg hover:bg-[#F1F5F9] disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              التالي →
+            </button>
+          </div>
         </div>
       )}
 
-      {/* Edit Dialog */}
-      <Dialog open={!!editingTx} onOpenChange={(o) => !o && setEditingTx(null)}>
-        <DialogContent className="max-w-sm max-h-[85vh] overflow-y-auto" dir="rtl">
-          <DialogHeader><DialogTitle>تعديل المعاملة</DialogTitle></DialogHeader>
+      {/* ━━━ Edit Dialog ━━━ */}
+      <Dialog open={!!editingTx && !showDeleteConfirm} onOpenChange={(o) => !o && setEditingTx(null)}>
+        <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto" dir="rtl">
+          <DialogHeader><DialogTitle className="text-[#1A2332]">تعديل القيد</DialogTitle></DialogHeader>
           <div className="space-y-3">
-            <Input value={editFields.description} onChange={(e) => setEditFields(p => ({ ...p, description: e.target.value }))} placeholder="الوصف" dir="rtl" />
-            <Select value={editFields.transaction_type} onValueChange={(v) => setEditFields(p => ({ ...p, transaction_type: v }))} dir="rtl">
-              <SelectTrigger><SelectValue placeholder="نوع المعاملة" /></SelectTrigger>
-              <SelectContent className="bg-background z-50">
-                {transactionTypes.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <Input value={editFields.description} onChange={e => setEditFields(p => ({ ...p, description: e.target.value }))} placeholder="الوصف" dir="rtl" />
             <div className="flex gap-2">
-              <Input type="number" value={editFields.amount} onChange={(e) => setEditFields(p => ({ ...p, amount: e.target.value }))} placeholder="المبلغ" className="flex-1" />
-              <Select value={editFields.currency} onValueChange={(v) => setEditFields(p => ({ ...p, currency: v }))} dir="rtl">
+              <Input type="number" value={editFields.amount} onChange={e => setEditFields(p => ({ ...p, amount: e.target.value }))} placeholder="المبلغ" className="flex-1" />
+              <Select value={editFields.currency} onValueChange={v => setEditFields(p => ({ ...p, currency: v }))} dir="rtl">
                 <SelectTrigger className="w-24"><SelectValue /></SelectTrigger>
                 <SelectContent className="bg-background z-50">
                   <SelectItem value="شيكل">شيكل</SelectItem>
@@ -464,24 +812,24 @@ const TransactionsPage = () => {
                 </SelectContent>
               </Select>
             </div>
-            <Input type="date" value={editFields.transaction_date} onChange={(e) => setEditFields(p => ({ ...p, transaction_date: e.target.value }))} />
-            <Select value={editFields.debit_account_code} onValueChange={(v) => setEditFields(p => ({ ...p, debit_account_code: v }))} dir="rtl">
+            <Input type="date" value={editFields.transaction_date} onChange={e => setEditFields(p => ({ ...p, transaction_date: e.target.value }))} />
+            <Select value={editFields.debit_account_code} onValueChange={v => setEditFields(p => ({ ...p, debit_account_code: v }))} dir="rtl">
               <SelectTrigger><SelectValue placeholder="الحساب المدين" /></SelectTrigger>
               <SelectContent className="bg-background z-50 max-h-48">
                 {accounts.map(a => <SelectItem key={a.account_code} value={a.account_code}>{a.account_code} - {a.account_name}</SelectItem>)}
               </SelectContent>
             </Select>
-            <Select value={editFields.credit_account_code} onValueChange={(v) => setEditFields(p => ({ ...p, credit_account_code: v }))} dir="rtl">
+            <Select value={editFields.credit_account_code} onValueChange={v => setEditFields(p => ({ ...p, credit_account_code: v }))} dir="rtl">
               <SelectTrigger><SelectValue placeholder="الحساب الدائن" /></SelectTrigger>
               <SelectContent className="bg-background z-50 max-h-48">
                 {accounts.map(a => <SelectItem key={a.account_code} value={a.account_code}>{a.account_code} - {a.account_name}</SelectItem>)}
               </SelectContent>
             </Select>
             <div className="flex gap-2 pt-2">
-              <Button onClick={handleSave} disabled={saving} className="flex-1 rounded-xl">
+              <Button onClick={handleSave} disabled={saving} className="flex-1 bg-[#1A56DB] hover:bg-[#1648B8] text-white">
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "حفظ"}
               </Button>
-              <Button variant="destructive" size="icon" className="rounded-xl" onClick={() => setShowDeleteConfirm(true)}>
+              <Button variant="destructive" size="icon" onClick={() => setShowDeleteConfirm(true)}>
                 <Trash2 className="h-4 w-4" />
               </Button>
             </div>
@@ -489,15 +837,15 @@ const TransactionsPage = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmations */}
+      {/* ━━━ Delete Confirmations ━━━ */}
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
         <AlertDialogContent dir="rtl">
           <AlertDialogHeader>
-            <AlertDialogTitle>حذف المعاملة</AlertDialogTitle>
-            <AlertDialogDescription>سيتم نقل المعاملة إلى سلة المحذوفات</AlertDialogDescription>
+            <AlertDialogTitle>حذف القيد</AlertDialogTitle>
+            <AlertDialogDescription>سيتم نقل القيد إلى سلة المحذوفات</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-row-reverse gap-2">
-            <AlertDialogAction onClick={handleDelete} disabled={deleting} className="bg-destructive text-destructive-foreground">
+            <AlertDialogAction onClick={handleDelete} disabled={deleting} className="bg-[#DC2626] text-white hover:bg-[#B91C1C]">
               {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : "حذف"}
             </AlertDialogAction>
             <AlertDialogCancel>إلغاء</AlertDialogCancel>
@@ -508,11 +856,11 @@ const TransactionsPage = () => {
       <AlertDialog open={showBulkDeleteConfirm} onOpenChange={setShowBulkDeleteConfirm}>
         <AlertDialogContent dir="rtl">
           <AlertDialogHeader>
-            <AlertDialogTitle>حذف {selectedIds.size} معاملة</AlertDialogTitle>
-            <AlertDialogDescription>سيتم نقل المعاملات المحددة إلى سلة المحذوفات</AlertDialogDescription>
+            <AlertDialogTitle>حذف {selectedIds.size} قيد</AlertDialogTitle>
+            <AlertDialogDescription>سيتم نقل القيود المحددة إلى سلة المحذوفات</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-row-reverse gap-2">
-            <AlertDialogAction onClick={handleBulkDelete} disabled={bulkDeleting} className="bg-destructive text-destructive-foreground">
+            <AlertDialogAction onClick={handleBulkDelete} disabled={bulkDeleting} className="bg-[#DC2626] text-white hover:bg-[#B91C1C]">
               {bulkDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : `حذف ${selectedIds.size}`}
             </AlertDialogAction>
             <AlertDialogCancel>إلغاء</AlertDialogCancel>
