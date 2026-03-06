@@ -565,7 +565,7 @@ const ContactsPage = () => {
                               <MoreVertical className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="bg-background" dir="rtl">
+                          <DropdownMenuContent align="end" className="bg-background">
                             <DropdownMenuItem onClick={() => navigate(`/contacts/${contact.id}`)}>
                               <Eye className="h-4 w-4 ml-2" /> عرض التفاصيل
                             </DropdownMenuItem>
