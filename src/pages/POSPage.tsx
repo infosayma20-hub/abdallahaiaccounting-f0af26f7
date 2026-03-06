@@ -1287,10 +1287,10 @@ const POSPage = () => {
 
       await supabase.from("pos_order_lines").insert(lines);
 
-      const rate = exchangeRates[paymentCurrency] || 1;
-      const foreignTotal = paymentCurrency === "ILS" ? effectiveTotal : effectiveTotal / rate;
-      const tendered = parseFloat(tenderedAmount) || foreignTotal;
-      const changeInForeign = Math.max(0, tendered - foreignTotal);
+      const rate = paymentCurrency === "ILS" ? 1 : computedRate;
+      const foreignTotal = paymentCurrency === "ILS" ? effectiveTotal : parseFloat(foreignAmount) || (effectiveTotal / rate);
+      const tendered = paymentCurrency === "ILS" ? (parseFloat(tenderedAmount) || effectiveTotal) : foreignTotal;
+      const changeInForeign = paymentCurrency === "ILS" ? Math.max(0, tendered - effectiveTotal) : Math.max(0, foreignTotal - (effectiveTotal / rate));
       const change = paymentCurrency === "ILS" ? changeInForeign : changeInForeign * rate;
 
       // Generate survey token if customer data was collected
@@ -1301,8 +1301,8 @@ const POSPage = () => {
         p_user_id: dataOwnerId,
         p_payments: [{
           method: paymentMethod,
-          amount: cartTotals.total,
-          tendered: paymentCurrency === "ILS" ? tendered : tendered * rate,
+          amount: effectiveTotal,
+          tendered: paymentCurrency === "ILS" ? tendered : foreignTotal * rate,
           change: change,
           currency: paymentCurrency,
           exchange_rate: rate,
