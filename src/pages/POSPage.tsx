@@ -65,6 +65,7 @@ interface OrderTab {
   name: string;
   cart: CartItem[];
   customerName: string;
+  customerId: string | null;
   orderDiscount: number;
   orderDiscountType: "fixed" | "percent";
   orderNote: string;
@@ -80,6 +81,7 @@ const createNewOrder = (index: number, tableId?: string | null, tableName?: stri
   name: tableName ? `${tableName}` : `طلب ${index}`,
   cart: [],
   customerName: guestName || "",
+  customerId: null,
   orderDiscount: 0,
   orderDiscountType: "fixed",
   orderNote: "",
@@ -288,8 +290,8 @@ const POSPage = () => {
     }));
   }, [updateActiveOrder]);
 
-  const setCustomerName = useCallback((name: string) => {
-    updateActiveOrder(o => ({ ...o, customerName: name }));
+  const setCustomerName = useCallback((name: string, contactId?: string | null) => {
+    updateActiveOrder(o => ({ ...o, customerName: name, customerId: contactId !== undefined ? contactId : o.customerId }));
   }, [updateActiveOrder]);
 
   const setOrderDiscount = useCallback((d: number) => {
@@ -478,6 +480,7 @@ const POSPage = () => {
           guestCount: (orderData as any).guest_count || 1,
           guestName: (orderData as any).guest_name || "",
           customerName: orderData.customer_name || "",
+          customerId: (orderData as any).customer_id || null,
         } : o));
 
         // If action is "pay", auto-open payment dialog
@@ -1120,6 +1123,7 @@ const POSPage = () => {
           tax_amount: cartTotals.tax,
           discount_amount: cartTotals.discount,
           customer_name: customerName || null,
+          customer_id: activeOrder.customerId || null,
           guest_count: activeOrder.guestCount,
           guest_name: activeOrder.guestName || null,
         } as any).eq("id", existingOrder.id);
@@ -1132,6 +1136,7 @@ const POSPage = () => {
             company_id: company.id,
             session_id: session.id,
             customer_name: customerName || null,
+            customer_id: activeOrder.customerId || null,
             subtotal: cartTotals.subtotal,
             discount_amount: cartTotals.discount,
             tax_amount: cartTotals.tax,
@@ -1247,6 +1252,7 @@ const POSPage = () => {
         name: tableName,
         cart: cartItems,
         customerName: order.customer_name || "",
+        customerId: (order as any).customer_id || null,
         orderDiscount: Number(order.discount_amount) || 0,
         orderDiscountType: "fixed",
         orderNote: "",
@@ -1295,6 +1301,7 @@ const POSPage = () => {
           await supabase.from("pos_order_lines").delete().eq("order_id", existingOrder.id);
           await supabase.from("pos_orders").update({
             customer_name: customerName || null,
+            customer_id: activeOrder.customerId || null,
             subtotal: cartTotals.subtotal,
             discount_amount: effectiveDiscount,
             tax_amount: cartTotals.tax,
@@ -1313,6 +1320,7 @@ const POSPage = () => {
               company_id: company.id,
               session_id: session.id,
               customer_name: customerName || null,
+              customer_id: activeOrder.customerId || null,
               subtotal: cartTotals.subtotal,
               discount_amount: effectiveDiscount,
               tax_amount: cartTotals.tax,
@@ -1338,6 +1346,7 @@ const POSPage = () => {
             company_id: company.id,
             session_id: session.id,
             customer_name: customerName || null,
+            customer_id: activeOrder.customerId || null,
             subtotal: cartTotals.subtotal,
             discount_amount: effectiveDiscount,
             tax_amount: cartTotals.tax,
@@ -2465,7 +2474,7 @@ const POSPage = () => {
                       value={customerSearch || customerName}
                       onChange={(e) => {
                         setCustomerSearch(e.target.value);
-                        setCustomerName(e.target.value);
+                        setCustomerName(e.target.value, null);
                         setShowContactDropdown(true);
                       }}
                       onFocus={() => setShowContactDropdown(true)}
@@ -2479,7 +2488,7 @@ const POSPage = () => {
                           <button
                             key={contact.id}
                             onClick={() => {
-                              setCustomerName(contact.contact_name);
+                              setCustomerName(contact.contact_name, contact.id);
                               setCustomerSearch("");
                               setShowContactDropdown(false);
                               setShowCustomerInput(false);
@@ -2899,7 +2908,7 @@ const POSPage = () => {
                     value={customerSearch || customerName}
                     onChange={(e) => {
                       setCustomerSearch(e.target.value);
-                      setCustomerName(e.target.value);
+                      setCustomerName(e.target.value, null);
                       setShowContactDropdown(true);
                     }}
                     onFocus={() => setShowContactDropdown(true)}
@@ -2913,7 +2922,7 @@ const POSPage = () => {
                       <button
                         key={contact.id}
                         onClick={() => {
-                          setCustomerName(contact.contact_name);
+                          setCustomerName(contact.contact_name, contact.id);
                           setCustomerSearch("");
                           setShowContactDropdown(false);
                         }}
