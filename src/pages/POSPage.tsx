@@ -1334,7 +1334,7 @@ const POSPage = () => {
         prev
           ? {
               ...prev,
-              total_sales: prev.total_sales + cartTotals.total,
+              total_sales: prev.total_sales + effectiveTotal,
               total_orders: prev.total_orders + 1,
             }
           : null
