@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import {
   ArrowRight, Loader2, RefreshCw, Search, FileSpreadsheet,
   TrendingUp, TrendingDown, Wallet, Printer, Calendar,
-  BookOpen, Users, Truck, UserCheck, Filter, ChevronLeft,
+  BookOpen, Users, Truck, UserCheck, ChevronLeft, LayoutGrid,
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,13 @@ interface Contact {
   email: string | null;
   address: string | null;
   linked_account_code: string | null;
+}
+
+interface Account {
+  id: string;
+  account_code: string;
+  account_name: string;
+  account_type: string;
 }
 
 interface Transaction {
@@ -52,13 +59,14 @@ interface StatementRow {
   transaction_id: string;
 }
 
-type EntityTab = "customers" | "suppliers" | "employees";
+type EntityTab = "customers" | "suppliers" | "employees" | "accounts";
 
 // ─── CONSTANTS ───
 const ENTITY_TABS: { key: EntityTab; label: string; icon: any; color: string; accountCode: string; type: string }[] = [
   { key: "customers", label: "العملاء", icon: Users, color: "text-blue-500", accountCode: "1130", type: "عميل" },
   { key: "suppliers", label: "الموردين", icon: Truck, color: "text-amber-500", accountCode: "2100", type: "مورد" },
   { key: "employees", label: "الموظفين", icon: UserCheck, color: "text-emerald-500", accountCode: "", type: "موظف" },
+  { key: "accounts", label: "الحسابات", icon: LayoutGrid, color: "text-purple-500", accountCode: "", type: "account" },
 ];
 
 const QUICK_PERIODS = [
@@ -92,34 +100,41 @@ const AccountStatementPage = () => {
 
   // State
   const [contacts, setContacts] = useState<Contact[]>([]);
+  const [accounts, setAccounts] = useState<Account[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [companyName, setCompanyName] = useState("");
   const [activeTab, setActiveTab] = useState<EntityTab>(
     urlContactType === "مورد" ? "suppliers" : "customers"
   );
-  const [selectedContactId, setSelectedContactId] = useState(urlContactId);
+  const [selectedEntityId, setSelectedEntityId] = useState(urlContactId);
   const [entitySearch, setEntitySearch] = useState("");
   const [txSearch, setTxSearch] = useState("");
   const [dateFrom, setDateFrom] = useState(format(startOfYear(new Date()), "yyyy-MM-dd"));
   const [dateTo, setDateTo] = useState(format(endOfMonth(new Date()), "yyyy-MM-dd"));
   const [activePeriod, setActivePeriod] = useState("");
-  const [leftPanelOpen, setLeftPanelOpen] = useState(true);
 
   const activeTabConfig = ENTITY_TABS.find(t => t.key === activeTab)!;
+  const isAccountsTab = activeTab === "accounts";
 
   // ─── FETCH DATA ───
   const fetchData = async () => {
     if (!user) return;
     setLoading(true);
     try {
-      const [{ data: contactData }, { data: txData }, profileRes] = await Promise.all([
+      const [{ data: contactData }, { data: accData }, { data: txData }, profileRes] = await Promise.all([
         supabase
           .from("contacts")
           .select("id, contact_name, contact_type, phone, email, address, linked_account_code")
           .eq("user_id", user.id)
           .eq("is_active", true)
           .order("contact_name"),
+        supabase
+          .from("accounts")
+          .select("id, account_code, account_name, account_type")
+          .eq("user_id", user.id)
+          .eq("is_active", true)
+          .order("account_code"),
         supabase
           .from("transactions")
           .select("id, description, transaction_type, amount, currency, transaction_date, debit_account_code, credit_account_code, reference, is_deleted, contact_id")
@@ -130,6 +145,7 @@ const AccountStatementPage = () => {
         supabase.from("profiles").select("company_name, display_name").eq("user_id", user.id).maybeSingle(),
       ]);
       setContacts((contactData as Contact[]) || []);
+      setAccounts((accData as Account[]) || []);
       setTransactions((txData as Transaction[]) || []);
       if (profileRes.data?.company_name) setCompanyName(profileRes.data.company_name);
     } catch (err: any) {
@@ -143,56 +159,120 @@ const AccountStatementPage = () => {
 
   // ─── FILTERED CONTACTS BY TAB ───
   const tabContacts = useMemo(() => {
+    if (isAccountsTab) return [];
     const type = activeTabConfig.type;
     return contacts.filter(c => c.contact_type === type);
   }, [contacts, activeTab]);
 
-  // Compute balance per contact
+  // ─── ACCOUNT BALANCES (for accounts tab) ───
+  const accountBalances = useMemo(() => {
+    if (!isAccountsTab) return {};
+    const map: Record<string, number> = {};
+    for (const acc of accounts) {
+      let bal = 0;
+      for (const tx of transactions) {
+        if (tx.debit_account_code === acc.account_code) bal += tx.amount || 0;
+        if (tx.credit_account_code === acc.account_code) bal -= tx.amount || 0;
+      }
+      map[acc.id] = bal;
+    }
+    return map;
+  }, [accounts, transactions, isAccountsTab]);
+
+  // ─── CONTACT BALANCES ───
   const contactBalances = useMemo(() => {
+    if (isAccountsTab) return {};
     const map: Record<string, number> = {};
     const accountCode = activeTabConfig.accountCode;
-    
     for (const c of tabContacts) {
       let bal = 0;
       for (const tx of transactions) {
         if (tx.contact_id !== c.id) continue;
-        const isDebit = tx.debit_account_code === accountCode;
-        const isCredit = tx.credit_account_code === accountCode;
-        if (isDebit) bal += tx.amount || 0;
-        if (isCredit) bal -= tx.amount || 0;
+        if (tx.debit_account_code === accountCode) bal += tx.amount || 0;
+        if (tx.credit_account_code === accountCode) bal -= tx.amount || 0;
       }
       map[c.id] = bal;
     }
     return map;
   }, [tabContacts, transactions, activeTab]);
 
-  const filteredContacts = useMemo(() => {
-    const q = entitySearch.toLowerCase().trim();
-    if (!q) return tabContacts;
-    return tabContacts.filter(c =>
-      c.contact_name.toLowerCase().includes(q) ||
-      (c.phone || "").includes(q)
-    );
-  }, [tabContacts, entitySearch]);
+  // ─── COMBINED ENTITY LIST FOR LEFT PANEL ───
+  const entityList = useMemo(() => {
+    if (isAccountsTab) {
+      const q = entitySearch.toLowerCase().trim();
+      const filtered = q
+        ? accounts.filter(a => a.account_name.toLowerCase().includes(q) || a.account_code.includes(q))
+        : accounts;
+      return filtered.map(a => ({
+        id: a.id,
+        name: a.account_name,
+        subtitle: `${a.account_code} · ${a.account_type}`,
+        balance: accountBalances[a.id] || 0,
+        accountCode: a.account_code,
+      }));
+    } else {
+      const q = entitySearch.toLowerCase().trim();
+      const filtered = q
+        ? tabContacts.filter(c => c.contact_name.toLowerCase().includes(q) || (c.phone || "").includes(q))
+        : tabContacts;
+      return filtered.map(c => ({
+        id: c.id,
+        name: c.contact_name,
+        subtitle: c.phone || c.address || "—",
+        balance: contactBalances[c.id] || 0,
+        accountCode: "",
+      }));
+    }
+  }, [isAccountsTab, accounts, tabContacts, entitySearch, accountBalances, contactBalances]);
 
   const selectedContact = useMemo(
-    () => contacts.find(c => c.id === selectedContactId),
-    [contacts, selectedContactId]
+    () => contacts.find(c => c.id === selectedEntityId),
+    [contacts, selectedEntityId]
   );
+
+  const selectedAccount = useMemo(
+    () => accounts.find(a => a.id === selectedEntityId),
+    [accounts, selectedEntityId]
+  );
+
+  const selectedEntityName = isAccountsTab
+    ? selectedAccount?.account_name || ""
+    : selectedContact?.contact_name || "";
+
+  const selectedEntityInfo = isAccountsTab
+    ? { type: selectedAccount?.account_type || "", code: selectedAccount?.account_code || "", phone: "", address: "" }
+    : { type: selectedContact?.contact_type || "", code: "", phone: selectedContact?.phone || "", address: selectedContact?.address || "" };
 
   // ─── STATEMENT ROWS ───
   const { rows, openingBalance, closingBalance, totalDebit, totalCredit } = useMemo(() => {
-    if (!selectedContactId) return { rows: [] as StatementRow[], openingBalance: 0, closingBalance: 0, totalDebit: 0, totalCredit: 0 };
+    if (!selectedEntityId) return { rows: [] as StatementRow[], openingBalance: 0, closingBalance: 0, totalDebit: 0, totalCredit: 0 };
 
-    const accountCode = activeTabConfig.accountCode;
-    const related = transactions.filter(tx => tx.contact_id === selectedContactId);
+    let related: Transaction[];
+    let resolveDebitCredit: (tx: Transaction) => { isDebit: boolean; isCredit: boolean };
+
+    if (isAccountsTab && selectedAccount) {
+      const code = selectedAccount.account_code;
+      related = transactions.filter(tx =>
+        tx.debit_account_code === code || tx.credit_account_code === code
+      );
+      resolveDebitCredit = (tx) => ({
+        isDebit: tx.debit_account_code === code,
+        isCredit: tx.credit_account_code === code,
+      });
+    } else {
+      const accountCode = activeTabConfig.accountCode;
+      related = transactions.filter(tx => tx.contact_id === selectedEntityId);
+      resolveDebitCredit = (tx) => ({
+        isDebit: tx.debit_account_code === accountCode,
+        isCredit: tx.credit_account_code === accountCode,
+      });
+    }
 
     let openBal = 0;
     const periodTx: Transaction[] = [];
 
     for (const tx of related) {
-      const isDebit = tx.debit_account_code === accountCode;
-      const isCredit = tx.credit_account_code === accountCode;
+      const { isDebit, isCredit } = resolveDebitCredit(tx);
       if (!isDebit && !isCredit) continue;
       const amount = tx.amount || 0;
 
@@ -209,7 +289,7 @@ const AccountStatementPage = () => {
     let sumCredit = 0;
 
     const rows: StatementRow[] = periodTx.map(tx => {
-      const isDebit = tx.debit_account_code === accountCode;
+      const { isDebit } = resolveDebitCredit(tx);
       const amount = tx.amount || 0;
       const debit = isDebit ? amount : 0;
       const credit = !isDebit ? amount : 0;
@@ -228,7 +308,7 @@ const AccountStatementPage = () => {
     });
 
     return { rows, openingBalance: openBal, closingBalance: runningBalance, totalDebit: sumDebit, totalCredit: sumCredit };
-  }, [transactions, selectedContactId, dateFrom, dateTo, activeTab]);
+  }, [transactions, selectedEntityId, dateFrom, dateTo, activeTab, selectedAccount]);
 
   const filteredRows = useMemo(() => {
     if (!txSearch.trim()) return rows;
@@ -241,7 +321,7 @@ const AccountStatementPage = () => {
 
   // ─── EXPORT ───
   const handleExport = () => {
-    if (!rows.length || !selectedContact) return;
+    if (!rows.length || !selectedEntityName) return;
     const exportRows = [
       { "التاريخ": "", "المرجع": "", "البيان": "رصيد أول المدة", "مدين ₪": openingBalance > 0 ? openingBalance : "", "دائن ₪": openingBalance < 0 ? Math.abs(openingBalance) : "", "الرصيد ₪": openingBalance },
       ...rows.map(r => ({
@@ -258,20 +338,17 @@ const AccountStatementPage = () => {
     ws["!cols"] = [{ wch: 12 }, { wch: 16 }, { wch: 40 }, { wch: 14 }, { wch: 14 }, { wch: 16 }];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "كشف الحساب");
-    XLSX.writeFile(wb, `كشف-حساب-${selectedContact.contact_name}-${dateFrom}.xlsx`);
+    XLSX.writeFile(wb, `كشف-حساب-${selectedEntityName}-${dateFrom}.xlsx`);
   };
 
-  const totalBalance = useMemo(() => {
-    return Object.values(contactBalances).reduce((s, b) => s + b, 0);
-  }, [contactBalances]);
-
-  const debitCount = useMemo(() => Object.values(contactBalances).filter(b => b > 0).length, [contactBalances]);
-  const creditCount = useMemo(() => Object.values(contactBalances).filter(b => b < 0).length, [contactBalances]);
+  const allBalances = isAccountsTab ? accountBalances : contactBalances;
+  const totalBalance = useMemo(() => Object.values(allBalances).reduce((s, b) => s + b, 0), [allBalances]);
+  const debitCount = useMemo(() => Object.values(allBalances).filter(b => b > 0).length, [allBalances]);
+  const creditCount = useMemo(() => Object.values(allBalances).filter(b => b < 0).length, [allBalances]);
 
   // ─── RENDER ───
   return (
     <div className="min-h-screen bg-background flex flex-col" dir="rtl">
-      {/* Print styles */}
       <style>{`
         @media print {
           body * { visibility: hidden; }
@@ -302,7 +379,7 @@ const AccountStatementPage = () => {
             {ENTITY_TABS.map(tab => (
               <button
                 key={tab.key}
-                onClick={() => { setActiveTab(tab.key); setSelectedContactId(""); }}
+                onClick={() => { setActiveTab(tab.key); setSelectedEntityId(""); setEntitySearch(""); }}
                 className={cn(
                   "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all",
                   activeTab === tab.key
@@ -321,10 +398,10 @@ const AccountStatementPage = () => {
             <Button variant="ghost" size="icon" onClick={fetchData} disabled={loading} className="h-8 w-8">
               <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
             </Button>
-            <Button variant="outline" size="sm" onClick={() => window.print()} disabled={!selectedContactId || rows.length === 0} className="h-8 gap-1.5 text-xs">
+            <Button variant="outline" size="sm" onClick={() => window.print()} disabled={!selectedEntityId || rows.length === 0} className="h-8 gap-1.5 text-xs">
               <Printer className="w-3.5 h-3.5" /> طباعة
             </Button>
-            <Button variant="outline" size="sm" onClick={handleExport} disabled={!selectedContactId || rows.length === 0} className="h-8 gap-1.5 text-xs">
+            <Button variant="outline" size="sm" onClick={handleExport} disabled={!selectedEntityId || rows.length === 0} className="h-8 gap-1.5 text-xs">
               <FileSpreadsheet className="w-3.5 h-3.5" /> Excel
             </Button>
           </div>
@@ -335,22 +412,18 @@ const AccountStatementPage = () => {
       <div className="flex flex-1 overflow-hidden">
 
         {/* ─── LEFT PANEL ─── */}
-        <div className={cn(
-          "border-l border-border bg-card flex flex-col shrink-0 transition-all duration-200 no-print",
-          leftPanelOpen ? "w-[280px]" : "w-0 overflow-hidden"
-        )}>
+        <div className="border-l border-border bg-card flex flex-col shrink-0 w-[280px] no-print">
           {/* Search */}
           <div className="p-3 border-b border-border space-y-2">
             <div className="relative">
               <Search className="absolute right-2.5 top-2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="ابحث بالاسم أو الرقم..."
+                placeholder={isAccountsTab ? "ابحث بالاسم أو الكود..." : "ابحث بالاسم أو الرقم..."}
                 value={entitySearch}
                 onChange={e => setEntitySearch(e.target.value)}
                 className="pr-9 h-8 text-xs bg-muted/50 border-0"
               />
             </div>
-            {/* Summary line */}
             <div className="flex items-center justify-between text-[10px] text-muted-foreground px-1">
               <span>الرصيد الإجمالي: <strong className="text-foreground">{fmtAmount(totalBalance)}</strong></span>
               <span>
@@ -372,18 +445,17 @@ const AccountStatementPage = () => {
                   </div>
                 ))}
               </div>
-            ) : filteredContacts.length === 0 ? (
+            ) : entityList.length === 0 ? (
               <div className="p-6 text-center text-xs text-muted-foreground">
-                لا توجد جهات اتصال
+                {isAccountsTab ? "لا توجد حسابات" : "لا توجد جهات اتصال"}
               </div>
             ) : (
-              filteredContacts.map(contact => {
-                const bal = contactBalances[contact.id] || 0;
-                const isActive = contact.id === selectedContactId;
+              entityList.map(entity => {
+                const isActive = entity.id === selectedEntityId;
                 return (
                   <button
-                    key={contact.id}
-                    onClick={() => setSelectedContactId(contact.id)}
+                    key={entity.id}
+                    onClick={() => setSelectedEntityId(entity.id)}
                     className={cn(
                       "w-full text-right px-3 py-2.5 border-b border-border/50 transition-all hover:bg-muted/50",
                       isActive && "bg-primary/5 border-r-2 border-r-primary"
@@ -392,19 +464,19 @@ const AccountStatementPage = () => {
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         <p className={cn("text-xs font-semibold truncate", isActive ? "text-primary" : "text-foreground")}>
-                          {contact.contact_name}
+                          {entity.name}
                         </p>
                         <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
-                          {contact.phone || contact.address || "—"}
+                          {entity.subtitle}
                         </p>
                       </div>
                       <span className={cn(
                         "shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-md tabular-nums",
-                        bal > 0 ? "bg-emerald-500/10 text-emerald-500" :
-                        bal < 0 ? "bg-red-500/10 text-red-400" :
+                        entity.balance > 0 ? "bg-emerald-500/10 text-emerald-500" :
+                        entity.balance < 0 ? "bg-red-500/10 text-red-400" :
                         "bg-muted text-muted-foreground"
                       )}>
-                        {fmtAmount(bal)}
+                        {fmtAmount(entity.balance)}
                       </span>
                     </div>
                   </button>
@@ -421,12 +493,11 @@ const AccountStatementPage = () => {
             {/* Print header */}
             <div className="print-only text-center mb-6">
               <h2 className="text-lg font-bold">{companyName}</h2>
-              <p className="font-semibold">كشف حساب: {selectedContact?.contact_name}</p>
+              <p className="font-semibold">كشف حساب: {selectedEntityName}</p>
               <p className="text-sm text-muted-foreground">من {fmtDate(dateFrom)} إلى {fmtDate(dateTo)}</p>
             </div>
 
-            {!selectedContactId ? (
-              /* ─── EMPTY STATE ─── */
+            {!selectedEntityId ? (
               <div className="flex-1 flex items-center justify-center py-32">
                 <div className="text-center space-y-3">
                   <div className="w-16 h-16 rounded-2xl bg-muted/50 flex items-center justify-center mx-auto">
@@ -443,11 +514,21 @@ const AccountStatementPage = () => {
                   <div className="bg-card rounded-xl border border-border p-4">
                     <div className="flex items-start justify-between mb-4">
                       <div>
-                        <h2 className="text-base font-bold text-foreground">{selectedContact?.contact_name}</h2>
+                        <h2 className="text-base font-bold text-foreground">{selectedEntityName}</h2>
                         <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
-                          {selectedContact?.phone && <span>📞 {selectedContact.phone}</span>}
-                          {selectedContact?.address && <span>📍 {selectedContact.address}</span>}
-                          <Badge variant="secondary" className="text-[10px]">{selectedContact?.contact_type}</Badge>
+                          {isAccountsTab && selectedAccount && (
+                            <>
+                              <span className="font-mono">{selectedAccount.account_code}</span>
+                              <Badge variant="secondary" className="text-[10px]">{selectedAccount.account_type}</Badge>
+                            </>
+                          )}
+                          {!isAccountsTab && selectedContact && (
+                            <>
+                              {selectedContact.phone && <span>📞 {selectedContact.phone}</span>}
+                              {selectedContact.address && <span>📍 {selectedContact.address}</span>}
+                              <Badge variant="secondary" className="text-[10px]">{selectedContact.contact_type}</Badge>
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>
