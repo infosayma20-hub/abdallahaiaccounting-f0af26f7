@@ -357,7 +357,7 @@ const StatementPrintView = ({
 
             {/* Closing balance */}
             <tr style={{ background: "#1B3A5C", color: "white", fontWeight: 700 }}>
-              <td style={{ padding: "8px", colSpan: 2 }}>—</td>
+              <td style={{ padding: "8px" }}>—</td>
               <td style={{ padding: "8px" }}>—</td>
               <td style={{ padding: "8px", fontWeight: 700 }}>رصيد ختامي</td>
               <td style={{ padding: "8px" }}></td>
