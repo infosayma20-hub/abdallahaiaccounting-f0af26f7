@@ -71,6 +71,7 @@ import DigitalReceiptPage from "./pages/DigitalReceiptPage";
 import SurveyPage from "./pages/SurveyPage";
 import CustomerReportsPage from "./pages/CustomerReportsPage";
 import ModifierManagerPage from "./pages/ModifierManagerPage";
+import ContractorApp from "./pages/ContractorApp";
 
 const queryClient = new QueryClient();
 
@@ -182,6 +183,7 @@ const App = () => (
                       <Route path="/pos-users" element={<POSUserManagementPage />} />
                       <Route path="/pos-reports" element={<POSReportsPage />} />
                       <Route path="/customer-reports" element={<CustomerReportsPage />} />
+                      <Route path="/contractor" element={<ContractorApp />} />
                       <Route path="*" element={<NotFound />} />
                     </Routes>
                   </WebLayout>

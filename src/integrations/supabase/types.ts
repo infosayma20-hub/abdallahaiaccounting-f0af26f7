@@ -1340,6 +1340,119 @@ export type Database = {
         }
         Relationships: []
       }
+      contractor_projects: {
+        Row: {
+          budget: number | null
+          client_name: string | null
+          created_at: string | null
+          end_date: string | null
+          id: string
+          name: string
+          notes: string | null
+          start_date: string | null
+          status: string | null
+          total_expenses: number | null
+          total_receipts: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          budget?: number | null
+          client_name?: string | null
+          created_at?: string | null
+          end_date?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          start_date?: string | null
+          status?: string | null
+          total_expenses?: number | null
+          total_receipts?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          budget?: number | null
+          client_name?: string | null
+          created_at?: string | null
+          end_date?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          start_date?: string | null
+          status?: string | null
+          total_expenses?: number | null
+          total_receipts?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      contractor_transactions: {
+        Row: {
+          amount: number
+          category: string | null
+          cheque_date: string | null
+          cheque_number: string | null
+          cheque_status: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          linked_account_code: string | null
+          notes: string | null
+          payment_method: string | null
+          project_id: string
+          supplier: string | null
+          transaction_date: string | null
+          type: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          category?: string | null
+          cheque_date?: string | null
+          cheque_number?: string | null
+          cheque_status?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          linked_account_code?: string | null
+          notes?: string | null
+          payment_method?: string | null
+          project_id: string
+          supplier?: string | null
+          transaction_date?: string | null
+          type?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          category?: string | null
+          cheque_date?: string | null
+          cheque_number?: string | null
+          cheque_status?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          linked_account_code?: string | null
+          notes?: string | null
+          payment_method?: string | null
+          project_id?: string
+          supplier?: string | null
+          transaction_date?: string | null
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contractor_transactions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "contractor_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       correction_requests: {
         Row: {
           amount: number | null

@@ -4,7 +4,7 @@ import {
   Calculator, ShoppingCart, Users, Package, ShoppingBag, DollarSign,
   BarChart3, Store, Settings, FileSpreadsheet, ArrowLeftRight, Landmark,
   Search, HelpCircle, RotateCcw, BookOpen, Headphones, Puzzle, ChevronDown, ArrowLeft,
-  Monitor,
+  Monitor, Building2,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useOnboarding } from "@/hooks/useOnboarding";
@@ -130,6 +130,10 @@ const appModules: AppModule[] = [
   {
     id: "ecommerce", label: "إدارة المتاجر الإلكترونية", description: "إدارة مالية للمتاجر والصفحات الإلكترونية", icon: Store, color: "text-amber-500", bgColor: "bg-amber-500/10", path: "/orders",
     keywords: ["متجر", "طلبات", "أونلاين", "إلكتروني", "صفحات"],
+  },
+  {
+    id: "contractor", label: "محاسبك السريع", description: "إدارة مشاريع المقاولات والحركات المالية", icon: Building2, color: "text-amber-600", bgColor: "bg-amber-500/10", path: "/contractor", isNew: true,
+    keywords: ["مقاولات", "مشاريع", "مقاول", "بناء"],
   },
   // Row 5: Utilities
   {
