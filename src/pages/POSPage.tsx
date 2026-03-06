@@ -65,6 +65,7 @@ interface OrderTab {
   name: string;
   cart: CartItem[];
   customerName: string;
+  customerId: string | null;
   orderDiscount: number;
   orderDiscountType: "fixed" | "percent";
   orderNote: string;
@@ -80,6 +81,7 @@ const createNewOrder = (index: number, tableId?: string | null, tableName?: stri
   name: tableName ? `${tableName}` : `طلب ${index}`,
   cart: [],
   customerName: guestName || "",
+  customerId: null,
   orderDiscount: 0,
   orderDiscountType: "fixed",
   orderNote: "",
