@@ -79,6 +79,7 @@ export default function ContractorApp() {
   const [showProjectDialog, setShowProjectDialog] = useState(false);
   const [showTxDialog, setShowTxDialog] = useState(false);
   const [showContractDialog, setShowContractDialog] = useState(false);
+  const [showClaimModal, setShowClaimModal] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
