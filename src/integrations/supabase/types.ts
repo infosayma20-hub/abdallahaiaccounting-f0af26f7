@@ -2360,6 +2360,68 @@ export type Database = {
           },
         ]
       }
+      financial_claims: {
+        Row: {
+          amount: number
+          amount_text: string | null
+          claim_date: string | null
+          claim_number: string | null
+          created_at: string | null
+          custom_note: string | null
+          due_date: string | null
+          id: string
+          project_id: string | null
+          recipient_address: string | null
+          recipient_name: string
+          reply_days: number | null
+          status: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          amount_text?: string | null
+          claim_date?: string | null
+          claim_number?: string | null
+          created_at?: string | null
+          custom_note?: string | null
+          due_date?: string | null
+          id?: string
+          project_id?: string | null
+          recipient_address?: string | null
+          recipient_name: string
+          reply_days?: number | null
+          status?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          amount_text?: string | null
+          claim_date?: string | null
+          claim_number?: string | null
+          created_at?: string | null
+          custom_note?: string | null
+          due_date?: string | null
+          id?: string
+          project_id?: string | null
+          recipient_address?: string | null
+          recipient_name?: string
+          reply_days?: number | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financial_claims_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "contractor_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoice_receipt_matching: {
         Row: {
           created_at: string
