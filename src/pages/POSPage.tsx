@@ -2358,7 +2358,29 @@ const POSPage = () => {
               <div className="flex gap-2">
                 <button
                   disabled={cart.length === 0}
-                  onClick={() => { setCart([]); setSelectedCartIndex(null); setOrderDiscount(0); setOrderNote(""); }}
+                  onClick={async () => {
+                    const tableId = activeOrder.tableId;
+                    setCart([]); setSelectedCartIndex(null); setOrderDiscount(0); setOrderNote("");
+                    if (tableId) {
+                      // Cancel any draft/open order for this table
+                      const { data: existingOrder } = await supabase
+                        .from("pos_orders")
+                        .select("id")
+                        .eq("table_id", tableId)
+                        .in("state", ["draft", "open"] as any)
+                        .maybeSingle();
+                      if (existingOrder) {
+                        await supabase.from("pos_order_lines").delete().eq("order_id", existingOrder.id);
+                        await supabase.from("pos_orders").update({ state: "cancelled" } as any).eq("id", existingOrder.id);
+                      }
+                      // Release the table
+                      await supabase.from("restaurant_tables").update({
+                        status: "available", current_order_id: null, current_guests: 0, occupied_at: null,
+                      }).eq("id", tableId);
+                      updateActiveOrder(o => ({ ...o, tableId: null, tableName: null }));
+                      toast.success("تم إفراغ الطاولة وإرجاعها فارغة");
+                    }
+                  }}
                   className="h-11 w-11 rounded-xl flex items-center justify-center border border-border text-muted-foreground hover:text-destructive hover:border-destructive/30 hover:bg-destructive/5 transition-all disabled:opacity-30 disabled:pointer-events-none"
                 >
                   <Trash2 className="h-4 w-4" />
