@@ -95,6 +95,7 @@ const appModules: AppModule[] = [
     children: [
       { label: "نقطة البيع", path: "/pos" },
       { label: "خريطة الطاولات", path: "/pos/floor-plan" },
+      { label: "إدارة الإضافات", path: "/pos/modifiers" },
       { label: "تقارير نقطة البيع", path: "/pos-reports" },
       { label: "إدارة مستخدمي POS", path: "/pos-users" },
     ],
