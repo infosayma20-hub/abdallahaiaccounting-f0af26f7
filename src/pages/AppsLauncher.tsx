@@ -131,6 +131,10 @@ const appModules: AppModule[] = [
     id: "ecommerce", label: "إدارة المتاجر الإلكترونية", description: "إدارة مالية للمتاجر والصفحات الإلكترونية", icon: Store, color: "text-amber-500", bgColor: "bg-amber-500/10", path: "/orders",
     keywords: ["متجر", "طلبات", "أونلاين", "إلكتروني", "صفحات"],
   },
+  {
+    id: "contractor", label: "محاسبك السريع", description: "إدارة مشاريع المقاولات والحركات المالية", icon: Building2, color: "text-amber-600", bgColor: "bg-amber-500/10", path: "/contractor", isNew: true,
+    keywords: ["مقاولات", "مشاريع", "مقاول", "بناء"],
+  },
   // Row 5: Utilities
   {
     id: "import-data", label: "استيراد بيانات خارجية", description: "استيراد الأرصدة الافتتاحية من Excel", icon: FileSpreadsheet, color: "text-cyan-500", bgColor: "bg-cyan-500/10", path: "/opening-balances-import",
