@@ -933,6 +933,18 @@ const POSPage = () => {
 
   // Cart operations
   const addToCart = useCallback((product: Product) => {
+    // Check if product has modifier groups
+    const groupIds = productModifierMap[product.id];
+    if (groupIds && groupIds.length > 0) {
+      setModifierProduct(product);
+      setShowModifierModal(true);
+      return;
+    }
+
+    addToCartDirect(product);
+  }, [cart, productModifierMap]);
+
+  const addToCartDirect = useCallback((product: Product, modifiers?: SelectedModifier[], note?: string, qty?: number) => {
     if (product.quantity <= 0) {
       toast.warning(`⚠️ تنبيه: ${product.name} - المخزون صفر، سيتم البيع بالسالب`);
     }
@@ -941,8 +953,34 @@ const POSPage = () => {
       toast.warning(`⚠️ تنبيه: ${product.name} - باقي ${product.quantity - currentInCart - 1} قطع فقط`);
     }
 
+    const modifierExtra = (modifiers || []).reduce((s, m) => s + m.extra_price, 0);
+    const unitPrice = product.sell_price + modifierExtra;
+    const itemQty = qty || 1;
+
+    // If product has modifiers, always add as new line (don't merge)
+    if (modifiers && modifiers.length > 0) {
+      setCart((prev) => [
+        ...prev,
+        {
+          id: crypto.randomUUID(),
+          product_id: product.id,
+          name: product.name,
+          qty: itemQty,
+          unit_price: unitPrice,
+          cost_price: product.buy_price,
+          discount_pct: 0,
+          tax_rate: product.tax_rate,
+          unit: product.unit,
+          total: itemQty * unitPrice,
+          note: note || "",
+          modifiers,
+        },
+      ]);
+      return;
+    }
+
     setCart((prev) => {
-      const existing = prev.findIndex((item) => item.product_id === product.id);
+      const existing = prev.findIndex((item) => item.product_id === product.id && (!item.modifiers || item.modifiers.length === 0));
       if (existing >= 0) {
         const updated = [...prev];
         updated[existing] = {
@@ -966,6 +1004,7 @@ const POSPage = () => {
           unit: product.unit,
           total: product.sell_price,
           note: "",
+          modifiers: [],
         },
       ];
     });
