@@ -450,7 +450,7 @@ const TrialBalancePage = () => {
           {/* Footer info */}
           <div className="px-4 py-3 border-t border-border/40 flex items-center justify-between">
             <p className="text-[10px] text-muted-foreground">
-              آخر تحديث: {new Date().toLocaleString("ar-PS")}
+              آخر تحديث: {new Date().toLocaleString("en-US")}
             </p>
             <div className="flex items-center gap-1.5">
               {isBalanced ? (

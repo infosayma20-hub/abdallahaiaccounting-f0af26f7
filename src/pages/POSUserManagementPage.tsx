@@ -511,7 +511,7 @@ export default function POSUserManagementPage() {
                       <h3 className="font-semibold">{d.device_name}</h3>
                       <p className="text-xs text-muted-foreground font-mono truncate">{d.device_fingerprint.substring(0, 20)}...</p>
                       {d.last_seen_at && (
-                        <p className="text-xs text-muted-foreground">آخر اتصال: {new Date(d.last_seen_at).toLocaleString("ar")}</p>
+                        <p className="text-xs text-muted-foreground">آخر اتصال: {new Date(d.last_seen_at).toLocaleString("en-US")}</p>
                       )}
                     </div>
                     <div className="flex items-center gap-2">
