@@ -544,14 +544,22 @@ const AccountsPage = () => {
                     {/* Row Actions (hover) */}
                     {!isVirtualTypeHeader && (
                       <div className="hidden sm:flex items-center justify-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button className="p-1 rounded hover:bg-[hsl(210,14%,89%)] dark:hover:bg-muted transition-colors" title="تعديل">
+                        <button 
+                          className="p-1 rounded hover:bg-[hsl(210,14%,89%)] dark:hover:bg-muted transition-colors" 
+                          title="تعديل"
+                          onClick={() => setEditingAccount(acc)}
+                        >
                           <Pencil className="h-3.5 w-3.5 text-[hsl(210,10%,42%)] dark:text-muted-foreground" />
                         </button>
                         <button className="p-1 rounded hover:bg-[hsl(210,14%,89%)] dark:hover:bg-muted transition-colors" title="عرض الحركات"
                           onClick={() => navigate(`/account-statement?code=${acc.account_code}&name=${encodeURIComponent(acc.account_name)}`)}>
                           <Eye className="h-3.5 w-3.5 text-[hsl(210,10%,42%)] dark:text-muted-foreground" />
                         </button>
-                        <button className="p-1 rounded hover:bg-[hsl(210,14%,89%)] dark:hover:bg-muted transition-colors" title="إضافة فرعي">
+                        <button 
+                          className="p-1 rounded hover:bg-[hsl(210,14%,89%)] dark:hover:bg-muted transition-colors" 
+                          title="إضافة فرعي"
+                          onClick={() => { setAddSubParentCode(acc.account_code); setShowAddDialog(true); }}
+                        >
                           <PlusCircle className="h-3.5 w-3.5 text-[hsl(210,10%,42%)] dark:text-muted-foreground" />
                         </button>
                       </div>
