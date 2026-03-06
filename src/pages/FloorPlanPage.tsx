@@ -241,6 +241,10 @@ export default function FloorPlanPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
+            <ArrowRight className="w-4 h-4 ml-1" />
+            رجوع
+          </Button>
           <Button variant="outline" size="sm" onClick={() => navigate("/pos/floor-plan/edit")}>
             <Settings className="w-4 h-4 ml-1" />
             تصميم الخريطة
