@@ -4,12 +4,38 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+
+// Inline edit form component
+const EditAccountForm = ({ account, onSave, onCancel }: { account: { account_name: string; account_code: string }; onSave: (name: string, notes: string) => void; onCancel: () => void }) => {
+  const [name, setName] = useState(account.account_name);
+  const [notes, setNotes] = useState("");
+  return (
+    <div className="space-y-3">
+      <div>
+        <Label className="text-xs">رمز الحساب</Label>
+        <Input value={account.account_code} disabled className="bg-muted" />
+      </div>
+      <div>
+        <Label className="text-xs">اسم الحساب</Label>
+        <Input value={name} onChange={(e) => setName(e.target.value)} dir="rtl" />
+      </div>
+      <div>
+        <Label className="text-xs">ملاحظات</Label>
+        <Input value={notes} onChange={(e) => setNotes(e.target.value)} dir="rtl" placeholder="ملاحظات اختيارية" />
+      </div>
+      <div className="flex gap-2">
+        <Button onClick={() => onSave(name, notes)} disabled={!name.trim()} className="flex-1 gap-1">
+          <Save className="h-4 w-4" /> حفظ
+        </Button>
+        <Button variant="outline" onClick={onCancel}>إلغاء</Button>
+      </div>
+    </div>
+  );
+};
 import { cn } from "@/lib/utils";
 import AddAccountDialog from "@/components/AddAccountDialog";
 
