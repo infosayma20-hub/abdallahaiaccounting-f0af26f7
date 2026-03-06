@@ -322,8 +322,7 @@ export default function ContractorApp() {
   );
 
   // ============= PRINTABLE CONTRACT (hidden, used for print) =============
-  const ContractPrintView = () => {
-    if (!selectedProject) return null;
+  const contractPrintJSX = selectedProject ? (() => {
     const p = selectedProject;
     const companyName = settings.company_name || "الشركة";
     const companyPhone = settings.phone || "";
@@ -407,7 +406,7 @@ export default function ContractorApp() {
         </div>
       </div>
     );
-  };
+  })() : null;
 
   // ============ RENDER ============
 
