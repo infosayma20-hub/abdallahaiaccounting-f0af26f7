@@ -1194,6 +1194,7 @@ const POSPage = () => {
         name: item.name,
         qty: item.qty,
         note: item.note,
+        modifiers: item.modifiers || [],
       })),
       orderNote: activeOrder.orderNote,
     });
