@@ -236,8 +236,56 @@ const EmployeesPage = () => {
 
   const handleDelete = async (id: string) => {
     if (!confirm("هل أنت متأكد من حذف هذا الموظف؟")) return;
+    
+    // Get employee name before deleting to clean up accounting account
+    const employeeToDelete = employees.find(e => e.id === id);
+    
     const { error } = await supabase.from("employees").delete().eq("id", id);
-    if (error) toast.error("خطأ في الحذف"); else { toast.success("تم الحذف"); fetchEmployees(); if (selectedEmployee?.id === id) setSelectedEmployee(null); }
+    if (error) { 
+      toast.error("خطأ في الحذف"); 
+      return; 
+    }
+    
+    // Clean up the corresponding accounting account under 1180
+    if (employeeToDelete && user) {
+      const accountName = `ذمم موظف - ${employeeToDelete.full_name}`;
+      
+      // Check if this account has any transactions before deleting
+      const { data: empAccount } = await supabase
+        .from("accounts")
+        .select("account_code")
+        .eq("user_id", user.id)
+        .eq("account_name", accountName)
+        .maybeSingle();
+      
+      if (empAccount) {
+        const { count } = await supabase
+          .from("transactions")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", user.id)
+          .or(`debit_account_code.eq.${empAccount.account_code},credit_account_code.eq.${empAccount.account_code}`);
+        
+        if (!count || count === 0) {
+          // No transactions, safe to delete the account
+          await supabase
+            .from("accounts")
+            .delete()
+            .eq("user_id", user.id)
+            .eq("account_name", accountName);
+        } else {
+          // Has transactions, just deactivate
+          await supabase
+            .from("accounts")
+            .update({ is_active: false })
+            .eq("user_id", user.id)
+            .eq("account_name", accountName);
+        }
+      }
+    }
+    
+    toast.success("تم الحذف");
+    fetchEmployees();
+    if (selectedEmployee?.id === id) setSelectedEmployee(null);
   };
 
   const handleAddDeduction = async () => {

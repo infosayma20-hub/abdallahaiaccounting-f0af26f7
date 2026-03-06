@@ -1,11 +1,41 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { ArrowRight, Loader2, RefreshCw, Plus, ChevronDown, Search, Pencil, Eye, PlusCircle } from "lucide-react";
+import { ArrowRight, Loader2, RefreshCw, Plus, ChevronDown, Search, Pencil, Eye, PlusCircle, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+
+// Inline edit form component
+const EditAccountForm = ({ account, onSave, onCancel }: { account: { account_name: string; account_code: string }; onSave: (name: string, notes: string) => void; onCancel: () => void }) => {
+  const [name, setName] = useState(account.account_name);
+  const [notes, setNotes] = useState("");
+  return (
+    <div className="space-y-3">
+      <div>
+        <Label className="text-xs">رمز الحساب</Label>
+        <Input value={account.account_code} disabled className="bg-muted" />
+      </div>
+      <div>
+        <Label className="text-xs">اسم الحساب</Label>
+        <Input value={name} onChange={(e) => setName(e.target.value)} dir="rtl" />
+      </div>
+      <div>
+        <Label className="text-xs">ملاحظات</Label>
+        <Input value={notes} onChange={(e) => setNotes(e.target.value)} dir="rtl" placeholder="ملاحظات اختيارية" />
+      </div>
+      <div className="flex gap-2">
+        <Button onClick={() => onSave(name, notes)} disabled={!name.trim()} className="flex-1 gap-1">
+          <Save className="h-4 w-4" /> حفظ
+        </Button>
+        <Button variant="outline" onClick={onCancel}>إلغاء</Button>
+      </div>
+    </div>
+  );
+};
 import { cn } from "@/lib/utils";
 import AddAccountDialog from "@/components/AddAccountDialog";
 
@@ -151,6 +181,8 @@ const AccountsPage = () => {
   const [hoveredRow, setHoveredRow] = useState<string | null>(null);
   const [settingUp, setSettingUp] = useState(false);
   const [autoSetupAttempted, setAutoSetupAttempted] = useState(false);
+  const [editingAccount, setEditingAccount] = useState<Account | null>(null);
+  const [addSubParentCode, setAddSubParentCode] = useState<string | null>(null);
 
   const fetchAccounts = async () => {
     if (!user) return;
@@ -542,14 +574,22 @@ const AccountsPage = () => {
                     {/* Row Actions (hover) */}
                     {!isVirtualTypeHeader && (
                       <div className="hidden sm:flex items-center justify-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button className="p-1 rounded hover:bg-[hsl(210,14%,89%)] dark:hover:bg-muted transition-colors" title="تعديل">
+                        <button 
+                          className="p-1 rounded hover:bg-[hsl(210,14%,89%)] dark:hover:bg-muted transition-colors" 
+                          title="تعديل"
+                          onClick={() => setEditingAccount(acc)}
+                        >
                           <Pencil className="h-3.5 w-3.5 text-[hsl(210,10%,42%)] dark:text-muted-foreground" />
                         </button>
                         <button className="p-1 rounded hover:bg-[hsl(210,14%,89%)] dark:hover:bg-muted transition-colors" title="عرض الحركات"
                           onClick={() => navigate(`/account-statement?code=${acc.account_code}&name=${encodeURIComponent(acc.account_name)}`)}>
                           <Eye className="h-3.5 w-3.5 text-[hsl(210,10%,42%)] dark:text-muted-foreground" />
                         </button>
-                        <button className="p-1 rounded hover:bg-[hsl(210,14%,89%)] dark:hover:bg-muted transition-colors" title="إضافة فرعي">
+                        <button 
+                          className="p-1 rounded hover:bg-[hsl(210,14%,89%)] dark:hover:bg-muted transition-colors" 
+                          title="إضافة فرعي"
+                          onClick={() => { setAddSubParentCode(acc.account_code); setShowAddDialog(true); }}
+                        >
                           <PlusCircle className="h-3.5 w-3.5 text-[hsl(210,10%,42%)] dark:text-muted-foreground" />
                         </button>
                       </div>
@@ -574,8 +614,9 @@ const AccountsPage = () => {
       {/* Add Account Dialog */}
       <AddAccountDialog
         open={showAddDialog}
-        onOpenChange={setShowAddDialog}
+        onOpenChange={(open) => { setShowAddDialog(open); if (!open) setAddSubParentCode(null); }}
         accounts={accounts}
+        
         onAdd={async (data) => {
           if (!user) return false;
           try {
@@ -589,6 +630,7 @@ const AccountsPage = () => {
             });
             if (error) throw error;
             toast({ title: "تم إضافة الحساب بنجاح ✅" });
+            setAddSubParentCode(null);
             fetchAccounts();
             return true;
           } catch (err: any) {
@@ -597,6 +639,33 @@ const AccountsPage = () => {
           }
         }}
       />
+
+      {/* Edit Account Dialog */}
+      <Dialog open={!!editingAccount} onOpenChange={(o) => !o && setEditingAccount(null)}>
+        <DialogContent className="max-w-sm" dir="rtl">
+          <DialogHeader><DialogTitle>تعديل الحساب</DialogTitle></DialogHeader>
+          {editingAccount && (
+            <EditAccountForm
+              account={editingAccount}
+              onSave={async (name, notes) => {
+                if (!user || !editingAccount) return;
+                const { error } = await supabase.from('accounts').update({
+                  account_name: name,
+                  notes: notes || null,
+                }).eq('id', editingAccount.id);
+                if (error) {
+                  toast({ title: "خطأ", description: error.message, variant: "destructive" });
+                } else {
+                  toast({ title: "تم تعديل الحساب بنجاح ✅" });
+                  setEditingAccount(null);
+                  fetchAccounts();
+                }
+              }}
+              onCancel={() => setEditingAccount(null)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
