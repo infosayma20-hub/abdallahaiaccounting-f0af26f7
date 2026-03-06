@@ -214,7 +214,7 @@ export default function POSShiftsReport({ sessions, onRefresh }: Props) {
             <AlertDialogDescription>
               {confirmAction?.type === "clear"
                 ? `سيتم إعادة تعيين بيانات المبيعات والأرصدة للوردية الخاصة بـ "${confirmAction?.session.cashier_name || "غير محدد"}". هل أنت متأكد؟`
-                : `سيتم حذف الوردية الخاصة بـ "${confirmAction?.session.cashier_name || "غير محدد"}" نهائياً. هذا الإجراء لا يمكن التراجع عنه.`
+                : `سيتم إخفاء الوردية الخاصة بـ "${confirmAction?.session.cashier_name || "غير محدد"}" من التقارير. البيانات المالية المرتبطة ستبقى محفوظة.`
               }
             </AlertDialogDescription>
           </AlertDialogHeader>
