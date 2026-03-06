@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import * as XLSX from "xlsx";
+import { generateProfessionalPDFHtml, openPrintWindow, useCompanyInfo } from "@/components/ReportPrintLayout";
 
 // Format balance with label instead of parentheses
 function fmtBalance(n: number, currency: string): string {
@@ -109,6 +110,7 @@ const ContactStatementDialog = ({ open, onClose, contactId, contactName, contact
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
+  const companyInfo = useCompanyInfo();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(false);
   const [isPrintView, setIsPrintView] = useState(false);
@@ -236,147 +238,57 @@ const ContactStatementDialog = ({ open, onClose, contactId, contactName, contact
   };
 
   const exportToPDF = () => {
-    const printWindow = window.open("", "_blank");
-    if (!printWindow) return;
-    const today = new Date().toLocaleDateString("ar-EG", { year: "numeric", month: "2-digit", day: "2-digit" });
-    const balanceColor = finalBalance > 0 ? "#1F8A70" : finalBalance < 0 ? "#D64545" : "#003C71";
-    const balanceLabel = isSupplier
-      ? (finalBalance > 0 ? "مدين (دفعنا أكثر)" : finalBalance < 0 ? "دائن (مستحق للمورد)" : "مسدد بالكامل")
-      : (finalBalance > 0 ? "مدين (مستحق لنا)" : finalBalance < 0 ? "دائن (دفع أكثر)" : "مسدد بالكامل");
-
-    const rowsHtml = statementRows.map((r, i) => `
-      <tr class="${i % 2 === 1 ? 'zebra' : ''}">
-        <td class="num-col">${i + 1}</td>
-        <td>${r.tx.fields.Date || "-"}</td>
-        <td style="text-align:right;font-weight:500;">${r.description}</td>
-        <td style="text-align:right;font-size:11px;color:#6b7280;">${r.tx.fields.Description || "-"}</td>
-        <td class="debit-col">${r.debit ? r.debit.toLocaleString() : "-"}</td>
-        <td class="credit-col">${r.credit ? r.credit.toLocaleString() : "-"}</td>
-        <td class="balance-col" style="color:${r.runningBalance >= 0 ? "#1F8A70" : "#D64545"};">
-          ${fmtBalanceShort(r.runningBalance)} <span class="direction">${balanceDirection(r.runningBalance)}</span>
-        </td>
-      </tr>
-    `).join("");
-
-    printWindow.document.write(`<!DOCTYPE html>
-<html dir="rtl" lang="ar">
-<head>
-  <meta charset="UTF-8">
-  <title>كشف حساب - ${contactName}</title>
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Cairo', sans-serif; direction: rtl; color: #1f2937; background: #fff; font-size: 12px; line-height: 1.5; }
-    @page { size: A4; margin: 12mm 10mm 18mm 10mm; }
-    .page { max-width: 210mm; margin: 0 auto; }
-    .accent { height: 5px; background: linear-gradient(90deg, #003C71, #1F8A70); border-radius: 0 0 3px 3px; }
-    .header { display: flex; justify-content: space-between; align-items: flex-start; padding: 16px 0 12px; border-bottom: 2px solid #e5e7eb; }
-    .header h1 { font-size: 18px; font-weight: 800; color: #003C71; }
-    .header p { font-size: 10px; color: #6b7280; }
-    .header-left { text-align: left; font-size: 10px; color: #6b7280; }
-    .title { text-align: center; padding: 14px 0; }
-    .title h2 { font-size: 20px; font-weight: 800; color: #003C71; }
-    .title .meta { font-size: 11px; color: #6b7280; margin-top: 2px; }
-    .title .badge { display: inline-block; background: ${isSupplier ? "#FEF3C7" : "#DBEAFE"}; color: ${isSupplier ? "#92400E" : "#1E40AF"}; padding: 2px 10px; border-radius: 12px; font-size: 10px; font-weight: 700; margin-right: 6px; }
-    .summary { display: grid; grid-template-columns: 1.3fr 1fr 1fr 1fr; gap: 8px; padding: 12px 0; }
-    .sbox { border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px; text-align: center; background: #fafafa; }
-    .sbox .lbl { font-size: 9px; color: #9ca3af; font-weight: 600; margin-bottom: 3px; }
-    .sbox .val { font-size: 14px; font-weight: 800; }
-    .sbox .cur { font-size: 9px; color: #9ca3af; }
-    .sbox.primary { background: ${balanceColor}08; border-color: ${balanceColor}30; box-shadow: 0 2px 8px ${balanceColor}15; }
-    .sbox.primary .val { color: ${balanceColor}; font-size: 18px; }
-    .sbox.primary .lbl { color: ${balanceColor}; }
-    .green { color: #1F8A70; } .red { color: #D64545; } .navy { color: #003C71; }
-    table { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 11px; }
-    thead tr { background: #003C71; }
-    thead th { padding: 8px 10px; text-align: center; font-weight: 700; color: #fff; font-size: 11px; }
-    tbody tr { border-bottom: 1px solid #f3f4f6; }
-    .zebra { background: #f8fafc; }
-    tbody td { padding: 7px 10px; text-align: center; vertical-align: middle; }
-    .num-col { color: #9ca3af; width: 30px; }
-    .debit-col { color: #1f2937; font-weight: 600; }
-    .credit-col { color: #D64545; font-weight: 600; }
-    .balance-col { font-weight: 700; }
-    .direction { font-size: 9px; opacity: 0.7; }
-    .totals { background: #f0f9ff !important; border-top: 2px solid #003C71; font-weight: 700; }
-    .totals td { padding: 9px 10px; font-size: 12px; }
-    .analytics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 8px 0; margin-top: 4px; }
-    .abox { background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 6px; padding: 6px; text-align: center; }
-    .abox .albl { font-size: 8px; color: #9ca3af; font-weight: 600; }
-    .abox .aval { font-size: 11px; font-weight: 700; color: #003C71; }
-    .footer { margin-top: 24px; padding-top: 12px; border-top: 1px solid #e5e7eb; }
-    .sigs { display: flex; justify-content: space-between; padding: 16px 30px; }
-    .sig { text-align: center; width: 130px; }
-    .sig .line { border-bottom: 1px solid #d1d5db; height: 40px; margin-bottom: 4px; }
-    .sig .slbl { font-size: 10px; color: #6b7280; }
-    .brand { text-align: center; padding: 10px 0; font-size: 9px; color: #9ca3af; border-top: 1px solid #f3f4f6; margin-top: 8px; }
-    @media print { body { padding: 0; } .page { max-width: 100%; } thead { display: table-header-group; } tr { page-break-inside: avoid; } }
-  </style>
-</head>
-<body>
-<div class="page">
-  <div class="accent"></div>
-  <div class="header">
-    <div>
-      <h1>${companyName}</h1>
-      <p>${companyEmail}</p>
-    </div>
-    <div class="header-left">
-      <div style="font-size:9px;color:#9ca3af;">تاريخ التقرير</div>
-      <div style="font-weight:600;">${today}</div>
-    </div>
-  </div>
-  <div class="title">
-    <h2>كشف حساب</h2>
-    <div class="meta">
-      <span class="badge">${contactType || (isSupplier ? "مورد" : "عميل")}</span>
-      ${isSupplier ? "المورد" : "العميل"}: <strong>${contactName}</strong>
-    </div>
-  </div>
-  <div class="summary">
-    <div class="sbox primary">
-      <div class="lbl">الرصيد النهائي</div>
-      <div class="val">${fmtBalanceShort(finalBalance)} <span class="cur">${currency}</span></div>
-      <div style="font-size:8px;color:${balanceColor};margin-top:2px;">${balanceLabel}</div>
-    </div>
-    <div class="sbox"><div class="lbl">إجمالي المدين</div><div class="val green">${totalDebit.toLocaleString()} <span class="cur">${currency}</span></div></div>
-    <div class="sbox"><div class="lbl">إجمالي الدائن</div><div class="val red">${totalCredit.toLocaleString()} <span class="cur">${currency}</span></div></div>
-    <div class="sbox"><div class="lbl">الرصيد الافتتاحي</div><div class="val navy">0 <span class="cur">${currency}</span></div></div>
-  </div>
-  <div class="analytics">
-    <div class="abox"><div class="albl">عدد الحركات</div><div class="aval">${statementRows.length}</div></div>
-    <div class="abox"><div class="albl">آخر حركة</div><div class="aval">${lastTxDate}</div></div>
-    <div class="abox"><div class="albl">أكبر عملية</div><div class="aval">${largestTx.toLocaleString()}</div></div>
-    <div class="abox"><div class="albl">الفترة</div><div class="aval">${dateFrom || "الكل"} — ${dateTo || "الكل"}</div></div>
-  </div>
-  <table>
-    <thead><tr>
-      <th>#</th><th>التاريخ</th><th>البيان</th><th>ملاحظات</th><th>مدين</th><th>دائن</th><th>الرصيد</th>
-    </tr></thead>
-    <tbody>
-      ${rowsHtml}
-      <tr class="totals">
-        <td colspan="4" style="text-align:right;color:#003C71;">الإجمالي</td>
-        <td class="green">${totalDebit.toLocaleString()}</td>
-        <td class="red">${totalCredit.toLocaleString()}</td>
-        <td style="color:${balanceColor};font-size:13px;">${fmtBalanceShort(finalBalance)} ${balanceDirection(finalBalance)}</td>
-      </tr>
-    </tbody>
-  </table>
-  <div class="footer">
-    <div class="sigs">
-      <div class="sig"><div class="line"></div><div class="slbl">توقيع المحاسب</div></div>
-      <div class="sig"><div class="line"></div><div class="slbl">ختم الشركة</div></div>
-      <div class="sig"><div class="line"></div><div class="slbl">توقيع ${isSupplier ? "المورد" : "العميل"}</div></div>
-    </div>
-    <div class="brand">تم إنشاء هذا التقرير بواسطة Abdullah AI — نظام المحاسبة الذكي</div>
-  </div>
-</div>
-</body></html>`);
-    printWindow.document.close();
-    printWindow.onload = () => {
-      try { printWindow.print(); } catch (_) { /* user cancelled */ }
+    const balanceDir = finalBalance > 0 ? "مدين" : finalBalance < 0 ? "دائن" : "مسدد";
+    const company = companyInfo.name ? companyInfo : {
+      name: companyName, logo_url: "", address: "", phone: "", email: companyEmail, website: "", tax_number: "",
     };
+
+    const tableHeaders = ["#", "التاريخ", "البيان", "ملاحظات", "مدين", "دائن", "الرصيد"];
+    const tableRows = [
+      ...statementRows.map((r, i) => [
+        String(i + 1),
+        r.tx.fields.Date || "-",
+        r.description,
+        r.tx.fields.Description || "-",
+        r.debit ? r.debit.toLocaleString() : "-",
+        r.credit ? `<span style="color:#DC2626">${r.credit.toLocaleString()}</span>` : "-",
+        `<span style="color:${r.runningBalance >= 0 ? '#16A34A' : '#DC2626'};font-weight:700">${Math.abs(r.runningBalance).toLocaleString()} ${r.runningBalance >= 0 ? 'م' : 'د'}</span>`,
+      ]),
+      // Totals row
+      [`<td colspan="4" style="text-align:right;font-weight:700;background:#1B3A5C;color:#fff">الإجمالي</td>`,
+       `<td style="background:#1B3A5C;color:#fff;font-weight:700">${totalDebit.toLocaleString()}</td>`,
+       `<td style="background:#1B3A5C;color:#fff;font-weight:700">${totalCredit.toLocaleString()}</td>`,
+       `<td style="background:#1B3A5C;color:#C9A84C;font-weight:800">${Math.abs(finalBalance).toLocaleString()} ${balanceDir}</td>`
+      ].map(c => c), // raw HTML cells handled via totals
+    ];
+
+    // Build a simpler approach - just the data rows, totals handled in template
+    const dataRows = statementRows.map((r, i) => [
+      String(i + 1),
+      r.tx.fields.Date || "-",
+      r.description,
+      r.tx.fields.Description || "-",
+      r.debit ? r.debit.toLocaleString() : "-",
+      r.credit ? r.credit.toLocaleString() : "-",
+      `${Math.abs(r.runningBalance).toLocaleString()} ${r.runningBalance >= 0 ? 'م' : 'د'}`,
+    ]);
+
+    const html = generateProfessionalPDFHtml({
+      company,
+      reportTitle: "كشف حساب",
+      reportTitleEn: "STATEMENT OF ACCOUNT",
+      periodLabel: `${isSupplier ? "المورد" : "العميل"}: ${contactName} | ${dateFrom || 'الكل'} — ${dateTo || 'الكل'}`,
+      summaryItems: [
+        { label: "الرصيد النهائي", value: `${Math.abs(finalBalance).toLocaleString()} ${currency}`, color: finalBalance >= 0 ? "#16A34A" : "#DC2626" },
+        { label: "إجمالي المدين", value: `${totalDebit.toLocaleString()} ${currency}`, color: "#16A34A" },
+        { label: "إجمالي الدائن", value: `${totalCredit.toLocaleString()} ${currency}`, color: "#DC2626" },
+        { label: "عدد الحركات", value: String(statementRows.length), color: "#1B3A5C" },
+      ],
+      tableHeaders,
+      tableRows: dataRows,
+    });
+
+    openPrintWindow(html);
     toast({ title: "تم فتح نافذة الطباعة ✅" });
   };
 
