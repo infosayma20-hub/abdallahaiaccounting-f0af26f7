@@ -14,7 +14,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['"IBM Plex Sans Arabic"', 'system-ui', 'sans-serif'],
+        sans: ['"Cairo"', 'sans-serif'],
+        arabic: ['"Cairo"', 'sans-serif'],
       },
       spacing: {
         '18': '4.5rem',
