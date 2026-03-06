@@ -1189,6 +1189,12 @@ const POSPage = () => {
     try {
       let orderId: string;
       let orderObj: any;
+      
+      // Apply customer data discount
+      const effectiveTotal = customerDataDiscount 
+        ? cartTotals.total - customerDataDiscount.discountAmount 
+        : cartTotals.total;
+      const effectiveDiscount = cartTotals.discount + (customerDataDiscount?.discountAmount || 0);
 
       // Check if there's an existing draft/open order for this table (saved earlier)
       if (activeOrder.tableId) {
