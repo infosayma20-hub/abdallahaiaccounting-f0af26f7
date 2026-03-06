@@ -1955,17 +1955,15 @@ const POSPage = () => {
           </div>
 
           {/* ── Quick Modifier Bar ── */}
-          {modifierGroups.length > 0 && (
-            <QuickModifierBar
-              quickModifiers={modifierGroups.flatMap(g => g.options.slice(0, 2).map((o: any) => ({
-                id: o.id, label: `${o.name}${o.extra_price > 0 ? ` +₪${o.extra_price}` : ''}`, optionId: o.id, groupId: g.id,
-              }))).slice(0, 8)}
-              activeModId={activeQuickMod}
-              onQuickModifier={(mod) => setActiveQuickMod(prev => prev === mod.id ? null : mod.id)}
-              onManage={() => navigate("/pos/modifiers")}
-              isAdmin={isAdmin}
-            />
-          )}
+          <QuickModifierBar
+            quickModifiers={modifierGroups.flatMap(g => g.options.slice(0, 2).map((o: any) => ({
+              id: o.id, label: `${o.name}${o.extra_price > 0 ? ` +₪${o.extra_price}` : ''}`, optionId: o.id, groupId: g.id,
+            }))).slice(0, 8)}
+            activeModId={activeQuickMod}
+            onQuickModifier={(mod) => setActiveQuickMod(prev => prev === mod.id ? null : mod.id)}
+            onManage={() => navigate("/pos/modifiers")}
+            isAdmin={isAdmin}
+          />
 
           {/* ── Products Grid ── */}
           <ScrollArea className="flex-1">
