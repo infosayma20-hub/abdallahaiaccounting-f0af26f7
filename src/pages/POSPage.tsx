@@ -2526,23 +2526,86 @@ const POSPage = () => {
                   </div>
                 </div>
 
-                {/* Exchange rate info */}
+                {/* Exchange rate info - enhanced */}
                 {paymentCurrency !== "ILS" && exchangeRates[paymentCurrency] && (
-                  <div className="flex items-center justify-between text-xs p-2.5 rounded-lg bg-muted/50 border border-border">
-                    <div>
-                      <span className="text-muted-foreground">سعر الصرف</span>
-                    </div>
-                    <div className="text-left">
-                      <span className="font-medium tabular-nums">
-                        {currencies.find(c => c.code === paymentCurrency)?.symbol}1 = ₪{exchangeRates[paymentCurrency]?.toFixed(4)}
+                  <div className="space-y-2 p-3 rounded-xl bg-muted/50 border border-border">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-foreground flex items-center gap-1">
+                        💱 سعر الصرف — {currencies.find(c => c.code === paymentCurrency)?.name}
                       </span>
-                      <div className="text-muted-foreground">
-                        المطلوب بال{currencies.find(c => c.code === paymentCurrency)?.name}:{" "}
-                        <span className="font-bold text-foreground tabular-nums">
-                          {currencies.find(c => c.code === paymentCurrency)?.symbol}
-                          {(cartTotals.total / (exchangeRates[paymentCurrency] || 1)).toFixed(2)}
-                        </span>
+                      {exchangeRateDetails[paymentCurrency] && (() => {
+                        const rateDate = exchangeRateDetails[paymentCurrency].date;
+                        const isStale = rateDate && new Date(rateDate).toDateString() !== new Date().toDateString();
+                        return isStale ? (
+                          <span className="text-[10px] text-amber-600 flex items-center gap-0.5">⚠️ لم يُحدَّث اليوم</span>
+                        ) : null;
+                      })()}
+                    </div>
+
+                    {/* System rate info */}
+                    <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                      <span>السعر في النظام: {exchangeRateDetails[paymentCurrency]?.rate?.toFixed(4) || '—'} ₪/{paymentCurrency}</span>
+                      <span>{exchangeRateDetails[paymentCurrency]?.date ? `آخر تحديث: ${new Date(exchangeRateDetails[paymentCurrency].date).toLocaleDateString("ar-PS")}` : ''}</span>
+                    </div>
+
+                    {/* Editable rate */}
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 relative">
+                        <Input
+                          type="number"
+                          value={editedRate !== null ? editedRate : (exchangeRates[paymentCurrency] || 0)}
+                          onChange={(e) => {
+                            const val = parseFloat(e.target.value);
+                            if (val > 0) {
+                              setEditedRate(val);
+                              setRateEdited(true);
+                              setExchangeRates(prev => ({ ...prev, [paymentCurrency]: val }));
+                            }
+                          }}
+                          step="0.0001"
+                          className={`text-sm font-mono h-9 ${rateEdited ? 'border-amber-400 bg-amber-50 dark:bg-amber-950/20' : ''}`}
+                        />
+                        {rateEdited && (
+                          <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-amber-600 font-medium">✏️ معدّل</span>
+                        )}
                       </div>
+                      <span className="text-xs text-muted-foreground whitespace-nowrap">₪/{paymentCurrency}</span>
+                      {rateEdited && (
+                        <button
+                          onClick={() => {
+                            const original = exchangeRateDetails[paymentCurrency]?.rate || 1;
+                            setEditedRate(null);
+                            setRateEdited(false);
+                            setExchangeRates(prev => ({ ...prev, [paymentCurrency]: exchangeRateDetails[paymentCurrency]?.posOverride || original }));
+                          }}
+                          className="text-[10px] text-primary hover:underline whitespace-nowrap"
+                        >
+                          ← الرسمي
+                        </button>
+                      )}
+                    </div>
+                    {rateEdited && (
+                      <p className="text-[10px] text-amber-600">⚠️ سيُسجَّل السعر المعدَّل في سجل المعاملات</p>
+                    )}
+
+                    {/* Required in foreign */}
+                    <div className="flex justify-between items-center pt-1 border-t border-border">
+                      <span className="text-xs text-muted-foreground">المطلوب بال{currencies.find(c => c.code === paymentCurrency)?.name}</span>
+                      <span className="font-mono font-bold text-sm tabular-nums">
+                        {currencies.find(c => c.code === paymentCurrency)?.symbol}
+                        {(cartTotals.total / (exchangeRates[paymentCurrency] || 1)).toFixed(2)}
+                      </span>
+                    </div>
+
+                    {/* Account info */}
+                    <div className="text-[10px] text-muted-foreground flex items-center gap-1 pt-1">
+                      <span>📒 سيُسجَّل في:</span>
+                      <span className="font-medium">
+                        {paymentCurrency === 'USD' ? 'صندوق الدولار (1111)' :
+                         paymentCurrency === 'JOD' ? 'صندوق الدينار (1112)' :
+                         paymentCurrency === 'EUR' ? 'صندوق اليورو (1113)' :
+                         paymentCurrency === 'EGP' ? 'صندوق الجنيه (1114)' : 'الصندوق (1110)'}
+                      </span>
                     </div>
                   </div>
                 )}
