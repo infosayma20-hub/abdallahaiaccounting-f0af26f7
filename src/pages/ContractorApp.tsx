@@ -369,75 +369,108 @@ export default function ContractorApp() {
     return (
       <div ref={contractRef} style={{ display: "none" }}>
         <div className="contract">
+          {/* Header */}
           <div className="header">
-            {logoUrl && <img src={logoUrl} alt="logo" className="logo" />}
-            <div className="company-name">{companyName}</div>
-            <div className="company-info">
-              {companyPhone && `هاتف: ${companyPhone}`}
-              {companyAddress && ` | ${companyAddress}`}
-              {companyEmail && ` | ${companyEmail}`}
+            <div className="header-right">
+              {logoUrl && <img src={logoUrl} alt="logo" className="logo" />}
+              <div className="company-name">{companyName}</div>
+            </div>
+            <div className="header-left">
+              <div className="subtitle">Contract Agreement</div>
+              <div className="contract-label">PROJECT AGREEMENT</div>
             </div>
           </div>
 
+          {/* Title */}
           <div className="title">عقد اتفاق مشروع</div>
 
+          {/* Parties */}
           <div className="section">
-            <div className="section-title">بيانات المشروع</div>
-            <div className="info-grid">
-              <div className="info-item"><span className="info-label">اسم المشروع:</span><span className="info-value">{p.name}</span></div>
-              <div className="info-item"><span className="info-label">اسم العميل:</span><span className="info-value">{p.client_name || "-"}</span></div>
-              <div className="info-item"><span className="info-label">رقم الجوال:</span><span className="info-value">{p.phone || "-"}</span></div>
-              <div className="info-item"><span className="info-label">العنوان:</span><span className="info-value">{p.address || "-"}</span></div>
-              <div className="info-item"><span className="info-label">تاريخ البداية:</span><span className="info-value">{fmtDate(p.start_date)}</span></div>
-              <div className="info-item"><span className="info-label">تاريخ النهاية:</span><span className="info-value">{fmtDate(p.end_date)}</span></div>
-              <div className="info-item"><span className="info-label">مدة التنفيذ:</span><span className="info-value">{p.execution_duration || "-"}</span></div>
-              <div className="info-item"><span className="info-label">آلية الدفع:</span><span className="info-value">{p.payment_terms || "-"}</span></div>
+            <div className="section-title">بيانات الأطراف</div>
+            <div className="parties-grid">
+              <div className="info-row"><span className="info-label">الطرف الأول:</span><span className="info-value">{companyName}</span></div>
+              <div className="info-row"><span className="info-label">الطرف الثاني:</span><span className="info-value">{p.client_name || "-"}</span></div>
+              <div className="info-row"><span className="info-label">العنوان:</span><span className="info-value">{p.address || "-"}</span></div>
+              <div className="info-row"><span className="info-label">رقم الجوال:</span><span className="info-value">{p.phone || "-"}</span></div>
             </div>
           </div>
 
+          {/* Project Details */}
+          <div className="section">
+            <div className="section-title">بيانات المشروع</div>
+            <div className="parties-grid">
+              <div className="info-row"><span className="info-label">اسم المشروع:</span><span className="info-value">{p.name}</span></div>
+              <div className="info-row"><span className="info-label">تاريخ البداية:</span><span className="info-value">{fmtDate(p.start_date)}</span></div>
+              <div className="info-row"><span className="info-label">مدة التنفيذ:</span><span className="info-value">{p.execution_duration || "-"}</span></div>
+              <div className="info-row"><span className="info-label">آلية الدفع:</span><span className="info-value">{p.payment_terms || "-"}</span></div>
+            </div>
+          </div>
+
+          {/* Scope of Work */}
           {p.tasks && p.tasks.length > 0 && (
             <div className="section">
-              <div className="section-title">المهام المطلوبة</div>
-              <ul className="tasks-list">
-                {p.tasks.map((t, i) => <li key={i}>{t}</li>)}
-              </ul>
+              <div className="section-title">نطاق العمل</div>
+              <div className="tasks-grid">
+                {p.tasks.map((t, i) => (
+                  <div key={i} className="task-item">
+                    <span className="task-check">✓</span>
+                    <span>{t}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
+          {/* Financial Summary */}
           <div className="section">
             <div className="section-title">الملخص المالي</div>
             <table className="summary-table">
               <thead><tr><th>البند</th><th>المبلغ (₪)</th></tr></thead>
               <tbody>
-                <tr><td>الميزانية المتفق عليها</td><td className="amount">{fmtNum(p.budget)}</td></tr>
-                <tr><td>إجمالي المصروفات</td><td style={{color:"#dc2626"}}>{fmtNum(p.total_expenses)}</td></tr>
-                <tr><td>إجمالي المقبوضات</td><td style={{color:"#16a34a"}}>{fmtNum(p.total_receipts)}</td></tr>
-                <tr><td><strong>المتبقي</strong></td><td className="amount"><strong>{fmtNum(p.budget - p.total_expenses)}</strong></td></tr>
+                <tr><td>الميزانية المتفق عليها</td><td className="amount-positive">{fmtNum(p.budget)}</td></tr>
+                <tr><td>إجمالي المصروفات</td><td className="amount-negative">{fmtNum(p.total_expenses)}</td></tr>
+                <tr><td>إجمالي المقبوضات</td><td className="amount-positive">{fmtNum(p.total_receipts)}</td></tr>
+                <tr><td>المتبقي</td><td className="amount-positive">{fmtNum(p.budget - p.total_expenses)}</td></tr>
               </tbody>
             </table>
           </div>
 
+          {/* Notes */}
           {p.notes && (
             <div className="section">
-              <div className="section-title">ملاحظات</div>
-              <p style={{fontSize:"13px", color:"#555"}}>{p.notes}</p>
+              <div className="section-title">الملاحظات</div>
+              <div className="notes-box">{p.notes}</div>
             </div>
           )}
 
+          <hr className="sep" />
+
+          {/* Signatures */}
           <div className="signatures">
             <div className="sig-box">
-              <div className="sig-label">الطرف الأول (المقاول)</div>
-              <div className="sig-line">التوقيع: ________________</div>
+              <div className="sig-title">الطرف الأول (المقاول)</div>
+              <div className="sig-field">الاسم: <span>&nbsp;</span></div>
+              <div className="sig-field">التوقيع: <span>&nbsp;</span></div>
             </div>
             <div className="sig-box">
-              <div className="sig-label">الطرف الثاني (العميل)</div>
-              <div className="sig-line">التوقيع: ________________</div>
+              <div className="sig-title">الطرف الثاني (العميل)</div>
+              <div className="sig-field">الاسم: <span>&nbsp;</span></div>
+              <div className="sig-field">التوقيع: <span>&nbsp;</span></div>
             </div>
           </div>
+          <div className="sig-date">التاريخ: <span>{format(new Date(), "dd/MM/yyyy")}</span></div>
 
+          <hr className="sep" />
+
+          {/* Footer */}
           <div className="footer">
-            تم إنشاء هذا العقد بتاريخ {format(new Date(), "dd/MM/yyyy")} | {companyName}
-            {companyPhone && ` | ${companyPhone}`}
+            {logoUrl && <img src={logoUrl} alt="logo" style={{ maxHeight: "28px", marginBottom: "6px" }} />}
+            <div>{companyName}</div>
+            <div>
+              {companyPhone && `${companyPhone}`}
+              {companyAddress && ` | ${companyAddress}`}
+              {companyEmail && ` | ${companyEmail}`}
+            </div>
           </div>
         </div>
       </div>
