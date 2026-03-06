@@ -1371,6 +1371,8 @@ const POSPage = () => {
         tenderedAmount: tendered,
         change,
         currency: paymentCurrency,
+        exchangeRate: rate,
+        foreignAmount: foreignTotal,
         orderNote,
       };
 
