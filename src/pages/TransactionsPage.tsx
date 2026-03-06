@@ -116,6 +116,9 @@ const TransactionsPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
 
+  // Journal Entry Modal
+  const [showJournalEntry, setShowJournalEntry] = useState(false);
+
   // Trash
   const [showTrash, setShowTrash] = useState(false);
   const [deletedTransactions, setDeletedTransactions] = useState<Transaction[]>([]);
