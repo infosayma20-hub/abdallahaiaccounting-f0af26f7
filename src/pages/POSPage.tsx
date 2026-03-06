@@ -334,6 +334,11 @@ const POSPage = () => {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [showCategoryManager, setShowCategoryManager] = useState(false);
+  const [showCustomerDataModal, setShowCustomerDataModal] = useState(false);
+  const [customerDataDiscount, setCustomerDataDiscount] = useState<{
+    discountPct: number; discountAmount: number; customerId: string | null;
+    contactType: string; contactValue: string; customerName: string;
+  } | null>(null);
   const [openingCash, setOpeningCash] = useState("");
   const [closingCash, setClosingCash] = useState("");
 
