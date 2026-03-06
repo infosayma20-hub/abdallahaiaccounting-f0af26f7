@@ -1211,9 +1211,10 @@ const POSPage = () => {
           await supabase.from("pos_orders").update({
             customer_name: customerName || null,
             subtotal: cartTotals.subtotal,
-            discount_amount: cartTotals.discount,
+            discount_amount: effectiveDiscount,
             tax_amount: cartTotals.tax,
-            total: cartTotals.total,
+            total: effectiveTotal,
+            ...(customerDataDiscount ? { pos_customer_id: customerDataDiscount.customerId, customer_discount_pct: customerDataDiscount.discountPct } as any : {}),
             session_id: session.id,
           } as any).eq("id", existingOrder.id);
           orderId = existingOrder.id;
@@ -1228,14 +1229,15 @@ const POSPage = () => {
               session_id: session.id,
               customer_name: customerName || null,
               subtotal: cartTotals.subtotal,
-              discount_amount: cartTotals.discount,
+              discount_amount: effectiveDiscount,
               tax_amount: cartTotals.tax,
-              total: cartTotals.total,
+              total: effectiveTotal,
               state: "draft",
               table_id: activeOrder.tableId,
               guest_count: activeOrder.guestCount,
               guest_name: activeOrder.guestName || null,
               order_type: "dine_in",
+              ...(customerDataDiscount ? { pos_customer_id: customerDataDiscount.customerId, customer_discount_pct: customerDataDiscount.discountPct } as any : {}),
             } as any)
             .select()
             .single();
@@ -1244,7 +1246,6 @@ const POSPage = () => {
           orderObj = order;
         }
       } else {
-        // No table - create new order
         const { data: order, error: orderError } = await supabase
           .from("pos_orders")
           .insert({
@@ -1253,10 +1254,11 @@ const POSPage = () => {
             session_id: session.id,
             customer_name: customerName || null,
             subtotal: cartTotals.subtotal,
-            discount_amount: cartTotals.discount,
+            discount_amount: effectiveDiscount,
             tax_amount: cartTotals.tax,
-            total: cartTotals.total,
+            total: effectiveTotal,
             state: "draft",
+            ...(customerDataDiscount ? { pos_customer_id: customerDataDiscount.customerId, customer_discount_pct: customerDataDiscount.discountPct } as any : {}),
           } as any)
           .select()
           .single();
