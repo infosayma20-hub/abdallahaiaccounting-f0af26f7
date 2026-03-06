@@ -581,38 +581,48 @@ const TransactionsPage = () => {
         )}
 
         {!loading && !error && filteredTransactions.length > 0 && (
-          <table className="w-full border-collapse min-w-[900px]">
+          <table className="w-full border-collapse table-fixed">
+            <colgroup>
+              <col className="w-[3%]" />
+              <col className="w-[9%]" />
+              <col className="w-[12%]" />
+              <col style={{ width: 'auto' }} />
+              <col className="w-[10%]" />
+              <col className="w-[11%]" />
+              <col className="w-[11%]" />
+              <col className="w-[4%]" />
+            </colgroup>
             {/* ━━ Header ━━ */}
             <thead className="sticky top-0 z-10">
               <tr className="bg-[#F8F9FA] border-b-2 border-[#E2E8F0]">
-                <th className="w-10 px-3 py-2.5 text-center">
+                <th className="px-2 py-2.5 text-center">
                   <Checkbox
                     checked={selectedIds.size === paginatedTransactions.length && paginatedTransactions.length > 0}
                     onCheckedChange={toggleSelectAll}
                   />
                 </th>
                 <th
-                  className="text-right px-3 py-2.5 text-xs font-semibold text-[#637381] uppercase tracking-wider cursor-pointer hover:bg-[#EFF6FF] w-24 select-none"
+                  className="text-right px-2 py-2.5 text-xs font-semibold text-[#637381] uppercase tracking-wider cursor-pointer hover:bg-[#EFF6FF] select-none"
                   onClick={() => toggleSort("date")}
                 >
                   <div className="flex items-center gap-1">التاريخ <SortIcon field="date" /></div>
                 </th>
-                <th className="text-right px-3 py-2.5 text-xs font-semibold text-[#637381] uppercase tracking-wider w-36">المرجع</th>
-                <th className="text-right px-3 py-2.5 text-xs font-semibold text-[#637381] uppercase tracking-wider">الوصف / الحسابات</th>
-                <th className="text-right px-3 py-2.5 text-xs font-semibold text-[#637381] uppercase tracking-wider w-28">النوع</th>
+                <th className="text-right px-2 py-2.5 text-xs font-semibold text-[#637381] uppercase tracking-wider">المرجع</th>
+                <th className="text-right px-2 py-2.5 text-xs font-semibold text-[#637381] uppercase tracking-wider">الوصف / الحسابات</th>
+                <th className="text-right px-2 py-2.5 text-xs font-semibold text-[#637381] uppercase tracking-wider">النوع</th>
                 <th
-                  className="text-left px-3 py-2.5 text-xs font-semibold text-[#1A56DB] uppercase tracking-wider w-28 cursor-pointer hover:bg-[#EFF6FF] select-none"
+                  className="text-left px-2 py-2.5 text-xs font-semibold text-[#1A56DB] uppercase tracking-wider cursor-pointer hover:bg-[#EFF6FF] select-none"
                   onClick={() => toggleSort("debit")}
                 >
                   <div className="flex items-center justify-end gap-1"><SortIcon field="debit" /> مدين ₪</div>
                 </th>
                 <th
-                  className="text-left px-3 py-2.5 text-xs font-semibold text-[#0E9F6E] uppercase tracking-wider w-28 cursor-pointer hover:bg-[#EFF6FF] select-none"
+                  className="text-left px-2 py-2.5 text-xs font-semibold text-[#0E9F6E] uppercase tracking-wider cursor-pointer hover:bg-[#EFF6FF] select-none"
                   onClick={() => toggleSort("credit")}
                 >
                   <div className="flex items-center justify-end gap-1"><SortIcon field="credit" /> دائن ₪</div>
                 </th>
-                <th className="w-10" />
+                <th className="px-1" />
               </tr>
             </thead>
 
