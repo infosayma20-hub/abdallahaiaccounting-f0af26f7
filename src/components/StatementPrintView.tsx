@@ -85,17 +85,18 @@ const StatementPrintView = ({
 
   return (
     <div
-      className="statement-print-page bg-white text-black"
+      className="statement-print-page statement-page bg-white text-black"
       style={{
         width: "210mm",
-        minHeight: "297mm",
+        maxHeight: "297mm",
         margin: "0 auto",
         padding: "0",
         fontFamily: "'Cairo', 'Segoe UI', sans-serif",
         direction: "rtl",
         fontSize: "11px",
-        lineHeight: 1.5,
+        lineHeight: 1.4,
         position: "relative",
+        overflow: "hidden",
       }}
     >
       {/* ━━━ HEADER BAR ━━━ */}
@@ -103,7 +104,7 @@ const StatementPrintView = ({
         style={{
           background: "linear-gradient(135deg, #1B3A5C 0%, #0F2640 100%)",
           color: "white",
-          padding: "16px 28px",
+          padding: "12px 28px",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
@@ -156,7 +157,7 @@ const StatementPrintView = ({
       <div style={{ height: "3px", background: "linear-gradient(90deg, #C9A84C, #E8D48B, #C9A84C)" }} />
 
       {/* ━━━ INFO SECTION ━━━ */}
-      <div style={{ padding: "14px 28px", display: "flex", justifyContent: "space-between", borderBottom: "1px solid #E5E7EB" }}>
+      <div style={{ padding: "10px 28px", display: "flex", justifyContent: "space-between", borderBottom: "1px solid #E5E7EB" }}>
         <div>
           <div style={{ fontSize: "9px", color: "#6B7280", fontWeight: 600, textTransform: "uppercase", letterSpacing: "1px", marginBottom: "4px" }}>
             صادر إلى
@@ -219,7 +220,7 @@ const StatementPrintView = ({
       </div>
 
       {/* ━━━ SUMMARY CARDS ━━━ */}
-      <div style={{ padding: "12px 28px", display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "10px" }}>
+      <div style={{ padding: "8px 28px", display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "8px" }}>
         {[
           { label: "رصيد افتتاحي", value: openingBalance, bg: "#F8FAFC", border: "#E2E8F0", color: "#334155" },
           { label: "إجمالي المدين", value: totalDebit, bg: "#FEF2F2", border: "#FECACA", color: "#DC2626" },
@@ -232,12 +233,12 @@ const StatementPrintView = ({
               background: card.bg,
               border: `1px solid ${card.border}`,
               borderRadius: "8px",
-              padding: "10px 12px",
+              padding: "6px 10px",
               textAlign: "center",
             }}
           >
             <div style={{ fontSize: "9px", color: "#6B7280", fontWeight: 600, marginBottom: "4px" }}>{card.label}</div>
-            <div style={{ fontSize: "16px", fontWeight: 700, color: card.color, fontFeatureSettings: "'tnum'" }}>
+            <div style={{ fontSize: "13px", fontWeight: 700, color: card.color, fontFeatureSettings: "'tnum'" }}>
               {fmtAmount(card.value)}
             </div>
             {(card as any).suffix && (
@@ -248,7 +249,7 @@ const StatementPrintView = ({
       </div>
 
       {/* ━━━ TABLE ━━━ */}
-      <div style={{ padding: "0 28px 8px" }}>
+      <div style={{ padding: "0 28px 4px" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "10px" }}>
           <thead>
             <tr style={{ background: "#1B3A5C", color: "white" }}>
@@ -256,7 +257,7 @@ const StatementPrintView = ({
                 <th
                   key={i}
                   style={{
-                    padding: "8px 8px",
+                    padding: "5px 8px",
                     textAlign: i >= 4 ? "left" : "right",
                     fontWeight: 700,
                     fontSize: "10px",
@@ -272,13 +273,13 @@ const StatementPrintView = ({
           <tbody>
             {/* Opening balance */}
             <tr style={{ background: "#F8FAFC", borderBottom: "1px solid #E5E7EB" }}>
-              <td style={{ padding: "6px 8px", color: "#6B7280" }}>{fmtDate(dateFrom)}</td>
-              <td style={{ padding: "6px 8px", color: "#9CA3AF" }}>—</td>
-              <td style={{ padding: "6px 8px", fontWeight: 700, color: "#1B3A5C" }}>رصيد أول المدة</td>
-              <td style={{ padding: "6px 8px" }}></td>
-              <td style={{ padding: "6px 8px", textAlign: "left", color: "#9CA3AF" }}>—</td>
-              <td style={{ padding: "6px 8px", textAlign: "left", color: "#9CA3AF" }}>—</td>
-              <td style={{ padding: "6px 8px", textAlign: "left", fontWeight: 700, color: openingBalance >= 0 ? "#DC2626" : "#16A34A", fontFeatureSettings: "'tnum'" }}>
+              <td style={{ padding: "4px 8px", color: "#6B7280" }}>{fmtDate(dateFrom)}</td>
+              <td style={{ padding: "4px 8px", color: "#9CA3AF" }}>—</td>
+              <td style={{ padding: "4px 8px", fontWeight: 700, color: "#1B3A5C" }}>رصيد أول المدة</td>
+              <td style={{ padding: "4px 8px" }}></td>
+              <td style={{ padding: "4px 8px", textAlign: "left", color: "#9CA3AF" }}>—</td>
+              <td style={{ padding: "4px 8px", textAlign: "left", color: "#9CA3AF" }}>—</td>
+              <td style={{ padding: "4px 8px", textAlign: "left", fontWeight: 700, color: openingBalance >= 0 ? "#DC2626" : "#16A34A", fontFeatureSettings: "'tnum'" }}>
                 {fmtAmount(openingBalance)}
               </td>
             </tr>
@@ -292,16 +293,16 @@ const StatementPrintView = ({
                   borderBottom: "1px solid #F3F4F6",
                 }}
               >
-                <td style={{ padding: "6px 8px", fontFeatureSettings: "'tnum'", color: "#374151" }}>{fmtDate(row.date)}</td>
-                <td style={{ padding: "6px 8px" }}>
+                <td style={{ padding: "4px 8px", fontFeatureSettings: "'tnum'", color: "#374151" }}>{fmtDate(row.date)}</td>
+                <td style={{ padding: "4px 8px" }}>
                   {row.reference ? (
                     <span style={{ color: "#1B3A5C", fontWeight: 600, fontFamily: "monospace", fontSize: "9px" }}>{row.reference}</span>
                   ) : (
                     <span style={{ color: "#9CA3AF" }}>—</span>
                   )}
                 </td>
-                <td style={{ padding: "6px 8px", color: "#111827" }}>{row.description}</td>
-                <td style={{ padding: "6px 8px", textAlign: "center" }}>
+                <td style={{ padding: "4px 8px", color: "#111827" }}>{row.description}</td>
+                <td style={{ padding: "4px 8px", textAlign: "center" }}>
                   <span
                     style={{
                       fontSize: "8px",
@@ -318,7 +319,7 @@ const StatementPrintView = ({
                 </td>
                 <td
                   style={{
-                    padding: "6px 8px",
+                    padding: "4px 8px",
                     textAlign: "left",
                     fontWeight: row.debit > 0 ? 700 : 400,
                     color: row.debit > 0 ? "#DC2626" : "#9CA3AF",
@@ -329,7 +330,7 @@ const StatementPrintView = ({
                 </td>
                 <td
                   style={{
-                    padding: "6px 8px",
+                    padding: "4px 8px",
                     textAlign: "left",
                     fontWeight: row.credit > 0 ? 700 : 400,
                     color: row.credit > 0 ? "#16A34A" : "#9CA3AF",
@@ -340,7 +341,7 @@ const StatementPrintView = ({
                 </td>
                 <td
                   style={{
-                    padding: "6px 8px",
+                    padding: "4px 8px",
                     textAlign: "left",
                     fontWeight: 700,
                     color: row.balance >= 0 ? "#DC2626" : "#16A34A",
@@ -357,13 +358,13 @@ const StatementPrintView = ({
 
             {/* Closing balance */}
             <tr style={{ background: "#1B3A5C", color: "white", fontWeight: 700 }}>
-              <td style={{ padding: "8px" }}>—</td>
-              <td style={{ padding: "8px" }}>—</td>
-              <td style={{ padding: "8px", fontWeight: 700 }}>رصيد ختامي</td>
-              <td style={{ padding: "8px" }}></td>
-              <td style={{ padding: "8px", textAlign: "left", fontFeatureSettings: "'tnum'" }}>{fmtAmount(totalDebit)}</td>
-              <td style={{ padding: "8px", textAlign: "left", fontFeatureSettings: "'tnum'" }}>{fmtAmount(totalCredit)}</td>
-              <td style={{ padding: "8px", textAlign: "left", fontFeatureSettings: "'tnum'" }}>
+              <td style={{ padding: "5px 8px" }}>—</td>
+              <td style={{ padding: "5px 8px" }}>—</td>
+              <td style={{ padding: "5px 8px", fontWeight: 700 }}>رصيد ختامي</td>
+              <td style={{ padding: "5px 8px" }}></td>
+              <td style={{ padding: "5px 8px", textAlign: "left", fontFeatureSettings: "'tnum'" }}>{fmtAmount(totalDebit)}</td>
+              <td style={{ padding: "5px 8px", textAlign: "left", fontFeatureSettings: "'tnum'" }}>{fmtAmount(totalCredit)}</td>
+              <td style={{ padding: "5px 8px", textAlign: "left", fontFeatureSettings: "'tnum'" }}>
                 <span style={{ color: "#C9A84C", fontWeight: 800, fontSize: "12px" }}>
                   {fmtAmount(closingBalance)}
                 </span>
@@ -381,7 +382,7 @@ const StatementPrintView = ({
         <div
           style={{
             margin: "0 28px 12px",
-            padding: "10px 16px",
+            padding: "6px 14px",
             background: "#FEF2F2",
             border: "1px solid #FECACA",
             borderRadius: "8px",
@@ -406,7 +407,7 @@ const StatementPrintView = ({
       <div
         style={{
           margin: "0 28px",
-          padding: "14px 0",
+          padding: "8px 0",
           borderTop: "1px solid #E5E7EB",
           display: "flex",
           justifyContent: "space-between",
@@ -433,8 +434,8 @@ const StatementPrintView = ({
           </div>
           <div
             style={{
-              width: "160px",
-              height: "60px",
+              width: "140px",
+              height: "45px",
               border: "1px dashed #D1D5DB",
               borderRadius: "6px",
               margin: "0 auto 6px",
@@ -449,7 +450,7 @@ const StatementPrintView = ({
         style={{
           background: "#1B3A5C",
           color: "rgba(255,255,255,0.7)",
-          padding: "8px 28px",
+          padding: "6px 28px",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",

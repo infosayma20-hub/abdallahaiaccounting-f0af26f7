@@ -280,4 +280,44 @@ table th { font-weight: 700; }
   font-variant-numeric: tabular-nums;
 }
 
+/* ── Print Utilities ── */
+@media screen {
+  .print-only {
+    display: none !important;
+  }
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+  }
+
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
+
+  .statement-page {
+    width: 210mm !important;
+    max-height: 297mm !important;
+    overflow: hidden !important;
+    page-break-after: avoid !important;
+    page-break-inside: avoid !important;
+  }
+}
+
 /* ── Force Western Arabic Numerals (123) everywhere ── */
