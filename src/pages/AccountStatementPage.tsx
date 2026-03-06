@@ -167,6 +167,26 @@ const AccountStatementPage = () => {
       setAccounts((accData as Account[]) || []);
       setTransactions((txData as Transaction[]) || []);
       if (profileRes.data?.company_name) setCompanyName(profileRes.data.company_name);
+
+      // Map employees to their linked account codes (accounts under 1180)
+      const allAccounts = (accData as Account[]) || [];
+      const empList = ((empData as any[]) || []).map((emp: any) => {
+        // Find a matching account: "ذمم موظف - {name}" under parent 1180
+        const linkedAcc = allAccounts.find(
+          a => a.account_name === `ذمم موظف - ${emp.full_name}` && a.account_type === "أصول"
+        );
+        return {
+          ...emp,
+          account_code: linkedAcc?.account_code || null,
+        } as EmployeeEntity;
+      });
+      setEmployeeEntities(empList);
+
+      // Auto-select employee from URL param
+      if (urlEmployeeName && empList.length > 0) {
+        const found = empList.find(e => e.full_name === urlEmployeeName);
+        if (found) setSelectedEntityId(found.id);
+      }
     } catch (err: any) {
       toast({ title: "خطأ", description: err.message, variant: "destructive" });
     } finally {
@@ -178,7 +198,7 @@ const AccountStatementPage = () => {
 
   // ─── FILTERED CONTACTS BY TAB ───
   const tabContacts = useMemo(() => {
-    if (isAccountsTab) return [];
+    if (isAccountsTab || isEmployeesTab) return [];
     const type = activeTabConfig.type;
     return contacts.filter(c => c.contact_type === type);
   }, [contacts, activeTab]);
@@ -198,9 +218,25 @@ const AccountStatementPage = () => {
     return map;
   }, [accounts, transactions, isAccountsTab]);
 
+  // ─── EMPLOYEE BALANCES ───
+  const employeeBalances = useMemo(() => {
+    if (!isEmployeesTab) return {};
+    const map: Record<string, number> = {};
+    for (const emp of employeeEntities) {
+      if (!emp.account_code) { map[emp.id] = 0; continue; }
+      let bal = 0;
+      for (const tx of transactions) {
+        if (tx.debit_account_code === emp.account_code) bal += tx.amount || 0;
+        if (tx.credit_account_code === emp.account_code) bal -= tx.amount || 0;
+      }
+      map[emp.id] = bal;
+    }
+    return map;
+  }, [employeeEntities, transactions, isEmployeesTab]);
+
   // ─── CONTACT BALANCES ───
   const contactBalances = useMemo(() => {
-    if (isAccountsTab) return {};
+    if (isAccountsTab || isEmployeesTab) return {};
     const map: Record<string, number> = {};
     const accountCode = activeTabConfig.accountCode;
     for (const c of tabContacts) {
@@ -229,6 +265,18 @@ const AccountStatementPage = () => {
         balance: accountBalances[a.id] || 0,
         accountCode: a.account_code,
       }));
+    } else if (isEmployeesTab) {
+      const q = entitySearch.toLowerCase().trim();
+      const filtered = q
+        ? employeeEntities.filter(e => e.full_name.toLowerCase().includes(q) || (e.department || "").toLowerCase().includes(q))
+        : employeeEntities;
+      return filtered.map(e => ({
+        id: e.id,
+        name: e.full_name,
+        subtitle: `${e.job_title || e.department || "—"} · ${e.account_code || "بدون حساب"}`,
+        balance: employeeBalances[e.id] || 0,
+        accountCode: e.account_code || "",
+      }));
     } else {
       const q = entitySearch.toLowerCase().trim();
       const filtered = q
@@ -242,7 +290,7 @@ const AccountStatementPage = () => {
         accountCode: "",
       }));
     }
-  }, [isAccountsTab, accounts, tabContacts, entitySearch, accountBalances, contactBalances]);
+  }, [isAccountsTab, isEmployeesTab, accounts, employeeEntities, tabContacts, entitySearch, accountBalances, employeeBalances, contactBalances]);
 
   const selectedContact = useMemo(
     () => contacts.find(c => c.id === selectedEntityId),
