@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
+import JournalEntryPopup from "@/components/JournalEntryPopup";
 import {
   ArrowRight, Loader2, RefreshCw, Pencil, Trash2, CheckSquare, X,
   RotateCcw, Archive, Search, ChevronLeft, ChevronRight as ChevronRightIcon,
