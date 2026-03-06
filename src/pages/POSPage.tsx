@@ -1396,8 +1396,8 @@ const POSPage = () => {
         })),
         subtotal: cartTotals.subtotal,
         tax: cartTotals.tax,
-        discount: cartTotals.discount,
-        total: cartTotals.total,
+        discount: effectiveDiscount,
+        total: effectiveTotal,
         paymentMethod,
         tenderedAmount: tendered,
         change,
@@ -1410,6 +1410,46 @@ const POSPage = () => {
       setReceiptData(receiptInfo);
       setShowPayment(false);
       setShowReceipt(true);
+
+      // Send digital receipt & survey if customer data was collected
+      if (customerDataDiscount && surveyToken) {
+        try {
+          // Create survey record
+          await supabase.from("customer_surveys").insert({
+            user_id: dataOwnerId,
+            order_id: orderId,
+            customer_id: customerDataDiscount.customerId,
+            cashier_user_id: userId,
+            survey_token: surveyToken,
+            status: "sent",
+          } as any);
+
+          // Update order with survey token
+          await supabase.from("pos_orders").update({
+            digital_receipt_sent: true,
+            survey_sent: true,
+            survey_token: surveyToken,
+          } as any).eq("id", orderId);
+
+          // Send via edge function
+          const { data: sendResult } = await supabase.functions.invoke("send-customer-receipt", {
+            body: {
+              orderId,
+              contactType: customerDataDiscount.contactType,
+              contactValue: customerDataDiscount.contactValue,
+              customerName: customerDataDiscount.customerName,
+              companyName: company?.name || "شركتي",
+              surveyToken,
+            },
+          });
+
+          if (sendResult?.whatsappUrl) {
+            window.open(sendResult.whatsappUrl, "_blank");
+          }
+        } catch (e) {
+          console.error("Failed to send receipt:", e);
+        }
+      }
 
       // Reset order tab
       if (orders.length > 1) {
@@ -1430,6 +1470,7 @@ const POSPage = () => {
       setPaymentCurrency("ILS");
       setEditedRate(null);
       setRateEdited(false);
+      setCustomerDataDiscount(null);
 
       if (tableName) {
         toast.success(`✅ تم السداد - ${tableName} متاحة الآن`);
