@@ -144,7 +144,7 @@ export default function ModifierModal({ product, groups, onConfirm, onClose }: P
               </div>
 
               <div className={`grid gap-2 ${group.options.length <= 4 ? "grid-cols-2" : "grid-cols-3"}`}>
-                {group.options.filter(o => o.is_active !== false).sort((a, b) => a.sort_order - b.sort_order).map(opt => {
+                {group.options.sort((a, b) => a.sort_order - b.sort_order).map(opt => {
                   const isSelected = selected[group.id]?.includes(opt.id);
                   return (
                     <button
