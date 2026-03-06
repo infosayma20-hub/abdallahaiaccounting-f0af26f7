@@ -58,6 +58,7 @@ const navSections: NavSection[] = [
         module: "sales",
         children: [
           { label: "العملاء", path: "/contacts?type=customer" },
+          { label: "سياسات التصنيف", path: "/contacts/policies" },
           { label: "الفواتير", path: "/invoices" },
           { label: "سندات القبض", path: "/receipts" },
           { label: "الطلبيات", path: "/orders" },
