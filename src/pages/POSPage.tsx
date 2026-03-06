@@ -364,6 +364,9 @@ const POSPage = () => {
   const [tenderedAmount, setTenderedAmount] = useState("");
   const [processing, setProcessing] = useState(false);
   const [exchangeRates, setExchangeRates] = useState<Record<string, number>>({});
+  const [exchangeRateDetails, setExchangeRateDetails] = useState<Record<string, { rate: number; date: string; source: string; posOverride: number | null }>>({});
+  const [editedRate, setEditedRate] = useState<number | null>(null);
+  const [rateEdited, setRateEdited] = useState(false);
 
   const currencies = [
     { code: "ILS", symbol: "₪", name: "شيكل", flag: "IL" },
