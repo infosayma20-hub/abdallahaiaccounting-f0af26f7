@@ -622,7 +622,7 @@ const AccountStatementPage = () => {
           <div ref={printRef} className="print-area flex-1">
 
             {/* Professional Print View */}
-            <div className="print-only">
+            <div id="statement-print-wrapper" className="print-only">
               <StatementPrintView
                 company={companyInfo}
                 contact={{
