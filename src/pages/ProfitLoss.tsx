@@ -19,7 +19,7 @@ import { format, startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear, st
 import { generateProfessionalPDFHtml, openPrintWindow, useCompanyInfo } from "@/components/ReportPrintLayout";
 import {
   fetchTransactions, fetchAccounts, buildAccountMap, normalizeAccountType, getAccountNameOnly,
-  SupabaseTransaction, SupabaseAccount, isOpeningBalance,
+  SupabaseTransaction, SupabaseAccount, isOpeningBalance, getChildAccounts,
 } from "@/lib/supabase-data";
 
 // ── Types ──
