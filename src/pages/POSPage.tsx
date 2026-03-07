@@ -344,6 +344,11 @@ const POSPage = () => {
     discountPct: number; discountAmount: number; customerId: string | null;
     contactType: string; contactValue: string; customerName: string;
   } | null>(null);
+  // Quick add customer
+  const [showQuickAddCustomer, setShowQuickAddCustomer] = useState(false);
+  const [newCustomerName, setNewCustomerName] = useState("");
+  const [newCustomerPhone, setNewCustomerPhone] = useState("");
+  const [savingCustomer, setSavingCustomer] = useState(false);
   const [openingCash, setOpeningCash] = useState("");
   const [closingCash, setClosingCash] = useState("");
 
@@ -820,6 +825,38 @@ const POSPage = () => {
     const q = customerSearch.toLowerCase();
     return contacts.filter(c => c.contact_name.toLowerCase().includes(q));
   }, [contacts, customerSearch]);
+
+  const handleQuickAddCustomer = async () => {
+    if (!newCustomerName.trim() || !dataOwnerId) return;
+    setSavingCustomer(true);
+    try {
+      const { data, error } = await supabase
+        .from("contacts")
+        .insert({
+          user_id: dataOwnerId,
+          contact_name: newCustomerName.trim(),
+          phone: newCustomerPhone.trim() || null,
+          contact_type: "عميل",
+          is_active: true,
+        })
+        .select("id, contact_name")
+        .single();
+      if (error) throw error;
+      if (data) {
+        setContacts(prev => [...prev, data]);
+        setCustomerName(data.contact_name, data.id);
+        setCustomerSearch("");
+        setShowContactDropdown(false);
+        toast.success(`تمت إضافة العميل "${data.contact_name}" بنجاح`);
+      }
+    } catch (err: any) {
+      toast.error("فشل في إضافة العميل: " + (err.message || "خطأ غير معروف"));
+    }
+    setSavingCustomer(false);
+    setShowQuickAddCustomer(false);
+    setNewCustomerName("");
+    setNewCustomerPhone("");
+  };
 
   const categoriesWithCounts = useMemo(() => {
     const posProducts = products.filter(p => p.is_pos_available);
@@ -2482,7 +2519,7 @@ const POSPage = () => {
                       className="h-8 text-xs pr-7"
                       autoFocus
                     />
-                    {showContactDropdown && filteredContacts.length > 0 && (
+                    {showContactDropdown && (
                       <div className="absolute z-50 w-full bottom-full mb-1 bg-popover border border-border rounded-lg shadow-lg max-h-32 overflow-y-auto">
                         {filteredContacts.map((contact) => (
                           <button
@@ -2499,6 +2536,17 @@ const POSPage = () => {
                             <span>{contact.contact_name}</span>
                           </button>
                         ))}
+                        <button
+                          onClick={() => {
+                            setNewCustomerName(customerSearch || "");
+                            setShowQuickAddCustomer(true);
+                            setShowContactDropdown(false);
+                          }}
+                          className="w-full px-3 py-1.5 text-xs text-right hover:bg-primary/10 transition flex items-center gap-2 border-t border-border text-primary font-medium"
+                        >
+                          <PlusCircle className="h-3 w-3 shrink-0" />
+                          <span>إضافة زبون جديد</span>
+                        </button>
                       </div>
                     )}
                   </div>
@@ -2916,7 +2964,7 @@ const POSPage = () => {
                     className="h-10 pr-8"
                   />
                 </div>
-                {showContactDropdown && filteredContacts.length > 0 && (
+                {showContactDropdown && (
                   <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-lg shadow-lg max-h-40 overflow-y-auto">
                     {filteredContacts.map((contact) => (
                       <button
@@ -2932,6 +2980,17 @@ const POSPage = () => {
                         <span>{contact.contact_name}</span>
                       </button>
                     ))}
+                    <button
+                      onClick={() => {
+                        setNewCustomerName(customerSearch || "");
+                        setShowQuickAddCustomer(true);
+                        setShowContactDropdown(false);
+                      }}
+                      className="w-full px-3 py-2 text-sm text-right hover:bg-primary/10 transition flex items-center gap-2 border-t border-border text-primary font-medium"
+                    >
+                      <PlusCircle className="h-3.5 w-3.5 shrink-0" />
+                      <span>إضافة زبون جديد</span>
+                    </button>
                   </div>
                 )}
               </div>
@@ -3403,6 +3462,52 @@ const POSPage = () => {
           onClose={() => { setShowModifierModal(false); setModifierProduct(null); }}
         />
       )}
+
+      {/* Quick Add Customer Dialog */}
+      <Dialog open={showQuickAddCustomer} onOpenChange={setShowQuickAddCustomer}>
+        <DialogContent className="sm:max-w-sm" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold flex items-center gap-2">
+              <PlusCircle className="h-5 w-5 text-primary" />
+              إضافة زبون جديد
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">اسم الزبون *</label>
+              <Input
+                value={newCustomerName}
+                onChange={(e) => setNewCustomerName(e.target.value)}
+                placeholder="أدخل اسم الزبون"
+                className="h-10"
+                autoFocus
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">رقم الهاتف (اختياري)</label>
+              <Input
+                value={newCustomerPhone}
+                onChange={(e) => setNewCustomerPhone(e.target.value)}
+                placeholder="05X XXX XXXX"
+                className="h-10"
+                dir="ltr"
+                type="tel"
+              />
+            </div>
+          </div>
+          <DialogFooter className="flex gap-2 sm:gap-2">
+            <Button variant="outline" onClick={() => setShowQuickAddCustomer(false)}>إلغاء</Button>
+            <Button
+              onClick={handleQuickAddCustomer}
+              disabled={!newCustomerName.trim() || savingCustomer}
+              className="gap-2"
+            >
+              {savingCustomer ? <Clock className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
+              حفظ وتحديد
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
