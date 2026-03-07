@@ -947,6 +947,20 @@ const TransactionsPage = () => {
         onClose={() => setShowJournalEntry(false)}
         onSuccess={() => { setShowJournalEntry(false); fetchData(); }}
       />
+
+      {/* ━━ Print View ━━ */}
+      {showPrintView && (
+        <div className="hidden print:block fixed inset-0 z-[9999] bg-white">
+          <TransactionsPrintView
+            company={companyInfo}
+            transactions={printTransactions}
+            totalDebit={totalDebit}
+            totalCredit={totalCredit}
+            isBalanced={isBalanced}
+            filterLabel={filterLabel}
+          />
+        </div>
+      )}
     </div>
   );
 };
