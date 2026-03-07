@@ -25,6 +25,9 @@ export function useRoleRedirect() {
 
       if (roles.includes("super_admin")) {
         setTargetPath("/super-admin/dashboard");
+      } else if (roles.includes("worker") && roles.length === 1) {
+        // Pure worker — only has worker role, goes to procurement POS
+        setTargetPath("/worker/procurement");
       } else if (roles.includes("cashier") && !roles.includes("admin")) {
         // Cashier always goes directly to POS — no apps, no employee portal
         setTargetPath("/pos");
