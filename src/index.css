@@ -306,11 +306,11 @@ table th { font-weight: 700; }
     background: white !important;
   }
 
-  body > #root > * {
+  body > *:not(#print-portal) {
     display: none !important;
   }
 
-  body > #root {
+  #print-portal {
     display: block !important;
   }
 
