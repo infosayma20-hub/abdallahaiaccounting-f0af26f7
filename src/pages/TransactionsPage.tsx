@@ -1,6 +1,7 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import JournalEntryPopup from "@/components/JournalEntryPopup";
+import TransactionsPrintView from "@/components/TransactionsPrintView";
 import {
   ArrowRight, Loader2, RefreshCw, Pencil, Trash2, CheckSquare, X,
   RotateCcw, Archive, Search, ChevronLeft, ChevronRight as ChevronRightIcon,
@@ -18,6 +19,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { useCompanySettings } from "@/hooks/useCompanySettings";
 import * as XLSX from "xlsx";
 
 interface Transaction {
