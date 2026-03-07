@@ -279,6 +279,79 @@ const ProfitLoss = () => {
   const grossMarginPct = current.totalRevenue > 0 ? (current.grossProfit / current.totalRevenue) * 100 : 0;
 
   // ── Build statement lines ──
+  // Helper: build sub-account lines for a section
+  const buildSubAccountLines = useCallback((
+    accountDataMap: Map<string, { total: number; txs: TxRecord[]; code: string; name: string }>,
+    addLine: (label: string, amount: number, level: StatementLine["level"], type: StatementLine["type"], section?: string, txs?: TxRecord[], compareAmt?: number) => void,
+    section: string,
+    prevEntries?: typeof current.expenseEntries,
+  ) => {
+    if (detailLevel === 1) {
+      // Just show aggregated total per root-level account
+      const rootMap = new Map<string, { total: number; txs: TxRecord[]; name: string }>();
+      accountDataMap.forEach((data) => {
+        // Find root parent
+        let rootCode = data.code;
+        let rootName = data.name;
+        const acc = allAccounts.find(a => a.account_code === data.code);
+        if (acc?.parent_code) {
+          const parent = allAccounts.find(a => a.account_code === acc.parent_code);
+          if (parent) { rootCode = parent.account_code; rootName = parent.account_name; }
+        }
+        const curr = rootMap.get(rootCode) || { total: 0, txs: [], name: rootName };
+        curr.total += data.total;
+        curr.txs.push(...data.txs);
+        rootMap.set(rootCode, curr);
+      });
+      Array.from(rootMap.entries()).sort((a, b) => b[1].total - a[1].total).forEach(([, data]) => {
+        const prevVal = prevEntries?.find(([n]) => n === data.name)?.[1]?.total;
+        addLine(data.name, data.total, 2, "item", section, data.txs, prevVal);
+      });
+    } else {
+      // Show individual accounts with hierarchy
+      // Group by parent
+      const parentMap = new Map<string, { name: string; code: string; children: { name: string; code: string; total: number; txs: TxRecord[] }[]; total: number; txs: TxRecord[] }>();
+      
+      accountDataMap.forEach((data) => {
+        const acc = allAccounts.find(a => a.account_code === data.code);
+        const parentCode = acc?.parent_code;
+        
+        if (parentCode && detailLevel >= 2) {
+          const parent = allAccounts.find(a => a.account_code === parentCode);
+          if (parent) {
+            const existing = parentMap.get(parentCode) || { name: parent.account_name, code: parentCode, children: [], total: 0, txs: [] };
+            existing.children.push({ name: data.name, code: data.code, total: data.total, txs: data.txs });
+            existing.total += data.total;
+            existing.txs.push(...data.txs);
+            parentMap.set(parentCode, existing);
+            return;
+          }
+        }
+        
+        // No parent or level 1 - show directly
+        if (!parentMap.has(data.code)) {
+          parentMap.set(data.code, { name: data.name, code: data.code, children: [], total: data.total, txs: data.txs });
+        }
+      });
+
+      Array.from(parentMap.values()).sort((a, b) => b.total - a.total).forEach(group => {
+        if (group.children.length > 0) {
+          // Parent account as header-like item
+          addLine(group.name, group.total, 2, "item", section, group.txs);
+          if (detailLevel >= 2) {
+            group.children.sort((a, b) => b.total - a.total).forEach(child => {
+              if (!showZeroAccounts && child.total === 0) return;
+              addLine(`${child.code} - ${child.name}`, child.total, 3 as any, "item", section, child.txs);
+            });
+          }
+        } else {
+          const prevVal = prevEntries?.find(([n]) => n === group.name)?.[1]?.total;
+          addLine(group.name, group.total, 2, "item", section, group.txs, prevVal);
+        }
+      });
+    }
+  }, [detailLevel, allAccounts, showZeroAccounts]);
+
   const statementLines = useMemo((): StatementLine[] => {
     const lines: StatementLine[] = [];
 
@@ -289,7 +362,11 @@ const ProfitLoss = () => {
 
     // Revenue
     addLine("الإيرادات", 0, 0, "header", "revenue");
-    addLine("إيرادات المبيعات", current.salesData.total, 2, "item", "revenue", current.salesData.txs, previous?.salesData.total);
+    if (detailLevel >= 2 && current.revenueEntries.length > 1) {
+      buildSubAccountLines(current.revenueByAccount, addLine, "revenue");
+    } else {
+      addLine("إيرادات المبيعات", current.salesData.total, 2, "item", "revenue", current.salesData.txs, previous?.salesData.total);
+    }
     if (current.salesDiscountData.total > 0) addLine("(-) خصم مسموح به", -current.salesDiscountData.total, 2, "item", "revenue", current.salesDiscountData.txs);
     if (current.salesReturnData.total > 0) addLine("(-) مردود مبيعات", -current.salesReturnData.total, 2, "item", "revenue", current.salesReturnData.txs);
     addLine("إجمالي الإيرادات", current.totalRevenue, 1, "subtotal", "revenue", undefined, previous?.totalRevenue);
@@ -309,10 +386,7 @@ const ProfitLoss = () => {
 
     // Operating Expenses
     addLine("المصروفات التشغيلية", 0, 0, "header", "opex");
-    current.expenseEntries.forEach(([name, data]) => {
-      const prevVal = previous?.expenseEntries.find(([n]) => n === name)?.[1]?.total;
-      addLine(name, data.total, 2, "item", "opex", data.txs, prevVal);
-    });
+    buildSubAccountLines(current.expenseByAccount, addLine, "opex", previous?.expenseEntries);
     addLine("إجمالي المصروفات التشغيلية", current.totalOpExpenses, 1, "subtotal", "opex", undefined, previous?.totalOpExpenses);
 
     lines.push({ label: "", amount: 0, level: 0, type: "spacer" });
@@ -331,7 +405,7 @@ const ProfitLoss = () => {
     addLine("صافي الربح / (الخسارة)", current.netProfit, 0, "grand-total", undefined, undefined, previous?.netProfit);
 
     return lines;
-  }, [current, previous, showZeroAccounts]);
+  }, [current, previous, showZeroAccounts, detailLevel, buildSubAccountLines]);
 
   // ── Monthly chart data ──
   const monthlyChartData = useMemo(() => {
