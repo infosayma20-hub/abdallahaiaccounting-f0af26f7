@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import JournalEntryPopup from "@/components/JournalEntryPopup";
 import TransactionsPrintView from "@/components/TransactionsPrintView";
