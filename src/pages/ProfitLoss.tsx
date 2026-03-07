@@ -138,6 +138,7 @@ const ProfitLoss = () => {
           fetchAccounts(user.id),
         ]);
         const accMap = buildAccountMap(accounts);
+        setAllAccounts(accounts);
 
         const records: TxRecord[] = txs
           .filter(tx => !tx.is_deleted && !isOpeningBalance(tx))
