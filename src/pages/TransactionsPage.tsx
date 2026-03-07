@@ -1,6 +1,8 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import JournalEntryPopup from "@/components/JournalEntryPopup";
+import TransactionsPrintView from "@/components/TransactionsPrintView";
 import {
   ArrowRight, Loader2, RefreshCw, Pencil, Trash2, CheckSquare, X,
   RotateCcw, Archive, Search, ChevronLeft, ChevronRight as ChevronRightIcon,
@@ -18,6 +20,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { useCompanySettings } from "@/hooks/useCompanySettings";
 import * as XLSX from "xlsx";
 
 interface Transaction {
@@ -82,9 +85,11 @@ const TransactionsPage = () => {
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const { toast } = useToast();
+  const { settings } = useCompanySettings();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showPrintView, setShowPrintView] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Edit state
@@ -375,26 +380,85 @@ const TransactionsPage = () => {
 
   // ━━ Export ━━
   const handleExportExcel = () => {
-    const rows = filteredTransactions.map(tx => ({
+    const wb = XLSX.utils.book_new();
+    
+    // Company header rows
+    const headerRows = [
+      [settings.company_name || "الشركة"],
+      [settings.address ? `${settings.address} ${settings.city || ""}`.trim() : ""],
+      [settings.phone ? `هاتف: ${settings.phone}` : "", settings.email || "", settings.tax_number ? `رقم ضريبي: ${settings.tax_number}` : ""],
+      [],
+      ["تقرير الحركات المحاسبية"],
+      [`تاريخ الإصدار: ${new Date().toLocaleDateString("ar-EG")}`, "", `عدد القيود: ${filteredTransactions.length}`],
+      [],
+    ];
+
+    const dataRows = filteredTransactions.map((tx, i) => ({
+      "#": i + 1,
       "التاريخ": tx.transaction_date,
       "المرجع": tx.reference || "",
       "الوصف": tx.description || "",
       "النوع": typeBadgeConfig[tx.transaction_type]?.label || tx.transaction_type,
-      "الحساب المدين": `${tx.debit_account_code} - ${getAccountName(tx.debit_account_code)}`,
-      "الحساب الدائن": `${tx.credit_account_code} - ${getAccountName(tx.credit_account_code)}`,
+      "حساب مدين": `${tx.debit_account_code} - ${getAccountName(tx.debit_account_code)}`,
+      "حساب دائن": `${tx.credit_account_code} - ${getAccountName(tx.credit_account_code)}`,
       "المدين": tx.amount,
       "الدائن": tx.amount,
       "العملة": tx.currency,
     }));
-    const ws = XLSX.utils.json_to_sheet(rows);
-    const wb = XLSX.utils.book_new();
+
+    const ws = XLSX.utils.aoa_to_sheet(headerRows);
+    XLSX.utils.sheet_add_json(ws, dataRows, { origin: "A8" });
+    
+    // Merge company name cell
+    ws["!merges"] = [
+      { s: { r: 0, c: 0 }, e: { r: 0, c: 5 } },
+      { s: { r: 4, c: 0 }, e: { r: 4, c: 5 } },
+    ];
+
+    // Add totals row
+    const totalRowIdx = 8 + dataRows.length;
+    XLSX.utils.sheet_add_aoa(ws, [
+      ["", "", "", "", "", "", "الإجمالي", totalDebit, totalCredit, ""],
+    ], { origin: `A${totalRowIdx + 1}` });
+
     XLSX.utils.book_append_sheet(wb, ws, "دفتر اليومية");
     XLSX.writeFile(wb, `دفتر_اليومية_${new Date().toISOString().slice(0,10)}.xlsx`);
   };
 
   const handlePrint = () => {
-    window.print();
+    setShowPrintView(true);
+    setTimeout(() => {
+      window.print();
+      setTimeout(() => setShowPrintView(false), 500);
+    }, 300);
   };
+
+  const companyInfo = useMemo(() => ({
+    name: settings.company_name || "الشركة",
+    logo_url: settings.logo_url || "",
+    address: settings.address || "",
+    phone: settings.phone || "",
+    email: settings.email || "",
+    website: settings.website || "",
+    tax_number: settings.tax_number || "",
+  }), [settings]);
+
+  const printTransactions = useMemo(() => filteredTransactions.map(tx => ({
+    ...tx,
+    debit_account_name: getAccountName(tx.debit_account_code),
+    credit_account_name: getAccountName(tx.credit_account_code),
+  })), [filteredTransactions, accounts]);
+
+  const filterLabel = useMemo(() => {
+    const parts: string[] = [];
+    if (typeFilter !== "all") parts.push(typeBadgeConfig[typeFilter]?.label || typeFilter);
+    if (accountFilter !== "all") parts.push(getAccountName(accountFilter));
+    if (dateFilter !== "all") {
+      const labels: Record<string, string> = { today: "اليوم", this_week: "هذا الأسبوع", this_month: "هذا الشهر", last_month: "الشهر السابق" };
+      parts.push(labels[dateFilter] || dateFilter);
+    }
+    return parts.length ? parts.join(" • ") : "كل القيود";
+  }, [typeFilter, accountFilter, dateFilter, accounts]);
 
   const formatDate = (d: string) => {
     if (!d) return "—";
@@ -884,6 +948,21 @@ const TransactionsPage = () => {
         onClose={() => setShowJournalEntry(false)}
         onSuccess={() => { setShowJournalEntry(false); fetchData(); }}
       />
+
+      {/* ━━ Print View (portal to body) ━━ */}
+      {showPrintView && createPortal(
+        <div id="print-portal">
+          <TransactionsPrintView
+            company={companyInfo}
+            transactions={printTransactions}
+            totalDebit={totalDebit}
+            totalCredit={totalCredit}
+            isBalanced={isBalanced}
+            filterLabel={filterLabel}
+          />
+        </div>,
+        document.body
+      )}
     </div>
   );
 };

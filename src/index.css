@@ -306,11 +306,13 @@ table th { font-weight: 700; }
     background: white !important;
   }
 
-  body > * {
+  body > *:not(#print-portal) {
     display: none !important;
   }
 
-  #statement-print-wrapper {
+  #print-portal,
+  #statement-print-wrapper,
+  #transactions-print-wrapper {
     display: block !important;
     position: fixed !important;
     top: 0 !important;
@@ -327,12 +329,11 @@ table th { font-weight: 700; }
     margin: 8mm;
   }
 
-  .statement-page {
+  .statement-page,
+  .transactions-print-page {
     width: 100% !important;
     max-width: 100% !important;
-    max-height: 280mm !important;
     overflow: hidden !important;
-    page-break-after: avoid !important;
     page-break-inside: avoid !important;
     margin: 0 !important;
     padding: 0 !important;
