@@ -566,6 +566,7 @@ const ProfitLoss = () => {
               </button>
             ))}
           </div>
+        </div>
         <div className="flex items-center gap-2 flex-wrap">
           <Button variant="outline" size="sm" className="h-7 text-[10px] gap-1" onClick={handleExportExcel} disabled={loading}>
             <FileSpreadsheet className="h-3 w-3" /> Excel
