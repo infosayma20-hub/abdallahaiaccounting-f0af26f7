@@ -6104,6 +6104,8 @@ export type Database = {
         | "accountant_sales"
         | "accountant_purchases"
         | "cashier"
+        | "worker"
+        | "supervisor"
       cheque_status:
         | "مسجل"
         | "آجل"
@@ -6256,6 +6258,8 @@ export const Constants = {
         "accountant_sales",
         "accountant_purchases",
         "cashier",
+        "worker",
+        "supervisor",
       ],
       cheque_status: ["مسجل", "آجل", "مستحق", "مودع", "محصل", "مرتجع", "ملغي"],
       cheque_type: ["وارد", "صادر"],
