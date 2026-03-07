@@ -3462,6 +3462,52 @@ const POSPage = () => {
           onClose={() => { setShowModifierModal(false); setModifierProduct(null); }}
         />
       )}
+
+      {/* Quick Add Customer Dialog */}
+      <Dialog open={showQuickAddCustomer} onOpenChange={setShowQuickAddCustomer}>
+        <DialogContent className="sm:max-w-sm" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold flex items-center gap-2">
+              <PlusCircle className="h-5 w-5 text-primary" />
+              إضافة زبون جديد
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">اسم الزبون *</label>
+              <Input
+                value={newCustomerName}
+                onChange={(e) => setNewCustomerName(e.target.value)}
+                placeholder="أدخل اسم الزبون"
+                className="h-10"
+                autoFocus
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">رقم الهاتف (اختياري)</label>
+              <Input
+                value={newCustomerPhone}
+                onChange={(e) => setNewCustomerPhone(e.target.value)}
+                placeholder="05X XXX XXXX"
+                className="h-10"
+                dir="ltr"
+                type="tel"
+              />
+            </div>
+          </div>
+          <DialogFooter className="flex gap-2 sm:gap-2">
+            <Button variant="outline" onClick={() => setShowQuickAddCustomer(false)}>إلغاء</Button>
+            <Button
+              onClick={handleQuickAddCustomer}
+              disabled={!newCustomerName.trim() || savingCustomer}
+              className="gap-2"
+            >
+              {savingCustomer ? <Clock className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
+              حفظ وتحديد
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
