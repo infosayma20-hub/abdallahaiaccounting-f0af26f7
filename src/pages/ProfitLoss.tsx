@@ -217,18 +217,32 @@ const ProfitLoss = () => {
     // Purchase discount (خصم مكتسب - credit to 4350)
     const purchaseDiscountData = calc(tx => isDiscountEarnedCode(tx.creditCode));
 
-    // Operating expenses by account name (5xxx except 51xx)
-    const expenseMap = new Map<string, { total: number; txs: TxRecord[] }>();
+    // Operating expenses by account (5xxx except 51xx) — with hierarchy
+    const expenseByAccount = new Map<string, { total: number; txs: TxRecord[]; code: string; name: string }>();
     txs.forEach(tx => {
       if (!isExpenseCode(tx.debitCode)) return;
-      const name = tx.debitAccountName || tx.debitCode;
-      const curr = expenseMap.get(name) || { total: 0, txs: [] };
+      const code = tx.debitCode;
+      const name = tx.debitAccountName || code;
+      const curr = expenseByAccount.get(code) || { total: 0, txs: [], code, name };
       curr.total += tx.amount;
       curr.txs.push(tx);
-      expenseMap.set(name, curr);
+      expenseByAccount.set(code, curr);
     });
 
-    const expenseEntries = Array.from(expenseMap.entries()).sort((a, b) => b[1].total - a[1].total);
+    // Revenue by account — with hierarchy
+    const revenueByAccount = new Map<string, { total: number; txs: TxRecord[]; code: string; name: string }>();
+    txs.forEach(tx => {
+      if (!isRevenueCode(tx.creditCode) || isDiscountEarnedCode(tx.creditCode)) return;
+      const code = tx.creditCode;
+      const name = tx.creditAccountName || code;
+      const curr = revenueByAccount.get(code) || { total: 0, txs: [], code, name };
+      curr.total += tx.amount;
+      curr.txs.push(tx);
+      revenueByAccount.set(code, curr);
+    });
+
+    const expenseEntries = Array.from(expenseByAccount.entries()).map(([, v]) => [v.name, v] as [string, typeof v]).sort((a, b) => b[1].total - a[1].total);
+    const revenueEntries = Array.from(revenueByAccount.entries()).map(([, v]) => [v.name, v] as [string, typeof v]).sort((a, b) => b[1].total - a[1].total);
     const totalOpExpenses = expenseEntries.reduce((s, [, v]) => s + v.total, 0);
 
     // Other income/expenses
@@ -251,9 +265,10 @@ const ProfitLoss = () => {
     return {
       salesData, salesDiscountData, salesReturnData,
       purchasesData, purchaseDiscountData, purchaseReturnData,
-      expenseEntries, totalOpExpenses,
+      expenseEntries, revenueEntries, totalOpExpenses,
       otherIncome, otherExpenses,
       totalRevenue, totalCOGS, grossProfit, operatingProfit, netOther, netProfit,
+      expenseByAccount, revenueByAccount,
     };
   }, []);
 
