@@ -306,8 +306,12 @@ table th { font-weight: 700; }
     background: white !important;
   }
 
-  body > * {
+  body > #root > * {
     display: none !important;
+  }
+
+  body > #root {
+    display: block !important;
   }
 
   #statement-print-wrapper,
