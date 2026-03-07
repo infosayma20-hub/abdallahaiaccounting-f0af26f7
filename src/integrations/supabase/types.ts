@@ -4148,6 +4148,137 @@ export type Database = {
           },
         ]
       }
+      procurement_items: {
+        Row: {
+          category: string | null
+          id: string
+          item_name: string
+          notes: string | null
+          product_id: string | null
+          quantity: number
+          request_id: string
+          total_price: number | null
+          unit: string | null
+          unit_price: number | null
+        }
+        Insert: {
+          category?: string | null
+          id?: string
+          item_name: string
+          notes?: string | null
+          product_id?: string | null
+          quantity?: number
+          request_id: string
+          total_price?: number | null
+          unit?: string | null
+          unit_price?: number | null
+        }
+        Update: {
+          category?: string | null
+          id?: string
+          item_name?: string
+          notes?: string | null
+          product_id?: string | null
+          quantity?: number
+          request_id?: string
+          total_price?: number | null
+          unit?: string | null
+          unit_price?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "procurement_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "procurement_items_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "procurement_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      procurement_requests: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string | null
+          id: string
+          notes: string | null
+          owner_id: string
+          payment_method: string | null
+          project_id: string
+          rejection_reason: string | null
+          request_date: string | null
+          request_number: string | null
+          status: string
+          subtotal: number | null
+          supplier_invoice_url: string | null
+          supplier_name: string | null
+          tax_amount: number | null
+          total: number | null
+          updated_at: string | null
+          worker_id: string
+          worker_name: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          owner_id: string
+          payment_method?: string | null
+          project_id: string
+          rejection_reason?: string | null
+          request_date?: string | null
+          request_number?: string | null
+          status?: string
+          subtotal?: number | null
+          supplier_invoice_url?: string | null
+          supplier_name?: string | null
+          tax_amount?: number | null
+          total?: number | null
+          updated_at?: string | null
+          worker_id: string
+          worker_name: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          owner_id?: string
+          payment_method?: string | null
+          project_id?: string
+          rejection_reason?: string | null
+          request_date?: string | null
+          request_number?: string | null
+          status?: string
+          subtotal?: number | null
+          supplier_invoice_url?: string | null
+          supplier_name?: string | null
+          tax_amount?: number | null
+          total?: number | null
+          updated_at?: string | null
+          worker_id?: string
+          worker_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "procurement_requests_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "contractor_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_modifier_groups: {
         Row: {
           group_id: string
@@ -4435,6 +4566,41 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "project_contracts_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "contractor_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_workers: {
+        Row: {
+          assigned_at: string | null
+          id: string
+          owner_id: string
+          project_id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          assigned_at?: string | null
+          id?: string
+          owner_id: string
+          project_id: string
+          role?: string
+          user_id: string
+        }
+        Update: {
+          assigned_at?: string | null
+          id?: string
+          owner_id?: string
+          project_id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_workers_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "contractor_projects"
@@ -5829,6 +5995,10 @@ export type Database = {
       }
     }
     Functions: {
+      approve_procurement_request: {
+        Args: { p_approved_by: string; p_request_id: string }
+        Returns: Json
+      }
       cleanup_expired_webauthn_challenges: { Args: never; Returns: undefined }
       complete_pos_order: {
         Args: { p_order_id: string; p_payments?: Json; p_user_id: string }
@@ -5913,6 +6083,10 @@ export type Database = {
           _user_id: string
         }
         Returns: undefined
+      }
+      reject_procurement_request: {
+        Args: { p_reason?: string; p_rejected_by: string; p_request_id: string }
+        Returns: Json
       }
       update_last_seen: { Args: never; Returns: undefined }
       user_can_access: {
