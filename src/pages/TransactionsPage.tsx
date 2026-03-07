@@ -84,9 +84,11 @@ const TransactionsPage = () => {
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const { toast } = useToast();
+  const { settings } = useCompanySettings();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showPrintView, setShowPrintView] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Edit state
