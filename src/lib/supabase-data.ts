@@ -91,3 +91,95 @@ export function normalizeAccountType(type: string): string {
   if (["expenses", "expense", "مصروفات", "مصروف", "المصروفات"].includes(t)) return "Expenses";
   return type;
 }
+
+// Get the hierarchy depth of an account (1 = root, 2 = child of root, etc.)
+export function getAccountDepth(code: string, accountMap: Record<string, SupabaseAccount>): number {
+  let depth = 1;
+  let current = accountMap[code];
+  while (current?.parent_code && accountMap[current.parent_code]) {
+    depth++;
+    current = accountMap[current.parent_code];
+  }
+  return depth;
+}
+
+// Get all children (direct and indirect) of an account code
+export function getChildAccounts(parentCode: string, accounts: SupabaseAccount[]): SupabaseAccount[] {
+  const directChildren = accounts.filter(a => a.parent_code === parentCode);
+  const allChildren: SupabaseAccount[] = [...directChildren];
+  directChildren.forEach(child => {
+    allChildren.push(...getChildAccounts(child.account_code, accounts));
+  });
+  return allChildren;
+}
+
+// Build hierarchical account tree for reporting
+export interface AccountNode {
+  account: SupabaseAccount;
+  balance: number;
+  children: AccountNode[];
+  depth: number;
+}
+
+export function buildAccountTree(
+  accounts: SupabaseAccount[],
+  balances: Record<string, number>,
+  filterFn?: (acc: SupabaseAccount) => boolean
+): AccountNode[] {
+  const filtered = filterFn ? accounts.filter(filterFn) : accounts;
+  const rootAccounts = filtered.filter(a => !a.parent_code || !filtered.find(p => p.account_code === a.parent_code));
+  
+  const buildNode = (acc: SupabaseAccount, depth: number): AccountNode => {
+    const children = filtered
+      .filter(a => a.parent_code === acc.account_code)
+      .map(child => buildNode(child, depth + 1));
+    
+    const ownBalance = balances[acc.account_code] || 0;
+    const childrenBalance = children.reduce((s, c) => s + c.balance, 0);
+    
+    return {
+      account: acc,
+      balance: children.length > 0 ? childrenBalance + ownBalance : ownBalance,
+      children,
+      depth,
+    };
+  };
+
+  return rootAccounts.map(acc => buildNode(acc, 1));
+}
+
+// Flatten tree to a list respecting max depth level
+export interface FlatAccountLine {
+  code: string;
+  name: string;
+  balance: number;
+  depth: number;
+  isParent: boolean;
+  hasChildren: boolean;
+}
+
+export function flattenAccountTree(nodes: AccountNode[], maxLevel: number): FlatAccountLine[] {
+  const result: FlatAccountLine[] = [];
+  
+  const walk = (node: AccountNode) => {
+    if (node.depth > maxLevel) return;
+    
+    const hasVisibleChildren = node.children.length > 0 && node.depth < maxLevel;
+    
+    result.push({
+      code: node.account.account_code,
+      name: node.account.account_name,
+      balance: node.balance,
+      depth: node.depth,
+      isParent: node.children.length > 0,
+      hasChildren: node.children.length > 0,
+    });
+    
+    if (hasVisibleChildren) {
+      node.children.forEach(child => walk(child));
+    }
+  };
+  
+  nodes.forEach(n => walk(n));
+  return result;
+}
