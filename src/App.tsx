@@ -74,6 +74,7 @@ import SurveyPage from "./pages/SurveyPage";
 import CustomerReportsPage from "./pages/CustomerReportsPage";
 import ModifierManagerPage from "./pages/ModifierManagerPage";
 import ContractorApp from "./pages/ContractorApp";
+import WorkerProcurementPage from "./pages/WorkerProcurementPage";
 import ContractsListPage from "./pages/ContractsListPage";
 import ContractFormPage from "./pages/ContractFormPage";
 import ContractPreviewPage from "./pages/ContractPreviewPage";
@@ -134,6 +135,7 @@ const App = () => (
               <Route path="/pos/floor-plan/edit" element={<ProtectedRoute><FloorPlanEditorPage /></ProtectedRoute>} />
               <Route path="/pos/modifiers" element={<ProtectedRoute><ModifierManagerPage /></ProtectedRoute>} />
               <Route path="/purchase-point" element={<ProtectedRoute><PurchasePointPage /></ProtectedRoute>} />
+              <Route path="/worker/procurement" element={<ProtectedRoute><WorkerProcurementPage /></ProtectedRoute>} />
               <Route path="/apps" element={<AppsRoute><WebLayout><AppsLauncher /></WebLayout></AppsRoute>} />
               <Route path="/*" element={
                 <ProtectedRoute blockCashier>
