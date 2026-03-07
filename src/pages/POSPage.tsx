@@ -2519,7 +2519,7 @@ const POSPage = () => {
                       className="h-8 text-xs pr-7"
                       autoFocus
                     />
-                    {showContactDropdown && filteredContacts.length > 0 && (
+                    {showContactDropdown && (
                       <div className="absolute z-50 w-full bottom-full mb-1 bg-popover border border-border rounded-lg shadow-lg max-h-32 overflow-y-auto">
                         {filteredContacts.map((contact) => (
                           <button
@@ -2536,6 +2536,17 @@ const POSPage = () => {
                             <span>{contact.contact_name}</span>
                           </button>
                         ))}
+                        <button
+                          onClick={() => {
+                            setNewCustomerName(customerSearch || "");
+                            setShowQuickAddCustomer(true);
+                            setShowContactDropdown(false);
+                          }}
+                          className="w-full px-3 py-1.5 text-xs text-right hover:bg-primary/10 transition flex items-center gap-2 border-t border-border text-primary font-medium"
+                        >
+                          <PlusCircle className="h-3 w-3 shrink-0" />
+                          <span>إضافة زبون جديد</span>
+                        </button>
                       </div>
                     )}
                   </div>
@@ -2953,7 +2964,7 @@ const POSPage = () => {
                     className="h-10 pr-8"
                   />
                 </div>
-                {showContactDropdown && filteredContacts.length > 0 && (
+                {showContactDropdown && (
                   <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-lg shadow-lg max-h-40 overflow-y-auto">
                     {filteredContacts.map((contact) => (
                       <button
@@ -2969,6 +2980,17 @@ const POSPage = () => {
                         <span>{contact.contact_name}</span>
                       </button>
                     ))}
+                    <button
+                      onClick={() => {
+                        setNewCustomerName(customerSearch || "");
+                        setShowQuickAddCustomer(true);
+                        setShowContactDropdown(false);
+                      }}
+                      className="w-full px-3 py-2 text-sm text-right hover:bg-primary/10 transition flex items-center gap-2 border-t border-border text-primary font-medium"
+                    >
+                      <PlusCircle className="h-3.5 w-3.5 shrink-0" />
+                      <span>إضافة زبون جديد</span>
+                    </button>
                   </div>
                 )}
               </div>
