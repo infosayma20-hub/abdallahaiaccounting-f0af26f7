@@ -107,6 +107,7 @@ const ProfitLoss = () => {
   const { user } = useAuth();
   const companyInfo = useCompanyInfo();
   const [allTxRecords, setAllTxRecords] = useState<TxRecord[]>([]);
+  const [allAccounts, setAllAccounts] = useState<SupabaseAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [companyName, setCompanyName] = useState("");
   const [activePeriod, setActivePeriod] = useState("this-month");
@@ -118,6 +119,7 @@ const ProfitLoss = () => {
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
   const [drillDownAccount, setDrillDownAccount] = useState<{ label: string; txs: TxRecord[] } | null>(null);
   const [showCharts, setShowCharts] = useState(true);
+  const [detailLevel, setDetailLevel] = useState(1);
 
   // Fetch data from Supabase
   useEffect(() => {
