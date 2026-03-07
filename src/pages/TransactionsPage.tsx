@@ -949,9 +949,9 @@ const TransactionsPage = () => {
         onSuccess={() => { setShowJournalEntry(false); fetchData(); }}
       />
 
-      {/* ━━ Print View ━━ */}
-      {showPrintView && (
-        <div className="hidden print:block fixed inset-0 z-[9999] bg-white">
+      {/* ━━ Print View (portal to body) ━━ */}
+      {showPrintView && createPortal(
+        <div id="print-portal">
           <TransactionsPrintView
             company={companyInfo}
             transactions={printTransactions}
@@ -960,7 +960,8 @@ const TransactionsPage = () => {
             isBalanced={isBalanced}
             filterLabel={filterLabel}
           />
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
