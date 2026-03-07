@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Loader2, Landmark, Printer } from "lucide-react";
+import { Loader2, Landmark, Printer, ChevronDown, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,14 +7,15 @@ import { ReportHeader, ReportSummary, exportToExcel } from "@/components/ReportC
 import { generateProfessionalPDFHtml, openPrintWindow, useCompanyInfo } from "@/components/ReportPrintLayout";
 import {
   fetchTransactions, fetchAccounts, buildAccountMap, normalizeAccountType,
-  SupabaseTransaction, SupabaseAccount,
+  SupabaseTransaction, SupabaseAccount, buildAccountTree, flattenAccountTree, FlatAccountLine,
 } from "@/lib/supabase-data";
 
-interface CategoryGroup {
-  title: string;
-  accounts: { name: string; code: string; balance: number }[];
-  total: number;
-}
+const LEVEL_OPTIONS = [
+  { value: 1, label: "المستوى 1 — الفئات الرئيسية" },
+  { value: 2, label: "المستوى 2 — المجموعات الفرعية" },
+  { value: 3, label: "المستوى 3 — الحسابات الفرعية" },
+  { value: 4, label: "المستوى 4 — التفاصيل الكاملة" },
+];
 
 const getSubcategory = (code: string, type: string): string => {
   const num = parseInt(code);
@@ -37,6 +38,8 @@ const BalanceSheetPage = () => {
   const [accounts, setAccounts] = useState<SupabaseAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [companyName, setCompanyName] = useState("");
+  const [detailLevel, setDetailLevel] = useState(2);
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!user) return;
@@ -63,7 +66,6 @@ const BalanceSheetPage = () => {
 
   const accountMap = useMemo(() => buildAccountMap(accounts), [accounts]);
 
-  // Calculate balance per account from transactions
   const accountBalances = useMemo(() => {
     const balances: Record<string, number> = {};
     transactions.filter(tx => !tx.is_deleted).forEach(tx => {
@@ -78,81 +80,60 @@ const BalanceSheetPage = () => {
     return balances;
   }, [transactions]);
 
-  const { assetGroups, liabilityGroups, equityGroups, totalAssets, totalLiabilities, totalEquity } = useMemo(() => {
-    const assets: Record<string, CategoryGroup> = {};
-    const liabilities: Record<string, CategoryGroup> = {};
-    const equity: Record<string, CategoryGroup> = {};
-    let tAssets = 0, tLiab = 0, tEquity = 0;
+  // Build hierarchical trees for each section
+  const { assetTree, liabilityTree, equityTree, totalAssets, totalLiabilities, totalEquity } = useMemo(() => {
+    const isAsset = (a: SupabaseAccount) => normalizeAccountType(a.account_type || "") === "Asset";
+    const isLiability = (a: SupabaseAccount) => normalizeAccountType(a.account_type || "") === "Liability";
+    const isEquity = (a: SupabaseAccount) => normalizeAccountType(a.account_type || "") === "Equity";
 
-    accounts.forEach(acc => {
-      const name = acc.account_name || "";
-      const code = acc.account_code || "0";
-      const type = normalizeAccountType(acc.account_type || "");
-      const balance = accountBalances[code] || 0;
-      if (balance === 0) return;
+    const assetTree = buildAccountTree(accounts, accountBalances, isAsset);
+    const liabilityTree = buildAccountTree(accounts, accountBalances, isLiability);
+    const equityTree = buildAccountTree(accounts, accountBalances, isEquity);
 
-      const sub = getSubcategory(code, type);
-      const entry = { name, code, balance: Math.abs(balance) };
+    const totalAssets = assetTree.reduce((s, n) => s + n.balance, 0);
+    const totalLiabilities = liabilityTree.reduce((s, n) => s + Math.abs(n.balance), 0);
+    const totalEquity = equityTree.reduce((s, n) => s + Math.abs(n.balance), 0);
 
-      if (type === "Asset") {
-        if (!assets[sub]) assets[sub] = { title: sub, accounts: [], total: 0 };
-        assets[sub].accounts.push(entry);
-        assets[sub].total += Math.abs(balance);
-        tAssets += Math.abs(balance);
-      } else if (type === "Liability") {
-        if (!liabilities[sub]) liabilities[sub] = { title: sub, accounts: [], total: 0 };
-        liabilities[sub].accounts.push(entry);
-        liabilities[sub].total += Math.abs(balance);
-        tLiab += Math.abs(balance);
-      } else if (type === "Equity") {
-        if (!equity[sub]) equity[sub] = { title: sub, accounts: [], total: 0 };
-        equity[sub].accounts.push(entry);
-        equity[sub].total += Math.abs(balance);
-        tEquity += Math.abs(balance);
-      }
-    });
-
-    // Sort accounts by code within groups
-    const sortGroup = (g: Record<string, CategoryGroup>) =>
-      Object.values(g).map(grp => ({ ...grp, accounts: grp.accounts.sort((a, b) => a.code.localeCompare(b.code)) }));
-
-    return {
-      assetGroups: sortGroup(assets),
-      liabilityGroups: sortGroup(liabilities),
-      equityGroups: sortGroup(equity),
-      totalAssets: tAssets,
-      totalLiabilities: tLiab,
-      totalEquity: tEquity,
-    };
-  }, [accounts]);
+    return { assetTree, liabilityTree, equityTree, totalAssets: Math.abs(totalAssets), totalLiabilities, totalEquity };
+  }, [accounts, accountBalances]);
 
   const periodLabel = new Date().toLocaleDateString("ar-EG", { year: "numeric", month: "long", day: "numeric" });
   const isBalanced = Math.abs(totalAssets - (totalLiabilities + totalEquity)) < 1;
 
+  const toggleGroup = (key: string) => {
+    setCollapsedGroups(prev => {
+      const next = new Set(prev);
+      next.has(key) ? next.delete(key) : next.add(key);
+      return next;
+    });
+  };
+
   const handleExportExcel = () => {
     const rows: Record<string, any>[] = [];
-    const addSection = (title: string, groups: CategoryGroup[]) => {
+    const addSection = (title: string, lines: FlatAccountLine[], total: number) => {
       rows.push({ "البيان": `═══ ${title} ═══`, "الكود": "", "الرصيد": "" });
-      groups.forEach(g => {
-        rows.push({ "البيان": `── ${g.title}`, "الكود": "", "الرصيد": "" });
-        g.accounts.forEach(a => rows.push({ "البيان": a.name, "الكود": a.code, "الرصيد": a.balance }));
-        rows.push({ "البيان": `إجمالي ${g.title}`, "الكود": "", "الرصيد": g.total });
+      lines.forEach(l => {
+        const indent = "  ".repeat(l.depth - 1);
+        rows.push({
+          "البيان": `${indent}${l.name}`,
+          "الكود": l.code,
+          "الرصيد": l.balance === 0 ? "" : Math.abs(l.balance),
+        });
       });
+      rows.push({ "البيان": `إجمالي ${title}`, "الكود": "", "الرصيد": total });
     };
-    addSection("الأصول", assetGroups);
-    addSection("الالتزامات", liabilityGroups);
-    addSection("حقوق الملكية", equityGroups);
-    rows.push({ "البيان": "", "الكود": "", "الرصيد": "" });
-    rows.push({ "البيان": "إجمالي الأصول", "الكود": "", "الرصيد": totalAssets });
-    rows.push({ "البيان": "إجمالي الالتزامات + حقوق الملكية", "الكود": "", "الرصيد": totalLiabilities + totalEquity });
+
+    const assetLines = flattenAccountTree(assetTree, detailLevel).filter(l => l.balance !== 0);
+    const liabLines = flattenAccountTree(liabilityTree, detailLevel).filter(l => l.balance !== 0);
+    const eqLines = flattenAccountTree(equityTree, detailLevel).filter(l => l.balance !== 0);
+
+    addSection("الأصول", assetLines, totalAssets);
+    addSection("الالتزامات", liabLines, totalLiabilities);
+    addSection("حقوق الملكية", eqLines, totalEquity);
 
     exportToExcel(rows, {
       "التقرير": "قائمة المركز المالي",
       "التاريخ": periodLabel,
-      "إجمالي الأصول": totalAssets,
-      "إجمالي الالتزامات": totalLiabilities,
-      "حقوق الملكية": totalEquity,
-      "متوازن": isBalanced ? "نعم" : "لا",
     }, `المركز-المالي-${Date.now()}`);
   };
 
@@ -160,17 +141,28 @@ const BalanceSheetPage = () => {
     const tableHeaders = ["البيان", "الكود", "الرصيد ₪"];
     const tableRows: string[][] = [];
     
-    const addSection = (title: string, groups: CategoryGroup[]) => {
+    const addSection = (title: string, lines: FlatAccountLine[], total: number) => {
       tableRows.push([`<strong style="color:#1B3A5C;font-size:12px">═══ ${title} ═══</strong>`, "", ""]);
-      groups.forEach(g => {
-        tableRows.push([`<strong>── ${g.title}</strong>`, "", ""]);
-        g.accounts.forEach(a => tableRows.push([a.name, a.code, `₪${a.balance.toLocaleString()}`]));
-        tableRows.push([`<strong>إجمالي ${g.title}</strong>`, "", `<strong>₪${g.total.toLocaleString()}</strong>`]);
+      lines.forEach(l => {
+        const indent = (l.depth - 1) * 16;
+        const isBold = l.hasChildren;
+        const style = isBold ? "font-weight:700;" : "";
+        tableRows.push([
+          `<span style="padding-right:${indent}px;${style}">${l.name}</span>`,
+          l.code,
+          `${isBold ? "<strong>" : ""}₪${Math.abs(l.balance).toLocaleString()}${isBold ? "</strong>" : ""}`,
+        ]);
       });
+      tableRows.push([`<strong>إجمالي ${title}</strong>`, "", `<strong>₪${total.toLocaleString()}</strong>`]);
     };
-    addSection("الأصول", assetGroups);
-    addSection("الالتزامات", liabilityGroups);
-    addSection("حقوق الملكية", equityGroups);
+
+    const assetLines = flattenAccountTree(assetTree, detailLevel).filter(l => l.balance !== 0);
+    const liabLines = flattenAccountTree(liabilityTree, detailLevel).filter(l => l.balance !== 0);
+    const eqLines = flattenAccountTree(equityTree, detailLevel).filter(l => l.balance !== 0);
+
+    addSection("الأصول", assetLines, totalAssets);
+    addSection("الالتزامات", liabLines, totalLiabilities);
+    addSection("حقوق الملكية", eqLines, totalEquity);
 
     const company = companyInfo.name ? companyInfo : { name: companyName, logo_url: "", address: "", phone: "", email: "", website: "", tax_number: "" };
     const html = generateProfessionalPDFHtml({
@@ -194,33 +186,59 @@ const BalanceSheetPage = () => {
     openPrintWindow(html);
   };
 
-  const renderSection = (title: string, groups: CategoryGroup[], total: number, color: string) => (
-    <div className="space-y-3">
-      <h2 className={`text-sm font-bold ${color} px-1`}>{title}</h2>
-      {groups.map(group => (
-        <div key={group.title} className="rounded-xl border border-border/50 overflow-hidden">
-          <div className="bg-muted/40 px-4 py-2 text-[11px] font-bold text-muted-foreground">{group.title}</div>
-          {group.accounts.map(acc => (
-            <div key={acc.code} className="flex items-center justify-between px-4 py-2.5 border-t border-border/30 text-xs">
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="text-[10px] text-muted-foreground font-mono w-10">{acc.code}</span>
-                <span className="text-foreground font-medium truncate">{acc.name}</span>
+  const renderHierarchicalSection = (title: string, lines: FlatAccountLine[], total: number, color: string) => {
+    if (lines.length === 0) return null;
+
+    return (
+      <div className="space-y-1">
+        <h2 className={`text-sm font-bold ${color} px-1 mb-2`}>{title}</h2>
+        <div className="rounded-xl border border-border/50 overflow-hidden">
+          {lines.map((line, i) => {
+            const isParentRow = line.hasChildren;
+            const isCollapsed = collapsedGroups.has(line.code);
+            const indent = (line.depth - 1) * 24;
+            const absBalance = Math.abs(line.balance);
+
+            return (
+              <div
+                key={`${line.code}-${i}`}
+                className={`flex items-center justify-between px-4 py-2.5 border-b border-border/30 text-xs transition-colors ${
+                  isParentRow ? "bg-muted/40 hover:bg-muted/60 cursor-pointer" : "hover:bg-muted/10"
+                }`}
+                style={{ paddingRight: `${16 + indent}px` }}
+                onClick={() => isParentRow && toggleGroup(line.code)}
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  {isParentRow && (
+                    isCollapsed
+                      ? <ChevronRight className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                      : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                  )}
+                  {!isParentRow && <div className="w-3.5" />}
+                  <span className="text-[10px] text-muted-foreground font-mono w-10 flex-shrink-0">{line.code}</span>
+                  <span className={`truncate ${isParentRow ? "font-bold text-foreground" : "text-foreground font-medium"}`}>
+                    {line.name}
+                  </span>
+                </div>
+                <span className={`font-bold tabular-nums whitespace-nowrap ${isParentRow ? color : "text-foreground"}`}>
+                  {absBalance > 0 ? `₪${absBalance.toLocaleString()}` : "—"}
+                </span>
               </div>
-              <span className="font-bold tabular-nums text-foreground whitespace-nowrap">₪{acc.balance.toLocaleString()}</span>
-            </div>
-          ))}
-          <div className="flex items-center justify-between px-4 py-2 border-t border-border bg-muted/20 text-xs font-bold">
-            <span className="text-muted-foreground">إجمالي {group.title}</span>
-            <span className={color}>₪{group.total.toLocaleString()}</span>
+            );
+          })}
+          <div className="flex items-center justify-between px-4 py-2.5 border-t border-border bg-muted/20 text-xs font-bold">
+            <span className="text-muted-foreground">إجمالي {title}</span>
+            <span className={color}>₪{total.toLocaleString()}</span>
           </div>
         </div>
-      ))}
-      <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-muted/50 border border-border/50 text-sm font-bold">
-        <span className="text-foreground">إجمالي {title}</span>
-        <span className={color}>₪{total.toLocaleString()}</span>
       </div>
-    </div>
-  );
+    );
+  };
+
+  // Flatten trees with level filter, excluding zero balances
+  const assetLines = useMemo(() => flattenAccountTree(assetTree, detailLevel).filter(l => l.balance !== 0), [assetTree, detailLevel]);
+  const liabLines = useMemo(() => flattenAccountTree(liabilityTree, detailLevel).filter(l => l.balance !== 0), [liabilityTree, detailLevel]);
+  const eqLines = useMemo(() => flattenAccountTree(equityTree, detailLevel).filter(l => l.balance !== 0), [equityTree, detailLevel]);
 
   return (
     <div className="px-4 pt-6 space-y-5 pb-8" dir="rtl">
@@ -246,15 +264,38 @@ const BalanceSheetPage = () => {
             { label: "حقوق الملكية", value: totalEquity, color: "warning" },
           ]} />
 
+          {/* Level Selector */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs text-muted-foreground font-medium">مستوى التفصيل:</span>
+            <div className="flex gap-1">
+              {LEVEL_OPTIONS.map(opt => (
+                <button
+                  key={opt.value}
+                  onClick={() => setDetailLevel(opt.value)}
+                  className={`px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all ${
+                    detailLevel === opt.value
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : "bg-muted/60 text-muted-foreground hover:bg-muted"
+                  }`}
+                >
+                  {opt.value}
+                </button>
+              ))}
+              <span className="text-[10px] text-muted-foreground self-center mr-2">
+                {LEVEL_OPTIONS.find(o => o.value === detailLevel)?.label}
+              </span>
+            </div>
+          </div>
+
           {/* Balance check */}
           <div className={`text-center text-xs py-2 rounded-lg ${isBalanced ? "bg-primary/10 text-primary" : "bg-destructive/10 text-destructive"}`}>
             {isBalanced ? "✅ الميزانية متوازنة (الأصول = الالتزامات + حقوق الملكية)" : `⚠️ الميزانية غير متوازنة — فرق: ₪${Math.abs(totalAssets - totalLiabilities - totalEquity).toLocaleString()}`}
           </div>
 
           {/* Sections */}
-          {renderSection("الأصول", assetGroups, totalAssets, "text-primary")}
-          {renderSection("الالتزامات", liabilityGroups, totalLiabilities, "text-destructive")}
-          {renderSection("حقوق الملكية", equityGroups, totalEquity, "text-warning")}
+          {renderHierarchicalSection("الأصول", assetLines, totalAssets, "text-primary")}
+          {renderHierarchicalSection("الالتزامات", liabLines, totalLiabilities, "text-destructive")}
+          {renderHierarchicalSection("حقوق الملكية", eqLines, totalEquity, "text-warning")}
 
           {/* Final equation */}
           <div className="rounded-xl border-2 border-primary/20 bg-primary/5 p-4 text-center space-y-1">
