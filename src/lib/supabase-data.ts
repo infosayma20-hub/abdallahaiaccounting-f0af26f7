@@ -23,6 +23,7 @@ export interface SupabaseAccount {
   account_code: string;
   account_type: string;
   is_active: boolean | null;
+  parent_code: string | null;
 }
 
 // Fetch transactions from Supabase
