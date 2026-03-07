@@ -42,7 +42,7 @@ export async function fetchTransactions(userId: string) {
 export async function fetchAccounts(userId: string) {
   const { data, error } = await supabase
     .from("accounts")
-    .select("id, account_name, account_code, account_type, is_active")
+    .select("id, account_name, account_code, account_type, is_active, parent_code")
     .eq("user_id", userId)
     .order("account_code");
   if (error) throw error;
