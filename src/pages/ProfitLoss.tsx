@@ -550,7 +550,22 @@ const ProfitLoss = () => {
             <Checkbox checked={showZeroAccounts} onCheckedChange={(v) => setShowZeroAccounts(!!v)} />
             <span className="text-muted-foreground">الحسابات الصفرية</span>
           </label>
-        </div>
+          <div className="flex items-center gap-1.5 mr-4">
+            <span className="text-muted-foreground text-[10px]">مستوى التفصيل:</span>
+            {[1, 2, 3, 4].map(lv => (
+              <button
+                key={lv}
+                onClick={() => setDetailLevel(lv)}
+                className={`w-6 h-6 rounded text-[10px] font-bold transition-all ${
+                  detailLevel === lv
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "bg-muted/60 text-muted-foreground hover:bg-muted"
+                }`}
+              >
+                {lv}
+              </button>
+            ))}
+          </div>
         <div className="flex items-center gap-2 flex-wrap">
           <Button variant="outline" size="sm" className="h-7 text-[10px] gap-1" onClick={handleExportExcel} disabled={loading}>
             <FileSpreadsheet className="h-3 w-3" /> Excel
