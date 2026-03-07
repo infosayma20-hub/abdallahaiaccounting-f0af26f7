@@ -21,7 +21,7 @@ export function useRoleRedirect() {
         .select("role")
         .eq("user_id", user.id);
 
-      const roles = (data || []).map((r) => r.role);
+      const roles: string[] = (data || []).map((r) => r.role);
 
       if (roles.includes("super_admin")) {
         setTargetPath("/super-admin/dashboard");
