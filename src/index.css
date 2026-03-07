@@ -310,10 +310,7 @@ table th { font-weight: 700; }
     display: none !important;
   }
 
-  #print-portal {
-    display: block !important;
-  }
-
+  #print-portal,
   #statement-print-wrapper,
   #transactions-print-wrapper {
     display: block !important;
