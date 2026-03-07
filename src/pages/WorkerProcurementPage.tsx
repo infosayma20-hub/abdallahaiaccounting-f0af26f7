@@ -132,12 +132,12 @@ const WorkerProcurementPage = () => {
       }
 
       // Load products from owner's inventory
-      const { data: prods } = await supabase
+      const { data: prods } = await (supabase
         .from("products")
         .select("id, name, sell_price, buy_price, quantity, category, unit, barcode, image_url")
         .eq("user_id", resolvedOwner)
         .eq("is_active", true)
-        .order("sort_order", { ascending: true });
+        .order("sort_order", { ascending: true }) as any);
       setProducts(prods || []);
       setLoading(false);
     };
