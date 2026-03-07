@@ -826,6 +826,38 @@ const POSPage = () => {
     return contacts.filter(c => c.contact_name.toLowerCase().includes(q));
   }, [contacts, customerSearch]);
 
+  const handleQuickAddCustomer = async () => {
+    if (!newCustomerName.trim() || !dataOwnerId) return;
+    setSavingCustomer(true);
+    try {
+      const { data, error } = await supabase
+        .from("contacts")
+        .insert({
+          user_id: dataOwnerId,
+          contact_name: newCustomerName.trim(),
+          phone: newCustomerPhone.trim() || null,
+          contact_type: "عميل",
+          is_active: true,
+        })
+        .select("id, contact_name")
+        .single();
+      if (error) throw error;
+      if (data) {
+        setContacts(prev => [...prev, data]);
+        setCustomerName(data.contact_name, data.id);
+        setCustomerSearch("");
+        setShowContactDropdown(false);
+        toast.success(`تمت إضافة العميل "${data.contact_name}" بنجاح`);
+      }
+    } catch (err: any) {
+      toast.error("فشل في إضافة العميل: " + (err.message || "خطأ غير معروف"));
+    }
+    setSavingCustomer(false);
+    setShowQuickAddCustomer(false);
+    setNewCustomerName("");
+    setNewCustomerPhone("");
+  };
+
   const categoriesWithCounts = useMemo(() => {
     const posProducts = products.filter(p => p.is_pos_available);
     const totalCount = posProducts.length;
