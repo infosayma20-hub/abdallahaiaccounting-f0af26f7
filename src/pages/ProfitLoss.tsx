@@ -19,7 +19,7 @@ import { format, startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear, st
 import { generateProfessionalPDFHtml, openPrintWindow, useCompanyInfo } from "@/components/ReportPrintLayout";
 import {
   fetchTransactions, fetchAccounts, buildAccountMap, normalizeAccountType, getAccountNameOnly,
-  SupabaseTransaction, SupabaseAccount, isOpeningBalance,
+  SupabaseTransaction, SupabaseAccount, isOpeningBalance, getChildAccounts,
 } from "@/lib/supabase-data";
 
 // ── Types ──
@@ -107,6 +107,7 @@ const ProfitLoss = () => {
   const { user } = useAuth();
   const companyInfo = useCompanyInfo();
   const [allTxRecords, setAllTxRecords] = useState<TxRecord[]>([]);
+  const [allAccounts, setAllAccounts] = useState<SupabaseAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [companyName, setCompanyName] = useState("");
   const [activePeriod, setActivePeriod] = useState("this-month");
@@ -118,6 +119,7 @@ const ProfitLoss = () => {
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
   const [drillDownAccount, setDrillDownAccount] = useState<{ label: string; txs: TxRecord[] } | null>(null);
   const [showCharts, setShowCharts] = useState(true);
+  const [detailLevel, setDetailLevel] = useState(1);
 
   // Fetch data from Supabase
   useEffect(() => {
@@ -136,6 +138,7 @@ const ProfitLoss = () => {
           fetchAccounts(user.id),
         ]);
         const accMap = buildAccountMap(accounts);
+        setAllAccounts(accounts);
 
         const records: TxRecord[] = txs
           .filter(tx => !tx.is_deleted && !isOpeningBalance(tx))
@@ -214,18 +217,32 @@ const ProfitLoss = () => {
     // Purchase discount (خصم مكتسب - credit to 4350)
     const purchaseDiscountData = calc(tx => isDiscountEarnedCode(tx.creditCode));
 
-    // Operating expenses by account name (5xxx except 51xx)
-    const expenseMap = new Map<string, { total: number; txs: TxRecord[] }>();
+    // Operating expenses by account (5xxx except 51xx) — with hierarchy
+    const expenseByAccount = new Map<string, { total: number; txs: TxRecord[]; code: string; name: string }>();
     txs.forEach(tx => {
       if (!isExpenseCode(tx.debitCode)) return;
-      const name = tx.debitAccountName || tx.debitCode;
-      const curr = expenseMap.get(name) || { total: 0, txs: [] };
+      const code = tx.debitCode;
+      const name = tx.debitAccountName || code;
+      const curr = expenseByAccount.get(code) || { total: 0, txs: [], code, name };
       curr.total += tx.amount;
       curr.txs.push(tx);
-      expenseMap.set(name, curr);
+      expenseByAccount.set(code, curr);
     });
 
-    const expenseEntries = Array.from(expenseMap.entries()).sort((a, b) => b[1].total - a[1].total);
+    // Revenue by account — with hierarchy
+    const revenueByAccount = new Map<string, { total: number; txs: TxRecord[]; code: string; name: string }>();
+    txs.forEach(tx => {
+      if (!isRevenueCode(tx.creditCode) || isDiscountEarnedCode(tx.creditCode)) return;
+      const code = tx.creditCode;
+      const name = tx.creditAccountName || code;
+      const curr = revenueByAccount.get(code) || { total: 0, txs: [], code, name };
+      curr.total += tx.amount;
+      curr.txs.push(tx);
+      revenueByAccount.set(code, curr);
+    });
+
+    const expenseEntries = Array.from(expenseByAccount.entries()).map(([, v]) => [v.name, v] as [string, typeof v]).sort((a, b) => b[1].total - a[1].total);
+    const revenueEntries = Array.from(revenueByAccount.entries()).map(([, v]) => [v.name, v] as [string, typeof v]).sort((a, b) => b[1].total - a[1].total);
     const totalOpExpenses = expenseEntries.reduce((s, [, v]) => s + v.total, 0);
 
     // Other income/expenses
@@ -248,9 +265,10 @@ const ProfitLoss = () => {
     return {
       salesData, salesDiscountData, salesReturnData,
       purchasesData, purchaseDiscountData, purchaseReturnData,
-      expenseEntries, totalOpExpenses,
+      expenseEntries, revenueEntries, totalOpExpenses,
       otherIncome, otherExpenses,
       totalRevenue, totalCOGS, grossProfit, operatingProfit, netOther, netProfit,
+      expenseByAccount, revenueByAccount,
     };
   }, []);
 
@@ -261,6 +279,79 @@ const ProfitLoss = () => {
   const grossMarginPct = current.totalRevenue > 0 ? (current.grossProfit / current.totalRevenue) * 100 : 0;
 
   // ── Build statement lines ──
+  // Helper: build sub-account lines for a section
+  const buildSubAccountLines = useCallback((
+    accountDataMap: Map<string, { total: number; txs: TxRecord[]; code: string; name: string }>,
+    addLine: (label: string, amount: number, level: StatementLine["level"], type: StatementLine["type"], section?: string, txs?: TxRecord[], compareAmt?: number) => void,
+    section: string,
+    prevEntries?: typeof current.expenseEntries,
+  ) => {
+    if (detailLevel === 1) {
+      // Just show aggregated total per root-level account
+      const rootMap = new Map<string, { total: number; txs: TxRecord[]; name: string }>();
+      accountDataMap.forEach((data) => {
+        // Find root parent
+        let rootCode = data.code;
+        let rootName = data.name;
+        const acc = allAccounts.find(a => a.account_code === data.code);
+        if (acc?.parent_code) {
+          const parent = allAccounts.find(a => a.account_code === acc.parent_code);
+          if (parent) { rootCode = parent.account_code; rootName = parent.account_name; }
+        }
+        const curr = rootMap.get(rootCode) || { total: 0, txs: [], name: rootName };
+        curr.total += data.total;
+        curr.txs.push(...data.txs);
+        rootMap.set(rootCode, curr);
+      });
+      Array.from(rootMap.entries()).sort((a, b) => b[1].total - a[1].total).forEach(([, data]) => {
+        const prevVal = prevEntries?.find(([n]) => n === data.name)?.[1]?.total;
+        addLine(data.name, data.total, 2, "item", section, data.txs, prevVal);
+      });
+    } else {
+      // Show individual accounts with hierarchy
+      // Group by parent
+      const parentMap = new Map<string, { name: string; code: string; children: { name: string; code: string; total: number; txs: TxRecord[] }[]; total: number; txs: TxRecord[] }>();
+      
+      accountDataMap.forEach((data) => {
+        const acc = allAccounts.find(a => a.account_code === data.code);
+        const parentCode = acc?.parent_code;
+        
+        if (parentCode && detailLevel >= 2) {
+          const parent = allAccounts.find(a => a.account_code === parentCode);
+          if (parent) {
+            const existing = parentMap.get(parentCode) || { name: parent.account_name, code: parentCode, children: [], total: 0, txs: [] };
+            existing.children.push({ name: data.name, code: data.code, total: data.total, txs: data.txs });
+            existing.total += data.total;
+            existing.txs.push(...data.txs);
+            parentMap.set(parentCode, existing);
+            return;
+          }
+        }
+        
+        // No parent or level 1 - show directly
+        if (!parentMap.has(data.code)) {
+          parentMap.set(data.code, { name: data.name, code: data.code, children: [], total: data.total, txs: data.txs });
+        }
+      });
+
+      Array.from(parentMap.values()).sort((a, b) => b.total - a.total).forEach(group => {
+        if (group.children.length > 0) {
+          // Parent account as header-like item
+          addLine(group.name, group.total, 2, "item", section, group.txs);
+          if (detailLevel >= 2) {
+            group.children.sort((a, b) => b.total - a.total).forEach(child => {
+              if (!showZeroAccounts && child.total === 0) return;
+              addLine(`${child.code} - ${child.name}`, child.total, 3 as any, "item", section, child.txs);
+            });
+          }
+        } else {
+          const prevVal = prevEntries?.find(([n]) => n === group.name)?.[1]?.total;
+          addLine(group.name, group.total, 2, "item", section, group.txs, prevVal);
+        }
+      });
+    }
+  }, [detailLevel, allAccounts, showZeroAccounts]);
+
   const statementLines = useMemo((): StatementLine[] => {
     const lines: StatementLine[] = [];
 
@@ -271,7 +362,11 @@ const ProfitLoss = () => {
 
     // Revenue
     addLine("الإيرادات", 0, 0, "header", "revenue");
-    addLine("إيرادات المبيعات", current.salesData.total, 2, "item", "revenue", current.salesData.txs, previous?.salesData.total);
+    if (detailLevel >= 2 && current.revenueEntries.length > 1) {
+      buildSubAccountLines(current.revenueByAccount, addLine, "revenue");
+    } else {
+      addLine("إيرادات المبيعات", current.salesData.total, 2, "item", "revenue", current.salesData.txs, previous?.salesData.total);
+    }
     if (current.salesDiscountData.total > 0) addLine("(-) خصم مسموح به", -current.salesDiscountData.total, 2, "item", "revenue", current.salesDiscountData.txs);
     if (current.salesReturnData.total > 0) addLine("(-) مردود مبيعات", -current.salesReturnData.total, 2, "item", "revenue", current.salesReturnData.txs);
     addLine("إجمالي الإيرادات", current.totalRevenue, 1, "subtotal", "revenue", undefined, previous?.totalRevenue);
@@ -291,10 +386,7 @@ const ProfitLoss = () => {
 
     // Operating Expenses
     addLine("المصروفات التشغيلية", 0, 0, "header", "opex");
-    current.expenseEntries.forEach(([name, data]) => {
-      const prevVal = previous?.expenseEntries.find(([n]) => n === name)?.[1]?.total;
-      addLine(name, data.total, 2, "item", "opex", data.txs, prevVal);
-    });
+    buildSubAccountLines(current.expenseByAccount, addLine, "opex", previous?.expenseEntries);
     addLine("إجمالي المصروفات التشغيلية", current.totalOpExpenses, 1, "subtotal", "opex", undefined, previous?.totalOpExpenses);
 
     lines.push({ label: "", amount: 0, level: 0, type: "spacer" });
@@ -313,7 +405,7 @@ const ProfitLoss = () => {
     addLine("صافي الربح / (الخسارة)", current.netProfit, 0, "grand-total", undefined, undefined, previous?.netProfit);
 
     return lines;
-  }, [current, previous, showZeroAccounts]);
+  }, [current, previous, showZeroAccounts, detailLevel, buildSubAccountLines]);
 
   // ── Monthly chart data ──
   const monthlyChartData = useMemo(() => {
@@ -458,6 +550,22 @@ const ProfitLoss = () => {
             <Checkbox checked={showZeroAccounts} onCheckedChange={(v) => setShowZeroAccounts(!!v)} />
             <span className="text-muted-foreground">الحسابات الصفرية</span>
           </label>
+          <div className="flex items-center gap-1.5 mr-4">
+            <span className="text-muted-foreground text-[10px]">مستوى التفصيل:</span>
+            {[1, 2, 3, 4].map(lv => (
+              <button
+                key={lv}
+                onClick={() => setDetailLevel(lv)}
+                className={`w-6 h-6 rounded text-[10px] font-bold transition-all ${
+                  detailLevel === lv
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "bg-muted/60 text-muted-foreground hover:bg-muted"
+                }`}
+              >
+                {lv}
+              </button>
+            ))}
+          </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <Button variant="outline" size="sm" className="h-7 text-[10px] gap-1" onClick={handleExportExcel} disabled={loading}>
