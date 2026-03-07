@@ -344,6 +344,11 @@ const POSPage = () => {
     discountPct: number; discountAmount: number; customerId: string | null;
     contactType: string; contactValue: string; customerName: string;
   } | null>(null);
+  // Quick add customer
+  const [showQuickAddCustomer, setShowQuickAddCustomer] = useState(false);
+  const [newCustomerName, setNewCustomerName] = useState("");
+  const [newCustomerPhone, setNewCustomerPhone] = useState("");
+  const [savingCustomer, setSavingCustomer] = useState(false);
   const [openingCash, setOpeningCash] = useState("");
   const [closingCash, setClosingCash] = useState("");
 
