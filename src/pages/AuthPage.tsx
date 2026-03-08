@@ -167,12 +167,73 @@ const AuthPage = () => {
           <p className="text-2xl font-bold text-primary" style={{ fontFamily: "'Tajawal', sans-serif" }}>
             زِدني
           </p>
-          <div className="flex items-center justify-center gap-2 pt-1">
-            <div className="h-px w-8 bg-border" />
-            <span className="text-xs text-muted-foreground whitespace-nowrap">مُقَدَّم من</span>
-            <div className="h-px w-8 bg-border" />
+
+          {/* Premium Sponsor Block */}
+          <div className="flex flex-col items-center gap-2.5 pt-3 w-full" dir="rtl">
+            {/* Top rule */}
+            <div className="flex items-center gap-2 w-4/5">
+              <div className="flex-1 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(201,168,76,0.5), transparent)' }} />
+              <span className="text-[7px]" style={{ color: '#C9A84C', opacity: 0.7 }}>◆</span>
+              <div className="flex-1 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(201,168,76,0.5), transparent)' }} />
+            </div>
+
+            <p className="text-[11px] text-muted-foreground tracking-widest" style={{ fontFamily: "'Tajawal', sans-serif", fontWeight: 300 }}>
+              مُقَدَّم من
+            </p>
+
+            {/* Dark card */}
+            <div
+              className="relative w-full rounded-xl overflow-hidden text-center"
+              style={{
+                background: 'linear-gradient(135deg, #0A2342 0%, #071828 60%, #0A2342 100%)',
+                padding: '20px 28px 16px',
+                border: '1px solid rgba(201,168,76,0.35)',
+                boxShadow: '0 0 0 1px rgba(201,168,76,0.1), 0 8px 32px rgba(10,35,66,0.4), inset 0 1px 0 rgba(201,168,76,0.15)',
+              }}
+            >
+              {/* Radial glow overlay */}
+              <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse 80% 60% at 50% 0%, rgba(201,168,76,0.06), transparent 70%)' }} />
+
+              {/* Corner ornaments */}
+              <div className="absolute top-1.5 right-1.5 w-3 h-3" style={{ borderColor: 'rgba(201,168,76,0.5)', borderStyle: 'solid', borderWidth: '1px 1px 0 0' }} />
+              <div className="absolute top-1.5 left-1.5 w-3 h-3" style={{ borderColor: 'rgba(201,168,76,0.5)', borderStyle: 'solid', borderWidth: '1px 0 0 1px' }} />
+              <div className="absolute bottom-1.5 right-1.5 w-3 h-3" style={{ borderColor: 'rgba(201,168,76,0.5)', borderStyle: 'solid', borderWidth: '0 1px 1px 0' }} />
+              <div className="absolute bottom-1.5 left-1.5 w-3 h-3" style={{ borderColor: 'rgba(201,168,76,0.5)', borderStyle: 'solid', borderWidth: '0 0 1px 1px' }} />
+
+              {/* Calligraphy name */}
+              <p
+                className="relative text-[26px] leading-relaxed mb-2.5"
+                dir="rtl"
+                style={{
+                  fontFamily: "'Scheherazade New', 'Noto Naskh Arabic', 'Traditional Arabic', serif",
+                  fontWeight: 700,
+                  background: 'linear-gradient(180deg, #E8D5A3 0%, #C9A84C 40%, #9A7B2E 100%)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text',
+                  filter: 'drop-shadow(0 2px 8px rgba(201,168,76,0.3))',
+                }}
+              >
+                مجموعة سلام صايمة وأولاده
+              </p>
+
+              {/* Gold separator */}
+              <div className="mx-auto mb-2.5 rounded-full" style={{ width: 48, height: 1.5, background: 'linear-gradient(90deg, transparent, #C9A84C, transparent)' }} />
+
+              {/* Subtitle */}
+              <p className="relative text-[11px] leading-relaxed" dir="rtl" style={{ fontFamily: "'Tajawal', sans-serif", fontWeight: 300, color: 'rgba(255,255,255,0.45)' }}>
+                رواد في تقديم الحلول المحاسبية والاستشارات المالية المبتكرة
+              </p>
+            </div>
+
+            {/* Bottom rule */}
+            <div className="flex items-center gap-2 w-4/5">
+              <div className="flex-1 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(201,168,76,0.5), transparent)' }} />
+              <span className="text-[7px]" style={{ color: '#C9A84C', opacity: 0.7 }}>◆</span>
+              <div className="flex-1 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(201,168,76,0.5), transparent)' }} />
+            </div>
           </div>
-          <p className="text-sm font-semibold text-foreground/80">مجموعة سلام صايمة وأولاده</p>
+
           {mode === "forgot" && (
             <p className="text-sm text-muted-foreground">{titles[mode].sub}</p>
           )}
