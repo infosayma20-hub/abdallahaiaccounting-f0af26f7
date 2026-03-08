@@ -18,6 +18,7 @@ import ChequeDetailsDialog, { ChequeLineItem } from "@/components/ChequeDetailsD
 import JournalEntryPopup from "@/components/JournalEntryPopup";
 import SavedCommands from "@/components/SavedCommands";
 import SmartMemory from "@/components/SmartMemory";
+import FinancialPredictions from "@/components/FinancialPredictions";
 
 interface SummaryStats {
   sales: number;
@@ -360,7 +361,10 @@ const SmartAccountantPage = () => {
       {/* ═══ 3. ذاكرة المحاسب الذكي ═══ */}
       <SmartMemory />
 
-      {/* ═══ 4. الرادار المالي ═══ */}
+      {/* ═══ 4. التنبؤات المالية ═══ */}
+      <FinancialPredictions />
+
+      {/* ═══ 5. الرادار المالي ═══ */}
       <FinancialRadar />
 
       {/* ═══ 4. وضع المدير المالي ═══ */}
