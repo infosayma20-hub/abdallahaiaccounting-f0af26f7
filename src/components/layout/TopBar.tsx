@@ -350,9 +350,9 @@ const TopBar = ({ onMenuClick, sidebarCollapsed, onOpenHelpGuide }: TopBarProps)
       .select("display_name, company_name, avatar_url")
       .eq("user_id", user.id)
       .maybeSingle()
-      .then(({ data }) => {
+      .then(({ data }: any) => {
         setProfileName(data?.display_name || data?.company_name || null);
-        setUserAvatarUrl((data as any)?.avatar_url || null);
+        setUserAvatarUrl(data?.avatar_url || null);
       });
   }, [user?.id]);
 
