@@ -1547,6 +1547,7 @@ const POSPage = () => {
           discount_pct: item.discount_pct,
           total: item.total,
           note: item.note,
+          modifiers: item.modifiers || [],
         })),
         subtotal: cartTotals.subtotal,
         tax: cartTotals.tax,

@@ -5,6 +5,12 @@ import { Input } from "@/components/ui/input";
 import { Printer, Mail, CheckCircle, Send, Download } from "lucide-react";
 import { toast } from "sonner";
 
+interface ReceiptModifier {
+  group_name: string;
+  option_name: string;
+  extra_price: number;
+}
+
 interface ReceiptItem {
   name: string;
   qty: number;
@@ -12,6 +18,7 @@ interface ReceiptItem {
   discount_pct: number;
   total: number;
   note: string;
+  modifiers?: ReceiptModifier[];
 }
 
 interface ReceiptData {
@@ -258,6 +265,21 @@ export default function POSReceiptDialog({ open, onOpenChange, data }: POSReceip
                   {item.discount_pct > 0 && (
                     <div style={{ fontSize: "10px", color: "#dc2626", paddingRight: "4px", marginTop: "1px" }}>
                       خصم {item.discount_pct}%
+                    </div>
+                  )}
+                  {item.modifiers && item.modifiers.length > 0 && (
+                    <div style={{ paddingRight: "8px", marginTop: "3px" }}>
+                      {item.modifiers.map((mod, mi) => (
+                        <div key={mi} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "10px", color: "#64748b", lineHeight: 1.6 }}>
+                          <span style={{ display: "flex", alignItems: "center", gap: "3px" }}>
+                            <span style={{ color: "#94a3b8" }}>↳</span>
+                            {mod.option_name}
+                          </span>
+                          {mod.extra_price > 0 && (
+                            <span style={{ fontSize: "9px", fontVariantNumeric: "tabular-nums", color: "#16a34a", fontWeight: 600 }}>+₪{mod.extra_price.toFixed(2)}</span>
+                          )}
+                        </div>
+                      ))}
                     </div>
                   )}
                   {item.note && (
