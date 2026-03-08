@@ -70,12 +70,12 @@ function buildOrderedTree(accounts: Account[]): Account[] {
   const byCode = new Map<string, Account>();
   accounts.forEach(a => byCode.set(a.account_code, a));
   
-  // Group children by parent
+  // Group children by parent — treat self-referencing parent_code as root
   const childrenOf = new Map<string, Account[]>();
   const roots: Account[] = [];
   
   accounts.forEach(a => {
-    if (!a.parent_code || !byCode.has(a.parent_code)) {
+    if (!a.parent_code || a.parent_code === a.account_code || !byCode.has(a.parent_code)) {
       roots.push(a);
     } else {
       const siblings = childrenOf.get(a.parent_code) || [];
