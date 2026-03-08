@@ -1771,7 +1771,7 @@ const POSPage = () => {
   return (
     <div className="h-screen flex flex-col overflow-hidden pos-container" dir="rtl">
       {/* ══════ TOP BAR ══════ */}
-      <header className="h-12 bg-[hsl(222,47%,5%)] flex items-center px-3 gap-2 shrink-0 text-white">
+      <header className="flex items-center px-3 gap-2 shrink-0 text-white" style={{ height: 56, background: "#0A2342" }}>
         {/* Back */}
         <button
           onClick={() => navigate("/apps")}
@@ -1780,20 +1780,20 @@ const POSPage = () => {
           <ArrowRight className="h-4 w-4" />
         </button>
 
-        {/* Company badge */}
-        <div className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-primary/20">
-          <ShoppingBag className="h-3.5 w-3.5 text-primary" />
-          <span className="text-xs font-semibold">{company?.name || "شركتي"}</span>
+        {/* ZIDNI Logo */}
+        <div className="flex items-center gap-2 px-2.5 py-1 rounded-lg" style={{ background: "rgba(0,180,216,0.15)" }}>
+          <span className="text-xs font-bold" style={{ fontFamily: "Barlow, sans-serif", color: "#00B4D8" }}>Z</span>
+          <span className="text-xs font-semibold">{company?.name || "ZIDNI"}</span>
         </div>
 
         {terminal && (
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/8 text-white/70 text-xs">
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-white/70 text-xs" style={{ background: "rgba(255,255,255,0.08)" }}>
             <Monitor className="h-3 w-3" />
             <span>{terminal.name}</span>
           </div>
         )}
 
-        <div className="w-px h-5 bg-white/10 mx-1" />
+        <div className="w-px h-5 mx-1" style={{ background: "rgba(255,255,255,0.1)" }} />
 
         {session && (
           <div className="flex items-center gap-3 text-xs text-white/60">
