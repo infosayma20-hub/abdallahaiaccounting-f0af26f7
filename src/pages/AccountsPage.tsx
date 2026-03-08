@@ -633,6 +633,15 @@ const AccountsPage = () => {
                         >
                           <PlusCircle className="h-3.5 w-3.5 text-[hsl(210,10%,42%)] dark:text-muted-foreground" />
                         </button>
+                        {!acc.is_system && (
+                          <button 
+                            className="p-1 rounded hover:bg-destructive/10 transition-colors" 
+                            title="حذف الحساب"
+                            onClick={() => handleDeleteAccount(acc)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5 text-destructive/60 hover:text-destructive" />
+                          </button>
+                        )}
                       </div>
                     )}
                     {isVirtualTypeHeader && <span className="hidden sm:block" />}
