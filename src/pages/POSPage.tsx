@@ -2090,22 +2090,31 @@ const POSPage = () => {
 
                     return (
                       <SortableProductCard key={product.id} id={product.id} isSortMode={isSortMode}>
-                        {({ isDragging, style, ref, listeners, attributes }) => (
+                        {({ isDragging, style, ref, listeners, attributes }) => {
+                          const hasAddons = !!(productModifierMap[product.id]?.length);
+                          const isAddonOpen = openAddonProductId === product.id;
+                          const addonGroups = hasAddons ? modifierGroups.filter(g => productModifierMap[product.id]?.includes(g.id)) : [];
+
+                          return (
                           <div
                             ref={ref}
                             {...attributes}
                             {...listeners}
+                            data-addon-card={isAddonOpen ? "true" : undefined}
                             onClick={() => !isSortMode && addToCart(product)}
-                            className={`relative bg-card overflow-hidden text-center transition-all group border select-none ${
+                            className={`relative bg-card overflow-visible text-center transition-all group border select-none ${
                               cardSize === "S" ? "rounded-lg" : "rounded-xl"
                             } ${isSortMode 
                               ? "border-dashed border-amber-400/60 cursor-grab ring-1 ring-amber-400/20" 
-                              : "border-border hover:border-opacity-60 cursor-pointer"
+                              : isAddonOpen
+                                ? "border-primary bg-accent shadow-lg"
+                                : "border-border hover:border-opacity-60 cursor-pointer"
                             } ${isDragging ? "shadow-2xl scale-105 rotate-1" : "hover:shadow-md"}`}
                             style={{
                               ...style,
                               borderBottomWidth: cardSize === "S" ? "2px" : "3px",
                               borderBottomColor: isSortMode ? "hsl(var(--primary))" : productColor + "60",
+                              zIndex: isAddonOpen ? 10 : "auto",
                             }}
                           >
                             {/* Sort mode grip icon */}
@@ -2186,6 +2195,13 @@ const POSPage = () => {
                                 {product.name}
                               </p>
 
+                              {/* Addon hint */}
+                              {cardSize !== "S" && hasAddons && (
+                                <p className="text-[9px] text-muted-foreground mb-0.5">
+                                  {addonGroups.length} إضافة متاحة
+                                </p>
+                              )}
+
                               {/* Price */}
                               <p className={`font-bold text-primary tabular-nums ${
                                 cardSize === "S" ? "text-[10px]" : "text-xs"
@@ -2193,8 +2209,25 @@ const POSPage = () => {
                                 ₪{product.sell_price.toFixed(2)}
                               </p>
                             </div>
+
+                            {/* Inline Addon Panel */}
+                            <AnimatePresence>
+                              {isAddonOpen && addonGroups.length > 0 && (
+                                <InlineAddonPanel
+                                  product={{ id: product.id, name: product.name, sell_price: product.sell_price }}
+                                  groups={addonGroups}
+                                  onConfirm={(data) => {
+                                    addToCartDirect(product, data.modifiers, data.note, data.quantity);
+                                    setOpenAddonProductId(null);
+                                    toast.success(`✓ أضيف للطلب — ${product.name}`);
+                                  }}
+                                  onClose={() => setOpenAddonProductId(null)}
+                                />
+                              )}
+                            </AnimatePresence>
                           </div>
-                        )}
+                          );
+                        }}
                       </SortableProductCard>
                     );
                   })}
