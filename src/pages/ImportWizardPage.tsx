@@ -143,39 +143,114 @@ const ImportWizardPage = () => {
   const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    const parseNumber = (value: unknown, fallback = 0) => {
+      if (typeof value === "number") return Number.isFinite(value) ? value : fallback;
+      const cleaned = String(value ?? "")
+        .replace(/[,\s]/g, "")
+        .replace(/[^
+\d.-]/g, "");
+      const parsed = parseFloat(cleaned);
+      return Number.isFinite(parsed) ? parsed : fallback;
+    };
+
+    const normalize = (v: unknown) => String(v ?? "").toLowerCase().trim();
+
     const reader = new FileReader();
     reader.onload = (evt) => {
       try {
-        const wb = XLSX.read(evt.target?.result, { type: "binary" });
+        const wb = XLSX.read(evt.target?.result, { type: "array" });
         const ws = wb.Sheets[wb.SheetNames[0]];
-        const rawData: any[] = XLSX.utils.sheet_to_json(ws, { defval: "" });
-        
-        const mapped: ShipmentItem[] = rawData.map((row, idx) => {
-          const unitPrice = parseFloat(row["Ex-works"] || row["unit_price"] || row["Price"] || row["السعر"] || row["price"] || 0);
-          const qty = parseInt(row["QTY pcs"] || row["quantity"] || row["Qty"] || row["الكمية"] || row["qty"] || 1);
-          const cbm = parseFloat(row["CBM"] || row["cbm_per_unit"] || row["cbm"] || row["الحجم"] || 0);
-          return {
-            line_number: idx + 1,
-            model_code: row["Model"] || row["model_code"] || row["Item No"] || row["كود"] || "",
-            description_en: row["Description"] || row["description"] || row["Product"] || "",
-            description_ar: row["الوصف"] || "",
-            color: row["Color"] || row["Colour"] || row["اللون"] || "",
-            size_mm: row["SIZE MM"] || row["Size"] || row["الأبعاد"] || "",
-            unit_price_foreign: unitPrice,
-            quantity: qty,
-            total_price_foreign: unitPrice * qty,
-            cbm_per_unit: cbm,
-            total_cbm: cbm * qty,
-          };
-        }).filter(i => i.model_code || i.description_en || i.unit_price_foreign > 0);
+        const rows = XLSX.utils.sheet_to_json<(string | number)[]>(ws, { header: 1, defval: "" });
+
+        if (!rows.length) {
+          toast.error("الملف فارغ");
+          return;
+        }
+
+        const headerKeywords: Record<string, string[]> = {
+          model: ["model", "item no", "item#", "sku", "code", "كود"],
+          description: ["description", "desc", "product", "name", "الوصف"],
+          color: ["color", "colour", "اللون"],
+          size: ["size", "dimension", "mm", "الأبعاد"],
+          price: ["ex-works", "unit price", "price", "cost", "سعر"],
+          qty: ["qty", "quantity", "pcs", "الكمية", "عدد"],
+          amount: ["amount", "total", "المبلغ", "الإجمالي"],
+          cbm: ["cbm", "volume", "الحجم"],
+          totalCbm: ["total volume", "total cbm", "إجمالي"],
+        };
+
+        const scoreRow = (row: (string | number)[]) => {
+          const cells = row.map(normalize);
+          return Object.values(headerKeywords).reduce(
+            (score, keys) => score + (cells.some((cell) => keys.some((k) => cell.includes(k))) ? 1 : 0),
+            0
+          );
+        };
+
+        const headerIndex = rows
+          .slice(0, Math.min(rows.length, 12))
+          .map((row, idx) => ({ idx, score: scoreRow(row) }))
+          .sort((a, b) => b.score - a.score)[0]?.idx ?? 0;
+
+        const headers = (rows[headerIndex] || []).map(normalize);
+        const findCol = (type: keyof typeof headerKeywords, fallback: number) => {
+          const idx = headers.findIndex((h) => headerKeywords[type].some((k) => h.includes(k)));
+          return idx >= 0 ? idx : fallback;
+        };
+
+        const colMap = {
+          model: findCol("model", 2),
+          description: findCol("description", 3),
+          color: findCol("color", 4),
+          size: findCol("size", 5),
+          price: findCol("price", 6),
+          qty: findCol("qty", 7),
+          amount: findCol("amount", 8),
+          cbm: findCol("cbm", 9),
+          totalCbm: findCol("totalCbm", 10),
+        };
+
+        const dataRows = rows.slice(headerIndex + 1);
+        const mapped: ShipmentItem[] = dataRows
+          .map((row, idx) => {
+            const unitPrice = parseNumber(row[colMap.price]);
+            const qty = Math.max(0, Math.round(parseNumber(row[colMap.qty], 1)));
+            const explicitAmount = parseNumber(row[colMap.amount]);
+            const cbmPerUnit = parseNumber(row[colMap.cbm]);
+            const explicitTotalCbm = parseNumber(row[colMap.totalCbm]);
+            const totalPrice = explicitAmount > 0 ? explicitAmount : unitPrice * qty;
+            const totalCbm = explicitTotalCbm > 0 ? explicitTotalCbm : cbmPerUnit * qty;
+
+            return {
+              line_number: idx + 1,
+              model_code: String(row[colMap.model] ?? "").trim(),
+              description_en: String(row[colMap.description] ?? "").trim(),
+              description_ar: "",
+              color: String(row[colMap.color] ?? "").trim(),
+              size_mm: String(row[colMap.size] ?? "").trim(),
+              unit_price_foreign: unitPrice,
+              quantity: qty,
+              total_price_foreign: totalPrice,
+              cbm_per_unit: cbmPerUnit,
+              total_cbm: totalCbm,
+            };
+          })
+          .filter((i) => i.model_code || i.description_en || i.total_price_foreign > 0 || i.quantity > 0);
+
+        if (!mapped.length) {
+          toast.error("لم يتم التعرف على أعمدة الملف. جرّب قالب الاستيراد أو راجع أسماء الأعمدة.");
+          return;
+        }
 
         setItems(mapped);
         toast.success(`تم استخراج ${mapped.length} بند من الملف`);
-      } catch (err) {
-        toast.error("فشل قراءة الملف. تأكد من صيغة Excel صحيحة.");
+      } catch {
+        toast.error("فشل قراءة الملف. تأكد من صيغة Excel/CSV صحيحة.");
       }
     };
-    reader.readAsBinaryString(file);
+    reader.readAsArrayBuffer(file);
+    e.target.value = "";
   }, []);
 
   // Add empty item row
