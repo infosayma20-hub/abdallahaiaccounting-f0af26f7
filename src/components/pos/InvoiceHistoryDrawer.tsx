@@ -189,7 +189,7 @@ export default function InvoiceHistoryDrawer({
     } finally {
       setLoading(false);
     }
-  }, [dataOwnerId, open, dateFrom, dateTo, statusFilter]);
+  }, [dataOwnerId, open, sessionId, statusFilter]);
 
   useEffect(() => { fetchOrders(); }, [fetchOrders]);
 
