@@ -17,6 +17,7 @@ import TransactionToast, { useTransactionToast } from "@/components/TransactionT
 import ChequeDetailsDialog, { ChequeLineItem } from "@/components/ChequeDetailsDialog";
 import JournalEntryPopup from "@/components/JournalEntryPopup";
 import SavedCommands from "@/components/SavedCommands";
+import SmartMemory from "@/components/SmartMemory";
 
 interface SummaryStats {
   sales: number;
