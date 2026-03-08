@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from "react";
 import { getAuthHeadersJson, getAuthHeaders } from "@/lib/edge-helpers";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,6 +6,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsMobile } from "@/hooks/use-mobile";
 import TransactionToast, { useTransactionToast } from "@/components/TransactionToast";
+
+const MobileSmartAccountant = lazy(() => import("@/components/haseeb/MobileSmartAccountant"));
 import ChequeDetailsDialog, { ChequeLineItem } from "@/components/ChequeDetailsDialog";
 import JournalEntryPopup from "@/components/JournalEntryPopup";
 import MentionInput, { MentionItem } from "@/components/MentionInput";
