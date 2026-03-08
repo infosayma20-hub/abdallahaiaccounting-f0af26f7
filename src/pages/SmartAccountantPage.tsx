@@ -21,6 +21,8 @@ import SmartMemory from "@/components/SmartMemory";
 import FinancialPredictions from "@/components/FinancialPredictions";
 import AccountingTutor from "@/components/AccountingTutor";
 import LiveKPICards from "@/components/LiveKPICards";
+import SmartShortcuts from "@/components/SmartShortcuts";
+import DocumentReader from "@/components/DocumentReader";
 
 interface SummaryStats {
   sales: number;
