@@ -84,6 +84,10 @@ const ProfilePage = () => {
           address: data.address || "",
           work_field: data.work_field || "",
         });
+        // Load avatar from profiles.avatar_url
+        if ((data as any).avatar_url) {
+          setAvatarUrl((data as any).avatar_url);
+        }
       } else {
         const meta = user.user_metadata || {};
         setProfile({
@@ -93,11 +97,6 @@ const ProfilePage = () => {
           address: meta.address || "",
           work_field: meta.work_field || "",
         });
-      }
-      const { data: files } = await supabase.storage.from("avatars").list(user.id, { limit: 1, sortBy: { column: "created_at", order: "desc" } });
-      if (files && files.length > 0) {
-        const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(`${user.id}/${files[0].name}`);
-        setAvatarUrl(urlData.publicUrl);
       }
     };
     load();
@@ -112,13 +111,21 @@ const ProfilePage = () => {
     }
     setUploadingAvatar(true);
     try {
-      const ext = file.name.split(".").pop();
-      const path = `${user.id}/avatar.${ext}`;
-      const { error } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
+      const compressed = await compressImage(file, 300);
+      const path = `${user.id}/avatar.png`;
+      const { error } = await supabase.storage.from("user-avatars").upload(path, compressed, { upsert: true, contentType: "image/png" });
       if (error) throw error;
-      const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(path);
-      setAvatarUrl(urlData.publicUrl + "?t=" + Date.now());
-      toast({ title: "✅ تم تحديث الصورة" });
+      const { data: urlData } = supabase.storage.from("user-avatars").getPublicUrl(path);
+      const publicUrl = urlData.publicUrl + "?t=" + Date.now();
+      
+      // Save to profiles table (NOT companies)
+      await supabase
+        .from("profiles")
+        .update({ avatar_url: publicUrl } as any)
+        .eq("user_id", user.id);
+      
+      setAvatarUrl(publicUrl);
+      toast({ title: "✅ تم تحديث الصورة الشخصية" });
     } catch (err: any) {
       toast({ title: "خطأ في رفع الصورة", description: err.message, variant: "destructive" });
     } finally {

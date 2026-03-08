@@ -258,9 +258,9 @@ const GlobalSearchBar = ({ collapsed, onToggle }: { collapsed: boolean; onToggle
 
 /* ═══ Profile Dropdown ═══ */
 const ProfileDropdown = ({
-  displayName, email, initials, onNavigate, onSignOut,
+  displayName, email, initials, avatarUrl, onNavigate, onSignOut,
 }: {
-  displayName: string; email: string; initials: string; onNavigate: (path: string) => void; onSignOut: () => void;
+  displayName: string; email: string; initials: string; avatarUrl: string | null; onNavigate: (path: string) => void; onSignOut: () => void;
 }) => (
   <DropdownMenu>
     <DropdownMenuTrigger asChild>
@@ -271,9 +271,13 @@ const ProfileDropdown = ({
         "border border-transparent hover:border-border"
       )}>
         <span className="text-[13px] font-medium text-foreground hidden md:block max-w-[140px] truncate">{displayName}</span>
-        <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
-          <span className="text-[11px] font-bold text-primary-foreground leading-none">{initials}</span>
-        </div>
+        {avatarUrl ? (
+          <img src={avatarUrl} alt={displayName} className="w-7 h-7 rounded-full object-cover flex-shrink-0 border-2 border-primary/30" />
+        ) : (
+          <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
+            <span className="text-[11px] font-bold text-primary-foreground leading-none">{initials}</span>
+          </div>
+        )}
       </button>
     </DropdownMenuTrigger>
     <DropdownMenuContent align="start" className="w-56 rounded-xl shadow-elevated z-50">
@@ -334,6 +338,7 @@ const TopBar = ({ onMenuClick, sidebarCollapsed, onOpenHelpGuide }: TopBarProps)
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [profileName, setProfileName] = useState<string | null>(null);
+  const [userAvatarUrl, setUserAvatarUrl] = useState<string | null>(null);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const { unreadCount } = useNotifications();
@@ -342,11 +347,12 @@ const TopBar = ({ onMenuClick, sidebarCollapsed, onOpenHelpGuide }: TopBarProps)
     if (!user?.id) return;
     supabase
       .from("profiles")
-      .select("display_name, company_name")
+      .select("display_name, company_name, avatar_url")
       .eq("user_id", user.id)
       .maybeSingle()
-      .then(({ data }) => {
+      .then(({ data }: any) => {
         setProfileName(data?.display_name || data?.company_name || null);
+        setUserAvatarUrl(data?.avatar_url || null);
       });
   }, [user?.id]);
 
@@ -389,7 +395,7 @@ const TopBar = ({ onMenuClick, sidebarCollapsed, onOpenHelpGuide }: TopBarProps)
           <IconButton icon={Settings} onClick={() => navigate("/settings")} title="الإعدادات" className="hidden sm:flex" />
           <IconButton icon={HelpCircle} onClick={onOpenHelpGuide} title="دليل الاستخدام" className="hidden sm:flex" />
           <div className="w-px h-6 bg-border mx-1.5 hidden sm:block" />
-          <ProfileDropdown displayName={displayName} email={user?.email || ""} initials={initials} onNavigate={navigate} onSignOut={signOut} />
+          <ProfileDropdown displayName={displayName} email={user?.email || ""} initials={initials} avatarUrl={userAvatarUrl} onNavigate={navigate} onSignOut={signOut} />
         </div>
       </div>
     </header>
