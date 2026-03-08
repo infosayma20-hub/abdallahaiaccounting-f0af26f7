@@ -68,11 +68,23 @@ const DEFAULT_ACCOUNTS: { code: string; name: string; type: string; parent: stri
   { code: "4500", name: "مردودات مشتريات", type: "إيرادات", parent: null },
 
   // ═══════════ تكلفة المبيعات والمشتريات (51xx) ═══════════
-  { code: "5100", name: "تكلفة البضاعة المباعة", type: "مصاريف", parent: null },
-  { code: "5110", name: "المشتريات", type: "مصاريف", parent: "5100" },
+  { code: "5100", name: "تكلفة البضاعة المباعة", type: "مشتريات", parent: null },
+  { code: "5110", name: "المشتريات", type: "مشتريات", parent: "5100" },
 
-  // ═══════════ المصروفات التشغيلية (52xx-59xx) ═══════════
-  { code: "5200", name: "رواتب وأجور", type: "مصاريف", parent: null },
+  // ═══════════ تكاليف الاستيراد (52xx) ═══════════
+  { code: "5200", name: "تكاليف استيراد", type: "مشتريات", parent: "5100" },
+  { code: "5210", name: "تكاليف شحن", type: "مشتريات", parent: "5200" },
+  { code: "5220", name: "جمارك ورسوم", type: "مشتريات", parent: "5200" },
+  { code: "5230", name: "تكاليف تخليص جمركي", type: "مشتريات", parent: "5200" },
+  { code: "5240", name: "رسوم مرفأ", type: "مشتريات", parent: "5200" },
+  { code: "5250", name: "مكتب خارجي", type: "مشتريات", parent: "5200" },
+  { code: "5260", name: "نقل داخلي", type: "مشتريات", parent: "5200" },
+  { code: "5270", name: "تخزين", type: "مشتريات", parent: "5200" },
+  { code: "5280", name: "تأمين شحن", type: "مشتريات", parent: "5200" },
+  { code: "5290", name: "تكاليف أخرى", type: "مشتريات", parent: "5200" },
+
+  // ═══════════ المصروفات التشغيلية (53xx-59xx) ═══════════
+  { code: "5150", name: "رواتب وأجور", type: "مصاريف", parent: null },
   { code: "5300", name: "مصروف إيجار", type: "مصاريف", parent: null },
   { code: "5400", name: "كهرباء وماء", type: "مصاريف", parent: null },
   { code: "5410", name: "مصروف غاز", type: "مصاريف", parent: "5400" },
@@ -97,6 +109,10 @@ const DEFAULT_ACCOUNTS: { code: string; name: string; type: string; parent: stri
   { code: "5940", name: "ضريبة الدخل", type: "مصاريف", parent: "5900" },
   { code: "5950", name: "غرامات وجزاءات", type: "مصاريف", parent: "5900" },
   { code: "5960", name: "ديون معدومة", type: "مصاريف", parent: "5900" },
+
+  // ═══════════ مصاريف مالية (6xxx) ═══════════
+  { code: "6100", name: "مصاريف فوائد بنكية", type: "مصاريف", parent: null },
+  { code: "6110", name: "عمولات بنكية", type: "مصاريف", parent: "6100" },
 ];
 
 serve(async (req) => {
