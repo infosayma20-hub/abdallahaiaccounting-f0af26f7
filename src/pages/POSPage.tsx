@@ -3574,6 +3574,24 @@ const POSPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Invoice History Drawer */}
+      <AnimatePresence>
+        {showInvoiceHistory && (
+          <InvoiceHistoryDrawer
+            open={showInvoiceHistory}
+            onClose={() => setShowInvoiceHistory(false)}
+            dataOwnerId={dataOwnerId || ""}
+            sessionId={session?.id || null}
+            cashierName={session?.cashier_name || ""}
+            terminalName={terminal?.name || ""}
+            onRecallToCart={(items, invoiceId, orderNumber, reason, approvedBy) => {
+              setCart(items);
+              setRecallBanner({ invoiceId, orderNumber, reason, approvedBy });
+            }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 };
