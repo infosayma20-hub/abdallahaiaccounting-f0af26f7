@@ -17,7 +17,7 @@ const MILESTONES = [
   { progress: 100, delay: 2400, msgIndex: 4 },
 ];
 
-const LoadingScreen = () => {
+const LoadingScreen = ({ demo = false }: { demo?: boolean } = {}) => {
   const [progress, setProgress] = useState(0);
   const [statusIndex, setStatusIndex] = useState(0);
   const [isExiting, setIsExiting] = useState(false);
@@ -39,14 +39,14 @@ const LoadingScreen = () => {
         setTimeout(() => {
           setProgress(p);
           setStatusIndex(msgIndex);
-          if (p === 100) {
+          if (p === 100 && !demo) {
             timers.push(setTimeout(() => setIsExiting(true), 400));
           }
         }, delay)
       );
     });
     return () => timers.forEach(clearTimeout);
-  }, []);
+  }, [demo]);
 
   if (isExiting) return null;
 
