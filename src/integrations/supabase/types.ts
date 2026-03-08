@@ -3576,6 +3576,7 @@ export type Database = {
           table_id: string | null
           tax_amount: number
           total: number
+          transaction_id: string | null
           updated_at: string
           user_id: string
         }
@@ -3614,6 +3615,7 @@ export type Database = {
           table_id?: string | null
           tax_amount?: number
           total?: number
+          transaction_id?: string | null
           updated_at?: string
           user_id: string
         }
@@ -3652,6 +3654,7 @@ export type Database = {
           table_id?: string | null
           tax_amount?: number
           total?: number
+          transaction_id?: string | null
           updated_at?: string
           user_id?: string
         }
