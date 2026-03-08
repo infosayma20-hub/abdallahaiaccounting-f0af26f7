@@ -241,6 +241,47 @@ const AccountsPage = () => {
     init();
   }, [user]);
 
+  const handleDeleteAccount = useCallback(async (acc: any) => {
+    if (!user) return;
+    if (acc.is_system) {
+      toast({ title: "لا يمكن حذف حساب نظامي", variant: "destructive" });
+      return;
+    }
+    // Check if account has children
+    const hasChildren = accounts.some(a => a.parent_code === acc.account_code);
+    if (hasChildren) {
+      toast({ title: "لا يمكن الحذف", description: "هذا الحساب يحتوي على حسابات فرعية", variant: "destructive" });
+      return;
+    }
+    // Check if account has transactions
+    const { count } = await supabase
+      .from("transactions")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .eq("is_deleted", false)
+      .or(`debit_account_code.eq.${acc.account_code},credit_account_code.eq.${acc.account_code}`);
+    
+    if (count && count > 0) {
+      toast({ title: "لا يمكن الحذف", description: `هذا الحساب مرتبط بـ ${count} حركة مالية`, variant: "destructive" });
+      return;
+    }
+
+    if (!confirm(`هل تريد حذف الحساب "${acc.account_code} - ${acc.account_name}"؟`)) return;
+
+    const { error } = await supabase
+      .from("accounts")
+      .delete()
+      .eq("id", acc.id)
+      .eq("user_id", user.id);
+
+    if (error) {
+      toast({ title: "خطأ في الحذف", description: error.message, variant: "destructive" });
+    } else {
+      setAccounts(prev => prev.filter(a => a.id !== acc.id));
+      toast({ title: "✅ تم حذف الحساب بنجاح" });
+    }
+  }, [user, accounts, toast]);
+
 
   const toggleGroup = useCallback((code: string) => {
     setCollapsedGroups(prev => {
