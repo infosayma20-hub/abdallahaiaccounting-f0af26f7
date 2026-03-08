@@ -383,3 +383,117 @@
     padding: 0 !important;
   }
 }
+
+/* ═══════════════════════════════════════
+   CUSTOM SCROLLBAR — ZIDNI BRAND
+   ═══════════════════════════════════════ */
+
+/* Global scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0A2342;
+  border-radius: 0px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #00B4D8, #006D8F);
+  border-radius: 999px;
+  min-height: 40px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #C9A84C, #9A7B2E);
+}
+
+::-webkit-scrollbar-thumb:active {
+  background: #C9A84C;
+}
+
+::-webkit-scrollbar-corner {
+  background: #050F1E;
+}
+
+::-webkit-scrollbar-button {
+  display: none;
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #00B4D8 #0A2342;
+}
+
+/* Light theme scrollbar track */
+:root ::-webkit-scrollbar-track {
+  background: #F4F7FA;
+}
+:root {
+  scrollbar-color: #00B4D8 #F4F7FA;
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: #0A2342;
+}
+.dark {
+  scrollbar-color: #00B4D8 #0A2342;
+}
+
+/* Sidebar scrollbar — gold on dark */
+.sidebar-scroll::-webkit-scrollbar-track {
+  background: #050F1E;
+}
+.sidebar-scroll::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #C9A84C, #8A6E35);
+  border-radius: 999px;
+}
+.sidebar-scroll::-webkit-scrollbar-thumb:hover {
+  background: #C9A84C;
+}
+
+/* Data table scrollbar — subtle */
+.data-table-container::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+.data-table-container::-webkit-scrollbar-track {
+  background: #F4F7FA;
+}
+.data-table-container::-webkit-scrollbar-thumb {
+  background: #8B9BB4;
+  border-radius: 999px;
+}
+.data-table-container::-webkit-scrollbar-thumb:hover {
+  background: #0A2342;
+}
+
+/* Modal / Drawer scrollbar */
+[role="dialog"] ::-webkit-scrollbar {
+  width: 4px;
+}
+[role="dialog"] ::-webkit-scrollbar-track {
+  background: transparent;
+}
+[role="dialog"] ::-webkit-scrollbar-thumb {
+  background: rgba(0, 180, 216, 0.4);
+  border-radius: 999px;
+}
+[role="dialog"] ::-webkit-scrollbar-thumb:hover {
+  background: #00B4D8;
+}
+
+/* Smooth scroll */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Fade scrollbar on idle */
+.scroll-fade::-webkit-scrollbar-thumb {
+  background: rgba(0, 180, 216, 0.3);
+}
+.scroll-fade:hover::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #00B4D8, #006D8F);
+}
