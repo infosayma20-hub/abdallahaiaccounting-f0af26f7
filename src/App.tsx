@@ -81,6 +81,9 @@ import ContractsListPage from "./pages/ContractsListPage";
 import ContractFormPage from "./pages/ContractFormPage";
 import ContractPreviewPage from "./pages/ContractPreviewPage";
 import LoadingDemoPage from "./pages/LoadingDemoPage";
+import ImportShipmentsPage from "./pages/ImportShipmentsPage";
+import ImportWizardPage from "./pages/ImportWizardPage";
+import ImportDetailPage from "./pages/ImportDetailPage";
 
 const queryClient = new QueryClient();
 
@@ -257,6 +260,10 @@ const App = () => (
                       <Route path="/contracts/new" element={<ContractFormPage />} />
                       <Route path="/contracts/:id/edit" element={<ContractFormPage />} />
                       <Route path="/contracts/:id/preview" element={<ContractPreviewPage />} />
+                      <Route path="/purchases/import" element={<ImportShipmentsPage />} />
+                      <Route path="/purchases/import/new" element={<ImportWizardPage />} />
+                      <Route path="/purchases/import/:id" element={<ImportDetailPage />} />
+                      <Route path="/reports/import-cost-analysis" element={<GenericReportPage reportKey="import-cost-analysis" />} />
                       <Route path="*" element={<NotFound />} />
                     </Routes>
                   </WebLayout>

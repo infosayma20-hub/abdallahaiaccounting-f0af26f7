@@ -75,6 +75,14 @@ const navSections: NavSection[] = [
         ],
       },
       {
+        label: "الاستيراد",
+        module: "purchases",
+        children: [
+          { label: "ملفات الاستيراد", path: "/purchases/import" },
+          { label: "استيراد جديد", path: "/purchases/import/new" },
+        ],
+      },
+      {
         label: "المندوبين",
         module: "sales",
         children: [
