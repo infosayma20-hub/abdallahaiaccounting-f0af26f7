@@ -12,6 +12,7 @@ import {
   UtensilsCrossed, Gamepad2, Shirt, Monitor, ShoppingBag, Printer,
   Apple, Zap, Coffee, Box, BarChart3, TrendingUp, PlusCircle, Tag,
   Eye, EyeOff, UserCheck, LayoutGrid, Grid3X3, Grid2X2, GripVertical,
+  FileText,
 } from "lucide-react";
 import TableSelectorBar, { type TableBarItem } from "@/components/pos/TableSelectorBar";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { ScrollArea } from "@/components/ui/scroll-area";
 import POSReceiptDialog from "@/components/POSReceiptDialog";
 import ShiftSummaryReceipt from "@/components/ShiftSummaryReceipt";
+import InvoiceHistoryDrawer from "@/components/pos/InvoiceHistoryDrawer";
 import CustomerDataModal from "@/components/pos/CustomerDataModal";
 import ModifierModal, { type SelectedModifier } from "@/components/pos/ModifierModal";
 import QuickModifierBar from "@/components/pos/QuickModifierBar";
@@ -404,6 +406,10 @@ const POSPage = () => {
    // Shift Summary
    const [showShiftSummary, setShowShiftSummary] = useState(false);
    const [shiftSummaryData, setShiftSummaryData] = useState<any>(null);
+
+   // Invoice History
+   const [showInvoiceHistory, setShowInvoiceHistory] = useState(false);
+   const [recallBanner, setRecallBanner] = useState<{ invoiceId: string; orderNumber: string; reason: string; approvedBy: string | null } | null>(null);
 
    // Modifiers
    const [modifierGroups, setModifierGroups] = useState<any[]>([]);
@@ -1844,6 +1850,38 @@ const POSPage = () => {
                 <span className="text-white/40">{session.total_orders} طلب</span>
               </>
             )}
+
+            {/* Invoice History Button */}
+            <button
+              onClick={() => setShowInvoiceHistory(true)}
+              className="flex items-center gap-1.5 h-9 px-3.5 rounded-lg text-xs font-medium transition-all"
+              style={{
+                fontFamily: "Tajawal, sans-serif",
+                fontWeight: 500,
+                fontSize: 13,
+                background: "transparent",
+                border: "1px solid rgba(255,255,255,0.2)",
+                color: "white",
+              }}
+            >
+              <FileText className="h-3.5 w-3.5" />
+              سجل الفواتير
+              {session && (
+                <span
+                  className="rounded-full px-1.5 py-px"
+                  style={{
+                    background: "#C9A84C",
+                    color: "#0A2342",
+                    fontFamily: "JetBrains Mono, monospace",
+                    fontWeight: 600,
+                    fontSize: 11,
+                    marginRight: 4,
+                  }}
+                >
+                  {session.total_orders}
+                </span>
+              )}
+            </button>
           </div>
         )}
 
@@ -2250,6 +2288,20 @@ const POSPage = () => {
               </button>
             )}
           </div>
+
+          {/* Recall Banner */}
+          {recallBanner && (
+            <div className="mx-3 mb-1 px-3 py-2 rounded-lg text-xs" style={{ background: "#FEF9C3", border: "1px solid #D97706", color: "#92400E", fontFamily: "Tajawal, sans-serif" }}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4" style={{ color: "#D97706" }} />
+                  <span className="font-semibold">تعديل على فاتورة #{recallBanner.orderNumber}</span>
+                </div>
+                <button onClick={() => { setRecallBanner(null); setCart([]); }} className="text-[10px] underline hover:no-underline">إلغاء التعديل</button>
+              </div>
+              <div className="mt-1 text-[11px]">السبب: {recallBanner.reason}{recallBanner.approvedBy && ` — موافقة: ${recallBanner.approvedBy}`}</div>
+            </div>
+          )}
 
           {/* Cart Items */}
           <ScrollArea className="flex-1">
@@ -3522,6 +3574,24 @@ const POSPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Invoice History Drawer */}
+      <AnimatePresence>
+        {showInvoiceHistory && (
+          <InvoiceHistoryDrawer
+            open={showInvoiceHistory}
+            onClose={() => setShowInvoiceHistory(false)}
+            dataOwnerId={dataOwnerId || ""}
+            sessionId={session?.id || null}
+            cashierName={session?.cashier_name || ""}
+            terminalName={terminal?.name || ""}
+            onRecallToCart={(items, invoiceId, orderNumber, reason, approvedBy) => {
+              setCart(items);
+              setRecallBanner({ invoiceId, orderNumber, reason, approvedBy });
+            }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 };
