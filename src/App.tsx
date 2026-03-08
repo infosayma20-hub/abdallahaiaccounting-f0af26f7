@@ -260,6 +260,10 @@ const App = () => (
                       <Route path="/contracts/new" element={<ContractFormPage />} />
                       <Route path="/contracts/:id/edit" element={<ContractFormPage />} />
                       <Route path="/contracts/:id/preview" element={<ContractPreviewPage />} />
+                      <Route path="/purchases/import" element={<ImportShipmentsPage />} />
+                      <Route path="/purchases/import/new" element={<ImportWizardPage />} />
+                      <Route path="/purchases/import/:id" element={<ImportDetailPage />} />
+                      <Route path="/reports/import-cost-analysis" element={<GenericReportPage reportKey="import-cost-analysis" />} />
                       <Route path="*" element={<NotFound />} />
                     </Routes>
                   </WebLayout>
