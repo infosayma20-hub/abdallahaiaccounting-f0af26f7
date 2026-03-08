@@ -48,7 +48,7 @@ const LoadingScreen = () => {
     return () => timers.forEach(clearTimeout);
   }, []);
 
-  if (isExiting) return null;
+  if (isExiting && !demo) return null;
 
   return (
     <div
