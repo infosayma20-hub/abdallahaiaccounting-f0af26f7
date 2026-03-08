@@ -1,7 +1,6 @@
 import { useState } from "react";
 import AppSidebar from "./AppSidebar";
 import TopBar from "./TopBar";
-
 import HelpGuideModal from "../HelpGuideModal";
 
 interface WebLayoutProps {
@@ -31,14 +30,15 @@ const WebLayout = ({ children }: WebLayoutProps) => {
           onOpenHelpGuide={() => setShowHelpGuide(true)}
         />
 
-        {/* Content */}
+        {/* Content with page transition */}
         <main className="flex-1 overflow-y-auto p-5 lg:p-8">
-          {children}
+          <div className="animate-fade-in">
+            {children}
+          </div>
         </main>
       </div>
 
-
-      {/* Help Guide Modal - accessible from any page */}
+      {/* Help Guide Modal */}
       <HelpGuideModal
         open={showHelpGuide}
         onClose={() => setShowHelpGuide(false)}

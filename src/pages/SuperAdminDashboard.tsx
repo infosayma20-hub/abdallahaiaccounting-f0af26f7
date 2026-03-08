@@ -163,19 +163,26 @@ function PasswordConfirmDialog({
 }
 
 // ─── KPI Card ───
-function KPICard({ icon: Icon, label, value, sub, color }: {
-  icon: any; label: string; value: string | number; sub?: string; color: string;
+function KPICard({ icon: Icon, label, value, sub, color, accentColor }: {
+  icon: any; label: string; value: string | number; sub?: string; color: string; accentColor?: string;
 }) {
   return (
-    <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-5 space-y-3 hover:bg-white/[0.05] transition-colors">
+    <div
+      className="rounded-xl p-5 space-y-3 transition-all duration-150 hover:shadow-medium"
+      style={{
+        background: "linear-gradient(135deg, #0A2342 0%, #0D3158 100%)",
+        borderRight: `4px solid ${accentColor || "#00B4D8"}`,
+        boxShadow: "0 4px 16px rgba(10,35,66,0.14)",
+      }}
+    >
       <div className="flex items-center gap-3">
-        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${color}`}>
+        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${color}`}>
           <Icon className="h-5 w-5" />
         </div>
-        <span className="text-white/40 text-sm">{label}</span>
+        <span className="text-white/50 text-sm" style={{ fontFamily: "Tajawal, sans-serif" }}>{label}</span>
       </div>
-      <div className="text-3xl font-bold text-white tabular-nums">{value}</div>
-      {sub && <p className="text-xs text-white/30">{sub}</p>}
+      <div className="text-[32px] font-bold text-white font-mono tabular-nums" style={{ fontFamily: "JetBrains Mono, monospace" }}>{value}</div>
+      {sub && <p className="text-[13px]" style={{ color: "#8B9BB4", fontFamily: "Tajawal, sans-serif" }}>{sub}</p>}
     </div>
   );
 }
@@ -1454,21 +1461,23 @@ export default function SuperAdminDashboard() {
   if (!authorized) return null;
 
   return (
-    <div className="min-h-screen" style={{ background: "linear-gradient(180deg, #080d18 0%, #0a1020 100%)", fontFamily: "'IBM Plex Sans Arabic', sans-serif" }} dir="rtl">
+    <div className="min-h-screen" style={{ background: "linear-gradient(180deg, #050F1E 0%, #0A2342 100%)", fontFamily: "Tajawal, sans-serif" }} dir="rtl">
       {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-white/[0.06] bg-[#080d18]/90 backdrop-blur-xl">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
+      <header className="sticky top-0 z-50" style={{ background: "linear-gradient(180deg, #050F1E, #0A2342)", borderBottom: "1px solid rgba(255,255,255,0.06)", backdropFilter: "blur(16px)", height: 60 }}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-full flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-amber-500/20 flex items-center justify-center">
-              <Crown className="h-5 w-5 text-amber-400" />
+            <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: "linear-gradient(135deg, #0A2342, #006D8F)" }}>
+              <span className="text-white font-bold text-sm" style={{ fontFamily: "Barlow, sans-serif" }}>Z</span>
             </div>
             <div>
-              <h1 className="text-lg font-bold text-white">Super Admin Panel</h1>
-              <p className="text-[11px] text-white/30">عبدالله AI للمحاسبة</p>
+              <h1 className="text-lg font-bold text-white" style={{ fontFamily: "Barlow, sans-serif" }}>ZIDNI</h1>
             </div>
+            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold" style={{ background: "#C9A84C", color: "#0A2342", fontFamily: "Inter, sans-serif" }}>
+              Super Admin
+            </span>
           </div>
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500/10 border border-red-500/20">
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full" style={{ background: "rgba(220,38,38,0.1)", border: "1px solid rgba(220,38,38,0.2)" }}>
               <Wifi className="h-3 w-3 text-red-400" />
               <span className="text-[11px] text-red-400 font-medium">LIVE</span>
             </div>
@@ -1481,29 +1490,29 @@ export default function SuperAdminDashboard() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="bg-white/[0.03] border border-white/[0.06] p-1 mb-6 flex-wrap h-auto gap-1">
-            <TabsTrigger value="dashboard" className="data-[state=active]:bg-amber-500/20 data-[state=active]:text-amber-400 text-white/40">
+          <TabsList className="border p-1 mb-6 flex-wrap h-auto gap-1" style={{ background: "rgba(255,255,255,0.03)", borderColor: "rgba(255,255,255,0.06)" }}>
+            <TabsTrigger value="dashboard" className="data-[state=active]:bg-[#00B4D8]/20 data-[state=active]:text-[#00B4D8] text-white/40">
               <Activity className="h-4 w-4 ml-1" /> لوحة التحكم
             </TabsTrigger>
-            <TabsTrigger value="users" className="data-[state=active]:bg-amber-500/20 data-[state=active]:text-amber-400 text-white/40">
+            <TabsTrigger value="users" className="data-[state=active]:bg-[#00B4D8]/20 data-[state=active]:text-[#00B4D8] text-white/40">
               <Users className="h-4 w-4 ml-1" /> المستخدمون
             </TabsTrigger>
-            <TabsTrigger value="database" className="data-[state=active]:bg-amber-500/20 data-[state=active]:text-amber-400 text-white/40">
+            <TabsTrigger value="database" className="data-[state=active]:bg-[#00B4D8]/20 data-[state=active]:text-[#00B4D8] text-white/40">
               <Database className="h-4 w-4 ml-1" /> قاعدة البيانات
             </TabsTrigger>
-            <TabsTrigger value="live" className="data-[state=active]:bg-amber-500/20 data-[state=active]:text-amber-400 text-white/40">
+            <TabsTrigger value="live" className="data-[state=active]:bg-[#00B4D8]/20 data-[state=active]:text-[#00B4D8] text-white/40">
               <Wifi className="h-4 w-4 ml-1" /> مراقبة حية
             </TabsTrigger>
-            <TabsTrigger value="audit" className="data-[state=active]:bg-amber-500/20 data-[state=active]:text-amber-400 text-white/40">
+            <TabsTrigger value="audit" className="data-[state=active]:bg-[#00B4D8]/20 data-[state=active]:text-[#00B4D8] text-white/40">
               <FileText className="h-4 w-4 ml-1" /> سجل التدقيق
             </TabsTrigger>
-            <TabsTrigger value="settings" className="data-[state=active]:bg-amber-500/20 data-[state=active]:text-amber-400 text-white/40">
+            <TabsTrigger value="settings" className="data-[state=active]:bg-[#00B4D8]/20 data-[state=active]:text-[#00B4D8] text-white/40">
               <Settings className="h-4 w-4 ml-1" /> إعدادات المنصة
             </TabsTrigger>
-            <TabsTrigger value="subscriptions" className="data-[state=active]:bg-amber-500/20 data-[state=active]:text-amber-400 text-white/40">
+            <TabsTrigger value="subscriptions" className="data-[state=active]:bg-[#00B4D8]/20 data-[state=active]:text-[#00B4D8] text-white/40">
               <CreditCard className="h-4 w-4 ml-1" /> الاشتراكات
             </TabsTrigger>
-            <TabsTrigger value="revenue" className="data-[state=active]:bg-amber-500/20 data-[state=active]:text-amber-400 text-white/40">
+            <TabsTrigger value="revenue" className="data-[state=active]:bg-[#00B4D8]/20 data-[state=active]:text-[#00B4D8] text-white/40">
               <BarChart3 className="h-4 w-4 ml-1" /> الإيرادات
             </TabsTrigger>
           </TabsList>
@@ -1519,10 +1528,10 @@ export default function SuperAdminDashboard() {
 
             {stats && (
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <KPICard icon={Users} label="المستخدمون" value={stats.total_users} sub={`+${stats.new_users_today} اليوم`} color="bg-blue-500/20 text-blue-400" />
-                <KPICard icon={ShoppingCart} label="الورديات المفتوحة" value={stats.active_sessions} sub={`₪${stats.active_sessions_revenue.toLocaleString()}`} color="bg-emerald-500/20 text-emerald-400" />
-                <KPICard icon={DollarSign} label="إيرادات اليوم" value={`₪${stats.today_revenue.toLocaleString()}`} sub={`${stats.today_transactions} عملية`} color="bg-amber-500/20 text-amber-400" />
-                <KPICard icon={Database} label="الحسابات" value={stats.total_accounts} sub={`${stats.total_contacts} جهة اتصال`} color="bg-purple-500/20 text-purple-400" />
+                <KPICard icon={Users} label="إجمالي الشركات" value={stats.total_users} sub={`+${stats.new_users_today} اليوم`} color="bg-[#00B4D8]/20 text-[#00B4D8]" accentColor="#00B4D8" />
+                <KPICard icon={ShoppingCart} label="المستخدمون النشطون" value={stats.active_sessions} sub={`₪${stats.active_sessions_revenue.toLocaleString()}`} color="bg-[#C9A84C]/20 text-[#C9A84C]" accentColor="#C9A84C" />
+                <KPICard icon={DollarSign} label="القيود اليوم" value={`₪${stats.today_revenue.toLocaleString()}`} sub={`${stats.today_transactions} عملية`} color="bg-[#16A34A]/20 text-[#16A34A]" accentColor="#16A34A" />
+                <KPICard icon={Database} label="تنبيهات النظام" value={stats.total_accounts} sub={`${stats.total_contacts} جهة اتصال`} color="bg-[#DC2626]/20 text-[#DC2626]" accentColor="#DC2626" />
               </div>
             )}
 

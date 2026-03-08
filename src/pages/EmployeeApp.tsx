@@ -116,19 +116,19 @@ export default function EmployeeApp() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background" style={{ fontFamily: "'IBM Plex Sans Arabic', sans-serif" }}>
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="min-h-screen flex items-center justify-center bg-background" style={{ fontFamily: "Tajawal, sans-serif" }}>
+        <div className="h-6 w-6 rounded-full border-2 border-transparent animate-spin" style={{ borderTopColor: "#00B4D8" }} />
       </div>
     );
   }
 
   if (!employee) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-6" dir="rtl" style={{ fontFamily: "'IBM Plex Sans Arabic', sans-serif" }}>
+      <div className="min-h-screen flex items-center justify-center bg-background p-6" dir="rtl" style={{ fontFamily: "Tajawal, sans-serif" }}>
         <div className="text-center space-y-4 max-w-xs">
-          <AlertTriangle className="h-16 w-16 text-warning mx-auto" />
-          <h2 className="text-lg font-bold">لم يتم ربط حسابك بسجل موظف</h2>
-          <p className="text-sm text-muted-foreground">تواصل مع مسؤول الموارد البشرية لربط حسابك.</p>
+          <AlertTriangle className="h-16 w-16 mx-auto" style={{ color: "#D97706" }} />
+          <h2 className="text-lg font-bold" style={{ color: "#0A2342" }}>لم يتم ربط حسابك بسجل موظف</h2>
+          <p className="text-sm" style={{ color: "#8B9BB4" }}>تواصل مع مسؤول الموارد البشرية لربط حسابك.</p>
         </div>
       </div>
     );
@@ -137,7 +137,7 @@ export default function EmployeeApp() {
   const incompleteDays = history.filter((d) => d.status === "incomplete");
 
   return (
-    <div className="min-h-screen bg-background" style={{ fontFamily: "'IBM Plex Sans Arabic', sans-serif" }}>
+    <div className="min-h-screen bg-background" style={{ fontFamily: "Tajawal, sans-serif" }}>
       <div className="h-[env(safe-area-inset-top,0px)]" />
 
       {activeTab === "home" && (
