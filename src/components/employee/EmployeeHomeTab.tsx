@@ -101,17 +101,26 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, history, on
 
   return (
     <div className="space-y-4 px-4 pt-2 pb-24" dir="rtl">
-      {/* Greeting */}
-      <div className="pt-2">
-        <p className="text-sm text-muted-foreground">مرحباً 👋</p>
-        <h1 className="text-xl font-bold text-foreground">{employeeName}</h1>
+      {/* Welcome Banner */}
+      <div
+        className="rounded-2xl p-5 relative overflow-hidden"
+        style={{ background: "linear-gradient(135deg, #0A2342 0%, #0D3158 100%)" }}
+      >
+        <div className="relative z-10">
+          <p className="text-sm" style={{ color: "rgba(255,255,255,0.6)", fontFamily: "Tajawal, sans-serif" }}>مرحباً 👋</p>
+          <h1 className="text-xl font-bold text-white" style={{ fontFamily: "Tajawal, sans-serif" }}>{employeeName}</h1>
+          <p className="text-xs mt-1" style={{ color: "rgba(255,255,255,0.5)", fontFamily: "Tajawal, sans-serif" }}>
+            {format(currentTime, "EEEE، d MMMM yyyy", { locale: ar })}
+          </p>
+        </div>
       </div>
 
       {/* POS Quick Access for Cashiers */}
       {isCashier && onOpenPOS && (
         <Button
           onClick={onOpenPOS}
-          className="w-full h-14 text-lg gap-3 bg-emerald-600 hover:bg-emerald-500"
+          className="w-full h-14 text-lg gap-3"
+          style={{ background: "#0A2342", color: "white" }}
         >
           <ShoppingCart className="w-6 h-6" />
           فتح نقطة البيع
