@@ -1,55 +1,33 @@
-import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from "react";
-import { getAuthHeadersJson, getAuthHeaders } from "@/lib/edge-helpers";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 import TransactionToast, { useTransactionToast } from "@/components/TransactionToast";
-
-const MobileSmartAccountant = lazy(() => import("@/components/haseeb/MobileSmartAccountant"));
 import ChequeDetailsDialog, { ChequeLineItem } from "@/components/ChequeDetailsDialog";
 import JournalEntryPopup from "@/components/JournalEntryPopup";
-import MentionInput, { MentionItem } from "@/components/MentionInput";
-import HaseebTopBar from "@/components/haseeb/HaseebTopBar";
-import HaseebLeftPanel from "@/components/haseeb/HaseebLeftPanel";
-import HaseebRightPanel from "@/components/haseeb/HaseebRightPanel";
-import HaseebChatPanel from "@/components/haseeb/HaseebChatPanel";
-import { BarChart3, Radar, Activity } from "lucide-react";
+import MobileTopBar from "./MobileTopBar";
+import MobileKPIStrip from "./MobileKPIStrip";
+import MobileChatArea from "./MobileChatArea";
+import MobileInputDock from "./MobileInputDock";
+import MobileRadarSheet from "./MobileRadarSheet";
+import type { HaseebFinancialData } from "@/pages/SmartAccountantPage";
 
-export interface HaseebFinancialData {
-  cash: number;
-  bank: number;
-  salesToday: number;
-  receivables: number;
-  payables: number;
-  totalSales: number;
-  totalExpenses: number;
-  netProfit: number;
-  inventoryValue: number;
-  pendingCheques: number;
-  transactionCount: number;
-  healthScore: number;
-}
-
-const SmartAccountantPage = () => {
+const MobileSmartAccountant = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const txToast = useTransactionToast();
   const { user } = useAuth();
-  const isMobile = useIsMobile();
 
-  const [cfoMode, setCfoMode] = useState(false);
-  const [mobileTab, setMobileTab] = useState<'chat' | 'radar' | 'pulse'>('chat');
-  const [sessionStart] = useState(Date.now());
   const [financialData, setFinancialData] = useState<HaseebFinancialData>({
     cash: 0, bank: 0, salesToday: 0, receivables: 0, payables: 0,
     totalSales: 0, totalExpenses: 0, netProfit: 0, inventoryValue: 0,
     pendingCheques: 0, transactionCount: 0, healthScore: 72,
   });
   const [loading, setLoading] = useState(true);
-
-  // Dialogs
+  const [profileName, setProfileName] = useState("المستخدم");
+  const [cfoMode, setCfoMode] = useState(false);
+  const [showRadar, setShowRadar] = useState(false);
   const [showJournalEntry, setShowJournalEntry] = useState(false);
   const [journalEntryData, setJournalEntryData] = useState<any>(null);
   const [journalEntryAccounts, setJournalEntryAccounts] = useState<any[]>([]);
@@ -57,7 +35,6 @@ const SmartAccountantPage = () => {
   const [pendingChequeData, setPendingChequeData] = useState<any>(null);
 
   // Profile
-  const [profileName, setProfileName] = useState("المستخدم");
   useEffect(() => {
     if (!user?.id) return;
     supabase.from("profiles").select("display_name, company_name").eq("user_id", user.id).maybeSingle()
@@ -95,7 +72,6 @@ const SmartAccountantPage = () => {
 
         const totalSales = sumByCode(plTx, 'credit_account_code', '4');
         const totalExpenses = sumByCode(plTx, 'debit_account_code', '5');
-
         const cashDebit = sumByCode(txs, 'debit_account_code', '1110');
         const cashCredit = sumByCode(txs, 'credit_account_code', '1110');
         const bankDebit = sumByCode(txs, 'debit_account_code', '1120');
@@ -122,7 +98,6 @@ const SmartAccountantPage = () => {
         const receivables = recDebit - recCredit;
         const payables = payCredit - payDebit;
 
-        // Simple health score
         let score = 50;
         if (netProfit > 0) score += 15;
         if (cash + bank > 0) score += 10;
@@ -140,11 +115,10 @@ const SmartAccountantPage = () => {
       finally { setLoading(false); }
     };
     fetchData();
-    const interval = setInterval(fetchData, 30000);
+    const interval = setInterval(fetchData, 60000);
     return () => clearInterval(interval);
   }, [user]);
 
-  // Cheque handler
   const handleChequeConfirm = async (lines: ChequeLineItem[], chequeType: string, partyName: string, partyType: string) => {
     if (!user) return;
     try {
@@ -165,46 +139,30 @@ const SmartAccountantPage = () => {
     }
   };
 
-  // Mobile layout — completely separate mobile-first design
-  if (isMobile) {
-    return (
-      <Suspense fallback={<div className="h-screen bg-background flex items-center justify-center"><div className="w-8 h-8 border-2 border-t-transparent border-accent rounded-full animate-spin" /></div>}>
-        <MobileSmartAccountant />
-      </Suspense>
-    );
-  }
-
-  // Desktop 3-panel layout
   return (
-    <div className="h-screen flex flex-col bg-haseeb-slate overflow-hidden" dir="rtl">
-      <HaseebTopBar
+    <div className="haseeb-mobile-screen" dir="rtl">
+      <MobileTopBar
+        healthScore={financialData.healthScore}
+        onBack={() => navigate('/dashboard')}
+        onShowRadar={() => setShowRadar(true)}
+      />
+      <MobileKPIStrip data={financialData} />
+
+      <MobileChatArea
+        user={user}
+        userName={profileName}
         data={financialData}
         cfoMode={cfoMode}
-        onToggleCfo={() => setCfoMode(!cfoMode)}
-        sessionStart={sessionStart}
+        onCheque={(d) => { setPendingChequeData(d); setShowChequeDialog(true); }}
+        onJournal={(d, a) => { setJournalEntryData(d); setJournalEntryAccounts(a || []); setShowJournalEntry(true); }}
+        onTransactionSuccess={() => txToast.trigger()}
       />
-      <div className="flex-1 flex overflow-hidden">
-        {/* Left Panel */}
-        <div className="w-[280px] flex-shrink-0 overflow-y-auto haseeb-scrollbar" style={{ background: '#050F1E' }}>
-          <HaseebLeftPanel data={financialData} cfoMode={cfoMode} />
-        </div>
-        {/* Center Chat */}
-        <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
-          <HaseebChatPanel
-            user={user}
-            userName={profileName}
-            data={financialData}
-            cfoMode={cfoMode}
-            onCheque={(data) => { setPendingChequeData(data); setShowChequeDialog(true); }}
-            onJournal={(data, accounts) => { setJournalEntryData(data); setJournalEntryAccounts(accounts || []); setShowJournalEntry(true); }}
-            onTransactionSuccess={() => txToast.trigger()}
-          />
-        </div>
-        {/* Right Panel */}
-        <div className="w-[320px] flex-shrink-0 overflow-y-auto haseeb-scrollbar bg-white border-r border-gray-200">
-          <HaseebRightPanel data={financialData} cfoMode={cfoMode} />
-        </div>
-      </div>
+
+      <MobileRadarSheet
+        open={showRadar}
+        onClose={() => setShowRadar(false)}
+        data={financialData}
+      />
 
       <TransactionToast show={txToast.show} onDone={txToast.handleDone} />
       <JournalEntryPopup open={showJournalEntry} onClose={() => { setShowJournalEntry(false); setJournalEntryData(null); }} onSuccess={() => txToast.trigger()} initialData={journalEntryData} accounts={journalEntryAccounts.length > 0 ? journalEntryAccounts : undefined} />
@@ -213,4 +171,4 @@ const SmartAccountantPage = () => {
   );
 };
 
-export default SmartAccountantPage;
+export default MobileSmartAccountant;
