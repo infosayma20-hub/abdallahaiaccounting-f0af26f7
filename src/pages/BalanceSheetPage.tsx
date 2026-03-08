@@ -81,7 +81,7 @@ const BalanceSheetPage = () => {
   }, [transactions]);
 
   // Build hierarchical trees for each section
-  const { assetTree, liabilityTree, equityTree, totalAssets, totalLiabilities, totalEquity } = useMemo(() => {
+  const { assetTree, liabilityTree, equityTree, totalAssets, totalLiabilities, totalEquity, netProfit } = useMemo(() => {
     const isAsset = (a: SupabaseAccount) => normalizeAccountType(a.account_type || "") === "Asset";
     const isLiability = (a: SupabaseAccount) => normalizeAccountType(a.account_type || "") === "Liability";
     const isEquity = (a: SupabaseAccount) => normalizeAccountType(a.account_type || "") === "Equity";
@@ -92,9 +92,21 @@ const BalanceSheetPage = () => {
 
     const totalAssets = assetTree.reduce((s, n) => s + n.balance, 0);
     const totalLiabilities = liabilityTree.reduce((s, n) => s + Math.abs(n.balance), 0);
-    const totalEquity = equityTree.reduce((s, n) => s + Math.abs(n.balance), 0);
+    const totalEquityAccounts = equityTree.reduce((s, n) => s + Math.abs(n.balance), 0);
 
-    return { assetTree, liabilityTree, equityTree, totalAssets: Math.abs(totalAssets), totalLiabilities, totalEquity };
+    // Compute net profit: Revenue (credit balances, negative in our system) - Purchases/Expenses (debit balances, positive)
+    let totalRevenue = 0;
+    let totalPurchasesExpenses = 0;
+    accounts.forEach(a => {
+      const type = normalizeAccountType(a.account_type || "");
+      const bal = accountBalances[a.account_code] || 0;
+      if (type === "Revenue") totalRevenue += Math.abs(bal); // credit balances are negative
+      if (type === "Purchases" || type === "Expenses") totalPurchasesExpenses += bal; // debit balances are positive
+    });
+    const netProfit = totalRevenue - totalPurchasesExpenses;
+    const totalEquity = totalEquityAccounts + netProfit;
+
+    return { assetTree, liabilityTree, equityTree, totalAssets: Math.abs(totalAssets), totalLiabilities, totalEquity, netProfit };
   }, [accounts, accountBalances]);
 
   const periodLabel = new Date().toLocaleDateString("ar-EG", { year: "numeric", month: "long", day: "numeric" });
