@@ -19,6 +19,7 @@ import JournalEntryPopup from "@/components/JournalEntryPopup";
 import SavedCommands from "@/components/SavedCommands";
 import SmartMemory from "@/components/SmartMemory";
 import FinancialPredictions from "@/components/FinancialPredictions";
+import AccountingTutor from "@/components/AccountingTutor";
 
 interface SummaryStats {
   sales: number;
@@ -392,7 +393,10 @@ const SmartAccountantPage = () => {
         </div>
       </button>
 
-      {/* ═══ 6. ملخص ذكي ═══ */}
+      {/* ═══ 8. المعلم المحاسبي ═══ */}
+      <AccountingTutor />
+
+      {/* ═══ 9. ملخص ذكي ═══ */}
       <SmartDailySummary
         netProfit={netProfit}
         chequesToday={0}
