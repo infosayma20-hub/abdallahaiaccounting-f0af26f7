@@ -78,6 +78,9 @@ const ImportWizardPage = () => {
   const [currencyId, setCurrencyId] = useState("");
   const [exchangeRate, setExchangeRate] = useState<number>(1);
   const [notes, setNotes] = useState("");
+  const [showNewSupplier, setShowNewSupplier] = useState(false);
+  const [newSupplierName, setNewSupplierName] = useState("");
+  const [addingSupplier, setAddingSupplier] = useState(false);
 
   // Step 2 state
   const [items, setItems] = useState<ShipmentItem[]>([]);
@@ -85,13 +88,35 @@ const ImportWizardPage = () => {
   // Step 3 state
   const [costs, setCosts] = useState<ImportCost[]>([]);
 
-  const { data: contacts = [] } = useQuery({
+  const { data: contacts = [], refetch: refetchContacts } = useQuery({
     queryKey: ["suppliers-for-import"],
     queryFn: async () => {
       const { data } = await supabase.from("contacts").select("id, contact_name").eq("contact_type", "مورد");
       return data || [];
     },
   });
+
+  const handleAddSupplier = async () => {
+    if (!user || !newSupplierName.trim()) return;
+    setAddingSupplier(true);
+    try {
+      const { data, error } = await supabase.from("contacts").insert({
+        user_id: user.id,
+        contact_name: newSupplierName.trim(),
+        contact_type: "مورد",
+      }).select("id").single();
+      if (error) throw error;
+      await refetchContacts();
+      setSupplierId(data.id);
+      setNewSupplierName("");
+      setShowNewSupplier(false);
+      toast.success("تم إضافة المورد بنجاح");
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setAddingSupplier(false);
+    }
+  };
 
   const { data: currencies = [] } = useQuery({
     queryKey: ["currencies-for-import"],
@@ -390,6 +415,27 @@ const ImportWizardPage = () => {
                 <SelectTrigger><SelectValue placeholder="اختر مورد" /></SelectTrigger>
                 <SelectContent>
                   {contacts.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.contact_name}</SelectItem>)}
+                  <div className="border-t mt-1 pt-1 px-2 pb-1">
+                    {!showNewSupplier ? (
+                      <Button variant="ghost" size="sm" className="w-full justify-start gap-2 text-primary" onClick={(e) => { e.preventDefault(); setShowNewSupplier(true); }}>
+                        <Plus className="h-3.5 w-3.5" /> إضافة مورد جديد
+                      </Button>
+                    ) : (
+                      <div className="flex gap-2 items-center">
+                        <Input
+                          placeholder="اسم المورد الجديد"
+                          value={newSupplierName}
+                          onChange={e => setNewSupplierName(e.target.value)}
+                          className="h-8 text-sm"
+                          autoFocus
+                          onKeyDown={e => { if (e.key === 'Enter') handleAddSupplier(); if (e.key === 'Escape') { setShowNewSupplier(false); setNewSupplierName(''); } }}
+                        />
+                        <Button size="sm" className="h-8 px-2" disabled={!newSupplierName.trim() || addingSupplier} onClick={handleAddSupplier}>
+                          {addingSupplier ? "..." : <Check className="h-3.5 w-3.5" />}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                 </SelectContent>
               </Select>
             </div>
