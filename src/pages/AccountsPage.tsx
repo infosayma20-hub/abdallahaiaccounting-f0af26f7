@@ -167,6 +167,7 @@ const filterTabs = [
   { value: "Liability", label: "التزامات" },
   { value: "Owner's Equity", label: "ملكية" },
   { value: "Revenue", label: "إيرادات" },
+  { value: "Purchases", label: "مشتريات" },
   { value: "Expenses", label: "مصروفات" },
 ];
 
