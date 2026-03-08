@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ChevronDown, X, PanelLeftClose, PanelLeftOpen, Settings } from "lucide-react";
+import { ChevronDown, X, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ModuleIcon from "@/components/ModuleIcon";
 
@@ -180,12 +180,17 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
             }
           }}
           className={cn(
-            "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all group",
+            "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-all group relative",
             active || groupActive
-              ? "bg-primary/10 text-primary"
-              : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+              ? "text-sidebar-primary"
+              : "text-sidebar-foreground hover:text-sidebar-accent-foreground",
             collapsed && "justify-center px-2"
           )}
+          style={
+            active || groupActive
+              ? { background: "rgba(0,180,216,0.08)", borderRight: "3px solid #C9A84C" }
+              : undefined
+          }
           title={collapsed ? item.label : undefined}
         >
           <ModuleIcon
@@ -199,7 +204,7 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
               {hasChildren && (
                 <ChevronDown
                   className={cn(
-                    "h-3.5 w-3.5 text-muted-foreground/60 transition-transform duration-200",
+                    "h-3.5 w-3.5 opacity-40 transition-transform duration-200",
                     expanded && "rotate-180"
                   )}
                 />
@@ -209,7 +214,7 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
         </button>
 
         {hasChildren && expanded && !collapsed && (
-          <div className="mr-5 mt-0.5 space-y-0.5 border-r border-border/40 pr-3">
+          <div className="mr-5 mt-0.5 space-y-0.5 pr-3" style={{ borderRight: "1px solid #0A2342" }}>
             {item.children!.map((child) => {
               const childActive = isActive(child.path);
               return (
@@ -219,9 +224,10 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
                   className={cn(
                     "w-full text-right px-3 py-1.5 rounded-lg text-[12px] transition-all",
                     childActive
-                      ? "bg-primary/10 text-primary font-medium"
-                      : "text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/60"
+                      ? "text-sidebar-primary font-medium"
+                      : "text-sidebar-foreground hover:text-sidebar-accent-foreground"
                   )}
+                  style={childActive ? { background: "rgba(0,180,216,0.08)" } : undefined}
                 >
                   {child.label}
                 </button>
@@ -237,19 +243,25 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
     <div className="flex flex-col h-full">
       {/* Logo */}
       <div className={cn(
-        "h-16 flex items-center px-4 flex-shrink-0",
+        "h-16 flex items-center px-4 flex-shrink-0 border-b",
         collapsed && "justify-center px-2"
-      )}>
+      )}
+      style={{ borderColor: "#0A2342" }}
+      >
         {!collapsed ? (
           <div className="flex items-center gap-3 flex-1">
-            <ModuleIcon module="ai" size="md" active />
+            <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: "linear-gradient(135deg, #0A2342, #006D8F)" }}>
+              <span className="text-white font-bold text-sm" style={{ fontFamily: "Barlow, sans-serif" }}>Z</span>
+            </div>
             <div className="min-w-0">
-              <h1 className="text-[14px] font-bold text-foreground truncate">عبدالله AI</h1>
-              <p className="text-[10px] text-muted-foreground leading-none">المحاسبة الذكية</p>
+              <h1 className="text-[14px] font-bold text-white truncate" style={{ fontFamily: "Barlow, sans-serif" }}>ZIDNI</h1>
+              <p className="text-[10px] text-sidebar-foreground leading-none">نظام إدارة الأعمال</p>
             </div>
           </div>
         ) : (
-          <ModuleIcon module="ai" size="md" active />
+          <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: "linear-gradient(135deg, #0A2342, #006D8F)" }}>
+            <span className="text-white font-bold text-sm" style={{ fontFamily: "Barlow, sans-serif" }}>Z</span>
+          </div>
         )}
       </div>
 
@@ -258,11 +270,11 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
         {navSections.map((section) => (
           <div key={section.title}>
             {!collapsed && (
-              <p className="text-[10px] font-semibold text-muted-foreground/60 uppercase tracking-wider px-3 mb-2">
+              <p className="text-[10px] font-semibold text-sidebar-foreground/50 uppercase tracking-wider px-3 mb-2">
                 {section.title}
               </p>
             )}
-            {collapsed && <div className="h-px bg-border/30 mx-1 mb-2" />}
+            {collapsed && <div className="h-px mx-1 mb-2" style={{ background: "#0A2342" }} />}
             <div className="space-y-0.5">
               {section.items.map(renderNavItem)}
             </div>
@@ -271,10 +283,10 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
       </nav>
 
       {/* Bottom */}
-      <div className="border-t border-sidebar-border/50 py-3 px-3 space-y-0.5">
+      <div className="py-3 px-3 space-y-0.5" style={{ borderTop: "1px solid #0A2342" }}>
         <button
           onClick={() => handleNavigate("/settings")}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-all"
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium text-sidebar-foreground hover:text-sidebar-accent-foreground transition-all"
           title={collapsed ? "الإعدادات" : undefined}
         >
           <ModuleIcon module="settings" size="sm" />
@@ -282,7 +294,7 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
         </button>
         <button
           onClick={onToggle}
-          className="hidden lg:flex w-full items-center gap-3 px-3 py-2 rounded-xl text-[13px] text-muted-foreground hover:bg-sidebar-accent transition-all"
+          className="hidden lg:flex w-full items-center gap-3 px-3 py-2 rounded-lg text-[13px] text-sidebar-foreground/60 hover:text-sidebar-foreground transition-all"
         >
           {collapsed ? (
             <PanelLeftOpen className="h-5 w-5 mx-auto" strokeWidth={1.8} />
@@ -302,7 +314,7 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
       {/* Mobile overlay */}
       {mobileOpen && (
         <div
-          className="fixed inset-0 z-50 bg-background/60 backdrop-blur-sm lg:hidden"
+          className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm lg:hidden"
           onClick={onMobileClose}
         />
       )}
@@ -310,15 +322,15 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
       {/* Mobile sidebar */}
       <aside
         className={cn(
-          "fixed inset-y-0 right-0 z-50 w-[280px] bg-sidebar transform transition-transform duration-300 lg:hidden",
-          mobileOpen ? "translate-x-0" : "translate-x-full"
+          "fixed inset-y-0 right-0 z-50 w-[280px] bg-sidebar transform transition-transform duration-300 lg:hidden"
         )}
+        style={{ transform: mobileOpen ? "translateX(0)" : "translateX(100%)" }}
       >
         <button
           onClick={onMobileClose}
-          className="absolute top-4 left-4 w-8 h-8 rounded-xl flex items-center justify-center hover:bg-secondary transition-colors"
+          className="absolute top-4 left-4 w-8 h-8 rounded-lg flex items-center justify-center text-sidebar-foreground hover:text-white transition-colors"
         >
-          <X className="h-4 w-4 text-muted-foreground" />
+          <X className="h-4 w-4" />
         </button>
         {sidebarContent}
       </aside>
@@ -326,9 +338,10 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
       {/* Desktop sidebar */}
       <aside
         className={cn(
-          "hidden lg:flex flex-col border-l border-sidebar-border/50 bg-sidebar flex-shrink-0 transition-all duration-300",
-          collapsed ? "w-[68px]" : "w-[252px]"
+          "hidden lg:flex flex-col bg-sidebar flex-shrink-0 transition-all duration-300",
+          collapsed ? "w-[68px]" : "w-[240px]"
         )}
+        style={{ borderLeft: "1px solid #0A2342" }}
       >
         {sidebarContent}
       </aside>
