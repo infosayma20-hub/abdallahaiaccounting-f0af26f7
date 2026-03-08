@@ -3179,6 +3179,62 @@ export type Database = {
         }
         Relationships: []
       }
+      pos_audit_log: {
+        Row: {
+          action: string
+          approved_by: string | null
+          cashier_id: string | null
+          cashier_name: string | null
+          created_at: string
+          details: Json | null
+          id: string
+          new_total: number | null
+          order_id: string | null
+          original_total: number | null
+          reason: string | null
+          terminal_name: string | null
+          user_id: string
+        }
+        Insert: {
+          action: string
+          approved_by?: string | null
+          cashier_id?: string | null
+          cashier_name?: string | null
+          created_at?: string
+          details?: Json | null
+          id?: string
+          new_total?: number | null
+          order_id?: string | null
+          original_total?: number | null
+          reason?: string | null
+          terminal_name?: string | null
+          user_id: string
+        }
+        Update: {
+          action?: string
+          approved_by?: string | null
+          cashier_id?: string | null
+          cashier_name?: string | null
+          created_at?: string
+          details?: Json | null
+          id?: string
+          new_total?: number | null
+          order_id?: string | null
+          original_total?: number | null
+          reason?: string | null
+          terminal_name?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_audit_log_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "pos_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pos_audit_logs: {
         Row: {
           action_type: string
@@ -3542,6 +3598,10 @@ export type Database = {
       }
       pos_orders: {
         Row: {
+          cancel_reason: string | null
+          cancelled_approved_by: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
           company_id: string
           created_at: string
           currency: string
@@ -3566,6 +3626,11 @@ export type Database = {
           payment_currency_rate: number | null
           pos_customer_id: string | null
           rate_source: string | null
+          recall_reason: string | null
+          recall_status: string | null
+          recalled_approved_by: string | null
+          recalled_at: string | null
+          recalled_by: string | null
           return_of_order_id: string | null
           return_reason: string | null
           session_id: string
@@ -3581,6 +3646,10 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          cancel_reason?: string | null
+          cancelled_approved_by?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           company_id: string
           created_at?: string
           currency?: string
@@ -3605,6 +3674,11 @@ export type Database = {
           payment_currency_rate?: number | null
           pos_customer_id?: string | null
           rate_source?: string | null
+          recall_reason?: string | null
+          recall_status?: string | null
+          recalled_approved_by?: string | null
+          recalled_at?: string | null
+          recalled_by?: string | null
           return_of_order_id?: string | null
           return_reason?: string | null
           session_id: string
@@ -3620,6 +3694,10 @@ export type Database = {
           user_id: string
         }
         Update: {
+          cancel_reason?: string | null
+          cancelled_approved_by?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           company_id?: string
           created_at?: string
           currency?: string
@@ -3644,6 +3722,11 @@ export type Database = {
           payment_currency_rate?: number | null
           pos_customer_id?: string | null
           rate_source?: string | null
+          recall_reason?: string | null
+          recall_status?: string | null
+          recalled_approved_by?: string | null
+          recalled_at?: string | null
+          recalled_by?: string | null
           return_of_order_id?: string | null
           return_reason?: string | null
           session_id?: string
