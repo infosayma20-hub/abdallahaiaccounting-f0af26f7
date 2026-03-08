@@ -88,7 +88,8 @@ export function normalizeAccountType(type: string): string {
   if (["liability", "التزامات", "التزام", "خصوم"].includes(t)) return "Liability";
   if (["equity", "owner's equity", "حقوق ملكية", "حقوق الملكية", "رأس مال"].includes(t)) return "Equity";
   if (["revenue", "إيرادات", "إيراد", "دخل"].includes(t)) return "Revenue";
-  if (["expenses", "expense", "مصروفات", "مصروف", "المصروفات"].includes(t)) return "Expenses";
+  if (["purchases", "مشتريات"].includes(t)) return "Purchases";
+  if (["expenses", "expense", "مصروفات", "مصروف", "المصروفات", "مصاريف"].includes(t)) return "Expenses";
   return type;
 }
 
