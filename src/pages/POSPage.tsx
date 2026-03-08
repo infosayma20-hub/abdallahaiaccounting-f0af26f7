@@ -2289,6 +2289,20 @@ const POSPage = () => {
             )}
           </div>
 
+          {/* Recall Banner */}
+          {recallBanner && (
+            <div className="mx-3 mb-1 px-3 py-2 rounded-lg text-xs" style={{ background: "#FEF9C3", border: "1px solid #D97706", color: "#92400E", fontFamily: "Tajawal, sans-serif" }}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4" style={{ color: "#D97706" }} />
+                  <span className="font-semibold">تعديل على فاتورة #{recallBanner.orderNumber}</span>
+                </div>
+                <button onClick={() => { setRecallBanner(null); setCart([]); }} className="text-[10px] underline hover:no-underline">إلغاء التعديل</button>
+              </div>
+              <div className="mt-1 text-[11px]">السبب: {recallBanner.reason}{recallBanner.approvedBy && ` — موافقة: ${recallBanner.approvedBy}`}</div>
+            </div>
+          )}
+
           {/* Cart Items */}
           <ScrollArea className="flex-1">
             <div className="p-2">
