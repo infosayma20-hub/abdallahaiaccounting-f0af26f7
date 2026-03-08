@@ -1,133 +1,138 @@
-@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Barlow:wght@500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
-  /* ─── DARK THEME (DEFAULT) ─── */
+  /* ─── LIGHT THEME (DEFAULT for ERP) ─── */
   :root {
-    --background: 222 47% 6%;
-    --foreground: 210 20% 98%;
+    /* ZIDNI Brand - converted to HSL */
+    --background: 213 33% 97%;       /* #F4F7FA */
+    --foreground: 213 62% 15%;       /* #0A2342 */
 
-    --card: 222 44% 9%;
-    --card-foreground: 210 20% 98%;
-
-    --popover: 222 44% 10%;
-    --popover-foreground: 210 20% 98%;
-
-    --primary: 142 71% 45%;
-    --primary-foreground: 0 0% 100%;
-
-    --secondary: 222 40% 13%;
-    --secondary-foreground: 210 15% 90%;
-
-    --muted: 222 35% 14%;
-    --muted-foreground: 217 15% 52%;
-
-    --accent: 142 65% 48%;
-    --accent-foreground: 0 0% 100%;
-
-    --destructive: 0 60% 50%;
-    --destructive-foreground: 0 0% 100%;
-
-    --success: 142 71% 45%;
-    --success-foreground: 0 0% 100%;
-
-    --warning: 38 92% 50%;
-    --warning-foreground: 0 0% 100%;
-
-    --info: 217 91% 60%;
-    --info-foreground: 0 0% 100%;
-
-    --border: 222 35% 14%;
-    --input: 222 35% 14%;
-    --ring: 142 71% 45%;
-
-    --radius: 0.75rem;
-
-    --sidebar-background: 222 47% 5%;
-    --sidebar-foreground: 215 15% 65%;
-    --sidebar-primary: 142 71% 45%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 222 40% 12%;
-    --sidebar-accent-foreground: 210 15% 90%;
-    --sidebar-border: 222 40% 10%;
-    --sidebar-ring: 142 71% 45%;
-
-    --glow-green: 142 71% 45%;
-    --deep-green: 160 50% 15%;
-    --glass-border: 0 0% 100%;
-    --nav-bg: 222 47% 5%;
-    --glass-opacity: 0.04;
-    --icon-bg: 222 47% 11%;
-
-    /* Elevation shadows */
-    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
-    --shadow-md: 0 2px 8px -2px rgba(0, 0, 0, 0.4);
-    --shadow-lg: 0 4px 16px -4px rgba(0, 0, 0, 0.5);
-    --shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.25);
-  }
-
-  /* ─── LIGHT THEME ─── */
-  .light {
-    --background: 210 20% 97%;
-    --foreground: 222 47% 11%;
-
-    --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card: 0 0% 100%;               /* #FFFFFF */
+    --card-foreground: 213 62% 15%;  /* #0A2342 */
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover-foreground: 213 62% 15%;
 
-    --primary: 142 71% 40%;
+    --primary: 213 62% 15%;          /* #0A2342 navy */
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 16% 94%;
-    --secondary-foreground: 222 30% 22%;
+    --secondary: 210 16% 94%;        /* light gray */
+    --secondary-foreground: 213 40% 22%;
 
     --muted: 210 14% 93%;
-    --muted-foreground: 218 12% 44%;
+    --muted-foreground: 217 18% 62%; /* #8B9BB4 */
 
-    --accent: 142 65% 42%;
+    --accent: 193 100% 42%;          /* #00B4D8 teal */
     --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 55% 52%;
+    --destructive: 0 72% 51%;        /* #DC2626 */
     --destructive-foreground: 0 0% 100%;
 
-    --success: 142 65% 40%;
+    --success: 142 72% 36%;          /* #16A34A */
     --success-foreground: 0 0% 100%;
 
-    --warning: 38 88% 50%;
+    --warning: 38 90% 50%;           /* #D97706 */
     --warning-foreground: 0 0% 100%;
 
-    --info: 217 85% 50%;
+    --info: 193 100% 42%;            /* #00B4D8 */
     --info-foreground: 0 0% 100%;
 
-    --border: 216 12% 90%;
-    --input: 216 12% 90%;
-    --ring: 142 71% 40%;
+    --border: 214 32% 91%;           /* #E2E8F0 */
+    --input: 214 32% 91%;
+    --ring: 193 100% 42%;            /* teal focus ring */
 
-    --sidebar-background: 0 0% 99%;
-    --sidebar-foreground: 222 20% 36%;
-    --sidebar-primary: 142 71% 40%;
+    --radius: 0.5rem;
+
+    /* Sidebar - ZIDNI dark */
+    --sidebar-background: 215 78% 7%;   /* #050F1E */
+    --sidebar-foreground: 217 18% 62%;  /* #8B9BB4 */
+    --sidebar-primary: 193 100% 42%;    /* teal */
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 210 16% 94%;
-    --sidebar-accent-foreground: 222 30% 14%;
-    --sidebar-border: 216 12% 92%;
-    --sidebar-ring: 142 71% 40%;
+    --sidebar-accent: 213 62% 15%;      /* #0A2342 */
+    --sidebar-accent-foreground: 210 15% 90%;
+    --sidebar-border: 213 62% 15%;      /* #0A2342 */
+    --sidebar-ring: 193 100% 42%;
 
-    --glow-green: 142 71% 45%;
-    --deep-green: 160 40% 92%;
-    --glass-border: 0 0% 0%;
+    /* ZIDNI brand tokens */
+    --zidni-gold: 43 55% 54%;           /* #C9A84C */
+    --zidni-gold-light: 40 56% 77%;     /* #E8D5A3 */
+    --zidni-teal-dark: 195 100% 28%;    /* #006D8F */
+
+    --icon-bg: 210 14% 93%;
     --nav-bg: 0 0% 100%;
-    --glass-opacity: 0.05;
-    --icon-bg: 222 47% 11%;
 
-    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
-    --shadow-md: 0 2px 8px -2px rgba(0, 0, 0, 0.06);
-    --shadow-lg: 0 4px 16px -4px rgba(0, 0, 0, 0.08);
-    --shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
+    /* Shadows */
+    --shadow-sm: 0 2px 8px rgba(10,35,66,0.08);
+    --shadow-md: 0 4px 16px rgba(10,35,66,0.14);
+    --shadow-lg: 0 8px 32px rgba(10,35,66,0.20);
+    --shadow-card: 0 1px 3px rgba(10,35,66,0.05), 0 1px 2px -1px rgba(10,35,66,0.04);
+  }
+
+  /* ─── DARK THEME ─── */
+  .dark {
+    --background: 215 78% 7%;        /* #050F1E */
+    --foreground: 213 33% 97%;       /* #F4F7FA */
+
+    --card: 213 62% 15%;             /* #0A2342 */
+    --card-foreground: 213 33% 97%;
+
+    --popover: 213 62% 15%;
+    --popover-foreground: 213 33% 97%;
+
+    --primary: 193 100% 42%;         /* teal as primary in dark */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 213 55% 18%;
+    --secondary-foreground: 210 15% 90%;
+
+    --muted: 213 55% 18%;
+    --muted-foreground: 217 18% 62%;
+
+    --accent: 43 55% 54%;            /* gold accent in dark */
+    --accent-foreground: 213 62% 15%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 142 72% 36%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 90% 50%;
+    --warning-foreground: 0 0% 100%;
+
+    --info: 193 100% 42%;
+    --info-foreground: 0 0% 100%;
+
+    --border: 0 0% 100% / 0.08;
+    --input: 213 55% 22%;
+    --ring: 193 100% 42%;
+
+    --sidebar-background: 215 78% 7%;
+    --sidebar-foreground: 217 18% 62%;
+    --sidebar-primary: 193 100% 42%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 213 62% 15%;
+    --sidebar-accent-foreground: 210 15% 90%;
+    --sidebar-border: 0 0% 100% / 0.08;
+    --sidebar-ring: 193 100% 42%;
+
+    --zidni-gold: 43 55% 54%;
+    --zidni-gold-light: 40 56% 77%;
+    --zidni-teal-dark: 195 100% 28%;
+
+    --icon-bg: 213 55% 18%;
+    --nav-bg: 215 78% 7%;
+
+    --shadow-sm: 0 2px 8px rgba(0,0,0,0.3);
+    --shadow-md: 0 4px 16px rgba(0,0,0,0.4);
+    --shadow-lg: 0 8px 32px rgba(0,0,0,0.5);
+    --shadow-card: 0 1px 3px rgba(0,0,0,0.25);
   }
 }
 
@@ -142,8 +147,8 @@
   }
 
   body {
-    @apply bg-background text-foreground font-sans antialiased;
-    font-family: 'IBM Plex Sans Arabic', system-ui, sans-serif;
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Tajawal', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     line-height: 1.5;
@@ -152,22 +157,33 @@
 
   /* Typography hierarchy */
   h1 {
-    font-size: 1.867rem; /* ~28px */
-    font-weight: 600;
+    font-family: 'Tajawal', sans-serif;
+    font-size: 1.867rem;
+    font-weight: 700;
     line-height: 1.3;
     letter-spacing: -0.01em;
   }
 
   h2 {
-    font-size: 1.2rem; /* ~18px */
-    font-weight: 500;
+    font-family: 'Tajawal', sans-serif;
+    font-size: 1.2rem;
+    font-weight: 700;
     line-height: 1.35;
   }
 
   h3 {
-    font-size: 1rem; /* ~15px */
-    font-weight: 500;
+    font-family: 'Tajawal', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
     line-height: 1.4;
+  }
+
+  button {
+    font-weight: 600;
+  }
+
+  table th {
+    font-weight: 700;
   }
 
   /* Tabular numerals for financial data */
@@ -180,17 +196,19 @@
     letter-spacing: 0.02em;
   }
 
-  /* Smooth theme transition */
+  /* Smooth transitions - enterprise: 150ms, no bounce */
   *,
   *::before,
   *::after {
-    transition: background-color 200ms ease, border-color 200ms ease, color 150ms ease;
+    transition-property: background-color, border-color, color, box-shadow;
+    transition-duration: 150ms;
+    transition-timing-function: ease;
   }
 }
 
 @layer utilities {
   .glass-card {
-    @apply bg-card backdrop-blur-sm;
+    @apply bg-card;
     box-shadow: var(--shadow-card);
   }
 
@@ -198,42 +216,17 @@
     font-variant-numeric: tabular-nums;
   }
 
-  .glow-green {
-    text-shadow: 0 0 20px hsl(var(--glow-green) / 0.3);
+  .font-mono {
+    font-family: 'JetBrains Mono', monospace !important;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
   }
 
-  .light .glow-green {
-    text-shadow: none;
+  .font-en {
+    font-family: 'Inter', 'Barlow', sans-serif;
   }
 
-  .glow-border {
-    box-shadow: 0 0 12px hsl(var(--primary) / 0.1), inset 0 0 12px hsl(var(--primary) / 0.03);
-  }
-
-  .light .glow-border {
-    box-shadow: var(--shadow-md);
-  }
-
-  .premium-card {
-    @apply bg-card rounded-2xl;
-    box-shadow: var(--shadow-card);
-  }
-
-  .light .premium-card {
-    box-shadow: var(--shadow-md);
-  }
-
-  .neon-border {
-    border: 1px solid hsl(var(--primary) / 0.2);
-    box-shadow: 0 0 8px hsl(var(--primary) / 0.06);
-  }
-
-  .light .neon-border {
-    border: 1px solid hsl(var(--primary) / 0.12);
-    box-shadow: none;
-  }
-
-  /* Soft elevation utilities */
+  /* ZIDNI Elevation */
   .elevation-1 {
     box-shadow: var(--shadow-sm);
   }
@@ -243,11 +236,77 @@
   .elevation-3 {
     box-shadow: var(--shadow-lg);
   }
-}
 
-@keyframes pulse-glow {
-  0%, 100% { opacity: 0.6; }
-  50% { opacity: 1; }
+  /* KPI accent bars */
+  .accent-bar-teal {
+    border-right: 4px solid hsl(var(--accent));
+  }
+  .accent-bar-red {
+    border-right: 4px solid hsl(var(--destructive));
+  }
+  .accent-bar-green {
+    border-right: 4px solid hsl(var(--success));
+  }
+  .accent-bar-gold {
+    border-right: 4px solid hsl(var(--zidni-gold));
+  }
+
+  /* Status badges */
+  .badge-paid {
+    @apply bg-green-100 text-green-700;
+  }
+  .badge-pending {
+    @apply bg-yellow-100 text-yellow-700;
+  }
+  .badge-overdue {
+    @apply bg-red-100 text-red-700;
+  }
+  .badge-draft {
+    @apply bg-slate-100 text-slate-500;
+  }
+
+  /* Alert styles */
+  .alert-success {
+    border-right: 4px solid hsl(var(--success));
+    background: #F0FDF4;
+  }
+  .alert-warning {
+    border-right: 4px solid hsl(var(--warning));
+    background: #FFFBEB;
+  }
+  .alert-error {
+    border-right: 4px solid hsl(var(--destructive));
+    background: #FEF2F2;
+  }
+  .alert-info {
+    border-right: 4px solid hsl(var(--info));
+    background: #F0FAFF;
+  }
+
+  /* Debit/Credit colors */
+  .text-debit {
+    color: #DC2626;
+    font-weight: 500;
+  }
+  .text-credit {
+    color: #16A34A;
+    font-weight: 500;
+  }
+  .text-zero {
+    color: hsl(var(--muted-foreground));
+    opacity: 0.6;
+  }
+  .text-account-code {
+    font-family: 'JetBrains Mono', monospace;
+    color: #006D8F;
+  }
+
+  /* Skeleton loader */
+  .skeleton-zidni {
+    background: linear-gradient(90deg, #E2E8F0 25%, #F8FAFC 50%, #E2E8F0 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
 }
 
 @keyframes shimmer {
@@ -255,29 +314,14 @@
   100% { background-position: 200% 0; }
 }
 
-@keyframes theme-pulse {
-  0% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.02); opacity: 0.8; }
-  100% { transform: scale(1); opacity: 1; }
+@keyframes spin-cube {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
-.animate-pulse-glow {
-  animation: pulse-glow 2s ease-in-out infinite;
-}
-
-.animate-theme-pulse {
-  animation: theme-pulse 0.5s ease-out;
-}
-
-/* ── Cairo Typography Weights ── */
-h1, h2, h3 { font-weight: 700; }
-button { font-weight: 600; }
-table th { font-weight: 700; }
-
-.font-mono {
-  font-family: 'Cairo', sans-serif !important;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
+@keyframes pulse-gold {
+  0%, 100% { stroke: hsl(43, 55%, 54%); opacity: 0.6; }
+  50% { stroke: hsl(40, 56%, 77%); opacity: 1; }
 }
 
 /* ── Print Utilities ── */
@@ -339,5 +383,3 @@ table th { font-weight: 700; }
     padding: 0 !important;
   }
 }
-
-/* ── Force Western Arabic Numerals (123) everywhere ── */
