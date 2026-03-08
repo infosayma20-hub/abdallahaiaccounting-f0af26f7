@@ -81,6 +81,9 @@ import ContractsListPage from "./pages/ContractsListPage";
 import ContractFormPage from "./pages/ContractFormPage";
 import ContractPreviewPage from "./pages/ContractPreviewPage";
 import LoadingDemoPage from "./pages/LoadingDemoPage";
+import ImportShipmentsPage from "./pages/ImportShipmentsPage";
+import ImportWizardPage from "./pages/ImportWizardPage";
+import ImportDetailPage from "./pages/ImportDetailPage";
 
 const queryClient = new QueryClient();
 
