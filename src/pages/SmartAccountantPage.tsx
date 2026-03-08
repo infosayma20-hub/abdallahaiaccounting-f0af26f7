@@ -357,7 +357,10 @@ const SmartAccountantPage = () => {
         <SavedCommands onSelect={(text) => setDbCommand(text)} currentInput={dbCommand} currentTarget="command" />
       </div>
 
-      {/* ═══ 3. الرادار المالي ═══ */}
+      {/* ═══ 3. ذاكرة المحاسب الذكي ═══ */}
+      <SmartMemory />
+
+      {/* ═══ 4. الرادار المالي ═══ */}
       <FinancialRadar />
 
       {/* ═══ 4. وضع المدير المالي ═══ */}
