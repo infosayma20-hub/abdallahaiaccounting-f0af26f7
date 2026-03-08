@@ -20,6 +20,7 @@ import SavedCommands from "@/components/SavedCommands";
 import SmartMemory from "@/components/SmartMemory";
 import FinancialPredictions from "@/components/FinancialPredictions";
 import AccountingTutor from "@/components/AccountingTutor";
+import LiveKPICards from "@/components/LiveKPICards";
 
 interface SummaryStats {
   sales: number;
@@ -236,23 +237,8 @@ const SmartAccountantPage = () => {
         </div>
       </div>
 
-      {/* ═══ 0. إحصائيات سريعة ═══ */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {[
-          { label: "المبيعات", value: sales, icon: "📈", color: "text-emerald-500" },
-          { label: "المصروفات", value: expenses, icon: "📉", color: "text-red-400" },
-          { label: "صافي الربح", value: netProfit, icon: "💰", color: netProfit >= 0 ? "text-emerald-500" : "text-red-400" },
-          { label: "الذمم المدينة", value: receivables, icon: "🧾", color: "text-amber-400" },
-        ].map((stat) => (
-          <div key={stat.label} className="bg-card rounded-2xl p-4 shadow-card space-y-1 text-center">
-            <span className="text-lg">{stat.icon}</span>
-            <p className={`text-lg font-bold ${stat.color}`}>
-              {loadingTx ? "..." : stat.value.toLocaleString("en-US", { minimumFractionDigits: 0 })}
-            </p>
-            <p className="text-[11px] text-muted-foreground">{stat.label}</p>
-          </div>
-        ))}
-      </div>
+      {/* ═══ 0. البطاقات الحية ═══ */}
+      <LiveKPICards />
 
       {/* ═══ 1. المساعد المالي الذكي ═══ */}
       <div className="bg-card rounded-2xl p-6 space-y-4 shadow-card">
