@@ -2688,6 +2688,8 @@ export type Database = {
           allocated_shipping: number | null
           cbm_per_unit: number | null
           color: string | null
+          ctn_qty: number | null
+          ctns: number | null
           description_ar: string | null
           description_en: string | null
           id: string
@@ -2712,6 +2714,8 @@ export type Database = {
           allocated_shipping?: number | null
           cbm_per_unit?: number | null
           color?: string | null
+          ctn_qty?: number | null
+          ctns?: number | null
           description_ar?: string | null
           description_en?: string | null
           id?: string
@@ -2736,6 +2740,8 @@ export type Database = {
           allocated_shipping?: number | null
           cbm_per_unit?: number | null
           color?: string | null
+          ctn_qty?: number | null
+          ctns?: number | null
           description_ar?: string | null
           description_en?: string | null
           id?: string
