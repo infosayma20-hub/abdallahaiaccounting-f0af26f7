@@ -325,7 +325,7 @@ const AccountsPage = () => {
     // Check if an account or any ancestor is collapsed
     const isHiddenByCollapse = (acc: Account): boolean => {
       let current = acc;
-      while (current.parent_code) {
+      while (current.parent_code && current.parent_code !== current.account_code) {
         if (collapsedGroups.has(current.parent_code)) return true;
         const parent = accountsByCode.get(current.parent_code);
         if (!parent) break;
