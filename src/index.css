@@ -495,3 +495,27 @@ html {
 .scroll-fade:hover::-webkit-scrollbar-thumb {
   background: linear-gradient(180deg, #00B4D8, #006D8F);
 }
+
+/* ═══ HASEEB Smart Accountant Styles ═══ */
+.haseeb-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+.haseeb-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.haseeb-scrollbar::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #00B4D8, #006D8F);
+  border-radius: 999px;
+}
+
+@keyframes haseeb-marquee {
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(-50%); }
+}
+.haseeb-ticker {
+  display: inline-block;
+  animation: haseeb-marquee 30s linear infinite;
+}
+.haseeb-ticker:hover {
+  animation-play-state: paused;
+}
