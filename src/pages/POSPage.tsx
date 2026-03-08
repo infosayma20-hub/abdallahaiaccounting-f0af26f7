@@ -406,6 +406,10 @@ const POSPage = () => {
    const [showShiftSummary, setShowShiftSummary] = useState(false);
    const [shiftSummaryData, setShiftSummaryData] = useState<any>(null);
 
+   // Invoice History
+   const [showInvoiceHistory, setShowInvoiceHistory] = useState(false);
+   const [recallBanner, setRecallBanner] = useState<{ invoiceId: string; orderNumber: string; reason: string; approvedBy: string | null } | null>(null);
+
    // Modifiers
    const [modifierGroups, setModifierGroups] = useState<any[]>([]);
    const [productModifierMap, setProductModifierMap] = useState<Record<string, string[]>>({});
