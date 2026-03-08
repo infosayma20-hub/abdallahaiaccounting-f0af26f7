@@ -78,6 +78,9 @@ const ImportWizardPage = () => {
   const [currencyId, setCurrencyId] = useState("");
   const [exchangeRate, setExchangeRate] = useState<number>(1);
   const [notes, setNotes] = useState("");
+  const [showNewSupplier, setShowNewSupplier] = useState(false);
+  const [newSupplierName, setNewSupplierName] = useState("");
+  const [addingSupplier, setAddingSupplier] = useState(false);
 
   // Step 2 state
   const [items, setItems] = useState<ShipmentItem[]>([]);
