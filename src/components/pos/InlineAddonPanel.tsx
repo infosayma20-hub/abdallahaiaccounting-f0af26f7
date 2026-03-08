@@ -150,6 +150,8 @@ export default function InlineAddonPanel({ product, groups, onConfirm, onClose, 
         boxShadow: "0 8px 32px rgba(10,35,66,0.18), 0 2px 8px rgba(10,35,66,0.08)",
       }}
       dir="rtl"
+      onClick={(e) => e.stopPropagation()}
+      onMouseDown={(e) => e.stopPropagation()}
     >
       {/* Header */}
       <div
