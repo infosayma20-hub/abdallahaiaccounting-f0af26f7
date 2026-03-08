@@ -1,26 +1,23 @@
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { format, subDays, startOfMonth, endOfMonth, subMonths, differenceInDays } from "date-fns";
-import { ArrowRight, Download, Printer, CalendarDays, FileSpreadsheet, Filter } from "lucide-react";
+import { format, subDays, startOfMonth, endOfMonth, subMonths, differenceInDays, getHours, getDay } from "date-fns";
+import { ArrowRight, Download, Printer, CalendarDays, FileSpreadsheet, Filter, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import * as XLSX from "xlsx";
 
 interface GenericReportPageProps {
   reportKey: string;
 }
 
-// ─── Report configurations ───
-const reportConfigs: Record<string, {
-  title: string;
-  description: string;
-}> = {
+const reportConfigs: Record<string, { title: string; description: string }> = {
   "ar-aging": { title: "أعمار الذمم المدينة", description: "أرصدة العملاء المستحقة مصنفة حسب العمر" },
   "ap-aging": { title: "أعمار الذمم الدائنة", description: "أرصدة الموردين المستحقة مصنفة حسب العمر" },
-  "cash-flow": { title: "التدفقات النقدية", description: "التدفقات التشغيلية والاستثمارية والتمويلية" },
+  "cash-flow": { title: "التدفقات النقدية", description: "التدفقات التشغيلية والاستثمارية والتمويلية (IAS 7)" },
   "daily-sales": { title: "المبيعات اليومية", description: "ملخص المبيعات يوماً بيوم" },
   "sales-returns": { title: "مرتجعات المبيعات", description: "جميع مردودات المبيعات وإشعارات الدائن" },
   "sales-by-product": { title: "المبيعات حسب الصنف", description: "كمية وقيمة المبيعات لكل منتج" },
@@ -34,7 +31,40 @@ const reportConfigs: Record<string, {
   "order-performance": { title: "أداء المنتجات", description: "الأكثر طلباً والأكثر ربحية" },
   "financial-kpi": { title: "المؤشرات المالية", description: "نسب التداول والربحية والدوران" },
   "month-comparison": { title: "المقارنة الشهرية", description: "مقارنة الإيرادات والمصروفات شهر بشهر" },
+  "cash-movement": { title: "حركة الصندوق", description: "جميع حركات النقد الوارد والصادر من الصندوق" },
+  "bank-movement": { title: "حركة البنوك", description: "حركات الحسابات البنكية" },
+  "cheques": { title: "تقرير الشيكات", description: "شيكات واردة وصادرة ومستحقة مع الحالة" },
+  "total-sales": { title: "المبيعات الإجمالية", description: "إجمالي المبيعات حسب الفترة" },
+  "invoice-register": { title: "سجل الفواتير", description: "جميع فواتير البيع مع حالة الدفع" },
+  "by-customer": { title: "المبيعات حسب العميل", description: "تحليل مبيعات كل عميل" },
+  "collections": { title: "التحصيلات", description: "المبالغ المحصلة من العملاء" },
+  "total-purchases": { title: "المشتريات الإجمالية", description: "إجمالي المشتريات حسب الفترة" },
+  "purchase-invoice-register": { title: "فواتير المشتريات", description: "سجل فواتير الشراء" },
+  "by-supplier": { title: "المشتريات حسب المورد", description: "تحليل مشتريات كل مورد" },
+  "supplier-payments": { title: "المدفوعات للموردين", description: "جميع المبالغ المدفوعة" },
+  "inventory-valuation": { title: "جرد وتقييم المخزون", description: "الكميات والقيم الحالية لجميع الأصناف" },
+  "stock-movement": { title: "حركة المخزون", description: "حركات الوارد والصادر" },
+  "below-reorder": { title: "أصناف تحت الحد الأدنى", description: "منتجات تحتاج إعادة طلب" },
+  "employee-directory": { title: "بيانات الموظفين", description: "دليل شامل لجميع الموظفين" },
+  "asset-register": { title: "سجل الأصول الثابتة", description: "جميع الأصول مع القيمة الدفترية" },
+  "monthly-depreciation": { title: "الاستهلاك الشهري", description: "قيمة الاستهلاك المحسوبة لكل أصل" },
+  "depreciation-schedule": { title: "جدول الاستهلاك التفصيلي", description: "جدول زمني كامل لاستهلاك كل أصل" },
+  "fully-depreciated": { title: "أصول مستهلكة بالكامل", description: "أصول وصلت لنهاية عمرها الإنتاجي" },
+  "asset-disposal": { title: "أرباح وخسائر بيع الأصول", description: "عمليات الاستبعاد والبيع" },
+  "assets-by-location": { title: "الأصول حسب الموقع", description: "تجميع حسب الفرع والقسم" },
+  "exchange-rates": { title: "أسعار الصرف", description: "تاريخ أسعار الصرف" },
+  "currency-conversions": { title: "تحويلات العملات", description: "عمليات تحويل العملات" },
+  "all-orders": { title: "تقرير الطلبات", description: "جميع الطلبات مع حالتها" },
+  "pos-daily-sales": { title: "مبيعات نقطة البيع اليومية", description: "مبيعات POS حسب الكاشير" },
+  "pos-cash-reconciliation": { title: "تسوية الصندوق", description: "المتوقع مقابل الفعلي" },
+  "pos-cashier-performance": { title: "أداء الكاشيرين", description: "أداء كل كاشير بالأرقام" },
+  "pos-cancelled": { title: "الفواتير الملغية", description: "الفواتير الملغاة مع الأسباب" },
+  "pos-peak-hours": { title: "ساعات الذروة", description: "توزيع المبيعات حسب الساعة" },
 };
+
+// ─── Helpers ───
+const fmtNum = (n: number) => n.toLocaleString("en", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmtAmt = (n: number) => `₪${fmtNum(Math.abs(n))}`;
 
 const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
   const navigate = useNavigate();
@@ -45,127 +75,112 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any[]>([]);
 
+  // Get team owner for multi-tenant
+  const [ownerId, setOwnerId] = useState<string | null>(null);
   useEffect(() => {
-    if (user) loadReport();
-  }, [user, dateFrom, dateTo, reportKey]);
+    if (!user) return;
+    supabase.rpc("get_team_owner_id", { _user_id: user.id }).then(({ data }) => setOwnerId(data || user!.id));
+  }, [user]);
+
+  useEffect(() => {
+    if (ownerId) loadReport();
+  }, [ownerId, dateFrom, dateTo, reportKey]);
+
+  const uid = ownerId || user?.id || "";
 
   const loadReport = async () => {
-    if (!user) return;
+    if (!uid) return;
     setLoading(true);
     try {
       switch (reportKey) {
-        case "ar-aging":
-        case "ap-aging":
-          await loadAgingReport(reportKey === "ar-aging" ? "عميل" : "مورد");
-          break;
-        case "cash-flow":
-          await loadCashFlowReport();
-          break;
-        case "daily-sales":
-          await loadDailySalesReport();
-          break;
-        case "sales-by-product":
-          await loadSalesByProductReport();
-          break;
-        case "dead-stock":
-          await loadDeadStockReport();
-          break;
-        case "product-profitability":
-          await loadProductProfitability();
-          break;
-        case "financial-kpi":
-          await loadFinancialKPIs();
-          break;
-        case "month-comparison":
-          await loadMonthComparison();
-          break;
-        case "foreign-balances":
-          await loadForeignBalances();
-          break;
-        default:
-          await loadGenericTransactions();
-          break;
+        case "ar-aging": case "ap-aging": await loadAgingReport(reportKey === "ar-aging" ? "عميل" : "مورد"); break;
+        case "cash-flow": await loadCashFlowReport(); break;
+        case "daily-sales": await loadDailySalesReport(); break;
+        case "sales-by-product": case "order-performance": await loadSalesByProductReport(); break;
+        case "dead-stock": await loadDeadStockReport(); break;
+        case "product-profitability": await loadProductProfitability(); break;
+        case "financial-kpi": await loadFinancialKPIs(); break;
+        case "month-comparison": await loadMonthComparison(); break;
+        case "foreign-balances": await loadForeignBalances(); break;
+        case "cash-movement": await loadAccountMovement("1110"); break;
+        case "bank-movement": await loadAccountMovement("1120"); break;
+        case "cheques": await loadChequesReport(); break;
+        case "total-sales": await loadTotalSales(); break;
+        case "invoice-register": await loadInvoiceRegister(); break;
+        case "by-customer": await loadByCustomer(); break;
+        case "collections": await loadCollections(); break;
+        case "sales-returns": await loadSalesReturns(); break;
+        case "sales-performance": await loadSalesPerformance(); break;
+        case "total-purchases": await loadTotalPurchases(); break;
+        case "purchase-invoice-register": await loadPurchaseInvoiceRegister(); break;
+        case "by-supplier": await loadBySupplier(); break;
+        case "supplier-payments": await loadSupplierPayments(); break;
+        case "purchase-returns": await loadPurchaseReturns(); break;
+        case "supplier-comparison": await loadSupplierComparison(); break;
+        case "inventory-valuation": await loadInventoryValuation(); break;
+        case "stock-movement": await loadStockMovement(); break;
+        case "below-reorder": await loadBelowReorder(); break;
+        case "employee-directory": await loadEmployeeDirectory(); break;
+        case "asset-register": await loadAssetRegister(); break;
+        case "monthly-depreciation": await loadMonthlyDepreciation(); break;
+        case "depreciation-schedule": await loadDepreciationSchedule(); break;
+        case "fully-depreciated": await loadFullyDepreciated(); break;
+        case "asset-disposal": await loadAssetDisposal(); break;
+        case "assets-by-location": await loadAssetsByLocation(); break;
+        case "exchange-rates": await loadExchangeRates(); break;
+        case "currency-conversions": await loadCurrencyConversions(); break;
+        case "exchange-gain-loss": await loadExchangeGainLoss(); break;
+        case "all-orders": await loadAllOrders(); break;
+        case "pos-daily-sales": await loadPOSDailySales(); break;
+        case "pos-cash-reconciliation": await loadPOSCashReconciliation(); break;
+        case "pos-cashier-performance": await loadPOSCashierPerformance(); break;
+        case "pos-cancelled": await loadPOSCancelled(); break;
+        case "pos-peak-hours": await loadPOSPeakHours(); break;
+        default: await loadGenericTransactions(); break;
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
+      toast.error("حدث خطأ أثناء تحميل التقرير");
     }
     setLoading(false);
   };
 
-  // ─── AR/AP Aging ───
+  // ═══════════════════════════════════
+  // DATA LOADERS
+  // ═══════════════════════════════════
+
   const loadAgingReport = async (contactType: string) => {
-    const { data: contacts } = await supabase
-      .from("contacts")
-      .select("id, contact_name, current_balance, contact_class")
-      .eq("user_id", user!.id)
-      .eq("contact_type", contactType)
-      .gt("current_balance", 0);
-
+    const { data: contacts } = await supabase.from("contacts").select("id, contact_name, current_balance, contact_class, last_transaction_date").eq("user_id", uid).eq("contact_type", contactType).gt("current_balance", 0);
     if (!contacts?.length) { setData([]); return; }
-
-    const { data: txns } = await supabase
-      .from("transactions")
-      .select("contact_id, transaction_date, amount, debit_account_code, credit_account_code")
-      .eq("user_id", user!.id)
-      .eq("is_deleted", false)
-      .in("contact_id", contacts.map(c => c.id));
-
     const today = new Date();
-    const agingMap: Record<string, { name: string; cls: string; current: number; d30: number; d60: number; d90: number; over90: number; total: number }> = {};
-
-    contacts.forEach(c => {
-      agingMap[c.id] = { name: c.contact_name, cls: c.contact_class || "-", current: 0, d30: 0, d60: 0, d90: 0, over90: 0, total: c.current_balance || 0 };
-    });
-
-    (txns || []).forEach(tx => {
-      if (!tx.contact_id || !agingMap[tx.contact_id]) return;
-      const days = differenceInDays(today, new Date(tx.transaction_date));
-      const entry = agingMap[tx.contact_id];
-      const amt = tx.amount;
-      if (days <= 0) entry.current += amt;
-      else if (days <= 30) entry.d30 += amt;
-      else if (days <= 60) entry.d60 += amt;
-      else if (days <= 90) entry.d90 += amt;
-      else entry.over90 += amt;
-    });
-
-    setData(Object.values(agingMap).sort((a, b) => b.total - a.total));
+    setData(contacts.map(c => {
+      const days = c.last_transaction_date ? differenceInDays(today, new Date(c.last_transaction_date)) : 999;
+      return {
+        name: c.contact_name, cls: c.contact_class || "-",
+        current: days <= 0 ? c.current_balance : 0,
+        d30: days > 0 && days <= 30 ? c.current_balance : 0,
+        d60: days > 30 && days <= 60 ? c.current_balance : 0,
+        d90: days > 60 && days <= 90 ? c.current_balance : 0,
+        over90: days > 90 ? c.current_balance : 0,
+        total: c.current_balance || 0,
+      };
+    }).sort((a, b) => b.total - a.total));
   };
 
-  // ─── Cash Flow ───
   const loadCashFlowReport = async () => {
-    const { data: txns } = await supabase
-      .from("transactions")
-      .select("debit_account_code, credit_account_code, amount, transaction_type")
-      .eq("user_id", user!.id)
-      .eq("is_deleted", false)
-      .gte("transaction_date", dateFrom)
-      .lte("transaction_date", dateTo);
-
+    const { data: txns } = await supabase.from("transactions").select("debit_account_code, credit_account_code, amount").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo);
     if (!txns?.length) { setData([]); return; }
-
     let operating = 0, investing = 0, financing = 0;
     txns.forEach(tx => {
-      const dc = tx.debit_account_code || "";
-      const cc = tx.credit_account_code || "";
-      // Operating: revenue (4xxx) and expenses (5xxx)
+      const dc = tx.debit_account_code || "", cc = tx.credit_account_code || "";
       if (dc.startsWith("4") || cc.startsWith("4") || dc.startsWith("5") || cc.startsWith("5")) {
-        if (cc.startsWith("4")) operating += tx.amount;
-        else if (dc.startsWith("5")) operating -= tx.amount;
-        else operating += tx.amount;
-      }
-      // Investing: fixed assets (12xx)
-      else if (dc.startsWith("12") || cc.startsWith("12")) {
-        if (dc.startsWith("12")) investing -= tx.amount;
-        else investing += tx.amount;
-      }
-      // Financing: equity (3xxx) and long-term liabilities (22xx)
-      else if (dc.startsWith("3") || cc.startsWith("3") || dc.startsWith("22") || cc.startsWith("22")) {
-        if (cc.startsWith("3") || cc.startsWith("22")) financing += tx.amount;
-        else financing -= tx.amount;
+        if (cc.startsWith("4")) operating += tx.amount; else if (dc.startsWith("5")) operating -= tx.amount; else operating += tx.amount;
+      } else if (dc.startsWith("12") || cc.startsWith("12")) {
+        if (dc.startsWith("12")) investing -= tx.amount; else investing += tx.amount;
+      } else if (dc.startsWith("3") || cc.startsWith("3") || dc.startsWith("22") || cc.startsWith("22")) {
+        if (cc.startsWith("3") || cc.startsWith("22")) financing += tx.amount; else financing -= tx.amount;
       }
     });
-
     setData([
       { section: "أنشطة تشغيلية", amount: operating },
       { section: "أنشطة استثمارية", amount: investing },
@@ -174,490 +189,999 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
     ]);
   };
 
-  // ─── Daily Sales ───
-  const loadDailySalesReport = async () => {
-    const { data: txns } = await supabase
-      .from("transactions")
-      .select("transaction_date, amount, transaction_type")
-      .eq("user_id", user!.id)
-      .eq("is_deleted", false)
-      .in("transaction_type", ["sale_cash", "sale_bank", "sale_credit", "sale_cheque", "pos_sale"])
-      .gte("transaction_date", dateFrom)
-      .lte("transaction_date", dateTo)
-      .order("transaction_date", { ascending: true });
+  const loadAccountMovement = async (accountCode: string) => {
+    // Opening balance
+    const { data: openTxns } = await supabase.from("transactions").select("amount, debit_account_code, credit_account_code").eq("user_id", uid).eq("is_deleted", false).lt("transaction_date", dateFrom).or(`debit_account_code.eq.${accountCode},credit_account_code.eq.${accountCode}`);
+    let openBal = 0;
+    (openTxns || []).forEach(tx => { if (tx.debit_account_code === accountCode) openBal += tx.amount; if (tx.credit_account_code === accountCode) openBal -= tx.amount; });
 
-    const dayMap: Record<string, { date: string; count: number; total: number }> = {};
-    (txns || []).forEach(tx => {
-      const d = tx.transaction_date;
-      if (!dayMap[d]) dayMap[d] = { date: d, count: 0, total: 0 };
-      dayMap[d].count++;
-      dayMap[d].total += tx.amount;
+    const { data: txns } = await supabase.from("transactions").select("id, transaction_date, description, amount, debit_account_code, credit_account_code, reference").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo).or(`debit_account_code.eq.${accountCode},credit_account_code.eq.${accountCode}`).order("transaction_date", { ascending: true });
+
+    let running = openBal;
+    const rows = (txns || []).map(tx => {
+      const inflow = tx.debit_account_code === accountCode ? tx.amount : 0;
+      const outflow = tx.credit_account_code === accountCode ? tx.amount : 0;
+      running += inflow - outflow;
+      return { date: tx.transaction_date, description: tx.description, inflow, outflow, balance: running, ref: tx.reference };
     });
+    setData([{ openingBalance: openBal }, ...rows]);
+  };
+
+  const loadChequesReport = async () => {
+    const { data: cheques } = await supabase.from("cheques").select("*").eq("user_id", uid).gte("cheque_date", dateFrom).lte("cheque_date", dateTo).order("cheque_date", { ascending: false });
+    setData(cheques || []);
+  };
+
+  const loadTotalSales = async () => {
+    const { data: txns } = await supabase.from("transactions").select("transaction_date, amount").eq("user_id", uid).eq("is_deleted", false).in("transaction_type", ["sale_cash", "sale_bank", "sale_credit", "sale_cheque", "pos_sale"]).gte("transaction_date", dateFrom).lte("transaction_date", dateTo).order("transaction_date");
+    const dayMap: Record<string, { date: string; count: number; total: number }> = {};
+    (txns || []).forEach(tx => { const d = tx.transaction_date; if (!dayMap[d]) dayMap[d] = { date: d, count: 0, total: 0 }; dayMap[d].count++; dayMap[d].total += tx.amount; });
     setData(Object.values(dayMap));
   };
 
-  // ─── Sales by Product ───
-  const loadSalesByProductReport = async () => {
-    const { data: lines } = await supabase
-      .from("pos_order_lines")
-      .select("product_name, qty, total, cost_price, order_id")
-      .limit(1000);
-
-    const productMap: Record<string, { name: string; qty: number; revenue: number; cost: number }> = {};
-    (lines || []).forEach(l => {
-      if (!productMap[l.product_name]) productMap[l.product_name] = { name: l.product_name, qty: 0, revenue: 0, cost: 0 };
-      productMap[l.product_name].qty += l.qty;
-      productMap[l.product_name].revenue += l.total;
-      productMap[l.product_name].cost += (l.cost_price || 0) * l.qty;
+  const loadDailySalesReport = async () => {
+    const { data: txns } = await supabase.from("transactions").select("transaction_date, amount, transaction_type").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo).order("transaction_date");
+    const dayMap: Record<string, { date: string; count: number; sales: number; returns: number }> = {};
+    (txns || []).forEach(tx => {
+      const d = tx.transaction_date;
+      if (!dayMap[d]) dayMap[d] = { date: d, count: 0, sales: 0, returns: 0 };
+      if (tx.transaction_type?.startsWith("sale") || tx.transaction_type === "pos_sale") { dayMap[d].count++; dayMap[d].sales += tx.amount; }
+      if (tx.transaction_type === "return") dayMap[d].returns += tx.amount;
     });
-    setData(Object.values(productMap).sort((a, b) => b.revenue - a.revenue));
+    setData(Object.values(dayMap).map(d => ({ ...d, net: d.sales - d.returns })));
   };
 
-  // ─── Dead Stock ───
+  const loadInvoiceRegister = async () => {
+    const { data: txns } = await supabase.from("transactions").select("id, transaction_date, description, amount, transaction_type, payment_method, contact_id, reference").eq("user_id", uid).eq("is_deleted", false).in("transaction_type", ["sale_cash", "sale_bank", "sale_credit", "sale_cheque", "pos_sale"]).gte("transaction_date", dateFrom).lte("transaction_date", dateTo).order("transaction_date", { ascending: false });
+    setData(txns || []);
+  };
+
+  const loadByCustomer = async () => {
+    const { data: txns } = await supabase.from("transactions").select("contact_id, amount, transaction_date").eq("user_id", uid).eq("is_deleted", false).in("transaction_type", ["sale_cash", "sale_bank", "sale_credit", "sale_cheque", "pos_sale"]).gte("transaction_date", dateFrom).lte("transaction_date", dateTo);
+    const { data: contacts } = await supabase.from("contacts").select("id, contact_name, contact_class").eq("user_id", uid).eq("contact_type", "عميل");
+    const cMap = new Map((contacts || []).map(c => [c.id, c]));
+    const custMap: Record<string, { name: string; cls: string; count: number; total: number; lastDate: string }> = {};
+    (txns || []).forEach(tx => {
+      if (!tx.contact_id) return;
+      const c = cMap.get(tx.contact_id);
+      const key = tx.contact_id;
+      if (!custMap[key]) custMap[key] = { name: c?.contact_name || "غير محدد", cls: c?.contact_class || "-", count: 0, total: 0, lastDate: "" };
+      custMap[key].count++; custMap[key].total += tx.amount;
+      if (tx.transaction_date > custMap[key].lastDate) custMap[key].lastDate = tx.transaction_date;
+    });
+    setData(Object.values(custMap).sort((a, b) => b.total - a.total));
+  };
+
+  const loadCollections = async () => {
+    const { data: txns } = await supabase.from("transactions").select("id, transaction_date, description, amount, payment_method, contact_id, reference").eq("user_id", uid).eq("is_deleted", false).eq("transaction_type", "receipt").gte("transaction_date", dateFrom).lte("transaction_date", dateTo).order("transaction_date", { ascending: false });
+    setData(txns || []);
+  };
+
+  const loadSalesReturns = async () => {
+    const { data: txns } = await supabase.from("transactions").select("id, transaction_date, description, amount, contact_id, reference").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo).or("transaction_type.eq.return,description.ilike.%مرتجع%").order("transaction_date", { ascending: false });
+    setData(txns || []);
+  };
+
+  const loadSalesPerformance = async () => {
+    const { data: txns } = await supabase.from("transactions").select("amount, transaction_date").eq("user_id", uid).eq("is_deleted", false).in("transaction_type", ["sale_cash", "sale_bank", "sale_credit", "sale_cheque", "pos_sale"]).gte("transaction_date", dateFrom).lte("transaction_date", dateTo);
+    // Previous period
+    const daysDiff = differenceInDays(new Date(dateTo), new Date(dateFrom));
+    const prevFrom = format(subDays(new Date(dateFrom), daysDiff + 1), "yyyy-MM-dd");
+    const prevTo = format(subDays(new Date(dateFrom), 1), "yyyy-MM-dd");
+    const { data: prevTxns } = await supabase.from("transactions").select("amount").eq("user_id", uid).eq("is_deleted", false).in("transaction_type", ["sale_cash", "sale_bank", "sale_credit", "sale_cheque", "pos_sale"]).gte("transaction_date", prevFrom).lte("transaction_date", prevTo);
+
+    const total = (txns || []).reduce((s, t) => s + t.amount, 0);
+    const prevTotal = (prevTxns || []).reduce((s, t) => s + t.amount, 0);
+    const growth = prevTotal > 0 ? ((total - prevTotal) / prevTotal * 100) : 0;
+    const count = (txns || []).length;
+    const avgTicket = count > 0 ? total / count : 0;
+    const dayMap: Record<string, number> = {};
+    (txns || []).forEach(t => { dayMap[t.transaction_date] = (dayMap[t.transaction_date] || 0) + t.amount; });
+    const bestDay = Object.entries(dayMap).sort((a, b) => b[1] - a[1])[0];
+
+    setData([
+      { label: "إجمالي المبيعات", value: fmtAmt(total), color: "#059669" },
+      { label: "عدد الفواتير", value: count.toString(), color: "#0070F2" },
+      { label: "متوسط قيمة الفاتورة", value: fmtAmt(avgTicket), color: "#6366F1" },
+      { label: "معدل النمو", value: `${growth.toFixed(1)}%`, color: growth >= 0 ? "#059669" : "#DC2626" },
+      { label: "أعلى يوم مبيعات", value: bestDay ? `${bestDay[0]}: ${fmtAmt(bestDay[1])}` : "-", color: "#C9A84C" },
+      { label: "مبيعات الفترة السابقة", value: fmtAmt(prevTotal), color: "#8B9BB4" },
+    ]);
+  };
+
+  const loadSalesByProductReport = async () => {
+    const { data: orders } = await supabase.from("pos_orders").select("id").eq("user_id", uid).eq("state", "paid").gte("created_at", dateFrom).lte("created_at", dateTo + "T23:59:59");
+    if (!orders?.length) { setData([]); return; }
+    const orderIds = orders.map(o => o.id);
+    const { data: lines } = await supabase.from("pos_order_lines").select("product_name, qty, total, cost_price, order_id").in("order_id", orderIds);
+    const pm: Record<string, { name: string; qty: number; revenue: number; cost: number }> = {};
+    (lines || []).forEach(l => {
+      if (!pm[l.product_name]) pm[l.product_name] = { name: l.product_name, qty: 0, revenue: 0, cost: 0 };
+      pm[l.product_name].qty += l.qty; pm[l.product_name].revenue += l.total; pm[l.product_name].cost += (l.cost_price || 0) * l.qty;
+    });
+    setData(Object.values(pm).sort((a, b) => b.revenue - a.revenue));
+  };
+
   const loadDeadStockReport = async () => {
-    const { data: products } = await supabase
-      .from("products")
-      .select("id, name, quantity, buy_price, updated_at")
-      .eq("user_id", user!.id);
-
+    const { data: products } = await supabase.from("products").select("id, name, quantity, buy_price").eq("user_id", uid);
+    // Get last sale date from POS
+    const { data: lastSales } = await supabase.from("pos_order_lines").select("product_id, order_id").eq("user_id", uid);
+    const { data: paidOrders } = await supabase.from("pos_orders").select("id, created_at").eq("user_id", uid).eq("state", "paid");
+    const orderDateMap = new Map((paidOrders || []).map(o => [o.id, o.created_at]));
+    const productLastSale: Record<string, string> = {};
+    (lastSales || []).forEach(l => {
+      if (!l.product_id) return;
+      const d = orderDateMap.get(l.order_id);
+      if (d && (!productLastSale[l.product_id] || d > productLastSale[l.product_id])) productLastSale[l.product_id] = d;
+    });
     const today = new Date();
-    const dead = (products || [])
-      .map(p => ({
-        name: p.name,
-        qty: p.quantity || 0,
-        value: (p.quantity || 0) * (p.buy_price || 0),
-        lastMove: p.updated_at,
-        days: differenceInDays(today, new Date(p.updated_at)),
-      }))
-      .filter(p => p.days >= 90)
-      .sort((a, b) => b.days - a.days);
-    setData(dead);
+    setData((products || []).map(p => {
+      const lastSaleDate = productLastSale[p.id];
+      const days = lastSaleDate ? differenceInDays(today, new Date(lastSaleDate)) : 999;
+      return { name: p.name, qty: p.quantity || 0, value: (p.quantity || 0) * (p.buy_price || 0), lastMove: lastSaleDate || null, days };
+    }).filter(p => p.days >= 90 && p.qty > 0).sort((a, b) => b.value - a.value));
   };
 
-  // ─── Product Profitability ───
   const loadProductProfitability = async () => {
-    const { data: products } = await supabase
-      .from("products")
-      .select("id, name, buy_price, sell_price, quantity")
-      .eq("user_id", user!.id);
-
+    const { data: products } = await supabase.from("products").select("id, name, buy_price, sell_price, quantity").eq("user_id", uid);
     setData((products || []).map(p => ({
-      name: p.name,
-      buyPrice: p.buy_price || 0,
-      sellPrice: p.sell_price || 0,
+      name: p.name, buyPrice: p.buy_price || 0, sellPrice: p.sell_price || 0,
       margin: p.sell_price && p.buy_price ? ((p.sell_price - p.buy_price) / p.sell_price * 100) : 0,
-      profit: (p.sell_price || 0) - (p.buy_price || 0),
-      stock: p.quantity || 0,
+      profit: (p.sell_price || 0) - (p.buy_price || 0), stock: p.quantity || 0,
     })).sort((a, b) => b.margin - a.margin));
   };
 
-  // ─── Financial KPIs ───
   const loadFinancialKPIs = async () => {
-    const { data: txns } = await supabase
-      .from("transactions")
-      .select("debit_account_code, credit_account_code, amount")
-      .eq("user_id", user!.id)
-      .eq("is_deleted", false)
-      .gte("transaction_date", dateFrom)
-      .lte("transaction_date", dateTo);
-
-    let revenue = 0, cogs = 0, expenses = 0, currentAssets = 0, currentLiabilities = 0;
+    const { data: txns } = await supabase.from("transactions").select("debit_account_code, credit_account_code, amount").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo);
+    let revenue = 0, cogs = 0, expenses = 0;
     (txns || []).forEach(tx => {
-      const dc = tx.debit_account_code || "";
-      const cc = tx.credit_account_code || "";
+      const dc = tx.debit_account_code || "", cc = tx.credit_account_code || "";
       if (cc.startsWith("4")) revenue += tx.amount;
       if (dc.startsWith("51")) cogs += tx.amount;
       if (dc.startsWith("5") && !dc.startsWith("51")) expenses += tx.amount;
     });
-
     const grossMargin = revenue > 0 ? ((revenue - cogs) / revenue * 100) : 0;
     const netMargin = revenue > 0 ? ((revenue - cogs - expenses) / revenue * 100) : 0;
-
     setData([
-      { label: "إجمالي الإيرادات", value: `₪${revenue.toLocaleString()}`, color: "#059669" },
-      { label: "هامش الربح الإجمالي", value: `${grossMargin.toFixed(1)}%`, color: grossMargin >= 30 ? "#059669" : "#DC2626" },
-      { label: "هامش الربح الصافي", value: `${netMargin.toFixed(1)}%`, color: netMargin >= 10 ? "#059669" : "#DC2626" },
-      { label: "صافي الربح", value: `₪${(revenue - cogs - expenses).toLocaleString()}`, color: revenue - cogs - expenses >= 0 ? "#059669" : "#DC2626" },
-      { label: "تكلفة المبيعات", value: `₪${cogs.toLocaleString()}`, color: "#6366F1" },
-      { label: "المصروفات التشغيلية", value: `₪${expenses.toLocaleString()}`, color: "#DC2626" },
+      { label: "إجمالي الإيرادات", value: fmtAmt(revenue), color: "#059669" },
+      { label: "هامش الربح الإجمالي", value: `${grossMargin.toFixed(1)}%`, color: grossMargin >= 30 ? "#059669" : grossMargin >= 15 ? "#C9A84C" : "#DC2626" },
+      { label: "هامش الربح الصافي", value: `${netMargin.toFixed(1)}%`, color: netMargin >= 10 ? "#059669" : netMargin >= 5 ? "#C9A84C" : "#DC2626" },
+      { label: "صافي الربح", value: fmtAmt(revenue - cogs - expenses), color: revenue - cogs - expenses >= 0 ? "#059669" : "#DC2626" },
+      { label: "تكلفة المبيعات", value: fmtAmt(cogs), color: "#6366F1" },
+      { label: "المصروفات التشغيلية", value: fmtAmt(expenses), color: "#DC2626" },
     ]);
   };
 
-  // ─── Month Comparison ───
   const loadMonthComparison = async () => {
     const months = [];
-    for (let i = 5; i >= 0; i--) {
-      const m = subMonths(new Date(), i);
-      const from = format(startOfMonth(m), "yyyy-MM-dd");
-      const to = format(endOfMonth(m), "yyyy-MM-dd");
-      months.push({ label: format(m, "yyyy-MM"), from, to });
-    }
-
-    const { data: txns } = await supabase
-      .from("transactions")
-      .select("transaction_date, debit_account_code, credit_account_code, amount")
-      .eq("user_id", user!.id)
-      .eq("is_deleted", false)
-      .gte("transaction_date", months[0].from)
-      .lte("transaction_date", months[months.length - 1].to);
-
-    const result = months.map(m => {
+    for (let i = 5; i >= 0; i--) { const m = subMonths(new Date(), i); months.push({ label: format(m, "yyyy-MM"), from: format(startOfMonth(m), "yyyy-MM-dd"), to: format(endOfMonth(m), "yyyy-MM-dd") }); }
+    const { data: txns } = await supabase.from("transactions").select("transaction_date, debit_account_code, credit_account_code, amount").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", months[0].from).lte("transaction_date", months[5].to);
+    setData(months.map(m => {
       let rev = 0, exp = 0;
-      (txns || []).forEach(tx => {
-        if (tx.transaction_date >= m.from && tx.transaction_date <= m.to) {
-          if ((tx.credit_account_code || "").startsWith("4")) rev += tx.amount;
-          if ((tx.debit_account_code || "").startsWith("5")) exp += tx.amount;
-        }
-      });
+      (txns || []).forEach(tx => { if (tx.transaction_date >= m.from && tx.transaction_date <= m.to) { if ((tx.credit_account_code || "").startsWith("4")) rev += tx.amount; if ((tx.debit_account_code || "").startsWith("5")) exp += tx.amount; } });
       return { month: m.label, revenue: rev, expenses: exp, profit: rev - exp };
-    });
-    setData(result);
+    }));
   };
 
-  // ─── Foreign Balances ───
   const loadForeignBalances = async () => {
-    const { data: accounts } = await supabase
-      .from("accounts")
-      .select("account_code, account_name")
-      .eq("user_id", user!.id)
-      .in("account_code", ["1111", "1112", "1113", "1114"]);
-
+    const { data: accounts } = await supabase.from("accounts").select("account_code, account_name").eq("user_id", uid).in("account_code", ["1111", "1112", "1113", "1114"]);
     if (!accounts?.length) { setData([]); return; }
-
     const result = [];
     for (const acc of accounts) {
-      const { data: txns } = await supabase
-        .from("transactions")
-        .select("amount, debit_account_code, credit_account_code")
-        .eq("user_id", user!.id)
-        .eq("is_deleted", false)
-        .or(`debit_account_code.eq.${acc.account_code},credit_account_code.eq.${acc.account_code}`);
-
+      const { data: txns } = await supabase.from("transactions").select("amount, debit_account_code, credit_account_code").eq("user_id", uid).eq("is_deleted", false).or(`debit_account_code.eq.${acc.account_code},credit_account_code.eq.${acc.account_code}`);
       let balance = 0;
-      (txns || []).forEach(tx => {
-        if (tx.debit_account_code === acc.account_code) balance += tx.amount;
-        if (tx.credit_account_code === acc.account_code) balance -= tx.amount;
-      });
-
+      (txns || []).forEach(tx => { if (tx.debit_account_code === acc.account_code) balance += tx.amount; if (tx.credit_account_code === acc.account_code) balance -= tx.amount; });
       const currencyMap: Record<string, string> = { "1111": "USD", "1112": "JOD", "1113": "EUR", "1114": "EGP" };
       result.push({ account: acc.account_name, code: acc.account_code, currency: currencyMap[acc.account_code] || "—", balance });
     }
     setData(result);
   };
 
-  // ─── Generic fallback ───
-  const loadGenericTransactions = async () => {
-    const { data: txns } = await supabase
-      .from("transactions")
-      .select("*")
-      .eq("user_id", user!.id)
-      .eq("is_deleted", false)
-      .gte("transaction_date", dateFrom)
-      .lte("transaction_date", dateTo)
-      .order("transaction_date", { ascending: false })
-      .limit(100);
+  const loadTotalPurchases = async () => {
+    const { data: txns } = await supabase.from("transactions").select("transaction_date, amount").eq("user_id", uid).eq("is_deleted", false).in("transaction_type", ["purchase_cash", "purchase_credit", "purchase_bank"]).gte("transaction_date", dateFrom).lte("transaction_date", dateTo).order("transaction_date");
+    const dayMap: Record<string, { date: string; count: number; total: number }> = {};
+    (txns || []).forEach(tx => { const d = tx.transaction_date; if (!dayMap[d]) dayMap[d] = { date: d, count: 0, total: 0 }; dayMap[d].count++; dayMap[d].total += tx.amount; });
+    setData(Object.values(dayMap));
+  };
+
+  const loadPurchaseInvoiceRegister = async () => {
+    const { data: txns } = await supabase.from("transactions").select("id, transaction_date, description, amount, transaction_type, payment_method, contact_id, reference").eq("user_id", uid).eq("is_deleted", false).in("transaction_type", ["purchase_cash", "purchase_credit", "purchase_bank"]).gte("transaction_date", dateFrom).lte("transaction_date", dateTo).order("transaction_date", { ascending: false });
     setData(txns || []);
   };
 
-  // ─── Render helpers ───
+  const loadBySupplier = async () => {
+    const { data: txns } = await supabase.from("transactions").select("contact_id, amount, transaction_date").eq("user_id", uid).eq("is_deleted", false).in("transaction_type", ["purchase_cash", "purchase_credit", "purchase_bank"]).gte("transaction_date", dateFrom).lte("transaction_date", dateTo);
+    const { data: contacts } = await supabase.from("contacts").select("id, contact_name").eq("user_id", uid).eq("contact_type", "مورد");
+    const cMap = new Map((contacts || []).map(c => [c.id, c.contact_name]));
+    const supMap: Record<string, { name: string; count: number; total: number }> = {};
+    (txns || []).forEach(tx => {
+      if (!tx.contact_id) return;
+      const key = tx.contact_id;
+      if (!supMap[key]) supMap[key] = { name: cMap.get(key) || "غير محدد", count: 0, total: 0 };
+      supMap[key].count++; supMap[key].total += tx.amount;
+    });
+    setData(Object.values(supMap).sort((a, b) => b.total - a.total));
+  };
+
+  const loadSupplierPayments = async () => {
+    const { data: txns } = await supabase.from("transactions").select("id, transaction_date, description, amount, payment_method, contact_id, reference").eq("user_id", uid).eq("is_deleted", false).eq("transaction_type", "payment").gte("transaction_date", dateFrom).lte("transaction_date", dateTo).order("transaction_date", { ascending: false });
+    setData(txns || []);
+  };
+
+  const loadPurchaseReturns = async () => {
+    const { data: txns } = await supabase.from("transactions").select("id, transaction_date, description, amount, contact_id, reference").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo).or("transaction_type.eq.purchase_return,description.ilike.%مرتجع مشتريات%").order("transaction_date", { ascending: false });
+    setData(txns || []);
+  };
+
+  const loadSupplierComparison = async () => {
+    // Approximate from transactions grouped by contact + description
+    const { data: txns } = await supabase.from("transactions").select("description, amount, contact_id, transaction_date").eq("user_id", uid).eq("is_deleted", false).in("transaction_type", ["purchase_cash", "purchase_credit", "purchase_bank"]).gte("transaction_date", dateFrom).lte("transaction_date", dateTo);
+    const { data: contacts } = await supabase.from("contacts").select("id, contact_name").eq("user_id", uid).eq("contact_type", "مورد");
+    const cMap = new Map((contacts || []).map(c => [c.id, c.contact_name]));
+    setData((txns || []).map(tx => ({
+      supplier: cMap.get(tx.contact_id || "") || "غير محدد",
+      description: tx.description, amount: tx.amount, date: tx.transaction_date,
+    })).sort((a, b) => a.description.localeCompare(b.description)));
+  };
+
+  const loadInventoryValuation = async () => {
+    const { data: products } = await supabase.from("products").select("name, quantity, buy_price, sell_price, category").eq("user_id", uid).order("name");
+    const totalValue = (products || []).reduce((s, p) => s + (p.quantity || 0) * (p.buy_price || 0), 0);
+    setData((products || []).map(p => ({
+      name: p.name, qty: p.quantity || 0, cost: p.buy_price || 0, sellPrice: p.sell_price || 0,
+      value: (p.quantity || 0) * (p.buy_price || 0), pct: totalValue > 0 ? ((p.quantity || 0) * (p.buy_price || 0)) / totalValue * 100 : 0,
+      category: p.category || "-",
+    })));
+  };
+
+  const loadStockMovement = async () => {
+    // POS sales movements
+    const { data: orders } = await supabase.from("pos_orders").select("id, created_at, order_number").eq("user_id", uid).eq("state", "paid").gte("created_at", dateFrom).lte("created_at", dateTo + "T23:59:59").order("created_at", { ascending: false }).limit(500);
+    const orderIds = (orders || []).map(o => o.id);
+    const { data: lines } = orderIds.length ? await supabase.from("pos_order_lines").select("product_name, qty, order_id").in("order_id", orderIds) : { data: [] };
+    const orderMap = new Map((orders || []).map(o => [o.id, o]));
+    setData((lines || []).map(l => {
+      const o = orderMap.get(l.order_id);
+      return { date: o?.created_at?.split("T")[0] || "", product: l.product_name, type: "بيع", qty: -l.qty, ref: o?.order_number || "" };
+    }));
+  };
+
+  const loadBelowReorder = async () => {
+    const { data: products } = await supabase.from("products").select("name, quantity, min_quantity, buy_price").eq("user_id", uid);
+    setData((products || []).filter(p => (p.quantity || 0) < (p.min_quantity || 0)).map(p => ({
+      name: p.name, qty: p.quantity || 0, min: p.min_quantity || 0, shortage: (p.min_quantity || 0) - (p.quantity || 0),
+      cost: p.buy_price || 0, reorderCost: ((p.min_quantity || 0) - (p.quantity || 0)) * (p.buy_price || 0),
+    })).sort((a, b) => b.shortage - a.shortage));
+  };
+
+  const loadEmployeeDirectory = async () => {
+    const { data: emps } = await supabase.from("employees").select("id, full_name, department, job_title, hire_date, salary, employment_status").eq("user_id", uid).order("department");
+    setData(emps || []);
+  };
+
+  const loadAssetRegister = async () => {
+    const { data: assets } = await supabase.from("assets").select("asset_number, name_ar, acquisition_cost, accumulated_depreciation, net_book_value, status, location, acquisition_date").eq("user_id", uid).order("asset_number");
+    setData(assets || []);
+  };
+
+  const loadMonthlyDepreciation = async () => {
+    const { data: entries } = await supabase.from("asset_depreciation_entries").select("*, assets(asset_number, name_ar)").eq("user_id", uid).gte("period_start", dateFrom).lte("period_end", dateTo).order("period_start");
+    setData((entries || []).map((e: any) => ({
+      assetNumber: e.assets?.asset_number || "", assetName: e.assets?.name_ar || "",
+      amount: e.depreciation_amount, accumulated: e.accumulated_total, nbv: e.net_book_value, method: e.method_used || "-", period: e.period_start,
+    })));
+  };
+
+  const loadDepreciationSchedule = async () => {
+    const { data: entries } = await supabase.from("asset_depreciation_entries").select("*, assets(asset_number, name_ar, acquisition_cost, useful_life_years)").eq("user_id", uid).order("period_start");
+    setData((entries || []).map((e: any) => ({
+      assetNumber: e.assets?.asset_number || "", assetName: e.assets?.name_ar || "",
+      originalCost: e.assets?.acquisition_cost || 0, amount: e.depreciation_amount,
+      accumulated: e.accumulated_total, nbv: e.net_book_value, period: e.period_start,
+    })));
+  };
+
+  const loadFullyDepreciated = async () => {
+    const { data: assets } = await supabase.from("assets").select("asset_number, name_ar, acquisition_cost, acquisition_date, net_book_value, status, location").eq("user_id", uid).eq("status", "active").lte("net_book_value", 0).order("acquisition_cost", { ascending: false });
+    setData(assets || []);
+  };
+
+  const loadAssetDisposal = async () => {
+    const { data: disposals } = await supabase.from("asset_disposals").select("*, assets(asset_number, name_ar)").eq("user_id", uid).gte("disposal_date", dateFrom).lte("disposal_date", dateTo).order("disposal_date", { ascending: false });
+    setData((disposals || []).map((d: any) => ({
+      assetNumber: d.assets?.asset_number || "", assetName: d.assets?.name_ar || "",
+      date: d.disposal_date, nbv: d.net_book_value_at_disposal || 0, proceeds: d.disposal_proceeds || 0,
+      gainLoss: (d.disposal_proceeds || 0) - (d.net_book_value_at_disposal || 0), method: d.disposal_method,
+    })));
+  };
+
+  const loadAssetsByLocation = async () => {
+    const { data: assets } = await supabase.from("assets").select("location, acquisition_cost, net_book_value, branch_id").eq("user_id", uid).eq("status", "active");
+    const locMap: Record<string, { location: string; count: number; cost: number; nbv: number }> = {};
+    (assets || []).forEach(a => {
+      const loc = a.location || "غير محدد";
+      if (!locMap[loc]) locMap[loc] = { location: loc, count: 0, cost: 0, nbv: 0 };
+      locMap[loc].count++; locMap[loc].cost += a.acquisition_cost || 0; locMap[loc].nbv += a.net_book_value || 0;
+    });
+    setData(Object.values(locMap).sort((a, b) => b.cost - a.cost));
+  };
+
+  const loadExchangeRates = async () => {
+    const { data: rates } = await supabase.from("exchange_rates").select("*, currencies(code, name_ar, symbol)").gte("rate_date", dateFrom).lte("rate_date", dateTo).order("rate_date", { ascending: false });
+    setData((rates || []).map((r: any) => ({
+      date: r.rate_date, currency: r.currencies?.name_ar || "", code: r.currencies?.code || "",
+      buy: r.buy_rate, sell: r.sell_rate, mid: r.mid_rate,
+    })));
+  };
+
+  const loadCurrencyConversions = async () => {
+    const { data: txns } = await supabase.from("transactions").select("id, transaction_date, description, amount, reference").eq("user_id", uid).eq("is_deleted", false).eq("transaction_type", "exchange_diff").gte("transaction_date", dateFrom).lte("transaction_date", dateTo).order("transaction_date", { ascending: false });
+    setData(txns || []);
+  };
+
+  const loadExchangeGainLoss = async () => {
+    const { data: txns } = await supabase.from("transactions").select("id, transaction_date, description, amount, debit_account_code, credit_account_code").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo).or("debit_account_code.eq.7100,credit_account_code.eq.7100").order("transaction_date", { ascending: false });
+    setData((txns || []).map(tx => ({
+      date: tx.transaction_date, description: tx.description, amount: tx.amount,
+      type: tx.credit_account_code === "7100" ? "خسارة" : "ربح",
+    })));
+  };
+
+  const loadAllOrders = async () => {
+    const { data: orders } = await supabase.from("pos_orders").select("id, order_number, created_at, customer_name, total, state").eq("user_id", uid).gte("created_at", dateFrom).lte("created_at", dateTo + "T23:59:59").order("created_at", { ascending: false });
+    setData(orders || []);
+  };
+
+  const loadPOSDailySales = async () => {
+    const { data: orders } = await supabase.from("pos_orders").select("id, created_at, total, session_id").eq("user_id", uid).eq("state", "paid").gte("created_at", dateFrom).lte("created_at", dateTo + "T23:59:59");
+    const { data: sessions } = await supabase.from("pos_sessions").select("id, cashier_name").eq("user_id", uid);
+    const sessMap = new Map((sessions || []).map(s => [s.id, s.cashier_name || "غير محدد"]));
+    const dayMap: Record<string, { date: string; cashier: string; count: number; total: number }> = {};
+    (orders || []).forEach(o => {
+      const d = o.created_at.split("T")[0];
+      const cashier = sessMap.get(o.session_id) || "غير محدد";
+      const key = `${d}-${cashier}`;
+      if (!dayMap[key]) dayMap[key] = { date: d, cashier, count: 0, total: 0 };
+      dayMap[key].count++; dayMap[key].total += o.total;
+    });
+    setData(Object.values(dayMap).sort((a, b) => b.date.localeCompare(a.date)));
+  };
+
+  const loadPOSCashReconciliation = async () => {
+    const { data: sessions } = await supabase.from("pos_sessions").select("id, cashier_name, opened_at, closed_at, opening_cash, closing_cash, expected_cash, cash_variance, state").eq("user_id", uid).eq("is_deleted", false).gte("opened_at", dateFrom).lte("opened_at", dateTo + "T23:59:59").order("opened_at", { ascending: false });
+    setData((sessions || []).map(s => ({
+      date: s.opened_at?.split("T")[0] || "", cashier: s.cashier_name || "غير محدد",
+      opening: s.opening_cash || 0, closing: s.closing_cash || 0,
+      expected: s.expected_cash || 0, variance: s.cash_variance || 0,
+      state: s.state,
+    })));
+  };
+
+  const loadPOSCashierPerformance = async () => {
+    const { data: sessions } = await supabase.from("pos_sessions").select("id, cashier_name").eq("user_id", uid).eq("is_deleted", false).gte("opened_at", dateFrom).lte("opened_at", dateTo + "T23:59:59");
+    const sessIds = (sessions || []).map(s => s.id);
+    if (!sessIds.length) { setData([]); return; }
+    const { data: orders } = await supabase.from("pos_orders").select("id, total, state, session_id").eq("user_id", uid).in("session_id", sessIds);
+    const cashierMap: Record<string, { name: string; count: number; total: number; cancelled: number }> = {};
+    const sessNameMap = new Map((sessions || []).map(s => [s.id, s.cashier_name || "غير محدد"]));
+    (orders || []).forEach(o => {
+      const name = sessNameMap.get(o.session_id) || "غير محدد";
+      if (!cashierMap[name]) cashierMap[name] = { name, count: 0, total: 0, cancelled: 0 };
+      if (o.state === "paid") { cashierMap[name].count++; cashierMap[name].total += o.total; }
+      if (o.state === "cancelled") cashierMap[name].cancelled++;
+    });
+    setData(Object.values(cashierMap).sort((a, b) => b.total - a.total));
+  };
+
+  const loadPOSCancelled = async () => {
+    const { data: orders } = await supabase.from("pos_orders").select("id, order_number, created_at, customer_name, total, state, return_reason").eq("user_id", uid).in("state", ["cancelled"]).gte("created_at", dateFrom).lte("created_at", dateTo + "T23:59:59").order("created_at", { ascending: false });
+    setData(orders || []);
+  };
+
+  const loadPOSPeakHours = async () => {
+    const { data: orders } = await supabase.from("pos_orders").select("created_at, total").eq("user_id", uid).eq("state", "paid").gte("created_at", dateFrom).lte("created_at", dateTo + "T23:59:59");
+    const heatmap: Record<string, { hour: number; dayName: string; count: number; total: number }> = {};
+    const dayNames = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
+    (orders || []).forEach(o => {
+      const d = new Date(o.created_at);
+      const hour = getHours(d);
+      const day = getDay(d);
+      const key = `${day}-${hour}`;
+      if (!heatmap[key]) heatmap[key] = { hour, dayName: dayNames[day], count: 0, total: 0 };
+      heatmap[key].count++; heatmap[key].total += o.total;
+    });
+    setData(Object.values(heatmap).sort((a, b) => b.total - a.total));
+  };
+
+  const loadGenericTransactions = async () => {
+    const { data: txns } = await supabase.from("transactions").select("id, transaction_date, description, amount, debit_account_code, credit_account_code, transaction_type, reference").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo).order("transaction_date", { ascending: false }).limit(200);
+    setData(txns || []);
+  };
+
+  // ═══════════════════════════════════
+  // EXCEL EXPORT
+  // ═══════════════════════════════════
+  const exportExcel = () => {
+    if (!data.length) return;
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, config.title);
+    XLSX.writeFile(wb, `${config.title}-${dateFrom}.xlsx`);
+    toast.success("تم تصدير التقرير بنجاح");
+  };
+
+  // ═══════════════════════════════════
+  // RENDERERS
+  // ═══════════════════════════════════
+
+  const thClass = "text-right px-3 py-3 font-semibold text-xs bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))]";
+  const tdClass = "px-3 py-2.5 text-sm";
+  const trClass = "border-b border-border/30 hover:bg-accent/30 transition-colors";
+  const totalRowClass = "bg-accent/50 font-bold border-t-2 border-primary";
+  const monoClass = "font-mono text-xs";
+
   const renderContent = () => {
-    if (loading) return <div className="text-center py-16 text-muted-foreground text-sm">جاري التحميل...</div>;
-    if (!data.length) return <div className="text-center py-16 text-muted-foreground text-sm">لا توجد بيانات للفترة المحددة</div>;
+    if (loading) return (
+      <div className="space-y-3 py-8">
+        {[...Array(6)].map((_, i) => <div key={i} className="h-10 bg-muted/50 rounded-lg animate-pulse" />)}
+      </div>
+    );
+    if (!data.length) return (
+      <div className="text-center py-16">
+        <div className="w-16 h-16 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-4"><Search className="h-6 w-6 text-muted-foreground" /></div>
+        <p className="text-sm font-medium text-foreground mb-1">لا توجد بيانات للفترة المحددة</p>
+        <p className="text-xs text-muted-foreground">جرّب تغيير نطاق التاريخ أو الفلاتر</p>
+      </div>
+    );
 
     switch (reportKey) {
-      case "ar-aging":
-      case "ap-aging":
-        return renderAgingTable();
-      case "cash-flow":
-        return renderCashFlow();
-      case "daily-sales":
-        return renderDailySales();
-      case "sales-by-product":
-        return renderSalesByProduct();
-      case "dead-stock":
-        return renderDeadStock();
-      case "product-profitability":
-        return renderProductProfitability();
-      case "financial-kpi":
-        return renderKPIs();
-      case "month-comparison":
-        return renderMonthComparison();
-      case "foreign-balances":
-        return renderForeignBalances();
-      default:
-        return renderGenericTable();
+      case "ar-aging": case "ap-aging": return renderAgingTable();
+      case "cash-flow": return renderCashFlow();
+      case "daily-sales": return renderDailySalesTable();
+      case "total-sales": case "total-purchases": return renderDailyTotalsTable();
+      case "sales-by-product": case "order-performance": return renderSalesByProduct();
+      case "dead-stock": return renderDeadStock();
+      case "product-profitability": return renderProductProfitability();
+      case "financial-kpi": case "sales-performance": return renderKPIs();
+      case "month-comparison": return renderMonthComparison();
+      case "foreign-balances": return renderForeignBalances();
+      case "cash-movement": case "bank-movement": return renderAccountMovement();
+      case "cheques": return renderCheques();
+      case "invoice-register": case "purchase-invoice-register": case "collections": case "supplier-payments": return renderTransactionList();
+      case "by-customer": case "by-supplier": return renderGroupedByContact();
+      case "sales-returns": case "purchase-returns": return renderReturns();
+      case "supplier-comparison": return renderSupplierComparison();
+      case "inventory-valuation": return renderInventoryValuation();
+      case "stock-movement": return renderStockMovement();
+      case "below-reorder": return renderBelowReorder();
+      case "employee-directory": return renderEmployeeDirectory();
+      case "asset-register": return renderAssetRegister();
+      case "monthly-depreciation": case "depreciation-schedule": return renderDepreciation();
+      case "fully-depreciated": return renderFullyDepreciated();
+      case "asset-disposal": return renderAssetDisposal();
+      case "assets-by-location": return renderAssetsByLocation();
+      case "exchange-rates": return renderExchangeRates();
+      case "currency-conversions": case "exchange-gain-loss": return renderCurrencyTransactions();
+      case "all-orders": return renderAllOrders();
+      case "pos-daily-sales": return renderPOSDailySales();
+      case "pos-cash-reconciliation": return renderPOSCashReconciliation();
+      case "pos-cashier-performance": return renderPOSCashierPerformance();
+      case "pos-cancelled": return renderPOSCancelled();
+      case "pos-peak-hours": return renderPOSPeakHours();
+      default: return renderGenericTable();
     }
   };
 
+  // ─── Render functions ───
+
   const renderAgingTable = () => (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="bg-muted/50 border-b border-border">
-            <th className="text-right px-4 py-3 font-semibold text-muted-foreground">{reportKey === "ar-aging" ? "العميل" : "المورد"}</th>
-            <th className="text-right px-3 py-3 font-semibold text-muted-foreground">التصنيف</th>
-            <th className="text-left px-3 py-3 font-semibold text-green-600">جاري</th>
-            <th className="text-left px-3 py-3 font-semibold text-yellow-600">1-30</th>
-            <th className="text-left px-3 py-3 font-semibold text-orange-600">31-60</th>
-            <th className="text-left px-3 py-3 font-semibold text-red-500">61-90</th>
-            <th className="text-left px-3 py-3 font-semibold text-red-700">+90</th>
-            <th className="text-left px-3 py-3 font-semibold text-foreground">الإجمالي</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-border/50">
-          {data.map((row, i) => (
-            <tr key={i} className="hover:bg-muted/20">
-              <td className="px-4 py-3 font-medium text-foreground">{row.name}</td>
-              <td className="px-3 py-3 text-muted-foreground">{row.cls}</td>
-              <td className="px-3 py-3 font-mono text-green-600">₪{row.current.toLocaleString()}</td>
-              <td className="px-3 py-3 font-mono text-yellow-600">₪{row.d30.toLocaleString()}</td>
-              <td className="px-3 py-3 font-mono text-orange-600">₪{row.d60.toLocaleString()}</td>
-              <td className="px-3 py-3 font-mono text-red-500">₪{row.d90.toLocaleString()}</td>
-              <td className="px-3 py-3 font-mono text-red-700">₪{row.over90.toLocaleString()}</td>
-              <td className="px-3 py-3 font-mono font-bold text-foreground">₪{row.total.toLocaleString()}</td>
-            </tr>
-          ))}
-        </tbody>
-        <tfoot>
-          <tr className="bg-muted/30 border-t-2 border-border font-bold">
-            <td className="px-4 py-3" colSpan={2}>الإجمالي</td>
-            <td className="px-3 py-3 font-mono text-green-600">₪{data.reduce((s, r) => s + r.current, 0).toLocaleString()}</td>
-            <td className="px-3 py-3 font-mono text-yellow-600">₪{data.reduce((s, r) => s + r.d30, 0).toLocaleString()}</td>
-            <td className="px-3 py-3 font-mono text-orange-600">₪{data.reduce((s, r) => s + r.d60, 0).toLocaleString()}</td>
-            <td className="px-3 py-3 font-mono text-red-500">₪{data.reduce((s, r) => s + r.d90, 0).toLocaleString()}</td>
-            <td className="px-3 py-3 font-mono text-red-700">₪{data.reduce((s, r) => s + r.over90, 0).toLocaleString()}</td>
-            <td className="px-3 py-3 font-mono">₪{data.reduce((s, r) => s + r.total, 0).toLocaleString()}</td>
-          </tr>
-        </tfoot>
-      </table>
-    </div>
+    <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr>
+      <th className={thClass}>{reportKey === "ar-aging" ? "العميل" : "المورد"}</th>
+      <th className={thClass}>التصنيف</th>
+      <th className={`${thClass} !bg-green-700`}>جاري</th>
+      <th className={`${thClass} !bg-yellow-600`}>1-30</th>
+      <th className={`${thClass} !bg-orange-600`}>31-60</th>
+      <th className={`${thClass} !bg-red-600`}>61-90</th>
+      <th className={`${thClass} !bg-red-800`}>+90</th>
+      <th className={thClass}>الإجمالي</th>
+    </tr></thead><tbody>
+      {data.map((r, i) => <tr key={i} className={trClass}>
+        <td className={`${tdClass} font-medium`}>{r.name}</td>
+        <td className={tdClass}>{r.cls}</td>
+        <td className={`${tdClass} ${monoClass} text-green-600`}>{fmtAmt(r.current)}</td>
+        <td className={`${tdClass} ${monoClass} text-yellow-600`}>{fmtAmt(r.d30)}</td>
+        <td className={`${tdClass} ${monoClass} text-orange-600`}>{fmtAmt(r.d60)}</td>
+        <td className={`${tdClass} ${monoClass} text-red-500`}>{fmtAmt(r.d90)}</td>
+        <td className={`${tdClass} ${monoClass} text-red-700`}>{fmtAmt(r.over90)}</td>
+        <td className={`${tdClass} ${monoClass} font-bold`}>{fmtAmt(r.total)}</td>
+      </tr>)}
+    </tbody><tfoot><tr className={totalRowClass}>
+      <td className={tdClass} colSpan={2}>الإجمالي</td>
+      <td className={`${tdClass} ${monoClass}`}>{fmtAmt(data.reduce((s, r) => s + r.current, 0))}</td>
+      <td className={`${tdClass} ${monoClass}`}>{fmtAmt(data.reduce((s, r) => s + r.d30, 0))}</td>
+      <td className={`${tdClass} ${monoClass}`}>{fmtAmt(data.reduce((s, r) => s + r.d60, 0))}</td>
+      <td className={`${tdClass} ${monoClass}`}>{fmtAmt(data.reduce((s, r) => s + r.d90, 0))}</td>
+      <td className={`${tdClass} ${monoClass}`}>{fmtAmt(data.reduce((s, r) => s + r.over90, 0))}</td>
+      <td className={`${tdClass} ${monoClass} font-bold`}>{fmtAmt(data.reduce((s, r) => s + r.total, 0))}</td>
+    </tr></tfoot></table></div>
   );
 
   const renderCashFlow = () => (
     <div className="max-w-xl mx-auto space-y-3 py-4">
-      {data.map((row, i) => (
-        <div key={i} className={`flex items-center justify-between p-4 rounded-xl border ${i === data.length - 1 ? "bg-primary/5 border-primary/30 font-bold" : "border-border/50"}`}>
-          <span className="text-sm text-foreground">{row.section}</span>
-          <span className={`font-mono text-sm font-bold ${row.amount >= 0 ? "text-green-600" : "text-red-500"}`}>
-            ₪{row.amount.toLocaleString()}
-          </span>
-        </div>
-      ))}
+      {data.map((r, i) => <div key={i} className={`flex items-center justify-between p-4 rounded-xl border ${i === data.length - 1 ? "bg-primary/5 border-primary/30 font-bold" : "border-border/50"}`}>
+        <span className="text-sm">{r.section}</span>
+        <span className={`${monoClass} font-bold ${r.amount >= 0 ? "text-green-600" : "text-red-500"}`}>{r.amount < 0 ? `(${fmtAmt(r.amount)})` : fmtAmt(r.amount)}</span>
+      </div>)}
     </div>
   );
 
-  const renderDailySales = () => (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="bg-muted/50 border-b border-border">
-            <th className="text-right px-4 py-3 font-semibold text-muted-foreground">التاريخ</th>
-            <th className="text-center px-3 py-3 font-semibold text-muted-foreground">عدد الفواتير</th>
-            <th className="text-left px-4 py-3 font-semibold text-muted-foreground">إجمالي المبيعات</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-border/50">
-          {data.map((row, i) => (
-            <tr key={i} className="hover:bg-muted/20">
-              <td className="px-4 py-3 font-mono text-muted-foreground">{row.date}</td>
-              <td className="px-3 py-3 text-center font-mono">{row.count}</td>
-              <td className="px-4 py-3 font-mono font-bold text-foreground">₪{row.total.toLocaleString()}</td>
-            </tr>
-          ))}
-        </tbody>
-        <tfoot>
-          <tr className="bg-muted/30 border-t-2 border-border font-bold">
-            <td className="px-4 py-3">الإجمالي</td>
-            <td className="px-3 py-3 text-center font-mono">{data.reduce((s, r) => s + r.count, 0)}</td>
-            <td className="px-4 py-3 font-mono">₪{data.reduce((s, r) => s + r.total, 0).toLocaleString()}</td>
-          </tr>
-        </tfoot>
-      </table>
-    </div>
+  const renderDailySalesTable = () => (
+    <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr>
+      <th className={thClass}>التاريخ</th><th className={thClass}>عدد الفواتير</th><th className={thClass}>المبيعات</th><th className={thClass}>المرتجعات</th><th className={thClass}>الصافي</th>
+    </tr></thead><tbody>
+      {data.map((r, i) => <tr key={i} className={trClass}>
+        <td className={`${tdClass} ${monoClass}`}>{r.date}</td>
+        <td className={`${tdClass} ${monoClass} text-center`}>{r.count}</td>
+        <td className={`${tdClass} ${monoClass}`}>{fmtAmt(r.sales)}</td>
+        <td className={`${tdClass} ${monoClass} text-red-500`}>{r.returns > 0 ? `(${fmtAmt(r.returns)})` : "-"}</td>
+        <td className={`${tdClass} ${monoClass} font-bold`}>{fmtAmt(r.net)}</td>
+      </tr>)}
+    </tbody><tfoot><tr className={totalRowClass}>
+      <td className={tdClass}>الإجمالي</td>
+      <td className={`${tdClass} text-center ${monoClass}`}>{data.reduce((s, r) => s + r.count, 0)}</td>
+      <td className={`${tdClass} ${monoClass}`}>{fmtAmt(data.reduce((s, r) => s + r.sales, 0))}</td>
+      <td className={`${tdClass} ${monoClass} text-red-500`}>{fmtAmt(data.reduce((s, r) => s + r.returns, 0))}</td>
+      <td className={`${tdClass} ${monoClass} font-bold`}>{fmtAmt(data.reduce((s, r) => s + r.net, 0))}</td>
+    </tr></tfoot></table></div>
+  );
+
+  const renderDailyTotalsTable = () => (
+    <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr>
+      <th className={thClass}>التاريخ</th><th className={thClass}>العدد</th><th className={thClass}>الإجمالي</th>
+    </tr></thead><tbody>
+      {data.map((r, i) => <tr key={i} className={trClass}><td className={`${tdClass} ${monoClass}`}>{r.date}</td><td className={`${tdClass} text-center ${monoClass}`}>{r.count}</td><td className={`${tdClass} ${monoClass} font-bold`}>{fmtAmt(r.total)}</td></tr>)}
+    </tbody><tfoot><tr className={totalRowClass}><td className={tdClass}>الإجمالي</td><td className={`${tdClass} text-center ${monoClass}`}>{data.reduce((s, r) => s + r.count, 0)}</td><td className={`${tdClass} ${monoClass} font-bold`}>{fmtAmt(data.reduce((s, r) => s + r.total, 0))}</td></tr></tfoot></table></div>
   );
 
   const renderSalesByProduct = () => (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="bg-muted/50 border-b border-border">
-            <th className="text-right px-4 py-3 font-semibold text-muted-foreground">الصنف</th>
-            <th className="text-center px-3 py-3 font-semibold text-muted-foreground">الكمية</th>
-            <th className="text-left px-3 py-3 font-semibold text-muted-foreground">الإيرادات</th>
-            <th className="text-left px-3 py-3 font-semibold text-muted-foreground">التكلفة</th>
-            <th className="text-left px-3 py-3 font-semibold text-muted-foreground">الربح</th>
-            <th className="text-left px-3 py-3 font-semibold text-muted-foreground">الهامش</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-border/50">
-          {data.map((row, i) => (
-            <tr key={i} className="hover:bg-muted/20">
-              <td className="px-4 py-3 font-medium text-foreground">{row.name}</td>
-              <td className="px-3 py-3 text-center font-mono">{row.qty}</td>
-              <td className="px-3 py-3 font-mono text-foreground">₪{row.revenue.toLocaleString()}</td>
-              <td className="px-3 py-3 font-mono text-muted-foreground">₪{row.cost.toLocaleString()}</td>
-              <td className="px-3 py-3 font-mono font-bold" style={{ color: row.revenue - row.cost >= 0 ? "#059669" : "#DC2626" }}>
-                ₪{(row.revenue - row.cost).toLocaleString()}
-              </td>
-              <td className="px-3 py-3 font-mono text-muted-foreground">
-                {row.revenue > 0 ? ((row.revenue - row.cost) / row.revenue * 100).toFixed(1) : "0"}%
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr>
+      <th className={thClass}>الصنف</th><th className={thClass}>الكمية</th><th className={thClass}>الإيرادات</th><th className={thClass}>التكلفة</th><th className={thClass}>الربح</th><th className={thClass}>الهامش</th>
+    </tr></thead><tbody>
+      {data.map((r, i) => { const margin = r.revenue > 0 ? ((r.revenue - r.cost) / r.revenue * 100) : 0; return <tr key={i} className={trClass}>
+        <td className={`${tdClass} font-medium`}>{r.name}</td><td className={`${tdClass} ${monoClass} text-center`}>{r.qty}</td>
+        <td className={`${tdClass} ${monoClass}`}>{fmtAmt(r.revenue)}</td><td className={`${tdClass} ${monoClass}`}>{fmtAmt(r.cost)}</td>
+        <td className={`${tdClass} ${monoClass} ${r.revenue - r.cost >= 0 ? "text-green-600" : "text-red-500"}`}>{fmtAmt(r.revenue - r.cost)}</td>
+        <td className={`${tdClass} ${monoClass}`}>{margin.toFixed(1)}%</td>
+      </tr>; })}
+    </tbody></table></div>
   );
 
   const renderDeadStock = () => (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="bg-muted/50 border-b border-border">
-            <th className="text-right px-4 py-3 font-semibold text-muted-foreground">الصنف</th>
-            <th className="text-center px-3 py-3 font-semibold text-muted-foreground">الكمية</th>
-            <th className="text-left px-3 py-3 font-semibold text-muted-foreground">القيمة المجمدة</th>
-            <th className="text-center px-3 py-3 font-semibold text-muted-foreground">أيام بدون حركة</th>
-            <th className="text-right px-3 py-3 font-semibold text-muted-foreground">آخر حركة</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-border/50">
-          {data.map((row, i) => (
-            <tr key={i} className="hover:bg-muted/20">
-              <td className="px-4 py-3 font-medium text-foreground">{row.name}</td>
-              <td className="px-3 py-3 text-center font-mono">{row.qty}</td>
-              <td className="px-3 py-3 font-mono text-red-500">₪{row.value.toLocaleString()}</td>
-              <td className="px-3 py-3 text-center font-mono font-bold text-red-600">{row.days}</td>
-              <td className="px-3 py-3 font-mono text-muted-foreground text-xs">{format(new Date(row.lastMove), "yyyy-MM-dd")}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr>
+      <th className={thClass}>الصنف</th><th className={thClass}>الكمية</th><th className={thClass}>القيمة المجمدة</th><th className={thClass}>آخر حركة</th><th className={thClass}>الأيام</th>
+    </tr></thead><tbody>
+      {data.map((r, i) => <tr key={i} className={trClass}>
+        <td className={`${tdClass} font-medium`}>{r.name}</td><td className={`${tdClass} ${monoClass} text-center`}>{r.qty}</td>
+        <td className={`${tdClass} ${monoClass}`}>{fmtAmt(r.value)}</td>
+        <td className={`${tdClass} ${monoClass}`}>{r.lastMove?.split("T")[0] || "لا يوجد"}</td>
+        <td className={`${tdClass} ${monoClass} ${r.days > 180 ? "text-red-600 font-bold" : "text-orange-500"}`}>{r.days >= 999 ? "+999" : r.days}</td>
+      </tr>)}
+    </tbody></table></div>
   );
 
   const renderProductProfitability = () => (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="bg-muted/50 border-b border-border">
-            <th className="text-right px-4 py-3 font-semibold text-muted-foreground">الصنف</th>
-            <th className="text-left px-3 py-3 font-semibold text-muted-foreground">سعر الشراء</th>
-            <th className="text-left px-3 py-3 font-semibold text-muted-foreground">سعر البيع</th>
-            <th className="text-left px-3 py-3 font-semibold text-muted-foreground">الربح/وحدة</th>
-            <th className="text-left px-3 py-3 font-semibold text-muted-foreground">الهامش</th>
-            <th className="text-center px-3 py-3 font-semibold text-muted-foreground">المخزون</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-border/50">
-          {data.map((row, i) => (
-            <tr key={i} className="hover:bg-muted/20">
-              <td className="px-4 py-3 font-medium text-foreground">{row.name}</td>
-              <td className="px-3 py-3 font-mono text-muted-foreground">₪{row.buyPrice.toLocaleString()}</td>
-              <td className="px-3 py-3 font-mono text-foreground">₪{row.sellPrice.toLocaleString()}</td>
-              <td className="px-3 py-3 font-mono font-bold" style={{ color: row.profit >= 0 ? "#059669" : "#DC2626" }}>
-                ₪{row.profit.toLocaleString()}
-              </td>
-              <td className="px-3 py-3 font-mono" style={{ color: row.margin >= 20 ? "#059669" : row.margin >= 0 ? "#D97706" : "#DC2626" }}>
-                {row.margin.toFixed(1)}%
-              </td>
-              <td className="px-3 py-3 text-center font-mono">{row.stock}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr>
+      <th className={thClass}>الصنف</th><th className={thClass}>سعر الشراء</th><th className={thClass}>سعر البيع</th><th className={thClass}>الربح/وحدة</th><th className={thClass}>الهامش</th><th className={thClass}>المخزون</th>
+    </tr></thead><tbody>
+      {data.map((r, i) => <tr key={i} className={trClass}>
+        <td className={`${tdClass} font-medium`}>{r.name}</td>
+        <td className={`${tdClass} ${monoClass}`}>{fmtAmt(r.buyPrice)}</td><td className={`${tdClass} ${monoClass}`}>{fmtAmt(r.sellPrice)}</td>
+        <td className={`${tdClass} ${monoClass} ${r.profit >= 0 ? "text-green-600" : "text-red-500"}`}>{fmtAmt(r.profit)}</td>
+        <td className={`${tdClass} ${monoClass}`}>{r.margin.toFixed(1)}%</td><td className={`${tdClass} ${monoClass} text-center`}>{r.stock}</td>
+      </tr>)}
+    </tbody></table></div>
   );
 
   const renderKPIs = () => (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 py-4">
-      {data.map((kpi, i) => (
-        <Card key={i} className="p-5 border-border/60">
-          <p className="text-xs font-medium text-muted-foreground mb-2">{kpi.label}</p>
-          <p className="text-2xl font-bold font-mono" style={{ color: kpi.color }}>{kpi.value}</p>
-        </Card>
-      ))}
+      {data.map((r, i) => <Card key={i} className="p-5 flex flex-col gap-2 border-border/50">
+        <span className="text-xs text-muted-foreground">{r.label}</span>
+        <span className="text-lg font-bold font-mono" style={{ color: r.color }}>{r.value}</span>
+      </Card>)}
     </div>
   );
 
   const renderMonthComparison = () => (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="bg-muted/50 border-b border-border">
-            <th className="text-right px-4 py-3 font-semibold text-muted-foreground">الشهر</th>
-            <th className="text-left px-3 py-3 font-semibold text-green-600">الإيرادات</th>
-            <th className="text-left px-3 py-3 font-semibold text-red-500">المصروفات</th>
-            <th className="text-left px-3 py-3 font-semibold text-foreground">صافي الربح</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-border/50">
-          {data.map((row, i) => (
-            <tr key={i} className="hover:bg-muted/20">
-              <td className="px-4 py-3 font-mono text-foreground">{row.month}</td>
-              <td className="px-3 py-3 font-mono text-green-600">₪{row.revenue.toLocaleString()}</td>
-              <td className="px-3 py-3 font-mono text-red-500">₪{row.expenses.toLocaleString()}</td>
-              <td className="px-3 py-3 font-mono font-bold" style={{ color: row.profit >= 0 ? "#059669" : "#DC2626" }}>
-                ₪{row.profit.toLocaleString()}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr>
+      <th className={thClass}>الشهر</th><th className={thClass}>الإيرادات</th><th className={thClass}>المصروفات</th><th className={thClass}>صافي الربح</th>
+    </tr></thead><tbody>
+      {data.map((r, i) => <tr key={i} className={trClass}>
+        <td className={`${tdClass} ${monoClass}`}>{r.month}</td>
+        <td className={`${tdClass} ${monoClass} text-green-600`}>{fmtAmt(r.revenue)}</td>
+        <td className={`${tdClass} ${monoClass} text-red-500`}>{fmtAmt(r.expenses)}</td>
+        <td className={`${tdClass} ${monoClass} font-bold ${r.profit >= 0 ? "text-green-600" : "text-red-500"}`}>{r.profit < 0 ? `(${fmtAmt(r.profit)})` : fmtAmt(r.profit)}</td>
+      </tr>)}
+    </tbody></table></div>
   );
 
   const renderForeignBalances = () => (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-4">
-      {data.map((row, i) => (
-        <Card key={i} className="p-5 border-border/60">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-sm font-bold text-foreground">{row.account}</p>
-            <span className="text-xs font-mono bg-muted px-2 py-0.5 rounded">{row.currency}</span>
-          </div>
-          <p className="text-xl font-bold font-mono" style={{ color: row.balance >= 0 ? "#059669" : "#DC2626" }}>
-            ₪{row.balance.toLocaleString()}
-          </p>
-        </Card>
-      ))}
+    <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr>
+      <th className={thClass}>الحساب</th><th className={thClass}>الكود</th><th className={thClass}>العملة</th><th className={thClass}>الرصيد</th>
+    </tr></thead><tbody>
+      {data.map((r, i) => <tr key={i} className={trClass}>
+        <td className={`${tdClass} font-medium`}>{r.account}</td><td className={`${tdClass} ${monoClass}`}>{r.code}</td>
+        <td className={tdClass}>{r.currency}</td><td className={`${tdClass} ${monoClass} font-bold`}>{fmtNum(r.balance)}</td>
+      </tr>)}
+    </tbody></table></div>
+  );
+
+  const renderAccountMovement = () => {
+    if (!data.length) return null;
+    const opening = data[0]?.openingBalance ?? 0;
+    const rows = data.slice(1);
+    return (
+      <div className="space-y-3">
+        <div className="flex items-center gap-2 p-3 rounded-lg bg-accent/30 border border-border/50">
+          <span className="text-sm text-muted-foreground">الرصيد الافتتاحي:</span>
+          <span className={`${monoClass} font-bold`}>{fmtAmt(opening)}</span>
+        </div>
+        <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr>
+          <th className={thClass}>التاريخ</th><th className={thClass}>البيان</th><th className={thClass}>وارد</th><th className={thClass}>صادر</th><th className={thClass}>الرصيد</th>
+        </tr></thead><tbody>
+          {rows.map((r: any, i: number) => <tr key={i} className={trClass}>
+            <td className={`${tdClass} ${monoClass}`}>{r.date}</td><td className={`${tdClass} text-xs`}>{r.description}</td>
+            <td className={`${tdClass} ${monoClass} text-green-600`}>{r.inflow > 0 ? fmtAmt(r.inflow) : ""}</td>
+            <td className={`${tdClass} ${monoClass} text-red-500`}>{r.outflow > 0 ? fmtAmt(r.outflow) : ""}</td>
+            <td className={`${tdClass} ${monoClass} font-bold`}>{fmtAmt(r.balance)}</td>
+          </tr>)}
+        </tbody></table></div>
+      </div>
+    );
+  };
+
+  const renderCheques = () => (
+    <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr>
+      <th className={thClass}>رقم الشيك</th><th className={thClass}>البنك</th><th className={thClass}>الطرف</th><th className={thClass}>المبلغ</th><th className={thClass}>تاريخ الاستحقاق</th><th className={thClass}>النوع</th><th className={thClass}>الحالة</th>
+    </tr></thead><tbody>
+      {data.map((r: any, i) => {
+        const statusColors: Record<string, string> = { "معلق": "text-yellow-600 bg-yellow-50", "محصل": "text-green-600 bg-green-50", "مرتجع": "text-red-600 bg-red-50", "ملغي": "text-muted-foreground bg-muted/50" };
+        return <tr key={i} className={trClass}>
+          <td className={`${tdClass} ${monoClass}`}>{r.cheque_number || "-"}</td><td className={tdClass}>{r.bank_name || "-"}</td>
+          <td className={`${tdClass} font-medium`}>{r.party_name}</td><td className={`${tdClass} ${monoClass} font-bold`}>{fmtAmt(r.amount)}</td>
+          <td className={`${tdClass} ${monoClass}`}>{r.cheque_date}</td><td className={tdClass}>{r.cheque_type}</td>
+          <td className={tdClass}><span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[r.status] || ""}`}>{r.status}</span></td>
+        </tr>;
+      })}
+    </tbody></table></div>
+  );
+
+  const renderTransactionList = () => (
+    <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr>
+      <th className={thClass}>التاريخ</th><th className={thClass}>البيان</th><th className={thClass}>المبلغ</th><th className={thClass}>طريقة الدفع</th><th className={thClass}>المرجع</th>
+    </tr></thead><tbody>
+      {data.map((r: any, i) => <tr key={i} className={trClass}>
+        <td className={`${tdClass} ${monoClass}`}>{r.transaction_date}</td><td className={`${tdClass} text-xs`}>{r.description}</td>
+        <td className={`${tdClass} ${monoClass} font-bold`}>{fmtAmt(r.amount)}</td>
+        <td className={tdClass}>{r.payment_method || "-"}</td><td className={`${tdClass} ${monoClass}`}>{r.reference || "-"}</td>
+      </tr>)}
+    </tbody><tfoot><tr className={totalRowClass}><td className={tdClass} colSpan={2}>الإجمالي ({data.length})</td><td className={`${tdClass} ${monoClass} font-bold`}>{fmtAmt(data.reduce((s: number, r: any) => s + (r.amount || 0), 0))}</td><td colSpan={2} /></tr></tfoot></table></div>
+  );
+
+  const renderGroupedByContact = () => (
+    <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr>
+      <th className={thClass}>{reportKey === "by-customer" ? "العميل" : "المورد"}</th>
+      {reportKey === "by-customer" && <th className={thClass}>التصنيف</th>}
+      <th className={thClass}>عدد الفواتير</th><th className={thClass}>الإجمالي</th>
+      {reportKey === "by-customer" && <th className={thClass}>آخر عملية</th>}
+    </tr></thead><tbody>
+      {data.map((r: any, i) => <tr key={i} className={trClass}>
+        <td className={`${tdClass} font-medium`}>{r.name}</td>
+        {reportKey === "by-customer" && <td className={tdClass}>{r.cls}</td>}
+        <td className={`${tdClass} ${monoClass} text-center`}>{r.count}</td>
+        <td className={`${tdClass} ${monoClass} font-bold`}>{fmtAmt(r.total)}</td>
+        {reportKey === "by-customer" && <td className={`${tdClass} ${monoClass}`}>{r.lastDate || "-"}</td>}
+      </tr>)}
+    </tbody><tfoot><tr className={totalRowClass}>
+      <td className={tdClass} colSpan={reportKey === "by-customer" ? 2 : 1}>الإجمالي</td>
+      <td className={`${tdClass} ${monoClass} text-center`}>{data.reduce((s: number, r: any) => s + r.count, 0)}</td>
+      <td className={`${tdClass} ${monoClass} font-bold`}>{fmtAmt(data.reduce((s: number, r: any) => s + r.total, 0))}</td>
+      {reportKey === "by-customer" && <td />}
+    </tr></tfoot></table></div>
+  );
+
+  const renderReturns = () => (
+    <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr>
+      <th className={thClass}>التاريخ</th><th className={thClass}>البيان</th><th className={thClass}>المبلغ</th><th className={thClass}>المرجع</th>
+    </tr></thead><tbody>
+      {data.map((r: any, i) => <tr key={i} className={trClass}>
+        <td className={`${tdClass} ${monoClass}`}>{r.transaction_date}</td><td className={`${tdClass} text-xs`}>{r.description}</td>
+        <td className={`${tdClass} ${monoClass} font-bold text-red-500`}>{fmtAmt(r.amount)}</td>
+        <td className={`${tdClass} ${monoClass}`}>{r.reference || "-"}</td>
+      </tr>)}
+    </tbody><tfoot><tr className={totalRowClass}><td className={tdClass} colSpan={2}>إجمالي المرتجعات ({data.length})</td><td className={`${tdClass} ${monoClass} font-bold text-red-500`}>{fmtAmt(data.reduce((s: number, r: any) => s + (r.amount || 0), 0))}</td><td /></tr></tfoot></table></div>
+  );
+
+  const renderSupplierComparison = () => (
+    <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr>
+      <th className={thClass}>المورد</th><th className={thClass}>البيان</th><th className={thClass}>المبلغ</th><th className={thClass}>التاريخ</th>
+    </tr></thead><tbody>
+      {data.map((r: any, i) => <tr key={i} className={trClass}>
+        <td className={`${tdClass} font-medium`}>{r.supplier}</td><td className={`${tdClass} text-xs`}>{r.description}</td>
+        <td className={`${tdClass} ${monoClass} font-bold`}>{fmtAmt(r.amount)}</td><td className={`${tdClass} ${monoClass}`}>{r.date}</td>
+      </tr>)}
+    </tbody></table>
+    <p className="text-[10px] text-muted-foreground mt-2 text-center">⚠️ بيانات تقريبية — سيتم تحسين الدقة عند إضافة تفاصيل أسطر فواتير الشراء</p></div>
+  );
+
+  const renderInventoryValuation = () => (
+    <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr>
+      <th className={thClass}>الصنف</th><th className={thClass}>الكمية</th><th className={thClass}>متوسط التكلفة</th><th className={thClass}>القيمة</th><th className={thClass}>النسبة</th>
+    </tr></thead><tbody>
+      {data.map((r: any, i) => <tr key={i} className={trClass}>
+        <td className={`${tdClass} font-medium`}>{r.name}</td><td className={`${tdClass} ${monoClass} text-center`}>{r.qty}</td>
+        <td className={`${tdClass} ${monoClass}`}>{fmtAmt(r.cost)}</td><td className={`${tdClass} ${monoClass} font-bold`}>{fmtAmt(r.value)}</td>
+        <td className={`${tdClass} ${monoClass}`}>{r.pct.toFixed(1)}%</td>
+      </tr>)}
+    </tbody><tfoot><tr className={totalRowClass}><td className={tdClass} colSpan={3}>إجمالي قيمة المخزون</td><td className={`${tdClass} ${monoClass} font-bold`}>{fmtAmt(data.reduce((s: number, r: any) => s + r.value, 0))}</td><td /></tr></tfoot></table></div>
+  );
+
+  const renderStockMovement = () => (
+    <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr>
+      <th className={thClass}>التاريخ</th><th className={thClass}>الصنف</th><th className={thClass}>النوع</th><th className={thClass}>الكمية</th><th className={thClass}>المرجع</th>
+    </tr></thead><tbody>
+      {data.map((r: any, i) => <tr key={i} className={trClass}>
+        <td className={`${tdClass} ${monoClass}`}>{r.date}</td><td className={`${tdClass} font-medium`}>{r.product}</td>
+        <td className={tdClass}>{r.type}</td><td className={`${tdClass} ${monoClass} ${r.qty < 0 ? "text-red-500" : "text-green-600"}`}>{r.qty}</td>
+        <td className={`${tdClass} ${monoClass}`}>{r.ref}</td>
+      </tr>)}
+    </tbody></table></div>
+  );
+
+  const renderBelowReorder = () => (
+    <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr>
+      <th className={thClass}>الصنف</th><th className={thClass}>الكمية الحالية</th><th className={thClass}>الحد الأدنى</th><th className={thClass}>النقص</th><th className={thClass}>تكلفة الطلب</th>
+    </tr></thead><tbody>
+      {data.map((r: any, i) => <tr key={i} className={`${trClass} bg-red-50/30`}>
+        <td className={`${tdClass} font-medium`}>{r.name}</td><td className={`${tdClass} ${monoClass} text-center text-red-500 font-bold`}>{r.qty}</td>
+        <td className={`${tdClass} ${monoClass} text-center`}>{r.min}</td><td className={`${tdClass} ${monoClass} text-center text-red-600 font-bold`}>{r.shortage}</td>
+        <td className={`${tdClass} ${monoClass}`}>{fmtAmt(r.reorderCost)}</td>
+      </tr>)}
+    </tbody></table></div>
+  );
+
+  const renderEmployeeDirectory = () => (
+    <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr>
+      <th className={thClass}>الاسم</th><th className={thClass}>القسم</th><th className={thClass}>المسمى</th><th className={thClass}>تاريخ التعيين</th><th className={thClass}>الراتب</th><th className={thClass}>الحالة</th>
+    </tr></thead><tbody>
+      {data.map((r: any, i) => <tr key={i} className={trClass}>
+        <td className={`${tdClass} font-medium`}>{r.full_name}</td><td className={tdClass}>{r.department || "-"}</td>
+        <td className={tdClass}>{r.job_title || "-"}</td><td className={`${tdClass} ${monoClass}`}>{r.hire_date || "-"}</td>
+        <td className={`${tdClass} ${monoClass}`}>{r.salary ? fmtAmt(r.salary) : "-"}</td>
+        <td className={tdClass}><span className={`px-2 py-1 rounded-full text-xs ${r.employment_status === "active" ? "bg-green-50 text-green-600" : "bg-muted text-muted-foreground"}`}>{r.employment_status === "active" ? "نشط" : r.employment_status || "-"}</span></td>
+      </tr>)}
+    </tbody></table></div>
+  );
+
+  const renderAssetRegister = () => (
+    <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr>
+      <th className={thClass}>رقم الأصل</th><th className={thClass}>الاسم</th><th className={thClass}>التكلفة</th><th className={thClass}>مجمع الاستهلاك</th><th className={thClass}>القيمة الدفترية</th><th className={thClass}>الحالة</th>
+    </tr></thead><tbody>
+      {data.map((r: any, i) => <tr key={i} className={trClass}>
+        <td className={`${tdClass} ${monoClass}`}>{r.asset_number}</td><td className={`${tdClass} font-medium`}>{r.name_ar}</td>
+        <td className={`${tdClass} ${monoClass}`}>{fmtAmt(r.acquisition_cost || 0)}</td>
+        <td className={`${tdClass} ${monoClass}`}>{fmtAmt(r.accumulated_depreciation || 0)}</td>
+        <td className={`${tdClass} ${monoClass} font-bold`}>{fmtAmt(r.net_book_value || 0)}</td>
+        <td className={tdClass}>{r.status}</td>
+      </tr>)}
+    </tbody></table></div>
+  );
+
+  const renderDepreciation = () => (
+    <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr>
+      <th className={thClass}>رقم الأصل</th><th className={thClass}>الاسم</th><th className={thClass}>الفترة</th><th className={thClass}>الاستهلاك</th><th className={thClass}>المجمع</th><th className={thClass}>القيمة المتبقية</th>
+    </tr></thead><tbody>
+      {data.map((r: any, i) => <tr key={i} className={trClass}>
+        <td className={`${tdClass} ${monoClass}`}>{r.assetNumber}</td><td className={`${tdClass} font-medium`}>{r.assetName}</td>
+        <td className={`${tdClass} ${monoClass}`}>{r.period}</td><td className={`${tdClass} ${monoClass}`}>{fmtAmt(r.amount)}</td>
+        <td className={`${tdClass} ${monoClass}`}>{fmtAmt(r.accumulated)}</td><td className={`${tdClass} ${monoClass} font-bold`}>{fmtAmt(r.nbv)}</td>
+      </tr>)}
+    </tbody></table></div>
+  );
+
+  const renderFullyDepreciated = () => (
+    <div className="space-y-3">
+      <div className="p-3 rounded-lg bg-yellow-50 border border-yellow-200 text-xs text-yellow-800">⚠️ هذه الأصول يجب مراجعتها للاستبعاد — القيمة الدفترية = صفر</div>
+      <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr>
+        <th className={thClass}>رقم الأصل</th><th className={thClass}>الاسم</th><th className={thClass}>التكلفة الأصلية</th><th className={thClass}>تاريخ الشراء</th><th className={thClass}>الموقع</th>
+      </tr></thead><tbody>
+        {data.map((r: any, i) => <tr key={i} className={trClass}>
+          <td className={`${tdClass} ${monoClass}`}>{r.asset_number}</td><td className={`${tdClass} font-medium`}>{r.name_ar}</td>
+          <td className={`${tdClass} ${monoClass}`}>{fmtAmt(r.acquisition_cost || 0)}</td><td className={`${tdClass} ${monoClass}`}>{r.acquisition_date}</td>
+          <td className={tdClass}>{r.location || "-"}</td>
+        </tr>)}
+      </tbody></table></div>
     </div>
+  );
+
+  const renderAssetDisposal = () => (
+    <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr>
+      <th className={thClass}>الأصل</th><th className={thClass}>التاريخ</th><th className={thClass}>القيمة الدفترية</th><th className={thClass}>سعر البيع</th><th className={thClass}>الربح/الخسارة</th>
+    </tr></thead><tbody>
+      {data.map((r: any, i) => <tr key={i} className={trClass}>
+        <td className={`${tdClass} font-medium`}>{r.assetName} ({r.assetNumber})</td><td className={`${tdClass} ${monoClass}`}>{r.date}</td>
+        <td className={`${tdClass} ${monoClass}`}>{fmtAmt(r.nbv)}</td><td className={`${tdClass} ${monoClass}`}>{fmtAmt(r.proceeds)}</td>
+        <td className={`${tdClass} ${monoClass} font-bold ${r.gainLoss >= 0 ? "text-green-600" : "text-red-500"}`}>{r.gainLoss < 0 ? `(${fmtAmt(r.gainLoss)})` : fmtAmt(r.gainLoss)}</td>
+      </tr>)}
+    </tbody></table></div>
+  );
+
+  const renderAssetsByLocation = () => (
+    <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr>
+      <th className={thClass}>الموقع</th><th className={thClass}>عدد الأصول</th><th className={thClass}>إجمالي التكلفة</th><th className={thClass}>القيمة الدفترية</th>
+    </tr></thead><tbody>
+      {data.map((r: any, i) => <tr key={i} className={trClass}>
+        <td className={`${tdClass} font-medium`}>{r.location}</td><td className={`${tdClass} ${monoClass} text-center`}>{r.count}</td>
+        <td className={`${tdClass} ${monoClass}`}>{fmtAmt(r.cost)}</td><td className={`${tdClass} ${monoClass} font-bold`}>{fmtAmt(r.nbv)}</td>
+      </tr>)}
+    </tbody></table></div>
+  );
+
+  const renderExchangeRates = () => (
+    <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr>
+      <th className={thClass}>التاريخ</th><th className={thClass}>العملة</th><th className={thClass}>شراء</th><th className={thClass}>بيع</th><th className={thClass}>متوسط</th>
+    </tr></thead><tbody>
+      {data.map((r: any, i) => <tr key={i} className={trClass}>
+        <td className={`${tdClass} ${monoClass}`}>{r.date}</td><td className={`${tdClass} font-medium`}>{r.currency} ({r.code})</td>
+        <td className={`${tdClass} ${monoClass}`}>{r.buy?.toFixed(4) || "-"}</td><td className={`${tdClass} ${monoClass}`}>{r.sell?.toFixed(4) || "-"}</td>
+        <td className={`${tdClass} ${monoClass} font-bold`}>{r.mid?.toFixed(4) || "-"}</td>
+      </tr>)}
+    </tbody></table></div>
+  );
+
+  const renderCurrencyTransactions = () => (
+    <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr>
+      <th className={thClass}>التاريخ</th><th className={thClass}>البيان</th><th className={thClass}>المبلغ</th>
+      {reportKey === "exchange-gain-loss" && <th className={thClass}>النوع</th>}
+    </tr></thead><tbody>
+      {data.map((r: any, i) => <tr key={i} className={trClass}>
+        <td className={`${tdClass} ${monoClass}`}>{r.transaction_date || r.date}</td><td className={`${tdClass} text-xs`}>{r.description}</td>
+        <td className={`${tdClass} ${monoClass} font-bold`}>{fmtAmt(r.amount)}</td>
+        {reportKey === "exchange-gain-loss" && <td className={tdClass}><span className={`px-2 py-1 rounded-full text-xs ${r.type === "ربح" ? "bg-green-50 text-green-600" : "bg-red-50 text-red-600"}`}>{r.type}</span></td>}
+      </tr>)}
+    </tbody></table></div>
+  );
+
+  const renderAllOrders = () => (
+    <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr>
+      <th className={thClass}>رقم الطلب</th><th className={thClass}>التاريخ</th><th className={thClass}>العميل</th><th className={thClass}>المبلغ</th><th className={thClass}>الحالة</th>
+    </tr></thead><tbody>
+      {data.map((r: any, i) => {
+        const stateColors: Record<string, string> = { paid: "bg-green-50 text-green-600", cancelled: "bg-red-50 text-red-600", draft: "bg-yellow-50 text-yellow-600" };
+        const stateLabels: Record<string, string> = { paid: "مكتمل", cancelled: "ملغي", draft: "مسودة" };
+        return <tr key={i} className={trClass}>
+          <td className={`${tdClass} ${monoClass}`}>{r.order_number || "-"}</td><td className={`${tdClass} ${monoClass}`}>{r.created_at?.split("T")[0]}</td>
+          <td className={`${tdClass} font-medium`}>{r.customer_name || "-"}</td><td className={`${tdClass} ${monoClass} font-bold`}>{fmtAmt(r.total)}</td>
+          <td className={tdClass}><span className={`px-2 py-1 rounded-full text-xs ${stateColors[r.state] || "bg-muted"}`}>{stateLabels[r.state] || r.state}</span></td>
+        </tr>;
+      })}
+    </tbody></table></div>
+  );
+
+  const renderPOSDailySales = () => (
+    <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr>
+      <th className={thClass}>التاريخ</th><th className={thClass}>الكاشير</th><th className={thClass}>عدد الفواتير</th><th className={thClass}>الإجمالي</th><th className={thClass}>متوسط الفاتورة</th>
+    </tr></thead><tbody>
+      {data.map((r: any, i) => <tr key={i} className={trClass}>
+        <td className={`${tdClass} ${monoClass}`}>{r.date}</td><td className={`${tdClass} font-medium`}>{r.cashier}</td>
+        <td className={`${tdClass} ${monoClass} text-center`}>{r.count}</td><td className={`${tdClass} ${monoClass} font-bold`}>{fmtAmt(r.total)}</td>
+        <td className={`${tdClass} ${monoClass}`}>{r.count > 0 ? fmtAmt(r.total / r.count) : "-"}</td>
+      </tr>)}
+    </tbody><tfoot><tr className={totalRowClass}><td className={tdClass} colSpan={2}>الإجمالي</td><td className={`${tdClass} text-center ${monoClass}`}>{data.reduce((s: number, r: any) => s + r.count, 0)}</td><td className={`${tdClass} ${monoClass} font-bold`}>{fmtAmt(data.reduce((s: number, r: any) => s + r.total, 0))}</td><td /></tr></tfoot></table></div>
+  );
+
+  const renderPOSCashReconciliation = () => (
+    <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr>
+      <th className={thClass}>التاريخ</th><th className={thClass}>الكاشير</th><th className={thClass}>الافتتاحي</th><th className={thClass}>الختامي</th><th className={thClass}>المتوقع</th><th className={thClass}>الفرق</th>
+    </tr></thead><tbody>
+      {data.map((r: any, i) => <tr key={i} className={trClass}>
+        <td className={`${tdClass} ${monoClass}`}>{r.date}</td><td className={`${tdClass} font-medium`}>{r.cashier}</td>
+        <td className={`${tdClass} ${monoClass}`}>{fmtAmt(r.opening)}</td><td className={`${tdClass} ${monoClass}`}>{fmtAmt(r.closing)}</td>
+        <td className={`${tdClass} ${monoClass}`}>{fmtAmt(r.expected)}</td>
+        <td className={`${tdClass} ${monoClass} font-bold ${r.variance === 0 ? "text-green-600" : r.variance > 0 ? "text-yellow-600" : "text-red-600"}`}>
+          {r.variance === 0 ? "متطابق" : r.variance > 0 ? `+${fmtNum(r.variance)}` : fmtNum(r.variance)}
+        </td>
+      </tr>)}
+    </tbody></table></div>
+  );
+
+  const renderPOSCashierPerformance = () => (
+    <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr>
+      <th className={thClass}>الكاشير</th><th className={thClass}>عدد الفواتير</th><th className={thClass}>إجمالي المبيعات</th><th className={thClass}>متوسط الفاتورة</th><th className={thClass}>الملغية</th>
+    </tr></thead><tbody>
+      {data.map((r: any, i) => <tr key={i} className={trClass}>
+        <td className={`${tdClass} font-medium`}>{r.name}</td><td className={`${tdClass} ${monoClass} text-center`}>{r.count}</td>
+        <td className={`${tdClass} ${monoClass} font-bold`}>{fmtAmt(r.total)}</td>
+        <td className={`${tdClass} ${monoClass}`}>{r.count > 0 ? fmtAmt(r.total / r.count) : "-"}</td>
+        <td className={`${tdClass} ${monoClass} ${r.cancelled > 0 ? "text-red-500 font-bold" : ""}`}>{r.cancelled}</td>
+      </tr>)}
+    </tbody></table></div>
+  );
+
+  const renderPOSCancelled = () => (
+    <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr>
+      <th className={thClass}>رقم الطلب</th><th className={thClass}>التاريخ</th><th className={thClass}>العميل</th><th className={thClass}>المبلغ</th><th className={thClass}>السبب</th>
+    </tr></thead><tbody>
+      {data.map((r: any, i) => <tr key={i} className={`${trClass} bg-red-50/20`}>
+        <td className={`${tdClass} ${monoClass}`}>{r.order_number || "-"}</td><td className={`${tdClass} ${monoClass}`}>{r.created_at?.split("T")[0]}</td>
+        <td className={`${tdClass} font-medium`}>{r.customer_name || "-"}</td><td className={`${tdClass} ${monoClass} font-bold`}>{fmtAmt(r.total)}</td>
+        <td className={`${tdClass} text-xs text-red-600`}>{r.return_reason || "-"}</td>
+      </tr>)}
+    </tbody></table></div>
+  );
+
+  const renderPOSPeakHours = () => (
+    <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr>
+      <th className={thClass}>الساعة</th><th className={thClass}>اليوم</th><th className={thClass}>عدد الطلبات</th><th className={thClass}>الإجمالي</th>
+    </tr></thead><tbody>
+      {data.map((r: any, i) => <tr key={i} className={trClass}>
+        <td className={`${tdClass} ${monoClass}`}>{r.hour}:00</td><td className={`${tdClass}`}>{r.dayName}</td>
+        <td className={`${tdClass} ${monoClass} text-center`}>{r.count}</td><td className={`${tdClass} ${monoClass} font-bold`}>{fmtAmt(r.total)}</td>
+      </tr>)}
+    </tbody></table></div>
   );
 
   const renderGenericTable = () => (
-    <div className="text-center py-16 text-muted-foreground text-sm">
-      <p>تم تسجيل {data.length} حركة للفترة المحددة</p>
-    </div>
+    <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr>
+      <th className={thClass}>التاريخ</th><th className={thClass}>البيان</th><th className={thClass}>مدين</th><th className={thClass}>دائن</th><th className={thClass}>المبلغ</th>
+    </tr></thead><tbody>
+      {data.map((r: any, i) => <tr key={i} className={trClass}>
+        <td className={`${tdClass} ${monoClass}`}>{r.transaction_date}</td><td className={`${tdClass} text-xs`}>{r.description}</td>
+        <td className={`${tdClass} ${monoClass}`}>{r.debit_account_code}</td><td className={`${tdClass} ${monoClass}`}>{r.credit_account_code}</td>
+        <td className={`${tdClass} ${monoClass} font-bold`}>{fmtAmt(r.amount || 0)}</td>
+      </tr>)}
+    </tbody></table></div>
   );
 
+  // ═══════════════════════════════════
+  // MAIN LAYOUT
+  // ═══════════════════════════════════
   return (
-    <div className="space-y-5 max-w-[1200px] mx-auto pb-10" dir="rtl">
+    <div className="space-y-4 max-w-[1200px] mx-auto pb-10" dir="rtl">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <button onClick={() => navigate("/reports")} className="p-2 rounded-xl hover:bg-muted transition-colors">
-          <ArrowRight className="h-5 w-5 text-foreground" />
-        </button>
-        <div>
-          <h1 className="text-lg font-bold text-foreground">{config.title}</h1>
-          <p className="text-xs text-muted-foreground">{config.description}</p>
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div className="flex items-center gap-3">
+          <button onClick={() => navigate("/reports")} className="p-2 rounded-xl hover:bg-muted transition-colors">
+            <ArrowRight className="h-5 w-5 text-foreground" />
+          </button>
+          <div>
+            <h1 className="text-lg font-bold text-foreground">{config.title}</h1>
+            <p className="text-xs text-muted-foreground">{config.description}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={exportExcel} className="gap-1.5 text-xs">
+            <FileSpreadsheet className="h-3.5 w-3.5" />Excel
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => window.print()} className="gap-1.5 text-xs">
+            <Printer className="h-3.5 w-3.5" />طباعة
+          </Button>
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-wrap gap-3 items-center">
+      {/* Date filters */}
+      <Card className="p-3 flex flex-wrap items-center gap-3 border-border/50">
         <div className="flex items-center gap-2">
           <CalendarDays className="h-4 w-4 text-muted-foreground" />
-          <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="h-9 w-36 text-xs" />
+          <span className="text-xs text-muted-foreground">من</span>
+          <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="h-8 w-36 text-xs" />
           <span className="text-xs text-muted-foreground">إلى</span>
-          <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="h-9 w-36 text-xs" />
+          <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="h-8 w-36 text-xs" />
         </div>
-        <Button variant="outline" size="sm" onClick={() => window.print()} className="h-9 gap-1.5">
-          <Printer className="h-3.5 w-3.5" />
-          طباعة
-        </Button>
-      </div>
+        <Button variant="outline" size="sm" onClick={loadReport} className="text-xs h-8">تحديث</Button>
+      </Card>
 
       {/* Content */}
-      <Card className="border-border/60 overflow-hidden">
+      <Card className="overflow-hidden border-border/50">
         {renderContent()}
       </Card>
     </div>
