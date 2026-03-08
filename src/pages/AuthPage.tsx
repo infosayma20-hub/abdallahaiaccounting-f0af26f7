@@ -167,61 +167,12 @@ const AuthPage = () => {
           <p className="text-2xl font-bold text-primary" style={{ fontFamily: "'Tajawal', sans-serif" }}>
             زِدني
           </p>
-
-          {/* Premium Sponsor Block */}
-          <div className="flex flex-col items-center gap-2 pt-2 w-full" dir="rtl">
-            {/* Top rule */}
-            <div className="flex items-center gap-2 w-3/5">
-              <div className="flex-1 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(201,168,76,0.5), transparent)' }} />
-              <span className="text-[7px]" style={{ color: '#C9A84C', opacity: 0.7 }}>◆</span>
-              <div className="flex-1 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(201,168,76,0.5), transparent)' }} />
-            </div>
-
-            <p className="text-[10px] text-muted-foreground tracking-widest" style={{ fontFamily: "'Tajawal', sans-serif", fontWeight: 300 }}>
-              مُقَدَّم من
-            </p>
-
-            {/* Dark card — compact */}
-            <div
-              className="relative inline-block rounded-lg overflow-hidden text-center"
-              style={{
-                background: 'linear-gradient(135deg, #0A2342 0%, #071828 60%, #0A2342 100%)',
-                padding: '10px 16px',
-                border: '1px solid rgba(201,168,76,0.35)',
-                boxShadow: '0 0 0 1px rgba(201,168,76,0.1), 0 4px 16px rgba(10,35,66,0.3), inset 0 1px 0 rgba(201,168,76,0.15)',
-              }}
-            >
-              <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse 80% 60% at 50% 0%, rgba(201,168,76,0.06), transparent 70%)' }} />
-              <div className="absolute top-1 right-1 w-2 h-2" style={{ borderColor: 'rgba(201,168,76,0.5)', borderStyle: 'solid', borderWidth: '1px 1px 0 0' }} />
-              <div className="absolute top-1 left-1 w-2 h-2" style={{ borderColor: 'rgba(201,168,76,0.5)', borderStyle: 'solid', borderWidth: '1px 0 0 1px' }} />
-              <div className="absolute bottom-1 right-1 w-2 h-2" style={{ borderColor: 'rgba(201,168,76,0.5)', borderStyle: 'solid', borderWidth: '0 1px 1px 0' }} />
-              <div className="absolute bottom-1 left-1 w-2 h-2" style={{ borderColor: 'rgba(201,168,76,0.5)', borderStyle: 'solid', borderWidth: '0 0 1px 1px' }} />
-
-              <p
-                className="relative text-[16px] leading-snug m-0"
-                dir="rtl"
-                style={{
-                  fontFamily: "'Scheherazade New', 'Noto Naskh Arabic', 'Traditional Arabic', serif",
-                  fontWeight: 700,
-                  background: 'linear-gradient(180deg, #E8D5A3 0%, #C9A84C 40%, #9A7B2E 100%)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  backgroundClip: 'text',
-                  filter: 'drop-shadow(0 1px 4px rgba(201,168,76,0.3))',
-                }}
-              >
-                مجموعة سلام صايمة وأولاده
-              </p>
-            </div>
-
-            {/* Bottom rule */}
-            <div className="flex items-center gap-2 w-3/5">
-              <div className="flex-1 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(201,168,76,0.5), transparent)' }} />
-              <span className="text-[7px]" style={{ color: '#C9A84C', opacity: 0.7 }}>◆</span>
-              <div className="flex-1 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(201,168,76,0.5), transparent)' }} />
-            </div>
+          <div className="flex items-center justify-center gap-2 pt-1">
+            <div className="h-px w-8 bg-border" />
+            <span className="text-xs text-muted-foreground whitespace-nowrap">مُقَدَّم من</span>
+            <div className="h-px w-8 bg-border" />
           </div>
-
+          <p className="text-sm font-semibold text-foreground/80">مجموعة سلام صايمة وأولاده</p>
           {mode === "forgot" && (
             <p className="text-sm text-muted-foreground">{titles[mode].sub}</p>
           )}
