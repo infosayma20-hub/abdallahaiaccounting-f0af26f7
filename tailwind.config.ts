@@ -88,6 +88,16 @@ export default {
           dark: "hsl(var(--zidni-teal-dark))",
         },
         "icon-bg": "hsl(var(--icon-bg))",
+        haseeb: {
+          navy: "#0A2342",
+          "navy-dark": "#050F1E",
+          teal: "#00B4D8",
+          "teal-dark": "#006D8F",
+          gold: "#C9A84C",
+          "gold-light": "#E8D5A3",
+          slate: "#F4F7FA",
+          gray: "#8B9BB4",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
