@@ -519,19 +519,46 @@ const ImportWizardPage = () => {
 
       // Post journal entries
       if (post && totalLocal > 0) {
+        const txDate = invoiceDate || new Date().toISOString().split("T")[0];
+        const refBase = `IMP-${shipment.id.slice(0, 8)}`;
+
+        // 1. Goods value entry: Debit Inventory, Credit Supplier
         await supabase.from("transactions").insert({
           user_id: user.id,
-          transaction_date: invoiceDate || new Date().toISOString().split("T")[0],
+          transaction_date: txDate,
           description: `استيراد بضاعة - ${shipmentName || shipment.id}`,
           debit_account_code: "1140",
-          credit_account_code: "2100",
-          amount: totalLanded,
+          credit_account_code: "2110",
+          amount: totalLocal,
           currency: "شيكل",
           transaction_type: "purchase_credit",
           contact_id: supplierId || null,
-          reference: `IMP-${shipment.id.slice(0, 8)}`,
-          idempotency_key: `IMP-${shipment.id}`,
+          reference: refBase,
+          idempotency_key: `IMP-GOODS-${shipment.id}`,
         });
+
+        // 2. Separate entry for each cost
+        for (const cost of costs) {
+          if (!cost.amount_local || cost.amount_local <= 0) continue;
+          const ct = costTypes.find(c => c.type === cost.cost_type);
+          const debitCode = ct?.accountCode || "5290";
+          const isCapitalized = ct?.capitalize !== false;
+          // Bank fees/interest: credit Bank; Others: credit Payables
+          const creditCode = (cost.cost_type === "bank_fees" || cost.cost_type === "interest") ? "1120" : "2110";
+          
+          await supabase.from("transactions").insert({
+            user_id: user.id,
+            transaction_date: txDate,
+            description: `${cost.cost_name_ar || ct?.label || "تكاليف"} - ${shipmentName || shipment.id}`,
+            debit_account_code: debitCode,
+            credit_account_code: creditCode,
+            amount: cost.amount_local,
+            currency: "شيكل",
+            transaction_type: isCapitalized ? "import_cost" : "expense",
+            reference: `${refBase}-${cost.cost_type}`,
+            idempotency_key: `IMP-COST-${shipment.id}-${cost.id}`,
+          });
+        }
       }
 
       toast.success(post ? "تم ترحيل الشحنة بنجاح" : "تم حفظ الشحنة");
