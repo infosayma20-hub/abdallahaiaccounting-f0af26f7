@@ -148,8 +148,7 @@ const ImportWizardPage = () => {
       if (typeof value === "number") return Number.isFinite(value) ? value : fallback;
       const cleaned = String(value ?? "")
         .replace(/[,\s]/g, "")
-        .replace(/[^
-\d.-]/g, "");
+        .replace(/[^\d.-]/g, "");
       const parsed = parseFloat(cleaned);
       return Number.isFinite(parsed) ? parsed : fallback;
     };
