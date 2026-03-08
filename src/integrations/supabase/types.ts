@@ -2559,6 +2559,296 @@ export type Database = {
           },
         ]
       }
+      import_cost_distribution: {
+        Row: {
+          allocated_amount: number | null
+          allocation_basis: number | null
+          cost_id: string | null
+          created_at: string | null
+          id: string
+          item_id: string | null
+          shipment_id: string
+        }
+        Insert: {
+          allocated_amount?: number | null
+          allocation_basis?: number | null
+          cost_id?: string | null
+          created_at?: string | null
+          id?: string
+          item_id?: string | null
+          shipment_id: string
+        }
+        Update: {
+          allocated_amount?: number | null
+          allocation_basis?: number | null
+          cost_id?: string | null
+          created_at?: string | null
+          id?: string
+          item_id?: string | null
+          shipment_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "import_cost_distribution_cost_id_fkey"
+            columns: ["cost_id"]
+            isOneToOne: false
+            referencedRelation: "import_costs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "import_cost_distribution_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "import_shipment_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "import_cost_distribution_shipment_id_fkey"
+            columns: ["shipment_id"]
+            isOneToOne: false
+            referencedRelation: "import_shipments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      import_costs: {
+        Row: {
+          account_code: string | null
+          amount: number | null
+          amount_local: number | null
+          cost_name_ar: string
+          cost_type: string
+          currency_id: string | null
+          distribution_method: string | null
+          exchange_rate: number | null
+          id: string
+          notes: string | null
+          receipt_url: string | null
+          shipment_id: string
+          supplier_id: string | null
+        }
+        Insert: {
+          account_code?: string | null
+          amount?: number | null
+          amount_local?: number | null
+          cost_name_ar: string
+          cost_type: string
+          currency_id?: string | null
+          distribution_method?: string | null
+          exchange_rate?: number | null
+          id?: string
+          notes?: string | null
+          receipt_url?: string | null
+          shipment_id: string
+          supplier_id?: string | null
+        }
+        Update: {
+          account_code?: string | null
+          amount?: number | null
+          amount_local?: number | null
+          cost_name_ar?: string
+          cost_type?: string
+          currency_id?: string | null
+          distribution_method?: string | null
+          exchange_rate?: number | null
+          id?: string
+          notes?: string | null
+          receipt_url?: string | null
+          shipment_id?: string
+          supplier_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "import_costs_currency_id_fkey"
+            columns: ["currency_id"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "import_costs_shipment_id_fkey"
+            columns: ["shipment_id"]
+            isOneToOne: false
+            referencedRelation: "import_shipments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "import_costs_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      import_shipment_items: {
+        Row: {
+          allocated_customs: number | null
+          allocated_other_costs: number | null
+          allocated_shipping: number | null
+          cbm_per_unit: number | null
+          color: string | null
+          description_ar: string | null
+          description_en: string | null
+          id: string
+          item_image_url: string | null
+          landed_cost_per_unit: number | null
+          landed_cost_total: number | null
+          line_number: number | null
+          model_code: string | null
+          product_id: string | null
+          quantity: number | null
+          shipment_id: string
+          size_mm: string | null
+          total_allocated_costs: number | null
+          total_cbm: number | null
+          total_price_foreign: number | null
+          total_price_local: number | null
+          unit_price_foreign: number | null
+        }
+        Insert: {
+          allocated_customs?: number | null
+          allocated_other_costs?: number | null
+          allocated_shipping?: number | null
+          cbm_per_unit?: number | null
+          color?: string | null
+          description_ar?: string | null
+          description_en?: string | null
+          id?: string
+          item_image_url?: string | null
+          landed_cost_per_unit?: number | null
+          landed_cost_total?: number | null
+          line_number?: number | null
+          model_code?: string | null
+          product_id?: string | null
+          quantity?: number | null
+          shipment_id: string
+          size_mm?: string | null
+          total_allocated_costs?: number | null
+          total_cbm?: number | null
+          total_price_foreign?: number | null
+          total_price_local?: number | null
+          unit_price_foreign?: number | null
+        }
+        Update: {
+          allocated_customs?: number | null
+          allocated_other_costs?: number | null
+          allocated_shipping?: number | null
+          cbm_per_unit?: number | null
+          color?: string | null
+          description_ar?: string | null
+          description_en?: string | null
+          id?: string
+          item_image_url?: string | null
+          landed_cost_per_unit?: number | null
+          landed_cost_total?: number | null
+          line_number?: number | null
+          model_code?: string | null
+          product_id?: string | null
+          quantity?: number | null
+          shipment_id?: string
+          size_mm?: string | null
+          total_allocated_costs?: number | null
+          total_cbm?: number | null
+          total_price_foreign?: number | null
+          total_price_local?: number | null
+          unit_price_foreign?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "import_shipment_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "import_shipment_items_shipment_id_fkey"
+            columns: ["shipment_id"]
+            isOneToOne: false
+            referencedRelation: "import_shipments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      import_shipments: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          currency_id: string | null
+          exchange_rate: number | null
+          id: string
+          invoice_date: string | null
+          notes: string | null
+          posted_at: string | null
+          shipment_name: string | null
+          shipment_number: string
+          status: string
+          supplier_id: string | null
+          supplier_invoice_number: string | null
+          total_import_costs: number | null
+          total_items_cost_foreign: number | null
+          total_items_cost_local: number | null
+          total_landed_cost: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          currency_id?: string | null
+          exchange_rate?: number | null
+          id?: string
+          invoice_date?: string | null
+          notes?: string | null
+          posted_at?: string | null
+          shipment_name?: string | null
+          shipment_number: string
+          status?: string
+          supplier_id?: string | null
+          supplier_invoice_number?: string | null
+          total_import_costs?: number | null
+          total_items_cost_foreign?: number | null
+          total_items_cost_local?: number | null
+          total_landed_cost?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          currency_id?: string | null
+          exchange_rate?: number | null
+          id?: string
+          invoice_date?: string | null
+          notes?: string | null
+          posted_at?: string | null
+          shipment_name?: string | null
+          shipment_number?: string
+          status?: string
+          supplier_id?: string | null
+          supplier_invoice_number?: string | null
+          total_import_costs?: number | null
+          total_items_cost_foreign?: number | null
+          total_items_cost_local?: number | null
+          total_landed_cost?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "import_shipments_currency_id_fkey"
+            columns: ["currency_id"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "import_shipments_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoice_receipt_matching: {
         Row: {
           created_at: string
