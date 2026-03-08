@@ -81,7 +81,7 @@ const BalanceSheetPage = () => {
   }, [transactions]);
 
   // Build hierarchical trees for each section
-  const { assetTree, liabilityTree, equityTree, totalAssets, totalLiabilities, totalEquity } = useMemo(() => {
+  const { assetTree, liabilityTree, equityTree, totalAssets, totalLiabilities, totalEquity, netProfit } = useMemo(() => {
     const isAsset = (a: SupabaseAccount) => normalizeAccountType(a.account_type || "") === "Asset";
     const isLiability = (a: SupabaseAccount) => normalizeAccountType(a.account_type || "") === "Liability";
     const isEquity = (a: SupabaseAccount) => normalizeAccountType(a.account_type || "") === "Equity";
@@ -92,9 +92,21 @@ const BalanceSheetPage = () => {
 
     const totalAssets = assetTree.reduce((s, n) => s + n.balance, 0);
     const totalLiabilities = liabilityTree.reduce((s, n) => s + Math.abs(n.balance), 0);
-    const totalEquity = equityTree.reduce((s, n) => s + Math.abs(n.balance), 0);
+    const totalEquityAccounts = equityTree.reduce((s, n) => s + Math.abs(n.balance), 0);
 
-    return { assetTree, liabilityTree, equityTree, totalAssets: Math.abs(totalAssets), totalLiabilities, totalEquity };
+    // Compute net profit: Revenue (credit balances, negative in our system) - Purchases/Expenses (debit balances, positive)
+    let totalRevenue = 0;
+    let totalPurchasesExpenses = 0;
+    accounts.forEach(a => {
+      const type = normalizeAccountType(a.account_type || "");
+      const bal = accountBalances[a.account_code] || 0;
+      if (type === "Revenue") totalRevenue += Math.abs(bal); // credit balances are negative
+      if (type === "Purchases" || type === "Expenses") totalPurchasesExpenses += bal; // debit balances are positive
+    });
+    const netProfit = totalRevenue - totalPurchasesExpenses;
+    const totalEquity = totalEquityAccounts + netProfit;
+
+    return { assetTree, liabilityTree, equityTree, totalAssets: Math.abs(totalAssets), totalLiabilities, totalEquity, netProfit };
   }, [accounts, accountBalances]);
 
   const periodLabel = new Date().toLocaleDateString("ar-EG", { year: "numeric", month: "long", day: "numeric" });
@@ -295,7 +307,23 @@ const BalanceSheetPage = () => {
           {/* Sections */}
           {renderHierarchicalSection("الأصول", assetLines, totalAssets, "text-primary")}
           {renderHierarchicalSection("الالتزامات", liabLines, totalLiabilities, "text-destructive")}
-          {renderHierarchicalSection("حقوق الملكية", eqLines, totalEquity, "text-warning")}
+          
+          {/* Equity section with net profit */}
+          <div className="space-y-1">
+            {renderHierarchicalSection("حقوق الملكية", eqLines, totalEquity, "text-warning")}
+            {netProfit !== 0 && (
+              <div className="rounded-xl border border-border/50 overflow-hidden mx-1">
+                <div className="flex items-center justify-between px-4 py-2.5 bg-emerald-50 dark:bg-emerald-500/10 text-xs">
+                  <span className="font-medium text-emerald-700 dark:text-emerald-400">
+                    {netProfit >= 0 ? "📊 صافي ربح الفترة الحالية" : "📊 صافي خسارة الفترة الحالية"}
+                  </span>
+                  <span className={`font-mono font-bold ${netProfit >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`}>
+                    ₪{Math.abs(netProfit).toLocaleString()}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* Final equation */}
           <div className="rounded-xl border-2 border-primary/20 bg-primary/5 p-4 text-center space-y-1">

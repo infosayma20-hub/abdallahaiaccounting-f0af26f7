@@ -242,21 +242,23 @@ const HomeDashboard = () => {
 
   const plTx = transactions.filter(tx => !tx.is_opening_balance && tx.transaction_type !== "رصيد ابتدائي");
 
-  // Simplified P&L using account code prefixes (4xxx=Revenue, 5xxx=Expenses)
-  const sales = plTx.filter(tx => tx.credit_account_code?.startsWith("4") && !txMatch(tx, ["مردود", "خصم"]))
+  // Simplified P&L using account code prefixes (4xxx=Revenue, 51xx-52xx=Purchases/COGS, 53xx+=Expenses)
+  const sales = plTx.filter(tx => tx.credit_account_code?.startsWith("4") && !["4400","4500"].includes(tx.credit_account_code || ""))
     .reduce((s, tx) => s + (tx.amount || 0), 0);
   const salesDiscounts = plTx.filter(tx => txMatch(tx, ["خصم مسموح", "خصم مبيعات"]))
     .reduce((s, tx) => s + (tx.amount || 0), 0);
-  const salesReturns = plTx.filter(tx => txMatch(tx, ["مردود مبيعات", "مرتجع مبيعات"]))
+  const salesReturns = plTx.filter(tx => tx.debit_account_code === "4400")
     .reduce((s, tx) => s + (tx.amount || 0), 0);
-  const purchases = plTx.filter(tx => txMatch(tx, ["مشتريات", "شراء", "بضاعة"]) || tx.transaction_type === "فاتورة مشتريات")
+  const purchases = plTx.filter(tx => tx.debit_account_code?.startsWith("51") || tx.debit_account_code?.startsWith("52"))
     .reduce((s, tx) => s + (tx.amount || 0), 0);
-  const purchaseDiscounts = plTx.filter(tx => txMatch(tx, ["خصم مكتسب", "خصم مشتريات"]))
+  const purchaseDiscounts = plTx.filter(tx => tx.credit_account_code === "4350")
     .reduce((s, tx) => s + (tx.amount || 0), 0);
-  const purchaseReturns = plTx.filter(tx => txMatch(tx, ["مردود مشتريات", "مرتجع مشتريات"]))
+  const purchaseReturns = plTx.filter(tx => tx.credit_account_code === "4500")
     .reduce((s, tx) => s + (tx.amount || 0), 0);
-  const generalExpenses = plTx.filter(tx => tx.debit_account_code?.startsWith("5") && !txMatch(tx, ["مشتريات", "شراء", "بضاعة", "مردود", "خصم"]))
-    .reduce((s, tx) => s + (tx.amount || 0), 0);
+  const generalExpenses = plTx.filter(tx => {
+    const code = tx.debit_account_code || "";
+    return (code.startsWith("5") && !code.startsWith("51") && !code.startsWith("52")) || code.startsWith("6");
+  }).reduce((s, tx) => s + (tx.amount || 0), 0);
 
   const netProfit = sales - salesDiscounts - salesReturns - purchases + purchaseDiscounts + purchaseReturns - generalExpenses;
   const revenue = sales - salesDiscounts - salesReturns;

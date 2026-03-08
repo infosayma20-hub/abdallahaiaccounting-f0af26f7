@@ -30,7 +30,8 @@ const ACCOUNT_TYPE_ORDER: Record<string, number> = {
   "Liability": 2, "التزامات": 2, "التزام": 2, "خصوم": 2,
   "Owner's Equity": 3, "Equity": 3, "حقوق ملكية": 3, "حقوق الملكية": 3, "رأس مال": 3,
   "Revenue": 4, "إيرادات": 4, "إيراد": 4, "دخل": 4,
-  "Expenses": 5, "مصروفات": 5, "مصروف": 5, "المصروفات": 5,
+  "Purchases": 5, "مشتريات": 5,
+  "Expenses": 6, "مصروفات": 6, "مصروف": 6, "المصروفات": 6, "مصاريف": 6,
 };
 
 const ACCOUNT_TYPE_LABELS: Record<string, string> = {
@@ -38,12 +39,14 @@ const ACCOUNT_TYPE_LABELS: Record<string, string> = {
   "Liabilities": "الالتزامات", "Liability": "الالتزامات",
   "Owner's Equity": "حقوق الملكية", "Equity": "حقوق الملكية",
   "Revenue": "الإيرادات",
+  "Purchases": "المشتريات",
   "Expenses": "المصروفات",
   "أصول": "الأصول", "أصل": "الأصول",
   "التزامات": "الالتزامات", "التزام": "الالتزامات", "خصوم": "الالتزامات",
   "حقوق ملكية": "حقوق الملكية", "حقوق الملكية": "حقوق الملكية", "رأس مال": "حقوق الملكية",
   "إيرادات": "الإيرادات", "إيراد": "الإيرادات", "دخل": "الإيرادات",
-  "مصروفات": "المصروفات", "مصروف": "المصروفات", "المصروفات": "المصروفات",
+  "مشتريات": "المشتريات",
+  "مصروفات": "المصروفات", "مصروف": "المصروفات", "المصروفات": "المصروفات", "مصاريف": "المصروفات",
 };
 
 const ACCOUNT_TYPE_COLORS: Record<string, string> = {
@@ -51,6 +54,7 @@ const ACCOUNT_TYPE_COLORS: Record<string, string> = {
   "الالتزامات": "bg-orange-500/10 text-orange-600 dark:text-orange-400",
   "حقوق الملكية": "bg-purple-500/10 text-purple-600 dark:text-purple-400",
   "الإيرادات": "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+  "المشتريات": "bg-amber-500/10 text-amber-600 dark:text-amber-400",
   "المصروفات": "bg-red-500/10 text-red-600 dark:text-red-400",
 };
 
