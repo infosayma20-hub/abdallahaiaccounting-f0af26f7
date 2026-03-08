@@ -150,22 +150,32 @@ const AuthPage = () => {
   };
 
   // Dynamic titles per mode
-  const titles: Record<Mode, { heading: string; sub: string }> = {
-    login: { heading: "عبدالله AI للمحاسبة", sub: "حوّل كلامك إلى قيود محاسبية فوراً" },
-    signup: { heading: "أنشئ حسابك خلال 10 ثواني", sub: "ابدأ باستخدام المحاسبة الذكية فوراً" },
-    forgot: { heading: "استعادة كلمة المرور", sub: "أدخل بريدك الإلكتروني وسنرسل لك رابط الاستعادة" },
+  const titles: Record<Mode, { sub: string }> = {
+    login: { sub: "" },
+    signup: { sub: "" },
+    forgot: { sub: "أدخل بريدك الإلكتروني وسنرسل لك رابط الاستعادة" },
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 bg-background" dir="rtl">
       <div className="w-full max-w-sm space-y-6">
         {/* Logo & Branding */}
-        <div className="text-center space-y-2">
-          <div className="mx-auto rounded-2xl bg-primary/10 flex items-center justify-center mb-3" style={{ width: 72, height: 72 }}>
-            <span className="text-3xl font-bold text-primary">ع</span>
+        <div className="text-center space-y-3">
+          <h1 className="text-5xl font-extrabold tracking-tight text-foreground" style={{ fontFamily: "'Barlow', sans-serif", letterSpacing: '-1px' }}>
+            ZIDNI
+          </h1>
+          <p className="text-2xl font-bold text-primary" style={{ fontFamily: "'Tajawal', sans-serif" }}>
+            زِدني
+          </p>
+          <div className="flex items-center justify-center gap-2 pt-1">
+            <div className="h-px w-8 bg-border" />
+            <span className="text-xs text-muted-foreground whitespace-nowrap">مُقَدَّم من</span>
+            <div className="h-px w-8 bg-border" />
           </div>
-          <h1 className="text-2xl font-bold text-foreground">{titles[mode].heading}</h1>
-          <p className="text-sm text-muted-foreground">{titles[mode].sub}</p>
+          <p className="text-sm font-semibold text-foreground/80">مجموعة سلام صايمة وأولاده</p>
+          {mode === "forgot" && (
+            <p className="text-sm text-muted-foreground">{titles[mode].sub}</p>
+          )}
         </div>
 
         {/* Biometric (returning users only) */}
