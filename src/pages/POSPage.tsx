@@ -250,8 +250,8 @@ const POSPage = () => {
   });
 
   // Employee account payment
-  const [employees, setEmployees] = useState<{ id: string; full_name: string; base_salary: number }[]>([]);
-  const [selectedEmployee, setSelectedEmployee] = useState<{ id: string; full_name: string } | null>(null);
+  const [employees, setEmployees] = useState<{ id: string; full_name: string; base_salary: number; account_code?: string }[]>([]);
+  const [selectedEmployee, setSelectedEmployee] = useState<{ id: string; full_name: string; account_code?: string } | null>(null);
   const [employeeSearch, setEmployeeSearch] = useState("");
   const [showEmployeeDropdown, setShowEmployeeDropdown] = useState(false);
   const [employeeBalance, setEmployeeBalance] = useState(0);
@@ -792,13 +792,24 @@ const POSPage = () => {
 
    const loadEmployees = async () => {
     if (!dataOwnerId) return;
-    const { data } = await supabase
+    const { data: empData } = await supabase
       .from("employees")
       .select("id, full_name, base_salary")
       .eq("user_id", dataOwnerId)
       .eq("is_active", true)
       .order("full_name");
-    setEmployees(data || []);
+    // Resolve each employee's linked account code
+    const { data: accData } = await supabase
+      .from("accounts")
+      .select("account_code, account_name")
+      .eq("user_id", dataOwnerId)
+      .like("account_code", "118%")
+      .eq("is_active", true);
+    const emps = (empData || []).map(emp => {
+      const linked = (accData || []).find(a => a.account_name === `ذمم موظف - ${emp.full_name}`);
+      return { ...emp, account_code: linked?.account_code || undefined };
+    });
+    setEmployees(emps);
   };
 
   const filteredEmployees = useMemo(() => {
@@ -1438,6 +1449,9 @@ const POSPage = () => {
           exchange_rate: rate,
           foreign_amount: foreignTotal,
           rate_source: rateEdited ? "cashier" : "system",
+          ...(paymentMethod === "employee_account" && selectedEmployee?.account_code
+            ? { employee_account_code: selectedEmployee.account_code }
+            : {}),
         }],
       });
 
@@ -3020,7 +3034,7 @@ const POSPage = () => {
                       <button
                         key={emp.id}
                         onClick={() => {
-                          setSelectedEmployee({ id: emp.id, full_name: emp.full_name });
+                          setSelectedEmployee({ id: emp.id, full_name: emp.full_name, account_code: emp.account_code });
                           setEmployeeSearch("");
                           setShowEmployeeDropdown(false);
                           loadEmployeeBalance(emp.id);

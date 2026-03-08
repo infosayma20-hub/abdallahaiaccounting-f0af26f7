@@ -6001,7 +6001,7 @@ export type Database = {
       }
       cleanup_expired_webauthn_challenges: { Args: never; Returns: undefined }
       complete_pos_order: {
-        Args: { p_order_id: string; p_payments?: Json; p_user_id: string }
+        Args: { p_order_id: string; p_payments: Json; p_user_id: string }
         Returns: Json
       }
       create_invoice_with_entry: {
