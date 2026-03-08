@@ -7,6 +7,8 @@ import BackButton from "@/components/BackButton";
 import { Badge } from "@/components/ui/badge";
 import MentionInput, { MentionItem } from "@/components/MentionInput";
 import SmartDailySummary from "@/components/SmartDailySummary";
+import FinancialRadar from "@/components/FinancialRadar";
+import CFODashboard from "@/components/CFODashboard";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
