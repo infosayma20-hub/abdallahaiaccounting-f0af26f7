@@ -18,6 +18,7 @@ import ChequeDetailsDialog, { ChequeLineItem } from "@/components/ChequeDetailsD
 import JournalEntryPopup from "@/components/JournalEntryPopup";
 import SavedCommands from "@/components/SavedCommands";
 import SmartMemory from "@/components/SmartMemory";
+import FinancialPredictions from "@/components/FinancialPredictions";
 
 interface SummaryStats {
   sales: number;
