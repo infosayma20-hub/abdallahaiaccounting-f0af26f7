@@ -1849,6 +1849,38 @@ const POSPage = () => {
                 <span className="text-white/40">{session.total_orders} طلب</span>
               </>
             )}
+
+            {/* Invoice History Button */}
+            <button
+              onClick={() => setShowInvoiceHistory(true)}
+              className="flex items-center gap-1.5 h-9 px-3.5 rounded-lg text-xs font-medium transition-all"
+              style={{
+                fontFamily: "Tajawal, sans-serif",
+                fontWeight: 500,
+                fontSize: 13,
+                background: "transparent",
+                border: "1px solid rgba(255,255,255,0.2)",
+                color: "white",
+              }}
+            >
+              <FileText className="h-3.5 w-3.5" />
+              سجل الفواتير
+              {session && (
+                <span
+                  className="rounded-full px-1.5 py-px"
+                  style={{
+                    background: "#C9A84C",
+                    color: "#0A2342",
+                    fontFamily: "JetBrains Mono, monospace",
+                    fontWeight: 600,
+                    fontSize: 11,
+                    marginRight: 4,
+                  }}
+                >
+                  {session.total_orders}
+                </span>
+              )}
+            </button>
           </div>
         )}
 
