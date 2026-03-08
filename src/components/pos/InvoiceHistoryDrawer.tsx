@@ -154,13 +154,22 @@ export default function InvoiceHistoryDrawer({
     if (!dataOwnerId || !open) return;
     setLoading(true);
     try {
-      const baseQuery = supabase
+      let query = supabase
         .from("pos_orders")
         .select("id, order_number, created_at, total, subtotal, discount_amount, tax_amount, state, customer_name, customer_id, session_id, is_return, recall_status, recall_reason, recalled_by, recalled_approved_by, recalled_at, cancelled_at, cancel_reason, paid_at")
         .eq("user_id", dataOwnerId);
-      let query = baseQuery
-        .gte("created_at", dateFrom.toISOString())
-        .lte("created_at", dateTo.toISOString())
+
+      // Show only current session's invoices
+      if (sessionId) {
+        query = query.eq("session_id", sessionId);
+      } else {
+        // No active session — show nothing
+        setOrders([]);
+        setLoading(false);
+        return;
+      }
+
+      query = query
         .order("created_at", { ascending: false })
         .limit(200) as any;
 
@@ -180,7 +189,7 @@ export default function InvoiceHistoryDrawer({
     } finally {
       setLoading(false);
     }
-  }, [dataOwnerId, open, dateFrom, dateTo, statusFilter]);
+  }, [dataOwnerId, open, sessionId, statusFilter]);
 
   useEffect(() => { fetchOrders(); }, [fetchOrders]);
 
@@ -484,28 +493,11 @@ export default function InvoiceHistoryDrawer({
           </button>
         </div>
 
-        {/* Date filters */}
+        {/* Filters */}
         <div className="px-5 py-3 border-b space-y-2.5" style={{ borderColor: "#E2E8F0" }}>
-          <div className="flex flex-wrap gap-1.5">
-            {([
-              { key: "today", label: "اليوم" },
-              { key: "yesterday", label: "أمس" },
-              { key: "week", label: "آخر 7 أيام" },
-              { key: "month", label: "هذا الشهر" },
-            ] as { key: DateFilter; label: string }[]).map(f => (
-              <button
-                key={f.key}
-                onClick={() => setDateFilter(f.key)}
-                className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
-                style={{
-                  fontFamily: "Tajawal, sans-serif",
-                  background: dateFilter === f.key ? "#0A2342" : "#F1F5F9",
-                  color: dateFilter === f.key ? "white" : "#64748B",
-                }}
-              >
-                {f.label}
-              </button>
-            ))}
+          <div className="flex items-center gap-2 text-xs font-medium" style={{ fontFamily: "Tajawal, sans-serif", color: "#64748B" }}>
+            <ShoppingCart className="h-3.5 w-3.5" />
+            <span>فواتير الوردية الحالية</span>
           </div>
 
           {/* Status filter */}
