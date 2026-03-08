@@ -415,8 +415,9 @@ const POSPage = () => {
    // Modifiers
    const [modifierGroups, setModifierGroups] = useState<any[]>([]);
    const [productModifierMap, setProductModifierMap] = useState<Record<string, string[]>>({});
-   const [showModifierModal, setShowModifierModal] = useState(false);
-   const [modifierProduct, setModifierProduct] = useState<Product | null>(null);
+    const [showModifierModal, setShowModifierModal] = useState(false);
+    const [modifierProduct, setModifierProduct] = useState<Product | null>(null);
+    const [openAddonProductId, setOpenAddonProductId] = useState<string | null>(null);
    const [activeQuickMod, setActiveQuickMod] = useState<string | null>(null);
 
    const userId = user?.id;
