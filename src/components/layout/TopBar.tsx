@@ -338,6 +338,7 @@ const TopBar = ({ onMenuClick, sidebarCollapsed, onOpenHelpGuide }: TopBarProps)
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [profileName, setProfileName] = useState<string | null>(null);
+  const [userAvatarUrl, setUserAvatarUrl] = useState<string | null>(null);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const { unreadCount } = useNotifications();
@@ -346,11 +347,12 @@ const TopBar = ({ onMenuClick, sidebarCollapsed, onOpenHelpGuide }: TopBarProps)
     if (!user?.id) return;
     supabase
       .from("profiles")
-      .select("display_name, company_name")
+      .select("display_name, company_name, avatar_url")
       .eq("user_id", user.id)
       .maybeSingle()
       .then(({ data }) => {
         setProfileName(data?.display_name || data?.company_name || null);
+        setUserAvatarUrl((data as any)?.avatar_url || null);
       });
   }, [user?.id]);
 
@@ -393,7 +395,7 @@ const TopBar = ({ onMenuClick, sidebarCollapsed, onOpenHelpGuide }: TopBarProps)
           <IconButton icon={Settings} onClick={() => navigate("/settings")} title="الإعدادات" className="hidden sm:flex" />
           <IconButton icon={HelpCircle} onClick={onOpenHelpGuide} title="دليل الاستخدام" className="hidden sm:flex" />
           <div className="w-px h-6 bg-border mx-1.5 hidden sm:block" />
-          <ProfileDropdown displayName={displayName} email={user?.email || ""} initials={initials} onNavigate={navigate} onSignOut={signOut} />
+          <ProfileDropdown displayName={displayName} email={user?.email || ""} initials={initials} avatarUrl={userAvatarUrl} onNavigate={navigate} onSignOut={signOut} />
         </div>
       </div>
     </header>
