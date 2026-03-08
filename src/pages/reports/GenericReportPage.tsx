@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { format, subDays, startOfMonth, endOfMonth, subMonths, differenceInDays, getHours, getDay } from "date-fns";
 import { ArrowRight, Download, Printer, CalendarDays, FileSpreadsheet, Filter, Search } from "lucide-react";
+import SortableReportTable, { ColumnDef, TotalsConfig } from "@/components/reports/SortableReportTable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
