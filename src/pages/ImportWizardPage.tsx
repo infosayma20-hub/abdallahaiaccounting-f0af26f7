@@ -45,18 +45,18 @@ interface ImportCost {
 }
 
 const costTypes = [
-  { type: "shipping", label: "🚢 شحن بحري", defaultMethod: "cbm" },
-  { type: "air_shipping", label: "✈️ شحن جوي", defaultMethod: "cbm" },
-  { type: "customs_duties", label: "🏛️ جمارك", defaultMethod: "value" },
-  { type: "port_fees", label: "📋 رسوم مرفأ", defaultMethod: "value" },
-  { type: "foreign_office", label: "🏢 مكتب خارجي", defaultMethod: "equal" },
-  { type: "clearance_agent", label: "🔓 مخلص جمركي", defaultMethod: "equal" },
-  { type: "bank_fees", label: "🏦 عمولة بنك", defaultMethod: "value" },
-  { type: "interest", label: "💰 فوائد", defaultMethod: "value" },
-  { type: "inland_transport", label: "🚛 نقل داخلي", defaultMethod: "equal" },
-  { type: "storage", label: "📦 تخزين", defaultMethod: "equal" },
-  { type: "insurance", label: "🔧 تأمين", defaultMethod: "value" },
-  { type: "other", label: "➕ أخرى", defaultMethod: "value" },
+  { type: "shipping", label: "🚢 شحن بحري", defaultMethod: "cbm", accountCode: "5210", capitalize: true },
+  { type: "air_shipping", label: "✈️ شحن جوي", defaultMethod: "cbm", accountCode: "5210", capitalize: true },
+  { type: "customs_duties", label: "🏛️ جمارك", defaultMethod: "value", accountCode: "5220", capitalize: true },
+  { type: "port_fees", label: "📋 رسوم مرفأ", defaultMethod: "value", accountCode: "5240", capitalize: true },
+  { type: "foreign_office", label: "🏢 مكتب خارجي", defaultMethod: "equal", accountCode: "5250", capitalize: true },
+  { type: "clearance_agent", label: "🔓 مخلص جمركي", defaultMethod: "equal", accountCode: "5230", capitalize: true },
+  { type: "bank_fees", label: "🏦 عمولة بنك", defaultMethod: "value", accountCode: "6110", capitalize: false },
+  { type: "interest", label: "💰 فوائد", defaultMethod: "value", accountCode: "6100", capitalize: false },
+  { type: "inland_transport", label: "🚛 نقل داخلي", defaultMethod: "equal", accountCode: "5260", capitalize: true },
+  { type: "storage", label: "📦 تخزين", defaultMethod: "equal", accountCode: "5270", capitalize: true },
+  { type: "insurance", label: "🔧 تأمين", defaultMethod: "value", accountCode: "5280", capitalize: true },
+  { type: "other", label: "➕ أخرى", defaultMethod: "value", accountCode: "5290", capitalize: true },
 ];
 
 const distributionMethods = [
