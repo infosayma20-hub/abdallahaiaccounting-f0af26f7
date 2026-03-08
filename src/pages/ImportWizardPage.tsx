@@ -45,18 +45,18 @@ interface ImportCost {
 }
 
 const costTypes = [
-  { type: "shipping", label: "🚢 شحن بحري", defaultMethod: "cbm" },
-  { type: "air_shipping", label: "✈️ شحن جوي", defaultMethod: "cbm" },
-  { type: "customs_duties", label: "🏛️ جمارك", defaultMethod: "value" },
-  { type: "port_fees", label: "📋 رسوم مرفأ", defaultMethod: "value" },
-  { type: "foreign_office", label: "🏢 مكتب خارجي", defaultMethod: "equal" },
-  { type: "clearance_agent", label: "🔓 مخلص جمركي", defaultMethod: "equal" },
-  { type: "bank_fees", label: "🏦 عمولة بنك", defaultMethod: "value" },
-  { type: "interest", label: "💰 فوائد", defaultMethod: "value" },
-  { type: "inland_transport", label: "🚛 نقل داخلي", defaultMethod: "equal" },
-  { type: "storage", label: "📦 تخزين", defaultMethod: "equal" },
-  { type: "insurance", label: "🔧 تأمين", defaultMethod: "value" },
-  { type: "other", label: "➕ أخرى", defaultMethod: "value" },
+  { type: "shipping", label: "🚢 شحن بحري", defaultMethod: "cbm", accountCode: "5210", capitalize: true },
+  { type: "air_shipping", label: "✈️ شحن جوي", defaultMethod: "cbm", accountCode: "5210", capitalize: true },
+  { type: "customs_duties", label: "🏛️ جمارك", defaultMethod: "value", accountCode: "5220", capitalize: true },
+  { type: "port_fees", label: "📋 رسوم مرفأ", defaultMethod: "value", accountCode: "5240", capitalize: true },
+  { type: "foreign_office", label: "🏢 مكتب خارجي", defaultMethod: "equal", accountCode: "5250", capitalize: true },
+  { type: "clearance_agent", label: "🔓 مخلص جمركي", defaultMethod: "equal", accountCode: "5230", capitalize: true },
+  { type: "bank_fees", label: "🏦 عمولة بنك", defaultMethod: "value", accountCode: "6110", capitalize: false },
+  { type: "interest", label: "💰 فوائد", defaultMethod: "value", accountCode: "6100", capitalize: false },
+  { type: "inland_transport", label: "🚛 نقل داخلي", defaultMethod: "equal", accountCode: "5260", capitalize: true },
+  { type: "storage", label: "📦 تخزين", defaultMethod: "equal", accountCode: "5270", capitalize: true },
+  { type: "insurance", label: "🔧 تأمين", defaultMethod: "value", accountCode: "5280", capitalize: true },
+  { type: "other", label: "➕ أخرى", defaultMethod: "value", accountCode: "5290", capitalize: true },
 ];
 
 const distributionMethods = [
@@ -519,19 +519,46 @@ const ImportWizardPage = () => {
 
       // Post journal entries
       if (post && totalLocal > 0) {
+        const txDate = invoiceDate || new Date().toISOString().split("T")[0];
+        const refBase = `IMP-${shipment.id.slice(0, 8)}`;
+
+        // 1. Goods value entry: Debit Inventory, Credit Supplier
         await supabase.from("transactions").insert({
           user_id: user.id,
-          transaction_date: invoiceDate || new Date().toISOString().split("T")[0],
+          transaction_date: txDate,
           description: `استيراد بضاعة - ${shipmentName || shipment.id}`,
           debit_account_code: "1140",
-          credit_account_code: "2100",
-          amount: totalLanded,
+          credit_account_code: "2110",
+          amount: totalLocal,
           currency: "شيكل",
           transaction_type: "purchase_credit",
           contact_id: supplierId || null,
-          reference: `IMP-${shipment.id.slice(0, 8)}`,
-          idempotency_key: `IMP-${shipment.id}`,
+          reference: refBase,
+          idempotency_key: `IMP-GOODS-${shipment.id}`,
         });
+
+        // 2. Separate entry for each cost
+        for (const cost of costs) {
+          if (!cost.amount_local || cost.amount_local <= 0) continue;
+          const ct = costTypes.find(c => c.type === cost.cost_type);
+          const debitCode = ct?.accountCode || "5290";
+          const isCapitalized = ct?.capitalize !== false;
+          // Bank fees/interest: credit Bank; Others: credit Payables
+          const creditCode = (cost.cost_type === "bank_fees" || cost.cost_type === "interest") ? "1120" : "2110";
+          
+          await supabase.from("transactions").insert({
+            user_id: user.id,
+            transaction_date: txDate,
+            description: `${cost.cost_name_ar || ct?.label || "تكاليف"} - ${shipmentName || shipment.id}`,
+            debit_account_code: debitCode,
+            credit_account_code: creditCode,
+            amount: cost.amount_local,
+            currency: "شيكل",
+            transaction_type: isCapitalized ? "import_cost" : "expense",
+            reference: `${refBase}-${cost.cost_type}`,
+            idempotency_key: `IMP-COST-${shipment.id}-${cost.id}`,
+          });
+        }
       }
 
       toast.success(post ? "تم ترحيل الشحنة بنجاح" : "تم حفظ الشحنة");
