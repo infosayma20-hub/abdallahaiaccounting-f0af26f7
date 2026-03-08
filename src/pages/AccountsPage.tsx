@@ -547,7 +547,7 @@ const AccountsPage = () => {
                 const isVirtualTypeHeader = acc.id.startsWith('type-');
 
                 return (
-                  <div
+                <div
                     key={acc.id}
                     className={cn(
                       "grid grid-cols-[80px_1fr_100px_90px] sm:grid-cols-[100px_1fr_120px_100px_80px] px-3 py-2 text-sm transition-colors items-center group",
@@ -555,8 +555,13 @@ const AccountsPage = () => {
                       isGroup && level >= 1 && "bg-[hsl(210,20%,98.5%)] dark:bg-muted/10",
                       !isGroup && idx % 2 === 0 && "bg-white dark:bg-card",
                       !isGroup && idx % 2 !== 0 && "bg-[hsl(210,20%,99.5%)] dark:bg-card",
-                      !isVirtualTypeHeader && "hover:bg-[hsl(142,71%,45%)]/[0.04] dark:hover:bg-primary/5"
+                      !isVirtualTypeHeader && "hover:bg-[hsl(142,71%,45%)]/[0.04] dark:hover:bg-primary/5",
+                      (isVirtualTypeHeader || hasChildren) && "cursor-pointer"
                     )}
+                    onClick={() => {
+                      if (isVirtualTypeHeader) toggleGroup(acc.id);
+                      else if (hasChildren) toggleGroup(acc.account_code);
+                    }}
                     onMouseEnter={() => !isVirtualTypeHeader && setHoveredRow(acc.id)}
                     onMouseLeave={() => setHoveredRow(null)}
                   >
@@ -614,7 +619,7 @@ const AccountsPage = () => {
 
                     {/* Row Actions (hover) */}
                     {!isVirtualTypeHeader && (
-                      <div className="hidden sm:flex items-center justify-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="hidden sm:flex items-center justify-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
                         <button 
                           className="p-1 rounded hover:bg-[hsl(210,14%,89%)] dark:hover:bg-muted transition-colors" 
                           title="تعديل"
