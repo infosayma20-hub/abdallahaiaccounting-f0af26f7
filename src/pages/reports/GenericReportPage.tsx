@@ -200,7 +200,7 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
   const loadSalesByProductReport = async () => {
     const { data: lines } = await supabase
       .from("pos_order_lines")
-      .select("product_name, qty, line_total, cost_price, order_id")
+      .select("product_name, qty, total, cost_price, order_id")
       .limit(1000);
 
     const productMap: Record<string, { name: string; qty: number; revenue: number; cost: number }> = {};
