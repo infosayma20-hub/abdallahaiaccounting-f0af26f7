@@ -167,7 +167,7 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
     const hasChildren = item.children && item.children.length > 0;
 
     return (
-      <div key={item.label}>
+      <div key={item.label} ref={(el) => { if (el && hasChildren && expanded) { setTimeout(() => el.scrollIntoView({ behavior: "smooth", block: "nearest" }), 50); } }}>
         <button
           onClick={() => {
             if (hasChildren) {
