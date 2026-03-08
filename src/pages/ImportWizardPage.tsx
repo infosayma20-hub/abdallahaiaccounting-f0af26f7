@@ -487,10 +487,8 @@ const ImportWizardPage = () => {
                 <FileSpreadsheet className="h-12 w-12 mx-auto text-primary/40 mb-3" />
                 <h3 className="font-medium mb-1">ارفع فاتورة المورد</h3>
                 <p className="text-xs text-muted-foreground mb-4">Excel أو CSV</p>
-                <label className="cursor-pointer">
-                  <Button variant="outline" asChild><span>اختر الملف</span></Button>
-                  <input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={handleFileUpload} />
-                </label>
+                <Button variant="outline" type="button" onClick={() => document.getElementById('import-file-input')?.click()}>اختر الملف</Button>
+                <input id="import-file-input" type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={handleFileUpload} />
               </div>
             </TabsContent>
             <TabsContent value="manual" className="mt-4">
