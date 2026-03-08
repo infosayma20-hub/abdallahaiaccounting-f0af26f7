@@ -996,11 +996,12 @@ const POSPage = () => {
     // Check if product has modifier groups
     const groupIds = productModifierMap[product.id];
     if (groupIds && groupIds.length > 0) {
-      setModifierProduct(product);
-      setShowModifierModal(true);
+      // Toggle inline addon panel instead of modal
+      setOpenAddonProductId(prev => prev === product.id ? null : product.id);
       return;
     }
 
+    setOpenAddonProductId(null);
     addToCartDirect(product);
   }, [cart, productModifierMap]);
 
