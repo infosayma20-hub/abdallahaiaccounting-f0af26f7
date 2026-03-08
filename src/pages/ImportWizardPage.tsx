@@ -390,6 +390,27 @@ const ImportWizardPage = () => {
                 <SelectTrigger><SelectValue placeholder="اختر مورد" /></SelectTrigger>
                 <SelectContent>
                   {contacts.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.contact_name}</SelectItem>)}
+                  <div className="border-t mt-1 pt-1 px-2 pb-1">
+                    {!showNewSupplier ? (
+                      <Button variant="ghost" size="sm" className="w-full justify-start gap-2 text-primary" onClick={(e) => { e.preventDefault(); setShowNewSupplier(true); }}>
+                        <Plus className="h-3.5 w-3.5" /> إضافة مورد جديد
+                      </Button>
+                    ) : (
+                      <div className="flex gap-2 items-center">
+                        <Input
+                          placeholder="اسم المورد الجديد"
+                          value={newSupplierName}
+                          onChange={e => setNewSupplierName(e.target.value)}
+                          className="h-8 text-sm"
+                          autoFocus
+                          onKeyDown={e => { if (e.key === 'Enter') handleAddSupplier(); if (e.key === 'Escape') { setShowNewSupplier(false); setNewSupplierName(''); } }}
+                        />
+                        <Button size="sm" className="h-8 px-2" disabled={!newSupplierName.trim() || addingSupplier} onClick={handleAddSupplier}>
+                          {addingSupplier ? "..." : <Check className="h-3.5 w-3.5" />}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                 </SelectContent>
               </Select>
             </div>
