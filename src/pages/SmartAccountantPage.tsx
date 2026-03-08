@@ -20,6 +20,7 @@ import SavedCommands from "@/components/SavedCommands";
 import SmartMemory from "@/components/SmartMemory";
 import FinancialPredictions from "@/components/FinancialPredictions";
 import AccountingTutor from "@/components/AccountingTutor";
+import LiveKPICards from "@/components/LiveKPICards";
 
 interface SummaryStats {
   sales: number;
