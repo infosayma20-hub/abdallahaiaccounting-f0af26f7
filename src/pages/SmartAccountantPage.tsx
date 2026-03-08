@@ -165,64 +165,12 @@ const SmartAccountantPage = () => {
     }
   };
 
-  // Mobile layout
+  // Mobile layout — completely separate mobile-first design
   if (isMobile) {
     return (
-      <div className="h-screen flex flex-col bg-haseeb-slate" dir="rtl">
-        <HaseebTopBar
-          data={financialData}
-          cfoMode={cfoMode}
-          onToggleCfo={() => setCfoMode(!cfoMode)}
-          sessionStart={sessionStart}
-          compact
-        />
-        <div className="flex-1 overflow-hidden">
-          {mobileTab === 'chat' && (
-            <HaseebChatPanel
-              user={user}
-              userName={profileName}
-              data={financialData}
-              cfoMode={cfoMode}
-              onCheque={(data) => { setPendingChequeData(data); setShowChequeDialog(true); }}
-              onJournal={(data, accounts) => { setJournalEntryData(data); setJournalEntryAccounts(accounts || []); setShowJournalEntry(true); }}
-              onTransactionSuccess={() => txToast.trigger()}
-            />
-          )}
-          {mobileTab === 'radar' && (
-            <div className="h-full overflow-y-auto">
-              <HaseebLeftPanel data={financialData} cfoMode={cfoMode} />
-            </div>
-          )}
-          {mobileTab === 'pulse' && (
-            <div className="h-full overflow-y-auto">
-              <HaseebRightPanel data={financialData} cfoMode={cfoMode} />
-            </div>
-          )}
-        </div>
-        {/* Mobile bottom tabs */}
-        <div className="flex border-t border-haseeb-navy/10 bg-white">
-          {[
-            { key: 'chat' as const, label: 'محادثة', icon: BarChart3 },
-            { key: 'radar' as const, label: 'رادار', icon: Radar },
-            { key: 'pulse' as const, label: 'نبضات', icon: Activity },
-          ].map(tab => (
-            <button
-              key={tab.key}
-              onClick={() => setMobileTab(tab.key)}
-              className={`flex-1 py-3 flex flex-col items-center gap-1 text-[11px] font-medium transition-colors ${
-                mobileTab === tab.key ? 'text-haseeb-teal' : 'text-haseeb-gray'
-              }`}
-            >
-              <tab.icon className="h-5 w-5" />
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        <TransactionToast show={txToast.show} onDone={txToast.handleDone} />
-        <JournalEntryPopup open={showJournalEntry} onClose={() => { setShowJournalEntry(false); setJournalEntryData(null); }} onSuccess={() => txToast.trigger()} initialData={journalEntryData} accounts={journalEntryAccounts.length > 0 ? journalEntryAccounts : undefined} />
-        <ChequeDetailsDialog open={showChequeDialog} onOpenChange={setShowChequeDialog} chequeType={pendingChequeData?.chequeType || 'وارد'} partyName={pendingChequeData?.partyName || ''} partyType={pendingChequeData?.partyType || 'عميل'} originalText={pendingChequeData?.originalText || ''} initialData={pendingChequeData} onConfirm={handleChequeConfirm} />
-      </div>
+      <Suspense fallback={<div className="h-screen bg-background flex items-center justify-center"><div className="w-8 h-8 border-2 border-t-transparent border-accent rounded-full animate-spin" /></div>}>
+        <MobileSmartAccountant />
+      </Suspense>
     );
   }
 
