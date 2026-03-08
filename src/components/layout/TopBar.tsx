@@ -258,9 +258,9 @@ const GlobalSearchBar = ({ collapsed, onToggle }: { collapsed: boolean; onToggle
 
 /* ═══ Profile Dropdown ═══ */
 const ProfileDropdown = ({
-  displayName, email, initials, onNavigate, onSignOut,
+  displayName, email, initials, avatarUrl, onNavigate, onSignOut,
 }: {
-  displayName: string; email: string; initials: string; onNavigate: (path: string) => void; onSignOut: () => void;
+  displayName: string; email: string; initials: string; avatarUrl: string | null; onNavigate: (path: string) => void; onSignOut: () => void;
 }) => (
   <DropdownMenu>
     <DropdownMenuTrigger asChild>
@@ -271,9 +271,13 @@ const ProfileDropdown = ({
         "border border-transparent hover:border-border"
       )}>
         <span className="text-[13px] font-medium text-foreground hidden md:block max-w-[140px] truncate">{displayName}</span>
-        <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
-          <span className="text-[11px] font-bold text-primary-foreground leading-none">{initials}</span>
-        </div>
+        {avatarUrl ? (
+          <img src={avatarUrl} alt={displayName} className="w-7 h-7 rounded-full object-cover flex-shrink-0 border-2 border-primary/30" />
+        ) : (
+          <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
+            <span className="text-[11px] font-bold text-primary-foreground leading-none">{initials}</span>
+          </div>
+        )}
       </button>
     </DropdownMenuTrigger>
     <DropdownMenuContent align="start" className="w-56 rounded-xl shadow-elevated z-50">
