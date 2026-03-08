@@ -68,11 +68,9 @@ const DEFAULT_ACCOUNTS: { code: string; name: string; type: string; parent: stri
   { code: "4500", name: "مردودات مشتريات", type: "إيرادات", parent: null },
 
   // ═══════════ تكلفة المبيعات والمشتريات (51xx) ═══════════
-  { code: "5100", name: "تكلفة البضاعة المباعة", type: "مصاريف", parent: null },
-  { code: "5110", name: "المشتريات", type: "مصاريف", parent: "5100" },
-
-  // ═══════════ المصروفات التشغيلية (52xx-59xx) ═══════════
-  { code: "5200", name: "رواتب وأجور", type: "مصاريف", parent: null },
+  { code: "5100", name: "تكلفة البضاعة المباعة", type: "مشتريات", parent: null },
+  { code: "5110", name: "المشتريات", type: "مشتريات", parent: "5100" },
+  { code: "5150", name: "رواتب وأجور", type: "مصاريف", parent: null },
   { code: "5300", name: "مصروف إيجار", type: "مصاريف", parent: null },
   { code: "5400", name: "كهرباء وماء", type: "مصاريف", parent: null },
   { code: "5410", name: "مصروف غاز", type: "مصاريف", parent: "5400" },
