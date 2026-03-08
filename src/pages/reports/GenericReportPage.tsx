@@ -612,6 +612,231 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
   };
 
   // ═══════════════════════════════════
+  // COLUMN DEFINITIONS FOR SORTABLE TABLE
+  // ═══════════════════════════════════
+  const fmtAmtCell = (v: any) => v != null && v !== 0 ? `₪${Math.abs(Number(v)).toLocaleString("en", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "—";
+
+  const getReportColumns = (): ColumnDef[] | null => {
+    switch (reportKey) {
+      case "ar-aging": case "ap-aging":
+        return [
+          { key: "name", label: reportKey === "ar-aging" ? "العميل" : "المورد", type: "text" },
+          { key: "cls", label: "التصنيف", type: "badge", filterType: "select", filterOptions: ["A", "B", "C", "D", "-"] },
+          { key: "current", label: "جاري", type: "currency", format: v => <span className="text-green-600 font-mono text-xs">{fmtAmtCell(v)}</span> },
+          { key: "d30", label: "1-30", type: "currency", format: v => <span className="text-yellow-600 font-mono text-xs">{fmtAmtCell(v)}</span> },
+          { key: "d60", label: "31-60", type: "currency", format: v => <span className="text-orange-600 font-mono text-xs">{fmtAmtCell(v)}</span> },
+          { key: "d90", label: "61-90", type: "currency", format: v => <span className="text-red-500 font-mono text-xs">{fmtAmtCell(v)}</span> },
+          { key: "over90", label: "+90", type: "currency", format: v => <span className="text-red-700 font-mono text-xs">{fmtAmtCell(v)}</span> },
+          { key: "total", label: "الإجمالي", type: "currency", format: v => <span className="font-mono text-xs font-bold">{fmtAmtCell(v)}</span> },
+        ];
+      case "daily-sales":
+        return [
+          { key: "date", label: "التاريخ", type: "date" },
+          { key: "count", label: "عدد الفواتير", type: "number", align: "center" },
+          { key: "sales", label: "المبيعات", type: "currency" },
+          { key: "returns", label: "المرتجعات", type: "currency", format: v => v > 0 ? <span className="text-red-500 font-mono text-xs">({fmtAmtCell(v)})</span> : <span className="font-mono text-xs">—</span> },
+          { key: "net", label: "الصافي", type: "currency" },
+        ];
+      case "cheques":
+        return [
+          { key: "cheque_number", label: "رقم الشيك", type: "text" },
+          { key: "bank_name", label: "البنك", type: "text", filterType: "select", filterOptions: [...new Set(data.map((r: any) => r.bank_name).filter(Boolean))] },
+          { key: "party_name", label: "الطرف", type: "text" },
+          { key: "amount", label: "المبلغ", type: "currency" },
+          { key: "cheque_date", label: "تاريخ الاستحقاق", type: "date" },
+          { key: "cheque_type", label: "النوع", type: "badge", filterType: "select", filterOptions: ["وارد", "صادر"] },
+          { key: "status", label: "الحالة", type: "badge", filterType: "select", filterOptions: ["معلق", "محصل", "مرتجع", "ملغي"],
+            format: (v) => {
+              const colors: Record<string, string> = { "معلق": "text-yellow-600 bg-yellow-50", "محصل": "text-green-600 bg-green-50", "مرتجع": "text-red-600 bg-red-50", "ملغي": "text-muted-foreground bg-muted/50" };
+              return <span className={`px-2 py-1 rounded-full text-xs font-medium ${colors[v] || ""}`}>{v}</span>;
+            }},
+        ];
+      case "inventory-valuation":
+        return [
+          { key: "name", label: "الصنف", type: "text" },
+          { key: "qty", label: "الكمية", type: "number", align: "center",
+            format: (v) => <span className={`font-mono text-xs ${v < 0 ? "text-red-600 font-bold" : v === 0 ? "text-muted-foreground" : ""}`}>{v < 0 ? `⚠️ ${v}` : v}</span> },
+          { key: "cost", label: "متوسط التكلفة", type: "currency" },
+          { key: "value", label: "القيمة", type: "currency" },
+          { key: "pct", label: "النسبة", type: "percent" },
+        ];
+      case "stock-movement":
+        return [
+          { key: "date", label: "التاريخ", type: "date" },
+          { key: "product", label: "الصنف", type: "text" },
+          { key: "type", label: "النوع", type: "badge", filterType: "select", filterOptions: ["شراء", "بيع", "تعديل", "إرجاع"] },
+          { key: "qty", label: "الكمية", type: "number", format: (v) => <span className={`font-mono text-xs ${v < 0 ? "text-red-500" : "text-green-600"}`}>{v}</span> },
+          { key: "ref", label: "المرجع", type: "text" },
+        ];
+      case "below-reorder":
+        return [
+          { key: "name", label: "الصنف", type: "text" },
+          { key: "qty", label: "الكمية الحالية", type: "number", align: "center", format: v => <span className="text-red-500 font-bold font-mono text-xs">{v}</span> },
+          { key: "min", label: "الحد الأدنى", type: "number", align: "center" },
+          { key: "shortage", label: "النقص", type: "number", format: v => <span className="text-red-600 font-bold font-mono text-xs">{v}</span> },
+          { key: "reorderCost", label: "تكلفة الطلب", type: "currency" },
+        ];
+      case "by-customer": case "by-supplier":
+        return [
+          { key: "name", label: reportKey === "by-customer" ? "العميل" : "المورد", type: "text" },
+          ...(reportKey === "by-customer" ? [{ key: "cls", label: "التصنيف", type: "badge" as const, filterType: "select" as const, filterOptions: ["A", "B", "C", "D", "-"] }] : []),
+          { key: "count", label: "عدد الفواتير", type: "number", align: "center" as const },
+          { key: "total", label: "الإجمالي", type: "currency" as const },
+          ...(reportKey === "by-customer" ? [{ key: "lastDate", label: "آخر عملية", type: "date" as const }] : []),
+        ];
+      case "invoice-register": case "purchase-invoice-register": case "collections": case "supplier-payments":
+        return [
+          { key: "transaction_date", label: "التاريخ", type: "date" },
+          { key: "description", label: "البيان", type: "text" },
+          { key: "amount", label: "المبلغ", type: "currency" },
+          { key: "payment_method", label: "طريقة الدفع", type: "badge", filterType: "select", filterOptions: ["نقدي", "بنك", "شيك", "آجل"] },
+          { key: "reference", label: "المرجع", type: "text" },
+        ];
+      case "sales-returns": case "purchase-returns":
+        return [
+          { key: "transaction_date", label: "التاريخ", type: "date" },
+          { key: "description", label: "البيان", type: "text" },
+          { key: "amount", label: "المبلغ", type: "currency", format: v => <span className="text-red-500 font-bold font-mono text-xs">{fmtAmtCell(v)}</span> },
+          { key: "reference", label: "المرجع", type: "text" },
+        ];
+      case "asset-register":
+        return [
+          { key: "asset_number", label: "رقم الأصل", type: "text" },
+          { key: "name_ar", label: "الاسم", type: "text" },
+          { key: "acquisition_cost", label: "التكلفة", type: "currency" },
+          { key: "accumulated_depreciation", label: "مجمع الاستهلاك", type: "currency" },
+          { key: "net_book_value", label: "القيمة الدفترية", type: "currency",
+            format: v => <span className={`font-mono text-xs font-bold ${v === 0 ? "text-red-600" : ""}`}>{fmtAmtCell(v)}</span> },
+          { key: "status", label: "الحالة", type: "badge", filterType: "select", filterOptions: ["نشط", "مباع", "مستبعد"] },
+        ];
+      case "employee-directory":
+        return [
+          { key: "full_name", label: "الاسم", type: "text" },
+          { key: "department", label: "القسم", type: "text", filterType: "select", filterOptions: [...new Set(data.map((r: any) => r.department).filter(Boolean))] },
+          { key: "job_title", label: "المسمى", type: "text" },
+          { key: "hire_date", label: "تاريخ التعيين", type: "date" },
+          { key: "salary", label: "الراتب", type: "currency" },
+          { key: "employment_status", label: "الحالة", type: "badge", filterType: "select", filterOptions: ["active", "inactive"],
+            format: v => <span className={`px-2 py-1 rounded-full text-xs ${v === "active" ? "bg-green-50 text-green-600" : "bg-muted text-muted-foreground"}`}>{v === "active" ? "نشط" : v || "-"}</span> },
+        ];
+      case "sales-by-product": case "order-performance":
+        return [
+          { key: "name", label: "الصنف", type: "text" },
+          { key: "qty", label: "الكمية", type: "number", align: "center" },
+          { key: "revenue", label: "الإيرادات", type: "currency" },
+          { key: "cost", label: "التكلفة", type: "currency" },
+          { key: "profit", label: "الربح", type: "currency",
+            format: (v, row) => { const p = (row.revenue || 0) - (row.cost || 0); return <span className={`font-mono text-xs ${p >= 0 ? "text-green-600" : "text-red-500"}`}>{fmtAmtCell(p)}</span>; } },
+          { key: "margin", label: "الهامش", type: "percent",
+            format: (v, row) => { const m = row.revenue > 0 ? ((row.revenue - row.cost) / row.revenue * 100) : 0; return <span className="font-mono text-xs">{m.toFixed(1)}%</span>; } },
+        ];
+      case "dead-stock":
+        return [
+          { key: "name", label: "الصنف", type: "text" },
+          { key: "qty", label: "الكمية", type: "number", align: "center" },
+          { key: "value", label: "القيمة المجمدة", type: "currency" },
+          { key: "lastMove", label: "آخر حركة", type: "date", format: v => <span className="font-mono text-xs">{v?.split("T")[0] || "لا يوجد"}</span> },
+          { key: "days", label: "الأيام", type: "number",
+            format: v => <span className={`font-mono text-xs ${v > 180 ? "text-red-600 font-bold" : "text-orange-500"}`}>{v >= 999 ? "+999" : v}</span> },
+        ];
+      case "product-profitability":
+        return [
+          { key: "name", label: "الصنف", type: "text" },
+          { key: "buyPrice", label: "سعر الشراء", type: "currency" },
+          { key: "sellPrice", label: "سعر البيع", type: "currency" },
+          { key: "profit", label: "الربح/وحدة", type: "currency",
+            format: v => <span className={`font-mono text-xs ${v >= 0 ? "text-green-600" : "text-red-500"}`}>{fmtAmtCell(v)}</span> },
+          { key: "margin", label: "الهامش", type: "percent" },
+          { key: "stock", label: "المخزون", type: "number", align: "center" },
+        ];
+      case "month-comparison":
+        return [
+          { key: "month", label: "الشهر", type: "text", sortable: false },
+          { key: "revenue", label: "الإيرادات", type: "currency", format: v => <span className="text-green-600 font-mono text-xs">{fmtAmtCell(v)}</span> },
+          { key: "expenses", label: "المصروفات", type: "currency", format: v => <span className="text-red-500 font-mono text-xs">{fmtAmtCell(v)}</span> },
+          { key: "profit", label: "صافي الربح", type: "currency",
+            format: v => <span className={`font-mono text-xs font-bold ${v >= 0 ? "text-green-600" : "text-red-500"}`}>{v < 0 ? `(${fmtAmtCell(v)})` : fmtAmtCell(v)}</span> },
+        ];
+      case "pos-daily-sales":
+        return [
+          { key: "date", label: "التاريخ", type: "date" },
+          { key: "cashier", label: "الكاشير", type: "text", filterType: "select", filterOptions: [...new Set(data.map((r: any) => r.cashier).filter(Boolean))] },
+          { key: "count", label: "عدد الفواتير", type: "number", align: "center" },
+          { key: "total", label: "الإجمالي", type: "currency" },
+          { key: "avg", label: "متوسط الفاتورة", type: "currency",
+            format: (v, row) => <span className="font-mono text-xs">{row.count > 0 ? fmtAmtCell(row.total / row.count) : "—"}</span> },
+        ];
+      case "pos-cashier-performance":
+        return [
+          { key: "name", label: "الكاشير", type: "text" },
+          { key: "count", label: "عدد الفواتير", type: "number", align: "center" },
+          { key: "total", label: "إجمالي المبيعات", type: "currency" },
+          { key: "avg", label: "متوسط الفاتورة", type: "currency",
+            format: (v, row) => <span className="font-mono text-xs">{row.count > 0 ? fmtAmtCell(row.total / row.count) : "—"}</span> },
+          { key: "cancelled", label: "الملغية", type: "number",
+            format: v => <span className={`font-mono text-xs ${v > 0 ? "text-red-500 font-bold" : ""}`}>{v}</span> },
+        ];
+      case "pos-cancelled":
+        return [
+          { key: "order_number", label: "رقم الطلب", type: "text" },
+          { key: "created_at", label: "التاريخ", type: "date", format: v => <span className="font-mono text-xs">{v?.split("T")[0]}</span> },
+          { key: "customer_name", label: "العميل", type: "text" },
+          { key: "total", label: "المبلغ", type: "currency" },
+          { key: "return_reason", label: "السبب", type: "text", format: v => <span className="text-xs text-red-600">{v || "-"}</span> },
+        ];
+      case "all-orders":
+        return [
+          { key: "order_number", label: "رقم الطلب", type: "text" },
+          { key: "created_at", label: "التاريخ", type: "date", format: v => <span className="font-mono text-xs">{v?.split("T")[0]}</span> },
+          { key: "customer_name", label: "العميل", type: "text" },
+          { key: "total", label: "المبلغ", type: "currency" },
+          { key: "state", label: "الحالة", type: "badge", filterType: "select", filterOptions: ["paid", "cancelled", "draft"],
+            format: v => {
+              const colors: Record<string, string> = { paid: "bg-green-50 text-green-600", cancelled: "bg-red-50 text-red-600", draft: "bg-yellow-50 text-yellow-600" };
+              const labels: Record<string, string> = { paid: "مكتمل", cancelled: "ملغي", draft: "مسودة" };
+              return <span className={`px-2 py-1 rounded-full text-xs ${colors[v] || "bg-muted"}`}>{labels[v] || v}</span>;
+            }},
+        ];
+      default:
+        return null;
+    }
+  };
+
+  const getReportTotals = (): TotalsConfig | undefined => {
+    switch (reportKey) {
+      case "ar-aging": case "ap-aging":
+        return { current: "sum", d30: "sum", d60: "sum", d90: "sum", over90: "sum", total: "sum" };
+      case "daily-sales":
+        return { count: "sum", sales: "sum", returns: "sum", net: "sum" };
+      case "inventory-valuation":
+        return { value: "sum" };
+      case "invoice-register": case "purchase-invoice-register": case "collections": case "supplier-payments":
+        return { amount: "sum" };
+      case "sales-returns": case "purchase-returns":
+        return { amount: "sum" };
+      case "by-customer": case "by-supplier":
+        return { count: "sum", total: "sum" };
+      case "pos-daily-sales":
+        return { count: "sum", total: "sum" };
+      default:
+        return undefined;
+    }
+  };
+
+  const getDefaultSort = (): { key: string; dir: "asc" | "desc" }[] => {
+    switch (reportKey) {
+      case "ar-aging": case "ap-aging": return [{ key: "total", dir: "desc" }];
+      case "daily-sales": return [{ key: "date", dir: "desc" }];
+      case "cheques": return [{ key: "cheque_date", dir: "asc" }];
+      case "inventory-valuation": return [{ key: "value", dir: "desc" }];
+      case "by-customer": case "by-supplier": return [{ key: "total", dir: "desc" }];
+      case "pos-cashier-performance": return [{ key: "total", dir: "desc" }];
+      case "asset-register": return [{ key: "asset_number", dir: "asc" }];
+      default: return [];
+    }
+  };
+
+  // ═══════════════════════════════════
   // RENDERERS
   // ═══════════════════════════════════
 
@@ -635,40 +860,41 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
       </div>
     );
 
+    // Try to use SortableReportTable for defined reports
+    const cols = getReportColumns();
+    if (cols) {
+      return (
+        <SortableReportTable
+          columns={cols}
+          data={data}
+          totalsRow={getReportTotals()}
+          reportTitle={config.title}
+          reportSubtitle={config.description}
+          storageKey={reportKey}
+          defaultSort={getDefaultSort()}
+          rowClassName={reportKey === "inventory-valuation"
+            ? (row) => row.qty < 0 ? "!bg-red-50 dark:!bg-red-950/20" : ""
+            : undefined}
+        />
+      );
+    }
+
+    // Fallback to custom renderers for special layouts
     switch (reportKey) {
-      case "ar-aging": case "ap-aging": return renderAgingTable();
       case "cash-flow": return renderCashFlow();
-      case "daily-sales": return renderDailySalesTable();
-      case "total-sales": case "total-purchases": return renderDailyTotalsTable();
-      case "sales-by-product": case "order-performance": return renderSalesByProduct();
-      case "dead-stock": return renderDeadStock();
-      case "product-profitability": return renderProductProfitability();
       case "financial-kpi": case "sales-performance": return renderKPIs();
-      case "month-comparison": return renderMonthComparison();
-      case "foreign-balances": return renderForeignBalances();
       case "cash-movement": case "bank-movement": return renderAccountMovement();
-      case "cheques": return renderCheques();
-      case "invoice-register": case "purchase-invoice-register": case "collections": case "supplier-payments": return renderTransactionList();
-      case "by-customer": case "by-supplier": return renderGroupedByContact();
-      case "sales-returns": case "purchase-returns": return renderReturns();
-      case "supplier-comparison": return renderSupplierComparison();
-      case "inventory-valuation": return renderInventoryValuation();
-      case "stock-movement": return renderStockMovement();
-      case "below-reorder": return renderBelowReorder();
-      case "employee-directory": return renderEmployeeDirectory();
-      case "asset-register": return renderAssetRegister();
+      case "foreign-balances": return renderForeignBalances();
+      case "exchange-rates": return renderExchangeRates();
+      case "currency-conversions": case "exchange-gain-loss": return renderCurrencyTransactions();
+      case "pos-cash-reconciliation": return renderPOSCashReconciliation();
+      case "pos-peak-hours": return renderPOSPeakHours();
       case "monthly-depreciation": case "depreciation-schedule": return renderDepreciation();
       case "fully-depreciated": return renderFullyDepreciated();
       case "asset-disposal": return renderAssetDisposal();
       case "assets-by-location": return renderAssetsByLocation();
-      case "exchange-rates": return renderExchangeRates();
-      case "currency-conversions": case "exchange-gain-loss": return renderCurrencyTransactions();
-      case "all-orders": return renderAllOrders();
-      case "pos-daily-sales": return renderPOSDailySales();
-      case "pos-cash-reconciliation": return renderPOSCashReconciliation();
-      case "pos-cashier-performance": return renderPOSCashierPerformance();
-      case "pos-cancelled": return renderPOSCancelled();
-      case "pos-peak-hours": return renderPOSPeakHours();
+      case "supplier-comparison": return renderSupplierComparison();
+      case "total-sales": case "total-purchases": return renderDailyTotalsTable();
       default: return renderGenericTable();
     }
   };
