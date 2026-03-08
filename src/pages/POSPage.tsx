@@ -24,7 +24,8 @@ import POSReceiptDialog from "@/components/POSReceiptDialog";
 import ShiftSummaryReceipt from "@/components/ShiftSummaryReceipt";
 import InvoiceHistoryDrawer from "@/components/pos/InvoiceHistoryDrawer";
 import CustomerDataModal from "@/components/pos/CustomerDataModal";
-import ModifierModal, { type SelectedModifier } from "@/components/pos/ModifierModal";
+import { type SelectedModifier } from "@/components/pos/ModifierModal";
+import InlineAddonPanel from "@/components/pos/InlineAddonPanel";
 import QuickModifierBar from "@/components/pos/QuickModifierBar";
 import {
   DndContext,
