@@ -356,7 +356,13 @@ const SmartAccountantPage = () => {
         <SavedCommands onSelect={(text) => setDbCommand(text)} currentInput={dbCommand} currentTarget="command" />
       </div>
 
-      {/* ═══ 3. التقرير الذكي ═══ */}
+      {/* ═══ 3. الرادار المالي ═══ */}
+      <FinancialRadar />
+
+      {/* ═══ 4. وضع المدير المالي ═══ */}
+      <CFODashboard />
+
+      {/* ═══ 5. التقرير الذكي ═══ */}
       <button
         onClick={() => navigate("/smart-report")}
         className="w-full bg-card rounded-2xl p-5 shadow-card hover:bg-primary/5 transition-all active:scale-[0.99] group"
@@ -378,7 +384,7 @@ const SmartAccountantPage = () => {
         </div>
       </button>
 
-      {/* ═══ 4. ملخص ذكي ═══ */}
+      {/* ═══ 6. ملخص ذكي ═══ */}
       <SmartDailySummary
         netProfit={netProfit}
         chequesToday={0}
