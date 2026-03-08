@@ -109,6 +109,7 @@ const AccountStatementPage = () => {
   const urlContactId = searchParams.get("contact_id") || "";
   const urlContactType = searchParams.get("contact_type") || "";
   const urlEmployeeName = searchParams.get("employee_name") || "";
+  const urlAccountCode = searchParams.get("code") || "";
 
   // State
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -121,7 +122,7 @@ const AccountStatementPage = () => {
     name: "", logo_url: "", address: "", phone: "", email: "", website: "", tax_number: "",
   });
   const [activeTab, setActiveTab] = useState<EntityTab>(
-    urlEmployeeName ? "employees" : urlContactType === "مورد" ? "suppliers" : "customers"
+    urlAccountCode ? "accounts" : urlEmployeeName ? "employees" : urlContactType === "مورد" ? "suppliers" : "customers"
   );
   const [selectedEntityId, setSelectedEntityId] = useState(urlContactId);
   const [entitySearch, setEntitySearch] = useState("");
