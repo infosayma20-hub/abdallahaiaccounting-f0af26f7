@@ -95,6 +95,42 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_memory: {
+        Row: {
+          created_at: string
+          frequency: number
+          id: string
+          key: string
+          last_used_at: string
+          memory_type: string
+          updated_at: string
+          user_id: string
+          value: Json
+        }
+        Insert: {
+          created_at?: string
+          frequency?: number
+          id?: string
+          key: string
+          last_used_at?: string
+          memory_type?: string
+          updated_at?: string
+          user_id: string
+          value?: Json
+        }
+        Update: {
+          created_at?: string
+          frequency?: number
+          id?: string
+          key?: string
+          last_used_at?: string
+          memory_type?: string
+          updated_at?: string
+          user_id?: string
+          value?: Json
+        }
+        Relationships: []
+      }
       asset_categories: {
         Row: {
           accumulated_depreciation_account_code: string | null
