@@ -6,8 +6,8 @@ const LoadingScreen = ({ demo = false }: { demo?: boolean } = {}) => {
 
   useEffect(() => {
     if (demo) return;
-    const t1 = setTimeout(() => setIsExiting(true), 3100);
-    const t2 = setTimeout(() => setGone(true), 3600);
+    const t1 = setTimeout(() => setIsExiting(true), 5300);
+    const t2 = setTimeout(() => setGone(true), 5800);
     return () => { clearTimeout(t1); clearTimeout(t2); };
   }, [demo]);
 
@@ -47,27 +47,105 @@ const LoadingScreen = ({ demo = false }: { demo?: boolean } = {}) => {
 
       {/* Center content */}
       <div className="relative flex flex-col items-center text-center z-10">
-        {/* ZIDNI wordmark — forced LTR */}
-        <h1
+        {/* ZIDNI wordmark with SVG Z + text IDNI */}
+        <div
           dir="ltr"
           style={{
             direction: "ltr",
-            unicodeBidi: "bidi-override",
-            fontFamily: "Barlow, sans-serif",
-            fontWeight: 800,
-            fontSize: 56,
-            letterSpacing: -1,
-            color: "#FFFFFF",
-            textShadow: "0 0 30px rgba(255,255,255,0.1)",
-            margin: 0,
-            animation: "brand-appear 1s cubic-bezier(0.16,1,0.3,1) forwards",
-            animationDelay: "200ms",
-            opacity: 0,
-            transform: "translateY(16px)",
+            display: "flex",
+            alignItems: "baseline",
+            flexDirection: "row",
+            gap: 2,
           }}
         >
-          <span style={{ fontSize: 68, color: "#C9A84C", textShadow: "0 0 40px rgba(201,168,76,0.4)" }}>Z</span>IDNI
-        </h1>
+          {/* SVG Z that draws itself */}
+          <div className="relative" style={{ width: 58, height: 68 }}>
+            <svg
+              viewBox="0 0 58 68"
+              width="58"
+              height="68"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              style={{ overflow: "visible" }}
+            >
+              {/* Glow layer */}
+              <path
+                d="M6 10 L48 10 L10 58 L52 58"
+                stroke="#C9A84C"
+                strokeWidth="11"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                opacity="0.3"
+                filter="url(#z-glow)"
+                style={{
+                  strokeDasharray: 168,
+                  strokeDashoffset: 168,
+                  animation: "draw-z 1.2s cubic-bezier(0.4,0,0.2,1) forwards",
+                  animationDelay: "300ms",
+                }}
+              />
+              {/* Main stroke */}
+              <path
+                d="M6 10 L48 10 L10 58 L52 58"
+                stroke="#C9A84C"
+                strokeWidth="8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                style={{
+                  strokeDasharray: 168,
+                  strokeDashoffset: 168,
+                  animation: "draw-z 1.2s cubic-bezier(0.4,0,0.2,1) forwards",
+                  animationDelay: "300ms",
+                }}
+              />
+              <defs>
+                <filter id="z-glow" x="-50%" y="-50%" width="200%" height="200%">
+                  <feGaussianBlur stdDeviation="6" result="blur" />
+                  <feMerge>
+                    <feMergeNode in="blur" />
+                    <feMergeNode in="SourceGraphic" />
+                  </feMerge>
+                </filter>
+              </defs>
+            </svg>
+
+            {/* Spark at end of Z stroke */}
+            <div
+              style={{
+                position: "absolute",
+                width: 6,
+                height: 6,
+                borderRadius: "50%",
+                background: "#C9A84C",
+                bottom: 7,
+                right: 2,
+                animation: "spark-burst 0.4s ease-out forwards",
+                animationDelay: "1450ms",
+                opacity: 0,
+                transform: "scale(0)",
+              }}
+            />
+          </div>
+
+          {/* IDNI text — appears after Z finishes */}
+          <span
+            style={{
+              fontFamily: "Barlow, sans-serif",
+              fontWeight: 800,
+              fontSize: 56,
+              letterSpacing: -1,
+              color: "#FFFFFF",
+              textShadow: "0 0 30px rgba(255,255,255,0.1)",
+              lineHeight: 1,
+              opacity: 0,
+              transform: "translateX(-8px)",
+              animation: "idni-appear 0.5s ease forwards",
+              animationDelay: "1400ms",
+            }}
+          >
+            IDNI
+          </span>
+        </div>
 
         {/* Arabic subtitle */}
         <p
@@ -77,11 +155,11 @@ const LoadingScreen = ({ demo = false }: { demo?: boolean } = {}) => {
             fontSize: 18,
             color: "rgba(255,255,255,0.45)",
             letterSpacing: 6,
-            marginTop: 4,
-            animation: "brand-appear 1s cubic-bezier(0.16,1,0.3,1) forwards",
-            animationDelay: "350ms",
+            marginTop: 8,
+            animation: "brand-appear 0.8s ease forwards",
+            animationDelay: "1800ms",
             opacity: 0,
-            transform: "translateY(16px)",
+            transform: "translateY(12px)",
           }}
         >
           زِدني
@@ -89,7 +167,9 @@ const LoadingScreen = ({ demo = false }: { demo?: boolean } = {}) => {
 
         {/* Tagline */}
         <p
+          dir="ltr"
           style={{
+            direction: "ltr",
             fontFamily: "Inter, sans-serif",
             fontSize: 10,
             fontWeight: 400,
@@ -98,16 +178,24 @@ const LoadingScreen = ({ demo = false }: { demo?: boolean } = {}) => {
             textTransform: "uppercase",
             marginTop: 12,
             animation: "brand-appear 0.8s ease forwards",
-            animationDelay: "600ms",
+            animationDelay: "2000ms",
             opacity: 0,
-            transform: "translateY(16px)",
+            transform: "translateY(12px)",
           }}
         >
           ERP & ACCOUNTING PLATFORM
         </p>
 
         {/* Progress bar */}
-        <div style={{ marginTop: 52, width: 180 }}>
+        <div
+          style={{
+            marginTop: 52,
+            width: 180,
+            opacity: 0,
+            animation: "brand-appear 0.4s ease forwards",
+            animationDelay: "2200ms",
+          }}
+        >
           <div
             className="relative overflow-hidden"
             style={{
@@ -124,6 +212,7 @@ const LoadingScreen = ({ demo = false }: { demo?: boolean } = {}) => {
                 borderRadius: 999,
                 background: "linear-gradient(90deg, #006D8F 0%, #00B4D8 50%, #C9A84C 100%)",
                 animation: "fill-progress 2.8s ease-in-out forwards",
+                animationDelay: "2200ms",
                 width: 0,
               }}
             >
@@ -162,6 +251,19 @@ const LoadingScreen = ({ demo = false }: { demo?: boolean } = {}) => {
       </p>
 
       <style>{`
+        @keyframes draw-z {
+          0%   { stroke-dashoffset: 168 }
+          100% { stroke-dashoffset: 0 }
+        }
+        @keyframes idni-appear {
+          0%   { opacity: 0; transform: translateX(-8px) }
+          100% { opacity: 1; transform: translateX(0) }
+        }
+        @keyframes spark-burst {
+          0%   { transform: scale(0); opacity: 1 }
+          50%  { transform: scale(3); opacity: 0.8 }
+          100% { transform: scale(0); opacity: 0 }
+        }
         @keyframes brand-appear {
           to { opacity: 1; transform: translateY(0) }
         }
