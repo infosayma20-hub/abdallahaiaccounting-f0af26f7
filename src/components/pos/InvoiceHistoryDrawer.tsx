@@ -154,14 +154,15 @@ export default function InvoiceHistoryDrawer({
     if (!dataOwnerId || !open) return;
     setLoading(true);
     try {
-      let query = supabase
+      const baseQuery = supabase
         .from("pos_orders")
         .select("id, order_number, created_at, total, subtotal, discount_amount, tax_amount, state, customer_name, customer_id, session_id, is_return, recall_status, recall_reason, recalled_by, recalled_approved_by, recalled_at, cancelled_at, cancel_reason, paid_at")
-        .eq("user_id", dataOwnerId)
+        .eq("user_id", dataOwnerId);
+      let query = baseQuery
         .gte("created_at", dateFrom.toISOString())
         .lte("created_at", dateTo.toISOString())
         .order("created_at", { ascending: false })
-        .limit(200);
+        .limit(200) as any;
 
       if (statusFilter !== "all") {
         if (statusFilter === "recalled") {
