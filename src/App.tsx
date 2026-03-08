@@ -188,20 +188,59 @@ const App = () => (
                       <Route path="/reports/hr-attendance" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><HRAttendanceReport /></RoleGuard>} />
                       <Route path="/reports/hr-leaves" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><HRLeaveReport /></RoleGuard>} />
                       <Route path="/reports/hr-staff-cost" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><HRStaffCostReport /></RoleGuard>} />
+                      {/* Financial */}
                       <Route path="/reports/ar-aging" element={<GenericReportPage reportKey="ar-aging" />} />
                       <Route path="/reports/ap-aging" element={<GenericReportPage reportKey="ap-aging" />} />
                       <Route path="/reports/cash-flow" element={<GenericReportPage reportKey="cash-flow" />} />
+                      <Route path="/reports/cash-movement" element={<GenericReportPage reportKey="cash-movement" />} />
+                      <Route path="/reports/bank-movement" element={<GenericReportPage reportKey="bank-movement" />} />
+                      <Route path="/reports/cheques" element={<GenericReportPage reportKey="cheques" />} />
+                      {/* Sales */}
+                      <Route path="/reports/total-sales" element={<GenericReportPage reportKey="total-sales" />} />
+                      <Route path="/reports/invoice-register" element={<GenericReportPage reportKey="invoice-register" />} />
+                      <Route path="/reports/by-customer" element={<GenericReportPage reportKey="by-customer" />} />
+                      <Route path="/reports/collections" element={<GenericReportPage reportKey="collections" />} />
                       <Route path="/reports/daily-sales" element={<GenericReportPage reportKey="daily-sales" />} />
                       <Route path="/reports/sales-returns" element={<GenericReportPage reportKey="sales-returns" />} />
                       <Route path="/reports/sales-by-product" element={<GenericReportPage reportKey="sales-by-product" />} />
                       <Route path="/reports/sales-performance" element={<GenericReportPage reportKey="sales-performance" />} />
+                      {/* Purchases */}
+                      <Route path="/reports/total-purchases" element={<GenericReportPage reportKey="total-purchases" />} />
+                      <Route path="/reports/purchase-invoice-register" element={<GenericReportPage reportKey="purchase-invoice-register" />} />
+                      <Route path="/reports/by-supplier" element={<GenericReportPage reportKey="by-supplier" />} />
+                      <Route path="/reports/supplier-payments" element={<GenericReportPage reportKey="supplier-payments" />} />
                       <Route path="/reports/purchase-returns" element={<GenericReportPage reportKey="purchase-returns" />} />
                       <Route path="/reports/supplier-comparison" element={<GenericReportPage reportKey="supplier-comparison" />} />
+                      {/* Inventory */}
+                      <Route path="/reports/inventory-valuation" element={<GenericReportPage reportKey="inventory-valuation" />} />
+                      <Route path="/reports/stock-movement" element={<GenericReportPage reportKey="stock-movement" />} />
+                      <Route path="/reports/below-reorder" element={<GenericReportPage reportKey="below-reorder" />} />
                       <Route path="/reports/dead-stock" element={<GenericReportPage reportKey="dead-stock" />} />
                       <Route path="/reports/product-profitability" element={<GenericReportPage reportKey="product-profitability" />} />
+                      {/* HR */}
+                      <Route path="/reports/employee-directory" element={<GenericReportPage reportKey="employee-directory" />} />
+                      {/* Fixed Assets */}
+                      <Route path="/reports/asset-register" element={<GenericReportPage reportKey="asset-register" />} />
+                      <Route path="/reports/monthly-depreciation" element={<GenericReportPage reportKey="monthly-depreciation" />} />
+                      <Route path="/reports/depreciation-schedule" element={<GenericReportPage reportKey="depreciation-schedule" />} />
+                      <Route path="/reports/fully-depreciated" element={<GenericReportPage reportKey="fully-depreciated" />} />
+                      <Route path="/reports/asset-disposal" element={<GenericReportPage reportKey="asset-disposal" />} />
+                      <Route path="/reports/assets-by-location" element={<GenericReportPage reportKey="assets-by-location" />} />
+                      {/* Currency */}
+                      <Route path="/reports/exchange-rates" element={<GenericReportPage reportKey="exchange-rates" />} />
+                      <Route path="/reports/currency-conversions" element={<GenericReportPage reportKey="currency-conversions" />} />
                       <Route path="/reports/foreign-balances" element={<GenericReportPage reportKey="foreign-balances" />} />
                       <Route path="/reports/exchange-gain-loss" element={<GenericReportPage reportKey="exchange-gain-loss" />} />
+                      {/* Orders */}
+                      <Route path="/reports/all-orders" element={<GenericReportPage reportKey="all-orders" />} />
                       <Route path="/reports/order-performance" element={<GenericReportPage reportKey="order-performance" />} />
+                      {/* POS */}
+                      <Route path="/reports/pos-daily-sales" element={<GenericReportPage reportKey="pos-daily-sales" />} />
+                      <Route path="/reports/pos-cash-reconciliation" element={<GenericReportPage reportKey="pos-cash-reconciliation" />} />
+                      <Route path="/reports/pos-cashier-performance" element={<GenericReportPage reportKey="pos-cashier-performance" />} />
+                      <Route path="/reports/pos-cancelled" element={<GenericReportPage reportKey="pos-cancelled" />} />
+                      <Route path="/reports/pos-peak-hours" element={<GenericReportPage reportKey="pos-peak-hours" />} />
+                      {/* Management */}
                       <Route path="/reports/financial-kpi" element={<GenericReportPage reportKey="financial-kpi" />} />
                       <Route path="/reports/month-comparison" element={<GenericReportPage reportKey="month-comparison" />} />
                       <Route path="/customization" element={<CustomizationPage />} />
