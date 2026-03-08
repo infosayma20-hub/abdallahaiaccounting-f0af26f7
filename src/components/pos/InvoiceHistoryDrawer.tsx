@@ -248,13 +248,13 @@ export default function InvoiceHistoryDrawer({
     if (pin.length < 4) { setPinError("أدخل الرمز كاملاً"); return; }
 
     // Check against pos_users with manager/admin role
-    const { data: posUser } = await (supabase
+    const posUserRes = await supabase
       .from("pos_users")
       .select("id, name, role")
       .eq("company_id", dataOwnerId)
-      .eq("pin", pin)
-      .in("role", ["manager", "admin"]) as any)
-      .maybeSingle();
+      .eq("pin", pin);
+    const posUsers = (posUserRes.data || []) as any[];
+    const posUser = posUsers.find((u: any) => u.role === "manager" || u.role === "admin") || null;
 
     if (!posUser) {
       // Fallback: check profiles
