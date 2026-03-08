@@ -1,11 +1,10 @@
-import { useState, useEffect } from "react";
-import { ArrowRight, Loader2, Plus, Package, Search, AlertTriangle, TrendingUp, TrendingDown, Pencil, Trash2, History, X } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { useState, useEffect, useMemo } from "react";
+import { ArrowRight, Loader2, Plus, Package, Search, AlertTriangle, TrendingUp, TrendingDown, Pencil, Trash2, History, X, ArrowUpDown, ChevronLeft, ChevronRight, ClipboardList } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -36,8 +35,8 @@ interface StockMovement {
 
 const DEFAULT_CATEGORIES = ["بضاعة عامة", "مواد خام", "مواد تعبئة", "قطع غيار", "أخرى"];
 const DEFAULT_UNITS = ["قطعة", "كيلو", "لتر", "متر", "علبة", "كرتونة", "طن"];
+const PER_PAGE = 15;
 
-// Category code prefixes for auto-SKU
 const CATEGORY_PREFIXES: Record<string, string> = {
   "بضاعة عامة": "GEN",
   "مواد خام": "RAW",
@@ -45,6 +44,17 @@ const CATEGORY_PREFIXES: Record<string, string> = {
   "قطع غيار": "SPR",
   "أخرى": "OTH",
 };
+
+type SortKey = "name" | "category" | "quantity" | "min_quantity" | "buy_price" | "sell_price" | "sku" | "unit";
+type SortDir = "asc" | "desc";
+
+const stockStatus = (p: Product) => {
+  if (p.quantity === 0) return "نفد";
+  if (p.min_quantity > 0 && p.quantity <= p.min_quantity) return "منخفض";
+  return "متوفر";
+};
+
+const fmtPrice = (n: number) => n === 0 ? "—" : `₪${n.toLocaleString()}`;
 
 const InventoryPage = () => {
   const navigate = useNavigate();
@@ -54,7 +64,8 @@ const InventoryPage = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [filterCategory, setFilterCategory] = useState<string>("all");
+  const [filterCategory, setFilterCategory] = useState("all");
+  const [stockFilter, setStockFilter] = useState("all");
   const [showProductDialog, setShowProductDialog] = useState(false);
   const [showMovementsDialog, setShowMovementsDialog] = useState(false);
   const [movements, setMovements] = useState<StockMovement[]>([]);
@@ -67,23 +78,26 @@ const InventoryPage = () => {
   const [customUnitInput, setCustomUnitInput] = useState("");
   const [showCustomUnit, setShowCustomUnit] = useState(false);
 
-  // Derive unique categories and units from existing products + defaults
-  const CATEGORIES = [...new Set([...DEFAULT_CATEGORIES, ...products.map(p => p.category)])].filter(Boolean);
-  const UNITS = [...new Set([...DEFAULT_UNITS, ...products.map(p => p.unit)])].filter(Boolean);
+  const [sortKey, setSortKey] = useState<SortKey>("name");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
+  const [page, setPage] = useState(1);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+
+  const CATEGORIES = useMemo(() =>
+    [...new Set([...DEFAULT_CATEGORIES, ...products.map(p => p.category)])].filter(Boolean),
+    [products]
+  );
+  const UNITS = useMemo(() =>
+    [...new Set([...DEFAULT_UNITS, ...products.map(p => p.unit)])].filter(Boolean),
+    [products]
+  );
 
   const [form, setForm] = useState({
-    name: "",
-    category: "بضاعة عامة",
-    skuPrefix: "GEN",
-    buy_price: "",
-    sell_price: "",
-    quantity: "",
-    min_quantity: "",
-    unit: "قطعة",
-    notes: "",
+    name: "", category: "بضاعة عامة", skuPrefix: "GEN",
+    buy_price: "", sell_price: "", quantity: "", min_quantity: "",
+    unit: "قطعة", notes: "",
   });
 
-  // Generate auto SKU based on prefix + next sequential number
   const generateSKU = (prefix: string) => {
     const existingWithPrefix = products.filter(p => p.sku?.startsWith(prefix + "-"));
     const maxNum = existingWithPrefix.reduce((max, p) => {
@@ -93,21 +107,16 @@ const InventoryPage = () => {
     return `${prefix}-${String(maxNum + 1).padStart(4, "0")}`;
   };
 
-  const getCategoryPrefix = (category: string): string => {
-    return CATEGORY_PREFIXES[category] || category.substring(0, 3).toUpperCase();
-  };
+  const getCategoryPrefix = (category: string): string =>
+    CATEGORY_PREFIXES[category] || category.substring(0, 3).toUpperCase();
 
   const fetchProducts = async () => {
     if (!user) return;
     setLoading(true);
     const { data, error } = await supabase
-      .from("products")
-      .select("*")
-      .eq("user_id", user.id)
+      .from("products").select("*").eq("user_id", user.id)
       .order("created_at", { ascending: false });
-
     if (error) {
-      console.error(error);
       toast({ title: "خطأ في تحميل المنتجات", variant: "destructive" });
     } else {
       setProducts(data || []);
@@ -115,9 +124,7 @@ const InventoryPage = () => {
     setLoading(false);
   };
 
-  useEffect(() => {
-    fetchProducts();
-  }, [user]);
+  useEffect(() => { fetchProducts(); }, [user]);
 
   const resetForm = () => {
     setForm({ name: "", category: "بضاعة عامة", skuPrefix: "GEN", buy_price: "", sell_price: "", quantity: "", min_quantity: "", unit: "قطعة", notes: "" });
@@ -128,15 +135,10 @@ const InventoryPage = () => {
   const openEdit = (product: Product) => {
     const prefix = product.sku?.split("-")[0] || getCategoryPrefix(product.category);
     setForm({
-      name: product.name,
-      category: product.category,
-      skuPrefix: prefix,
-      buy_price: String(product.buy_price),
-      sell_price: String(product.sell_price),
-      quantity: String(product.quantity),
-      min_quantity: String(product.min_quantity),
-      unit: product.unit,
-      notes: product.notes || "",
+      name: product.name, category: product.category, skuPrefix: prefix,
+      buy_price: String(product.buy_price), sell_price: String(product.sell_price),
+      quantity: String(product.quantity), min_quantity: String(product.min_quantity),
+      unit: product.unit, notes: product.notes || "",
     });
     setSelectedProduct(product);
     setEditMode(true);
@@ -149,45 +151,23 @@ const InventoryPage = () => {
       return;
     }
     setSaving(true);
-
-    const autoSKU = editMode && selectedProduct?.sku 
-      ? selectedProduct.sku 
-      : generateSKU(form.skuPrefix);
-
+    const autoSKU = editMode && selectedProduct?.sku ? selectedProduct.sku : generateSKU(form.skuPrefix);
     const payload = {
-      user_id: user.id,
-      name: form.name.trim(),
-      category: form.category as any,
-      sku: autoSKU,
-      buy_price: parseFloat(form.buy_price) || 0,
-      sell_price: parseFloat(form.sell_price) || 0,
-      quantity: parseFloat(form.quantity) || 0,
-      min_quantity: parseFloat(form.min_quantity) || 0,
-      unit: form.unit,
+      user_id: user.id, name: form.name.trim(), category: form.category as any,
+      sku: autoSKU, buy_price: parseFloat(form.buy_price) || 0,
+      sell_price: parseFloat(form.sell_price) || 0, quantity: parseFloat(form.quantity) || 0,
+      min_quantity: parseFloat(form.min_quantity) || 0, unit: form.unit,
       notes: form.notes.trim() || null,
     };
-
     if (editMode && selectedProduct) {
-      const { error } = await supabase
-        .from("products")
-        .update(payload)
-        .eq("id", selectedProduct.id);
-
-      if (error) {
-        toast({ title: "خطأ في تحديث المنتج", variant: "destructive" });
-      } else {
-        toast({ title: "تم تحديث المنتج ✅" });
-      }
+      const { error } = await supabase.from("products").update(payload).eq("id", selectedProduct.id);
+      if (error) toast({ title: "خطأ في تحديث المنتج", variant: "destructive" });
+      else toast({ title: "تم تحديث المنتج ✅" });
     } else {
       const { error } = await supabase.from("products").insert(payload);
-      if (error) {
-        console.error("Insert product error:", error);
-        toast({ title: "خطأ في إضافة المنتج", description: error.message, variant: "destructive" });
-      } else {
-        toast({ title: "تم إضافة المنتج ✅" });
-      }
+      if (error) toast({ title: "خطأ في إضافة المنتج", description: error.message, variant: "destructive" });
+      else toast({ title: "تم إضافة المنتج ✅" });
     }
-
     setSaving(false);
     setShowProductDialog(false);
     resetForm();
@@ -196,101 +176,190 @@ const InventoryPage = () => {
 
   const handleDelete = async (product: Product) => {
     const { error } = await supabase.from("products").delete().eq("id", product.id);
-    if (error) {
-      toast({ title: "خطأ في حذف المنتج", variant: "destructive" });
-    } else {
-      toast({ title: "تم حذف المنتج 🗑️" });
-      fetchProducts();
-    }
+    if (error) toast({ title: "خطأ في حذف المنتج", variant: "destructive" });
+    else { toast({ title: "تم حذف المنتج 🗑️" }); fetchProducts(); }
   };
 
   const openMovements = async (product: Product) => {
     setSelectedProduct(product);
     setShowMovementsDialog(true);
     setMovementsLoading(true);
-
-    const { data, error } = await supabase
-      .from("stock_movements")
-      .select("*")
-      .eq("product_id", product.id)
+    const { data } = await supabase
+      .from("stock_movements").select("*").eq("product_id", product.id)
       .order("created_at", { ascending: false });
-
     setMovements(data || []);
     setMovementsLoading(false);
   };
 
-  const filtered = products.filter(p => {
-    if (filterCategory !== "all" && p.category !== filterCategory) return false;
-    if (searchQuery && !p.name.includes(searchQuery) && !(p.sku || "").includes(searchQuery)) return false;
-    return true;
-  });
+  // Filtering
+  const filtered = useMemo(() => {
+    let data = [...products];
+    if (filterCategory !== "all") data = data.filter(p => p.category === filterCategory);
+    if (stockFilter === "متوفر") data = data.filter(p => stockStatus(p) === "متوفر");
+    else if (stockFilter === "منخفض") data = data.filter(p => stockStatus(p) === "منخفض");
+    else if (stockFilter === "نفد") data = data.filter(p => stockStatus(p) === "نفد");
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      data = data.filter(p =>
+        p.name.includes(searchQuery) || p.name.toLowerCase().includes(q) ||
+        (p.sku || "").toLowerCase().includes(q) || p.category.includes(searchQuery)
+      );
+    }
+    return data;
+  }, [products, filterCategory, stockFilter, searchQuery]);
 
-  const totalValue = products.reduce((s, p) => s + p.quantity * p.buy_price, 0);
-  const lowStockCount = products.filter(p => p.quantity <= p.min_quantity && p.min_quantity > 0).length;
+  // Sorting
+  const sorted = useMemo(() => {
+    const arr = [...filtered];
+    arr.sort((a, b) => {
+      let av: any = a[sortKey], bv: any = b[sortKey];
+      if (typeof av === "string") { av = av.toLowerCase(); bv = (bv || "").toLowerCase(); }
+      if (av < bv) return sortDir === "asc" ? -1 : 1;
+      if (av > bv) return sortDir === "asc" ? 1 : -1;
+      return 0;
+    });
+    return arr;
+  }, [filtered, sortKey, sortDir]);
+
+  const totalPages = Math.max(1, Math.ceil(sorted.length / PER_PAGE));
+  const paged = sorted.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+
+  useEffect(() => { setPage(1); }, [searchQuery, filterCategory, stockFilter]);
+
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) setSortDir(d => d === "asc" ? "desc" : "asc");
+    else { setSortKey(key); setSortDir("asc"); }
+    setPage(1);
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+  const allPageSelected = paged.length > 0 && paged.every(p => selected.has(p.id));
+  const toggleAllPage = () => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      if (allPageSelected) paged.forEach(p => next.delete(p.id));
+      else paged.forEach(p => next.add(p.id));
+      return next;
+    });
+  };
+
+  // KPI
+  const totalValue = products.reduce((s, p) => s + p.quantity * (p.buy_price || p.sell_price), 0);
+  const lowStock = products.filter(p => stockStatus(p) === "منخفض").length;
+  const outStock = products.filter(p => stockStatus(p) === "نفد").length;
 
   const movementTypeLabel: Record<string, { label: string; color: string; icon: typeof TrendingUp }> = {
     "وارد": { label: "وارد", color: "text-primary", icon: TrendingUp },
     "صادر": { label: "صادر", color: "text-destructive", icon: TrendingDown },
-    "تعديل يدوي": { label: "تعديل", color: "text-warning", icon: Pencil },
+    "تعديل يدوي": { label: "تعديل", color: "text-yellow-600", icon: Pencil },
   };
 
+  const SortHeader = ({ label, field }: { label: string; field: SortKey }) => (
+    <button onClick={() => toggleSort(field)} className="flex items-center gap-1 hover:text-primary-foreground/80 transition-colors w-full">
+      {label}
+      <ArrowUpDown className={`h-3 w-3 ${sortKey === field ? "opacity-100" : "opacity-30"}`} />
+    </button>
+  );
+
   return (
-    <div className="px-4 pt-6 pb-24 space-y-5" dir="rtl">
+    <div className="p-4 md:p-6 pb-24 space-y-5" dir="rtl">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate("/")} className="w-9 h-9 rounded-full bg-muted/60 backdrop-blur-sm flex items-center justify-center hover:bg-muted transition-all duration-200 shadow-sm">
+          <button onClick={() => navigate("/")} className="w-9 h-9 rounded-full bg-muted/60 flex items-center justify-center hover:bg-muted transition-all shadow-sm">
             <ArrowRight className="h-4 w-4 text-muted-foreground" />
           </button>
-          <div>
-            <h1 className="text-xl font-bold text-foreground">المخزون</h1>
-            <p className="text-xs text-muted-foreground">{products.length} منتج</p>
+          <div className="flex items-center gap-2">
+            <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
+              <Package className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-foreground">المخزون</h1>
+              <p className="text-xs text-muted-foreground">{filtered.length} صنف من أصل {products.length}</p>
+            </div>
           </div>
         </div>
-        <Button variant="outline" size="sm" className="gap-1.5 rounded-xl" onClick={() => { resetForm(); setShowProductDialog(true); }}>
+        <Button className="gap-1.5 rounded-xl shadow-md shadow-primary/20" onClick={() => { resetForm(); setShowProductDialog(true); }}>
           <Plus className="h-4 w-4" /> إضافة منتج
         </Button>
       </div>
 
-      {/* Stats */}
+      {/* KPI Cards */}
       {products.length > 0 && (
-        <div className="grid grid-cols-2 gap-3">
-          <div className="rounded-2xl bg-gradient-to-br from-primary/5 to-primary/10 p-4 border border-primary/10">
-            <Package className="h-5 w-5 text-primary mb-1" />
-            <p className="text-lg font-bold text-primary">₪{totalValue.toLocaleString()}</p>
-            <p className="text-[10px] text-primary/70 font-medium">قيمة المخزون (بسعر التكلفة)</p>
-          </div>
-          <div className={`rounded-2xl p-4 border ${lowStockCount > 0 ? "bg-gradient-to-br from-destructive/5 to-destructive/10 border-destructive/10" : "bg-gradient-to-br from-muted/30 to-muted/50 border-border/30"}`}>
-            <AlertTriangle className={`h-5 w-5 mb-1 ${lowStockCount > 0 ? "text-destructive" : "text-muted-foreground"}`} />
-            <p className={`text-lg font-bold ${lowStockCount > 0 ? "text-destructive" : "text-muted-foreground"}`}>{lowStockCount}</p>
-            <p className={`text-[10px] font-medium ${lowStockCount > 0 ? "text-destructive/70" : "text-muted-foreground"}`}>منتجات منخفضة المخزون</p>
-          </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {[
+            { label: "إجمالي الأصناف", value: products.length, icon: Package, color: "text-primary", bg: "bg-primary/5 border-primary/10" },
+            { label: "قيمة المخزون", value: `₪${totalValue.toLocaleString()}`, icon: Package, color: "text-primary", bg: "bg-primary/5 border-primary/10" },
+            { label: "مخزون منخفض", value: lowStock, icon: AlertTriangle, color: "text-yellow-600", bg: "bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-800" },
+            { label: "نفد المخزون", value: outStock, icon: AlertTriangle, color: "text-destructive", bg: "bg-destructive/5 border-destructive/10" },
+          ].map((k, i) => (
+            <div key={i} className={`rounded-2xl border p-4 ${k.bg}`}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-[10px] text-muted-foreground font-medium mb-1">{k.label}</p>
+                  <p className={`text-lg font-bold ${k.color}`}>{k.value}</p>
+                </div>
+                <k.icon className={`h-5 w-5 ${k.color} opacity-50`} />
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
-      {/* Search & Filters */}
+      {/* Toolbar */}
       {products.length > 0 && (
-        <>
+        <div className="space-y-3">
+          {/* Search */}
           <div className="relative">
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 pointer-events-none" />
             <Input
-              placeholder="ابحث باسم المنتج أو الكود..."
+              placeholder="ابحث باسم الصنف أو الكود..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="pr-10 rounded-xl border-border/50 bg-muted/30"
+              className="pr-10 rounded-xl bg-muted/30"
             />
-          </div>
-          <div className="flex gap-2 overflow-x-auto pb-1">
-            <button onClick={() => setFilterCategory("all")} className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${filterCategory === "all" ? "bg-primary text-primary-foreground shadow-md shadow-primary/20" : "bg-muted/50 text-muted-foreground hover:bg-muted"}`}>
-              الكل
-            </button>
-            {CATEGORIES.map(cat => (
-              <button key={cat} onClick={() => setFilterCategory(cat)} className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${filterCategory === cat ? "bg-primary text-primary-foreground shadow-md shadow-primary/20" : "bg-muted/50 text-muted-foreground hover:bg-muted"}`}>
-                {cat}
+            {searchQuery && (
+              <button onClick={() => setSearchQuery("")} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                <X className="h-3.5 w-3.5" />
               </button>
-            ))}
+            )}
           </div>
-        </>
+
+          {/* Category pills + stock filter */}
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex gap-2 overflow-x-auto pb-1 flex-1">
+              <button onClick={() => setFilterCategory("all")} className={`px-4 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${filterCategory === "all" ? "bg-primary text-primary-foreground shadow-sm" : "bg-muted/50 text-muted-foreground hover:bg-muted"}`}>
+                الكل
+              </button>
+              {CATEGORIES.map(cat => (
+                <button key={cat} onClick={() => setFilterCategory(cat)} className={`px-4 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${filterCategory === cat ? "bg-primary text-primary-foreground shadow-sm" : "bg-muted/50 text-muted-foreground hover:bg-muted"}`}>
+                  {cat}
+                </button>
+              ))}
+            </div>
+            <Select value={stockFilter} onValueChange={setStockFilter}>
+              <SelectTrigger className="w-[140px] rounded-xl text-xs">
+                <SelectValue placeholder="حالة المخزون" />
+              </SelectTrigger>
+              <SelectContent className="bg-background z-50">
+                <SelectItem value="all">كل الحالات</SelectItem>
+                <SelectItem value="متوفر">✅ متوفر</SelectItem>
+                <SelectItem value="منخفض">⚠️ منخفض</SelectItem>
+                <SelectItem value="نفد">🔴 نفد</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {selected.size > 0 && (
+            <div className="text-xs text-primary font-semibold">{selected.size} صنف محدد</div>
+          )}
+        </div>
       )}
 
       {/* Loading */}
@@ -300,7 +369,7 @@ const InventoryPage = () => {
         </div>
       )}
 
-      {/* Empty State */}
+      {/* Empty */}
       {!loading && products.length === 0 && (
         <div className="text-center py-16">
           <div className="w-20 h-20 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-4">
@@ -314,58 +383,142 @@ const InventoryPage = () => {
         </div>
       )}
 
-      {/* Product List */}
-      {!loading && filtered.length > 0 && (
-        <div className="space-y-3">
-          {filtered.map(product => {
-            const isLow = product.quantity <= product.min_quantity && product.min_quantity > 0;
-            return (
-              <Card key={product.id} className="border-0 shadow-sm rounded-2xl hover:shadow-md transition-all">
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isLow ? "bg-destructive/10" : "bg-primary/10"}`}>
-                        <Package className={`h-5 w-5 ${isLow ? "text-destructive" : "text-primary"}`} />
-                      </div>
-                      <div>
-                        <p className="text-sm font-bold text-foreground">{product.name}</p>
-                        <p className="text-[10px] text-muted-foreground">
-                          {product.category} {product.sku ? `• ${product.sku}` : ""}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="text-left">
-                      <p className={`text-sm font-bold ${isLow ? "text-destructive" : "text-foreground"}`}>
-                        {product.quantity} {product.unit}
-                      </p>
-                      {isLow && (
-                        <Badge className="text-[9px] px-2 py-0 border-0 bg-destructive/10 text-destructive">
-                          <AlertTriangle className="h-3 w-3 ml-0.5" /> منخفض
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between mt-3">
-                    <div className="flex gap-4 text-[10px] text-muted-foreground">
-                      <span>شراء: ₪{Number(product.buy_price).toLocaleString()}</span>
-                      <span>بيع: ₪{Number(product.sell_price).toLocaleString()}</span>
-                    </div>
-                    <div className="flex gap-1">
-                      <button onClick={() => openMovements(product)} className="p-1.5 rounded-lg hover:bg-muted transition-colors" title="حركات المخزون">
-                        <History className="h-4 w-4 text-muted-foreground" />
-                      </button>
-                      <button onClick={() => openEdit(product)} className="p-1.5 rounded-lg hover:bg-muted transition-colors" title="تعديل">
-                        <Pencil className="h-4 w-4 text-muted-foreground" />
-                      </button>
-                      <button onClick={() => handleDelete(product)} className="p-1.5 rounded-lg hover:bg-destructive/10 transition-colors" title="حذف">
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
+      {/* No results */}
+      {!loading && products.length > 0 && filtered.length === 0 && (
+        <div className="text-center py-12 space-y-2">
+          <Search className="h-10 w-10 text-muted-foreground/20 mx-auto" />
+          <p className="text-sm text-muted-foreground">لا توجد أصناف تطابق البحث</p>
+          <Button variant="ghost" size="sm" onClick={() => { setSearchQuery(""); setFilterCategory("all"); setStockFilter("all"); }}>مسح الفلاتر</Button>
+        </div>
+      )}
+
+      {/* TABLE */}
+      {!loading && paged.length > 0 && (
+        <div className="rounded-2xl border border-border/50 overflow-hidden shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              {/* Header */}
+              <thead>
+                <tr className="bg-primary text-primary-foreground">
+                  <th className="px-3 py-3 text-right w-10">
+                    <Checkbox checked={allPageSelected} onCheckedChange={toggleAllPage} className="border-primary-foreground/50 data-[state=checked]:bg-primary-foreground data-[state=checked]:text-primary" />
+                  </th>
+                  <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="الكود" field="sku" /></th>
+                  <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="اسم الصنف" field="name" /></th>
+                  <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="الفئة" field="category" /></th>
+                  <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="الكمية" field="quantity" /></th>
+                  <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="الحد الأدنى" field="min_quantity" /></th>
+                  <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="سعر الشراء" field="buy_price" /></th>
+                  <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="سعر البيع" field="sell_price" /></th>
+                  <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="الوحدة" field="unit" /></th>
+                  <th className="px-3 py-3 text-right text-xs font-semibold">الحالة</th>
+                  <th className="px-3 py-3 text-right text-xs font-semibold">إجراءات</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paged.map((p, i) => {
+                  const st = stockStatus(p);
+                  const isSelected = selected.has(p.id);
+                  const margin = p.buy_price > 0 && p.sell_price > 0
+                    ? Math.round(((p.sell_price - p.buy_price) / p.sell_price) * 100) : null;
+                  const stStyles = {
+                    "متوفر": "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+                    "منخفض": "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
+                    "نفد": "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+                  }[st];
+                  const dotColor = {
+                    "متوفر": "bg-green-500",
+                    "منخفض": "bg-yellow-500",
+                    "نفد": "bg-red-500",
+                  }[st];
+                  return (
+                    <tr
+                      key={p.id}
+                      className={`border-b border-border/50 transition-colors ${
+                        isSelected ? "bg-primary/5" : i % 2 === 0 ? "bg-background" : "bg-muted/20"
+                      } hover:bg-primary/5`}
+                    >
+                      <td className="px-3 py-3">
+                        <Checkbox checked={isSelected} onCheckedChange={() => toggleSelect(p.id)} />
+                      </td>
+                      <td className="px-3 py-3 text-xs text-muted-foreground font-mono" dir="ltr">{p.sku || "—"}</td>
+                      <td className="px-3 py-3">
+                        <p className="text-sm font-semibold text-foreground">{p.name}</p>
+                      </td>
+                      <td className="px-3 py-3 text-xs text-muted-foreground">{p.category}</td>
+                      <td className="px-3 py-3 text-sm font-bold tabular-nums text-foreground">{p.quantity.toLocaleString()}</td>
+                      <td className="px-3 py-3 text-xs text-muted-foreground tabular-nums">{p.min_quantity}</td>
+                      <td className="px-3 py-3 text-xs tabular-nums">{fmtPrice(p.buy_price)}</td>
+                      <td className="px-3 py-3">
+                        <p className="text-xs tabular-nums">{fmtPrice(p.sell_price)}</p>
+                        {margin !== null && (
+                          <p className={`text-[10px] ${margin > 30 ? "text-green-600" : "text-yellow-600"}`}>هامش {margin}%</p>
+                        )}
+                      </td>
+                      <td className="px-3 py-3 text-xs text-muted-foreground">{p.unit}</td>
+                      <td className="px-3 py-3">
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${stStyles}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${dotColor}`} />
+                          {st}
+                        </span>
+                      </td>
+                      <td className="px-3 py-3">
+                        <div className="flex items-center gap-1">
+                          <button onClick={() => openEdit(p)} className="p-1.5 rounded-lg hover:bg-primary/10 transition-colors" title="تعديل">
+                            <Pencil className="h-3.5 w-3.5 text-primary" />
+                          </button>
+                          <button onClick={() => openMovements(p)} className="p-1.5 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors" title="حركات">
+                            <ClipboardList className="h-3.5 w-3.5 text-green-600" />
+                          </button>
+                          <button onClick={() => handleDelete(p)} className="p-1.5 rounded-lg hover:bg-destructive/10 transition-colors" title="حذف">
+                            <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+              {/* Footer totals */}
+              <tfoot>
+                <tr className="bg-primary/5 border-t-2 border-primary/20 font-bold text-sm">
+                  <td colSpan={4} className="px-3 py-3 text-right text-foreground">المجموع ({filtered.length} صنف)</td>
+                  <td className="px-3 py-3 tabular-nums text-foreground">{filtered.reduce((s, p) => s + p.quantity, 0).toLocaleString()}</td>
+                  <td className="px-3 py-3" />
+                  <td className="px-3 py-3" />
+                  <td className="px-3 py-3 tabular-nums text-foreground">₪{filtered.reduce((s, p) => s + p.sell_price * p.quantity, 0).toLocaleString()}</td>
+                  <td colSpan={3} className="px-3 py-3 text-xs text-muted-foreground font-normal">قيمة البيع الإجمالية</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+
+          {/* Pagination */}
+          {sorted.length > PER_PAGE && (
+            <div className="flex items-center justify-between px-4 py-3 border-t border-border/50 bg-muted/20">
+              <p className="text-xs text-muted-foreground">
+                عرض {Math.min((page - 1) * PER_PAGE + 1, sorted.length)}–{Math.min(page * PER_PAGE, sorted.length)} من {sorted.length}
+              </p>
+              <div className="flex items-center gap-1">
+                <Button variant="outline" size="sm" className="rounded-lg h-8 text-xs" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
+                  <ChevronRight className="h-3.5 w-3.5 ml-1" /> السابق
+                </Button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).slice(
+                  Math.max(0, page - 3), Math.min(totalPages, page + 2)
+                ).map(n => (
+                  <Button key={n} variant={page === n ? "default" : "outline"} size="sm" className="rounded-lg h-8 w-8 text-xs p-0" onClick={() => setPage(n)}>
+                    {n}
+                  </Button>
+                ))}
+                <Button variant="outline" size="sm" className="rounded-lg h-8 text-xs" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>
+                  التالي <ChevronLeft className="h-3.5 w-3.5 mr-1" />
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {selected.size > 0 ? `${selected.size} صنف محدد` : `صفحة ${page} من ${totalPages}`}
+              </p>
+            </div>
+          )}
         </div>
       )}
 
@@ -387,34 +540,14 @@ const InventoryPage = () => {
                 <label className="text-xs text-muted-foreground mb-1 block">التصنيف</label>
                 {showCustomCategory ? (
                   <div className="flex gap-1.5">
-                    <Input
-                      placeholder="اسم التصنيف الجديد"
-                      value={customCategoryInput}
-                      onChange={e => setCustomCategoryInput(e.target.value)}
-                      className="rounded-xl flex-1"
-                      autoFocus
-                    />
-                    <Button
-                      type="button"
-                      size="sm"
-                      className="rounded-xl px-3"
-                      disabled={!customCategoryInput.trim()}
-                      onClick={() => {
-                        const cat = customCategoryInput.trim();
-                        setForm(p => ({ ...p, category: cat, skuPrefix: getCategoryPrefix(cat) }));
-                        setShowCustomCategory(false);
-                        setCustomCategoryInput("");
-                      }}
-                    >
-                      ✓
-                    </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="ghost"
-                      className="rounded-xl px-2"
-                      onClick={() => { setShowCustomCategory(false); setCustomCategoryInput(""); }}
-                    >
+                    <Input placeholder="اسم التصنيف الجديد" value={customCategoryInput} onChange={e => setCustomCategoryInput(e.target.value)} className="rounded-xl flex-1" autoFocus />
+                    <Button type="button" size="sm" className="rounded-xl px-3" disabled={!customCategoryInput.trim()} onClick={() => {
+                      const cat = customCategoryInput.trim();
+                      setForm(p => ({ ...p, category: cat, skuPrefix: getCategoryPrefix(cat) }));
+                      setShowCustomCategory(false);
+                      setCustomCategoryInput("");
+                    }}>✓</Button>
+                    <Button type="button" size="sm" variant="ghost" className="rounded-xl px-2" onClick={() => { setShowCustomCategory(false); setCustomCategoryInput(""); }}>
                       <X className="h-4 w-4" />
                     </Button>
                   </div>
@@ -437,33 +570,13 @@ const InventoryPage = () => {
                 <label className="text-xs text-muted-foreground mb-1 block">الوحدة</label>
                 {showCustomUnit ? (
                   <div className="flex gap-1.5">
-                    <Input
-                      placeholder="اسم الوحدة الجديدة"
-                      value={customUnitInput}
-                      onChange={e => setCustomUnitInput(e.target.value)}
-                      className="rounded-xl flex-1"
-                      autoFocus
-                    />
-                    <Button
-                      type="button"
-                      size="sm"
-                      className="rounded-xl px-3"
-                      disabled={!customUnitInput.trim()}
-                      onClick={() => {
-                        setForm(p => ({ ...p, unit: customUnitInput.trim() }));
-                        setShowCustomUnit(false);
-                        setCustomUnitInput("");
-                      }}
-                    >
-                      ✓
-                    </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="ghost"
-                      className="rounded-xl px-2"
-                      onClick={() => { setShowCustomUnit(false); setCustomUnitInput(""); }}
-                    >
+                    <Input placeholder="اسم الوحدة الجديدة" value={customUnitInput} onChange={e => setCustomUnitInput(e.target.value)} className="rounded-xl flex-1" autoFocus />
+                    <Button type="button" size="sm" className="rounded-xl px-3" disabled={!customUnitInput.trim()} onClick={() => {
+                      setForm(p => ({ ...p, unit: customUnitInput.trim() }));
+                      setShowCustomUnit(false);
+                      setCustomUnitInput("");
+                    }}>✓</Button>
+                    <Button type="button" size="sm" variant="ghost" className="rounded-xl px-2" onClick={() => { setShowCustomUnit(false); setCustomUnitInput(""); }}>
                       <X className="h-4 w-4" />
                     </Button>
                   </div>
@@ -487,13 +600,11 @@ const InventoryPage = () => {
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">كود المنتج (SKU) - تلقائي</label>
               <div className="flex gap-2">
-                <Input 
-                  placeholder="العائلة" 
-                  value={form.skuPrefix} 
-                  onChange={e => setForm(p => ({ ...p, skuPrefix: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").substring(0, 5) }))} 
-                  className="rounded-xl w-24 text-center font-mono" 
-                  dir="ltr" 
-                  maxLength={5}
+                <Input
+                  placeholder="العائلة"
+                  value={form.skuPrefix}
+                  onChange={e => setForm(p => ({ ...p, skuPrefix: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").substring(0, 5) }))}
+                  className="rounded-xl w-24 text-center font-mono" dir="ltr" maxLength={5}
                 />
                 <div className="flex-1 h-9 rounded-xl bg-muted/50 border border-border/50 flex items-center px-3 text-sm text-muted-foreground font-mono" dir="ltr">
                   {editMode && selectedProduct?.sku ? selectedProduct.sku : generateSKU(form.skuPrefix)}
