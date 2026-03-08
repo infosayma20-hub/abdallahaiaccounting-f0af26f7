@@ -70,6 +70,20 @@ const DEFAULT_ACCOUNTS: { code: string; name: string; type: string; parent: stri
   // ═══════════ تكلفة المبيعات والمشتريات (51xx) ═══════════
   { code: "5100", name: "تكلفة البضاعة المباعة", type: "مشتريات", parent: null },
   { code: "5110", name: "المشتريات", type: "مشتريات", parent: "5100" },
+
+  // ═══════════ تكاليف الاستيراد (52xx) ═══════════
+  { code: "5200", name: "تكاليف استيراد", type: "مشتريات", parent: "5100" },
+  { code: "5210", name: "تكاليف شحن", type: "مشتريات", parent: "5200" },
+  { code: "5220", name: "جمارك ورسوم", type: "مشتريات", parent: "5200" },
+  { code: "5230", name: "تكاليف تخليص جمركي", type: "مشتريات", parent: "5200" },
+  { code: "5240", name: "رسوم مرفأ", type: "مشتريات", parent: "5200" },
+  { code: "5250", name: "مكتب خارجي", type: "مشتريات", parent: "5200" },
+  { code: "5260", name: "نقل داخلي", type: "مشتريات", parent: "5200" },
+  { code: "5270", name: "تخزين", type: "مشتريات", parent: "5200" },
+  { code: "5280", name: "تأمين شحن", type: "مشتريات", parent: "5200" },
+  { code: "5290", name: "تكاليف أخرى", type: "مشتريات", parent: "5200" },
+
+  // ═══════════ المصروفات التشغيلية (53xx-59xx) ═══════════
   { code: "5150", name: "رواتب وأجور", type: "مصاريف", parent: null },
   { code: "5300", name: "مصروف إيجار", type: "مصاريف", parent: null },
   { code: "5400", name: "كهرباء وماء", type: "مصاريف", parent: null },
