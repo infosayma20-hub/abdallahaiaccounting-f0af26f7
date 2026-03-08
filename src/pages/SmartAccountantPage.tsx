@@ -393,7 +393,10 @@ const SmartAccountantPage = () => {
         </div>
       </button>
 
-      {/* ═══ 6. ملخص ذكي ═══ */}
+      {/* ═══ 8. المعلم المحاسبي ═══ */}
+      <AccountingTutor />
+
+      {/* ═══ 9. ملخص ذكي ═══ */}
       <SmartDailySummary
         netProfit={netProfit}
         chequesToday={0}
