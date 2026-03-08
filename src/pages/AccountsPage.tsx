@@ -52,7 +52,7 @@ interface Account {
 function getAccountDepth(acc: Account, accountsByCode: Map<string, Account>): number {
   let depth = 0;
   let current = acc;
-  while (current.parent_code && depth < 10) {
+  while (current.parent_code && current.parent_code !== current.account_code && depth < 10) {
     depth++;
     const parent = accountsByCode.get(current.parent_code);
     if (!parent) break;
@@ -62,7 +62,7 @@ function getAccountDepth(acc: Account, accountsByCode: Map<string, Account>): nu
 }
 
 function hasChildAccounts(acc: Account, allAccounts: Account[]): boolean {
-  return allAccounts.some(a => a.parent_code === acc.account_code);
+  return allAccounts.some(a => a.parent_code === acc.account_code && a.account_code !== acc.account_code);
 }
 
 // Build ordered tree from flat list using parent_code
@@ -70,12 +70,12 @@ function buildOrderedTree(accounts: Account[]): Account[] {
   const byCode = new Map<string, Account>();
   accounts.forEach(a => byCode.set(a.account_code, a));
   
-  // Group children by parent
+  // Group children by parent — treat self-referencing parent_code as root
   const childrenOf = new Map<string, Account[]>();
   const roots: Account[] = [];
   
   accounts.forEach(a => {
-    if (!a.parent_code || !byCode.has(a.parent_code)) {
+    if (!a.parent_code || a.parent_code === a.account_code || !byCode.has(a.parent_code)) {
       roots.push(a);
     } else {
       const siblings = childrenOf.get(a.parent_code) || [];
@@ -325,7 +325,7 @@ const AccountsPage = () => {
     // Check if an account or any ancestor is collapsed
     const isHiddenByCollapse = (acc: Account): boolean => {
       let current = acc;
-      while (current.parent_code) {
+      while (current.parent_code && current.parent_code !== current.account_code) {
         if (collapsedGroups.has(current.parent_code)) return true;
         const parent = accountsByCode.get(current.parent_code);
         if (!parent) break;
