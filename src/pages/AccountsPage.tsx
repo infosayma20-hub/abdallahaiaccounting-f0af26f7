@@ -128,12 +128,15 @@ const subCategories: Record<string, SubCategory[]> = {
     { label: "التزامات متداولة", prefixes: ["21"] },
     { label: "التزامات غير متداولة", prefixes: ["22", "23", "24", "25", "26", "27", "28", "29"] },
   ],
+  "Purchases": [
+    { label: "تكلفة المبيعات", prefixes: ["51"] },
+    { label: "تكاليف استيراد", prefixes: ["52"] },
+  ],
   "Expenses": [
-    { label: "مصاريف تشغيلية", prefixes: ["51"] },
-    { label: "إدارية وعمومية", prefixes: ["52", "53", "54", "55"] },
+    { label: "إدارية وعمومية", prefixes: ["51", "52", "53", "54", "55"] },
     { label: "بيعية وتسويقية", prefixes: ["56"] },
     { label: "استهلاكات وإطفاءات", prefixes: ["57"] },
-    { label: "مصاريف أخرى", prefixes: ["58", "59"] },
+    { label: "مصاريف أخرى", prefixes: ["58", "59", "60", "61"] },
   ],
 };
 
