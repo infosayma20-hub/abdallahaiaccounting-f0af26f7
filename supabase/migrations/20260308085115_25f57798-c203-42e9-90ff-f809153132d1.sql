@@ -1,0 +1,1 @@
+ALTER TABLE public.pos_orders ADD COLUMN IF NOT EXISTS transaction_id UUID;
