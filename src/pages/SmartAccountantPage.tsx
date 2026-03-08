@@ -387,7 +387,10 @@ const SmartAccountantPage = () => {
         </div>
       </button>
 
-      {/* ═══ 8. المعلم المحاسبي ═══ */}
+      {/* ═══ 9. قارئ الوثائق ═══ */}
+      <DocumentReader />
+
+      {/* ═══ 10. المعلم المحاسبي ═══ */}
       <AccountingTutor />
 
       {/* ═══ 9. ملخص ذكي ═══ */}
