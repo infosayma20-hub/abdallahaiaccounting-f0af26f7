@@ -220,7 +220,7 @@ const AppsLauncher = () => {
         {/* Title + Search */}
         <div className="flex items-center justify-between mb-6 gap-4 flex-wrap">
           <div>
-            <h2 className="text-2xl font-bold text-foreground" style={{ fontFamily: "serif" }}>
+            <h2 className="text-2xl font-bold text-foreground" style={{ fontFamily: "Tajawal, sans-serif" }}>
               التطبيقات
             </h2>
             <p className="text-sm text-muted-foreground">كل احتياج، تطبيق واحد.</p>
