@@ -56,6 +56,7 @@ import HRPayrollReport from "./pages/reports/HRPayrollReport";
 import HRAttendanceReport from "./pages/reports/HRAttendanceReport";
 import HRLeaveReport from "./pages/reports/HRLeaveReport";
 import HRStaffCostReport from "./pages/reports/HRStaffCostReport";
+import GenericReportPage from "./pages/reports/GenericReportPage";
 import CustomizationPage from "./pages/CustomizationPage";
 import SettingsPage from "./pages/SettingsPage";
 import IndustryTemplatesPage from "./pages/IndustryTemplatesPage";
