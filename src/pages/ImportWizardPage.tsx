@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -13,7 +13,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Package, ChevronLeft, ChevronRight, Upload, Plus, Trash2, Save, Check, FileSpreadsheet, PieChart, ArrowLeft } from "lucide-react";
+import { Package, ChevronLeft, ChevronRight, Upload, Plus, Trash2, Save, Check, FileSpreadsheet, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 
@@ -25,10 +25,12 @@ interface ShipmentItem {
   color: string;
   size_mm: string;
   unit_price_foreign: number;
-  quantity: number;
-  total_price_foreign: number;
-  cbm_per_unit: number;
-  total_cbm: number;
+  quantity: number; // T/QTY = total pieces
+  total_price_foreign: number; // AMT = T/QTY × U/PRICE
+  cbm_per_unit: number; // CBM per carton (manual entry)
+  total_cbm: number; // cbm_per_unit × ctns
+  ctn_qty: number; // qty per carton (reference)
+  ctns: number; // number of cartons (reference)
 }
 
 interface ImportCost {
@@ -64,6 +66,63 @@ const distributionMethods = [
   { value: "equal", label: "متساوٍ" },
 ];
 
+// ═══════ FLEXIBLE COLUMN DETECTION ═══════
+
+function normalizeColumnName(name: string): string {
+  return name
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[_\s]+/g, " ")
+    .trim();
+}
+
+function findColumnIndex(headers: string[], possibleNames: string[]): number {
+  const normalizedHeaders = headers.map(h => h ? normalizeColumnName(String(h)) : "");
+  const normalizedNames = possibleNames.map(normalizeColumnName);
+
+  // Priority 1: Exact match
+  for (const name of normalizedNames) {
+    const idx = normalizedHeaders.indexOf(name);
+    if (idx !== -1) return idx;
+  }
+  // Priority 2: Starts with
+  for (const name of normalizedNames) {
+    const idx = normalizedHeaders.findIndex(h => h.startsWith(name));
+    if (idx !== -1) return idx;
+  }
+  // Priority 3: Contains
+  for (const name of normalizedNames) {
+    const idx = normalizedHeaders.findIndex(h => h.includes(name));
+    if (idx !== -1) return idx;
+  }
+  return -1;
+}
+
+function parseNumericValue(value: unknown): number | null {
+  if (value === null || value === undefined || value === "") return null;
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+
+  let cleaned = value.toString().replace(/\s/g, "").replace(/[R$€¥£]/g, "");
+
+  const lastDot = cleaned.lastIndexOf(".");
+  const lastComma = cleaned.lastIndexOf(",");
+
+  if (lastDot === -1 && lastComma === -1) {
+    const num = parseFloat(cleaned);
+    return isNaN(num) ? null : num;
+  }
+
+  if (lastDot > lastComma) {
+    cleaned = cleaned.replace(/,/g, "");
+  } else if (lastComma > lastDot) {
+    cleaned = cleaned.replace(/\./g, "").replace(",", ".");
+  }
+
+  const num = parseFloat(cleaned);
+  return isNaN(num) ? null : num;
+}
+
 const ImportWizardPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -81,9 +140,11 @@ const ImportWizardPage = () => {
   const [showNewSupplier, setShowNewSupplier] = useState(false);
   const [newSupplierName, setNewSupplierName] = useState("");
   const [addingSupplier, setAddingSupplier] = useState(false);
+  const [supplierInvoiceTotal, setSupplierInvoiceTotal] = useState<number>(0);
 
   // Step 2 state
   const [items, setItems] = useState<ShipmentItem[]>([]);
+  const [autoCalcWarning, setAutoCalcWarning] = useState("");
 
   // Step 3 state
   const [costs, setCosts] = useState<ImportCost[]>([]);
@@ -133,27 +194,21 @@ const ImportWizardPage = () => {
   const totalForeign = items.reduce((s, i) => s + (i.total_price_foreign || 0), 0);
   const totalCBM = items.reduce((s, i) => s + (i.total_cbm || 0), 0);
   const totalLocal = totalForeign * exchangeRate;
+  const totalCtnQty = items.reduce((s, i) => s + (i.ctn_qty || 0), 0);
+  const totalCtns = items.reduce((s, i) => s + (i.ctns || 0), 0);
+
+  // Validation: compare calculated total with supplier invoice total
+  const invoiceTotalMismatch = supplierInvoiceTotal > 0 && Math.abs(totalForeign - supplierInvoiceTotal) > 0.01;
 
   // Costs calculations
   const totalCosts = costs.reduce((s, c) => s + (c.amount_local || 0), 0);
   const totalLanded = totalLocal + totalCosts;
   const costRatio = totalLocal > 0 ? (totalCosts / totalLocal) * 100 : 0;
 
-  // Excel upload handler
+  // ═══════ EXCEL UPLOAD WITH CORRECT COLUMN MAPPING ═══════
   const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    const parseNumber = (value: unknown, fallback = 0) => {
-      if (typeof value === "number") return Number.isFinite(value) ? value : fallback;
-      const cleaned = String(value ?? "")
-        .replace(/[,\s]/g, "")
-        .replace(/[^\d.-]/g, "");
-      const parsed = parseFloat(cleaned);
-      return Number.isFinite(parsed) ? parsed : fallback;
-    };
-
-    const normalize = (v: unknown) => String(v ?? "").toLowerCase().trim();
 
     const reader = new FileReader();
     reader.onload = (evt) => {
@@ -167,75 +222,113 @@ const ImportWizardPage = () => {
           return;
         }
 
-        const headerKeywords: Record<string, string[]> = {
-          model: ["model", "item no", "item#", "sku", "code", "كود"],
-          description: ["description", "desc", "product", "name", "الوصف"],
-          color: ["color", "colour", "اللون"],
-          size: ["size", "dimension", "mm", "الأبعاد"],
-          price: ["ex-works", "unit price", "price", "cost", "سعر"],
-          qty: ["qty", "quantity", "pcs", "الكمية", "عدد"],
-          amount: ["amount", "total", "المبلغ", "الإجمالي"],
-          cbm: ["cbm", "volume", "الحجم"],
-          totalCbm: ["total volume", "total cbm", "إجمالي"],
-        };
+        // Score rows to find header
+        const headerKeywords = [
+          "qty", "quantity", "price", "amount", "description", "desc", "product", "item",
+          "model", "code", "ctn", "ctns", "carton", "cbm", "color", "size", "total",
+          "الكمية", "الوصف", "السعر", "كود"
+        ];
 
         const scoreRow = (row: (string | number)[]) => {
-          const cells = row.map(normalize);
-          return Object.values(headerKeywords).reduce(
-            (score, keys) => score + (cells.some((cell) => keys.some((k) => cell.includes(k))) ? 1 : 0),
-            0
+          const cells = row.map(c => normalizeColumnName(String(c ?? "")));
+          return headerKeywords.reduce(
+            (score, k) => score + (cells.some(cell => cell.includes(k)) ? 1 : 0), 0
           );
         };
 
         const headerIndex = rows
-          .slice(0, Math.min(rows.length, 12))
+          .slice(0, Math.min(rows.length, 15))
           .map((row, idx) => ({ idx, score: scoreRow(row) }))
           .sort((a, b) => b.score - a.score)[0]?.idx ?? 0;
 
-        const headers = (rows[headerIndex] || []).map(normalize);
-        const findCol = (type: keyof typeof headerKeywords, fallback: number) => {
-          const idx = headers.findIndex((h) => headerKeywords[type].some((k) => h.includes(k)));
-          return idx >= 0 ? idx : fallback;
-        };
+        const rawHeaders = (rows[headerIndex] || []).map(h => String(h ?? ""));
 
-        const colMap = {
-          model: findCol("model", 2),
-          description: findCol("description", 3),
-          color: findCol("color", 4),
-          size: findCol("size", 5),
-          price: findCol("price", 6),
-          qty: findCol("qty", 7),
-          amount: findCol("amount", 8),
-          cbm: findCol("cbm", 9),
-          totalCbm: findCol("totalCbm", 10),
-        };
+        // ═══════ FLEXIBLE COLUMN DETECTION ═══════
+        const colModel = findColumnIndex(rawHeaders, ["model", "code", "item no", "item#", "ctn no", "ref", "sku", "كود"]);
+        const colDesc = findColumnIndex(rawHeaders, ["description", "desc", "item", "product", "name", "الوصف"]);
+        const colCtnQty = findColumnIndex(rawHeaders, ["ctn/qty", "qty/ctn", "pcs/ctn", "qty per ctn", "pcs per carton"]);
+        const colCtns = findColumnIndex(rawHeaders, ["ctns", "cartons", "boxes", "cases", "عدد الكرتونات"]);
+        const colTotalQty = findColumnIndex(rawHeaders, ["t/qty", "total qty", "total quantity", "الكمية الإجمالية"]);
+        const colUnitPrice = findColumnIndex(rawHeaders, ["u/price", "unit price", "price", "ex-works", "cost", "سعر"]);
+        const colAmt = findColumnIndex(rawHeaders, ["amt", "amount", "total", "value", "المبلغ", "الإجمالي"]);
+        const colColor = findColumnIndex(rawHeaders, ["color", "colour", "اللون"]);
+        const colSize = findColumnIndex(rawHeaders, ["size", "dimension", "mm", "cm", "الأبعاد"]);
+        const colCbm = findColumnIndex(rawHeaders, ["cbm", "volume", "m3", "الحجم"]);
+
+        // Fallback: if no T/QTY column but we have CTN/QTY and CTNS, we'll compute
+        const hasTotalQtyCol = colTotalQty >= 0;
+        const hasCtnSystem = colCtnQty >= 0 && colCtns >= 0;
+
+        // Also try to detect qty column as fallback (generic "qty" without ctn prefix)
+        let colGenericQty = -1;
+        if (!hasTotalQtyCol && !hasCtnSystem) {
+          colGenericQty = findColumnIndex(rawHeaders, ["qty", "quantity", "pcs", "الكمية", "عدد"]);
+        }
+
+        if (!hasTotalQtyCol && hasCtnSystem) {
+          setAutoCalcWarning("سيتم حساب الكمية الإجمالية تلقائياً: CTN/QTY × CTNS");
+        } else {
+          setAutoCalcWarning("");
+        }
 
         const dataRows = rows.slice(headerIndex + 1);
         const mapped: ShipmentItem[] = dataRows
           .map((row, idx) => {
-            const unitPrice = parseNumber(row[colMap.price]);
-            const qty = Math.max(0, Math.round(parseNumber(row[colMap.qty], 1)));
-            const explicitAmount = parseNumber(row[colMap.amount]);
-            const cbmPerUnit = parseNumber(row[colMap.cbm]);
-            const explicitTotalCbm = parseNumber(row[colMap.totalCbm]);
-            const totalPrice = explicitAmount > 0 ? explicitAmount : unitPrice * qty;
-            const totalCbm = explicitTotalCbm > 0 ? explicitTotalCbm : cbmPerUnit * qty;
+            const getVal = (colIdx: number) => colIdx >= 0 ? row[colIdx] : null;
+            const getNum = (colIdx: number) => colIdx >= 0 ? (parseNumericValue(row[colIdx]) ?? 0) : 0;
+            const getStr = (colIdx: number) => colIdx >= 0 ? String(row[colIdx] ?? "").trim() : "";
+
+            const ctnQty = getNum(colCtnQty);
+            const ctns = getNum(colCtns);
+            const unitPrice = getNum(colUnitPrice);
+
+            // ═══ QUANTITY: Priority T/QTY > CTN/QTY×CTNS > generic qty ═══
+            let totalQtyVal: number;
+            const rawTQty = getVal(colTotalQty);
+            const parsedTQty = parseNumericValue(rawTQty);
+            if (hasTotalQtyCol && parsedTQty !== null && parsedTQty > 0) {
+              totalQtyVal = parsedTQty;
+            } else if (hasCtnSystem && ctnQty > 0 && ctns > 0) {
+              totalQtyVal = ctnQty * ctns;
+            } else if (colGenericQty >= 0) {
+              totalQtyVal = getNum(colGenericQty);
+            } else {
+              totalQtyVal = ctnQty > 0 ? ctnQty : 1;
+            }
+            totalQtyVal = Math.max(0, Math.round(totalQtyVal));
+
+            // ═══ AMOUNT: Priority AMT column > T/QTY × U/PRICE ═══
+            let amtVal: number;
+            const rawAmt = getVal(colAmt);
+            const parsedAmt = parseNumericValue(rawAmt);
+            if (colAmt >= 0 && parsedAmt !== null && parsedAmt > 0) {
+              amtVal = parsedAmt;
+            } else {
+              amtVal = totalQtyVal * unitPrice;
+            }
+
+            // CBM: only from explicit CBM column, default 0
+            const cbmPerUnit = getNum(colCbm);
+            // CBM total = cbm_per_unit × ctns (carton volume, not piece volume)
+            const totalCbmVal = cbmPerUnit * (ctns > 0 ? ctns : 1);
 
             return {
               line_number: idx + 1,
-              model_code: String(row[colMap.model] ?? "").trim(),
-              description_en: String(row[colMap.description] ?? "").trim(),
+              model_code: getStr(colModel),
+              description_en: getStr(colDesc),
               description_ar: "",
-              color: String(row[colMap.color] ?? "").trim(),
-              size_mm: String(row[colMap.size] ?? "").trim(),
+              color: getStr(colColor),
+              size_mm: getStr(colSize),
               unit_price_foreign: unitPrice,
-              quantity: qty,
-              total_price_foreign: totalPrice,
+              quantity: totalQtyVal,
+              total_price_foreign: amtVal,
               cbm_per_unit: cbmPerUnit,
-              total_cbm: totalCbm,
+              total_cbm: totalCbmVal,
+              ctn_qty: Math.round(ctnQty),
+              ctns: Math.round(ctns),
             };
           })
-          .filter((i) => i.model_code || i.description_en || i.total_price_foreign > 0 || i.quantity > 0);
+          .filter(i => i.description_en || i.model_code || i.total_price_foreign > 0 || i.quantity > 0);
 
         if (!mapped.length) {
           toast.error("لم يتم التعرف على أعمدة الملف. جرّب قالب الاستيراد أو راجع أسماء الأعمدة.");
@@ -258,6 +351,7 @@ const ImportWizardPage = () => {
       line_number: prev.length + 1,
       model_code: "", description_en: "", description_ar: "", color: "", size_mm: "",
       unit_price_foreign: 0, quantity: 1, total_price_foreign: 0, cbm_per_unit: 0, total_cbm: 0,
+      ctn_qty: 0, ctns: 1,
     }]);
   };
 
@@ -265,11 +359,21 @@ const ImportWizardPage = () => {
     setItems(prev => prev.map((item, i) => {
       if (i !== idx) return item;
       const updated = { ...item, [field]: value };
+
+      // Recalculate quantity when ctn_qty or ctns change
+      if (field === "ctn_qty" || field === "ctns") {
+        updated.quantity = (updated.ctn_qty || 0) * (updated.ctns || 1);
+        updated.total_price_foreign = updated.quantity * (updated.unit_price_foreign || 0);
+      }
+
+      // Recalculate total when price or quantity change
       if (field === "unit_price_foreign" || field === "quantity") {
         updated.total_price_foreign = (updated.unit_price_foreign || 0) * (updated.quantity || 0);
       }
-      if (field === "cbm_per_unit" || field === "quantity") {
-        updated.total_cbm = (updated.cbm_per_unit || 0) * (updated.quantity || 0);
+
+      // CBM total = cbm_per_unit × ctns (carton-based, NOT piece-based)
+      if (field === "cbm_per_unit" || field === "ctns") {
+        updated.total_cbm = (updated.cbm_per_unit || 0) * (updated.ctns || 1);
       }
       return updated;
     }));
@@ -391,6 +495,8 @@ const ImportWizardPage = () => {
             total_allocated_costs: item.total_allocated_costs,
             landed_cost_total: item.landed_cost_total,
             landed_cost_per_unit: item.landed_cost_per_unit,
+            ctn_qty: item.ctn_qty,
+            ctns: item.ctns,
           }))
         );
         if (itemsErr) throw itemsErr;
@@ -445,6 +551,11 @@ const ImportWizardPage = () => {
     { num: 3, label: "التكاليف" },
     { num: 4, label: "المراجعة" },
   ];
+
+  // Check if any items have color or size data to show those columns
+  const hasColorData = items.some(i => i.color);
+  const hasSizeData = items.some(i => i.size_mm);
+  const hasCtnData = items.some(i => i.ctn_qty > 0 || i.ctns > 0);
 
   return (
     <div className="p-4 md:p-6 space-y-6" dir="rtl">
@@ -534,6 +645,10 @@ const ImportWizardPage = () => {
               <Label>سعر الصرف (₪ لكل {selectedCurrency?.code || "وحدة"})</Label>
               <Input type="number" step="0.0001" value={exchangeRate} onChange={e => setExchangeRate(parseFloat(e.target.value) || 0)} />
             </div>
+            <div className="space-y-2">
+              <Label>إجمالي فاتورة المورد ({selectedCurrency?.code || "—"})</Label>
+              <Input type="number" step="0.01" placeholder="للتحقق من مطابقة البنود" value={supplierInvoiceTotal || ""} onChange={e => setSupplierInvoiceTotal(parseFloat(e.target.value) || 0)} />
+            </div>
           </div>
           <div className="space-y-2">
             <Label>ملاحظات</Label>
@@ -572,6 +687,24 @@ const ImportWizardPage = () => {
             </TabsContent>
           </Tabs>
 
+          {/* Warnings */}
+          {autoCalcWarning && (
+            <div className="flex items-center gap-2 p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg text-sm text-amber-800 dark:text-amber-200">
+              <AlertTriangle className="h-4 w-4 shrink-0" />
+              <span>⚠️ {autoCalcWarning}</span>
+            </div>
+          )}
+
+          {invoiceTotalMismatch && items.length > 0 && (
+            <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-800 dark:text-red-200">
+              <AlertTriangle className="h-4 w-4 shrink-0" />
+              <span>
+                🔴 الإجمالي المحسوب ({fmt(totalForeign)}) لا يتطابق مع إجمالي الفاتورة ({fmt(supplierInvoiceTotal)})
+                — فرق = {fmt(Math.abs(totalForeign - supplierInvoiceTotal))} — تحقق من الكميات قبل المتابعة
+              </span>
+            </div>
+          )}
+
           {items.length > 0 && (
             <div className="overflow-x-auto">
               <Table>
@@ -580,13 +713,15 @@ const ImportWizardPage = () => {
                     <TableHead className="w-10">#</TableHead>
                     <TableHead>كود الموديل</TableHead>
                     <TableHead>الوصف</TableHead>
-                    <TableHead>اللون</TableHead>
-                    <TableHead>الأبعاد</TableHead>
+                    {hasColorData && <TableHead>اللون</TableHead>}
+                    {hasSizeData && <TableHead>الأبعاد</TableHead>}
                     <TableHead>السعر ({selectedCurrency?.code || "—"})</TableHead>
-                    <TableHead>الكمية</TableHead>
-                    <TableHead>الإجمالي</TableHead>
+                    {hasCtnData && <TableHead>كمية/كرتونة</TableHead>}
+                    {hasCtnData && <TableHead>عدد الكرتونات</TableHead>}
+                    <TableHead className="bg-blue-50 dark:bg-blue-950/30 font-bold">الكمية الإجمالية ★</TableHead>
+                    <TableHead className="bg-blue-50 dark:bg-blue-950/30 font-bold">الإجمالي ★</TableHead>
                     <TableHead>CBM/وحدة</TableHead>
-                    <TableHead>CBM</TableHead>
+                    <TableHead>CBM إجمالي</TableHead>
                     <TableHead className="w-10"></TableHead>
                   </TableRow>
                 </TableHeader>
@@ -596,11 +731,15 @@ const ImportWizardPage = () => {
                       <TableCell className="text-xs text-muted-foreground">{item.line_number}</TableCell>
                       <TableCell><Input className="h-8 text-xs w-24" value={item.model_code} onChange={e => updateItem(idx, "model_code", e.target.value)} /></TableCell>
                       <TableCell><Input className="h-8 text-xs w-40" value={item.description_en} onChange={e => updateItem(idx, "description_en", e.target.value)} /></TableCell>
-                      <TableCell><Input className="h-8 text-xs w-20" value={item.color} onChange={e => updateItem(idx, "color", e.target.value)} /></TableCell>
-                      <TableCell><Input className="h-8 text-xs w-28" value={item.size_mm} onChange={e => updateItem(idx, "size_mm", e.target.value)} /></TableCell>
+                      {hasColorData && <TableCell><Input className="h-8 text-xs w-20" value={item.color} onChange={e => updateItem(idx, "color", e.target.value)} /></TableCell>}
+                      {hasSizeData && <TableCell><Input className="h-8 text-xs w-28" value={item.size_mm} onChange={e => updateItem(idx, "size_mm", e.target.value)} /></TableCell>}
                       <TableCell><Input className="h-8 text-xs w-20 font-mono" type="number" value={item.unit_price_foreign} onChange={e => updateItem(idx, "unit_price_foreign", parseFloat(e.target.value) || 0)} /></TableCell>
-                      <TableCell><Input className="h-8 text-xs w-16 font-mono" type="number" value={item.quantity} onChange={e => updateItem(idx, "quantity", parseInt(e.target.value) || 0)} /></TableCell>
-                      <TableCell className="font-mono text-xs font-medium">{fmt(item.total_price_foreign)}</TableCell>
+                      {hasCtnData && <TableCell><Input className="h-8 text-xs w-16 font-mono" type="number" value={item.ctn_qty} onChange={e => updateItem(idx, "ctn_qty", parseInt(e.target.value) || 0)} /></TableCell>}
+                      {hasCtnData && <TableCell><Input className="h-8 text-xs w-16 font-mono" type="number" value={item.ctns} onChange={e => updateItem(idx, "ctns", parseInt(e.target.value) || 0)} /></TableCell>}
+                      <TableCell className="bg-blue-50/50 dark:bg-blue-950/20">
+                        <Input className="h-8 text-xs w-16 font-mono font-bold" type="number" value={item.quantity} onChange={e => updateItem(idx, "quantity", parseInt(e.target.value) || 0)} />
+                      </TableCell>
+                      <TableCell className="bg-blue-50/50 dark:bg-blue-950/20 font-mono text-xs font-bold">{fmt(item.total_price_foreign)}</TableCell>
                       <TableCell><Input className="h-8 text-xs w-16 font-mono" type="number" step="0.01" value={item.cbm_per_unit} onChange={e => updateItem(idx, "cbm_per_unit", parseFloat(e.target.value) || 0)} /></TableCell>
                       <TableCell className="font-mono text-xs">{item.total_cbm.toFixed(2)}</TableCell>
                       <TableCell>
@@ -613,15 +752,18 @@ const ImportWizardPage = () => {
                 </TableBody>
                 <TableFooter>
                   <TableRow>
-                    <TableCell colSpan={6} className="font-bold">الإجمالي</TableCell>
-                    <TableCell className="font-mono font-bold">{totalQty}</TableCell>
-                    <TableCell className="font-mono font-bold">{fmt(totalForeign)} {selectedCurrency?.code}</TableCell>
+                    <TableCell colSpan={hasColorData && hasSizeData ? 5 : hasColorData || hasSizeData ? 4 : 3} className="font-bold">الإجمالي</TableCell>
+                    <TableCell></TableCell>
+                    {hasCtnData && <TableCell className="font-mono font-bold">{totalCtnQty}</TableCell>}
+                    {hasCtnData && <TableCell className="font-mono font-bold">{totalCtns}</TableCell>}
+                    <TableCell className="font-mono font-bold bg-blue-50/50 dark:bg-blue-950/20">{totalQty}</TableCell>
+                    <TableCell className="font-mono font-bold bg-blue-50/50 dark:bg-blue-950/20">{fmt(totalForeign)} {selectedCurrency?.code}</TableCell>
                     <TableCell></TableCell>
                     <TableCell className="font-mono font-bold">{totalCBM.toFixed(2)}</TableCell>
                     <TableCell></TableCell>
                   </TableRow>
                   <TableRow>
-                    <TableCell colSpan={7} className="font-bold">بالشيكل</TableCell>
+                    <TableCell colSpan={hasCtnData ? (hasColorData && hasSizeData ? 10 : hasColorData || hasSizeData ? 9 : 8) : (hasColorData && hasSizeData ? 8 : hasColorData || hasSizeData ? 7 : 6)} className="font-bold">بالشيكل</TableCell>
                     <TableCell colSpan={4} className="font-mono font-bold text-primary">₪ {fmt(totalLocal)}</TableCell>
                   </TableRow>
                 </TableFooter>
