@@ -19,6 +19,7 @@ import JournalEntryPopup from "@/components/JournalEntryPopup";
 import SavedCommands from "@/components/SavedCommands";
 import SmartMemory from "@/components/SmartMemory";
 import FinancialPredictions from "@/components/FinancialPredictions";
+import AccountingTutor from "@/components/AccountingTutor";
 
 interface SummaryStats {
   sales: number;
