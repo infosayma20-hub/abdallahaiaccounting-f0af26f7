@@ -1923,7 +1923,7 @@ const POSPage = () => {
 
         <button
           onClick={() => navigate("/pos/floor-plan")}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors text-xs font-medium"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 text-white/80 hover:text-white hover:bg-white/20 border border-white/20 transition-colors text-xs font-medium"
         >
           <UtensilsCrossed className="h-3 w-3" />
           الطاولات
