@@ -213,6 +213,12 @@ const AccountStatementPage = () => {
         const found = empList.find(e => e.full_name === urlEmployeeName);
         if (found) setSelectedEntityId(found.id);
       }
+
+      // Auto-select account from URL param (code)
+      if (urlAccountCode && allAccounts.length > 0) {
+        const found = allAccounts.find(a => a.account_code === urlAccountCode);
+        if (found) setSelectedEntityId(found.id);
+      }
     } catch (err: any) {
       toast({ title: "خطأ", description: err.message, variant: "destructive" });
     } finally {
