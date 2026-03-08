@@ -47,43 +47,27 @@ const LoadingScreen = ({ demo = false }: { demo?: boolean } = {}) => {
 
       {/* Center content */}
       <div className="relative flex flex-col items-center text-center z-10">
-        {/* ZIDNI wordmark */}
-        <div
+        {/* ZIDNI wordmark — forced LTR */}
+        <h1
+          dir="ltr"
           style={{
-            display: "flex",
-            alignItems: "baseline",
+            direction: "ltr",
+            unicodeBidi: "bidi-override",
+            fontFamily: "Barlow, sans-serif",
+            fontWeight: 800,
+            fontSize: 56,
+            letterSpacing: -1,
+            color: "#FFFFFF",
+            textShadow: "0 0 30px rgba(255,255,255,0.1)",
+            margin: 0,
             animation: "brand-appear 1s cubic-bezier(0.16,1,0.3,1) forwards",
             animationDelay: "200ms",
             opacity: 0,
             transform: "translateY(16px)",
           }}
         >
-          <span
-            style={{
-              fontFamily: "Barlow, sans-serif",
-              fontWeight: 800,
-              fontSize: 68,
-              lineHeight: 1,
-              color: "#C9A84C",
-              textShadow: "0 0 40px rgba(201,168,76,0.4)",
-              letterSpacing: -1,
-            }}
-          >
-            Z
-          </span>
-          <span
-            style={{
-              fontFamily: "Barlow, sans-serif",
-              fontWeight: 800,
-              fontSize: 56,
-              color: "#FFFFFF",
-              textShadow: "0 0 30px rgba(255,255,255,0.1)",
-              letterSpacing: -1,
-            }}
-          >
-            IDNI
-          </span>
-        </div>
+          <span style={{ fontSize: 68, color: "#C9A84C", textShadow: "0 0 40px rgba(201,168,76,0.4)" }}>Z</span>IDNI
+        </h1>
 
         {/* Arabic subtitle */}
         <p
