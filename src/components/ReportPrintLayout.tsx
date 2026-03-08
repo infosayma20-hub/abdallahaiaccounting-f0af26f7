@@ -79,6 +79,16 @@ export function useCompanyInfo(): CompanyInfo {
     name: "", logo_url: "", address: "", phone: "", email: "", website: "", tax_number: "",
   });
 
+  // Try to use CompanyContext for logo
+  let contextLogo: string | null = null;
+  try {
+    const { useCompany } = require("@/hooks/useCompanyContext");
+    const { company } = useCompany();
+    contextLogo = company?.logo_url || null;
+  } catch {
+    // Context not available
+  }
+
   useEffect(() => {
     if (!user) return;
     supabase.from("company_settings" as any)
@@ -90,7 +100,7 @@ export function useCompanyInfo(): CompanyInfo {
           const d = data as any;
           setInfo({
             name: d.company_name || "",
-            logo_url: d.logo_url || "",
+            logo_url: contextLogo || d.logo_url || "",
             address: d.address || "",
             phone: d.phone || "",
             email: d.email || "",
@@ -99,7 +109,26 @@ export function useCompanyInfo(): CompanyInfo {
           });
         }
       });
-  }, [user]);
+
+    // Also check companies table for logo
+    supabase.from("companies")
+      .select("name, logo_url, address, phone, email, tax_number")
+      .eq("owner_id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.logo_url) {
+          setInfo(prev => ({
+            ...prev,
+            name: prev.name || data.name || "",
+            logo_url: prev.logo_url || data.logo_url || "",
+            address: prev.address || data.address || "",
+            phone: prev.phone || data.phone || "",
+            email: prev.email || data.email || "",
+            tax_number: prev.tax_number || data.tax_number || "",
+          }));
+        }
+      });
+  }, [user, contextLogo]);
 
   return info;
 }
