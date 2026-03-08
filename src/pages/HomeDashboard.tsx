@@ -257,7 +257,7 @@ const HomeDashboard = () => {
     .reduce((s, tx) => s + (tx.amount || 0), 0);
   const generalExpenses = plTx.filter(tx => {
     const code = tx.debit_account_code || "";
-    return code.startsWith("5") && !code.startsWith("51") && !code.startsWith("52");
+    return (code.startsWith("5") && !code.startsWith("51") && !code.startsWith("52")) || code.startsWith("6");
   }).reduce((s, tx) => s + (tx.amount || 0), 0);
 
   const netProfit = sales - salesDiscounts - salesReturns - purchases + purchaseDiscounts + purchaseReturns - generalExpenses;

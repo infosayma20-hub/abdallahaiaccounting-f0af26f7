@@ -99,7 +99,7 @@ const isSalesReturnCode = (code: string) => code === "4400";
 const isPurchaseReturnCode = (code: string) => code === "4500";
 const isDiscountEarnedCode = (code: string) => code === "4350";
 const isPurchasesCode = (code: string) => code.startsWith("51") || code.startsWith("52");
-const isExpenseCode = (code: string) => code.startsWith("5") && !code.startsWith("51") && !code.startsWith("52");
+const isExpenseCode = (code: string) => (code.startsWith("5") && !code.startsWith("51") && !code.startsWith("52")) || code.startsWith("6");
 
 // ── Main Component ──
 const ProfitLoss = () => {
