@@ -52,7 +52,7 @@ interface Account {
 function getAccountDepth(acc: Account, accountsByCode: Map<string, Account>): number {
   let depth = 0;
   let current = acc;
-  while (current.parent_code && depth < 10) {
+  while (current.parent_code && current.parent_code !== current.account_code && depth < 10) {
     depth++;
     const parent = accountsByCode.get(current.parent_code);
     if (!parent) break;
