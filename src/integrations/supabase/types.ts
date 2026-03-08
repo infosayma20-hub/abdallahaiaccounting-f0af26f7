@@ -3560,6 +3560,7 @@ export type Database = {
           notes: string | null
           order_number: string | null
           order_type: string | null
+          paid_at: string | null
           payment_currency: string | null
           payment_currency_amount: number | null
           payment_currency_rate: number | null
@@ -3597,6 +3598,7 @@ export type Database = {
           notes?: string | null
           order_number?: string | null
           order_type?: string | null
+          paid_at?: string | null
           payment_currency?: string | null
           payment_currency_amount?: number | null
           payment_currency_rate?: number | null
@@ -3634,6 +3636,7 @@ export type Database = {
           notes?: string | null
           order_number?: string | null
           order_type?: string | null
+          paid_at?: string | null
           payment_currency?: string | null
           payment_currency_amount?: number | null
           payment_currency_rate?: number | null
