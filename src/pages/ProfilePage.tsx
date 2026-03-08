@@ -218,6 +218,15 @@ const ProfilePage = () => {
         { onConflict: "user_id" }
       );
       if (error) throw error;
+
+      // Also sync company name to companies table
+      if (profile.company_name) {
+        await supabase
+          .from("companies")
+          .update({ name: profile.company_name, updated_at: new Date().toISOString() } as any)
+          .eq("owner_id", user.id);
+      }
+
       await refreshCompany();
       toast({ title: "✅ تم حفظ البيانات بنجاح" });
     } catch (err: any) {
@@ -261,10 +270,12 @@ const ProfilePage = () => {
               <img src={company.logo_url} alt={company.name} className="w-full h-full object-contain p-1" />
             ) : (
               <div className="flex flex-col items-center justify-center gap-1">
-                <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ background: "linear-gradient(135deg, #0A2342, #006D8F)" }}>
-                  <span className="text-white font-bold text-xl" style={{ fontFamily: "Barlow, sans-serif" }}>Z</span>
+                <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ background: "linear-gradient(135deg, #00B4D8, #006D8F)" }}>
+                  <span className="text-white font-bold text-xl" style={{ fontFamily: "Tajawal, sans-serif" }}>
+                    {(company.name || profile.company_name || "Z").charAt(0)}
+                  </span>
                 </div>
-                <span className="text-[9px] text-muted-foreground">ACCOUNTING</span>
+                <span className="text-[10px] text-muted-foreground font-medium">{company.name || profile.company_name || "شعار الشركة"}</span>
               </div>
             )}
           </div>
@@ -289,7 +300,7 @@ const ProfilePage = () => {
           </button>
         </div>
         <div className="text-center">
-          <p className="text-base font-bold text-foreground">{profile.company_name || displayName || "مستخدم جديد"}</p>
+          <p className="text-base font-bold text-foreground">{company.name || profile.company_name || displayName || "مستخدم جديد"}</p>
           <p className="text-xs text-muted-foreground flex items-center gap-1 justify-center">
             <Mail className="h-3 w-3" />
             {email}
