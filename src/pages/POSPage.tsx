@@ -21,6 +21,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { ScrollArea } from "@/components/ui/scroll-area";
 import POSReceiptDialog from "@/components/POSReceiptDialog";
 import ShiftSummaryReceipt from "@/components/ShiftSummaryReceipt";
+import InvoiceHistoryDrawer from "@/components/pos/InvoiceHistoryDrawer";
 import CustomerDataModal from "@/components/pos/CustomerDataModal";
 import ModifierModal, { type SelectedModifier } from "@/components/pos/ModifierModal";
 import QuickModifierBar from "@/components/pos/QuickModifierBar";
