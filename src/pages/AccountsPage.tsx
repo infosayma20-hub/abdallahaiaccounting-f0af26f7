@@ -619,7 +619,7 @@ const AccountsPage = () => {
 
                     {/* Row Actions (hover) */}
                     {!isVirtualTypeHeader && (
-                      <div className="hidden sm:flex items-center justify-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="hidden sm:flex items-center justify-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
                         <button 
                           className="p-1 rounded hover:bg-[hsl(210,14%,89%)] dark:hover:bg-muted transition-colors" 
                           title="تعديل"
