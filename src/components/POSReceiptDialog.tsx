@@ -5,6 +5,12 @@ import { Input } from "@/components/ui/input";
 import { Printer, Mail, CheckCircle, Send, Download } from "lucide-react";
 import { toast } from "sonner";
 
+interface ReceiptModifier {
+  group_name: string;
+  option_name: string;
+  extra_price: number;
+}
+
 interface ReceiptItem {
   name: string;
   qty: number;
@@ -12,6 +18,7 @@ interface ReceiptItem {
   discount_pct: number;
   total: number;
   note: string;
+  modifiers?: ReceiptModifier[];
 }
 
 interface ReceiptData {
