@@ -62,7 +62,7 @@ function getAccountDepth(acc: Account, accountsByCode: Map<string, Account>): nu
 }
 
 function hasChildAccounts(acc: Account, allAccounts: Account[]): boolean {
-  return allAccounts.some(a => a.parent_code === acc.account_code);
+  return allAccounts.some(a => a.parent_code === acc.account_code && a.account_code !== acc.account_code);
 }
 
 // Build ordered tree from flat list using parent_code
