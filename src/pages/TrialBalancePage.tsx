@@ -30,7 +30,8 @@ const ACCOUNT_TYPE_ORDER: Record<string, number> = {
   "Liability": 2, "التزامات": 2, "التزام": 2, "خصوم": 2,
   "Owner's Equity": 3, "Equity": 3, "حقوق ملكية": 3, "حقوق الملكية": 3, "رأس مال": 3,
   "Revenue": 4, "إيرادات": 4, "إيراد": 4, "دخل": 4,
-  "Expenses": 5, "مصروفات": 5, "مصروف": 5, "المصروفات": 5,
+  "Purchases": 5, "مشتريات": 5,
+  "Expenses": 6, "مصروفات": 6, "مصروف": 6, "المصروفات": 6, "مصاريف": 6,
 };
 
 const ACCOUNT_TYPE_LABELS: Record<string, string> = {
