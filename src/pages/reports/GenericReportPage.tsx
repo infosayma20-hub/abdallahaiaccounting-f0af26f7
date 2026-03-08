@@ -207,7 +207,7 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
     (lines || []).forEach(l => {
       if (!productMap[l.product_name]) productMap[l.product_name] = { name: l.product_name, qty: 0, revenue: 0, cost: 0 };
       productMap[l.product_name].qty += l.qty;
-      productMap[l.product_name].revenue += l.line_total;
+      productMap[l.product_name].revenue += l.total;
       productMap[l.product_name].cost += (l.cost_price || 0) * l.qty;
     });
     setData(Object.values(productMap).sort((a, b) => b.revenue - a.revenue));
