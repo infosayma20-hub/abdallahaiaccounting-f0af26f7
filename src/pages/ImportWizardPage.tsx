@@ -88,13 +88,35 @@ const ImportWizardPage = () => {
   // Step 3 state
   const [costs, setCosts] = useState<ImportCost[]>([]);
 
-  const { data: contacts = [] } = useQuery({
+  const { data: contacts = [], refetch: refetchContacts } = useQuery({
     queryKey: ["suppliers-for-import"],
     queryFn: async () => {
       const { data } = await supabase.from("contacts").select("id, contact_name").eq("contact_type", "مورد");
       return data || [];
     },
   });
+
+  const handleAddSupplier = async () => {
+    if (!user || !newSupplierName.trim()) return;
+    setAddingSupplier(true);
+    try {
+      const { data, error } = await supabase.from("contacts").insert({
+        user_id: user.id,
+        contact_name: newSupplierName.trim(),
+        contact_type: "مورد",
+      }).select("id").single();
+      if (error) throw error;
+      await refetchContacts();
+      setSupplierId(data.id);
+      setNewSupplierName("");
+      setShowNewSupplier(false);
+      toast.success("تم إضافة المورد بنجاح");
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setAddingSupplier(false);
+    }
+  };
 
   const { data: currencies = [] } = useQuery({
     queryKey: ["currencies-for-import"],
