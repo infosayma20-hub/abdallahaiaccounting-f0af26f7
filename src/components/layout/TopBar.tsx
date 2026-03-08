@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/hooks/useTheme";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useCompany } from "@/hooks/useCompanyContext";
 import { NotificationsPanel, useNotifications } from "@/components/NotificationsPanel";
 import {
   DropdownMenu,
@@ -299,14 +300,33 @@ const ProfileDropdown = ({
 );
 
 /* ═══ Logo ═══ */
-const AppLogo = () => (
-  <div className="flex items-center gap-2.5 flex-shrink-0 cursor-default select-none">
-    <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: "linear-gradient(135deg, #0A2342, #006D8F)" }}>
-      <span className="text-white font-bold text-sm" style={{ fontFamily: "Barlow, sans-serif" }}>Z</span>
-    </div>
-    <span className="text-lg font-semibold text-foreground hidden sm:block whitespace-nowrap" style={{ fontFamily: "Barlow, sans-serif" }}>ZIDNI</span>
-  </div>
-);
+const AppLogo = () => {
+  const { company } = useCompany();
+  const navigate = useNavigate();
+  
+  return (
+    <button
+      onClick={() => navigate("/settings")}
+      className="flex items-center gap-2 px-1.5 py-1 rounded-lg hover:bg-secondary/60 transition-all duration-150 flex-shrink-0 cursor-pointer"
+    >
+      {company.logo_url ? (
+        <img
+          src={company.logo_url}
+          alt={company.name}
+          className="w-9 h-9 rounded-lg object-contain bg-white p-0.5"
+          style={{ border: "1px solid var(--z-border, hsl(var(--border)))" }}
+        />
+      ) : (
+        <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: "linear-gradient(135deg, #0A2342, #006D8F)" }}>
+          <span className="text-white font-bold text-sm" style={{ fontFamily: "Barlow, sans-serif" }}>Z</span>
+        </div>
+      )}
+      <span className="text-sm font-semibold text-foreground hidden sm:block max-w-[140px] truncate whitespace-nowrap" style={{ fontFamily: "Tajawal, sans-serif" }}>
+        {company.name || "ZIDNI"}
+      </span>
+    </button>
+  );
+};
 
 /* ═══ MAIN HEADER ═══ */
 const TopBar = ({ onMenuClick, sidebarCollapsed, onOpenHelpGuide }: TopBarProps) => {

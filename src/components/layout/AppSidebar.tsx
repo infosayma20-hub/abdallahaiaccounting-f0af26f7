@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { ChevronDown, X, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ModuleIcon from "@/components/ModuleIcon";
+import { useCompany } from "@/hooks/useCompanyContext";
 
 interface SidebarProps {
   collapsed: boolean;
@@ -130,6 +131,7 @@ const navSections: NavSection[] = [
 const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarProps) => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { company } = useCompany();
   const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
 
   const isActive = (path?: string) => {
@@ -241,7 +243,7 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
 
   const sidebarContent = (
     <div className="flex flex-col h-full">
-      {/* Logo */}
+      {/* Logo / Brand */}
       <div className={cn(
         "h-16 flex items-center px-4 flex-shrink-0 border-b",
         collapsed && "justify-center px-2"
@@ -250,18 +252,40 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
       >
         {!collapsed ? (
           <div className="flex items-center gap-3 flex-1">
-            <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: "linear-gradient(135deg, #0A2342, #006D8F)" }}>
-              <span className="text-white font-bold text-sm" style={{ fontFamily: "Barlow, sans-serif" }}>Z</span>
-            </div>
+            {company.logo_url ? (
+              <img
+                src={company.logo_url}
+                alt={company.name}
+                className="w-[44px] h-[44px] rounded-[10px] object-contain bg-white p-1 flex-shrink-0"
+                style={{ boxShadow: "var(--z-shadow-sm, 0 2px 8px rgba(10,35,66,0.10))" }}
+              />
+            ) : (
+              <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: "linear-gradient(135deg, #0A2342, #006D8F)" }}>
+                <span className="text-white font-bold text-sm" style={{ fontFamily: "Barlow, sans-serif" }}>Z</span>
+              </div>
+            )}
             <div className="min-w-0">
-              <h1 className="text-[14px] font-bold text-white truncate" style={{ fontFamily: "Barlow, sans-serif" }}>ZIDNI</h1>
-              <p className="text-[10px] text-sidebar-foreground leading-none">نظام إدارة الأعمال</p>
+              <h1 className="text-[14px] font-bold text-white truncate" style={{ fontFamily: "Tajawal, sans-serif" }}>
+                {company.name || "ZIDNI"}
+              </h1>
+              <p className="text-[10px] text-sidebar-foreground leading-none truncate">
+                {company.industry || "نظام إدارة الأعمال"}
+              </p>
             </div>
           </div>
         ) : (
-          <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: "linear-gradient(135deg, #0A2342, #006D8F)" }}>
-            <span className="text-white font-bold text-sm" style={{ fontFamily: "Barlow, sans-serif" }}>Z</span>
-          </div>
+          company.logo_url ? (
+            <img
+              src={company.logo_url}
+              alt={company.name}
+              className="w-9 h-9 rounded-lg object-contain bg-white p-0.5"
+              style={{ boxShadow: "var(--z-shadow-sm, 0 2px 8px rgba(10,35,66,0.10))" }}
+            />
+          ) : (
+            <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: "linear-gradient(135deg, #0A2342, #006D8F)" }}>
+              <span className="text-white font-bold text-sm" style={{ fontFamily: "Barlow, sans-serif" }}>Z</span>
+            </div>
+          )
         )}
       </div>
 

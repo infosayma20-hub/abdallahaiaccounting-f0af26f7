@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { useRoleRedirect } from "@/hooks/useRoleRedirect";
 import { ThemeProvider } from "@/hooks/useTheme";
+import { CompanyProvider } from "@/hooks/useCompanyContext";
 import WebLayout from "./components/layout/WebLayout";
 import HomeDashboard from "./pages/HomeDashboard";
 import SmartAccountantPage from "./pages/SmartAccountantPage";
@@ -120,6 +121,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <AuthProvider>
+            <CompanyProvider>
             <Routes>
               <Route path="/auth" element={<AuthRoute><AuthPage /></AuthRoute>} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />
@@ -203,6 +205,7 @@ const App = () => (
                 </ProtectedRoute>
               } />
             </Routes>
+            </CompanyProvider>
           </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>

@@ -81,24 +81,35 @@ export function useCompanyInfo(): CompanyInfo {
 
   useEffect(() => {
     if (!user) return;
-    supabase.from("company_settings" as any)
-      .select("company_name, logo_url, address, phone, email, website, tax_number")
-      .eq("user_id", user.id)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data) {
-          const d = data as any;
-          setInfo({
-            name: d.company_name || "",
-            logo_url: d.logo_url || "",
-            address: d.address || "",
-            phone: d.phone || "",
-            email: d.email || "",
-            website: d.website || "",
-            tax_number: d.tax_number || "",
-          });
-        }
+
+    const loadInfo = async () => {
+      // Fetch from company_settings
+      const { data: settingsData } = await supabase.from("company_settings" as any)
+        .select("company_name, logo_url, address, phone, email, website, tax_number")
+        .eq("user_id", user.id)
+        .maybeSingle() as any;
+
+      // Fetch from companies table for logo
+      const { data: companyData } = await supabase.from("companies")
+        .select("name, logo_url, address, phone, email, tax_number")
+        .eq("owner_id", user.id)
+        .maybeSingle();
+
+      const s = settingsData as any;
+      const c = companyData as any;
+
+      setInfo({
+        name: s?.company_name || c?.name || "",
+        logo_url: c?.logo_url || s?.logo_url || "",
+        address: s?.address || c?.address || "",
+        phone: s?.phone || c?.phone || "",
+        email: s?.email || c?.email || "",
+        website: s?.website || "",
+        tax_number: s?.tax_number || c?.tax_number || "",
       });
+    };
+
+    loadInfo();
   }, [user]);
 
   return info;
