@@ -21,6 +21,8 @@ import SmartMemory from "@/components/SmartMemory";
 import FinancialPredictions from "@/components/FinancialPredictions";
 import AccountingTutor from "@/components/AccountingTutor";
 import LiveKPICards from "@/components/LiveKPICards";
+import SmartShortcuts from "@/components/SmartShortcuts";
+import DocumentReader from "@/components/DocumentReader";
 
 interface SummaryStats {
   sales: number;
@@ -345,7 +347,13 @@ const SmartAccountantPage = () => {
         <SavedCommands onSelect={(text) => setDbCommand(text)} currentInput={dbCommand} currentTarget="command" />
       </div>
 
-      {/* ═══ 3. ذاكرة المحاسب الذكي ═══ */}
+      {/* ═══ 3. اختصارات ذكية ═══ */}
+      <SmartShortcuts
+        onSendToAssistant={(text) => setInputValue(text)}
+        onSendToCommand={(text) => setDbCommand(text)}
+      />
+
+      {/* ═══ 4. ذاكرة المحاسب الذكي ═══ */}
       <SmartMemory />
 
       {/* ═══ 4. التنبؤات المالية ═══ */}
@@ -379,7 +387,10 @@ const SmartAccountantPage = () => {
         </div>
       </button>
 
-      {/* ═══ 8. المعلم المحاسبي ═══ */}
+      {/* ═══ 9. قارئ الوثائق ═══ */}
+      <DocumentReader />
+
+      {/* ═══ 10. المعلم المحاسبي ═══ */}
       <AccountingTutor />
 
       {/* ═══ 9. ملخص ذكي ═══ */}
