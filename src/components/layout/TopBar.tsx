@@ -31,13 +31,13 @@ const IconButton = ({
     title={title}
     className={cn(
       "relative w-9 h-9 rounded-lg flex items-center justify-center",
-      "text-muted-foreground hover:text-foreground hover:bg-accent/50",
-      "transition-all duration-200 cursor-pointer hover:scale-105",
+      "text-muted-foreground hover:text-foreground hover:bg-secondary",
+      "transition-all duration-150 cursor-pointer",
       className
     )}
   >
     <Icon className="h-[18px] w-[18px]" strokeWidth={1.8} />
-    {badge && <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary ring-2 ring-background" />}
+    {badge && <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-accent ring-2 ring-background" />}
   </button>
 );
 
@@ -63,7 +63,6 @@ const GlobalSearchBar = ({ collapsed, onToggle }: { collapsed: boolean; onToggle
   const [showResults, setShowResults] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 
-  // Search Supabase directly with user_id filter
   useEffect(() => {
     if (!query.trim() || !user) {
       setResults([]);
@@ -96,7 +95,6 @@ const GlobalSearchBar = ({ collapsed, onToggle }: { collapsed: boolean; onToggle
             .limit(8),
         ]);
 
-        // Map transactions
         (txRes.data || []).forEach(tx => {
           found.push({
             id: tx.id,
@@ -108,7 +106,6 @@ const GlobalSearchBar = ({ collapsed, onToggle }: { collapsed: boolean; onToggle
           });
         });
 
-        // Map accounts
         (accRes.data || []).forEach(acc => {
           found.push({
             id: acc.id,
@@ -120,7 +117,6 @@ const GlobalSearchBar = ({ collapsed, onToggle }: { collapsed: boolean; onToggle
           });
         });
 
-        // Map contacts
         (contactsRes.data || []).forEach(c => {
           found.push({
             id: c.id,
@@ -142,7 +138,6 @@ const GlobalSearchBar = ({ collapsed, onToggle }: { collapsed: boolean; onToggle
     return () => clearTimeout(debounceRef.current);
   }, [query, user]);
 
-  // Close on click outside
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
@@ -172,9 +167,9 @@ const GlobalSearchBar = ({ collapsed, onToggle }: { collapsed: boolean; onToggle
   };
 
   const typeColor: Record<string, string> = {
-    transaction: "bg-primary/10 text-primary",
+    transaction: "bg-accent/10 text-accent",
     account: "bg-warning/10 text-warning",
-    contact: "bg-accent text-accent-foreground",
+    contact: "bg-primary/10 text-primary",
   };
 
   const grouped = results.reduce<Record<string, SearchResult[]>>((acc, r) => {
@@ -187,7 +182,7 @@ const GlobalSearchBar = ({ collapsed, onToggle }: { collapsed: boolean; onToggle
       <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 pointer-events-none z-10" strokeWidth={2} />
       {loading && (
         <div className="absolute left-3.5 top-1/2 -translate-y-1/2 z-10">
-          <div className="h-4 w-4 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
+          <div className="h-4 w-4 rounded-full border-2 border-accent/30 border-t-accent animate-spin" />
         </div>
       )}
       {query && !loading && (
@@ -206,18 +201,17 @@ const GlobalSearchBar = ({ collapsed, onToggle }: { collapsed: boolean; onToggle
         onFocus={() => setShowResults(true)}
         placeholder="ابحث عن معاملة، عميل، مورد، حساب..."
         className={cn(
-          "w-full h-10 pr-10 pl-10 rounded-full",
-          "bg-muted/60 border border-transparent",
+          "w-full h-10 pr-10 pl-10 rounded-lg",
+          "bg-secondary border border-border",
           "text-sm text-foreground placeholder:text-muted-foreground/50",
-          "focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/10 focus:bg-background",
-          "hover:bg-muted/80",
-          "transition-all duration-200"
+          "focus:outline-none focus:border-accent focus:ring-[3px] focus:ring-accent/15 focus:bg-background",
+          "transition-all duration-150"
         )}
       />
 
       {/* Results Dropdown */}
       {showResults && query.trim().length > 0 && (
-        <div className="absolute top-full mt-2 w-full bg-card border border-border/60 rounded-xl shadow-xl z-50 max-h-[420px] overflow-y-auto">
+        <div className="absolute top-full mt-2 w-full bg-card border border-border rounded-xl shadow-elevated z-50 max-h-[420px] overflow-y-auto">
           {results.length === 0 && !loading ? (
             <div className="py-8 text-center">
               <Search className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
@@ -225,7 +219,7 @@ const GlobalSearchBar = ({ collapsed, onToggle }: { collapsed: boolean; onToggle
             </div>
           ) : loading && results.length === 0 ? (
             <div className="py-8 text-center">
-              <div className="h-6 w-6 rounded-full border-2 border-primary/30 border-t-primary animate-spin mx-auto mb-2" />
+              <div className="h-6 w-6 rounded-full border-2 border-accent/30 border-t-accent animate-spin mx-auto mb-2" />
               <p className="text-sm text-muted-foreground">جارٍ البحث...</p>
             </div>
           ) : (
@@ -241,9 +235,9 @@ const GlobalSearchBar = ({ collapsed, onToggle }: { collapsed: boolean; onToggle
                   <button
                     key={r.id}
                     onClick={() => handleSelect(r)}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-muted/50 transition-colors text-right"
+                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-secondary transition-colors text-right"
                   >
-                    <div className={`p-1.5 rounded-lg ${typeColor[r.type] || "bg-muted"}`}>
+                    <div className={`p-1.5 rounded-lg ${typeColor[r.type] || "bg-secondary"}`}>
                       <r.icon className="h-3.5 w-3.5" />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -270,18 +264,18 @@ const ProfileDropdown = ({
   <DropdownMenu>
     <DropdownMenuTrigger asChild>
       <button className={cn(
-        "flex items-center gap-2 h-9 px-2.5 rounded-full",
-        "bg-muted/50 hover:bg-muted",
-        "transition-all duration-200 cursor-pointer",
-        "border border-transparent hover:border-border/50"
+        "flex items-center gap-2 h-9 px-2.5 rounded-lg",
+        "bg-secondary hover:bg-secondary/80",
+        "transition-all duration-150 cursor-pointer",
+        "border border-transparent hover:border-border"
       )}>
         <span className="text-[13px] font-medium text-foreground hidden md:block max-w-[140px] truncate">{displayName}</span>
         <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
-          <span className="text-[11px] font-bold text-white leading-none">{initials}</span>
+          <span className="text-[11px] font-bold text-primary-foreground leading-none">{initials}</span>
         </div>
       </button>
     </DropdownMenuTrigger>
-    <DropdownMenuContent align="start" className="w-56 rounded-xl shadow-lg z-50">
+    <DropdownMenuContent align="start" className="w-56 rounded-xl shadow-elevated z-50">
       <div className="px-3 py-2.5">
         <p className="text-sm font-semibold text-foreground">{displayName}</p>
         <p className="text-xs text-muted-foreground">{email}</p>
@@ -307,12 +301,10 @@ const ProfileDropdown = ({
 /* ═══ Logo ═══ */
 const AppLogo = () => (
   <div className="flex items-center gap-2.5 flex-shrink-0 cursor-default select-none">
-    <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center shadow-sm">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-        <path d="M12 2l2.4 7.2L22 12l-7.6 2.8L12 22l-2.4-7.2L2 12l7.6-2.8L12 2z" stroke="white" strokeWidth="2" strokeLinejoin="round" fill="rgba(255,255,255,0.2)" />
-      </svg>
+    <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: "linear-gradient(135deg, #0A2342, #006D8F)" }}>
+      <span className="text-white font-bold text-sm" style={{ fontFamily: "Barlow, sans-serif" }}>Z</span>
     </div>
-    <span className="text-lg font-semibold text-foreground hidden sm:block whitespace-nowrap">عبدالله AI للمحاسبة</span>
+    <span className="text-lg font-semibold text-foreground hidden sm:block whitespace-nowrap" style={{ fontFamily: "Barlow, sans-serif" }}>ZIDNI</span>
   </div>
 );
 
@@ -342,9 +334,9 @@ const TopBar = ({ onMenuClick, sidebarCollapsed, onOpenHelpGuide }: TopBarProps)
   const initials = displayName.split(" ").slice(0, 2).map((w: string) => w[0]).join("");
 
   return (
-    <header className="sticky top-0 z-40 bg-background border-b border-border/40" style={{ boxShadow: "0 1px 2px rgba(0,0,0,0.05)" }}>
-      <div className="h-16 flex items-center gap-4 px-4 sm:px-6">
-        <button onClick={onMenuClick} className="lg:hidden w-9 h-9 rounded-lg flex items-center justify-center hover:bg-accent/50 transition-colors">
+    <header className="sticky top-0 z-40 bg-card border-b border-border" style={{ height: 60 }}>
+      <div className="h-full flex items-center gap-4 px-4 sm:px-6">
+        <button onClick={onMenuClick} className="lg:hidden w-9 h-9 rounded-lg flex items-center justify-center hover:bg-secondary transition-colors">
           <Menu className="h-5 w-5 text-muted-foreground" strokeWidth={1.8} />
         </button>
 
@@ -370,13 +362,13 @@ const TopBar = ({ onMenuClick, sidebarCollapsed, onOpenHelpGuide }: TopBarProps)
           <div className="relative">
             <IconButton icon={Bell} badge={unreadCount > 0} onClick={() => setNotificationsOpen(!notificationsOpen)} title="الإشعارات" />
             {unreadCount > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 rounded-full bg-destructive text-destructive-foreground text-[9px] font-bold flex items-center justify-center px-1 pointer-events-none">{unreadCount > 9 ? "9+" : unreadCount}</span>
+              <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 rounded-full bg-accent text-accent-foreground text-[9px] font-bold flex items-center justify-center px-1 pointer-events-none">{unreadCount > 9 ? "9+" : unreadCount}</span>
             )}
             <NotificationsPanel open={notificationsOpen} onClose={() => setNotificationsOpen(false)} />
           </div>
           <IconButton icon={Settings} onClick={() => navigate("/settings")} title="الإعدادات" className="hidden sm:flex" />
           <IconButton icon={HelpCircle} onClick={onOpenHelpGuide} title="دليل الاستخدام" className="hidden sm:flex" />
-          <div className="w-px h-6 bg-border/60 mx-1.5 hidden sm:block" />
+          <div className="w-px h-6 bg-border mx-1.5 hidden sm:block" />
           <ProfileDropdown displayName={displayName} email={user?.email || ""} initials={initials} onNavigate={navigate} onSignOut={signOut} />
         </div>
       </div>
