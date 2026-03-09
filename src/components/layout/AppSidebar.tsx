@@ -178,19 +178,20 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
   const renderNavItem = (item: NavItem) => {
     const active = isActive(item.path);
     const groupActive = isGroupActive(item);
-    const expanded = expandedGroups.includes(item.label);
+    const expanded = openItem === item.label;
     const hasChildren = item.children && item.children.length > 0;
 
     return (
       <div key={item.label} ref={(el) => { if (el && hasChildren && expanded) { setTimeout(() => { const button = el.querySelector('button'); if (button) button.scrollIntoView({ behavior: "smooth", block: "start" }); }, 50); } }}>
         <button
-          onClick={() => {
+          onClick={(e) => {
+            e.stopPropagation();
             if (hasChildren) {
               if (collapsed) {
                 onToggle();
-                setExpandedGroups((prev) => [...prev, item.label]);
+                setOpenItem(item.label);
               } else {
-                toggleGroup(item.label);
+                setOpenItem(prev => prev === item.label ? null : item.label);
               }
             } else if (item.path) {
               handleNavigate(item.path);
