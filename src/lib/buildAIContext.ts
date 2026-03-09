@@ -42,8 +42,8 @@ export async function buildAIContext(userId: string): Promise<AIFinancialContext
     supabase.from("employees")
       .select("full_name, department")
       .eq("user_id", userId)
-      .eq("status", "active")
-      .limit(20),
+      .eq("status" as any, "active")
+      .limit(20) as any,
   ]);
 
   const txs = txRes.data || [];
