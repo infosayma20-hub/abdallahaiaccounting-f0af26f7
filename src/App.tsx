@@ -84,6 +84,7 @@ import LoadingDemoPage from "./pages/LoadingDemoPage";
 import ImportShipmentsPage from "./pages/ImportShipmentsPage";
 import ImportWizardPage from "./pages/ImportWizardPage";
 import ImportDetailPage from "./pages/ImportDetailPage";
+import BillingPage from "./pages/BillingPage";
 
 const queryClient = new QueryClient();
 
