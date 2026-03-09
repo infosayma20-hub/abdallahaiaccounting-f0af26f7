@@ -167,7 +167,7 @@ const App = () => (
                       <Route path="/contacts/:id" element={<ContactDetailPage />} />
                       <Route path="/export" element={<ExportPage />} />
                       <Route path="/smart-report" element={<SmartReportPage />} />
-                      <Route path="/pricing" element={<PricingPage />} />
+                      {/* pricing is now a public route */}
                       <Route path="/invoices" element={<InvoicesPage />} />
                       <Route path="/inventory" element={<InventoryPage />} />
                       <Route path="/reports" element={<ReportsPage />} />
