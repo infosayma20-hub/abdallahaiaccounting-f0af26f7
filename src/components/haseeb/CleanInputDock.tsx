@@ -219,10 +219,10 @@ const CleanInputDock = ({ onSend, sending }: Props) => {
         }
       } else if (category === 'employee') {
         const { data, error } = await supabase.from('employees').insert({
-          name, user_id: user.id, position: 'موظف', salary: 0, hire_date: new Date().toISOString().split('T')[0],
-        }).select('id, name, position').single();
+          full_name: name, user_id: user.id, job_title: 'موظف', base_salary: 0, hourly_rate: 0, hire_date: new Date().toISOString().split('T')[0], annual_leave_days: 14,
+        }).select('id, full_name, job_title').single();
         if (!error && data) {
-          const newItem: MentionItem = { id: data.id, name: data.name, type: data.position || 'موظف', category: 'employee' };
+          const newItem: MentionItem = { id: data.id, name: data.full_name, type: data.job_title || 'موظف', category: 'employee' };
           setMentionItems(prev => [...prev, newItem]);
           handleMentionSelect(newItem);
           toast({ title: `تمت إضافة "${name}" ✅` });
