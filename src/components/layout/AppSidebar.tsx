@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import React, { useState, useRef, useCallback, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ChevronDown, X, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -141,7 +141,7 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
   const location = useLocation();
   const navigate = useNavigate();
   const { company } = useCompany();
-  const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
+  const [openItem, setOpenItem] = useState<string | null>(null);
 
   const isActive = (path?: string) => {
     if (!path) return false;
@@ -158,11 +158,17 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
 
   const isGroupActive = (item: NavItem) => item.children?.some((c) => isActive(c.path));
 
-  const toggleGroup = (label: string) => {
-    setExpandedGroups((prev) =>
-      prev.includes(label) ? prev.filter((g) => g !== label) : [...prev, label]
-    );
-  };
+  // Auto-open parent based on current route
+  React.useEffect(() => {
+    for (const section of navSections) {
+      for (const item of section.items) {
+        if (item.children?.some((c) => isActive(c.path))) {
+          setOpenItem(item.label);
+          return;
+        }
+      }
+    }
+  }, [location.pathname, location.search]);
 
   const handleNavigate = (path: string) => {
     navigate(path);
@@ -172,19 +178,20 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
   const renderNavItem = (item: NavItem) => {
     const active = isActive(item.path);
     const groupActive = isGroupActive(item);
-    const expanded = expandedGroups.includes(item.label);
+    const expanded = openItem === item.label;
     const hasChildren = item.children && item.children.length > 0;
 
     return (
       <div key={item.label} ref={(el) => { if (el && hasChildren && expanded) { setTimeout(() => { const button = el.querySelector('button'); if (button) button.scrollIntoView({ behavior: "smooth", block: "start" }); }, 50); } }}>
         <button
-          onClick={() => {
+          onClick={(e) => {
+            e.stopPropagation();
             if (hasChildren) {
               if (collapsed) {
                 onToggle();
-                setExpandedGroups((prev) => [...prev, item.label]);
+                setOpenItem(item.label);
               } else {
-                toggleGroup(item.label);
+                setOpenItem(prev => prev === item.label ? null : item.label);
               }
             } else if (item.path) {
               handleNavigate(item.path);
