@@ -125,11 +125,14 @@ export default function TableSelectorBar({
 
   return (
     <div className="flex items-center gap-1.5 px-4 py-2 bg-muted/30 border-b border-border overflow-x-auto scrollbar-thin scrollbar-thumb-muted-foreground/20">
-      {/* Label */}
-      <div className="flex items-center gap-1 text-muted-foreground/60 ml-1 flex-shrink-0">
+      {/* Label — acts as "View All" button */}
+      <button
+        onClick={() => setShowAll(true)}
+        className="flex items-center gap-1 text-muted-foreground/60 ml-1 flex-shrink-0 hover:text-foreground transition-colors"
+      >
         <LayoutGrid className="w-3.5 h-3.5" />
         <span className="text-[11px] font-medium">طاولات</span>
-      </div>
+      </button>
 
       {/* Separator */}
       <div className="w-px h-5 bg-border flex-shrink-0" />
@@ -199,16 +202,6 @@ export default function TableSelectorBar({
         جديد
       </button>
 
-      {/* View all tables button */}
-      {tables.length > 4 && (
-        <button
-          onClick={() => setShowAll(true)}
-          className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-border bg-card text-foreground text-xs font-medium hover:bg-muted transition-all flex-shrink-0"
-        >
-          <List className="w-3.5 h-3.5" />
-          عرض الكل
-        </button>
-      )}
 
       {/* All tables sheet */}
       <AllTablesSheet
