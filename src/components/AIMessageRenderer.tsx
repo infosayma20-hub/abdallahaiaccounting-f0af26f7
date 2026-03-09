@@ -16,10 +16,41 @@ export function AIMessageRenderer({ content, onActionInsert }: Props) {
     return <span style={{ whiteSpace: 'pre-wrap' }}>{parts[0].content}</span>;
   }
 
+  // Map of possible AI-generated routes to actual app routes
+  const routeNormalizationMap: Record<string, string> = {
+    '/sales': '/invoices',
+    '/sales/invoices': '/invoices',
+    '/sales/all': '/invoices',
+    '/all-sales': '/invoices',
+    '/sales/customers': '/contacts',
+    '/sales/receipts': '/receipts',
+    '/purchases': '/transactions',
+    '/purchases/invoices': '/invoices',
+    '/purchases/suppliers': '/contacts',
+    '/accounting': '/transactions',
+    '/accounting/journal': '/transactions',
+    '/accounting/trial-balance': '/trial-balance',
+    '/accounting/statement': '/account-statement',
+    '/accounting/cheques': '/cheques',
+    '/hr': '/employees',
+    '/hr/employees': '/employees',
+    '/hr/payroll': '/reports/hr-payroll',
+    '/hr/attendance': '/hr-attendance',
+    '/settings/billing': '/billing',
+    '/journal': '/transactions',
+    '/statement': '/account-statement',
+    '/customers': '/contacts',
+    '/suppliers': '/contacts',
+    '/dashboard': '/dashboard',
+    '/reports/profit-loss': '/profit-loss',
+    '/reports/balance-sheet': '/balance-sheet',
+  };
+
   const handleAction = (route: string, label: string) => {
     // Routes starting with / → navigate to page
     if (route.startsWith('/')) {
-      navigate(route);
+      const resolvedRoute = routeNormalizationMap[route] || route;
+      navigate(resolvedRoute);
       return;
     }
 
