@@ -38,9 +38,14 @@ const CleanTopBar = ({
     >
       {/* Left: back + title */}
       <div className="flex items-center gap-2.5">
-        <button onClick={onBack} className="w-11 h-11 flex items-center justify-center -mr-2" aria-label="رجوع">
-          <ArrowRight className="h-5 w-5" style={{ color: "#8B9BB4" }} />
-        </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button onClick={onBack} className="w-11 h-11 flex items-center justify-center -mr-2" aria-label="رجوع">
+              <ArrowRight className="h-5 w-5" style={{ color: "#8B9BB4" }} />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom"><p>رجوع</p></TooltipContent>
+        </Tooltip>
         <span className="text-[15px] font-bold" style={{ color: "#0A2342", fontFamily: "Tajawal, sans-serif" }}>
           المحاسب الذكي
         </span>
