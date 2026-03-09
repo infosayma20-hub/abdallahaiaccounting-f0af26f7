@@ -182,54 +182,63 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
     const expanded = openItem === item.label;
     const hasChildren = item.children && item.children.length > 0;
 
+    const navButton = (
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          if (hasChildren) {
+            if (collapsed) {
+              onToggle();
+              setOpenItem(item.label);
+            } else {
+              setOpenItem(prev => prev === item.label ? null : item.label);
+            }
+          } else if (item.path) {
+            handleNavigate(item.path);
+          }
+        }}
+        className={cn(
+          "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-all group relative",
+          active || groupActive
+            ? "text-sidebar-primary"
+            : "text-sidebar-foreground hover:text-sidebar-accent-foreground",
+          collapsed && "justify-center px-2"
+        )}
+        style={
+          active || groupActive
+            ? { background: "rgba(0,180,216,0.08)", borderRight: "3px solid #C9A84C" }
+            : undefined
+        }
+      >
+        <ModuleIcon
+          module={item.module}
+          size="sm"
+          active={active || !!groupActive}
+        />
+        {!collapsed && (
+          <>
+            <span className="flex-1 text-right truncate">{item.label}</span>
+            {hasChildren && (
+              <ChevronDown
+                className={cn(
+                  "h-3.5 w-3.5 opacity-40 transition-transform duration-200",
+                  expanded && "rotate-180"
+                )}
+              />
+            )}
+          </>
+        )}
+      </button>
+    );
+
     return (
       <div key={item.label} ref={(el) => { if (el && hasChildren && expanded) { setTimeout(() => { const button = el.querySelector('button'); if (button) button.scrollIntoView({ behavior: "smooth", block: "start" }); }, 50); } }}>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            if (hasChildren) {
-              if (collapsed) {
-                onToggle();
-                setOpenItem(item.label);
-              } else {
-                setOpenItem(prev => prev === item.label ? null : item.label);
-              }
-            } else if (item.path) {
-              handleNavigate(item.path);
-            }
-          }}
-          className={cn(
-            "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-all group relative",
-            active || groupActive
-              ? "text-sidebar-primary"
-              : "text-sidebar-foreground hover:text-sidebar-accent-foreground",
-            collapsed && "justify-center px-2"
-          )}
-          style={
-            active || groupActive
-              ? { background: "rgba(0,180,216,0.08)", borderRight: "3px solid #C9A84C" }
-              : undefined
-          }
-        >
-          <ModuleIcon
-            module={item.module}
-            size="sm"
-            active={active || !!groupActive}
-          />
-          {!collapsed && (
-            <>
-              <span className="flex-1 text-right truncate">{item.label}</span>
-              {hasChildren && (
-                <ChevronDown
-                  className={cn(
-                    "h-3.5 w-3.5 opacity-40 transition-transform duration-200",
-                    expanded && "rotate-180"
-                  )}
-                />
-              )}
-            </>
-          )}
-        </button>
+        {collapsed ? (
+          <Tooltip>
+            <TooltipTrigger asChild>{navButton}</TooltipTrigger>
+            <TooltipContent side="left"><p>{item.label}</p></TooltipContent>
+          </Tooltip>
+        ) : navButton}
 
         {hasChildren && expanded && !collapsed && (
           <div className="mr-5 mt-0.5 space-y-0.5 pr-3" style={{ borderRight: "1px solid #0A2342" }}>
