@@ -54,21 +54,26 @@ const CleanTopBar = ({
       {/* Right: history + refresh + bell + health + more */}
       <div className="flex items-center gap-1">
         {/* History */}
-        <button
-          onClick={onToggleHistory}
-          className="w-11 h-11 flex items-center justify-center relative"
-          aria-label="سجل المحادثات"
-        >
-          <Clock className="h-5 w-5" style={{ color: "#8B9BB4" }} />
-          {todayConversationCount > 0 && (
-            <span
-              className="absolute -top-0.5 -left-0.5 min-w-[16px] h-4 rounded-full text-[9px] font-bold flex items-center justify-center px-1"
-              style={{ background: "#0A2342", color: "white" }}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={onToggleHistory}
+              className="w-11 h-11 flex items-center justify-center relative"
+              aria-label="سجل المحادثات"
             >
-              {todayConversationCount}
-            </span>
-          )}
-        </button>
+              <Clock className="h-5 w-5" style={{ color: "#8B9BB4" }} />
+              {todayConversationCount > 0 && (
+                <span
+                  className="absolute -top-0.5 -left-0.5 min-w-[16px] h-4 rounded-full text-[9px] font-bold flex items-center justify-center px-1"
+                  style={{ background: "#0A2342", color: "white" }}
+                >
+                  {todayConversationCount}
+                </span>
+              )}
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom"><p>سجل المحادثات</p></TooltipContent>
+        </Tooltip>
 
         {/* Refresh */}
         <button
