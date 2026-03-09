@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { HaseebFinancialData } from "@/pages/SmartAccountantPage";
+import type { ZidniFinancialData } from "@/pages/SmartAccountantPage";
 import { X } from "lucide-react";
 
 interface Props {
