@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { Send, Mic, X, Square, AtSign } from "lucide-react";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 
 type DockState = "idle" | "recording" | "processing";
@@ -324,33 +325,48 @@ const MobileInputDock = ({ onSend, sending, quickChips, userId }: Props) => {
             }}
           />
           {/* @ button inside */}
-          <button
-            className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full flex items-center justify-center"
-            style={{ color: "hsl(var(--accent))" }}
-          >
-            <AtSign className="h-4 w-4" />
-          </button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full flex items-center justify-center"
+                style={{ color: "hsl(var(--accent))" }}
+              >
+                <AtSign className="h-4 w-4" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="top"><p>ذكر جهة أو حساب</p></TooltipContent>
+          </Tooltip>
         </div>
 
         {/* Voice / Send button */}
         {hasText ? (
-          <button
-            onClick={handleTextSend}
-            disabled={sending}
-            className="w-14 h-14 rounded-full flex items-center justify-center flex-shrink-0 active:scale-95 transition-all disabled:opacity-40"
-            style={{ background: "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--zidni-teal-dark)))", boxShadow: "0 4px 14px rgba(10,35,66,0.4)" }}
-          >
-            <Send className="h-5 w-5 text-white" style={{ transform: "scaleX(-1)" }} />
-          </button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={handleTextSend}
+                disabled={sending}
+                className="w-14 h-14 rounded-full flex items-center justify-center flex-shrink-0 active:scale-95 transition-all disabled:opacity-40"
+                style={{ background: "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--zidni-teal-dark)))", boxShadow: "0 4px 14px rgba(10,35,66,0.4)" }}
+              >
+                <Send className="h-5 w-5 text-white" style={{ transform: "scaleX(-1)" }} />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="top"><p>إرسال الرسالة</p></TooltipContent>
+          </Tooltip>
         ) : (
-          <button
-            onTouchStart={startVoiceInput}
-            onMouseDown={startVoiceInput}
-            className="zidni-mic-btn"
-            aria-label="تسجيل صوتي"
-          >
-            <Mic className="h-6 w-6 text-white" />
-          </button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onTouchStart={startVoiceInput}
+                onMouseDown={startVoiceInput}
+                className="zidni-mic-btn"
+                aria-label="تسجيل صوتي"
+              >
+                <Mic className="h-6 w-6 text-white" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="top"><p>تسجيل صوتي</p></TooltipContent>
+          </Tooltip>
         )}
       </div>
     </div>

@@ -4,6 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import SmartCommandBar from "./SmartCommandBar";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 
 type DockState = "idle" | "recording" | "processing";
 
@@ -452,24 +453,34 @@ const CleanInputDock = ({ onSend, sending }: Props) => {
           />
 
           {hasText ? (
-            <button
-              onClick={handleTextSend}
-              disabled={sending}
-              className="rounded-full flex items-center justify-center active:scale-95 transition-all disabled:opacity-40"
-              style={{ width: 48, height: 48, minWidth: 48, minHeight: 48, flexShrink: 0, padding: 0, border: "none", background: "linear-gradient(135deg, #0A2342, #006D8F)", boxShadow: "0 4px 12px rgba(10,35,66,0.35)", boxSizing: "border-box" }}
-            >
-              <Send className="h-5 w-5 text-white" style={{ transform: "scaleX(-1) scaleY(-1)" }} />
-            </button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={handleTextSend}
+                  disabled={sending}
+                  className="rounded-full flex items-center justify-center active:scale-95 transition-all disabled:opacity-40"
+                  style={{ width: 48, height: 48, minWidth: 48, minHeight: 48, flexShrink: 0, padding: 0, border: "none", background: "linear-gradient(135deg, #0A2342, #006D8F)", boxShadow: "0 4px 12px rgba(10,35,66,0.35)", boxSizing: "border-box" }}
+                >
+                  <Send className="h-5 w-5 text-white" style={{ transform: "scaleX(-1) scaleY(-1)" }} />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="top"><p>إرسال الرسالة</p></TooltipContent>
+            </Tooltip>
           ) : (
-            <button
-              onTouchStart={startVoiceInput}
-              onMouseDown={(e) => { e.preventDefault(); startVoiceInput(); }}
-              className="rounded-full flex items-center justify-center active:scale-95 transition-all"
-              style={{ width: 48, height: 48, minWidth: 48, minHeight: 48, flexShrink: 0, padding: 0, border: "none", background: "linear-gradient(135deg, #0A2342, #006D8F)", boxShadow: "0 4px 12px rgba(10,35,66,0.35)", boxSizing: "border-box" }}
-              aria-label="تسجيل صوتي"
-            >
-              <Mic className="h-6 w-6 text-white" />
-            </button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onTouchStart={startVoiceInput}
+                  onMouseDown={(e) => { e.preventDefault(); startVoiceInput(); }}
+                  className="rounded-full flex items-center justify-center active:scale-95 transition-all"
+                  style={{ width: 48, height: 48, minWidth: 48, minHeight: 48, flexShrink: 0, padding: 0, border: "none", background: "linear-gradient(135deg, #0A2342, #006D8F)", boxShadow: "0 4px 12px rgba(10,35,66,0.35)", boxSizing: "border-box" }}
+                  aria-label="تسجيل صوتي"
+                >
+                  <Mic className="h-6 w-6 text-white" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="top"><p>تسجيل صوتي</p></TooltipContent>
+            </Tooltip>
           )}
         </div>
       </div>

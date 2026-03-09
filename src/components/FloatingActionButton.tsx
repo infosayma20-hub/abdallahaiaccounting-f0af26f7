@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Plus, X, Receipt, FileText, Users, TrendingDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 
 const actions = [
   { icon: Receipt, label: "قيد جديد", path: "/", color: "bg-primary text-primary-foreground" },
@@ -31,17 +32,22 @@ const FloatingActionButton = () => {
       </div>
 
       {/* Main FAB */}
-      <button
-        onClick={() => setOpen(!open)}
-        className={`w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-all duration-300 ${
-          open
-            ? "bg-foreground text-background rotate-45 scale-90"
-            : "bg-primary text-primary-foreground scale-100 hover:scale-105"
-        }`}
-        style={{ boxShadow: open ? undefined : "0 4px 20px hsl(152 45% 42% / 0.35)" }}
-      >
-        {open ? <X className="h-6 w-6" /> : <Plus className="h-6 w-6" />}
-      </button>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            onClick={() => setOpen(!open)}
+            className={`w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-all duration-300 ${
+              open
+                ? "bg-foreground text-background rotate-45 scale-90"
+                : "bg-primary text-primary-foreground scale-100 hover:scale-105"
+            }`}
+            style={{ boxShadow: open ? undefined : "0 4px 20px hsl(152 45% 42% / 0.35)" }}
+          >
+            {open ? <X className="h-6 w-6" /> : <Plus className="h-6 w-6" />}
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="top"><p>{open ? "إغلاق" : "إضافة سريعة"}</p></TooltipContent>
+      </Tooltip>
 
       {/* Backdrop */}
       {open && (

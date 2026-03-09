@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { ArrowRight, Bell, MoreVertical, Clock, RefreshCw } from "lucide-react";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 
 interface Props {
   healthScore: number;
@@ -37,9 +38,14 @@ const CleanTopBar = ({
     >
       {/* Left: back + title */}
       <div className="flex items-center gap-2.5">
-        <button onClick={onBack} className="w-11 h-11 flex items-center justify-center -mr-2" aria-label="رجوع">
-          <ArrowRight className="h-5 w-5" style={{ color: "#8B9BB4" }} />
-        </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button onClick={onBack} className="w-11 h-11 flex items-center justify-center -mr-2" aria-label="رجوع">
+              <ArrowRight className="h-5 w-5" style={{ color: "#8B9BB4" }} />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom"><p>رجوع</p></TooltipContent>
+        </Tooltip>
         <span className="text-[15px] font-bold" style={{ color: "#0A2342", fontFamily: "Tajawal, sans-serif" }}>
           المحاسب الذكي
         </span>
@@ -48,64 +54,89 @@ const CleanTopBar = ({
       {/* Right: history + refresh + bell + health + more */}
       <div className="flex items-center gap-1">
         {/* History */}
-        <button
-          onClick={onToggleHistory}
-          className="w-11 h-11 flex items-center justify-center relative"
-          aria-label="سجل المحادثات"
-        >
-          <Clock className="h-5 w-5" style={{ color: "#8B9BB4" }} />
-          {todayConversationCount > 0 && (
-            <span
-              className="absolute -top-0.5 -left-0.5 min-w-[16px] h-4 rounded-full text-[9px] font-bold flex items-center justify-center px-1"
-              style={{ background: "#0A2342", color: "white" }}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={onToggleHistory}
+              className="w-11 h-11 flex items-center justify-center relative"
+              aria-label="سجل المحادثات"
             >
-              {todayConversationCount}
-            </span>
-          )}
-        </button>
+              <Clock className="h-5 w-5" style={{ color: "#8B9BB4" }} />
+              {todayConversationCount > 0 && (
+                <span
+                  className="absolute -top-0.5 -left-0.5 min-w-[16px] h-4 rounded-full text-[9px] font-bold flex items-center justify-center px-1"
+                  style={{ background: "#0A2342", color: "white" }}
+                >
+                  {todayConversationCount}
+                </span>
+              )}
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom"><p>سجل المحادثات</p></TooltipContent>
+        </Tooltip>
 
         {/* Refresh */}
-        <button
-          onClick={onRefreshData}
-          className="w-11 h-11 flex items-center justify-center"
-          aria-label="تحديث البيانات"
-        >
-          <RefreshCw
-            className={`h-4.5 w-4.5 transition-transform ${refreshing ? "animate-spin" : ""}`}
-            style={{ color: "#8B9BB4" }}
-          />
-        </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={onRefreshData}
+              className="w-11 h-11 flex items-center justify-center"
+              aria-label="تحديث البيانات"
+            >
+              <RefreshCw
+                className={`h-4.5 w-4.5 transition-transform ${refreshing ? "animate-spin" : ""}`}
+                style={{ color: "#8B9BB4" }}
+              />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom"><p>تحديث البيانات</p></TooltipContent>
+        </Tooltip>
 
         {/* Notifications bell */}
-        <button
-          onClick={onShowNotifications}
-          className="w-11 h-11 flex items-center justify-center relative"
-          aria-label="تنبيهات"
-        >
-          <Bell className="h-5 w-5" style={{ color: "#8B9BB4" }} />
-          {hasAnomalies && (
-            <span className="absolute top-2.5 right-2.5 w-2 h-2 rounded-full" style={{ background: "#DC2626" }} />
-          )}
-        </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={onShowNotifications}
+              className="w-11 h-11 flex items-center justify-center relative"
+              aria-label="تنبيهات"
+            >
+              <Bell className="h-5 w-5" style={{ color: "#8B9BB4" }} />
+              {hasAnomalies && (
+                <span className="absolute top-2.5 right-2.5 w-2 h-2 rounded-full" style={{ background: "#DC2626" }} />
+              )}
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom"><p>الإشعارات</p></TooltipContent>
+        </Tooltip>
 
         {/* Health score pill */}
-        <button
-          onClick={onShowFinancial}
-          className="flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold"
-          style={{ background: scoreBg, color: scoreColor }}
-        >
-          {scoreLabel} {healthScore}
-        </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={onShowFinancial}
+              className="flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold"
+              style={{ background: scoreBg, color: scoreColor }}
+            >
+              {scoreLabel} {healthScore}
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom"><p>مؤشر الصحة المالية</p></TooltipContent>
+        </Tooltip>
 
         {/* More menu */}
         <div className="relative">
-          <button
-            onClick={() => setShowMenu(!showMenu)}
-            className="w-11 h-11 flex items-center justify-center"
-            aria-label="المزيد"
-          >
-            <MoreVertical className="h-5 w-5" style={{ color: "#8B9BB4" }} />
-          </button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => setShowMenu(!showMenu)}
+                className="w-11 h-11 flex items-center justify-center"
+                aria-label="المزيد"
+              >
+                <MoreVertical className="h-5 w-5" style={{ color: "#8B9BB4" }} />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom"><p>المزيد</p></TooltipContent>
+          </Tooltip>
 
           {showMenu && (
             <>

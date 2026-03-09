@@ -1,4 +1,5 @@
 import { RefreshCw, Settings2, Clock } from "lucide-react";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import type { PeriodType } from "@/hooks/useDashboardData";
 
 interface Props {
@@ -60,22 +61,32 @@ export default function DashboardHeader({ companyName, period, onPeriodChange, l
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
         </div>
 
-        <button
-          onClick={onRefresh}
-          disabled={loading}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/8 text-white/70 hover:bg-white/15 text-[11px] font-medium transition-all disabled:opacity-40"
-        >
-          <RefreshCw className={`h-3 w-3 ${loading ? "animate-spin" : ""}`} />
-          تحديث
-        </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={onRefresh}
+              disabled={loading}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/8 text-white/70 hover:bg-white/15 text-[11px] font-medium transition-all disabled:opacity-40"
+            >
+              <RefreshCw className={`h-3 w-3 ${loading ? "animate-spin" : ""}`} />
+              تحديث
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom"><p>تحديث البيانات</p></TooltipContent>
+        </Tooltip>
 
-        <button
-          onClick={onCustomize}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/8 text-white/70 hover:bg-white/15 text-[11px] font-medium transition-all"
-        >
-          <Settings2 className="h-3 w-3" />
-          تخصيص
-        </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={onCustomize}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/8 text-white/70 hover:bg-white/15 text-[11px] font-medium transition-all"
+            >
+              <Settings2 className="h-3 w-3" />
+              تخصيص
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom"><p>تخصيص لوحة المعلومات</p></TooltipContent>
+        </Tooltip>
       </div>
     </div>
   );

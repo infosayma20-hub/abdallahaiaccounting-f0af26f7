@@ -4,6 +4,7 @@ import { ChevronDown, X, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ModuleIcon from "@/components/ModuleIcon";
 import { useCompany } from "@/hooks/useCompanyContext";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 
 interface SidebarProps {
   collapsed: boolean;
@@ -181,55 +182,63 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
     const expanded = openItem === item.label;
     const hasChildren = item.children && item.children.length > 0;
 
+    const navButton = (
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          if (hasChildren) {
+            if (collapsed) {
+              onToggle();
+              setOpenItem(item.label);
+            } else {
+              setOpenItem(prev => prev === item.label ? null : item.label);
+            }
+          } else if (item.path) {
+            handleNavigate(item.path);
+          }
+        }}
+        className={cn(
+          "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-all group relative",
+          active || groupActive
+            ? "text-sidebar-primary"
+            : "text-sidebar-foreground hover:text-sidebar-accent-foreground",
+          collapsed && "justify-center px-2"
+        )}
+        style={
+          active || groupActive
+            ? { background: "rgba(0,180,216,0.08)", borderRight: "3px solid #C9A84C" }
+            : undefined
+        }
+      >
+        <ModuleIcon
+          module={item.module}
+          size="sm"
+          active={active || !!groupActive}
+        />
+        {!collapsed && (
+          <>
+            <span className="flex-1 text-right truncate">{item.label}</span>
+            {hasChildren && (
+              <ChevronDown
+                className={cn(
+                  "h-3.5 w-3.5 opacity-40 transition-transform duration-200",
+                  expanded && "rotate-180"
+                )}
+              />
+            )}
+          </>
+        )}
+      </button>
+    );
+
     return (
       <div key={item.label} ref={(el) => { if (el && hasChildren && expanded) { setTimeout(() => { const button = el.querySelector('button'); if (button) button.scrollIntoView({ behavior: "smooth", block: "start" }); }, 50); } }}>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            if (hasChildren) {
-              if (collapsed) {
-                onToggle();
-                setOpenItem(item.label);
-              } else {
-                setOpenItem(prev => prev === item.label ? null : item.label);
-              }
-            } else if (item.path) {
-              handleNavigate(item.path);
-            }
-          }}
-          className={cn(
-            "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-all group relative",
-            active || groupActive
-              ? "text-sidebar-primary"
-              : "text-sidebar-foreground hover:text-sidebar-accent-foreground",
-            collapsed && "justify-center px-2"
-          )}
-          style={
-            active || groupActive
-              ? { background: "rgba(0,180,216,0.08)", borderRight: "3px solid #C9A84C" }
-              : undefined
-          }
-          title={collapsed ? item.label : undefined}
-        >
-          <ModuleIcon
-            module={item.module}
-            size="sm"
-            active={active || !!groupActive}
-          />
-          {!collapsed && (
-            <>
-              <span className="flex-1 text-right truncate">{item.label}</span>
-              {hasChildren && (
-                <ChevronDown
-                  className={cn(
-                    "h-3.5 w-3.5 opacity-40 transition-transform duration-200",
-                    expanded && "rotate-180"
-                  )}
-                />
-              )}
-            </>
-          )}
-        </button>
+        {collapsed ? (
+          <Tooltip>
+            <TooltipTrigger asChild>{navButton}</TooltipTrigger>
+            <TooltipContent side="left"><p>{item.label}</p></TooltipContent>
+          </Tooltip>
+        ) : navButton}
 
         {hasChildren && expanded && !collapsed && (
           <div className="mr-5 mt-0.5 space-y-0.5 pr-3" style={{ borderRight: "1px solid #0A2342" }}>
@@ -324,27 +333,53 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
 
       {/* Bottom */}
       <div className="py-3 px-3 space-y-0.5" style={{ borderTop: "1px solid #0A2342" }}>
-        <button
-          onClick={() => handleNavigate("/settings")}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium text-sidebar-foreground hover:text-sidebar-accent-foreground transition-all"
-          title={collapsed ? "الإعدادات" : undefined}
-        >
-          <ModuleIcon module="settings" size="sm" />
-          {!collapsed && <span className="flex-1 text-right truncate">الإعدادات</span>}
-        </button>
-        <button
-          onClick={onToggle}
-          className="hidden lg:flex w-full items-center gap-3 px-3 py-2 rounded-lg text-[13px] text-sidebar-foreground/60 hover:text-sidebar-foreground transition-all"
-        >
-          {collapsed ? (
-            <PanelLeftOpen className="h-5 w-5 mx-auto" strokeWidth={1.8} />
-          ) : (
-            <>
-              <PanelLeftClose className="h-5 w-5" strokeWidth={1.8} />
-              <span>طي القائمة</span>
-            </>
-          )}
-        </button>
+        {collapsed ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => handleNavigate("/settings")}
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium text-sidebar-foreground hover:text-sidebar-accent-foreground transition-all justify-center px-2"
+              >
+                <ModuleIcon module="settings" size="sm" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="left"><p>الإعدادات</p></TooltipContent>
+          </Tooltip>
+        ) : (
+          <button
+            onClick={() => handleNavigate("/settings")}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium text-sidebar-foreground hover:text-sidebar-accent-foreground transition-all"
+          >
+            <ModuleIcon module="settings" size="sm" />
+            <span className="flex-1 text-right truncate">الإعدادات</span>
+          </button>
+        )}
+        {collapsed ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={onToggle}
+                className="hidden lg:flex w-full items-center gap-3 px-3 py-2 rounded-lg text-[13px] text-sidebar-foreground/60 hover:text-sidebar-foreground transition-all justify-center"
+              >
+                <PanelLeftOpen className="h-5 w-5 mx-auto" strokeWidth={1.8} />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="left"><p>فتح القائمة</p></TooltipContent>
+          </Tooltip>
+        ) : (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={onToggle}
+                className="hidden lg:flex w-full items-center gap-3 px-3 py-2 rounded-lg text-[13px] text-sidebar-foreground/60 hover:text-sidebar-foreground transition-all"
+              >
+                <PanelLeftClose className="h-5 w-5" strokeWidth={1.8} />
+                <span>طي القائمة</span>
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="left"><p>طي القائمة</p></TooltipContent>
+          </Tooltip>
+        )}
       </div>
     </div>
   );
@@ -366,12 +401,17 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
         )}
         style={{ transform: mobileOpen ? "translateX(0)" : "translateX(100%)" }}
       >
-        <button
-          onClick={onMobileClose}
-          className="absolute top-4 left-4 w-8 h-8 rounded-lg flex items-center justify-center text-sidebar-foreground hover:text-white transition-colors"
-        >
-          <X className="h-4 w-4" />
-        </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={onMobileClose}
+              className="absolute top-4 left-4 w-8 h-8 rounded-lg flex items-center justify-center text-sidebar-foreground hover:text-white transition-colors"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom"><p>إغلاق القائمة</p></TooltipContent>
+        </Tooltip>
         {sidebarContent}
       </aside>
 

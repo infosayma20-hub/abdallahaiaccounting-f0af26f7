@@ -6,6 +6,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 
 export interface QuickAction {
   id: string;
@@ -95,22 +96,31 @@ const QuickActionsBar = ({ onAction, isMobile, onShowShortcuts }: QuickActionsBa
           </div>
           <div className="flex items-center gap-1">
             {!isMobile && onShowShortcuts && (
-              <button
-                onClick={onShowShortcuts}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-secondary/60 transition-colors text-muted-foreground"
-                title="اختصارات لوحة المفاتيح"
-              >
-                <Keyboard className="h-3.5 w-3.5" />
-                <span className="text-[11px]">⌨️</span>
-              </button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={onShowShortcuts}
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-secondary/60 transition-colors text-muted-foreground"
+                  >
+                    <Keyboard className="h-3.5 w-3.5" />
+                    <span className="text-[11px]">⌨️</span>
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom"><p>اختصارات لوحة المفاتيح</p></TooltipContent>
+              </Tooltip>
             )}
-            <button
-              onClick={() => setShowCustomize(true)}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-secondary/60 transition-colors text-muted-foreground"
-            >
-              <Settings2 className="h-3.5 w-3.5" />
-              <span className="text-[11px]">تخصيص</span>
-            </button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => setShowCustomize(true)}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-secondary/60 transition-colors text-muted-foreground"
+                >
+                  <Settings2 className="h-3.5 w-3.5" />
+                  <span className="text-[11px]">تخصيص</span>
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom"><p>تخصيص الاختصارات</p></TooltipContent>
+            </Tooltip>
           </div>
         </div>
 
