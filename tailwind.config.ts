@@ -137,6 +137,10 @@ export default {
           from: { opacity: "0", transform: "translateY(8px)" },
           to: { opacity: "1", transform: "translateY(0)" },
         },
+        "pulse-subtle": {
+          "0%, 100%": { opacity: "1" },
+          "50%": { opacity: "0.85" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -145,6 +149,7 @@ export default {
         "sound-wave": "sound-wave 0.8s ease-in-out infinite",
         "fade-in": "fade-in 0.3s ease-out",
         "slide-up": "slide-up 0.3s ease-out",
+        "pulse-subtle": "pulse-subtle 2s ease-in-out infinite",
       },
     },
   },
