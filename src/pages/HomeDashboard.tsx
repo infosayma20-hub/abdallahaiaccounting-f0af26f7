@@ -1,54 +1,31 @@
-import { useState, useEffect, useCallback } from "react";
-import { getAuthHeaders, getAuthHeadersJson } from "@/lib/edge-helpers";
-import {
-  FileText, Receipt, Users, Package, Wallet, Landmark,
-  TrendingUp, Loader2,
-  Sparkles, Send, Mic, AlertTriangle, Clock, ChevronLeft,
-  BookOpen, Database, ClipboardList, EyeOff, Eye, X, Keyboard,
-} from "lucide-react";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useState, useEffect } from "react";
+import { Loader2, Clock, EyeOff, Eye, Keyboard, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useToast } from "@/hooks/use-toast";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { useDashboardData } from "@/hooks/useDashboardData";
 
-import SmartAlertCard from "@/components/SmartAlertCard";
-import CustomizableKPICards from "@/components/CustomizableKPICards";
-import SmartDailySummary from "@/components/SmartDailySummary";
-import MentionInput, { MentionItem } from "@/components/MentionInput";
-import TransactionToast, { useTransactionToast } from "@/components/TransactionToast";
-import ChequeDetailsDialog, { ChequeLineItem } from "@/components/ChequeDetailsDialog";
-import JournalEntryPopup from "@/components/JournalEntryPopup";
-import SavedCommands from "@/components/SavedCommands";
+import DashboardHeader from "@/components/dashboard/DashboardHeader";
+import KPIMegaRow from "@/components/dashboard/KPIMegaRow";
+import RevenueExpenseChart from "@/components/dashboard/RevenueExpenseChart";
+import FinancialHealthWidget from "@/components/dashboard/FinancialHealthWidget";
+import CashFlowWidget from "@/components/dashboard/CashFlowWidget";
+import AgingWidget from "@/components/dashboard/AgingWidget";
+import RecentActivityWidget from "@/components/dashboard/RecentActivityWidget";
+import ChequesCalendarWidget from "@/components/dashboard/ChequesCalendarWidget";
+import InventoryPulseWidget from "@/components/dashboard/InventoryPulseWidget";
+import QuickActionsBar from "@/components/QuickActionsBar";
 import SetupWizard from "@/components/SetupWizard";
 import CompleteProfileDialog from "@/components/CompleteProfileDialog";
 import HelpGuideModal from "@/components/HelpGuideModal";
-import SmartReportWidget from "@/components/SmartReportWidget";
-import TransactionBuilder, { TransactionBuilderData } from "@/components/TransactionBuilder";
-import QuickActionsBar from "@/components/QuickActionsBar";
+import JournalEntryPopup from "@/components/JournalEntryPopup";
 import AccountStatementModal from "@/components/AccountStatementModal";
 import ContactStatementModal from "@/components/ContactStatementModal";
-import { AnimatePresence } from "framer-motion";
-
-interface TransactionRecord {
-  id: string;
-  amount: number;
-  currency: string;
-  transaction_type: string;
-  credit_account_code: string;
-  debit_account_code: string;
-  description: string;
-  transaction_date: string;
-  is_opening_balance: boolean;
-  contact_id: string | null;
-}
-
-// createActions moved to QuickActionsBar component
 
 // ─── Shortcuts Help Dialog ───
 const ShortcutsHelpDialog = ({ open, onClose }: { open: boolean; onClose: () => void }) => {
   if (!open) return null;
-
   const shortcuts = [
     { key: 'F1', label: 'سند قبض', icon: '🏦' },
     { key: 'F2', label: 'سند صرف', icon: '💸' },
@@ -61,14 +38,10 @@ const ShortcutsHelpDialog = ({ open, onClose }: { open: boolean; onClose: () => 
     { key: 'Esc', label: 'إغلاق النوافذ', icon: '✕' },
     { key: '?', label: 'عرض / إخفاء هذه النافذة', icon: '⌨️' },
   ];
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center" dir="rtl">
       <div className="fixed inset-0 bg-background/80 backdrop-blur-sm" onClick={onClose} />
-      <div
-        className="relative w-full max-w-md mx-4 bg-card rounded-2xl border border-border/50 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="relative w-full max-w-md mx-4 bg-card rounded-2xl border border-border/50 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between p-5 border-b border-border/30">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-lg">⌨️</div>
@@ -81,7 +54,6 @@ const ShortcutsHelpDialog = ({ open, onClose }: { open: boolean; onClose: () => 
             <X className="h-4 w-4 text-muted-foreground" />
           </button>
         </div>
-
         <div className="p-4 space-y-1.5 max-h-[60vh] overflow-y-auto">
           {shortcuts.map(({ key, label, icon }) => (
             <div key={key} className="flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-secondary/50 transition-colors">
@@ -89,13 +61,10 @@ const ShortcutsHelpDialog = ({ open, onClose }: { open: boolean; onClose: () => 
                 <span className="text-base">{icon}</span>
                 <span className="text-sm text-foreground">{label}</span>
               </div>
-              <kbd className="px-2.5 py-1 rounded-lg bg-secondary border border-border text-xs font-mono font-bold text-muted-foreground min-w-[40px] text-center">
-                {key}
-              </kbd>
+              <kbd className="px-2.5 py-1 rounded-lg bg-secondary border border-border text-xs font-mono font-bold text-muted-foreground min-w-[40px] text-center">{key}</kbd>
             </div>
           ))}
         </div>
-
         <div className="p-4 border-t border-border/30">
           <p className="text-[11px] text-muted-foreground text-center flex items-center justify-center gap-1.5">
             <Keyboard className="h-3.5 w-3.5" />
@@ -109,210 +78,51 @@ const ShortcutsHelpDialog = ({ open, onClose }: { open: boolean; onClose: () => 
 
 const HomeDashboard = () => {
   const navigate = useNavigate();
-  const { toast } = useToast();
-  const txToast = useTransactionToast();
   const { user } = useAuth();
+  const isMobile = useIsMobile();
+  const dashboard = useDashboardData();
 
-  // State
-  const [transactions, setTransactions] = useState<TransactionRecord[]>([]);
-  const [loadingTx, setLoadingTx] = useState(true);
-  const [profileData, setProfileData] = useState<any>(null);
   const [showSetupWizard, setShowSetupWizard] = useState(false);
   const [showHelpGuide, setShowHelpGuide] = useState(false);
   const [showProfileDialog, setShowProfileDialog] = useState(false);
-  const [privacyMode, setPrivacyMode] = useState(() => {
-    try { return localStorage.getItem("dashboard_privacy") === "true"; } catch { return false; }
-  });
-  const [financialAlert, setFinancialAlert] = useState<any>(null);
-  const [allAlerts, setAllAlerts] = useState<any[]>([]);
-
-  // Smart assistant state
-  const [inputValue, setInputValue] = useState("");
-  const [selectedMentions, setSelectedMentions] = useState<MentionItem[]>([]);
-  const [sending, setSending] = useState(false);
-  const [dbCommand, setDbCommand] = useState("");
-  const [dbSending, setDbSending] = useState(false);
-  const [dbResponseMessage, setDbResponseMessage] = useState<string | null>(null);
-  const [invoiceMessage, setInvoiceMessage] = useState<string | null>(null);
-  const [pendingInvoice, setPendingInvoice] = useState<any>(null);
-  const [showChequeDialog, setShowChequeDialog] = useState(false);
-  const [pendingChequeData, setPendingChequeData] = useState<any>(null);
   const [showJournalEntry, setShowJournalEntry] = useState(false);
   const [journalEntryData, setJournalEntryData] = useState<any>(null);
   const [journalEntryAccounts, setJournalEntryAccounts] = useState<any[]>([]);
-
   const [showShortcuts, setShowShortcuts] = useState(false);
-  const [showTransactionBuilder, setShowTransactionBuilder] = useState(false);
-  const [builderType, setBuilderType] = useState<"بيع" | "شراء">("بيع");
   const [showAccountStatement, setShowAccountStatement] = useState(false);
   const [showContactStatement, setShowContactStatement] = useState(false);
+  const [privacyMode, setPrivacyMode] = useState(() => {
+    try { return localStorage.getItem("dashboard_privacy") === "true"; } catch { return false; }
+  });
 
-  // Transaction Builder trigger keywords
-  const TRIGGER_WORDS = ["بعت", "بيع", "اشتريت", "شراء", "اشترينا", "بعنا"];
-
-  const checkBuilderTrigger = useCallback((value: string) => {
-    const words = value.trim().split(/\s+/);
-    const lastWord = words[words.length - 1];
-    if (TRIGGER_WORDS.includes(lastWord)) {
-      const isSale = ["بعت", "بيع", "بعنا"].includes(lastWord);
-      setBuilderType(isSale ? "بيع" : "شراء");
-      setShowTransactionBuilder(true);
-      setInputValue("");
-      return true;
-    }
-    return false;
-  }, []);
-
-  const handleBuilderSubmit = async (data: TransactionBuilderData) => {
-    setSending(true);
-    try {
-      const desc = data.transaction_type === "بيع"
-        ? `بعت ${data.product.name} ${data.quantity} ${data.product.unit} بسعر ${data.unit_price} ${data.payment_method === "حساب" ? "آجل" : data.payment_method === "شيك" ? "شيك" : "نقداً"} ل${data.party.name}`
-        : `اشتريت ${data.product.name} ${data.quantity} ${data.product.unit} بسعر ${data.unit_price} ${data.payment_method === "حساب" ? "آجل" : data.payment_method === "شيك" ? "شيك" : "نقداً"} من ${data.party.name}`;
-      const body: any = { text: desc, userId: user?.id, email: user?.email, mentionedContactName: data.party.name, mentionedContactId: data.party.id };
-      const { error } = await supabase.functions.invoke("process-transaction", { body });
-      if (error) throw error;
-      txToast.trigger();
-      setShowTransactionBuilder(false);
-    } catch (err: any) {
-      toast({ title: "خطأ", description: err.message, variant: "destructive" });
-    } finally { setSending(false); }
-  };
-
-  // ─── Data Loading ───
+  // Setup wizard check
   useEffect(() => {
-    if (!user) return;
-    const loadProfile = async () => {
-      const [{ data: profileData }, { count: accountsCount }] = await Promise.all([
-        supabase
-          .from("profiles")
-          .select("display_name, company_name, setup_completed")
-          .eq("user_id", user.id)
-          .maybeSingle(),
-        supabase
-          .from("accounts")
-          .select("id", { count: "exact", head: true })
-          .eq("user_id", user.id),
-      ]);
-
-      if (profileData) setProfileData(profileData);
-
-      const hasNoAccounts = !accountsCount || accountsCount === 0;
-      const setupIncomplete = !!profileData && !profileData.setup_completed;
-      if (hasNoAccounts || setupIncomplete) setShowSetupWizard(true);
+    if (!user || !dashboard.profileData) return;
+    const checkSetup = async () => {
+      const { count } = await supabase.from("accounts").select("id", { count: "exact", head: true }).eq("user_id", user.id);
+      if (!count || count === 0 || !dashboard.profileData.setup_completed) setShowSetupWizard(true);
     };
-    loadProfile();
-  }, [user]);
+    checkSetup();
+  }, [user, dashboard.profileData]);
 
-  // Show help guide for first-time users who already completed setup but haven't seen the guide
+  // First-time help guide
   useEffect(() => {
-    if (!user || showSetupWizard || !profileData?.setup_completed) return;
+    if (!user || showSetupWizard || !dashboard.profileData?.setup_completed) return;
     if (!localStorage.getItem("help_guide_shown")) {
       setTimeout(() => setShowHelpGuide(true), 1000);
       localStorage.setItem("help_guide_shown", "true");
     }
-  }, [user, showSetupWizard, profileData?.setup_completed]);
-  useEffect(() => {
-    if (!user) return;
-    const fetchTx = async () => {
-      setLoadingTx(true);
-      try {
-        const { data, error } = await supabase
-          .from('transactions')
-          .select('*')
-          .eq('user_id', user.id)
-          .eq('is_deleted', false)
-          .order('transaction_date', { ascending: false });
-        if (error) throw error;
-        setTransactions(data || []);
-      } catch (err) { console.error(err); }
-      finally { setLoadingTx(false); }
-    };
-    fetchTx();
-  }, [user]);
+  }, [user, showSetupWizard, dashboard.profileData?.setup_completed]);
 
-  // ─── Computed Values (Proper P&L Formula) ───
-  // Helper: check description/type for keywords
-  const txMatch = (tx: TransactionRecord, keywords: string[]) => {
-    const desc = (tx.description || "").toLowerCase();
-    const type = (tx.transaction_type || "").toLowerCase();
-    const all = `${desc} ${type} ${tx.debit_account_code} ${tx.credit_account_code}`;
-    return keywords.some(k => all.includes(k));
-  };
-
-  const plTx = transactions.filter(tx => !tx.is_opening_balance && tx.transaction_type !== "رصيد ابتدائي");
-
-  // Simplified P&L using account code prefixes (4xxx=Revenue, 51xx-52xx=Purchases/COGS, 53xx+=Expenses)
-  const sales = plTx.filter(tx => tx.credit_account_code?.startsWith("4") && !["4400","4500"].includes(tx.credit_account_code || ""))
-    .reduce((s, tx) => s + (tx.amount || 0), 0);
-  const salesDiscounts = plTx.filter(tx => txMatch(tx, ["خصم مسموح", "خصم مبيعات"]))
-    .reduce((s, tx) => s + (tx.amount || 0), 0);
-  const salesReturns = plTx.filter(tx => tx.debit_account_code === "4400")
-    .reduce((s, tx) => s + (tx.amount || 0), 0);
-  const purchases = plTx.filter(tx => tx.debit_account_code?.startsWith("51") || tx.debit_account_code?.startsWith("52"))
-    .reduce((s, tx) => s + (tx.amount || 0), 0);
-  const purchaseDiscounts = plTx.filter(tx => tx.credit_account_code === "4350")
-    .reduce((s, tx) => s + (tx.amount || 0), 0);
-  const purchaseReturns = plTx.filter(tx => tx.credit_account_code === "4500")
-    .reduce((s, tx) => s + (tx.amount || 0), 0);
-  const generalExpenses = plTx.filter(tx => {
-    const code = tx.debit_account_code || "";
-    return (code.startsWith("5") && !code.startsWith("51") && !code.startsWith("52")) || code.startsWith("6");
-  }).reduce((s, tx) => s + (tx.amount || 0), 0);
-
-  const netProfit = sales - salesDiscounts - salesReturns - purchases + purchaseDiscounts + purchaseReturns - generalExpenses;
-  const revenue = sales - salesDiscounts - salesReturns;
-  const expenses = purchases - purchaseDiscounts - purchaseReturns + generalExpenses;
-  const totalIncome = transactions.filter(tx => tx.transaction_type === "سند قبض").reduce((sum, tx) => sum + (tx.amount || 0), 0);
-  const totalOutcome = transactions.filter(tx => tx.transaction_type === "سند صرف").reduce((sum, tx) => sum + (tx.amount || 0), 0);
-  const capitalInjections = transactions.filter(tx => tx.debit_account_code?.startsWith("1") && tx.credit_account_code?.startsWith("3")).reduce((sum, tx) => sum + (tx.amount || 0), 0);
-  const cashBalance = totalIncome - totalOutcome + capitalInjections;
-  const receivablesDebit = transactions.filter(tx => tx.debit_account_code === "1130").reduce((sum, tx) => sum + (tx.amount || 0), 0);
-  const receivablesCredit = transactions.filter(tx => tx.credit_account_code === "1130").reduce((sum, tx) => sum + (tx.amount || 0), 0);
-  const receivables = receivablesDebit - receivablesCredit;
-  const payablesCredit = transactions.filter(tx => tx.credit_account_code?.startsWith("2")).reduce((sum, tx) => sum + (tx.amount || 0), 0);
-  const payablesDebit = transactions.filter(tx => tx.debit_account_code?.startsWith("2")).reduce((sum, tx) => sum + (tx.amount || 0), 0);
-  const payables = payablesCredit - payablesDebit;
-
-  // Alerts
-  useEffect(() => {
-    if (!user || loadingTx) return;
-    const fetchAlerts = async () => {
-      try {
-        const { data, error } = await supabase.functions.invoke("financial-alerts", {
-          body: { clientId: user.id, transactions, revenue, expenses, totalIncome, totalOutcome, cashBalance, receivables, payables },
-        });
-        if (!error && data) {
-          setFinancialAlert(data.alert);
-          setAllAlerts(data.allAlerts || []);
-        }
-      } catch (err) { console.error(err); }
-    };
-    fetchAlerts();
-  }, [user, loadingTx, transactions]);
-
-  // ─── Keyboard Shortcuts ───
-  const isMobile = useIsMobile();
+  // Keyboard shortcuts
   useEffect(() => {
     if (isMobile) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
       const isTyping = ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName) || target.isContentEditable;
-
-      if (e.key === 'Escape') {
-        setShowJournalEntry(false);
-        setShowShortcuts(false);
-        return;
-      }
-
-      if (e.key === '?' && !isTyping) {
-        e.preventDefault();
-        setShowShortcuts(prev => !prev);
-        return;
-      }
-
+      if (e.key === 'Escape') { setShowJournalEntry(false); setShowShortcuts(false); return; }
+      if (e.key === '?' && !isTyping) { e.preventDefault(); setShowShortcuts((p) => !p); return; }
       if (isTyping) return;
-
       switch (e.key) {
         case 'F1': e.preventDefault(); navigate('/transactions'); break;
         case 'F2': e.preventDefault(); navigate('/transactions'); break;
@@ -324,158 +134,18 @@ const HomeDashboard = () => {
         case 'F8': e.preventDefault(); navigate('/cheques'); break;
       }
     };
-
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [navigate, isMobile]);
 
-  // ─── Smart Assistant Handler ───
-  const handleSend = async () => {
-    if (!inputValue.trim()) return;
-    setSending(true);
-    const contactMention = selectedMentions.find(m => m.category === "contact");
-    try {
-      const parseRes = await supabase.functions.invoke("parse-voice-transaction", { body: { text: inputValue } });
-      const parseData = parseRes.data;
-
-      if (parseData?.type === 'invoice') {
-        if (parseData.status === 'incomplete') {
-          setInvoiceMessage(`تقريباً انتهينا 🙌\nلكن أحتاج المعلومات التالية:\n${(parseData.missingFields || []).join("، ")}`);
-          setSending(false);
-          return;
-        }
-        if (parseData.status === 'complete') {
-          setPendingInvoice({
-            ...parseData.transaction,
-            invoiceType: parseData.invoiceType,
-            originalText: inputValue,
-            mentionedContactName: contactMention?.name || parseData.transaction?.contactName || null,
-          });
-          setInvoiceMessage(parseData.message || '');
-          setInputValue("");
-          setSelectedMentions([]);
-          setSending(false);
-          return;
-        }
-      }
-
-      if (parseData?.type === 'cheque') {
-        setPendingChequeData({
-          chequeType: parseData.chequeType || 'وارد',
-          partyName: contactMention?.name || parseData.partyName || '',
-          partyType: parseData.partyType || 'عميل',
-          originalText: inputValue,
-          amount: parseData.amount || 0,
-          currency: parseData.currency || 'شيكل',
-          chequeDate: parseData.chequeDate || '',
-          chequeNumber: parseData.chequeNumber || '',
-          bankName: parseData.bankName || '',
-        });
-        setShowChequeDialog(true);
-        setInputValue("");
-        setSelectedMentions([]);
-        setSending(false);
-        return;
-      }
-
-      const body: any = { text: inputValue, userId: user?.id, email: user?.email };
-      if (contactMention) {
-        body.mentionedContactName = contactMention.name;
-        body.mentionedContactId = contactMention.id;
-      }
-      const { error } = await supabase.functions.invoke("process-transaction", { body });
-      if (error) throw error;
-      txToast.trigger();
-      setInputValue("");
-      setSelectedMentions([]);
-    } catch (err: any) {
-      toast({ title: "خطأ", description: err.message, variant: "destructive" });
-    } finally { setSending(false); }
-  };
-
-  const handleDbCommand = async () => {
-    if (!dbCommand.trim()) return;
-    setDbSending(true);
-    setDbResponseMessage(null);
-    try {
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/database-command`, {
-        method: "POST",
-        headers: await getAuthHeadersJson(),
-        body: JSON.stringify({ command: dbCommand, clientId: user?.id }),
-      });
-      const data = await res.json();
-      if (data.action === 'add_journal_entry') {
-        setJournalEntryData(data.data || null);
-        setJournalEntryAccounts(data.accounts || []);
-        setShowJournalEntry(true);
-        setDbCommand("");
-      } else if (data.success) {
-        setDbResponseMessage(`✅ تم تنفيذ الأمر بنجاح`);
-        setDbCommand("");
-      } else {
-        setDbResponseMessage(`⚠️ ${data.message || data.error || "لم أفهم"}`);
-      }
-    } catch (err: any) {
-      setDbResponseMessage(`❌ ${err.message}`);
-    } finally { setDbSending(false); }
-  };
-
-  const handleChequeConfirm = async (lines: ChequeLineItem[], chequeType: string, partyName: string, partyType: string) => {
-    if (!user) return;
-    setSending(true);
-    try {
-      const today = new Date().toISOString().split('T')[0];
-      for (const line of lines) {
-        const chequeStatus = line.chequeDate > today ? 'آجل' : 'مستحق';
-        await supabase.from('cheques').insert({
-          user_id: user.id, cheque_type: chequeType as any, status: chequeStatus as any,
-          cheque_number: line.chequeNumber || null, bank_name: line.bankName || null,
-          cheque_date: line.chequeDate, amount: parseFloat(line.amount),
-          currency: line.currency, party_name: partyName, party_type: partyType,
-        });
-        const desc = chequeType === 'وارد'
-          ? `استلام شيك من ${partyName} رقم ${line.chequeNumber} بتاريخ ${line.chequeDate}`
-          : `إصدار شيك ل${partyName} رقم ${line.chequeNumber} بتاريخ ${line.chequeDate}`;
-        await supabase.functions.invoke("process-transaction", { body: { text: desc, userId: user.id, email: user.email } });
-      }
-      txToast.trigger();
-      setPendingChequeData(null);
-    } catch (err: any) {
-      toast({ title: "خطأ", description: err.message, variant: "destructive" });
-    } finally { setSending(false); }
-  };
-
-  const displayName = profileData?.company_name || profileData?.display_name || user?.user_metadata?.company_name || user?.user_metadata?.full_name || "عبدالله";
-  const noActivity = revenue === 0 && expenses === 0;
+  const displayName = dashboard.profileData?.company_name || dashboard.profileData?.display_name || user?.user_metadata?.company_name || "شركتي";
 
   return (
-    <div className="space-y-8 max-w-[1400px] mx-auto animate-fade-in" dir="rtl">
+    <div className="space-y-0 max-w-[1600px] mx-auto animate-fade-in" dir="rtl">
       {user && <CompleteProfileDialog open={showProfileDialog} onClose={() => setShowProfileDialog(false)} user={user} />}
 
-      {/* ═══ WELCOME HEADER ═══ */}
-      <div className="text-center space-y-5">
-        <div className="flex items-center justify-between">
-          <div /> {/* spacer */}
-          <h1 className="text-3xl font-bold text-foreground flex-1">
-            مرحباً {displayName.split(' ')[0]}! 👋
-          </h1>
-          <button
-            onClick={() => {
-              const next = !privacyMode;
-              setPrivacyMode(next);
-              localStorage.setItem("dashboard_privacy", String(next));
-            }}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl hover:bg-secondary transition-colors text-muted-foreground group"
-            title={privacyMode ? "إظهار البيانات المالية" : "إخفاء البيانات المالية"}
-          >
-            {privacyMode ? <EyeOff className="h-4 w-4" strokeWidth={1.8} /> : <Eye className="h-4 w-4" strokeWidth={1.8} />}
-            <span className="text-[11px] font-medium hidden sm:inline">
-              {privacyMode ? "إظهار" : "خصوصية"}
-            </span>
-          </button>
-        </div>
-
-        {/* Create Actions Strip */}
+      {/* Quick Actions */}
+      <div className="mb-4 flex items-center justify-between">
         <QuickActionsBar
           onAction={(target) => {
             if (target === "journal") setShowJournalEntry(true);
@@ -485,342 +155,97 @@ const HomeDashboard = () => {
           isMobile={isMobile}
           onShowShortcuts={() => setShowShortcuts(true)}
         />
+        <button
+          onClick={() => {
+            const next = !privacyMode;
+            setPrivacyMode(next);
+            localStorage.setItem("dashboard_privacy", String(next));
+          }}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl hover:bg-secondary transition-colors text-muted-foreground"
+          title={privacyMode ? "إظهار البيانات المالية" : "إخفاء البيانات المالية"}
+        >
+          {privacyMode ? <EyeOff className="h-4 w-4" strokeWidth={1.8} /> : <Eye className="h-4 w-4" strokeWidth={1.8} />}
+          <span className="text-[11px] font-medium hidden sm:inline">{privacyMode ? "إظهار" : "خصوصية"}</span>
+        </button>
       </div>
 
-      {/* ═══ LOADING ═══ */}
-      {loadingTx && (
-        <div className="flex items-center justify-center py-24">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      )}
+      {/* Privacy overlay */}
+      <div className="relative">
+        {privacyMode && (
+          <div className="absolute inset-0 z-10 backdrop-blur-lg bg-background/40 rounded-2xl flex items-center justify-center">
+            <div className="text-center space-y-3 p-6">
+              <EyeOff className="h-8 w-8 text-muted-foreground mx-auto" strokeWidth={1.5} />
+              <p className="text-sm text-muted-foreground font-medium">البيانات المالية مخفية</p>
+              <button onClick={() => { setPrivacyMode(false); localStorage.setItem("dashboard_privacy", "false"); }} className="px-4 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold hover:opacity-90 transition-all">
+                إظهار البيانات
+              </button>
+            </div>
+          </div>
+        )}
 
-      {!loadingTx && (
-        <div className="relative">
-          {/* Privacy overlay */}
-          {privacyMode && (
-            <div className="absolute inset-0 z-10 backdrop-blur-lg bg-background/40 rounded-2xl flex items-center justify-center">
-              <div className="text-center space-y-3 p-6">
-                <EyeOff className="h-8 w-8 text-muted-foreground mx-auto" strokeWidth={1.5} />
-                <p className="text-sm text-muted-foreground font-medium">البيانات المالية مخفية</p>
-                <button
-                  onClick={() => { setPrivacyMode(false); localStorage.setItem("dashboard_privacy", "false"); }}
-                  className="px-4 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold hover:opacity-90 transition-all"
-                >
-                  إظهار البيانات
-                </button>
-              </div>
+        <div className={`${privacyMode ? "select-none pointer-events-none" : ""} grid grid-cols-12 gap-4`}>
+          {/* W1: Header */}
+          <DashboardHeader
+            companyName={displayName}
+            period={dashboard.period}
+            onPeriodChange={dashboard.setPeriod}
+            lastUpdated={dashboard.lastUpdated}
+            onRefresh={dashboard.refresh}
+            onCustomize={() => {}}
+            loading={dashboard.loading}
+          />
+
+          {/* W2: KPI Row */}
+          <KPIMegaRow kpis={dashboard.kpis} sparklines={dashboard.sparklines} loading={dashboard.loading} />
+
+          {/* W3: Revenue vs Expenses Chart */}
+          <RevenueExpenseChart
+            data={dashboard.chartData}
+            grouping={dashboard.chartGrouping}
+            onGroupingChange={dashboard.setChartGrouping}
+            loading={dashboard.loading}
+          />
+
+          {/* W4: Financial Health */}
+          <FinancialHealthWidget data={dashboard.healthScore} loading={dashboard.loading} />
+
+          {/* W5: Cash Flow */}
+          <CashFlowWidget data={dashboard.cashFlowData} cashBalance={dashboard.kpis.cashBalance} loading={dashboard.loading} />
+
+          {/* W7: Aging */}
+          <AgingWidget receivables={dashboard.agingData.receivables} payables={dashboard.agingData.payables} loading={dashboard.loading} />
+
+          {/* W10: Inventory */}
+          <InventoryPulseWidget alerts={dashboard.inventoryAlerts} summary={dashboard.inventorySummary} loading={dashboard.loading} />
+
+          {/* W11: Cheques */}
+          <ChequesCalendarWidget cheques={dashboard.upcomingCheques} loading={dashboard.loading} />
+
+          {/* W12: Recent Activity */}
+          <RecentActivityWidget activities={dashboard.recentActivity} loading={dashboard.loading} />
+
+          {/* Setup Wizard (if needed) */}
+          {showSetupWizard && user && (
+            <div className="col-span-12 bg-card rounded-2xl p-5 shadow-sm border border-border/30">
+              <h3 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <Clock className="h-4 w-4 text-primary" />
+                </div>
+                خطوات البدء
+              </h3>
+              <SetupWizard userId={user.id} onComplete={() => {
+                setShowSetupWizard(false);
+                if (!localStorage.getItem("help_guide_shown")) {
+                  setTimeout(() => setShowHelpGuide(true), 500);
+                  localStorage.setItem("help_guide_shown", "true");
+                }
+              }} />
             </div>
           )}
-          <div className={privacyMode ? "select-none pointer-events-none space-y-8" : "space-y-8"}>
-          {/* ═══ KPI WIDGETS ═══ */}
-          <CustomizableKPICards
-            revenue={revenue}
-            expenses={expenses}
-            totalIncome={totalIncome}
-            totalOutcome={totalOutcome}
-            receivables={receivables}
-            payables={payables}
-            cashBalance={cashBalance}
-            netProfit={netProfit}
-            loading={loadingTx}
-          />
-
-          {/* ═══ SMART DAILY SUMMARY (WOW Card) ═══ */}
-          <SmartDailySummary
-            netProfit={netProfit}
-            chequesToday={0}
-            lowStockCount={0}
-            followUpCount={receivables > 0 ? 1 : 0}
-            loading={loadingTx}
-          />
-
-          {/* ═══ MAIN CONTENT GRID ═══ */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* LEFT: Smart Assistant + Commands (2 cols) */}
-            <div className="lg:col-span-2 space-y-6">
-              {/* Smart Assistant */}
-
-              {/* Smart Assistant */}
-              <div className="bg-card rounded-2xl p-6 space-y-4 shadow-card">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
-                    <Sparkles className="h-4 w-4 text-primary" />
-                  </div>
-                  <span className="text-sm font-bold text-foreground">المساعد المالي الذكي</span>
-                </div>
-                <div className="flex items-end gap-2 bg-secondary/40 rounded-xl px-3 py-2.5">
-                  <button onClick={handleSend} disabled={sending || !inputValue.trim()} className="flex-shrink-0 w-9 h-9 rounded-xl bg-primary flex items-center justify-center hover:opacity-90 transition-all disabled:opacity-40">
-                    {sending ? <Loader2 className="h-4 w-4 text-primary-foreground animate-spin" /> : <Send className="h-4 w-4 text-primary-foreground" />}
-                  </button>
-                  <MentionInput
-                    value={inputValue}
-                    onChange={(val) => {
-                      setInputValue(val);
-                      // Check for transaction builder trigger on space
-                      if (val.endsWith(" ")) {
-                        checkBuilderTrigger(val);
-                      }
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        if (checkBuilderTrigger(inputValue)) return;
-                        handleSend();
-                      }
-                    }}
-                    onMentionSelect={(item) => setSelectedMentions(prev => [...prev, item])}
-                    placeholder="شو صار معك اليوم مالياً؟ سجل عملياتك بكلامك…"
-                    className="flex-1 min-w-0 h-9 bg-transparent rounded-xl px-2 text-sm text-foreground placeholder:text-muted-foreground/50 border-0 outline-none"
-                    userId={user?.id}
-                  />
-                   <button onClick={() => navigate("/voice")} className="flex-shrink-0 w-9 h-9 rounded-xl bg-primary/8 flex items-center justify-center hover:bg-primary/15 transition-colors" title="تسجيل صوتي">
-                    <Mic className="h-4 w-4 text-primary" />
-                  </button>
-                </div>
-                {/* Chips */}
-                <div className="flex gap-2 flex-wrap">
-                  {["قبضت من أحمد 5,000 شيكل", "دفعت إيجار 2500", "استلمت شيك من أحمد 4000", "بعت طحين 50 كيلو نقداً"].map((chip) => (
-                    <button key={chip} onClick={() => setInputValue(chip)} className="px-3 py-1.5 rounded-xl bg-secondary/60 text-[11px] text-muted-foreground hover:bg-primary/8 hover:text-primary transition-all">
-                      {chip}
-                    </button>
-                  ))}
-                </div>
-                {invoiceMessage && (
-                  <div className="p-4 rounded-xl border border-primary/15 bg-primary/5 space-y-3">
-                    {pendingInvoice ? (
-                      <>
-                        <p className="text-xs font-bold text-foreground">تأكيد العملية:</p>
-                        <div className="grid grid-cols-2 gap-2">
-                          {[
-                            { key: "invoiceType", label: "النوع", options: ["مبيعات", "مشتريات"] },
-                          ].map(({ key, label, options }) => (
-                            <div key={key} className="space-y-1">
-                              <label className="text-[10px] text-muted-foreground">{label}</label>
-                              <select
-                                value={pendingInvoice[key] || ""}
-                                onChange={(e) => setPendingInvoice((prev: any) => ({ ...prev, [key]: e.target.value }))}
-                                className="w-full h-8 rounded-lg bg-secondary/60 border-0 text-xs text-foreground px-2 focus:ring-2 focus:ring-primary/20"
-                              >
-                                {options.map(o => <option key={o} value={o}>{o}</option>)}
-                              </select>
-                            </div>
-                          ))}
-                          {[
-                            { key: "mentionedContactName", label: "الجهة" },
-                            { key: "productName", label: "المنتج" },
-                            { key: "quantity", label: "الكمية", type: "number" },
-                            { key: "unitPrice", label: "السعر", type: "number" },
-                          ].map(({ key, label, type }) => (
-                            <div key={key} className="space-y-1">
-                              <label className="text-[10px] text-muted-foreground">{label}</label>
-                              <input
-                                type={type || "text"}
-                                value={pendingInvoice[key] || ""}
-                                onChange={(e) => setPendingInvoice((prev: any) => {
-                                  const updated = { ...prev, [key]: type === "number" ? Number(e.target.value) || 0 : e.target.value };
-                                  if (key === "quantity" || key === "unitPrice") {
-                                    updated.amount = (updated.quantity || 0) * (updated.unitPrice || 0);
-                                  }
-                                  return updated;
-                                })}
-                                className="w-full h-8 rounded-lg bg-secondary/60 border-0 text-xs text-foreground px-2 focus:ring-2 focus:ring-primary/20 text-right"
-                              />
-                            </div>
-                          ))}
-                          <div className="space-y-1">
-                            <label className="text-[10px] text-muted-foreground">الإجمالي</label>
-                            <div className="w-full h-8 rounded-lg bg-secondary/30 border-0 text-xs text-foreground px-2 flex items-center justify-end font-bold tabular-nums">
-                              {((pendingInvoice.quantity || 0) * (pendingInvoice.unitPrice || 0)).toLocaleString() || "—"}
-                            </div>
-                          </div>
-                          <div className="space-y-1">
-                            <label className="text-[10px] text-muted-foreground">طريقة الدفع</label>
-                            <select
-                              value={pendingInvoice.paymentMethod || "نقد"}
-                              onChange={(e) => setPendingInvoice((prev: any) => ({ ...prev, paymentMethod: e.target.value }))}
-                              className="w-full h-8 rounded-lg bg-secondary/60 border-0 text-xs text-foreground px-2 focus:ring-2 focus:ring-primary/20"
-                            >
-                              <option value="نقد">نقد</option>
-                              <option value="آجل">آجل</option>
-                              <option value="تحويل">تحويل بنكي</option>
-                            </select>
-                          </div>
-                        </div>
-                        <div className="flex gap-2 mt-2">
-                          <button onClick={async () => {
-                            if (!pendingInvoice || !user) return;
-                            setSending(true);
-                            try {
-                              const inv = pendingInvoice;
-                              const desc = inv.invoiceType === 'مبيعات'
-                                ? `بعت ${inv.productName || ''} ${inv.quantity || 1} بسعر ${inv.unitPrice || inv.amount} ${inv.paymentMethod === 'آجل' ? 'آجل' : inv.paymentMethod === 'تحويل' ? 'تحويل' : 'نقداً'} ${inv.mentionedContactName ? 'ل' + inv.mentionedContactName : ''}`
-                                : `اشتريت ${inv.productName || ''} ${inv.quantity || 1} بسعر ${inv.unitPrice || inv.amount} ${inv.paymentMethod === 'آجل' ? 'آجل' : inv.paymentMethod === 'تحويل' ? 'تحويل' : 'نقداً'} ${inv.mentionedContactName ? 'من ' + inv.mentionedContactName : ''}`;
-                              const body: any = { text: desc, userId: user.id, email: user.email };
-                              if (inv.mentionedContactName) body.mentionedContactName = inv.mentionedContactName;
-                              const { error } = await supabase.functions.invoke("send-transaction", { body });
-                              if (error) throw error;
-                              txToast.trigger();
-                              setPendingInvoice(null);
-                              setInvoiceMessage(null);
-                            } catch (err: any) {
-                              toast({ title: "خطأ", description: err.message, variant: "destructive" });
-                            } finally { setSending(false); }
-                          }} disabled={sending} className="flex-1 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold disabled:opacity-50">
-                            {sending ? "جاري الإنشاء..." : "✅ أنشئ الفاتورة"}</button>
-                          <button onClick={() => { setPendingInvoice(null); setInvoiceMessage(null); }} className="px-4 py-2 rounded-xl bg-secondary text-xs">إلغاء</button>
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <p className="text-xs text-foreground whitespace-pre-line">{invoiceMessage}</p>
-                        <button onClick={() => setInvoiceMessage(null)} className="text-[10px] text-primary font-medium hover:underline">فهمت ✓</button>
-                      </>
-                    )}
-                  </div>
-                )}
-
-                {/* Transaction Builder */}
-                <AnimatePresence>
-                  {showTransactionBuilder && (
-                    <TransactionBuilder
-                      transactionType={builderType}
-                      onClose={() => setShowTransactionBuilder(false)}
-                      onSubmit={handleBuilderSubmit}
-                      sending={sending}
-                    />
-                  )}
-                </AnimatePresence>
-              </div>
-              {/* اطلب وتمنى */}
-              <div className="bg-card rounded-2xl p-6 space-y-4 shadow-card">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
-                    <Database className="h-4 w-4 text-primary" />
-                  </div>
-                  <div>
-                    <span className="text-sm font-bold text-foreground">اطلب وتمنى ✨</span>
-                    <span className="text-[11px] text-muted-foreground mr-2">أضف زبون، مورد، حساب، منتج، موظف، أو سند قيد</span>
-                  </div>
-                </div>
-                <div className="flex items-end gap-2 bg-secondary/40 rounded-xl px-3 py-2.5">
-                  <button onClick={handleDbCommand} disabled={dbSending || !dbCommand.trim()} className="flex-shrink-0 w-9 h-9 rounded-xl bg-primary flex items-center justify-center hover:opacity-90 transition-all disabled:opacity-40">
-                    {dbSending ? <Loader2 className="h-4 w-4 text-primary-foreground animate-spin" /> : <Send className="h-4 w-4 text-primary-foreground" />}
-                  </button>
-                  <textarea
-                    value={dbCommand}
-                    onChange={(e) => setDbCommand(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleDbCommand(); } }}
-                    placeholder="أضف زبون أحمد جوال 0501234567"
-                    className="flex-1 min-w-0 h-9 bg-transparent rounded-xl px-2 py-1.5 text-sm text-foreground placeholder:text-muted-foreground/50 border-0 outline-none text-right resize-none"
-                    rows={1}
-                  />
-                </div>
-                <div className="flex gap-2 flex-wrap">
-                  {["أضف زبون أحمد", "أضف مورد شركة الشمال", "أضف منتج سجاد شراء 80 بيع 120", "أضف موظف محمد راتب 3000", "سند قيد مدين المشتريات دائن الصندوق 5000"].map((chip) => (
-                    <button key={chip} onClick={() => setDbCommand(chip)} className="px-3 py-1.5 rounded-xl bg-secondary/60 text-[11px] text-muted-foreground hover:bg-primary/8 hover:text-primary transition-all">
-                      {chip}
-                    </button>
-                  ))}
-                </div>
-                {dbResponseMessage && (
-                  <div className="p-4 rounded-xl border border-primary/15 bg-primary/5 space-y-2">
-                    <p className="text-xs text-foreground whitespace-pre-line">{dbResponseMessage}</p>
-                    <button onClick={() => setDbResponseMessage(null)} className="text-[10px] text-primary font-medium hover:underline">فهمت ✓</button>
-                  </div>
-                )}
-              </div>
-
-              {/* Smart Report Widget */}
-              <SmartReportWidget companyName={profileData?.company_name || ""} />
-
-              {/* Smart Financial Alert (below assistants) */}
-              <SmartAlertCard alert={financialAlert} allAlerts={allAlerts} userId={user?.id} />
-            </div>
-
-            {/* RIGHT: Tasks & Insights Panel */}
-            <div className="space-y-6">
-              {/* Setup Checklist */}
-              {showSetupWizard && user && (
-                <div className="bg-card rounded-2xl p-5 shadow-card">
-                  <h3 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
-                      <Clock className="h-4 w-4 text-primary" />
-                    </div>
-                    خطوات البدء
-                  </h3>
-                  <SetupWizard userId={user.id} onComplete={() => {
-                    setShowSetupWizard(false);
-                    // Show help guide as part of first-time experience
-                    if (!localStorage.getItem("help_guide_shown")) {
-                      setTimeout(() => setShowHelpGuide(true), 500);
-                      localStorage.setItem("help_guide_shown", "true");
-                    }
-                  }} />
-                </div>
-              )}
-
-              {/* Quick Links */}
-              <div className="bg-card rounded-2xl p-5 space-y-3 shadow-card">
-                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">اختصارات سريعة</h3>
-                <div className="space-y-1">
-                  {[
-                    { label: "الأرباح والخسائر", path: "/profit-loss", icon: TrendingUp },
-                    { label: "التقارير المالية", path: "/reports", icon: FileText },
-                    { label: "التقرير الذكي", path: "/smart-report", icon: Sparkles },
-                    { label: "الشيكات", path: "/cheques", icon: Receipt },
-                    { label: "المخزون", path: "/inventory", icon: Package },
-                  ].map((link) => (
-                    <button
-                      key={link.path}
-                      onClick={() => navigate(link.path)}
-                      className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[13px] text-foreground hover:bg-secondary/60 transition-colors text-right"
-                    >
-                      <link.icon className="h-4 w-4 text-muted-foreground/60" strokeWidth={1.8} />
-                      <span className="flex-1">{link.label}</span>
-                      <ChevronLeft className="h-3.5 w-3.5 text-muted-foreground/30" />
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Alerts Summary */}
-              {allAlerts.length > 0 && (
-                <div className="bg-card rounded-2xl p-5 space-y-3 shadow-card">
-                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-                    <AlertTriangle className="h-3.5 w-3.5 text-warning" />
-                    تنبيهات
-                  </h3>
-                  <div className="space-y-2">
-                    {allAlerts.slice(0, 3).map((alert, i) => (
-                      <div key={i} className="text-xs text-muted-foreground p-3 rounded-xl bg-secondary/40">
-                        {alert.message || alert.title}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-          </div>
         </div>
-      )}
+      </div>
 
       {/* Dialogs */}
-      <ChequeDetailsDialog
-        open={showChequeDialog}
-        onOpenChange={(open) => { if (!open) { setShowChequeDialog(false); setPendingChequeData(null); } }}
-        onConfirm={handleChequeConfirm}
-        chequeType={pendingChequeData?.chequeType || 'وارد'}
-        partyName={pendingChequeData?.partyName || ''}
-        partyType={pendingChequeData?.partyType || 'عميل'}
-        originalText={pendingChequeData?.originalText || ''}
-        initialData={{
-          amount: pendingChequeData?.amount,
-          currency: pendingChequeData?.currency,
-          chequeDate: pendingChequeData?.chequeDate,
-          chequeNumber: pendingChequeData?.chequeNumber,
-          bankName: pendingChequeData?.bankName,
-        }}
-      />
       {showJournalEntry && (
         <JournalEntryPopup
           open={showJournalEntry}
@@ -830,12 +255,7 @@ const HomeDashboard = () => {
           accounts={journalEntryAccounts}
         />
       )}
-      <TransactionToast {...txToast} />
-      <HelpGuideModal
-        open={showHelpGuide}
-        onClose={() => setShowHelpGuide(false)}
-        onFillInput={(text) => setInputValue(text)}
-      />
+      <HelpGuideModal open={showHelpGuide} onClose={() => setShowHelpGuide(false)} onFillInput={() => {}} />
       <ShortcutsHelpDialog open={showShortcuts} onClose={() => setShowShortcuts(false)} />
       <AccountStatementModal open={showAccountStatement} onClose={() => setShowAccountStatement(false)} />
       <ContactStatementModal open={showContactStatement} onClose={() => setShowContactStatement(false)} />

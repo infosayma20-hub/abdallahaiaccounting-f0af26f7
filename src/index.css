@@ -62,6 +62,13 @@
     --zidni-gold-light: 40 56% 77%;     /* #E8D5A3 */
     --zidni-teal-dark: 195 100% 28%;    /* #006D8F */
 
+    /* Dashboard tokens */
+    --navy: 213 62% 15%;                /* #0A2342 */
+    --navy-deep: 213 78% 7%;            /* #071829 */
+    --gold: 43 55% 54%;                 /* #C9A84C */
+    --teal: 193 100% 42%;               /* #00B4D8 */
+    --teal-dark: 195 100% 28%;          /* #006D8F */
+
     --icon-bg: 210 14% 93%;
     --nav-bg: 0 0% 100%;
 
