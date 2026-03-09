@@ -32,9 +32,6 @@ const CleanTopBar = ({ healthScore, hasAnomalies, cfoMode, onToggleCfo, onBack, 
         <button onClick={onBack} className="w-11 h-11 flex items-center justify-center -mr-2" aria-label="رجوع">
           <ArrowRight className="h-5 w-5" style={{ color: "#8B9BB4" }} />
         </button>
-        <div className="w-7 h-7 rounded-full flex items-center justify-center" style={{ background: "#0A2342" }}>
-          <span className="text-xs font-bold" style={{ color: "#C9A84C" }}>Z</span>
-        </div>
         <span className="text-[15px] font-bold" style={{ color: "#0A2342", fontFamily: "Tajawal, sans-serif" }}>
           المحاسب الذكي
         </span>
