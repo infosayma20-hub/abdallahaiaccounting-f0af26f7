@@ -6,6 +6,35 @@ function isOpeningBalance(text: string): boolean {
   return [/رصيد\s*(ابتدائي|افتتاحي|مدور|أول\s*المدة)/i, /opening\s*balance/i].some(p => p.test(text));
 }
 
+function extractJsonFromResponse(response: string): unknown {
+  let cleaned = response
+    .replace(/```json\s*/gi, '')
+    .replace(/```\s*/g, '')
+    .trim();
+
+  const jsonStart = cleaned.search(/[\{\[]/);
+  const lastBrace = cleaned.lastIndexOf('}');
+  const lastBracket = cleaned.lastIndexOf(']');
+  const jsonEnd = jsonStart !== -1 && cleaned[jsonStart] === '[' ? lastBracket : lastBrace;
+
+  if (jsonStart === -1 || jsonEnd === -1 || jsonEnd < jsonStart) {
+    throw new Error('No JSON found in response');
+  }
+
+  cleaned = cleaned.substring(jsonStart, jsonEnd + 1);
+
+  try {
+    return JSON.parse(cleaned);
+  } catch {
+    // Fix trailing commas and control characters
+    cleaned = cleaned
+      .replace(/,\s*}/g, '}')
+      .replace(/,\s*]/g, ']')
+      .replace(/[\x00-\x1F\x7F]/g, '');
+    return JSON.parse(cleaned);
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
@@ -240,13 +269,19 @@ ${contactContext}
     const aiData = await aiResponse.json();
     const aiContent = aiData.choices?.[0]?.message?.content || '';
     
-    // Parse JSON from AI response (handle markdown code blocks)
+    // Parse JSON from AI response with robust extraction
     let parsed;
     try {
-      const jsonMatch = aiContent.match(/```(?:json)?\s*([\s\S]*?)```/) || [null, aiContent];
-      parsed = JSON.parse(jsonMatch[1]!.trim());
+      parsed = extractJsonFromResponse(aiContent);
     } catch {
       console.error('Failed to parse AI response:', aiContent);
+      // If AI returned a non-JSON conversational response, return it as a chat message
+      if (!aiContent.trim().startsWith('{') && !aiContent.trim().startsWith('[') && !aiContent.includes('"نوع_الحركة"')) {
+        return new Response(JSON.stringify({
+          type: 'chat_response',
+          message: aiContent.trim(),
+        }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
       throw new Error('فشل في تحليل رد الذكاء الاصطناعي');
     }
 
