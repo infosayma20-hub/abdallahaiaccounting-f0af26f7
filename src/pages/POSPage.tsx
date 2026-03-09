@@ -1966,12 +1966,25 @@ const POSPage = () => {
             dataOwnerId={dataOwnerId || ""}
             activeTableId={activeOrder.tableId}
             onTableSelect={(table: TableBarItem) => {
-              if (table.status === "occupied" && table.id !== activeOrder.tableId) {
-                loadTableOrder(table.id, table.name);
-              } else if (table.status === "available" || table.status === "cleaning") {
-                updateActiveOrder(o => ({ ...o, tableId: table.id, tableName: table.name, name: table.name }));
-              } else if (table.id === activeOrder.tableId) {
+              if (table.id === activeOrder.tableId) {
+                // Deselect current table
                 updateActiveOrder(o => ({ ...o, tableId: null, tableName: null, name: `طلب ${activeOrderIndex + 1}` }));
+              } else if (table.status === "occupied") {
+                loadTableOrder(table.id, table.name);
+              } else {
+                // Available/cleaning table → check if another tab already has this table
+                const existingTabIdx = orders.findIndex(o => o.tableId === table.id);
+                if (existingTabIdx >= 0) {
+                  setActiveOrderIndex(existingTabIdx);
+                } else if (activeOrder.cart.length === 0 && !activeOrder.tableId) {
+                  // Current tab is empty and has no table → assign to it
+                  updateActiveOrder(o => ({ ...o, tableId: table.id, tableName: table.name, name: table.name }));
+                } else {
+                  // Current tab has items or another table → create new tab
+                  const newOrder = createNewOrder(orders.length + 1, table.id, table.name);
+                  setOrders(prev => [...prev, newOrder]);
+                  setActiveOrderIndex(orders.length);
+                }
               }
             }}
             onNewTable={() => navigate("/pos/floor-plan/edit")}
