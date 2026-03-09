@@ -419,35 +419,83 @@ const InvoicesPage = () => {
     setCreating(true);
     if (isNewContact) await createContactInAirtable(form.contactName.trim());
 
-    const invoice: Invoice = {
-      id: crypto.randomUUID(),
-      type: form.type,
-      invoiceNumber: generateInvoiceNumber(form.type),
-      date: form.date,
-      dueDate: form.paymentMethod === "credit" ? form.dueDate : undefined,
-      contactName: form.contactName,
-      items: form.items,
-      notes: form.notes,
-      status: asDraft ? "draft" : "sent",
-      paymentMethod: form.paymentMethod,
-      subtotal: summary.subtotal,
-      totalDiscount: summary.totalDiscount,
-      totalTax: summary.totalTax,
-      total: summary.total,
-      paidAmount: summary.paidAmount,
-      remainingAmount: summary.remainingAmount,
-      currency: form.currency,
-      chequeDetails: form.paymentMethod === "cheque" ? { number: form.chequeNumber, bank: form.chequeBank, dueDate: form.chequeDueDate } : undefined,
-      transferDetails: form.paymentMethod === "transfer" ? { reference: form.transferRef, bank: form.transferBank } : undefined,
-    };
+    const paymentMethodAr = form.paymentMethod === 'cash' ? 'نقدي' : form.paymentMethod === 'transfer' ? 'بنك' : form.paymentMethod === 'cheque' ? 'شيك' : 'آجل';
 
-    if (!asDraft) {
-      await updateInventory(form.items, form.type);
-      if (form.paymentMethod === "cheque") await createCheque(invoice);
+    // Save to database
+    try {
+      const { data: dbInv, error: invErr } = await supabase.from("invoices").insert({
+        user_id: user!.id,
+        invoice_type: form.type === 'sales' ? 'sale' : 'purchase',
+        contact_name: form.contactName,
+        invoice_date: form.date,
+        due_date: form.paymentMethod === "credit" ? form.dueDate : null,
+        subtotal: summary.subtotal,
+        discount_amount: summary.totalDiscount,
+        tax_amount: summary.totalTax,
+        total_amount: summary.total,
+        paid_amount: summary.paidAmount,
+        remaining_amount: summary.remainingAmount,
+        payment_status: summary.remainingAmount <= 0 ? 'paid' : 'unpaid',
+        payment_method: paymentMethodAr,
+        currency: form.currency,
+        notes: form.notes,
+        source: 'manual',
+        status: asDraft ? 'draft' : 'sent',
+      } as any).select('id, invoice_number').single();
+
+      if (!invErr && dbInv) {
+        // Insert invoice items
+        const itemsToInsert = form.items.filter(i => i.description.trim()).map(item => ({
+          invoice_id: dbInv.id,
+          product_id: item.productId || null,
+          product_name: item.description,
+          quantity: item.quantity,
+          unit_price: item.unitPrice,
+          discount: item.discount,
+          tax_rate: item.taxRate,
+          total_amount: calcItemSubtotal(item),
+        }));
+        if (itemsToInsert.length > 0) {
+          await supabase.from("invoice_items").insert(itemsToInsert as any);
+        }
+
+        if (!asDraft) {
+          await updateInventory(form.items, form.type);
+          if (form.paymentMethod === "cheque") {
+            const invoice: Invoice = {
+              id: dbInv.id,
+              type: form.type,
+              invoiceNumber: dbInv.invoice_number || '',
+              date: form.date,
+              contactName: form.contactName,
+              items: form.items,
+              notes: form.notes,
+              status: "sent",
+              paymentMethod: form.paymentMethod,
+              subtotal: summary.subtotal,
+              totalDiscount: summary.totalDiscount,
+              totalTax: summary.totalTax,
+              total: summary.total,
+              paidAmount: summary.paidAmount,
+              remainingAmount: summary.remainingAmount,
+              currency: form.currency,
+              chequeDetails: { number: form.chequeNumber, bank: form.chequeBank, dueDate: form.chequeDueDate },
+            };
+            await createCheque(invoice);
+          }
+        }
+
+        toast({ title: asDraft ? "تم حفظ المسودة ✅" : `تم إنشاء الفاتورة ${dbInv.invoice_number} بنجاح ✅` });
+        await fetchInvoices();
+      } else {
+        console.error('DB invoice error:', invErr);
+        toast({ title: "خطأ في حفظ الفاتورة", variant: "destructive" });
+      }
+    } catch (err) {
+      console.error('Invoice creation error:', err);
+      toast({ title: "خطأ في إنشاء الفاتورة", variant: "destructive" });
     }
 
-    saveInvoices([invoice, ...invoices]);
-    toast({ title: asDraft ? "تم حفظ المسودة ✅" : `تم إنشاء الفاتورة بنجاح ✅` });
     setShowCreatePage(false);
     setCreating(false);
     resetForm();
