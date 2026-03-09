@@ -9,7 +9,7 @@ import { useDashboardData } from "@/hooks/useDashboardData";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import KPIMegaRow from "@/components/dashboard/KPIMegaRow";
 import RevenueExpenseChart from "@/components/dashboard/RevenueExpenseChart";
-import FinancialHealthWidget from "@/components/dashboard/FinancialHealthWidget";
+
 import CashFlowWidget from "@/components/dashboard/CashFlowWidget";
 import AgingWidget from "@/components/dashboard/AgingWidget";
 import RecentActivityWidget from "@/components/dashboard/RecentActivityWidget";
@@ -197,8 +197,8 @@ const HomeDashboard = () => {
             loading={dashboard.loading}
           />
 
-          {/* W4: Financial Health */}
-          <FinancialHealthWidget data={dashboard.healthScore} loading={dashboard.loading} />
+          {/* W12: Recent Activity (moved here, replaces Financial Health) */}
+          <RecentActivityWidget activities={dashboard.recentActivity} loading={dashboard.loading} />
 
           {/* W5: Cash Flow */}
           <CashFlowWidget data={dashboard.cashFlowData} cashBalance={dashboard.kpis.cashBalance} loading={dashboard.loading} />
@@ -215,9 +215,7 @@ const HomeDashboard = () => {
           {/* W11: Cheques */}
           <ChequesCalendarWidget cheques={dashboard.upcomingCheques} loading={dashboard.loading} />
 
-          {/* W12: Recent Activity */}
-          <RecentActivityWidget activities={dashboard.recentActivity} loading={dashboard.loading} />
-
+          {/* (Recent Activity moved to col-4 above) */}
           {/* Setup Wizard (if needed) */}
           {showSetupWizard && user && (
             <div className="col-span-12 bg-card rounded-2xl p-5 shadow-sm border border-border/30">
