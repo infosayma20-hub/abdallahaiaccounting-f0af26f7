@@ -107,13 +107,69 @@ const InvoicesPage = () => {
     transferBank: "",
   });
 
+  const fetchInvoices = async () => {
+    if (!user) return;
+    setLoading(true);
+    try {
+      // Fetch from database
+      const { data: dbInvoices } = await supabase
+        .from("invoices")
+        .select("*, invoice_items(*)")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+
+      const mapped: Invoice[] = (dbInvoices || []).map((inv: any) => ({
+        id: inv.id,
+        type: inv.invoice_type === 'sale' ? 'sales' : 'purchase',
+        invoiceNumber: inv.invoice_number || '',
+        date: inv.invoice_date || '',
+        dueDate: inv.due_date || undefined,
+        contactName: inv.contact_name || '',
+        items: (inv.invoice_items || []).map((item: any) => ({
+          id: item.id,
+          productId: item.product_id || undefined,
+          description: item.product_name || item.description || '',
+          quantity: Number(item.quantity) || 1,
+          unitPrice: Number(item.unit_price) || 0,
+          discount: Number(item.discount) || 0,
+          taxRate: Number(item.tax_rate) || 0,
+          subtotal: Number(item.total_amount) || 0,
+        })),
+        notes: inv.notes || '',
+        status: inv.status === 'draft' ? 'draft' : inv.payment_status === 'paid' ? 'paid' : 'sent',
+        paymentMethod: inv.payment_method === 'نقدي' ? 'cash' : inv.payment_method === 'بنك' ? 'transfer' : inv.payment_method === 'شيك' ? 'cheque' : 'credit',
+        subtotal: Number(inv.subtotal) || 0,
+        totalDiscount: Number(inv.discount_amount) || 0,
+        totalTax: Number(inv.tax_amount) || 0,
+        total: Number(inv.total_amount) || 0,
+        paidAmount: Number(inv.paid_amount) || 0,
+        remainingAmount: Number(inv.remaining_amount) || 0,
+        currency: inv.currency || 'شيكل',
+      }));
+
+      // Also load legacy localStorage invoices
+      const stored = localStorage.getItem(`invoices_${user.id}`);
+      const localInvoices: Invoice[] = stored ? JSON.parse(stored) : [];
+      
+      // Merge: DB invoices first, then local ones not already in DB
+      const dbIds = new Set(mapped.map(i => i.id));
+      const uniqueLocal = localInvoices.filter(i => !dbIds.has(i.id));
+      
+      setInvoices([...mapped, ...uniqueLocal]);
+    } catch (err) {
+      console.error('Error fetching invoices:', err);
+      // Fallback to localStorage
+      const stored = localStorage.getItem(`invoices_${user.id}`);
+      if (stored) setInvoices(JSON.parse(stored));
+    }
+    setLoading(false);
+  };
+
   useEffect(() => {
     if (!user) return;
-    const stored = localStorage.getItem(`invoices_${user.id}`);
-    if (stored) setInvoices(JSON.parse(stored));
+    fetchInvoices();
     fetchContacts();
     fetchProducts();
-    setLoading(false);
   }, [user]);
 
   const fetchProducts = async () => {
