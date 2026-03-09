@@ -28,7 +28,7 @@ const CleanInputDock = ({ onSend, sending }: Props) => {
   const [inputValue, setInputValue] = useState("");
   const [recordingTime, setRecordingTime] = useState(0);
   const [audioLevels, setAudioLevels] = useState<number[]>(new Array(40).fill(2));
-  const [showCommands, setShowCommands] = useState(false);
+  
   const [showMentions, setShowMentions] = useState(false);
   const [mentionItems, setMentionItems] = useState<MentionItem[]>([]);
   const [mentionSearch, setMentionSearch] = useState("");
