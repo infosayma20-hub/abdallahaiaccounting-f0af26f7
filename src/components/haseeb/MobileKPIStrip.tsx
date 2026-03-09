@@ -19,7 +19,7 @@ const MobileKPIStrip = ({ data }: Props) => {
   ];
 
   return (
-    <div className="haseeb-kpi-strip">
+    <div className="zidni-kpi-strip">
       {pills.map((p, i) => (
         <div
           key={p.label}
