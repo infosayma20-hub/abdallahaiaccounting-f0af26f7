@@ -2,10 +2,12 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getAuthHeadersJson } from "@/lib/edge-helpers";
 import { useToast } from "@/hooks/use-toast";
+import { buildAIContext, type AIFinancialContext } from "@/lib/buildAIContext";
 import CleanTopBar from "./CleanTopBar";
 import CleanInputDock from "./CleanInputDock";
 import FinancialSummarySheet from "./FinancialSummarySheet";
 import NotificationsSheet from "./NotificationsSheet";
+import ChatHistorySidebar from "./ChatHistorySidebar";
 import type { ZidniFinancialData } from "@/pages/SmartAccountantPage";
 import type { User } from "@supabase/supabase-js";
 
@@ -41,9 +43,33 @@ const CleanSmartAccountant = ({ user, userName, data, cfoMode, onToggleCfo, onCh
   const [statusIdx, setStatusIdx] = useState(0);
   const [showFinancial, setShowFinancial] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [todayConvCount, setTodayConvCount] = useState(0);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [showScrollDown, setShowScrollDown] = useState(false);
+
+  // Conversation persistence
+  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [aiContext, setAiContext] = useState<AIFinancialContext | null>(null);
+
+  // Load AI context on mount
+  useEffect(() => {
+    if (!user?.id) return;
+    buildAIContext(user.id).then(setAiContext);
+  }, [user?.id]);
+
+  // Count today's conversations
+  useEffect(() => {
+    if (!user?.id) return;
+    const today = new Date().toISOString().split("T")[0];
+    supabase.from("ai_conversations")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .gte("created_at", today)
+      .then(({ count }) => setTodayConvCount(count || 0));
+  }, [user?.id, conversationId]);
 
   // Auto-scroll
   useEffect(() => {
@@ -63,6 +89,68 @@ const CleanSmartAccountant = ({ user, userName, data, cfoMode, onToggleCfo, onCh
     return () => clearInterval(id);
   }, [sending]);
 
+  // Save message to DB
+  const saveMessage = async (convId: string, role: "user" | "assistant", content: string) => {
+    await supabase.from("ai_messages").insert({
+      conversation_id: convId,
+      role,
+      content,
+    });
+  };
+
+  // Create or get conversation
+  const ensureConversation = async (firstMessage: string): Promise<string> => {
+    if (conversationId) return conversationId;
+    if (!user?.id) return "";
+
+    const title = firstMessage.slice(0, 60) || "محادثة جديدة";
+    const { data: conv } = await supabase.from("ai_conversations").insert({
+      user_id: user.id,
+      title,
+    }).select("id").single();
+
+    const newId = conv?.id || "";
+    setConversationId(newId);
+    return newId;
+  };
+
+  // Load conversation from history
+  const loadConversation = async (convId: string) => {
+    const { data: msgs } = await supabase
+      .from("ai_messages")
+      .select("*")
+      .eq("conversation_id", convId)
+      .order("created_at", { ascending: true });
+
+    setMessages((msgs || []).map((m: any) => ({
+      id: m.id,
+      role: m.role as "user" | "assistant",
+      content: m.content,
+      timestamp: new Date(m.created_at),
+    })));
+    setConversationId(convId);
+    setShowHistory(false);
+  };
+
+  // New conversation
+  const handleNewConversation = () => {
+    setMessages([]);
+    setConversationId(null);
+    setShowHistory(false);
+  };
+
+  // Refresh data
+  const handleRefreshData = async () => {
+    if (!user?.id || refreshing) return;
+    setRefreshing(true);
+    try {
+      const ctx = await buildAIContext(user.id);
+      setAiContext(ctx);
+      toast({ title: "✓ تم تحديث البيانات" });
+    } catch { /* ignore */ }
+    setRefreshing(false);
+  };
+
   const handleSend = async (text: string, isVoice = false) => {
     if (!text.trim() || sending) return;
 
@@ -71,6 +159,10 @@ const CleanSmartAccountant = ({ user, userName, data, cfoMode, onToggleCfo, onCh
     setSending(true);
 
     try {
+      // Ensure conversation exists and save user message
+      const convId = await ensureConversation(text.trim());
+      if (convId) saveMessage(convId, "user", text.trim());
+
       const parseRes = await supabase.functions.invoke("parse-voice-transaction", { body: { text: text.trim() } });
       const parseData = parseRes.data;
 
@@ -86,14 +178,35 @@ const CleanSmartAccountant = ({ user, userName, data, cfoMode, onToggleCfo, onCh
         if (error) throw error;
         if (navigator.vibrate) navigator.vibrate(100);
         onTransactionSuccess();
-        setMessages(prev => [...prev, { id: uid(), role: "assistant", type: "success", content: `✅ تم تسجيل العملية بنجاح\n${text.trim()}`, timestamp: new Date() }]);
+        const successMsg = `✅ تم تسجيل العملية بنجاح\n${text.trim()}`;
+        setMessages(prev => [...prev, { id: uid(), role: "assistant", type: "success", content: successMsg, timestamp: new Date() }]);
+        if (convId) saveMessage(convId, "assistant", successMsg);
+        // Refresh context after transaction
+        if (user?.id) buildAIContext(user.id).then(setAiContext);
         setSending(false);
         return;
       }
 
-      // AI chat
+      // AI chat with full context
       const allMessages = messages.map(m => ({ role: m.role, content: m.content }));
       allMessages.push({ role: 'user', content: text.trim() });
+
+      // Build financial context string for the system prompt
+      const financialContext: any = {
+        cash: data.cash, bank: data.bank,
+        sales: data.totalSales, expenses: data.totalExpenses,
+        profit: data.netProfit, receivables: data.receivables,
+        payables: data.payables,
+      };
+
+      // Add enriched context from buildAIContext
+      if (aiContext) {
+        financialContext.recentTransactions = aiContext.recentTransactions.slice(0, 10);
+        financialContext.topContacts = aiContext.topContacts.slice(0, 10);
+        financialContext.inventory = aiContext.inventory.slice(0, 10);
+        financialContext.dueCheques = aiContext.dueCheques;
+        financialContext.employees = aiContext.employees;
+      }
 
       const resp = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-assistant-chat`,
@@ -102,7 +215,7 @@ const CleanSmartAccountant = ({ user, userName, data, cfoMode, onToggleCfo, onCh
           headers: { "Content-Type": "application/json", Authorization: (await getAuthHeadersJson()).Authorization },
           body: JSON.stringify({
             messages: allMessages, currentPage: "/smart-accountant", userName,
-            financialContext: { cash: data.cash, bank: data.bank, sales: data.totalSales, expenses: data.totalExpenses, profit: data.netProfit, receivables: data.receivables, payables: data.payables },
+            financialContext,
           }),
         }
       );
@@ -142,6 +255,9 @@ const CleanSmartAccountant = ({ user, userName, data, cfoMode, onToggleCfo, onCh
         }
       }
       if (navigator.vibrate) navigator.vibrate(40);
+
+      // Save assistant response to DB
+      if (convId && assistantContent) saveMessage(convId, "assistant", assistantContent);
     } catch {
       setMessages(prev => [...prev, { id: uid(), role: "assistant", content: "عذراً، حدث خطأ. حاول مرة أخرى.", timestamp: new Date() }]);
     } finally {
@@ -151,6 +267,11 @@ const CleanSmartAccountant = ({ user, userName, data, cfoMode, onToggleCfo, onCh
 
   const hasAnomalies = data.receivables > data.totalSales * 0.5 || data.cash + data.bank < 0;
   const isWelcome = messages.length === 0;
+
+  // Color coding for welcome numbers
+  const cashColor = "#006D8F"; // teal
+  const profitColor = data.netProfit >= 0 ? "#16A34A" : "#DC2626";
+  const receivablesColor = data.receivables > 0 ? "#DC2626" : "#16A34A";
 
   return (
     <>
@@ -163,6 +284,10 @@ const CleanSmartAccountant = ({ user, userName, data, cfoMode, onToggleCfo, onCh
         onBack={onBack}
         onShowFinancial={() => setShowFinancial(true)}
         onShowNotifications={() => setShowNotifications(true)}
+        onToggleHistory={() => setShowHistory(!showHistory)}
+        onRefreshData={handleRefreshData}
+        todayConversationCount={todayConvCount}
+        refreshing={refreshing}
       />
 
       {/* Chat Area */}
@@ -175,7 +300,6 @@ const CleanSmartAccountant = ({ user, userName, data, cfoMode, onToggleCfo, onCh
         <div className="px-4 py-4 max-w-2xl mx-auto">
           {isWelcome ? (
             <div className="flex flex-col items-center justify-center min-h-[50vh]">
-              {/* Clean welcome card */}
               <div className="w-full bg-white rounded-[20px] p-6 shadow-[0_2px_10px_rgba(10,35,66,0.06)]">
                 <div className="text-center">
                   <span className="text-[32px]">👋</span>
@@ -189,15 +313,15 @@ const CleanSmartAccountant = ({ user, userName, data, cfoMode, onToggleCfo, onCh
 
                 <div className="h-px bg-[#F1F5F9] my-5" />
 
-                {/* 3 key numbers — no colors, no icons, no borders */}
+                {/* 3 key numbers with color coding */}
                 <div className="flex justify-around">
                   {[
-                    { label: "الصندوق", value: fmt(data.cash) },
-                    { label: "الربح", value: fmt(data.netProfit) },
-                    { label: "الذمم", value: fmt(data.receivables) },
+                    { label: "الصندوق", value: fmt(data.cash), color: cashColor },
+                    { label: "الربح", value: fmt(data.netProfit), color: profitColor },
+                    { label: "الذمم", value: fmt(data.receivables), color: receivablesColor },
                   ].map(m => (
                     <div key={m.label} className="text-center">
-                      <p className="text-base font-bold" style={{ fontFamily: "JetBrains Mono, monospace", color: "#0A2342" }}>
+                      <p className="text-base font-bold" style={{ fontFamily: "JetBrains Mono, monospace", color: m.color }}>
                         {m.value}
                       </p>
                       <p className="text-[11px] mt-1" style={{ color: "#8B9BB4" }}>{m.label}</p>
@@ -228,6 +352,10 @@ const CleanSmartAccountant = ({ user, userName, data, cfoMode, onToggleCfo, onCh
                     }}
                   >
                     <span style={{ whiteSpace: "pre-wrap" }}>{msg.content}</span>
+                    {/* Blinking cursor while streaming */}
+                    {sending && msg.id === messages[messages.length - 1]?.id && msg.role === "assistant" && (
+                      <span className="inline-block w-[2px] h-4 ml-0.5 align-middle" style={{ background: "#0A2342", animation: "blink 1s infinite" }} />
+                    )}
                     <p className="text-[10px] mt-1.5" style={{ color: msg.role === "user" ? "rgba(255,255,255,0.4)" : "#8B9BB4" }}>
                       {msg.timestamp.toLocaleTimeString("ar", { hour: "2-digit", minute: "2-digit" })}
                     </p>
@@ -241,7 +369,7 @@ const CleanSmartAccountant = ({ user, userName, data, cfoMode, onToggleCfo, onCh
                 </div>
               ))}
 
-              {sending && (
+              {sending && !messages.some(m => m.role === "assistant" && m.id === messages[messages.length - 1]?.id) && (
                 <div className="flex justify-end mb-2">
                   <div className="bg-white rounded-2xl rounded-br-sm px-4 py-3 border border-[#E2E8F0] shadow-sm">
                     <div className="flex gap-1.5 mb-1.5">
@@ -261,13 +389,16 @@ const CleanSmartAccountant = ({ user, userName, data, cfoMode, onToggleCfo, onCh
         {showScrollDown && (
           <button
             onClick={() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); setShowScrollDown(false); }}
-            className="fixed bottom-28 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-full text-xs font-bold shadow-lg active:scale-95 transition-transform"
+            className="fixed bottom-28 left-1/2 -translate-x-1/2 z-50 w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shadow-lg active:scale-95 transition-transform"
             style={{ background: "#0A2342", color: "white" }}
           >
-            ↓ جديد
+            ↓
           </button>
         )}
       </div>
+
+      {/* Blink keyframe */}
+      <style>{`@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }`}</style>
 
       {/* Bottom Input Dock */}
       <CleanInputDock onSend={handleSend} sending={sending} />
@@ -275,6 +406,16 @@ const CleanSmartAccountant = ({ user, userName, data, cfoMode, onToggleCfo, onCh
       {/* Sheets */}
       <FinancialSummarySheet open={showFinancial} onClose={() => setShowFinancial(false)} data={data} />
       <NotificationsSheet open={showNotifications} onClose={() => setShowNotifications(false)} data={data} />
+
+      {/* Chat History Sidebar */}
+      <ChatHistorySidebar
+        open={showHistory}
+        onClose={() => setShowHistory(false)}
+        userId={user?.id}
+        activeConversationId={conversationId}
+        onSelectConversation={loadConversation}
+        onNewConversation={handleNewConversation}
+      />
     </>
   );
 };
