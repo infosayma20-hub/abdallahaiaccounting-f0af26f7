@@ -254,7 +254,7 @@ ${text}`,
   return (
     <div className="flex flex-col h-full" style={{ background: "#F4F7FA" }}>
       {/* Messages area */}
-      <div className="flex-1 overflow-y-auto px-5 py-4 haseeb-scrollbar">
+      <div className="flex-1 overflow-y-auto px-5 py-4 zidni-scrollbar">
         {isWelcome ? (
           <div className="flex items-center justify-center h-full">
             <div className="max-w-lg w-full">
