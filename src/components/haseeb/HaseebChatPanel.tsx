@@ -6,6 +6,7 @@ import MentionInput, { MentionItem } from "@/components/MentionInput";
 import { Send, Mic, Loader2, AtSign, Paperclip, MicOff } from "lucide-react";
 import type { ZidniFinancialData } from "@/pages/SmartAccountantPage";
 import type { User } from "@supabase/supabase-js";
+import { AIMessageRenderer } from "@/components/AIMessageRenderer";
 
 type Message = {
   id: string;
@@ -353,7 +354,7 @@ ${text}`,
                     fontFamily: "Tajawal, sans-serif",
                   }}
                 >
-                  <span style={{ whiteSpace: "pre-wrap", lineHeight: 1.8 }}>{msg.content}</span>
+                  <AIMessageRenderer content={msg.content} />
                   <p className="text-[9px] mt-1.5" style={{ color: msg.role === "user" ? "rgba(255,255,255,0.5)" : "#8B9BB4" }}>
                     {msg.timestamp.toLocaleTimeString("ar", { hour: "2-digit", minute: "2-digit" })}
                   </p>
