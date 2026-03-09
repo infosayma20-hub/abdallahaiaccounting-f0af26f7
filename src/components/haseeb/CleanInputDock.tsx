@@ -1,9 +1,18 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { Send, Mic, X, Square, AtSign } from "lucide-react";
+import { Send, Mic, X, Square, AtSign, Users, Package, Briefcase, BookOpen, PlusCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import CommandsSheet from "./CommandsSheet";
 
 type DockState = "idle" | "recording" | "processing";
+
+interface MentionItem {
+  id: string;
+  name: string;
+  type: string;
+  category: "contact" | "product" | "employee" | "account";
+}
 
 interface Props {
   onSend: (text: string, isVoice?: boolean) => void;
