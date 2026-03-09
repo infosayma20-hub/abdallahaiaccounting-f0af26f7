@@ -23,7 +23,7 @@ const MobileKPIStrip = ({ data }: Props) => {
       {pills.map((p, i) => (
         <div
           key={p.label}
-          className="haseeb-kpi-pill"
+          className="zidni-kpi-pill"
           style={{ animationDelay: `${i * 60}ms` }}
         >
           <span className="text-base">{p.icon}</span>

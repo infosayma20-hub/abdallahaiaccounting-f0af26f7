@@ -20,7 +20,7 @@ const MobileTopBar = ({ healthScore, onBack, onShowRadar }: Props) => {
         <span className="text-[15px] font-bold text-white" style={{ fontFamily: "Tajawal, sans-serif" }}>
           المحاسب الذكي
         </span>
-        <span className="haseeb-breathe-dot" />
+        <span className="zidni-breathe-dot" />
       </div>
 
       <div className="flex items-center gap-2">
