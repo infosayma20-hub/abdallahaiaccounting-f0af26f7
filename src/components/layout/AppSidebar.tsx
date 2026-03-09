@@ -401,12 +401,17 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
         )}
         style={{ transform: mobileOpen ? "translateX(0)" : "translateX(100%)" }}
       >
-        <button
-          onClick={onMobileClose}
-          className="absolute top-4 left-4 w-8 h-8 rounded-lg flex items-center justify-center text-sidebar-foreground hover:text-white transition-colors"
-        >
-          <X className="h-4 w-4" />
-        </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={onMobileClose}
+              className="absolute top-4 left-4 w-8 h-8 rounded-lg flex items-center justify-center text-sidebar-foreground hover:text-white transition-colors"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom"><p>إغلاق القائمة</p></TooltipContent>
+        </Tooltip>
         {sidebarContent}
       </aside>
 
