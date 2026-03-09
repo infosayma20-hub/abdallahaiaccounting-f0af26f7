@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { LayoutGrid, Plus, Clock, AlertTriangle } from "lucide-react";
+import { LayoutGrid, Plus, Clock, AlertTriangle, List } from "lucide-react";
+import AllTablesSheet from "./AllTablesSheet";
 
 interface TableBarItem {
   id: string;
