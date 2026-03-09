@@ -36,7 +36,7 @@ export async function buildAIContext(userId: string): Promise<AIFinancialContext
     supabase.from("cheques")
       .select("party_name, amount, cheque_date, cheque_type, status")
       .eq("user_id", userId)
-      .in("status", ["آجل", "مستحق"])
+      .in("status", ["آجل", "مستحق"] as any)
       .order("cheque_date", { ascending: true })
       .limit(10),
     supabase.from("employees")
