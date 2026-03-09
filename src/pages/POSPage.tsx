@@ -15,6 +15,7 @@ import {
   FileText,
 } from "lucide-react";
 import TableSelectorBar, { type TableBarItem } from "@/components/pos/TableSelectorBar";
+import AllOrdersSheet from "@/components/pos/AllOrdersSheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
