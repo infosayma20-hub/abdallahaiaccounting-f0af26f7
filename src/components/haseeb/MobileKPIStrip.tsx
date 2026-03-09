@@ -1,4 +1,4 @@
-import type { HaseebFinancialData } from "@/pages/SmartAccountantPage";
+import type { ZidniFinancialData } from "@/pages/SmartAccountantPage";
 
 interface Props {
   data: HaseebFinancialData;
