@@ -175,11 +175,14 @@ const CleanSmartAccountant = ({ user, userName, data, cfoMode, onToggleCfo, onCh
 
       if (parseData?.type && !['question', 'unknown'].includes(parseData.type)) {
         const body: any = { text: text.trim(), userId: user?.id, email: user?.email };
-        const { error } = await supabase.functions.invoke("process-transaction", { body });
+        const { data: txResult, error } = await supabase.functions.invoke("process-transaction", { body });
         if (error) throw error;
         if (navigator.vibrate) navigator.vibrate(100);
         onTransactionSuccess();
-        const successMsg = `✅ تم تسجيل العملية بنجاح\n${text.trim()}`;
+        const invoiceInfo = txResult?.transaction?.invoice_number 
+          ? `\n📋 رقم الفاتورة: ${txResult.transaction.invoice_number}` 
+          : '';
+        const successMsg = `✅ تم تسجيل العملية بنجاح${invoiceInfo}\n${text.trim()}`;
         setMessages(prev => [...prev, { id: uid(), role: "assistant", type: "success", content: successMsg, timestamp: new Date() }]);
         if (convId) saveMessage(convId, "assistant", successMsg);
         // Refresh context after transaction

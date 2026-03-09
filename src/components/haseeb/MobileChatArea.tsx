@@ -104,15 +104,17 @@ const MobileChatArea = ({ user, userName, data, cfoMode, onCheque, onJournal, on
 
       if (parseData?.type && !['question', 'unknown'].includes(parseData.type)) {
         const body: any = { text: text.trim(), userId: user?.id, email: user?.email };
-        const { error } = await supabase.functions.invoke("process-transaction", { body });
+        const { data: txResult, error } = await supabase.functions.invoke("process-transaction", { body });
         if (error) throw error;
         
         if (navigator.vibrate) navigator.vibrate(100);
         onTransactionSuccess();
-        
+        const invoiceInfo = txResult?.transaction?.invoice_number 
+          ? `\n📋 رقم الفاتورة: ${txResult.transaction.invoice_number}` 
+          : '';
         setMessages(prev => [...prev, {
           id: uid(), role: "assistant", type: "success",
-          content: `✅ تم تسجيل العملية بنجاح\n${text.trim()}`,
+          content: `✅ تم تسجيل العملية بنجاح${invoiceInfo}\n${text.trim()}`,
           timestamp: new Date(),
         }]);
         setSending(false);

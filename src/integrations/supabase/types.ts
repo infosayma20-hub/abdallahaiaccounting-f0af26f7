@@ -3021,6 +3021,56 @@ export type Database = {
           },
         ]
       }
+      invoice_items: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          discount: number | null
+          id: string
+          invoice_id: string
+          product_id: string | null
+          product_name: string
+          quantity: number
+          tax_rate: number | null
+          total_amount: number
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          discount?: number | null
+          id?: string
+          invoice_id: string
+          product_id?: string | null
+          product_name: string
+          quantity?: number
+          tax_rate?: number | null
+          total_amount?: number
+          unit_price?: number
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          discount?: number | null
+          id?: string
+          invoice_id?: string
+          product_id?: string | null
+          product_name?: string
+          quantity?: number
+          tax_rate?: number | null
+          total_amount?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_items_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoice_receipt_matching: {
         Row: {
           created_at: string
@@ -3073,6 +3123,92 @@ export type Database = {
             columns: ["representative_id"]
             isOneToOne: false
             referencedRelation: "sales_representatives"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoices: {
+        Row: {
+          contact_id: string | null
+          contact_name: string | null
+          created_at: string
+          currency: string | null
+          discount_amount: number | null
+          due_date: string | null
+          id: string
+          invoice_date: string
+          invoice_number: string | null
+          invoice_type: string
+          linked_transaction_id: string | null
+          notes: string | null
+          paid_amount: number | null
+          payment_method: string | null
+          payment_status: string | null
+          remaining_amount: number | null
+          source: string | null
+          status: string | null
+          subtotal: number
+          tax_amount: number | null
+          total_amount: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          contact_id?: string | null
+          contact_name?: string | null
+          created_at?: string
+          currency?: string | null
+          discount_amount?: number | null
+          due_date?: string | null
+          id?: string
+          invoice_date?: string
+          invoice_number?: string | null
+          invoice_type?: string
+          linked_transaction_id?: string | null
+          notes?: string | null
+          paid_amount?: number | null
+          payment_method?: string | null
+          payment_status?: string | null
+          remaining_amount?: number | null
+          source?: string | null
+          status?: string | null
+          subtotal?: number
+          tax_amount?: number | null
+          total_amount?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          contact_id?: string | null
+          contact_name?: string | null
+          created_at?: string
+          currency?: string | null
+          discount_amount?: number | null
+          due_date?: string | null
+          id?: string
+          invoice_date?: string
+          invoice_number?: string | null
+          invoice_type?: string
+          linked_transaction_id?: string | null
+          notes?: string | null
+          paid_amount?: number | null
+          payment_method?: string | null
+          payment_status?: string | null
+          remaining_amount?: number | null
+          source?: string | null
+          status?: string | null
+          subtotal?: number
+          tax_amount?: number | null
+          total_amount?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
             referencedColumns: ["id"]
           },
         ]
