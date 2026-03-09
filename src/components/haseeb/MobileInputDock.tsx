@@ -340,7 +340,7 @@ const MobileInputDock = ({ onSend, sending, quickChips, userId }: Props) => {
             className="w-14 h-14 rounded-full flex items-center justify-center flex-shrink-0 active:scale-95 transition-all disabled:opacity-40"
             style={{ background: "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--zidni-teal-dark)))", boxShadow: "0 4px 14px rgba(10,35,66,0.4)" }}
           >
-            <Send className="h-5 w-5 text-white rotate-180" />
+            <Send className="h-5 w-5 text-white" style={{ transform: "scaleX(-1)" }} />
           </button>
         ) : (
           <button
