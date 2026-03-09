@@ -325,12 +325,17 @@ const MobileInputDock = ({ onSend, sending, quickChips, userId }: Props) => {
             }}
           />
           {/* @ button inside */}
-          <button
-            className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full flex items-center justify-center"
-            style={{ color: "hsl(var(--accent))" }}
-          >
-            <AtSign className="h-4 w-4" />
-          </button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full flex items-center justify-center"
+                style={{ color: "hsl(var(--accent))" }}
+              >
+                <AtSign className="h-4 w-4" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="top"><p>ذكر جهة أو حساب</p></TooltipContent>
+          </Tooltip>
         </div>
 
         {/* Voice / Send button */}
