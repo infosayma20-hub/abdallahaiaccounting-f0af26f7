@@ -489,11 +489,11 @@
   background: transparent;
 }
 [role="dialog"] ::-webkit-scrollbar-thumb {
-  background: rgba(0, 180, 216, 0.4);
+  background: hsl(var(--muted-foreground) / 0.25);
   border-radius: 999px;
 }
 [role="dialog"] ::-webkit-scrollbar-thumb:hover {
-  background: #00B4D8;
+  background: hsl(var(--muted-foreground) / 0.45);
 }
 
 /* Smooth scroll */
@@ -503,10 +503,10 @@ html {
 
 /* Fade scrollbar on idle */
 .scroll-fade::-webkit-scrollbar-thumb {
-  background: rgba(0, 180, 216, 0.3);
+  background: hsl(var(--muted-foreground) / 0.15);
 }
 .scroll-fade:hover::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, #00B4D8, #006D8F);
+  background: hsl(var(--muted-foreground) / 0.35);
 }
 
 /* ═══ ZIDNI Smart Accountant Styles ═══ */
