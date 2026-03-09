@@ -22,25 +22,29 @@ interface TopBarProps {
   onOpenHelpGuide?: () => void;
 }
 
-/* ═══ Reusable Icon Button ═══ */
+/* ═══ Reusable Icon Button with Tooltip ═══ */
 const IconButton = ({
   icon: Icon, badge, onClick, title, className,
 }: {
   icon: React.ElementType; badge?: boolean; onClick?: () => void; title?: string; className?: string;
 }) => (
-  <button
-    onClick={onClick}
-    title={title}
-    className={cn(
-      "relative w-9 h-9 rounded-lg flex items-center justify-center",
-      "text-muted-foreground hover:text-foreground hover:bg-secondary",
-      "transition-all duration-150 cursor-pointer",
-      className
-    )}
-  >
-    <Icon className="h-[18px] w-[18px]" strokeWidth={1.8} />
-    {badge && <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-accent ring-2 ring-background" />}
-  </button>
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <button
+        onClick={onClick}
+        className={cn(
+          "relative w-9 h-9 rounded-lg flex items-center justify-center",
+          "text-muted-foreground hover:text-foreground hover:bg-secondary",
+          "transition-all duration-150 cursor-pointer",
+          className
+        )}
+      >
+        <Icon className="h-[18px] w-[18px]" strokeWidth={1.8} />
+        {badge && <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-accent ring-2 ring-background" />}
+      </button>
+    </TooltipTrigger>
+    {title && <TooltipContent side="bottom"><p>{title}</p></TooltipContent>}
+  </Tooltip>
 );
 
 /* ═══ Search Result Types ═══ */
