@@ -423,24 +423,8 @@ const CleanInputDock = ({ onSend, sending }: Props) => {
           </div>
         )}
 
-        {/* Quick chips */}
-        <div className="flex gap-2 overflow-x-auto px-3.5 pt-3 pb-2.5" style={{ scrollbarWidth: "none" }}>
-          {QUICK_CHIPS.map(chip => (
-            <button
-              key={chip}
-              onClick={() => handleChipClick(chip)}
-              className="flex-shrink-0 h-[34px] px-3.5 rounded-[17px] text-[13px] active:scale-95 transition-transform"
-              style={{
-                background: chip === "+ المزيد" ? "#0A2342" : "#F1F5F9",
-                color: chip === "+ المزيد" ? "white" : "#0A2342",
-                fontFamily: "Tajawal, sans-serif",
-                border: "none",
-              }}
-            >
-              {chip}
-            </button>
-          ))}
-        </div>
+        {/* Smart Command Bar */}
+        <SmartCommandBar onInsert={handleCommandInsert} onAction={handleCommandAction} />
 
         {/* Input row */}
         <div className="flex items-center gap-2 px-3.5">
@@ -481,8 +465,6 @@ const CleanInputDock = ({ onSend, sending }: Props) => {
           )}
         </div>
       </div>
-
-      <CommandsSheet open={showCommands} onClose={() => setShowCommands(false)} onSelect={handleCommandSelect} />
     </>
   );
 };
