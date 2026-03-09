@@ -212,7 +212,6 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
               : undefined
           }
         >
-        >
           <ModuleIcon
             module={item.module}
             size="sm"
