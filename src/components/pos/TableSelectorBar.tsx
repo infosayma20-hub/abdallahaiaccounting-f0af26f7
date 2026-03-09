@@ -183,12 +183,6 @@ export default function TableSelectorBar({
               <span className="text-amber-500 text-xs">⏰</span>
             )}
 
-            {/* Guest count */}
-            {table.status === "occupied" && table.current_guests > 0 && (
-              <span className="text-muted-foreground text-[10px]">
-                {table.current_guests}🧑
-              </span>
-            )}
           </button>
         );
       })}
