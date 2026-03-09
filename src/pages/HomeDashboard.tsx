@@ -15,7 +15,7 @@ import AgingWidget from "@/components/dashboard/AgingWidget";
 import RecentActivityWidget from "@/components/dashboard/RecentActivityWidget";
 import ChequesCalendarWidget from "@/components/dashboard/ChequesCalendarWidget";
 import InventoryPulseWidget from "@/components/dashboard/InventoryPulseWidget";
-import QuickActionsBar from "@/components/QuickActionsBar";
+import ExchangeRatesWidget from "@/components/dashboard/ExchangeRatesWidget";
 import SetupWizard from "@/components/SetupWizard";
 import CompleteProfileDialog from "@/components/CompleteProfileDialog";
 import HelpGuideModal from "@/components/HelpGuideModal";
@@ -144,17 +144,8 @@ const HomeDashboard = () => {
     <div className="space-y-0 max-w-[1600px] mx-auto animate-fade-in" dir="rtl">
       {user && <CompleteProfileDialog open={showProfileDialog} onClose={() => setShowProfileDialog(false)} user={user} />}
 
-      {/* Quick Actions */}
-      <div className="mb-4 flex items-center justify-between">
-        <QuickActionsBar
-          onAction={(target) => {
-            if (target === "journal") setShowJournalEntry(true);
-            else if (target === "account_statement") setShowAccountStatement(true);
-            else if (target === "contact_statement") setShowContactStatement(true);
-          }}
-          isMobile={isMobile}
-          onShowShortcuts={() => setShowShortcuts(true)}
-        />
+      {/* Privacy toggle */}
+      <div className="mb-4 flex items-center justify-end">
         <button
           onClick={() => {
             const next = !privacyMode;
@@ -214,6 +205,9 @@ const HomeDashboard = () => {
 
           {/* W7: Aging */}
           <AgingWidget receivables={dashboard.agingData.receivables} payables={dashboard.agingData.payables} loading={dashboard.loading} />
+
+          {/* Exchange Rates */}
+          <ExchangeRatesWidget />
 
           {/* W10: Inventory */}
           <InventoryPulseWidget alerts={dashboard.inventoryAlerts} summary={dashboard.inventorySummary} loading={dashboard.loading} />
