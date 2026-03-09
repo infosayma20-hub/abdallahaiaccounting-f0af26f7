@@ -496,33 +496,33 @@ html {
   background: linear-gradient(180deg, #00B4D8, #006D8F);
 }
 
-/* ═══ HASEEB Smart Accountant Styles ═══ */
-.haseeb-scrollbar::-webkit-scrollbar {
+/* ═══ ZIDNI Smart Accountant Styles ═══ */
+.zidni-scrollbar::-webkit-scrollbar {
   width: 4px;
 }
-.haseeb-scrollbar::-webkit-scrollbar-track {
+.zidni-scrollbar::-webkit-scrollbar-track {
   background: transparent;
 }
-.haseeb-scrollbar::-webkit-scrollbar-thumb {
+.zidni-scrollbar::-webkit-scrollbar-thumb {
   background: linear-gradient(180deg, #00B4D8, #006D8F);
   border-radius: 999px;
 }
 
-@keyframes haseeb-marquee {
+@keyframes zidni-marquee {
   0% { transform: translateX(0%); }
   100% { transform: translateX(-50%); }
 }
-.haseeb-ticker {
+.zidni-ticker {
   display: inline-block;
-  animation: haseeb-marquee 30s linear infinite;
+  animation: zidni-marquee 30s linear infinite;
 }
-.haseeb-ticker:hover {
+.zidni-ticker:hover {
   animation-play-state: paused;
 }
 
-/* ═══ HASEEB CLEAN STYLES ═══ */
+/* ═══ ZIDNI CLEAN STYLES ═══ */
 
-.haseeb-clean-screen {
+.zidni-clean-screen {
   display: flex;
   flex-direction: column;
   height: 100dvh;
@@ -533,7 +533,7 @@ html {
   overscroll-behavior: none;
 }
 
-.haseeb-mobile-screen {
+.zidni-mobile-screen {
   display: flex;
   flex-direction: column;
   height: 100dvh;
@@ -544,7 +544,7 @@ html {
   overscroll-behavior: none;
 }
 
-.haseeb-mobile-topbar {
+.zidni-mobile-topbar {
   height: 56px;
   display: flex;
   align-items: center;
@@ -560,21 +560,21 @@ html {
 }
 
 /* Breathing status dot */
-.haseeb-breathe-dot {
+.zidni-breathe-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
   background: hsl(var(--accent));
-  animation: haseeb-breathe 2s ease-in-out infinite;
+  animation: zidni-breathe 2s ease-in-out infinite;
 }
 
-@keyframes haseeb-breathe {
+@keyframes zidni-breathe {
   0%, 100% { opacity: 1; transform: scale(1); }
   50% { opacity: 0.5; transform: scale(0.8); }
 }
 
 /* KPI Strip */
-.haseeb-kpi-strip {
+.zidni-kpi-strip {
   height: 64px;
   background: hsl(var(--primary));
   display: flex;
@@ -587,9 +587,9 @@ html {
   flex-shrink: 0;
   border-bottom: 1px solid hsl(var(--accent) / 0.2);
 }
-.haseeb-kpi-strip::-webkit-scrollbar { display: none; }
+.zidni-kpi-strip::-webkit-scrollbar { display: none; }
 
-.haseeb-kpi-pill {
+.zidni-kpi-pill {
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -598,16 +598,16 @@ html {
   background: rgba(255,255,255,0.06);
   border: 1px solid rgba(255,255,255,0.1);
   border-radius: 20px;
-  animation: haseeb-slideIn 0.3s ease-out both;
+  animation: zidni-slideIn 0.3s ease-out both;
 }
 
-@keyframes haseeb-slideIn {
+@keyframes zidni-slideIn {
   from { opacity: 0; transform: translateX(20px); }
   to { opacity: 1; transform: translateX(0); }
 }
 
 /* Chat scroll area */
-.haseeb-chat-scroll {
+.zidni-chat-scroll {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
@@ -621,7 +621,7 @@ html {
 .no-scrollbar { scrollbar-width: none; }
 
 /* Bottom Input Dock */
-.haseeb-dock {
+.zidni-dock {
   position: sticky;
   bottom: 0;
   width: 100%;
@@ -633,17 +633,17 @@ html {
   flex-shrink: 0;
 }
 
-.dark .haseeb-dock {
+.dark .zidni-dock {
   background: hsl(var(--card));
 }
 
-.haseeb-dock-recording {
+.zidni-dock-recording {
   background: linear-gradient(135deg, hsl(215 78% 7%), hsl(var(--primary))) !important;
   border-top-color: hsl(var(--accent) / 0.3) !important;
 }
 
 /* Mic button — THE STAR */
-.haseeb-mic-btn {
+.zidni-mic-btn {
   width: 56px;
   height: 56px;
   border-radius: 50%;
@@ -660,43 +660,43 @@ html {
   -webkit-tap-highlight-color: transparent;
 }
 
-.haseeb-mic-btn:active {
+.zidni-mic-btn:active {
   transform: scale(0.95);
 }
 
 /* Recording red dot */
-.haseeb-rec-dot {
+.zidni-rec-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
   background: hsl(var(--destructive));
-  animation: haseeb-blink 1s ease-in-out infinite;
+  animation: zidni-blink 1s ease-in-out infinite;
 }
 
-@keyframes haseeb-blink {
+@keyframes zidni-blink {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.3; }
 }
 
 /* Shimmer processing bar */
-.haseeb-shimmer-bar {
+.zidni-shimmer-bar {
   height: 4px;
   background: linear-gradient(90deg, transparent, hsl(var(--accent)), hsl(var(--zidni-gold)), transparent);
   background-size: 200% 100%;
-  animation: haseeb-shimmer 1.5s infinite;
+  animation: zidni-shimmer 1.5s infinite;
 }
 
-@keyframes haseeb-shimmer {
+@keyframes zidni-shimmer {
   0% { background-position: 200% 0; }
   100% { background-position: -200% 0; }
 }
 
 /* Reduce motion */
 @media (prefers-reduced-motion: reduce) {
-  .haseeb-breathe-dot,
-  .haseeb-kpi-pill,
-  .haseeb-ticker,
-  .haseeb-shimmer-bar {
+  .zidni-breathe-dot,
+  .zidni-kpi-pill,
+  .zidni-ticker,
+  .zidni-shimmer-bar {
     animation: none !important;
   }
 }

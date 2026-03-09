@@ -88,7 +88,7 @@ export default {
           dark: "hsl(var(--zidni-teal-dark))",
         },
         "icon-bg": "hsl(var(--icon-bg))",
-        haseeb: {
+        zidni: {
           navy: "#0A2342",
           "navy-dark": "#050F1E",
           teal: "#00B4D8",
