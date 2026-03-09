@@ -425,7 +425,6 @@ ${contactContext}
     let chequeId = null;
     if (paymentMethod === 'شيك' && amount > 0) {
       const isReceived = ['سند قبض'].includes(transactionType);
-      const chequeType = isReceived ? 'صادر' : 'وارد';
       
       let parsedChequeDate = chequeDate;
       if (chequeDate && !dateRegex.test(chequeDate)) {
@@ -455,6 +454,83 @@ ${contactContext}
       }
     }
 
+    // ═══ AUTO-CREATE BUSINESS DOCUMENTS ═══
+    let invoiceNumber = null;
+    let invoiceId = null;
+
+    // Determine if we need to create a business document
+    const isSale = ['فاتورة مبيعات', 'سند قبض'].includes(transactionType) || 
+                   /مبيعات|بعت|قبضت/.test(description);
+    const isPurchase = ['فاتورة مشتريات'].includes(transactionType) || 
+                       /مشتريات|اشتريت/.test(description);
+
+    if (isSale && amount > 0) {
+      // Create sales invoice in invoices table
+      const { data: invData, error: invErr } = await supabaseAdmin.from('invoices').insert({
+        user_id: userId,
+        invoice_type: 'sale',
+        contact_id: contactId,
+        contact_name: contactNameParsed || 'عميل نقدي',
+        invoice_date: transactionDate,
+        due_date: paymentMethod === 'آجل' ? null : transactionDate,
+        subtotal: amount,
+        discount_amount: 0,
+        tax_amount: 0,
+        total_amount: amount,
+        paid_amount: ['نقدي', 'بنك', 'شيك'].includes(paymentMethod) ? amount : 0,
+        remaining_amount: ['نقدي', 'بنك', 'شيك'].includes(paymentMethod) ? 0 : amount,
+        payment_status: ['نقدي', 'بنك', 'شيك'].includes(paymentMethod) ? 'paid' : 'unpaid',
+        payment_method: paymentMethod,
+        currency: currency,
+        notes: description,
+        linked_transaction_id: txData.id,
+        source: 'ai_accountant',
+        status: 'sent',
+      }).select('id, invoice_number').single();
+
+      if (!invErr && invData) {
+        invoiceId = invData.id;
+        invoiceNumber = invData.invoice_number;
+        console.log('Auto-created invoice:', invoiceNumber, invoiceId);
+
+        // Create invoice item
+        await supabaseAdmin.from('invoice_items').insert({
+          invoice_id: invData.id,
+          product_name: description || 'خدمات',
+          description: description,
+          quantity: 1,
+          unit_price: amount,
+          total_amount: amount,
+        });
+      } else {
+        console.error('Failed to auto-create invoice:', invErr);
+      }
+    } else if (isPurchase && amount > 0) {
+      // Create purchase invoice in purchase_invoices table
+      const { data: purData, error: purErr } = await supabaseAdmin.from('purchase_invoices').insert({
+        user_id: userId,
+        supplier_id: contactId,
+        supplier_name: contactNameParsed || 'مورد',
+        invoice_date: transactionDate,
+        subtotal: amount,
+        total_amount: amount,
+        paid_amount: ['نقدي', 'بنك', 'شيك'].includes(paymentMethod) ? amount : 0,
+        remaining_amount: ['نقدي', 'بنك', 'شيك'].includes(paymentMethod) ? 0 : amount,
+        payment_method: paymentMethod,
+        status: ['نقدي', 'بنك', 'شيك'].includes(paymentMethod) ? 'approved' : 'pending',
+        linked_transaction_id: txData.id,
+        notes: description,
+      }).select('id, invoice_number').single();
+
+      if (!purErr && purData) {
+        invoiceId = purData.id;
+        invoiceNumber = purData.invoice_number;
+        console.log('Auto-created purchase invoice:', invoiceNumber);
+      } else {
+        console.error('Failed to auto-create purchase invoice:', purErr);
+      }
+    }
+
     // Get account names for response
     const debitAcc = accounts.find(a => a.account_code === debitAccountCode);
     const creditAcc = accounts.find(a => a.account_code === creditAccountCode);
@@ -474,6 +550,8 @@ ${contactContext}
         contact_name: contactNameParsed,
         contact_created: shouldCreateContact && contactId ? true : false,
         cheque_id: chequeId,
+        invoice_id: invoiceId,
+        invoice_number: invoiceNumber,
       },
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
