@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import BackButton from "@/components/BackButton";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useSubscription } from "@/hooks/useSubscription";
@@ -153,7 +154,11 @@ const PricingPage = () => {
           </div>
         )}
 
-        <div className="max-w-6xl mx-auto px-5 pt-16 pb-8">
+        <div className="max-w-6xl mx-auto px-5 pt-8 pb-8">
+          {/* Back Button */}
+          <div className="mb-6">
+            <BackButton fallback="/apps" className="bg-white/10 hover:bg-white/20" />
+          </div>
           {/* Header */}
           <div className="text-center mb-10">
             <h1 className="text-[32px] font-extrabold text-white mb-3" style={{ fontFamily: "Tajawal" }}>
