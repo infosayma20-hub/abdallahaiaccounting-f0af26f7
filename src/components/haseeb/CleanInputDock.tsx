@@ -58,7 +58,7 @@ const CleanInputDock = ({ onSend, sending }: Props) => {
         const items: MentionItem[] = [
           ...(contactsRes.data || []).map(c => ({ id: c.id, name: c.contact_name, type: c.contact_type || 'جهة', category: 'contact' as const })),
           ...(productsRes.data || []).map(p => ({ id: p.id, name: p.name, type: `صنف · ${p.unit || 'وحدة'}`, category: 'product' as const })),
-          ...(employeesRes.data || []).map(e => ({ id: e.id, name: e.name, type: e.position || 'موظف', category: 'employee' as const })),
+          ...(employeesRes.data || []).map(e => ({ id: e.id, name: e.full_name, type: e.job_title || 'موظف', category: 'employee' as const })),
           ...(accountsRes.data || []).map(a => ({ id: a.id, name: `${a.account_code} - ${a.account_name}`, type: a.account_type, category: 'account' as const })),
         ];
         setMentionItems(items);
