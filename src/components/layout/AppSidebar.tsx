@@ -211,7 +211,7 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
               ? { background: "rgba(0,180,216,0.08)", borderRight: "3px solid #C9A84C" }
               : undefined
           }
-          title={collapsed ? item.label : undefined}
+        >
         >
           <ModuleIcon
             module={item.module}
