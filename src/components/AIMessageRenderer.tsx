@@ -1,5 +1,6 @@
 import { parseAIMessage } from '@/utils/parseAIMessage';
 import { useNavigate } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
 
 interface Props {
   content: string;
@@ -14,6 +15,39 @@ export function AIMessageRenderer({ content, onActionInsert }: Props) {
   if (parts.length === 1 && parts[0].type === 'text') {
     return <span style={{ whiteSpace: 'pre-wrap' }}>{parts[0].content}</span>;
   }
+
+  const handleAction = (route: string, label: string) => {
+    // Routes starting with / → navigate to page
+    if (route.startsWith('/')) {
+      navigate(route);
+      return;
+    }
+
+    // Routes starting with @ → insert into chat input
+    if (route.startsWith('@') && onActionInsert) {
+      onActionInsert(label);
+      return;
+    }
+
+    // Fallback: try inserting label
+    if (onActionInsert) {
+      onActionInsert(label);
+    } else {
+      const inputEl = document.querySelector(
+        'input[data-ai-input], textarea[data-ai-input]'
+      ) as HTMLInputElement;
+      if (inputEl) {
+        const nativeSetter = Object.getOwnPropertyDescriptor(
+          window.HTMLInputElement.prototype, 'value'
+        )?.set || Object.getOwnPropertyDescriptor(
+          window.HTMLTextAreaElement.prototype, 'value'
+        )?.set;
+        nativeSetter?.call(inputEl, label);
+        inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+        inputEl.focus();
+      }
+    }
+  };
 
   return (
     <div className="ai-message-content">
@@ -30,37 +64,18 @@ export function AIMessageRenderer({ content, onActionInsert }: Props) {
           return (
             <button
               key={index}
-              onClick={() => {
-                if (part.route && part.route !== '/') {
-                  navigate(part.route);
-                } else if (onActionInsert) {
-                  onActionInsert(part.label);
-                } else {
-                  const inputEl = document.querySelector(
-                    'input[data-ai-input], textarea[data-ai-input]'
-                  ) as HTMLInputElement;
-                  if (inputEl) {
-                    const nativeSetter = Object.getOwnPropertyDescriptor(
-                      window.HTMLInputElement.prototype, 'value'
-                    )?.set || Object.getOwnPropertyDescriptor(
-                      window.HTMLTextAreaElement.prototype, 'value'
-                    )?.set;
-                    nativeSetter?.call(inputEl, part.label);
-                    inputEl.dispatchEvent(new Event('input', { bubbles: true }));
-                    inputEl.focus();
-                  }
-                }
-              }}
-              className="inline-flex items-center gap-1.5 my-1.5 px-4 py-2.5 rounded-xl text-[13px] font-bold cursor-pointer transition-all duration-150 hover:scale-[1.02] active:scale-[0.98]"
+              onClick={() => handleAction(part.route, part.label)}
+              className="inline-flex items-center gap-1.5 my-1.5 mx-1 px-4 py-2 rounded-xl text-[13px] font-bold cursor-pointer transition-all duration-150 hover:scale-[1.03] hover:-translate-y-0.5 active:scale-[0.97]"
               style={{
                 background: 'linear-gradient(135deg, #0A2342, #006D8F)',
                 color: 'white',
                 border: 'none',
                 fontFamily: 'Tajawal, sans-serif',
-                boxShadow: '0 2px 8px rgba(10,35,66,0.25)',
+                boxShadow: '0 2px 10px rgba(10,35,66,0.3)',
               }}
             >
-              ⚡ {part.label}
+              <ArrowLeft className="h-3.5 w-3.5" />
+              {part.label}
             </button>
           );
         }
