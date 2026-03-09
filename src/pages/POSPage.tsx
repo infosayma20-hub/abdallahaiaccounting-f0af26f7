@@ -2265,6 +2265,17 @@ const POSPage = () => {
         <div className="w-[340px] lg:w-[380px] flex flex-col bg-card border-r border-border shrink-0">
           {/* Order Tabs */}
           <div className="flex items-center border-b border-border shrink-0 overflow-x-auto">
+            {/* View all orders button */}
+            <button
+              onClick={() => setShowAllOrders(true)}
+              className="flex items-center gap-1 text-muted-foreground/60 hover:text-foreground transition-colors h-11 px-2.5 flex-shrink-0"
+              title="عرض جميع الطلبات"
+            >
+              <LayoutGrid className="w-3.5 h-3.5" />
+              <span className="text-[11px] font-medium">طلبات</span>
+            </button>
+            <div className="w-px h-5 bg-border flex-shrink-0" />
+
             {orders.map((order, idx) => {
               const isActive = idx === activeOrderIndex;
               const itemCount = order.cart.reduce((s, i) => s + i.qty, 0);
@@ -2311,6 +2322,23 @@ const POSPage = () => {
               <Plus className="h-3.5 w-3.5" />
             </button>
           </div>
+
+          {/* All Orders Sheet */}
+          <AllOrdersSheet
+            open={showAllOrders}
+            onClose={() => setShowAllOrders(false)}
+            orders={orders.map(o => ({
+              id: o.id,
+              name: o.name,
+              itemCount: o.cart.reduce((s, i) => s + i.qty, 0),
+              total: o.cart.reduce((s, i) => s + i.total, 0),
+              tableId: o.tableId,
+              tableName: o.tableName,
+            }))}
+            activeOrderIndex={activeOrderIndex}
+            onSelectOrder={(idx) => setActiveOrderIndex(idx)}
+            onRemoveOrder={(idx) => removeOrder(idx)}
+          />
 
           {/* Cart Header */}
           <div className="h-10 px-3 flex items-center justify-between shrink-0">
