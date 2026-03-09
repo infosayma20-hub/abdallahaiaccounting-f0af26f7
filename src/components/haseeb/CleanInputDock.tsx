@@ -458,7 +458,7 @@ const CleanInputDock = ({ onSend, sending }: Props) => {
               className="rounded-full flex items-center justify-center active:scale-95 transition-all disabled:opacity-40"
               style={{ width: 48, height: 48, minWidth: 48, minHeight: 48, flexShrink: 0, padding: 0, border: "none", background: "linear-gradient(135deg, #0A2342, #006D8F)", boxShadow: "0 4px 12px rgba(10,35,66,0.35)", boxSizing: "border-box" }}
             >
-              <Send className="h-5 w-5 text-white" style={{ transform: "rotate(180deg)" }} />
+              <Send className="h-5 w-5 text-white" style={{ transform: "scaleX(-1) scaleY(-1)" }} />
             </button>
           ) : (
             <button
