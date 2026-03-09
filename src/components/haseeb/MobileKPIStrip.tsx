@@ -1,7 +1,7 @@
 import type { ZidniFinancialData } from "@/pages/SmartAccountantPage";
 
 interface Props {
-  data: HaseebFinancialData;
+  data: ZidniFinancialData;
 }
 
 const fmt = (n: number) => {
