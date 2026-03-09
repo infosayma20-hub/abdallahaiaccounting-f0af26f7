@@ -240,13 +240,19 @@ ${contactContext}
     const aiData = await aiResponse.json();
     const aiContent = aiData.choices?.[0]?.message?.content || '';
     
-    // Parse JSON from AI response (handle markdown code blocks)
+    // Parse JSON from AI response with robust extraction
     let parsed;
     try {
-      const jsonMatch = aiContent.match(/```(?:json)?\s*([\s\S]*?)```/) || [null, aiContent];
-      parsed = JSON.parse(jsonMatch[1]!.trim());
+      parsed = extractJsonFromResponse(aiContent);
     } catch {
       console.error('Failed to parse AI response:', aiContent);
+      // If AI returned a non-JSON conversational response, return it as a chat message
+      if (!aiContent.trim().startsWith('{') && !aiContent.trim().startsWith('[') && !aiContent.includes('"نوع_الحركة"')) {
+        return new Response(JSON.stringify({
+          type: 'chat_response',
+          message: aiContent.trim(),
+        }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
       throw new Error('فشل في تحليل رد الذكاء الاصطناعي');
     }
 
