@@ -200,7 +200,7 @@ const MobileChatArea = ({ user, userName, data, cfoMode, onCheque, onJournal, on
       <div
         ref={scrollRef}
         onScroll={handleScroll}
-        className="haseeb-chat-scroll"
+        className="zidni-chat-scroll"
       >
         {isWelcome ? (
           <div className="px-3.5 py-3 space-y-3">

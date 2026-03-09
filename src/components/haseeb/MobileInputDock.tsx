@@ -346,7 +346,7 @@ const MobileInputDock = ({ onSend, sending, quickChips, userId }: Props) => {
           <button
             onTouchStart={startVoiceInput}
             onMouseDown={startVoiceInput}
-            className="haseeb-mic-btn"
+            className="zidni-mic-btn"
             aria-label="تسجيل صوتي"
           >
             <Mic className="h-6 w-6 text-white" />
