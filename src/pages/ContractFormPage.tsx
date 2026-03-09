@@ -160,7 +160,7 @@ export default function ContractFormPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/contracts")}>
+          <Button variant="ghost" size="icon" onClick={() => window.history.length > 2 ? navigate(-1) : navigate("/contracts")}>
             <ArrowRight className="h-5 w-5" />
           </Button>
           <h1 className="text-xl font-bold text-foreground">{isEdit ? "تعديل العقد" : "إنشاء عقد جديد"}</h1>

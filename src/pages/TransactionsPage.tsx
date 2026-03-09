@@ -518,7 +518,7 @@ const TransactionsPage = () => {
       {/* ━━━ HEADER ━━━ */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-[#E2E8F0]">
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate("/")} className="p-2 rounded-lg hover:bg-[#F1F5F9] transition-colors">
+          <button onClick={() => window.history.length > 2 ? navigate(-1) : navigate("/apps")} className="p-2 rounded-lg hover:bg-[#F1F5F9] transition-colors">
             <ArrowRight className="h-5 w-5 text-[#1A2332]" />
           </button>
           <div>

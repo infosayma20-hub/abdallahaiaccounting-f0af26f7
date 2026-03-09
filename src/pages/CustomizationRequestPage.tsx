@@ -76,7 +76,7 @@ const CustomizationRequestPage = () => {
   return (
     <div className="p-6 space-y-6 max-w-2xl mx-auto" dir="rtl">
       <div className="flex items-center gap-2">
-        <button onClick={() => navigate("/customization")} className="p-1.5 rounded-lg hover:bg-muted">
+        <button onClick={() => window.history.length > 2 ? navigate(-1) : navigate("/customization")} className="p-1.5 rounded-lg hover:bg-muted">
           <ArrowRight className="h-5 w-5 text-muted-foreground" />
         </button>
         <div>
