@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import type { ZidniFinancialData } from "@/pages/SmartAccountantPage";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 
 interface Props {
   data: ZidniFinancialData;
