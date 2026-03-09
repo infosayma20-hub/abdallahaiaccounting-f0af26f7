@@ -93,16 +93,21 @@ const CleanTopBar = ({
         </Tooltip>
 
         {/* Notifications bell */}
-        <button
-          onClick={onShowNotifications}
-          className="w-11 h-11 flex items-center justify-center relative"
-          aria-label="تنبيهات"
-        >
-          <Bell className="h-5 w-5" style={{ color: "#8B9BB4" }} />
-          {hasAnomalies && (
-            <span className="absolute top-2.5 right-2.5 w-2 h-2 rounded-full" style={{ background: "#DC2626" }} />
-          )}
-        </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={onShowNotifications}
+              className="w-11 h-11 flex items-center justify-center relative"
+              aria-label="تنبيهات"
+            >
+              <Bell className="h-5 w-5" style={{ color: "#8B9BB4" }} />
+              {hasAnomalies && (
+                <span className="absolute top-2.5 right-2.5 w-2 h-2 rounded-full" style={{ background: "#DC2626" }} />
+              )}
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom"><p>الإشعارات</p></TooltipContent>
+        </Tooltip>
 
         {/* Health score pill */}
         <button
