@@ -79,12 +79,12 @@ const ChatHistorySidebar = ({ open, onClose, userId, activeConversationId, onSel
     <>
       {/* Backdrop */}
       {open && (
-        <div className="fixed inset-0 bg-black/30 z-[39] lg:hidden" onClick={onClose} />
+        <div className="fixed inset-0 bg-black/30 z-[60] lg:hidden" onClick={onClose} />
       )}
 
       {/* Sidebar */}
       <div
-        className="fixed top-[52px] right-0 h-[calc(100vh-52px)] z-[40] bg-white flex flex-col"
+        className="fixed top-[52px] right-0 h-[calc(100vh-52px)] z-[61] bg-white flex flex-col"
         style={{
           width: "min(280px, 100vw)",
           borderLeft: "1px solid #E2E8F0",
