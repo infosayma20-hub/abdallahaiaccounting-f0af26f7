@@ -84,7 +84,7 @@ const HRLeaveReport = () => {
     <div className="space-y-5 max-w-[1200px] mx-auto pb-10" dir="rtl">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate("/reports")} className="p-2 rounded-xl hover:bg-muted transition-colors">
+          <button onClick={() => window.history.length > 2 ? navigate(-1) : navigate("/reports")} className="p-2 rounded-xl hover:bg-muted transition-colors">
             <ArrowRight className="h-5 w-5 text-foreground" />
           </button>
           <h1 className="text-xl font-bold text-foreground">تقرير رصيد الإجازات</h1>

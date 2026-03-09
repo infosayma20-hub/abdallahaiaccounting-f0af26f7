@@ -71,7 +71,7 @@ const ContactDetailPage = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate("/contacts")} className="p-2 rounded-xl hover:bg-muted transition-colors">
+          <button onClick={() => window.history.length > 2 ? navigate(-1) : navigate("/contacts")} className="p-2 rounded-xl hover:bg-muted transition-colors">
             <ArrowRight className="h-5 w-5" />
           </button>
           <h1 className="text-xl font-bold">{contact.contact_name}</h1>
