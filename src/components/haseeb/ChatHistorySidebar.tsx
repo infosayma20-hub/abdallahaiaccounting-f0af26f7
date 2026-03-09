@@ -23,6 +23,17 @@ const ChatHistorySidebar = ({ open, onClose, userId, activeConversationId, onSel
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const deleteConversation = async (convId: string) => {
+    if (!confirm("هل تريد حذف هذه المحادثة؟")) return;
+    setDeletingId(convId);
+    await supabase.from("ai_messages").delete().eq("conversation_id", convId);
+    await supabase.from("ai_conversations").delete().eq("id", convId);
+    setConversations(prev => prev.filter(c => c.id !== convId));
+    if (activeConversationId === convId) onNewConversation();
+    setDeletingId(null);
+  };
 
   const fetchConversations = useCallback(async () => {
     if (!userId) return;
