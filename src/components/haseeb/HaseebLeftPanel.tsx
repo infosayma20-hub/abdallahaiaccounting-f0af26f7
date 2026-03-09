@@ -138,4 +138,4 @@ const ZidniLeftPanel = ({ data, cfoMode }: Props) => {
   );
 };
 
-export default HaseebLeftPanel;
+export default ZidniLeftPanel;

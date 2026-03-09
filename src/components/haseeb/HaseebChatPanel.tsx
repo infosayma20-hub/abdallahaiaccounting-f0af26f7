@@ -445,4 +445,4 @@ ${text}`,
   );
 };
 
-export default HaseebChatPanel;
+export default ZidniChatPanel;

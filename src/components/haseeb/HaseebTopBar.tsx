@@ -101,4 +101,4 @@ const ZidniTopBar = ({ data, cfoMode, onToggleCfo, sessionStart, compact }: Prop
   );
 };
 
-export default HaseebTopBar;
+export default ZidniTopBar;
