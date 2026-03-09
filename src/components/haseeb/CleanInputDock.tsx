@@ -1,9 +1,18 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { Send, Mic, X, Square, AtSign } from "lucide-react";
+import { Send, Mic, X, Square, AtSign, Users, Package, Briefcase, BookOpen, PlusCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import CommandsSheet from "./CommandsSheet";
 
 type DockState = "idle" | "recording" | "processing";
+
+interface MentionItem {
+  id: string;
+  name: string;
+  type: string;
+  category: "contact" | "product" | "employee" | "account";
+}
 
 interface Props {
   onSend: (text: string, isVoice?: boolean) => void;
@@ -14,19 +23,64 @@ const QUICK_CHIPS = ["قبضت من @", "دفعت إيجار", "بعت لـ@", "
 
 const CleanInputDock = ({ onSend, sending }: Props) => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [state, setState] = useState<DockState>("idle");
   const [inputValue, setInputValue] = useState("");
   const [recordingTime, setRecordingTime] = useState(0);
   const [audioLevels, setAudioLevels] = useState<number[]>(new Array(40).fill(2));
   const [showCommands, setShowCommands] = useState(false);
+  const [showMentions, setShowMentions] = useState(false);
+  const [mentionItems, setMentionItems] = useState<MentionItem[]>([]);
+  const [mentionSearch, setMentionSearch] = useState("");
+  const [mentionLoaded, setMentionLoaded] = useState(false);
 
   const streamRef = useRef<MediaStream | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const animFrameRef = useRef<number>(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const mentionRef = useRef<HTMLDivElement>(null);
 
   const hasText = inputValue.trim().length > 0;
+
+  // Fetch mention items
+  useEffect(() => {
+    if (!user?.id || mentionLoaded) return;
+    const fetchMentionData = async () => {
+      try {
+        const [contactsRes, productsRes, employeesRes, accountsRes] = await Promise.all([
+          supabase.from('contacts').select('id, contact_name, contact_type').eq('user_id', user.id).eq('is_active', true),
+          supabase.from('products').select('id, name, unit').eq('user_id', user.id),
+          supabase.from('employees').select('id, full_name, job_title').eq('user_id', user.id),
+          supabase.from('accounts').select('id, account_name, account_code, account_type').eq('user_id', user.id).eq('is_active', true),
+        ]);
+
+        const items: MentionItem[] = [
+          ...(contactsRes.data || []).map(c => ({ id: c.id, name: c.contact_name, type: c.contact_type || 'جهة', category: 'contact' as const })),
+          ...(productsRes.data || []).map(p => ({ id: p.id, name: p.name, type: `صنف · ${p.unit || 'وحدة'}`, category: 'product' as const })),
+          ...(employeesRes.data || []).map(e => ({ id: e.id, name: e.full_name, type: e.job_title || 'موظف', category: 'employee' as const })),
+          ...(accountsRes.data || []).map(a => ({ id: a.id, name: `${a.account_code} - ${a.account_name}`, type: a.account_type, category: 'account' as const })),
+        ];
+        setMentionItems(items);
+        setMentionLoaded(true);
+      } catch (err) {
+        console.error('Failed to fetch mention data:', err);
+      }
+    };
+    fetchMentionData();
+  }, [user?.id, mentionLoaded]);
+
+  // Close mention dropdown on outside click
+  useEffect(() => {
+    if (!showMentions) return;
+    const handler = (e: MouseEvent) => {
+      if (mentionRef.current && !mentionRef.current.contains(e.target as Node)) {
+        setShowMentions(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showMentions]);
 
   useEffect(() => {
     return () => stopRecordingCleanup();
@@ -126,6 +180,70 @@ const CleanInputDock = ({ onSend, sending }: Props) => {
     onSend(text);
   };
 
+  const toggleMentions = () => {
+    setShowMentions(!showMentions);
+    setMentionSearch("");
+  };
+
+  const handleMentionSelect = (item: MentionItem) => {
+    const name = item.category === 'account' ? item.name.split(' - ')[1] || item.name : item.name;
+    setInputValue(prev => prev + (prev && !prev.endsWith(' ') ? ' ' : '') + '@' + name + ' ');
+    setShowMentions(false);
+    inputRef.current?.focus();
+  };
+
+  const handleQuickAdd = async (category: 'contact' | 'product' | 'employee', type?: string) => {
+    const name = mentionSearch.trim();
+    if (!name || !user?.id) return;
+
+    try {
+      if (category === 'contact') {
+        const { data, error } = await supabase.from('contacts').insert({
+          contact_name: name, user_id: user.id, contact_type: type || 'عميل',
+        }).select('id, contact_name, contact_type').single();
+        if (!error && data) {
+          const newItem: MentionItem = { id: data.id, name: data.contact_name, type: data.contact_type, category: 'contact' };
+          setMentionItems(prev => [...prev, newItem]);
+          handleMentionSelect(newItem);
+          toast({ title: `تمت إضافة "${name}" ✅` });
+        }
+      } else if (category === 'product') {
+        const { data, error } = await supabase.from('products').insert({
+          name, user_id: user.id, unit: 'قطعة', buy_price: 0, sell_price: 0, quantity: 0, min_quantity: 0,
+        }).select('id, name, unit').single();
+        if (!error && data) {
+          const newItem: MentionItem = { id: data.id, name: data.name, type: `صنف · ${data.unit}`, category: 'product' };
+          setMentionItems(prev => [...prev, newItem]);
+          handleMentionSelect(newItem);
+          toast({ title: `تمت إضافة "${name}" ✅` });
+        }
+      } else if (category === 'employee') {
+        const { data, error } = await supabase.from('employees').insert({
+          full_name: name, user_id: user.id, job_title: 'موظف', base_salary: 0, hourly_rate: 0, hire_date: new Date().toISOString().split('T')[0], annual_leave_days: 14,
+        }).select('id, full_name, job_title').single();
+        if (!error && data) {
+          const newItem: MentionItem = { id: data.id, name: data.full_name, type: data.job_title || 'موظف', category: 'employee' };
+          setMentionItems(prev => [...prev, newItem]);
+          handleMentionSelect(newItem);
+          toast({ title: `تمت إضافة "${name}" ✅` });
+        }
+      }
+    } catch (err: any) {
+      toast({ title: "خطأ", description: err.message, variant: "destructive" });
+    }
+  };
+
+  const filteredMentions = mentionSearch
+    ? mentionItems.filter(i => i.name.toLowerCase().includes(mentionSearch.toLowerCase()))
+    : mentionItems;
+
+  const mentionContacts = filteredMentions.filter(i => i.category === 'contact');
+  const mentionProducts = filteredMentions.filter(i => i.category === 'product');
+  const mentionEmployees = filteredMentions.filter(i => i.category === 'employee');
+  const mentionAccounts = filteredMentions.filter(i => i.category === 'account');
+
+  const noResults = mentionSearch.trim() && filteredMentions.length === 0;
+
   const formatTime = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
   // RECORDING STATE
@@ -172,8 +290,138 @@ const CleanInputDock = ({ onSend, sending }: Props) => {
   // IDLE STATE
   return (
     <>
-      <div className="flex-shrink-0 bg-white border-t border-[#F1F5F9]" style={{ paddingBottom: "max(14px, env(safe-area-inset-bottom, 14px))" }}>
-        {/* Quick chips — 4 only, no headers */}
+      <div className="flex-shrink-0 bg-white border-t border-[#F1F5F9] relative" style={{ paddingBottom: "max(14px, env(safe-area-inset-bottom, 14px))" }}>
+        {/* Mention dropdown */}
+        {showMentions && (
+          <div
+            ref={mentionRef}
+            className="absolute bottom-full left-3.5 right-3.5 mb-1 bg-white border border-[#E2E8F0] rounded-2xl shadow-xl max-h-[340px] overflow-hidden flex flex-col z-50"
+            style={{ animation: "slideUp 200ms ease-out" }}
+          >
+            {/* Search inside mentions */}
+            <div className="p-2.5 border-b border-[#F1F5F9]">
+              <input
+                value={mentionSearch}
+                onChange={e => setMentionSearch(e.target.value)}
+                placeholder="ابحث عن اسم..."
+                autoFocus
+                className="w-full h-9 rounded-lg px-3 text-[13px] outline-none"
+                style={{ background: "#F8FAFC", fontFamily: "Tajawal, sans-serif", color: "#0A2342" }}
+              />
+            </div>
+
+            <div className="overflow-y-auto flex-1" style={{ WebkitOverflowScrolling: 'touch' }}>
+              {/* Contacts */}
+              {mentionContacts.length > 0 && (
+                <>
+                  <div className="px-3 py-1.5 text-[10px] font-bold flex items-center gap-1.5 sticky top-0 bg-white/95 backdrop-blur-sm" style={{ color: "#006D8F" }}>
+                    <Users className="h-3 w-3" /> زبائن وموردين
+                  </div>
+                  {mentionContacts.map(item => (
+                    <button key={item.id} onClick={() => handleMentionSelect(item)}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-[13px] text-right hover:bg-[#F0F9FF] transition-colors"
+                      style={{ fontFamily: "Tajawal, sans-serif", color: "#0A2342" }}>
+                      <Users className="h-3.5 w-3.5 flex-shrink-0" style={{ color: "#8B9BB4" }} />
+                      <span className="flex-1 truncate">{item.name}</span>
+                      <span className="text-[10px] flex-shrink-0" style={{ color: "#8B9BB4" }}>{item.type}</span>
+                    </button>
+                  ))}
+                </>
+              )}
+
+              {/* Products */}
+              {mentionProducts.length > 0 && (
+                <>
+                  <div className="px-3 py-1.5 text-[10px] font-bold flex items-center gap-1.5 sticky top-0 bg-white/95 backdrop-blur-sm" style={{ color: "#C9A84C" }}>
+                    <Package className="h-3 w-3" /> أصناف ومنتجات
+                  </div>
+                  {mentionProducts.map(item => (
+                    <button key={item.id} onClick={() => handleMentionSelect(item)}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-[13px] text-right hover:bg-[#FFFBEB] transition-colors"
+                      style={{ fontFamily: "Tajawal, sans-serif", color: "#0A2342" }}>
+                      <Package className="h-3.5 w-3.5 flex-shrink-0" style={{ color: "#8B9BB4" }} />
+                      <span className="flex-1 truncate">{item.name}</span>
+                      <span className="text-[10px] flex-shrink-0" style={{ color: "#8B9BB4" }}>{item.type}</span>
+                    </button>
+                  ))}
+                </>
+              )}
+
+              {/* Employees */}
+              {mentionEmployees.length > 0 && (
+                <>
+                  <div className="px-3 py-1.5 text-[10px] font-bold flex items-center gap-1.5 sticky top-0 bg-white/95 backdrop-blur-sm" style={{ color: "#7C3AED" }}>
+                    <Briefcase className="h-3 w-3" /> موظفين
+                  </div>
+                  {mentionEmployees.map(item => (
+                    <button key={item.id} onClick={() => handleMentionSelect(item)}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-[13px] text-right hover:bg-[#F5F3FF] transition-colors"
+                      style={{ fontFamily: "Tajawal, sans-serif", color: "#0A2342" }}>
+                      <Briefcase className="h-3.5 w-3.5 flex-shrink-0" style={{ color: "#8B9BB4" }} />
+                      <span className="flex-1 truncate">{item.name}</span>
+                      <span className="text-[10px] flex-shrink-0" style={{ color: "#8B9BB4" }}>{item.type}</span>
+                    </button>
+                  ))}
+                </>
+              )}
+
+              {/* Accounts */}
+              {mentionAccounts.length > 0 && (
+                <>
+                  <div className="px-3 py-1.5 text-[10px] font-bold flex items-center gap-1.5 sticky top-0 bg-white/95 backdrop-blur-sm" style={{ color: "#0A2342" }}>
+                    <BookOpen className="h-3 w-3" /> حسابات
+                  </div>
+                  {mentionAccounts.slice(0, 10).map(item => (
+                    <button key={item.id} onClick={() => handleMentionSelect(item)}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-[13px] text-right hover:bg-[#F1F5F9] transition-colors"
+                      style={{ fontFamily: "Tajawal, sans-serif", color: "#0A2342" }}>
+                      <BookOpen className="h-3.5 w-3.5 flex-shrink-0" style={{ color: "#8B9BB4" }} />
+                      <span className="flex-1 truncate">{item.name}</span>
+                      <span className="text-[10px] flex-shrink-0" style={{ color: "#8B9BB4" }}>{item.type}</span>
+                    </button>
+                  ))}
+                </>
+              )}
+
+              {/* Quick add options */}
+              {mentionSearch.trim() && (
+                <>
+                  <div className="border-t border-[#F1F5F9] mt-1" />
+                  <div className="px-3 py-1.5 text-[10px] font-bold flex items-center gap-1.5" style={{ color: "#22C55E" }}>
+                    <PlusCircle className="h-3 w-3" /> إضافة سريعة
+                  </div>
+                  <button onClick={() => handleQuickAdd('contact', 'عميل')}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-right hover:bg-[#F0FDF4] transition-colors"
+                    style={{ fontFamily: "Tajawal, sans-serif", color: "#16A34A" }}>
+                    <PlusCircle className="h-3.5 w-3.5" /> أضف "{mentionSearch}" كعميل
+                  </button>
+                  <button onClick={() => handleQuickAdd('contact', 'مورد')}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-right hover:bg-[#F0FDF4] transition-colors"
+                    style={{ fontFamily: "Tajawal, sans-serif", color: "#16A34A" }}>
+                    <PlusCircle className="h-3.5 w-3.5" /> أضف "{mentionSearch}" كمورد
+                  </button>
+                  <button onClick={() => handleQuickAdd('product')}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-right hover:bg-[#FFFBEB] transition-colors"
+                    style={{ fontFamily: "Tajawal, sans-serif", color: "#D97706" }}>
+                    <PlusCircle className="h-3.5 w-3.5" /> أضف "{mentionSearch}" كمنتج
+                  </button>
+                  <button onClick={() => handleQuickAdd('employee')}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-right hover:bg-[#F5F3FF] transition-colors"
+                    style={{ fontFamily: "Tajawal, sans-serif", color: "#7C3AED" }}>
+                    <PlusCircle className="h-3.5 w-3.5" /> أضف "{mentionSearch}" كموظف
+                  </button>
+                </>
+              )}
+
+              {/* No results */}
+              {noResults && !mentionSearch.trim() && (
+                <div className="text-center py-4 text-[12px]" style={{ color: "#8B9BB4" }}>لا توجد نتائج</div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Quick chips */}
         <div className="flex gap-2 overflow-x-auto px-3.5 pt-3 pb-2.5" style={{ scrollbarWidth: "none" }}>
           {QUICK_CHIPS.map(chip => (
             <button
@@ -193,7 +441,19 @@ const CleanInputDock = ({ onSend, sending }: Props) => {
         </div>
 
         {/* Input row */}
-        <div className="flex items-center gap-2.5 px-3.5">
+        <div className="flex items-center gap-2 px-3.5">
+          {/* @ button */}
+          <button
+            onClick={toggleMentions}
+            className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 active:scale-95 transition-all"
+            style={{
+              background: showMentions ? "#0A2342" : "#F1F5F9",
+              color: showMentions ? "white" : "#0A2342",
+            }}
+          >
+            <AtSign className="h-4.5 w-4.5" />
+          </button>
+
           <input
             ref={inputRef}
             type="text"
@@ -213,16 +473,16 @@ const CleanInputDock = ({ onSend, sending }: Props) => {
             <button
               onClick={handleTextSend}
               disabled={sending}
-              className="w-[54px] h-[54px] rounded-full flex items-center justify-center flex-shrink-0 active:scale-95 transition-all disabled:opacity-40"
+              className="w-[50px] h-[50px] rounded-full flex items-center justify-center flex-shrink-0 active:scale-95 transition-all disabled:opacity-40"
               style={{ background: "linear-gradient(135deg, #0A2342, #006D8F)", boxShadow: "0 4px 12px rgba(10,35,66,0.35)" }}
             >
-              <Send className="h-5 w-5 text-white rotate-180" />
+              <Send className="h-5 w-5 text-white" style={{ transform: "scaleX(-1)" }} />
             </button>
           ) : (
             <button
               onTouchStart={startVoiceInput}
               onMouseDown={(e) => { e.preventDefault(); startVoiceInput(); }}
-              className="w-[54px] h-[54px] rounded-full flex items-center justify-center flex-shrink-0 active:scale-95 transition-all"
+              className="w-[50px] h-[50px] rounded-full flex items-center justify-center flex-shrink-0 active:scale-95 transition-all"
               style={{ background: "linear-gradient(135deg, #0A2342, #006D8F)", boxShadow: "0 4px 12px rgba(10,35,66,0.35)" }}
               aria-label="تسجيل صوتي"
             >
