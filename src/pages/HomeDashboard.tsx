@@ -197,8 +197,8 @@ const HomeDashboard = () => {
             loading={dashboard.loading}
           />
 
-          {/* W4: Financial Health */}
-          <FinancialHealthWidget data={dashboard.healthScore} loading={dashboard.loading} />
+          {/* W12: Recent Activity (moved here, replaces Financial Health) */}
+          <RecentActivityWidget activities={dashboard.recentActivity} loading={dashboard.loading} />
 
           {/* W5: Cash Flow */}
           <CashFlowWidget data={dashboard.cashFlowData} cashBalance={dashboard.kpis.cashBalance} loading={dashboard.loading} />
