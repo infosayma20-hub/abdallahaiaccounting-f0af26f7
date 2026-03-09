@@ -1,0 +1,504 @@
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+
+export type PeriodType = "today" | "week" | "month" | "year" | "custom";
+
+interface PeriodRange {
+  from: string;
+  to: string;
+}
+
+function getPeriodRange(period: PeriodType, custom?: PeriodRange): PeriodRange {
+  const now = new Date();
+  const to = now.toISOString().split("T")[0];
+  switch (period) {
+    case "today":
+      return { from: to, to };
+    case "week": {
+      const d = new Date(now);
+      d.setDate(d.getDate() - d.getDay());
+      return { from: d.toISOString().split("T")[0], to };
+    }
+    case "month":
+      return { from: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`, to };
+    case "year":
+      return { from: `${now.getFullYear()}-01-01`, to };
+    case "custom":
+      return custom || { from: `${now.getFullYear()}-01-01`, to };
+  }
+}
+
+function getPrevYearRange(range: PeriodRange): PeriodRange {
+  const shift = (d: string) => {
+    const parts = d.split("-");
+    return `${Number(parts[0]) - 1}-${parts[1]}-${parts[2]}`;
+  };
+  return { from: shift(range.from), to: shift(range.to) };
+}
+
+export interface DashboardKPI {
+  netProfit: number;
+  revenue: number;
+  expenses: number;
+  cashBalance: number;
+  receivables: number;
+  payables: number;
+  // Previous period for comparison
+  prevNetProfit: number;
+  prevRevenue: number;
+  prevExpenses: number;
+  prevCashBalance: number;
+  prevReceivables: number;
+  prevPayables: number;
+}
+
+export interface ChartDataPoint {
+  period: string;
+  revenue: number;
+  expenses: number;
+  profit: number;
+}
+
+export interface AgingBucket {
+  contactName: string;
+  contactId: string;
+  total: number;
+  bucket_0_30: number;
+  bucket_31_60: number;
+  bucket_61_90: number;
+  bucket_90_plus: number;
+}
+
+export interface RecentActivity {
+  id: string;
+  date: string;
+  description: string;
+  amount: number;
+  type: "income" | "expense" | "other";
+  timeAgo: string;
+}
+
+export interface ChequeItem {
+  id: string;
+  chequeDate: string;
+  amount: number;
+  partyName: string;
+  chequeType: string;
+  status: string;
+  daysRemaining: number;
+}
+
+export interface InventoryAlert {
+  id: string;
+  name: string;
+  quantity: number;
+  reorderPoint: number;
+  status: "out" | "low" | "ok";
+}
+
+export function useDashboardData() {
+  const { user } = useAuth();
+  const [period, setPeriod] = useState<PeriodType>("month");
+  const [customRange, setCustomRange] = useState<PeriodRange | undefined>();
+  const [compareYear, setCompareYear] = useState<number | null>(null);
+  const [chartGrouping, setChartGrouping] = useState<"daily" | "weekly" | "monthly">("daily");
+
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [accounts, setAccounts] = useState<any[]>([]);
+  const [cheques, setCheques] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
+  const [contacts, setContacts] = useState<any[]>([]);
+  const [profileData, setProfileData] = useState<any>(null);
+
+  const [loading, setLoading] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+
+  const range = useMemo(() => getPeriodRange(period, customRange), [period, customRange]);
+  const prevRange = useMemo(() => getPrevYearRange(range), [range]);
+
+  const fetchAll = useCallback(async () => {
+    if (!user) return;
+    setLoading(true);
+    try {
+      const [txRes, acctRes, chqRes, prodRes, contactRes, profileRes] = await Promise.all([
+        supabase
+          .from("transactions")
+          .select("id, transaction_date, description, transaction_type, debit_account_code, credit_account_code, amount, currency, is_deleted, is_opening_balance, contact_id, created_at")
+          .eq("user_id", user.id)
+          .eq("is_deleted", false)
+          .order("transaction_date", { ascending: false })
+          .limit(5000),
+        supabase
+          .from("accounts")
+          .select("account_code, account_name, account_type")
+          .eq("user_id", user.id),
+        supabase
+          .from("cheques")
+          .select("id, cheque_date, amount, party_name, cheque_type, status, currency")
+          .eq("user_id", user.id),
+        supabase
+          .from("products")
+          .select("id, name, quantity, reorder_point, cost_price, selling_price")
+          .eq("user_id", user.id)
+          .order("quantity", { ascending: true })
+          .limit(50),
+        supabase
+          .from("contacts")
+          .select("id, contact_name, contact_type, current_balance")
+          .eq("user_id", user.id)
+          .eq("is_active", true),
+        supabase
+          .from("profiles")
+          .select("display_name, company_name, setup_completed")
+          .eq("user_id", user.id)
+          .maybeSingle(),
+      ]);
+
+      setTransactions(txRes.data || []);
+      setAccounts(acctRes.data || []);
+      setCheques(chqRes.data || []);
+      setProducts(prodRes.data || []);
+      setContacts(contactRes.data || []);
+      setProfileData(profileRes.data);
+      setLastUpdated(new Date());
+    } catch (err) {
+      console.error("Dashboard fetch error:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
+
+  useEffect(() => { fetchAll(); }, [fetchAll]);
+
+  // Auto-refresh KPIs every 5 min
+  useEffect(() => {
+    const interval = setInterval(fetchAll, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [fetchAll]);
+
+  // Account type map
+  const accountTypeMap = useMemo(() => {
+    const m: Record<string, string> = {};
+    accounts.forEach((a) => { m[a.account_code] = a.account_type; });
+    return m;
+  }, [accounts]);
+
+  // Filter transactions by period
+  const filterByRange = useCallback((txs: any[], r: PeriodRange) => {
+    return txs.filter((tx) => {
+      const d = tx.transaction_date;
+      return d >= r.from && d <= r.to;
+    });
+  }, []);
+
+  const plTx = useMemo(() => transactions.filter(
+    (tx) => !tx.is_opening_balance && tx.transaction_type !== "رصيد ابتدائي"
+  ), [transactions]);
+
+  // Compute KPIs for a given range
+  const computeKPIs = useCallback((txs: any[], allTxs: any[]) => {
+    const revenue = txs.filter((t) => t.credit_account_code?.startsWith("4")).reduce((s, t) => s + (t.amount || 0), 0);
+    const purchases = txs.filter((t) => t.debit_account_code?.startsWith("51") || t.debit_account_code?.startsWith("52")).reduce((s, t) => s + (t.amount || 0), 0);
+    const genExpenses = txs.filter((t) => {
+      const c = t.debit_account_code || "";
+      return (c.startsWith("5") && !c.startsWith("51") && !c.startsWith("52")) || c.startsWith("6");
+    }).reduce((s, t) => s + (t.amount || 0), 0);
+    const expenses = purchases + genExpenses;
+    const netProfit = revenue - expenses;
+
+    // Balance sheet items use ALL transactions (cumulative)
+    const recDr = allTxs.filter((t) => t.debit_account_code === "1130").reduce((s, t) => s + (t.amount || 0), 0);
+    const recCr = allTxs.filter((t) => t.credit_account_code === "1130").reduce((s, t) => s + (t.amount || 0), 0);
+    const receivables = recDr - recCr;
+
+    const payCr = allTxs.filter((t) => t.credit_account_code?.startsWith("2")).reduce((s, t) => s + (t.amount || 0), 0);
+    const payDr = allTxs.filter((t) => t.debit_account_code?.startsWith("2")).reduce((s, t) => s + (t.amount || 0), 0);
+    const payables = payCr - payDr;
+
+    // Cash = cash account (1110) + bank (1120)
+    const cashDr = allTxs.filter((t) => t.debit_account_code === "1110" || t.debit_account_code === "1120").reduce((s, t) => s + (t.amount || 0), 0);
+    const cashCr = allTxs.filter((t) => t.credit_account_code === "1110" || t.credit_account_code === "1120").reduce((s, t) => s + (t.amount || 0), 0);
+    const cashBalance = cashDr - cashCr;
+
+    return { revenue, expenses, netProfit, receivables, payables, cashBalance };
+  }, []);
+
+  const kpis = useMemo<DashboardKPI>(() => {
+    const periodTx = filterByRange(plTx, range);
+    const current = computeKPIs(periodTx, plTx);
+    const prevTx = filterByRange(plTx, prevRange);
+    const prev = computeKPIs(prevTx, plTx);
+
+    return {
+      ...current,
+      prevNetProfit: prev.netProfit,
+      prevRevenue: prev.revenue,
+      prevExpenses: prev.expenses,
+      prevCashBalance: prev.cashBalance,
+      prevReceivables: prev.receivables,
+      prevPayables: prev.payables,
+    };
+  }, [plTx, range, prevRange, filterByRange, computeKPIs]);
+
+  // Chart data
+  const chartData = useMemo<ChartDataPoint[]>(() => {
+    const periodTx = filterByRange(plTx, range);
+    const buckets: Record<string, { revenue: number; expenses: number }> = {};
+
+    periodTx.forEach((tx) => {
+      let key: string;
+      const d = new Date(tx.transaction_date);
+      if (chartGrouping === "monthly") {
+        key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      } else if (chartGrouping === "weekly") {
+        const weekStart = new Date(d);
+        weekStart.setDate(d.getDate() - d.getDay());
+        key = weekStart.toISOString().split("T")[0];
+      } else {
+        key = tx.transaction_date;
+      }
+
+      if (!buckets[key]) buckets[key] = { revenue: 0, expenses: 0 };
+      if (tx.credit_account_code?.startsWith("4")) buckets[key].revenue += tx.amount || 0;
+      const dc = tx.debit_account_code || "";
+      if (dc.startsWith("5") || dc.startsWith("6")) buckets[key].expenses += tx.amount || 0;
+    });
+
+    return Object.entries(buckets)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([period, v]) => ({
+        period,
+        revenue: v.revenue,
+        expenses: v.expenses,
+        profit: v.revenue - v.expenses,
+      }));
+  }, [plTx, range, chartGrouping, filterByRange]);
+
+  // Sparkline data for KPIs (last 7 days)
+  const sparklines = useMemo(() => {
+    const now = new Date();
+    const days: string[] = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(now);
+      d.setDate(d.getDate() - i);
+      days.push(d.toISOString().split("T")[0]);
+    }
+
+    const compute = (filter: (t: any) => boolean) =>
+      days.map((day) => plTx.filter((t) => t.transaction_date === day && filter(t)).reduce((s, t) => s + (t.amount || 0), 0));
+
+    return {
+      revenue: compute((t) => t.credit_account_code?.startsWith("4")),
+      expenses: compute((t) => (t.debit_account_code || "").startsWith("5") || (t.debit_account_code || "").startsWith("6")),
+      profit: compute((t) => true).map((_, i) => {
+        const rev = plTx.filter((t) => t.transaction_date === days[i] && t.credit_account_code?.startsWith("4")).reduce((s, t) => s + (t.amount || 0), 0);
+        const exp = plTx.filter((t) => t.transaction_date === days[i] && ((t.debit_account_code || "").startsWith("5") || (t.debit_account_code || "").startsWith("6"))).reduce((s, t) => s + (t.amount || 0), 0);
+        return rev - exp;
+      }),
+    };
+  }, [plTx]);
+
+  // Health score
+  const healthScore = useMemo(() => {
+    const { revenue, expenses, receivables, payables, cashBalance } = kpis;
+    const profitMargin = revenue > 0 ? ((revenue - expenses) / revenue) * 100 : 0;
+    const currentRatio = payables > 0 ? cashBalance / payables : cashBalance > 0 ? 3 : 0;
+    const collectionEff = (revenue > 0 && receivables >= 0) ? Math.max(0, Math.min(100, ((revenue - receivables) / revenue) * 100)) : 100;
+    const debtRatio = (cashBalance + receivables) > 0 ? payables / (cashBalance + receivables) : 0;
+
+    let score = 50;
+    if (profitMargin > 15) score += 15; else if (profitMargin > 5) score += 8; else if (profitMargin < 0) score -= 15;
+    if (currentRatio > 1.5) score += 15; else if (currentRatio > 1) score += 8; else score -= 10;
+    if (collectionEff > 80) score += 10; else if (collectionEff > 50) score += 5; else score -= 10;
+    if (debtRatio < 0.6) score += 10; else if (debtRatio < 1) score += 3; else score -= 15;
+
+    score = Math.max(0, Math.min(100, score));
+
+    return {
+      score,
+      label: score >= 75 ? "ممتاز" : score >= 55 ? "جيد" : score >= 35 ? "تحذير" : "خطر",
+      profitMargin: Math.round(profitMargin),
+      currentRatio: Math.round(currentRatio * 10) / 10,
+      collectionEff: Math.round(collectionEff),
+      debtRatio: Math.round(debtRatio * 10) / 10,
+    };
+  }, [kpis]);
+
+  // Aging report
+  const agingData = useMemo<{ receivables: AgingBucket[]; payables: AgingBucket[] }>(() => {
+    const now = new Date();
+    const buildAging = (contactType: "عميل" | "مورد", accountCode: string, isCredit: boolean): AgingBucket[] => {
+      const relevantContacts = contacts.filter((c) => c.contact_type === contactType && Math.abs(c.current_balance || 0) > 0);
+      return relevantContacts.slice(0, 8).map((contact) => {
+        const contactTxs = transactions.filter((t) => t.contact_id === contact.id && !t.is_deleted);
+        let total = Math.abs(contact.current_balance || 0);
+        // Simple aging based on transaction dates
+        let b0 = 0, b30 = 0, b60 = 0, b90 = 0;
+        contactTxs.forEach((tx) => {
+          const days = Math.floor((now.getTime() - new Date(tx.transaction_date).getTime()) / 86400000);
+          const amt = tx.amount || 0;
+          if (days <= 30) b0 += amt;
+          else if (days <= 60) b30 += amt;
+          else if (days <= 90) b60 += amt;
+          else b90 += amt;
+        });
+        const sum = b0 + b30 + b60 + b90 || 1;
+        return {
+          contactName: contact.contact_name,
+          contactId: contact.id,
+          total,
+          bucket_0_30: Math.round((b0 / sum) * total),
+          bucket_31_60: Math.round((b30 / sum) * total),
+          bucket_61_90: Math.round((b60 / sum) * total),
+          bucket_90_plus: Math.round((b90 / sum) * total),
+        };
+      }).sort((a, b) => b.total - a.total);
+    };
+
+    return {
+      receivables: buildAging("عميل", "1130", false),
+      payables: buildAging("مورد", "2100", true),
+    };
+  }, [contacts, transactions]);
+
+  // Recent activity
+  const recentActivity = useMemo<RecentActivity[]>(() => {
+    const now = new Date();
+    return transactions.slice(0, 12).map((tx) => {
+      const txDate = new Date(tx.created_at || tx.transaction_date);
+      const diffMs = now.getTime() - txDate.getTime();
+      const diffMin = Math.floor(diffMs / 60000);
+      const diffHr = Math.floor(diffMin / 60);
+      const diffDay = Math.floor(diffHr / 24);
+      let timeAgo = "الآن";
+      if (diffDay > 0) timeAgo = diffDay === 1 ? "أمس" : `منذ ${diffDay} أيام`;
+      else if (diffHr > 0) timeAgo = `منذ ${diffHr} ساعة`;
+      else if (diffMin > 0) timeAgo = `منذ ${diffMin} دقيقة`;
+
+      const dc = tx.debit_account_code || "";
+      const cc = tx.credit_account_code || "";
+      let type: "income" | "expense" | "other" = "other";
+      if (cc.startsWith("4") || dc === "1110" || dc === "1120") type = "income";
+      if (dc.startsWith("5") || dc.startsWith("6")) type = "expense";
+
+      return {
+        id: tx.id,
+        date: tx.transaction_date,
+        description: tx.description || "عملية",
+        amount: tx.amount || 0,
+        type,
+        timeAgo,
+      };
+    });
+  }, [transactions]);
+
+  // Upcoming cheques
+  const upcomingCheques = useMemo<ChequeItem[]>(() => {
+    const now = new Date();
+    const today = now.toISOString().split("T")[0];
+    return cheques
+      .filter((c) => c.status !== "محصل" && c.status !== "ملغي")
+      .map((c) => {
+        const days = Math.floor((new Date(c.cheque_date).getTime() - now.getTime()) / 86400000);
+        return {
+          id: c.id,
+          chequeDate: c.cheque_date,
+          amount: c.amount,
+          partyName: c.party_name,
+          chequeType: c.cheque_type,
+          status: c.status,
+          daysRemaining: days,
+        };
+      })
+      .sort((a, b) => a.daysRemaining - b.daysRemaining)
+      .slice(0, 10);
+  }, [cheques]);
+
+  // Inventory alerts
+  const inventoryAlerts = useMemo<InventoryAlert[]>(() => {
+    return products
+      .map((p) => ({
+        id: p.id,
+        name: p.name,
+        quantity: p.quantity || 0,
+        reorderPoint: p.reorder_point || 5,
+        status: (p.quantity || 0) <= 0 ? "out" as const : (p.quantity || 0) <= (p.reorder_point || 5) ? "low" as const : "ok" as const,
+      }))
+      .filter((p) => p.status !== "ok")
+      .slice(0, 8);
+  }, [products]);
+
+  // Inventory summary
+  const inventorySummary = useMemo(() => {
+    const totalItems = products.length;
+    const totalValue = products.reduce((s, p) => s + (p.quantity || 0) * (p.cost_price || 0), 0);
+    const lowStock = products.filter((p) => (p.quantity || 0) > 0 && (p.quantity || 0) <= (p.reorder_point || 5)).length;
+    const outOfStock = products.filter((p) => (p.quantity || 0) <= 0).length;
+    return { totalItems, totalValue, lowStock, outOfStock };
+  }, [products]);
+
+  // Cash flow data
+  const cashFlowData = useMemo(() => {
+    const periodTx = filterByRange(plTx, range);
+    const inflows = periodTx
+      .filter((t) => t.debit_account_code === "1110" || t.debit_account_code === "1120")
+      .reduce((s, t) => s + (t.amount || 0), 0);
+    const outflows = periodTx
+      .filter((t) => t.credit_account_code === "1110" || t.credit_account_code === "1120")
+      .reduce((s, t) => s + (t.amount || 0), 0);
+
+    // Monthly expense rate for runway
+    const monthlyExpense = kpis.expenses || 1;
+    const runway = kpis.cashBalance > 0 ? Math.round((kpis.cashBalance / (monthlyExpense || 1)) * (period === "month" ? 1 : period === "year" ? 12 : 1)) : 0;
+
+    return { inflows, outflows, net: inflows - outflows, runway };
+  }, [plTx, range, kpis, filterByRange, period]);
+
+  // Top sales by contact
+  const topSales = useMemo(() => {
+    const periodTx = filterByRange(plTx, range);
+    const salesByContact: Record<string, { name: string; amount: number }> = {};
+    periodTx
+      .filter((t) => t.credit_account_code?.startsWith("4") && t.contact_id)
+      .forEach((t) => {
+        const contact = contacts.find((c) => c.id === t.contact_id);
+        const name = contact?.contact_name || "غير محدد";
+        if (!salesByContact[t.contact_id]) salesByContact[t.contact_id] = { name, amount: 0 };
+        salesByContact[t.contact_id].amount += t.amount || 0;
+      });
+
+    return Object.values(salesByContact)
+      .sort((a, b) => b.amount - a.amount)
+      .slice(0, 8);
+  }, [plTx, range, contacts, filterByRange]);
+
+  return {
+    // Data
+    kpis,
+    chartData,
+    sparklines,
+    healthScore,
+    agingData,
+    recentActivity,
+    upcomingCheques,
+    inventoryAlerts,
+    inventorySummary,
+    cashFlowData,
+    topSales,
+    profileData,
+    // State
+    loading,
+    lastUpdated,
+    period,
+    setPeriod,
+    customRange,
+    setCustomRange,
+    compareYear,
+    setCompareYear,
+    chartGrouping,
+    setChartGrouping,
+    // Actions
+    refresh: fetchAll,
+  };
+}
