@@ -351,7 +351,7 @@ const CleanSmartAccountant = ({ user, userName, data, cfoMode, onToggleCfo, onCh
                       boxShadow: "0 2px 8px rgba(10,35,66,0.06)", fontFamily: "Tajawal, sans-serif",
                     }}
                   >
-                    <span style={{ whiteSpace: "pre-wrap" }}>{msg.content}</span>
+                    <AIMessageRenderer content={msg.content} />
                     {/* Blinking cursor while streaming */}
                     {sending && msg.id === messages[messages.length - 1]?.id && msg.role === "assistant" && (
                       <span className="inline-block w-[2px] h-4 ml-0.5 align-middle" style={{ background: "#0A2342", animation: "blink 1s infinite" }} />
