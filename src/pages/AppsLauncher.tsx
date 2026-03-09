@@ -137,6 +137,10 @@ const appModules: AppModule[] = [
   },
   // Row 5: Utilities
   {
+    id: "subscription", label: "الاشتراكات", description: "إدارة خطتك والفواتير والمدفوعات", icon: Settings, color: "text-teal-500", bgColor: "bg-teal-500/10", path: "/subscription",
+    keywords: ["اشتراك", "خطة", "فاتورة", "دفع"],
+  },
+  {
     id: "import-data", label: "استيراد بيانات خارجية", description: "استيراد الأرصدة الافتتاحية من Excel", icon: FileSpreadsheet, color: "text-cyan-500", bgColor: "bg-cyan-500/10", path: "/opening-balances-import",
     keywords: ["استيراد", "اكسل", "أرصدة"],
   },

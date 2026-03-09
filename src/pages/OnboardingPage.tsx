@@ -1,0 +1,484 @@
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { motion, AnimatePresence } from "framer-motion";
+import { ArrowLeft, ArrowRight, Check, Search } from "lucide-react";
+import { toast } from "sonner";
+
+const TOTAL_STEPS = 6;
+
+const businessTypes = [
+  { key: "products", emoji: "🛍️", label: "بيع منتجات", desc: "سلع، بضائع، مواد" },
+  { key: "services", emoji: "🔧", label: "تقديم خدمات", desc: "استشارات، صيانة، خدمات" },
+  { key: "restaurant", emoji: "🍽️", label: "مطعم / كافيه", desc: "طعام ومشروبات" },
+  { key: "construction", emoji: "🏗️", label: "مقاولات وإنشاء", desc: "بناء، ديكور، هندسة" },
+];
+
+const industries = [
+  "تجزئة عامة", "مواد بناء", "ملابس وأزياء", "أغذية ومشروبات",
+  "إلكترونيات", "أثاث ومفروشات", "صيدليات", "طب وصحة",
+  "تعليم وتدريب", "سفر وسياحة", "عقارات", "محاماة ومحاسبة",
+  "تصميم وإبداع", "نقل وشحن", "زراعة", "طاقة ومياه",
+  "تقنية معلومات", "أخرى",
+];
+
+const employeeCounts = ["1-5", "6-20", "21-50", "+50"];
+const revenueBrackets = ["أقل من 50,000", "50,000 - 200,000", "200,000 - 1,000,000", "أكثر من مليون"];
+const currencies = [
+  { code: "ILS", symbol: "₪", name: "شيكل" },
+  { code: "USD", symbol: "$", name: "دولار" },
+  { code: "JOD", symbol: "JD", name: "دينار أردني" },
+];
+
+const accountingLevels = [
+  { key: "none", emoji: "📚", label: "مبتدئ", desc: "لا خبرة محاسبية" },
+  { key: "basic", emoji: "📊", label: "متوسط", desc: "أعرف الأساسيات" },
+  { key: "intermediate", emoji: "🎓", label: "متقدم", desc: "خبرة جيدة" },
+  { key: "expert", emoji: "👔", label: "محترف", desc: "محاسب أو مدير مالي" },
+];
+
+const referralSources = ["جوجل", "وسائل التواصل", "صديق", "إعلان", "أخرى"];
+
+const goalChips = [
+  "تتبع مصروفاتي", "إدارة الفواتير", "معرفة أرباحي",
+  "إدارة المخزون", "إدارة الموظفين", "تقديم تقارير ضريبية",
+  "تنظيم حسابات عملائي", "تحليل أداء العمل",
+];
+
+const appTourCards = [
+  { emoji: "🤖", name: "المحاسب الذكي", desc: "محاسب شخصي بالذكاء الاصطناعي يفهم العربية ويساعدك في القيود والتحليلات", features: ["إدخال معاملات بالصوت والنص", "تحليل مالي فوري", "نصائح مخصصة لعملك"], gradient: "from-[#0A2342] to-[#006D8F]" },
+  { emoji: "📊", name: "لوحة المعلومات", desc: "نظرة شاملة على وضعك المالي بلمحة واحدة", features: ["مؤشرات أداء لحظية", "رسوم بيانية تفاعلية", "تنبيهات ذكية"], gradient: "from-[#006D8F] to-[#00B4D8]" },
+  { emoji: "🛍️", name: "المبيعات ونقطة البيع", desc: "نظام متكامل لإدارة المبيعات ونقاط البيع", features: ["فواتير احترافية", "نقطة بيع POS", "تتبع المدفوعات"], gradient: "from-[#C9A84C] to-[#B8972E]" },
+  { emoji: "📈", name: "التقارير المالية", desc: "أكثر من 63 تقرير مالي وإداري", features: ["قائمة الدخل والميزانية", "تقارير الشيكات والأعمار", "تصدير Excel و PDF"], gradient: "from-emerald-600 to-emerald-500" },
+  { emoji: "📦", name: "المخزون", desc: "إدارة كاملة للمنتجات والحركات", features: ["تتبع الكميات لحظياً", "تنبيهات نفاد المخزون", "تقييم المخزون"], gradient: "from-teal-600 to-teal-500" },
+  { emoji: "👥", name: "الموارد البشرية", desc: "إدارة شاملة للموظفين والحضور", features: ["حضور بـ QR", "كشف رواتب آلي", "إدارة الإجازات"], gradient: "from-violet-600 to-violet-500" },
+];
+
+const OnboardingPage = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const [step, setStep] = useState(1);
+  const [tourIndex, setTourIndex] = useState(0);
+
+  // Form state
+  const [companyName, setCompanyName] = useState("");
+  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
+  const [industry, setIndustry] = useState("");
+  const [industrySearch, setIndustrySearch] = useState("");
+  const [city, setCity] = useState("");
+  const [hasEmployees, setHasEmployees] = useState<boolean | null>(null);
+  const [employeeCount, setEmployeeCount] = useState("");
+  const [revenue, setRevenue] = useState("");
+  const [currency, setCurrency] = useState("ILS");
+  const [accountingLevel, setAccountingLevel] = useState("");
+  const [referral, setReferral] = useState("");
+  const [goals, setGoals] = useState<string[]>([]);
+
+  const saveProgress = async (stepData: any, stepNum: number) => {
+    if (!user) return;
+    try {
+      // First ensure company exists
+      const { data: company } = await supabase
+        .from("companies")
+        .select("id")
+        .eq("owner_id", user.id)
+        .maybeSingle();
+
+      let companyId = company?.id;
+
+      if (!companyId && stepNum === 1 && stepData.company_name) {
+        const { data: newCompany } = await supabase
+          .from("companies")
+          .insert({ name: stepData.company_name, owner_id: user.id })
+          .select("id")
+          .single();
+        companyId = newCompany?.id;
+      }
+
+      if (companyId) {
+        await supabase
+          .from("company_profiles")
+          .upsert({
+            company_id: companyId,
+            ...stepData,
+            onboarding_step: stepNum,
+          }, { onConflict: "company_id" });
+      }
+    } catch (err) {
+      console.error("Save progress error:", err);
+    }
+  };
+
+  const nextStep = async () => {
+    if (step === 1) {
+      if (!companyName.trim()) { toast.error("أدخل اسم الشركة"); return; }
+      await saveProgress({ business_type: companyName }, 1);
+      // Update company name
+      if (user) {
+        const { data: company } = await supabase.from("companies").select("id").eq("owner_id", user.id).maybeSingle();
+        if (company) {
+          await supabase.from("companies").update({ name: companyName }).eq("id", company.id);
+        }
+      }
+    }
+    if (step === 2) await saveProgress({ business_type: selectedTypes.join(",") }, 2);
+    if (step === 3) await saveProgress({ industry, industry_ar: industry, city, country: "PS" }, 3);
+    if (step === 4) await saveProgress({ has_employees: hasEmployees, employees_count: employeeCount, annual_revenue: revenue, primary_currency: currency }, 4);
+    if (step === 5) await saveProgress({ accounting_experience: accountingLevel, referral_source: referral, business_goals: goals }, 5);
+
+    if (step < TOTAL_STEPS) setStep(step + 1);
+  };
+
+  const prevStep = () => { if (step > 1) setStep(step - 1); };
+
+  const finishOnboarding = async () => {
+    await saveProgress({ onboarding_completed: true }, 6);
+    toast.success("أهلاً بك في زِدني! 🎉");
+    navigate("/apps");
+  };
+
+  const progress = (step / TOTAL_STEPS) * 100;
+
+  return (
+    <div className="min-h-screen bg-[#F4F7FA] flex items-center justify-center p-4" dir="rtl" style={{ fontFamily: "Tajawal, sans-serif" }}>
+      <div className="w-full max-w-[700px] bg-white rounded-3xl shadow-[0_8px_40px_rgba(10,35,66,0.1)] p-8 sm:p-10">
+        {/* Progress bar */}
+        <div className="mb-8">
+          <div className="h-1 bg-gray-200 rounded-full overflow-hidden">
+            <motion.div
+              className="h-full rounded-full"
+              style={{ background: "linear-gradient(90deg, #0A2342, #00B4D8)" }}
+              animate={{ width: `${progress}%` }}
+              transition={{ duration: 0.4 }}
+            />
+          </div>
+          <p className="text-xs text-gray-400 mt-2 text-center">الخطوة {step} من {TOTAL_STEPS}</p>
+        </div>
+
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={step}
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.3 }}
+          >
+            {/* Step 1: Welcome */}
+            {step === 1 && (
+              <div className="text-center">
+                <div className="text-5xl mb-4">👋</div>
+                <h2 className="text-[28px] font-extrabold text-[#0A2342] mb-3">أهلاً وسهلاً في زِدني!</h2>
+                <p className="text-sm text-gray-500 max-w-md mx-auto mb-8 leading-relaxed">
+                  لنبدأ بالتعرف على عملك لكي يقدم لك المحاسب الذكي تحليلات مخصصة لك تماماً
+                </p>
+                <input
+                  type="text"
+                  value={companyName}
+                  onChange={(e) => setCompanyName(e.target.value)}
+                  placeholder="مثال: شركة الأمل للتجارة"
+                  className="w-full max-w-md mx-auto h-[52px] px-5 rounded-2xl border-2 border-gray-200 focus:border-[#0A2342] outline-none text-lg text-center"
+                />
+              </div>
+            )}
+
+            {/* Step 2: Business Type */}
+            {step === 2 && (
+              <div>
+                <h2 className="text-xl font-bold text-[#0A2342] text-center mb-2">ما طبيعة عملك؟</h2>
+                <p className="text-sm text-gray-400 text-center mb-6">اختر ما يناسبك — يمكن اختيار أكثر من واحد</p>
+                <div className="grid grid-cols-2 gap-3">
+                  {businessTypes.map((bt) => {
+                    const selected = selectedTypes.includes(bt.key);
+                    return (
+                      <button
+                        key={bt.key}
+                        onClick={() => setSelectedTypes(
+                          selected ? selectedTypes.filter(t => t !== bt.key) : [...selectedTypes, bt.key]
+                        )}
+                        className={`relative p-5 rounded-2xl border-2 text-center transition-all ${
+                          selected ? "border-[#0A2342] bg-blue-50" : "border-gray-200 hover:border-gray-300"
+                        }`}
+                      >
+                        {selected && <Check className="absolute top-3 left-3 h-5 w-5 text-[#0A2342]" />}
+                        <div className="text-3xl mb-2">{bt.emoji}</div>
+                        <p className="font-bold text-[#0A2342] text-sm">{bt.label}</p>
+                        <p className="text-xs text-gray-400 mt-1">{bt.desc}</p>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Step 3: Industry */}
+            {step === 3 && (
+              <div>
+                <h2 className="text-xl font-bold text-[#0A2342] text-center mb-6">ما هو قطاعك بالتحديد؟</h2>
+                <div className="relative mb-4">
+                  <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <input
+                    type="text"
+                    value={industrySearch}
+                    onChange={(e) => setIndustrySearch(e.target.value)}
+                    placeholder="ابحث عن قطاعك..."
+                    className="w-full h-12 pr-10 pl-4 rounded-xl border border-gray-200 outline-none focus:border-[#0A2342]"
+                  />
+                </div>
+                <div className="flex flex-wrap gap-2 mb-6">
+                  {industries
+                    .filter(ind => !industrySearch || ind.includes(industrySearch))
+                    .map((ind) => (
+                    <button
+                      key={ind}
+                      onClick={() => setIndustry(ind)}
+                      className={`px-4 py-2 rounded-full text-sm transition-all ${
+                        industry === ind
+                          ? "bg-[#0A2342] text-white"
+                          : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                      }`}
+                    >
+                      {ind}
+                    </button>
+                  ))}
+                </div>
+                <h3 className="text-sm font-bold text-[#0A2342] mb-2">ما هو موقع عملك؟</h3>
+                <input
+                  type="text"
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  placeholder="المدينة"
+                  className="w-full h-12 px-4 rounded-xl border border-gray-200 outline-none focus:border-[#0A2342]"
+                />
+              </div>
+            )}
+
+            {/* Step 4: Team & Scale */}
+            {step === 4 && (
+              <div>
+                <h2 className="text-xl font-bold text-[#0A2342] text-center mb-6">فريقك وحجم أعمالك</h2>
+
+                <p className="text-sm font-bold text-[#0A2342] mb-3">هل لديك موظفون؟</p>
+                <div className="flex gap-3 mb-5">
+                  {[{ val: true, label: "نعم" }, { val: false, label: "لا، أعمل بمفردي" }].map((opt) => (
+                    <button
+                      key={String(opt.val)}
+                      onClick={() => setHasEmployees(opt.val)}
+                      className={`flex-1 py-3 rounded-xl text-sm font-bold transition-all ${
+                        hasEmployees === opt.val ? "bg-[#0A2342] text-white" : "border-2 border-gray-200 text-gray-600 hover:border-gray-300"
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+
+                {hasEmployees && (
+                  <>
+                    <p className="text-sm font-bold text-[#0A2342] mb-3">كم عدد موظفيك؟</p>
+                    <div className="flex gap-2 mb-5">
+                      {employeeCounts.map((c) => (
+                        <button
+                          key={c}
+                          onClick={() => setEmployeeCount(c)}
+                          className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all ${
+                            employeeCount === c ? "bg-[#0A2342] text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                          }`}
+                        >
+                          {c}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+
+                <p className="text-sm font-bold text-[#0A2342] mb-3">ما حجم مبيعاتك السنوية التقريبي؟</p>
+                <div className="grid grid-cols-2 gap-2 mb-5">
+                  {revenueBrackets.map((r) => (
+                    <button
+                      key={r}
+                      onClick={() => setRevenue(r)}
+                      className={`py-2.5 rounded-xl text-sm font-bold transition-all ${
+                        revenue === r ? "bg-[#0A2342] text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                      }`}
+                    >
+                      {r}
+                    </button>
+                  ))}
+                </div>
+
+                <p className="text-sm font-bold text-[#0A2342] mb-3">العملة الأساسية</p>
+                <div className="flex gap-2">
+                  {currencies.map((c) => (
+                    <button
+                      key={c.code}
+                      onClick={() => setCurrency(c.code)}
+                      className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all ${
+                        currency === c.code ? "bg-[#0A2342] text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                      }`}
+                    >
+                      {c.symbol} {c.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Step 5: Accounting Background */}
+            {step === 5 && (
+              <div>
+                <h2 className="text-xl font-bold text-[#0A2342] text-center mb-6">ما مستواك في المحاسبة؟</h2>
+                <div className="grid grid-cols-2 gap-3 mb-6">
+                  {accountingLevels.map((al) => (
+                    <button
+                      key={al.key}
+                      onClick={() => setAccountingLevel(al.key)}
+                      className={`p-4 rounded-2xl border-2 text-center transition-all ${
+                        accountingLevel === al.key ? "border-[#0A2342] bg-blue-50" : "border-gray-200 hover:border-gray-300"
+                      }`}
+                    >
+                      <div className="text-2xl mb-1">{al.emoji}</div>
+                      <p className="font-bold text-[#0A2342] text-sm">{al.label}</p>
+                      <p className="text-xs text-gray-400">{al.desc}</p>
+                    </button>
+                  ))}
+                </div>
+
+                <p className="text-sm font-bold text-[#0A2342] mb-3">من أين سمعت عن زِدني؟</p>
+                <div className="flex flex-wrap gap-2 mb-6">
+                  {referralSources.map((r) => (
+                    <button
+                      key={r}
+                      onClick={() => setReferral(r)}
+                      className={`px-4 py-2 rounded-full text-sm transition-all ${
+                        referral === r ? "bg-[#0A2342] text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                      }`}
+                    >
+                      {r}
+                    </button>
+                  ))}
+                </div>
+
+                <p className="text-sm font-bold text-[#0A2342] mb-3">ما أهم شيء تريد إنجازه بزِدني؟</p>
+                <div className="flex flex-wrap gap-2">
+                  {goalChips.map((g) => {
+                    const selected = goals.includes(g);
+                    return (
+                      <button
+                        key={g}
+                        onClick={() => setGoals(selected ? goals.filter(x => x !== g) : [...goals, g])}
+                        className={`px-4 py-2 rounded-full text-sm transition-all ${
+                          selected ? "bg-[#00B4D8] text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                        }`}
+                      >
+                        {selected && "✓ "}{g}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Step 6: App Tour */}
+            {step === 6 && (
+              <div className="text-center">
+                <h2 className="text-xl font-bold text-[#0A2342] mb-6">إليك ما ينتظرك في زِدني!</h2>
+
+                <div className="relative overflow-hidden rounded-2xl mb-6">
+                  <AnimatePresence mode="wait">
+                    {tourIndex < appTourCards.length ? (
+                      <motion.div
+                        key={tourIndex}
+                        initial={{ opacity: 0, x: 50 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -50 }}
+                        className={`bg-gradient-to-br ${appTourCards[tourIndex].gradient} p-8 rounded-2xl text-white min-h-[260px] flex flex-col items-center justify-center`}
+                      >
+                        <div className="text-5xl mb-3">{appTourCards[tourIndex].emoji}</div>
+                        <h3 className="text-xl font-bold mb-2">{appTourCards[tourIndex].name}</h3>
+                        <p className="text-sm text-white/85 mb-4 max-w-sm">{appTourCards[tourIndex].desc}</p>
+                        <ul className="text-sm text-white/80 space-y-1">
+                          {appTourCards[tourIndex].features.map((f, i) => (
+                            <li key={i}>✦ {f}</li>
+                          ))}
+                        </ul>
+                      </motion.div>
+                    ) : (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="bg-gradient-to-br from-[#C9A84C] to-[#B8972E] p-8 rounded-2xl text-white min-h-[260px] flex flex-col items-center justify-center"
+                      >
+                        <div className="text-5xl mb-3">🎉</div>
+                        <h3 className="text-2xl font-bold mb-2">أنت جاهز الآن!</h3>
+                        <p className="text-sm text-white/85 mb-4">تجربتك المجانية سارية لـ 14 يوماً</p>
+                        <button
+                          onClick={finishOnboarding}
+                          className="bg-white text-[#0A2342] px-8 py-3 rounded-xl font-bold text-sm hover:scale-105 transition-transform"
+                        >
+                          ادخل إلى زِدني ←
+                        </button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+
+                {/* Dots */}
+                <div className="flex items-center justify-center gap-2 mb-4">
+                  {[...appTourCards, { name: "done" }].map((_, i) => (
+                    <div
+                      key={i}
+                      className={`w-2 h-2 rounded-full transition-all ${
+                        i === tourIndex ? "bg-[#0A2342] w-6" : "bg-gray-300"
+                      }`}
+                    />
+                  ))}
+                </div>
+
+                {tourIndex < appTourCards.length && (
+                  <div className="flex items-center justify-center gap-4">
+                    {tourIndex > 0 && (
+                      <button onClick={() => setTourIndex(tourIndex - 1)} className="text-sm text-gray-400 hover:text-gray-600">
+                        السابق
+                      </button>
+                    )}
+                    <button
+                      onClick={() => setTourIndex(tourIndex + 1)}
+                      className="bg-[#0A2342] text-white px-6 py-2.5 rounded-xl text-sm font-bold"
+                    >
+                      التالي ←
+                    </button>
+                    <button onClick={() => setTourIndex(appTourCards.length)} className="text-xs text-gray-400 hover:text-gray-600">
+                      تخطي الجولة
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </motion.div>
+        </AnimatePresence>
+
+        {/* Navigation */}
+        {step < 6 && (
+          <div className="flex items-center justify-between mt-8 pt-6 border-t border-gray-100">
+            {step > 1 ? (
+              <button onClick={prevStep} className="flex items-center gap-2 text-sm text-gray-400 hover:text-gray-600">
+                <ArrowRight className="h-4 w-4" />
+                السابق
+              </button>
+            ) : <div />}
+            <button
+              onClick={nextStep}
+              className="flex items-center gap-2 bg-gradient-to-r from-[#C9A84C] to-[#B8972E] text-white px-8 py-3 rounded-xl text-sm font-bold hover:scale-[1.02] transition-transform"
+            >
+              {step === 1 ? "لنبدأ" : "التالي"}
+              <ArrowLeft className="h-4 w-4" />
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default OnboardingPage;
