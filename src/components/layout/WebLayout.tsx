@@ -2,6 +2,7 @@ import { useState } from "react";
 import AppSidebar from "./AppSidebar";
 import TopBar from "./TopBar";
 import HelpGuideModal from "../HelpGuideModal";
+import SubscriptionExpiryBanner from "../SubscriptionExpiryBanner";
 
 interface WebLayoutProps {
   children: React.ReactNode;
@@ -29,6 +30,9 @@ const WebLayout = ({ children }: WebLayoutProps) => {
           sidebarCollapsed={sidebarCollapsed}
           onOpenHelpGuide={() => setShowHelpGuide(true)}
         />
+
+        {/* Subscription Expiry Banner */}
+        <SubscriptionExpiryBanner />
 
         {/* Content with page transition */}
         <main className="flex-1 overflow-y-auto p-5 lg:p-8">

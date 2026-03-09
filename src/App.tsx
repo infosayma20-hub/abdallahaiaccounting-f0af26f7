@@ -84,6 +84,7 @@ import LoadingDemoPage from "./pages/LoadingDemoPage";
 import ImportShipmentsPage from "./pages/ImportShipmentsPage";
 import ImportWizardPage from "./pages/ImportWizardPage";
 import ImportDetailPage from "./pages/ImportDetailPage";
+import BillingPage from "./pages/BillingPage";
 
 const queryClient = new QueryClient();
 
@@ -170,6 +171,7 @@ const App = () => (
                       <Route path="/profile" element={<ProfilePage />} />
                       <Route path="/balance-sheet" element={<BalanceSheetPage />} />
                       <Route path="/settings" element={<SettingsPage />} />
+                      <Route path="/billing" element={<BillingPage />} />
                       <Route path="/journal-entries" element={<Navigate to="/transactions" replace />} />
                       <Route path="/trial-balance" element={<TrialBalancePage />} />
                       <Route path="/receipts" element={<VoucherPage voucherType="سند قبض" />} />

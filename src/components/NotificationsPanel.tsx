@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
-import { Bell, Package, AlertTriangle, Calendar, ShoppingCart, Users, CreditCard, Check, Loader2, X } from "lucide-react";
+import { Bell, Package, AlertTriangle, Calendar, ShoppingCart, Users, CreditCard, Check, Loader2, X, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { ar } from "date-fns/locale";
@@ -190,6 +190,30 @@ export function useNotifications() {
           category: "warning",
         });
       }
+
+      // 8. Subscription expiry notifications from notification_log
+      const { data: subNotifs } = await supabase
+        .from("notification_log")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("channel", "in_app")
+        .is("read_at", null)
+        .order("sent_at", { ascending: false })
+        .limit(5);
+
+      (subNotifs as any[] || []).forEach((n) => {
+        notifs.push({
+          id: `sub-${n.id}`,
+          icon: Clock,
+          iconColor: n.type === "expired" ? "text-destructive" : n.type === "expiry_1day" ? "text-destructive" : "text-warning",
+          title: n.title || "تنبيه اشتراك",
+          description: n.body || "",
+          time: new Date(n.sent_at),
+          path: n.path || "/billing",
+          read: false,
+          category: n.type === "expired" || n.type === "expiry_1day" ? "urgent" : "warning",
+        });
+      });
 
     } catch (err) {
       console.error("Error generating notifications:", err);
