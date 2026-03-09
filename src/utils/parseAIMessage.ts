@@ -4,8 +4,9 @@ export type MessagePart =
 
 export function parseAIMessage(text: string): MessagePart[] {
   const parts: MessagePart[] = [];
-  const actionRegex = /\[action:([^:]+):([^\]]*?)\/\]/g;
-  
+  // Matches both [action:LABEL:ROUTE] and [action:LABEL:ROUTE/]
+  const actionRegex = /\[action:([^:\]]+):([^\]]+)\]/g;
+
   let lastIndex = 0;
   let match;
 
@@ -16,10 +17,17 @@ export function parseAIMessage(text: string): MessagePart[] {
         parts.push({ type: 'text', content: textBefore });
       }
     }
+
+    // Clean trailing slash from route if present
+    let route = match[2].trim();
+    if (route !== '/' && route.endsWith('/')) {
+      route = route.slice(0, -1);
+    }
+
     parts.push({
       type: 'action',
       label: match[1].trim(),
-      route: match[2].trim(),
+      route,
     });
     lastIndex = match.index + match[0].length;
   }
