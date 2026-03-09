@@ -85,6 +85,8 @@ import ImportShipmentsPage from "./pages/ImportShipmentsPage";
 import ImportWizardPage from "./pages/ImportWizardPage";
 import ImportDetailPage from "./pages/ImportDetailPage";
 import BillingPage from "./pages/BillingPage";
+import OnboardingPage from "./pages/OnboardingPage";
+import SubscriptionPage from "./pages/SubscriptionPage";
 
 const queryClient = new QueryClient();
 
