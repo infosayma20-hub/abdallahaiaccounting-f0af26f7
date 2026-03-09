@@ -166,18 +166,20 @@ const CleanInputDock = ({ onSend, sending }: Props) => {
     setInputValue("");
   };
 
-  const handleChipClick = (chip: string) => {
-    if (chip === "+ المزيد") {
-      setShowCommands(true);
-    } else {
-      setInputValue(chip);
-      inputRef.current?.focus();
-    }
+  const handleCommandInsert = (text: string) => {
+    setInputValue(text);
+    inputRef.current?.focus();
   };
 
-  const handleCommandSelect = (text: string) => {
-    setShowCommands(false);
-    onSend(text);
+  const handleCommandAction = (action: string) => {
+    // Handle special actions
+    if (action === "مسح المحادثة") {
+      if (confirm("هل تريد مسح المحادثة الحالية؟")) {
+        onSend("مسح المحادثة");
+      }
+      return;
+    }
+    onSend(action);
   };
 
   const toggleMentions = () => {
