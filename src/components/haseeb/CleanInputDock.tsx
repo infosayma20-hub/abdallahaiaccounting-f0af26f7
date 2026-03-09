@@ -1,9 +1,9 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { Send, Mic, X, Square, AtSign, Users, Package, Briefcase, BookOpen, PlusCircle } from "lucide-react";
+import { Send, Mic, X, Square, Users, Package, Briefcase, BookOpen, PlusCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import CommandsSheet from "./CommandsSheet";
+import SmartCommandBar from "./SmartCommandBar";
 
 type DockState = "idle" | "recording" | "processing";
 
@@ -19,7 +19,7 @@ interface Props {
   sending: boolean;
 }
 
-const QUICK_CHIPS = ["قبضت من @", "دفعت إيجار", "بعت لـ@", "+ المزيد"];
+
 
 const CleanInputDock = ({ onSend, sending }: Props) => {
   const { toast } = useToast();
@@ -28,7 +28,7 @@ const CleanInputDock = ({ onSend, sending }: Props) => {
   const [inputValue, setInputValue] = useState("");
   const [recordingTime, setRecordingTime] = useState(0);
   const [audioLevels, setAudioLevels] = useState<number[]>(new Array(40).fill(2));
-  const [showCommands, setShowCommands] = useState(false);
+  
   const [showMentions, setShowMentions] = useState(false);
   const [mentionItems, setMentionItems] = useState<MentionItem[]>([]);
   const [mentionSearch, setMentionSearch] = useState("");
@@ -166,18 +166,20 @@ const CleanInputDock = ({ onSend, sending }: Props) => {
     setInputValue("");
   };
 
-  const handleChipClick = (chip: string) => {
-    if (chip === "+ المزيد") {
-      setShowCommands(true);
-    } else {
-      setInputValue(chip);
-      inputRef.current?.focus();
-    }
+  const handleCommandInsert = (text: string) => {
+    setInputValue(text);
+    inputRef.current?.focus();
   };
 
-  const handleCommandSelect = (text: string) => {
-    setShowCommands(false);
-    onSend(text);
+  const handleCommandAction = (action: string) => {
+    // Handle special actions
+    if (action === "مسح المحادثة") {
+      if (confirm("هل تريد مسح المحادثة الحالية؟")) {
+        onSend("مسح المحادثة");
+      }
+      return;
+    }
+    onSend(action);
   };
 
   const toggleMentions = () => {
@@ -421,24 +423,8 @@ const CleanInputDock = ({ onSend, sending }: Props) => {
           </div>
         )}
 
-        {/* Quick chips */}
-        <div className="flex gap-2 overflow-x-auto px-3.5 pt-3 pb-2.5" style={{ scrollbarWidth: "none" }}>
-          {QUICK_CHIPS.map(chip => (
-            <button
-              key={chip}
-              onClick={() => handleChipClick(chip)}
-              className="flex-shrink-0 h-[34px] px-3.5 rounded-[17px] text-[13px] active:scale-95 transition-transform"
-              style={{
-                background: chip === "+ المزيد" ? "#0A2342" : "#F1F5F9",
-                color: chip === "+ المزيد" ? "white" : "#0A2342",
-                fontFamily: "Tajawal, sans-serif",
-                border: "none",
-              }}
-            >
-              {chip}
-            </button>
-          ))}
-        </div>
+        {/* Smart Command Bar */}
+        <SmartCommandBar onInsert={handleCommandInsert} onAction={handleCommandAction} />
 
         {/* Input row */}
         <div className="flex items-center gap-2 px-3.5">
@@ -479,8 +465,6 @@ const CleanInputDock = ({ onSend, sending }: Props) => {
           )}
         </div>
       </div>
-
-      <CommandsSheet open={showCommands} onClose={() => setShowCommands(false)} onSelect={handleCommandSelect} />
     </>
   );
 };
