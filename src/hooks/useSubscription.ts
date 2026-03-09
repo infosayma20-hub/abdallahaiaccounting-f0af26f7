@@ -32,7 +32,7 @@ export function useSubscription() {
         .from("subscriptions")
         .select("*, plans(*)")
         .eq("user_id", user.id)
-        .in("status", ["active", "trial", "grace", "expired"])
+        .in("status", ["active", "trial", "trialing", "grace", "grace_period", "past_due", "expired"])
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -44,7 +44,7 @@ export function useSubscription() {
       }
 
       const plan = sub.plans as any;
-      const isTrial = sub.status === "trial";
+      const isTrial = sub.status === "trial" || sub.status === "trialing";
       const expiresAt = isTrial && sub.trial_ends_at
         ? new Date(sub.trial_ends_at)
         : new Date(sub.current_period_end);
