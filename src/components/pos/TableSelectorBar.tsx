@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { LayoutGrid, Plus, Clock, AlertTriangle } from "lucide-react";
+import { LayoutGrid, Plus, Clock, AlertTriangle, List } from "lucide-react";
+import AllTablesSheet from "./AllTablesSheet";
 
 interface TableBarItem {
   id: string;
@@ -64,7 +65,7 @@ export default function TableSelectorBar({
   onNewTable,
 }: TableSelectorBarProps) {
   const [tables, setTables] = useState<TableBarItem[]>([]);
-
+  const [showAll, setShowAll] = useState(false);
   const fetchTables = useCallback(async () => {
     if (!dataOwnerId) return;
 
@@ -197,6 +198,25 @@ export default function TableSelectorBar({
         <Plus className="w-3.5 h-3.5" />
         جديد
       </button>
+
+      {/* View all tables button */}
+      {tables.length > 4 && (
+        <button
+          onClick={() => setShowAll(true)}
+          className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-border bg-card text-foreground text-xs font-medium hover:bg-muted transition-all flex-shrink-0"
+        >
+          <List className="w-3.5 h-3.5" />
+          عرض الكل
+        </button>
+      )}
+
+      {/* All tables sheet */}
+      <AllTablesSheet
+        open={showAll}
+        onClose={() => setShowAll(false)}
+        dataOwnerId={dataOwnerId}
+        onTableSelect={(t) => { onTableSelect(t); setShowAll(false); }}
+      />
     </div>
   );
 }
