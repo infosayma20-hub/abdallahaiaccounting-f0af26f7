@@ -215,9 +215,7 @@ const HomeDashboard = () => {
           {/* W11: Cheques */}
           <ChequesCalendarWidget cheques={dashboard.upcomingCheques} loading={dashboard.loading} />
 
-          {/* W12: Recent Activity */}
-          <RecentActivityWidget activities={dashboard.recentActivity} loading={dashboard.loading} />
-
+          {/* (Recent Activity moved to col-4 above) */}
           {/* Setup Wizard (if needed) */}
           {showSetupWizard && user && (
             <div className="col-span-12 bg-card rounded-2xl p-5 shadow-sm border border-border/30">
