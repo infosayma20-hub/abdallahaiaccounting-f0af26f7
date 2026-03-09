@@ -97,38 +97,21 @@ export default function AllTablesSheet({ open, onClose, dataOwnerId, onTableSele
             return (
               <div key={g.key}>
                 <p className={`text-xs font-semibold mb-2 ${s.color}`}>{g.label}</p>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-1.5">
                   {g.items.map(t => {
                     const st = STATUS_MAP[t.status] || STATUS_MAP.available;
                     return (
                       <button
                         key={t.id}
                         onClick={() => handleSelect(t)}
-                        className={`flex flex-col gap-1 p-3 rounded-xl border text-right transition-all active:scale-[0.97] ${st.bg} ${st.border}`}
+                        className={`flex flex-col items-center justify-center p-2 rounded-lg border text-center transition-all active:scale-[0.97] ${st.bg} ${st.border}`}
                       >
-                        <div className="flex items-center justify-between">
-                          <span className="font-bold text-sm text-foreground">{t.name}</span>
-                          {t.status === "occupied" && t.current_total > 0 && (
-                            <span className="font-mono text-xs bg-destructive/15 text-destructive px-1.5 py-0.5 rounded-md">
-                              ₪{t.current_total.toFixed(0)}
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                          {t.status === "occupied" && t.occupied_at && (
-                            <span className="flex items-center gap-0.5">
-                              <Clock className="w-3 h-3" />
-                              {elapsed(t.occupied_at)}
-                            </span>
-                          )}
-                          {t.current_guests > 0 && (
-                            <span className="flex items-center gap-0.5">
-                              <Users className="w-3 h-3" />
-                              {t.current_guests}
-                            </span>
-                          )}
-                          <span>{t.seats} مقاعد</span>
-                        </div>
+                        <span className="font-bold text-xs text-foreground">{t.name}</span>
+                        {t.status === "occupied" && t.current_total > 0 && (
+                          <span className="font-mono text-[10px] text-destructive mt-0.5">
+                            ₪{t.current_total.toFixed(0)}
+                          </span>
+                        )}
                       </button>
                     );
                   })}
