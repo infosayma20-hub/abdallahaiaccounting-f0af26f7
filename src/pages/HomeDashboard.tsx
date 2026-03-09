@@ -9,7 +9,7 @@ import { useDashboardData } from "@/hooks/useDashboardData";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import KPIMegaRow from "@/components/dashboard/KPIMegaRow";
 import RevenueExpenseChart from "@/components/dashboard/RevenueExpenseChart";
-import FinancialHealthWidget from "@/components/dashboard/FinancialHealthWidget";
+
 import CashFlowWidget from "@/components/dashboard/CashFlowWidget";
 import AgingWidget from "@/components/dashboard/AgingWidget";
 import RecentActivityWidget from "@/components/dashboard/RecentActivityWidget";
