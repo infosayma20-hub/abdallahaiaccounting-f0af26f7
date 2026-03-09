@@ -38,7 +38,7 @@ const CleanInputDock = ({ onSend, sending }: Props) => {
   const analyserRef = useRef<AnalyserNode | null>(null);
   const animFrameRef = useRef<number>(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const mentionRef = useRef<HTMLDivElement>(null);
 
   const hasText = inputValue.trim().length > 0;
@@ -427,17 +427,25 @@ const CleanInputDock = ({ onSend, sending }: Props) => {
         <SmartCommandBar onInsert={handleCommandInsert} onAction={handleCommandAction} />
 
         {/* Input row */}
-        <div className="flex items-center gap-2 px-3.5">
-          <input
+        <div className="flex items-end gap-2 px-3.5">
+          <textarea
             ref={inputRef}
-            type="text"
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleTextSend(); } }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleTextSend(); }
+            }}
             placeholder="اكتب أو تكلم..."
-            className="flex-1 h-[50px] rounded-[25px] px-4 text-sm outline-none transition-all"
+            rows={1}
+            className="flex-1 rounded-[25px] px-4 py-3 text-sm outline-none transition-all resize-none overflow-y-auto"
             style={{
               background: "#F1F5F9", border: "none", fontFamily: "Tajawal, sans-serif", color: "#0A2342",
+              minHeight: 50, maxHeight: 120,
+            }}
+            onInput={(e) => {
+              const t = e.currentTarget;
+              t.style.height = 'auto';
+              t.style.height = Math.min(t.scrollHeight, 120) + 'px';
             }}
             onFocus={(e) => { e.currentTarget.style.background = "white"; e.currentTarget.style.boxShadow = "0 0 0 2px #0A2342"; }}
             onBlur={(e) => { e.currentTarget.style.background = "#F1F5F9"; e.currentTarget.style.boxShadow = "none"; }}
