@@ -141,7 +141,7 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
   const location = useLocation();
   const navigate = useNavigate();
   const { company } = useCompany();
-  const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
+  const [openItem, setOpenItem] = useState<string | null>(null);
 
   const isActive = (path?: string) => {
     if (!path) return false;
@@ -158,11 +158,17 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
 
   const isGroupActive = (item: NavItem) => item.children?.some((c) => isActive(c.path));
 
-  const toggleGroup = (label: string) => {
-    setExpandedGroups((prev) =>
-      prev.includes(label) ? prev.filter((g) => g !== label) : [...prev, label]
-    );
-  };
+  // Auto-open parent based on current route
+  React.useEffect(() => {
+    for (const section of navSections) {
+      for (const item of section.items) {
+        if (item.children?.some((c) => isActive(c.path))) {
+          setOpenItem(item.label);
+          return;
+        }
+      }
+    }
+  }, [location.pathname, location.search]);
 
   const handleNavigate = (path: string) => {
     navigate(path);
