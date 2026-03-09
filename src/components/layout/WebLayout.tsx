@@ -32,7 +32,8 @@ const WebLayout = ({ children }: WebLayoutProps) => {
           onOpenHelpGuide={() => setShowHelpGuide(true)}
         />
 
-        {/* Subscription Expiry Banner */}
+        {/* Subscription / Trial Banners */}
+        <TrialBanner />
         <SubscriptionExpiryBanner />
 
         {/* Content with page transition */}
