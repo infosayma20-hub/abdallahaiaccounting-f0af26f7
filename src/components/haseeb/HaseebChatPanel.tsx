@@ -19,7 +19,7 @@ type Message = {
 interface Props {
   user: User | null;
   userName: string;
-  data: HaseebFinancialData;
+  data: ZidniFinancialData;
   cfoMode: boolean;
   onCheque: (data: any) => void;
   onJournal: (data: any, accounts?: any[]) => void;

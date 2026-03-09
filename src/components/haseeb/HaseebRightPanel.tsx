@@ -3,7 +3,7 @@ import type { ZidniFinancialData } from "@/pages/SmartAccountantPage";
 import MiniSparkline from "@/components/MiniSparkline";
 
 interface Props {
-  data: HaseebFinancialData;
+  data: ZidniFinancialData;
   cfoMode: boolean;
 }
 

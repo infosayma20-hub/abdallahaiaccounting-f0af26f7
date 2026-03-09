@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import type { ZidniFinancialData } from "@/pages/SmartAccountantPage";
 
 interface Props {
-  data: HaseebFinancialData;
+  data: ZidniFinancialData;
   cfoMode: boolean;
   onToggleCfo: () => void;
   sessionStart: number;

@@ -5,7 +5,7 @@ import { X } from "lucide-react";
 interface Props {
   open: boolean;
   onClose: () => void;
-  data: HaseebFinancialData;
+  data: ZidniFinancialData;
 }
 
 const fmt = (n: number) => `₪${Math.abs(n).toLocaleString()}`;
