@@ -19,7 +19,7 @@ interface Props {
   sending: boolean;
 }
 
-const QUICK_CHIPS = ["قبضت من @", "دفعت إيجار", "بعت لـ@", "+ المزيد"];
+
 
 const CleanInputDock = ({ onSend, sending }: Props) => {
   const { toast } = useToast();
