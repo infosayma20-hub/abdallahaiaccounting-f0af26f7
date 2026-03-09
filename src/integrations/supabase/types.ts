@@ -3167,6 +3167,45 @@ export type Database = {
           },
         ]
       }
+      notification_log: {
+        Row: {
+          body: string | null
+          channel: string
+          created_at: string
+          id: string
+          path: string | null
+          read_at: string | null
+          sent_at: string
+          title: string | null
+          type: string
+          user_id: string
+        }
+        Insert: {
+          body?: string | null
+          channel?: string
+          created_at?: string
+          id?: string
+          path?: string | null
+          read_at?: string | null
+          sent_at?: string
+          title?: string | null
+          type: string
+          user_id: string
+        }
+        Update: {
+          body?: string | null
+          channel?: string
+          created_at?: string
+          id?: string
+          path?: string | null
+          read_at?: string | null
+          sent_at?: string
+          title?: string | null
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       official_holidays: {
         Row: {
           created_at: string | null
@@ -5734,6 +5773,7 @@ export type Database = {
           current_period_end: string
           current_period_start: string
           id: string
+          last_notified_at: string | null
           plan_id: string
           status: string
           trial_ends_at: string | null
@@ -5747,6 +5787,7 @@ export type Database = {
           current_period_end?: string
           current_period_start?: string
           id?: string
+          last_notified_at?: string | null
           plan_id: string
           status?: string
           trial_ends_at?: string | null
@@ -5760,6 +5801,7 @@ export type Database = {
           current_period_end?: string
           current_period_start?: string
           id?: string
+          last_notified_at?: string | null
           plan_id?: string
           status?: string
           trial_ends_at?: string | null
