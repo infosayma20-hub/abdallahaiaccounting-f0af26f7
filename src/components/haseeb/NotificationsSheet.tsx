@@ -1,5 +1,5 @@
 import { X } from "lucide-react";
-import type { HaseebFinancialData } from "@/pages/SmartAccountantPage";
+import type { ZidniFinancialData } from "@/pages/SmartAccountantPage";
 
 interface Props {
   open: boolean;
