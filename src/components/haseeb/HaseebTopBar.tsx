@@ -65,7 +65,7 @@ const ZidniTopBar = ({ data, cfoMode, onToggleCfo, sessionStart, compact }: Prop
       {/* Center Ticker */}
       {!compact && (
         <div className="flex-1 mx-6 overflow-hidden relative">
-          <div className="haseeb-ticker whitespace-nowrap" style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 11, color: "rgba(255,255,255,0.7)" }}>
+          <div className="zidni-ticker whitespace-nowrap" style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 11, color: "rgba(255,255,255,0.7)" }}>
             <span>{tickerText}&nbsp;&nbsp;•&nbsp;&nbsp;{tickerText}</span>
           </div>
         </div>
