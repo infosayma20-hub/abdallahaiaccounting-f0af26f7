@@ -367,9 +367,14 @@ const TopBar = ({ onMenuClick, sidebarCollapsed, onOpenHelpGuide }: TopBarProps)
   return (
     <header className="sticky top-0 z-40 bg-card border-b border-border" style={{ height: 60 }}>
       <div className="h-full flex items-center gap-4 px-4 sm:px-6">
-        <button onClick={onMenuClick} className="lg:hidden w-9 h-9 rounded-lg flex items-center justify-center hover:bg-secondary transition-colors">
-          <Menu className="h-5 w-5 text-muted-foreground" strokeWidth={1.8} />
-        </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button onClick={onMenuClick} className="lg:hidden w-9 h-9 rounded-lg flex items-center justify-center hover:bg-secondary transition-colors">
+              <Menu className="h-5 w-5 text-muted-foreground" strokeWidth={1.8} />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom"><p>القائمة</p></TooltipContent>
+        </Tooltip>
 
         <AppLogo />
 

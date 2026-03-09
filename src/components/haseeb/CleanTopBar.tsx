@@ -110,23 +110,33 @@ const CleanTopBar = ({
         </Tooltip>
 
         {/* Health score pill */}
-        <button
-          onClick={onShowFinancial}
-          className="flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold"
-          style={{ background: scoreBg, color: scoreColor }}
-        >
-          {scoreLabel} {healthScore}
-        </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={onShowFinancial}
+              className="flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold"
+              style={{ background: scoreBg, color: scoreColor }}
+            >
+              {scoreLabel} {healthScore}
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom"><p>مؤشر الصحة المالية</p></TooltipContent>
+        </Tooltip>
 
         {/* More menu */}
         <div className="relative">
-          <button
-            onClick={() => setShowMenu(!showMenu)}
-            className="w-11 h-11 flex items-center justify-center"
-            aria-label="المزيد"
-          >
-            <MoreVertical className="h-5 w-5" style={{ color: "#8B9BB4" }} />
-          </button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => setShowMenu(!showMenu)}
+                className="w-11 h-11 flex items-center justify-center"
+                aria-label="المزيد"
+              >
+                <MoreVertical className="h-5 w-5" style={{ color: "#8B9BB4" }} />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom"><p>المزيد</p></TooltipContent>
+          </Tooltip>
 
           {showMenu && (
             <>
