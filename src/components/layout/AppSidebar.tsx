@@ -326,27 +326,53 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
 
       {/* Bottom */}
       <div className="py-3 px-3 space-y-0.5" style={{ borderTop: "1px solid #0A2342" }}>
-        <button
-          onClick={() => handleNavigate("/settings")}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium text-sidebar-foreground hover:text-sidebar-accent-foreground transition-all"
-          title={collapsed ? "الإعدادات" : undefined}
-        >
-          <ModuleIcon module="settings" size="sm" />
-          {!collapsed && <span className="flex-1 text-right truncate">الإعدادات</span>}
-        </button>
-        <button
-          onClick={onToggle}
-          className="hidden lg:flex w-full items-center gap-3 px-3 py-2 rounded-lg text-[13px] text-sidebar-foreground/60 hover:text-sidebar-foreground transition-all"
-        >
-          {collapsed ? (
-            <PanelLeftOpen className="h-5 w-5 mx-auto" strokeWidth={1.8} />
-          ) : (
-            <>
-              <PanelLeftClose className="h-5 w-5" strokeWidth={1.8} />
-              <span>طي القائمة</span>
-            </>
-          )}
-        </button>
+        {collapsed ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => handleNavigate("/settings")}
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium text-sidebar-foreground hover:text-sidebar-accent-foreground transition-all justify-center px-2"
+              >
+                <ModuleIcon module="settings" size="sm" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="left"><p>الإعدادات</p></TooltipContent>
+          </Tooltip>
+        ) : (
+          <button
+            onClick={() => handleNavigate("/settings")}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium text-sidebar-foreground hover:text-sidebar-accent-foreground transition-all"
+          >
+            <ModuleIcon module="settings" size="sm" />
+            <span className="flex-1 text-right truncate">الإعدادات</span>
+          </button>
+        )}
+        {collapsed ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={onToggle}
+                className="hidden lg:flex w-full items-center gap-3 px-3 py-2 rounded-lg text-[13px] text-sidebar-foreground/60 hover:text-sidebar-foreground transition-all justify-center"
+              >
+                <PanelLeftOpen className="h-5 w-5 mx-auto" strokeWidth={1.8} />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="left"><p>فتح القائمة</p></TooltipContent>
+          </Tooltip>
+        ) : (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={onToggle}
+                className="hidden lg:flex w-full items-center gap-3 px-3 py-2 rounded-lg text-[13px] text-sidebar-foreground/60 hover:text-sidebar-foreground transition-all"
+              >
+                <PanelLeftClose className="h-5 w-5" strokeWidth={1.8} />
+                <span>طي القائمة</span>
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="left"><p>طي القائمة</p></TooltipContent>
+          </Tooltip>
+        )}
       </div>
     </div>
   );
