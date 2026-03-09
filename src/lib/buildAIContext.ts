@@ -32,8 +32,7 @@ export async function buildAIContext(userId: string): Promise<AIFinancialContext
     supabase.from("products")
       .select("name, quantity, buy_price, sell_price")
       .eq("user_id", userId)
-      .order("quantity", { ascending: true })
-      .limit(20),
+      .limit(20) as any,
     supabase.from("cheques")
       .select("party_name, amount, cheque_date, cheque_type, status")
       .eq("user_id", userId)
