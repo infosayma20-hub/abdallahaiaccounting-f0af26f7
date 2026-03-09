@@ -49,12 +49,12 @@ const appModules: AppModule[] = [
     ],
   },
   {
-    id: "ai-accountant", label: "المحاسب الذكي", description: "محاسبة تحليلية بالذكاء الاصطناعي", icon: Calculator, color: "text-primary", bgColor: "bg-primary/10", path: "/dashboard",
+    id: "dashboard", label: "لوحة المعلومات", description: "ملخص مالي شامل وتحليلات الأداء", icon: BarChart3, color: "text-primary", bgColor: "bg-primary/10", path: "/dashboard",
+    keywords: ["لوحة", "معلومات", "ملخص", "داشبورد"],
+  },
+  {
+    id: "ai-accountant", label: "المحاسب الذكي", description: "محاسبة تحليلية بالذكاء الاصطناعي", icon: Calculator, color: "text-primary", bgColor: "bg-primary/10", path: "/smart-accountant",
     keywords: ["محاسب", "ذكاء", "قيد"],
-    children: [
-      { label: "لوحة المعلومات", path: "/dashboard" },
-      { label: "التقرير الذكي", path: "/smart-report" },
-    ],
   },
   {
     id: "reports", label: "التقارير", description: "أرباح وخسائر، ميزانية عمومية، وتحليلات مالية", icon: BarChart3, color: "text-rose-500", bgColor: "bg-rose-500/10", path: "/reports",

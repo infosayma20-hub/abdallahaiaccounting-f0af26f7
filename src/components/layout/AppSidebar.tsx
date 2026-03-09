@@ -30,6 +30,7 @@ const navSections: NavSection[] = [
     items: [
       { label: "التطبيقات", module: "home", path: "/apps" },
       { label: "لوحة المعلومات", module: "home", path: "/dashboard" },
+      { label: "المحاسب الذكي", module: "ai", path: "/smart-accountant" },
       {
         label: "المحاسبة",
         module: "accounting",
