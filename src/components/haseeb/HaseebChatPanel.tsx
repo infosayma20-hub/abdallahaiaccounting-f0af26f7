@@ -61,7 +61,7 @@ const QUICK_CHIPS = {
 
 const STATUS_MESSAGES = ["📊 يقرأ بياناتك...", "🧮 يحسب...", "✍️ يصيغ الإجابة..."];
 
-const HaseebChatPanel = ({ user, userName, data, cfoMode, onCheque, onJournal, onTransactionSuccess }: Props) => {
+const ZidniChatPanel = ({ user, userName, data, cfoMode, onCheque, onJournal, onTransactionSuccess }: Props) => {
   const { toast } = useToast();
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
