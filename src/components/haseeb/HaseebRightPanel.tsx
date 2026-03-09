@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { HaseebFinancialData } from "@/pages/SmartAccountantPage";
+import type { ZidniFinancialData } from "@/pages/SmartAccountantPage";
 import MiniSparkline from "@/components/MiniSparkline";
 
 interface Props {
