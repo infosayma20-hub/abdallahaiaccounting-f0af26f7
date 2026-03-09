@@ -76,16 +76,21 @@ const CleanTopBar = ({
         </Tooltip>
 
         {/* Refresh */}
-        <button
-          onClick={onRefreshData}
-          className="w-11 h-11 flex items-center justify-center"
-          aria-label="تحديث البيانات"
-        >
-          <RefreshCw
-            className={`h-4.5 w-4.5 transition-transform ${refreshing ? "animate-spin" : ""}`}
-            style={{ color: "#8B9BB4" }}
-          />
-        </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={onRefreshData}
+              className="w-11 h-11 flex items-center justify-center"
+              aria-label="تحديث البيانات"
+            >
+              <RefreshCw
+                className={`h-4.5 w-4.5 transition-transform ${refreshing ? "animate-spin" : ""}`}
+                style={{ color: "#8B9BB4" }}
+              />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom"><p>تحديث البيانات</p></TooltipContent>
+        </Tooltip>
 
         {/* Notifications bell */}
         <button
