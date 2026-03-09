@@ -274,6 +274,7 @@ const POSPage = () => {
   const [activeOrderIndex, setActiveOrderIndex] = useState(0);
   const activeOrder = orders[activeOrderIndex] || orders[0];
   const orderCounter = useRef(1);
+  const [showAllOrders, setShowAllOrders] = useState(false);
 
   // Derived from active order
   const cart = activeOrder.cart;
