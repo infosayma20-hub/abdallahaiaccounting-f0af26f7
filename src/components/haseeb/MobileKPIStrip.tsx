@@ -1,7 +1,7 @@
-import type { HaseebFinancialData } from "@/pages/SmartAccountantPage";
+import type { ZidniFinancialData } from "@/pages/SmartAccountantPage";
 
 interface Props {
-  data: HaseebFinancialData;
+  data: ZidniFinancialData;
 }
 
 const fmt = (n: number) => {
@@ -19,11 +19,11 @@ const MobileKPIStrip = ({ data }: Props) => {
   ];
 
   return (
-    <div className="haseeb-kpi-strip">
+    <div className="zidni-kpi-strip">
       {pills.map((p, i) => (
         <div
           key={p.label}
-          className="haseeb-kpi-pill"
+          className="zidni-kpi-pill"
           style={{ animationDelay: `${i * 60}ms` }}
         >
           <span className="text-base">{p.icon}</span>

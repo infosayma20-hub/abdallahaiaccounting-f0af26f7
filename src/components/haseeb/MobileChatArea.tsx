@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getAuthHeadersJson } from "@/lib/edge-helpers";
 import { useToast } from "@/hooks/use-toast";
 import MobileInputDock from "./MobileInputDock";
-import type { HaseebFinancialData } from "@/pages/SmartAccountantPage";
+import type { ZidniFinancialData } from "@/pages/SmartAccountantPage";
 import type { User } from "@supabase/supabase-js";
 import { Loader2, Check, X, Pencil } from "lucide-react";
 
@@ -20,7 +20,7 @@ type Message = {
 interface Props {
   user: User | null;
   userName: string;
-  data: HaseebFinancialData;
+  data: ZidniFinancialData;
   cfoMode: boolean;
   onCheque: (data: any) => void;
   onJournal: (data: any, accounts?: any[]) => void;
@@ -200,7 +200,7 @@ const MobileChatArea = ({ user, userName, data, cfoMode, onCheque, onJournal, on
       <div
         ref={scrollRef}
         onScroll={handleScroll}
-        className="haseeb-chat-scroll"
+        className="zidni-chat-scroll"
       >
         {isWelcome ? (
           <div className="px-3.5 py-3 space-y-3">

@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import MentionInput, { MentionItem } from "@/components/MentionInput";
 import { Send, Mic, Loader2, AtSign, Paperclip, MicOff } from "lucide-react";
-import type { HaseebFinancialData } from "@/pages/SmartAccountantPage";
+import type { ZidniFinancialData } from "@/pages/SmartAccountantPage";
 import type { User } from "@supabase/supabase-js";
 
 type Message = {
@@ -19,7 +19,7 @@ type Message = {
 interface Props {
   user: User | null;
   userName: string;
-  data: HaseebFinancialData;
+  data: ZidniFinancialData;
   cfoMode: boolean;
   onCheque: (data: any) => void;
   onJournal: (data: any, accounts?: any[]) => void;
@@ -61,7 +61,7 @@ const QUICK_CHIPS = {
 
 const STATUS_MESSAGES = ["📊 يقرأ بياناتك...", "🧮 يحسب...", "✍️ يصيغ الإجابة..."];
 
-const HaseebChatPanel = ({ user, userName, data, cfoMode, onCheque, onJournal, onTransactionSuccess }: Props) => {
+const ZidniChatPanel = ({ user, userName, data, cfoMode, onCheque, onJournal, onTransactionSuccess }: Props) => {
   const { toast } = useToast();
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
@@ -254,7 +254,7 @@ ${text}`,
   return (
     <div className="flex flex-col h-full" style={{ background: "#F4F7FA" }}>
       {/* Messages area */}
-      <div className="flex-1 overflow-y-auto px-5 py-4 haseeb-scrollbar">
+      <div className="flex-1 overflow-y-auto px-5 py-4 zidni-scrollbar">
         {isWelcome ? (
           <div className="flex items-center justify-center h-full">
             <div className="max-w-lg w-full">
@@ -445,4 +445,4 @@ ${text}`,
   );
 };
 
-export default HaseebChatPanel;
+export default ZidniChatPanel;

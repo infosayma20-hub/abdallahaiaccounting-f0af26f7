@@ -6,7 +6,7 @@ import CleanTopBar from "./CleanTopBar";
 import CleanInputDock from "./CleanInputDock";
 import FinancialSummarySheet from "./FinancialSummarySheet";
 import NotificationsSheet from "./NotificationsSheet";
-import type { HaseebFinancialData } from "@/pages/SmartAccountantPage";
+import type { ZidniFinancialData } from "@/pages/SmartAccountantPage";
 import type { User } from "@supabase/supabase-js";
 
 type Message = {
@@ -21,7 +21,7 @@ type Message = {
 interface Props {
   user: User | null;
   userName: string;
-  data: HaseebFinancialData;
+  data: ZidniFinancialData;
   cfoMode: boolean;
   onToggleCfo: () => void;
   onCheque: (data: any) => void;

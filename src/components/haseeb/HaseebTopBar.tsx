@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
-import type { HaseebFinancialData } from "@/pages/SmartAccountantPage";
+import type { ZidniFinancialData } from "@/pages/SmartAccountantPage";
 
 interface Props {
-  data: HaseebFinancialData;
+  data: ZidniFinancialData;
   cfoMode: boolean;
   onToggleCfo: () => void;
   sessionStart: number;
@@ -14,7 +14,7 @@ const fmt = (n: number) => {
   return `₪${n.toLocaleString()}`;
 };
 
-const HaseebTopBar = ({ data, cfoMode, onToggleCfo, sessionStart, compact }: Props) => {
+const ZidniTopBar = ({ data, cfoMode, onToggleCfo, sessionStart, compact }: Props) => {
   const [elapsed, setElapsed] = useState("00:00:00");
 
   useEffect(() => {
@@ -65,7 +65,7 @@ const HaseebTopBar = ({ data, cfoMode, onToggleCfo, sessionStart, compact }: Pro
       {/* Center Ticker */}
       {!compact && (
         <div className="flex-1 mx-6 overflow-hidden relative">
-          <div className="haseeb-ticker whitespace-nowrap" style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 11, color: "rgba(255,255,255,0.7)" }}>
+          <div className="zidni-ticker whitespace-nowrap" style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 11, color: "rgba(255,255,255,0.7)" }}>
             <span>{tickerText}&nbsp;&nbsp;•&nbsp;&nbsp;{tickerText}</span>
           </div>
         </div>
@@ -101,4 +101,4 @@ const HaseebTopBar = ({ data, cfoMode, onToggleCfo, sessionStart, compact }: Pro
   );
 };
 
-export default HaseebTopBar;
+export default ZidniTopBar;

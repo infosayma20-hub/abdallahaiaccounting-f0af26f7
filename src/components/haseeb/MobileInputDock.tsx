@@ -231,7 +231,7 @@ const MobileInputDock = ({ onSend, sending, quickChips, userId }: Props) => {
   // RECORDING STATE
   if (state === "recording") {
     return (
-      <div className="haseeb-dock haseeb-dock-recording">
+      <div className="zidni-dock zidni-dock-recording">
         {/* Waveform */}
         <div className="flex items-center justify-center gap-[2px] h-14 w-full px-4">
           {audioLevels.map((level, i) => (
@@ -255,7 +255,7 @@ const MobileInputDock = ({ onSend, sending, quickChips, userId }: Props) => {
           </button>
 
           <div className="flex items-center gap-2">
-            <span className="haseeb-rec-dot" />
+            <span className="zidni-rec-dot" />
             <span className="text-[13px] text-white/80">جاري التسجيل...</span>
           </div>
 
@@ -273,8 +273,8 @@ const MobileInputDock = ({ onSend, sending, quickChips, userId }: Props) => {
   // PROCESSING STATE
   if (state === "processing") {
     return (
-      <div className="haseeb-dock">
-        <div className="haseeb-shimmer-bar" />
+      <div className="zidni-dock">
+        <div className="zidni-shimmer-bar" />
         <div className="flex items-center justify-center gap-2 py-4">
           <div className="w-5 h-5 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: "hsl(var(--accent))", borderTopColor: "transparent" }} />
           <span className="text-[13px] text-muted-foreground">🤖 يحلل كلامك...</span>
@@ -285,7 +285,7 @@ const MobileInputDock = ({ onSend, sending, quickChips, userId }: Props) => {
 
   // IDLE STATE (default)
   return (
-    <div className="haseeb-dock">
+    <div className="zidni-dock">
       {/* Quick chips strip */}
       <div className="flex gap-2 overflow-x-auto no-scrollbar px-3.5 pt-3 pb-2">
         {quickChips.map(chip => (
@@ -346,7 +346,7 @@ const MobileInputDock = ({ onSend, sending, quickChips, userId }: Props) => {
           <button
             onTouchStart={startVoiceInput}
             onMouseDown={startVoiceInput}
-            className="haseeb-mic-btn"
+            className="zidni-mic-btn"
             aria-label="تسجيل صوتي"
           >
             <Mic className="h-6 w-6 text-white" />

@@ -1,15 +1,15 @@
 import { useState } from "react";
-import type { HaseebFinancialData } from "@/pages/SmartAccountantPage";
+import type { ZidniFinancialData } from "@/pages/SmartAccountantPage";
 import MiniSparkline from "@/components/MiniSparkline";
 
 interface Props {
-  data: HaseebFinancialData;
+  data: ZidniFinancialData;
   cfoMode: boolean;
 }
 
 const fmt = (n: number) => `₪${Math.abs(n).toLocaleString()}`;
 
-const HaseebRightPanel = ({ data, cfoMode }: Props) => {
+const ZidniRightPanel = ({ data, cfoMode }: Props) => {
   const [contactTab, setContactTab] = useState<'clients' | 'suppliers'>('clients');
 
   const metrics = [
@@ -157,4 +157,4 @@ const HaseebRightPanel = ({ data, cfoMode }: Props) => {
   );
 };
 
-export default HaseebRightPanel;
+export default ZidniRightPanel;
