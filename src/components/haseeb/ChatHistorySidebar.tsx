@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { X, Search, Plus } from "lucide-react";
+import { X, Search, Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface Conversation {
