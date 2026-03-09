@@ -442,18 +442,6 @@ const CleanInputDock = ({ onSend, sending }: Props) => {
 
         {/* Input row */}
         <div className="flex items-center gap-2 px-3.5">
-          {/* @ button */}
-          <button
-            onClick={toggleMentions}
-            className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 active:scale-95 transition-all"
-            style={{
-              background: showMentions ? "#0A2342" : "#F1F5F9",
-              color: showMentions ? "white" : "#0A2342",
-            }}
-          >
-            <AtSign className="h-4.5 w-4.5" />
-          </button>
-
           <input
             ref={inputRef}
             type="text"
