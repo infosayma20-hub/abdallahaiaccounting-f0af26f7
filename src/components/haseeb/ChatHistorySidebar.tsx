@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { X, Search, Plus } from "lucide-react";
+import { X, Search, Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface Conversation {
@@ -23,6 +23,17 @@ const ChatHistorySidebar = ({ open, onClose, userId, activeConversationId, onSel
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const deleteConversation = async (convId: string) => {
+    if (!confirm("هل تريد حذف هذه المحادثة؟")) return;
+    setDeletingId(convId);
+    await supabase.from("ai_messages").delete().eq("conversation_id", convId);
+    await supabase.from("ai_conversations").delete().eq("id", convId);
+    setConversations(prev => prev.filter(c => c.id !== convId));
+    if (activeConversationId === convId) onNewConversation();
+    setDeletingId(null);
+  };
 
   const fetchConversations = useCallback(async () => {
     if (!userId) return;
@@ -138,34 +149,49 @@ const ChatHistorySidebar = ({ open, onClose, userId, activeConversationId, onSel
                   </span>
                 </div>
                 {group.items.map(conv => (
-                  <button
+                  <div
                     key={conv.id}
-                    onClick={() => onSelectConversation(conv.id)}
-                    className="w-full text-right h-16 px-4 flex flex-col justify-center transition-colors hover:bg-[#F8FAFC]"
+                    className="relative group flex items-center transition-colors hover:bg-[#F8FAFC]"
                     style={{
                       borderBottom: "1px solid #F8FAFC",
                       background: activeConversationId === conv.id ? "#EFF6FF" : "transparent",
                       borderRight: activeConversationId === conv.id ? "3px solid #0A2342" : "3px solid transparent",
                     }}
                   >
-                    <p
-                      className="text-[13px] font-bold truncate w-full"
-                      style={{ color: "#0A2342", fontFamily: "Tajawal, sans-serif" }}
+                    <button
+                      onClick={() => onSelectConversation(conv.id)}
+                      className="flex-1 text-right h-16 px-4 flex flex-col justify-center min-w-0"
                     >
-                      {conv.title}
-                    </p>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-[11px]" style={{ color: "#8B9BB4" }}>
-                        {formatTime(conv.updated_at)}
-                      </span>
-                      <span
-                        className="text-[10px] px-1.5 py-0.5 rounded-full"
-                        style={{ background: "#F1F5F9", color: "#8B9BB4" }}
+                      <p
+                        className="text-[13px] font-bold truncate w-full"
+                        style={{ color: "#0A2342", fontFamily: "Tajawal, sans-serif" }}
                       >
-                        {conv.message_count} رسالة
-                      </span>
-                    </div>
-                  </button>
+                        {conv.title}
+                      </p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-[11px]" style={{ color: "#8B9BB4" }}>
+                          {formatTime(conv.updated_at)}
+                        </span>
+                        <span
+                          className="text-[10px] px-1.5 py-0.5 rounded-full"
+                          style={{ background: "#F1F5F9", color: "#8B9BB4" }}
+                        >
+                          {conv.message_count} رسالة
+                        </span>
+                      </div>
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); deleteConversation(conv.id); }}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity w-9 h-9 flex items-center justify-center rounded-full hover:bg-red-50 ml-2 flex-shrink-0"
+                      title="حذف المحادثة"
+                    >
+                      {deletingId === conv.id ? (
+                        <div className="w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <Trash2 className="h-3.5 w-3.5 text-red-400" />
+                      )}
+                    </button>
+                  </div>
                 ))}
               </div>
             ))
