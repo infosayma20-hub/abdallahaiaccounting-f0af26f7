@@ -65,7 +65,7 @@ export default function TableSelectorBar({
   onNewTable,
 }: TableSelectorBarProps) {
   const [tables, setTables] = useState<TableBarItem[]>([]);
-
+  const [showAll, setShowAll] = useState(false);
   const fetchTables = useCallback(async () => {
     if (!dataOwnerId) return;
 
