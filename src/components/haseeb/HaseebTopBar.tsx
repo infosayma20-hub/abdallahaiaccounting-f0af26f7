@@ -83,20 +83,25 @@ const ZidniTopBar = ({ data, cfoMode, onToggleCfo, sessionStart, compact }: Prop
         <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 11, color: "#00B4D8" }}>
           ⏱ {elapsed}
         </span>
-        <button
-          onClick={onToggleCfo}
-          className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
-          style={cfoMode ? {
-            background: "linear-gradient(135deg, #C9A84C, #E8D5A3)",
-            color: "#0A2342",
-          } : {
-            border: "1px solid #8B9BB4",
-            color: "#8B9BB4",
-            background: "transparent",
-          }}
-        >
-          👔 وضع CFO
-        </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={onToggleCfo}
+              className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+              style={cfoMode ? {
+                background: "linear-gradient(135deg, #C9A84C, #E8D5A3)",
+                color: "#0A2342",
+              } : {
+                border: "1px solid #8B9BB4",
+                color: "#8B9BB4",
+                background: "transparent",
+              }}
+            >
+              👔 وضع CFO
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom"><p>{cfoMode ? "إيقاف وضع المدير المالي" : "تفعيل وضع المدير المالي"}</p></TooltipContent>
+        </Tooltip>
       </div>
     </div>
   );
