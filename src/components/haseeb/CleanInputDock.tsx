@@ -23,17 +23,23 @@ const QUICK_CHIPS = ["قبضت من @", "دفعت إيجار", "بعت لـ@", "
 
 const CleanInputDock = ({ onSend, sending }: Props) => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [state, setState] = useState<DockState>("idle");
   const [inputValue, setInputValue] = useState("");
   const [recordingTime, setRecordingTime] = useState(0);
   const [audioLevels, setAudioLevels] = useState<number[]>(new Array(40).fill(2));
   const [showCommands, setShowCommands] = useState(false);
+  const [showMentions, setShowMentions] = useState(false);
+  const [mentionItems, setMentionItems] = useState<MentionItem[]>([]);
+  const [mentionSearch, setMentionSearch] = useState("");
+  const [mentionLoaded, setMentionLoaded] = useState(false);
 
   const streamRef = useRef<MediaStream | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const animFrameRef = useRef<number>(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const mentionRef = useRef<HTMLDivElement>(null);
 
   const hasText = inputValue.trim().length > 0;
 

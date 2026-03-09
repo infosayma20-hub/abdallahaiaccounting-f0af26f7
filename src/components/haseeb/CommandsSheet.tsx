@@ -152,14 +152,16 @@ const CommandsSheet = ({ open, onClose, onSelect }: Props) => {
                     <button
                       key={cmd.label}
                       onClick={() => onSelect(cmd.label)}
-                      className="rounded-2xl flex flex-col items-start p-4 active:scale-[0.97] transition-all hover:border-[#0A2342] hover:bg-[#EFF6FF]"
+                      className="rounded-xl flex items-center gap-2.5 p-3 active:scale-[0.97] transition-all hover:border-[#0A2342] hover:bg-[#EFF6FF]"
                       style={{ background: "white", border: "1.5px solid #E2E8F0" }}
                     >
-                      <span className="text-[28px]">{cmd.icon}</span>
-                      <span className="text-[14px] font-bold mt-2" style={{ color: "#0A2342", fontFamily: "Tajawal, sans-serif" }}>
-                        {cmd.label}
-                      </span>
-                      <span className="text-[11px] mt-0.5" style={{ color: "#8B9BB4" }}>{cmd.hint}</span>
+                      <span className="text-[18px]">{cmd.icon}</span>
+                      <div className="flex flex-col items-start">
+                        <span className="text-[13px] font-bold" style={{ color: "#0A2342", fontFamily: "Tajawal, sans-serif" }}>
+                          {cmd.label}
+                        </span>
+                        <span className="text-[10px]" style={{ color: "#8B9BB4" }}>{cmd.hint}</span>
+                      </div>
                     </button>
                   ))}
                 </div>
