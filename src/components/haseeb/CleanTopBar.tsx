@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowRight, Bell, MoreVertical } from "lucide-react";
+import { ArrowRight, Bell, MoreVertical, Clock, RefreshCw } from "lucide-react";
 
 interface Props {
   healthScore: number;
@@ -9,9 +9,17 @@ interface Props {
   onBack: () => void;
   onShowFinancial: () => void;
   onShowNotifications: () => void;
+  onToggleHistory?: () => void;
+  onRefreshData?: () => void;
+  todayConversationCount?: number;
+  refreshing?: boolean;
 }
 
-const CleanTopBar = ({ healthScore, hasAnomalies, cfoMode, onToggleCfo, onBack, onShowFinancial, onShowNotifications }: Props) => {
+const CleanTopBar = ({
+  healthScore, hasAnomalies, cfoMode, onToggleCfo, onBack,
+  onShowFinancial, onShowNotifications, onToggleHistory, onRefreshData,
+  todayConversationCount = 0, refreshing = false,
+}: Props) => {
   const [showMenu, setShowMenu] = useState(false);
 
   const scoreLabel = healthScore >= 70 ? "صحي" : healthScore >= 45 ? "متوسط" : "خطر";
@@ -27,7 +35,7 @@ const CleanTopBar = ({ healthScore, hasAnomalies, cfoMode, onToggleCfo, onBack, 
         paddingTop: "env(safe-area-inset-top, 0px)",
       }}
     >
-      {/* Left: logo + title */}
+      {/* Left: back + title */}
       <div className="flex items-center gap-2.5">
         <button onClick={onBack} className="w-11 h-11 flex items-center justify-center -mr-2" aria-label="رجوع">
           <ArrowRight className="h-5 w-5" style={{ color: "#8B9BB4" }} />
@@ -37,8 +45,37 @@ const CleanTopBar = ({ healthScore, hasAnomalies, cfoMode, onToggleCfo, onBack, 
         </span>
       </div>
 
-      {/* Right: bell + health pill + more */}
-      <div className="flex items-center gap-1.5">
+      {/* Right: history + refresh + bell + health + more */}
+      <div className="flex items-center gap-1">
+        {/* History */}
+        <button
+          onClick={onToggleHistory}
+          className="w-11 h-11 flex items-center justify-center relative"
+          aria-label="سجل المحادثات"
+        >
+          <Clock className="h-5 w-5" style={{ color: "#8B9BB4" }} />
+          {todayConversationCount > 0 && (
+            <span
+              className="absolute top-1.5 right-1.5 min-w-[16px] h-4 rounded-full text-[10px] font-bold flex items-center justify-center px-1"
+              style={{ background: "#0A2342", color: "white" }}
+            >
+              {todayConversationCount}
+            </span>
+          )}
+        </button>
+
+        {/* Refresh */}
+        <button
+          onClick={onRefreshData}
+          className="w-11 h-11 flex items-center justify-center"
+          aria-label="تحديث البيانات"
+        >
+          <RefreshCw
+            className={`h-4.5 w-4.5 transition-transform ${refreshing ? "animate-spin" : ""}`}
+            style={{ color: "#8B9BB4" }}
+          />
+        </button>
+
         {/* Notifications bell */}
         <button
           onClick={onShowNotifications}
@@ -80,7 +117,6 @@ const CleanTopBar = ({ healthScore, hasAnomalies, cfoMode, onToggleCfo, onBack, 
                 {[
                   { icon: "👔", label: "وضع المدير المالي", action: () => { onToggleCfo(); setShowMenu(false); }, active: cfoMode },
                   { icon: "🔮", label: "التنبؤ المالي", action: () => setShowMenu(false) },
-                  { icon: "📜", label: "سجل المحادثات", action: () => setShowMenu(false) },
                   { icon: "⚙️", label: "الإعدادات", action: () => setShowMenu(false) },
                 ].map((item, i) => (
                   <button
