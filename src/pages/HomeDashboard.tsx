@@ -206,6 +206,9 @@ const HomeDashboard = () => {
           {/* W7: Aging */}
           <AgingWidget receivables={dashboard.agingData.receivables} payables={dashboard.agingData.payables} loading={dashboard.loading} />
 
+          {/* Exchange Rates */}
+          <ExchangeRatesWidget />
+
           {/* W10: Inventory */}
           <InventoryPulseWidget alerts={dashboard.inventoryAlerts} summary={dashboard.inventorySummary} loading={dashboard.loading} />
 
