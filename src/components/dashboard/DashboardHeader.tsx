@@ -1,4 +1,5 @@
 import { RefreshCw, Settings2, Clock } from "lucide-react";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import type { PeriodType } from "@/hooks/useDashboardData";
 
 interface Props {
