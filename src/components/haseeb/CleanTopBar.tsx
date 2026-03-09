@@ -56,7 +56,7 @@ const CleanTopBar = ({
           <Clock className="h-5 w-5" style={{ color: "#8B9BB4" }} />
           {todayConversationCount > 0 && (
             <span
-              className="absolute top-1.5 right-1.5 min-w-[16px] h-4 rounded-full text-[10px] font-bold flex items-center justify-center px-1"
+              className="absolute -top-0.5 -left-0.5 min-w-[16px] h-4 rounded-full text-[9px] font-bold flex items-center justify-center px-1"
               style={{ background: "#0A2342", color: "white" }}
             >
               {todayConversationCount}
