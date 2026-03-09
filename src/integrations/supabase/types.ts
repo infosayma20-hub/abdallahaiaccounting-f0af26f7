@@ -1171,6 +1171,77 @@ export type Database = {
         }
         Relationships: []
       }
+      company_profiles: {
+        Row: {
+          accounting_experience: string | null
+          annual_revenue: string | null
+          business_goals: string[] | null
+          business_type: string | null
+          city: string | null
+          company_id: string | null
+          country: string | null
+          created_at: string | null
+          employees_count: string | null
+          has_employees: boolean | null
+          id: string
+          industry: string | null
+          industry_ar: string | null
+          onboarding_completed: boolean | null
+          onboarding_step: number | null
+          pain_points: string[] | null
+          primary_currency: string | null
+          referral_source: string | null
+        }
+        Insert: {
+          accounting_experience?: string | null
+          annual_revenue?: string | null
+          business_goals?: string[] | null
+          business_type?: string | null
+          city?: string | null
+          company_id?: string | null
+          country?: string | null
+          created_at?: string | null
+          employees_count?: string | null
+          has_employees?: boolean | null
+          id?: string
+          industry?: string | null
+          industry_ar?: string | null
+          onboarding_completed?: boolean | null
+          onboarding_step?: number | null
+          pain_points?: string[] | null
+          primary_currency?: string | null
+          referral_source?: string | null
+        }
+        Update: {
+          accounting_experience?: string | null
+          annual_revenue?: string | null
+          business_goals?: string[] | null
+          business_type?: string | null
+          city?: string | null
+          company_id?: string | null
+          country?: string | null
+          created_at?: string | null
+          employees_count?: string | null
+          has_employees?: boolean | null
+          id?: string
+          industry?: string | null
+          industry_ar?: string | null
+          onboarding_completed?: boolean | null
+          onboarding_step?: number | null
+          pain_points?: string[] | null
+          primary_currency?: string | null
+          referral_source?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_profiles_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       company_settings: {
         Row: {
           address: string | null
@@ -3561,50 +3632,128 @@ export type Database = {
         }
         Relationships: []
       }
+      payments: {
+        Row: {
+          amount: number | null
+          card_brand: string | null
+          card_last4: string | null
+          company_id: string | null
+          created_at: string | null
+          currency: string | null
+          gateway_ref: string | null
+          gateway_response: Json | null
+          id: string
+          invoice_number: string | null
+          paid_at: string | null
+          payment_method: string | null
+          status: string | null
+          subscription_id: string | null
+        }
+        Insert: {
+          amount?: number | null
+          card_brand?: string | null
+          card_last4?: string | null
+          company_id?: string | null
+          created_at?: string | null
+          currency?: string | null
+          gateway_ref?: string | null
+          gateway_response?: Json | null
+          id?: string
+          invoice_number?: string | null
+          paid_at?: string | null
+          payment_method?: string | null
+          status?: string | null
+          subscription_id?: string | null
+        }
+        Update: {
+          amount?: number | null
+          card_brand?: string | null
+          card_last4?: string | null
+          company_id?: string | null
+          created_at?: string | null
+          currency?: string | null
+          gateway_ref?: string | null
+          gateway_response?: Json | null
+          id?: string
+          invoice_number?: string | null
+          paid_at?: string | null
+          payment_method?: string | null
+          status?: string | null
+          subscription_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       plans: {
         Row: {
           annual_discount_pct: number
+          annual_price: number | null
           created_at: string
+          currency: string | null
           display_order: number
           features: Json
           id: string
           is_active: boolean
+          limits: Json | null
           max_companies: number
           max_users: number
           monthly_price: number
           name: string
           name_ar: string
           plan_key: string
+          sort_order: number | null
           updated_at: string
         }
         Insert: {
           annual_discount_pct?: number
+          annual_price?: number | null
           created_at?: string
+          currency?: string | null
           display_order?: number
           features?: Json
           id?: string
           is_active?: boolean
+          limits?: Json | null
           max_companies?: number
           max_users?: number
           monthly_price?: number
           name: string
           name_ar: string
           plan_key: string
+          sort_order?: number | null
           updated_at?: string
         }
         Update: {
           annual_discount_pct?: number
+          annual_price?: number | null
           created_at?: string
+          currency?: string | null
           display_order?: number
           features?: Json
           id?: string
           is_active?: boolean
+          limits?: Json | null
           max_companies?: number
           max_users?: number
           monthly_price?: number
           name?: string
           name_ar?: string
           plan_key?: string
+          sort_order?: number | null
           updated_at?: string
         }
         Relationships: []
@@ -5767,48 +5916,67 @@ export type Database = {
       }
       subscriptions: {
         Row: {
+          auto_renew: boolean | null
           billing_cycle: string
           cancelled_at: string | null
+          company_id: string | null
           created_at: string
           current_period_end: string
           current_period_start: string
           id: string
           last_notified_at: string | null
           plan_id: string
+          plan_key: string | null
           status: string
           trial_ends_at: string | null
+          trial_starts_at: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          auto_renew?: boolean | null
           billing_cycle?: string
           cancelled_at?: string | null
+          company_id?: string | null
           created_at?: string
           current_period_end?: string
           current_period_start?: string
           id?: string
           last_notified_at?: string | null
           plan_id: string
+          plan_key?: string | null
           status?: string
           trial_ends_at?: string | null
+          trial_starts_at?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          auto_renew?: boolean | null
           billing_cycle?: string
           cancelled_at?: string | null
+          company_id?: string | null
           created_at?: string
           current_period_end?: string
           current_period_start?: string
           id?: string
           last_notified_at?: string | null
           plan_id?: string
+          plan_key?: string | null
           status?: string
           trial_ends_at?: string | null
+          trial_starts_at?: string | null
           updated_at?: string
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "subscriptions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "subscriptions_plan_id_fkey"
             columns: ["plan_id"]
@@ -5851,6 +6019,27 @@ export type Database = {
           target_id?: string | null
           target_type?: string | null
           user_agent?: string | null
+        }
+        Relationships: []
+      }
+      superadmin_users: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          id: string
+          role: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          role?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          role?: string | null
         }
         Relationships: []
       }
