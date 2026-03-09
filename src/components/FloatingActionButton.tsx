@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Plus, X, Receipt, FileText, Users, TrendingDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 
 const actions = [
   { icon: Receipt, label: "قيد جديد", path: "/", color: "bg-primary text-primary-foreground" },
