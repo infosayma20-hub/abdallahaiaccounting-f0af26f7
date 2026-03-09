@@ -455,8 +455,8 @@ const CleanInputDock = ({ onSend, sending }: Props) => {
             <button
               onClick={handleTextSend}
               disabled={sending}
-              className="w-[50px] h-[50px] rounded-full flex items-center justify-center flex-shrink-0 active:scale-95 transition-all disabled:opacity-40"
-              style={{ background: "linear-gradient(135deg, #0A2342, #006D8F)", boxShadow: "0 4px 12px rgba(10,35,66,0.35)" }}
+              className="rounded-full flex items-center justify-center active:scale-95 transition-all disabled:opacity-40"
+              style={{ width: 48, height: 48, minWidth: 48, minHeight: 48, flexShrink: 0, padding: 0, border: "none", background: "linear-gradient(135deg, #0A2342, #006D8F)", boxShadow: "0 4px 12px rgba(10,35,66,0.35)", boxSizing: "border-box" }}
             >
               <Send className="h-5 w-5 text-white" style={{ transform: "scaleX(-1)" }} />
             </button>
@@ -464,8 +464,8 @@ const CleanInputDock = ({ onSend, sending }: Props) => {
             <button
               onTouchStart={startVoiceInput}
               onMouseDown={(e) => { e.preventDefault(); startVoiceInput(); }}
-              className="w-[50px] h-[50px] rounded-full flex items-center justify-center flex-shrink-0 active:scale-95 transition-all"
-              style={{ background: "linear-gradient(135deg, #0A2342, #006D8F)", boxShadow: "0 4px 12px rgba(10,35,66,0.35)" }}
+              className="rounded-full flex items-center justify-center active:scale-95 transition-all"
+              style={{ width: 48, height: 48, minWidth: 48, minHeight: 48, flexShrink: 0, padding: 0, border: "none", background: "linear-gradient(135deg, #0A2342, #006D8F)", boxShadow: "0 4px 12px rgba(10,35,66,0.35)", boxSizing: "border-box" }}
               aria-label="تسجيل صوتي"
             >
               <Mic className="h-6 w-6 text-white" />
