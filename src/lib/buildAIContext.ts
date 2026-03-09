@@ -17,34 +17,32 @@ export interface AIFinancialContext {
 }
 
 export async function buildAIContext(userId: string): Promise<AIFinancialContext> {
-  const [txRes, contactRes, prodRes, chequeRes, empRes] = await Promise.all([
-    supabase.from("transactions")
-      .select("amount, debit_account_code, credit_account_code, description, transaction_type, is_opening_balance, is_deleted, transaction_date")
-      .eq("user_id", userId).eq("is_deleted", false)
-      .order("created_at", { ascending: false })
-      .limit(200),
-    supabase.from("contacts")
-      .select("contact_name, contact_type, current_balance")
-      .eq("user_id", userId)
-      .eq("is_active", true)
-      .order("current_balance", { ascending: false })
-      .limit(20),
-    supabase.from("products")
-      .select("name, quantity, buy_price, sell_price")
-      .eq("user_id", userId)
-      .limit(20) as any,
-    supabase.from("cheques")
-      .select("party_name, amount, cheque_date, cheque_type, status")
-      .eq("user_id", userId)
-      .in("status", ["آجل", "مستحق"] as any)
-      .order("cheque_date", { ascending: true })
-      .limit(10),
-    supabase.from("employees")
-      .select("full_name, department")
-      .eq("user_id", userId)
-      .eq("status" as any, "active")
-      .limit(20) as any,
-  ]);
+  const txRes = await supabase.from("transactions")
+    .select("amount, debit_account_code, credit_account_code, description, transaction_type, is_opening_balance, is_deleted, transaction_date")
+    .eq("user_id", userId).eq("is_deleted", false)
+    .order("created_at", { ascending: false })
+    .limit(200);
+
+  const contactRes = await supabase.from("contacts")
+    .select("contact_name, contact_type, current_balance")
+    .eq("user_id", userId)
+    .eq("is_active", true)
+    .limit(20);
+
+  const prodRes: any = await supabase.from("products")
+    .select("name, quantity, buy_price, sell_price")
+    .eq("user_id", userId)
+    .limit(20);
+
+  const chequeRes: any = await supabase.from("cheques")
+    .select("party_name, amount, cheque_date, cheque_type, status")
+    .eq("user_id", userId)
+    .limit(10);
+
+  const empRes: any = await supabase.from("employees")
+    .select("full_name, department")
+    .eq("user_id", userId)
+    .limit(20);
 
   const txs = txRes.data || [];
   const plTx = txs.filter(tx =>
