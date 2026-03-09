@@ -144,16 +144,17 @@ const ZidniChatPanel = ({ user, userName, data, cfoMode, onCheque, onJournal, on
       }
 
       if (parseData?.type === 'invoice' && parseData.status === 'complete') {
-        // Process directly
         const body: any = { text, userId: user?.id, email: user?.email };
         if (contactMention) { body.mentionedContactName = contactMention.name; body.mentionedContactId = contactMention.id; }
-        const { error } = await supabase.functions.invoke("process-transaction", { body });
+        const { data: txResult, error } = await supabase.functions.invoke("process-transaction", { body });
         if (error) throw error;
         onTransactionSuccess();
+        const invoiceInfo = txResult?.transaction?.invoice_number 
+          ? `\n📋 رقم الفاتورة: ${txResult.transaction.invoice_number}` 
+          : '';
         setMessages(prev => [...prev, {
           id: uid(), role: "assistant", type: "success",
-          content: `✅ تم تسجيل العملية بنجاح\
-${text}`,
+          content: `✅ تم تسجيل العملية بنجاح${invoiceInfo}\n${text}`,
           timestamp: new Date(),
         }]);
         setSending(false);
@@ -164,13 +165,15 @@ ${text}`,
       if (parseData?.type && !['question', 'unknown'].includes(parseData.type)) {
         const body: any = { text, userId: user?.id, email: user?.email };
         if (contactMention) { body.mentionedContactName = contactMention.name; body.mentionedContactId = contactMention.id; }
-        const { error } = await supabase.functions.invoke("process-transaction", { body });
+        const { data: txResult, error } = await supabase.functions.invoke("process-transaction", { body });
         if (error) throw error;
         onTransactionSuccess();
+        const invoiceInfo = txResult?.transaction?.invoice_number 
+          ? `\n📋 رقم الفاتورة: ${txResult.transaction.invoice_number}` 
+          : '';
         setMessages(prev => [...prev, {
           id: uid(), role: "assistant", type: "success",
-          content: `✅ تم تسجيل العملية بنجاح\
-${text}`,
+          content: `✅ تم تسجيل العملية بنجاح${invoiceInfo}\n${text}`,
           timestamp: new Date(),
         }]);
         setSending(false);
