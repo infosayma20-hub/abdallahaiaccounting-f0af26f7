@@ -1035,6 +1035,156 @@ export type Database = {
         }
         Relationships: []
       }
+      cash_boxes: {
+        Row: {
+          auto_transfer_threshold: number | null
+          auto_transfer_to_main: boolean | null
+          auto_transfer_trigger: string | null
+          branch_location: string | null
+          created_at: string | null
+          currency: string | null
+          gl_account_code: string | null
+          id: string
+          is_active: boolean | null
+          max_balance_action: string | null
+          max_balance_alert: number | null
+          min_balance_alert: number | null
+          name: string
+          notes: string | null
+          opening_balance: number | null
+          opening_balance_date: string | null
+          pos_auto_post: boolean | null
+          pos_post_trigger: string | null
+          pos_terminal_id: string | null
+          responsible_id: string | null
+          type: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          auto_transfer_threshold?: number | null
+          auto_transfer_to_main?: boolean | null
+          auto_transfer_trigger?: string | null
+          branch_location?: string | null
+          created_at?: string | null
+          currency?: string | null
+          gl_account_code?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_balance_action?: string | null
+          max_balance_alert?: number | null
+          min_balance_alert?: number | null
+          name: string
+          notes?: string | null
+          opening_balance?: number | null
+          opening_balance_date?: string | null
+          pos_auto_post?: boolean | null
+          pos_post_trigger?: string | null
+          pos_terminal_id?: string | null
+          responsible_id?: string | null
+          type?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          auto_transfer_threshold?: number | null
+          auto_transfer_to_main?: boolean | null
+          auto_transfer_trigger?: string | null
+          branch_location?: string | null
+          created_at?: string | null
+          currency?: string | null
+          gl_account_code?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_balance_action?: string | null
+          max_balance_alert?: number | null
+          min_balance_alert?: number | null
+          name?: string
+          notes?: string | null
+          opening_balance?: number | null
+          opening_balance_date?: string | null
+          pos_auto_post?: boolean | null
+          pos_post_trigger?: string | null
+          pos_terminal_id?: string | null
+          responsible_id?: string | null
+          type?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      cash_transfers: {
+        Row: {
+          amount: number
+          amount_ils: number | null
+          created_at: string | null
+          created_by: string | null
+          currency: string | null
+          description: string | null
+          exchange_rate: number | null
+          from_box_id: string | null
+          id: string
+          pos_session_id: string | null
+          received_by: string | null
+          to_box_id: string | null
+          transfer_date: string
+          transfer_type: string | null
+          user_id: string
+          voucher_id: string | null
+        }
+        Insert: {
+          amount: number
+          amount_ils?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          currency?: string | null
+          description?: string | null
+          exchange_rate?: number | null
+          from_box_id?: string | null
+          id?: string
+          pos_session_id?: string | null
+          received_by?: string | null
+          to_box_id?: string | null
+          transfer_date: string
+          transfer_type?: string | null
+          user_id: string
+          voucher_id?: string | null
+        }
+        Update: {
+          amount?: number
+          amount_ils?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          currency?: string | null
+          description?: string | null
+          exchange_rate?: number | null
+          from_box_id?: string | null
+          id?: string
+          pos_session_id?: string | null
+          received_by?: string | null
+          to_box_id?: string | null
+          transfer_date?: string
+          transfer_type?: string | null
+          user_id?: string
+          voucher_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cash_transfers_from_box_id_fkey"
+            columns: ["from_box_id"]
+            isOneToOne: false
+            referencedRelation: "cash_boxes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cash_transfers_to_box_id_fkey"
+            columns: ["to_box_id"]
+            isOneToOne: false
+            referencedRelation: "cash_boxes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cheque_status_history: {
         Row: {
           cheque_id: string
