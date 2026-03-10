@@ -2,9 +2,11 @@ import { useState, useEffect } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
-import { Gift, User, Mail, MessageSquare, CheckCircle, X } from "lucide-react";
+import { User, Phone, StickyNote, CheckCircle, Percent } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Switch } from "@/components/ui/switch";
 
 interface CustomerDataModalProps {
   open: boolean;
@@ -33,18 +35,22 @@ interface ExistingCustomer {
 const CustomerDataModal = ({
   open, onOpenChange, subtotal, discountPct, dataOwnerId, onApply, onSkip,
 }: CustomerDataModalProps) => {
-  const [contactType, setContactType] = useState<"whatsapp" | "email">("whatsapp");
   const [contactValue, setContactValue] = useState("");
   const [customerName, setCustomerName] = useState("");
+  const [note, setNote] = useState("");
+  const [applyDiscount, setApplyDiscount] = useState(false);
   const [existingCustomer, setExistingCustomer] = useState<ExistingCustomer | null>(null);
   const [searching, setSearching] = useState(false);
 
-  const discountAmount = (subtotal * discountPct) / 100;
+  const actualDiscountPct = applyDiscount ? discountPct : 0;
+  const discountAmount = (subtotal * actualDiscountPct) / 100;
 
   useEffect(() => {
     if (!open) {
       setContactValue("");
       setCustomerName("");
+      setNote("");
+      setApplyDiscount(false);
       setExistingCustomer(null);
     }
   }, [open]);
@@ -53,12 +59,11 @@ const CustomerDataModal = ({
     if (value.length < 6) { setExistingCustomer(null); return; }
     setSearching(true);
     try {
-      const field = contactType === "whatsapp" ? "whatsapp" : "email";
       const { data } = await supabase
         .from("pos_customers")
         .select("id, name, total_visits, total_spent")
         .eq("user_id", dataOwnerId)
-        .eq(field, value)
+        .eq("whatsapp", value)
         .maybeSingle();
       if (data) {
         setExistingCustomer(data as ExistingCustomer);
@@ -73,12 +78,11 @@ const CustomerDataModal = ({
   const handleApply = async () => {
     let customerId: string | null = existingCustomer?.id || null;
 
-    // Create or update customer
     if (!customerId) {
       const insertData: any = {
         user_id: dataOwnerId,
         name: customerName || null,
-        [contactType]: contactValue,
+        whatsapp: contactValue || null,
         total_visits: 1,
         total_spent: subtotal - discountAmount,
         total_discounts: discountAmount,
@@ -106,47 +110,35 @@ const CustomerDataModal = ({
     }
 
     onApply({
-      contactType,
+      contactType: "whatsapp",
       contactValue,
       customerName,
-      discountPct,
+      discountPct: actualDiscountPct,
       discountAmount,
       customerId,
     });
   };
 
+  const canSubmit = customerName.trim().length > 0 || contactValue.length >= 6;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md p-0 overflow-hidden" dir="rtl">
         {/* Header */}
-        <div className="bg-gradient-to-l from-emerald-500 to-green-600 p-5 text-white">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-11 h-11 rounded-xl bg-white/20 flex items-center justify-center">
-              <Gift className="h-6 w-6" />
+        <div className="px-5 pt-5 pb-4 border-b border-border">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+              <User className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <h2 className="text-lg font-bold">خصم {discountPct}% مقابل بياناتك</h2>
-              <p className="text-sm text-white/80">وفّر ₪{discountAmount.toFixed(2)} الآن!</p>
-            </div>
-          </div>
-          <div className="grid grid-cols-3 gap-2 text-center text-xs">
-            <div className="bg-white/10 rounded-lg p-2">
-              <p className="text-white/70">قبل الخصم</p>
-              <p className="font-bold text-base">₪{subtotal.toFixed(2)}</p>
-            </div>
-            <div className="bg-white/10 rounded-lg p-2">
-              <p className="text-white/70">الخصم</p>
-              <p className="font-bold text-base text-yellow-200">-₪{discountAmount.toFixed(2)}</p>
-            </div>
-            <div className="bg-white/20 rounded-lg p-2">
-              <p className="text-white/70">بعد الخصم</p>
-              <p className="font-bold text-base">₪{(subtotal - discountAmount).toFixed(2)}</p>
+              <h2 className="text-base font-bold text-foreground">تسجيل بيانات العميل</h2>
+              <p className="text-xs text-muted-foreground">أضف بيانات العميل لهذا الطلب</p>
             </div>
           </div>
         </div>
 
         {/* Body */}
-        <div className="p-4 space-y-4">
+        <div className="p-5 space-y-4">
           {/* Existing customer badge */}
           <AnimatePresence>
             {existingCustomer && (
@@ -171,69 +163,80 @@ const CustomerDataModal = ({
 
           {/* Name */}
           <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1 block">الاسم (اختياري)</label>
-            <Input
-              value={customerName}
-              onChange={(e) => setCustomerName(e.target.value)}
-              placeholder="اسم العميل"
-              className="h-10"
-            />
-          </div>
-
-          {/* Contact type */}
-          <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1.5 block">إرسال الفاتورة عبر:</label>
-            <div className="grid grid-cols-2 gap-2">
-              {[
-                { id: "whatsapp" as const, label: "واتساب", icon: MessageSquare },
-                { id: "email" as const, label: "إيميل", icon: Mail },
-              ].map((opt) => (
-                <button
-                  key={opt.id}
-                  onClick={() => { setContactType(opt.id); setContactValue(""); setExistingCustomer(null); }}
-                  className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 text-sm font-medium transition-all ${
-                    contactType === opt.id
-                      ? opt.id === "whatsapp"
-                        ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400"
-                        : "border-blue-500 bg-blue-50 dark:bg-blue-950/20 text-blue-700 dark:text-blue-400"
-                      : "border-border text-muted-foreground hover:border-muted-foreground/30"
-                  }`}
-                >
-                  <opt.icon className="h-4 w-4" />
-                  {opt.label}
-                </button>
-              ))}
+            <label className="text-xs font-medium text-muted-foreground mb-1.5 block">اسم العميل</label>
+            <div className="relative">
+              <User className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50" />
+              <Input
+                value={customerName}
+                onChange={(e) => setCustomerName(e.target.value)}
+                placeholder="اسم العميل"
+                className="h-11 pr-10"
+              />
             </div>
           </div>
 
-          {/* Contact input */}
+          {/* Phone */}
           <div>
-            <Input
-              type={contactType === "email" ? "email" : "tel"}
-              value={contactValue}
-              onChange={(e) => {
-                setContactValue(e.target.value);
-                searchCustomer(e.target.value);
-              }}
-              placeholder={contactType === "whatsapp" ? "+970 599 000 000" : "example@email.com"}
-              className="h-12 text-center text-lg font-mono"
-              dir="ltr"
-            />
+            <label className="text-xs font-medium text-muted-foreground mb-1.5 block">رقم الجوال</label>
+            <div className="relative">
+              <Phone className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50" />
+              <Input
+                type="tel"
+                value={contactValue}
+                onChange={(e) => {
+                  setContactValue(e.target.value);
+                  searchCustomer(e.target.value);
+                }}
+                placeholder="+970 599 000 000"
+                className="h-11 pr-10 font-mono"
+                dir="ltr"
+              />
+            </div>
           </div>
 
-          {/* What customer receives */}
-          <div className="p-3 rounded-xl bg-muted/50 border border-border space-y-1.5">
-            <p className="text-xs font-semibold text-foreground">📨 سيصله فوراً:</p>
-            <p className="text-[11px] text-muted-foreground flex items-center gap-1.5">
-              <CheckCircle className="h-3 w-3 text-emerald-500" /> فاتورة رقمية احترافية
-            </p>
-            <p className="text-[11px] text-muted-foreground flex items-center gap-1.5">
-              <CheckCircle className="h-3 w-3 text-emerald-500" /> رابط استبيان رضا العملاء
-            </p>
-            <p className="text-[11px] text-muted-foreground flex items-center gap-1.5">
-              <CheckCircle className="h-3 w-3 text-emerald-500" /> خصم {discountPct}% على فاتورته الحالية
-            </p>
+          {/* Note */}
+          <div>
+            <label className="text-xs font-medium text-muted-foreground mb-1.5 block">ملاحظة (اختياري)</label>
+            <div className="relative">
+              <StickyNote className="absolute right-3 top-3 h-4 w-4 text-muted-foreground/50" />
+              <Textarea
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder="ملاحظة على العميل..."
+                className="pr-10 min-h-[60px] resize-none text-sm"
+                rows={2}
+              />
+            </div>
           </div>
+
+          {/* Optional discount toggle */}
+          {discountPct > 0 && (
+            <div className={`p-3 rounded-xl border transition-all ${
+              applyDiscount 
+                ? "border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/20" 
+                : "border-border bg-muted/30"
+            }`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Percent className={`h-4 w-4 ${applyDiscount ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"}`} />
+                  <div>
+                    <p className={`text-sm font-medium ${applyDiscount ? "text-emerald-700 dark:text-emerald-300" : "text-foreground"}`}>
+                      تطبيق خصم {discountPct}%
+                    </p>
+                    {applyDiscount && (
+                      <p className="text-[11px] text-emerald-600 dark:text-emerald-400">
+                        توفير ₪{discountAmount.toFixed(2)} — الإجمالي ₪{(subtotal - discountAmount).toFixed(2)}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <Switch
+                  checked={applyDiscount}
+                  onCheckedChange={setApplyDiscount}
+                />
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Footer */}
@@ -247,12 +250,11 @@ const CustomerDataModal = ({
           </Button>
           <Button
             onClick={handleApply}
-            disabled={!contactValue || contactValue.length < 6}
+            disabled={!canSubmit}
             className="flex-1 h-11 gap-2 rounded-xl font-bold"
-            style={{ backgroundColor: "#16A34A" }}
           >
-            <Gift className="h-4 w-4" />
-            تطبيق الخصم {discountPct}%
+            <CheckCircle className="h-4 w-4" />
+            حفظ بيانات العميل
           </Button>
         </div>
       </DialogContent>
