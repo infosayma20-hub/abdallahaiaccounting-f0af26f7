@@ -2205,12 +2205,10 @@ const POSPage = () => {
                               )}
 
                               {/* Name */}
-                              <p className={`font-medium text-foreground leading-tight mb-0.5 ${
+                              <p className={`font-medium text-foreground leading-tight mb-0.5 break-words ${
                                 cardSize === "S" 
-                                  ? "text-[10px] line-clamp-2 min-h-[2.4em] font-bold" 
-                                  : cardSize === "M"
-                                    ? "text-[11px] line-clamp-1 min-h-[1.3em]"
-                                    : "text-[11px] line-clamp-2 min-h-[2.2em]"
+                                  ? "text-[10px] font-bold" 
+                                  : "text-[11px]"
                               }`}>
                                 {product.name}
                               </p>
