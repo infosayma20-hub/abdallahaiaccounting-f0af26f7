@@ -249,7 +249,7 @@ const MobileChatArea = ({ user, userName, data, cfoMode, onCheque, onJournal, on
             {/* CFO Briefing */}
             {cfoMode && (
               <div className="rounded-2xl p-4" style={{ background: "linear-gradient(135deg, hsl(var(--primary)), hsl(213 78% 10%))" }}>
-                <p className="text-[13px] font-bold mb-3" style={{ color: "hsl(var(--zidni-gold))" }}>📋 ملخص اليوم — المدير المالي</p>
+                <p className="text-[13px] font-bold mb-3" style={{ color: "hsl(var(--finix-gold))" }}>📋 ملخص اليوم — المدير المالي</p>
                 <div className="grid grid-cols-2 gap-2.5">
                   {[
                     { label: "الإيرادات", value: data.totalSales, color: "hsl(var(--success))" },
