@@ -256,8 +256,8 @@
   }
 
   .font-mono {
-    font-family: 'JetBrains Mono', monospace !important;
-    font-weight: 500;
+    font-family: 'Inter', sans-serif !important;
+    font-weight: 600;
     font-variant-numeric: tabular-nums;
   }
 

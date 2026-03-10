@@ -17,7 +17,7 @@ export default {
         sans: ['"Tajawal"', '"Montserrat"', 'sans-serif'],
         arabic: ['"Tajawal"', 'sans-serif'],
         en: ['"Montserrat"', 'sans-serif'],
-        mono: ['"JetBrains Mono"', 'monospace'],
+        mono: ['"Inter"', 'sans-serif'],
         display: ['"Montserrat"', 'sans-serif'],
       },
       spacing: {
