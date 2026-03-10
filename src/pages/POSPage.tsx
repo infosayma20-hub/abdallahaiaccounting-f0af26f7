@@ -2094,7 +2094,7 @@ const POSPage = () => {
                 strategy={rectSortingStrategy}
                 disabled={!isSortMode}
               >
-                <div className={`p-3 grid gap-2 ${
+                <div dir="rtl" className={`p-3 grid gap-2 ${
                   cardSize === "S" 
                     ? "grid-cols-5 sm:grid-cols-6 lg:grid-cols-7 xl:grid-cols-8 2xl:grid-cols-10 gap-1.5" 
                     : cardSize === "M" 
