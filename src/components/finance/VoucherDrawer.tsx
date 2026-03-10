@@ -331,10 +331,10 @@ const VoucherDrawer = ({ open, onClose, voucherType, onSaved }: VoucherDrawerPro
         onClick={onClose}
       />
 
-      {/* Drawer */}
+      {/* Centered Modal */}
       <div
-        className="fixed top-0 right-0 z-50 h-screen bg-background shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-right duration-300"
-        style={{ width: "min(680px, 100vw)" }}
+        className="fixed z-50 bg-background shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-300 rounded-2xl"
+        style={{ width: "min(680px, 95vw)", maxHeight: "min(92vh, 900px)", top: "50%", left: "50%", transform: "translate(-50%, -50%)" }}
         dir="rtl"
       >
         {/* Header */}
