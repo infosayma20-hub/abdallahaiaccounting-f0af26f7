@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { useRoleRedirect } from "@/hooks/useRoleRedirect";
 import { ThemeProvider } from "@/hooks/useTheme";
 import { CompanyProvider } from "@/hooks/useCompanyContext";
+import { ReadOnlyProvider } from "@/contexts/ReadOnlyContext";
 import WebLayout from "./components/layout/WebLayout";
 import HomeDashboard from "./pages/HomeDashboard";
 import SmartAccountantPage from "./pages/SmartAccountantPage";
