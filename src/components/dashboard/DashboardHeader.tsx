@@ -32,10 +32,15 @@ export default function DashboardHeader({ companyName, period, onPeriodChange, l
     >
       {/* Left */}
       <div className="space-y-1.5">
-        <h1 className="text-lg md:text-xl font-extrabold text-foreground" style={{ fontFamily: "Tajawal, sans-serif" }}>
-          {companyName || "شركتي"}
-        </h1>
-        <p className="text-[11px] text-muted-foreground">نظام FINIX — لوحة المعلومات</p>
+        <div className="flex items-center gap-3">
+          <BackButton />
+          <div className="space-y-1">
+            <h1 className="text-lg md:text-xl font-extrabold text-foreground" style={{ fontFamily: "Tajawal, sans-serif" }}>
+              {companyName || "شركتي"}
+            </h1>
+            <p className="text-[11px] text-muted-foreground">نظام FINIX — لوحة المعلومات</p>
+          </div>
+        </div>
 
         {/* Period tabs */}
         <div className="flex items-center gap-1 flex-wrap">
