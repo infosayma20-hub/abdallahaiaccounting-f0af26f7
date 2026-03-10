@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   ArrowRight, Loader2, Plus, Search, X, Trash2,
-  FileText, BookOpen, Save, User, Building2, Users, Check
+  FileText, BookOpen, Save, User, Building2, Users, Check, DollarSign
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
