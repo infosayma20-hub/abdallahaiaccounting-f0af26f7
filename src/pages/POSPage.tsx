@@ -2749,7 +2749,7 @@ const POSPage = () => {
                     onClick={handleSendToKitchen}
                     className="flex-1 h-10 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 border-2 border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400 hover:bg-amber-500/20 transition-all"
                   >
-                    🍳 إرسال للمطبخ
+                    🖨️ إرسال إلى الطابعة
                   </button>
                   <button
                     onClick={handleSaveToTable}
@@ -2760,17 +2760,17 @@ const POSPage = () => {
                   </button>
                 </div>
               )}
-              {/* Customer data discount button */}
+              {/* Customer data button */}
               {cart.length > 0 && (
                 <button
                   onClick={() => setShowCustomerDataModal(true)}
                   className={`w-full h-9 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
                     customerDataDiscount
                       ? "border-2 border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
-                      : "border border-dashed border-amber-400/50 bg-amber-500/5 text-amber-700 dark:text-amber-400 hover:bg-amber-500/10"
+                      : "border border-dashed border-muted-foreground/30 bg-muted/30 text-muted-foreground hover:bg-muted/50"
                   }`}
                 >
-                  {customerDataDiscount ? `✅ خصم ${customerDataDiscount.discountPct}% مطبّق — ${customerDataDiscount.customerName || customerDataDiscount.contactValue}` : "🎁 خصم مقابل بيانات العميل"}
+                  {customerDataDiscount ? `✅ ${customerDataDiscount.customerName || customerDataDiscount.contactValue}${customerDataDiscount.discountPct > 0 ? ` — خصم ${customerDataDiscount.discountPct}%` : ""}` : "👤 تسجيل بيانات العميل"}
                 </button>
               )}
               {/* Bottom row: Delete + Print + Pay */}
