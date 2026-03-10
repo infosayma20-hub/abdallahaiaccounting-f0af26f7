@@ -292,7 +292,7 @@ const VoucherDrawer = ({ open, onClose, voucherType, onSaved }: VoucherDrawerPro
             party_type: selectedContact?.contact_type === "customer" ? "عميل" : "مورد",
             bank_name: formChequeBankName || null,
             currency: formCurrency === "ILS" ? "شيكل" : formCurrency,
-            status: "برسم التحصيل" as const,
+            status: "مسجل" as const,
             linked_transaction_id: voucher.id,
             notes: `سند ${isReceipt ? "قبض" : "صرف"} رقم ${voucher.ref_number}`,
           }));
