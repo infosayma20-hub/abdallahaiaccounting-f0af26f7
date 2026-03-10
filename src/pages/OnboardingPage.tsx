@@ -469,7 +469,7 @@ const OnboardingPage = () => {
             ) : <div />}
             <button
               onClick={nextStep}
-              className="flex items-center gap-2 bg-gradient-to-r from-[#C9A84C] to-[#B8972E] text-white px-8 py-3 rounded-xl text-sm font-bold hover:scale-[1.02] transition-transform"
+              className="flex items-center gap-2 bg-gradient-to-r from-[#E8A020] to-[#F45E0C] text-white px-8 py-3 rounded-xl text-sm font-bold hover:scale-[1.02] transition-transform"
             >
               {step === 1 ? "لنبدأ" : "التالي"}
               <ArrowLeft className="h-4 w-4" />
