@@ -2830,7 +2830,7 @@ const POSPage = () => {
       {/* ══════ MODALS ══════ */}
 
       {/* Open Shift Dialog */}
-      <Dialog open={showOpenShift} onOpenChange={(v) => { if (!v && !session) navigate("/apps"); setShowOpenShift(v); }}>
+      <Dialog open={showOpenShift} onOpenChange={(v) => { if (!v && !session) navigate("/apps", { replace: true }); setShowOpenShift(v); }}>
         <DialogContent className="sm:max-w-md" dir="rtl">
           <DialogHeader>
             <DialogTitle className="text-xl">فتح وردية جديدة</DialogTitle>
