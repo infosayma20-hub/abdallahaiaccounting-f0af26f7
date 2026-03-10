@@ -247,65 +247,15 @@ const AppsLauncher = () => {
             const isExpanded = expandedApp === app.id;
 
             return (
-              <motion.div
+              <AppCard
                 key={app.id}
-                id={`app-${app.id}`}
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.04, duration: 0.3 }}
-                className={`relative rounded-2xl border transition-all duration-200 ${
-                  isExpanded
-                    ? "border-primary/40 bg-card shadow-lg col-span-1"
-                    : "border-border/60 bg-card hover:shadow-lg hover:border-border hover:-translate-y-0.5"
-                }`}
-              >
-                <button
-                  onClick={() => {
-                    if (hasChildren) {
-                      setExpandedApp(isExpanded ? null : app.id);
-                    } else {
-                      navigate(app.path);
-                    }
-                  }}
-                  className="w-full flex items-center gap-4 p-5 text-right group"
-                >
-                  <div className={`p-3 rounded-xl ${app.bgColor} transition-transform group-hover:scale-110`}>
-                    <app.icon className={`h-6 w-6 ${app.color}`} />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-bold text-foreground">{app.label}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{app.description}</p>
-                  </div>
-                  {hasChildren && (
-                    <ChevronDown
-                      className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${
-                        isExpanded ? "rotate-180" : ""
-                      }`}
-                    />
-                  )}
-                </button>
-
-                {/* Expanded sub-items */}
-                {isExpanded && hasChildren && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: "auto" }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="border-t border-border/40 px-5 pb-4 pt-2 space-y-1"
-                  >
-                    {app.children!.map((child) => (
-                      <button
-                        key={child.path}
-                        onClick={() => navigate(child.path)}
-                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] text-foreground hover:bg-primary/10 hover:text-primary transition-all text-right"
-                      >
-                        <ArrowLeft className="h-3.5 w-3.5 text-muted-foreground" />
-                        <span>{child.label}</span>
-                      </button>
-                    ))}
-                  </motion.div>
-                )}
-              </motion.div>
+                app={app}
+                index={i}
+                isExpanded={isExpanded}
+                hasChildren={!!hasChildren}
+                onToggle={() => setExpandedApp(isExpanded ? null : app.id)}
+                onNavigate={navigate}
+              />
             );
           })}
         </div>
