@@ -103,6 +103,7 @@ const detectTemplateType = (headers: string[]): string | null => {
 
 const OpeningBalancesImportPage = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [batchDate, setBatchDate] = useState(new Date().toISOString().split("T")[0]);
   const [currency, setCurrency] = useState("ILS");
