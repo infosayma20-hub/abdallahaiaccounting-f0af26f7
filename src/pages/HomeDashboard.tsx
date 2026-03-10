@@ -16,7 +16,6 @@ import RecentActivityWidget from "@/components/dashboard/RecentActivityWidget";
 import ChequesCalendarWidget from "@/components/dashboard/ChequesCalendarWidget";
 import InventoryPulseWidget from "@/components/dashboard/InventoryPulseWidget";
 import ExchangeRatesWidget from "@/components/dashboard/ExchangeRatesWidget";
-import SetupWizard from "@/components/SetupWizard";
 import CompleteProfileDialog from "@/components/CompleteProfileDialog";
 import HelpGuideModal from "@/components/HelpGuideModal";
 import JournalEntryPopup from "@/components/JournalEntryPopup";
@@ -82,7 +81,6 @@ const HomeDashboard = () => {
   const isMobile = useIsMobile();
   const dashboard = useDashboardData();
 
-  const [showSetupWizard, setShowSetupWizard] = useState(false);
   const [showHelpGuide, setShowHelpGuide] = useState(false);
   const [showProfileDialog, setShowProfileDialog] = useState(false);
   const [showJournalEntry, setShowJournalEntry] = useState(false);
@@ -95,24 +93,16 @@ const HomeDashboard = () => {
     try { return localStorage.getItem("dashboard_privacy") === "true"; } catch { return false; }
   });
 
-  // Setup wizard check
-  useEffect(() => {
-    if (!user || !dashboard.profileData) return;
-    const checkSetup = async () => {
-      const { count } = await supabase.from("accounts").select("id", { count: "exact", head: true }).eq("user_id", user.id);
-      if (!count || count === 0 || !dashboard.profileData.setup_completed) setShowSetupWizard(true);
-    };
-    checkSetup();
-  }, [user, dashboard.profileData]);
+  // Setup wizard - now handled by /setup route, no longer needed here
 
   // First-time help guide
   useEffect(() => {
-    if (!user || showSetupWizard || !dashboard.profileData?.setup_completed) return;
+    if (!user || !dashboard.profileData?.setup_completed) return;
     if (!localStorage.getItem("help_guide_shown")) {
       setTimeout(() => setShowHelpGuide(true), 1000);
       localStorage.setItem("help_guide_shown", "true");
     }
-  }, [user, showSetupWizard, dashboard.profileData?.setup_completed]);
+  }, [user, dashboard.profileData?.setup_completed]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -216,24 +206,6 @@ const HomeDashboard = () => {
           <ChequesCalendarWidget cheques={dashboard.upcomingCheques} loading={dashboard.loading} />
 
           {/* (Recent Activity moved to col-4 above) */}
-          {/* Setup Wizard (if needed) */}
-          {showSetupWizard && user && (
-            <div className="col-span-12 bg-card rounded-2xl p-5 shadow-sm border border-border/30">
-              <h3 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
-                  <Clock className="h-4 w-4 text-primary" />
-                </div>
-                خطوات البدء
-              </h3>
-              <SetupWizard userId={user.id} onComplete={() => {
-                setShowSetupWizard(false);
-                if (!localStorage.getItem("help_guide_shown")) {
-                  setTimeout(() => setShowHelpGuide(true), 500);
-                  localStorage.setItem("help_guide_shown", "true");
-                }
-              }} />
-            </div>
-          )}
         </div>
       </div>
 

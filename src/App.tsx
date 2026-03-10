@@ -87,6 +87,7 @@ import ImportDetailPage from "./pages/ImportDetailPage";
 import BillingPage from "./pages/BillingPage";
 import OnboardingPage from "./pages/OnboardingPage";
 import SubscriptionPage from "./pages/SubscriptionPage";
+import SetupPage from "./pages/SetupPage";
 
 const queryClient = new QueryClient();
 
@@ -143,6 +144,7 @@ const App = () => (
               <Route path="/survey/:token" element={<SurveyPage />} />
               <Route path="/loading-demo" element={<LoadingDemoPage />} />
               <Route path="/onboarding" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
+              <Route path="/setup" element={<ProtectedRoute><SetupPage /></ProtectedRoute>} />
               <Route path="/pos" element={<ProtectedRoute><POSPage /></ProtectedRoute>} />
               <Route path="/pos/floor-plan" element={<ProtectedRoute><FloorPlanPage /></ProtectedRoute>} />
               <Route path="/pos/floor-plan/edit" element={<ProtectedRoute><FloorPlanEditorPage /></ProtectedRoute>} />
