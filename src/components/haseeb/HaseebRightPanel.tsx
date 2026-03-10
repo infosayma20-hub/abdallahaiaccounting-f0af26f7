@@ -9,7 +9,7 @@ interface Props {
 
 const fmt = (n: number) => `₪${Math.abs(n).toLocaleString()}`;
 
-const ZidniRightPanel = ({ data, cfoMode }: Props) => {
+const FinixRightPanel = ({ data, cfoMode }: Props) => {
   const [contactTab, setContactTab] = useState<'clients' | 'suppliers'>('clients');
 
   const metrics = [
