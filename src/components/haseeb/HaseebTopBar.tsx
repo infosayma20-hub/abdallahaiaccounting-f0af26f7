@@ -89,11 +89,11 @@ const FinixTopBar = ({ data, cfoMode, onToggleCfo, sessionStart, compact }: Prop
               onClick={onToggleCfo}
               className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
               style={cfoMode ? {
-                background: "linear-gradient(135deg, #C9A84C, #E8D5A3)",
-                color: "#0A2342",
+              background: "linear-gradient(135deg, #E8A020, #F45E0C)",
+                color: "#0D1B2A",
               } : {
-                border: "1px solid #8B9BB4",
-                color: "#8B9BB4",
+                border: "1px solid #8A96A3",
+                color: "#8A96A3",
                 background: "transparent",
               }}
             >
