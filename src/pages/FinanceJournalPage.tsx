@@ -230,11 +230,18 @@ const FinanceJournalPage = () => {
   };
 
   const filtered = useMemo(() => {
-    if (!searchQuery) return vouchers;
-    const q = searchQuery.toLowerCase();
-    return vouchers.filter(v => v.ref_number?.toLowerCase().includes(q) || v.description?.toLowerCase().includes(q));
-  }, [vouchers, searchQuery]);
+    return vouchers.filter(v => {
+      if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        if (!v.ref_number?.toLowerCase().includes(q) && !v.description?.toLowerCase().includes(q)) return false;
+      }
+      if (filterStatus !== "all" && v.status !== filterStatus) return false;
+      return true;
+    });
+  }, [vouchers, searchQuery, filterStatus]);
 
+  const totalAll = vouchers.filter(v => v.status === "posted").reduce((s, v) => s + Number(v.amount || 0), 0);
+  const fmt = (n: number) => `₪${n.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
   // formatAmount defined above
 
   const subtypeLabels: Record<string, string> = { normal: "عادي", opening: "افتتاحي", adjustment: "تسوية", closing: "إقفالي" };
