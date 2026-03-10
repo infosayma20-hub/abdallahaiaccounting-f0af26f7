@@ -1,14 +1,14 @@
 import { useMemo } from "react";
-import type { ZidniFinancialData } from "@/pages/SmartAccountantPage";
+import type { FinixFinancialData } from "@/pages/SmartAccountantPage";
 
 interface Props {
-  data: ZidniFinancialData;
+  data: FinixFinancialData;
   cfoMode: boolean;
 }
 
 const fmt = (n: number) => `₪${Math.abs(n).toLocaleString()}`;
 
-const ZidniLeftPanel = ({ data, cfoMode }: Props) => {
+const FinixLeftPanel = ({ data, cfoMode }: Props) => {
   const score = data.healthScore;
   const scoreLabel = score >= 70 ? "صحي" : score >= 45 ? "متوسط" : "خطر";
   const scoreColor = score >= 70 ? "#16A34A" : score >= 45 ? "#D97706" : "#DC2626";
@@ -138,4 +138,4 @@ const ZidniLeftPanel = ({ data, cfoMode }: Props) => {
   );
 };
 
-export default ZidniLeftPanel;
+export default FinixLeftPanel;

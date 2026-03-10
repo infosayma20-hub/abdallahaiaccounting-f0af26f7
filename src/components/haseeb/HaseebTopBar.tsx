@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
-import type { ZidniFinancialData } from "@/pages/SmartAccountantPage";
+import type { FinixFinancialData } from "@/pages/SmartAccountantPage";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 
 interface Props {
-  data: ZidniFinancialData;
+  data: FinixFinancialData;
   cfoMode: boolean;
   onToggleCfo: () => void;
   sessionStart: number;
@@ -15,7 +15,7 @@ const fmt = (n: number) => {
   return `₪${n.toLocaleString()}`;
 };
 
-const ZidniTopBar = ({ data, cfoMode, onToggleCfo, sessionStart, compact }: Props) => {
+const FinixTopBar = ({ data, cfoMode, onToggleCfo, sessionStart, compact }: Props) => {
   const [elapsed, setElapsed] = useState("00:00:00");
 
   useEffect(() => {
@@ -46,27 +46,27 @@ const ZidniTopBar = ({ data, cfoMode, onToggleCfo, sessionStart, compact }: Prop
     <div
       className="h-14 flex items-center justify-between px-4 flex-shrink-0 relative z-10"
       style={{
-        background: "linear-gradient(135deg, #050F1E, #0A2342)",
-        borderBottom: "1px solid rgba(0,180,216,0.2)",
+        background: "linear-gradient(135deg, #08111A, #0D1B2A)",
+        borderBottom: "1px solid rgba(232,160,32,0.2)",
       }}
     >
       {/* Left */}
       <div className="flex items-center gap-3 flex-shrink-0">
-        <span className="text-xl font-bold" style={{ color: "#C9A84C", fontFamily: "Tajawal, sans-serif" }}>H</span>
-        <div className="w-px h-5" style={{ background: "#C9A84C" }} />
+        <span className="text-xl font-bold" style={{ color: "#E8A020", fontFamily: "Montserrat, sans-serif" }}>F</span>
+        <div className="w-px h-5" style={{ background: "#E8A020" }} />
         <span className="text-sm font-bold text-white" style={{ fontFamily: "Tajawal, sans-serif" }}>
           المحاسب الذكي
         </span>
         <span className="relative flex h-2 w-2">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ background: "#00B4D8" }} />
-          <span className="relative inline-flex rounded-full h-2 w-2" style={{ background: "#00B4D8" }} />
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ background: "#E8A020" }} />
+          <span className="relative inline-flex rounded-full h-2 w-2" style={{ background: "#E8A020" }} />
         </span>
       </div>
 
       {/* Center Ticker */}
       {!compact && (
         <div className="flex-1 mx-6 overflow-hidden relative">
-          <div className="zidni-ticker whitespace-nowrap" style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 11, color: "rgba(255,255,255,0.7)" }}>
+          <div className="finix-ticker whitespace-nowrap" style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 11, color: "rgba(255,255,255,0.7)" }}>
             <span>{tickerText}&nbsp;&nbsp;•&nbsp;&nbsp;{tickerText}</span>
           </div>
         </div>
@@ -80,7 +80,7 @@ const ZidniTopBar = ({ data, cfoMode, onToggleCfo, sessionStart, compact }: Prop
         >
           الصحة المالية: {data.healthScore}/100
         </div>
-        <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 11, color: "#00B4D8" }}>
+        <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 11, color: "#E8A020" }}>
           ⏱ {elapsed}
         </span>
         <Tooltip>
@@ -89,11 +89,11 @@ const ZidniTopBar = ({ data, cfoMode, onToggleCfo, sessionStart, compact }: Prop
               onClick={onToggleCfo}
               className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
               style={cfoMode ? {
-                background: "linear-gradient(135deg, #C9A84C, #E8D5A3)",
-                color: "#0A2342",
+              background: "linear-gradient(135deg, #E8A020, #F45E0C)",
+                color: "#0D1B2A",
               } : {
-                border: "1px solid #8B9BB4",
-                color: "#8B9BB4",
+                border: "1px solid #8A96A3",
+                color: "#8A96A3",
                 background: "transparent",
               }}
             >
@@ -107,4 +107,4 @@ const ZidniTopBar = ({ data, cfoMode, onToggleCfo, sessionStart, compact }: Prop
   );
 };
 
-export default ZidniTopBar;
+export default FinixTopBar;

@@ -7,7 +7,7 @@ import TransactionToast, { useTransactionToast } from "@/components/TransactionT
 import ChequeDetailsDialog, { ChequeLineItem } from "@/components/ChequeDetailsDialog";
 import JournalEntryPopup from "@/components/JournalEntryPopup";
 
-export interface ZidniFinancialData {
+export interface FinixFinancialData {
   cash: number;
   bank: number;
   salesToday: number;
@@ -29,7 +29,7 @@ const SmartAccountantPage = () => {
   const { user } = useAuth();
 
   const [cfoMode, setCfoMode] = useState(false);
-  const [financialData, setFinancialData] = useState<ZidniFinancialData>({
+  const [financialData, setFinancialData] = useState<FinixFinancialData>({
     cash: 0, bank: 0, salesToday: 0, receivables: 0, payables: 0,
     totalSales: 0, totalExpenses: 0, netProfit: 0, inventoryValue: 0,
     pendingCheques: 0, transactionCount: 0, healthScore: 72,
@@ -152,7 +152,7 @@ const SmartAccountantPage = () => {
 
   // Single-column clean layout for both mobile and desktop
   return (
-    <div className="zidni-clean-screen" dir="rtl">
+    <div className="finix-clean-screen" dir="rtl">
       <Suspense fallback={
         <div className="h-screen bg-[#F8FAFC] flex items-center justify-center">
           <div className="w-8 h-8 border-2 border-t-transparent border-[#0A2342] rounded-full animate-spin" />

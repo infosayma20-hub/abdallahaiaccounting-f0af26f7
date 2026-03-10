@@ -232,7 +232,7 @@ const MobileInputDock = ({ onSend, sending, quickChips, userId }: Props) => {
   // RECORDING STATE
   if (state === "recording") {
     return (
-      <div className="zidni-dock zidni-dock-recording">
+      <div className="finix-dock finix-dock-recording">
         {/* Waveform */}
         <div className="flex items-center justify-center gap-[2px] h-14 w-full px-4">
           {audioLevels.map((level, i) => (
@@ -241,7 +241,7 @@ const MobileInputDock = ({ onSend, sending, quickChips, userId }: Props) => {
               className="w-[3px] rounded-full transition-all duration-75"
               style={{
                 height: `${level}px`,
-                background: `linear-gradient(to top, hsl(var(--zidni-teal-dark)), hsl(var(--accent)), hsl(var(--zidni-gold)))`,
+                background: `linear-gradient(to top, hsl(var(--finix-navy-dark)), hsl(var(--accent)), hsl(var(--finix-gold)))`,
                 opacity: 0.8 + (level / 48) * 0.2,
               }}
             />
@@ -256,7 +256,7 @@ const MobileInputDock = ({ onSend, sending, quickChips, userId }: Props) => {
           </button>
 
           <div className="flex items-center gap-2">
-            <span className="zidni-rec-dot" />
+            <span className="finix-rec-dot" />
             <span className="text-[13px] text-white/80">جاري التسجيل...</span>
           </div>
 
@@ -274,8 +274,8 @@ const MobileInputDock = ({ onSend, sending, quickChips, userId }: Props) => {
   // PROCESSING STATE
   if (state === "processing") {
     return (
-      <div className="zidni-dock">
-        <div className="zidni-shimmer-bar" />
+      <div className="finix-dock">
+        <div className="finix-shimmer-bar" />
         <div className="flex items-center justify-center gap-2 py-4">
           <div className="w-5 h-5 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: "hsl(var(--accent))", borderTopColor: "transparent" }} />
           <span className="text-[13px] text-muted-foreground">🤖 يحلل كلامك...</span>
@@ -286,7 +286,7 @@ const MobileInputDock = ({ onSend, sending, quickChips, userId }: Props) => {
 
   // IDLE STATE (default)
   return (
-    <div className="zidni-dock">
+    <div className="finix-dock">
       {/* Quick chips strip */}
       <div className="flex gap-2 overflow-x-auto no-scrollbar px-3.5 pt-3 pb-2">
         {quickChips.map(chip => (
@@ -346,7 +346,7 @@ const MobileInputDock = ({ onSend, sending, quickChips, userId }: Props) => {
                 onClick={handleTextSend}
                 disabled={sending}
                 className="w-14 h-14 rounded-full flex items-center justify-center flex-shrink-0 active:scale-95 transition-all disabled:opacity-40"
-                style={{ background: "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--zidni-teal-dark)))", boxShadow: "0 4px 14px rgba(10,35,66,0.4)" }}
+                style={{ background: "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--finix-navy-dark)))", boxShadow: "0 4px 14px rgba(13,27,42,0.4)" }}
               >
                 <Send className="h-5 w-5 text-white" style={{ transform: "scaleX(-1)" }} />
               </button>
@@ -359,7 +359,7 @@ const MobileInputDock = ({ onSend, sending, quickChips, userId }: Props) => {
               <button
                 onTouchStart={startVoiceInput}
                 onMouseDown={startVoiceInput}
-                className="zidni-mic-btn"
+                className="finix-mic-btn"
                 aria-label="تسجيل صوتي"
               >
                 <Mic className="h-6 w-6 text-white" />

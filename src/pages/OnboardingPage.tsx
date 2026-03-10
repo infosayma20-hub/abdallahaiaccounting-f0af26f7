@@ -47,9 +47,9 @@ const goalChips = [
 ];
 
 const appTourCards = [
-  { emoji: "🤖", name: "المحاسب الذكي", desc: "محاسب شخصي بالذكاء الاصطناعي يفهم العربية ويساعدك في القيود والتحليلات", features: ["إدخال معاملات بالصوت والنص", "تحليل مالي فوري", "نصائح مخصصة لعملك"], gradient: "from-[#0A2342] to-[#006D8F]" },
-  { emoji: "📊", name: "لوحة المعلومات", desc: "نظرة شاملة على وضعك المالي بلمحة واحدة", features: ["مؤشرات أداء لحظية", "رسوم بيانية تفاعلية", "تنبيهات ذكية"], gradient: "from-[#006D8F] to-[#00B4D8]" },
-  { emoji: "🛍️", name: "المبيعات ونقطة البيع", desc: "نظام متكامل لإدارة المبيعات ونقاط البيع", features: ["فواتير احترافية", "نقطة بيع POS", "تتبع المدفوعات"], gradient: "from-[#C9A84C] to-[#B8972E]" },
+  { emoji: "🤖", name: "المحاسب الذكي", desc: "محاسب شخصي بالذكاء الاصطناعي يفهم العربية ويساعدك في القيود والتحليلات", features: ["إدخال معاملات بالصوت والنص", "تحليل مالي فوري", "نصائح مخصصة لعملك"], gradient: "from-[#0D1B2A] to-[#1E3A5F]" },
+  { emoji: "📊", name: "لوحة المعلومات", desc: "نظرة شاملة على وضعك المالي بلمحة واحدة", features: ["مؤشرات أداء لحظية", "رسوم بيانية تفاعلية", "تنبيهات ذكية"], gradient: "from-[#1E3A5F] to-[#0D1B2A]" },
+  { emoji: "🛍️", name: "المبيعات ونقطة البيع", desc: "نظام متكامل لإدارة المبيعات ونقاط البيع", features: ["فواتير احترافية", "نقطة بيع POS", "تتبع المدفوعات"], gradient: "from-[#E8A020] to-[#C9870A]" },
   { emoji: "📈", name: "التقارير المالية", desc: "أكثر من 63 تقرير مالي وإداري", features: ["قائمة الدخل والميزانية", "تقارير الشيكات والأعمار", "تصدير Excel و PDF"], gradient: "from-emerald-600 to-emerald-500" },
   { emoji: "📦", name: "المخزون", desc: "إدارة كاملة للمنتجات والحركات", features: ["تتبع الكميات لحظياً", "تنبيهات نفاد المخزون", "تقييم المخزون"], gradient: "from-teal-600 to-teal-500" },
   { emoji: "👥", name: "الموارد البشرية", desc: "إدارة شاملة للموظفين والحضور", features: ["حضور بـ QR", "كشف رواتب آلي", "إدارة الإجازات"], gradient: "from-violet-600 to-violet-500" },
@@ -134,7 +134,7 @@ const OnboardingPage = () => {
 
   const finishOnboarding = async () => {
     await saveProgress({ onboarding_completed: true }, 6);
-    toast.success("أهلاً بك في زِدني! 🎉");
+    toast.success("أهلاً بك في FINIX! 🎉");
     navigate("/apps");
   };
 
@@ -148,7 +148,7 @@ const OnboardingPage = () => {
           <div className="h-1 bg-gray-200 rounded-full overflow-hidden">
             <motion.div
               className="h-full rounded-full"
-              style={{ background: "linear-gradient(90deg, #0A2342, #00B4D8)" }}
+              style={{ background: "linear-gradient(90deg, #0D1B2A, #E8A020)" }}
               animate={{ width: `${progress}%` }}
               transition={{ duration: 0.4 }}
             />
@@ -168,7 +168,7 @@ const OnboardingPage = () => {
             {step === 1 && (
               <div className="text-center">
                 <div className="text-5xl mb-4">👋</div>
-                <h2 className="text-[28px] font-extrabold text-[#0A2342] mb-3">أهلاً وسهلاً في زِدني!</h2>
+                <h2 className="text-[28px] font-extrabold text-[#0D1B2A] mb-3">أهلاً وسهلاً في FINIX!</h2>
                 <p className="text-sm text-gray-500 max-w-md mx-auto mb-8 leading-relaxed">
                   لنبدأ بالتعرف على عملك لكي يقدم لك المحاسب الذكي تحليلات مخصصة لك تماماً
                 </p>
@@ -344,7 +344,7 @@ const OnboardingPage = () => {
                   ))}
                 </div>
 
-                <p className="text-sm font-bold text-[#0A2342] mb-3">من أين سمعت عن زِدني؟</p>
+                <p className="text-sm font-bold text-[#0D1B2A] mb-3">من أين سمعت عن FINIX؟</p>
                 <div className="flex flex-wrap gap-2 mb-6">
                   {referralSources.map((r) => (
                     <button
@@ -359,7 +359,7 @@ const OnboardingPage = () => {
                   ))}
                 </div>
 
-                <p className="text-sm font-bold text-[#0A2342] mb-3">ما أهم شيء تريد إنجازه بزِدني؟</p>
+                <p className="text-sm font-bold text-[#0D1B2A] mb-3">ما أهم شيء تريد إنجازه بـ FINIX؟</p>
                 <div className="flex flex-wrap gap-2">
                   {goalChips.map((g) => {
                     const selected = goals.includes(g);
@@ -368,7 +368,7 @@ const OnboardingPage = () => {
                         key={g}
                         onClick={() => setGoals(selected ? goals.filter(x => x !== g) : [...goals, g])}
                         className={`px-4 py-2 rounded-full text-sm transition-all ${
-                          selected ? "bg-[#00B4D8] text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                          selected ? "bg-[#E8A020] text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                         }`}
                       >
                         {selected && "✓ "}{g}
@@ -382,7 +382,7 @@ const OnboardingPage = () => {
             {/* Step 6: App Tour */}
             {step === 6 && (
               <div className="text-center">
-                <h2 className="text-xl font-bold text-[#0A2342] mb-6">إليك ما ينتظرك في زِدني!</h2>
+                <h2 className="text-xl font-bold text-[#0D1B2A] mb-6">إليك ما ينتظرك في FINIX!</h2>
 
                 <div className="relative overflow-hidden rounded-2xl mb-6">
                   <AnimatePresence mode="wait">
@@ -407,7 +407,7 @@ const OnboardingPage = () => {
                       <motion.div
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        className="bg-gradient-to-br from-[#C9A84C] to-[#B8972E] p-8 rounded-2xl text-white min-h-[260px] flex flex-col items-center justify-center"
+                        className="bg-gradient-to-br from-[#E8A020] to-[#C9870A] p-8 rounded-2xl text-white min-h-[260px] flex flex-col items-center justify-center"
                       >
                         <div className="text-5xl mb-3">🎉</div>
                         <h3 className="text-2xl font-bold mb-2">أنت جاهز الآن!</h3>
@@ -416,7 +416,7 @@ const OnboardingPage = () => {
                           onClick={finishOnboarding}
                           className="bg-white text-[#0A2342] px-8 py-3 rounded-xl font-bold text-sm hover:scale-105 transition-transform"
                         >
-                          ادخل إلى زِدني ←
+                          ادخل إلى FINIX ←
                         </button>
                       </motion.div>
                     )}
@@ -469,7 +469,7 @@ const OnboardingPage = () => {
             ) : <div />}
             <button
               onClick={nextStep}
-              className="flex items-center gap-2 bg-gradient-to-r from-[#C9A84C] to-[#B8972E] text-white px-8 py-3 rounded-xl text-sm font-bold hover:scale-[1.02] transition-transform"
+              className="flex items-center gap-2 bg-gradient-to-r from-[#E8A020] to-[#F45E0C] text-white px-8 py-3 rounded-xl text-sm font-bold hover:scale-[1.02] transition-transform"
             >
               {step === 1 ? "لنبدأ" : "التالي"}
               <ArrowLeft className="h-4 w-4" />

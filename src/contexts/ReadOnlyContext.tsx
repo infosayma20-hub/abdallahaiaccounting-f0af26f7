@@ -14,14 +14,14 @@ export const useReadOnly = () => useContext(ReadOnlyContext);
 
 export const ReadOnlyProvider = ({ children }: { children: React.ReactNode }) => {
   const [isReadOnly, setReadOnly] = useState(() => {
-    return localStorage.getItem("zidni_readonly_mode") === "true";
+    return localStorage.getItem("finix_readonly_mode") === "true";
   });
 
   useEffect(() => {
     if (isReadOnly) {
-      localStorage.setItem("zidni_readonly_mode", "true");
+      localStorage.setItem("finix_readonly_mode", "true");
     } else {
-      localStorage.removeItem("zidni_readonly_mode");
+      localStorage.removeItem("finix_readonly_mode");
     }
   }, [isReadOnly]);
 

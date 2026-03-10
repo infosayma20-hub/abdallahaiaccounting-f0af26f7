@@ -8,7 +8,7 @@ import CleanInputDock from "./CleanInputDock";
 import FinancialSummarySheet from "./FinancialSummarySheet";
 import NotificationsSheet from "./NotificationsSheet";
 import ChatHistorySidebar from "./ChatHistorySidebar";
-import type { ZidniFinancialData } from "@/pages/SmartAccountantPage";
+import type { FinixFinancialData } from "@/pages/SmartAccountantPage";
 import { AIMessageRenderer } from "@/components/AIMessageRenderer";
 import type { User } from "@supabase/supabase-js";
 
@@ -24,7 +24,7 @@ type Message = {
 interface Props {
   user: User | null;
   userName: string;
-  data: ZidniFinancialData;
+  data: FinixFinancialData;
   cfoMode: boolean;
   onToggleCfo: () => void;
   onCheque: (data: any) => void;

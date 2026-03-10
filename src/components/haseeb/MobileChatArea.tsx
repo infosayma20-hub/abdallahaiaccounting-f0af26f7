@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getAuthHeadersJson } from "@/lib/edge-helpers";
 import { useToast } from "@/hooks/use-toast";
 import MobileInputDock from "./MobileInputDock";
-import type { ZidniFinancialData } from "@/pages/SmartAccountantPage";
+import type { FinixFinancialData } from "@/pages/SmartAccountantPage";
 import type { User } from "@supabase/supabase-js";
 import { Loader2, Check, X, Pencil } from "lucide-react";
 import { AIMessageRenderer } from "@/components/AIMessageRenderer";
@@ -21,7 +21,7 @@ type Message = {
 interface Props {
   user: User | null;
   userName: string;
-  data: ZidniFinancialData;
+  data: FinixFinancialData;
   cfoMode: boolean;
   onCheque: (data: any) => void;
   onJournal: (data: any, accounts?: any[]) => void;
@@ -203,12 +203,12 @@ const MobileChatArea = ({ user, userName, data, cfoMode, onCheque, onJournal, on
       <div
         ref={scrollRef}
         onScroll={handleScroll}
-        className="zidni-chat-scroll"
+        className="finix-chat-scroll"
       >
         {isWelcome ? (
           <div className="px-3.5 py-3 space-y-3">
             {/* Welcome Card */}
-            <div className="bg-white rounded-[20px] p-5 shadow-sm" style={{ borderTop: "3px solid hsl(var(--zidni-gold))" }}>
+            <div className="bg-white rounded-[20px] p-5 shadow-sm" style={{ borderTop: "3px solid hsl(var(--finix-gold))" }}>
               <div className="flex items-center gap-3 mb-3">
                 <div
                   className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-base flex-shrink-0"
@@ -249,7 +249,7 @@ const MobileChatArea = ({ user, userName, data, cfoMode, onCheque, onJournal, on
             {/* CFO Briefing */}
             {cfoMode && (
               <div className="rounded-2xl p-4" style={{ background: "linear-gradient(135deg, hsl(var(--primary)), hsl(213 78% 10%))" }}>
-                <p className="text-[13px] font-bold mb-3" style={{ color: "hsl(var(--zidni-gold))" }}>📋 ملخص اليوم — المدير المالي</p>
+                <p className="text-[13px] font-bold mb-3" style={{ color: "hsl(var(--finix-gold))" }}>📋 ملخص اليوم — المدير المالي</p>
                 <div className="grid grid-cols-2 gap-2.5">
                   {[
                     { label: "الإيرادات", value: data.totalSales, color: "hsl(var(--success))" },
@@ -264,7 +264,7 @@ const MobileChatArea = ({ user, userName, data, cfoMode, onCheque, onJournal, on
                   ))}
                 </div>
                 <div className="mt-3 rounded-xl p-2.5" style={{ background: "rgba(201,168,76,0.15)", border: "1px solid rgba(201,168,76,0.3)" }}>
-                  <p className="text-xs" style={{ color: "hsl(var(--zidni-gold))" }}>
+                  <p className="text-xs" style={{ color: "hsl(var(--finix-gold))" }}>
                     💡 {data.receivables > 0 ? `ذمم مستحقة ${fmt(data.receivables)} — تابع التحصيل` : "أداء مالي ممتاز!"}
                   </p>
                 </div>
@@ -360,7 +360,7 @@ const MobileChatArea = ({ user, userName, data, cfoMode, onCheque, onJournal, on
                     msg.role === "user" ? "rounded-bl-sm" : "rounded-br-sm"
                   }`}
                   style={msg.role === "user" ? {
-                    background: "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--zidni-teal-dark)))",
+                    background: "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--finix-navy-dark)))",
                     color: "white",
                     fontFamily: "Tajawal, sans-serif",
                   } : msg.type === "success" ? {
@@ -382,7 +382,7 @@ const MobileChatArea = ({ user, userName, data, cfoMode, onCheque, onJournal, on
                   </p>
                 </div>
                 {msg.role === "assistant" && (
-                  <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0 mr-2 self-end" style={{ background: "linear-gradient(135deg, hsl(var(--zidni-gold)), hsl(var(--zidni-gold-light)))" }}>
+                  <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0 mr-2 self-end" style={{ background: "linear-gradient(135deg, hsl(var(--finix-gold)), hsl(var(--finix-gold-light)))" }}>
                     ✦
                   </div>
                 )}

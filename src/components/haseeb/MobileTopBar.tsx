@@ -9,7 +9,7 @@ interface Props {
 
 const MobileTopBar = ({ healthScore, onBack, onShowRadar }: Props) => {
   return (
-    <div className="zidni-mobile-topbar">
+    <div className="finix-mobile-topbar">
       <div className="flex items-center gap-2">
         <Tooltip>
           <TooltipTrigger asChild>
@@ -26,7 +26,7 @@ const MobileTopBar = ({ healthScore, onBack, onShowRadar }: Props) => {
         <span className="text-[15px] font-bold text-white" style={{ fontFamily: "Tajawal, sans-serif" }}>
           المحاسب الذكي
         </span>
-        <span className="zidni-breathe-dot" />
+        <span className="finix-breathe-dot" />
       </div>
 
       <div className="flex items-center gap-2">
@@ -37,10 +37,10 @@ const MobileTopBar = ({ healthScore, onBack, onShowRadar }: Props) => {
               className="flex items-center gap-1 px-2.5 py-1 rounded-full"
               style={{
                 background: "rgba(201,168,76,0.2)",
-                border: "1px solid hsl(var(--zidni-gold))",
+                border: "1px solid hsl(var(--finix-gold))",
               }}
             >
-              <span className="text-xs font-bold" style={{ fontFamily: "JetBrains Mono, monospace", color: "hsl(var(--zidni-gold))" }}>
+              <span className="text-xs font-bold" style={{ fontFamily: "JetBrains Mono, monospace", color: "hsl(var(--finix-gold))" }}>
                 {healthScore}
               </span>
               <span>💎</span>

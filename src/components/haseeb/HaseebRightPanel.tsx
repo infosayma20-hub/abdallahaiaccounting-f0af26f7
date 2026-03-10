@@ -1,15 +1,15 @@
 import { useState } from "react";
-import type { ZidniFinancialData } from "@/pages/SmartAccountantPage";
+import type { FinixFinancialData } from "@/pages/SmartAccountantPage";
 import MiniSparkline from "@/components/MiniSparkline";
 
 interface Props {
-  data: ZidniFinancialData;
+  data: FinixFinancialData;
   cfoMode: boolean;
 }
 
 const fmt = (n: number) => `₪${Math.abs(n).toLocaleString()}`;
 
-const ZidniRightPanel = ({ data, cfoMode }: Props) => {
+const FinixRightPanel = ({ data, cfoMode }: Props) => {
   const [contactTab, setContactTab] = useState<'clients' | 'suppliers'>('clients');
 
   const metrics = [
@@ -157,4 +157,4 @@ const ZidniRightPanel = ({ data, cfoMode }: Props) => {
   );
 };
 
-export default ZidniRightPanel;
+export default FinixRightPanel;

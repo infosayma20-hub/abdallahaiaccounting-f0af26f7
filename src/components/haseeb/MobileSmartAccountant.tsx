@@ -11,7 +11,7 @@ import MobileKPIStrip from "./MobileKPIStrip";
 import MobileChatArea from "./MobileChatArea";
 import MobileInputDock from "./MobileInputDock";
 import MobileRadarSheet from "./MobileRadarSheet";
-import type { ZidniFinancialData } from "@/pages/SmartAccountantPage";
+import type { FinixFinancialData } from "@/pages/SmartAccountantPage";
 
 const MobileSmartAccountant = () => {
   const navigate = useNavigate();
@@ -19,7 +19,7 @@ const MobileSmartAccountant = () => {
   const txToast = useTransactionToast();
   const { user } = useAuth();
 
-  const [financialData, setFinancialData] = useState<ZidniFinancialData>({
+  const [financialData, setFinancialData] = useState<FinixFinancialData>({
     cash: 0, bank: 0, salesToday: 0, receivables: 0, payables: 0,
     totalSales: 0, totalExpenses: 0, netProfit: 0, inventoryValue: 0,
     pendingCheques: 0, transactionCount: 0, healthScore: 72,
@@ -140,7 +140,7 @@ const MobileSmartAccountant = () => {
   };
 
   return (
-    <div className="zidni-mobile-screen" dir="rtl">
+    <div className="finix-mobile-screen" dir="rtl">
       <MobileTopBar
         healthScore={financialData.healthScore}
         onBack={() => navigate('/dashboard')}
