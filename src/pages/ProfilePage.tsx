@@ -352,6 +352,9 @@ const ProfilePage = () => {
         </div>
       </div>
 
+      {/* Brand Identity Settings */}
+      <BrandIdentitySettings />
+
       {/* Form Fields */}
       <Card className="border-0 shadow-sm">
         <CardContent className="p-4 space-y-4">

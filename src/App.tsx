@@ -288,6 +288,7 @@ const App = () => (
                 </ProtectedRoute>
               } />
             </Routes>
+            </CompanyThemeProvider>
             </CompanyProvider>
             </ReadOnlyProvider>
           </AuthProvider>
