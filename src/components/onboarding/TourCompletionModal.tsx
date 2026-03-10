@@ -13,7 +13,7 @@ const TourCompletionModal = ({ open, onClose }: TourCompletionModalProps) => {
 
   const suggestions = [
     { icon: Settings, label: "إعداد الشركة", path: "/settings", color: "text-muted-foreground" },
-    { icon: Brain, label: "المحاسب الذكي", path: "/", color: "text-primary" },
+    { icon: Brain, label: "المحاسب الذكي", path: "/smart-accountant", color: "text-primary" },
     { icon: FileSpreadsheet, label: "استيراد بيانات", path: "/opening-balances-import", color: "text-cyan-500" },
   ];
 
