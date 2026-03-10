@@ -16,7 +16,6 @@ import RecentActivityWidget from "@/components/dashboard/RecentActivityWidget";
 import ChequesCalendarWidget from "@/components/dashboard/ChequesCalendarWidget";
 import InventoryPulseWidget from "@/components/dashboard/InventoryPulseWidget";
 import ExchangeRatesWidget from "@/components/dashboard/ExchangeRatesWidget";
-import SetupWizard from "@/components/SetupWizard";
 import CompleteProfileDialog from "@/components/CompleteProfileDialog";
 import HelpGuideModal from "@/components/HelpGuideModal";
 import JournalEntryPopup from "@/components/JournalEntryPopup";
