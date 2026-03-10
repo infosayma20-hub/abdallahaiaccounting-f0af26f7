@@ -161,6 +161,12 @@ const HomeDashboard = () => {
             onRefresh={dashboard.refresh}
             onCustomize={() => {}}
             loading={dashboard.loading}
+            privacyMode={privacyMode}
+            onTogglePrivacy={() => {
+              const next = !privacyMode;
+              setPrivacyMode(next);
+              localStorage.setItem("dashboard_privacy", String(next));
+            }}
           />
 
           {/* W2: KPI Row */}
