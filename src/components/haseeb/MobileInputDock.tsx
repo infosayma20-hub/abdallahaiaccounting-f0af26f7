@@ -286,7 +286,7 @@ const MobileInputDock = ({ onSend, sending, quickChips, userId }: Props) => {
 
   // IDLE STATE (default)
   return (
-    <div className="zidni-dock">
+    <div className="finix-dock">
       {/* Quick chips strip */}
       <div className="flex gap-2 overflow-x-auto no-scrollbar px-3.5 pt-3 pb-2">
         {quickChips.map(chip => (
