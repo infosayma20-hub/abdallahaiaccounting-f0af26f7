@@ -63,6 +63,11 @@ const VoucherDrawer = ({ open, onClose, voucherType, onSaved }: VoucherDrawerPro
   const [formNotes, setFormNotes] = useState("");
   const [saving, setSaving] = useState(false);
   const [contactSearch, setContactSearch] = useState("");
+  const [showQuickAdd, setShowQuickAdd] = useState(false);
+  const [quickName, setQuickName] = useState("");
+  const [quickType, setQuickType] = useState<string>(isReceipt ? "customer" : "supplier");
+  const [quickPhone, setQuickPhone] = useState("");
+  const [quickSaving, setQuickSaving] = useState(false);
 
   // Multi-cheque
   const [cheques, setCheques] = useState<ChequeRow[]>([
