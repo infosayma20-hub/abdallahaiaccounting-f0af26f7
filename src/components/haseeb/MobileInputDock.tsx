@@ -274,8 +274,8 @@ const MobileInputDock = ({ onSend, sending, quickChips, userId }: Props) => {
   // PROCESSING STATE
   if (state === "processing") {
     return (
-      <div className="zidni-dock">
-        <div className="zidni-shimmer-bar" />
+      <div className="finix-dock">
+        <div className="finix-shimmer-bar" />
         <div className="flex items-center justify-center gap-2 py-4">
           <div className="w-5 h-5 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: "hsl(var(--accent))", borderTopColor: "transparent" }} />
           <span className="text-[13px] text-muted-foreground">🤖 يحلل كلامك...</span>
