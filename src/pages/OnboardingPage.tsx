@@ -407,7 +407,7 @@ const OnboardingPage = () => {
                       <motion.div
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        className="bg-gradient-to-br from-[#C9A84C] to-[#B8972E] p-8 rounded-2xl text-white min-h-[260px] flex flex-col items-center justify-center"
+                        className="bg-gradient-to-br from-[#E8A020] to-[#C9870A] p-8 rounded-2xl text-white min-h-[260px] flex flex-col items-center justify-center"
                       >
                         <div className="text-5xl mb-3">🎉</div>
                         <h3 className="text-2xl font-bold mb-2">أنت جاهز الآن!</h3>
