@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getAuthHeadersJson } from "@/lib/edge-helpers";
 import { useToast } from "@/hooks/use-toast";
 import MobileInputDock from "./MobileInputDock";
-import type { ZidniFinancialData } from "@/pages/SmartAccountantPage";
+import type { FinixFinancialData } from "@/pages/SmartAccountantPage";
 import type { User } from "@supabase/supabase-js";
 import { Loader2, Check, X, Pencil } from "lucide-react";
 import { AIMessageRenderer } from "@/components/AIMessageRenderer";
