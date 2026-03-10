@@ -38,6 +38,7 @@ const FinanceJournalPage = () => {
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [filterStatus, setFilterStatus] = useState("all");
   const [saving, setSaving] = useState(false);
 
   // Form
