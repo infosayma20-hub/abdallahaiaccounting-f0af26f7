@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { ArrowRight, Camera, User, Mail, Building2, MapPin, Globe, Briefcase, Save, Loader2, LogOut, Trash2, Check } from "lucide-react";
 import BrandIdentitySettings from "@/components/settings/BrandIdentitySettings";
+import { useCompanyTheme } from "@/hooks/useCompanyTheme";
+import { extractColorsFromLogo, assignColorRoles, ensureAccessibility } from "@/lib/color-utils";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
