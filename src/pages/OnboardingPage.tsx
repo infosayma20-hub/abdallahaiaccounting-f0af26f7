@@ -382,7 +382,7 @@ const OnboardingPage = () => {
             {/* Step 6: App Tour */}
             {step === 6 && (
               <div className="text-center">
-                <h2 className="text-xl font-bold text-[#0A2342] mb-6">إليك ما ينتظرك في زِدني!</h2>
+                <h2 className="text-xl font-bold text-[#0D1B2A] mb-6">إليك ما ينتظرك في FINIX!</h2>
 
                 <div className="relative overflow-hidden rounded-2xl mb-6">
                   <AnimatePresence mode="wait">
