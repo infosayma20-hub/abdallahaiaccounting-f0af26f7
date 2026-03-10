@@ -232,7 +232,7 @@ const MobileInputDock = ({ onSend, sending, quickChips, userId }: Props) => {
   // RECORDING STATE
   if (state === "recording") {
     return (
-      <div className="zidni-dock zidni-dock-recording">
+      <div className="finix-dock finix-dock-recording">
         {/* Waveform */}
         <div className="flex items-center justify-center gap-[2px] h-14 w-full px-4">
           {audioLevels.map((level, i) => (
