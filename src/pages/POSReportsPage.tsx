@@ -21,6 +21,7 @@ import {
   RotateCcw,
   Timer,
   ArrowRight,
+  UserCheck,
 } from "lucide-react";
 import POSSalesReport from "@/components/pos-reports/POSSalesReport";
 import POSProductsReport from "@/components/pos-reports/POSProductsReport";
