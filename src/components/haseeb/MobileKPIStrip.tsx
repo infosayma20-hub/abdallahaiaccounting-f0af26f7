@@ -1,7 +1,7 @@
-import type { ZidniFinancialData } from "@/pages/SmartAccountantPage";
+import type { FinixFinancialData } from "@/pages/SmartAccountantPage";
 
 interface Props {
-  data: ZidniFinancialData;
+  data: FinixFinancialData;
 }
 
 const fmt = (n: number) => {
