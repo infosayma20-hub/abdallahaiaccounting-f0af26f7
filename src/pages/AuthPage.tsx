@@ -216,9 +216,9 @@ const AuthPage = () => {
       <div className="flex-1 flex items-center justify-center px-4 bg-background" dir="rtl">
         <div className="w-full max-w-sm space-y-6">
           {/* Mobile logo */}
-          <div className="text-center space-y-3 lg:hidden">
-            <div className="flex items-center justify-center gap-2" dir="ltr">
-              <svg width={36} height={36} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <div className="text-center space-y-2 lg:hidden">
+            <div className="flex flex-col items-center gap-1" dir="ltr">
+              <svg width={40} height={40} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <rect x="8" y="20" width="8" height="36" rx="2" fill="hsl(var(--foreground))" />
                 <rect x="8" y="20" width="28" height="8" rx="2" fill="hsl(var(--foreground))" />
                 <rect x="8" y="34" width="20" height="7" rx="2" fill="hsl(var(--foreground))" />
@@ -238,11 +238,31 @@ const AuthPage = () => {
             </div>
           </div>
 
-          <div className="lg:block hidden text-center mb-4">
+          {/* Desktop header with stacked logo */}
+          <div className="lg:flex hidden flex-col items-center gap-3 mb-4">
+            <div className="flex flex-col items-center gap-1" dir="ltr">
+              <svg width={44} height={44} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="8" y="20" width="8" height="36" rx="2" fill="hsl(var(--foreground))" />
+                <rect x="8" y="20" width="28" height="8" rx="2" fill="hsl(var(--foreground))" />
+                <rect x="8" y="34" width="20" height="7" rx="2" fill="hsl(var(--foreground))" />
+                <path d="M36 20 C36 14, 40 6, 48 2 C44 10, 43 16, 36 20Z" fill="url(#form-wing)" />
+                <path d="M36 18 C38 12, 44 4, 54 1 C48 10, 44 15, 36 18Z" fill="url(#form-wing)" opacity="0.85" />
+                <path d="M36 16 C40 10, 48 3, 58 2 C52 10, 46 14, 36 16Z" fill="url(#form-wing)" opacity="0.65" />
+                <defs>
+                  <linearGradient id="form-wing" x1="0%" y1="100%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="#E8A020" />
+                    <stop offset="100%" stopColor="#F45E0C" />
+                  </linearGradient>
+                </defs>
+              </svg>
+              <span style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 800, fontSize: 24, color: "hsl(var(--foreground))", letterSpacing: "0.04em", lineHeight: 1 }}>
+                FINIX
+              </span>
+            </div>
             <h2 className="text-2xl font-bold text-foreground" style={{ fontFamily: "Tajawal" }}>
-              مرحباً بك في FINIX
+              مرحباً بك
             </h2>
-            <p className="text-sm text-muted-foreground mt-1">
+            <p className="text-sm text-muted-foreground">
               {mode === "login" ? "سجل دخولك للمتابعة" : mode === "signup" ? "أنشئ حسابك المجاني" : "أدخل بريدك الإلكتروني وسنرسل لك رابط الاستعادة"}
             </p>
           </div>
