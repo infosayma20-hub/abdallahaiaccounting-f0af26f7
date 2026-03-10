@@ -205,7 +205,7 @@ export default function ModifierManagerPage() {
     <div className="h-screen flex flex-col bg-background" dir="rtl">
       {/* Header */}
       <header className="h-14 bg-card border-b border-border flex items-center px-4 gap-3 shrink-0">
-        <button onClick={() => window.history.length > 2 ? navigate(-1) : navigate("/pos")} className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-muted transition-colors">
+        <button onClick={() => navigate("/apps", { replace: true })} className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-muted transition-colors">
           <ArrowRight className="h-4 w-4" />
         </button>
         <SlidersHorizontal className="h-5 w-5 text-primary" />

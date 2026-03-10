@@ -1804,7 +1804,7 @@ const POSPage = () => {
       <header className="flex items-center px-3 gap-2 shrink-0 text-white" style={{ height: 56, background: "#0A2342" }}>
         {/* Back */}
         <button
-          onClick={() => navigate("/apps")}
+          onClick={() => navigate("/apps", { replace: true })}
           className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-white/10 transition-colors"
         >
           <ArrowRight className="h-4 w-4" />
