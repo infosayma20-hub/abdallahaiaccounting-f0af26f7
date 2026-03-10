@@ -1756,7 +1756,7 @@ const POSPage = () => {
     orderCounter.current = 1;
     toast.success("تم إغلاق الوردية بنجاح");
     if (isAdmin) {
-      navigate("/apps");
+      navigate("/apps", { replace: true });
     } else {
       setShowLogoutConfirm(true);
     }
@@ -1804,7 +1804,7 @@ const POSPage = () => {
       <header className="flex items-center px-3 gap-2 shrink-0 text-white" style={{ height: 56, background: "#0A2342" }}>
         {/* Back */}
         <button
-          onClick={() => navigate("/apps")}
+          onClick={() => navigate("/apps", { replace: true })}
           className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-white/10 transition-colors"
         >
           <ArrowRight className="h-4 w-4" />
@@ -2830,7 +2830,7 @@ const POSPage = () => {
       {/* ══════ MODALS ══════ */}
 
       {/* Open Shift Dialog */}
-      <Dialog open={showOpenShift} onOpenChange={(v) => { if (!v && !session) navigate("/apps"); setShowOpenShift(v); }}>
+      <Dialog open={showOpenShift} onOpenChange={(v) => { if (!v && !session) navigate("/apps", { replace: true }); setShowOpenShift(v); }}>
         <DialogContent className="sm:max-w-md" dir="rtl">
           <DialogHeader>
             <DialogTitle className="text-xl">فتح وردية جديدة</DialogTitle>
