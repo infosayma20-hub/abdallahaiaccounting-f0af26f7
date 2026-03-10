@@ -239,6 +239,7 @@ const POSReportsPage = () => {
               />
             )}
             {activeTab === "shifts" && <POSShiftsReport sessions={data.sessions} onRefresh={data.refetch} />}
+            {activeTab === "customers" && data.dataOwnerId && <POSCustomersReport dataOwnerId={data.dataOwnerId} />}
           </div>
         )}
       </div>
