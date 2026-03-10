@@ -333,9 +333,116 @@ const FinanceJournalPage = () => {
                 <Input type="date" value={formDate} onChange={e => setFormDate(e.target.value)} className="mt-1" />
               </div>
               <div>
-                <Label className="text-xs">المرجع</Label>
-                <Input value={formRefNumber} onChange={e => setFormRefNumber(e.target.value)} placeholder="تلقائي" className="mt-1 font-mono" />
+                <Label className="text-xs">رقم السند</Label>
+                <Input value={formRefNumber} readOnly className="mt-1 font-mono bg-muted/50 cursor-default" />
               </div>
+            </div>
+
+            {/* Contact */}
+            <div>
+              <Label className="text-xs">جهة الاتصال (اختياري)</Label>
+              <Select value={formContactId} onValueChange={setFormContactId}>
+                <SelectTrigger className="mt-1 h-10"><SelectValue placeholder="اختر جهة الاتصال..." /></SelectTrigger>
+                <SelectContent className="max-h-[300px]">
+                  <div className="px-2 py-1.5 sticky top-0 bg-background z-10">
+                    <div className="relative">
+                      <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                      <input
+                        className="w-full h-8 pr-8 pl-2 text-sm border rounded-md bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+                        placeholder="بحث..."
+                        value={contactSearch}
+                        onChange={e => setContactSearch(e.target.value)}
+                        onClick={e => e.stopPropagation()}
+                      />
+                    </div>
+                  </div>
+                  {filteredContacts.filter(c => c.contact_type === "customer").length > 0 && (
+                    <SelectGroup>
+                      <SelectLabel className="flex items-center gap-1.5 text-xs"><User className="h-3 w-3" /> العملاء</SelectLabel>
+                      {filteredContacts.filter(c => c.contact_type === "customer").map(c => (
+                        <SelectItem key={c.id} value={c.id}>
+                          <span className="flex items-center gap-2">
+                            <span>{c.contact_name}</span>
+                            <span className={`text-[10px] font-mono ${Number(c.current_balance || 0) > 0 ? "text-emerald-600" : Number(c.current_balance || 0) < 0 ? "text-red-600" : "text-muted-foreground"}`}>
+                              ₪{formatAmount(Math.abs(Number(c.current_balance || 0)))}
+                            </span>
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  )}
+                  {filteredContacts.filter(c => c.contact_type === "supplier").length > 0 && (
+                    <SelectGroup>
+                      <SelectLabel className="flex items-center gap-1.5 text-xs"><Building2 className="h-3 w-3" /> الموردين</SelectLabel>
+                      {filteredContacts.filter(c => c.contact_type === "supplier").map(c => (
+                        <SelectItem key={c.id} value={c.id}>
+                          <span className="flex items-center gap-2">
+                            <span>{c.contact_name}</span>
+                            <span className={`text-[10px] font-mono ${Number(c.current_balance || 0) > 0 ? "text-emerald-600" : Number(c.current_balance || 0) < 0 ? "text-red-600" : "text-muted-foreground"}`}>
+                              ₪{formatAmount(Math.abs(Number(c.current_balance || 0)))}
+                            </span>
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  )}
+                  {filteredContacts.filter(c => c.contact_type === "employee").length > 0 && (
+                    <SelectGroup>
+                      <SelectLabel className="flex items-center gap-1.5 text-xs"><Users className="h-3 w-3" /> موظفون</SelectLabel>
+                      {filteredContacts.filter(c => c.contact_type === "employee").map(c => (
+                        <SelectItem key={c.id} value={c.id}>{c.contact_name}</SelectItem>
+                      ))}
+                    </SelectGroup>
+                  )}
+                </SelectContent>
+              </Select>
+
+              {/* Quick Add Contact */}
+              {!showQuickAdd ? (
+                <button
+                  onClick={() => { setShowQuickAdd(true); setQuickName(""); setQuickPhone(""); setQuickType("customer"); }}
+                  className="mt-2 text-xs flex items-center gap-1 text-primary hover:underline"
+                >
+                  <Plus className="h-3 w-3" /> إضافة جهة اتصال جديدة
+                </button>
+              ) : (
+                <div className="mt-2.5 rounded-xl border p-4 space-y-3 bg-muted/30">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold">إضافة جهة اتصال سريعة</span>
+                    <button onClick={() => setShowQuickAdd(false)} className="text-muted-foreground hover:text-foreground"><X className="h-3.5 w-3.5" /></button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-xs">الاسم *</Label>
+                      <Input value={quickName} onChange={e => setQuickName(e.target.value)} placeholder="اسم جهة الاتصال" className="mt-1 h-9" />
+                    </div>
+                    <div>
+                      <Label className="text-xs">النوع *</Label>
+                      <Select value={quickType} onValueChange={setQuickType}>
+                        <SelectTrigger className="mt-1 h-9"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="customer">عميل</SelectItem>
+                          <SelectItem value="supplier">مورد</SelectItem>
+                          <SelectItem value="other">أخرى</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-xs">رقم الهاتف</Label>
+                    <Input value={quickPhone} onChange={e => setQuickPhone(e.target.value)} placeholder="اختياري" className="mt-1 h-9" />
+                  </div>
+                  <Button
+                    size="sm"
+                    className="w-full gap-1.5"
+                    disabled={!quickName.trim() || quickSaving}
+                    onClick={handleQuickAddContact}
+                  >
+                    {quickSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+                    حفظ واختيار
+                  </Button>
+                </div>
+              )}
             </div>
 
             {/* Description */}
