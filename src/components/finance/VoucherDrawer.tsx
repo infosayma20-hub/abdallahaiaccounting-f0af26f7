@@ -432,6 +432,7 @@ const VoucherDrawer = ({ open, onClose, voucherType, onSaved }: VoucherDrawerPro
                 )}
               </SelectContent>
             </Select>
+
             {selectedContact && (
               <div className="flex items-center gap-2 mt-1.5">
                 <Badge variant="secondary" className="text-[10px]">
@@ -441,6 +442,71 @@ const VoucherDrawer = ({ open, onClose, voucherType, onSaved }: VoucherDrawerPro
                   الرصيد: ₪{formatAmount(Math.abs(Number(selectedContact.current_balance || 0)))}
                   {Number(selectedContact.current_balance || 0) >= 0 ? " (لنا)" : " (علينا)"}
                 </Badge>
+              </div>
+            )}
+
+            {/* Quick Add Contact */}
+            {!showQuickAdd ? (
+              <button
+                onClick={() => { setShowQuickAdd(true); setQuickName(""); setQuickPhone(""); setQuickType(isReceipt ? "customer" : "supplier"); }}
+                className="mt-2 text-xs flex items-center gap-1 text-primary hover:underline"
+              >
+                <Plus className="h-3 w-3" /> إضافة جهة اتصال جديدة
+              </button>
+            ) : (
+              <div className="mt-2.5 rounded-xl border p-4 space-y-3 bg-muted/30">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold">إضافة جهة اتصال سريعة</span>
+                  <button onClick={() => setShowQuickAdd(false)} className="text-muted-foreground hover:text-foreground"><X className="h-3.5 w-3.5" /></button>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs">الاسم *</Label>
+                    <Input value={quickName} onChange={e => setQuickName(e.target.value)} placeholder="اسم جهة الاتصال" className="mt-1 h-9" />
+                  </div>
+                  <div>
+                    <Label className="text-xs">النوع *</Label>
+                    <Select value={quickType} onValueChange={setQuickType}>
+                      <SelectTrigger className="mt-1 h-9"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="customer">عميل</SelectItem>
+                        <SelectItem value="supplier">مورد</SelectItem>
+                        <SelectItem value="other">أخرى</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-xs">رقم الهاتف</Label>
+                  <Input value={quickPhone} onChange={e => setQuickPhone(e.target.value)} placeholder="اختياري" className="mt-1 h-9" />
+                </div>
+                <Button
+                  size="sm"
+                  className="w-full gap-1.5"
+                  disabled={!quickName.trim() || quickSaving}
+                  onClick={async () => {
+                    if (!user || !quickName.trim()) return;
+                    setQuickSaving(true);
+                    const { data, error } = await supabase.from("contacts").insert({
+                      user_id: user.id,
+                      contact_name: quickName.trim(),
+                      contact_type: quickType,
+                      phone: quickPhone || null,
+                    }).select("id, contact_name, contact_type, current_balance").single();
+                    if (error) {
+                      toast({ title: "خطأ", description: error.message, variant: "destructive" });
+                    } else if (data) {
+                      setContacts(prev => [...prev, data]);
+                      setFormContactId(data.id);
+                      setShowQuickAdd(false);
+                      toast({ title: `✅ تم إضافة ${data.contact_name}` });
+                    }
+                    setQuickSaving(false);
+                  }}
+                >
+                  {quickSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+                  حفظ واختيار
+                </Button>
               </div>
             )}
           </div>
