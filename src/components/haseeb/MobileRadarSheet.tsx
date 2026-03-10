@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { ZidniFinancialData } from "@/pages/SmartAccountantPage";
+import type { FinixFinancialData } from "@/pages/SmartAccountantPage";
 import { X } from "lucide-react";
 
 interface Props {

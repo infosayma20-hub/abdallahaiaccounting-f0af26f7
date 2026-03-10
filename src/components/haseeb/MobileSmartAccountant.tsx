@@ -11,7 +11,7 @@ import MobileKPIStrip from "./MobileKPIStrip";
 import MobileChatArea from "./MobileChatArea";
 import MobileInputDock from "./MobileInputDock";
 import MobileRadarSheet from "./MobileRadarSheet";
-import type { ZidniFinancialData } from "@/pages/SmartAccountantPage";
+import type { FinixFinancialData } from "@/pages/SmartAccountantPage";
 
 const MobileSmartAccountant = () => {
   const navigate = useNavigate();

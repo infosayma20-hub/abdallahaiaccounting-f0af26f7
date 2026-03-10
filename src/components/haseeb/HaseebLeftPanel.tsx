@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import type { ZidniFinancialData } from "@/pages/SmartAccountantPage";
+import type { FinixFinancialData } from "@/pages/SmartAccountantPage";
 
 interface Props {
   data: ZidniFinancialData;

@@ -8,7 +8,7 @@ import CleanInputDock from "./CleanInputDock";
 import FinancialSummarySheet from "./FinancialSummarySheet";
 import NotificationsSheet from "./NotificationsSheet";
 import ChatHistorySidebar from "./ChatHistorySidebar";
-import type { ZidniFinancialData } from "@/pages/SmartAccountantPage";
+import type { FinixFinancialData } from "@/pages/SmartAccountantPage";
 import { AIMessageRenderer } from "@/components/AIMessageRenderer";
 import type { User } from "@supabase/supabase-js";
 

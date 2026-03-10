@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import MentionInput, { MentionItem } from "@/components/MentionInput";
 import { Send, Mic, Loader2, AtSign, Paperclip, MicOff } from "lucide-react";
-import type { ZidniFinancialData } from "@/pages/SmartAccountantPage";
+import type { FinixFinancialData } from "@/pages/SmartAccountantPage";
 import type { User } from "@supabase/supabase-js";
 import { AIMessageRenderer } from "@/components/AIMessageRenderer";
 
