@@ -156,20 +156,11 @@ const AuthPage = () => {
         {/* Content overlay */}
         <div className="relative z-10 flex flex-col items-center justify-center w-full p-12">
           <div className="text-center space-y-8 max-w-sm">
-            {/* Logo — icon + text aligned on same row */}
-            <div className="flex items-center justify-center gap-3" dir="ltr">
-              <img
-                src="/finix-logo-white.svg"
-                alt="FINIX"
-                className="h-10 w-10"
-                onError={(e) => {
-                  // Fallback to inline SVG if image not found
-                  (e.target as HTMLImageElement).style.display = "none";
-                }}
-              />
+            {/* Logo — F wing icon stacked above FINIX text */}
+            <div className="flex flex-col items-center gap-2" dir="ltr">
               <svg
-                width={44}
-                height={44}
+                width={56}
+                height={56}
                 viewBox="0 0 64 64"
                 fill="none"
                 xmlns="http://www.w3.org/2000/svg"
@@ -191,9 +182,9 @@ const AuthPage = () => {
                 style={{
                   fontFamily: "'Montserrat', sans-serif",
                   fontWeight: 800,
-                  fontSize: 28,
+                  fontSize: 32,
                   color: "#FFFFFF",
-                  letterSpacing: "0.03em",
+                  letterSpacing: "0.05em",
                   lineHeight: 1,
                 }}
               >
