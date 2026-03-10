@@ -58,8 +58,8 @@ const FinixTopBar = ({ data, cfoMode, onToggleCfo, sessionStart, compact }: Prop
           المحاسب الذكي
         </span>
         <span className="relative flex h-2 w-2">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ background: "#00B4D8" }} />
-          <span className="relative inline-flex rounded-full h-2 w-2" style={{ background: "#00B4D8" }} />
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ background: "#E8A020" }} />
+          <span className="relative inline-flex rounded-full h-2 w-2" style={{ background: "#E8A020" }} />
         </span>
       </div>
 
