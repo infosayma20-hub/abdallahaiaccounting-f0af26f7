@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { useRoleRedirect } from "@/hooks/useRoleRedirect";
 import { ThemeProvider } from "@/hooks/useTheme";
 import { CompanyProvider } from "@/hooks/useCompanyContext";
+import { CompanyThemeProvider } from "@/hooks/useCompanyTheme";
 import { ReadOnlyProvider } from "@/contexts/ReadOnlyContext";
 import WebLayout from "./components/layout/WebLayout";
 import HomeDashboard from "./pages/HomeDashboard";
@@ -138,6 +139,7 @@ const App = () => (
           <AuthProvider>
             <ReadOnlyProvider>
             <CompanyProvider>
+            <CompanyThemeProvider>
             <Routes>
               <Route path="/auth" element={<AuthRoute><AuthPage /></AuthRoute>} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />
@@ -286,6 +288,7 @@ const App = () => (
                 </ProtectedRoute>
               } />
             </Routes>
+            </CompanyThemeProvider>
             </CompanyProvider>
             </ReadOnlyProvider>
           </AuthProvider>
