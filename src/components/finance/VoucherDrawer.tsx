@@ -338,7 +338,7 @@ const VoucherDrawer = ({ open, onClose, voucherType, onSaved }: VoucherDrawerPro
         dir="rtl"
       >
         {/* Header */}
-        <div className="p-5 text-white shrink-0" style={{ background: isReceipt ? "linear-gradient(135deg, #14532D, #16A34A)" : "linear-gradient(135deg, #7F1D1D, #DC2626)" }}>
+        <div className="p-5 text-white shrink-0 rounded-t-2xl" style={{ background: "var(--gradient-navy)" }}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
