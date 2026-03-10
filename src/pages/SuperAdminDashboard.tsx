@@ -1434,9 +1434,66 @@ export default function SuperAdminDashboard() {
     } catch (e: any) { toast.error(e.message); }
   };
 
+  const [expandedOwners, setExpandedOwners] = useState<Set<string>>(new Set());
+
   const filteredUsers = users.filter((u) =>
     !userSearch || (u.display_name?.toLowerCase().includes(userSearch.toLowerCase()) || u.email?.toLowerCase().includes(userSearch.toLowerCase()))
   );
+
+  // Group users hierarchically: owners (no invited_by or self-registered) and their sub-users
+  const { owners, subUsersMap, standaloneUsers } = useMemo(() => {
+    const ownerSet = new Set<string>();
+    const subMap = new Map<string, UserRecord[]>();
+    const standalone: UserRecord[] = [];
+
+    // First pass: identify all owner user_ids (those who invited others)
+    const inviterIds = new Set(
+      filteredUsers.filter(u => u.invited_by).map(u => u.invited_by!)
+    );
+
+    // Categorize users
+    filteredUsers.forEach(u => {
+      if (u.invited_by && filteredUsers.some(o => o.user_id === u.invited_by)) {
+        // This user was invited by someone in the list → sub-user
+        const existing = subMap.get(u.invited_by!) || [];
+        existing.push(u);
+        subMap.set(u.invited_by!, existing);
+      } else if (inviterIds.has(u.user_id)) {
+        // This user invited others → owner
+        ownerSet.add(u.user_id);
+      } else if (u.company_id) {
+        // Has company_id → check if another user with same company_id and no invited_by exists
+        const potentialOwner = filteredUsers.find(
+          o => o.user_id !== u.user_id && o.company_id === u.company_id && !o.invited_by && inviterIds.has(o.user_id)
+        );
+        if (potentialOwner) {
+          const existing = subMap.get(potentialOwner.user_id) || [];
+          if (!existing.some(e => e.user_id === u.user_id)) {
+            existing.push(u);
+            subMap.set(potentialOwner.user_id, existing);
+          }
+        } else {
+          standalone.push(u);
+        }
+      } else {
+        standalone.push(u);
+      }
+    });
+
+    // Owners are users who have sub-users
+    const ownerUsers = filteredUsers.filter(u => ownerSet.has(u.user_id) || subMap.has(u.user_id));
+    
+    return { owners: ownerUsers, subUsersMap: subMap, standaloneUsers: standalone };
+  }, [filteredUsers]);
+
+  const toggleOwnerExpand = (userId: string) => {
+    setExpandedOwners(prev => {
+      const next = new Set(prev);
+      if (next.has(userId)) next.delete(userId);
+      else next.add(userId);
+      return next;
+    });
+  };
 
   const actionLabel: Record<string, string> = {
     view_dashboard: "عرض لوحة التحكم",
