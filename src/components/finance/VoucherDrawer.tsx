@@ -552,8 +552,7 @@ const VoucherDrawer = ({ open, onClose, voucherType, onSaved }: VoucherDrawerPro
                 <button
                   key={pm.value}
                   onClick={() => setFormPaymentMethod(pm.value)}
-                  className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 text-xs font-medium transition-all ${formPaymentMethod === pm.value ? "bg-muted shadow-sm" : "border-transparent hover:bg-muted/50"}`}
-                  style={formPaymentMethod === pm.value ? { borderColor: accentColor } : { borderColor: "transparent" }}
+                  className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 text-xs font-medium transition-all ${formPaymentMethod === pm.value ? "bg-accent/10 border-accent shadow-sm" : "border-transparent hover:bg-muted/50"}`}
                 >
                   <pm.icon className="h-5 w-5" />
                   <span>{pm.label}</span>
