@@ -282,6 +282,7 @@ const App = () => (
               } />
             </Routes>
             </CompanyProvider>
+            </ReadOnlyProvider>
           </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>
