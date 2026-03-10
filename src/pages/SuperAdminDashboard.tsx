@@ -1,11 +1,11 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import {
   Crown, Users, ShoppingCart, DollarSign, Activity, Shield, Clock,
   Lock, Unlock, Trash2, KeyRound, Eye, RefreshCw, AlertTriangle,
-  ChevronLeft, ChevronRight, Search, X, LogOut, Database, FileText,
+  ChevronLeft, ChevronRight, Search, X, LogOut, Database, FileText, ChevronDown,
   TrendingUp, Wifi, Download, Table2, Play, Pause, Settings, Package,
   Zap, Server, Bell, HardDrive, CreditCard, BarChart3, PieChart, ArrowUpRight, ArrowDownRight, CalendarDays,
 } from "lucide-react";
