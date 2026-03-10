@@ -3,7 +3,7 @@ import type { FinixFinancialData } from "@/pages/SmartAccountantPage";
 import MiniSparkline from "@/components/MiniSparkline";
 
 interface Props {
-  data: ZidniFinancialData;
+  data: FinixFinancialData;
   cfoMode: boolean;
 }
 

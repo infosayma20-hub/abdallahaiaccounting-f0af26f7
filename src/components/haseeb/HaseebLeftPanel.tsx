@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import type { FinixFinancialData } from "@/pages/SmartAccountantPage";
 
 interface Props {
-  data: ZidniFinancialData;
+  data: FinixFinancialData;
   cfoMode: boolean;
 }
 

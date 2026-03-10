@@ -24,7 +24,7 @@ type Message = {
 interface Props {
   user: User | null;
   userName: string;
-  data: ZidniFinancialData;
+  data: FinixFinancialData;
   cfoMode: boolean;
   onToggleCfo: () => void;
   onCheque: (data: any) => void;

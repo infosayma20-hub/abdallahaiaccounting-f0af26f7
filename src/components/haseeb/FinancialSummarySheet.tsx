@@ -5,7 +5,7 @@ import type { FinixFinancialData } from "@/pages/SmartAccountantPage";
 interface Props {
   open: boolean;
   onClose: () => void;
-  data: ZidniFinancialData;
+  data: FinixFinancialData;
 }
 
 const fmt = (n: number) => `₪${Math.abs(n).toLocaleString()}`;
