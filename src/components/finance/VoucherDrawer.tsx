@@ -816,7 +816,7 @@ const VoucherDrawer = ({ open, onClose, voucherType, onSaved }: VoucherDrawerPro
         <div className="shrink-0 bg-background border-t p-4 flex items-center gap-3">
           <Button variant="ghost" onClick={onClose} disabled={saving}>إلغاء</Button>
           <Button variant="outline" onClick={() => handleSave("draft")} disabled={saving}>حفظ كمسودة</Button>
-          <Button className="flex-1" style={{ backgroundColor: accentColor }} onClick={() => handleSave("posted")} disabled={saving}>
+          <Button className="flex-1 bg-accent hover:bg-accent/90 text-accent-foreground" onClick={() => handleSave("posted")} disabled={saving}>
             {saving ? <Loader2 className="h-4 w-4 animate-spin ml-1" /> : null}
             ✓ ترحيل السند
           </Button>
