@@ -166,7 +166,7 @@ const BankAccountsPage = () => {
 
       {/* Add Bank Drawer */}
       <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
-        <SheetContent side="left" className="w-full sm:w-[600px] p-0 overflow-y-auto">
+        <SheetContent side="right" className="w-full sm:w-[600px] p-0 overflow-y-auto">
           <div className="p-4 text-white" style={{ background: "linear-gradient(135deg, #050F1E, #0A2342)" }}>
             <div className="flex items-center gap-3" dir="rtl">
               <Landmark className="h-6 w-6" />
