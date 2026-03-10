@@ -368,7 +368,7 @@ const VoucherDrawer = ({ open, onClose, voucherType, onSaved }: VoucherDrawerPro
             </div>
             <div>
               <Label className="text-[13px] font-semibold" style={{ fontFamily: "Tajawal, sans-serif" }}>رقم السند</Label>
-              <Input value={formRefNumber} onChange={e => setFormRefNumber(e.target.value)} placeholder="تلقائي" className="mt-1.5 h-11 font-mono" />
+              <Input value={formRefNumber} readOnly className="mt-1.5 h-11 font-mono bg-muted/50 cursor-default" />
             </div>
           </div>
 
