@@ -167,7 +167,7 @@ const SmartAccountantPage = () => {
           onCheque={(d: any) => { setPendingChequeData(d); setShowChequeDialog(true); }}
           onJournal={(d: any, a?: any[]) => { setJournalEntryData(d); setJournalEntryAccounts(a || []); setShowJournalEntry(true); }}
           onTransactionSuccess={() => txToast.trigger()}
-          onBack={() => navigate('/dashboard')}
+          onBack={() => window.history.length > 2 ? navigate(-1) : navigate('/apps')}
         />
       </Suspense>
 

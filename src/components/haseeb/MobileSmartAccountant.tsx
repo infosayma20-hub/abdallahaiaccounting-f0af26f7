@@ -143,7 +143,7 @@ const MobileSmartAccountant = () => {
     <div className="finix-mobile-screen" dir="rtl">
       <MobileTopBar
         healthScore={financialData.healthScore}
-        onBack={() => navigate('/dashboard')}
+        onBack={() => window.history.length > 2 ? navigate(-1) : navigate('/apps')}
         onShowRadar={() => setShowRadar(true)}
       />
       <MobileKPIStrip data={financialData} />
