@@ -188,8 +188,8 @@ const CustomerDataModal = ({
                   searchCustomer(e.target.value);
                 }}
                 placeholder="+970 599 000 000"
-                className="h-11 pr-10 font-mono"
-                dir="ltr"
+                className="h-11 pr-10 font-mono text-right"
+                dir="rtl"
               />
             </div>
           </div>
