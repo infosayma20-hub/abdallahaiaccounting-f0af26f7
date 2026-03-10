@@ -46,8 +46,8 @@ const FinixTopBar = ({ data, cfoMode, onToggleCfo, sessionStart, compact }: Prop
     <div
       className="h-14 flex items-center justify-between px-4 flex-shrink-0 relative z-10"
       style={{
-        background: "linear-gradient(135deg, #050F1E, #0A2342)",
-        borderBottom: "1px solid rgba(0,180,216,0.2)",
+        background: "linear-gradient(135deg, #08111A, #0D1B2A)",
+        borderBottom: "1px solid rgba(232,160,32,0.2)",
       }}
     >
       {/* Left */}
