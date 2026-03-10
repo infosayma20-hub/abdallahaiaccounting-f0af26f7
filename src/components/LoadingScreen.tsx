@@ -7,7 +7,7 @@ const LoadingScreen = ({ demo = false }: { demo?: boolean } = {}) => {
   useEffect(() => {
     if (demo) return;
     const t1 = setTimeout(() => setIsExiting(true), 5300);
-    const t2 = setTimeout(() => setGone(true), 5800);
+    const t2 = setTimeout(() => setGone(true), 6100); // longer for smoother exit
     return () => { clearTimeout(t1); clearTimeout(t2); };
   }, [demo]);
 
@@ -18,7 +18,7 @@ const LoadingScreen = ({ demo = false }: { demo?: boolean } = {}) => {
       className="fixed inset-0 z-[9999] flex items-center justify-center overflow-hidden"
       style={{
         background: "radial-gradient(ellipse 70% 50% at 50% 45%, #0D2A4A 0%, #071828 55%, #020C14 100%)",
-        animation: isExiting ? "screen-exit 500ms ease forwards" : undefined,
+        animation: isExiting ? "screen-exit 800ms cubic-bezier(0.4, 0, 0.2, 1) forwards" : undefined,
       }}
     >
       {/* Dot grid */}
@@ -275,8 +275,8 @@ const LoadingScreen = ({ demo = false }: { demo?: boolean } = {}) => {
           100% { width: 100% }
         }
         @keyframes screen-exit {
-          0%   { opacity: 1 }
-          100% { opacity: 0 }
+          0%   { opacity: 1; transform: scale(1); filter: blur(0); }
+          100% { opacity: 0; transform: scale(1.04); filter: blur(6px); }
         }
       `}</style>
     </div>
