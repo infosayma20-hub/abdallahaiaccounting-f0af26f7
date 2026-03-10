@@ -158,12 +158,12 @@ const App = () => (
               <Route path="/pos/modifiers" element={<ProtectedRoute><ModifierManagerPage /></ProtectedRoute>} />
               <Route path="/purchase-point" element={<ProtectedRoute><PurchasePointPage /></ProtectedRoute>} />
               <Route path="/worker/procurement" element={<ProtectedRoute><WorkerProcurementPage /></ProtectedRoute>} />
-              <Route path="/apps" element={<AppsRoute><WebLayout><AppsLauncher /></WebLayout></AppsRoute>} />
               <Route path="/*" element={
                 <ProtectedRoute blockCashier>
                   <WebLayout>
                     <Routes>
                       <Route path="/" element={<SmartRedirect />} />
+                      <Route path="/apps" element={<AppsLauncher />} />
                       <Route path="/dashboard" element={<HomeDashboard />} />
                       <Route path="/smart-accountant" element={<SmartAccountantPage />} />
                       <Route path="/menu" element={<MenuPage />} />
