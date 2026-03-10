@@ -6,6 +6,7 @@ import TopBar from "./TopBar";
 import HelpGuideModal from "../HelpGuideModal";
 import SubscriptionExpiryBanner from "../SubscriptionExpiryBanner";
 import TrialBanner from "../billing/TrialBanner";
+import TrialExpiredGate from "../trial/TrialExpiredGate";
 
 interface WebLayoutProps {
   children: React.ReactNode;
@@ -55,18 +56,20 @@ const WebLayout = ({ children }: WebLayoutProps) => {
 
         {/* Content with smooth page transition */}
         <main className="flex-1 overflow-y-auto p-5 lg:p-8">
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.div
-              key={routeKey}
-              variants={pageVariants}
-              initial="initial"
-              animate="animate"
-              exit="exit"
-              transition={pageTransition}
-            >
-              {children}
-            </motion.div>
-          </AnimatePresence>
+          <TrialExpiredGate>
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={routeKey}
+                variants={pageVariants}
+                initial="initial"
+                animate="animate"
+                exit="exit"
+                transition={pageTransition}
+              >
+                {children}
+              </motion.div>
+            </AnimatePresence>
+          </TrialExpiredGate>
         </main>
       </div>
 
