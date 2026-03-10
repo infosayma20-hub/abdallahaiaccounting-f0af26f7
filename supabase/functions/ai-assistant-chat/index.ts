@@ -374,7 +374,7 @@ serve(async (req) => {
       baseDataSection += ctx.employees.map((e: any) => `  ${e.full_name} - ${e.department || 'عام'}`).join('\n');
     }
 
-    const systemPrompt = `أنت محاسب ذكي محترف اسمك "المحاسب الذكي". تعمل داخل نظام ZIDNI ERP المحاسبي.
+    const systemPrompt = `أنت محاسب ذكي محترف اسمك "المحاسب الذكي". تعمل داخل نظام FINIX ERP المحاسبي.
 
 ## سياق المستخدم
 - اسم المستخدم: ${userName || 'المستخدم'}

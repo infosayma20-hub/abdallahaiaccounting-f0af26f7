@@ -12,22 +12,22 @@ interface ModuleIconProps {
   className?: string;
 }
 
-// ZIDNI Brand color map per module
+// FINIX Brand color map per module
 const moduleColors: Record<string, { accent: string; bg: string }> = {
-  accounting:  { accent: "#00B4D8", bg: "rgba(0,180,216,0.12)" },
-  expenses:    { accent: "#006D8F", bg: "rgba(0,109,143,0.12)" },
-  sales:       { accent: "#C9A84C", bg: "rgba(201,168,76,0.12)" },
-  customers:   { accent: "#00B4D8", bg: "rgba(0,180,216,0.12)" },
-  team:        { accent: "#006D8F", bg: "rgba(0,109,143,0.12)" },
+  accounting:  { accent: "#E8A020", bg: "rgba(232,160,32,0.12)" },
+  expenses:    { accent: "#1E3A5F", bg: "rgba(30,58,95,0.12)" },
+  sales:       { accent: "#E8A020", bg: "rgba(232,160,32,0.12)" },
+  customers:   { accent: "#0D1B2A", bg: "rgba(13,27,42,0.12)" },
+  team:        { accent: "#1E3A5F", bg: "rgba(30,58,95,0.12)" },
   tax:         { accent: "#D97706", bg: "rgba(217,119,6,0.12)" },
-  marketing:   { accent: "#C9A84C", bg: "rgba(201,168,76,0.12)" },
+  marketing:   { accent: "#E8A020", bg: "rgba(232,160,32,0.12)" },
   reports:     { accent: "#DC2626", bg: "rgba(220,38,38,0.12)" },
   inventory:   { accent: "#16A34A", bg: "rgba(22,163,74,0.12)" },
-  ai:          { accent: "#00B4D8", bg: "rgba(0,180,216,0.12)" },
-  cheques:     { accent: "#C9A84C", bg: "rgba(201,168,76,0.12)" },
-  hr:          { accent: "#006D8F", bg: "rgba(0,109,143,0.12)" },
-  home:        { accent: "#00B4D8", bg: "rgba(0,180,216,0.12)" },
-  settings:    { accent: "#8B9BB4", bg: "rgba(139,155,180,0.12)" },
+  ai:          { accent: "#E8A020", bg: "rgba(232,160,32,0.12)" },
+  cheques:     { accent: "#E8A020", bg: "rgba(232,160,32,0.12)" },
+  hr:          { accent: "#1E3A5F", bg: "rgba(30,58,95,0.12)" },
+  home:        { accent: "#0D1B2A", bg: "rgba(13,27,42,0.12)" },
+  settings:    { accent: "#8A96A3", bg: "rgba(138,150,163,0.12)" },
   purchases:   { accent: "#006D8F", bg: "rgba(0,109,143,0.12)" },
   pos:         { accent: "#00B4D8", bg: "rgba(0,180,216,0.12)" },
   finance:     { accent: "#16A34A", bg: "rgba(22,163,74,0.12)" },
