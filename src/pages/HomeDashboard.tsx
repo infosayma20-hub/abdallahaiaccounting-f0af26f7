@@ -95,15 +95,7 @@ const HomeDashboard = () => {
     try { return localStorage.getItem("dashboard_privacy") === "true"; } catch { return false; }
   });
 
-  // Setup wizard check
-  useEffect(() => {
-    if (!user || !dashboard.profileData) return;
-    const checkSetup = async () => {
-      const { count } = await supabase.from("accounts").select("id", { count: "exact", head: true }).eq("user_id", user.id);
-      if (!count || count === 0 || !dashboard.profileData.setup_completed) setShowSetupWizard(true);
-    };
-    checkSetup();
-  }, [user, dashboard.profileData]);
+  // Setup wizard - now handled by /setup route, no longer needed here
 
   // First-time help guide
   useEffect(() => {

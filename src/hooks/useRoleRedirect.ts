@@ -16,6 +16,7 @@ export function useRoleRedirect() {
     }
 
     const resolve = async () => {
+      // Check roles
       const { data } = await supabase
         .from("user_roles")
         .select("role")
@@ -25,17 +26,35 @@ export function useRoleRedirect() {
 
       if (roles.includes("super_admin")) {
         setTargetPath("/super-admin/dashboard");
-      } else if (roles.includes("worker") && roles.length === 1) {
-        // Pure worker — only has worker role, goes to procurement POS
+        setChecking(false);
+        return;
+      }
+      if (roles.includes("worker") && roles.length === 1) {
         setTargetPath("/worker/procurement");
-      } else if (roles.includes("cashier") && !roles.includes("admin")) {
-        // Cashier always goes directly to POS — no apps, no employee portal
+        setChecking(false);
+        return;
+      }
+      if (roles.includes("cashier") && !roles.includes("admin")) {
         setTargetPath("/pos");
-      } else if (roles.includes("employee") && roles.length === 1) {
-        // Pure employee — only has employee role
+        setChecking(false);
+        return;
+      }
+      if (roles.includes("employee") && roles.length === 1) {
         setTargetPath("/employee");
+        setChecking(false);
+        return;
+      }
+
+      // For regular users (admin/accountant/owner), check if setup is completed
+      const { count } = await supabase
+        .from("accounts")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id);
+
+      if (!count || count === 0) {
+        // No accounts = setup not done, redirect to setup wizard
+        setTargetPath("/setup");
       } else {
-        // admin, accountant, or no roles (business owner fallback)
         setTargetPath("/apps");
       }
       setChecking(false);
