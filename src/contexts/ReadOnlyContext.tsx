@@ -14,7 +14,7 @@ export const useReadOnly = () => useContext(ReadOnlyContext);
 
 export const ReadOnlyProvider = ({ children }: { children: React.ReactNode }) => {
   const [isReadOnly, setReadOnly] = useState(() => {
-    return localStorage.getItem("zidni_readonly_mode") === "true";
+    return localStorage.getItem("finix_readonly_mode") === "true";
   });
 
   useEffect(() => {
