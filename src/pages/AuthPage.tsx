@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, lazy, Suspense } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
@@ -9,7 +9,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, ScanFace, Mail, Lock } from "lucide-react";
 import { startAuthentication, browserSupportsWebAuthn } from "@simplewebauthn/browser";
-import { FinixLogo } from "@/components/ui/FinixLogo";
+
+const FinancialCanvas = lazy(() => import("@/components/auth/FinancialCanvas"));
 
 type Mode = "login" | "signup" | "forgot";
 
@@ -141,40 +142,109 @@ const AuthPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex" dir="rtl">
-      {/* Left panel — brand showcase (desktop only) */}
+    <div className="min-h-screen flex flex-row" dir="ltr">
+      {/* LEFT panel — brand showcase with animated canvas (desktop only) */}
       <div
-        className="hidden lg:flex lg:w-[45%] flex-col items-center justify-center p-12 relative"
-        style={{ background: "linear-gradient(160deg, #0D1B2A, #1E3A5F)" }}
+        className="hidden lg:flex lg:w-[48%] relative overflow-hidden"
+        style={{ background: "linear-gradient(135deg, #0a1628 0%, #0d2040 50%, #0a1628 100%)" }}
       >
-        <div className="text-center space-y-8 max-w-sm">
-          <FinixLogo variant="white" size="lg" />
+        {/* Animated canvas background */}
+        <Suspense fallback={null}>
+          <FinancialCanvas />
+        </Suspense>
 
-          <div className="space-y-4 mt-10">
-            {[
-              "✦ محاسبة ذكية بالذكاء الاصطناعي",
-              "✦ تقارير فورية وتحليلات عميقة",
-              "✦ نقطة بيع متكاملة",
-              "✦ إدارة كاملة لأعمالك",
-            ].map((f) => (
-              <p key={f} className="text-sm text-white/70 font-medium" style={{ fontFamily: "Tajawal" }}>
-                {f}
-              </p>
-            ))}
+        {/* Content overlay */}
+        <div className="relative z-10 flex flex-col items-center justify-center w-full p-12">
+          <div className="text-center space-y-8 max-w-sm">
+            {/* Logo — icon + text aligned on same row */}
+            <div className="flex items-center justify-center gap-3" dir="ltr">
+              <img
+                src="/finix-logo-white.svg"
+                alt="FINIX"
+                className="h-10 w-10"
+                onError={(e) => {
+                  // Fallback to inline SVG if image not found
+                  (e.target as HTMLImageElement).style.display = "none";
+                }}
+              />
+              <svg
+                width={44}
+                height={44}
+                viewBox="0 0 64 64"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <rect x="8" y="20" width="8" height="36" rx="2" fill="#FFFFFF" />
+                <rect x="8" y="20" width="28" height="8" rx="2" fill="#FFFFFF" />
+                <rect x="8" y="34" width="20" height="7" rx="2" fill="#FFFFFF" />
+                <path d="M36 20 C36 14, 40 6, 48 2 C44 10, 43 16, 36 20Z" fill="url(#auth-wing)" />
+                <path d="M36 18 C38 12, 44 4, 54 1 C48 10, 44 15, 36 18Z" fill="url(#auth-wing)" opacity="0.85" />
+                <path d="M36 16 C40 10, 48 3, 58 2 C52 10, 46 14, 36 16Z" fill="url(#auth-wing)" opacity="0.65" />
+                <defs>
+                  <linearGradient id="auth-wing" x1="0%" y1="100%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="#E8A020" />
+                    <stop offset="100%" stopColor="#F45E0C" />
+                  </linearGradient>
+                </defs>
+              </svg>
+              <span
+                style={{
+                  fontFamily: "'Montserrat', sans-serif",
+                  fontWeight: 800,
+                  fontSize: 28,
+                  color: "#FFFFFF",
+                  letterSpacing: "0.03em",
+                  lineHeight: 1,
+                }}
+              >
+                FINIX
+              </span>
+            </div>
+
+            <div className="space-y-4 mt-10" dir="rtl">
+              {[
+                "✦ محاسبة ذكية بالذكاء الاصطناعي",
+                "✦ تقارير فورية وتحليلات عميقة",
+                "✦ نقطة بيع متكاملة",
+                "✦ إدارة كاملة لأعمالك",
+              ].map((f) => (
+                <p key={f} className="text-sm text-white/70 font-medium" style={{ fontFamily: "Tajawal" }}>
+                  {f}
+                </p>
+              ))}
+            </div>
+
+            <p className="text-lg font-bold mt-8" style={{ color: "#E8A020", fontFamily: "Tajawal" }}>
+              أعمالك في أبهى صورها
+            </p>
           </div>
-
-          <p className="text-lg font-bold mt-8" style={{ color: "#E8A020", fontFamily: "Tajawal" }}>
-            أعمالك في أبهى صورها
-          </p>
         </div>
       </div>
 
-      {/* Right panel — form */}
-      <div className="flex-1 flex items-center justify-center px-4 bg-white">
+      {/* RIGHT panel — form */}
+      <div className="flex-1 flex items-center justify-center px-4 bg-background" dir="rtl">
         <div className="w-full max-w-sm space-y-6">
           {/* Mobile logo */}
           <div className="text-center space-y-3 lg:hidden">
-            <FinixLogo size="lg" className="justify-center" />
+            <div className="flex items-center justify-center gap-2" dir="ltr">
+              <svg width={36} height={36} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="8" y="20" width="8" height="36" rx="2" fill="hsl(var(--foreground))" />
+                <rect x="8" y="20" width="28" height="8" rx="2" fill="hsl(var(--foreground))" />
+                <rect x="8" y="34" width="20" height="7" rx="2" fill="hsl(var(--foreground))" />
+                <path d="M36 20 C36 14, 40 6, 48 2 C44 10, 43 16, 36 20Z" fill="url(#mob-wing)" />
+                <path d="M36 18 C38 12, 44 4, 54 1 C48 10, 44 15, 36 18Z" fill="url(#mob-wing)" opacity="0.85" />
+                <path d="M36 16 C40 10, 48 3, 58 2 C52 10, 46 14, 36 16Z" fill="url(#mob-wing)" opacity="0.65" />
+                <defs>
+                  <linearGradient id="mob-wing" x1="0%" y1="100%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="#E8A020" />
+                    <stop offset="100%" stopColor="#F45E0C" />
+                  </linearGradient>
+                </defs>
+              </svg>
+              <span style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 800, fontSize: 22, color: "hsl(var(--foreground))", letterSpacing: "0.03em", lineHeight: 1 }}>
+                FINIX
+              </span>
+            </div>
           </div>
 
           <div className="lg:block hidden text-center mb-4">
