@@ -1,5 +1,6 @@
 import { RefreshCw, Settings2, Clock, Eye, EyeOff } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import BackButton from "@/components/BackButton";
 import type { PeriodType } from "@/hooks/useDashboardData";
 
 interface Props {
