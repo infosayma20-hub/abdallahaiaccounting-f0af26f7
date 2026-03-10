@@ -2749,7 +2749,7 @@ const POSPage = () => {
                     onClick={handleSendToKitchen}
                     className="flex-1 h-10 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 border-2 border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400 hover:bg-amber-500/20 transition-all"
                   >
-                    🍳 إرسال للمطبخ
+                    🖨️ إرسال إلى الطابعة
                   </button>
                   <button
                     onClick={handleSaveToTable}
