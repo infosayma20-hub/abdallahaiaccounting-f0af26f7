@@ -535,9 +535,18 @@ const OpeningBalancesImportPage = () => {
   return (
     <div className="space-y-6" dir="rtl">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold">استيراد الأرصدة الافتتاحية</h1>
-        <p className="text-sm text-muted-foreground mt-1">نقل بياناتك من النظام القديم بسهولة</p>
+      <div className="flex items-center gap-3">
+        <button
+          onClick={() => window.history.length > 1 ? window.history.back() : navigate("/apps")}
+          className="p-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+          title="رجوع"
+        >
+          <ArrowRight className="h-5 w-5" />
+        </button>
+        <div>
+          <h1 className="text-2xl font-bold">استيراد الأرصدة الافتتاحية</h1>
+          <p className="text-sm text-muted-foreground mt-1">نقل بياناتك من النظام القديم بسهولة</p>
+        </div>
       </div>
 
       {/* Stepper */}
