@@ -88,6 +88,21 @@ export default function DashboardHeader({ companyName, period, onPeriodChange, l
           </TooltipTrigger>
           <TooltipContent side="bottom"><p>تخصيص لوحة المعلومات</p></TooltipContent>
         </Tooltip>
+
+        {onTogglePrivacy && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={onTogglePrivacy}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted text-muted-foreground hover:bg-accent text-[11px] font-medium transition-all"
+              >
+                {privacyMode ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                {privacyMode ? "إظهار" : "خصوصية"}
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom"><p>{privacyMode ? "إظهار البيانات المالية" : "إخفاء البيانات المالية"}</p></TooltipContent>
+          </Tooltip>
+        )}
       </div>
     </div>
   );

@@ -134,21 +134,8 @@ const HomeDashboard = () => {
     <div className="space-y-0 max-w-[1600px] mx-auto animate-fade-in" dir="rtl">
       {user && <CompleteProfileDialog open={showProfileDialog} onClose={() => setShowProfileDialog(false)} user={user} />}
 
-      {/* Privacy toggle */}
-      <div className="mb-4 flex items-center justify-end">
-        <button
-          onClick={() => {
-            const next = !privacyMode;
-            setPrivacyMode(next);
-            localStorage.setItem("dashboard_privacy", String(next));
-          }}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl hover:bg-secondary transition-colors text-muted-foreground"
-          title={privacyMode ? "إظهار البيانات المالية" : "إخفاء البيانات المالية"}
-        >
-          {privacyMode ? <EyeOff className="h-4 w-4" strokeWidth={1.8} /> : <Eye className="h-4 w-4" strokeWidth={1.8} />}
-          <span className="text-[11px] font-medium hidden sm:inline">{privacyMode ? "إظهار" : "خصوصية"}</span>
-        </button>
-      </div>
+
+
 
       {/* Privacy overlay */}
       <div className="relative">
