@@ -52,8 +52,8 @@ const FinixTopBar = ({ data, cfoMode, onToggleCfo, sessionStart, compact }: Prop
     >
       {/* Left */}
       <div className="flex items-center gap-3 flex-shrink-0">
-        <span className="text-xl font-bold" style={{ color: "#C9A84C", fontFamily: "Tajawal, sans-serif" }}>H</span>
-        <div className="w-px h-5" style={{ background: "#C9A84C" }} />
+        <span className="text-xl font-bold" style={{ color: "#E8A020", fontFamily: "Montserrat, sans-serif" }}>F</span>
+        <div className="w-px h-5" style={{ background: "#E8A020" }} />
         <span className="text-sm font-bold text-white" style={{ fontFamily: "Tajawal, sans-serif" }}>
           المحاسب الذكي
         </span>
