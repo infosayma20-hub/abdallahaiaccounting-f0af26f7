@@ -28,7 +28,7 @@ const FALLBACK_RATES: Record<string, number> = {
   TRY: 0.107,
 };
 
-const CACHE_KEY = "finix_exchange_rates";
+const CACHE_KEY = "finix_exchange_rates_v2";
 const CACHE_MAX_AGE = 30 * 60 * 1000; // 30 min
 
 function getYesterday(): string {
