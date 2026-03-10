@@ -256,7 +256,7 @@ const MobileInputDock = ({ onSend, sending, quickChips, userId }: Props) => {
           </button>
 
           <div className="flex items-center gap-2">
-            <span className="zidni-rec-dot" />
+            <span className="finix-rec-dot" />
             <span className="text-[13px] text-white/80">جاري التسجيل...</span>
           </div>
 
