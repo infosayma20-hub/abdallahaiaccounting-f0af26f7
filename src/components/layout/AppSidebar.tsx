@@ -51,6 +51,14 @@ const navSections: NavSection[] = [
       { label: "إدارة الشيكات", module: "cheques", path: "/finance/cheques" },
       { label: "الحسابات البنكية", module: "accounting", path: "/finance/bank-accounts" },
       {
+        label: "الصناديق",
+        module: "accounting",
+        children: [
+          { label: "إدارة الصناديق", path: "/finance/cash-boxes" },
+          { label: "تحويل بين الصناديق", path: "/finance/cash-boxes/transfer" },
+        ],
+      },
+      {
         label: "الدفاتر",
         module: "accounting",
         children: [
