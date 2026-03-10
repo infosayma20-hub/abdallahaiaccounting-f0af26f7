@@ -241,7 +241,7 @@ const MobileInputDock = ({ onSend, sending, quickChips, userId }: Props) => {
               className="w-[3px] rounded-full transition-all duration-75"
               style={{
                 height: `${level}px`,
-                background: `linear-gradient(to top, hsl(var(--zidni-teal-dark)), hsl(var(--accent)), hsl(var(--zidni-gold)))`,
+                background: `linear-gradient(to top, hsl(var(--finix-navy-dark)), hsl(var(--accent)), hsl(var(--finix-gold)))`,
                 opacity: 0.8 + (level / 48) * 0.2,
               }}
             />
