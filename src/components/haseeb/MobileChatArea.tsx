@@ -208,7 +208,7 @@ const MobileChatArea = ({ user, userName, data, cfoMode, onCheque, onJournal, on
         {isWelcome ? (
           <div className="px-3.5 py-3 space-y-3">
             {/* Welcome Card */}
-            <div className="bg-white rounded-[20px] p-5 shadow-sm" style={{ borderTop: "3px solid hsl(var(--zidni-gold))" }}>
+            <div className="bg-white rounded-[20px] p-5 shadow-sm" style={{ borderTop: "3px solid hsl(var(--finix-gold))" }}>
               <div className="flex items-center gap-3 mb-3">
                 <div
                   className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-base flex-shrink-0"
