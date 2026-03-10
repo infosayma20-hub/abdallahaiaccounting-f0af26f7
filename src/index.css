@@ -333,7 +333,7 @@
     opacity: 0.6;
   }
   .text-account-code {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'Inter', sans-serif;
     color: hsl(var(--finix-gold-dark));
   }
 
