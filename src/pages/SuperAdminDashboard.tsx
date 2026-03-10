@@ -1,11 +1,11 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import {
   Crown, Users, ShoppingCart, DollarSign, Activity, Shield, Clock,
   Lock, Unlock, Trash2, KeyRound, Eye, RefreshCw, AlertTriangle,
-  ChevronLeft, ChevronRight, Search, X, LogOut, Database, FileText,
+  ChevronLeft, ChevronRight, Search, X, LogOut, Database, FileText, ChevronDown,
   TrendingUp, Wifi, Download, Table2, Play, Pause, Settings, Package,
   Zap, Server, Bell, HardDrive, CreditCard, BarChart3, PieChart, ArrowUpRight, ArrowDownRight, CalendarDays,
 } from "lucide-react";
@@ -54,6 +54,8 @@ type UserRecord = {
   created_at: string;
   company_name?: string;
   business_type?: string;
+  invited_by?: string | null;
+  company_id?: string | null;
 };
 
 type LiveEvent = {
@@ -1432,9 +1434,66 @@ export default function SuperAdminDashboard() {
     } catch (e: any) { toast.error(e.message); }
   };
 
+  const [expandedOwners, setExpandedOwners] = useState<Set<string>>(new Set());
+
   const filteredUsers = users.filter((u) =>
     !userSearch || (u.display_name?.toLowerCase().includes(userSearch.toLowerCase()) || u.email?.toLowerCase().includes(userSearch.toLowerCase()))
   );
+
+  // Group users hierarchically: owners (no invited_by or self-registered) and their sub-users
+  const { owners, subUsersMap, standaloneUsers } = useMemo(() => {
+    const ownerSet = new Set<string>();
+    const subMap = new Map<string, UserRecord[]>();
+    const standalone: UserRecord[] = [];
+
+    // First pass: identify all owner user_ids (those who invited others)
+    const inviterIds = new Set(
+      filteredUsers.filter(u => u.invited_by).map(u => u.invited_by!)
+    );
+
+    // Categorize users
+    filteredUsers.forEach(u => {
+      if (u.invited_by && filteredUsers.some(o => o.user_id === u.invited_by)) {
+        // This user was invited by someone in the list → sub-user
+        const existing = subMap.get(u.invited_by!) || [];
+        existing.push(u);
+        subMap.set(u.invited_by!, existing);
+      } else if (inviterIds.has(u.user_id)) {
+        // This user invited others → owner
+        ownerSet.add(u.user_id);
+      } else if (u.company_id) {
+        // Has company_id → check if another user with same company_id and no invited_by exists
+        const potentialOwner = filteredUsers.find(
+          o => o.user_id !== u.user_id && o.company_id === u.company_id && !o.invited_by && inviterIds.has(o.user_id)
+        );
+        if (potentialOwner) {
+          const existing = subMap.get(potentialOwner.user_id) || [];
+          if (!existing.some(e => e.user_id === u.user_id)) {
+            existing.push(u);
+            subMap.set(potentialOwner.user_id, existing);
+          }
+        } else {
+          standalone.push(u);
+        }
+      } else {
+        standalone.push(u);
+      }
+    });
+
+    // Owners are users who have sub-users
+    const ownerUsers = filteredUsers.filter(u => ownerSet.has(u.user_id) || subMap.has(u.user_id));
+    
+    return { owners: ownerUsers, subUsersMap: subMap, standaloneUsers: standalone };
+  }, [filteredUsers]);
+
+  const toggleOwnerExpand = (userId: string) => {
+    setExpandedOwners(prev => {
+      const next = new Set(prev);
+      if (next.has(userId)) next.delete(userId);
+      else next.add(userId);
+      return next;
+    });
+  };
 
   const actionLabel: Record<string, string> = {
     view_dashboard: "عرض لوحة التحكم",
@@ -1578,6 +1637,9 @@ export default function SuperAdminDashboard() {
                   className="pr-10 bg-white/[0.03] border-white/[0.06] text-white placeholder:text-white/20"
                 />
               </div>
+              <Badge className="bg-white/5 text-white/30 border-0 text-xs">
+                {owners.length} شركة · {filteredUsers.length} مستخدم
+              </Badge>
               <Button variant="ghost" size="sm" onClick={loadUsers} disabled={loadingUsers} className="text-white/40">
                 <RefreshCw className={`h-4 w-4 ${loadingUsers ? "animate-spin" : ""}`} />
               </Button>
@@ -1588,6 +1650,7 @@ export default function SuperAdminDashboard() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-white/[0.06]">
+                      <th className="text-right text-white/30 font-medium px-4 py-3 w-8"></th>
                       <th className="text-right text-white/30 font-medium px-4 py-3">المستخدم</th>
                       <th className="text-right text-white/30 font-medium px-4 py-3">الإيميل</th>
                       <th className="text-right text-white/30 font-medium px-4 py-3">الأدوار</th>
@@ -1597,14 +1660,166 @@ export default function SuperAdminDashboard() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/[0.04]">
-                    {filteredUsers.map((u) => (
+                    {/* ── Owner rows with expandable sub-users ── */}
+                    {owners.map((owner) => {
+                      const subs = subUsersMap.get(owner.user_id) || [];
+                      const isExpanded = expandedOwners.has(owner.user_id);
+                      return (
+                        <>
+                          <tr
+                            key={owner.user_id}
+                            className={`hover:bg-white/[0.02] cursor-pointer transition-colors ${isExpanded ? "bg-white/[0.02]" : ""}`}
+                            onClick={() => subs.length > 0 && toggleOwnerExpand(owner.user_id)}
+                          >
+                            <td className="px-3 py-3 text-center">
+                              {subs.length > 0 ? (
+                                <ChevronDown className={`h-4 w-4 text-white/30 transition-transform inline-block ${isExpanded ? "" : "-rotate-90"}`} />
+                              ) : (
+                                <span className="text-white/10 text-xs">—</span>
+                              )}
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-2.5">
+                                <div className="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs"
+                                  style={{ background: "linear-gradient(135deg, #0A2342 0%, #006D8F 100%)", color: "#00B4D8" }}>
+                                  {(owner.display_name || "?")[0]}
+                                </div>
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-white/90 font-semibold">{owner.display_name || "—"}</span>
+                                    {subs.length > 0 && (
+                                      <Badge className="bg-[#00B4D8]/10 text-[#00B4D8] border-0 text-[9px] px-1.5">
+                                        {subs.length} عضو
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  {owner.company_name && (
+                                    <span className="text-[11px] text-white/25">{owner.company_name}</span>
+                                  )}
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 text-white/50 font-mono text-xs">{owner.email || "—"}</td>
+                            <td className="px-4 py-3">
+                              <div className="flex gap-1 flex-wrap">
+                                {owner.roles.map((r) => (
+                                  <Badge key={r} variant="outline" className={`text-[10px] border-white/10 ${r === "super_admin" ? "text-amber-400 border-amber-400/30" : r === "admin" ? "text-blue-400 border-blue-400/30" : "text-white/40"}`}>
+                                    {r}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 text-white/30 text-xs">
+                              {owner.last_sign_in ? format(new Date(owner.last_sign_in), "dd/MM HH:mm", { locale: ar }) : "—"}
+                            </td>
+                            <td className="px-4 py-3">
+                              {owner.is_banned ? (
+                                <Badge className="bg-red-500/10 text-red-400 border-red-500/20 text-[10px]">معلق</Badge>
+                              ) : (
+                                <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-[10px]">نشط</Badge>
+                              )}
+                            </td>
+                            <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                              <div className="flex items-center justify-center gap-1">
+                                {owner.is_banned ? (
+                                  <Button size="icon" variant="ghost" onClick={() => handleUnsuspendUser(owner.user_id, owner.display_name)} className="h-7 w-7 text-emerald-400 hover:bg-emerald-500/10" title="إلغاء التعليق">
+                                    <Unlock className="h-3.5 w-3.5" />
+                                  </Button>
+                                ) : (
+                                  <Button size="icon" variant="ghost" onClick={() => handleSuspendUser(owner.user_id, owner.display_name)} className="h-7 w-7 text-amber-400 hover:bg-amber-500/10" title="تعليق">
+                                    <Lock className="h-3.5 w-3.5" />
+                                  </Button>
+                                )}
+                                <Button size="icon" variant="ghost" onClick={() => handleResetPassword(owner.user_id, owner.display_name)} className="h-7 w-7 text-blue-400 hover:bg-blue-500/10" title="إعادة تعيين كلمة المرور">
+                                  <KeyRound className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button size="icon" variant="ghost" onClick={() => setDeleteDialog({ open: true, userId: owner.user_id, name: owner.display_name })} className="h-7 w-7 text-red-400 hover:bg-red-500/10" title="حذف" disabled={owner.roles.includes("super_admin")}>
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                          {/* Sub-users (expanded) */}
+                          {isExpanded && subs.map((sub) => (
+                            <tr key={sub.user_id} className="bg-white/[0.01] hover:bg-white/[0.03]" style={{ borderRight: "3px solid rgba(0,180,216,0.15)" }}>
+                              <td className="px-3 py-2.5"></td>
+                              <td className="px-4 py-2.5">
+                                <div className="flex items-center gap-2 pr-4">
+                                  <div className="w-1.5 h-1.5 rounded-full bg-white/10 shrink-0" />
+                                  <div className="w-7 h-7 rounded-lg bg-white/[0.04] flex items-center justify-center text-white/30 font-bold text-[10px]">
+                                    {(sub.display_name || "?")[0]}
+                                  </div>
+                                  <span className="text-white/60 text-[13px]">{sub.display_name || "—"}</span>
+                                </div>
+                              </td>
+                              <td className="px-4 py-2.5 text-white/40 font-mono text-[11px]">{sub.email || "—"}</td>
+                              <td className="px-4 py-2.5">
+                                <div className="flex gap-1 flex-wrap">
+                                  {sub.roles.map((r) => (
+                                    <Badge key={r} variant="outline" className={`text-[9px] border-white/10 ${
+                                      r === "cashier" ? "text-purple-400 border-purple-400/20" :
+                                      r === "accountant_senior" ? "text-cyan-400 border-cyan-400/20" :
+                                      r === "employee" ? "text-white/30" :
+                                      r === "admin" ? "text-blue-400 border-blue-400/30" :
+                                      "text-white/30"
+                                    }`}>
+                                      {r}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              </td>
+                              <td className="px-4 py-2.5 text-white/25 text-[11px]">
+                                {sub.last_sign_in ? format(new Date(sub.last_sign_in), "dd/MM HH:mm", { locale: ar }) : "—"}
+                              </td>
+                              <td className="px-4 py-2.5">
+                                {sub.is_banned ? (
+                                  <Badge className="bg-red-500/10 text-red-400 border-red-500/20 text-[9px]">معلق</Badge>
+                                ) : (
+                                  <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-[9px]">نشط</Badge>
+                                )}
+                              </td>
+                              <td className="px-4 py-2.5">
+                                <div className="flex items-center justify-center gap-1">
+                                  {sub.is_banned ? (
+                                    <Button size="icon" variant="ghost" onClick={() => handleUnsuspendUser(sub.user_id, sub.display_name)} className="h-6 w-6 text-emerald-400 hover:bg-emerald-500/10" title="إلغاء التعليق">
+                                      <Unlock className="h-3 w-3" />
+                                    </Button>
+                                  ) : (
+                                    <Button size="icon" variant="ghost" onClick={() => handleSuspendUser(sub.user_id, sub.display_name)} className="h-6 w-6 text-amber-400 hover:bg-amber-500/10" title="تعليق">
+                                      <Lock className="h-3 w-3" />
+                                    </Button>
+                                  )}
+                                  <Button size="icon" variant="ghost" onClick={() => handleResetPassword(sub.user_id, sub.display_name)} className="h-6 w-6 text-blue-400 hover:bg-blue-500/10" title="إعادة تعيين كلمة المرور">
+                                    <KeyRound className="h-3 w-3" />
+                                  </Button>
+                                  <Button size="icon" variant="ghost" onClick={() => setDeleteDialog({ open: true, userId: sub.user_id, name: sub.display_name })} className="h-6 w-6 text-red-400 hover:bg-red-500/10" title="حذف">
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </>
+                      );
+                    })}
+
+                    {/* ── Standalone users (no team) ── */}
+                    {standaloneUsers.map((u) => (
                       <tr key={u.user_id} className="hover:bg-white/[0.02]">
+                        <td className="px-3 py-3 text-center">
+                          <span className="text-white/10 text-xs">—</span>
+                        </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
                             <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-white/40 font-bold text-xs">
                               {(u.display_name || "?")[0]}
                             </div>
-                            <span className="text-white/80 font-medium">{u.display_name || "—"}</span>
+                            <div>
+                              <span className="text-white/80 font-medium">{u.display_name || "—"}</span>
+                              {u.company_name && (
+                                <p className="text-[11px] text-white/20">{u.company_name}</p>
+                              )}
+                            </div>
                           </div>
                         </td>
                         <td className="px-4 py-3 text-white/50 font-mono text-xs">{u.email || "—"}</td>
@@ -1641,20 +1856,16 @@ export default function SuperAdminDashboard() {
                             <Button size="icon" variant="ghost" onClick={() => handleResetPassword(u.user_id, u.display_name)} className="h-7 w-7 text-blue-400 hover:bg-blue-500/10" title="إعادة تعيين كلمة المرور">
                               <KeyRound className="h-3.5 w-3.5" />
                             </Button>
-                            <Button
-                              size="icon" variant="ghost"
-                              onClick={() => setDeleteDialog({ open: true, userId: u.user_id, name: u.display_name })}
-                              className="h-7 w-7 text-red-400 hover:bg-red-500/10" title="حذف"
-                              disabled={u.roles.includes("super_admin")}
-                            >
+                            <Button size="icon" variant="ghost" onClick={() => setDeleteDialog({ open: true, userId: u.user_id, name: u.display_name })} className="h-7 w-7 text-red-400 hover:bg-red-500/10" title="حذف" disabled={u.roles.includes("super_admin")}>
                               <Trash2 className="h-3.5 w-3.5" />
                             </Button>
                           </div>
                         </td>
                       </tr>
                     ))}
+
                     {filteredUsers.length === 0 && (
-                      <tr><td colSpan={6} className="text-center py-8 text-white/20">لا توجد نتائج</td></tr>
+                      <tr><td colSpan={7} className="text-center py-8 text-white/20">لا توجد نتائج</td></tr>
                     )}
                   </tbody>
                 </table>
