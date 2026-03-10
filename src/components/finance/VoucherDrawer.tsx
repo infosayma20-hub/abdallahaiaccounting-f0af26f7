@@ -37,7 +37,6 @@ const VoucherDrawer = ({ open, onClose, voucherType, onSaved }: VoucherDrawerPro
   const { toast } = useToast();
 
   const isReceipt = voucherType === "receipt";
-  const accentColor = isReceipt ? "#16A34A" : "#DC2626";
 
   // Data
   const [contacts, setContacts] = useState<any[]>([]);
@@ -332,14 +331,14 @@ const VoucherDrawer = ({ open, onClose, voucherType, onSaved }: VoucherDrawerPro
         onClick={onClose}
       />
 
-      {/* Drawer */}
+      {/* Centered Modal */}
       <div
-        className="fixed top-0 right-0 z-50 h-screen bg-background shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-right duration-300"
-        style={{ width: "min(680px, 100vw)" }}
+        className="fixed z-50 bg-background shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-300 rounded-2xl"
+        style={{ width: "min(680px, 95vw)", maxHeight: "min(92vh, 900px)", top: "50%", left: "50%", transform: "translate(-50%, -50%)" }}
         dir="rtl"
       >
         {/* Header */}
-        <div className="p-5 text-white shrink-0" style={{ background: isReceipt ? "linear-gradient(135deg, #14532D, #16A34A)" : "linear-gradient(135deg, #7F1D1D, #DC2626)" }}>
+        <div className="p-5 text-white shrink-0 rounded-t-2xl" style={{ background: "var(--gradient-navy)" }}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
@@ -553,8 +552,7 @@ const VoucherDrawer = ({ open, onClose, voucherType, onSaved }: VoucherDrawerPro
                 <button
                   key={pm.value}
                   onClick={() => setFormPaymentMethod(pm.value)}
-                  className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 text-xs font-medium transition-all ${formPaymentMethod === pm.value ? "bg-muted shadow-sm" : "border-transparent hover:bg-muted/50"}`}
-                  style={formPaymentMethod === pm.value ? { borderColor: accentColor } : { borderColor: "transparent" }}
+                  className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 text-xs font-medium transition-all ${formPaymentMethod === pm.value ? "bg-accent/10 border-accent shadow-sm" : "border-transparent hover:bg-muted/50"}`}
                 >
                   <pm.icon className="h-5 w-5" />
                   <span>{pm.label}</span>
@@ -818,7 +816,7 @@ const VoucherDrawer = ({ open, onClose, voucherType, onSaved }: VoucherDrawerPro
         <div className="shrink-0 bg-background border-t p-4 flex items-center gap-3">
           <Button variant="ghost" onClick={onClose} disabled={saving}>إلغاء</Button>
           <Button variant="outline" onClick={() => handleSave("draft")} disabled={saving}>حفظ كمسودة</Button>
-          <Button className="flex-1" style={{ backgroundColor: accentColor }} onClick={() => handleSave("posted")} disabled={saving}>
+          <Button className="flex-1 bg-accent hover:bg-accent/90 text-accent-foreground" onClick={() => handleSave("posted")} disabled={saving}>
             {saving ? <Loader2 className="h-4 w-4 animate-spin ml-1" /> : null}
             ✓ ترحيل السند
           </Button>
