@@ -37,7 +37,6 @@ const VoucherDrawer = ({ open, onClose, voucherType, onSaved }: VoucherDrawerPro
   const { toast } = useToast();
 
   const isReceipt = voucherType === "receipt";
-  const accentColor = isReceipt ? "#16A34A" : "#DC2626";
 
   // Data
   const [contacts, setContacts] = useState<any[]>([]);
