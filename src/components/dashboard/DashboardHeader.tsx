@@ -1,4 +1,4 @@
-import { RefreshCw, Settings2, Clock } from "lucide-react";
+import { RefreshCw, Settings2, Clock, Eye, EyeOff } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import type { PeriodType } from "@/hooks/useDashboardData";
 
@@ -10,6 +10,8 @@ interface Props {
   onRefresh: () => void;
   onCustomize: () => void;
   loading: boolean;
+  privacyMode?: boolean;
+  onTogglePrivacy?: () => void;
 }
 
 const PERIODS: { key: PeriodType; label: string }[] = [
@@ -19,7 +21,7 @@ const PERIODS: { key: PeriodType; label: string }[] = [
   { key: "year", label: "هذه السنة" },
 ];
 
-export default function DashboardHeader({ companyName, period, onPeriodChange, lastUpdated, onRefresh, onCustomize, loading }: Props) {
+export default function DashboardHeader({ companyName, period, onPeriodChange, lastUpdated, onRefresh, onCustomize, loading, privacyMode, onTogglePrivacy }: Props) {
   const minutesAgo = Math.floor((Date.now() - lastUpdated.getTime()) / 60000);
   const timeLabel = minutesAgo < 1 ? "الآن" : `منذ ${minutesAgo} دقيقة`;
 
@@ -86,6 +88,21 @@ export default function DashboardHeader({ companyName, period, onPeriodChange, l
           </TooltipTrigger>
           <TooltipContent side="bottom"><p>تخصيص لوحة المعلومات</p></TooltipContent>
         </Tooltip>
+
+        {onTogglePrivacy && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={onTogglePrivacy}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted text-muted-foreground hover:bg-accent text-[11px] font-medium transition-all"
+              >
+                {privacyMode ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                {privacyMode ? "إظهار" : "خصوصية"}
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom"><p>{privacyMode ? "إظهار البيانات المالية" : "إخفاء البيانات المالية"}</p></TooltipContent>
+          </Tooltip>
+        )}
       </div>
     </div>
   );
