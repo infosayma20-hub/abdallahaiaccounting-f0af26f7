@@ -32,6 +32,7 @@ import POSInventoryReport from "@/components/pos-reports/POSInventoryReport";
 import POSReturnsReport from "@/components/pos-reports/POSReturnsReport";
 import POSProfitReport from "@/components/pos-reports/POSProfitReport";
 import POSShiftsReport from "@/components/pos-reports/POSShiftsReport";
+import POSCustomersReport from "@/components/pos-reports/POSCustomersReport";
 import * as XLSX from "xlsx";
 import { useNavigate } from "react-router-dom";
 
