@@ -37,7 +37,7 @@ const MobileTopBar = ({ healthScore, onBack, onShowRadar }: Props) => {
               className="flex items-center gap-1 px-2.5 py-1 rounded-full"
               style={{
                 background: "rgba(201,168,76,0.2)",
-                border: "1px solid hsl(var(--zidni-gold))",
+                border: "1px solid hsl(var(--finix-gold))",
               }}
             >
               <span className="text-xs font-bold" style={{ fontFamily: "JetBrains Mono, monospace", color: "hsl(var(--zidni-gold))" }}>
