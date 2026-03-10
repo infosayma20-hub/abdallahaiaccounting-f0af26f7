@@ -94,6 +94,8 @@ import FinanceHomePage from "./pages/FinanceHomePage";
 import FinanceVoucherPage from "./pages/FinanceVoucherPage";
 import FinanceJournalPage from "./pages/FinanceJournalPage";
 import BankAccountsPage from "./pages/BankAccountsPage";
+import CashBoxesPage from "./pages/CashBoxesPage";
+import CashTransferPage from "./pages/CashTransferPage";
 
 const queryClient = new QueryClient();
 
