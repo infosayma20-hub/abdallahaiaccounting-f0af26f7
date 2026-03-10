@@ -824,3 +824,14 @@ html {
     opacity: 0;
   }
 }
+
+/* ─── Navigation Loader ─── */
+@keyframes navSpinRing {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes navLoaderFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
