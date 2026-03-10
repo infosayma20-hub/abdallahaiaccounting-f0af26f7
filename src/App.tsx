@@ -131,6 +131,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <AuthProvider>
+            <ReadOnlyProvider>
             <CompanyProvider>
             <Routes>
               <Route path="/auth" element={<AuthRoute><AuthPage /></AuthRoute>} />
