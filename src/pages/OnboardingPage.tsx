@@ -368,7 +368,7 @@ const OnboardingPage = () => {
                         key={g}
                         onClick={() => setGoals(selected ? goals.filter(x => x !== g) : [...goals, g])}
                         className={`px-4 py-2 rounded-full text-sm transition-all ${
-                          selected ? "bg-[#00B4D8] text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                          selected ? "bg-[#E8A020] text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                         }`}
                       >
                         {selected && "✓ "}{g}

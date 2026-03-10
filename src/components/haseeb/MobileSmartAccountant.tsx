@@ -140,7 +140,7 @@ const MobileSmartAccountant = () => {
   };
 
   return (
-    <div className="zidni-mobile-screen" dir="rtl">
+    <div className="finix-mobile-screen" dir="rtl">
       <MobileTopBar
         healthScore={financialData.healthScore}
         onBack={() => navigate('/dashboard')}

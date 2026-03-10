@@ -40,7 +40,7 @@ const MobileRadarSheet = ({ open, onClose, data }: Props) => {
   const spokes = [
     { label: "نسبة التداول", value: Math.min(100, Math.round(((data.cash + data.bank) / Math.max(data.payables, 1)) * 50)), color: "hsl(var(--accent))" },
     { label: "هامش الربح", value: data.totalSales > 0 ? Math.round((data.netProfit / data.totalSales) * 100) : 0, color: "hsl(var(--success))" },
-    { label: "كفاءة التحصيل", value: data.totalSales > 0 ? Math.max(0, 100 - Math.round((data.receivables / data.totalSales) * 100)) : 100, color: "hsl(var(--zidni-gold))" },
+    { label: "كفاءة التحصيل", value: data.totalSales > 0 ? Math.max(0, 100 - Math.round((data.receivables / data.totalSales) * 100)) : 100, color: "hsl(var(--finix-gold))" },
     { label: "تغطية النقدية", value: data.totalExpenses > 0 ? Math.min(100, Math.round(((data.cash + data.bank) / (data.totalExpenses / 12)) * 100)) : 100, color: "hsl(var(--warning))" },
   ];
 

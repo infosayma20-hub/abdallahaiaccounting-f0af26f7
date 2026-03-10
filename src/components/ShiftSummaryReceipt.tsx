@@ -188,7 +188,7 @@ export default function ShiftSummaryReceipt({ open, onOpenChange, data }: ShiftS
             <div style={{ textAlign: "center", fontSize: 9, color: "#94a3b8", lineHeight: 1.8 }}>
               هذا المستند صادر آلياً من النظام
               <br />
-              Powered by Abdallah AI Accounting
+              Powered by FINIX
             </div>
           </div>
 

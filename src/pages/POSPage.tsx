@@ -1806,10 +1806,10 @@ const POSPage = () => {
           <ArrowRight className="h-4 w-4" />
         </button>
 
-        {/* ZIDNI Logo */}
-        <div className="flex items-center gap-2 px-2.5 py-1 rounded-lg" style={{ background: "rgba(0,180,216,0.15)" }}>
-          <span className="text-xs font-bold" style={{ fontFamily: "Barlow, sans-serif", color: "#00B4D8" }}>Z</span>
-          <span className="text-xs font-semibold">{company?.name || "ZIDNI"}</span>
+        {/* FINIX Logo */}
+        <div className="flex items-center gap-2 px-2.5 py-1 rounded-lg" style={{ background: "rgba(232,160,32,0.15)" }}>
+          <span className="text-xs font-bold" style={{ fontFamily: "Montserrat, sans-serif", color: "#E8A020" }}>F</span>
+          <span className="text-xs font-semibold">{company?.name || "FINIX"}</span>
         </div>
 
         {terminal && (

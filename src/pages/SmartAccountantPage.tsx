@@ -152,7 +152,7 @@ const SmartAccountantPage = () => {
 
   // Single-column clean layout for both mobile and desktop
   return (
-    <div className="zidni-clean-screen" dir="rtl">
+    <div className="finix-clean-screen" dir="rtl">
       <Suspense fallback={
         <div className="h-screen bg-[#F8FAFC] flex items-center justify-center">
           <div className="w-8 h-8 border-2 border-t-transparent border-[#0A2342] rounded-full animate-spin" />

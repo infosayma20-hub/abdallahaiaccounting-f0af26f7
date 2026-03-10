@@ -46,7 +46,7 @@ Deno.serve(async (req) => {
       || "https://abdallahaiaccounting.lovable.app";
     
     // Use the published app URL for receipt/survey links
-    const baseUrl = "https://abdallahaiaccounting.lovable.app";
+    const baseUrl = appUrl || "https://abdallahaiaccounting.lovable.app";
     const receiptUrl = `${baseUrl}/receipt/${orderId}`;
     const surveyUrl = surveyToken ? `${baseUrl}/survey/${surveyToken}` : null;
 

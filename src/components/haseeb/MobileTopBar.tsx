@@ -40,7 +40,7 @@ const MobileTopBar = ({ healthScore, onBack, onShowRadar }: Props) => {
                 border: "1px solid hsl(var(--finix-gold))",
               }}
             >
-              <span className="text-xs font-bold" style={{ fontFamily: "JetBrains Mono, monospace", color: "hsl(var(--zidni-gold))" }}>
+              <span className="text-xs font-bold" style={{ fontFamily: "JetBrains Mono, monospace", color: "hsl(var(--finix-gold))" }}>
                 {healthScore}
               </span>
               <span>💎</span>

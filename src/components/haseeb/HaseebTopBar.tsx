@@ -107,4 +107,4 @@ const FinixTopBar = ({ data, cfoMode, onToggleCfo, sessionStart, compact }: Prop
   );
 };
 
-export default ZidniTopBar;
+export default FinixTopBar;

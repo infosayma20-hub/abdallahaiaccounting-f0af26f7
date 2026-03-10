@@ -382,7 +382,7 @@ const MobileChatArea = ({ user, userName, data, cfoMode, onCheque, onJournal, on
                   </p>
                 </div>
                 {msg.role === "assistant" && (
-                  <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0 mr-2 self-end" style={{ background: "linear-gradient(135deg, hsl(var(--zidni-gold)), hsl(var(--zidni-gold-light)))" }}>
+                  <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0 mr-2 self-end" style={{ background: "linear-gradient(135deg, hsl(var(--finix-gold)), hsl(var(--finix-gold-light)))" }}>
                     ✦
                   </div>
                 )}
