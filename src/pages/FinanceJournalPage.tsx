@@ -170,6 +170,7 @@ const FinanceJournalPage = () => {
       subtype: formSubtype,
       ref_number: formRefNumber || "",
       date: formDate,
+      contact_id: formContactId || null,
       amount: totalDebit,
       amount_ils: totalDebit,
       description: formDescription,
