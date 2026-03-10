@@ -90,6 +90,10 @@ import BillingPage from "./pages/BillingPage";
 import OnboardingPage from "./pages/OnboardingPage";
 import SubscriptionPage from "./pages/SubscriptionPage";
 import SetupPage from "./pages/SetupPage";
+import FinanceHomePage from "./pages/FinanceHomePage";
+import FinanceVoucherPage from "./pages/FinanceVoucherPage";
+import FinanceJournalPage from "./pages/FinanceJournalPage";
+import BankAccountsPage from "./pages/BankAccountsPage";
 
 const queryClient = new QueryClient();
 
