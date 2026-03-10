@@ -31,7 +31,7 @@ const navSections: NavSection[] = [
     title: "المحاسبة الأساسية",
     items: [
       { label: "التطبيقات", module: "home", path: "/apps" },
-      { label: "لوحة المعلومات", module: "home", path: "/dashboard" },
+      { label: "لوحة المعلومات", module: "dashboard", path: "/dashboard" },
       { label: "المحاسب الذكي", module: "ai", path: "/smart-accountant" },
       {
         label: "المحاسبة",
