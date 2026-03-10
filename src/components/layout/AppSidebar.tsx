@@ -288,7 +288,7 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
               <FinixLogo variant="icon" size="sm" />
             )}
             <div className="min-w-0">
-              <h1 className="text-[14px] font-bold text-white truncate" style={{ fontFamily: "Tajawal, sans-serif" }}>
+              <h1 className="text-[13px] leading-tight font-bold text-white line-clamp-2" style={{ fontFamily: "Tajawal, sans-serif" }}>
                 {company.name || "FINIX"}
               </h1>
               <p className="text-[10px] text-sidebar-foreground leading-none truncate">
