@@ -80,7 +80,7 @@ const FinixTopBar = ({ data, cfoMode, onToggleCfo, sessionStart, compact }: Prop
         >
           الصحة المالية: {data.healthScore}/100
         </div>
-        <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 11, color: "#00B4D8" }}>
+        <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 11, color: "#E8A020" }}>
           ⏱ {elapsed}
         </span>
         <Tooltip>
