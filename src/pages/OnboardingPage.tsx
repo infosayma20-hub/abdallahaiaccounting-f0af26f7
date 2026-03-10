@@ -148,7 +148,7 @@ const OnboardingPage = () => {
           <div className="h-1 bg-gray-200 rounded-full overflow-hidden">
             <motion.div
               className="h-full rounded-full"
-              style={{ background: "linear-gradient(90deg, #0A2342, #00B4D8)" }}
+              style={{ background: "linear-gradient(90deg, #0D1B2A, #E8A020)" }}
               animate={{ width: `${progress}%` }}
               transition={{ duration: 0.4 }}
             />
