@@ -115,14 +115,6 @@ const ProtectedRoute = ({ children, blockCashier }: { children: React.ReactNode;
   return <>{children}</>;
 };
 
-const AppsRoute = ({ children }: { children: React.ReactNode }) => {
-  const { targetPath, checking, user } = useRoleRedirect();
-  if (checking) return <AuthCheckSpinner />;
-  if (!user) return <Navigate to="/auth" replace />;
-  if (targetPath === "/pos") return <Navigate to="/pos" replace />;
-  return <>{children}</>;
-};
-
 const AuthRoute = ({ children }: { children: React.ReactNode }) => {
   const { targetPath, checking, user } = useRoleRedirect();
   if (checking) return <AuthCheckSpinner />;
