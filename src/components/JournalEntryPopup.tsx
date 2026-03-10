@@ -426,12 +426,18 @@ const JournalEntryPopup = ({ open, onClose, onSuccess, initialData, accounts: pr
     load();
   }, [open, user]);
 
-  // Generate reference
+  // Generate sequential reference from DB
   useEffect(() => {
-    if (open && !reference) {
-      setReference(`QV-${new Date().getFullYear()}-${String(Date.now()).slice(-4)}`);
+    if (open && !reference && user) {
+      (async () => {
+        const { data } = await supabase.from("vouchers").select("ref_number").eq("user_id", user.id).eq("type", "journal").order("created_at", { ascending: false }).limit(1);
+        const lastRef = (data || [])[0]?.ref_number || "";
+        const match = lastRef.match(/(\d+)$/);
+        const nextNum = match ? String(parseInt(match[1]) + 1).padStart(Math.max(match[1].length, 4), "0") : "0001";
+        setReference(`QV-${new Date().getFullYear()}-${nextNum}`);
+      })();
     }
-  }, [open]);
+  }, [open, user]);
 
   // Reset when closed
   useEffect(() => {
@@ -597,12 +603,19 @@ const JournalEntryPopup = ({ open, onClose, onSuccess, initialData, accounts: pr
     onClose();
   };
 
-  const handleSuccessNewEntry = () => {
+  const handleSuccessNewEntry = async () => {
     setShowSuccess(false);
     setLines([emptyLine(), emptyLine()]);
-    setDescription(""); setNotes(""); 
-    setReference(`QV-${new Date().getFullYear()}-${String(Date.now()).slice(-4)}`);
+    setDescription(""); setNotes(""); setReference("");
     setDate(new Date().toISOString().split("T")[0]);
+    // Re-generate sequential ref
+    if (user) {
+      const { data } = await supabase.from("vouchers").select("ref_number").eq("user_id", user.id).eq("type", "journal").order("created_at", { ascending: false }).limit(1);
+      const lastRef = (data || [])[0]?.ref_number || "";
+      const match = lastRef.match(/(\d+)$/);
+      const nextNum = match ? String(parseInt(match[1]) + 1).padStart(Math.max(match[1].length, 4), "0") : "0001";
+      setReference(`QV-${new Date().getFullYear()}-${nextNum}`);
+    }
     onSuccess();
   };
 

@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   ArrowRight, Loader2, Plus, Search, X, Trash2,
-  FileText, BookOpen, Save
+  FileText, BookOpen, Save, User, Building2, Users, Check
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -32,6 +32,7 @@ const FinanceJournalPage = () => {
 
   const [vouchers, setVouchers] = useState<any[]>([]);
   const [accounts, setAccounts] = useState<any[]>([]);
+  const [contacts, setContacts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -43,30 +44,57 @@ const FinanceJournalPage = () => {
   const [formSubtype, setFormSubtype] = useState("normal");
   const [formDescription, setFormDescription] = useState("");
   const [formNotes, setFormNotes] = useState("");
+  const [formContactId, setFormContactId] = useState("");
+  const [contactSearch, setContactSearch] = useState("");
   const [lines, setLines] = useState<JournalLine[]>([
     { id: "1", account_code: "", account_name: "", debit: 0, credit: 0 },
     { id: "2", account_code: "", account_name: "", debit: 0, credit: 0 },
   ]);
 
+  // Quick add contact
+  const [showQuickAdd, setShowQuickAdd] = useState(false);
+  const [quickName, setQuickName] = useState("");
+  const [quickType, setQuickType] = useState("customer");
+  const [quickPhone, setQuickPhone] = useState("");
+  const [quickSaving, setQuickSaving] = useState(false);
+
   const fetchData = useCallback(async () => {
     if (!user) return;
     setLoading(true);
-    const [vRes, aRes] = await Promise.all([
+    const [vRes, aRes, cRes] = await Promise.all([
       supabase.from("vouchers").select("*").eq("user_id", user.id).eq("type", "journal").order("created_at", { ascending: false }),
       supabase.from("accounts").select("account_code, account_name, account_type").eq("user_id", user.id).eq("is_active", true).order("account_code"),
+      supabase.from("contacts").select("id, contact_name, contact_type, current_balance").eq("user_id", user.id),
     ]);
     setVouchers(vRes.data || []);
     setAccounts(aRes.data || []);
+    setContacts(cRes.data || []);
     setLoading(false);
   }, [user]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
   useEffect(() => { if (searchParams.get("new") === "1") setModalOpen(true); }, [searchParams]);
 
+  // Auto-generate ref number when modal opens
+  const generateRefNumber = useCallback(async () => {
+    if (!user) return;
+    const { data } = await supabase.from("vouchers").select("ref_number").eq("user_id", user.id).eq("type", "journal").order("created_at", { ascending: false }).limit(1);
+    const lastRef = (data || [])[0]?.ref_number || "";
+    const match = lastRef.match(/(\d+)$/);
+    const nextNum = match ? String(parseInt(match[1]) + 1).padStart(Math.max(match[1].length, 4), "0") : "0001";
+    setFormRefNumber(`QV-${new Date().getFullYear()}-${nextNum}`);
+  }, [user]);
+
   const totalDebit = lines.reduce((s, l) => s + (Number(l.debit) || 0), 0);
   const totalCredit = lines.reduce((s, l) => s + (Number(l.credit) || 0), 0);
   const isBalanced = Math.abs(totalDebit - totalCredit) < 0.01 && totalDebit > 0;
   const diff = Math.abs(totalDebit - totalCredit);
+
+  const filteredContacts = useMemo(() => {
+    if (!contactSearch) return contacts;
+    const q = contactSearch.toLowerCase();
+    return contacts.filter(c => c.contact_name?.toLowerCase().includes(q));
+  }, [contacts, contactSearch]);
 
   const addLine = () => {
     setLines(prev => [...prev, { id: String(Date.now()), account_code: "", account_name: "", debit: 0, credit: 0 }]);
@@ -94,10 +122,36 @@ const FinanceJournalPage = () => {
     setFormSubtype("normal");
     setFormDescription("");
     setFormNotes("");
+    setFormContactId("");
+    setContactSearch("");
+    setShowQuickAdd(false);
     setLines([
       { id: "1", account_code: "", account_name: "", debit: 0, credit: 0 },
       { id: "2", account_code: "", account_name: "", debit: 0, credit: 0 },
     ]);
+    generateRefNumber();
+  };
+
+  const formatAmount = (n: number) => new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+
+  const handleQuickAddContact = async () => {
+    if (!user || !quickName.trim()) return;
+    setQuickSaving(true);
+    const { data, error } = await supabase.from("contacts").insert({
+      user_id: user.id,
+      contact_name: quickName.trim(),
+      contact_type: quickType,
+      phone: quickPhone || null,
+    }).select("id, contact_name, contact_type, current_balance").single();
+    if (error) {
+      toast({ title: "خطأ", description: error.message, variant: "destructive" });
+    } else if (data) {
+      setContacts(prev => [...prev, data]);
+      setFormContactId(data.id);
+      setShowQuickAdd(false);
+      toast({ title: `✅ تم إضافة ${data.contact_name}` });
+    }
+    setQuickSaving(false);
   };
 
   const handleSave = async (status: "draft" | "posted") => {
@@ -116,6 +170,7 @@ const FinanceJournalPage = () => {
       subtype: formSubtype,
       ref_number: formRefNumber || "",
       date: formDate,
+      contact_id: formContactId || null,
       amount: totalDebit,
       amount_ils: totalDebit,
       description: formDescription,
@@ -177,7 +232,7 @@ const FinanceJournalPage = () => {
     return vouchers.filter(v => v.ref_number?.toLowerCase().includes(q) || v.description?.toLowerCase().includes(q));
   }, [vouchers, searchQuery]);
 
-  const formatAmount = (n: number) => new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+  // formatAmount defined above
 
   const subtypeLabels: Record<string, string> = { normal: "عادي", opening: "افتتاحي", adjustment: "تسوية", closing: "إقفالي" };
 
@@ -279,9 +334,116 @@ const FinanceJournalPage = () => {
                 <Input type="date" value={formDate} onChange={e => setFormDate(e.target.value)} className="mt-1" />
               </div>
               <div>
-                <Label className="text-xs">المرجع</Label>
-                <Input value={formRefNumber} onChange={e => setFormRefNumber(e.target.value)} placeholder="تلقائي" className="mt-1 font-mono" />
+                <Label className="text-xs">رقم السند</Label>
+                <Input value={formRefNumber} readOnly className="mt-1 font-mono bg-muted/50 cursor-default" />
               </div>
+            </div>
+
+            {/* Contact */}
+            <div>
+              <Label className="text-xs">جهة الاتصال (اختياري)</Label>
+              <Select value={formContactId} onValueChange={setFormContactId}>
+                <SelectTrigger className="mt-1 h-10"><SelectValue placeholder="اختر جهة الاتصال..." /></SelectTrigger>
+                <SelectContent className="max-h-[300px]">
+                  <div className="px-2 py-1.5 sticky top-0 bg-background z-10">
+                    <div className="relative">
+                      <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                      <input
+                        className="w-full h-8 pr-8 pl-2 text-sm border rounded-md bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+                        placeholder="بحث..."
+                        value={contactSearch}
+                        onChange={e => setContactSearch(e.target.value)}
+                        onClick={e => e.stopPropagation()}
+                      />
+                    </div>
+                  </div>
+                  {filteredContacts.filter(c => c.contact_type === "customer").length > 0 && (
+                    <SelectGroup>
+                      <SelectLabel className="flex items-center gap-1.5 text-xs"><User className="h-3 w-3" /> العملاء</SelectLabel>
+                      {filteredContacts.filter(c => c.contact_type === "customer").map(c => (
+                        <SelectItem key={c.id} value={c.id}>
+                          <span className="flex items-center gap-2">
+                            <span>{c.contact_name}</span>
+                            <span className={`text-[10px] font-mono ${Number(c.current_balance || 0) > 0 ? "text-emerald-600" : Number(c.current_balance || 0) < 0 ? "text-red-600" : "text-muted-foreground"}`}>
+                              ₪{formatAmount(Math.abs(Number(c.current_balance || 0)))}
+                            </span>
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  )}
+                  {filteredContacts.filter(c => c.contact_type === "supplier").length > 0 && (
+                    <SelectGroup>
+                      <SelectLabel className="flex items-center gap-1.5 text-xs"><Building2 className="h-3 w-3" /> الموردين</SelectLabel>
+                      {filteredContacts.filter(c => c.contact_type === "supplier").map(c => (
+                        <SelectItem key={c.id} value={c.id}>
+                          <span className="flex items-center gap-2">
+                            <span>{c.contact_name}</span>
+                            <span className={`text-[10px] font-mono ${Number(c.current_balance || 0) > 0 ? "text-emerald-600" : Number(c.current_balance || 0) < 0 ? "text-red-600" : "text-muted-foreground"}`}>
+                              ₪{formatAmount(Math.abs(Number(c.current_balance || 0)))}
+                            </span>
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  )}
+                  {filteredContacts.filter(c => c.contact_type === "employee").length > 0 && (
+                    <SelectGroup>
+                      <SelectLabel className="flex items-center gap-1.5 text-xs"><Users className="h-3 w-3" /> موظفون</SelectLabel>
+                      {filteredContacts.filter(c => c.contact_type === "employee").map(c => (
+                        <SelectItem key={c.id} value={c.id}>{c.contact_name}</SelectItem>
+                      ))}
+                    </SelectGroup>
+                  )}
+                </SelectContent>
+              </Select>
+
+              {/* Quick Add Contact */}
+              {!showQuickAdd ? (
+                <button
+                  onClick={() => { setShowQuickAdd(true); setQuickName(""); setQuickPhone(""); setQuickType("customer"); }}
+                  className="mt-2 text-xs flex items-center gap-1 text-primary hover:underline"
+                >
+                  <Plus className="h-3 w-3" /> إضافة جهة اتصال جديدة
+                </button>
+              ) : (
+                <div className="mt-2.5 rounded-xl border p-4 space-y-3 bg-muted/30">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold">إضافة جهة اتصال سريعة</span>
+                    <button onClick={() => setShowQuickAdd(false)} className="text-muted-foreground hover:text-foreground"><X className="h-3.5 w-3.5" /></button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-xs">الاسم *</Label>
+                      <Input value={quickName} onChange={e => setQuickName(e.target.value)} placeholder="اسم جهة الاتصال" className="mt-1 h-9" />
+                    </div>
+                    <div>
+                      <Label className="text-xs">النوع *</Label>
+                      <Select value={quickType} onValueChange={setQuickType}>
+                        <SelectTrigger className="mt-1 h-9"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="customer">عميل</SelectItem>
+                          <SelectItem value="supplier">مورد</SelectItem>
+                          <SelectItem value="other">أخرى</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-xs">رقم الهاتف</Label>
+                    <Input value={quickPhone} onChange={e => setQuickPhone(e.target.value)} placeholder="اختياري" className="mt-1 h-9" />
+                  </div>
+                  <Button
+                    size="sm"
+                    className="w-full gap-1.5"
+                    disabled={!quickName.trim() || quickSaving}
+                    onClick={handleQuickAddContact}
+                  >
+                    {quickSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+                    حفظ واختيار
+                  </Button>
+                </div>
+              )}
             </div>
 
             {/* Description */}
