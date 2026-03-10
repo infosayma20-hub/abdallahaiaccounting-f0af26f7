@@ -88,7 +88,7 @@ const DEFAULT_ACCOUNTS: { code: string; name: string; type: string; parent: stri
   { code: "5300", name: "مصروف إيجار", type: "مصاريف", parent: null },
   { code: "5400", name: "مصروف كهرباء", type: "مصاريف", parent: "5500" },
   { code: "5410", name: "مصروف غاز", type: "مصاريف", parent: "5500" },
-  { code: "5420", name: "مصروف مياه", type: "مصاريف", parent: "5500" },
+  { code: "5500", name: "مصروفات إدارية وعمومية", type: "مصاريف", parent: null },
   { code: "5510", name: "مصاريف الصيانة", type: "مصاريف", parent: "5500" },
   { code: "5520", name: "مصاريف الضيافة", type: "مصاريف", parent: "5500" },
   { code: "5530", name: "مصاريف التنقل والمواصلات", type: "مصاريف", parent: "5500" },
