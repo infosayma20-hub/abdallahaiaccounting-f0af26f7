@@ -33,23 +33,31 @@ const navSections: NavSection[] = [
       { label: "التطبيقات", module: "home", path: "/apps" },
       { label: "لوحة المعلومات", module: "dashboard", path: "/dashboard" },
       { label: "المحاسب الذكي", module: "ai", path: "/smart-accountant" },
+    ],
+  },
+  {
+    title: "المالية والمحاسبة",
+    items: [
+      { label: "المالية", module: "accounting", path: "/finance" },
       {
-        label: "المحاسبة",
+        label: "المستندات المالية",
         module: "accounting",
         children: [
-          { label: "شجرة الحسابات", path: "/accounts" },
-          { label: "تقرير الحركات المحاسبية", path: "/transactions" },
-          { label: "ميزان المراجعة", path: "/trial-balance" },
-          { label: "كشف حساب", path: "/account-statement" },
+          { label: "سند القبض", path: "/finance/receipts" },
+          { label: "سند الصرف", path: "/finance/payments" },
+          { label: "سند القيد", path: "/finance/journals" },
         ],
       },
+      { label: "إدارة الشيكات", module: "cheques", path: "/finance/cheques" },
+      { label: "الحسابات البنكية", module: "accounting", path: "/finance/bank-accounts" },
       {
-        label: "الشيكات",
-        module: "cheques",
+        label: "الدفاتر",
+        module: "accounting",
         children: [
-          { label: "شيكات واردة", path: "/cheques?type=incoming" },
-          { label: "شيكات صادرة", path: "/cheques?type=outgoing" },
-          { label: "حالات الشيكات", path: "/cheques" },
+          { label: "دفتر اليومية", path: "/transactions" },
+          { label: "شجرة الحسابات", path: "/accounts" },
+          { label: "ميزان المراجعة", path: "/trial-balance" },
+          { label: "كشف حساب", path: "/account-statement" },
         ],
       },
     ],
@@ -64,7 +72,6 @@ const navSections: NavSection[] = [
           { label: "العملاء", path: "/contacts?type=customer" },
           { label: "سياسات التصنيف", path: "/contacts/policies" },
           { label: "الفواتير", path: "/invoices" },
-          { label: "سندات القبض", path: "/receipts" },
           { label: "الطلبيات", path: "/orders" },
         ],
       },
@@ -74,7 +81,6 @@ const navSections: NavSection[] = [
         children: [
           { label: "الموردين", path: "/contacts?type=supplier" },
           { label: "فواتير مشتريات", path: "/bills" },
-          { label: "سندات الصرف", path: "/payments" },
         ],
       },
       {

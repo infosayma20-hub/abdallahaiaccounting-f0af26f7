@@ -90,6 +90,10 @@ import BillingPage from "./pages/BillingPage";
 import OnboardingPage from "./pages/OnboardingPage";
 import SubscriptionPage from "./pages/SubscriptionPage";
 import SetupPage from "./pages/SetupPage";
+import FinanceHomePage from "./pages/FinanceHomePage";
+import FinanceVoucherPage from "./pages/FinanceVoucherPage";
+import FinanceJournalPage from "./pages/FinanceJournalPage";
+import BankAccountsPage from "./pages/BankAccountsPage";
 
 const queryClient = new QueryClient();
 
@@ -190,9 +194,15 @@ const App = () => (
                       <Route path="/subscription" element={<SubscriptionPage />} />
                       <Route path="/journal-entries" element={<Navigate to="/transactions" replace />} />
                       <Route path="/trial-balance" element={<TrialBalancePage />} />
-                      <Route path="/receipts" element={<VoucherPage voucherType="سند قبض" />} />
+                      <Route path="/receipts" element={<Navigate to="/finance/receipts" replace />} />
                       <Route path="/bills" element={<InvoicesPage />} />
-                      <Route path="/payments" element={<VoucherPage voucherType="سند صرف" />} />
+                      <Route path="/payments" element={<Navigate to="/finance/payments" replace />} />
+                      <Route path="/finance" element={<FinanceHomePage />} />
+                      <Route path="/finance/receipts" element={<FinanceVoucherPage voucherType="receipt" />} />
+                      <Route path="/finance/payments" element={<FinanceVoucherPage voucherType="payment" />} />
+                      <Route path="/finance/journals" element={<FinanceJournalPage />} />
+                      <Route path="/finance/cheques" element={<ChequesPage />} />
+                      <Route path="/finance/bank-accounts" element={<BankAccountsPage />} />
                       <Route path="/inventory-movements" element={<StockMovementsPage />} />
                       <Route path="/inventory-valuation" element={<InventoryValuationPage />} />
                       <Route path="/employees" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><EmployeesPage /></RoleGuard>} />
