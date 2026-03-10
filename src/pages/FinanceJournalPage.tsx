@@ -231,7 +231,7 @@ const FinanceJournalPage = () => {
     return vouchers.filter(v => v.ref_number?.toLowerCase().includes(q) || v.description?.toLowerCase().includes(q));
   }, [vouchers, searchQuery]);
 
-  const formatAmount = (n: number) => new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+  // formatAmount defined above
 
   const subtypeLabels: Record<string, string> = { normal: "عادي", opening: "افتتاحي", adjustment: "تسوية", closing: "إقفالي" };
 
