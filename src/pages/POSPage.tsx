@@ -1756,7 +1756,7 @@ const POSPage = () => {
     orderCounter.current = 1;
     toast.success("تم إغلاق الوردية بنجاح");
     if (isAdmin) {
-      navigate("/apps");
+      navigate("/apps", { replace: true });
     } else {
       setShowLogoutConfirm(true);
     }
