@@ -3,7 +3,7 @@ import type { FinixFinancialData } from "@/pages/SmartAccountantPage";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 
 interface Props {
-  data: ZidniFinancialData;
+  data: FinixFinancialData;
   cfoMode: boolean;
   onToggleCfo: () => void;
   sessionStart: number;
