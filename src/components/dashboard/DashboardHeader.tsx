@@ -1,4 +1,4 @@
-import { RefreshCw, Settings2, Clock } from "lucide-react";
+import { RefreshCw, Settings2, Clock, Eye, EyeOff } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import type { PeriodType } from "@/hooks/useDashboardData";
 
@@ -10,6 +10,8 @@ interface Props {
   onRefresh: () => void;
   onCustomize: () => void;
   loading: boolean;
+  privacyMode?: boolean;
+  onTogglePrivacy?: () => void;
 }
 
 const PERIODS: { key: PeriodType; label: string }[] = [
