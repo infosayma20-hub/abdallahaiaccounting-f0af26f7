@@ -360,7 +360,7 @@ const MobileChatArea = ({ user, userName, data, cfoMode, onCheque, onJournal, on
                     msg.role === "user" ? "rounded-bl-sm" : "rounded-br-sm"
                   }`}
                   style={msg.role === "user" ? {
-                    background: "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--zidni-teal-dark)))",
+                    background: "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--finix-navy-dark)))",
                     color: "white",
                     fontFamily: "Tajawal, sans-serif",
                   } : msg.type === "success" ? {
