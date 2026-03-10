@@ -76,20 +76,28 @@ const VoucherDrawer = ({ open, onClose, voucherType, onSaved }: VoucherDrawerPro
 
   const fetchData = useCallback(async () => {
     if (!user || dataLoaded) return;
-    const [cRes, aRes, bRes] = await Promise.all([
+    const [cRes, aRes, bRes, vRes] = await Promise.all([
       supabase.from("contacts").select("id, contact_name, contact_type, current_balance").eq("user_id", user.id),
       supabase.from("accounts").select("account_code, account_name, account_type").eq("user_id", user.id).eq("is_active", true),
       supabase.from("bank_accounts").select("*").eq("user_id", user.id).eq("is_active", true),
+      supabase.from("vouchers").select("ref_number").eq("user_id", user.id).eq("type", voucherType).order("created_at", { ascending: false }).limit(1),
     ]);
     setContacts(cRes.data || []);
     setAccounts(aRes.data || []);
     setBankAccounts(bRes.data || []);
     setDataLoaded(true);
 
+    // Auto-generate next voucher number
+    const prefix = isReceipt ? "RV" : "PV";
+    const lastRef = (vRes.data || [])[0]?.ref_number || "";
+    const match = lastRef.match(/(\d+)$/);
+    const nextNum = match ? String(parseInt(match[1]) + 1).padStart(Math.max(match[1].length, 4), "0") : "0001";
+    setFormRefNumber(`${prefix}-${nextNum}`);
+
     // Auto-select single cash account
     const cashAccs = (aRes.data || []).filter((a: any) => a.account_code?.startsWith("111"));
     if (cashAccs.length === 1) setFormCashAccountCode(cashAccs[0].account_code);
-  }, [user, dataLoaded]);
+  }, [user, dataLoaded, voucherType, isReceipt]);
 
   useEffect(() => {
     if (open) fetchData();
