@@ -247,24 +247,60 @@ const FinanceJournalPage = () => {
   const subtypeLabels: Record<string, string> = { normal: "عادي", opening: "افتتاحي", adjustment: "تسوية", closing: "إقفالي" };
 
   return (
-    <div className="p-4 md:p-6 space-y-5 max-w-7xl mx-auto" dir="rtl">
+    <div className="px-4 lg:px-8 pt-6 pb-8 space-y-6" dir="rtl">
       {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate("/finance")} className="p-1.5 rounded-lg hover:bg-muted transition-colors">
-            <ArrowRight className="h-5 w-5" />
-          </button>
-          <h1 className="text-xl font-bold" style={{ color: "#0A2342", fontFamily: "Tajawal, sans-serif" }}>سندات القيد</h1>
+          <BackButton />
+          <div>
+            <h1 className="text-xl font-bold text-foreground">سندات القيد</h1>
+            <p className="text-xs text-muted-foreground">إدارة القيود المحاسبية اليدوية</p>
+          </div>
         </div>
-        <Button size="sm" className="gap-2 bg-[#0A2342] hover:bg-[#0D1B2A]" onClick={() => { resetForm(); setModalOpen(true); }}>
+        <Button size="sm" className="gap-2" onClick={() => { resetForm(); setModalOpen(true); }}>
           <Plus className="h-4 w-4" />سند قيد جديد
         </Button>
       </div>
 
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input placeholder="ابحث بالمرجع، الوصف..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pr-10" />
+      {/* KPI Strip */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <Card><CardContent className="p-4 text-center">
+          <FileText className="h-5 w-5 mx-auto text-primary mb-1" />
+          <p className="text-2xl font-bold text-foreground">{vouchers.length}</p>
+          <p className="text-[10px] text-muted-foreground">إجمالي السندات</p>
+        </CardContent></Card>
+        <Card><CardContent className="p-4 text-center">
+          <DollarSign className="h-5 w-5 mx-auto text-emerald-500 mb-1" />
+          <p className="text-lg font-bold text-foreground">{fmt(totalAll)}</p>
+          <p className="text-[10px] text-muted-foreground">إجمالي المبالغ المرحّلة</p>
+        </CardContent></Card>
+        <Card><CardContent className="p-4 text-center">
+          <BookOpen className="h-5 w-5 mx-auto text-blue-500 mb-1" />
+          <p className="text-2xl font-bold text-foreground">{vouchers.filter(v => v.status === "posted").length}</p>
+          <p className="text-[10px] text-muted-foreground">مرحّل</p>
+        </CardContent></Card>
+        <Card><CardContent className="p-4 text-center">
+          <FileText className="h-5 w-5 mx-auto text-orange-500 mb-1" />
+          <p className="text-2xl font-bold text-foreground">{vouchers.filter(v => v.status === "draft").length}</p>
+          <p className="text-[10px] text-muted-foreground">مسودة</p>
+        </CardContent></Card>
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-wrap gap-3">
+        <div className="relative flex-1 min-w-[200px]">
+          <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input placeholder="ابحث بالمرجع، الوصف..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pr-9" />
+        </div>
+        <Select value={filterStatus} onValueChange={setFilterStatus}>
+          <SelectTrigger className="w-[140px]"><SelectValue placeholder="الحالة" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">جميع الحالات</SelectItem>
+            <SelectItem value="posted">مرحّل</SelectItem>
+            <SelectItem value="draft">مسودة</SelectItem>
+            <SelectItem value="cancelled">ملغي</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Table */}
@@ -276,34 +312,34 @@ const FinanceJournalPage = () => {
             <p className="text-sm text-muted-foreground text-center py-16">لا توجد سندات قيد بعد</p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b bg-muted/30 text-muted-foreground text-xs">
-                    <th className="text-right py-2.5 px-3">الرقم</th>
-                    <th className="text-right py-2.5 px-3">التاريخ</th>
-                    <th className="text-right py-2.5 px-3">النوع</th>
-                    <th className="text-right py-2.5 px-3">الوصف</th>
-                    <th className="text-right py-2.5 px-3">المبلغ</th>
-                    <th className="text-right py-2.5 px-3">الحالة</th>
-                  </tr>
-                </thead>
-                <tbody>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-right">الرقم</TableHead>
+                    <TableHead className="text-right">التاريخ</TableHead>
+                    <TableHead className="text-right">النوع</TableHead>
+                    <TableHead className="text-right">الوصف</TableHead>
+                    <TableHead className="text-right">المبلغ</TableHead>
+                    <TableHead className="text-right">الحالة</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {filtered.map(v => (
-                    <tr key={v.id} className="border-b last:border-0 hover:bg-muted/30">
-                      <td className="py-2.5 px-3 font-mono text-xs font-medium">{v.ref_number}</td>
-                      <td className="py-2.5 px-3 text-xs">{v.date}</td>
-                      <td className="py-2.5 px-3"><Badge variant="secondary" className="text-[10px]">{subtypeLabels[v.subtype] || "عادي"}</Badge></td>
-                      <td className="py-2.5 px-3 text-xs truncate max-w-[250px]">{v.description}</td>
-                      <td className="py-2.5 px-3 font-mono text-xs font-bold">₪{formatAmount(Number(v.amount || 0))}</td>
-                      <td className="py-2.5 px-3">
+                    <TableRow key={v.id}>
+                      <TableCell className="text-xs font-medium">{v.ref_number}</TableCell>
+                      <TableCell className="text-xs">{v.date}</TableCell>
+                      <TableCell><Badge variant="secondary" className="text-[10px]">{subtypeLabels[v.subtype] || "عادي"}</Badge></TableCell>
+                      <TableCell className="text-xs truncate max-w-[250px]">{v.description}</TableCell>
+                      <TableCell className="text-xs font-bold">{fmt(Number(v.amount || 0))}</TableCell>
+                      <TableCell>
                         {v.status === "posted" ? <Badge className="bg-emerald-100 text-emerald-700 text-[10px]">مرحّل</Badge> :
                          v.status === "cancelled" ? <Badge className="bg-red-100 text-red-700 text-[10px]">ملغي</Badge> :
                          <Badge variant="secondary" className="text-[10px]">مسودة</Badge>}
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
           )}
         </CardContent>
