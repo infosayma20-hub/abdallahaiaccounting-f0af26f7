@@ -8,7 +8,7 @@ interface Props {
 
 const fmt = (n: number) => `₪${Math.abs(n).toLocaleString()}`;
 
-const ZidniLeftPanel = ({ data, cfoMode }: Props) => {
+const FinixLeftPanel = ({ data, cfoMode }: Props) => {
   const score = data.healthScore;
   const scoreLabel = score >= 70 ? "صحي" : score >= 45 ? "متوسط" : "خطر";
   const scoreColor = score >= 70 ? "#16A34A" : score >= 45 ? "#D97706" : "#DC2626";
