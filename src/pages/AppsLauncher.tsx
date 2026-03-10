@@ -42,6 +42,9 @@ const appModules: AppModule[] = [
     id: "finance", label: "المالية", description: "حسابات، قيود، وميزان مراجعة", icon: DollarSign, color: "text-emerald-500", bgColor: "bg-emerald-500/10", path: "/accounts",
     keywords: ["مالية", "حسابات", "قيود", "ميزان"],
     children: [
+      { label: "سند القبض", path: "/finance/receipts" },
+      { label: "سند الصرف", path: "/finance/payments" },
+      { label: "سند القيد", path: "/finance/journals" },
       { label: "شجرة الحسابات", path: "/accounts" },
       { label: "دفتر اليومية", path: "/transactions" },
       { label: "ميزان المراجعة", path: "/trial-balance" },
