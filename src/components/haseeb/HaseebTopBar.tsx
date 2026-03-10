@@ -15,7 +15,7 @@ const fmt = (n: number) => {
   return `₪${n.toLocaleString()}`;
 };
 
-const ZidniTopBar = ({ data, cfoMode, onToggleCfo, sessionStart, compact }: Props) => {
+const FinixTopBar = ({ data, cfoMode, onToggleCfo, sessionStart, compact }: Props) => {
   const [elapsed, setElapsed] = useState("00:00:00");
 
   useEffect(() => {
