@@ -1529,7 +1529,7 @@ export default function SuperAdminDashboard() {
               <span className="text-white font-bold text-sm" style={{ fontFamily: "Barlow, sans-serif" }}>Z</span>
             </div>
             <div>
-              <h1 className="text-lg font-bold text-white" style={{ fontFamily: "Barlow, sans-serif" }}>ZIDNI</h1>
+              <h1 className="text-lg font-bold text-white" style={{ fontFamily: "Barlow, sans-serif" }}>FINIX</h1>
             </div>
             <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold" style={{ background: "#C9A84C", color: "#0A2342", fontFamily: "Inter, sans-serif" }}>
               Super Admin
