@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import ModuleIcon from "@/components/ModuleIcon";
 import { useCompany } from "@/hooks/useCompanyContext";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import { FinixLogo } from "@/components/ui/FinixLogo";
 
 interface SidebarProps {
   collapsed: boolean;
@@ -159,7 +160,6 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
 
   const isGroupActive = (item: NavItem) => item.children?.some((c) => isActive(c.path));
 
-  // Auto-open parent based on current route
   React.useEffect(() => {
     for (const section of navSections) {
       for (const item of section.items) {
@@ -200,13 +200,13 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
         className={cn(
           "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-all group relative",
           active || groupActive
-            ? "text-sidebar-primary"
+            ? "text-sidebar-primary font-bold"
             : "text-sidebar-foreground hover:text-sidebar-accent-foreground",
           collapsed && "justify-center px-2"
         )}
         style={
           active || groupActive
-            ? { background: "rgba(0,180,216,0.08)", borderRight: "3px solid #C9A84C" }
+            ? { background: "rgba(232,160,32,0.12)", borderRight: "3px solid #E8A020" }
             : undefined
         }
       >
@@ -241,7 +241,7 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
         ) : navButton}
 
         {hasChildren && expanded && !collapsed && (
-          <div className="mr-5 mt-0.5 space-y-0.5 pr-3" style={{ borderRight: "1px solid #0A2342" }}>
+          <div className="mr-5 mt-0.5 space-y-0.5 pr-3" style={{ borderRight: "1px solid #1E3A5F" }}>
             {item.children!.map((child) => {
               const childActive = isActive(child.path);
               return (
@@ -254,7 +254,7 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
                       ? "text-sidebar-primary font-medium"
                       : "text-sidebar-foreground hover:text-sidebar-accent-foreground"
                   )}
-                  style={childActive ? { background: "rgba(0,180,216,0.08)" } : undefined}
+                  style={childActive ? { background: "rgba(232,160,32,0.08)" } : undefined}
                 >
                   {child.label}
                 </button>
@@ -273,7 +273,7 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
         "h-16 flex items-center px-4 flex-shrink-0 border-b",
         collapsed && "justify-center px-2"
       )}
-      style={{ borderColor: "#0A2342" }}
+      style={{ borderColor: "#1E3A5F" }}
       >
         {!collapsed ? (
           <div className="flex items-center gap-3 flex-1">
@@ -282,16 +282,14 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
                 src={company.logo_url}
                 alt={company.name}
                 className="w-[44px] h-[44px] rounded-[10px] object-contain bg-white p-1 flex-shrink-0"
-                style={{ boxShadow: "var(--z-shadow-sm, 0 2px 8px rgba(10,35,66,0.10))" }}
+                style={{ boxShadow: "0 2px 8px rgba(13,27,42,0.10)" }}
               />
             ) : (
-              <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: "linear-gradient(135deg, #0A2342, #006D8F)" }}>
-                <span className="text-white font-bold text-sm" style={{ fontFamily: "Barlow, sans-serif" }}>Z</span>
-              </div>
+              <FinixLogo variant="icon" size="sm" />
             )}
             <div className="min-w-0">
               <h1 className="text-[14px] font-bold text-white truncate" style={{ fontFamily: "Tajawal, sans-serif" }}>
-                {company.name || "ZIDNI"}
+                {company.name || "FINIX"}
               </h1>
               <p className="text-[10px] text-sidebar-foreground leading-none truncate">
                 {company.industry || "نظام إدارة الأعمال"}
@@ -304,12 +302,10 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
               src={company.logo_url}
               alt={company.name}
               className="w-9 h-9 rounded-lg object-contain bg-white p-0.5"
-              style={{ boxShadow: "var(--z-shadow-sm, 0 2px 8px rgba(10,35,66,0.10))" }}
+              style={{ boxShadow: "0 2px 8px rgba(13,27,42,0.10)" }}
             />
           ) : (
-            <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: "linear-gradient(135deg, #0A2342, #006D8F)" }}>
-              <span className="text-white font-bold text-sm" style={{ fontFamily: "Barlow, sans-serif" }}>Z</span>
-            </div>
+            <FinixLogo variant="icon" size="sm" />
           )
         )}
       </div>
@@ -319,11 +315,11 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
         {navSections.map((section) => (
           <div key={section.title}>
             {!collapsed && (
-              <p className="text-[10px] font-semibold text-sidebar-foreground/50 uppercase tracking-wider px-3 mb-2">
+              <p className="text-[10px] font-semibold text-sidebar-foreground/40 uppercase tracking-[0.12em] px-3 mb-2">
                 {section.title}
               </p>
             )}
-            {collapsed && <div className="h-px mx-1 mb-2" style={{ background: "#0A2342" }} />}
+            {collapsed && <div className="h-px mx-1 mb-2" style={{ background: "#1E3A5F" }} />}
             <div className="space-y-0.5">
               {section.items.map(renderNavItem)}
             </div>
@@ -332,13 +328,13 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
       </nav>
 
       {/* Bottom */}
-      <div className="py-3 px-3 space-y-0.5" style={{ borderTop: "1px solid #0A2342" }}>
+      <div className="py-3 px-3 space-y-0.5" style={{ borderTop: "1px solid #1E3A5F" }}>
         {collapsed ? (
           <Tooltip>
             <TooltipTrigger asChild>
               <button
                 onClick={() => handleNavigate("/settings")}
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium text-sidebar-foreground hover:text-sidebar-accent-foreground transition-all justify-center px-2"
+                className="w-full flex items-center gap-3 px-2 py-2.5 rounded-lg text-[13px] font-medium text-sidebar-foreground hover:text-sidebar-accent-foreground transition-all justify-center"
               >
                 <ModuleIcon module="settings" size="sm" />
               </button>
@@ -421,7 +417,7 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
           "hidden lg:flex flex-col bg-sidebar flex-shrink-0 transition-all duration-300",
           collapsed ? "w-[68px]" : "w-[240px]"
         )}
-        style={{ borderLeft: "1px solid #0A2342" }}
+        style={{ borderLeft: "1px solid rgba(255,255,255,0.06)" }}
       >
         {sidebarContent}
       </aside>
