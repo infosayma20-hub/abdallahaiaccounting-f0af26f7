@@ -2,65 +2,78 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 
+const redirectCache = new Map<string, string | null>();
+
 export function useRoleRedirect() {
   const { user, loading: authLoading } = useAuth();
   const [targetPath, setTargetPath] = useState<string | null>(null);
   const [checking, setChecking] = useState(true);
 
   useEffect(() => {
-    if (authLoading) return;
+    if (authLoading) {
+      setChecking(true);
+      return;
+    }
+
     if (!user) {
       setTargetPath(null);
       setChecking(false);
       return;
     }
 
-    const resolve = async () => {
-      // Check roles
-      const { data } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id);
-
-      const roles: string[] = (data || []).map((r) => r.role);
-
-      if (roles.includes("super_admin")) {
-        setTargetPath("/super-admin/dashboard");
-        setChecking(false);
-        return;
-      }
-      if (roles.includes("worker") && roles.length === 1) {
-        setTargetPath("/worker/procurement");
-        setChecking(false);
-        return;
-      }
-      if (roles.includes("cashier") && !roles.includes("admin")) {
-        setTargetPath("/pos");
-        setChecking(false);
-        return;
-      }
-      if (roles.includes("employee") && roles.length === 1) {
-        setTargetPath("/employee");
-        setChecking(false);
-        return;
-      }
-
-      // For regular users (admin/accountant/owner), check if setup is completed
-      const { count } = await supabase
-        .from("accounts")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", user.id);
-
-      if (!count || count === 0) {
-        // No accounts = setup not done, redirect to setup wizard
-        setTargetPath("/setup");
-      } else {
-        setTargetPath("/apps");
-      }
+    const cachedTarget = redirectCache.get(user.id);
+    if (cachedTarget !== undefined) {
+      setTargetPath(cachedTarget);
       setChecking(false);
+      return;
+    }
+
+    let isCancelled = false;
+    setChecking(true);
+
+    const resolve = async () => {
+      try {
+        const { data } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", user.id);
+
+        const roles: string[] = (data || []).map((r) => r.role);
+        let nextPath: string;
+
+        if (roles.includes("super_admin")) {
+          nextPath = "/super-admin/dashboard";
+        } else if (roles.includes("worker") && roles.length === 1) {
+          nextPath = "/worker/procurement";
+        } else if (roles.includes("cashier") && !roles.includes("admin")) {
+          nextPath = "/pos";
+        } else if (roles.includes("employee") && roles.length === 1) {
+          nextPath = "/employee";
+        } else {
+          const { count } = await supabase
+            .from("accounts")
+            .select("id", { count: "exact", head: true })
+            .eq("user_id", user.id);
+
+          nextPath = !count || count === 0 ? "/setup" : "/apps";
+        }
+
+        if (isCancelled) return;
+        redirectCache.set(user.id, nextPath);
+        setTargetPath(nextPath);
+      } catch {
+        if (isCancelled) return;
+        setTargetPath("/apps");
+      } finally {
+        if (!isCancelled) setChecking(false);
+      }
     };
 
     resolve();
+
+    return () => {
+      isCancelled = true;
+    };
   }, [user, authLoading]);
 
   return { targetPath, checking, user };
