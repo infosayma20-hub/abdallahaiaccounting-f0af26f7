@@ -205,6 +205,8 @@ const App = () => (
                       <Route path="/finance/journals" element={<FinanceJournalPage />} />
                       <Route path="/finance/cheques" element={<ChequesPage />} />
                       <Route path="/finance/bank-accounts" element={<BankAccountsPage />} />
+                      <Route path="/finance/cash-boxes" element={<CashBoxesPage />} />
+                      <Route path="/finance/cash-boxes/transfer" element={<CashTransferPage />} />
                       <Route path="/inventory-movements" element={<StockMovementsPage />} />
                       <Route path="/inventory-valuation" element={<InventoryValuationPage />} />
                       <Route path="/employees" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><EmployeesPage /></RoleGuard>} />
