@@ -7,7 +7,7 @@ import TransactionToast, { useTransactionToast } from "@/components/TransactionT
 import ChequeDetailsDialog, { ChequeLineItem } from "@/components/ChequeDetailsDialog";
 import JournalEntryPopup from "@/components/JournalEntryPopup";
 
-export interface ZidniFinancialData {
+export interface FinixFinancialData {
   cash: number;
   bank: number;
   salesToday: number;
