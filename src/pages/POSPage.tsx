@@ -1852,12 +1852,12 @@ const POSPage = () => {
             </button>
             {showSalesSummary && (
               <>
-                <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-primary/15">
-                  <BarChart3 className="h-3.5 w-3.5 text-primary" />
-                  <span className="text-white/60">مبيعات اليوم:</span>
-                  <span className="font-bold text-primary tabular-nums">₪{session.total_sales.toFixed(0)}</span>
+                <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-white/10">
+                  <BarChart3 className="h-3.5 w-3.5 text-amber-400" />
+                  <span className="text-white/70">مبيعات اليوم:</span>
+                  <span className="font-bold text-amber-400 tabular-nums">₪{session.total_sales.toFixed(0)}</span>
                 </div>
-                <span className="text-white/40">{session.total_orders} طلب</span>
+                <span className="text-white/60">{session.total_orders} طلب</span>
               </>
             )}
 
