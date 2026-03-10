@@ -97,12 +97,12 @@ const HomeDashboard = () => {
 
   // First-time help guide
   useEffect(() => {
-    if (!user || showSetupWizard || !dashboard.profileData?.setup_completed) return;
+    if (!user || !dashboard.profileData?.setup_completed) return;
     if (!localStorage.getItem("help_guide_shown")) {
       setTimeout(() => setShowHelpGuide(true), 1000);
       localStorage.setItem("help_guide_shown", "true");
     }
-  }, [user, showSetupWizard, dashboard.profileData?.setup_completed]);
+  }, [user, dashboard.profileData?.setup_completed]);
 
   // Keyboard shortcuts
   useEffect(() => {
