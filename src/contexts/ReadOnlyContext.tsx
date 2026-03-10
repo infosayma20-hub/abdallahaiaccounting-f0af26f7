@@ -19,9 +19,9 @@ export const ReadOnlyProvider = ({ children }: { children: React.ReactNode }) =>
 
   useEffect(() => {
     if (isReadOnly) {
-      localStorage.setItem("zidni_readonly_mode", "true");
+      localStorage.setItem("finix_readonly_mode", "true");
     } else {
-      localStorage.removeItem("zidni_readonly_mode");
+      localStorage.removeItem("finix_readonly_mode");
     }
   }, [isReadOnly]);
 
