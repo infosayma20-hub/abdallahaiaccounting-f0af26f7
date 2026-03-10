@@ -92,10 +92,24 @@ import SetupPage from "./pages/SetupPage";
 
 const queryClient = new QueryClient();
 
+// Minimal inline spinner for auth checks (not full-screen splash)
+const AuthCheckSpinner = () => (
+  <div className="flex h-screen w-full items-center justify-center bg-background">
+    <div
+      className="w-8 h-8 rounded-full border-2 border-transparent"
+      style={{
+        borderTopColor: "hsl(var(--accent))",
+        borderRightColor: "hsl(var(--accent) / 0.3)",
+        animation: "navSpinRing 0.7s linear infinite",
+      }}
+    />
+  </div>
+);
+
 const ProtectedRoute = ({ children, blockCashier }: { children: React.ReactNode; blockCashier?: boolean }) => {
   const { user, loading } = useAuth();
   const { targetPath, checking } = useRoleRedirect();
-  if (loading || (blockCashier && checking)) return <LoadingScreen />;
+  if (loading || (blockCashier && checking)) return <AuthCheckSpinner />;
   if (!user) return <Navigate to="/auth" replace />;
   if (blockCashier && targetPath === "/pos") return <Navigate to="/pos" replace />;
   return <>{children}</>;
@@ -103,23 +117,22 @@ const ProtectedRoute = ({ children, blockCashier }: { children: React.ReactNode;
 
 const AppsRoute = ({ children }: { children: React.ReactNode }) => {
   const { targetPath, checking, user } = useRoleRedirect();
-  if (checking) return <LoadingScreen />;
+  if (checking) return <AuthCheckSpinner />;
   if (!user) return <Navigate to="/auth" replace />;
-  // Cashiers go straight to POS, not the apps launcher
   if (targetPath === "/pos") return <Navigate to="/pos" replace />;
   return <>{children}</>;
 };
 
 const AuthRoute = ({ children }: { children: React.ReactNode }) => {
   const { targetPath, checking, user } = useRoleRedirect();
-  if (checking) return <LoadingScreen />;
+  if (checking) return <AuthCheckSpinner />;
   if (user && targetPath) return <Navigate to={targetPath} replace />;
   return <>{children}</>;
 };
 
 const SmartRedirect = () => {
   const { targetPath, checking } = useRoleRedirect();
-  if (checking) return <LoadingScreen />;
+  if (checking) return <AuthCheckSpinner />;
   return <Navigate to={targetPath || "/apps"} replace />;
 };
 
