@@ -208,24 +208,6 @@ const HomeDashboard = () => {
           <ChequesCalendarWidget cheques={dashboard.upcomingCheques} loading={dashboard.loading} />
 
           {/* (Recent Activity moved to col-4 above) */}
-          {/* Setup Wizard (if needed) */}
-          {showSetupWizard && user && (
-            <div className="col-span-12 bg-card rounded-2xl p-5 shadow-sm border border-border/30">
-              <h3 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
-                  <Clock className="h-4 w-4 text-primary" />
-                </div>
-                خطوات البدء
-              </h3>
-              <SetupWizard userId={user.id} onComplete={() => {
-                setShowSetupWizard(false);
-                if (!localStorage.getItem("help_guide_shown")) {
-                  setTimeout(() => setShowHelpGuide(true), 500);
-                  localStorage.setItem("help_guide_shown", "true");
-                }
-              }} />
-            </div>
-          )}
         </div>
       </div>
 
