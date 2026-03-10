@@ -288,6 +288,7 @@ export function usePOSReportsData() {
     customTo, setCustomTo,
     dateFrom, dateTo,
     loading,
+    dataOwnerId,
     orders, paidOrders, returnOrders, orderLines, paidLines, payments, sessions, products,
     totalSales, totalReturns, netSales, totalOrders, avgOrderValue,
     totalCOGS, grossProfit, grossMargin,

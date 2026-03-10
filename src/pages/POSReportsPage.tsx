@@ -21,6 +21,7 @@ import {
   RotateCcw,
   Timer,
   ArrowRight,
+  UserCheck,
 } from "lucide-react";
 import POSSalesReport from "@/components/pos-reports/POSSalesReport";
 import POSProductsReport from "@/components/pos-reports/POSProductsReport";
@@ -31,6 +32,7 @@ import POSInventoryReport from "@/components/pos-reports/POSInventoryReport";
 import POSReturnsReport from "@/components/pos-reports/POSReturnsReport";
 import POSProfitReport from "@/components/pos-reports/POSProfitReport";
 import POSShiftsReport from "@/components/pos-reports/POSShiftsReport";
+import POSCustomersReport from "@/components/pos-reports/POSCustomersReport";
 import * as XLSX from "xlsx";
 import { useNavigate } from "react-router-dom";
 
@@ -52,6 +54,7 @@ const TABS = [
   { id: "returns", label: "المرتجعات", icon: RotateCcw },
   { id: "profit", label: "الربحية", icon: TrendingUp },
   { id: "shifts", label: "الورديات", icon: Timer },
+  { id: "customers", label: "العملاء", icon: UserCheck },
 ];
 
 const POSReportsPage = () => {
@@ -236,6 +239,7 @@ const POSReportsPage = () => {
               />
             )}
             {activeTab === "shifts" && <POSShiftsReport sessions={data.sessions} onRefresh={data.refetch} />}
+            {activeTab === "customers" && data.dataOwnerId && <POSCustomersReport dataOwnerId={data.dataOwnerId} />}
           </div>
         )}
       </div>
