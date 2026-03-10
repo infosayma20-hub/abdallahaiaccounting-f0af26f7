@@ -1,5 +1,6 @@
 import { useLocation } from "react-router-dom";
 import { useEffect } from "react";
+import { FinixLogo } from "@/components/ui/FinixLogo";
 
 const NotFound = () => {
   const location = useLocation();
@@ -12,13 +13,17 @@ const NotFound = () => {
     <div
       className="flex min-h-screen items-center justify-center relative overflow-hidden"
       dir="rtl"
-      style={{ background: "linear-gradient(180deg, #050F1E, #0A2342)" }}
+      style={{ background: "#0D1B2A" }}
     >
       {/* Watermark */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none">
         <span
-          className="font-mono font-bold"
-          style={{ fontSize: "clamp(120px, 20vw, 240px)", color: "#00B4D8", opacity: 0.08 }}
+          style={{
+            fontFamily: "Montserrat, sans-serif",
+            fontWeight: 800,
+            fontSize: "clamp(120px, 20vw, 240px)",
+            color: "rgba(232,160,32,0.1)",
+          }}
         >
           404
         </span>
@@ -26,25 +31,23 @@ const NotFound = () => {
 
       {/* Content */}
       <div className="text-center relative z-10 space-y-4 px-6">
-        <div className="w-16 h-16 rounded-2xl mx-auto flex items-center justify-center mb-6"
-          style={{ background: "linear-gradient(135deg, #0A2342, #006D8F)" }}>
-          <span className="text-white font-bold text-2xl" style={{ fontFamily: "Barlow, sans-serif" }}>Z</span>
+        <div className="mb-6 flex justify-center">
+          <FinixLogo variant="white" size="lg" />
         </div>
 
-        <h1 className="text-xl font-bold" style={{ color: "#F4F7FA", fontFamily: "Tajawal, sans-serif" }}>
+        <h1 className="text-xl font-bold" style={{ color: "#F4F6F8", fontFamily: "Tajawal, sans-serif" }}>
           الصفحة غير موجودة
         </h1>
-        <p className="text-sm" style={{ color: "#8B9BB4" }}>
-          عذراً، الصفحة التي تبحث عنها غير متوفرة أو تم نقلها.
+        <p className="text-sm" style={{ color: "rgba(255,255,255,0.5)" }}>
+          الصفحة التي تبحث عنها غير متوفرة
         </p>
 
         <a
           href="/"
-          className="inline-flex items-center gap-2 px-6 py-3 rounded-lg text-sm font-semibold transition-all"
+          className="inline-flex items-center gap-2 px-7 py-3 rounded-xl text-sm font-bold transition-all hover:brightness-110 hover:-translate-y-0.5"
           style={{
-            background: "linear-gradient(135deg, #C9A84C, #9A7B2E)",
-            color: "#0A2342",
-            boxShadow: "0 4px 20px rgba(201,168,76,0.25)",
+            background: "#E8A020",
+            color: "#0D1B2A",
           }}
         >
           العودة للرئيسية

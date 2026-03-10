@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompany } from "@/hooks/useCompanyContext";
 import { NotificationsPanel, useNotifications } from "@/components/NotificationsPanel";
+import { FinixLogo } from "@/components/ui/FinixLogo";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,7 +23,6 @@ interface TopBarProps {
   onOpenHelpGuide?: () => void;
 }
 
-/* ═══ Reusable Icon Button with Tooltip ═══ */
 const IconButton = ({
   icon: Icon, badge, onClick, title, className,
 }: {
@@ -47,7 +47,6 @@ const IconButton = ({
   </Tooltip>
 );
 
-/* ═══ Search Result Types ═══ */
 interface SearchResult {
   id: string;
   type: "transaction" | "account" | "contact";
@@ -57,7 +56,6 @@ interface SearchResult {
   icon: React.ElementType;
 }
 
-/* ═══ Global Search Bar ═══ */
 const GlobalSearchBar = ({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -70,135 +68,47 @@ const GlobalSearchBar = ({ collapsed, onToggle }: { collapsed: boolean; onToggle
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 
   useEffect(() => {
-    if (!query.trim() || !user) {
-      setResults([]);
-      return;
-    }
-
+    if (!query.trim() || !user) { setResults([]); return; }
     clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(async () => {
       setLoading(true);
       const q = query.trim();
       const found: SearchResult[] = [];
-
       try {
         const [txRes, accRes, contactsRes] = await Promise.all([
-          supabase.from('transactions')
-            .select('id, description, transaction_date, amount, transaction_type, reference, debit_account_code, credit_account_code')
-            .eq('user_id', user.id)
-            .or(`description.ilike.%${q}%,reference.ilike.%${q}%,transaction_type.ilike.%${q}%`)
-            .order('transaction_date', { ascending: false })
-            .limit(8),
-          supabase.from('accounts')
-            .select('id, account_name, account_code, account_type')
-            .eq('user_id', user.id)
-            .or(`account_name.ilike.%${q}%,account_code.ilike.%${q}%,account_type.ilike.%${q}%`)
-            .limit(8),
-          supabase.from('contacts')
-            .select('id, contact_name, contact_type, phone')
-            .eq('user_id', user.id)
-            .or(`contact_name.ilike.%${q}%,phone.ilike.%${q}%`)
-            .limit(8),
+          supabase.from('transactions').select('id, description, transaction_date, amount, transaction_type, reference, debit_account_code, credit_account_code').eq('user_id', user.id).or(`description.ilike.%${q}%,reference.ilike.%${q}%,transaction_type.ilike.%${q}%`).order('transaction_date', { ascending: false }).limit(8),
+          supabase.from('accounts').select('id, account_name, account_code, account_type').eq('user_id', user.id).or(`account_name.ilike.%${q}%,account_code.ilike.%${q}%,account_type.ilike.%${q}%`).limit(8),
+          supabase.from('contacts').select('id, contact_name, contact_type, phone').eq('user_id', user.id).or(`contact_name.ilike.%${q}%,phone.ilike.%${q}%`).limit(8),
         ]);
-
-        (txRes.data || []).forEach(tx => {
-          found.push({
-            id: tx.id,
-            type: "transaction",
-            title: tx.description || tx.transaction_type || "معاملة",
-            subtitle: `${tx.transaction_date || ""} • ₪${(tx.amount || 0).toLocaleString()} • ${tx.transaction_type || ""}`,
-            path: `/transactions?search=${encodeURIComponent(tx.description || tx.reference || "")}`,
-            icon: FileText,
-          });
-        });
-
-        (accRes.data || []).forEach(acc => {
-          found.push({
-            id: acc.id,
-            type: "account",
-            title: `${acc.account_code} - ${acc.account_name}`,
-            subtitle: acc.account_type,
-            path: `/accounts?search=${encodeURIComponent(acc.account_name)}`,
-            icon: Wallet,
-          });
-        });
-
-        (contactsRes.data || []).forEach(c => {
-          found.push({
-            id: c.id,
-            type: "contact",
-            title: c.contact_name,
-            subtitle: c.contact_type || "",
-            path: `/contacts?search=${encodeURIComponent(c.contact_name)}`,
-            icon: Users,
-          });
-        });
-      } catch {
-        // silent
-      }
-
+        (txRes.data || []).forEach(tx => { found.push({ id: tx.id, type: "transaction", title: tx.description || tx.transaction_type || "معاملة", subtitle: `${tx.transaction_date || ""} • ₪${(tx.amount || 0).toLocaleString()} • ${tx.transaction_type || ""}`, path: `/transactions?search=${encodeURIComponent(tx.description || tx.reference || "")}`, icon: FileText }); });
+        (accRes.data || []).forEach(acc => { found.push({ id: acc.id, type: "account", title: `${acc.account_code} - ${acc.account_name}`, subtitle: acc.account_type, path: `/accounts?search=${encodeURIComponent(acc.account_name)}`, icon: Wallet }); });
+        (contactsRes.data || []).forEach(c => { found.push({ id: c.id, type: "contact", title: c.contact_name, subtitle: c.contact_type || "", path: `/contacts?search=${encodeURIComponent(c.contact_name)}`, icon: Users }); });
+      } catch { /* silent */ }
       setResults(found);
       setLoading(false);
     }, 300);
-
     return () => clearTimeout(debounceRef.current);
   }, [query, user]);
 
   useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setShowResults(false);
-      }
-    };
+    const handler = (e: MouseEvent) => { if (containerRef.current && !containerRef.current.contains(e.target as Node)) setShowResults(false); };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  const handleSelect = (result: SearchResult) => {
-    setShowResults(false);
-    setQuery("");
-    if (result.path) {
-      navigate(result.path);
-    }
-  };
+  const handleSelect = (result: SearchResult) => { setShowResults(false); setQuery(""); if (result.path) navigate(result.path); };
 
-  if (collapsed) {
-    return <IconButton icon={Search} onClick={onToggle} title="بحث" />;
-  }
+  if (collapsed) return <IconButton icon={Search} onClick={onToggle} title="بحث" />;
 
-  const typeLabel: Record<string, string> = {
-    transaction: "معاملات",
-    account: "حسابات",
-    contact: "جهات اتصال",
-  };
-
-  const typeColor: Record<string, string> = {
-    transaction: "bg-accent/10 text-accent",
-    account: "bg-warning/10 text-warning",
-    contact: "bg-primary/10 text-primary",
-  };
-
-  const grouped = results.reduce<Record<string, SearchResult[]>>((acc, r) => {
-    (acc[r.type] = acc[r.type] || []).push(r);
-    return acc;
-  }, {});
+  const typeLabel: Record<string, string> = { transaction: "معاملات", account: "حسابات", contact: "جهات اتصال" };
+  const typeColor: Record<string, string> = { transaction: "bg-accent/10 text-accent", account: "bg-warning/10 text-warning", contact: "bg-primary/10 text-primary" };
+  const grouped = results.reduce<Record<string, SearchResult[]>>((acc, r) => { (acc[r.type] = acc[r.type] || []).push(r); return acc; }, {});
 
   return (
     <div ref={containerRef} className="relative w-full max-w-[560px]">
       <Search className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 pointer-events-none z-10" strokeWidth={2} />
-      {loading && (
-        <div className="absolute left-3.5 top-1/2 -translate-y-1/2 z-10">
-          <div className="h-4 w-4 rounded-full border-2 border-accent/30 border-t-accent animate-spin" />
-        </div>
-      )}
-      {query && !loading && (
-        <button
-          onClick={() => { setQuery(""); setResults([]); }}
-          className="absolute left-3.5 top-1/2 -translate-y-1/2 z-10 text-muted-foreground hover:text-foreground"
-        >
-          <X className="h-4 w-4" />
-        </button>
-      )}
+      {loading && <div className="absolute left-3.5 top-1/2 -translate-y-1/2 z-10"><div className="h-4 w-4 rounded-full border-2 border-accent/30 border-t-accent animate-spin" /></div>}
+      {query && !loading && <button onClick={() => { setQuery(""); setResults([]); }} className="absolute left-3.5 top-1/2 -translate-y-1/2 z-10 text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>}
       <input
         ref={inputRef}
         type="text"
@@ -214,42 +124,23 @@ const GlobalSearchBar = ({ collapsed, onToggle }: { collapsed: boolean; onToggle
           "transition-all duration-150"
         )}
       />
-
-      {/* Results Dropdown */}
       {showResults && query.trim().length > 0 && (
         <div className="absolute top-full mt-2 w-full bg-card border border-border rounded-xl shadow-elevated z-50 max-h-[420px] overflow-y-auto">
           {results.length === 0 && !loading ? (
-            <div className="py-8 text-center">
-              <Search className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
-              <p className="text-sm text-muted-foreground">لا توجد نتائج لـ "{query}"</p>
-            </div>
+            <div className="py-8 text-center"><Search className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" /><p className="text-sm text-muted-foreground">لا توجد نتائج لـ "{query}"</p></div>
           ) : loading && results.length === 0 ? (
-            <div className="py-8 text-center">
-              <div className="h-6 w-6 rounded-full border-2 border-accent/30 border-t-accent animate-spin mx-auto mb-2" />
-              <p className="text-sm text-muted-foreground">جارٍ البحث...</p>
-            </div>
+            <div className="py-8 text-center"><div className="h-6 w-6 rounded-full border-2 border-accent/30 border-t-accent animate-spin mx-auto mb-2" /><p className="text-sm text-muted-foreground">جارٍ البحث...</p></div>
           ) : (
             Object.entries(grouped).map(([type, items]) => (
               <div key={type}>
                 <div className="px-3 py-2 flex items-center gap-2 sticky top-0 bg-card/95 backdrop-blur-sm border-b border-border/30">
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${typeColor[type] || ""}`}>
-                    {typeLabel[type] || type}
-                  </span>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${typeColor[type] || ""}`}>{typeLabel[type] || type}</span>
                   <span className="text-[10px] text-muted-foreground">{items.length} نتيجة</span>
                 </div>
                 {items.map((r) => (
-                  <button
-                    key={r.id}
-                    onClick={() => handleSelect(r)}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-secondary transition-colors text-right"
-                  >
-                    <div className={`p-1.5 rounded-lg ${typeColor[r.type] || "bg-secondary"}`}>
-                      <r.icon className="h-3.5 w-3.5" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium text-foreground truncate">{r.title}</p>
-                      <p className="text-[10px] text-muted-foreground truncate">{r.subtitle}</p>
-                    </div>
+                  <button key={r.id} onClick={() => handleSelect(r)} className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-secondary transition-colors text-right">
+                    <div className={`p-1.5 rounded-lg ${typeColor[r.type] || "bg-secondary"}`}><r.icon className="h-3.5 w-3.5" /></div>
+                    <div className="flex-1 min-w-0"><p className="text-xs font-medium text-foreground truncate">{r.title}</p><p className="text-[10px] text-muted-foreground truncate">{r.subtitle}</p></div>
                   </button>
                 ))}
               </div>
@@ -261,7 +152,6 @@ const GlobalSearchBar = ({ collapsed, onToggle }: { collapsed: boolean; onToggle
   );
 };
 
-/* ═══ Profile Dropdown ═══ */
 const ProfileDropdown = ({
   displayName, email, initials, avatarUrl, onNavigate, onSignOut,
 }: {
@@ -269,15 +159,10 @@ const ProfileDropdown = ({
 }) => (
   <DropdownMenu>
     <DropdownMenuTrigger asChild>
-      <button className={cn(
-        "flex items-center gap-2 h-9 px-2.5 rounded-lg",
-        "bg-secondary hover:bg-secondary/80",
-        "transition-all duration-150 cursor-pointer",
-        "border border-transparent hover:border-border"
-      )}>
+      <button className={cn("flex items-center gap-2 h-9 px-2.5 rounded-lg", "bg-secondary hover:bg-secondary/80", "transition-all duration-150 cursor-pointer", "border border-transparent hover:border-border")}>
         <span className="text-[13px] font-medium text-foreground hidden md:block max-w-[140px] truncate">{displayName}</span>
         {avatarUrl ? (
-          <img src={avatarUrl} alt={displayName} className="w-7 h-7 rounded-full object-cover flex-shrink-0 border-2 border-primary/30" />
+          <img src={avatarUrl} alt={displayName} className="w-7 h-7 rounded-full object-cover flex-shrink-0 border-2 border-accent/30" />
         ) : (
           <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
             <span className="text-[11px] font-bold text-primary-foreground leading-none">{initials}</span>
@@ -286,58 +171,36 @@ const ProfileDropdown = ({
       </button>
     </DropdownMenuTrigger>
     <DropdownMenuContent align="start" className="w-56 rounded-xl shadow-elevated z-50">
-      <div className="px-3 py-2.5">
-        <p className="text-sm font-semibold text-foreground">{displayName}</p>
-        <p className="text-xs text-muted-foreground">{email}</p>
-      </div>
+      <div className="px-3 py-2.5"><p className="text-sm font-semibold text-foreground">{displayName}</p><p className="text-xs text-muted-foreground">{email}</p></div>
       <DropdownMenuSeparator />
-      <DropdownMenuItem onClick={() => onNavigate("/profile")} className="gap-2.5 cursor-pointer rounded-lg mx-1">
-        <User className="h-4 w-4" strokeWidth={1.8} />
-        الملف الشخصي
-      </DropdownMenuItem>
-      <DropdownMenuItem onClick={() => onNavigate("/settings")} className="gap-2.5 cursor-pointer rounded-lg mx-1">
-        <Settings className="h-4 w-4" strokeWidth={1.8} />
-        الإعدادات
-      </DropdownMenuItem>
+      <DropdownMenuItem onClick={() => onNavigate("/profile")} className="gap-2.5 cursor-pointer rounded-lg mx-1"><User className="h-4 w-4" strokeWidth={1.8} />الملف الشخصي</DropdownMenuItem>
+      <DropdownMenuItem onClick={() => onNavigate("/settings")} className="gap-2.5 cursor-pointer rounded-lg mx-1"><Settings className="h-4 w-4" strokeWidth={1.8} />الإعدادات</DropdownMenuItem>
       <DropdownMenuSeparator />
-      <DropdownMenuItem onClick={onSignOut} className="gap-2.5 cursor-pointer text-destructive rounded-lg mx-1">
-        <LogOut className="h-4 w-4" strokeWidth={1.8} />
-        تسجيل الخروج
-      </DropdownMenuItem>
+      <DropdownMenuItem onClick={onSignOut} className="gap-2.5 cursor-pointer text-destructive rounded-lg mx-1"><LogOut className="h-4 w-4" strokeWidth={1.8} />تسجيل الخروج</DropdownMenuItem>
     </DropdownMenuContent>
   </DropdownMenu>
 );
 
-/* ═══ Logo ═══ */
 const AppLogo = () => {
   const { company } = useCompany();
   const navigate = useNavigate();
-  
   return (
     <button
       onClick={() => navigate("/settings")}
       className="flex items-center gap-2 px-1.5 py-1 rounded-lg hover:bg-secondary/60 transition-all duration-150 flex-shrink-0 cursor-pointer"
     >
       {company.logo_url ? (
-        <img
-          src={company.logo_url}
-          alt={company.name}
-          className="w-9 h-9 rounded-lg object-contain bg-white p-0.5"
-          style={{ border: "1px solid var(--z-border, hsl(var(--border)))" }}
-        />
+        <img src={company.logo_url} alt={company.name} className="w-9 h-9 rounded-lg object-contain bg-white p-0.5" style={{ border: "1px solid hsl(var(--border))" }} />
       ) : (
-        <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: "linear-gradient(135deg, #0A2342, #006D8F)" }}>
-          <span className="text-white font-bold text-sm" style={{ fontFamily: "Barlow, sans-serif" }}>Z</span>
-        </div>
+        <FinixLogo variant="icon" size="sm" />
       )}
       <span className="text-sm font-semibold text-foreground hidden sm:block max-w-[140px] truncate whitespace-nowrap" style={{ fontFamily: "Tajawal, sans-serif" }}>
-        {company.name || "ZIDNI"}
+        {company.name || "FINIX"}
       </span>
     </button>
   );
 };
 
-/* ═══ MAIN HEADER ═══ */
 const TopBar = ({ onMenuClick, sidebarCollapsed, onOpenHelpGuide }: TopBarProps) => {
   const { user, signOut } = useAuth();
   const { theme, toggleTheme } = useTheme();
@@ -350,22 +213,17 @@ const TopBar = ({ onMenuClick, sidebarCollapsed, onOpenHelpGuide }: TopBarProps)
 
   useEffect(() => {
     if (!user?.id) return;
-    supabase
-      .from("profiles")
-      .select("display_name, company_name, avatar_url")
-      .eq("user_id", user.id)
-      .maybeSingle()
-      .then(({ data }: any) => {
-        setProfileName(data?.display_name || data?.company_name || null);
-        setUserAvatarUrl(data?.avatar_url || null);
-      });
+    supabase.from("profiles").select("display_name, company_name, avatar_url").eq("user_id", user.id).maybeSingle().then(({ data }: any) => {
+      setProfileName(data?.display_name || data?.company_name || null);
+      setUserAvatarUrl(data?.avatar_url || null);
+    });
   }, [user?.id]);
 
   const displayName = profileName || user?.user_metadata?.full_name || user?.email?.split("@")[0] || "المستخدم";
   const initials = displayName.split(" ").slice(0, 2).map((w: string) => w[0]).join("");
 
   return (
-    <header className="sticky top-0 z-40 bg-card border-b border-border" style={{ height: 60 }}>
+    <header className="sticky top-0 z-40 bg-card border-b border-border" style={{ height: 60, boxShadow: "0 1px 4px rgba(13,27,42,0.06)" }}>
       <div className="h-full flex items-center gap-4 px-4 sm:px-6">
         <Tooltip>
           <TooltipTrigger asChild>
@@ -375,31 +233,18 @@ const TopBar = ({ onMenuClick, sidebarCollapsed, onOpenHelpGuide }: TopBarProps)
           </TooltipTrigger>
           <TooltipContent side="bottom"><p>القائمة</p></TooltipContent>
         </Tooltip>
-
         <AppLogo />
-
-        {/* Center: Search */}
         <div className="flex-1 flex justify-center px-4">
-          <div className="hidden md:block w-full max-w-[560px]">
-            <GlobalSearchBar collapsed={false} onToggle={() => {}} />
-          </div>
+          <div className="hidden md:block w-full max-w-[560px]"><GlobalSearchBar collapsed={false} onToggle={() => {}} /></div>
           <div className="md:hidden">
-            {mobileSearchOpen ? (
-              <GlobalSearchBar collapsed={false} onToggle={() => setMobileSearchOpen(false)} />
-            ) : (
-              <IconButton icon={Search} onClick={() => setMobileSearchOpen(true)} title="بحث" />
-            )}
+            {mobileSearchOpen ? <GlobalSearchBar collapsed={false} onToggle={() => setMobileSearchOpen(false)} /> : <IconButton icon={Search} onClick={() => setMobileSearchOpen(true)} title="بحث" />}
           </div>
         </div>
-
-        {/* Left icons */}
         <div className="flex items-center gap-1">
           <IconButton icon={theme === "dark" ? Moon : Sun} onClick={toggleTheme} title={theme === "dark" ? "وضع فاتح" : "وضع داكن"} />
           <div className="relative">
             <IconButton icon={Bell} badge={unreadCount > 0} onClick={() => setNotificationsOpen(!notificationsOpen)} title="الإشعارات" />
-            {unreadCount > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 rounded-full bg-accent text-accent-foreground text-[9px] font-bold flex items-center justify-center px-1 pointer-events-none">{unreadCount > 9 ? "9+" : unreadCount}</span>
-            )}
+            {unreadCount > 0 && <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 rounded-full bg-accent text-accent-foreground text-[9px] font-bold flex items-center justify-center px-1 pointer-events-none">{unreadCount > 9 ? "9+" : unreadCount}</span>}
             <NotificationsPanel open={notificationsOpen} onClose={() => setNotificationsOpen(false)} />
           </div>
           <IconButton icon={Settings} onClick={() => navigate("/settings")} title="الإعدادات" className="hidden sm:flex" />

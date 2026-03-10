@@ -33,13 +33,10 @@ const TrialExpiredOverlay = () => {
         className="w-full max-w-[500px] overflow-hidden"
         style={{ borderRadius: 28, boxShadow: "0 32px 80px rgba(0,0,0,0.5)" }}
       >
-        {/* Top Section - Navy */}
-        <div
-          className="text-center px-8 pt-8 pb-6"
-          style={{ background: "linear-gradient(135deg, #0A2342, #071829)" }}
-        >
-          <div className="text-sm font-bold mb-4" style={{ color: "#C9A84C", fontFamily: "Tajawal" }}>
-            زِدني
+        {/* Top Section */}
+        <div className="text-center px-8 pt-8 pb-6" style={{ background: "linear-gradient(135deg, #0D1B2A, #08111A)" }}>
+          <div className="text-sm font-bold mb-4" style={{ color: "#E8A020", fontFamily: "Montserrat" }}>
+            FINIX
           </div>
           <div className="text-[48px] mb-3">🔒</div>
           <h2 className="text-2xl font-extrabold text-white mb-2" style={{ fontFamily: "Tajawal" }}>
@@ -48,116 +45,62 @@ const TrialExpiredOverlay = () => {
           <p className="text-sm mb-4" style={{ color: "rgba(255,255,255,0.65)" }}>
             بياناتك محفوظة بأمان — اشترك للوصول الكامل
           </p>
-
-          {/* Data preserved banner */}
-          <div
-            className="rounded-[10px] py-2.5 px-4"
-            style={{
-              background: "rgba(22,163,74,0.2)",
-              border: "1px solid rgba(22,163,74,0.4)",
-            }}
-          >
-            <span className="text-xs" style={{ color: "#4ADE80" }}>
-              ✓ بياناتك محفوظة لمدة 30 يوماً
-            </span>
+          <div className="rounded-[10px] py-2.5 px-4" style={{ background: "rgba(5,150,105,0.2)", border: "1px solid rgba(5,150,105,0.4)" }}>
+            <span className="text-xs" style={{ color: "#4ADE80" }}>✓ بياناتك محفوظة لمدة 30 يوماً</span>
           </div>
         </div>
 
-        {/* Middle Section - White */}
+        {/* Middle Section */}
         <div className="bg-white px-8 py-6">
-          <p className="text-sm font-bold mb-3" style={{ color: "#0A2342" }}>
-            اختر خطتك:
-          </p>
-
+          <p className="text-sm font-bold mb-3" style={{ color: "#0D1B2A" }}>اختر خطتك:</p>
           <div className="grid grid-cols-2 gap-3 mb-5">
-            {/* Monthly */}
             <button
               onClick={() => setSelected("monthly")}
               className="rounded-[14px] p-4 text-center transition-all cursor-pointer"
-              style={{
-                border: `2px solid ${selected === "monthly" ? "#0A2342" : "#E5E7EB"}`,
-                background: selected === "monthly" ? "#F8FAFC" : "white",
-              }}
+              style={{ border: `2px solid ${selected === "monthly" ? "#0D1B2A" : "#E2E8F0"}`, background: selected === "monthly" ? "#F4F6F8" : "white" }}
             >
-              <div className="text-sm font-medium mb-1" style={{ color: "#0A2342" }}>شهري</div>
+              <div className="text-sm font-medium mb-1" style={{ color: "#0D1B2A" }}>شهري</div>
               <div className="flex items-baseline justify-center gap-1">
-                <span className="text-2xl font-extrabold" style={{ color: "#0A2342" }}>$49</span>
-                <span className="text-xs" style={{ color: "#6B7280" }}>/شهر</span>
+                <span className="text-2xl font-extrabold" style={{ color: "#0D1B2A" }}>$49</span>
+                <span className="text-xs" style={{ color: "#8A96A3" }}>/شهر</span>
               </div>
             </button>
-
-            {/* Annual */}
             <button
               onClick={() => setSelected("annual")}
               className="rounded-[14px] p-4 text-center transition-all cursor-pointer relative"
-              style={{
-                border: `2px solid ${selected === "annual" ? "#C9A84C" : "#E5E7EB"}`,
-                background: selected === "annual" ? "#FFFBEB" : "white",
-              }}
+              style={{ border: `2px solid ${selected === "annual" ? "#E8A020" : "#E2E8F0"}`, background: selected === "annual" ? "#FFFBEB" : "white" }}
             >
-              <span
-                className="absolute -top-2.5 left-1/2 -translate-x-1/2 text-[10px] font-bold text-white px-2.5 py-0.5 rounded-full"
-                style={{ background: "#C9A84C" }}
-              >
-                الأوفر 💰
-              </span>
-              <div className="text-sm font-medium mb-1" style={{ color: "#0A2342" }}>سنوي</div>
+              <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 text-[10px] font-bold text-white px-2.5 py-0.5 rounded-full" style={{ background: "#E8A020" }}>الأوفر 💰</span>
+              <div className="text-sm font-medium mb-1" style={{ color: "#0D1B2A" }}>سنوي</div>
               <div className="flex items-baseline justify-center gap-1">
-                <span className="text-2xl font-extrabold" style={{ color: "#0A2342" }}>$37</span>
-                <span className="text-xs" style={{ color: "#6B7280" }}>/شهر</span>
+                <span className="text-2xl font-extrabold" style={{ color: "#0D1B2A" }}>$37</span>
+                <span className="text-xs" style={{ color: "#8A96A3" }}>/شهر</span>
               </div>
-              <div className="text-[11px] mt-1" style={{ color: "#6B7280" }}>
-                يُدفع $444 سنوياً
-              </div>
-              <div className="text-[11px] line-through" style={{ color: "#9CA3AF" }}>
-                بدل $588
-              </div>
+              <div className="text-[11px] mt-1" style={{ color: "#8A96A3" }}>يُدفع $444 سنوياً</div>
+              <div className="text-[11px] line-through" style={{ color: "#8A96A3" }}>بدل $588</div>
             </button>
           </div>
-
-          {/* Features */}
           <div className="space-y-2">
             {["جميع التقارير والمحاسبة", "المحاسب الذكي بلا حدود", "نقطة البيع والمخزون"].map((f) => (
               <div key={f} className="flex items-center gap-2 text-[13px]" style={{ color: "#374151" }}>
-                <span style={{ color: "#16A34A" }}>✓</span>
-                {f}
+                <span style={{ color: "#059669" }}>✓</span>{f}
               </div>
             ))}
           </div>
         </div>
 
-        {/* Bottom Section */}
+        {/* Bottom */}
         <div className="bg-white px-8 pb-8">
           <button
             onClick={handleSubscribe}
             className="w-full h-[52px] rounded-[14px] text-[17px] font-extrabold text-white transition-all hover:brightness-110 hover:-translate-y-0.5 cursor-pointer"
-            style={{
-              background: "linear-gradient(135deg, #C9A84C, #B8972E)",
-              border: "none",
-              boxShadow: "0 4px 20px rgba(201,168,76,0.4)",
-              fontFamily: "Tajawal",
-            }}
+            style={{ background: "linear-gradient(135deg, #E8A020, #F45E0C)", border: "none", boxShadow: "0 4px 20px rgba(232,160,32,0.4)", fontFamily: "Tajawal" }}
           >
             اشترك الآن ←
           </button>
-
           <div className="flex items-center justify-between mt-3">
-            <button
-              onClick={handleBrowseOnly}
-              className="text-xs underline bg-transparent border-none cursor-pointer"
-              style={{ color: "#6B7280" }}
-            >
-              👁️ تصفح فقط (قراءة)
-            </button>
-            <a
-              href="https://wa.me/970599000000"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs underline"
-              style={{ color: "#0A2342" }}
-            >
-              تواصل معنا 💬
-            </a>
+            <button onClick={handleBrowseOnly} className="text-xs underline bg-transparent border-none cursor-pointer" style={{ color: "#8A96A3" }}>👁️ تصفح فقط (قراءة)</button>
+            <a href="https://wa.me/970599000000" target="_blank" rel="noopener noreferrer" className="text-xs underline" style={{ color: "#0D1B2A" }}>تواصل معنا 💬</a>
           </div>
         </div>
       </motion.div>

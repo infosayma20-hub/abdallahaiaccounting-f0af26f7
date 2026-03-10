@@ -14,11 +14,11 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['"Tajawal"', 'sans-serif'],
+        sans: ['"Tajawal"', '"Montserrat"', 'sans-serif'],
         arabic: ['"Tajawal"', 'sans-serif'],
-        en: ['"Inter"', '"Barlow"', 'sans-serif'],
+        en: ['"Montserrat"', 'sans-serif'],
         mono: ['"JetBrains Mono"', 'monospace'],
-        display: ['"Barlow"', 'sans-serif'],
+        display: ['"Montserrat"', 'sans-serif'],
       },
       spacing: {
         '18': '4.5rem',
@@ -81,22 +81,21 @@ export default {
           ring: "hsl(var(--sidebar-ring))",
         },
         gold: {
-          DEFAULT: "hsl(var(--zidni-gold))",
-          light: "hsl(var(--zidni-gold-light))",
-        },
-        teal: {
-          dark: "hsl(var(--zidni-teal-dark))",
+          DEFAULT: "hsl(var(--finix-gold))",
+          light: "hsl(var(--finix-gold-light))",
+          dark: "hsl(var(--finix-gold-dark))",
         },
         "icon-bg": "hsl(var(--icon-bg))",
-        zidni: {
-          navy: "#0A2342",
-          "navy-dark": "#050F1E",
-          teal: "#00B4D8",
-          "teal-dark": "#006D8F",
-          gold: "#C9A84C",
-          "gold-light": "#E8D5A3",
-          slate: "#F4F7FA",
-          gray: "#8B9BB4",
+        finix: {
+          navy: "#0D1B2A",
+          "navy-light": "#1E3A5F",
+          "navy-dark": "#08111A",
+          gold: "#E8A020",
+          "gold-light": "#F4D170",
+          "gold-dark": "#C9870A",
+          orange: "#F45E0C",
+          bg: "#F4F6F8",
+          gray: "#8A96A3",
         },
       },
       borderRadius: {

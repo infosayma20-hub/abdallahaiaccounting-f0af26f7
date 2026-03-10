@@ -13,7 +13,7 @@ const FloatingSubscribeButton = () => {
       style={{
         bottom: 24,
         left: 24,
-        background: "linear-gradient(135deg, #C9A84C, #B8972E)",
+        background: "linear-gradient(135deg, #E8A020, #F45E0C)",
         color: "white",
         padding: "12px 20px",
         borderRadius: 50,
@@ -21,7 +21,7 @@ const FloatingSubscribeButton = () => {
         fontWeight: 700,
         fontSize: 14,
         border: "none",
-        boxShadow: "0 8px 24px rgba(201,168,76,0.5)",
+        boxShadow: "0 8px 24px rgba(232,160,32,0.5)",
       }}
       dir="rtl"
     >

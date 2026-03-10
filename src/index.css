@@ -1,144 +1,153 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Barlow:wght@600;700;800&family=Tajawal:wght@300;400;500;700&family=JetBrains+Mono:wght@400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Tajawal:wght@300;400;500;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
-  /* ─── LIGHT THEME (DEFAULT for ERP) ─── */
+  /* ─── LIGHT THEME (DEFAULT) ─── */
   :root {
-    /* ZIDNI Brand - converted to HSL */
-    --background: 213 33% 97%;       /* #F4F7FA */
-    --foreground: 213 62% 15%;       /* #0A2342 */
+    /* FINIX Brand - HSL */
+    --background: 210 14% 97%;        /* #F4F6F8 */
+    --foreground: 213 50% 11%;        /* #0D1B2A */
 
-    --card: 0 0% 100%;               /* #FFFFFF */
-    --card-foreground: 213 62% 15%;  /* #0A2342 */
+    --card: 0 0% 100%;                /* #FFFFFF */
+    --card-foreground: 213 50% 11%;   /* #0D1B2A */
 
     --popover: 0 0% 100%;
-    --popover-foreground: 213 62% 15%;
+    --popover-foreground: 213 50% 11%;
 
-    --primary: 213 62% 15%;          /* #0A2342 navy */
+    --primary: 213 50% 11%;           /* #0D1B2A navy */
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 16% 94%;        /* light gray */
+    --secondary: 210 16% 94%;
     --secondary-foreground: 213 40% 22%;
 
     --muted: 210 14% 93%;
-    --muted-foreground: 217 18% 62%; /* #8B9BB4 */
+    --muted-foreground: 210 12% 59%;  /* #8A96A3 */
 
-    --accent: 193 100% 42%;          /* #00B4D8 teal */
-    --accent-foreground: 0 0% 100%;
+    --accent: 37 81% 52%;             /* #E8A020 gold */
+    --accent-foreground: 213 50% 11%;
 
-    --destructive: 0 72% 51%;        /* #DC2626 */
+    --destructive: 0 72% 51%;         /* #DC2626 */
     --destructive-foreground: 0 0% 100%;
 
-    --success: 142 72% 36%;          /* #16A34A */
+    --success: 160 85% 30%;           /* #059669 */
     --success-foreground: 0 0% 100%;
 
-    --warning: 38 90% 50%;           /* #D97706 */
+    --warning: 38 90% 50%;            /* #D97706 */
     --warning-foreground: 0 0% 100%;
 
-    --info: 193 100% 42%;            /* #00B4D8 */
+    --info: 199 89% 48%;              /* #0EA5E9 */
     --info-foreground: 0 0% 100%;
 
-    --border: 214 32% 91%;           /* #E2E8F0 */
+    --border: 214 32% 91%;            /* #E2E8F0 */
     --input: 214 32% 91%;
-    --ring: 193 100% 42%;            /* teal focus ring */
+    --ring: 37 81% 52%;               /* gold focus ring */
 
-    --radius: 0.5rem;
+    --radius: 0.625rem;
 
-    /* Sidebar - ZIDNI dark */
-    --sidebar-background: 215 78% 7%;   /* #050F1E */
-    --sidebar-foreground: 217 18% 62%;  /* #8B9BB4 */
-    --sidebar-primary: 193 100% 42%;    /* teal */
+    /* Sidebar - FINIX dark navy */
+    --sidebar-background: 213 50% 11%;   /* #0D1B2A */
+    --sidebar-foreground: 210 12% 59%;   /* #8A96A3 */
+    --sidebar-primary: 37 81% 52%;       /* gold */
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 213 62% 15%;      /* #0A2342 */
+    --sidebar-accent: 213 48% 17%;       /* #1E3A5F */
     --sidebar-accent-foreground: 210 15% 90%;
-    --sidebar-border: 213 62% 15%;      /* #0A2342 */
-    --sidebar-ring: 193 100% 42%;
+    --sidebar-border: 213 48% 17%;       /* #1E3A5F */
+    --sidebar-ring: 37 81% 52%;
 
-    /* ZIDNI brand tokens */
-    --zidni-gold: 43 55% 54%;           /* #C9A84C */
-    --zidni-gold-light: 40 56% 77%;     /* #E8D5A3 */
-    --zidni-teal-dark: 195 100% 28%;    /* #006D8F */
+    /* FINIX brand tokens */
+    --finix-gold: 37 81% 52%;            /* #E8A020 */
+    --finix-gold-light: 42 86% 70%;      /* #F4D170 */
+    --finix-gold-dark: 37 90% 41%;       /* #C9870A */
+    --finix-orange: 22 92% 50%;          /* #F45E0C */
+    --finix-navy-light: 213 52% 24%;     /* #1E3A5F */
+    --finix-navy-dark: 213 50% 7%;       /* #08111A */
 
     /* Dashboard tokens */
-    --navy: 213 62% 15%;                /* #0A2342 */
-    --navy-deep: 213 78% 7%;            /* #071829 */
-    --gold: 43 55% 54%;                 /* #C9A84C */
-    --teal: 193 100% 42%;               /* #00B4D8 */
-    --teal-dark: 195 100% 28%;          /* #006D8F */
+    --navy: 213 50% 11%;
+    --navy-deep: 213 50% 7%;
+    --gold: 37 81% 52%;
+    --gold-light: 42 86% 70%;
 
     --icon-bg: 210 14% 93%;
     --nav-bg: 0 0% 100%;
 
+    /* Gradients (as CSS custom properties) */
+    --gradient-gold: linear-gradient(135deg, #E8A020 0%, #F45E0C 100%);
+    --gradient-navy: linear-gradient(135deg, #0D1B2A 0%, #1E3A5F 100%);
+    --gradient-hero: linear-gradient(160deg, #0D1B2A 0%, #1E3A5F 60%, #0D1B2A 100%);
+
     /* Shadows */
-    --shadow-sm: 0 2px 8px rgba(10,35,66,0.08);
-    --shadow-md: 0 4px 16px rgba(10,35,66,0.14);
-    --shadow-lg: 0 8px 32px rgba(10,35,66,0.20);
-    --shadow-card: 0 1px 3px rgba(10,35,66,0.05), 0 1px 2px -1px rgba(10,35,66,0.04);
+    --shadow-sm: 0 2px 8px rgba(13,27,42,0.06);
+    --shadow-md: 0 4px 16px rgba(13,27,42,0.12);
+    --shadow-lg: 0 8px 32px rgba(13,27,42,0.18);
+    --shadow-card: 0 1px 4px rgba(13,27,42,0.05);
   }
 
   /* ─── DARK THEME ─── */
   .dark {
-    --background: 215 78% 7%;        /* #050F1E */
-    --foreground: 213 33% 97%;       /* #F4F7FA */
+    --background: 213 50% 7%;         /* #08111A */
+    --foreground: 210 14% 97%;        /* #F4F6F8 */
 
-    --card: 213 62% 15%;             /* #0A2342 */
-    --card-foreground: 213 33% 97%;
+    --card: 213 50% 11%;              /* #0D1B2A */
+    --card-foreground: 210 14% 97%;
 
-    --popover: 213 62% 15%;
-    --popover-foreground: 213 33% 97%;
+    --popover: 213 50% 11%;
+    --popover-foreground: 210 14% 97%;
 
-    --primary: 193 100% 42%;         /* teal as primary in dark */
-    --primary-foreground: 0 0% 100%;
+    --primary: 37 81% 52%;            /* gold as primary in dark */
+    --primary-foreground: 213 50% 11%;
 
-    --secondary: 213 55% 18%;
+    --secondary: 213 48% 17%;
     --secondary-foreground: 210 15% 90%;
 
-    --muted: 213 55% 18%;
-    --muted-foreground: 217 18% 62%;
+    --muted: 213 48% 17%;
+    --muted-foreground: 210 12% 59%;
 
-    --accent: 43 55% 54%;            /* gold accent in dark */
-    --accent-foreground: 213 62% 15%;
+    --accent: 37 81% 52%;
+    --accent-foreground: 213 50% 11%;
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 142 72% 36%;
+    --success: 160 85% 30%;
     --success-foreground: 0 0% 100%;
 
     --warning: 38 90% 50%;
     --warning-foreground: 0 0% 100%;
 
-    --info: 193 100% 42%;
+    --info: 199 89% 48%;
     --info-foreground: 0 0% 100%;
 
     --border: 0 0% 100% / 0.08;
-    --input: 213 55% 22%;
-    --ring: 193 100% 42%;
+    --input: 213 48% 22%;
+    --ring: 37 81% 52%;
 
-    --sidebar-background: 215 78% 7%;
-    --sidebar-foreground: 217 18% 62%;
-    --sidebar-primary: 193 100% 42%;
+    --sidebar-background: 213 50% 7%;
+    --sidebar-foreground: 210 12% 59%;
+    --sidebar-primary: 37 81% 52%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 213 62% 15%;
+    --sidebar-accent: 213 50% 11%;
     --sidebar-accent-foreground: 210 15% 90%;
     --sidebar-border: 0 0% 100% / 0.08;
-    --sidebar-ring: 193 100% 42%;
+    --sidebar-ring: 37 81% 52%;
 
-    --zidni-gold: 43 55% 54%;
-    --zidni-gold-light: 40 56% 77%;
-    --zidni-teal-dark: 195 100% 28%;
+    --finix-gold: 37 81% 52%;
+    --finix-gold-light: 42 86% 70%;
+    --finix-gold-dark: 37 90% 41%;
+    --finix-orange: 22 92% 50%;
+    --finix-navy-light: 213 52% 24%;
+    --finix-navy-dark: 213 50% 7%;
 
-    --navy: 213 62% 15%;
-    --navy-deep: 215 78% 7%;
-    --gold: 43 55% 54%;
-    --teal: 193 100% 42%;
-    --teal-dark: 195 100% 28%;
+    --navy: 213 50% 11%;
+    --navy-deep: 213 50% 7%;
+    --gold: 37 81% 52%;
+    --gold-light: 42 86% 70%;
 
-    --icon-bg: 213 55% 18%;
-    --nav-bg: 215 78% 7%;
+    --icon-bg: 213 48% 17%;
+    --nav-bg: 213 50% 7%;
 
     --shadow-sm: 0 2px 8px rgba(0,0,0,0.3);
     --shadow-md: 0 4px 16px rgba(0,0,0,0.4);
@@ -150,6 +159,7 @@
 @layer base {
   * {
     @apply border-border;
+    box-sizing: border-box;
   }
 
   html {
@@ -159,11 +169,16 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: 'Tajawal', system-ui, sans-serif;
+    font-family: 'Tajawal', 'Montserrat', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     line-height: 1.5;
     letter-spacing: 0.01em;
+  }
+
+  /* English text */
+  [lang="en"], .en {
+    font-family: 'Montserrat', sans-serif;
   }
 
   /* Typography hierarchy */
@@ -200,6 +215,7 @@
   /* Tabular numerals for financial data */
   .tabular-nums,
   [data-financial],
+  .number, .amount, .mono,
   table td,
   table th {
     font-variant-numeric: tabular-nums;
@@ -207,7 +223,7 @@
     letter-spacing: 0.02em;
   }
 
-  /* Smooth transitions - enterprise: 150ms, no bounce */
+  /* Smooth transitions */
   *,
   *::before,
   *::after {
@@ -234,10 +250,10 @@
   }
 
   .font-en {
-    font-family: 'Inter', 'Barlow', sans-serif;
+    font-family: 'Montserrat', sans-serif;
   }
 
-  /* ZIDNI Elevation */
+  /* Elevation */
   .elevation-1 {
     box-shadow: var(--shadow-sm);
   }
@@ -249,17 +265,14 @@
   }
 
   /* KPI accent bars */
-  .accent-bar-teal {
-    border-right: 4px solid hsl(var(--accent));
+  .accent-bar-gold {
+    border-right: 4px solid hsl(var(--finix-gold));
   }
   .accent-bar-red {
     border-right: 4px solid hsl(var(--destructive));
   }
   .accent-bar-green {
     border-right: 4px solid hsl(var(--success));
-  }
-  .accent-bar-gold {
-    border-right: 4px solid hsl(var(--zidni-gold));
   }
 
   /* Status badges */
@@ -300,7 +313,7 @@
     font-weight: 500;
   }
   .text-credit {
-    color: #16A34A;
+    color: #059669;
     font-weight: 500;
   }
   .text-zero {
@@ -309,11 +322,11 @@
   }
   .text-account-code {
     font-family: 'JetBrains Mono', monospace;
-    color: #006D8F;
+    color: hsl(var(--finix-gold-dark));
   }
 
   /* Skeleton loader */
-  .skeleton-zidni {
+  .skeleton-finix {
     background: linear-gradient(90deg, #E2E8F0 25%, #F8FAFC 50%, #E2E8F0 75%);
     background-size: 200% 100%;
     animation: shimmer 1.5s infinite;
@@ -331,8 +344,8 @@
 }
 
 @keyframes pulse-gold {
-  0%, 100% { stroke: hsl(43, 55%, 54%); opacity: 0.6; }
-  50% { stroke: hsl(40, 56%, 77%); opacity: 1; }
+  0%, 100% { stroke: hsl(37, 81%, 52%); opacity: 0.6; }
+  50% { stroke: hsl(42, 86%, 70%); opacity: 1; }
 }
 
 /* ── Print Utilities ── */
@@ -396,10 +409,9 @@
 }
 
 /* ═══════════════════════════════════════
-   CUSTOM SCROLLBAR — ZIDNI BRAND
+   CUSTOM SCROLLBAR — FINIX BRAND
    ═══════════════════════════════════════ */
 
-/* Global scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -407,7 +419,6 @@
 
 ::-webkit-scrollbar-track {
   background: transparent;
-  border-radius: 0px;
 }
 
 ::-webkit-scrollbar-thumb {
@@ -432,13 +443,11 @@
   display: none;
 }
 
-/* Firefox */
 * {
   scrollbar-width: thin;
   scrollbar-color: hsl(var(--muted-foreground) / 0.25) transparent;
 }
 
-/* Light theme scrollbar track */
 :root ::-webkit-scrollbar-track {
   background: transparent;
 }
@@ -447,38 +456,38 @@
 }
 
 .dark ::-webkit-scrollbar-track {
-  background: hsl(213 62% 15% / 0.3);
+  background: hsl(213 50% 11% / 0.3);
 }
 .dark {
-  scrollbar-color: hsl(var(--muted-foreground) / 0.3) hsl(213 62% 15% / 0.3);
+  scrollbar-color: hsl(var(--muted-foreground) / 0.3) hsl(213 50% 11% / 0.3);
 }
 
 /* Sidebar scrollbar — gold on dark */
 .sidebar-scroll::-webkit-scrollbar-track {
-  background: #050F1E;
+  background: #0D1B2A;
 }
 .sidebar-scroll::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, #C9A84C, #8A6E35);
+  background: linear-gradient(180deg, #E8A020, #C9870A);
   border-radius: 999px;
 }
 .sidebar-scroll::-webkit-scrollbar-thumb:hover {
-  background: #C9A84C;
+  background: #E8A020;
 }
 
-/* Data table scrollbar — subtle */
+/* Data table scrollbar */
 .data-table-container::-webkit-scrollbar {
   width: 4px;
   height: 4px;
 }
 .data-table-container::-webkit-scrollbar-track {
-  background: #F4F7FA;
+  background: #F4F6F8;
 }
 .data-table-container::-webkit-scrollbar-thumb {
-  background: #8B9BB4;
+  background: #8A96A3;
   border-radius: 999px;
 }
 .data-table-container::-webkit-scrollbar-thumb:hover {
-  background: #0A2342;
+  background: #0D1B2A;
 }
 
 /* Modal / Drawer scrollbar */
@@ -509,45 +518,45 @@ html {
   background: hsl(var(--muted-foreground) / 0.35);
 }
 
-/* ═══ ZIDNI Smart Accountant Styles ═══ */
-.zidni-scrollbar::-webkit-scrollbar {
+/* ═══ FINIX Smart Accountant Styles ═══ */
+.finix-scrollbar::-webkit-scrollbar {
   width: 4px;
 }
-.zidni-scrollbar::-webkit-scrollbar-track {
+.finix-scrollbar::-webkit-scrollbar-track {
   background: transparent;
 }
-.zidni-scrollbar::-webkit-scrollbar-thumb {
+.finix-scrollbar::-webkit-scrollbar-thumb {
   background: hsl(var(--muted-foreground) / 0.3);
   border-radius: 999px;
 }
 
-@keyframes zidni-marquee {
+@keyframes finix-marquee {
   0% { transform: translateX(0%); }
   100% { transform: translateX(-50%); }
 }
-.zidni-ticker {
+.finix-ticker {
   display: inline-block;
-  animation: zidni-marquee 30s linear infinite;
+  animation: finix-marquee 30s linear infinite;
 }
-.zidni-ticker:hover {
+.finix-ticker:hover {
   animation-play-state: paused;
 }
 
-/* ═══ ZIDNI CLEAN STYLES ═══ */
+/* ═══ FINIX CLEAN STYLES ═══ */
 
-.zidni-clean-screen {
+.finix-clean-screen {
   display: flex;
   flex-direction: column;
   height: 100dvh;
   position: fixed;
   inset: 0;
   z-index: 50;
-  background: #F8FAFC;
+  background: #F4F6F8;
   overflow: hidden;
   overscroll-behavior: none;
 }
 
-.zidni-mobile-screen {
+.finix-mobile-screen {
   display: flex;
   flex-direction: column;
   height: 100dvh;
@@ -558,14 +567,14 @@ html {
   overscroll-behavior: none;
 }
 
-.zidni-mobile-topbar {
+.finix-mobile-topbar {
   height: 56px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 12px;
   padding-top: env(safe-area-inset-top, 0);
-  background: linear-gradient(135deg, hsl(215 78% 7%), hsl(var(--primary)));
+  background: linear-gradient(135deg, hsl(213 50% 7%), hsl(var(--primary)));
   border-bottom: 1px solid hsl(var(--accent) / 0.2);
   flex-shrink: 0;
   position: sticky;
@@ -574,21 +583,21 @@ html {
 }
 
 /* Breathing status dot */
-.zidni-breathe-dot {
+.finix-breathe-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
   background: hsl(var(--accent));
-  animation: zidni-breathe 2s ease-in-out infinite;
+  animation: finix-breathe 2s ease-in-out infinite;
 }
 
-@keyframes zidni-breathe {
+@keyframes finix-breathe {
   0%, 100% { opacity: 1; transform: scale(1); }
   50% { opacity: 0.5; transform: scale(0.8); }
 }
 
 /* KPI Strip */
-.zidni-kpi-strip {
+.finix-kpi-strip {
   height: 64px;
   background: hsl(var(--primary));
   display: flex;
@@ -601,9 +610,9 @@ html {
   flex-shrink: 0;
   border-bottom: 1px solid hsl(var(--accent) / 0.2);
 }
-.zidni-kpi-strip::-webkit-scrollbar { display: none; }
+.finix-kpi-strip::-webkit-scrollbar { display: none; }
 
-.zidni-kpi-pill {
+.finix-kpi-pill {
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -612,16 +621,16 @@ html {
   background: rgba(255,255,255,0.06);
   border: 1px solid rgba(255,255,255,0.1);
   border-radius: 20px;
-  animation: zidni-slideIn 0.3s ease-out both;
+  animation: finix-slideIn 0.3s ease-out both;
 }
 
-@keyframes zidni-slideIn {
+@keyframes finix-slideIn {
   from { opacity: 0; transform: translateX(20px); }
   to { opacity: 1; transform: translateX(0); }
 }
 
 /* Chat scroll area */
-.zidni-chat-scroll {
+.finix-chat-scroll {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
@@ -635,33 +644,33 @@ html {
 .no-scrollbar { scrollbar-width: none; }
 
 /* Bottom Input Dock */
-.zidni-dock {
+.finix-dock {
   position: sticky;
   bottom: 0;
   width: 100%;
   background: white;
   border-top: 1px solid hsl(var(--border));
-  box-shadow: 0 -4px 20px rgba(10,35,66,0.1);
+  box-shadow: 0 -4px 20px rgba(13,27,42,0.08);
   padding-bottom: env(safe-area-inset-bottom, 0);
   z-index: 100;
   flex-shrink: 0;
 }
 
-.dark .zidni-dock {
+.dark .finix-dock {
   background: hsl(var(--card));
 }
 
-.zidni-dock-recording {
-  background: linear-gradient(135deg, hsl(215 78% 7%), hsl(var(--primary))) !important;
+.finix-dock-recording {
+  background: linear-gradient(135deg, hsl(213 50% 7%), hsl(var(--primary))) !important;
   border-top-color: hsl(var(--accent) / 0.3) !important;
 }
 
-/* Mic button — THE STAR */
-.zidni-mic-btn {
+/* Mic button */
+.finix-mic-btn {
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--zidni-teal-dark)));
+  background: linear-gradient(135deg, #E8A020, #F45E0C);
   color: white;
   border: none;
   cursor: pointer;
@@ -669,48 +678,48 @@ html {
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 14px rgba(10,35,66,0.4), 0 0 0 0 rgba(0,180,216,0);
+  box-shadow: 0 4px 14px rgba(232,160,32,0.4), 0 0 0 0 rgba(232,160,32,0);
   transition: all 0.15s;
   -webkit-tap-highlight-color: transparent;
 }
 
-.zidni-mic-btn:active {
+.finix-mic-btn:active {
   transform: scale(0.95);
 }
 
 /* Recording red dot */
-.zidni-rec-dot {
+.finix-rec-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
   background: hsl(var(--destructive));
-  animation: zidni-blink 1s ease-in-out infinite;
+  animation: finix-blink 1s ease-in-out infinite;
 }
 
-@keyframes zidni-blink {
+@keyframes finix-blink {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.3; }
 }
 
 /* Shimmer processing bar */
-.zidni-shimmer-bar {
+.finix-shimmer-bar {
   height: 4px;
-  background: linear-gradient(90deg, transparent, hsl(var(--accent)), hsl(var(--zidni-gold)), transparent);
+  background: linear-gradient(90deg, transparent, hsl(var(--accent)), hsl(var(--finix-gold-light)), transparent);
   background-size: 200% 100%;
-  animation: zidni-shimmer 1.5s infinite;
+  animation: finix-shimmer 1.5s infinite;
 }
 
-@keyframes zidni-shimmer {
+@keyframes finix-shimmer {
   0% { background-position: 200% 0; }
   100% { background-position: -200% 0; }
 }
 
 /* Reduce motion */
 @media (prefers-reduced-motion: reduce) {
-  .zidni-breathe-dot,
-  .zidni-kpi-pill,
-  .zidni-ticker,
-  .zidni-shimmer-bar {
+  .finix-breathe-dot,
+  .finix-kpi-pill,
+  .finix-ticker,
+  .finix-shimmer-bar {
     animation: none !important;
   }
 }
@@ -748,7 +757,7 @@ html {
 .trial-readonly-mode select {
   pointer-events: none !important;
   opacity: 0.6;
-  background: #F9FAFB !important;
+  background: #F4F6F8 !important;
   cursor: not-allowed !important;
 }
 
