@@ -45,7 +45,7 @@ function GaugeSVG({ score }: { score: number }) {
       <line x1={cx} y1={cy} x2={nx} y2={ny} stroke="white" strokeWidth="2.5" strokeLinecap="round" />
       <circle cx={cx} cy={cy} r="4" fill="white" />
       {/* Score */}
-      <text x={cx} y={cy - 15} textAnchor="middle" fill="white" fontSize="28" fontWeight="800" fontFamily="JetBrains Mono, monospace">{score}</text>
+      <text x={cx} y={cy - 15} textAnchor="middle" fill="white" fontSize="28" fontWeight="800" fontFamily="Inter, sans-serif">{score}</text>
     </svg>
   );
 }
