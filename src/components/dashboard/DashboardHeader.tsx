@@ -33,7 +33,7 @@ export default function DashboardHeader({ companyName, period, onPeriodChange, l
         <h1 className="text-lg md:text-xl font-extrabold text-white" style={{ fontFamily: "Tajawal, sans-serif" }}>
           {companyName || "شركتي"}
         </h1>
-        <p className="text-[11px] text-white/40">نظام زِدني — لوحة المعلومات</p>
+        <p className="text-[11px] text-white/40">نظام FINIX — لوحة المعلومات</p>
 
         {/* Period tabs */}
         <div className="flex items-center gap-1 flex-wrap">

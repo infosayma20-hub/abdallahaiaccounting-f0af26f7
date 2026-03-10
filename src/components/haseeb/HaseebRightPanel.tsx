@@ -157,4 +157,4 @@ const FinixRightPanel = ({ data, cfoMode }: Props) => {
   );
 };
 
-export default ZidniRightPanel;
+export default FinixRightPanel;

@@ -138,4 +138,4 @@ const FinixLeftPanel = ({ data, cfoMode }: Props) => {
   );
 };
 
-export default ZidniLeftPanel;
+export default FinixLeftPanel;
