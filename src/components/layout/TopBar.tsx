@@ -194,7 +194,7 @@ const AppLogo = () => {
       ) : (
         <FinixLogo variant="icon" size="sm" />
       )}
-      <span className="text-sm font-semibold text-foreground hidden sm:block max-w-[140px] truncate whitespace-nowrap" style={{ fontFamily: "Tajawal, sans-serif" }}>
+      <span className="text-[12px] leading-tight font-semibold text-foreground hidden sm:block max-w-[160px] line-clamp-2" style={{ fontFamily: "Tajawal, sans-serif" }}>
         {company.name || "FINIX"}
       </span>
     </button>
