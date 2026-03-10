@@ -924,6 +924,72 @@ export type Database = {
           },
         ]
       }
+      bank_accounts: {
+        Row: {
+          account_number: string | null
+          account_type: string | null
+          bank_name: string
+          branch: string | null
+          commission_account_code: string | null
+          created_at: string | null
+          currency: string | null
+          gl_account_code: string | null
+          id: string
+          incoming_checks_account_code: string | null
+          is_active: boolean | null
+          min_balance_alert: number | null
+          name: string
+          notes: string | null
+          opening_balance: number | null
+          opening_balance_date: string | null
+          outgoing_checks_account_code: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          account_number?: string | null
+          account_type?: string | null
+          bank_name: string
+          branch?: string | null
+          commission_account_code?: string | null
+          created_at?: string | null
+          currency?: string | null
+          gl_account_code?: string | null
+          id?: string
+          incoming_checks_account_code?: string | null
+          is_active?: boolean | null
+          min_balance_alert?: number | null
+          name: string
+          notes?: string | null
+          opening_balance?: number | null
+          opening_balance_date?: string | null
+          outgoing_checks_account_code?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          account_number?: string | null
+          account_type?: string | null
+          bank_name?: string
+          branch?: string | null
+          commission_account_code?: string | null
+          created_at?: string | null
+          currency?: string | null
+          gl_account_code?: string | null
+          id?: string
+          incoming_checks_account_code?: string | null
+          is_active?: boolean | null
+          min_balance_alert?: number | null
+          name?: string
+          notes?: string | null
+          opening_balance?: number | null
+          opening_balance_date?: string | null
+          outgoing_checks_account_code?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       branches: {
         Row: {
           address: string | null
@@ -6642,6 +6708,139 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      voucher_lines: {
+        Row: {
+          account_code: string
+          account_name: string | null
+          created_at: string | null
+          credit: number | null
+          debit: number | null
+          description: string | null
+          id: string
+          line_order: number | null
+          voucher_id: string
+        }
+        Insert: {
+          account_code: string
+          account_name?: string | null
+          created_at?: string | null
+          credit?: number | null
+          debit?: number | null
+          description?: string | null
+          id?: string
+          line_order?: number | null
+          voucher_id: string
+        }
+        Update: {
+          account_code?: string
+          account_name?: string | null
+          created_at?: string | null
+          credit?: number | null
+          debit?: number | null
+          description?: string | null
+          id?: string
+          line_order?: number | null
+          voucher_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "voucher_lines_voucher_id_fkey"
+            columns: ["voucher_id"]
+            isOneToOne: false
+            referencedRelation: "vouchers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vouchers: {
+        Row: {
+          amount: number | null
+          amount_ils: number | null
+          bank_account_id: string | null
+          cheque_bank_name: string | null
+          cheque_due_date: string | null
+          cheque_number: string | null
+          contact_id: string | null
+          created_at: string | null
+          currency: string | null
+          date: string
+          description: string
+          exchange_rate: number | null
+          id: string
+          linked_transaction_id: string | null
+          notes: string | null
+          payment_method: string | null
+          posted_at: string | null
+          posted_by: string | null
+          ref_number: string
+          status: string | null
+          subtype: string | null
+          type: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          amount?: number | null
+          amount_ils?: number | null
+          bank_account_id?: string | null
+          cheque_bank_name?: string | null
+          cheque_due_date?: string | null
+          cheque_number?: string | null
+          contact_id?: string | null
+          created_at?: string | null
+          currency?: string | null
+          date?: string
+          description: string
+          exchange_rate?: number | null
+          id?: string
+          linked_transaction_id?: string | null
+          notes?: string | null
+          payment_method?: string | null
+          posted_at?: string | null
+          posted_by?: string | null
+          ref_number: string
+          status?: string | null
+          subtype?: string | null
+          type: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number | null
+          amount_ils?: number | null
+          bank_account_id?: string | null
+          cheque_bank_name?: string | null
+          cheque_due_date?: string | null
+          cheque_number?: string | null
+          contact_id?: string | null
+          created_at?: string | null
+          currency?: string | null
+          date?: string
+          description?: string
+          exchange_rate?: number | null
+          id?: string
+          linked_transaction_id?: string | null
+          notes?: string | null
+          payment_method?: string | null
+          posted_at?: string | null
+          posted_by?: string | null
+          ref_number?: string
+          status?: string | null
+          subtype?: string | null
+          type?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vouchers_bank_account_id_fkey"
+            columns: ["bank_account_id"]
+            isOneToOne: false
+            referencedRelation: "bank_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       webauthn_challenges: {
         Row: {
