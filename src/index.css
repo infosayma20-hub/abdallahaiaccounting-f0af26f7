@@ -84,6 +84,18 @@
     --shadow-md: 0 4px 16px rgba(13,27,42,0.12);
     --shadow-lg: 0 8px 32px rgba(13,27,42,0.18);
     --shadow-card: 0 1px 4px rgba(13,27,42,0.05);
+
+    /* Brand overridable (set via JS) */
+    --brand-sidebar: #0D1B2A;
+    --brand-primary: #E8A020;
+    --brand-accent: #F45E0C;
+    --brand-topbar: #08111A;
+    --brand-card-accent: #E8A020;
+    --brand-sidebar-text: #FFFFFF;
+    --brand-primary-hover: #C9870A;
+    --brand-primary-light: #E8A0201A;
+    --brand-accent-light: #F45E0C1A;
+    --brand-topbar-text: #FFFFFF;
   }
 
   /* ─── DARK THEME ─── */
