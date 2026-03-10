@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   ArrowRight, Loader2, Plus, Search, X, Trash2,
-  FileText, BookOpen, Save
+  FileText, BookOpen, Save, User, Building2, Users, Check
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -32,6 +32,7 @@ const FinanceJournalPage = () => {
 
   const [vouchers, setVouchers] = useState<any[]>([]);
   const [accounts, setAccounts] = useState<any[]>([]);
+  const [contacts, setContacts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -43,30 +44,57 @@ const FinanceJournalPage = () => {
   const [formSubtype, setFormSubtype] = useState("normal");
   const [formDescription, setFormDescription] = useState("");
   const [formNotes, setFormNotes] = useState("");
+  const [formContactId, setFormContactId] = useState("");
+  const [contactSearch, setContactSearch] = useState("");
   const [lines, setLines] = useState<JournalLine[]>([
     { id: "1", account_code: "", account_name: "", debit: 0, credit: 0 },
     { id: "2", account_code: "", account_name: "", debit: 0, credit: 0 },
   ]);
 
+  // Quick add contact
+  const [showQuickAdd, setShowQuickAdd] = useState(false);
+  const [quickName, setQuickName] = useState("");
+  const [quickType, setQuickType] = useState("customer");
+  const [quickPhone, setQuickPhone] = useState("");
+  const [quickSaving, setQuickSaving] = useState(false);
+
   const fetchData = useCallback(async () => {
     if (!user) return;
     setLoading(true);
-    const [vRes, aRes] = await Promise.all([
+    const [vRes, aRes, cRes] = await Promise.all([
       supabase.from("vouchers").select("*").eq("user_id", user.id).eq("type", "journal").order("created_at", { ascending: false }),
       supabase.from("accounts").select("account_code, account_name, account_type").eq("user_id", user.id).eq("is_active", true).order("account_code"),
+      supabase.from("contacts").select("id, contact_name, contact_type, current_balance").eq("user_id", user.id),
     ]);
     setVouchers(vRes.data || []);
     setAccounts(aRes.data || []);
+    setContacts(cRes.data || []);
     setLoading(false);
   }, [user]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
   useEffect(() => { if (searchParams.get("new") === "1") setModalOpen(true); }, [searchParams]);
 
+  // Auto-generate ref number when modal opens
+  const generateRefNumber = useCallback(async () => {
+    if (!user) return;
+    const { data } = await supabase.from("vouchers").select("ref_number").eq("user_id", user.id).eq("type", "journal").order("created_at", { ascending: false }).limit(1);
+    const lastRef = (data || [])[0]?.ref_number || "";
+    const match = lastRef.match(/(\d+)$/);
+    const nextNum = match ? String(parseInt(match[1]) + 1).padStart(Math.max(match[1].length, 4), "0") : "0001";
+    setFormRefNumber(`QV-${new Date().getFullYear()}-${nextNum}`);
+  }, [user]);
+
   const totalDebit = lines.reduce((s, l) => s + (Number(l.debit) || 0), 0);
   const totalCredit = lines.reduce((s, l) => s + (Number(l.credit) || 0), 0);
   const isBalanced = Math.abs(totalDebit - totalCredit) < 0.01 && totalDebit > 0;
   const diff = Math.abs(totalDebit - totalCredit);
+
+  const filteredContacts = useMemo(() => {
+    if (!contactSearch) return contacts;
+    const q = contactSearch.toLowerCase();
+    return contacts.filter(c => c.contact_name?.toLowerCase().includes(q));
+  }, [contacts, contactSearch]);
 
   const addLine = () => {
     setLines(prev => [...prev, { id: String(Date.now()), account_code: "", account_name: "", debit: 0, credit: 0 }]);
@@ -94,10 +122,36 @@ const FinanceJournalPage = () => {
     setFormSubtype("normal");
     setFormDescription("");
     setFormNotes("");
+    setFormContactId("");
+    setContactSearch("");
+    setShowQuickAdd(false);
     setLines([
       { id: "1", account_code: "", account_name: "", debit: 0, credit: 0 },
       { id: "2", account_code: "", account_name: "", debit: 0, credit: 0 },
     ]);
+    generateRefNumber();
+  };
+
+  const formatAmount = (n: number) => new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+
+  const handleQuickAddContact = async () => {
+    if (!user || !quickName.trim()) return;
+    setQuickSaving(true);
+    const { data, error } = await supabase.from("contacts").insert({
+      user_id: user.id,
+      contact_name: quickName.trim(),
+      contact_type: quickType,
+      phone: quickPhone || null,
+    }).select("id, contact_name, contact_type, current_balance").single();
+    if (error) {
+      toast({ title: "خطأ", description: error.message, variant: "destructive" });
+    } else if (data) {
+      setContacts(prev => [...prev, data]);
+      setFormContactId(data.id);
+      setShowQuickAdd(false);
+      toast({ title: `✅ تم إضافة ${data.contact_name}` });
+    }
+    setQuickSaving(false);
   };
 
   const handleSave = async (status: "draft" | "posted") => {
