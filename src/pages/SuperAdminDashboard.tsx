@@ -54,6 +54,8 @@ type UserRecord = {
   created_at: string;
   company_name?: string;
   business_type?: string;
+  invited_by?: string | null;
+  company_id?: string | null;
 };
 
 type LiveEvent = {
