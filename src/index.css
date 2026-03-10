@@ -736,3 +736,26 @@ html {
     display: none !important;
   }
 }
+
+/* ─── READ-ONLY MODE (Trial Expired) ─── */
+.trial-readonly-mode button:not([data-readonly-exempt]),
+.trial-readonly-mode [role="button"]:not([data-readonly-exempt]) {
+  /* Allow navigation buttons but block action buttons */
+}
+
+.trial-readonly-mode input,
+.trial-readonly-mode textarea,
+.trial-readonly-mode select {
+  pointer-events: none !important;
+  opacity: 0.6;
+  background: #F9FAFB !important;
+  cursor: not-allowed !important;
+}
+
+.trial-readonly-mode [data-action-btn],
+.trial-readonly-mode button[class*="إضافة"],
+.trial-readonly-mode button[class*="حفظ"] {
+  opacity: 0.4 !important;
+  pointer-events: none !important;
+  cursor: not-allowed !important;
+}
