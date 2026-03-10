@@ -9,7 +9,7 @@ interface Props {
 
 const MobileTopBar = ({ healthScore, onBack, onShowRadar }: Props) => {
   return (
-    <div className="zidni-mobile-topbar">
+    <div className="finix-mobile-topbar">
       <div className="flex items-center gap-2">
         <Tooltip>
           <TooltipTrigger asChild>
