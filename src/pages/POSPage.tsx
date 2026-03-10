@@ -1786,10 +1786,14 @@ const POSPage = () => {
   if (loading) {
     return (
       <div className="h-screen flex items-center justify-center bg-background" dir="rtl">
-        <div className="text-center space-y-4">
-          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="text-muted-foreground">جاري تحميل نقطة البيع...</p>
-        </div>
+        <div
+          className="w-10 h-10 rounded-full border-2 border-transparent"
+          style={{
+            borderTopColor: "hsl(var(--accent))",
+            borderRightColor: "hsl(var(--accent) / 0.3)",
+            animation: "navSpinRing 0.7s linear infinite",
+          }}
+        />
       </div>
     );
   }
