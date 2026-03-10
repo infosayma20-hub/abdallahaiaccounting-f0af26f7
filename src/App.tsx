@@ -40,7 +40,7 @@ import TermsPage from "./pages/TermsPage";
 import PrivacyPage from "./pages/PrivacyPage";
 import ProfilePage from "./pages/ProfilePage";
 import NotFound from "./pages/NotFound";
-import LoadingScreen from "./components/LoadingScreen";
+// LoadingScreen removed from route guards — now using lightweight AuthCheckSpinner
 import EmployeeAttendancePage from "./pages/EmployeeAttendancePage";
 import HRAttendancePage from "./pages/HRAttendancePage";
 import BranchDisplayPage from "./pages/BranchDisplayPage";
