@@ -424,10 +424,10 @@ const FinanceJournalPage = () => {
                       ))}
                     </SelectGroup>
                   )}
-                  {filteredContacts.filter(c => c.contact_type === "supplier").length > 0 && (
+                  {filteredContacts.filter(isSupplier).length > 0 && (
                     <SelectGroup>
                       <SelectLabel className="flex items-center gap-1.5 text-xs"><Building2 className="h-3 w-3" /> الموردين</SelectLabel>
-                      {filteredContacts.filter(c => c.contact_type === "supplier").map(c => (
+                      {filteredContacts.filter(isSupplier).map(c => (
                         <SelectItem key={c.id} value={c.id}>
                           <span className="flex items-center gap-2">
                             <span>{c.contact_name}</span>
