@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import {
   ArrowRight, Loader2, RefreshCw, Search, Scale,
   AlertTriangle, CheckCircle2, FileSpreadsheet, Printer, Calendar, Download,
+  TrendingUp, TrendingDown,
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
