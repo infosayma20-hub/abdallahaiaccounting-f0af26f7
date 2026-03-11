@@ -3091,7 +3091,63 @@ const POSPage = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Payment Dialog */}
+      {/* Shortcuts Guide Dialog */}
+      <Dialog open={showShortcutsGuide} onOpenChange={setShowShortcutsGuide}>
+        <DialogContent className="sm:max-w-lg" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="text-xl flex items-center gap-2">
+              <Keyboard className="h-5 w-5" />
+              دليل اختصارات لوحة المفاتيح
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-2 space-y-4 max-h-[60vh] overflow-y-auto">
+            {/* Action shortcuts */}
+            <div>
+              <h3 className="text-sm font-bold text-foreground mb-2 flex items-center gap-1.5">⚡ الأوامر</h3>
+              <div className="space-y-1.5">
+                {[
+                  { key: "F2", desc: "البحث عن منتج" },
+                  { key: "F8", desc: "طباعة" },
+                  { key: "F9", desc: "إرسال إلى الطابعة" },
+                  { key: "F10", desc: "حفظ الطلب" },
+                  { key: "F12", desc: "فتح نافذة الدفع" },
+                  { key: "Ctrl+Del", desc: "إفراغ السلة بالكامل" },
+                ].map(s => (
+                  <div key={s.key} className="flex items-center justify-between py-1.5 px-3 rounded-lg bg-muted/50">
+                    <span className="text-sm text-foreground">{s.desc}</span>
+                    <kbd className="text-xs font-mono bg-background border border-border rounded px-2 py-0.5 shadow-sm text-muted-foreground">{s.key}</kbd>
+                  </div>
+                ))}
+              </div>
+            </div>
+            {/* Category shortcuts */}
+            <div>
+              <h3 className="text-sm font-bold text-foreground mb-2 flex items-center gap-1.5">📂 التصنيفات</h3>
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between py-1.5 px-3 rounded-lg bg-muted/50">
+                  <span className="text-sm text-foreground">كل التصنيفات</span>
+                  <kbd className="text-xs font-mono bg-background border border-border rounded px-2 py-0.5 shadow-sm text-muted-foreground">Alt+0</kbd>
+                </div>
+                <div className="flex items-center justify-between py-1.5 px-3 rounded-lg bg-muted/50">
+                  <span className="text-sm text-foreground">التصنيف الأول إلى التاسع</span>
+                  <kbd className="text-xs font-mono bg-background border border-border rounded px-2 py-0.5 shadow-sm text-muted-foreground">Alt+1 ... Alt+9</kbd>
+                </div>
+              </div>
+            </div>
+            {/* Product shortcuts */}
+            <div>
+              <h3 className="text-sm font-bold text-foreground mb-2 flex items-center gap-1.5">📦 المنتجات</h3>
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between py-1.5 px-3 rounded-lg bg-muted/50">
+                  <span className="text-sm text-foreground">إضافة المنتج 1-9 من الشبكة</span>
+                  <kbd className="text-xs font-mono bg-background border border-border rounded px-2 py-0.5 shadow-sm text-muted-foreground">Ctrl+1 ... Ctrl+9</kbd>
+                </div>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={showPayment} onOpenChange={setShowPayment}>
         <DialogContent className="sm:max-w-lg max-h-[90vh] flex flex-col" dir="rtl">
           <DialogHeader className="flex-shrink-0">
