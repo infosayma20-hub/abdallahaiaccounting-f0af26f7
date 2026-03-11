@@ -26,6 +26,9 @@ interface TrialBalanceRow {
   totalDebit: number;
   totalCredit: number;
   balance: number;
+  prevDebit?: number;
+  prevCredit?: number;
+  prevBalance?: number;
 }
 
 const ACCOUNT_TYPE_ORDER: Record<string, number> = {
