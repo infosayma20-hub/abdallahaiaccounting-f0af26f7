@@ -1,19 +1,15 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
-  ArrowRight, Loader2, Plus, Search,
-  ArrowDown, ArrowUp, FileText, DollarSign, Hash, Calendar
+  Loader2, Plus, FileText, DollarSign, Hash, Calendar
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import VoucherDrawer from "@/components/finance/VoucherDrawer";
 import BackButton from "@/components/BackButton";
+import SortableReportTable, { ColumnDef, TotalsConfig } from "@/components/reports/SortableReportTable";
 
 type VoucherType = "receipt" | "payment";
 
