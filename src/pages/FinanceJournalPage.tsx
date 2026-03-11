@@ -448,7 +448,7 @@ const FinanceJournalPage = () => {
               {/* Quick Add Contact */}
               {!showQuickAdd ? (
                 <button
-                  onClick={() => { setShowQuickAdd(true); setQuickName(""); setQuickPhone(""); setQuickType("customer"); }}
+                  onClick={() => { setShowQuickAdd(true); setQuickName(""); setQuickPhone(""); setQuickType("عميل"); }}
                   className="mt-2 text-xs flex items-center gap-1 text-primary hover:underline"
                 >
                   <Plus className="h-3 w-3" /> إضافة جهة اتصال جديدة
