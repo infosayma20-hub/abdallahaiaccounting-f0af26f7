@@ -58,6 +58,9 @@ interface Permission {
   can_void_sales: boolean;
   can_refund: boolean;
   can_view_shift_details: boolean;
+  can_view_invoice_history: boolean;
+  can_edit_invoices: boolean;
+  require_manager_for_invoices: boolean;
   require_manager_approval: boolean;
 }
 
@@ -71,6 +74,9 @@ const DEFAULT_PERMS: Permission = {
   can_void_sales: false,
   can_refund: false,
   can_view_shift_details: false,
+  can_view_invoice_history: true,
+  can_edit_invoices: false,
+  require_manager_for_invoices: true,
   require_manager_approval: true,
 };
 
