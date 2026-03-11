@@ -1758,29 +1758,7 @@ const POSPage = () => {
       }
     }
 
-    // Transfer sales to cash box GL account
-    if (session.cash_box_id && session.total_sales > 0) {
-      const { data: cashBox } = await supabase
-        .from("cash_boxes")
-        .select("gl_account_code, name")
-        .eq("id", session.cash_box_id)
-        .maybeSingle();
-
-      if (cashBox?.gl_account_code && cashBox.gl_account_code !== "1110") {
-        await supabase.from("transactions").insert({
-          user_id: dataOwnerId,
-          transaction_date: new Date(session.opened_at).toISOString().split("T")[0],
-          description: `ترحيل مبيعات وردية إلى ${cashBox.name} - ${session.cashier_name}`,
-          debit_account_code: cashBox.gl_account_code,
-          credit_account_code: "1110",
-          amount: session.total_sales,
-          currency: "شيكل",
-          transaction_type: "pos_transfer",
-          reference: `SHIFT-TRANSFER-${session.id.slice(0, 8)}`,
-          idempotency_key: `SHIFT-TRANSFER-${session.id}`,
-        });
-      }
-    }
+    // Note: Sales are now posted directly to the cash box GL account via complete_pos_order
 
     // Prepare shift summary data
     setShiftSummaryData({
