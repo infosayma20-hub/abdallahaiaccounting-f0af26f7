@@ -26,6 +26,7 @@ export default function PortalSettings() {
   const [linkedUserId, setLinkedUserId] = useState('');
   const [showAddUser, setShowAddUser] = useState(false);
   const [newUser, setNewUser] = useState({ username: '', password: '', full_name: '', role: 'viewer' });
+  const [createdCredentials, setCreatedCredentials] = useState<{ username: string; password: string; full_name: string; role: string } | null>(null);
   const [settingsId, setSettingsId] = useState('');
 
   useEffect(() => {
