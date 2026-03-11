@@ -388,10 +388,10 @@ const CashBoxDrawer = ({ open, onClose, defaultType, editBox, hasMainBox, onSave
         </div>
 
         {/* Footer */}
-        <div className="border-t p-4 flex items-center gap-3">
-          <Button variant="ghost" onClick={onClose}>إلغاء</Button>
+        <div className="shrink-0 border-t bg-muted/30 p-4 flex items-center gap-3">
+          <Button variant="ghost" onClick={onClose} className="h-11 px-6">إلغاء</Button>
           <Button
-            className="flex-1 gap-2"
+            className="flex-1 h-11 text-base font-bold gap-2 text-white"
             style={{ background: gradients[boxType].includes("#0A2342") ? "#0A2342" : boxType === "branch" ? "#059669" : "#7C3AED" }}
             disabled={saving || !name.trim() || (boxType === "main" && hasMainBox && !editBox)}
             onClick={handleSave}
