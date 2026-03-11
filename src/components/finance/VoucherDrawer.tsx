@@ -126,9 +126,32 @@ const VoucherDrawer = ({ open, onClose, voucherType, onSaved, editVoucherId }: V
     if (cashAccs.length === 1) setFormCashAccountCode(cashAccs[0].account_code);
   };
 
+  // Load existing voucher for editing
+  const loadVoucherForEdit = useCallback(async (voucherId: string) => {
+    const { data } = await supabase.from("vouchers").select("*").eq("id", voucherId).single();
+    if (data) {
+      setFormDate(data.date || new Date().toISOString().split("T")[0]);
+      setFormRefNumber(data.ref_number || "");
+      setFormContactId(data.contact_id || "");
+      setFormAmount(String(data.amount || ""));
+      setFormCurrency(data.currency || "ILS");
+      setFormExchangeRate(String(data.exchange_rate || "1"));
+      setFormPaymentMethod(data.payment_method || "cash");
+      setFormBankAccountId(data.bank_account_id || "");
+      setFormDescription(data.description || "");
+      setFormNotes(data.notes || "");
+      setFormChequeBankName(data.cheque_bank_name || "");
+      if (data.cheque_due_date) setFormChequeDate(data.cheque_due_date);
+    }
+  }, []);
+
   useEffect(() => {
-    if (open) resetForm();
-  }, [open]);
+    if (open && editVoucherId) {
+      loadVoucherForEdit(editVoucherId);
+    } else if (open) {
+      resetForm();
+    }
+  }, [open, editVoucherId]);
 
   // Derived
   const cashAccounts = useMemo(() => accounts.filter(a => a.account_code?.startsWith("111")), [accounts]);
