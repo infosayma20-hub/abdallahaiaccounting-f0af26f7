@@ -545,10 +545,6 @@ const TransactionsPage = () => {
             <Printer className="w-4 h-4" />
             طباعة
           </Button>
-          <Button size="sm" className="gap-1.5 text-sm bg-[#1A56DB] hover:bg-[#1648B8] text-white" onClick={() => setShowJournalEntry(true)}>
-            <Plus className="w-4 h-4" />
-            قيد يدوي
-          </Button>
         </div>
       </div>
 
