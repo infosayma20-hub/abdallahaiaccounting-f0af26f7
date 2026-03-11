@@ -137,11 +137,16 @@ const VoucherDrawer = ({ open, onClose, voucherType, onSaved }: VoucherDrawerPro
   const rate = Number(formExchangeRate) || 1;
   const amountIls = formCurrency === "ILS" ? amountNum : amountNum * rate;
 
+  // Helper to normalize contact types (handle both EN and AR values)
+  const isCustomer = (c: any) => ["customer", "عميل", "زبون"].includes(c.contact_type);
+  const isSupplier = (c: any) => ["supplier", "مورد"].includes(c.contact_type);
+  const isEmployee = (c: any) => ["employee", "موظف"].includes(c.contact_type);
+
   // Grouped contacts
-  const customers = useMemo(() => contacts.filter(c => c.contact_type === "customer"), [contacts]);
-  const suppliers = useMemo(() => contacts.filter(c => c.contact_type === "supplier"), [contacts]);
-  const employees = useMemo(() => contacts.filter(c => c.contact_type === "employee"), [contacts]);
-  const others = useMemo(() => contacts.filter(c => !["customer", "supplier", "employee"].includes(c.contact_type)), [contacts]);
+  const customers = useMemo(() => contacts.filter(isCustomer), [contacts]);
+  const suppliers = useMemo(() => contacts.filter(isSupplier), [contacts]);
+  const employees = useMemo(() => contacts.filter(isEmployee), [contacts]);
+  const others = useMemo(() => contacts.filter(c => !isCustomer(c) && !isSupplier(c) && !isEmployee(c)), [contacts]);
 
   const filteredContacts = useMemo(() => {
     if (!contactSearch) return contacts;
