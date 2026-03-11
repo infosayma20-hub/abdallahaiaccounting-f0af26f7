@@ -94,6 +94,7 @@ const defaultSettings: CompanySettings = {
   website: "",
   tax_number: "",
   commercial_register: "",
+  licensed_dealer_number: "",
   base_currency: "ILS",
   extra_currencies: ["USD", "JOD"],
   exchange_rate_source: "auto",
