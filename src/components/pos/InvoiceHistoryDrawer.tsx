@@ -151,11 +151,8 @@ export default function InvoiceHistoryDrawer({
 
       if (sessionId) {
         query = query.eq("session_id", sessionId);
-      } else {
-        setOrders([]);
-        setLoading(false);
-        return;
       }
+      // When no sessionId, show all orders (not limited to session)
 
       query = query.order("created_at", { ascending: false }).limit(200) as any;
 
