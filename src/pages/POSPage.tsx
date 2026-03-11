@@ -426,7 +426,10 @@ const POSPage = () => {
      can_view_invoice_history: boolean;
      can_edit_invoices: boolean;
      require_manager_for_invoices: boolean;
-   }>({ can_view_invoice_history: true, can_edit_invoices: true, require_manager_for_invoices: true });
+     manage_products_categories: boolean;
+     view_invoice_log: boolean;
+     edit_cancel_invoices: boolean;
+   }>({ can_view_invoice_history: true, can_edit_invoices: true, require_manager_for_invoices: true, manage_products_categories: false, view_invoice_log: false, edit_cancel_invoices: false });
 
    // Modifiers
    const [modifierGroups, setModifierGroups] = useState<any[]>([]);
