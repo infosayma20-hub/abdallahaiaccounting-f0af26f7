@@ -4806,6 +4806,7 @@ export type Database = {
       pos_sessions: {
         Row: {
           approved_by_pos_user_id: string | null
+          cash_box_id: string | null
           cash_variance: number | null
           cashier_name: string | null
           cashier_pos_user_id: string | null
@@ -4832,6 +4833,7 @@ export type Database = {
         }
         Insert: {
           approved_by_pos_user_id?: string | null
+          cash_box_id?: string | null
           cash_variance?: number | null
           cashier_name?: string | null
           cashier_pos_user_id?: string | null
@@ -4858,6 +4860,7 @@ export type Database = {
         }
         Update: {
           approved_by_pos_user_id?: string | null
+          cash_box_id?: string | null
           cash_variance?: number | null
           cashier_name?: string | null
           cashier_pos_user_id?: string | null
@@ -4888,6 +4891,13 @@ export type Database = {
             columns: ["approved_by_pos_user_id"]
             isOneToOne: false
             referencedRelation: "pos_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_sessions_cash_box_id_fkey"
+            columns: ["cash_box_id"]
+            isOneToOne: false
+            referencedRelation: "cash_boxes"
             referencedColumns: ["id"]
           },
           {
