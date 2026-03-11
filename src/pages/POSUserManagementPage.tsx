@@ -9,6 +9,7 @@ import {
   Monitor, CheckCircle2, Mail, KeyRound, UserPlus,
   DoorOpen, DoorClosed, Percent, Eye, PencilLine,
   Ban, RotateCcw, ClipboardList, UserCheck, FileText,
+  Package, FilePen,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
