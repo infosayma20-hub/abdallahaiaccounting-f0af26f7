@@ -455,7 +455,7 @@ const VoucherDrawer = ({ open, onClose, voucherType, onSaved }: VoucherDrawerPro
             {/* Quick Add Contact */}
             {!showQuickAdd ? (
               <button
-                onClick={() => { setShowQuickAdd(true); setQuickName(""); setQuickPhone(""); setQuickType(isReceipt ? "customer" : "supplier"); }}
+                onClick={() => { setShowQuickAdd(true); setQuickName(""); setQuickPhone(""); setQuickType(isReceipt ? "عميل" : "مورد"); }}
                 className="mt-2 text-xs flex items-center gap-1 text-primary hover:underline"
               >
                 <Plus className="h-3 w-3" /> إضافة جهة اتصال جديدة
