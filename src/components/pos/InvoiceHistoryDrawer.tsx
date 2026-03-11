@@ -320,8 +320,12 @@ export default function InvoiceHistoryDrawer({
     }
   };
 
-  // ── Cancel: always require manager ──
+  // ── Cancel: require manager based on permission ──
   const initiateCancel = (order: InvoiceOrder) => {
+    if (!canEditInvoices) {
+      toast.error("ليس لديك صلاحية إلغاء الفواتير");
+      return;
+    }
     if (order.state !== "paid") {
       toast.error("لا يمكن إلغاء فاتورة غير مكتملة");
       return;
@@ -333,11 +337,18 @@ export default function InvoiceHistoryDrawer({
   const handleCancelConfirm = () => {
     if (!cancelReason.trim()) { toast.error("أدخل سبب الإلغاء"); return; }
     setShowCancelConfirm(false);
-    setPendingManagerAction("cancel");
-    setManagerOverrideVariant("destructive");
-    setManagerOverrideTitle("موافقة المدير — إلغاء فاتورة");
-    setManagerOverrideDesc(`إلغاء الفاتورة #${cancellingOrder?.order_number || "---"} بقيمة ₪${cancellingOrder?.total.toFixed(2)} — السبب: ${cancelReason}`);
-    setShowManagerOverride(true);
+    if (requireManagerForInvoices) {
+      setPendingManagerAction("cancel");
+      setManagerOverrideVariant("destructive");
+      setManagerOverrideTitle("موافقة المدير — إلغاء فاتورة");
+      setManagerOverrideDesc(`إلغاء الفاتورة #${cancellingOrder?.order_number || "---"} بقيمة ₪${cancellingOrder?.total.toFixed(2)} — السبب: ${cancelReason}`);
+      setShowManagerOverride(true);
+    } else {
+      // No manager approval needed
+      if (cancellingOrder) {
+        executeCancel(cancellingOrder, cancelReason, "بدون موافقة مدير");
+      }
+    }
   };
 
   const handleManagerApprovedForCancel = async (managerName: string) => {
