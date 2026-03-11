@@ -1670,17 +1670,14 @@ const POSPage = () => {
   };
 
   // Determine POS accounting date based on cutoff hour
-  const getPosAccountingDate = useCallback((openedAt: string) => {
+  const getPosAccountingDate = (openedAt: string, cutoffHour: number) => {
     const d = new Date(openedAt);
-    // Fetch cutoff hour from company_settings (default 6 AM)
-    // If the shift was opened before cutoff hour, the accounting date is the previous day
     const hour = d.getHours();
-    const cutoffHour = (window as any).__posDayCutoffHour ?? 6;
     if (hour < cutoffHour) {
       d.setDate(d.getDate() - 1);
     }
     return d.toISOString().split("T")[0];
-  }, []);
+  };
 
   // Close session
   const handleCloseShift = async () => {
@@ -1689,6 +1686,19 @@ const POSPage = () => {
     const expected = session.opening_cash + session.total_sales;
     const variance = cash - expected;
     const closedAt = new Date().toISOString();
+
+    // Load cutoff hour from settings
+    let cutoffHour = 6;
+    const { data: csData } = await supabase
+      .from("company_settings" as any)
+      .select("pos_day_cutoff_hour")
+      .eq("user_id", dataOwnerId)
+      .maybeSingle();
+    if (csData && (csData as any).pos_day_cutoff_hour != null) {
+      cutoffHour = (csData as any).pos_day_cutoff_hour;
+    }
+
+    const accountingDate = getPosAccountingDate(session.opened_at, cutoffHour);
 
     await supabase
       .from("pos_sessions")
