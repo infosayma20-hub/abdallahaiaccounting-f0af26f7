@@ -3,12 +3,16 @@ import {
   ArrowRight, Loader2, RefreshCw, Search, FileSpreadsheet,
   TrendingUp, TrendingDown, Wallet, Printer, Calendar,
   BookOpen, Users, Truck, UserCheck, ChevronLeft, LayoutGrid,
+  Settings2, AlertTriangle, FileText, CreditCard,
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -26,6 +30,8 @@ interface Contact {
   email: string | null;
   address: string | null;
   linked_account_code: string | null;
+  credit_limit?: number;
+  current_balance?: number;
 }
 
 interface Account {
@@ -42,7 +48,7 @@ interface EmployeeEntity {
   job_title: string | null;
   phone: string | null;
   base_salary: number;
-  account_code: string | null; // linked account code from accounts table
+  account_code: string | null;
 }
 
 interface Transaction {
@@ -57,6 +63,19 @@ interface Transaction {
   reference: string | null;
   is_deleted: boolean;
   contact_id: string | null;
+  payment_method: string | null;
+}
+
+interface Cheque {
+  id: string;
+  cheque_number: string | null;
+  cheque_type: string;
+  amount: number;
+  currency: string;
+  cheque_date: string;
+  party_name: string;
+  status: string;
+  bank_name: string | null;
 }
 
 interface StatementRow {
@@ -68,6 +87,8 @@ interface StatementRow {
   credit: number;
   balance: number;
   transaction_id: string;
+  currency: string;
+  payment_method: string | null;
 }
 
 type EntityTab = "customers" | "suppliers" | "employees" | "accounts";
@@ -80,6 +101,9 @@ const ENTITY_TABS: { key: EntityTab; label: string; icon: any; color: string; ac
   { key: "accounts", label: "الحسابات", icon: LayoutGrid, color: "text-purple-500", accountCode: "", type: "account" },
 ];
 
+const currentYear = new Date().getFullYear();
+const FISCAL_YEARS = Array.from({ length: 5 }, (_, i) => currentYear - i);
+
 const QUICK_PERIODS = [
   { label: "هذا الشهر", from: () => format(startOfMonth(new Date()), "yyyy-MM-dd"), to: () => format(endOfMonth(new Date()), "yyyy-MM-dd") },
   { label: "الربع الحالي", from: () => format(startOfQuarter(new Date()), "yyyy-MM-dd"), to: () => format(endOfQuarter(new Date()), "yyyy-MM-dd") },
@@ -87,14 +111,42 @@ const QUICK_PERIODS = [
   { label: "كل الفترات", from: () => "2020-01-01", to: () => format(new Date(), "yyyy-MM-dd") },
 ];
 
+const CURRENCIES = [
+  { value: "all", label: "كل العملات" },
+  { value: "شيكل", label: "₪ شيكل" },
+  { value: "دولار", label: "$ دولار" },
+  { value: "دينار", label: "د.أ دينار" },
+  { value: "يورو", label: "€ يورو" },
+];
+
 // ─── FORMAT HELPERS ───
-const fmtAmount = (n: number) =>
-  n === 0 ? "—" : `₪${Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const fmtAmount = (n: number, currency?: string) => {
+  if (n === 0) return "—";
+  const symbol = currency === "دولار" ? "$" : currency === "دينار" ? "د.أ" : currency === "يورو" ? "€" : "₪";
+  return `${symbol}${Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+};
 
 const fmtDate = (d: string) => {
   if (!d) return "—";
   const parts = d.split("-");
   return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : d;
+};
+
+// Display options type
+interface DisplayOptions {
+  showNotes: boolean;
+  showPaymentMethod: boolean;
+  showCurrency: boolean;
+  showCheques: boolean;
+  showVoucherDetails: boolean;
+}
+
+const DEFAULT_DISPLAY_OPTIONS: DisplayOptions = {
+  showNotes: false,
+  showPaymentMethod: true,
+  showCurrency: false,
+  showCheques: true,
+  showVoucherDetails: true,
 };
 
 // ─── MAIN COMPONENT ───
@@ -116,11 +168,13 @@ const AccountStatementPage = () => {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [employeeEntities, setEmployeeEntities] = useState<EmployeeEntity[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [cheques, setCheques] = useState<Cheque[]>([]);
   const [loading, setLoading] = useState(true);
   const [companyName, setCompanyName] = useState("");
   const [companyInfo, setCompanyInfo] = useState({
     name: "", logo_url: "", address: "", phone: "", email: "", website: "", tax_number: "",
   });
+  const [fiscalYearStart, setFiscalYearStart] = useState(1); // month 1-12
   const [activeTab, setActiveTab] = useState<EntityTab>(
     urlAccountCode ? "accounts" : urlEmployeeName ? "employees" : urlContactType === "مورد" ? "suppliers" : "customers"
   );
@@ -130,6 +184,9 @@ const AccountStatementPage = () => {
   const [dateFrom, setDateFrom] = useState(format(startOfYear(new Date()), "yyyy-MM-dd"));
   const [dateTo, setDateTo] = useState(format(endOfMonth(new Date()), "yyyy-MM-dd"));
   const [activePeriod, setActivePeriod] = useState("");
+  const [selectedCurrency, setSelectedCurrency] = useState("all");
+  const [displayOptions, setDisplayOptions] = useState<DisplayOptions>(DEFAULT_DISPLAY_OPTIONS);
+  const [showDisplayPanel, setShowDisplayPanel] = useState(false);
 
   const activeTabConfig = ENTITY_TABS.find(t => t.key === activeTab)!;
   const isAccountsTab = activeTab === "accounts";
@@ -140,10 +197,10 @@ const AccountStatementPage = () => {
     if (!user) return;
     setLoading(true);
     try {
-      const [{ data: contactData }, { data: accData }, { data: txData }, profileRes, { data: empData }, { data: csData }] = await Promise.all([
+      const [{ data: contactData }, { data: accData }, { data: txData }, profileRes, { data: empData }, { data: csData }, { data: chequeData }] = await Promise.all([
         supabase
           .from("contacts")
-          .select("id, contact_name, contact_type, phone, email, address, linked_account_code")
+          .select("id, contact_name, contact_type, phone, email, address, linked_account_code, credit_limit, current_balance")
           .eq("user_id", user.id)
           .eq("is_active", true)
           .order("contact_name"),
@@ -155,7 +212,7 @@ const AccountStatementPage = () => {
           .order("account_code"),
         supabase
           .from("transactions")
-          .select("id, description, transaction_type, amount, currency, transaction_date, debit_account_code, credit_account_code, reference, is_deleted, contact_id")
+          .select("id, description, transaction_type, amount, currency, transaction_date, debit_account_code, credit_account_code, reference, is_deleted, contact_id, payment_method")
           .eq("user_id", user.id)
           .eq("is_deleted", false)
           .order("transaction_date", { ascending: true })
@@ -169,16 +226,21 @@ const AccountStatementPage = () => {
           .order("full_name"),
         supabase
           .from("company_settings")
-          .select("company_name, logo_url, address, phone, email, website, tax_number")
+          .select("company_name, logo_url, address, phone, email, website, tax_number, fiscal_year_start")
           .eq("user_id", user.id)
           .maybeSingle(),
+        supabase
+          .from("cheques")
+          .select("id, cheque_number, cheque_type, amount, currency, cheque_date, party_name, status, bank_name")
+          .eq("user_id", user.id)
+          .order("cheque_date", { ascending: false }),
       ]);
       setContacts((contactData as Contact[]) || []);
       setAccounts((accData as Account[]) || []);
       setTransactions((txData as Transaction[]) || []);
+      setCheques((chequeData as Cheque[]) || []);
       if (profileRes.data?.company_name) setCompanyName(profileRes.data.company_name);
 
-      // Company info from settings
       const cs = csData as any;
       if (cs) {
         setCompanyInfo({
@@ -190,31 +252,24 @@ const AccountStatementPage = () => {
           website: cs.website || "",
           tax_number: cs.tax_number || "",
         });
+        if (cs.fiscal_year_start) setFiscalYearStart(cs.fiscal_year_start);
       } else if (profileRes.data) {
         setCompanyInfo(prev => ({ ...prev, name: profileRes.data?.company_name || profileRes.data?.display_name || "" }));
       }
 
-      // Map employees to their linked account codes (accounts under 1180)
       const allAccounts = (accData as Account[]) || [];
       const empList = ((empData as any[]) || []).map((emp: any) => {
-        // Find a matching account: "ذمم موظف - {name}" under parent 1180
         const linkedAcc = allAccounts.find(
           a => a.account_name === `ذمم موظف - ${emp.full_name}` && a.account_type === "أصول"
         );
-        return {
-          ...emp,
-          account_code: linkedAcc?.account_code || null,
-        } as EmployeeEntity;
+        return { ...emp, account_code: linkedAcc?.account_code || null } as EmployeeEntity;
       });
       setEmployeeEntities(empList);
 
-      // Auto-select employee from URL param
       if (urlEmployeeName && empList.length > 0) {
         const found = empList.find(e => e.full_name === urlEmployeeName);
         if (found) setSelectedEntityId(found.id);
       }
-
-      // Auto-select account from URL param (code)
       if (urlAccountCode && allAccounts.length > 0) {
         const found = allAccounts.find(a => a.account_code === urlAccountCode);
         if (found) setSelectedEntityId(found.id);
@@ -228,6 +283,19 @@ const AccountStatementPage = () => {
 
   useEffect(() => { fetchData(); }, [user]);
 
+  // ─── FISCAL YEAR HELPER ───
+  const setFiscalYear = (year: number) => {
+    const startMonth = String(fiscalYearStart).padStart(2, "0");
+    const from = `${year}-${startMonth}-01`;
+    const endYear = fiscalYearStart > 1 ? year + 1 : year;
+    const endMonth = fiscalYearStart > 1 ? fiscalYearStart - 1 : 12;
+    const endDate = new Date(endYear, endMonth, 0);
+    const to = format(endDate, "yyyy-MM-dd");
+    setDateFrom(from);
+    setDateTo(to);
+    setActivePeriod(`سنة ${year}`);
+  };
+
   // ─── FILTERED CONTACTS BY TAB ───
   const tabContacts = useMemo(() => {
     if (isAccountsTab || isEmployeesTab) return [];
@@ -235,7 +303,7 @@ const AccountStatementPage = () => {
     return contacts.filter(c => c.contact_type === type);
   }, [contacts, activeTab]);
 
-  // ─── ACCOUNT BALANCES (for accounts tab) ───
+  // ─── ACCOUNT BALANCES ───
   const accountBalances = useMemo(() => {
     if (!isAccountsTab) return {};
     const map: Record<string, number> = {};
@@ -351,6 +419,24 @@ const AccountStatementPage = () => {
     ? { type: "موظف", code: selectedEmployee?.account_code || "", phone: selectedEmployee?.phone || "", address: selectedEmployee?.job_title || selectedEmployee?.department || "" }
     : { type: selectedContact?.contact_type || "", code: "", phone: selectedContact?.phone || "", address: selectedContact?.address || "" };
 
+  // ─── CREDIT LIMIT CHECK ───
+  const creditLimitWarning = useMemo(() => {
+    if (isAccountsTab || isEmployeesTab || !selectedContact) return null;
+    const limit = selectedContact.credit_limit || 0;
+    if (limit <= 0) return null;
+    const balance = selectedContact.current_balance || 0;
+    const pct = (balance / limit) * 100;
+    if (pct >= 100) return { level: "exceeded" as const, pct, limit, balance };
+    if (pct >= 80) return { level: "warning" as const, pct, limit, balance };
+    return { level: "ok" as const, pct, limit, balance };
+  }, [selectedContact, isAccountsTab, isEmployeesTab]);
+
+  // ─── RELATED CHEQUES ───
+  const relatedCheques = useMemo(() => {
+    if (!displayOptions.showCheques || !selectedEntityName) return [];
+    return cheques.filter(c => c.party_name === selectedEntityName);
+  }, [cheques, selectedEntityName, displayOptions.showCheques]);
+
   // ─── STATEMENT ROWS ───
   const { rows, openingBalance, closingBalance, totalDebit, totalCredit } = useMemo(() => {
     if (!selectedEntityId) return { rows: [] as StatementRow[], openingBalance: 0, closingBalance: 0, totalDebit: 0, totalCredit: 0 };
@@ -368,7 +454,6 @@ const AccountStatementPage = () => {
         isCredit: tx.credit_account_code === code,
       });
     } else if (isEmployeesTab && selectedEmployee?.account_code) {
-      // Employee: use their linked account code from accounts tree
       const code = selectedEmployee.account_code;
       related = transactions.filter(tx =>
         tx.debit_account_code === code || tx.credit_account_code === code
@@ -378,7 +463,6 @@ const AccountStatementPage = () => {
         isCredit: tx.credit_account_code === code,
       });
     } else if (isEmployeesTab && !selectedEmployee?.account_code) {
-      // No linked account - no transactions
       return { rows: [] as StatementRow[], openingBalance: 0, closingBalance: 0, totalDebit: 0, totalCredit: 0 };
     } else {
       const accountCode = activeTabConfig.accountCode;
@@ -387,6 +471,11 @@ const AccountStatementPage = () => {
         isDebit: tx.debit_account_code === accountCode,
         isCredit: tx.credit_account_code === accountCode,
       });
+    }
+
+    // Currency filter
+    if (selectedCurrency !== "all") {
+      related = related.filter(tx => tx.currency === selectedCurrency);
     }
 
     let openBal = 0;
@@ -425,11 +514,13 @@ const AccountStatementPage = () => {
         debit, credit,
         balance: runningBalance,
         transaction_id: tx.id,
+        currency: tx.currency || "شيكل",
+        payment_method: tx.payment_method || null,
       };
     });
 
     return { rows, openingBalance: openBal, closingBalance: runningBalance, totalDebit: sumDebit, totalCredit: sumCredit };
-  }, [transactions, selectedEntityId, dateFrom, dateTo, activeTab, selectedAccount, selectedEmployee]);
+  }, [transactions, selectedEntityId, dateFrom, dateTo, activeTab, selectedAccount, selectedEmployee, selectedCurrency]);
 
   const filteredRows = useMemo(() => {
     if (!txSearch.trim()) return rows;
@@ -450,33 +541,36 @@ const AccountStatementPage = () => {
       [`الفترة: من ${dateFrom} إلى ${dateTo}`],
       [companyInfo.phone ? `📞 ${companyInfo.phone}` : "", "", "", companyInfo.email ? `✉️ ${companyInfo.email}` : "", "", companyInfo.tax_number ? `رقم ضريبي: ${companyInfo.tax_number}` : ""],
       [],
-      ["التاريخ", "المرجع", "البيان", "النوع", "مدين ₪", "دائن ₪", "الرصيد ₪"],
     ];
+
+    const cols = ["التاريخ", "المرجع", "البيان", "النوع", "مدين ₪", "دائن ₪", "الرصيد ₪"];
+    if (displayOptions.showPaymentMethod) cols.splice(4, 0, "طريقة الدفع");
+    if (displayOptions.showCurrency) cols.splice(4, 0, "العملة");
+    headerRows.push(cols);
 
     const dataRows = [
       ["", "", "رصيد أول المدة", "", openingBalance > 0 ? openingBalance : "", openingBalance < 0 ? Math.abs(openingBalance) : "", openingBalance],
-      ...rows.map(r => [
-        r.date,
-        r.reference || "",
-        r.description,
-        r.debit > 0 ? "مدين" : "دائن",
-        r.debit || "",
-        r.credit || "",
-        r.balance,
-      ]),
+      ...rows.map(r => {
+        const row: any[] = [
+          r.date,
+          r.reference || "",
+          r.description,
+          r.debit > 0 ? "مدين" : "دائن",
+        ];
+        if (displayOptions.showCurrency) row.push(r.currency);
+        if (displayOptions.showPaymentMethod) row.push(r.payment_method || "");
+        row.push(r.debit || "", r.credit || "", r.balance);
+        return row;
+      }),
       ["", "", "الإجمالي", "", totalDebit, totalCredit, closingBalance],
     ];
 
     const allRows = [...headerRows, ...dataRows];
     const ws = XLSX.utils.aoa_to_sheet(allRows);
-
-    // Column widths
     ws["!cols"] = [
       { wch: 12 }, { wch: 18 }, { wch: 38 }, { wch: 8 },
       { wch: 14 }, { wch: 14 }, { wch: 16 },
     ];
-
-    // Merge header cells
     ws["!merges"] = [
       { s: { r: 0, c: 0 }, e: { r: 0, c: 6 } },
       { s: { r: 1, c: 0 }, e: { r: 1, c: 6 } },
@@ -485,6 +579,22 @@ const AccountStatementPage = () => {
 
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "كشف الحساب");
+
+    // Add cheques sheet if showing
+    if (displayOptions.showCheques && relatedCheques.length > 0) {
+      const chequeRows = relatedCheques.map(c => ({
+        "رقم الشيك": c.cheque_number || "—",
+        "النوع": c.cheque_type,
+        "المبلغ": c.amount,
+        "العملة": c.currency,
+        "التاريخ": c.cheque_date,
+        "الحالة": c.status,
+        "البنك": c.bank_name || "—",
+      }));
+      const ws2 = XLSX.utils.json_to_sheet(chequeRows);
+      XLSX.utils.book_append_sheet(wb, ws2, "الشيكات");
+    }
+
     XLSX.writeFile(wb, `كشف-حساب-${selectedEntityName}-${dateFrom}.xlsx`);
   };
 
@@ -493,11 +603,23 @@ const AccountStatementPage = () => {
   const debitCount = useMemo(() => Object.values(allBalances).filter(b => b > 0).length, [allBalances]);
   const creditCount = useMemo(() => Object.values(allBalances).filter(b => b < 0).length, [allBalances]);
 
+  // Navigate to voucher/journal
+  const navigateToReference = (ref: string, txId: string) => {
+    if (!ref) return;
+    if (ref.startsWith("RV-") || ref.startsWith("PV-") || ref.startsWith("QV-")) {
+      navigate(`/finance/vouchers?edit=${txId}`);
+    } else if (ref.startsWith("INV-")) {
+      navigate(`/invoices?edit=${txId}`);
+    } else if (ref.startsWith("PO-") || ref.startsWith("PUR-")) {
+      navigate(`/invoices?edit=${txId}`);
+    } else {
+      navigate("/journal-entries");
+    }
+  };
+
   // ─── RENDER ───
   return (
     <div className="min-h-screen bg-background flex flex-col" dir="rtl">
-      {/* Print CSS is handled globally in index.css */}
-
       {/* ─── TOP BAR ─── */}
       <div className="sticky top-0 z-20 bg-card/95 backdrop-blur border-b border-border no-print">
         <div className="flex items-center justify-between px-4 py-2.5">
@@ -536,6 +658,14 @@ const AccountStatementPage = () => {
             <Button variant="ghost" size="icon" onClick={fetchData} disabled={loading} className="h-8 w-8">
               <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
             </Button>
+            <Button
+              variant={showDisplayPanel ? "default" : "outline"}
+              size="sm"
+              onClick={() => setShowDisplayPanel(!showDisplayPanel)}
+              className="h-8 gap-1.5 text-xs"
+            >
+              <Settings2 className="w-3.5 h-3.5" /> خيارات العرض
+            </Button>
             <Button variant="outline" size="sm" onClick={() => window.print()} disabled={!selectedEntityId || rows.length === 0} className="h-8 gap-1.5 text-xs">
               <Printer className="w-3.5 h-3.5" /> طباعة
             </Button>
@@ -544,6 +674,73 @@ const AccountStatementPage = () => {
             </Button>
           </div>
         </div>
+
+        {/* Display Options Panel */}
+        {showDisplayPanel && (
+          <div className="border-t border-border bg-muted/30 px-4 py-3">
+            <div className="flex items-center gap-6 flex-wrap">
+              {/* Currency filter */}
+              <div className="flex items-center gap-2">
+                <label className="text-[11px] font-semibold text-muted-foreground">العملة:</label>
+                <Select value={selectedCurrency} onValueChange={setSelectedCurrency}>
+                  <SelectTrigger className="h-7 w-32 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CURRENCIES.map(c => (
+                      <SelectItem key={c.value} value={c.value} className="text-xs">{c.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="h-5 w-px bg-border" />
+
+              {/* Fiscal year */}
+              <div className="flex items-center gap-2">
+                <label className="text-[11px] font-semibold text-muted-foreground">السنة المالية:</label>
+                <div className="flex gap-1">
+                  {FISCAL_YEARS.map(y => (
+                    <button
+                      key={y}
+                      onClick={() => setFiscalYear(y)}
+                      className={cn(
+                        "px-2 py-0.5 rounded text-[11px] font-medium transition-all",
+                        activePeriod === `سنة ${y}`
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
+                      )}
+                    >
+                      {y}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="h-5 w-px bg-border" />
+
+              {/* Display checkboxes */}
+              <div className="flex items-center gap-4 flex-wrap">
+                {[
+                  { key: "showPaymentMethod" as const, label: "طريقة الدفع" },
+                  { key: "showCurrency" as const, label: "العملة" },
+                  { key: "showCheques" as const, label: "الشيكات المرتبطة" },
+                  { key: "showVoucherDetails" as const, label: "تفاصيل السندات" },
+                  { key: "showNotes" as const, label: "الملاحظات" },
+                ].map(opt => (
+                  <label key={opt.key} className="flex items-center gap-1.5 cursor-pointer">
+                    <Checkbox
+                      checked={displayOptions[opt.key]}
+                      onCheckedChange={(v) => setDisplayOptions(prev => ({ ...prev, [opt.key]: !!v }))}
+                      className="h-3.5 w-3.5"
+                    />
+                    <span className="text-[11px] text-foreground">{opt.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ─── BODY: Left Panel + Main ─── */}
@@ -661,13 +858,34 @@ const AccountStatementPage = () => {
               </div>
             ) : (
               <>
+                {/* ─── CREDIT LIMIT WARNING ─── */}
+                {creditLimitWarning && creditLimitWarning.level !== "ok" && (
+                  <div className={cn(
+                    "mx-4 mt-3 rounded-lg border px-4 py-2.5 flex items-center gap-3 no-print",
+                    creditLimitWarning.level === "exceeded"
+                      ? "bg-red-500/10 border-red-500/30 text-red-600"
+                      : "bg-amber-500/10 border-amber-500/30 text-amber-600"
+                  )}>
+                    <AlertTriangle className="w-4 h-4 shrink-0" />
+                    <div className="text-xs">
+                      <strong>
+                        {creditLimitWarning.level === "exceeded" ? "⚠️ تم تجاوز سقف الائتمان!" : "⚠️ اقتراب من سقف الائتمان"}
+                      </strong>
+                      <span className="mr-2">
+                        الرصيد الحالي: {fmtAmount(creditLimitWarning.balance)} من أصل {fmtAmount(creditLimitWarning.limit)}
+                        ({Math.round(creditLimitWarning.pct)}%)
+                      </span>
+                    </div>
+                  </div>
+                )}
+
                 {/* ─── ENTITY INFO CARD ─── */}
                 <div className="p-4 no-print">
                   <div className="bg-card rounded-xl border border-border p-4">
                     <div className="flex items-start justify-between mb-4">
                       <div>
                         <h2 className="text-base font-bold text-foreground">{selectedEntityName}</h2>
-                        <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                        <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground flex-wrap">
                           {isAccountsTab && selectedAccount && (
                             <>
                               <span className="font-mono">{selectedAccount.account_code}</span>
@@ -689,6 +907,11 @@ const AccountStatementPage = () => {
                               {selectedContact.phone && <span>📞 {selectedContact.phone}</span>}
                               {selectedContact.address && <span>📍 {selectedContact.address}</span>}
                               <Badge variant="secondary" className="text-[10px]">{selectedContact.contact_type}</Badge>
+                              {creditLimitWarning && creditLimitWarning.limit > 0 && (
+                                <Badge variant="outline" className="text-[10px]">
+                                  سقف ائتمان: {fmtAmount(creditLimitWarning.limit)}
+                                </Badge>
+                              )}
                             </>
                           )}
                         </div>
@@ -750,6 +973,77 @@ const AccountStatementPage = () => {
                   </div>
                 </div>
 
+                {/* ─── RELATED CHEQUES SECTION ─── */}
+                {displayOptions.showCheques && relatedCheques.length > 0 && (
+                  <div className="px-4 pb-3 no-print">
+                    <Collapsible>
+                      <CollapsibleTrigger className="w-full">
+                        <div className="bg-card rounded-xl border border-border p-3 flex items-center justify-between hover:bg-muted/30 transition-colors cursor-pointer">
+                          <div className="flex items-center gap-2">
+                            <CreditCard className="w-4 h-4 text-muted-foreground" />
+                            <span className="text-xs font-semibold text-foreground">الشيكات المرتبطة</span>
+                            <Badge variant="secondary" className="text-[10px]">{relatedCheques.length}</Badge>
+                          </div>
+                          <div className="flex items-center gap-3 text-[10px]">
+                            <span className="text-emerald-500">
+                              واردة: {fmtAmount(relatedCheques.filter(c => c.cheque_type === "وارد").reduce((s, c) => s + c.amount, 0))}
+                            </span>
+                            <span className="text-red-400">
+                              صادرة: {fmtAmount(relatedCheques.filter(c => c.cheque_type === "صادر").reduce((s, c) => s + c.amount, 0))}
+                            </span>
+                          </div>
+                        </div>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <div className="mt-1 bg-card rounded-xl border border-border overflow-hidden">
+                          <table className="w-full text-[12px]">
+                            <thead>
+                              <tr className="bg-muted/40 border-b border-border">
+                                <th className="text-right px-3 py-2 text-[10px] font-bold text-muted-foreground">رقم الشيك</th>
+                                <th className="text-center px-3 py-2 text-[10px] font-bold text-muted-foreground">النوع</th>
+                                <th className="text-left px-3 py-2 text-[10px] font-bold text-muted-foreground">المبلغ</th>
+                                <th className="text-right px-3 py-2 text-[10px] font-bold text-muted-foreground">التاريخ</th>
+                                <th className="text-center px-3 py-2 text-[10px] font-bold text-muted-foreground">الحالة</th>
+                                <th className="text-right px-3 py-2 text-[10px] font-bold text-muted-foreground">البنك</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {relatedCheques.map(c => (
+                                <tr key={c.id} className="border-b border-border/30 hover:bg-muted/20 transition-colors">
+                                  <td className="px-3 py-2 text-right">
+                                    <button
+                                      onClick={() => navigate("/cheques")}
+                                      className="text-primary hover:underline font-mono text-[11px]"
+                                    >
+                                      {c.cheque_number || "—"}
+                                    </button>
+                                  </td>
+                                  <td className="px-3 py-2 text-center">
+                                    <span className={cn(
+                                      "text-[10px] font-semibold px-1.5 py-0.5 rounded border",
+                                      c.cheque_type === "وارد"
+                                        ? "border-emerald-500/30 text-emerald-500 bg-emerald-500/5"
+                                        : "border-red-500/30 text-red-500 bg-red-500/5"
+                                    )}>
+                                      {c.cheque_type}
+                                    </span>
+                                  </td>
+                                  <td className="px-3 py-2 text-left font-mono font-semibold">{fmtAmount(c.amount)}</td>
+                                  <td className="px-3 py-2 text-right text-muted-foreground">{fmtDate(c.cheque_date)}</td>
+                                  <td className="px-3 py-2 text-center">
+                                    <Badge variant="outline" className="text-[9px]">{c.status}</Badge>
+                                  </td>
+                                  <td className="px-3 py-2 text-right text-muted-foreground">{c.bank_name || "—"}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </CollapsibleContent>
+                    </Collapsible>
+                  </div>
+                )}
+
                 {/* ─── TABLE ─── */}
                 <div className="px-4 pb-4 flex-1 no-print">
                   {loading ? (
@@ -774,6 +1068,8 @@ const AccountStatementPage = () => {
                             <col style={{ width: "120px" }} />
                             <col />
                             <col style={{ width: "80px" }} />
+                            {displayOptions.showPaymentMethod && <col style={{ width: "90px" }} />}
+                            {displayOptions.showCurrency && <col style={{ width: "70px" }} />}
                             <col style={{ width: "110px" }} />
                             <col style={{ width: "110px" }} />
                             <col style={{ width: "130px" }} />
@@ -784,6 +1080,12 @@ const AccountStatementPage = () => {
                               <th className="text-right px-3 py-2.5 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">المرجع</th>
                               <th className="text-right px-3 py-2.5 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">البيان</th>
                               <th className="text-center px-3 py-2.5 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">النوع</th>
+                              {displayOptions.showPaymentMethod && (
+                                <th className="text-center px-3 py-2.5 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">الدفع</th>
+                              )}
+                              {displayOptions.showCurrency && (
+                                <th className="text-center px-3 py-2.5 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">العملة</th>
+                              )}
                               <th className="text-left px-3 py-2.5 text-[11px] font-bold uppercase tracking-wider" style={{ color: "hsl(var(--destructive))" }}>مدين ₪</th>
                               <th className="text-left px-3 py-2.5 text-[11px] font-bold uppercase tracking-wider" style={{ color: "hsl(var(--success))" }}>دائن ₪</th>
                               <th className="text-left px-3 py-2.5 text-[11px] font-bold text-foreground uppercase tracking-wider">الرصيد ₪</th>
@@ -796,6 +1098,8 @@ const AccountStatementPage = () => {
                               <td className="px-3 py-2 text-xs text-muted-foreground">—</td>
                               <td className="px-3 py-2 text-xs font-semibold text-foreground italic">رصيد مُرحَّل</td>
                               <td className="px-3 py-2"></td>
+                              {displayOptions.showPaymentMethod && <td className="px-3 py-2"></td>}
+                              {displayOptions.showCurrency && <td className="px-3 py-2"></td>}
                               <td className="px-3 py-2 text-xs text-left tabular-nums text-muted-foreground">
                                 {openingBalance > 0 ? fmtAmount(openingBalance) : "—"}
                               </td>
@@ -813,7 +1117,10 @@ const AccountStatementPage = () => {
                                 <td className="px-3 py-2 text-xs tabular-nums text-muted-foreground">{fmtDate(row.date)}</td>
                                 <td className="px-3 py-2 text-xs">
                                   {row.reference ? (
-                                    <button onClick={() => navigate("/journal-entries")} className="text-primary hover:underline font-mono text-[11px]">
+                                    <button
+                                      onClick={() => navigateToReference(row.reference, row.transaction_id)}
+                                      className="text-primary hover:underline font-mono text-[11px]"
+                                    >
                                       {row.reference}
                                     </button>
                                   ) : <span className="text-muted-foreground">—</span>}
@@ -829,6 +1136,12 @@ const AccountStatementPage = () => {
                                     {row.debit > 0 ? "مدين" : "دائن"}
                                   </span>
                                 </td>
+                                {displayOptions.showPaymentMethod && (
+                                  <td className="px-3 py-2 text-center text-[10px] text-muted-foreground">{row.payment_method || "—"}</td>
+                                )}
+                                {displayOptions.showCurrency && (
+                                  <td className="px-3 py-2 text-center text-[10px] text-muted-foreground">{row.currency}</td>
+                                )}
                                 <td className="px-3 py-2 text-left tabular-nums font-semibold" style={{ color: row.debit > 0 ? "hsl(var(--destructive))" : undefined }}>
                                   {row.debit > 0 ? fmtAmount(row.debit) : "—"}
                                 </td>
@@ -847,6 +1160,8 @@ const AccountStatementPage = () => {
                               <td className="px-3 py-3 text-xs font-bold text-foreground">—</td>
                               <td className="px-3 py-3 text-xs font-bold text-foreground">رصيد ختامي</td>
                               <td className="px-3 py-3"></td>
+                              {displayOptions.showPaymentMethod && <td className="px-3 py-3"></td>}
+                              {displayOptions.showCurrency && <td className="px-3 py-3"></td>}
                               <td className="px-3 py-3 text-left tabular-nums font-bold" style={{ color: "hsl(var(--destructive))" }}>{fmtAmount(totalDebit)}</td>
                               <td className="px-3 py-3 text-left tabular-nums font-bold" style={{ color: "hsl(var(--success))" }}>{fmtAmount(totalCredit)}</td>
                               <td className="px-3 py-3 text-left">
@@ -870,8 +1185,6 @@ const AccountStatementPage = () => {
                     </div>
                   )}
                 </div>
-
-                {/* Print footer is included in StatementPrintView */}
               </>
             )}
           </div>
