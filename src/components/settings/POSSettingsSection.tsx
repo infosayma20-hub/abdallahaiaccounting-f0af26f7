@@ -93,6 +93,20 @@ const POSSettingsSection = ({ settings, onChange }: Props) => {
             <span className="text-sm">إشعار عند عجز الصندوق</span>
             <Switch checked={settings.pos_deficit_alert} onCheckedChange={v => onChange({ pos_deficit_alert: v })} />
           </div>
+          <div className="space-y-2">
+            <Label>ساعة قطع اليوم المحاسبي</Label>
+            <Select value={String(settings.pos_day_cutoff_hour)} onValueChange={v => onChange({ pos_day_cutoff_hour: Number(v) })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {[0,1,2,3,4,5,6,7,8].map(h => (
+                  <SelectItem key={h} value={String(h)}>{h === 0 ? "منتصف الليل (12:00 AM)" : `${h}:00 صباحاً`}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-[10px] text-muted-foreground">
+              الورديات التي تُفتح قبل هذه الساعة تُسجَّل محاسبياً على اليوم السابق
+            </p>
+          </div>
         </div>
       </div>
 

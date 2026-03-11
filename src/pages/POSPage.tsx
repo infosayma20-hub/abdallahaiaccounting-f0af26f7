@@ -1669,6 +1669,16 @@ const POSPage = () => {
     }
   };
 
+  // Determine POS accounting date based on cutoff hour
+  const getPosAccountingDate = (openedAt: string, cutoffHour: number) => {
+    const d = new Date(openedAt);
+    const hour = d.getHours();
+    if (hour < cutoffHour) {
+      d.setDate(d.getDate() - 1);
+    }
+    return d.toISOString().split("T")[0];
+  };
+
   // Close session
   const handleCloseShift = async () => {
     if (!session || !userId) return;
@@ -1676,6 +1686,19 @@ const POSPage = () => {
     const expected = session.opening_cash + session.total_sales;
     const variance = cash - expected;
     const closedAt = new Date().toISOString();
+
+    // Load cutoff hour from settings
+    let cutoffHour = 6;
+    const { data: csData } = await supabase
+      .from("company_settings" as any)
+      .select("pos_day_cutoff_hour")
+      .eq("user_id", dataOwnerId)
+      .maybeSingle();
+    if (csData && (csData as any).pos_day_cutoff_hour != null) {
+      cutoffHour = (csData as any).pos_day_cutoff_hour;
+    }
+
+    const accountingDate = getPosAccountingDate(session.opened_at, cutoffHour);
 
     await supabase
       .from("pos_sessions")
@@ -1726,7 +1749,7 @@ const POSPage = () => {
         // Create accounting entry linked to employee contact
         await supabase.from("transactions").insert({
           user_id: dataOwnerId,
-          transaction_date: new Date(session.opened_at).toISOString().split("T")[0],
+          transaction_date: accountingDate,
           description: `${isShortage ? "عجز" : "فائض"} صندوق - ${session.cashier_name}`,
           debit_account_code: isShortage ? "1130" : "1110",
           credit_account_code: isShortage ? "1110" : "1130",
@@ -1769,7 +1792,7 @@ const POSPage = () => {
       if (cashBox?.gl_account_code && cashBox.gl_account_code !== "1110") {
         await supabase.from("transactions").insert({
           user_id: dataOwnerId,
-          transaction_date: new Date(session.opened_at).toISOString().split("T")[0],
+          transaction_date: accountingDate,
           description: `ترحيل مبيعات POS إلى ${cashBox.name || "الصندوق"} - ${session.cashier_name}`,
           debit_account_code: cashBox.gl_account_code,
           credit_account_code: "1110",

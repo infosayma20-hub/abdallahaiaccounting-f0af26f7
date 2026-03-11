@@ -1500,6 +1500,7 @@ export type Database = {
           pos_auto_print: boolean | null
           pos_auto_update_stock: boolean | null
           pos_branch_id: string | null
+          pos_day_cutoff_hour: number | null
           pos_default_opening_balance: number | null
           pos_deficit_alert: boolean | null
           pos_deficit_threshold: number | null
@@ -1571,6 +1572,7 @@ export type Database = {
           pos_auto_print?: boolean | null
           pos_auto_update_stock?: boolean | null
           pos_branch_id?: string | null
+          pos_day_cutoff_hour?: number | null
           pos_default_opening_balance?: number | null
           pos_deficit_alert?: boolean | null
           pos_deficit_threshold?: number | null
@@ -1642,6 +1644,7 @@ export type Database = {
           pos_auto_print?: boolean | null
           pos_auto_update_stock?: boolean | null
           pos_branch_id?: string | null
+          pos_day_cutoff_hour?: number | null
           pos_default_opening_balance?: number | null
           pos_deficit_alert?: boolean | null
           pos_deficit_threshold?: number | null
