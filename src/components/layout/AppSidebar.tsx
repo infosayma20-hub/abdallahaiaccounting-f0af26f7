@@ -186,6 +186,7 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
   }, [location.pathname, location.search]);
 
   const handleNavigate = (path: string) => {
+    setOpenItem(null);
     navigate(path);
     onMobileClose();
   };
