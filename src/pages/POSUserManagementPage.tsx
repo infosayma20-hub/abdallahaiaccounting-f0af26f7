@@ -82,6 +82,9 @@ const DEFAULT_PERMS: Permission = {
   can_edit_invoices: false,
   require_manager_for_invoices: true,
   require_manager_approval: true,
+  manage_products_categories: false,
+  view_invoice_log: false,
+  edit_cancel_invoices: false,
 };
 
 const ROLE_LABELS: Record<string, string> = {
