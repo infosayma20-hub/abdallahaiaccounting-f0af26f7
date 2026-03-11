@@ -1,0 +1,1 @@
+ALTER TABLE public.pos_sessions ADD COLUMN IF NOT EXISTS cash_box_id UUID REFERENCES public.cash_boxes(id) DEFAULT NULL;
