@@ -398,6 +398,9 @@ export default function POSUserManagementPage() {
     can_void_sales: { label: "إلغاء عمليات بيع", icon: <Ban className="w-4 h-4" /> },
     can_refund: { label: "استرجاع", icon: <RotateCcw className="w-4 h-4" /> },
     can_view_shift_details: { label: "مشاهدة تفاصيل الوردية", icon: <ClipboardList className="w-4 h-4" /> },
+    can_view_invoice_history: { label: "رؤية سجل الفواتير", icon: <FileText className="w-4 h-4" /> },
+    can_edit_invoices: { label: "تعديل وإلغاء الفواتير", icon: <PencilLine className="w-4 h-4" /> },
+    require_manager_for_invoices: { label: "تعديل الفواتير بموافقة مدير", icon: <UserCheck className="w-4 h-4" /> },
     require_manager_approval: { label: "يتطلب موافقة مدير", icon: <UserCheck className="w-4 h-4" /> },
   };
 
