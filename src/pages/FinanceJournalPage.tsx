@@ -57,7 +57,7 @@ const FinanceJournalPage = () => {
   // Quick add contact
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [quickName, setQuickName] = useState("");
-  const [quickType, setQuickType] = useState("customer");
+  const [quickType, setQuickType] = useState("عميل");
   const [quickPhone, setQuickPhone] = useState("");
   const [quickSaving, setQuickSaving] = useState(false);
   const [accountSearches, setAccountSearches] = useState<Record<string, string>>({});
@@ -93,6 +93,11 @@ const FinanceJournalPage = () => {
   const totalCredit = lines.reduce((s, l) => s + (Number(l.credit) || 0), 0);
   const isBalanced = Math.abs(totalDebit - totalCredit) < 0.01 && totalDebit > 0;
   const diff = Math.abs(totalDebit - totalCredit);
+
+  // Helper to normalize contact types (handle both EN and AR values)
+  const isCustomer = (c: any) => ["customer", "عميل", "زبون"].includes(c.contact_type);
+  const isSupplier = (c: any) => ["supplier", "مورد"].includes(c.contact_type);
+  const isEmployee = (c: any) => ["employee", "موظف"].includes(c.contact_type);
 
   const filteredContacts = useMemo(() => {
     if (!contactSearch) return contacts;
@@ -404,10 +409,10 @@ const FinanceJournalPage = () => {
                       />
                     </div>
                   </div>
-                  {filteredContacts.filter(c => c.contact_type === "customer").length > 0 && (
+                  {filteredContacts.filter(isCustomer).length > 0 && (
                     <SelectGroup>
                       <SelectLabel className="flex items-center gap-1.5 text-xs"><User className="h-3 w-3" /> العملاء</SelectLabel>
-                      {filteredContacts.filter(c => c.contact_type === "customer").map(c => (
+                      {filteredContacts.filter(isCustomer).map(c => (
                         <SelectItem key={c.id} value={c.id}>
                           <span className="flex items-center gap-2">
                             <span>{c.contact_name}</span>
@@ -419,10 +424,10 @@ const FinanceJournalPage = () => {
                       ))}
                     </SelectGroup>
                   )}
-                  {filteredContacts.filter(c => c.contact_type === "supplier").length > 0 && (
+                  {filteredContacts.filter(isSupplier).length > 0 && (
                     <SelectGroup>
                       <SelectLabel className="flex items-center gap-1.5 text-xs"><Building2 className="h-3 w-3" /> الموردين</SelectLabel>
-                      {filteredContacts.filter(c => c.contact_type === "supplier").map(c => (
+                      {filteredContacts.filter(isSupplier).map(c => (
                         <SelectItem key={c.id} value={c.id}>
                           <span className="flex items-center gap-2">
                             <span>{c.contact_name}</span>
@@ -434,10 +439,10 @@ const FinanceJournalPage = () => {
                       ))}
                     </SelectGroup>
                   )}
-                  {filteredContacts.filter(c => c.contact_type === "employee").length > 0 && (
+                  {filteredContacts.filter(isEmployee).length > 0 && (
                     <SelectGroup>
                       <SelectLabel className="flex items-center gap-1.5 text-xs"><Users className="h-3 w-3" /> موظفون</SelectLabel>
-                      {filteredContacts.filter(c => c.contact_type === "employee").map(c => (
+                      {filteredContacts.filter(isEmployee).map(c => (
                         <SelectItem key={c.id} value={c.id}>{c.contact_name}</SelectItem>
                       ))}
                     </SelectGroup>
@@ -448,7 +453,7 @@ const FinanceJournalPage = () => {
               {/* Quick Add Contact */}
               {!showQuickAdd ? (
                 <button
-                  onClick={() => { setShowQuickAdd(true); setQuickName(""); setQuickPhone(""); setQuickType("customer"); }}
+                  onClick={() => { setShowQuickAdd(true); setQuickName(""); setQuickPhone(""); setQuickType("عميل"); }}
                   className="mt-2 text-xs flex items-center gap-1 text-primary hover:underline"
                 >
                   <Plus className="h-3 w-3" /> إضافة جهة اتصال جديدة
@@ -469,9 +474,9 @@ const FinanceJournalPage = () => {
                       <Select value={quickType} onValueChange={setQuickType}>
                         <SelectTrigger className="mt-1 h-9"><SelectValue /></SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="customer">عميل</SelectItem>
-                          <SelectItem value="supplier">مورد</SelectItem>
-                          <SelectItem value="other">أخرى</SelectItem>
+                          <SelectItem value="عميل">عميل</SelectItem>
+                          <SelectItem value="مورد">مورد</SelectItem>
+                          <SelectItem value="أخرى">أخرى</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>

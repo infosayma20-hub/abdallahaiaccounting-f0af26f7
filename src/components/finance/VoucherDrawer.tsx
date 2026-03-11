@@ -64,7 +64,7 @@ const VoucherDrawer = ({ open, onClose, voucherType, onSaved }: VoucherDrawerPro
   const [contactSearch, setContactSearch] = useState("");
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [quickName, setQuickName] = useState("");
-  const [quickType, setQuickType] = useState<string>(isReceipt ? "customer" : "supplier");
+  const [quickType, setQuickType] = useState<string>(isReceipt ? "عميل" : "مورد");
   const [quickPhone, setQuickPhone] = useState("");
   const [quickSaving, setQuickSaving] = useState(false);
 
@@ -137,11 +137,16 @@ const VoucherDrawer = ({ open, onClose, voucherType, onSaved }: VoucherDrawerPro
   const rate = Number(formExchangeRate) || 1;
   const amountIls = formCurrency === "ILS" ? amountNum : amountNum * rate;
 
+  // Helper to normalize contact types (handle both EN and AR values)
+  const isCustomer = (c: any) => ["customer", "عميل", "زبون"].includes(c.contact_type);
+  const isSupplier = (c: any) => ["supplier", "مورد"].includes(c.contact_type);
+  const isEmployee = (c: any) => ["employee", "موظف"].includes(c.contact_type);
+
   // Grouped contacts
-  const customers = useMemo(() => contacts.filter(c => c.contact_type === "customer"), [contacts]);
-  const suppliers = useMemo(() => contacts.filter(c => c.contact_type === "supplier"), [contacts]);
-  const employees = useMemo(() => contacts.filter(c => c.contact_type === "employee"), [contacts]);
-  const others = useMemo(() => contacts.filter(c => !["customer", "supplier", "employee"].includes(c.contact_type)), [contacts]);
+  const customers = useMemo(() => contacts.filter(isCustomer), [contacts]);
+  const suppliers = useMemo(() => contacts.filter(isSupplier), [contacts]);
+  const employees = useMemo(() => contacts.filter(isEmployee), [contacts]);
+  const others = useMemo(() => contacts.filter(c => !isCustomer(c) && !isSupplier(c) && !isEmployee(c)), [contacts]);
 
   const filteredContacts = useMemo(() => {
     if (!contactSearch) return contacts;
@@ -205,10 +210,10 @@ const VoucherDrawer = ({ open, onClose, voucherType, onSaved }: VoucherDrawerPro
         case "cheque": debitCode = selectedBank?.incoming_checks_account_code || "1150"; break;
         case "transfer": debitCode = formTransferAccountCode || "1120"; break;
       }
-      creditCode = selectedContact?.contact_type === "supplier" ? "2100" : selectedContact?.contact_type === "employee" ? "1180" : "1130";
+      creditCode = isSupplier(selectedContact || {}) ? "2100" : isEmployee(selectedContact || {}) ? "1180" : "1130";
     } else {
       // Payment: Dr = contact account, Cr = payment account
-      debitCode = selectedContact?.contact_type === "customer" ? "1130" : selectedContact?.contact_type === "employee" ? "1180" : "2100";
+      debitCode = isCustomer(selectedContact || {}) ? "1130" : isEmployee(selectedContact || {}) ? "1180" : "2100";
       switch (formPaymentMethod) {
         case "cash": creditCode = formCashAccountCode || "1110"; break;
         case "bank": creditCode = selectedBank?.gl_account_code || "1120"; break;
@@ -301,7 +306,7 @@ const VoucherDrawer = ({ open, onClose, voucherType, onSaved }: VoucherDrawerPro
             cheque_date: c.due_date || formDate,
             amount: Number(c.amount) || amountNum,
             party_name: selectedContact?.contact_name || "",
-            party_type: selectedContact?.contact_type === "customer" ? "عميل" : "مورد",
+            party_type: isCustomer(selectedContact || {}) ? "عميل" : "مورد",
             bank_name: formChequeBankName || null,
             currency: formCurrency === "ILS" ? "شيكل" : formCurrency,
             status: "مسجل" as const,
@@ -391,10 +396,10 @@ const VoucherDrawer = ({ open, onClose, voucherType, onSaved }: VoucherDrawerPro
                     />
                   </div>
                 </div>
-                {filteredContacts.filter(c => c.contact_type === "customer").length > 0 && (
+                {filteredContacts.filter(isCustomer).length > 0 && (
                   <SelectGroup>
                     <SelectLabel className="flex items-center gap-1.5 text-xs"><User className="h-3 w-3" /> العملاء</SelectLabel>
-                    {filteredContacts.filter(c => c.contact_type === "customer").map(c => (
+                    {filteredContacts.filter(isCustomer).map(c => (
                       <SelectItem key={c.id} value={c.id}>
                         <span className="flex items-center gap-2">
                           <span>{c.contact_name}</span>
@@ -406,10 +411,10 @@ const VoucherDrawer = ({ open, onClose, voucherType, onSaved }: VoucherDrawerPro
                     ))}
                   </SelectGroup>
                 )}
-                {filteredContacts.filter(c => c.contact_type === "supplier").length > 0 && (
+                {filteredContacts.filter(isSupplier).length > 0 && (
                   <SelectGroup>
                     <SelectLabel className="flex items-center gap-1.5 text-xs"><Building2 className="h-3 w-3" /> الموردين</SelectLabel>
-                    {filteredContacts.filter(c => c.contact_type === "supplier").map(c => (
+                    {filteredContacts.filter(isSupplier).map(c => (
                       <SelectItem key={c.id} value={c.id}>
                         <span className="flex items-center gap-2">
                           <span>{c.contact_name}</span>
@@ -421,18 +426,18 @@ const VoucherDrawer = ({ open, onClose, voucherType, onSaved }: VoucherDrawerPro
                     ))}
                   </SelectGroup>
                 )}
-                {filteredContacts.filter(c => c.contact_type === "employee").length > 0 && (
+                {filteredContacts.filter(isEmployee).length > 0 && (
                   <SelectGroup>
                     <SelectLabel className="flex items-center gap-1.5 text-xs"><Users className="h-3 w-3" /> موظفون</SelectLabel>
-                    {filteredContacts.filter(c => c.contact_type === "employee").map(c => (
+                    {filteredContacts.filter(isEmployee).map(c => (
                       <SelectItem key={c.id} value={c.id}>{c.contact_name}</SelectItem>
                     ))}
                   </SelectGroup>
                 )}
-                {filteredContacts.filter(c => !["customer", "supplier", "employee"].includes(c.contact_type)).length > 0 && (
+                {filteredContacts.filter(c => !isCustomer(c) && !isSupplier(c) && !isEmployee(c)).length > 0 && (
                   <SelectGroup>
                     <SelectLabel className="text-xs">أخرى</SelectLabel>
-                    {filteredContacts.filter(c => !["customer", "supplier", "employee"].includes(c.contact_type)).map(c => (
+                    {filteredContacts.filter(c => !isCustomer(c) && !isSupplier(c) && !isEmployee(c)).map(c => (
                       <SelectItem key={c.id} value={c.id}>{c.contact_name}</SelectItem>
                     ))}
                   </SelectGroup>
@@ -443,7 +448,7 @@ const VoucherDrawer = ({ open, onClose, voucherType, onSaved }: VoucherDrawerPro
             {selectedContact && (
               <div className="flex items-center gap-2 mt-1.5">
                 <Badge variant="secondary" className="text-[10px]">
-                  {selectedContact.contact_type === "customer" ? "عميل" : selectedContact.contact_type === "supplier" ? "مورد" : selectedContact.contact_type === "employee" ? "موظف" : "أخرى"}
+                  {isCustomer(selectedContact) ? "عميل" : isSupplier(selectedContact) ? "مورد" : isEmployee(selectedContact) ? "موظف" : "أخرى"}
                 </Badge>
                 <Badge className={`text-[10px] ${Number(selectedContact.current_balance || 0) >= 0 ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"}`}>
                   الرصيد: ₪{formatAmount(Math.abs(Number(selectedContact.current_balance || 0)))}
@@ -455,7 +460,7 @@ const VoucherDrawer = ({ open, onClose, voucherType, onSaved }: VoucherDrawerPro
             {/* Quick Add Contact */}
             {!showQuickAdd ? (
               <button
-                onClick={() => { setShowQuickAdd(true); setQuickName(""); setQuickPhone(""); setQuickType(isReceipt ? "customer" : "supplier"); }}
+                onClick={() => { setShowQuickAdd(true); setQuickName(""); setQuickPhone(""); setQuickType(isReceipt ? "عميل" : "مورد"); }}
                 className="mt-2 text-xs flex items-center gap-1 text-primary hover:underline"
               >
                 <Plus className="h-3 w-3" /> إضافة جهة اتصال جديدة
@@ -475,11 +480,11 @@ const VoucherDrawer = ({ open, onClose, voucherType, onSaved }: VoucherDrawerPro
                     <Label className="text-xs">النوع *</Label>
                     <Select value={quickType} onValueChange={setQuickType}>
                       <SelectTrigger className="mt-1 h-9"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="customer">عميل</SelectItem>
-                        <SelectItem value="supplier">مورد</SelectItem>
-                        <SelectItem value="other">أخرى</SelectItem>
-                      </SelectContent>
+                        <SelectContent>
+                          <SelectItem value="عميل">عميل</SelectItem>
+                          <SelectItem value="مورد">مورد</SelectItem>
+                          <SelectItem value="أخرى">أخرى</SelectItem>
+                        </SelectContent>
                     </Select>
                   </div>
                 </div>

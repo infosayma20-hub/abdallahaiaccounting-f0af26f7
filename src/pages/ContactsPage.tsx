@@ -289,7 +289,9 @@ const ContactsPage = () => {
   };
 
   const filtered = useMemo(() => contacts.filter(c => {
-    const matchesType = !filterType || c.contact_type === filterType || (filterType === "عميل" && c.contact_type === "زبون");
+    const matchesType = !filterType || c.contact_type === filterType || 
+      (filterType === "عميل" && ["زبون", "customer"].includes(c.contact_type)) ||
+      (filterType === "مورد" && c.contact_type === "supplier");
     const matchesClass = !filterClass || c.contact_class === filterClass;
     const matchesSearch = !searchQuery || 
       c.contact_name.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -299,8 +301,9 @@ const ContactsPage = () => {
     return matchesType && matchesClass && matchesSearch;
   }), [contacts, filterType, filterClass, searchQuery]);
 
-  const customerCount = contacts.filter(c => ["عميل", "زبون", "زبون ومورد"].includes(c.contact_type)).length;
-  const supplierCount = contacts.filter(c => ["مورد", "زبون ومورد"].includes(c.contact_type)).length;
+  const customerCount = contacts.filter(c => ["عميل", "زبون", "زبون ومورد", "customer"].includes(c.contact_type)).length;
+  const supplierCount = contacts.filter(c => ["مورد", "زبون ومورد", "supplier"].includes(c.contact_type)).length;
+  
   const totalOverdue = contacts.reduce((s, c) => s + (c.overdue_amount || 0), 0);
   const overLimitCount = contacts.filter(c => c.credit_limit && c.current_balance && c.current_balance > c.credit_limit).length;
   const totalBalance = filtered.reduce((s, c) => s + (c.current_balance || 0), 0);
