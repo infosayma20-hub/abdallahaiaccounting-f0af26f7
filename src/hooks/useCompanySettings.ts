@@ -75,6 +75,8 @@ export interface CompanySettings {
   pos_warn_out_of_stock: boolean;
   pos_prevent_zero_stock: boolean;
   pos_day_cutoff_hour: number;
+  pos_disable_cogs: boolean;
+  pos_disable_stock_deduction: boolean;
   // Print
   primary_color: string;
   invoice_font: string;
