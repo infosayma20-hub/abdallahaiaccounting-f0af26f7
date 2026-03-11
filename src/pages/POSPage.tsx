@@ -2062,6 +2062,15 @@ const POSPage = () => {
           </div>
         )}
 
+        {/* Shortcuts guide button */}
+        <button
+          onClick={() => setShowShortcutsGuide(true)}
+          className="p-1.5 rounded-lg bg-white/10 text-white/50 hover:text-white/90 hover:bg-white/20 transition-all"
+          title="دليل الاختصارات"
+        >
+          <Keyboard className="h-4 w-4" />
+        </button>
+
         {/* Card size toggle */}
         <div className="flex items-center gap-0.5 bg-white/10 rounded-lg p-0.5">
           {(["S", "M", "L"] as const).map(size => (
