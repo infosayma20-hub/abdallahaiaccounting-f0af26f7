@@ -114,6 +114,7 @@ const TrialBalancePage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
   const [showZeroAccounts, setShowZeroAccounts] = useState(false);
+  const [showComparison, setShowComparison] = useState(false);
 
   const fetchData = async () => {
     if (!user) return;
