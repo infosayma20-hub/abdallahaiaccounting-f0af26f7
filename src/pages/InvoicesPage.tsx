@@ -518,28 +518,32 @@ const InvoicesPage = () => {
   };
 
   const handlePrint = () => {
-    if (!printRef.current) return;
-    const printContent = printRef.current.innerHTML;
+    if (!selectedInvoice) return;
     const win = window.open("", "_blank");
     if (!win) return;
-    win.document.write(`<html dir="rtl"><head><title>فاتورة ${selectedInvoice?.invoiceNumber}</title><style>
-      * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'IBM Plex Sans Arabic', sans-serif; }
-      body { padding: 30px; color: #1a1a2e; }
-      .inv-header { display: flex; justify-content: space-between; align-items: start; margin-bottom: 24px; border-bottom: 3px solid #2d8a5e; padding-bottom: 16px; }
-      .inv-title { font-size: 24px; font-weight: 700; color: #2d8a5e; }
-      .inv-meta { text-align: left; font-size: 12px; color: #555; }
-      .inv-meta span { display: block; margin-bottom: 3px; }
-      table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
-      th { background: #f0faf5; color: #2d8a5e; padding: 8px 10px; text-align: right; font-size: 12px; border-bottom: 2px solid #2d8a5e; }
-      td { padding: 8px 10px; text-align: right; font-size: 12px; border-bottom: 1px solid #e8e8e8; }
-      .summary-row { font-weight: 600; }
-      .total-final { font-size: 18px; font-weight: 700; color: #2d8a5e; }
-      .notes { background: #f9f9f9; padding: 10px; border-radius: 6px; font-size: 11px; color: #666; margin-top: 12px; }
-      .footer { text-align: center; margin-top: 30px; font-size: 10px; color: #999; border-top: 1px solid #e8e8e8; padding-top: 12px; }
-      @media print { body { padding: 15px; } }
-    </style></head><body>${printContent}</body></html>`);
+    
+    win.document.write(`<html dir="rtl"><head>
+      <title>فاتورة ${selectedInvoice.invoiceNumber}</title>
+      <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+      <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: white; }
+        @media print { body { padding: 0; } @page { margin: 8mm; size: A4; } }
+      </style>
+    </head><body><div id="print-root"></div></body></html>`);
     win.document.close();
-    win.print();
+
+    // Render React component into the new window
+    setTimeout(() => {
+      const container = win.document.getElementById("print-root");
+      if (container) {
+        const root = createRoot(container);
+        root.render(
+          <InvoicePrintView invoice={selectedInvoice} settings={companySettings} copyLabel="أصلية" />
+        );
+        setTimeout(() => win.print(), 600);
+      }
+    }, 200);
   };
 
   const updateStatus = (id: string, status: Invoice["status"]) => {
