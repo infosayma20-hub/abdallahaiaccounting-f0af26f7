@@ -31,6 +31,17 @@ const navSections: NavSection[] = [
     title: "المحاسبة الأساسية",
     items: [
       { label: "التطبيقات", module: "home", path: "/apps" },
+      {
+        label: "نقطة البيع",
+        module: "pos",
+        children: [
+          { label: "نقطة البيع", path: "/pos" },
+          { label: "خريطة الطاولات", path: "/pos/floor-plan" },
+          { label: "إدارة الإضافات", path: "/pos/modifiers" },
+          { label: "تقارير نقطة البيع", path: "/pos-reports" },
+          { label: "إدارة مستخدمي POS", path: "/pos-users" },
+        ],
+      },
       { label: "لوحة المعلومات", module: "dashboard", path: "/dashboard" },
       { label: "المحاسب الذكي", module: "ai", path: "/smart-accountant" },
     ],
