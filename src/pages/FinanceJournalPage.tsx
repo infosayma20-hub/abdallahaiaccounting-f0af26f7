@@ -313,7 +313,7 @@ const FinanceJournalPage = () => {
             <p className="text-xs text-muted-foreground">إدارة القيود المحاسبية اليدوية</p>
           </div>
         </div>
-        <Button size="sm" className="gap-2" onClick={() => { resetForm(); setModalOpen(true); }}>
+        <Button size="sm" className="gap-2" onClick={() => { resetForm(); setEditingVoucherId(null); setModalOpen(true); }}>
           <Plus className="h-4 w-4" />سند قيد جديد
         </Button>
       </div>
