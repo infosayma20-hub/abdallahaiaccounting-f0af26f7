@@ -9,7 +9,9 @@ import {
   Monitor, CheckCircle2, Mail, KeyRound, UserPlus,
   DoorOpen, DoorClosed, Percent, Eye, PencilLine,
   Ban, RotateCcw, ClipboardList, UserCheck, FileText,
-  Package, FilePen,
+  Package, FilePen, ShoppingCart, CreditCard, Printer,
+  Send, PackageSearch, UserRoundPlus, UsersRound, BarChart3,
+  Download, Wallet,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -50,41 +52,65 @@ interface POSDevice {
 }
 
 interface Permission {
+  // Group 1 - Shift
   can_open_register: boolean;
   can_close_register: boolean;
+  can_view_shift_details: boolean;
+  can_view_profits: boolean;
+  // Group 2 - Sales
   can_apply_discount: boolean;
   max_discount_percent: number;
-  can_view_profits: boolean;
   can_edit_prices: boolean;
   can_void_sales: boolean;
   can_refund: boolean;
-  can_view_shift_details: boolean;
+  allow_credit_sale: boolean;
+  open_cash_drawer: boolean;
+  // Group 3 - Invoices
   can_view_invoice_history: boolean;
   can_edit_invoices: boolean;
   require_manager_for_invoices: boolean;
-  require_manager_approval: boolean;
+  print_invoices: boolean;
+  resend_invoice: boolean;
+  // Group 4 - Products
   manage_products_categories: boolean;
-  view_invoice_log: boolean;
-  edit_cancel_invoices: boolean;
+  edit_products: boolean;
+  delete_products: boolean;
+  view_inventory: boolean;
+  // Group 5 - Customers
+  add_customer: boolean;
+  view_customers: boolean;
+  edit_customers: boolean;
+  // Group 6 - Reports
+  view_sales_report: boolean;
+  export_reports: boolean;
 }
 
 const DEFAULT_PERMS: Permission = {
   can_open_register: true,
   can_close_register: true,
+  can_view_shift_details: false,
+  can_view_profits: false,
   can_apply_discount: false,
   max_discount_percent: 0,
-  can_view_profits: false,
   can_edit_prices: false,
   can_void_sales: false,
   can_refund: false,
-  can_view_shift_details: false,
+  allow_credit_sale: false,
+  open_cash_drawer: false,
   can_view_invoice_history: true,
   can_edit_invoices: false,
   require_manager_for_invoices: true,
-  require_manager_approval: true,
+  print_invoices: false,
+  resend_invoice: false,
   manage_products_categories: false,
-  view_invoice_log: false,
-  edit_cancel_invoices: false,
+  edit_products: false,
+  delete_products: false,
+  view_inventory: false,
+  add_customer: false,
+  view_customers: false,
+  edit_customers: false,
+  view_sales_report: false,
+  export_reports: false,
 };
 
 const ROLE_LABELS: Record<string, string> = {
@@ -186,20 +212,29 @@ export default function POSUserManagementPage() {
     setUserPerms(perms ? {
       can_open_register: perms.can_open_register,
       can_close_register: perms.can_close_register,
+      can_view_shift_details: perms.can_view_shift_details,
+      can_view_profits: perms.can_view_profits,
       can_apply_discount: perms.can_apply_discount,
       max_discount_percent: perms.max_discount_percent,
-      can_view_profits: perms.can_view_profits,
       can_edit_prices: perms.can_edit_prices,
       can_void_sales: perms.can_void_sales,
       can_refund: perms.can_refund,
-      can_view_shift_details: perms.can_view_shift_details,
+      allow_credit_sale: (perms as any).allow_credit_sale ?? false,
+      open_cash_drawer: (perms as any).open_cash_drawer ?? false,
       can_view_invoice_history: perms.can_view_invoice_history ?? true,
       can_edit_invoices: perms.can_edit_invoices ?? false,
       require_manager_for_invoices: perms.require_manager_for_invoices ?? true,
-      require_manager_approval: perms.require_manager_approval,
+      print_invoices: (perms as any).print_invoices ?? false,
+      resend_invoice: (perms as any).resend_invoice ?? false,
       manage_products_categories: (perms as any).manage_products_categories ?? false,
-      view_invoice_log: (perms as any).view_invoice_log ?? false,
-      edit_cancel_invoices: (perms as any).edit_cancel_invoices ?? false,
+      edit_products: (perms as any).edit_products ?? false,
+      delete_products: (perms as any).delete_products ?? false,
+      view_inventory: (perms as any).view_inventory ?? false,
+      add_customer: (perms as any).add_customer ?? false,
+      view_customers: (perms as any).view_customers ?? false,
+      edit_customers: (perms as any).edit_customers ?? false,
+      view_sales_report: (perms as any).view_sales_report ?? false,
+      export_reports: (perms as any).export_reports ?? false,
     } : DEFAULT_PERMS);
 
     // Load device access
@@ -399,22 +434,89 @@ export default function POSUserManagementPage() {
 
   const filteredUsers = users.filter(u => u.name.includes(search) || u.phone?.includes(search) || u.email?.includes(search));
 
-  const permConfig: Record<string, { label: string; icon: React.ReactNode }> = {
-    can_open_register: { label: "فتح الوردية", icon: <DoorOpen className="w-4 h-4" /> },
-    can_close_register: { label: "إغلاق الوردية", icon: <DoorClosed className="w-4 h-4" /> },
-    can_apply_discount: { label: "تطبيق خصم", icon: <Percent className="w-4 h-4" /> },
-    can_view_profits: { label: "مشاهدة الأرباح", icon: <Eye className="w-4 h-4" /> },
-    can_edit_prices: { label: "تعديل الأسعار", icon: <PencilLine className="w-4 h-4" /> },
-    can_void_sales: { label: "إلغاء عمليات بيع", icon: <Ban className="w-4 h-4" /> },
-    can_refund: { label: "استرجاع", icon: <RotateCcw className="w-4 h-4" /> },
-    can_view_shift_details: { label: "مشاهدة تفاصيل الوردية", icon: <ClipboardList className="w-4 h-4" /> },
-    can_view_invoice_history: { label: "رؤية سجل الفواتير", icon: <FileText className="w-4 h-4" /> },
-    can_edit_invoices: { label: "تعديل وإلغاء الفواتير", icon: <PencilLine className="w-4 h-4" /> },
-    require_manager_for_invoices: { label: "تعديل الفواتير بموافقة مدير", icon: <UserCheck className="w-4 h-4" /> },
-    require_manager_approval: { label: "يتطلب موافقة مدير", icon: <UserCheck className="w-4 h-4" /> },
-    manage_products_categories: { label: "تعريف منتجات وتصنيفات", icon: <Package className="w-4 h-4" /> },
-    view_invoice_log: { label: "الاطلاع على سجل الفواتير", icon: <FileText className="w-4 h-4" /> },
-    edit_cancel_invoices: { label: "تعديل الفواتير وإلغائها من سجل الفواتير", icon: <FilePen className="w-4 h-4" /> },
+  // Permission groups configuration
+  type PermGroup = {
+    title: string;
+    icon: React.ReactNode;
+    items: { key: keyof Permission; label: string; icon: React.ReactNode; dependsOn?: keyof Permission; dependsLabel?: string }[];
+  };
+
+  const permGroups: PermGroup[] = [
+    {
+      title: "الوردية",
+      icon: <DoorOpen className="w-4 h-4" />,
+      items: [
+        { key: "can_open_register", label: "فتح الوردية", icon: <DoorOpen className="w-4 h-4" /> },
+        { key: "can_close_register", label: "إغلاق الوردية", icon: <DoorClosed className="w-4 h-4" /> },
+        { key: "can_view_shift_details", label: "مشاهدة تفاصيل الوردية", icon: <ClipboardList className="w-4 h-4" /> },
+        { key: "can_view_profits", label: "مشاهدة الأرباح", icon: <Eye className="w-4 h-4" /> },
+      ],
+    },
+    {
+      title: "عمليات البيع",
+      icon: <ShoppingCart className="w-4 h-4" />,
+      items: [
+        { key: "can_apply_discount", label: "تطبيق خصم", icon: <Percent className="w-4 h-4" /> },
+        { key: "can_edit_prices", label: "تعديل الأسعار", icon: <PencilLine className="w-4 h-4" /> },
+        { key: "can_void_sales", label: "إلغاء عمليات بيع", icon: <Ban className="w-4 h-4" /> },
+        { key: "can_refund", label: "استرجاع", icon: <RotateCcw className="w-4 h-4" /> },
+        { key: "allow_credit_sale", label: "الدفع المؤجل / الدين", icon: <CreditCard className="w-4 h-4" /> },
+        { key: "open_cash_drawer", label: "فتح درج الكاش", icon: <Wallet className="w-4 h-4" /> },
+      ],
+    },
+    {
+      title: "الفواتير",
+      icon: <FileText className="w-4 h-4" />,
+      items: [
+        { key: "can_view_invoice_history", label: "رؤية سجل الفواتير", icon: <FileText className="w-4 h-4" /> },
+        { key: "can_edit_invoices", label: "تعديل وإلغاء الفواتير", icon: <FilePen className="w-4 h-4" />, dependsOn: "can_view_invoice_history", dependsLabel: "رؤية سجل الفواتير" },
+        { key: "require_manager_for_invoices", label: "تعديل الفواتير بموافقة مدير", icon: <UserCheck className="w-4 h-4" />, dependsOn: "can_edit_invoices", dependsLabel: "تعديل وإلغاء الفواتير" },
+        { key: "print_invoices", label: "طباعة الفواتير", icon: <Printer className="w-4 h-4" /> },
+        { key: "resend_invoice", label: "إعادة إرسال الفاتورة", icon: <Send className="w-4 h-4" /> },
+      ],
+    },
+    {
+      title: "المنتجات والمخزون",
+      icon: <Package className="w-4 h-4" />,
+      items: [
+        { key: "manage_products_categories", label: "تعريف منتجات وتصنيفات", icon: <Package className="w-4 h-4" /> },
+        { key: "edit_products", label: "تعديل المنتجات", icon: <PencilLine className="w-4 h-4" /> },
+        { key: "delete_products", label: "حذف المنتجات", icon: <Trash2 className="w-4 h-4" />, dependsOn: "manage_products_categories", dependsLabel: "تعريف منتجات وتصنيفات" },
+        { key: "view_inventory", label: "مشاهدة المخزون", icon: <PackageSearch className="w-4 h-4" /> },
+      ],
+    },
+    {
+      title: "العملاء",
+      icon: <UsersRound className="w-4 h-4" />,
+      items: [
+        { key: "add_customer", label: "إضافة عميل جديد", icon: <UserRoundPlus className="w-4 h-4" /> },
+        { key: "view_customers", label: "مشاهدة بيانات العملاء", icon: <UsersRound className="w-4 h-4" /> },
+        { key: "edit_customers", label: "تعديل بيانات العملاء", icon: <PencilLine className="w-4 h-4" />, dependsOn: "view_customers", dependsLabel: "مشاهدة بيانات العملاء" },
+      ],
+    },
+    {
+      title: "التقارير",
+      icon: <BarChart3 className="w-4 h-4" />,
+      items: [
+        { key: "view_sales_report", label: "مشاهدة تقرير المبيعات", icon: <BarChart3 className="w-4 h-4" /> },
+        { key: "export_reports", label: "تصدير التقارير", icon: <Download className="w-4 h-4" />, dependsOn: "view_sales_report", dependsLabel: "مشاهدة تقرير المبيعات" },
+      ],
+    },
+  ];
+
+  const handlePermToggle = (key: keyof Permission, value: boolean) => {
+    setUserPerms(prev => {
+      const next = { ...prev, [key]: value };
+      // Auto-disable dependents when parent is turned off
+      if (!value) {
+        permGroups.forEach(g => g.items.forEach(item => {
+          if (item.dependsOn === key) {
+            (next as any)[item.key] = false;
+          }
+        }));
+      }
+      return next;
+    });
   };
 
   return (
@@ -658,33 +760,54 @@ export default function POSUserManagementPage() {
               </div>
             )}
 
-            {/* Permissions */}
-            <div>
-              <h3 className="font-semibold mb-3 flex items-center gap-2"><ShieldCheck className="w-4 h-4" /> الصلاحيات</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {(Object.keys(userPerms) as (keyof Permission)[]).filter(k => k !== "max_discount_percent").map(key => (
-                  <div key={key} className="flex items-center justify-between p-3 rounded-xl border border-border bg-card">
-                    <div className="flex items-center gap-2">
-                      <span className="text-muted-foreground">{permConfig[key]?.icon}</span>
-                      <Label className="text-sm cursor-pointer">{permConfig[key]?.label || key}</Label>
+            {/* Permissions - Grouped */}
+            <div className="space-y-5">
+              <h3 className="font-bold text-base flex items-center gap-2"><ShieldCheck className="w-5 h-5" /> الصلاحيات</h3>
+              {permGroups.map((group, gi) => (
+                <div key={gi} className="space-y-3">
+                  <div className="flex items-center gap-2 pb-1 border-b border-border">
+                    <span className="text-primary">{group.icon}</span>
+                    <span className="font-bold text-sm">{group.title}</span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {group.items.map(item => {
+                      const isDependencyMet = item.dependsOn ? (userPerms[item.dependsOn] as boolean) : true;
+                      const isDisabled = !isDependencyMet;
+                      return (
+                        <div
+                          key={item.key}
+                          className={`flex items-center justify-between py-3 px-4 rounded-xl border border-border bg-card ${isDisabled ? "opacity-50" : ""}`}
+                          title={isDisabled ? `يتطلب تفعيل: ${item.dependsLabel}` : undefined}
+                        >
+                          <div className="flex items-center gap-3 flex-row-reverse flex-1 min-w-0">
+                            <span className="text-muted-foreground shrink-0">{item.icon}</span>
+                            <Label className="text-sm cursor-pointer truncate">{item.label}</Label>
+                            {isDisabled && (
+                              <span className="text-[10px] text-destructive whitespace-nowrap">يتطلب: {item.dependsLabel}</span>
+                            )}
+                          </div>
+                          <Switch
+                            checked={userPerms[item.key] as boolean}
+                            onCheckedChange={v => handlePermToggle(item.key, v)}
+                            disabled={isDisabled}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {/* Max discount input */}
+                  {group.title === "عمليات البيع" && userPerms.can_apply_discount && (
+                    <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                      <Label className="text-sm whitespace-nowrap">الحد الأقصى للخصم %</Label>
+                      <Input
+                        type="number" min={0} max={100} className="w-24"
+                        value={userPerms.max_discount_percent}
+                        onChange={e => setUserPerms(p => ({ ...p, max_discount_percent: Number(e.target.value) }))}
+                      />
                     </div>
-                    <Switch
-                      checked={userPerms[key] as boolean}
-                      onCheckedChange={v => setUserPerms(p => ({ ...p, [key]: v }))}
-                    />
-                  </div>
-                ))}
-                {userPerms.can_apply_discount && (
-                  <div className="flex items-center gap-3 p-2 rounded-lg bg-muted/50 col-span-2">
-                    <Label className="text-sm whitespace-nowrap">الحد الأقصى للخصم %</Label>
-                    <Input
-                      type="number" min={0} max={100} className="w-24"
-                      value={userPerms.max_discount_percent}
-                      onChange={e => setUserPerms(p => ({ ...p, max_discount_percent: Number(e.target.value) }))}
-                    />
-                  </div>
-                )}
-              </div>
+                  )}
+                </div>
+              ))}
             </div>
 
             {/* Device Assignment */}
