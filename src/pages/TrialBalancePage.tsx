@@ -492,8 +492,11 @@ const TrialBalancePage = () => {
                       </td>
                     </tr>
                     {/* Rows */}
-                    {group.rows.map((row) => (
-                      <tr key={row.accountName} className="border-b border-border/20 hover:bg-muted/10 transition-colors">
+                    {group.rows.map((row) => {
+                      const balChange = showComparison && (row.prevBalance || 0) !== 0
+                        ? ((row.balance - (row.prevBalance || 0)) / Math.abs(row.prevBalance || 1)) * 100 : null;
+                      return (
+                      <tr key={row.accountCode} className="border-b border-border/20 hover:bg-muted/10 transition-colors">
                         <td className="px-4 py-3 text-xs text-muted-foreground tabular-nums font-mono">
                           {row.accountCode || "—"}
                         </td>
@@ -514,8 +517,26 @@ const TrialBalancePage = () => {
                         <td className={`px-4 py-3 text-xs font-bold tabular-nums text-left ${row.balance > 0 ? "text-primary" : row.balance < 0 ? "text-destructive" : "text-muted-foreground"}`}>
                           {row.balance !== 0 ? `${row.balance > 0 ? "" : "-"}${Math.abs(row.balance).toLocaleString()}` : "—"}
                         </td>
+                        {showComparison && (
+                          <>
+                            <td className="px-3 py-3 text-[10px] text-muted-foreground tabular-nums text-left">
+                              {(row.prevDebit || 0) > 0 ? (row.prevDebit || 0).toLocaleString() : "—"}
+                            </td>
+                            <td className="px-3 py-3 text-[10px] text-muted-foreground tabular-nums text-left">
+                              {(row.prevCredit || 0) > 0 ? (row.prevCredit || 0).toLocaleString() : "—"}
+                            </td>
+                            <td className="px-3 py-3 text-[10px] tabular-nums text-left">
+                              {balChange !== null ? (
+                                <span className={`flex items-center gap-0.5 ${balChange >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+                                  {balChange >= 0 ? <TrendingUp className="h-2.5 w-2.5" /> : <TrendingDown className="h-2.5 w-2.5" />}
+                                  {Math.abs(balChange).toFixed(1)}%
+                                </span>
+                              ) : "—"}
+                            </td>
+                          </>
+                        )}
                       </tr>
-                    ))}
+                    );})}
                     {/* Group Subtotal */}
                     <tr key={`subtotal-${group.label}`} className="bg-muted/30 border-b border-border/40">
                       <td colSpan={3} className="px-4 py-2.5 text-xs font-bold text-muted-foreground text-right">
