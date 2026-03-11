@@ -358,6 +358,7 @@ const POSPage = () => {
   const [closingCash, setClosingCash] = useState("");
   const [cashBoxes, setCashBoxes] = useState<{ id: string; name: string; type: string }[]>([]);
   const [selectedCashBoxId, setSelectedCashBoxId] = useState<string>("");
+  const [rememberCashBox, setRememberCashBox] = useState(false);
 
   // New product form
   const PRESET_COLORS = [
