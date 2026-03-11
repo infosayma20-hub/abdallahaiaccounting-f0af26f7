@@ -360,10 +360,31 @@ const ProfitLoss = () => {
       lines.push({ label, amount, level, type, section, transactions: txs, compareAmount: compareAmt });
     };
 
+    // When showZeroAccounts is on, ensure all matching accounts are in the maps
+    let revenueByAccount = current.revenueByAccount;
+    let expenseByAccount = current.expenseByAccount;
+
+    if (showZeroAccounts) {
+      // Clone maps and add missing zero-balance accounts
+      revenueByAccount = new Map(current.revenueByAccount);
+      allAccounts.forEach(acc => {
+        if (isRevenueCode(acc.account_code) && !isDiscountEarnedCode(acc.account_code) && !revenueByAccount.has(acc.account_code)) {
+          revenueByAccount.set(acc.account_code, { total: 0, txs: [], code: acc.account_code, name: acc.account_name });
+        }
+      });
+
+      expenseByAccount = new Map(current.expenseByAccount);
+      allAccounts.forEach(acc => {
+        if (isExpenseCode(acc.account_code) && !expenseByAccount.has(acc.account_code)) {
+          expenseByAccount.set(acc.account_code, { total: 0, txs: [], code: acc.account_code, name: acc.account_name });
+        }
+      });
+    }
+
     // Revenue
     addLine("الإيرادات", 0, 0, "header", "revenue");
-    if (detailLevel >= 2 && current.revenueEntries.length > 1) {
-      buildSubAccountLines(current.revenueByAccount, addLine, "revenue");
+    if (detailLevel >= 2 && (revenueByAccount.size > 1 || showZeroAccounts)) {
+      buildSubAccountLines(revenueByAccount, addLine, "revenue");
     } else {
       addLine("إيرادات المبيعات", current.salesData.total, 2, "item", "revenue", current.salesData.txs, previous?.salesData.total);
     }
@@ -386,7 +407,7 @@ const ProfitLoss = () => {
 
     // Operating Expenses
     addLine("المصروفات التشغيلية", 0, 0, "header", "opex");
-    buildSubAccountLines(current.expenseByAccount, addLine, "opex", previous?.expenseEntries);
+    buildSubAccountLines(expenseByAccount, addLine, "opex", previous?.expenseEntries);
     addLine("إجمالي المصروفات التشغيلية", current.totalOpExpenses, 1, "subtotal", "opex", undefined, previous?.totalOpExpenses);
 
     lines.push({ label: "", amount: 0, level: 0, type: "spacer" });
@@ -405,7 +426,7 @@ const ProfitLoss = () => {
     addLine("صافي الربح / (الخسارة)", current.netProfit, 0, "grand-total", undefined, undefined, previous?.netProfit);
 
     return lines;
-  }, [current, previous, showZeroAccounts, detailLevel, buildSubAccountLines]);
+  }, [current, previous, showZeroAccounts, detailLevel, buildSubAccountLines, allAccounts]);
 
   // ── Monthly chart data ──
   const monthlyChartData = useMemo(() => {
