@@ -13,6 +13,9 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useCompanySettings } from "@/hooks/useCompanySettings";
+import InvoicePrintView from "@/components/InvoicePrintView";
+import { createRoot } from "react-dom/client";
 
 interface Contact {
   id: string;
