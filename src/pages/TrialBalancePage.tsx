@@ -553,11 +553,11 @@ const TrialBalancePage = () => {
                           ? `${(group.totalDebit - group.totalCredit) > 0 ? "" : "-"}${Math.abs(group.totalDebit - group.totalCredit).toLocaleString()}`
                           : "—"}
                       </td>
+                      {showComparison && <td colSpan={3}></td>}
                     </tr>
                   </>
                 ))}
               </tbody>
-              {/* Grand Total */}
               <tfoot>
                 <tr className="bg-muted/50 border-t-2 border-primary/30">
                   <td colSpan={3} className="px-4 py-4 text-sm font-bold text-foreground text-right">
@@ -572,6 +572,17 @@ const TrialBalancePage = () => {
                   <td className={`px-4 py-4 text-sm font-bold tabular-nums text-left ${isBalanced ? "text-primary" : "text-destructive"}`}>
                     {isBalanced ? "✅ 0" : `₪${Math.abs(grandTotalDebit - grandTotalCredit).toLocaleString()}`}
                   </td>
+                  {showComparison && (
+                    <>
+                      <td className="px-3 py-4 text-[10px] font-bold text-muted-foreground tabular-nums text-left">
+                        ₪{prevGrandDebit.toLocaleString()}
+                      </td>
+                      <td className="px-3 py-4 text-[10px] font-bold text-muted-foreground tabular-nums text-left">
+                        ₪{prevGrandCredit.toLocaleString()}
+                      </td>
+                      <td></td>
+                    </>
+                  )}
                 </tr>
               </tfoot>
             </table>
