@@ -2985,8 +2985,8 @@ const POSPage = () => {
       </Dialog>
 
       {/* Device Blocked Dialog */}
-      <Dialog open={showDeviceBlocked} onOpenChange={(v) => { if (!v) navigate("/apps", { replace: true }); setShowDeviceBlocked(v); }}>
-        <DialogContent className="sm:max-w-md" dir="rtl">
+      <Dialog open={showDeviceBlocked} onOpenChange={async (v) => { if (!v) { await supabase.auth.signOut(); navigate("/auth", { replace: true }); } setShowDeviceBlocked(v); }}>
+        <DialogContent className="sm:max-w-md" dir="rtl" onPointerDownOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle className="text-xl text-destructive flex items-center gap-2">
               <AlertCircle className="h-6 w-6" />
@@ -3002,8 +3002,9 @@ const POSPage = () => {
             </p>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setShowDeviceBlocked(false); navigate("/apps", { replace: true }); }} className="w-full h-12">
-              العودة
+            <Button variant="destructive" onClick={async () => { await supabase.auth.signOut(); navigate("/auth", { replace: true }); }} className="w-full h-12 gap-2">
+              <LogOut className="h-5 w-5" />
+              تسجيل الخروج
             </Button>
           </DialogFooter>
         </DialogContent>
