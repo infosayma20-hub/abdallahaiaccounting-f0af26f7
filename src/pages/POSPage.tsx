@@ -2287,8 +2287,8 @@ const POSPage = () => {
                     </motion.button>
                   )}
 
-                  {/* Management buttons - admin only */}
-                  {!isSortMode && isAdmin && (
+                  {/* Management buttons - admin or manage_products_categories permission */}
+                  {!isSortMode && (isAdmin || posPerms.manage_products_categories) && (
                     <>
                       <button
                         onClick={() => setShowCategoryManager(true)}
