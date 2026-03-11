@@ -2984,6 +2984,31 @@ const POSPage = () => {
         </DialogContent>
       </Dialog>
 
+      {/* Device Blocked Dialog */}
+      <Dialog open={showDeviceBlocked} onOpenChange={(v) => { if (!v) navigate("/apps", { replace: true }); setShowDeviceBlocked(v); }}>
+        <DialogContent className="sm:max-w-md" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="text-xl text-destructive flex items-center gap-2">
+              <AlertCircle className="h-6 w-6" />
+              جهاز غير مصرح
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4 space-y-3">
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              هذا الجهاز غير مسجّل أو معطّل في نظام إدارة الأجهزة. لا يمكن فتح وردية من جهاز غير معتمد.
+            </p>
+            <p className="text-xs text-muted-foreground bg-secondary/50 rounded-lg p-3">
+              يرجى التواصل مع المدير لتسجيل هذا الجهاز من صفحة "إدارة أجهزة نقاط البيع".
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setShowDeviceBlocked(false); navigate("/apps", { replace: true }); }} className="w-full h-12">
+              العودة
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Payment Dialog */}
       <Dialog open={showPayment} onOpenChange={setShowPayment}>
         <DialogContent className="sm:max-w-lg max-h-[90vh] flex flex-col" dir="rtl">
