@@ -8,6 +8,7 @@ import {
   ChevronLeft, ChevronRight, Search, X, LogOut, Database, FileText, ChevronDown,
   TrendingUp, Wifi, Download, Table2, Play, Pause, Settings, Package,
   Zap, Server, Bell, HardDrive, CreditCard, BarChart3, PieChart, ArrowUpRight, ArrowDownRight, CalendarDays,
+  Sun, Moon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +21,62 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import * as XLSX from "xlsx";
+
+// ─── Theme CSS ───
+const LIGHT_THEME_STYLES = `
+  [data-sa-theme="light"] {
+    --sa-bg: #f8f9fc;
+    --sa-bg-gradient: linear-gradient(180deg, #f0f2f7 0%, #e8ecf3 100%);
+    --sa-header-bg: linear-gradient(180deg, #ffffff, #f8f9fc);
+    --sa-header-border: rgba(0,0,0,0.08);
+    --sa-card-bg: #ffffff;
+    --sa-card-border: rgba(0,0,0,0.08);
+    --sa-card-hover: rgba(0,0,0,0.02);
+    --sa-text-primary: #1a1d23;
+    --sa-text-secondary: #4b5563;
+    --sa-text-muted: #9ca3af;
+    --sa-text-faint: #d1d5db;
+    --sa-surface: rgba(0,0,0,0.03);
+    --sa-surface-hover: rgba(0,0,0,0.06);
+    --sa-divider: rgba(0,0,0,0.06);
+    --sa-kpi-gradient: linear-gradient(135deg, #f0f4ff 0%, #e8edf8 100%);
+    --sa-input-bg: rgba(0,0,0,0.03);
+    --sa-input-border: rgba(0,0,0,0.1);
+    --sa-dialog-bg: #ffffff;
+    --sa-dialog-border: rgba(0,0,0,0.1);
+    --sa-table-header-bg: #f3f4f6;
+    --sa-logo-bg: linear-gradient(135deg, #0A2342, #006D8F);
+    --sa-tab-active-bg: rgba(0,180,216,0.1);
+    --sa-tab-active-text: #0891b2;
+    --sa-tab-inactive-text: #6b7280;
+  }
+  [data-sa-theme="dark"] {
+    --sa-bg: #080d18;
+    --sa-bg-gradient: linear-gradient(180deg, #050F1E 0%, #0A2342 100%);
+    --sa-header-bg: linear-gradient(180deg, #050F1E, #0A2342);
+    --sa-header-border: rgba(255,255,255,0.06);
+    --sa-card-bg: rgba(255,255,255,0.03);
+    --sa-card-border: rgba(255,255,255,0.06);
+    --sa-card-hover: rgba(255,255,255,0.02);
+    --sa-text-primary: #ffffff;
+    --sa-text-secondary: rgba(255,255,255,0.7);
+    --sa-text-muted: rgba(255,255,255,0.4);
+    --sa-text-faint: rgba(255,255,255,0.15);
+    --sa-surface: rgba(255,255,255,0.03);
+    --sa-surface-hover: rgba(255,255,255,0.06);
+    --sa-divider: rgba(255,255,255,0.06);
+    --sa-kpi-gradient: linear-gradient(135deg, #0A2342 0%, #0D3158 100%);
+    --sa-input-bg: rgba(255,255,255,0.03);
+    --sa-input-border: rgba(255,255,255,0.06);
+    --sa-dialog-bg: #0f1524;
+    --sa-dialog-border: rgba(255,255,255,0.1);
+    --sa-table-header-bg: #0a1020;
+    --sa-logo-bg: linear-gradient(135deg, #0A2342, #006D8F);
+    --sa-tab-active-bg: rgba(0,180,216,0.2);
+    --sa-tab-active-text: #00B4D8;
+    --sa-tab-inactive-text: rgba(255,255,255,0.4);
+  }
+`;
 
 type DashboardStats = {
   total_users: number;
@@ -135,7 +192,7 @@ function PasswordConfirmDialog({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="bg-[#0f1524] border-white/10 text-white" dir="rtl">
+      <DialogContent style={{ background: "var(--sa-dialog-bg)", borderColor: "var(--sa-dialog-border)", color: "var(--sa-text-primary)" }} dir="rtl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Shield className="h-5 w-5 text-amber-400" />
@@ -143,18 +200,18 @@ function PasswordConfirmDialog({
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-3 py-2">
-          <p className="text-sm text-white/50">أدخل كلمة المرور الخاصة بك لتأكيد هذا الإجراء</p>
+          <p className="text-sm" style={{ color: "var(--sa-text-muted)" }}>أدخل كلمة المرور الخاصة بك لتأكيد هذا الإجراء</p>
           <Input
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleVerify()}
             placeholder="كلمة المرور"
-            className="bg-white/5 border-white/10 text-white"
+            style={{ background: "var(--sa-input-bg)", borderColor: "var(--sa-input-border)", color: "var(--sa-text-primary)" }}
           />
         </div>
         <DialogFooter>
-          <Button variant="ghost" onClick={onClose} className="text-white/50">إلغاء</Button>
+          <Button variant="ghost" onClick={onClose} style={{ color: "var(--sa-text-muted)" }}>إلغاء</Button>
           <Button onClick={handleVerify} disabled={!password || verifying} className="bg-amber-500 hover:bg-amber-600 text-black">
             {verifying ? "جاري التحقق..." : "تأكيد"}
           </Button>
@@ -170,21 +227,21 @@ function KPICard({ icon: Icon, label, value, sub, color, accentColor }: {
 }) {
   return (
     <div
-      className="rounded-xl p-5 space-y-3 transition-all duration-150 hover:shadow-medium"
+      className="rounded-xl p-5 space-y-3 transition-all duration-150 hover:shadow-lg"
       style={{
-        background: "linear-gradient(135deg, #0A2342 0%, #0D3158 100%)",
+        background: "var(--sa-kpi-gradient)",
         borderRight: `4px solid ${accentColor || "#00B4D8"}`,
-        boxShadow: "0 4px 16px rgba(10,35,66,0.14)",
+        boxShadow: "0 4px 16px rgba(0,0,0,0.08)",
       }}
     >
       <div className="flex items-center gap-3">
         <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${color}`}>
           <Icon className="h-5 w-5" />
         </div>
-        <span className="text-white/50 text-sm" style={{ fontFamily: "Tajawal, sans-serif" }}>{label}</span>
+        <span className="text-sm" style={{ color: "var(--sa-text-muted)", fontFamily: "Tajawal, sans-serif" }}>{label}</span>
       </div>
-      <div className="text-[32px] font-bold text-white font-mono tabular-nums" style={{ fontFamily: "JetBrains Mono, monospace" }}>{value}</div>
-      {sub && <p className="text-[13px]" style={{ color: "#8B9BB4", fontFamily: "Tajawal, sans-serif" }}>{sub}</p>}
+      <div className="text-[32px] font-bold font-mono tabular-nums" style={{ color: "var(--sa-text-primary)", fontFamily: "JetBrains Mono, monospace" }}>{value}</div>
+      {sub && <p className="text-[13px]" style={{ color: "var(--sa-text-muted)", fontFamily: "Tajawal, sans-serif" }}>{sub}</p>}
     </div>
   );
 }
@@ -241,7 +298,7 @@ function DatabaseBrowser() {
       <div className="flex flex-col lg:flex-row gap-4">
         {/* Sidebar - Table List */}
         <div className="w-full lg:w-56 shrink-0 space-y-1">
-          <p className="text-xs text-white/30 font-medium px-2 mb-2">📋 الجداول</p>
+          <p className="text-xs font-medium px-2 mb-2" style={{ color: "var(--sa-text-faint)" }}>📋 الجداول</p>
           {ALLOWED_TABLES.map((t) => (
             <button
               key={t.key}
@@ -249,8 +306,11 @@ function DatabaseBrowser() {
               className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors text-right ${
                 selectedTable === t.key
                   ? "bg-amber-500/20 text-amber-400 font-medium"
-                  : "text-white/40 hover:bg-white/5 hover:text-white/60"
+                  : ""
               }`}
+              style={selectedTable !== t.key ? { color: "var(--sa-text-muted)" } : undefined}
+              onMouseEnter={(e) => { if (selectedTable !== t.key) { (e.target as HTMLElement).style.background = "var(--sa-surface-hover)"; } }}
+              onMouseLeave={(e) => { if (selectedTable !== t.key) { (e.target as HTMLElement).style.background = ""; } }}
             >
               <span>{t.icon}</span>
               <span>{t.label}</span>
@@ -264,60 +324,63 @@ function DatabaseBrowser() {
         {/* Main - Data Table */}
         <div className="flex-1 min-w-0 space-y-3">
           <div className="flex items-center gap-3 flex-wrap">
-            <h3 className="text-lg font-bold text-white flex items-center gap-2">
+            <h3 className="text-lg font-bold flex items-center gap-2" style={{ color: "var(--sa-text-primary)" }}>
               <Table2 className="h-5 w-5 text-amber-400" />
               {tableInfo?.icon} {tableInfo?.label}
-              <Badge className="bg-white/5 text-white/30 border-0 text-xs">{tableTotal} سجل</Badge>
+              <Badge style={{ background: "var(--sa-surface)", color: "var(--sa-text-faint)" }} className="border-0 text-xs">{tableTotal} سجل</Badge>
             </h3>
             <div className="mr-auto flex items-center gap-2">
               <div className="relative">
-                <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/20" />
+                <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5" style={{ color: "var(--sa-text-faint)" }} />
                 <Input
                   value={tableSearch}
                   onChange={(e) => setTableSearch(e.target.value)}
                   placeholder="بحث في البيانات..."
-                  className="pr-8 h-8 text-xs w-48 bg-white/[0.03] border-white/[0.06] text-white placeholder:text-white/20"
+                  className="pr-8 h-8 text-xs w-48"
+                  style={{ background: "var(--sa-input-bg)", borderColor: "var(--sa-input-border)", color: "var(--sa-text-primary)" }}
                 />
               </div>
-              <Button size="sm" variant="ghost" onClick={exportToExcel} className="text-white/40 h-8" title="تصدير Excel">
+              <Button size="sm" variant="ghost" onClick={exportToExcel} className="h-8" style={{ color: "var(--sa-text-muted)" }} title="تصدير Excel">
                 <Download className="h-3.5 w-3.5 ml-1" /> تصدير
               </Button>
-              <Button size="sm" variant="ghost" onClick={() => loadTableData(selectedTable, tablePage)} disabled={loadingTable} className="text-white/40 h-8">
+              <Button size="sm" variant="ghost" onClick={() => loadTableData(selectedTable, tablePage)} disabled={loadingTable} className="h-8" style={{ color: "var(--sa-text-muted)" }}>
                 <RefreshCw className={`h-3.5 w-3.5 ${loadingTable ? "animate-spin" : ""}`} />
               </Button>
             </div>
           </div>
 
-          <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] overflow-hidden">
+          <div className="rounded-xl overflow-hidden" style={{ background: "var(--sa-card-bg)", border: "1px solid var(--sa-card-border)" }}>
             <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
               <table className="w-full text-xs">
-                <thead className="sticky top-0 bg-[#0a1020]">
-                  <tr className="border-b border-white/[0.06]">
+                <thead className="sticky top-0" style={{ background: "var(--sa-table-header-bg)" }}>
+                  <tr style={{ borderBottom: "1px solid var(--sa-divider)" }}>
                     {columns.map((col) => (
-                      <th key={col} className="text-right text-white/30 font-medium px-3 py-2.5 whitespace-nowrap">
+                      <th key={col} className="text-right font-medium px-3 py-2.5 whitespace-nowrap" style={{ color: "var(--sa-text-muted)" }}>
                         {col}
                       </th>
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/[0.04]">
+                <tbody>
                   {loadingTable ? (
                     <tr>
-                      <td colSpan={columns.length || 1} className="text-center py-12 text-white/20">
+                      <td colSpan={columns.length || 1} className="text-center py-12" style={{ color: "var(--sa-text-faint)" }}>
                         <RefreshCw className="h-5 w-5 animate-spin mx-auto mb-2 text-amber-400" />
                         جاري التحميل...
                       </td>
                     </tr>
                   ) : filteredData.length === 0 ? (
                     <tr>
-                      <td colSpan={columns.length || 1} className="text-center py-12 text-white/20">لا توجد بيانات</td>
+                      <td colSpan={columns.length || 1} className="text-center py-12" style={{ color: "var(--sa-text-faint)" }}>لا توجد بيانات</td>
                     </tr>
                   ) : (
                     filteredData.map((row, i) => (
-                      <tr key={i} className="hover:bg-white/[0.02]">
+                      <tr key={i} style={{ borderBottom: "1px solid var(--sa-divider)" }} className="transition-colors"
+                        onMouseEnter={(e) => (e.currentTarget.style.background = "var(--sa-card-hover)")}
+                        onMouseLeave={(e) => (e.currentTarget.style.background = "")}>
                         {columns.map((col) => (
-                          <td key={col} className="px-3 py-2 text-white/50 max-w-[200px] truncate whitespace-nowrap" title={String(row[col] ?? "")}>
-                            {row[col] === null ? <span className="text-white/15 italic">null</span> :
+                          <td key={col} className="px-3 py-2 max-w-[200px] truncate whitespace-nowrap" style={{ color: "var(--sa-text-muted)" }} title={String(row[col] ?? "")}>
+                            {row[col] === null ? <span style={{ color: "var(--sa-text-faint)" }} className="italic">null</span> :
                              typeof row[col] === "object" ? <span className="text-amber-400/50 font-mono">{JSON.stringify(row[col]).substring(0, 50)}</span> :
                              typeof row[col] === "boolean" ? (
                               <Badge className={`text-[9px] ${row[col] ? "bg-emerald-500/10 text-emerald-400" : "bg-red-500/10 text-red-400"} border-0`}>
@@ -334,15 +397,15 @@ function DatabaseBrowser() {
             </div>
 
             {tableTotal > 50 && (
-              <div className="px-4 py-2.5 border-t border-white/[0.06] flex items-center justify-between">
-                <span className="text-[11px] text-white/20">
+              <div className="px-4 py-2.5 flex items-center justify-between" style={{ borderTop: "1px solid var(--sa-divider)" }}>
+                <span className="text-[11px]" style={{ color: "var(--sa-text-faint)" }}>
                   صفحة {tablePage + 1} من {Math.ceil(tableTotal / 50)}
                 </span>
                 <div className="flex gap-2">
-                  <Button size="sm" variant="ghost" disabled={tablePage === 0} onClick={() => loadTableData(selectedTable, tablePage - 1)} className="text-white/40 h-7">
+                  <Button size="sm" variant="ghost" disabled={tablePage === 0} onClick={() => loadTableData(selectedTable, tablePage - 1)} className="h-7" style={{ color: "var(--sa-text-muted)" }}>
                     <ChevronRight className="h-3.5 w-3.5" />
                   </Button>
-                  <Button size="sm" variant="ghost" disabled={(tablePage + 1) * 50 >= tableTotal} onClick={() => loadTableData(selectedTable, tablePage + 1)} className="text-white/40 h-7">
+                  <Button size="sm" variant="ghost" disabled={(tablePage + 1) * 50 >= tableTotal} onClick={() => loadTableData(selectedTable, tablePage + 1)} className="h-7" style={{ color: "var(--sa-text-muted)" }}>
                     <ChevronLeft className="h-3.5 w-3.5" />
                   </Button>
                 </div>
@@ -368,19 +431,15 @@ function LiveMonitor() {
   }, [isPaused]);
 
   useEffect(() => {
-    // Subscribe to realtime changes on key tables
     const channel = supabase
       .channel("super-admin-live")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "transactions" }, (payload) => {
         if (pausedRef.current) return;
         const t = payload.new as any;
         const ev: LiveEvent = {
-          id: t.id,
-          time: new Date().toISOString(),
-          user: t.user_id?.substring(0, 8) || "—",
+          id: t.id, time: new Date().toISOString(), user: t.user_id?.substring(0, 8) || "—",
           action: `معاملة ${t.transaction_type || "جديدة"}`,
-          details: t.amount ? `₪${Number(t.amount).toLocaleString()}` : undefined,
-          type: "transaction",
+          details: t.amount ? `₪${Number(t.amount).toLocaleString()}` : undefined, type: "transaction",
         };
         eventsRef.current = [ev, ...eventsRef.current].slice(0, 100);
         setEvents([...eventsRef.current]);
@@ -388,13 +447,7 @@ function LiveMonitor() {
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "pos_sessions" }, (payload) => {
         if (pausedRef.current) return;
         const s = payload.new as any;
-        const ev: LiveEvent = {
-          id: s.id,
-          time: new Date().toISOString(),
-          user: s.user_id?.substring(0, 8) || "—",
-          action: "فتح وردية جديدة",
-          type: "pos",
-        };
+        const ev: LiveEvent = { id: s.id, time: new Date().toISOString(), user: s.user_id?.substring(0, 8) || "—", action: "فتح وردية جديدة", type: "pos" };
         eventsRef.current = [ev, ...eventsRef.current].slice(0, 100);
         setEvents([...eventsRef.current]);
       })
@@ -403,12 +456,8 @@ function LiveMonitor() {
         const s = payload.new as any;
         if (s.status === "closed") {
           const ev: LiveEvent = {
-            id: s.id + "-close",
-            time: new Date().toISOString(),
-            user: s.user_id?.substring(0, 8) || "—",
-            action: "إغلاق وردية",
-            details: s.total_sales ? `₪${Number(s.total_sales).toLocaleString()}` : undefined,
-            type: "pos",
+            id: s.id + "-close", time: new Date().toISOString(), user: s.user_id?.substring(0, 8) || "—",
+            action: "إغلاق وردية", details: s.total_sales ? `₪${Number(s.total_sales).toLocaleString()}` : undefined, type: "pos",
           };
           eventsRef.current = [ev, ...eventsRef.current].slice(0, 100);
           setEvents([...eventsRef.current]);
@@ -418,12 +467,8 @@ function LiveMonitor() {
         if (pausedRef.current) return;
         const o = payload.new as any;
         const ev: LiveEvent = {
-          id: o.id,
-          time: new Date().toISOString(),
-          user: o.user_id?.substring(0, 8) || "—",
-          action: "طلب POS جديد",
-          details: o.total_amount ? `₪${Number(o.total_amount).toLocaleString()}` : undefined,
-          type: "pos",
+          id: o.id, time: new Date().toISOString(), user: o.user_id?.substring(0, 8) || "—",
+          action: "طلب POS جديد", details: o.total_amount ? `₪${Number(o.total_amount).toLocaleString()}` : undefined, type: "pos",
         };
         eventsRef.current = [ev, ...eventsRef.current].slice(0, 100);
         setEvents([...eventsRef.current]);
@@ -431,21 +476,13 @@ function LiveMonitor() {
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "super_admin_audit_logs" }, (payload) => {
         if (pausedRef.current) return;
         const l = payload.new as any;
-        const ev: LiveEvent = {
-          id: l.id,
-          time: new Date().toISOString(),
-          user: "Super Admin",
-          action: l.action,
-          type: "system",
-        };
+        const ev: LiveEvent = { id: l.id, time: new Date().toISOString(), user: "Super Admin", action: l.action, type: "system" };
         eventsRef.current = [ev, ...eventsRef.current].slice(0, 100);
         setEvents([...eventsRef.current]);
       })
       .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => { supabase.removeChannel(channel); };
   }, []);
 
   const filteredEvents = filter
@@ -460,16 +497,13 @@ function LiveMonitor() {
   };
 
   const typeIcons: Record<string, string> = {
-    transaction: "💰",
-    auth: "🔐",
-    system: "⚙️",
-    pos: "🛒",
+    transaction: "💰", auth: "🔐", system: "⚙️", pos: "🛒",
   };
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-bold text-white flex items-center gap-2">
+        <h2 className="text-lg font-bold flex items-center gap-2" style={{ color: "var(--sa-text-primary)" }}>
           <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full ${isPaused ? "bg-yellow-500/10 border border-yellow-500/20" : "bg-red-500/10 border border-red-500/20"}`}>
             <div className={`w-2 h-2 rounded-full ${isPaused ? "bg-yellow-400" : "bg-red-400 animate-pulse"}`} />
             <span className={`text-[11px] font-medium ${isPaused ? "text-yellow-400" : "text-red-400"}`}>
@@ -480,48 +514,47 @@ function LiveMonitor() {
         </h2>
         <div className="flex items-center gap-2">
           <div className="relative">
-            <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/20" />
+            <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5" style={{ color: "var(--sa-text-faint)" }} />
             <Input
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-              placeholder="فلتر..."
-              className="pr-8 h-8 text-xs w-40 bg-white/[0.03] border-white/[0.06] text-white placeholder:text-white/20"
+              value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="فلتر..."
+              className="pr-8 h-8 text-xs w-40"
+              style={{ background: "var(--sa-input-bg)", borderColor: "var(--sa-input-border)", color: "var(--sa-text-primary)" }}
             />
           </div>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => setIsPaused(!isPaused)}
-            className={`h-8 ${isPaused ? "text-yellow-400" : "text-white/40"}`}
-          >
+          <Button size="sm" variant="ghost" onClick={() => setIsPaused(!isPaused)}
+            className={`h-8 ${isPaused ? "text-yellow-400" : ""}`}
+            style={!isPaused ? { color: "var(--sa-text-muted)" } : undefined}>
             {isPaused ? <Play className="h-3.5 w-3.5 ml-1" /> : <Pause className="h-3.5 w-3.5 ml-1" />}
             {isPaused ? "استئناف" : "إيقاف"}
           </Button>
         </div>
       </div>
 
-      <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] overflow-hidden">
-        <div className="divide-y divide-white/[0.04] max-h-[600px] overflow-y-auto">
+      <div className="rounded-2xl overflow-hidden" style={{ background: "var(--sa-card-bg)", border: "1px solid var(--sa-card-border)" }}>
+        <div className="max-h-[600px] overflow-y-auto">
           {filteredEvents.length === 0 ? (
             <div className="text-center py-16 space-y-3">
-              <Activity className="h-8 w-8 text-white/10 mx-auto" />
-              <p className="text-sm text-white/20">في انتظار النشاط...</p>
-              <p className="text-[11px] text-white/10">ستظهر الأحداث هنا فور حدوثها في الوقت الفعلي</p>
+              <Activity className="h-8 w-8 mx-auto" style={{ color: "var(--sa-text-faint)" }} />
+              <p className="text-sm" style={{ color: "var(--sa-text-faint)" }}>في انتظار النشاط...</p>
+              <p className="text-[11px]" style={{ color: "var(--sa-text-faint)" }}>ستظهر الأحداث هنا فور حدوثها في الوقت الفعلي</p>
             </div>
           ) : (
             filteredEvents.map((ev) => (
-              <div key={ev.id} className="px-4 py-3 flex items-center gap-3 hover:bg-white/[0.02] transition-colors">
+              <div key={ev.id} className="px-4 py-3 flex items-center gap-3 transition-colors"
+                style={{ borderBottom: "1px solid var(--sa-divider)" }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = "var(--sa-card-hover)")}
+                onMouseLeave={(e) => (e.currentTarget.style.background = "")}>
                 <span className="text-lg shrink-0">{typeIcons[ev.type]}</span>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm text-white/70">{ev.action}</span>
+                    <span className="text-sm" style={{ color: "var(--sa-text-secondary)" }}>{ev.action}</span>
                     {ev.details && (
                       <Badge className={`text-[10px] border-0 ${typeColors[ev.type]}`}>{ev.details}</Badge>
                     )}
                   </div>
-                  <p className="text-[11px] text-white/25 font-mono">{ev.user}</p>
+                  <p className="text-[11px] font-mono" style={{ color: "var(--sa-text-faint)" }}>{ev.user}</p>
                 </div>
-                <span className="text-[11px] text-white/20 tabular-nums font-mono shrink-0">
+                <span className="text-[11px] tabular-nums font-mono shrink-0" style={{ color: "var(--sa-text-faint)" }}>
                   {format(new Date(ev.time), "HH:mm:ss")}
                 </span>
               </div>
@@ -561,7 +594,7 @@ function SubscriptionsManager() {
     trial: { text: "تجريبي", cls: "bg-blue-500/10 text-blue-400 border-blue-500/20" },
     active: { text: "نشط", cls: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" },
     expired: { text: "منتهي", cls: "bg-red-500/10 text-red-400 border-red-500/20" },
-    cancelled: { text: "ملغي", cls: "bg-white/5 text-white/30 border-white/10" },
+    cancelled: { text: "ملغي", cls: "bg-gray-500/10 text-gray-400 border-gray-500/20" },
     suspended: { text: "موقوف", cls: "bg-amber-500/10 text-amber-400 border-amber-500/20" },
   };
 
@@ -576,10 +609,7 @@ function SubscriptionsManager() {
     if (!editSub) return;
     try {
       await apiCall("update_subscription", undefined, {
-        subscription_id: editSub.id,
-        plan_id: editPlanId,
-        status: editStatus,
-        billing_cycle: editBilling,
+        subscription_id: editSub.id, plan_id: editPlanId, status: editStatus, billing_cycle: editBilling,
       });
       toast.success("تم تحديث الاشتراك");
       setEditSub(null);
@@ -591,7 +621,6 @@ function SubscriptionsManager() {
     !search || s.display_name?.toLowerCase().includes(search.toLowerCase()) || s.email?.toLowerCase().includes(search.toLowerCase())
   );
 
-  // Stats
   const trialCount = subs.filter(s => s.status === "trial").length;
   const activeCount = subs.filter(s => s.status === "active").length;
   const expiredCount = subs.filter(s => s.status === "expired").length;
@@ -599,78 +628,73 @@ function SubscriptionsManager() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold text-white flex items-center gap-2">
+        <h2 className="text-xl font-bold flex items-center gap-2" style={{ color: "var(--sa-text-primary)" }}>
           <CreditCard className="h-5 w-5 text-amber-400" /> إدارة الاشتراكات
         </h2>
-        <Button variant="ghost" size="sm" onClick={loadData} disabled={loading} className="text-white/40">
+        <Button variant="ghost" size="sm" onClick={loadData} disabled={loading} style={{ color: "var(--sa-text-muted)" }}>
           <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
         </Button>
       </div>
 
-      {/* Stats */}
       <div className="grid grid-cols-3 gap-4">
         <div className="rounded-2xl bg-blue-500/5 border border-blue-500/10 p-4 text-center">
           <p className="text-2xl font-bold text-blue-400">{trialCount}</p>
-          <p className="text-xs text-white/30">تجريبي</p>
+          <p className="text-xs" style={{ color: "var(--sa-text-muted)" }}>تجريبي</p>
         </div>
         <div className="rounded-2xl bg-emerald-500/5 border border-emerald-500/10 p-4 text-center">
           <p className="text-2xl font-bold text-emerald-400">{activeCount}</p>
-          <p className="text-xs text-white/30">نشط</p>
+          <p className="text-xs" style={{ color: "var(--sa-text-muted)" }}>نشط</p>
         </div>
         <div className="rounded-2xl bg-red-500/5 border border-red-500/10 p-4 text-center">
           <p className="text-2xl font-bold text-red-400">{expiredCount}</p>
-          <p className="text-xs text-white/30">منتهي</p>
+          <p className="text-xs" style={{ color: "var(--sa-text-muted)" }}>منتهي</p>
         </div>
       </div>
 
-      {/* Search */}
       <div className="relative max-w-md">
-        <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/20" />
-        <Input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="بحث بالاسم أو الإيميل..."
-          className="pr-10 bg-white/[0.03] border-white/[0.06] text-white placeholder:text-white/20"
-        />
+        <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4" style={{ color: "var(--sa-text-faint)" }} />
+        <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="بحث بالاسم أو الإيميل..."
+          className="pr-10" style={{ background: "var(--sa-input-bg)", borderColor: "var(--sa-input-border)", color: "var(--sa-text-primary)" }} />
       </div>
 
-      {/* Table */}
-      <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] overflow-hidden">
+      <div className="rounded-2xl overflow-hidden" style={{ background: "var(--sa-card-bg)", border: "1px solid var(--sa-card-border)" }}>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-white/[0.06]">
-                <th className="text-right text-white/30 font-medium px-4 py-3">المستخدم</th>
-                <th className="text-right text-white/30 font-medium px-4 py-3">الباقة</th>
-                <th className="text-right text-white/30 font-medium px-4 py-3">الدورة</th>
-                <th className="text-right text-white/30 font-medium px-4 py-3">الحالة</th>
-                <th className="text-right text-white/30 font-medium px-4 py-3">انتهاء الفترة</th>
-                <th className="text-center text-white/30 font-medium px-4 py-3">إجراءات</th>
+              <tr style={{ borderBottom: "1px solid var(--sa-divider)" }}>
+                <th className="text-right font-medium px-4 py-3" style={{ color: "var(--sa-text-muted)" }}>المستخدم</th>
+                <th className="text-right font-medium px-4 py-3" style={{ color: "var(--sa-text-muted)" }}>الباقة</th>
+                <th className="text-right font-medium px-4 py-3" style={{ color: "var(--sa-text-muted)" }}>الدورة</th>
+                <th className="text-right font-medium px-4 py-3" style={{ color: "var(--sa-text-muted)" }}>الحالة</th>
+                <th className="text-right font-medium px-4 py-3" style={{ color: "var(--sa-text-muted)" }}>انتهاء الفترة</th>
+                <th className="text-center font-medium px-4 py-3" style={{ color: "var(--sa-text-muted)" }}>إجراءات</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/[0.04]">
+            <tbody>
               {filtered.map((sub) => {
                 const st = statusLabel[sub.status] || statusLabel.trial;
                 return (
-                  <tr key={sub.id} className="hover:bg-white/[0.02]">
+                  <tr key={sub.id} style={{ borderBottom: "1px solid var(--sa-divider)" }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = "var(--sa-card-hover)")}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = "")}>
                     <td className="px-4 py-3">
                       <div>
-                        <p className="text-white/80 font-medium text-sm">{sub.display_name}</p>
-                        <p className="text-white/25 text-xs font-mono">{sub.email}</p>
+                        <p className="font-medium text-sm" style={{ color: "var(--sa-text-secondary)" }}>{sub.display_name}</p>
+                        <p className="text-xs font-mono" style={{ color: "var(--sa-text-faint)" }}>{sub.email}</p>
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <Badge variant="outline" className="text-[10px] border-white/10 text-white/60">
+                      <Badge variant="outline" className="text-[10px]" style={{ borderColor: "var(--sa-card-border)", color: "var(--sa-text-muted)" }}>
                         {sub.plans?.name || "—"}
                       </Badge>
                     </td>
-                    <td className="px-4 py-3 text-white/40 text-xs">
+                    <td className="px-4 py-3 text-xs" style={{ color: "var(--sa-text-muted)" }}>
                       {sub.billing_cycle === "annual" ? "سنوي" : "شهري"}
                     </td>
                     <td className="px-4 py-3">
                       <Badge className={`text-[10px] ${st.cls}`}>{st.text}</Badge>
                     </td>
-                    <td className="px-4 py-3 text-white/30 text-xs tabular-nums">
+                    <td className="px-4 py-3 text-xs tabular-nums" style={{ color: "var(--sa-text-muted)" }}>
                       {sub.current_period_end ? format(new Date(sub.current_period_end), "dd/MM/yyyy") : "—"}
                     </td>
                     <td className="px-4 py-3 text-center">
@@ -682,49 +706,54 @@ function SubscriptionsManager() {
                 );
               })}
               {filtered.length === 0 && (
-                <tr><td colSpan={6} className="text-center py-8 text-white/20">لا توجد اشتراكات</td></tr>
+                <tr><td colSpan={6} className="text-center py-8" style={{ color: "var(--sa-text-faint)" }}>لا توجد اشتراكات</td></tr>
               )}
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* Edit Dialog */}
       {editSub && (
         <Dialog open={!!editSub} onOpenChange={() => setEditSub(null)}>
-          <DialogContent className="bg-[#0f1629] border-white/10 text-white" dir="rtl">
+          <DialogContent style={{ background: "var(--sa-dialog-bg)", borderColor: "var(--sa-dialog-border)", color: "var(--sa-text-primary)" }} dir="rtl">
             <DialogHeader>
-              <DialogTitle className="text-white">تعديل اشتراك {editSub.display_name}</DialogTitle>
+              <DialogTitle style={{ color: "var(--sa-text-primary)" }}>تعديل اشتراك {editSub.display_name}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div>
-                <label className="text-xs text-white/40 block mb-1">الباقة</label>
-                <select value={editPlanId} onChange={e => setEditPlanId(e.target.value)} className="w-full h-10 rounded-md bg-white/5 border border-white/10 text-white px-3 text-sm">
+                <label className="text-xs block mb-1" style={{ color: "var(--sa-text-muted)" }}>الباقة</label>
+                <select value={editPlanId} onChange={e => setEditPlanId(e.target.value)}
+                  className="w-full h-10 rounded-md px-3 text-sm"
+                  style={{ background: "var(--sa-input-bg)", border: "1px solid var(--sa-input-border)", color: "var(--sa-text-primary)" }}>
                   {plans.map(p => (
-                    <option key={p.id} value={p.id} className="bg-[#0f1629]">{p.name} (₪{p.monthly_price}/شهر)</option>
+                    <option key={p.id} value={p.id} style={{ background: "var(--sa-dialog-bg)" }}>{p.name} (₪{p.monthly_price}/شهر)</option>
                   ))}
                 </select>
               </div>
               <div>
-                <label className="text-xs text-white/40 block mb-1">الحالة</label>
-                <select value={editStatus} onChange={e => setEditStatus(e.target.value)} className="w-full h-10 rounded-md bg-white/5 border border-white/10 text-white px-3 text-sm">
-                  <option value="trial" className="bg-[#0f1629]">تجريبي</option>
-                  <option value="active" className="bg-[#0f1629]">نشط</option>
-                  <option value="expired" className="bg-[#0f1629]">منتهي</option>
-                  <option value="cancelled" className="bg-[#0f1629]">ملغي</option>
-                  <option value="suspended" className="bg-[#0f1629]">موقوف</option>
+                <label className="text-xs block mb-1" style={{ color: "var(--sa-text-muted)" }}>الحالة</label>
+                <select value={editStatus} onChange={e => setEditStatus(e.target.value)}
+                  className="w-full h-10 rounded-md px-3 text-sm"
+                  style={{ background: "var(--sa-input-bg)", border: "1px solid var(--sa-input-border)", color: "var(--sa-text-primary)" }}>
+                  <option value="trial" style={{ background: "var(--sa-dialog-bg)" }}>تجريبي</option>
+                  <option value="active" style={{ background: "var(--sa-dialog-bg)" }}>نشط</option>
+                  <option value="expired" style={{ background: "var(--sa-dialog-bg)" }}>منتهي</option>
+                  <option value="cancelled" style={{ background: "var(--sa-dialog-bg)" }}>ملغي</option>
+                  <option value="suspended" style={{ background: "var(--sa-dialog-bg)" }}>موقوف</option>
                 </select>
               </div>
               <div>
-                <label className="text-xs text-white/40 block mb-1">دورة الفوترة</label>
-                <select value={editBilling} onChange={e => setEditBilling(e.target.value)} className="w-full h-10 rounded-md bg-white/5 border border-white/10 text-white px-3 text-sm">
-                  <option value="monthly" className="bg-[#0f1629]">شهري</option>
-                  <option value="annual" className="bg-[#0f1629]">سنوي</option>
+                <label className="text-xs block mb-1" style={{ color: "var(--sa-text-muted)" }}>دورة الفوترة</label>
+                <select value={editBilling} onChange={e => setEditBilling(e.target.value)}
+                  className="w-full h-10 rounded-md px-3 text-sm"
+                  style={{ background: "var(--sa-input-bg)", border: "1px solid var(--sa-input-border)", color: "var(--sa-text-primary)" }}>
+                  <option value="monthly" style={{ background: "var(--sa-dialog-bg)" }}>شهري</option>
+                  <option value="annual" style={{ background: "var(--sa-dialog-bg)" }}>سنوي</option>
                 </select>
               </div>
             </div>
             <DialogFooter>
-              <Button variant="ghost" onClick={() => setEditSub(null)} className="text-white/40">إلغاء</Button>
+              <Button variant="ghost" onClick={() => setEditSub(null)} style={{ color: "var(--sa-text-muted)" }}>إلغاء</Button>
               <Button onClick={saveEdit} className="bg-amber-500 hover:bg-amber-600 text-black">حفظ</Button>
             </DialogFooter>
           </DialogContent>
@@ -766,10 +795,8 @@ function PlatformSettings() {
   const savePlan = async () => {
     if (!editingPlan) return;
     const { error } = await supabase.from("plans").update({
-      monthly_price: Number(editPrice),
-      annual_discount_pct: Number(editDiscount),
-      max_users: Number(editMaxUsers),
-      max_companies: Number(editMaxCompanies),
+      monthly_price: Number(editPrice), annual_discount_pct: Number(editDiscount),
+      max_users: Number(editMaxUsers), max_companies: Number(editMaxCompanies),
     }).eq("id", editingPlan.id);
     if (error) { toast.error("فشل التحديث: " + error.message); return; }
     toast.success(`تم تحديث ${editingPlan.name}`);
@@ -792,11 +819,10 @@ function PlatformSettings() {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-bold text-white flex items-center gap-2">
+      <h2 className="text-xl font-bold flex items-center gap-2" style={{ color: "var(--sa-text-primary)" }}>
         <Settings className="h-5 w-5 text-amber-400" /> إعدادات المنصة
       </h2>
 
-      {/* Sub-tabs */}
       <div className="flex gap-2 flex-wrap">
         {[
           { key: "plans", label: "الباقات", icon: Package },
@@ -804,62 +830,56 @@ function PlatformSettings() {
           { key: "notifications", label: "الإشعارات", icon: Bell },
           { key: "maintenance", label: "الصيانة", icon: Server },
         ].map((t) => (
-          <button
-            key={t.key}
-            onClick={() => setSettingsTab(t.key)}
+          <button key={t.key} onClick={() => setSettingsTab(t.key)}
             className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm transition-colors ${
-              settingsTab === t.key
-                ? "bg-amber-500/20 text-amber-400 font-medium"
-                : "bg-white/[0.03] text-white/40 hover:bg-white/[0.06] hover:text-white/60"
+              settingsTab === t.key ? "bg-amber-500/20 text-amber-400 font-medium" : ""
             }`}
-          >
+            style={settingsTab !== t.key ? { background: "var(--sa-surface)", color: "var(--sa-text-muted)" } : undefined}>
             <t.icon className="h-4 w-4" />
             {t.label}
           </button>
         ))}
       </div>
 
-      {/* Plans */}
       {settingsTab === "plans" && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <p className="text-sm text-white/40">إدارة الباقات والأسعار</p>
-            <Button variant="ghost" size="sm" onClick={loadPlans} disabled={loadingPlans} className="text-white/40">
+            <p className="text-sm" style={{ color: "var(--sa-text-muted)" }}>إدارة الباقات والأسعار</p>
+            <Button variant="ghost" size="sm" onClick={loadPlans} disabled={loadingPlans} style={{ color: "var(--sa-text-muted)" }}>
               <RefreshCw className={`h-4 w-4 ${loadingPlans ? "animate-spin" : ""}`} />
             </Button>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {dbPlans.map((plan) => (
-              <div key={plan.id} className={`rounded-2xl bg-white/[0.03] border ${plan.plan_key === "growth" ? "border-emerald-500/40" : "border-white/[0.06]"} p-6 space-y-4 relative ${!plan.is_active ? "opacity-50" : ""}`}>
+              <div key={plan.id} className={`rounded-2xl p-6 space-y-4 relative ${!plan.is_active ? "opacity-50" : ""}`}
+                style={{ background: "var(--sa-card-bg)", border: `1px solid ${plan.plan_key === "growth" ? "rgba(16,185,129,0.4)" : "var(--sa-card-border)"}` }}>
                 {plan.plan_key === "growth" && (
                   <div className="absolute -top-3 right-4">
-                    <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-[10px]">
-                      ⭐ الأكثر اختياراً
-                    </Badge>
+                    <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-[10px]">⭐ الأكثر اختياراً</Badge>
                   </div>
                 )}
                 <div>
-                  <h3 className="text-lg font-bold text-white">{plan.name}</h3>
-                  <p className="text-xs text-white/25">{plan.name_ar}</p>
+                  <h3 className="text-lg font-bold" style={{ color: "var(--sa-text-primary)" }}>{plan.name}</h3>
+                  <p className="text-xs" style={{ color: "var(--sa-text-faint)" }}>{plan.name_ar}</p>
                   <div className="flex items-baseline gap-1 mt-2">
-                    <span className="text-3xl font-bold text-white">₪{plan.monthly_price}</span>
-                    <span className="text-sm text-white/30">/شهر</span>
+                    <span className="text-3xl font-bold" style={{ color: "var(--sa-text-primary)" }}>₪{plan.monthly_price}</span>
+                    <span className="text-sm" style={{ color: "var(--sa-text-muted)" }}>/شهر</span>
                   </div>
-                  <p className="text-xs text-white/30 mt-1">₪{Math.round(plan.monthly_price * 12 * (1 - plan.annual_discount_pct / 100))} سنوياً (خصم {plan.annual_discount_pct}%)</p>
+                  <p className="text-xs mt-1" style={{ color: "var(--sa-text-muted)" }}>₪{Math.round(plan.monthly_price * 12 * (1 - plan.annual_discount_pct / 100))} سنوياً (خصم {plan.annual_discount_pct}%)</p>
                 </div>
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span className="text-white/40">المستخدمون</span>
-                    <span className="text-white/70">{plan.max_users === -1 ? "غير محدود" : plan.max_users}</span>
+                    <span style={{ color: "var(--sa-text-muted)" }}>المستخدمون</span>
+                    <span style={{ color: "var(--sa-text-secondary)" }}>{plan.max_users === -1 ? "غير محدود" : plan.max_users}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-white/40">الشركات</span>
-                    <span className="text-white/70">{plan.max_companies === -1 ? "غير محدود" : plan.max_companies}</span>
+                    <span style={{ color: "var(--sa-text-muted)" }}>الشركات</span>
+                    <span style={{ color: "var(--sa-text-secondary)" }}>{plan.max_companies === -1 ? "غير محدود" : plan.max_companies}</span>
                   </div>
                 </div>
-                <div className="border-t border-white/[0.06] pt-3 space-y-1.5">
+                <div className="pt-3 space-y-1.5" style={{ borderTop: "1px solid var(--sa-divider)" }}>
                   {((plan.features as any[]) || []).map((f: string) => (
-                    <p key={f} className="text-xs text-white/40 flex items-center gap-1.5">
+                    <p key={f} className="text-xs flex items-center gap-1.5" style={{ color: "var(--sa-text-muted)" }}>
                       <span className="text-emerald-400">✓</span> {f}
                     </p>
                   ))}
@@ -876,33 +896,28 @@ function PlatformSettings() {
             ))}
           </div>
 
-          {/* Edit Plan Dialog */}
           {editingPlan && (
             <Dialog open={!!editingPlan} onOpenChange={() => setEditingPlan(null)}>
-              <DialogContent className="bg-[#0f1629] border-white/10 text-white">
+              <DialogContent style={{ background: "var(--sa-dialog-bg)", borderColor: "var(--sa-dialog-border)", color: "var(--sa-text-primary)" }}>
                 <DialogHeader>
-                  <DialogTitle className="text-white">تعديل باقة {editingPlan.name}</DialogTitle>
+                  <DialogTitle style={{ color: "var(--sa-text-primary)" }}>تعديل باقة {editingPlan.name}</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4">
-                  <div>
-                    <label className="text-xs text-white/40 block mb-1">السعر الشهري (₪)</label>
-                    <Input value={editPrice} onChange={e => setEditPrice(e.target.value)} className="bg-white/5 border-white/10 text-white" type="number" />
-                  </div>
-                  <div>
-                    <label className="text-xs text-white/40 block mb-1">نسبة خصم السنوي (%)</label>
-                    <Input value={editDiscount} onChange={e => setEditDiscount(e.target.value)} className="bg-white/5 border-white/10 text-white" type="number" />
-                  </div>
-                  <div>
-                    <label className="text-xs text-white/40 block mb-1">عدد المستخدمين (-1 = غير محدود)</label>
-                    <Input value={editMaxUsers} onChange={e => setEditMaxUsers(e.target.value)} className="bg-white/5 border-white/10 text-white" type="number" />
-                  </div>
-                  <div>
-                    <label className="text-xs text-white/40 block mb-1">عدد الشركات (-1 = غير محدود)</label>
-                    <Input value={editMaxCompanies} onChange={e => setEditMaxCompanies(e.target.value)} className="bg-white/5 border-white/10 text-white" type="number" />
-                  </div>
+                  {[
+                    { label: "السعر الشهري (₪)", value: editPrice, setter: setEditPrice },
+                    { label: "نسبة خصم السنوي (%)", value: editDiscount, setter: setEditDiscount },
+                    { label: "عدد المستخدمين (-1 = غير محدود)", value: editMaxUsers, setter: setEditMaxUsers },
+                    { label: "عدد الشركات (-1 = غير محدود)", value: editMaxCompanies, setter: setEditMaxCompanies },
+                  ].map(f => (
+                    <div key={f.label}>
+                      <label className="text-xs block mb-1" style={{ color: "var(--sa-text-muted)" }}>{f.label}</label>
+                      <Input value={f.value} onChange={e => f.setter(e.target.value)} type="number"
+                        style={{ background: "var(--sa-input-bg)", borderColor: "var(--sa-input-border)", color: "var(--sa-text-primary)" }} />
+                    </div>
+                  ))}
                 </div>
                 <DialogFooter>
-                  <Button variant="ghost" onClick={() => setEditingPlan(null)} className="text-white/40">إلغاء</Button>
+                  <Button variant="ghost" onClick={() => setEditingPlan(null)} style={{ color: "var(--sa-text-muted)" }}>إلغاء</Button>
                   <Button onClick={savePlan} className="bg-amber-500 hover:bg-amber-600 text-black">حفظ التعديلات</Button>
                 </DialogFooter>
               </DialogContent>
@@ -911,11 +926,10 @@ function PlatformSettings() {
         </div>
       )}
 
-      {/* Exchange Rates */}
       {settingsTab === "rates" && (
-        <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] overflow-hidden">
-          <div className="px-5 py-4 border-b border-white/[0.06] flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+        <div className="rounded-2xl overflow-hidden" style={{ background: "var(--sa-card-bg)", border: "1px solid var(--sa-card-border)" }}>
+          <div className="px-5 py-4 flex items-center justify-between" style={{ borderBottom: "1px solid var(--sa-divider)" }}>
+            <h3 className="text-sm font-semibold flex items-center gap-2" style={{ color: "var(--sa-text-primary)" }}>
               💱 أسعار الصرف مقابل الشيكل
             </h3>
             <Button size="sm" variant="ghost" className="text-amber-400 h-7 text-xs">
@@ -924,28 +938,28 @@ function PlatformSettings() {
           </div>
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-white/[0.06]">
-                <th className="text-right text-white/30 font-medium px-5 py-3">العملة</th>
-                <th className="text-right text-white/30 font-medium px-5 py-3">السعر (₪)</th>
-                <th className="text-right text-white/30 font-medium px-5 py-3">تحديث تلقائي</th>
+              <tr style={{ borderBottom: "1px solid var(--sa-divider)" }}>
+                <th className="text-right font-medium px-5 py-3" style={{ color: "var(--sa-text-muted)" }}>العملة</th>
+                <th className="text-right font-medium px-5 py-3" style={{ color: "var(--sa-text-muted)" }}>السعر (₪)</th>
+                <th className="text-right font-medium px-5 py-3" style={{ color: "var(--sa-text-muted)" }}>تحديث تلقائي</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/[0.04]">
+            <tbody>
               {currencies.map((c) => (
-                <tr key={c.code} className="hover:bg-white/[0.02]">
+                <tr key={c.code} style={{ borderBottom: "1px solid var(--sa-divider)" }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = "var(--sa-card-hover)")}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = "")}>
                   <td className="px-5 py-3">
                     <span className="text-lg ml-2">{c.flag}</span>
-                    <span className="text-white/70 font-medium">{c.name}</span>
-                    <span className="text-white/20 text-xs mr-2">({c.code})</span>
+                    <span className="font-medium" style={{ color: "var(--sa-text-secondary)" }}>{c.name}</span>
+                    <span className="text-xs mr-2" style={{ color: "var(--sa-text-faint)" }}>({c.code})</span>
                   </td>
                   <td className="px-5 py-3">
-                    <Input
-                      defaultValue={c.rate}
-                      className="w-24 h-8 text-xs bg-white/5 border-white/10 text-white inline-block"
-                    />
+                    <Input defaultValue={c.rate} className="w-24 h-8 text-xs inline-block"
+                      style={{ background: "var(--sa-input-bg)", borderColor: "var(--sa-input-border)", color: "var(--sa-text-primary)" }} />
                   </td>
                   <td className="px-5 py-3">
-                    <Badge className={`text-[10px] border-0 ${c.auto ? "bg-emerald-500/10 text-emerald-400" : "bg-white/5 text-white/30"}`}>
+                    <Badge className={`text-[10px] border-0 ${c.auto ? "bg-emerald-500/10 text-emerald-400" : "bg-gray-500/10 text-gray-400"}`}>
                       {c.auto ? "☑ مفعّل" : "☐ يدوي"}
                     </Badge>
                   </td>
@@ -956,11 +970,10 @@ function PlatformSettings() {
         </div>
       )}
 
-      {/* Notifications */}
       {settingsTab === "notifications" && (
         <div className="space-y-4">
-          <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-5 space-y-4">
-            <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+          <div className="rounded-2xl p-5 space-y-4" style={{ background: "var(--sa-card-bg)", border: "1px solid var(--sa-card-border)" }}>
+            <h3 className="text-sm font-semibold flex items-center gap-2" style={{ color: "var(--sa-text-primary)" }}>
               <Bell className="h-4 w-4 text-amber-400" /> إعدادات التنبيهات
             </h3>
             {[
@@ -970,12 +983,12 @@ function PlatformSettings() {
               { label: "إغلاق وردية بمبلغ عالي", desc: "تنبيه عند إغلاق وردية تتجاوز ₪10,000", enabled: false },
               { label: "حذف بيانات", desc: "تنبيه عند حذف سجلات مهمة", enabled: true },
             ].map((notif) => (
-              <div key={notif.label} className="flex items-center justify-between py-2 border-b border-white/[0.04] last:border-0">
+              <div key={notif.label} className="flex items-center justify-between py-2 last:border-0" style={{ borderBottom: "1px solid var(--sa-divider)" }}>
                 <div>
-                  <p className="text-sm text-white/70">{notif.label}</p>
-                  <p className="text-[11px] text-white/25">{notif.desc}</p>
+                  <p className="text-sm" style={{ color: "var(--sa-text-secondary)" }}>{notif.label}</p>
+                  <p className="text-[11px]" style={{ color: "var(--sa-text-faint)" }}>{notif.desc}</p>
                 </div>
-                <Badge className={`text-[10px] border-0 cursor-pointer ${notif.enabled ? "bg-emerald-500/10 text-emerald-400" : "bg-white/5 text-white/30"}`}>
+                <Badge className={`text-[10px] border-0 cursor-pointer ${notif.enabled ? "bg-emerald-500/10 text-emerald-400" : "bg-gray-500/10 text-gray-400"}`}>
                   {notif.enabled ? "مفعّل" : "معطّل"}
                 </Badge>
               </div>
@@ -984,54 +997,52 @@ function PlatformSettings() {
         </div>
       )}
 
-      {/* Maintenance */}
       {settingsTab === "maintenance" && (
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Maintenance Mode */}
-            <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-5 space-y-4">
-              <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+            <div className="rounded-2xl p-5 space-y-4" style={{ background: "var(--sa-card-bg)", border: "1px solid var(--sa-card-border)" }}>
+              <h3 className="text-sm font-semibold flex items-center gap-2" style={{ color: "var(--sa-text-primary)" }}>
                 <Server className="h-4 w-4 text-amber-400" /> وضع الصيانة
               </h3>
-              <p className="text-xs text-white/30">عند التفعيل، سيظهر للمستخدمين رسالة "النظام تحت الصيانة"</p>
+              <p className="text-xs" style={{ color: "var(--sa-text-muted)" }}>عند التفعيل، سيظهر للمستخدمين رسالة "النظام تحت الصيانة"</p>
               <Button
                 onClick={() => {
                   setMaintenanceMode(!maintenanceMode);
                   toast.success(maintenanceMode ? "تم إلغاء وضع الصيانة" : "تم تفعيل وضع الصيانة");
                 }}
-                className={`w-full ${maintenanceMode ? "bg-red-500 hover:bg-red-600" : "bg-white/5 hover:bg-white/10"} text-white`}
-              >
+                className={`w-full ${maintenanceMode ? "bg-red-500 hover:bg-red-600 text-white" : ""}`}
+                style={!maintenanceMode ? { background: "var(--sa-surface)", color: "var(--sa-text-primary)" } : undefined}>
                 {maintenanceMode ? "🔴 إيقاف الصيانة" : "⚙️ تفعيل وضع الصيانة"}
               </Button>
             </div>
 
-            {/* Backup */}
-            <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-5 space-y-4">
-              <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+            <div className="rounded-2xl p-5 space-y-4" style={{ background: "var(--sa-card-bg)", border: "1px solid var(--sa-card-border)" }}>
+              <h3 className="text-sm font-semibold flex items-center gap-2" style={{ color: "var(--sa-text-primary)" }}>
                 <HardDrive className="h-4 w-4 text-amber-400" /> النسخ الاحتياطي
               </h3>
               <div className="space-y-2">
+                {[
+                  { label: "آخر نسخة", value: "منذ ساعتين" },
+                  { label: "الحجم الكلي", value: "~45 MB" },
+                ].map(i => (
+                  <div key={i.label} className="flex justify-between text-sm">
+                    <span style={{ color: "var(--sa-text-muted)" }}>{i.label}</span>
+                    <span className="text-xs" style={{ color: "var(--sa-text-secondary)" }}>{i.value}</span>
+                  </div>
+                ))}
                 <div className="flex justify-between text-sm">
-                  <span className="text-white/40">آخر نسخة</span>
-                  <span className="text-white/50 text-xs">منذ ساعتين</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-white/40">الحجم الكلي</span>
-                  <span className="text-white/50 text-xs">~45 MB</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-white/40">تكرار تلقائي</span>
+                  <span style={{ color: "var(--sa-text-muted)" }}>تكرار تلقائي</span>
                   <Badge className="bg-emerald-500/10 text-emerald-400 border-0 text-[10px]">كل 6 ساعات</Badge>
                 </div>
               </div>
-              <Button className="w-full bg-white/5 hover:bg-white/10 text-white" onClick={() => toast.success("جاري إنشاء نسخة احتياطية...")}>
+              <Button className="w-full" style={{ background: "var(--sa-surface)", color: "var(--sa-text-primary)" }}
+                onClick={() => toast.success("جاري إنشاء نسخة احتياطية...")}>
                 <HardDrive className="h-4 w-4 ml-1" /> نسخة احتياطية الآن
               </Button>
             </div>
 
-            {/* System Info */}
-            <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-5 space-y-4 md:col-span-2">
-              <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+            <div className="rounded-2xl p-5 space-y-4 md:col-span-2" style={{ background: "var(--sa-card-bg)", border: "1px solid var(--sa-card-border)" }}>
+              <h3 className="text-sm font-semibold flex items-center gap-2" style={{ color: "var(--sa-text-primary)" }}>
                 <Zap className="h-4 w-4 text-amber-400" /> معلومات النظام
               </h3>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -1042,8 +1053,8 @@ function PlatformSettings() {
                   { label: "الحالة", value: "🟢 يعمل" },
                 ].map((info) => (
                   <div key={info.label} className="space-y-1">
-                    <p className="text-[11px] text-white/25">{info.label}</p>
-                    <p className="text-sm text-white/60 font-medium">{info.value}</p>
+                    <p className="text-[11px]" style={{ color: "var(--sa-text-faint)" }}>{info.label}</p>
+                    <p className="text-sm font-medium" style={{ color: "var(--sa-text-secondary)" }}>{info.value}</p>
                   </div>
                 ))}
               </div>
@@ -1054,6 +1065,7 @@ function PlatformSettings() {
     </div>
   );
 }
+
 // ─── Revenue Reports Component ───
 function RevenueReports() {
   const [data, setData] = useState<any>(null);
@@ -1063,10 +1075,7 @@ function RevenueReports() {
 
   const loadStats = async () => {
     setLoading(true);
-    try {
-      const res = await apiCall("revenue_stats");
-      setData(res);
-    } catch (e: any) { toast.error(e.message); }
+    try { const res = await apiCall("revenue_stats"); setData(res); } catch (e: any) { toast.error(e.message); }
     setLoading(false);
   };
 
@@ -1078,98 +1087,68 @@ function RevenueReports() {
     );
   }
 
-  if (!data) return <p className="text-center text-white/20 py-12">فشل تحميل البيانات</p>;
+  if (!data) return <p className="text-center py-12" style={{ color: "var(--sa-text-faint)" }}>فشل تحميل البيانات</p>;
 
   const maxBarRevenue = Math.max(...(data.monthly_trend || []).map((m: any) => m.revenue), 1);
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold text-white flex items-center gap-2">
+        <h2 className="text-xl font-bold flex items-center gap-2" style={{ color: "var(--sa-text-primary)" }}>
           <BarChart3 className="h-5 w-5 text-amber-400" /> إحصائيات الإيرادات
         </h2>
-        <Button variant="ghost" size="sm" onClick={loadStats} disabled={loading} className="text-white/40">
+        <Button variant="ghost" size="sm" onClick={loadStats} disabled={loading} style={{ color: "var(--sa-text-muted)" }}>
           <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
         </Button>
       </div>
 
-      {/* Main KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="rounded-2xl bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 border border-emerald-500/20 p-5 space-y-2">
-          <div className="flex items-center gap-2">
-            <DollarSign className="h-5 w-5 text-emerald-400" />
-            <span className="text-sm text-white/40">MRR</span>
+        {[
+          { icon: DollarSign, label: "MRR", value: `₪${data.mrr?.toLocaleString()}`, sub: "الإيراد الشهري المتكرر", cls: "from-emerald-500/10 to-emerald-600/5 border-emerald-500/20", tcls: "text-emerald-400" },
+          { icon: TrendingUp, label: "ARR", value: `₪${data.arr?.toLocaleString()}`, sub: "الإيراد السنوي المتكرر", cls: "from-blue-500/10 to-blue-600/5 border-blue-500/20", tcls: "text-blue-400" },
+          { icon: Users, label: "المشتركون النشطون", value: data.active_subscribers, sub: `من أصل ${data.total_subscribers} إجمالي`, cls: "from-amber-500/10 to-amber-600/5 border-amber-500/20", tcls: "text-amber-400" },
+          { icon: CalendarDays, label: "تجريبي", value: data.trial_subscribers, sub: "في فترة تجريبية", cls: "from-purple-500/10 to-purple-600/5 border-purple-500/20", tcls: "text-purple-400" },
+        ].map(kpi => (
+          <div key={kpi.label} className={`rounded-2xl bg-gradient-to-br ${kpi.cls} border p-5 space-y-2`}>
+            <div className="flex items-center gap-2">
+              <kpi.icon className={`h-5 w-5 ${kpi.tcls}`} />
+              <span className="text-sm" style={{ color: "var(--sa-text-muted)" }}>{kpi.label}</span>
+            </div>
+            <p className={`text-3xl font-bold ${kpi.tcls}`}>{kpi.value}</p>
+            <p className="text-[11px]" style={{ color: "var(--sa-text-faint)" }}>{kpi.sub}</p>
           </div>
-          <p className="text-3xl font-bold text-emerald-400">₪{data.mrr?.toLocaleString()}</p>
-          <p className="text-[11px] text-white/25">الإيراد الشهري المتكرر</p>
-        </div>
-        <div className="rounded-2xl bg-gradient-to-br from-blue-500/10 to-blue-600/5 border border-blue-500/20 p-5 space-y-2">
-          <div className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5 text-blue-400" />
-            <span className="text-sm text-white/40">ARR</span>
-          </div>
-          <p className="text-3xl font-bold text-blue-400">₪{data.arr?.toLocaleString()}</p>
-          <p className="text-[11px] text-white/25">الإيراد السنوي المتكرر</p>
-        </div>
-        <div className="rounded-2xl bg-gradient-to-br from-amber-500/10 to-amber-600/5 border border-amber-500/20 p-5 space-y-2">
-          <div className="flex items-center gap-2">
-            <Users className="h-5 w-5 text-amber-400" />
-            <span className="text-sm text-white/40">المشتركون النشطون</span>
-          </div>
-          <p className="text-3xl font-bold text-amber-400">{data.active_subscribers}</p>
-          <p className="text-[11px] text-white/25">من أصل {data.total_subscribers} إجمالي</p>
-        </div>
-        <div className="rounded-2xl bg-gradient-to-br from-purple-500/10 to-purple-600/5 border border-purple-500/20 p-5 space-y-2">
-          <div className="flex items-center gap-2">
-            <CalendarDays className="h-5 w-5 text-purple-400" />
-            <span className="text-sm text-white/40">تجريبي</span>
-          </div>
-          <p className="text-3xl font-bold text-purple-400">{data.trial_subscribers}</p>
-          <p className="text-[11px] text-white/25">في فترة تجريبية</p>
-        </div>
+        ))}
       </div>
 
-      {/* Secondary Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-4 text-center space-y-1">
-          <p className="text-xs text-white/30">شهري / سنوي</p>
-          <p className="text-lg font-bold text-white">{data.monthly_count} / {data.annual_count}</p>
-        </div>
-        <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-4 text-center space-y-1">
-          <p className="text-xs text-white/30">إلغاءات (30 يوم)</p>
-          <p className="text-lg font-bold text-red-400 flex items-center justify-center gap-1">
-            <ArrowDownRight className="h-4 w-4" /> {data.recent_cancelled}
-          </p>
-        </div>
-        <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-4 text-center space-y-1">
-          <p className="text-xs text-white/30">تنتهي قريباً (7 أيام)</p>
-          <p className="text-lg font-bold text-amber-400">{data.expiring_soon}</p>
-        </div>
-        <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-4 text-center space-y-1">
-          <p className="text-xs text-white/30">معدل التحويل</p>
-          <p className="text-lg font-bold text-emerald-400 flex items-center justify-center gap-1">
-            <ArrowUpRight className="h-4 w-4" />
-            {data.total_subscribers > 0 ? Math.round((data.converted_from_trial / data.total_subscribers) * 100) : 0}%
-          </p>
-        </div>
+        {[
+          { label: "شهري / سنوي", value: `${data.monthly_count} / ${data.annual_count}`, tcls: "" },
+          { label: "إلغاءات (30 يوم)", value: data.recent_cancelled, tcls: "text-red-400", icon: ArrowDownRight },
+          { label: "تنتهي قريباً (7 أيام)", value: data.expiring_soon, tcls: "text-amber-400" },
+          { label: "معدل التحويل", value: `${data.total_subscribers > 0 ? Math.round((data.converted_from_trial / data.total_subscribers) * 100) : 0}%`, tcls: "text-emerald-400", icon: ArrowUpRight },
+        ].map(s => (
+          <div key={s.label} className="rounded-2xl p-4 text-center space-y-1" style={{ background: "var(--sa-card-bg)", border: "1px solid var(--sa-card-border)" }}>
+            <p className="text-xs" style={{ color: "var(--sa-text-muted)" }}>{s.label}</p>
+            <p className={`text-lg font-bold flex items-center justify-center gap-1 ${s.tcls}`} style={!s.tcls ? { color: "var(--sa-text-primary)" } : undefined}>
+              {s.icon && <s.icon className="h-4 w-4" />} {s.value}
+            </p>
+          </div>
+        ))}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Monthly Trend Chart */}
-        <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-5 space-y-4">
-          <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+        <div className="rounded-2xl p-5 space-y-4" style={{ background: "var(--sa-card-bg)", border: "1px solid var(--sa-card-border)" }}>
+          <h3 className="text-sm font-semibold flex items-center gap-2" style={{ color: "var(--sa-text-primary)" }}>
             <BarChart3 className="h-4 w-4 text-amber-400" /> الاتجاه الشهري (آخر 6 أشهر)
           </h3>
           <div className="space-y-3">
             {(data.monthly_trend || []).map((m: any) => (
               <div key={m.month} className="flex items-center gap-3">
-                <span className="text-xs text-white/30 w-16 shrink-0 font-mono">{m.month}</span>
-                <div className="flex-1 h-7 bg-white/[0.03] rounded-lg overflow-hidden relative">
-                  <div
-                    className="h-full bg-gradient-to-r from-amber-500/40 to-amber-400/20 rounded-lg transition-all"
-                    style={{ width: `${Math.max((m.revenue / maxBarRevenue) * 100, 2)}%` }}
-                  />
-                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-white/50">
+                <span className="text-xs w-16 shrink-0 font-mono" style={{ color: "var(--sa-text-muted)" }}>{m.month}</span>
+                <div className="flex-1 h-7 rounded-lg overflow-hidden relative" style={{ background: "var(--sa-surface)" }}>
+                  <div className="h-full bg-gradient-to-r from-amber-500/40 to-amber-400/20 rounded-lg transition-all"
+                    style={{ width: `${Math.max((m.revenue / maxBarRevenue) * 100, 2)}%` }} />
+                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px]" style={{ color: "var(--sa-text-muted)" }}>
                     ₪{m.revenue.toLocaleString()} · {m.count} مشترك
                   </span>
                 </div>
@@ -1178,13 +1157,12 @@ function RevenueReports() {
           </div>
         </div>
 
-        {/* Revenue by Plan */}
-        <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-5 space-y-4">
-          <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+        <div className="rounded-2xl p-5 space-y-4" style={{ background: "var(--sa-card-bg)", border: "1px solid var(--sa-card-border)" }}>
+          <h3 className="text-sm font-semibold flex items-center gap-2" style={{ color: "var(--sa-text-primary)" }}>
             <PieChart className="h-4 w-4 text-amber-400" /> الإيرادات حسب الباقة
           </h3>
           {(data.revenue_by_plan || []).length === 0 ? (
-            <p className="text-sm text-white/20 text-center py-6">لا توجد بيانات بعد</p>
+            <p className="text-sm text-center py-6" style={{ color: "var(--sa-text-faint)" }}>لا توجد بيانات بعد</p>
           ) : (
             <div className="space-y-4">
               {(data.revenue_by_plan || []).map((p: any, i: number) => {
@@ -1195,35 +1173,32 @@ function RevenueReports() {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <div className={`w-3 h-3 rounded-full bg-gradient-to-r ${colors[i % 3]}`} />
-                        <span className="text-sm text-white/70 font-medium">{p.name}</span>
+                        <span className="text-sm font-medium" style={{ color: "var(--sa-text-secondary)" }}>{p.name}</span>
                       </div>
                       <div className="flex items-center gap-3">
                         <Badge className={`text-[10px] border-0 ${bgColors[i % 3]}`}>{p.count} مشترك</Badge>
-                        <span className="text-sm text-white/50 font-mono">₪{p.revenue.toLocaleString()}/شهر</span>
+                        <span className="text-sm font-mono" style={{ color: "var(--sa-text-muted)" }}>₪{p.revenue.toLocaleString()}/شهر</span>
                       </div>
                     </div>
-                    <div className="h-2 bg-white/[0.03] rounded-full overflow-hidden">
-                      <div
-                        className={`h-full bg-gradient-to-r ${colors[i % 3]} rounded-full opacity-60`}
-                        style={{ width: `${data.mrr > 0 ? (p.revenue / data.mrr) * 100 : 0}%` }}
-                      />
+                    <div className="h-2 rounded-full overflow-hidden" style={{ background: "var(--sa-surface)" }}>
+                      <div className={`h-full bg-gradient-to-r ${colors[i % 3]} rounded-full opacity-60`}
+                        style={{ width: `${data.mrr > 0 ? (p.revenue / data.mrr) * 100 : 0}%` }} />
                     </div>
                   </div>
                 );
               })}
-              <div className="pt-3 border-t border-white/[0.06]">
+              <div className="pt-3" style={{ borderTop: "1px solid var(--sa-divider)" }}>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-white/40">إجمالي MRR</span>
-                  <span className="text-lg font-bold text-white">₪{data.mrr?.toLocaleString()}</span>
+                  <span className="text-sm" style={{ color: "var(--sa-text-muted)" }}>إجمالي MRR</span>
+                  <span className="text-lg font-bold" style={{ color: "var(--sa-text-primary)" }}>₪{data.mrr?.toLocaleString()}</span>
                 </div>
               </div>
             </div>
           )}
         </div>
 
-        {/* Status Distribution */}
-        <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-5 space-y-4 lg:col-span-2">
-          <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+        <div className="rounded-2xl p-5 space-y-4 lg:col-span-2" style={{ background: "var(--sa-card-bg)", border: "1px solid var(--sa-card-border)" }}>
+          <h3 className="text-sm font-semibold flex items-center gap-2" style={{ color: "var(--sa-text-primary)" }}>
             <Activity className="h-4 w-4 text-amber-400" /> توزيع حالات الاشتراكات
           </h3>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
@@ -1232,14 +1207,14 @@ function RevenueReports() {
                 trial: { bg: "bg-blue-500/10 border-blue-500/20", text: "text-blue-400", label: "تجريبي" },
                 active: { bg: "bg-emerald-500/10 border-emerald-500/20", text: "text-emerald-400", label: "نشط" },
                 expired: { bg: "bg-red-500/10 border-red-500/20", text: "text-red-400", label: "منتهي" },
-                cancelled: { bg: "bg-white/5 border-white/10", text: "text-white/40", label: "ملغي" },
+                cancelled: { bg: "bg-gray-500/10 border-gray-500/20", text: "text-gray-400", label: "ملغي" },
                 suspended: { bg: "bg-amber-500/10 border-amber-500/20", text: "text-amber-400", label: "موقوف" },
               };
               const s = styles[status] || styles.cancelled;
               return (
                 <div key={status} className={`rounded-xl border p-4 text-center ${s.bg}`}>
                   <p className={`text-2xl font-bold ${s.text}`}>{count as number}</p>
-                  <p className="text-xs text-white/30 mt-1">{s.label}</p>
+                  <p className="text-xs mt-1" style={{ color: "var(--sa-text-muted)" }}>{s.label}</p>
                 </div>
               );
             })}
@@ -1257,6 +1232,9 @@ export default function SuperAdminDashboard() {
   const [authorized, setAuthorized] = useState(false);
   const [checking, setChecking] = useState(true);
   const [activeTab, setActiveTab] = useState("dashboard");
+  const [theme, setTheme] = useState<"dark" | "light">(() => {
+    return (localStorage.getItem("sa-theme") as "dark" | "light") || "dark";
+  });
 
   // Dashboard state
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -1284,6 +1262,13 @@ export default function SuperAdminDashboard() {
     open: false, userId: "", name: "",
   });
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
+
+  // Theme toggle
+  const toggleTheme = () => {
+    const next = theme === "dark" ? "light" : "dark";
+    setTheme(next);
+    localStorage.setItem("sa-theme", next);
+  };
 
   // Session timeout (30 min)
   const timeoutRef = useRef<ReturnType<typeof setTimeout>>();
@@ -1337,9 +1322,7 @@ export default function SuperAdminDashboard() {
       const res = await apiCall("dashboard");
       setStats(res.stats);
       setRecentActivity(res.recent_activity || []);
-    } catch (e: any) {
-      toast.error(e.message);
-    }
+    } catch (e: any) { toast.error(e.message); }
     setLoadingDashboard(false);
   }, []);
 
@@ -1348,9 +1331,7 @@ export default function SuperAdminDashboard() {
     try {
       const res = await apiCall("users");
       setUsers(res.users || []);
-    } catch (e: any) {
-      toast.error(e.message);
-    }
+    } catch (e: any) { toast.error(e.message); }
     setLoadingUsers(false);
   }, []);
 
@@ -1361,9 +1342,7 @@ export default function SuperAdminDashboard() {
       setAuditLogs(res.logs || []);
       setAuditTotal(res.total || 0);
       setAuditPage(page);
-    } catch (e: any) {
-      toast.error(e.message);
-    }
+    } catch (e: any) { toast.error(e.message); }
     setLoadingAudit(false);
   }, []);
 
@@ -1385,8 +1364,7 @@ export default function SuperAdminDashboard() {
   // ─── User Actions ───
   const handleSuspendUser = (userId: string, name: string) => {
     setPwDialog({
-      open: true,
-      title: `تعليق ${name}`,
+      open: true, title: `تعليق ${name}`,
       onConfirmed: async () => {
         try {
           await apiCall("suspend_user", undefined, { user_id: userId, reason: "Super Admin action" });
@@ -1409,8 +1387,7 @@ export default function SuperAdminDashboard() {
     const newPw = prompt(`أدخل كلمة المرور الجديدة لـ ${name} (6 أحرف على الأقل):`);
     if (!newPw || newPw.length < 6) { toast.error("كلمة مرور قصيرة جداً"); return; }
     setPwDialog({
-      open: true,
-      title: `إعادة تعيين كلمة مرور ${name}`,
+      open: true, title: `إعادة تعيين كلمة مرور ${name}`,
       onConfirmed: async () => {
         try {
           await apiCall("reset_password", undefined, { user_id: userId, new_password: newPw });
@@ -1423,10 +1400,7 @@ export default function SuperAdminDashboard() {
   const handleDeleteUser = async () => {
     if (deleteConfirmText !== "DELETE") { toast.error("اكتب DELETE للتأكيد"); return; }
     try {
-      await apiCall("delete_user", undefined, {
-        user_id: deleteDialog.userId,
-        confirmation: "DELETE",
-      });
+      await apiCall("delete_user", undefined, { user_id: deleteDialog.userId, confirmation: "DELETE" });
       toast.success(`تم حذف ${deleteDialog.name}`);
       setDeleteDialog({ open: false, userId: "", name: "" });
       setDeleteConfirmText("");
@@ -1440,29 +1414,23 @@ export default function SuperAdminDashboard() {
     !userSearch || (u.display_name?.toLowerCase().includes(userSearch.toLowerCase()) || u.email?.toLowerCase().includes(userSearch.toLowerCase()))
   );
 
-  // Group users hierarchically: owners (no invited_by or self-registered) and their sub-users
   const { owners, subUsersMap, standaloneUsers } = useMemo(() => {
     const ownerSet = new Set<string>();
     const subMap = new Map<string, UserRecord[]>();
     const standalone: UserRecord[] = [];
 
-    // First pass: identify all owner user_ids (those who invited others)
     const inviterIds = new Set(
       filteredUsers.filter(u => u.invited_by).map(u => u.invited_by!)
     );
 
-    // Categorize users
     filteredUsers.forEach(u => {
       if (u.invited_by && filteredUsers.some(o => o.user_id === u.invited_by)) {
-        // This user was invited by someone in the list → sub-user
         const existing = subMap.get(u.invited_by!) || [];
         existing.push(u);
         subMap.set(u.invited_by!, existing);
       } else if (inviterIds.has(u.user_id)) {
-        // This user invited others → owner
         ownerSet.add(u.user_id);
       } else if (u.company_id) {
-        // Has company_id → check if another user with same company_id and no invited_by exists
         const potentialOwner = filteredUsers.find(
           o => o.user_id !== u.user_id && o.company_id === u.company_id && !o.invited_by && inviterIds.has(o.user_id)
         );
@@ -1480,9 +1448,7 @@ export default function SuperAdminDashboard() {
       }
     });
 
-    // Owners are users who have sub-users
     const ownerUsers = filteredUsers.filter(u => ownerSet.has(u.user_id) || subMap.has(u.user_id));
-    
     return { owners: ownerUsers, subUsersMap: subMap, standaloneUsers: standalone };
   }, [filteredUsers]);
 
@@ -1496,51 +1462,157 @@ export default function SuperAdminDashboard() {
   };
 
   const actionLabel: Record<string, string> = {
-    view_dashboard: "عرض لوحة التحكم",
-    view_users: "عرض المستخدمين",
-    suspend_user: "تعليق مستخدم",
-    unsuspend_user: "إلغاء التعليق",
-    reset_password: "إعادة تعيين كلمة المرور",
-    delete_user: "حذف مستخدم",
-    verify_password: "تأكيد الهوية",
-    view_table: "تصفح جدول",
-    view_subscriptions: "عرض الاشتراكات",
-    update_subscription: "تحديث اشتراك",
-    assign_subscription: "تعيين اشتراك",
-    view_revenue_stats: "عرض إحصائيات الإيرادات",
+    view_dashboard: "عرض لوحة التحكم", view_users: "عرض المستخدمين",
+    suspend_user: "تعليق مستخدم", unsuspend_user: "إلغاء التعليق",
+    reset_password: "إعادة تعيين كلمة المرور", delete_user: "حذف مستخدم",
+    verify_password: "تأكيد الهوية", view_table: "تصفح جدول",
+    view_subscriptions: "عرض الاشتراكات", update_subscription: "تحديث اشتراك",
+    assign_subscription: "تعيين اشتراك", view_revenue_stats: "عرض إحصائيات الإيرادات",
   };
 
   if (checking) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: "#080d18" }}>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--sa-bg)" }} data-sa-theme={theme}>
+        <style>{LIGHT_THEME_STYLES}</style>
         <RefreshCw className="h-8 w-8 animate-spin text-amber-400" />
       </div>
     );
   }
   if (!authorized) return null;
 
+  // Helper for rendering user rows
+  const renderUserRow = (u: UserRecord, isSub = false) => (
+    <tr key={u.user_id}
+      className={`transition-colors ${isSub ? "" : ""}`}
+      style={{
+        borderBottom: "1px solid var(--sa-divider)",
+        ...(isSub ? { borderRight: "3px solid rgba(0,180,216,0.15)" } : {}),
+      }}
+      onMouseEnter={(e) => (e.currentTarget.style.background = "var(--sa-card-hover)")}
+      onMouseLeave={(e) => (e.currentTarget.style.background = "")}>
+      <td className="px-3 py-3 text-center">
+        {!isSub && (subUsersMap.get(u.user_id) || []).length > 0 ? (
+          <ChevronDown className={`h-4 w-4 transition-transform inline-block cursor-pointer ${expandedOwners.has(u.user_id) ? "" : "-rotate-90"}`}
+            style={{ color: "var(--sa-text-muted)" }}
+            onClick={() => toggleOwnerExpand(u.user_id)} />
+        ) : isSub ? null : (
+          <span className="text-xs" style={{ color: "var(--sa-text-faint)" }}>—</span>
+        )}
+      </td>
+      <td className="px-4 py-3">
+        <div className="flex items-center gap-2.5" style={isSub ? { paddingRight: 16 } : undefined}>
+          {isSub && <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: "var(--sa-text-faint)" }} />}
+          <div className={`${isSub ? "w-7 h-7" : "w-9 h-9"} rounded-xl flex items-center justify-center font-bold`}
+            style={{
+              background: isSub ? "var(--sa-surface)" : "var(--sa-logo-bg)",
+              color: isSub ? "var(--sa-text-muted)" : "#00B4D8",
+              fontSize: isSub ? 10 : 12,
+            }}>
+            {(u.display_name || "?")[0]}
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className={`${isSub ? "text-[13px]" : "font-semibold"}`} style={{ color: "var(--sa-text-secondary)" }}>{u.display_name || "—"}</span>
+              {!isSub && (subUsersMap.get(u.user_id) || []).length > 0 && (
+                <Badge className="bg-[#00B4D8]/10 text-[#00B4D8] border-0 text-[9px] px-1.5">
+                  {(subUsersMap.get(u.user_id) || []).length} عضو
+                </Badge>
+              )}
+            </div>
+            {u.company_name && (
+              <span className="text-[11px]" style={{ color: "var(--sa-text-faint)" }}>{u.company_name}</span>
+            )}
+          </div>
+        </div>
+      </td>
+      <td className="px-4 py-3 font-mono" style={{ color: "var(--sa-text-muted)", fontSize: isSub ? 11 : 12 }}>{u.email || "—"}</td>
+      <td className="px-4 py-3">
+        <div className="flex gap-1 flex-wrap">
+          {u.roles.map((r) => (
+            <Badge key={r} variant="outline" className={`text-[${isSub ? 9 : 10}px] ${
+              r === "super_admin" ? "text-amber-400 border-amber-400/30" :
+              r === "admin" ? "text-blue-400 border-blue-400/30" :
+              r === "cashier" ? "text-purple-400 border-purple-400/20" :
+              r === "accountant_senior" ? "text-cyan-400 border-cyan-400/20" :
+              ""
+            }`}
+            style={{ borderColor: !["super_admin", "admin", "cashier", "accountant_senior"].includes(r) ? "var(--sa-card-border)" : undefined,
+                     color: !["super_admin", "admin", "cashier", "accountant_senior"].includes(r) ? "var(--sa-text-muted)" : undefined }}>
+              {r}
+            </Badge>
+          ))}
+        </div>
+      </td>
+      <td className="px-4 py-3 text-xs" style={{ color: "var(--sa-text-muted)" }}>
+        {u.last_sign_in ? format(new Date(u.last_sign_in), "dd/MM HH:mm", { locale: ar }) : "—"}
+      </td>
+      <td className="px-4 py-3">
+        {u.is_banned ? (
+          <Badge className={`bg-red-500/10 text-red-400 border-red-500/20 text-[${isSub ? 9 : 10}px]`}>معلق</Badge>
+        ) : (
+          <Badge className={`bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-[${isSub ? 9 : 10}px]`}>نشط</Badge>
+        )}
+      </td>
+      <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-center gap-1">
+          {u.is_banned ? (
+            <Button size="icon" variant="ghost" onClick={() => handleUnsuspendUser(u.user_id, u.display_name)} className={`${isSub ? "h-6 w-6" : "h-7 w-7"} text-emerald-400 hover:bg-emerald-500/10`} title="إلغاء التعليق">
+              <Unlock className={`${isSub ? "h-3 w-3" : "h-3.5 w-3.5"}`} />
+            </Button>
+          ) : (
+            <Button size="icon" variant="ghost" onClick={() => handleSuspendUser(u.user_id, u.display_name)} className={`${isSub ? "h-6 w-6" : "h-7 w-7"} text-amber-400 hover:bg-amber-500/10`} title="تعليق">
+              <Lock className={`${isSub ? "h-3 w-3" : "h-3.5 w-3.5"}`} />
+            </Button>
+          )}
+          <Button size="icon" variant="ghost" onClick={() => handleResetPassword(u.user_id, u.display_name)} className={`${isSub ? "h-6 w-6" : "h-7 w-7"} text-blue-400 hover:bg-blue-500/10`} title="إعادة تعيين كلمة المرور">
+            <KeyRound className={`${isSub ? "h-3 w-3" : "h-3.5 w-3.5"}`} />
+          </Button>
+          <Button size="icon" variant="ghost" onClick={() => setDeleteDialog({ open: true, userId: u.user_id, name: u.display_name })}
+            className={`${isSub ? "h-6 w-6" : "h-7 w-7"} text-red-400 hover:bg-red-500/10`} title="حذف" disabled={u.roles.includes("super_admin")}>
+            <Trash2 className={`${isSub ? "h-3 w-3" : "h-3.5 w-3.5"}`} />
+          </Button>
+        </div>
+      </td>
+    </tr>
+  );
+
   return (
-    <div className="min-h-screen" style={{ background: "linear-gradient(180deg, #050F1E 0%, #0A2342 100%)", fontFamily: "Tajawal, sans-serif" }} dir="rtl">
+    <div className="min-h-screen" data-sa-theme={theme}
+      style={{ background: "var(--sa-bg-gradient)", fontFamily: "Tajawal, sans-serif" }} dir="rtl">
+      <style>{LIGHT_THEME_STYLES}</style>
+
       {/* Header */}
-      <header className="sticky top-0 z-50" style={{ background: "linear-gradient(180deg, #050F1E, #0A2342)", borderBottom: "1px solid rgba(255,255,255,0.06)", backdropFilter: "blur(16px)", height: 60 }}>
+      <header className="sticky top-0 z-50" style={{
+        background: "var(--sa-header-bg)",
+        borderBottom: "1px solid var(--sa-header-border)",
+        backdropFilter: "blur(16px)",
+        height: 60,
+      }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-full flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: "linear-gradient(135deg, #0A2342, #006D8F)" }}>
+            <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: "var(--sa-logo-bg)" }}>
               <span className="text-white font-bold text-sm" style={{ fontFamily: "Barlow, sans-serif" }}>Z</span>
             </div>
             <div>
-              <h1 className="text-lg font-bold text-white" style={{ fontFamily: "Barlow, sans-serif" }}>FINIX</h1>
+              <h1 className="text-lg font-bold" style={{ color: "var(--sa-text-primary)", fontFamily: "Barlow, sans-serif" }}>FINIX</h1>
             </div>
             <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold" style={{ background: "#C9A84C", color: "#0A2342", fontFamily: "Inter, sans-serif" }}>
               Super Admin
             </span>
           </div>
           <div className="flex items-center gap-3">
+            {/* Theme Toggle */}
+            <button onClick={toggleTheme}
+              className="p-2 rounded-lg transition-colors"
+              style={{ background: "var(--sa-surface)", color: "var(--sa-text-muted)" }}
+              title={theme === "dark" ? "الوضع الفاتح" : "الوضع الداكن"}>
+              {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            </button>
             <div className="flex items-center gap-1.5 px-3 py-1 rounded-full" style={{ background: "rgba(220,38,38,0.1)", border: "1px solid rgba(220,38,38,0.2)" }}>
               <Wifi className="h-3 w-3 text-red-400" />
               <span className="text-[11px] text-red-400 font-medium">LIVE</span>
             </div>
-            <Button variant="ghost" size="sm" onClick={() => navigate("/apps")} className="text-white/40 hover:text-white">
+            <Button variant="ghost" size="sm" onClick={() => navigate("/apps")} style={{ color: "var(--sa-text-muted)" }}>
               <LogOut className="h-4 w-4 ml-1" /> خروج
             </Button>
           </div>
@@ -1549,38 +1621,33 @@ export default function SuperAdminDashboard() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="border p-1 mb-6 flex-wrap h-auto gap-1" style={{ background: "rgba(255,255,255,0.03)", borderColor: "rgba(255,255,255,0.06)" }}>
-            <TabsTrigger value="dashboard" className="data-[state=active]:bg-[#00B4D8]/20 data-[state=active]:text-[#00B4D8] text-white/40">
-              <Activity className="h-4 w-4 ml-1" /> لوحة التحكم
-            </TabsTrigger>
-            <TabsTrigger value="users" className="data-[state=active]:bg-[#00B4D8]/20 data-[state=active]:text-[#00B4D8] text-white/40">
-              <Users className="h-4 w-4 ml-1" /> المستخدمون
-            </TabsTrigger>
-            <TabsTrigger value="database" className="data-[state=active]:bg-[#00B4D8]/20 data-[state=active]:text-[#00B4D8] text-white/40">
-              <Database className="h-4 w-4 ml-1" /> قاعدة البيانات
-            </TabsTrigger>
-            <TabsTrigger value="live" className="data-[state=active]:bg-[#00B4D8]/20 data-[state=active]:text-[#00B4D8] text-white/40">
-              <Wifi className="h-4 w-4 ml-1" /> مراقبة حية
-            </TabsTrigger>
-            <TabsTrigger value="audit" className="data-[state=active]:bg-[#00B4D8]/20 data-[state=active]:text-[#00B4D8] text-white/40">
-              <FileText className="h-4 w-4 ml-1" /> سجل التدقيق
-            </TabsTrigger>
-            <TabsTrigger value="settings" className="data-[state=active]:bg-[#00B4D8]/20 data-[state=active]:text-[#00B4D8] text-white/40">
-              <Settings className="h-4 w-4 ml-1" /> إعدادات المنصة
-            </TabsTrigger>
-            <TabsTrigger value="subscriptions" className="data-[state=active]:bg-[#00B4D8]/20 data-[state=active]:text-[#00B4D8] text-white/40">
-              <CreditCard className="h-4 w-4 ml-1" /> الاشتراكات
-            </TabsTrigger>
-            <TabsTrigger value="revenue" className="data-[state=active]:bg-[#00B4D8]/20 data-[state=active]:text-[#00B4D8] text-white/40">
-              <BarChart3 className="h-4 w-4 ml-1" /> الإيرادات
-            </TabsTrigger>
+          <TabsList className="border p-1 mb-6 flex-wrap h-auto gap-1"
+            style={{ background: "var(--sa-surface)", borderColor: "var(--sa-card-border)" }}>
+            {[
+              { value: "dashboard", icon: Activity, label: "لوحة التحكم" },
+              { value: "users", icon: Users, label: "المستخدمون" },
+              { value: "database", icon: Database, label: "قاعدة البيانات" },
+              { value: "live", icon: Wifi, label: "مراقبة حية" },
+              { value: "audit", icon: FileText, label: "سجل التدقيق" },
+              { value: "settings", icon: Settings, label: "إعدادات المنصة" },
+              { value: "subscriptions", icon: CreditCard, label: "الاشتراكات" },
+              { value: "revenue", icon: BarChart3, label: "الإيرادات" },
+            ].map(tab => (
+              <TabsTrigger key={tab.value} value={tab.value}
+                style={{
+                  color: activeTab === tab.value ? "var(--sa-tab-active-text)" : "var(--sa-tab-inactive-text)",
+                  background: activeTab === tab.value ? "var(--sa-tab-active-bg)" : "transparent",
+                }}>
+                <tab.icon className="h-4 w-4 ml-1" /> {tab.label}
+              </TabsTrigger>
+            ))}
           </TabsList>
 
           {/* ─── DASHBOARD TAB ─── */}
           <TabsContent value="dashboard" className="space-y-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-bold text-white">نظرة عامة</h2>
-              <Button variant="ghost" size="sm" onClick={loadDashboard} disabled={loadingDashboard} className="text-white/40">
+              <h2 className="text-xl font-bold" style={{ color: "var(--sa-text-primary)" }}>نظرة عامة</h2>
+              <Button variant="ghost" size="sm" onClick={loadDashboard} disabled={loadingDashboard} style={{ color: "var(--sa-text-muted)" }}>
                 <RefreshCw className={`h-4 w-4 ml-1 ${loadingDashboard ? "animate-spin" : ""}`} /> تحديث
               </Button>
             </div>
@@ -1595,29 +1662,32 @@ export default function SuperAdminDashboard() {
             )}
 
             {/* Recent Activity */}
-            <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] overflow-hidden">
-              <div className="px-5 py-4 border-b border-white/[0.06] flex items-center gap-2">
+            <div className="rounded-2xl overflow-hidden" style={{ background: "var(--sa-card-bg)", border: "1px solid var(--sa-card-border)" }}>
+              <div className="px-5 py-4 flex items-center gap-2" style={{ borderBottom: "1px solid var(--sa-divider)" }}>
                 <Clock className="h-4 w-4 text-amber-400" />
-                <h3 className="text-sm font-semibold text-white">آخر الأحداث</h3>
+                <h3 className="text-sm font-semibold" style={{ color: "var(--sa-text-primary)" }}>آخر الأحداث</h3>
               </div>
-              <div className="divide-y divide-white/[0.04] max-h-[400px] overflow-y-auto">
+              <div className="max-h-[400px] overflow-y-auto">
                 {recentActivity.length === 0 && (
-                  <p className="text-center text-white/20 py-8 text-sm">لا توجد أحداث بعد</p>
+                  <p className="text-center py-8 text-sm" style={{ color: "var(--sa-text-faint)" }}>لا توجد أحداث بعد</p>
                 )}
                 {recentActivity.map((log) => (
-                  <div key={log.id} className="px-5 py-3 flex items-center gap-3 hover:bg-white/[0.02]">
-                    <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center shrink-0">
-                      <Activity className="h-3.5 w-3.5 text-white/30" />
+                  <div key={log.id} className="px-5 py-3 flex items-center gap-3 transition-colors"
+                    style={{ borderBottom: "1px solid var(--sa-divider)" }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = "var(--sa-card-hover)")}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = "")}>
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: "var(--sa-surface)" }}>
+                      <Activity className="h-3.5 w-3.5" style={{ color: "var(--sa-text-muted)" }} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm text-white/70 truncate">{actionLabel[log.action] || log.action}</p>
-                      {log.target_id && <p className="text-[11px] text-white/25 truncate">{log.target_type}: {log.target_id}</p>}
+                      <p className="text-sm truncate" style={{ color: "var(--sa-text-secondary)" }}>{actionLabel[log.action] || log.action}</p>
+                      {log.target_id && <p className="text-[11px] truncate" style={{ color: "var(--sa-text-faint)" }}>{log.target_type}: {log.target_id}</p>}
                     </div>
-                    <span className="text-[11px] text-white/20 shrink-0 tabular-nums">
+                    <span className="text-[11px] shrink-0 tabular-nums" style={{ color: "var(--sa-text-faint)" }}>
                       {format(new Date(log.created_at), "HH:mm:ss")}
                     </span>
                     {log.ip_address && (
-                      <span className="text-[10px] text-white/15 shrink-0 font-mono">{log.ip_address.substring(0, 12)}</span>
+                      <span className="text-[10px] shrink-0 font-mono" style={{ color: "var(--sa-text-faint)" }}>{log.ip_address.substring(0, 12)}</span>
                     )}
                   </div>
                 ))}
@@ -1629,243 +1699,42 @@ export default function SuperAdminDashboard() {
           <TabsContent value="users" className="space-y-4">
             <div className="flex items-center gap-3">
               <div className="relative flex-1 max-w-md">
-                <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/20" />
-                <Input
-                  value={userSearch}
-                  onChange={(e) => setUserSearch(e.target.value)}
-                  placeholder="بحث بالاسم أو الإيميل..."
-                  className="pr-10 bg-white/[0.03] border-white/[0.06] text-white placeholder:text-white/20"
-                />
+                <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4" style={{ color: "var(--sa-text-faint)" }} />
+                <Input value={userSearch} onChange={(e) => setUserSearch(e.target.value)} placeholder="بحث بالاسم أو الإيميل..."
+                  className="pr-10" style={{ background: "var(--sa-input-bg)", borderColor: "var(--sa-input-border)", color: "var(--sa-text-primary)" }} />
               </div>
-              <Badge className="bg-white/5 text-white/30 border-0 text-xs">
+              <Badge style={{ background: "var(--sa-surface)", color: "var(--sa-text-muted)" }} className="border-0 text-xs">
                 {owners.length} شركة · {filteredUsers.length} مستخدم
               </Badge>
-              <Button variant="ghost" size="sm" onClick={loadUsers} disabled={loadingUsers} className="text-white/40">
+              <Button variant="ghost" size="sm" onClick={loadUsers} disabled={loadingUsers} style={{ color: "var(--sa-text-muted)" }}>
                 <RefreshCw className={`h-4 w-4 ${loadingUsers ? "animate-spin" : ""}`} />
               </Button>
             </div>
 
-            <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] overflow-hidden">
+            <div className="rounded-2xl overflow-hidden" style={{ background: "var(--sa-card-bg)", border: "1px solid var(--sa-card-border)" }}>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-white/[0.06]">
-                      <th className="text-right text-white/30 font-medium px-4 py-3 w-8"></th>
-                      <th className="text-right text-white/30 font-medium px-4 py-3">المستخدم</th>
-                      <th className="text-right text-white/30 font-medium px-4 py-3">الإيميل</th>
-                      <th className="text-right text-white/30 font-medium px-4 py-3">الأدوار</th>
-                      <th className="text-right text-white/30 font-medium px-4 py-3">آخر دخول</th>
-                      <th className="text-right text-white/30 font-medium px-4 py-3">الحالة</th>
-                      <th className="text-center text-white/30 font-medium px-4 py-3">إجراءات</th>
+                    <tr style={{ borderBottom: "1px solid var(--sa-divider)" }}>
+                      {["", "المستخدم", "الإيميل", "الأدوار", "آخر دخول", "الحالة", "إجراءات"].map((h, i) => (
+                        <th key={i} className={`${i === 0 ? "w-8" : ""} ${i === 6 ? "text-center" : "text-right"} font-medium px-4 py-3`}
+                          style={{ color: "var(--sa-text-muted)" }}>{h}</th>
+                      ))}
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-white/[0.04]">
-                    {/* ── Owner rows with expandable sub-users ── */}
+                  <tbody>
                     {owners.map((owner) => {
                       const subs = subUsersMap.get(owner.user_id) || [];
                       const isExpanded = expandedOwners.has(owner.user_id);
                       return (
-                        <>
-                          <tr
-                            key={owner.user_id}
-                            className={`hover:bg-white/[0.02] cursor-pointer transition-colors ${isExpanded ? "bg-white/[0.02]" : ""}`}
-                            onClick={() => subs.length > 0 && toggleOwnerExpand(owner.user_id)}
-                          >
-                            <td className="px-3 py-3 text-center">
-                              {subs.length > 0 ? (
-                                <ChevronDown className={`h-4 w-4 text-white/30 transition-transform inline-block ${isExpanded ? "" : "-rotate-90"}`} />
-                              ) : (
-                                <span className="text-white/10 text-xs">—</span>
-                              )}
-                            </td>
-                            <td className="px-4 py-3">
-                              <div className="flex items-center gap-2.5">
-                                <div className="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs"
-                                  style={{ background: "linear-gradient(135deg, #0A2342 0%, #006D8F 100%)", color: "#00B4D8" }}>
-                                  {(owner.display_name || "?")[0]}
-                                </div>
-                                <div>
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-white/90 font-semibold">{owner.display_name || "—"}</span>
-                                    {subs.length > 0 && (
-                                      <Badge className="bg-[#00B4D8]/10 text-[#00B4D8] border-0 text-[9px] px-1.5">
-                                        {subs.length} عضو
-                                      </Badge>
-                                    )}
-                                  </div>
-                                  {owner.company_name && (
-                                    <span className="text-[11px] text-white/25">{owner.company_name}</span>
-                                  )}
-                                </div>
-                              </div>
-                            </td>
-                            <td className="px-4 py-3 text-white/50 font-mono text-xs">{owner.email || "—"}</td>
-                            <td className="px-4 py-3">
-                              <div className="flex gap-1 flex-wrap">
-                                {owner.roles.map((r) => (
-                                  <Badge key={r} variant="outline" className={`text-[10px] border-white/10 ${r === "super_admin" ? "text-amber-400 border-amber-400/30" : r === "admin" ? "text-blue-400 border-blue-400/30" : "text-white/40"}`}>
-                                    {r}
-                                  </Badge>
-                                ))}
-                              </div>
-                            </td>
-                            <td className="px-4 py-3 text-white/30 text-xs">
-                              {owner.last_sign_in ? format(new Date(owner.last_sign_in), "dd/MM HH:mm", { locale: ar }) : "—"}
-                            </td>
-                            <td className="px-4 py-3">
-                              {owner.is_banned ? (
-                                <Badge className="bg-red-500/10 text-red-400 border-red-500/20 text-[10px]">معلق</Badge>
-                              ) : (
-                                <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-[10px]">نشط</Badge>
-                              )}
-                            </td>
-                            <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                              <div className="flex items-center justify-center gap-1">
-                                {owner.is_banned ? (
-                                  <Button size="icon" variant="ghost" onClick={() => handleUnsuspendUser(owner.user_id, owner.display_name)} className="h-7 w-7 text-emerald-400 hover:bg-emerald-500/10" title="إلغاء التعليق">
-                                    <Unlock className="h-3.5 w-3.5" />
-                                  </Button>
-                                ) : (
-                                  <Button size="icon" variant="ghost" onClick={() => handleSuspendUser(owner.user_id, owner.display_name)} className="h-7 w-7 text-amber-400 hover:bg-amber-500/10" title="تعليق">
-                                    <Lock className="h-3.5 w-3.5" />
-                                  </Button>
-                                )}
-                                <Button size="icon" variant="ghost" onClick={() => handleResetPassword(owner.user_id, owner.display_name)} className="h-7 w-7 text-blue-400 hover:bg-blue-500/10" title="إعادة تعيين كلمة المرور">
-                                  <KeyRound className="h-3.5 w-3.5" />
-                                </Button>
-                                <Button size="icon" variant="ghost" onClick={() => setDeleteDialog({ open: true, userId: owner.user_id, name: owner.display_name })} className="h-7 w-7 text-red-400 hover:bg-red-500/10" title="حذف" disabled={owner.roles.includes("super_admin")}>
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </Button>
-                              </div>
-                            </td>
-                          </tr>
-                          {/* Sub-users (expanded) */}
-                          {isExpanded && subs.map((sub) => (
-                            <tr key={sub.user_id} className="bg-white/[0.01] hover:bg-white/[0.03]" style={{ borderRight: "3px solid rgba(0,180,216,0.15)" }}>
-                              <td className="px-3 py-2.5"></td>
-                              <td className="px-4 py-2.5">
-                                <div className="flex items-center gap-2 pr-4">
-                                  <div className="w-1.5 h-1.5 rounded-full bg-white/10 shrink-0" />
-                                  <div className="w-7 h-7 rounded-lg bg-white/[0.04] flex items-center justify-center text-white/30 font-bold text-[10px]">
-                                    {(sub.display_name || "?")[0]}
-                                  </div>
-                                  <span className="text-white/60 text-[13px]">{sub.display_name || "—"}</span>
-                                </div>
-                              </td>
-                              <td className="px-4 py-2.5 text-white/40 font-mono text-[11px]">{sub.email || "—"}</td>
-                              <td className="px-4 py-2.5">
-                                <div className="flex gap-1 flex-wrap">
-                                  {sub.roles.map((r) => (
-                                    <Badge key={r} variant="outline" className={`text-[9px] border-white/10 ${
-                                      r === "cashier" ? "text-purple-400 border-purple-400/20" :
-                                      r === "accountant_senior" ? "text-cyan-400 border-cyan-400/20" :
-                                      r === "employee" ? "text-white/30" :
-                                      r === "admin" ? "text-blue-400 border-blue-400/30" :
-                                      "text-white/30"
-                                    }`}>
-                                      {r}
-                                    </Badge>
-                                  ))}
-                                </div>
-                              </td>
-                              <td className="px-4 py-2.5 text-white/25 text-[11px]">
-                                {sub.last_sign_in ? format(new Date(sub.last_sign_in), "dd/MM HH:mm", { locale: ar }) : "—"}
-                              </td>
-                              <td className="px-4 py-2.5">
-                                {sub.is_banned ? (
-                                  <Badge className="bg-red-500/10 text-red-400 border-red-500/20 text-[9px]">معلق</Badge>
-                                ) : (
-                                  <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-[9px]">نشط</Badge>
-                                )}
-                              </td>
-                              <td className="px-4 py-2.5">
-                                <div className="flex items-center justify-center gap-1">
-                                  {sub.is_banned ? (
-                                    <Button size="icon" variant="ghost" onClick={() => handleUnsuspendUser(sub.user_id, sub.display_name)} className="h-6 w-6 text-emerald-400 hover:bg-emerald-500/10" title="إلغاء التعليق">
-                                      <Unlock className="h-3 w-3" />
-                                    </Button>
-                                  ) : (
-                                    <Button size="icon" variant="ghost" onClick={() => handleSuspendUser(sub.user_id, sub.display_name)} className="h-6 w-6 text-amber-400 hover:bg-amber-500/10" title="تعليق">
-                                      <Lock className="h-3 w-3" />
-                                    </Button>
-                                  )}
-                                  <Button size="icon" variant="ghost" onClick={() => handleResetPassword(sub.user_id, sub.display_name)} className="h-6 w-6 text-blue-400 hover:bg-blue-500/10" title="إعادة تعيين كلمة المرور">
-                                    <KeyRound className="h-3 w-3" />
-                                  </Button>
-                                  <Button size="icon" variant="ghost" onClick={() => setDeleteDialog({ open: true, userId: sub.user_id, name: sub.display_name })} className="h-6 w-6 text-red-400 hover:bg-red-500/10" title="حذف">
-                                    <Trash2 className="h-3 w-3" />
-                                  </Button>
-                                </div>
-                              </td>
-                            </tr>
-                          ))}
+                        <>{renderUserRow(owner)}
+                          {isExpanded && subs.map((sub) => renderUserRow(sub, true))}
                         </>
                       );
                     })}
-
-                    {/* ── Standalone users (no team) ── */}
-                    {standaloneUsers.map((u) => (
-                      <tr key={u.user_id} className="hover:bg-white/[0.02]">
-                        <td className="px-3 py-3 text-center">
-                          <span className="text-white/10 text-xs">—</span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-white/40 font-bold text-xs">
-                              {(u.display_name || "?")[0]}
-                            </div>
-                            <div>
-                              <span className="text-white/80 font-medium">{u.display_name || "—"}</span>
-                              {u.company_name && (
-                                <p className="text-[11px] text-white/20">{u.company_name}</p>
-                              )}
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 text-white/50 font-mono text-xs">{u.email || "—"}</td>
-                        <td className="px-4 py-3">
-                          <div className="flex gap-1 flex-wrap">
-                            {u.roles.map((r) => (
-                              <Badge key={r} variant="outline" className={`text-[10px] border-white/10 ${r === "super_admin" ? "text-amber-400 border-amber-400/30" : r === "admin" ? "text-blue-400 border-blue-400/30" : "text-white/40"}`}>
-                                {r}
-                              </Badge>
-                            ))}
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 text-white/30 text-xs">
-                          {u.last_sign_in ? format(new Date(u.last_sign_in), "dd/MM HH:mm", { locale: ar }) : "—"}
-                        </td>
-                        <td className="px-4 py-3">
-                          {u.is_banned ? (
-                            <Badge className="bg-red-500/10 text-red-400 border-red-500/20 text-[10px]">معلق</Badge>
-                          ) : (
-                            <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-[10px]">نشط</Badge>
-                          )}
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center justify-center gap-1">
-                            {u.is_banned ? (
-                              <Button size="icon" variant="ghost" onClick={() => handleUnsuspendUser(u.user_id, u.display_name)} className="h-7 w-7 text-emerald-400 hover:bg-emerald-500/10" title="إلغاء التعليق">
-                                <Unlock className="h-3.5 w-3.5" />
-                              </Button>
-                            ) : (
-                              <Button size="icon" variant="ghost" onClick={() => handleSuspendUser(u.user_id, u.display_name)} className="h-7 w-7 text-amber-400 hover:bg-amber-500/10" title="تعليق">
-                                <Lock className="h-3.5 w-3.5" />
-                              </Button>
-                            )}
-                            <Button size="icon" variant="ghost" onClick={() => handleResetPassword(u.user_id, u.display_name)} className="h-7 w-7 text-blue-400 hover:bg-blue-500/10" title="إعادة تعيين كلمة المرور">
-                              <KeyRound className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button size="icon" variant="ghost" onClick={() => setDeleteDialog({ open: true, userId: u.user_id, name: u.display_name })} className="h-7 w-7 text-red-400 hover:bg-red-500/10" title="حذف" disabled={u.roles.includes("super_admin")}>
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-
+                    {standaloneUsers.map((u) => renderUserRow(u))}
                     {filteredUsers.length === 0 && (
-                      <tr><td colSpan={7} className="text-center py-8 text-white/20">لا توجد نتائج</td></tr>
+                      <tr><td colSpan={7} className="text-center py-8" style={{ color: "var(--sa-text-faint)" }}>لا توجد نتائج</td></tr>
                     )}
                   </tbody>
                 </table>
@@ -1886,53 +1755,54 @@ export default function SuperAdminDashboard() {
           {/* ─── AUDIT TAB ─── */}
           <TabsContent value="audit" className="space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold text-white flex items-center gap-2">
+              <h2 className="text-lg font-bold flex items-center gap-2" style={{ color: "var(--sa-text-primary)" }}>
                 <Shield className="h-5 w-5 text-amber-400" /> سجل التدقيق
               </h2>
-              <Button variant="ghost" size="sm" onClick={() => loadAuditLogs(0)} disabled={loadingAudit} className="text-white/40">
+              <Button variant="ghost" size="sm" onClick={() => loadAuditLogs(0)} disabled={loadingAudit} style={{ color: "var(--sa-text-muted)" }}>
                 <RefreshCw className={`h-4 w-4 ${loadingAudit ? "animate-spin" : ""}`} />
               </Button>
             </div>
 
-            <div className="rounded-2xl bg-white/[0.03] border border-white/[0.06] overflow-hidden">
+            <div className="rounded-2xl overflow-hidden" style={{ background: "var(--sa-card-bg)", border: "1px solid var(--sa-card-border)" }}>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-white/[0.06]">
-                      <th className="text-right text-white/30 font-medium px-4 py-3">التاريخ</th>
-                      <th className="text-right text-white/30 font-medium px-4 py-3">الإجراء</th>
-                      <th className="text-right text-white/30 font-medium px-4 py-3">الهدف</th>
-                      <th className="text-right text-white/30 font-medium px-4 py-3">IP</th>
+                    <tr style={{ borderBottom: "1px solid var(--sa-divider)" }}>
+                      {["التاريخ", "الإجراء", "الهدف", "IP"].map(h => (
+                        <th key={h} className="text-right font-medium px-4 py-3" style={{ color: "var(--sa-text-muted)" }}>{h}</th>
+                      ))}
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-white/[0.04]">
+                  <tbody>
                     {auditLogs.map((log) => (
-                      <tr key={log.id} className="hover:bg-white/[0.02]">
-                        <td className="px-4 py-3 text-white/40 tabular-nums text-xs font-mono">
+                      <tr key={log.id} style={{ borderBottom: "1px solid var(--sa-divider)" }}
+                        onMouseEnter={(e) => (e.currentTarget.style.background = "var(--sa-card-hover)")}
+                        onMouseLeave={(e) => (e.currentTarget.style.background = "")}>
+                        <td className="px-4 py-3 tabular-nums text-xs font-mono" style={{ color: "var(--sa-text-muted)" }}>
                           {format(new Date(log.created_at), "dd/MM/yy HH:mm:ss")}
                         </td>
-                        <td className="px-4 py-3 text-white/70">{actionLabel[log.action] || log.action}</td>
-                        <td className="px-4 py-3 text-white/30 text-xs font-mono truncate max-w-[200px]">
+                        <td className="px-4 py-3" style={{ color: "var(--sa-text-secondary)" }}>{actionLabel[log.action] || log.action}</td>
+                        <td className="px-4 py-3 text-xs font-mono truncate max-w-[200px]" style={{ color: "var(--sa-text-muted)" }}>
                           {log.target_id ? `${log.target_type}: ${log.target_id}` : "—"}
                         </td>
-                        <td className="px-4 py-3 text-white/20 text-xs font-mono">{log.ip_address || "—"}</td>
+                        <td className="px-4 py-3 text-xs font-mono" style={{ color: "var(--sa-text-faint)" }}>{log.ip_address || "—"}</td>
                       </tr>
                     ))}
                     {auditLogs.length === 0 && (
-                      <tr><td colSpan={4} className="text-center py-8 text-white/20">لا توجد سجلات</td></tr>
+                      <tr><td colSpan={4} className="text-center py-8" style={{ color: "var(--sa-text-faint)" }}>لا توجد سجلات</td></tr>
                     )}
                   </tbody>
                 </table>
               </div>
               {auditTotal > 50 && (
-                <div className="px-4 py-3 border-t border-white/[0.06] flex items-center justify-between">
-                  <span className="text-xs text-white/20">{auditTotal} سجل</span>
+                <div className="px-4 py-3 flex items-center justify-between" style={{ borderTop: "1px solid var(--sa-divider)" }}>
+                  <span className="text-xs" style={{ color: "var(--sa-text-faint)" }}>{auditTotal} سجل</span>
                   <div className="flex gap-2">
-                    <Button size="sm" variant="ghost" disabled={auditPage === 0} onClick={() => loadAuditLogs(auditPage - 1)} className="text-white/40">
+                    <Button size="sm" variant="ghost" disabled={auditPage === 0} onClick={() => loadAuditLogs(auditPage - 1)} style={{ color: "var(--sa-text-muted)" }}>
                       <ChevronRight className="h-4 w-4" />
                     </Button>
-                    <span className="text-xs text-white/30 flex items-center">صفحة {auditPage + 1}</span>
-                    <Button size="sm" variant="ghost" disabled={(auditPage + 1) * 50 >= auditTotal} onClick={() => loadAuditLogs(auditPage + 1)} className="text-white/40">
+                    <span className="text-xs flex items-center" style={{ color: "var(--sa-text-muted)" }}>صفحة {auditPage + 1}</span>
+                    <Button size="sm" variant="ghost" disabled={(auditPage + 1) * 50 >= auditTotal} onClick={() => loadAuditLogs(auditPage + 1)} style={{ color: "var(--sa-text-muted)" }}>
                       <ChevronLeft className="h-4 w-4" />
                     </Button>
                   </div>
@@ -1941,17 +1811,14 @@ export default function SuperAdminDashboard() {
             </div>
           </TabsContent>
 
-          {/* ─── SUBSCRIPTIONS TAB ─── */}
           <TabsContent value="subscriptions">
             <SubscriptionsManager />
           </TabsContent>
 
-          {/* ─── SETTINGS TAB ─── */}
           <TabsContent value="settings">
             <PlatformSettings />
           </TabsContent>
 
-          {/* ─── REVENUE TAB ─── */}
           <TabsContent value="revenue">
             <RevenueReports />
           </TabsContent>
@@ -1968,24 +1835,20 @@ export default function SuperAdminDashboard() {
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialog.open} onOpenChange={() => { setDeleteDialog({ open: false, userId: "", name: "" }); setDeleteConfirmText(""); }}>
-        <DialogContent className="bg-[#0f1524] border-white/10 text-white" dir="rtl">
+        <DialogContent style={{ background: "var(--sa-dialog-bg)", borderColor: "var(--sa-dialog-border)", color: "var(--sa-text-primary)" }} dir="rtl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-red-400">
               <AlertTriangle className="h-5 w-5" /> حذف مستخدم نهائياً
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-3 py-2">
-            <p className="text-sm text-white/50">أنت على وشك حذف <strong className="text-white">{deleteDialog.name}</strong> نهائياً. هذا الإجراء لا يمكن التراجع عنه.</p>
-            <p className="text-sm text-white/50">اكتب <strong className="text-red-400 font-mono">DELETE</strong> للتأكيد:</p>
-            <Input
-              value={deleteConfirmText}
-              onChange={(e) => setDeleteConfirmText(e.target.value)}
-              placeholder="DELETE"
-              className="bg-white/5 border-white/10 text-white font-mono"
-            />
+            <p className="text-sm" style={{ color: "var(--sa-text-muted)" }}>أنت على وشك حذف <strong style={{ color: "var(--sa-text-primary)" }}>{deleteDialog.name}</strong> نهائياً. هذا الإجراء لا يمكن التراجع عنه.</p>
+            <p className="text-sm" style={{ color: "var(--sa-text-muted)" }}>اكتب <strong className="text-red-400 font-mono">DELETE</strong> للتأكيد:</p>
+            <Input value={deleteConfirmText} onChange={(e) => setDeleteConfirmText(e.target.value)} placeholder="DELETE"
+              className="font-mono" style={{ background: "var(--sa-input-bg)", borderColor: "var(--sa-input-border)", color: "var(--sa-text-primary)" }} />
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => { setDeleteDialog({ open: false, userId: "", name: "" }); setDeleteConfirmText(""); }} className="text-white/50">إلغاء</Button>
+            <Button variant="ghost" onClick={() => { setDeleteDialog({ open: false, userId: "", name: "" }); setDeleteConfirmText(""); }} style={{ color: "var(--sa-text-muted)" }}>إلغاء</Button>
             <Button onClick={handleDeleteUser} disabled={deleteConfirmText !== "DELETE"} className="bg-red-500 hover:bg-red-600 text-white">
               حذف نهائي
             </Button>
