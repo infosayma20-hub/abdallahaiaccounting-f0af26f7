@@ -176,6 +176,35 @@ const POSSettingsSection = ({ settings, onChange }: Props) => {
           ))}
         </div>
       </div>
+
+      <Separator />
+
+      {/* Accounting Impact */}
+      <div>
+        <h3 className="text-base font-semibold text-foreground mb-4 flex items-center gap-2">
+          <span className="w-1 h-5 bg-destructive rounded-full" />
+          التأثير المحاسبي
+        </h3>
+        <p className="text-xs text-muted-foreground mb-3">
+          تحكّم في تأثير نقطة البيع على القيود المحاسبية والمخزون. تعطيل هذه الخيارات يعني أن عمليات البيع لن تولّد قيوداً تلقائية.
+        </p>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between p-3 bg-destructive/5 border border-destructive/20 rounded-lg">
+            <div>
+              <span className="text-sm font-medium">عدم توليد قيد تكلفة البضاعة المباعة (COGS)</span>
+              <p className="text-[10px] text-muted-foreground mt-0.5">عند التفعيل، لن يتم إنشاء قيد تكلفة المبيعات تلقائياً عند إتمام الطلب</p>
+            </div>
+            <Switch checked={settings.pos_disable_cogs} onCheckedChange={v => onChange({ pos_disable_cogs: v })} />
+          </div>
+          <div className="flex items-center justify-between p-3 bg-destructive/5 border border-destructive/20 rounded-lg">
+            <div>
+              <span className="text-sm font-medium">عدم خصم الكميات من المخزون</span>
+              <p className="text-[10px] text-muted-foreground mt-0.5">عند التفعيل، لن يتم تقليل كمية المنتجات تلقائياً عند البيع</p>
+            </div>
+            <Switch checked={settings.pos_disable_stock_deduction} onCheckedChange={v => onChange({ pos_disable_stock_deduction: v })} />
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
