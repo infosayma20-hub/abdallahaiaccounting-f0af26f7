@@ -82,6 +82,8 @@ interface InvoiceHistoryDrawerProps {
   sessionId: string | null;
   cashierName: string;
   terminalName: string;
+  canEditInvoices?: boolean;
+  requireManagerForInvoices?: boolean;
   onRecallToCart: (items: CartItem[], invoiceId: string, orderNumber: string, reason: string, approvedBy: string | null) => void;
 }
 
