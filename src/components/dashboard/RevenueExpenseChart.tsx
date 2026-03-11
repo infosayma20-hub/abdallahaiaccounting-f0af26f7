@@ -115,21 +115,21 @@ export default function RevenueExpenseChart({ data, grouping, onGroupingChange, 
             />
             {chartType === "bar" ? (
               <>
-                <Bar dataKey="revenue" name="الإيرادات" fill="hsl(var(--teal))" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="expenses" name="المصروفات" fill="#F97316" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="revenue" name="الإيرادات" fill="#10B981" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="expenses" name="المصروفات" fill="#F43F5E" radius={[4, 4, 0, 0]} />
               </>
             ) : chartType === "area" ? (
               <>
-                <Area dataKey="revenue" name="الإيرادات" fill="hsl(var(--teal))" fillOpacity={0.15} stroke="hsl(var(--teal))" strokeWidth={2} />
-                <Area dataKey="expenses" name="المصروفات" fill="#F97316" fillOpacity={0.15} stroke="#F97316" strokeWidth={2} />
+                <Area dataKey="revenue" name="الإيرادات" fill="#10B981" fillOpacity={0.15} stroke="#10B981" strokeWidth={2} />
+                <Area dataKey="expenses" name="المصروفات" fill="#F43F5E" fillOpacity={0.15} stroke="#F43F5E" strokeWidth={2} />
               </>
             ) : (
               <>
-                <Line dataKey="revenue" name="الإيرادات" stroke="hsl(var(--teal))" strokeWidth={2.5} dot={{ r: 3 }} />
-                <Line dataKey="expenses" name="المصروفات" stroke="#F97316" strokeWidth={2.5} dot={{ r: 3 }} />
+                <Line dataKey="revenue" name="الإيرادات" stroke="#10B981" strokeWidth={2.5} dot={{ r: 3 }} />
+                <Line dataKey="expenses" name="المصروفات" stroke="#F43F5E" strokeWidth={2.5} dot={{ r: 3 }} />
               </>
             )}
-            <Line dataKey="profit" name="صافي الربح" stroke="hsl(var(--gold))" strokeWidth={2} strokeDasharray="5 5" dot={false} />
+            <Line dataKey="profit" name="صافي الربح" stroke="#F59E0B" strokeWidth={2} strokeDasharray="5 5" dot={false} />
           </ComposedChart>
         </ResponsiveContainer>
       </div>
