@@ -757,7 +757,7 @@ const POSPage = () => {
   };
 
   const handleDeleteCategory = async (catId: string) => {
-    if (!dataOwnerId || !isAdmin) return;
+    if (!dataOwnerId || !(isAdmin || posPerms.manage_products_categories)) return;
     const { error } = await supabase.from("pos_categories").delete().eq("id", catId).eq("user_id", dataOwnerId);
     if (error) { toast.error("خطأ: " + error.message); return; }
     toast.success("تم حذف التصنيف");
