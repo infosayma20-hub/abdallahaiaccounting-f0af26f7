@@ -448,7 +448,7 @@ const VoucherDrawer = ({ open, onClose, voucherType, onSaved }: VoucherDrawerPro
             {selectedContact && (
               <div className="flex items-center gap-2 mt-1.5">
                 <Badge variant="secondary" className="text-[10px]">
-                  {selectedContact.contact_type === "customer" ? "عميل" : selectedContact.contact_type === "supplier" ? "مورد" : selectedContact.contact_type === "employee" ? "موظف" : "أخرى"}
+                  {isCustomer(selectedContact) ? "عميل" : isSupplier(selectedContact) ? "مورد" : isEmployee(selectedContact) ? "موظف" : "أخرى"}
                 </Badge>
                 <Badge className={`text-[10px] ${Number(selectedContact.current_balance || 0) >= 0 ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"}`}>
                   الرصيد: ₪{formatAmount(Math.abs(Number(selectedContact.current_balance || 0)))}
