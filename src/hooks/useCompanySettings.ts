@@ -75,6 +75,8 @@ export interface CompanySettings {
   pos_warn_out_of_stock: boolean;
   pos_prevent_zero_stock: boolean;
   pos_day_cutoff_hour: number;
+  pos_disable_cogs: boolean;
+  pos_disable_stock_deduction: boolean;
   // Print
   primary_color: string;
   invoice_font: string;
@@ -146,6 +148,8 @@ const defaultSettings: CompanySettings = {
   pos_warn_out_of_stock: true,
   pos_prevent_zero_stock: false,
   pos_day_cutoff_hour: 6,
+  pos_disable_cogs: false,
+  pos_disable_stock_deduction: false,
   primary_color: "#22C55E",
   invoice_font: "classic",
   paper_size: "A4",
