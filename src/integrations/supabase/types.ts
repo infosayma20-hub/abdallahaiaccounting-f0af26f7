@@ -1505,6 +1505,8 @@ export type Database = {
           pos_default_opening_balance: number | null
           pos_deficit_alert: boolean | null
           pos_deficit_threshold: number | null
+          pos_disable_cogs: boolean
+          pos_disable_stock_deduction: boolean
           pos_name: string | null
           pos_payment_methods: Json | null
           pos_prevent_zero_stock: boolean | null
@@ -1578,6 +1580,8 @@ export type Database = {
           pos_default_opening_balance?: number | null
           pos_deficit_alert?: boolean | null
           pos_deficit_threshold?: number | null
+          pos_disable_cogs?: boolean
+          pos_disable_stock_deduction?: boolean
           pos_name?: string | null
           pos_payment_methods?: Json | null
           pos_prevent_zero_stock?: boolean | null
@@ -1651,6 +1655,8 @@ export type Database = {
           pos_default_opening_balance?: number | null
           pos_deficit_alert?: boolean | null
           pos_deficit_threshold?: number | null
+          pos_disable_cogs?: boolean
+          pos_disable_stock_deduction?: boolean
           pos_name?: string | null
           pos_payment_methods?: Json | null
           pos_prevent_zero_stock?: boolean | null
