@@ -2873,22 +2873,23 @@ const POSPage = () => {
                     <option key={box.id} value={box.id}>{box.name}</option>
                   ))}
                 </select>
-                <div className="flex items-center gap-2 mt-2">
+                <label className="flex items-center gap-2 mt-2 cursor-pointer">
                   <input
                     type="checkbox"
-                    id="remember-box"
-                    checked={!!selectedCashBoxId && localStorage.getItem(`pos_default_cash_box_${dataOwnerId}`) === selectedCashBoxId}
+                    checked={!!selectedCashBoxId && selectedCashBoxId === localStorage.getItem(`pos_default_cash_box_${dataOwnerId}`)}
                     onChange={(e) => {
                       if (e.target.checked && selectedCashBoxId) {
                         localStorage.setItem(`pos_default_cash_box_${dataOwnerId}`, selectedCashBoxId);
                       } else {
                         localStorage.removeItem(`pos_default_cash_box_${dataOwnerId}`);
                       }
+                      // Force re-render
+                      setSelectedCashBoxId(prev => prev);
                     }}
                     className="rounded border-input"
                   />
-                  <label htmlFor="remember-box" className="text-xs text-muted-foreground">تذكر هذا الصندوق لهذا الجهاز</label>
-                </div>
+                  <span className="text-xs text-muted-foreground">تذكر هذا الصندوق لهذا الجهاز</span>
+                </label>
               </div>
             )}
             {cashBoxes.length === 0 && (
