@@ -143,6 +143,7 @@ const defaultSettings: CompanySettings = {
   pos_auto_update_stock: true,
   pos_warn_out_of_stock: true,
   pos_prevent_zero_stock: false,
+  pos_day_cutoff_hour: 6,
   primary_color: "#22C55E",
   invoice_font: "classic",
   paper_size: "A4",

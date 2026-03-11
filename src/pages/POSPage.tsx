@@ -1669,6 +1669,19 @@ const POSPage = () => {
     }
   };
 
+  // Determine POS accounting date based on cutoff hour
+  const getPosAccountingDate = useCallback((openedAt: string) => {
+    const d = new Date(openedAt);
+    // Fetch cutoff hour from company_settings (default 6 AM)
+    // If the shift was opened before cutoff hour, the accounting date is the previous day
+    const hour = d.getHours();
+    const cutoffHour = (window as any).__posDayCutoffHour ?? 6;
+    if (hour < cutoffHour) {
+      d.setDate(d.getDate() - 1);
+    }
+    return d.toISOString().split("T")[0];
+  }, []);
+
   // Close session
   const handleCloseShift = async () => {
     if (!session || !userId) return;
