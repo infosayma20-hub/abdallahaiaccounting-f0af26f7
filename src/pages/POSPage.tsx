@@ -421,6 +421,13 @@ const POSPage = () => {
    const [showInvoiceHistory, setShowInvoiceHistory] = useState(false);
    const [recallBanner, setRecallBanner] = useState<{ invoiceId: string; orderNumber: string; reason: string; approvedBy: string | null } | null>(null);
 
+   // POS User Permissions
+   const [posPerms, setPosPerms] = useState<{
+     can_view_invoice_history: boolean;
+     can_edit_invoices: boolean;
+     require_manager_for_invoices: boolean;
+   }>({ can_view_invoice_history: true, can_edit_invoices: true, require_manager_for_invoices: true });
+
    // Modifiers
    const [modifierGroups, setModifierGroups] = useState<any[]>([]);
    const [productModifierMap, setProductModifierMap] = useState<Record<string, string[]>>({});
