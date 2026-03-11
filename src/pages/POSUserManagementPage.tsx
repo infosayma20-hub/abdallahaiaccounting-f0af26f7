@@ -197,6 +197,9 @@ export default function POSUserManagementPage() {
       can_edit_invoices: perms.can_edit_invoices ?? false,
       require_manager_for_invoices: perms.require_manager_for_invoices ?? true,
       require_manager_approval: perms.require_manager_approval,
+      manage_products_categories: (perms as any).manage_products_categories ?? false,
+      view_invoice_log: (perms as any).view_invoice_log ?? false,
+      edit_cancel_invoices: (perms as any).edit_cancel_invoices ?? false,
     } : DEFAULT_PERMS);
 
     // Load device access
