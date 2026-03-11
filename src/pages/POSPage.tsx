@@ -2084,7 +2084,7 @@ const POSPage = () => {
         )}
 
         {/* Invoice History Button - visible based on permissions */}
-        {(isAdmin || posPerms.can_view_invoice_history) && (
+        {(isAdmin || posPerms.can_view_invoice_history || posPerms.view_invoice_log) && (
         <button
           onClick={() => setShowInvoiceHistory(true)}
           className="flex items-center gap-1.5 h-9 px-3.5 rounded-lg text-xs font-medium transition-all"
