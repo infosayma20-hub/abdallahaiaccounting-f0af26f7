@@ -591,6 +591,24 @@ const POSPage = () => {
             cash_box_id: (sessions[0] as any).cash_box_id || null,
           });
         } else {
+          // ── Device verification ──
+          const fingerprint = await getDeviceFingerprint();
+          const { data: deviceRecord } = await supabase
+            .from("pos_devices")
+            .select("id, is_active, device_name")
+            .eq("device_fingerprint", fingerprint)
+            .eq("company_id", comp.id)
+            .maybeSingle();
+
+          if (!deviceRecord || !deviceRecord.is_active) {
+            setShowDeviceBlocked(true);
+            setLoading(false);
+            return;
+          }
+
+          // Update last seen
+          await supabase.from("pos_devices").update({ last_seen_at: new Date().toISOString() }).eq("id", deviceRecord.id);
+
           // Load POS cash boxes for shift opening
           const { data: boxes } = await supabase
             .from("cash_boxes")
