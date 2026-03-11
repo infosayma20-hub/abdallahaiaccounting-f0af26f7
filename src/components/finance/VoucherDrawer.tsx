@@ -29,9 +29,10 @@ interface VoucherDrawerProps {
   onClose: () => void;
   voucherType: VoucherType;
   onSaved: () => void;
+  editVoucherId?: string | null;
 }
 
-const VoucherDrawer = ({ open, onClose, voucherType, onSaved }: VoucherDrawerProps) => {
+const VoucherDrawer = ({ open, onClose, voucherType, onSaved, editVoucherId }: VoucherDrawerProps) => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
