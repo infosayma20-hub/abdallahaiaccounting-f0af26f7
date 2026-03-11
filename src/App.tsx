@@ -161,9 +161,13 @@ const App = () => (
               <Route path="/receipt/:orderId" element={<DigitalReceiptPage />} />
               <Route path="/survey/:token" element={<SurveyPage />} />
               <Route path="/loading-demo" element={<LoadingDemoPage />} />
-              <Route path="/malaki" element={<MalakiLogin />} />
-              <Route path="/malaki/dashboard" element={<MalakiPortal />} />
-              <Route path="/malaki/settings" element={<MalakiSettings />} />
+              <Route path="/portal" element={<PortalLogin />} />
+              <Route path="/portal/dashboard" element={<PortalDashboard />} />
+              <Route path="/portal/settings" element={<PortalSettings />} />
+              {/* Legacy malaki routes redirect to portal */}
+              <Route path="/malaki" element={<Navigate to="/portal" replace />} />
+              <Route path="/malaki/dashboard" element={<Navigate to="/portal/dashboard" replace />} />
+              <Route path="/malaki/settings" element={<Navigate to="/portal/settings" replace />} />
               <Route path="/onboarding" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
               <Route path="/setup" element={<ProtectedRoute><SetupPage /></ProtectedRoute>} />
               <Route path="/pos" element={<ProtectedRoute><POSPage /></ProtectedRoute>} />
