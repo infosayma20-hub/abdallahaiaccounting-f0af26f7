@@ -1491,6 +1491,7 @@ export type Database = {
           invoice_prefix: string | null
           journal_prefix: string | null
           last_locked_period: string | null
+          licensed_dealer_number: string | null
           logo_url: string | null
           max_discount_percent: number | null
           paper_size: string | null
@@ -1563,6 +1564,7 @@ export type Database = {
           invoice_prefix?: string | null
           journal_prefix?: string | null
           last_locked_period?: string | null
+          licensed_dealer_number?: string | null
           logo_url?: string | null
           max_discount_percent?: number | null
           paper_size?: string | null
@@ -1635,6 +1637,7 @@ export type Database = {
           invoice_prefix?: string | null
           journal_prefix?: string | null
           last_locked_period?: string | null
+          licensed_dealer_number?: string | null
           logo_url?: string | null
           max_discount_percent?: number | null
           paper_size?: string | null
