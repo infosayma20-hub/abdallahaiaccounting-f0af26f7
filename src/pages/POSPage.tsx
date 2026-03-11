@@ -1147,9 +1147,11 @@ const POSPage = () => {
       return;
     }
 
-    // Save device binding
-    if (selectedCashBoxId) {
+    // Save/remove device binding
+    if (rememberCashBox && selectedCashBoxId) {
       localStorage.setItem(`pos_default_cash_box_${dataOwnerId}`, selectedCashBoxId);
+    } else {
+      localStorage.removeItem(`pos_default_cash_box_${dataOwnerId}`);
     }
 
     setSession({
