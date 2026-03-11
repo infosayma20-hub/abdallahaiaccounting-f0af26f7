@@ -1864,21 +1864,90 @@ const POSPage = () => {
     navigate("/auth");
   };
 
-  // Keyboard shortcut
+  // Keyboard shortcuts
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
+      // Skip if typing in input/textarea
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+
+      // F2 = Focus search
       if (e.key === "F2") {
         searchRef.current?.focus();
         e.preventDefault();
+        return;
       }
+      // F12 = Pay
       if (e.key === "F12" && cart.length > 0) {
         setShowPayment(true);
         e.preventDefault();
+        return;
+      }
+      // F9 = Send to printer
+      if (e.key === "F9" && cart.length > 0) {
+        handleSendToKitchen();
+        e.preventDefault();
+        return;
+      }
+      // F10 = Save order
+      if (e.key === "F10" && cart.length > 0) {
+        handleSaveToTable();
+        e.preventDefault();
+        return;
+      }
+      // F8 = Print
+      if (e.key === "F8" && cart.length > 0) {
+        window.print();
+        e.preventDefault();
+        return;
+      }
+      // Delete / Backspace = Clear cart
+      if (e.key === "Delete" && e.ctrlKey) {
+        setCart([]); setSelectedCartIndex(null); setOrderDiscount(0); setOrderNote("");
+        setCustomerDataDiscount(null);
+        e.preventDefault();
+        return;
+      }
+
+      // Alt + 0 = All categories
+      if (e.altKey && e.key === "0") {
+        setSelectedCategory("الكل");
+        e.preventDefault();
+        return;
+      }
+      // Alt + 1-9 = Select category by index
+      if (e.altKey && e.key >= "1" && e.key <= "9") {
+        const idx = parseInt(e.key) - 1;
+        const sortedCats = [...posCategories].sort((a, b) => (a.display_order ?? 999) - (b.display_order ?? 999));
+        if (idx < sortedCats.length) {
+          setSelectedCategory(sortedCats[idx].name);
+        }
+        e.preventDefault();
+        return;
+      }
+
+      // Ctrl + number (1-9) = Add product by position in current view
+      if (e.ctrlKey && !e.altKey && e.key >= "1" && e.key <= "9") {
+        const idx = parseInt(e.key) - 1;
+        const visibleProducts = products.filter(p => {
+          if (!p.is_pos_available) return false;
+          if (selectedCategory === "__uncategorized__") return !p.pos_category_id && !posCategories.some(c => c.name === p.category);
+          if (selectedCategory !== "الكل") {
+            const cat = posCategories.find(c => c.name === selectedCategory);
+            return p.pos_category_id === cat?.id || p.category === selectedCategory;
+          }
+          return true;
+        });
+        if (idx < visibleProducts.length) {
+          addToCart(visibleProducts[idx]);
+        }
+        e.preventDefault();
+        return;
       }
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [cart]);
+  }, [cart, posCategories, products, selectedCategory, addToCart]);
 
   if (loading) {
     return (
@@ -2847,6 +2916,7 @@ const POSPage = () => {
                     className="flex-1 h-10 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 border-2 border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400 hover:bg-amber-500/20 transition-all"
                   >
                     🖨️ إرسال إلى الطابعة
+                    <span className="text-[10px] bg-amber-500/20 rounded px-1 py-0.5 font-mono">F9</span>
                   </button>
                   <button
                     onClick={handleSaveToTable}
@@ -2854,6 +2924,7 @@ const POSPage = () => {
                     className="flex-1 h-10 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 border-2 border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-400 hover:bg-sky-500/20 transition-all disabled:opacity-40"
                   >
                     💾 {savingToTable ? "جاري الحفظ..." : "حفظ الطلب"}
+                    <span className="text-[10px] bg-sky-500/20 rounded px-1 py-0.5 font-mono">F10</span>
                   </button>
                 </div>
               )}
