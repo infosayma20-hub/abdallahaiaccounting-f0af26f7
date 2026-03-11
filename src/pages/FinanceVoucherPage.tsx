@@ -86,7 +86,7 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
             <p className="text-xs text-muted-foreground">{isReceipt ? "إدارة سندات القبض والمقبوضات" : "إدارة سندات الصرف والمدفوعات"}</p>
           </div>
         </div>
-        <Button size="sm" className="gap-2" onClick={() => setDrawerOpen(true)}>
+        <Button size="sm" className="gap-2" onClick={() => { setEditVoucherId(null); setDrawerOpen(true); }}>
           <Plus className="h-4 w-4" />{newTitle}
         </Button>
       </div>
