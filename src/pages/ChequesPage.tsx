@@ -213,13 +213,14 @@ const ChequesPage = () => {
         currency: newCheque.currency,
         party_name: newCheque.party_name,
         party_type: newCheque.party_type,
+        linked_account: newCheque.linked_account || null,
         notes: newCheque.notes || null,
       });
 
       if (error) throw error;
       toast.success(`تم تسجيل شيك ${newCheque.cheque_type} بنجاح`);
       setAddOpen(false);
-      setNewCheque({ cheque_type: 'وارد', cheque_number: '', bank_name: '', cheque_date: '', amount: '', currency: 'شيكل', party_name: '', party_type: 'عميل', notes: '' });
+      setNewCheque({ cheque_type: 'وارد', cheque_number: '', bank_name: '', cheque_date: '', amount: '', currency: 'شيكل', party_name: '', party_type: 'عميل', linked_account: '', notes: '' });
       setPartySearch('');
       fetchCheques();
     } catch (err: any) {
