@@ -188,22 +188,25 @@ const CashBoxDrawer = ({ open, onClose, defaultType, editBox, hasMainBox, onSave
       {/* Overlay */}
       <div className="fixed inset-0 bg-black/40 z-40" onClick={onClose} />
 
-      {/* Drawer */}
+      {/* Centered Modal */}
       <div
-        className="fixed top-0 right-0 h-screen z-50 bg-background shadow-2xl flex flex-col
-                   w-full sm:w-[85vw] md:w-[680px] animate-in slide-in-from-right duration-300"
+        className="fixed z-50 bg-background shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-300 rounded-2xl"
+        style={{ width: "min(680px, 95vw)", maxHeight: "min(88vh, 860px)", top: "50%", left: "50%", transform: "translate(-50%, -50%)" }}
         dir="rtl"
       >
         {/* Header */}
-        <div className="p-5 text-white" style={{ background: gradients[boxType] }}>
+        <div className="p-5 text-white shrink-0 rounded-t-2xl" style={{ background: gradients[boxType] }}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
                 {boxType === "main" ? <Landmark className="h-5 w-5" /> : boxType === "branch" ? <Building2 className="h-5 w-5" /> : <Monitor className="h-5 w-5" />}
               </div>
-              <h2 className="text-base font-bold">{editBox ? `تعديل — ${editBox.name}` : titles[boxType]}</h2>
+              <div>
+                <h2 className="text-lg font-bold" style={{ fontFamily: "Tajawal, sans-serif" }}>{editBox ? `تعديل — ${editBox.name}` : titles[boxType]}</h2>
+                <p className="text-xs text-white/60">تعريف صندوق جديد وربطه بشجرة الحسابات</p>
+              </div>
             </div>
-            <button onClick={onClose} className="p-2 rounded-lg hover:bg-white/20"><X className="h-5 w-5" /></button>
+            <button onClick={onClose} className="p-2 rounded-lg hover:bg-white/20 transition-colors"><X className="h-5 w-5" /></button>
           </div>
         </div>
 
@@ -385,10 +388,10 @@ const CashBoxDrawer = ({ open, onClose, defaultType, editBox, hasMainBox, onSave
         </div>
 
         {/* Footer */}
-        <div className="border-t p-4 flex items-center gap-3">
-          <Button variant="ghost" onClick={onClose}>إلغاء</Button>
+        <div className="shrink-0 border-t bg-muted/30 p-4 flex items-center gap-3">
+          <Button variant="ghost" onClick={onClose} className="h-11 px-6">إلغاء</Button>
           <Button
-            className="flex-1 gap-2"
+            className="flex-1 h-11 text-base font-bold gap-2 text-white"
             style={{ background: gradients[boxType].includes("#0A2342") ? "#0A2342" : boxType === "branch" ? "#059669" : "#7C3AED" }}
             disabled={saving || !name.trim() || (boxType === "main" && hasMainBox && !editBox)}
             onClick={handleSave}
