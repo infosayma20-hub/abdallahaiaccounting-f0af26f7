@@ -58,6 +58,8 @@ const SettingsPage = () => {
         return <POSSettingsSection settings={settings} onChange={updateSettings} />;
       case "print":
         return <PrintSettingsSection settings={settings} onChange={updateSettings} />;
+      case "portal":
+        return <PortalSettingsSection />;
       default:
         return (
           <div className="flex items-center justify-center h-64 text-muted-foreground">
