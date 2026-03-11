@@ -38,7 +38,15 @@ const navSections: NavSection[] = [
   {
     title: "المالية والمحاسبة",
     items: [
-      { label: "المالية", module: "accounting", path: "/finance" },
+      {
+        label: "المالية",
+        module: "accounting",
+        children: [
+          { label: "لوحة المالية", path: "/finance" },
+          { label: "دفتر الأستاذ", path: "/general-ledger" },
+          { label: "العملات", path: "/currency-management" },
+        ],
+      },
       {
         label: "المستندات المالية",
         module: "accounting",
