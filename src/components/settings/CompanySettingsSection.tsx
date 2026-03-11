@@ -66,6 +66,11 @@ const CompanySettingsSection = ({ settings, onChange }: Props) => {
             <Label>رقم السجل التجاري</Label>
             <Input value={settings.commercial_register} onChange={e => onChange({ commercial_register: e.target.value })} placeholder="رقم السجل" />
           </div>
+          <div className="space-y-2">
+            <Label>رقم المشتغل المرخص</Label>
+            <Input value={settings.licensed_dealer_number} onChange={e => onChange({ licensed_dealer_number: e.target.value })} placeholder="رقم الترخيص حسب القانون الفلسطيني" />
+            <p className="text-xs text-muted-foreground">يظهر إلزامياً على الفواتير حسب القانون</p>
+          </div>
         </div>
       </div>
 
