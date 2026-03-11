@@ -419,7 +419,7 @@ const FinanceJournalPage = () => {
                   <BookOpen className="h-5 w-5" />
                 </div>
                 <div>
-                  <h2 className="text-base font-bold">سند قيد جديد</h2>
+                  <h2 className="text-base font-bold">{editingVoucherId ? "تعديل سند قيد" : "سند قيد جديد"}</h2>
                   {formRefNumber && <p className="text-[11px] text-white/60">{formRefNumber}</p>}
                 </div>
               </div>
