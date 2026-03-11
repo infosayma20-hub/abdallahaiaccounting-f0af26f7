@@ -28,6 +28,7 @@ import CustomerDataModal from "@/components/pos/CustomerDataModal";
 import { type SelectedModifier } from "@/components/pos/ModifierModal";
 import InlineAddonPanel from "@/components/pos/InlineAddonPanel";
 import QuickModifierBar from "@/components/pos/QuickModifierBar";
+import { getDeviceFingerprint } from "@/lib/device-fingerprint";
 import {
   DndContext,
   closestCenter,
