@@ -492,6 +492,18 @@ const POSPage = () => {
     initializePOS();
   }, [userId, dataOwnerId]);
 
+  // Refresh products & categories when page regains focus (e.g. after editing in inventory)
+  useEffect(() => {
+    const handleFocus = () => {
+      if (dataOwnerId && session) {
+        loadProducts();
+        loadCategories();
+      }
+    };
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, [dataOwnerId, session]);
+
   // Auto-load order from URL params (when coming from floor plan)
   useEffect(() => {
     if (!urlTableId || !urlOrderId || loading || orderLoadedRef.current) return;
