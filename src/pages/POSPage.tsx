@@ -2880,16 +2880,8 @@ const POSPage = () => {
                 <label className="flex items-center gap-2 mt-2 cursor-pointer">
                   <input
                     type="checkbox"
-                    checked={!!selectedCashBoxId && selectedCashBoxId === localStorage.getItem(`pos_default_cash_box_${dataOwnerId}`)}
-                    onChange={(e) => {
-                      if (e.target.checked && selectedCashBoxId) {
-                        localStorage.setItem(`pos_default_cash_box_${dataOwnerId}`, selectedCashBoxId);
-                      } else {
-                        localStorage.removeItem(`pos_default_cash_box_${dataOwnerId}`);
-                      }
-                      // Force re-render
-                      setSelectedCashBoxId(prev => prev);
-                    }}
+                    checked={rememberCashBox}
+                    onChange={(e) => setRememberCashBox(e.target.checked)}
                     className="rounded border-input"
                   />
                   <span className="text-xs text-muted-foreground">تذكر هذا الصندوق لهذا الجهاز</span>
