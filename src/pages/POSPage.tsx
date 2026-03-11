@@ -344,6 +344,7 @@ const POSPage = () => {
   const [showPayment, setShowPayment] = useState(false);
   const [showCloseShift, setShowCloseShift] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [showDeviceBlocked, setShowDeviceBlocked] = useState(false);
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [showCategoryManager, setShowCategoryManager] = useState(false);
   const [showCustomerDataModal, setShowCustomerDataModal] = useState(false);
