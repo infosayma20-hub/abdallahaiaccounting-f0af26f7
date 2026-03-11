@@ -1,13 +1,12 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowRight, Plus, Landmark, Loader2, Settings, FileText, RefreshCw } from "lucide-react";
+import { ArrowRight, Plus, Landmark, Loader2, Settings, FileText, X } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -27,7 +26,7 @@ const BankAccountsPage = () => {
 
   const [banks, setBanks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
 
   // Form
@@ -54,7 +53,7 @@ const BankAccountsPage = () => {
   }, [user]);
 
   useEffect(() => { fetchBanks(); }, [fetchBanks]);
-  useEffect(() => { if (searchParams.get("new") === "1") setDrawerOpen(true); }, [searchParams]);
+  useEffect(() => { if (searchParams.get("new") === "1") setModalOpen(true); }, [searchParams]);
 
   const resetForm = () => {
     setBankName(""); setCustomBankName(""); setBranch(""); setAccountName("");
@@ -93,7 +92,7 @@ const BankAccountsPage = () => {
       toast({ title: "خطأ", description: error.message, variant: "destructive" });
     } else {
       toast({ title: `✅ تم إضافة حساب ${finalBankName} بنجاح` });
-      setDrawerOpen(false);
+      setModalOpen(false);
       resetForm();
       fetchBanks();
     }
@@ -111,9 +110,9 @@ const BankAccountsPage = () => {
           <button onClick={() => navigate("/finance")} className="p-1.5 rounded-lg hover:bg-muted transition-colors">
             <ArrowRight className="h-5 w-5" />
           </button>
-          <h1 className="text-xl font-bold" style={{ color: "#0A2342", fontFamily: "Tajawal, sans-serif" }}>الحسابات البنكية</h1>
+          <h1 className="text-xl font-bold text-foreground" style={{ fontFamily: "Tajawal, sans-serif" }}>الحسابات البنكية</h1>
         </div>
-        <Button size="sm" className="gap-2 bg-[#0A2342] hover:bg-[#0D1B2A]" onClick={() => { resetForm(); setDrawerOpen(true); }}>
+        <Button size="sm" className="gap-2 text-white" style={{ background: "var(--gradient-navy, linear-gradient(135deg, #050F1E, #0A2342))" }} onClick={() => { resetForm(); setModalOpen(true); }}>
           <Plus className="h-4 w-4" />إضافة حساب بنكي
         </Button>
       </div>
@@ -125,7 +124,7 @@ const BankAccountsPage = () => {
         <div className="text-center py-20">
           <Landmark className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
           <p className="text-muted-foreground mb-4">لم تُعرَّف حسابات بنكية بعد</p>
-          <Button onClick={() => { resetForm(); setDrawerOpen(true); }} className="gap-2 bg-[#0A2342]">
+          <Button onClick={() => { resetForm(); setModalOpen(true); }} className="gap-2 text-white" style={{ background: "var(--gradient-navy, linear-gradient(135deg, #050F1E, #0A2342))" }}>
             <Plus className="h-4 w-4" />إضافة حساب بنكي
           </Button>
         </div>
@@ -133,7 +132,7 @@ const BankAccountsPage = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {banks.map(bank => (
             <Card key={bank.id} className="overflow-hidden hover:shadow-md transition-shadow">
-              <div className="p-4 text-white" style={{ background: "linear-gradient(135deg, #050F1E, #0A2342)", borderRadius: "12px 12px 0 0" }}>
+              <div className="p-4 text-white rounded-t-xl" style={{ background: "var(--gradient-navy, linear-gradient(135deg, #050F1E, #0A2342))" }}>
                 <div className="flex items-center gap-2">
                   <Landmark className="h-5 w-5" />
                   <span className="text-sm font-bold">{bank.bank_name}</span>
@@ -164,120 +163,155 @@ const BankAccountsPage = () => {
         </div>
       )}
 
-      {/* Add Bank Drawer */}
-      <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
-        <SheetContent side="right" className="w-full sm:w-[600px] p-0 overflow-y-auto">
-          <div className="p-4 text-white" style={{ background: "linear-gradient(135deg, #050F1E, #0A2342)" }}>
-            <div className="flex items-center gap-3" dir="rtl">
-              <Landmark className="h-6 w-6" />
-              <h2 className="text-base font-bold">إضافة حساب بنكي</h2>
-            </div>
-          </div>
+      {/* Add Bank Modal - Centered like Voucher */}
+      {modalOpen && (
+        <>
+          <div className="fixed inset-0 z-40 bg-black/40 transition-opacity" onClick={() => setModalOpen(false)} />
 
-          <div className="p-5 space-y-5" dir="rtl">
-            {/* Bank Info */}
-            <div className="space-y-4">
-              <h3 className="text-sm font-bold text-muted-foreground">معلومات البنك</h3>
-              <div>
-                <Label className="text-xs">البنك *</Label>
-                <Select value={bankName} onValueChange={setBankName}>
-                  <SelectTrigger className="mt-1"><SelectValue placeholder="اختر البنك..." /></SelectTrigger>
-                  <SelectContent>
-                    {PALESTINIAN_BANKS.map(b => <SelectItem key={b} value={b}>🏦 {b}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-                {bankName === "أخرى" && (
-                  <Input value={customBankName} onChange={e => setCustomBankName(e.target.value)} placeholder="اسم البنك..." className="mt-2" />
-                )}
+          <div
+            className="fixed z-50 bg-background shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-300 rounded-2xl"
+            style={{ width: "min(680px, 95vw)", maxHeight: "min(92vh, 900px)", top: "50%", left: "50%", transform: "translate(-50%, -50%)" }}
+            dir="rtl"
+          >
+            {/* Header */}
+            <div className="p-5 text-white shrink-0 rounded-t-2xl" style={{ background: "var(--gradient-navy, linear-gradient(135deg, #050F1E, #0A2342))" }}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
+                    <Landmark className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold" style={{ fontFamily: "Tajawal, sans-serif" }}>إضافة حساب بنكي</h2>
+                    <p className="text-xs text-white/60">تعريف حساب بنكي جديد وربطه بشجرة الحسابات</p>
+                  </div>
+                </div>
+                <button onClick={() => setModalOpen(false)} className="p-2 rounded-lg hover:bg-white/20 transition-colors">
+                  <X className="h-5 w-5" />
+                </button>
               </div>
-              <div>
-                <Label className="text-xs">الفرع</Label>
-                <Input value={branch} onChange={e => setBranch(e.target.value)} placeholder="مثال: رام الله الرئيسي" className="mt-1" />
-              </div>
-              <div>
-                <Label className="text-xs">اسم الحساب *</Label>
-                <Input value={accountName} onChange={e => setAccountName(e.target.value)} placeholder="اسم مميز يظهر في النظام" className="mt-1" />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
+            </div>
+
+            {/* Scrollable Body */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              {/* Bank Info */}
+              <div className="space-y-4">
+                <h3 className="text-sm font-bold text-muted-foreground flex items-center gap-2" style={{ fontFamily: "Tajawal, sans-serif" }}>
+                  <span className="w-1 h-4 rounded-full bg-primary" />
+                  معلومات البنك
+                </h3>
                 <div>
-                  <Label className="text-xs">رقم الحساب</Label>
-                  <Input value={accountNumber} onChange={e => setAccountNumber(e.target.value)} className="mt-1 font-mono" />
+                  <Label className="text-[13px] font-semibold" style={{ fontFamily: "Tajawal, sans-serif" }}>البنك *</Label>
+                  <Select value={bankName} onValueChange={setBankName}>
+                    <SelectTrigger className="mt-1.5 h-11"><SelectValue placeholder="اختر البنك..." /></SelectTrigger>
+                    <SelectContent>
+                      {PALESTINIAN_BANKS.map(b => <SelectItem key={b} value={b}>🏦 {b}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  {bankName === "أخرى" && (
+                    <Input value={customBankName} onChange={e => setCustomBankName(e.target.value)} placeholder="اسم البنك..." className="mt-2 h-11" />
+                  )}
                 </div>
                 <div>
-                  <Label className="text-xs">نوع الحساب</Label>
-                  <Select value={accountType} onValueChange={setAccountType}>
-                    <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                  <Label className="text-[13px] font-semibold" style={{ fontFamily: "Tajawal, sans-serif" }}>الفرع</Label>
+                  <Input value={branch} onChange={e => setBranch(e.target.value)} placeholder="مثال: رام الله الرئيسي" className="mt-1.5 h-11" />
+                </div>
+                <div>
+                  <Label className="text-[13px] font-semibold" style={{ fontFamily: "Tajawal, sans-serif" }}>اسم الحساب *</Label>
+                  <Input value={accountName} onChange={e => setAccountName(e.target.value)} placeholder="اسم مميز يظهر في النظام" className="mt-1.5 h-11" />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-[13px] font-semibold" style={{ fontFamily: "Tajawal, sans-serif" }}>رقم الحساب</Label>
+                    <Input value={accountNumber} onChange={e => setAccountNumber(e.target.value)} className="mt-1.5 h-11 font-mono" />
+                  </div>
+                  <div>
+                    <Label className="text-[13px] font-semibold" style={{ fontFamily: "Tajawal, sans-serif" }}>نوع الحساب</Label>
+                    <Select value={accountType} onValueChange={setAccountType}>
+                      <SelectTrigger className="mt-1.5 h-11"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="current">جاري</SelectItem>
+                        <SelectItem value="savings">توفير</SelectItem>
+                        <SelectItem value="loan">قرض</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-[13px] font-semibold" style={{ fontFamily: "Tajawal, sans-serif" }}>العملة *</Label>
+                  <Select value={currency} onValueChange={setCurrency}>
+                    <SelectTrigger className="mt-1.5 h-11"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="current">جاري</SelectItem>
-                      <SelectItem value="savings">توفير</SelectItem>
-                      <SelectItem value="loan">قرض</SelectItem>
+                      <SelectItem value="ILS">₪ شيكل إسرائيلي</SelectItem>
+                      <SelectItem value="USD">$ دولار أمريكي</SelectItem>
+                      <SelectItem value="JOD">د.أ دينار أردني</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
-              <div>
-                <Label className="text-xs">العملة *</Label>
-                <Select value={currency} onValueChange={setCurrency}>
-                  <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ILS">₪ شيكل إسرائيلي</SelectItem>
-                    <SelectItem value="USD">$ دولار أمريكي</SelectItem>
-                    <SelectItem value="JOD">د.أ دينار أردني</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
 
-            {/* GL Mapping */}
-            <div className="space-y-4 rounded-lg border border-amber-200 bg-amber-50/30 p-4">
-              <h3 className="text-sm font-bold" style={{ color: "#E8A020" }}>⚡ الربط بشجرة الحسابات</h3>
-              <p className="text-[11px] text-muted-foreground">ربط هذا الحساب البنكي بحسابات FINIX</p>
-              <div>
-                <Label className="text-xs">حساب البنك الرئيسي *</Label>
-                <Input value={glAccountCode} onChange={e => setGlAccountCode(e.target.value)} placeholder="1120" className="mt-1 font-mono" />
-                <p className="text-[10px] text-muted-foreground mt-1">جميع العمليات الواردة والصادرة تُسجَّل في هذا الحساب</p>
-              </div>
-              <div>
-                <Label className="text-xs">حساب عمولات البنك</Label>
-                <Input value={commissionAccountCode} onChange={e => setCommissionAccountCode(e.target.value)} placeholder="6130" className="mt-1 font-mono" />
-                <p className="text-[10px] text-muted-foreground mt-1">يُستخدم تلقائياً عند تسجيل رسوم خدمات بنكية</p>
-              </div>
-            </div>
-
-            {/* Opening Balance */}
-            <div className="space-y-4">
-              <h3 className="text-sm font-bold text-muted-foreground">إعدادات إضافية</h3>
-              <div className="grid grid-cols-2 gap-3">
+              {/* GL Mapping */}
+              <div className="space-y-4 rounded-xl border p-5" style={{ borderColor: "hsl(40 80% 60% / 0.3)", background: "hsl(40 80% 60% / 0.05)" }}>
+                <h3 className="text-sm font-bold flex items-center gap-2" style={{ color: "#E8A020", fontFamily: "Tajawal, sans-serif" }}>
+                  ⚡ الربط بشجرة الحسابات
+                </h3>
+                <p className="text-[11px] text-muted-foreground">ربط هذا الحساب البنكي بحسابات FINIX</p>
                 <div>
-                  <Label className="text-xs">الرصيد الافتتاحي</Label>
-                  <Input type="number" value={openingBalance} onChange={e => setOpeningBalance(e.target.value)} placeholder="0.00" className="mt-1 font-mono" />
+                  <Label className="text-[13px] font-semibold" style={{ fontFamily: "Tajawal, sans-serif" }}>حساب البنك الرئيسي *</Label>
+                  <Input value={glAccountCode} onChange={e => setGlAccountCode(e.target.value)} placeholder="1120" className="mt-1.5 h-11 font-mono" />
+                  <p className="text-[10px] text-muted-foreground mt-1">جميع العمليات الواردة والصادرة تُسجَّل في هذا الحساب</p>
                 </div>
                 <div>
-                  <Label className="text-xs">تاريخ الرصيد</Label>
-                  <Input type="date" value={openingBalanceDate} onChange={e => setOpeningBalanceDate(e.target.value)} className="mt-1" />
+                  <Label className="text-[13px] font-semibold" style={{ fontFamily: "Tajawal, sans-serif" }}>حساب عمولات البنك</Label>
+                  <Input value={commissionAccountCode} onChange={e => setCommissionAccountCode(e.target.value)} placeholder="6130" className="mt-1.5 h-11 font-mono" />
+                  <p className="text-[10px] text-muted-foreground mt-1">يُستخدم تلقائياً عند تسجيل رسوم خدمات بنكية</p>
                 </div>
               </div>
-              <div>
-                <Label className="text-xs">حد التنبيه عند انخفاض الرصيد</Label>
-                <Input type="number" value={minBalanceAlert} onChange={e => setMinBalanceAlert(e.target.value)} placeholder="مثال: 5000" className="mt-1 font-mono" />
-              </div>
-              <div>
-                <Label className="text-xs">ملاحظات</Label>
-                <Textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2} className="mt-1" />
+
+              {/* Additional Settings */}
+              <div className="space-y-4">
+                <h3 className="text-sm font-bold text-muted-foreground flex items-center gap-2" style={{ fontFamily: "Tajawal, sans-serif" }}>
+                  <span className="w-1 h-4 rounded-full bg-primary" />
+                  إعدادات إضافية
+                </h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-[13px] font-semibold" style={{ fontFamily: "Tajawal, sans-serif" }}>الرصيد الافتتاحي</Label>
+                    <Input type="number" value={openingBalance} onChange={e => setOpeningBalance(e.target.value)} placeholder="0.00" className="mt-1.5 h-11 font-mono" />
+                  </div>
+                  <div>
+                    <Label className="text-[13px] font-semibold" style={{ fontFamily: "Tajawal, sans-serif" }}>تاريخ الرصيد</Label>
+                    <Input type="date" value={openingBalanceDate} onChange={e => setOpeningBalanceDate(e.target.value)} className="mt-1.5 h-11" />
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-[13px] font-semibold" style={{ fontFamily: "Tajawal, sans-serif" }}>حد التنبيه عند انخفاض الرصيد</Label>
+                  <Input type="number" value={minBalanceAlert} onChange={e => setMinBalanceAlert(e.target.value)} placeholder="مثال: 5000" className="mt-1.5 h-11 font-mono" />
+                </div>
+                <div>
+                  <Label className="text-[13px] font-semibold" style={{ fontFamily: "Tajawal, sans-serif" }}>ملاحظات</Label>
+                  <Textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2} className="mt-1.5" />
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Footer */}
-          <div className="sticky bottom-0 bg-background border-t p-4 flex items-center gap-2" dir="rtl">
-            <Button variant="ghost" onClick={() => setDrawerOpen(false)} disabled={saving}>إلغاء</Button>
-            <Button className="flex-1 bg-[#0A2342] hover:bg-[#0D1B2A]" onClick={handleSave} disabled={saving}>
-              {saving ? <Loader2 className="h-4 w-4 animate-spin ml-1" /> : null}
-              ✓ حفظ الحساب البنكي
-            </Button>
+            {/* Footer */}
+            <div className="shrink-0 border-t bg-muted/30 p-4 flex items-center gap-3">
+              <Button variant="ghost" onClick={() => setModalOpen(false)} disabled={saving} className="h-11 px-6">
+                إلغاء
+              </Button>
+              <Button
+                className="flex-1 h-11 text-base font-bold gap-2 text-white"
+                style={{ background: "var(--gradient-navy, linear-gradient(135deg, #050F1E, #0A2342))" }}
+                onClick={handleSave}
+                disabled={saving}
+              >
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Landmark className="h-4 w-4" />}
+                حفظ الحساب البنكي
+              </Button>
+            </div>
           </div>
-        </SheetContent>
-      </Sheet>
+        </>
+      )}
     </div>
   );
 };
