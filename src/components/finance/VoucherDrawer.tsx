@@ -91,7 +91,7 @@ const VoucherDrawer = ({ open, onClose, voucherType, onSaved }: VoucherDrawerPro
     const lastRef = (vRes.data || [])[0]?.ref_number || "";
     const match = lastRef.match(/(\d+)$/);
     const nextNum = match ? String(parseInt(match[1]) + 1).padStart(Math.max(match[1].length, 4), "0") : "0001";
-    setFormRefNumber(`${prefix}-${nextNum}`);
+    setFormRefNumber(`${prefix}-${new Date().getFullYear()}-${nextNum}`);
 
     // Auto-select single cash account
     const cashAccs = (aRes.data || []).filter((a: any) => a.account_code?.startsWith("111"));
