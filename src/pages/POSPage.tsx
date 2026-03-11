@@ -2859,6 +2859,43 @@ const POSPage = () => {
             <DialogTitle className="text-xl">فتح وردية جديدة</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            {/* Cash Box Selector */}
+            {cashBoxes.length > 0 && (
+              <div>
+                <label className="text-sm font-medium text-foreground mb-2 block">الصندوق</label>
+                <select
+                  value={selectedCashBoxId}
+                  onChange={(e) => setSelectedCashBoxId(e.target.value)}
+                  className="w-full h-12 rounded-lg border border-input bg-background px-3 text-sm font-medium text-foreground focus:ring-2 focus:ring-primary/20 outline-none"
+                >
+                  <option value="">-- اختر الصندوق --</option>
+                  {cashBoxes.map(box => (
+                    <option key={box.id} value={box.id}>{box.name}</option>
+                  ))}
+                </select>
+                <div className="flex items-center gap-2 mt-2">
+                  <input
+                    type="checkbox"
+                    id="remember-box"
+                    checked={!!selectedCashBoxId && localStorage.getItem(`pos_default_cash_box_${dataOwnerId}`) === selectedCashBoxId}
+                    onChange={(e) => {
+                      if (e.target.checked && selectedCashBoxId) {
+                        localStorage.setItem(`pos_default_cash_box_${dataOwnerId}`, selectedCashBoxId);
+                      } else {
+                        localStorage.removeItem(`pos_default_cash_box_${dataOwnerId}`);
+                      }
+                    }}
+                    className="rounded border-input"
+                  />
+                  <label htmlFor="remember-box" className="text-xs text-muted-foreground">تذكر هذا الصندوق لهذا الجهاز</label>
+                </div>
+              </div>
+            )}
+            {cashBoxes.length === 0 && (
+              <p className="text-xs text-muted-foreground bg-secondary/50 rounded-lg p-3 text-center">
+                لا توجد صناديق POS. يمكنك إضافتها من إدارة الصناديق.
+              </p>
+            )}
             <div>
               <label className="text-sm font-medium text-foreground mb-2 block">النقدية الافتتاحية (₪)</label>
               <Input
@@ -2867,7 +2904,7 @@ const POSPage = () => {
                 onChange={(e) => setOpeningCash(e.target.value)}
                 placeholder="0.00"
                 className="text-lg h-12 text-center font-bold"
-                autoFocus
+                autoFocus={cashBoxes.length === 0}
               />
             </div>
           </div>
