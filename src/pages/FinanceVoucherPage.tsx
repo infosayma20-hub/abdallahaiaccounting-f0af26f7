@@ -1,25 +1,25 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
-  ArrowRight, Loader2, Plus, Search,
-  ArrowDown, ArrowUp, FileText, DollarSign, Hash, Calendar
+  Loader2, Plus, FileText, DollarSign, Hash, Calendar
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import VoucherDrawer from "@/components/finance/VoucherDrawer";
 import BackButton from "@/components/BackButton";
+import SortableReportTable, { ColumnDef, TotalsConfig } from "@/components/reports/SortableReportTable";
 
 type VoucherType = "receipt" | "payment";
 
 interface Props {
   voucherType: VoucherType;
 }
+
+const PAYMENT_LABELS: Record<string, string> = { cash: "نقدي", bank: "بنك", cheque: "شيك", transfer: "تحويل" };
+const STATUS_LABELS: Record<string, string> = { posted: "مرحّل", draft: "مسودة", cancelled: "ملغي" };
 
 const FinanceVoucherPage = ({ voucherType }: Props) => {
   const navigate = useNavigate();
@@ -36,9 +36,6 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
   const [loading, setLoading] = useState(true);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editVoucherId, setEditVoucherId] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [filterStatus, setFilterStatus] = useState("all");
-  const [filterPayment, setFilterPayment] = useState("all");
 
   const fetchData = useCallback(async () => {
     if (!user) return;
@@ -63,25 +60,57 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
     }
   }, [searchParams]);
 
-  const filtered = useMemo(() => {
-    return vouchers.filter(v => {
-      if (searchQuery) {
-        const q = searchQuery.toLowerCase();
-        if (!v.ref_number?.toLowerCase().includes(q) && !v.description?.toLowerCase().includes(q)) return false;
-      }
-      if (filterStatus !== "all" && v.status !== filterStatus) return false;
-      if (filterPayment !== "all" && v.payment_method !== filterPayment) return false;
-      return true;
+  // Transform data for the table
+  const tableData = useMemo(() => {
+    return vouchers.map(v => {
+      const contact = contacts.find(c => c.id === v.contact_id);
+      return {
+        ...v,
+        contact_name: contact?.contact_name || "—",
+        payment_label: PAYMENT_LABELS[v.payment_method] || "—",
+        status_label: STATUS_LABELS[v.status] || v.status,
+        amount_display: Number(v.amount_ils || v.amount || 0),
+      };
     });
-  }, [vouchers, searchQuery, filterStatus, filterPayment]);
+  }, [vouchers, contacts]);
+
+  const columns: ColumnDef[] = useMemo(() => [
+    {
+      key: "ref_number", label: "رقم السند", type: "text", sortable: true, filterable: true,
+      format: (val: any, row: any) => (
+        <button
+          className="text-primary hover:underline font-mono cursor-pointer bg-transparent border-none p-0"
+          onClick={() => { setEditVoucherId(row.id); setDrawerOpen(true); }}
+        >
+          {val}
+        </button>
+      ),
+    },
+    { key: "date", label: "التاريخ", type: "date", sortable: true, filterable: true, filterType: "date-range" },
+    { key: "contact_name", label: contactLabel, type: "text", sortable: true, filterable: true },
+    { key: "description", label: "البيان", type: "text", sortable: true, filterable: true },
+    {
+      key: "payment_label", label: "طريقة الدفع", type: "text", sortable: true, filterable: true,
+      filterType: "select", filterOptions: ["نقدي", "بنك", "شيك", "تحويل"],
+    },
+    { key: "amount_display", label: "المبلغ", type: "currency", sortable: true, filterable: true, filterType: "number-range" },
+    {
+      key: "status_label", label: "الحالة", type: "badge", sortable: true, filterable: true,
+      filterType: "select", filterOptions: ["مرحّل", "مسودة", "ملغي"],
+      format: (val: any) => {
+        if (val === "مرحّل") return <Badge className="bg-emerald-100 text-emerald-700 text-[10px]">مرحّل</Badge>;
+        if (val === "ملغي") return <Badge className="bg-red-100 text-red-700 text-[10px]">ملغي</Badge>;
+        return <Badge variant="secondary" className="text-[10px]">مسودة</Badge>;
+      },
+    },
+  ], [contactLabel]);
+
+  const totals: TotalsConfig = { amount_display: "sum" };
 
   const totalAll = vouchers.filter(v => v.status === "posted").reduce((s, v) => s + Number(v.amount_ils || v.amount || 0), 0);
   const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split("T")[0];
-  const thisMonth = vouchers.filter(v => v.status === "posted" && v.date >= monthStart);
-  const totalMonth = thisMonth.reduce((s, v) => s + Number(v.amount_ils || v.amount || 0), 0);
+  const totalMonth = vouchers.filter(v => v.status === "posted" && v.date >= monthStart).reduce((s, v) => s + Number(v.amount_ils || v.amount || 0), 0);
   const fmt = (n: number) => `₪${n.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
-
-  const PAYMENT_LABELS: Record<string, string> = { cash: "نقدي", bank: "بنك", cheque: "شيك", transfer: "تحويل" };
 
   return (
     <div className="px-4 lg:px-8 pt-6 pb-8 space-y-6" dir="rtl">
@@ -99,7 +128,7 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
         </Button>
       </div>
 
-      {/* KPI Strip - Fixed Assets style */}
+      {/* KPI Strip */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <Card><CardContent className="p-4 text-center">
           <DollarSign className={`h-5 w-5 mx-auto mb-1 ${isReceipt ? "text-emerald-500" : "text-destructive"}`} />
@@ -123,86 +152,16 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
         </CardContent></Card>
       </div>
 
-      {/* Filters - Fixed Assets style */}
-      <div className="flex flex-wrap gap-3">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="ابحث بالرقم، الاسم، البيان..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pr-9" />
-        </div>
-        <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="w-[140px]"><SelectValue placeholder="الحالة" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">جميع الحالات</SelectItem>
-            <SelectItem value="posted">مرحّل</SelectItem>
-            <SelectItem value="draft">مسودة</SelectItem>
-            <SelectItem value="cancelled">ملغي</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={filterPayment} onValueChange={setFilterPayment}>
-          <SelectTrigger className="w-[140px]"><SelectValue placeholder="طريقة الدفع" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">جميع الطرق</SelectItem>
-            <SelectItem value="cash">نقدي</SelectItem>
-            <SelectItem value="bank">بنك</SelectItem>
-            <SelectItem value="cheque">شيك</SelectItem>
-            <SelectItem value="transfer">تحويل</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Table - Fixed Assets style */}
-      <Card>
-        <CardContent className="p-0">
-          {loading ? (
-            <div className="flex items-center justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
-          ) : filtered.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-16">لا توجد سندات بعد</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="text-right">رقم السند</TableHead>
-                    <TableHead className="text-right">التاريخ</TableHead>
-                    <TableHead className="text-right">{contactLabel}</TableHead>
-                    <TableHead className="text-right">البيان</TableHead>
-                    <TableHead className="text-right">طريقة الدفع</TableHead>
-                    <TableHead className="text-right">المبلغ</TableHead>
-                    <TableHead className="text-right">الحالة</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filtered.map(v => {
-                    const contact = contacts.find(c => c.id === v.contact_id);
-                    return (
-                      <TableRow key={v.id}>
-                        <TableCell className="text-xs font-medium">
-                          <button
-                            className="text-primary hover:underline font-mono cursor-pointer bg-transparent border-none p-0"
-                            onClick={() => { setEditVoucherId(v.id); setDrawerOpen(true); }}
-                          >
-                            {v.ref_number}
-                          </button>
-                        </TableCell>
-                        <TableCell className="text-xs">{v.date}</TableCell>
-                        <TableCell className="text-xs">{contact?.contact_name || "—"}</TableCell>
-                        <TableCell className="text-xs truncate max-w-[200px]">{v.description}</TableCell>
-                        <TableCell className="text-xs">{PAYMENT_LABELS[v.payment_method] || "—"}</TableCell>
-                        <TableCell className="text-xs font-bold">{fmt(Number(v.amount_ils || v.amount || 0))}</TableCell>
-                        <TableCell>
-                          {v.status === "posted" ? <Badge className="bg-emerald-100 text-emerald-700 text-[10px]">مرحّل</Badge> :
-                           v.status === "cancelled" ? <Badge className="bg-red-100 text-red-700 text-[10px]">ملغي</Badge> :
-                           <Badge variant="secondary" className="text-[10px]">مسودة</Badge>}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {/* Sortable Table */}
+      <SortableReportTable
+        columns={columns}
+        data={tableData}
+        totalsRow={totals}
+        loading={loading}
+        reportTitle={title}
+        storageKey={`vouchers-${voucherType}`}
+        defaultSort={[{ key: "date", dir: "desc" }]}
+      />
 
       {/* Voucher Drawer */}
       <VoucherDrawer
