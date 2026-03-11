@@ -57,7 +57,7 @@ const FinanceJournalPage = () => {
   // Quick add contact
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [quickName, setQuickName] = useState("");
-  const [quickType, setQuickType] = useState("customer");
+  const [quickType, setQuickType] = useState("عميل");
   const [quickPhone, setQuickPhone] = useState("");
   const [quickSaving, setQuickSaving] = useState(false);
   const [accountSearches, setAccountSearches] = useState<Record<string, string>>({});
