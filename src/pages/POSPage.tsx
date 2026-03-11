@@ -459,6 +459,33 @@ const POSPage = () => {
     });
   }, [userId]);
 
+  // Load POS user permissions
+  useEffect(() => {
+    if (!userId || !dataOwnerId || isAdmin) return;
+    const loadPerms = async () => {
+      // Find pos_user linked to this auth user
+      const { data: posUser } = await supabase
+        .from("pos_users")
+        .select("id")
+        .eq("auth_user_id", userId)
+        .maybeSingle();
+      if (!posUser) return;
+      const { data: perms } = await supabase
+        .from("pos_user_permissions")
+        .select("can_view_invoice_history, can_edit_invoices, require_manager_for_invoices")
+        .eq("pos_user_id", posUser.id)
+        .maybeSingle();
+      if (perms) {
+        setPosPerms({
+          can_view_invoice_history: perms.can_view_invoice_history ?? true,
+          can_edit_invoices: perms.can_edit_invoices ?? false,
+          require_manager_for_invoices: perms.require_manager_for_invoices ?? true,
+        });
+      }
+    };
+    loadPerms();
+  }, [userId, dataOwnerId, isAdmin]);
+
   // Initialize
   useEffect(() => {
     if (!userId || !dataOwnerId) return;
