@@ -1,11 +1,13 @@
 import { useState, useEffect, useMemo } from "react";
 import {
-  ArrowRight, Loader2, RefreshCw, Search, Filter, Scale,
-  ChevronLeft, ChevronRight, AlertTriangle, CheckCircle2, FileSpreadsheet, Printer,
+  ArrowRight, Loader2, RefreshCw, Search, Scale,
+  AlertTriangle, CheckCircle2, FileSpreadsheet, Printer, Calendar, Download,
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Card } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -15,6 +17,7 @@ import {
   fetchTransactions, fetchAccounts, buildAccountMap, getAccountNameOnly,
   SupabaseTransaction, SupabaseAccount,
 } from "@/lib/supabase-data";
+import { format, startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear, startOfWeek, endOfWeek, subDays } from "date-fns";
 
 interface TrialBalanceRow {
   accountName: string;
@@ -58,6 +61,42 @@ const ACCOUNT_TYPE_COLORS: Record<string, string> = {
   "المصروفات": "bg-red-500/10 text-red-600 dark:text-red-400",
 };
 
+const quickPeriods = [
+  { key: "today", label: "اليوم" },
+  { key: "yesterday", label: "أمس" },
+  { key: "this-week", label: "الأسبوع" },
+  { key: "this-month", label: "الشهر" },
+  { key: "last-month", label: "الشهر الماضي" },
+  { key: "this-quarter", label: "الربع" },
+  { key: "this-year", label: "السنة" },
+];
+
+const getQuickPeriod = (key: string): [string, string] => {
+  const now = new Date();
+  switch (key) {
+    case "today": return [format(now, "yyyy-MM-dd"), format(now, "yyyy-MM-dd")];
+    case "yesterday": { const d = subDays(now, 1); return [format(d, "yyyy-MM-dd"), format(d, "yyyy-MM-dd")]; }
+    case "this-week": return [format(startOfWeek(now, { weekStartsOn: 0 }), "yyyy-MM-dd"), format(endOfWeek(now, { weekStartsOn: 0 }), "yyyy-MM-dd")];
+    case "this-month": return [format(startOfMonth(now), "yyyy-MM-dd"), format(endOfMonth(now), "yyyy-MM-dd")];
+    case "last-month": { const lm = subMonths(now, 1); return [format(startOfMonth(lm), "yyyy-MM-dd"), format(endOfMonth(lm), "yyyy-MM-dd")]; }
+    case "this-quarter": {
+      const q = Math.floor(now.getMonth() / 3);
+      return [format(new Date(now.getFullYear(), q * 3, 1), "yyyy-MM-dd"), format(endOfMonth(new Date(now.getFullYear(), q * 3 + 2, 1)), "yyyy-MM-dd")];
+    }
+    case "this-year": return [format(startOfYear(now), "yyyy-MM-dd"), format(endOfYear(now), "yyyy-MM-dd")];
+    default: return [format(startOfMonth(now), "yyyy-MM-dd"), format(endOfMonth(now), "yyyy-MM-dd")];
+  }
+};
+
+const accountTypeOptions = [
+  { value: "all", label: "جميع الأنواع" },
+  { value: "الأصول", label: "الأصول" },
+  { value: "الالتزامات", label: "الالتزامات" },
+  { value: "حقوق الملكية", label: "حقوق الملكية" },
+  { value: "الإيرادات", label: "الإيرادات" },
+  { value: "المصروفات", label: "المصروفات" },
+];
+
 const TrialBalancePage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -69,10 +108,12 @@ const TrialBalancePage = () => {
   const [loading, setLoading] = useState(true);
   const [profileData, setProfileData] = useState<any>(null);
 
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
+  const [dateFrom, setDateFrom] = useState(() => format(startOfMonth(new Date()), "yyyy-MM-dd"));
+  const [dateTo, setDateTo] = useState(() => format(endOfMonth(new Date()), "yyyy-MM-dd"));
+  const [activePeriod, setActivePeriod] = useState("this-month");
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
+  const [showZeroAccounts, setShowZeroAccounts] = useState(false);
 
   const fetchData = async () => {
     if (!user) return;
@@ -95,16 +136,21 @@ const TrialBalancePage = () => {
 
   useEffect(() => { fetchData(); }, [user]);
 
+  const handleQuickPeriod = (key: string) => {
+    setActivePeriod(key);
+    const [from, to] = getQuickPeriod(key);
+    setDateFrom(from);
+    setDateTo(to);
+  };
+
   const accountMap = useMemo(() => buildAccountMap(accounts), [accounts]);
 
   // Build trial balance
   const { rows, grandTotalDebit, grandTotalCredit, isBalanced } = useMemo(() => {
-    // Filter transactions by date and not deleted
     let filteredTx = transactions.filter(tx => !tx.is_deleted);
     if (dateFrom) filteredTx = filteredTx.filter(tx => (tx.transaction_date || "") >= dateFrom);
     if (dateTo) filteredTx = filteredTx.filter(tx => (tx.transaction_date || "") <= dateTo);
 
-    // Accumulate debits and credits per account code
     const debitMap: Record<string, number> = {};
     const creditMap: Record<string, number> = {};
 
@@ -118,8 +164,13 @@ const TrialBalancePage = () => {
       }
     }
 
-    // Combine into rows
     const allCodes = new Set([...Object.keys(debitMap), ...Object.keys(creditMap)]);
+    
+    // Add zero-balance accounts if toggled
+    if (showZeroAccounts) {
+      accounts.forEach(acc => allCodes.add(acc.account_code));
+    }
+
     const rows: TrialBalanceRow[] = [];
 
     for (const code of allCodes) {
@@ -136,7 +187,6 @@ const TrialBalancePage = () => {
       });
     }
 
-    // Sort by account type order, then by code
     rows.sort((a, b) => {
       const orderA = ACCOUNT_TYPE_ORDER[a.accountType] || 99;
       const orderB = ACCOUNT_TYPE_ORDER[b.accountType] || 99;
@@ -148,7 +198,7 @@ const TrialBalancePage = () => {
     const grandTotalCredit = rows.reduce((s, r) => s + r.totalCredit, 0);
 
     return { rows, grandTotalDebit, grandTotalCredit, isBalanced: Math.abs(grandTotalDebit - grandTotalCredit) < 0.01 };
-  }, [transactions, accounts, accountMap, dateFrom, dateTo]);
+  }, [transactions, accounts, accountMap, dateFrom, dateTo, showZeroAccounts]);
 
   // Search filter
   const filteredRows = useMemo(() => {
@@ -170,7 +220,7 @@ const TrialBalancePage = () => {
     return result;
   }, [rows, searchQuery, typeFilter]);
 
-  // Group rows by account type for section headers
+  // Group rows by account type
   const groupedRows = useMemo(() => {
     const groups: { type: string; label: string; rows: TrialBalanceRow[]; totalDebit: number; totalCredit: number }[] = [];
     let currentType = "";
@@ -253,49 +303,84 @@ const TrialBalancePage = () => {
     ? `${dateFrom} — ${dateTo}`
     : dateFrom ? `من ${dateFrom}` : dateTo ? `حتى ${dateTo}` : "جميع الفترات";
 
-  const accountTypeOptions = [
-    { value: "all", label: "جميع الأنواع" },
-    { value: "الأصول", label: "الأصول" },
-    { value: "الالتزامات", label: "الالتزامات" },
-    { value: "حقوق الملكية", label: "حقوق الملكية" },
-    { value: "الإيرادات", label: "الإيرادات" },
-    { value: "المصروفات", label: "المصروفات" },
-  ];
-
   return (
-    <div className="space-y-6 max-w-[1400px] mx-auto" dir="rtl">
+    <div className="space-y-5 max-w-[1400px] mx-auto px-4 pt-6 pb-8" dir="rtl">
       {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <button
-            onClick={() => window.history.length > 1 ? navigate(-1) : navigate("/")}
-            className="p-2 rounded-xl hover:bg-muted transition-colors"
-          >
+          <button onClick={() => navigate(-1)} className="p-2 rounded-xl hover:bg-muted transition-colors">
             <ArrowRight className="h-5 w-5 text-foreground" />
           </button>
           <div>
-            <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
-              <Scale className="h-5 w-5 text-primary" />
-              ميزان المراجعة
-            </h1>
-            <p className="text-xs text-muted-foreground">{companyName} • {dateRangeLabel}</p>
+            <h1 className="text-xl font-bold text-foreground">ميزان المراجعة</h1>
+            <p className="text-[10px] text-muted-foreground">Trial Balance</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={fetchData} className="gap-1.5">
-            <RefreshCw className="h-3.5 w-3.5" />
-            تحديث
-          </Button>
-          <Button variant="outline" size="sm" onClick={handleExport} disabled={filteredRows.length === 0} className="gap-1.5">
-            <FileSpreadsheet className="h-3.5 w-3.5" />
-            تصدير Excel
-          </Button>
-          <Button variant="outline" size="sm" onClick={handleExportPDF} disabled={filteredRows.length === 0} className="gap-1.5">
-            <Printer className="h-3.5 w-3.5" />
-            PDF
-          </Button>
+        <div className="p-2.5 rounded-xl bg-primary/10">
+          <Scale className="h-5 w-5 text-primary" />
         </div>
       </div>
+
+      {/* Controls Card - matching Income Statement */}
+      <Card className="p-4 space-y-3">
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-2">
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+            <Input type="date" value={dateFrom} onChange={e => { setDateFrom(e.target.value); setActivePeriod("custom"); }} className="w-[140px] h-8 text-xs" />
+            <span className="text-xs text-muted-foreground">—</span>
+            <Input type="date" value={dateTo} onChange={e => { setDateTo(e.target.value); setActivePeriod("custom"); }} className="w-[140px] h-8 text-xs" />
+          </div>
+        </div>
+        <div className="flex gap-1.5 flex-wrap">
+          {quickPeriods.map(p => (
+            <button key={p.key} onClick={() => handleQuickPeriod(p.key)}
+              className={`px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all ${activePeriod === p.key ? "bg-primary text-primary-foreground shadow-sm" : "bg-muted/60 text-muted-foreground hover:bg-muted"}`}>
+              {p.label}
+            </button>
+          ))}
+        </div>
+        <div className="flex items-center gap-4 flex-wrap text-xs">
+          <label className="flex items-center gap-1.5 cursor-pointer">
+            <Checkbox checked={showZeroAccounts} onCheckedChange={(v) => setShowZeroAccounts(!!v)} />
+            <span className="text-muted-foreground">الحسابات الصفرية</span>
+          </label>
+          <div className="flex items-center gap-2">
+            <span className="text-muted-foreground text-[10px]">نوع الحساب:</span>
+            <select
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value)}
+              className="h-7 rounded-lg bg-muted/60 border-0 text-[11px] px-2 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+            >
+              {accountTypeOptions.map(o => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+          </div>
+          <div className="relative mr-auto">
+            <Search className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground/50" />
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="بحث بالاسم أو الكود..."
+              className="h-7 pr-7 w-[180px] rounded-lg text-[11px]"
+            />
+          </div>
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button variant="outline" size="sm" className="h-7 text-[10px] gap-1" onClick={handleExport} disabled={loading || filteredRows.length === 0}>
+            <FileSpreadsheet className="h-3 w-3" /> Excel
+          </Button>
+          <Button variant="outline" size="sm" className="h-7 text-[10px] gap-1" onClick={handleExportPDF} disabled={loading || filteredRows.length === 0}>
+            <Download className="h-3 w-3" /> PDF
+          </Button>
+          <Button variant="outline" size="sm" className="h-7 text-[10px] gap-1" onClick={() => window.print()} disabled={loading}>
+            <Printer className="h-3 w-3" /> طباعة
+          </Button>
+          <Button variant="outline" size="sm" className="h-7 text-[10px] gap-1 mr-auto" onClick={fetchData}>
+            <RefreshCw className="h-3 w-3" /> تحديث
+          </Button>
+        </div>
+      </Card>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -327,58 +412,6 @@ const TrialBalancePage = () => {
                 </span>
               </>
             )}
-          </div>
-        </div>
-      </div>
-
-      {/* Filters */}
-      <div className="bg-card rounded-xl p-4 shadow-card border border-border/40">
-        <div className="flex items-center gap-2 mb-3">
-          <Filter className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm font-semibold text-foreground">فلاتر البحث</span>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          <div className="space-y-1">
-            <label className="text-[11px] text-muted-foreground">من تاريخ</label>
-            <Input
-              type="date"
-              value={dateFrom}
-              onChange={(e) => setDateFrom(e.target.value)}
-              className="h-9 rounded-lg bg-secondary/50 border-0 text-sm"
-            />
-          </div>
-          <div className="space-y-1">
-            <label className="text-[11px] text-muted-foreground">إلى تاريخ</label>
-            <Input
-              type="date"
-              value={dateTo}
-              onChange={(e) => setDateTo(e.target.value)}
-              className="h-9 rounded-lg bg-secondary/50 border-0 text-sm"
-            />
-          </div>
-          <div className="space-y-1">
-            <label className="text-[11px] text-muted-foreground">نوع الحساب</label>
-            <select
-              value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value)}
-              className="w-full h-9 rounded-lg bg-secondary/50 border-0 text-sm px-3 text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
-            >
-              {accountTypeOptions.map(o => (
-                <option key={o.value} value={o.value}>{o.label}</option>
-              ))}
-            </select>
-          </div>
-          <div className="space-y-1">
-            <label className="text-[11px] text-muted-foreground">بحث</label>
-            <div className="relative">
-              <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/50" />
-              <Input
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="ابحث باسم الحساب أو الكود..."
-                className="h-9 pr-8 rounded-lg bg-secondary/50 border-0 text-sm"
-              />
-            </div>
           </div>
         </div>
       </div>
