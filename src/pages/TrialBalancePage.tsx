@@ -150,34 +150,48 @@ const TrialBalancePage = () => {
 
   const accountMap = useMemo(() => buildAccountMap(accounts), [accounts]);
 
+  // Compute previous period dates
+  const prevPeriod = useMemo(() => {
+    if (!dateFrom || !dateTo) return { from: "", to: "" };
+    const duration = new Date(dateTo).getTime() - new Date(dateFrom).getTime();
+    const prevTo = new Date(new Date(dateFrom).getTime() - 86400000); // day before dateFrom
+    const prevFrom = new Date(prevTo.getTime() - duration);
+    return { from: format(prevFrom, "yyyy-MM-dd"), to: format(prevTo, "yyyy-MM-dd") };
+  }, [dateFrom, dateTo]);
+
   // Build trial balance
-  const { rows, grandTotalDebit, grandTotalCredit, isBalanced } = useMemo(() => {
+  const { rows, grandTotalDebit, grandTotalCredit, isBalanced, prevGrandDebit, prevGrandCredit } = useMemo(() => {
     let filteredTx = transactions.filter(tx => !tx.is_deleted);
     if (dateFrom) filteredTx = filteredTx.filter(tx => (tx.transaction_date || "") >= dateFrom);
     if (dateTo) filteredTx = filteredTx.filter(tx => (tx.transaction_date || "") <= dateTo);
 
+    // Previous period transactions
+    let prevFilteredTx: SupabaseTransaction[] = [];
+    if (showComparison && prevPeriod.from && prevPeriod.to) {
+      prevFilteredTx = transactions.filter(tx => !tx.is_deleted && (tx.transaction_date || "") >= prevPeriod.from && (tx.transaction_date || "") <= prevPeriod.to);
+    }
+
     const debitMap: Record<string, number> = {};
     const creditMap: Record<string, number> = {};
+    const prevDebitMap: Record<string, number> = {};
+    const prevCreditMap: Record<string, number> = {};
 
     for (const tx of filteredTx) {
       const amount = tx.amount || 0;
-      if (tx.debit_account_code) {
-        debitMap[tx.debit_account_code] = (debitMap[tx.debit_account_code] || 0) + amount;
-      }
-      if (tx.credit_account_code) {
-        creditMap[tx.credit_account_code] = (creditMap[tx.credit_account_code] || 0) + amount;
-      }
+      if (tx.debit_account_code) debitMap[tx.debit_account_code] = (debitMap[tx.debit_account_code] || 0) + amount;
+      if (tx.credit_account_code) creditMap[tx.credit_account_code] = (creditMap[tx.credit_account_code] || 0) + amount;
     }
 
-    const allCodes = new Set([...Object.keys(debitMap), ...Object.keys(creditMap)]);
-    
-    // Add zero-balance accounts if toggled
-    if (showZeroAccounts) {
-      accounts.forEach(acc => allCodes.add(acc.account_code));
+    for (const tx of prevFilteredTx) {
+      const amount = tx.amount || 0;
+      if (tx.debit_account_code) prevDebitMap[tx.debit_account_code] = (prevDebitMap[tx.debit_account_code] || 0) + amount;
+      if (tx.credit_account_code) prevCreditMap[tx.credit_account_code] = (prevCreditMap[tx.credit_account_code] || 0) + amount;
     }
+
+    const allCodes = new Set([...Object.keys(debitMap), ...Object.keys(creditMap), ...Object.keys(prevDebitMap), ...Object.keys(prevCreditMap)]);
+    if (showZeroAccounts) accounts.forEach(acc => allCodes.add(acc.account_code));
 
     const rows: TrialBalanceRow[] = [];
-
     for (const code of allCodes) {
       const acc = accountMap[code];
       const totalDebit = debitMap[code] || 0;
@@ -186,9 +200,10 @@ const TrialBalancePage = () => {
         accountName: acc ? acc.account_name : code,
         accountCode: acc ? acc.account_code : code,
         accountType: acc ? acc.account_type : "",
-        totalDebit,
-        totalCredit,
-        balance: totalDebit - totalCredit,
+        totalDebit, totalCredit, balance: totalDebit - totalCredit,
+        prevDebit: prevDebitMap[code] || 0,
+        prevCredit: prevCreditMap[code] || 0,
+        prevBalance: (prevDebitMap[code] || 0) - (prevCreditMap[code] || 0),
       });
     }
 
@@ -201,9 +216,11 @@ const TrialBalancePage = () => {
 
     const grandTotalDebit = rows.reduce((s, r) => s + r.totalDebit, 0);
     const grandTotalCredit = rows.reduce((s, r) => s + r.totalCredit, 0);
+    const prevGrandDebit = rows.reduce((s, r) => s + (r.prevDebit || 0), 0);
+    const prevGrandCredit = rows.reduce((s, r) => s + (r.prevCredit || 0), 0);
 
-    return { rows, grandTotalDebit, grandTotalCredit, isBalanced: Math.abs(grandTotalDebit - grandTotalCredit) < 0.01 };
-  }, [transactions, accounts, accountMap, dateFrom, dateTo, showZeroAccounts]);
+    return { rows, grandTotalDebit, grandTotalCredit, isBalanced: Math.abs(grandTotalDebit - grandTotalCredit) < 0.01, prevGrandDebit, prevGrandCredit };
+  }, [transactions, accounts, accountMap, dateFrom, dateTo, showZeroAccounts, showComparison, prevPeriod]);
 
   // Search filter
   const filteredRows = useMemo(() => {
