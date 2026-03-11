@@ -586,6 +586,21 @@ const POSPage = () => {
             cashier_name: sessions[0].cashier_name || "",
           });
         } else {
+          // Load POS cash boxes for shift opening
+          const { data: boxes } = await supabase
+            .from("cash_boxes")
+            .select("id, name, type")
+            .eq("user_id", dataOwnerId)
+            .eq("type", "pos")
+            .eq("is_active", true);
+          setCashBoxes(boxes || []);
+          // Auto-select from device binding (localStorage)
+          const savedBoxId = localStorage.getItem(`pos_default_cash_box_${dataOwnerId}`);
+          if (savedBoxId && boxes?.some(b => b.id === savedBoxId)) {
+            setSelectedCashBoxId(savedBoxId);
+          } else if (boxes && boxes.length === 1) {
+            setSelectedCashBoxId(boxes[0].id);
+          }
           setShowOpenShift(true);
         }
       }
