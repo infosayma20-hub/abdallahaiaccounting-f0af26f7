@@ -553,7 +553,7 @@ export default function InvoiceHistoryDrawer({
                         >
                           <Eye className="h-3 w-3" /> عرض
                         </button>
-                        {order.state === "paid" && !order.recall_status && (
+                        {canEditInvoices && order.state === "paid" && !order.recall_status && (
                           <button
                             onClick={e => { e.stopPropagation(); initiateRecall(order); }}
                             className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium transition-colors"
