@@ -63,6 +63,9 @@ interface Permission {
   can_edit_invoices: boolean;
   require_manager_for_invoices: boolean;
   require_manager_approval: boolean;
+  manage_products_categories: boolean;
+  view_invoice_log: boolean;
+  edit_cancel_invoices: boolean;
 }
 
 const DEFAULT_PERMS: Permission = {
