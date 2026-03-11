@@ -53,7 +53,15 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
   }, [user, voucherType]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
-  useEffect(() => { if (searchParams.get("new") === "1") setDrawerOpen(true); }, [searchParams]);
+  useEffect(() => {
+    const editId = searchParams.get("edit");
+    if (editId) {
+      setEditVoucherId(editId);
+      setDrawerOpen(true);
+    } else if (searchParams.get("new") === "1") {
+      setDrawerOpen(true);
+    }
+  }, [searchParams]);
 
   const filtered = useMemo(() => {
     return vouchers.filter(v => {

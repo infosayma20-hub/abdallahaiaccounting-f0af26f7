@@ -78,7 +78,14 @@ const FinanceJournalPage = () => {
   }, [user]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
-  useEffect(() => { if (searchParams.get("new") === "1") setModalOpen(true); }, [searchParams]);
+  useEffect(() => {
+    const editId = searchParams.get("edit");
+    if (editId) {
+      openVoucherForEdit(editId);
+    } else if (searchParams.get("new") === "1") {
+      setModalOpen(true);
+    }
+  }, [searchParams]);
 
   // Auto-generate ref number when modal opens
   const generateRefNumber = useCallback(async () => {
