@@ -112,20 +112,20 @@ const POSReportsPage = () => {
     data.paidOrders.reduce((s, o) => s + o.discount_amount, 0), [data.paidOrders]);
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA]" dir="rtl">
+    <div className="min-h-screen bg-background" dir="rtl">
       {/* ── Header ── */}
-      <div className="bg-white border-b border-[#E2E8F0] px-6 py-4 print:py-2">
+      <div className="bg-card border-b border-border px-6 py-4 print:py-2">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3">
-              <button onClick={() => navigate(-1)} className="p-1.5 rounded-md hover:bg-gray-100 transition-colors print:hidden">
-                <ArrowRight className="w-5 h-5 text-[#637381]" />
+              <button onClick={() => navigate(-1)} className="p-1.5 rounded-md hover:bg-secondary transition-colors print:hidden">
+                <ArrowRight className="w-5 h-5 text-muted-foreground" />
               </button>
               <div>
-                <h1 className="text-xl font-semibold text-[#1A2332] tracking-tight">
+                <h1 className="text-xl font-semibold text-foreground tracking-tight">
                   تقارير نقطة البيع
                 </h1>
-                <p className="text-sm text-[#637381] mt-0.5">
+                <p className="text-sm text-muted-foreground mt-0.5">
                   {format(data.dateFrom, "dd MMMM yyyy", { locale: ar })} — {format(data.dateTo, "dd MMMM yyyy", { locale: ar })}
                 </p>
               </div>
@@ -133,14 +133,14 @@ const POSReportsPage = () => {
             <div className="flex items-center gap-2 print:hidden">
               <button
                 onClick={handleExportExcel}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-[#637381] border border-[#E2E8F0] rounded-md hover:bg-gray-50 transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-muted-foreground border border-border rounded-md hover:bg-secondary transition-colors"
               >
                 <Download className="w-4 h-4" />
                 تصدير Excel
               </button>
               <button
                 onClick={handlePrint}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-[#637381] border border-[#E2E8F0] rounded-md hover:bg-gray-50 transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-muted-foreground border border-border rounded-md hover:bg-secondary transition-colors"
               >
                 <Printer className="w-4 h-4" />
                 طباعة
@@ -157,8 +157,8 @@ const POSReportsPage = () => {
                 className={cn(
                   "px-3 py-1.5 text-xs rounded-md border transition-colors font-medium",
                   data.preset === p.key
-                    ? "bg-[#0070F2] text-white border-[#0070F2]"
-                    : "text-[#637381] border-[#E2E8F0] hover:border-[#94A3B8] hover:text-[#1A2332]"
+                    ? "bg-accent text-accent-foreground border-accent"
+                    : "text-muted-foreground border-border hover:border-foreground/30 hover:text-foreground"
                 )}
               >
                 {p.key === "custom" && <CalendarIcon className="w-3 h-3 inline-block ml-1" />}
@@ -191,7 +191,7 @@ const POSReportsPage = () => {
         )}
 
         {/* ── Navigation Tabs ── */}
-        <div className="border-b border-[#E2E8F0] bg-white rounded-t-lg print:hidden">
+        <div className="border-b border-border bg-card rounded-t-lg print:hidden">
           <nav className="flex -mb-px overflow-x-auto">
             {TABS.map(tab => (
               <button
@@ -200,8 +200,8 @@ const POSReportsPage = () => {
                 className={cn(
                   "flex items-center gap-2 px-4 py-3 text-sm whitespace-nowrap border-b-2 transition-colors",
                   activeTab === tab.id
-                    ? "border-[#0070F2] text-[#0070F2] font-medium"
-                    : "border-transparent text-[#637381] hover:text-[#1A2332]"
+                    ? "border-accent text-accent font-medium"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
                 )}
               >
                 <tab.icon className="w-4 h-4" />
@@ -251,9 +251,9 @@ const POSReportsPage = () => {
 const KPICard = ({ title, value, prefix, suffix, decimals = 0 }: {
   title: string; value: number; prefix?: string; suffix?: string; decimals?: number;
 }) => (
-  <div className="bg-white border border-[#E2E8F0] rounded-lg p-4">
-    <p className="text-xs font-medium text-[#637381] uppercase tracking-wider">{title}</p>
-    <p className="text-2xl font-bold text-[#1A2332] mt-2 font-mono tabular-nums">
+  <div className="bg-card border border-border rounded-lg p-4">
+    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{title}</p>
+    <p className="text-2xl font-bold text-foreground mt-2 font-mono tabular-nums">
       {prefix && <span className="text-base ml-0.5">{prefix}</span>}
       {decimals > 0 ? value.toFixed(decimals) : value.toLocaleString()}
       {suffix && <span className="text-base mr-0.5">{suffix}</span>}
@@ -265,7 +265,7 @@ const KPICard = ({ title, value, prefix, suffix, decimals = 0 }: {
 const DatePicker = ({ date, onSelect, label }: { date: Date; onSelect: (d: Date) => void; label: string }) => (
   <Popover>
     <PopoverTrigger asChild>
-      <button className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-[#637381] border border-[#E2E8F0] rounded-md hover:bg-gray-50">
+      <button className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-muted-foreground border border-border rounded-md hover:bg-secondary">
         <CalendarIcon className="h-3 w-3" />
         {label}: {format(date, "dd/MM/yyyy")}
       </button>
