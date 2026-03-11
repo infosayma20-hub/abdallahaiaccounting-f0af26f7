@@ -94,6 +94,11 @@ const FinanceJournalPage = () => {
   const isBalanced = Math.abs(totalDebit - totalCredit) < 0.01 && totalDebit > 0;
   const diff = Math.abs(totalDebit - totalCredit);
 
+  // Helper to normalize contact types (handle both EN and AR values)
+  const isCustomer = (c: any) => ["customer", "عميل", "زبون"].includes(c.contact_type);
+  const isSupplier = (c: any) => ["supplier", "مورد"].includes(c.contact_type);
+  const isEmployee = (c: any) => ["employee", "موظف"].includes(c.contact_type);
+
   const filteredContacts = useMemo(() => {
     if (!contactSearch) return contacts;
     const q = contactSearch.toLowerCase();
