@@ -1183,67 +1183,8 @@ const InvoicesPage = () => {
                 </Select>
               </div>
 
-              <div ref={printRef} className="bg-card rounded-2xl border border-border/50 p-5">
-                <div className="inv-header flex justify-between items-start mb-5 pb-4 border-b-2 border-primary">
-                  <div>
-                    <h2 className="inv-title text-2xl font-bold text-primary">{selectedInvoice.type === "sales" ? "فاتورة مبيعات" : "فاتورة مشتريات"}</h2>
-                    <p className="text-xs text-muted-foreground mt-1">عبدالله AI للمحاسبة</p>
-                  </div>
-                  <div className="inv-meta text-left text-xs text-muted-foreground space-y-1">
-                    <span className="block"><strong>رقم:</strong> {selectedInvoice.invoiceNumber}</span>
-                    <span className="block"><strong>تاريخ:</strong> {selectedInvoice.date}</span>
-                    <span className="block"><strong>الحالة:</strong> {statusConfig[selectedInvoice.status].label}</span>
-                    {selectedInvoice.paymentMethod && <span className="block"><strong>الدفع:</strong> {paymentLabels[selectedInvoice.paymentMethod]}</span>}
-                  </div>
-                </div>
-
-                <div className="mb-4">
-                  <p className="text-xs font-semibold text-primary mb-1">{selectedInvoice.type === "sales" ? "العميل" : "المورد"}</p>
-                  <p className="text-sm font-bold text-foreground">{selectedInvoice.contactName}</p>
-                </div>
-
-                <table className="w-full text-xs mb-4">
-                  <thead>
-                    <tr className="bg-primary/5">
-                      <th className="text-right p-2.5 font-semibold text-primary border-b-2 border-primary/20">#</th>
-                      <th className="text-right p-2.5 font-semibold text-primary border-b-2 border-primary/20">الوصف</th>
-                      <th className="text-right p-2.5 font-semibold text-primary border-b-2 border-primary/20">الكمية</th>
-                      <th className="text-right p-2.5 font-semibold text-primary border-b-2 border-primary/20">السعر</th>
-                      <th className="text-right p-2.5 font-semibold text-primary border-b-2 border-primary/20">المجموع</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {selectedInvoice.items.map((item, idx) => (
-                      <tr key={idx} className={idx % 2 === 0 ? "bg-card" : "bg-muted/20"}>
-                        <td className="p-2.5 border-b border-border/30">{idx + 1}</td>
-                        <td className="p-2.5 border-b border-border/30 font-medium">{item.description}</td>
-                        <td className="p-2.5 border-b border-border/30">{item.quantity}</td>
-                        <td className="p-2.5 border-b border-border/30">₪{item.unitPrice.toLocaleString()}</td>
-                        <td className="p-2.5 border-b border-border/30 font-bold">₪{calcItemSubtotal(item).toLocaleString()}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-
-                <div className="space-y-1 text-xs">
-                  <div className="flex justify-between"><span>الإجمالي الفرعي</span><span className="font-semibold">₪{selectedInvoice.subtotal?.toLocaleString() || selectedInvoice.total.toLocaleString()}</span></div>
-                  {(selectedInvoice.totalDiscount || 0) > 0 && <div className="flex justify-between text-destructive"><span>الخصم</span><span>-₪{selectedInvoice.totalDiscount?.toLocaleString()}</span></div>}
-                  {(selectedInvoice.totalTax || 0) > 0 && <div className="flex justify-between"><span>الضريبة</span><span>+₪{selectedInvoice.totalTax?.toLocaleString()}</span></div>}
-                  <Separator />
-                  <div className="flex justify-between text-sm font-bold text-primary">
-                    <span>الإجمالي النهائي</span>
-                    <span>₪{selectedInvoice.total.toLocaleString()}</span>
-                  </div>
-                </div>
-
-                {selectedInvoice.notes && (
-                  <div className="mt-3 bg-muted/30 rounded-xl p-3 text-xs text-muted-foreground">
-                    <strong>ملاحظات:</strong> {selectedInvoice.notes}
-                  </div>
-                )}
-                <div className="text-center mt-6 pt-4 border-t border-border/50 text-[10px] text-muted-foreground">
-                  شكراً لتعاملكم معنا • عبدالله AI للمحاسبة
-                </div>
+              <div ref={printRef} className="bg-white rounded-2xl border border-border/50 overflow-hidden">
+                <InvoicePrintView invoice={selectedInvoice} settings={companySettings} copyLabel="أصلية" />
               </div>
             </div>
           )}
