@@ -2981,13 +2981,6 @@ const POSPage = () => {
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
-                <button
-                  disabled={cart.length === 0}
-                  onClick={() => window.print()}
-                  className="h-11 w-11 rounded-xl flex items-center justify-center border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-all disabled:opacity-30 disabled:pointer-events-none"
-                >
-                  <Printer className="h-4 w-4" />
-                </button>
                 <motion.button
                   whileTap={{ scale: 0.97 }}
                   className="flex-1 h-11 rounded-xl text-sm font-bold flex items-center justify-center gap-2 text-white transition-all disabled:opacity-40 disabled:pointer-events-none"
