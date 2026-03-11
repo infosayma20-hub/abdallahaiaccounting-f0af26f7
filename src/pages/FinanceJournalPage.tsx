@@ -135,11 +135,39 @@ const FinanceJournalPage = () => {
     setFormContactId("");
     setContactSearch("");
     setShowQuickAdd(false);
+    setEditingVoucherId(null);
     setLines([
       { id: "1", account_code: "", account_name: "", debit: 0, credit: 0 },
       { id: "2", account_code: "", account_name: "", debit: 0, credit: 0 },
     ]);
     generateRefNumber();
+  };
+
+  const openVoucherForEdit = async (voucherId: string) => {
+    const [vRes, lRes] = await Promise.all([
+      supabase.from("vouchers").select("*").eq("id", voucherId).single(),
+      supabase.from("voucher_lines").select("*").eq("voucher_id", voucherId).order("line_order"),
+    ]);
+    if (vRes.data) {
+      const v = vRes.data;
+      setFormDate(v.date || new Date().toISOString().split("T")[0]);
+      setFormRefNumber(v.ref_number || "");
+      setFormSubtype(v.subtype || "normal");
+      setFormDescription(v.description || "");
+      setFormNotes(v.notes || "");
+      setFormContactId(v.contact_id || "");
+      setEditingVoucherId(voucherId);
+      if (lRes.data && lRes.data.length > 0) {
+        setLines(lRes.data.map((l: any) => ({
+          id: String(l.id),
+          account_code: l.account_code || "",
+          account_name: l.account_name || "",
+          debit: Number(l.debit) || 0,
+          credit: Number(l.credit) || 0,
+        })));
+      }
+      setModalOpen(true);
+    }
   };
 
   const formatAmount = (n: number) => new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
