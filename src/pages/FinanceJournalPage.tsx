@@ -664,7 +664,7 @@ const FinanceJournalPage = () => {
             <Button variant="outline" onClick={() => handleSave("draft")} disabled={saving}>حفظ كمسودة</Button>
             <Button className="flex-1 bg-[#0A2342] hover:bg-[#0D1B2A]" onClick={() => handleSave("posted")} disabled={saving || !isBalanced}>
               {saving ? <Loader2 className="h-4 w-4 animate-spin ml-1" /> : null}
-              ✓ إنشاء القيد
+              ✓ {editingVoucherId ? "تحديث القيد" : "إنشاء القيد"}
             </Button>
           </div>
         </DialogContent>
