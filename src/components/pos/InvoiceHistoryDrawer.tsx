@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { format, startOfDay, endOfDay, subDays, startOfWeek, startOfMonth } from "date-fns";
+import ManagerOverrideDialog from "./ManagerOverrideDialog";
 
 // ── Types ──
 interface InvoiceOrder {
@@ -58,7 +59,6 @@ interface InvoicePayment {
   currency: string | null;
 }
 
-type DateFilter = "today" | "yesterday" | "week" | "month" | "custom";
 type StatusFilter = "all" | "paid" | "draft" | "cancelled" | "recalled";
 
 interface CartItem {
@@ -110,7 +110,6 @@ const RECALL_REASONS = [
 export default function InvoiceHistoryDrawer({
   open, onClose, dataOwnerId, sessionId, cashierName, terminalName, onRecallToCart,
 }: InvoiceHistoryDrawerProps) {
-  const [dateFilter, setDateFilter] = useState<DateFilter>("today");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [orders, setOrders] = useState<InvoiceOrder[]>([]);
@@ -124,30 +123,19 @@ export default function InvoiceHistoryDrawer({
 
   // Recall flow
   const [showReasonDialog, setShowReasonDialog] = useState(false);
-  const [showManagerPin, setShowManagerPin] = useState(false);
+  const [showManagerOverride, setShowManagerOverride] = useState(false);
+  const [managerOverrideVariant, setManagerOverrideVariant] = useState<"default" | "destructive">("default");
+  const [managerOverrideTitle, setManagerOverrideTitle] = useState("");
+  const [managerOverrideDesc, setManagerOverrideDesc] = useState("");
   const [recallReason, setRecallReason] = useState("");
   const [customReason, setCustomReason] = useState("");
-  const [managerPin, setManagerPin] = useState(["", "", "", ""]);
-  const [pinError, setPinError] = useState("");
   const [recallingOrder, setRecallingOrder] = useState<InvoiceOrder | null>(null);
+  const [pendingManagerAction, setPendingManagerAction] = useState<"recall" | "cancel" | null>(null);
 
   // Cancel flow
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
-  const [showCancelPin, setShowCancelPin] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [cancellingOrder, setCancellingOrder] = useState<InvoiceOrder | null>(null);
-
-  // ── Date range ──
-  const { dateFrom, dateTo } = useMemo(() => {
-    const now = new Date();
-    switch (dateFilter) {
-      case "today": return { dateFrom: startOfDay(now), dateTo: endOfDay(now) };
-      case "yesterday": return { dateFrom: startOfDay(subDays(now, 1)), dateTo: endOfDay(subDays(now, 1)) };
-      case "week": return { dateFrom: startOfWeek(now, { weekStartsOn: 0 }), dateTo: endOfDay(now) };
-      case "month": return { dateFrom: startOfMonth(now), dateTo: endOfDay(now) };
-      default: return { dateFrom: startOfDay(now), dateTo: endOfDay(now) };
-    }
-  }, [dateFilter]);
 
   // ── Fetch orders ──
   const fetchOrders = useCallback(async () => {
@@ -159,19 +147,15 @@ export default function InvoiceHistoryDrawer({
         .select("id, order_number, created_at, total, subtotal, discount_amount, tax_amount, state, customer_name, customer_id, session_id, is_return, recall_status, recall_reason, recalled_by, recalled_approved_by, recalled_at, cancelled_at, cancel_reason, paid_at")
         .eq("user_id", dataOwnerId);
 
-      // Show only current session's invoices
       if (sessionId) {
         query = query.eq("session_id", sessionId);
       } else {
-        // No active session — show nothing
         setOrders([]);
         setLoading(false);
         return;
       }
 
-      query = query
-        .order("created_at", { ascending: false })
-        .limit(200) as any;
+      query = query.order("created_at", { ascending: false }).limit(200) as any;
 
       if (statusFilter !== "all") {
         if (statusFilter === "recalled") {
@@ -193,7 +177,6 @@ export default function InvoiceHistoryDrawer({
 
   useEffect(() => { fetchOrders(); }, [fetchOrders]);
 
-  // ── Filtered orders ──
   const filtered = useMemo(() => {
     if (!searchQuery.trim()) return orders;
     const q = searchQuery.toLowerCase();
@@ -203,7 +186,6 @@ export default function InvoiceHistoryDrawer({
     );
   }, [orders, searchQuery]);
 
-  // ── Summary ──
   const summary = useMemo(() => {
     const paid = orders.filter(o => o.state === "paid" && !o.is_return);
     return {
@@ -213,7 +195,6 @@ export default function InvoiceHistoryDrawer({
     };
   }, [orders]);
 
-  // ── Load detail ──
   const loadDetail = async (order: InvoiceOrder) => {
     setSelectedOrder(order);
     setLoadingDetail(true);
@@ -231,87 +212,43 @@ export default function InvoiceHistoryDrawer({
     }
   };
 
-  // ── Recall logic ──
+  // ── Recall: always require manager ──
   const initiateRecall = (order: InvoiceOrder) => {
     if (order.state !== "paid") {
       toast.error("لا يمكن استدعاء فاتورة غير مكتملة");
       return;
     }
     setRecallingOrder(order);
-    const minutesAgo = (Date.now() - new Date(order.created_at).getTime()) / 60000;
-    if (minutesAgo <= 30) {
-      setShowReasonDialog(true);
-    } else {
-      setShowManagerPin(true);
-    }
+    setPendingManagerAction("recall");
+    setManagerOverrideVariant("default");
+    setManagerOverrideTitle("موافقة المدير — استدعاء فاتورة");
+    setManagerOverrideDesc(`استدعاء الفاتورة #${order.order_number || "---"} بقيمة ₪${order.total.toFixed(2)} للتعديل`);
+    setShowManagerOverride(true);
   };
+
+  const handleManagerApprovedForRecall = (managerName: string) => {
+    setShowManagerOverride(false);
+    // After manager approval, show reason dialog
+    setRecallReason("");
+    setCustomReason("");
+    // Store manager name for later use
+    setPendingManagerAction(null);
+    // Show reason dialog with managerName stored
+    setShowReasonDialog(true);
+    // We'll pass managerName through a state
+    setPendingApprovedBy(managerName);
+  };
+
+  const [pendingApprovedBy, setPendingApprovedBy] = useState<string | null>(null);
 
   const handleReasonConfirm = () => {
     const reason = recallReason === "أخرى" ? customReason : recallReason;
     if (!reason) { toast.error("اختر سبب التعديل"); return; }
-    executeRecall(recallingOrder!, reason, null);
-  };
-
-  const handleManagerPinSubmit = async () => {
-    const pin = managerPin.join("");
-    if (pin.length < 4) { setPinError("أدخل الرمز كاملاً"); return; }
-
-    // Check against pos_users with manager/admin role
-    const posUserRes = await (supabase as any)
-      .from("pos_users")
-      .select("id, name, role")
-      .eq("company_id", dataOwnerId)
-      .eq("pin", pin);
-    const posUsers = (posUserRes.data || []) as any[];
-    const posUser = posUsers.find((u: any) => u.role === "manager" || u.role === "admin") || null;
-
-    if (!posUser) {
-      // Fallback: check profiles
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("user_id, display_name, role")
-        .eq("user_id", dataOwnerId)
-        .maybeSingle();
-
-      if (!profile) {
-        setPinError("رمز غير صحيح أو ليس لديك صلاحية");
-        // Log failed attempt
-        await supabase.from("pos_audit_log").insert({
-          user_id: dataOwnerId,
-          order_id: recallingOrder?.id || cancellingOrder?.id,
-          action: "PIN_FAILED",
-          cashier_name: cashierName,
-          terminal_name: terminalName,
-          reason: "محاولة إدخال رمز مدير غير صحيح",
-        } as any);
-        return;
-      }
-    }
-
-    const approvedBy = posUser?.name || "المدير";
-
-    if (showManagerPin && recallingOrder) {
-      setShowManagerPin(false);
-      setShowReasonDialog(true);
-      // Store approvedBy for after reason selection
-      setManagerPin(["", "", "", ""]);
-      // We need to pass approvedBy through; use a ref-like approach with state
-      setRecallReason(""); // reset
-      // Actually, let's use a simpler flow: after PIN, show reason, then execute
-      const waitForReason = () => {
-        // This will be handled by a modified flow
-      };
-    }
-
-    if (showCancelPin && cancellingOrder) {
-      setShowCancelPin(false);
-      executeCancel(cancellingOrder, cancelReason, approvedBy);
-    }
+    executeRecall(recallingOrder!, reason, pendingApprovedBy);
   };
 
   const executeRecall = async (order: InvoiceOrder, reason: string, approvedBy: string | null) => {
     try {
-      // 1. Mark original as recalled
       await supabase
         .from("pos_orders")
         .update({
@@ -323,7 +260,6 @@ export default function InvoiceHistoryDrawer({
         } as any)
         .eq("id", order.id);
 
-      // 2. Log in audit
       await supabase.from("pos_audit_log").insert({
         user_id: dataOwnerId,
         order_id: order.id,
@@ -335,7 +271,6 @@ export default function InvoiceHistoryDrawer({
         terminal_name: terminalName,
       } as any);
 
-      // 3. Load order lines into cart
       const { data: lines } = await supabase
         .from("pos_order_lines")
         .select("*")
@@ -358,11 +293,11 @@ export default function InvoiceHistoryDrawer({
       onRecallToCart(cartItems, order.id, order.order_number || "", reason, approvedBy);
       toast.success(`تم استدعاء الفاتورة #${order.order_number || ""} للتعديل`);
 
-      // Reset states
       setShowReasonDialog(false);
       setRecallingOrder(null);
       setRecallReason("");
       setCustomReason("");
+      setPendingApprovedBy(null);
       setSelectedOrder(null);
       onClose();
     } catch (err) {
@@ -371,15 +306,10 @@ export default function InvoiceHistoryDrawer({
     }
   };
 
-  // ── Cancel logic ──
+  // ── Cancel: always require manager ──
   const initiateCancel = (order: InvoiceOrder) => {
     if (order.state !== "paid") {
       toast.error("لا يمكن إلغاء فاتورة غير مكتملة");
-      return;
-    }
-    const hoursAgo = (Date.now() - new Date(order.created_at).getTime()) / 3600000;
-    if (hoursAgo > 24) {
-      toast.error("لا يمكن إلغاء فاتورة أقدم من 24 ساعة بدون صلاحية SuperAdmin");
       return;
     }
     setCancellingOrder(order);
@@ -387,13 +317,23 @@ export default function InvoiceHistoryDrawer({
   };
 
   const handleCancelConfirm = () => {
+    if (!cancelReason.trim()) { toast.error("أدخل سبب الإلغاء"); return; }
     setShowCancelConfirm(false);
-    setShowCancelPin(true);
+    setPendingManagerAction("cancel");
+    setManagerOverrideVariant("destructive");
+    setManagerOverrideTitle("موافقة المدير — إلغاء فاتورة");
+    setManagerOverrideDesc(`إلغاء الفاتورة #${cancellingOrder?.order_number || "---"} بقيمة ₪${cancellingOrder?.total.toFixed(2)} — السبب: ${cancelReason}`);
+    setShowManagerOverride(true);
+  };
+
+  const handleManagerApprovedForCancel = async (managerName: string) => {
+    setShowManagerOverride(false);
+    if (!cancellingOrder) return;
+    await executeCancel(cancellingOrder, cancelReason, managerName);
   };
 
   const executeCancel = async (order: InvoiceOrder, reason: string, approvedBy: string) => {
     try {
-      // 1. Update order status
       await supabase
         .from("pos_orders")
         .update({
@@ -405,7 +345,6 @@ export default function InvoiceHistoryDrawer({
         } as any)
         .eq("id", order.id);
 
-      // 2. Audit log
       await supabase.from("pos_audit_log").insert({
         user_id: dataOwnerId,
         order_id: order.id,
@@ -421,6 +360,7 @@ export default function InvoiceHistoryDrawer({
       setSelectedOrder(null);
       setCancellingOrder(null);
       setCancelReason("");
+      setPendingManagerAction(null);
       fetchOrders();
     } catch (err) {
       console.error(err);
@@ -428,24 +368,12 @@ export default function InvoiceHistoryDrawer({
     }
   };
 
-  // ── Manager PIN after reason (for old invoices) ──
-  const [pendingApprovedBy, setPendingApprovedBy] = useState<string | null>(null);
-
-  const handleRecallWithPin = () => {
-    // For > 30min invoices: first get PIN, then ask reason
-    setShowManagerPin(true);
-  };
-
-  // PIN input handler
-  const handlePinInput = (index: number, value: string) => {
-    if (value.length > 1) value = value.slice(-1);
-    const newPin = [...managerPin];
-    newPin[index] = value;
-    setManagerPin(newPin);
-    setPinError("");
-    if (value && index < 3) {
-      const next = document.getElementById(`mgr-pin-${index + 1}`);
-      next?.focus();
+  // Manager approval handler
+  const handleManagerApproved = (managerName: string) => {
+    if (pendingManagerAction === "recall") {
+      handleManagerApprovedForRecall(managerName);
+    } else if (pendingManagerAction === "cancel") {
+      handleManagerApprovedForCancel(managerName);
     }
   };
 
@@ -567,7 +495,6 @@ export default function InvoiceHistoryDrawer({
                     style={{ borderColor: "#F1F5F9", minHeight: 76 }}
                     onClick={() => loadDetail(order)}
                   >
-                    {/* Right: Invoice info */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-0.5">
                         <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 13, fontWeight: 600, color: "#0A2342" }}>
@@ -589,7 +516,6 @@ export default function InvoiceHistoryDrawer({
                       </div>
                     </div>
 
-                    {/* Left: Total + actions */}
                     <div className="flex flex-col items-end gap-1">
                       <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 16, fontWeight: 700, color: "#0A2342" }}>
                         ₪{order.total.toFixed(2)}
@@ -718,6 +644,7 @@ export default function InvoiceHistoryDrawer({
                       style={{ background: "#C9A84C", color: "#0A2342" }}
                       onClick={() => initiateRecall(selectedOrder)}
                     >
+                      <Lock className="h-3 w-3" />
                       <RotateCcw className="h-3.5 w-3.5" /> استدعاء للتعديل
                     </Button>
                     <Button
@@ -726,11 +653,20 @@ export default function InvoiceHistoryDrawer({
                       className="gap-1.5 text-xs"
                       onClick={() => initiateCancel(selectedOrder)}
                     >
+                      <Lock className="h-3 w-3" />
                       <Ban className="h-3.5 w-3.5" /> إلغاء الفاتورة
                     </Button>
                   </>
                 )}
               </div>
+
+              {/* Manager approval note */}
+              {selectedOrder.state === "paid" && !selectedOrder.recall_status && (
+                <p className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1">
+                  <Lock className="h-3 w-3" />
+                  التعديل والإلغاء يتطلب موافقة المدير
+                </p>
+              )}
             </>
           )}
         </DialogContent>
@@ -777,46 +713,8 @@ export default function InvoiceHistoryDrawer({
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" size="sm" onClick={() => { setShowReasonDialog(false); setRecallingOrder(null); }}>إلغاء</Button>
+            <Button variant="outline" size="sm" onClick={() => { setShowReasonDialog(false); setRecallingOrder(null); setPendingApprovedBy(null); }}>إلغاء</Button>
             <Button size="sm" style={{ background: "#C9A84C", color: "#0A2342" }} onClick={handleReasonConfirm}>تأكيد التعديل</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* ══════ MANAGER PIN DIALOG ══════ */}
-      <Dialog open={showManagerPin} onOpenChange={v => { if (!v) { setShowManagerPin(false); setRecallingOrder(null); } }}>
-        <DialogContent className="max-w-xs z-[1200]" style={{ fontFamily: "Tajawal, sans-serif" }}>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Lock className="h-5 w-5" style={{ color: "#C9A84C" }} />
-              يتطلب موافقة المدير
-            </DialogTitle>
-          </DialogHeader>
-          <div className="py-4 space-y-4 text-center">
-            <p className="text-sm" style={{ color: "#64748B" }}>أدخل رمز المدير (PIN):</p>
-            <div className="flex justify-center gap-3" dir="ltr">
-              {[0, 1, 2, 3].map(i => (
-                <input
-                  key={i}
-                  id={`mgr-pin-${i}`}
-                  type="password"
-                  inputMode="numeric"
-                  maxLength={1}
-                  value={managerPin[i]}
-                  onChange={e => handlePinInput(i, e.target.value)}
-                  className="w-12 h-14 text-center text-2xl font-bold rounded-xl border-2 focus:outline-none focus:border-[#C9A84C] transition-colors"
-                  style={{
-                    fontFamily: "JetBrains Mono, monospace",
-                    borderColor: pinError ? "#DC2626" : "#E2E8F0",
-                  }}
-                />
-              ))}
-            </div>
-            {pinError && <p className="text-xs text-destructive">{pinError}</p>}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" size="sm" onClick={() => { setShowManagerPin(false); setManagerPin(["","","",""]); setRecallingOrder(null); }}>إلغاء</Button>
-            <Button size="sm" onClick={handleManagerPinSubmit} style={{ background: "#C9A84C", color: "#0A2342" }}>تحقق</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -851,48 +749,26 @@ export default function InvoiceHistoryDrawer({
               disabled={!cancelReason.trim()}
               onClick={handleCancelConfirm}
             >
-              متابعة — يتطلب رمز المدير
+              متابعة — يتطلب موافقة المدير
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* ══════ CANCEL PIN DIALOG ══════ */}
-      <Dialog open={showCancelPin} onOpenChange={v => { if (!v) { setShowCancelPin(false); setCancellingOrder(null); } }}>
-        <DialogContent className="max-w-xs z-[1200]" style={{ fontFamily: "Tajawal, sans-serif" }}>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Lock className="h-5 w-5 text-destructive" />
-              رمز المدير لإلغاء الفاتورة
-            </DialogTitle>
-          </DialogHeader>
-          <div className="py-4 space-y-4 text-center">
-            <div className="flex justify-center gap-3" dir="ltr">
-              {[0, 1, 2, 3].map(i => (
-                <input
-                  key={i}
-                  id={`cancel-pin-${i}`}
-                  type="password"
-                  inputMode="numeric"
-                  maxLength={1}
-                  value={managerPin[i]}
-                  onChange={e => handlePinInput(i, e.target.value)}
-                  className="w-12 h-14 text-center text-2xl font-bold rounded-xl border-2 focus:outline-none focus:border-destructive transition-colors"
-                  style={{
-                    fontFamily: "JetBrains Mono, monospace",
-                    borderColor: pinError ? "#DC2626" : "#E2E8F0",
-                  }}
-                />
-              ))}
-            </div>
-            {pinError && <p className="text-xs text-destructive">{pinError}</p>}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" size="sm" onClick={() => { setShowCancelPin(false); setManagerPin(["","","",""]); setCancellingOrder(null); }}>إلغاء</Button>
-            <Button variant="destructive" size="sm" onClick={handleManagerPinSubmit}>تحقق</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* ══════ MANAGER OVERRIDE DIALOG ══════ */}
+      <ManagerOverrideDialog
+        open={showManagerOverride}
+        onClose={() => {
+          setShowManagerOverride(false);
+          setPendingManagerAction(null);
+          setRecallingOrder(null);
+          setCancellingOrder(null);
+        }}
+        onApproved={handleManagerApproved}
+        title={managerOverrideTitle}
+        description={managerOverrideDesc}
+        variant={managerOverrideVariant}
+      />
     </>
   );
 }
