@@ -83,6 +83,7 @@ export default function PortalSettings() {
         body: { action: 'create_user', ...newUser },
       });
       if (data?.success) {
+        setCreatedCredentials({ ...newUser });
         setShowAddUser(false);
         setNewUser({ username: '', password: '', full_name: '', role: 'viewer' });
         loadData();
