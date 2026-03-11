@@ -421,6 +421,13 @@ const POSPage = () => {
    const [showInvoiceHistory, setShowInvoiceHistory] = useState(false);
    const [recallBanner, setRecallBanner] = useState<{ invoiceId: string; orderNumber: string; reason: string; approvedBy: string | null } | null>(null);
 
+   // POS User Permissions
+   const [posPerms, setPosPerms] = useState<{
+     can_view_invoice_history: boolean;
+     can_edit_invoices: boolean;
+     require_manager_for_invoices: boolean;
+   }>({ can_view_invoice_history: true, can_edit_invoices: true, require_manager_for_invoices: true });
+
    // Modifiers
    const [modifierGroups, setModifierGroups] = useState<any[]>([]);
    const [productModifierMap, setProductModifierMap] = useState<Record<string, string[]>>({});
@@ -451,6 +458,33 @@ const POSPage = () => {
       setDataOwnerId(data || userId);
     });
   }, [userId]);
+
+  // Load POS user permissions
+  useEffect(() => {
+    if (!userId || !dataOwnerId || isAdmin) return;
+    const loadPerms = async () => {
+      // Find pos_user linked to this auth user
+      const { data: posUser } = await supabase
+        .from("pos_users")
+        .select("id")
+        .eq("auth_user_id", userId)
+        .maybeSingle();
+      if (!posUser) return;
+      const { data: perms } = await supabase
+        .from("pos_user_permissions")
+        .select("can_view_invoice_history, can_edit_invoices, require_manager_for_invoices")
+        .eq("pos_user_id", posUser.id)
+        .maybeSingle();
+      if (perms) {
+        setPosPerms({
+          can_view_invoice_history: perms.can_view_invoice_history ?? true,
+          can_edit_invoices: perms.can_edit_invoices ?? false,
+          require_manager_for_invoices: perms.require_manager_for_invoices ?? true,
+        });
+      }
+    };
+    loadPerms();
+  }, [userId, dataOwnerId, isAdmin]);
 
   // Initialize
   useEffect(() => {
@@ -2031,7 +2065,8 @@ const POSPage = () => {
           </div>
         )}
 
-        {/* Invoice History Button - visible to all users */}
+        {/* Invoice History Button - visible based on permissions */}
+        {(isAdmin || posPerms.can_view_invoice_history) && (
         <button
           onClick={() => setShowInvoiceHistory(true)}
           className="flex items-center gap-1.5 h-9 px-3.5 rounded-lg text-xs font-medium transition-all"
@@ -2062,6 +2097,7 @@ const POSPage = () => {
             </span>
           )}
         </button>
+        )}
 
         {/* Shortcuts guide button */}
         <button
@@ -3939,6 +3975,8 @@ const POSPage = () => {
             sessionId={session?.id || null}
             cashierName={session?.cashier_name || ""}
             terminalName={terminal?.name || ""}
+            canEditInvoices={isAdmin || posPerms.can_edit_invoices}
+            requireManagerForInvoices={!isAdmin && posPerms.require_manager_for_invoices}
             onRecallToCart={(items, invoiceId, orderNumber, reason, approvedBy) => {
               setCart(items);
               setRecallBanner({ invoiceId, orderNumber, reason, approvedBy });

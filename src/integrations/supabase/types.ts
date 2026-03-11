@@ -5139,9 +5139,11 @@ export type Database = {
         Row: {
           can_apply_discount: boolean
           can_close_register: boolean
+          can_edit_invoices: boolean
           can_edit_prices: boolean
           can_open_register: boolean
           can_refund: boolean
+          can_view_invoice_history: boolean
           can_view_profits: boolean
           can_view_shift_details: boolean
           can_void_sales: boolean
@@ -5151,15 +5153,18 @@ export type Database = {
           max_discount_percent: number
           pos_user_id: string
           require_manager_approval: boolean
+          require_manager_for_invoices: boolean
           updated_at: string
           user_id: string
         }
         Insert: {
           can_apply_discount?: boolean
           can_close_register?: boolean
+          can_edit_invoices?: boolean
           can_edit_prices?: boolean
           can_open_register?: boolean
           can_refund?: boolean
+          can_view_invoice_history?: boolean
           can_view_profits?: boolean
           can_view_shift_details?: boolean
           can_void_sales?: boolean
@@ -5169,15 +5174,18 @@ export type Database = {
           max_discount_percent?: number
           pos_user_id: string
           require_manager_approval?: boolean
+          require_manager_for_invoices?: boolean
           updated_at?: string
           user_id: string
         }
         Update: {
           can_apply_discount?: boolean
           can_close_register?: boolean
+          can_edit_invoices?: boolean
           can_edit_prices?: boolean
           can_open_register?: boolean
           can_refund?: boolean
+          can_view_invoice_history?: boolean
           can_view_profits?: boolean
           can_view_shift_details?: boolean
           can_void_sales?: boolean
@@ -5187,6 +5195,7 @@ export type Database = {
           max_discount_percent?: number
           pos_user_id?: string
           require_manager_approval?: boolean
+          require_manager_for_invoices?: boolean
           updated_at?: string
           user_id?: string
         }

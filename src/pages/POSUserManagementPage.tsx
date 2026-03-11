@@ -8,7 +8,7 @@ import {
   Smartphone, LockKeyhole, UnlockKeyhole, Search, Loader2,
   Monitor, CheckCircle2, Mail, KeyRound, UserPlus,
   DoorOpen, DoorClosed, Percent, Eye, PencilLine,
-  Ban, RotateCcw, ClipboardList, UserCheck,
+  Ban, RotateCcw, ClipboardList, UserCheck, FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -58,6 +58,9 @@ interface Permission {
   can_void_sales: boolean;
   can_refund: boolean;
   can_view_shift_details: boolean;
+  can_view_invoice_history: boolean;
+  can_edit_invoices: boolean;
+  require_manager_for_invoices: boolean;
   require_manager_approval: boolean;
 }
 
@@ -71,6 +74,9 @@ const DEFAULT_PERMS: Permission = {
   can_void_sales: false,
   can_refund: false,
   can_view_shift_details: false,
+  can_view_invoice_history: true,
+  can_edit_invoices: false,
+  require_manager_for_invoices: true,
   require_manager_approval: true,
 };
 
@@ -180,6 +186,9 @@ export default function POSUserManagementPage() {
       can_void_sales: perms.can_void_sales,
       can_refund: perms.can_refund,
       can_view_shift_details: perms.can_view_shift_details,
+      can_view_invoice_history: perms.can_view_invoice_history ?? true,
+      can_edit_invoices: perms.can_edit_invoices ?? false,
+      require_manager_for_invoices: perms.require_manager_for_invoices ?? true,
       require_manager_approval: perms.require_manager_approval,
     } : DEFAULT_PERMS);
 
@@ -389,6 +398,9 @@ export default function POSUserManagementPage() {
     can_void_sales: { label: "إلغاء عمليات بيع", icon: <Ban className="w-4 h-4" /> },
     can_refund: { label: "استرجاع", icon: <RotateCcw className="w-4 h-4" /> },
     can_view_shift_details: { label: "مشاهدة تفاصيل الوردية", icon: <ClipboardList className="w-4 h-4" /> },
+    can_view_invoice_history: { label: "رؤية سجل الفواتير", icon: <FileText className="w-4 h-4" /> },
+    can_edit_invoices: { label: "تعديل وإلغاء الفواتير", icon: <PencilLine className="w-4 h-4" /> },
+    require_manager_for_invoices: { label: "تعديل الفواتير بموافقة مدير", icon: <UserCheck className="w-4 h-4" /> },
     require_manager_approval: { label: "يتطلب موافقة مدير", icon: <UserCheck className="w-4 h-4" /> },
   };
 

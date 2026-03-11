@@ -82,6 +82,8 @@ interface InvoiceHistoryDrawerProps {
   sessionId: string | null;
   cashierName: string;
   terminalName: string;
+  canEditInvoices?: boolean;
+  requireManagerForInvoices?: boolean;
   onRecallToCart: (items: CartItem[], invoiceId: string, orderNumber: string, reason: string, approvedBy: string | null) => void;
 }
 
@@ -108,7 +110,7 @@ const RECALL_REASONS = [
 ];
 
 export default function InvoiceHistoryDrawer({
-  open, onClose, dataOwnerId, sessionId, cashierName, terminalName, onRecallToCart,
+  open, onClose, dataOwnerId, sessionId, cashierName, terminalName, canEditInvoices = true, requireManagerForInvoices = true, onRecallToCart,
 }: InvoiceHistoryDrawerProps) {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -212,18 +214,30 @@ export default function InvoiceHistoryDrawer({
     }
   };
 
-  // ── Recall: always require manager ──
+  // ── Recall: require manager based on permission ──
   const initiateRecall = (order: InvoiceOrder) => {
+    if (!canEditInvoices) {
+      toast.error("ليس لديك صلاحية تعديل الفواتير");
+      return;
+    }
     if (order.state !== "paid") {
       toast.error("لا يمكن استدعاء فاتورة غير مكتملة");
       return;
     }
     setRecallingOrder(order);
-    setPendingManagerAction("recall");
-    setManagerOverrideVariant("default");
-    setManagerOverrideTitle("موافقة المدير — استدعاء فاتورة");
-    setManagerOverrideDesc(`استدعاء الفاتورة #${order.order_number || "---"} بقيمة ₪${order.total.toFixed(2)} للتعديل`);
-    setShowManagerOverride(true);
+    if (requireManagerForInvoices) {
+      setPendingManagerAction("recall");
+      setManagerOverrideVariant("default");
+      setManagerOverrideTitle("موافقة المدير — استدعاء فاتورة");
+      setManagerOverrideDesc(`استدعاء الفاتورة #${order.order_number || "---"} بقيمة ₪${order.total.toFixed(2)} للتعديل`);
+      setShowManagerOverride(true);
+    } else {
+      // No manager approval needed, go straight to reason dialog
+      setRecallReason("");
+      setCustomReason("");
+      setPendingApprovedBy(null);
+      setShowReasonDialog(true);
+    }
   };
 
   const handleManagerApprovedForRecall = (managerName: string) => {
@@ -306,8 +320,12 @@ export default function InvoiceHistoryDrawer({
     }
   };
 
-  // ── Cancel: always require manager ──
+  // ── Cancel: require manager based on permission ──
   const initiateCancel = (order: InvoiceOrder) => {
+    if (!canEditInvoices) {
+      toast.error("ليس لديك صلاحية إلغاء الفواتير");
+      return;
+    }
     if (order.state !== "paid") {
       toast.error("لا يمكن إلغاء فاتورة غير مكتملة");
       return;
@@ -319,11 +337,18 @@ export default function InvoiceHistoryDrawer({
   const handleCancelConfirm = () => {
     if (!cancelReason.trim()) { toast.error("أدخل سبب الإلغاء"); return; }
     setShowCancelConfirm(false);
-    setPendingManagerAction("cancel");
-    setManagerOverrideVariant("destructive");
-    setManagerOverrideTitle("موافقة المدير — إلغاء فاتورة");
-    setManagerOverrideDesc(`إلغاء الفاتورة #${cancellingOrder?.order_number || "---"} بقيمة ₪${cancellingOrder?.total.toFixed(2)} — السبب: ${cancelReason}`);
-    setShowManagerOverride(true);
+    if (requireManagerForInvoices) {
+      setPendingManagerAction("cancel");
+      setManagerOverrideVariant("destructive");
+      setManagerOverrideTitle("موافقة المدير — إلغاء فاتورة");
+      setManagerOverrideDesc(`إلغاء الفاتورة #${cancellingOrder?.order_number || "---"} بقيمة ₪${cancellingOrder?.total.toFixed(2)} — السبب: ${cancelReason}`);
+      setShowManagerOverride(true);
+    } else {
+      // No manager approval needed
+      if (cancellingOrder) {
+        executeCancel(cancellingOrder, cancelReason, "بدون موافقة مدير");
+      }
+    }
   };
 
   const handleManagerApprovedForCancel = async (managerName: string) => {
@@ -528,7 +553,7 @@ export default function InvoiceHistoryDrawer({
                         >
                           <Eye className="h-3 w-3" /> عرض
                         </button>
-                        {order.state === "paid" && !order.recall_status && (
+                        {canEditInvoices && order.state === "paid" && !order.recall_status && (
                           <button
                             onClick={e => { e.stopPropagation(); initiateRecall(order); }}
                             className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium transition-colors"
@@ -636,7 +661,7 @@ export default function InvoiceHistoryDrawer({
                   <Printer className="h-3.5 w-3.5" /> طباعة
                 </Button>
 
-                {selectedOrder.state === "paid" && !selectedOrder.recall_status && (
+                {canEditInvoices && selectedOrder.state === "paid" && !selectedOrder.recall_status && (
                   <>
                     <Button
                       size="sm"
