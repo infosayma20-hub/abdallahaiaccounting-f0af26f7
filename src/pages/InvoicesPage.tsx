@@ -74,6 +74,7 @@ const InvoicesPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
+  const { settings: companySettings } = useCompanySettings();
   const printRef = useRef<HTMLDivElement>(null);
 
   const [invoices, setInvoices] = useState<Invoice[]>([]);
