@@ -186,6 +186,9 @@ export default function POSUserManagementPage() {
       can_void_sales: perms.can_void_sales,
       can_refund: perms.can_refund,
       can_view_shift_details: perms.can_view_shift_details,
+      can_view_invoice_history: perms.can_view_invoice_history ?? true,
+      can_edit_invoices: perms.can_edit_invoices ?? false,
+      require_manager_for_invoices: perms.require_manager_for_invoices ?? true,
       require_manager_approval: perms.require_manager_approval,
     } : DEFAULT_PERMS);
 
