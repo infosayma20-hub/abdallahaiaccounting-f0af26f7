@@ -518,8 +518,26 @@ const FinanceJournalPage = () => {
                       <td className="py-2 px-3">
                         <Select value={line.account_code} onValueChange={v => updateLine(line.id, "account_code", v)}>
                           <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="ابحث بالرقم أو الاسم..." /></SelectTrigger>
-                          <SelectContent className="max-h-[200px]">
-                            {accounts.map(a => (
+                          <SelectContent className="max-h-[250px]">
+                            <div className="px-2 py-1.5 sticky top-0 bg-background z-10">
+                              <div className="relative">
+                                <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                                <input
+                                  className="w-full h-8 pr-8 pl-2 text-sm border rounded-md bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+                                  placeholder="ابحث بالرقم أو الاسم..."
+                                  value={accountSearches[line.id] || ""}
+                                  onChange={e => setAccountSearches(prev => ({ ...prev, [line.id]: e.target.value }))}
+                                  onClick={e => e.stopPropagation()}
+                                />
+                              </div>
+                            </div>
+                            {accounts
+                              .filter(a => {
+                                const q = (accountSearches[line.id] || "").toLowerCase();
+                                if (!q) return true;
+                                return a.account_code?.toLowerCase().includes(q) || a.account_name?.toLowerCase().includes(q);
+                              })
+                              .map(a => (
                               <SelectItem key={a.account_code} value={a.account_code}>
                                 <span className="font-mono text-muted-foreground ml-2">{a.account_code}</span>
                                 {a.account_name}
