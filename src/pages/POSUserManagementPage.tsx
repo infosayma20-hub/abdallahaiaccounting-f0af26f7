@@ -760,33 +760,54 @@ export default function POSUserManagementPage() {
               </div>
             )}
 
-            {/* Permissions */}
-            <div>
-              <h3 className="font-semibold mb-3 flex items-center gap-2"><ShieldCheck className="w-4 h-4" /> الصلاحيات</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {(Object.keys(userPerms) as (keyof Permission)[]).filter(k => k !== "max_discount_percent").map(key => (
-                  <div key={key} className="flex items-center justify-between p-3 rounded-xl border border-border bg-card">
-                    <div className="flex items-center gap-2">
-                      <span className="text-muted-foreground">{permConfig[key]?.icon}</span>
-                      <Label className="text-sm cursor-pointer">{permConfig[key]?.label || key}</Label>
+            {/* Permissions - Grouped */}
+            <div className="space-y-5">
+              <h3 className="font-bold text-base flex items-center gap-2"><ShieldCheck className="w-5 h-5" /> الصلاحيات</h3>
+              {permGroups.map((group, gi) => (
+                <div key={gi} className="space-y-3">
+                  <div className="flex items-center gap-2 pb-1 border-b border-border">
+                    <span className="text-primary">{group.icon}</span>
+                    <span className="font-bold text-sm">{group.title}</span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {group.items.map(item => {
+                      const isDependencyMet = item.dependsOn ? (userPerms[item.dependsOn] as boolean) : true;
+                      const isDisabled = !isDependencyMet;
+                      return (
+                        <div
+                          key={item.key}
+                          className={`flex items-center justify-between py-3 px-4 rounded-xl border border-border bg-card ${isDisabled ? "opacity-50" : ""}`}
+                          title={isDisabled ? `يتطلب تفعيل: ${item.dependsLabel}` : undefined}
+                        >
+                          <div className="flex items-center gap-3 flex-row-reverse flex-1 min-w-0">
+                            <span className="text-muted-foreground shrink-0">{item.icon}</span>
+                            <Label className="text-sm cursor-pointer truncate">{item.label}</Label>
+                            {isDisabled && (
+                              <span className="text-[10px] text-destructive whitespace-nowrap">يتطلب: {item.dependsLabel}</span>
+                            )}
+                          </div>
+                          <Switch
+                            checked={userPerms[item.key] as boolean}
+                            onCheckedChange={v => handlePermToggle(item.key, v)}
+                            disabled={isDisabled}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {/* Max discount input */}
+                  {group.title === "عمليات البيع" && userPerms.can_apply_discount && (
+                    <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                      <Label className="text-sm whitespace-nowrap">الحد الأقصى للخصم %</Label>
+                      <Input
+                        type="number" min={0} max={100} className="w-24"
+                        value={userPerms.max_discount_percent}
+                        onChange={e => setUserPerms(p => ({ ...p, max_discount_percent: Number(e.target.value) }))}
+                      />
                     </div>
-                    <Switch
-                      checked={userPerms[key] as boolean}
-                      onCheckedChange={v => setUserPerms(p => ({ ...p, [key]: v }))}
-                    />
-                  </div>
-                ))}
-                {userPerms.can_apply_discount && (
-                  <div className="flex items-center gap-3 p-2 rounded-lg bg-muted/50 col-span-2">
-                    <Label className="text-sm whitespace-nowrap">الحد الأقصى للخصم %</Label>
-                    <Input
-                      type="number" min={0} max={100} className="w-24"
-                      value={userPerms.max_discount_percent}
-                      onChange={e => setUserPerms(p => ({ ...p, max_discount_percent: Number(e.target.value) }))}
-                    />
-                  </div>
-                )}
-              </div>
+                  )}
+                </div>
+              ))}
             </div>
 
             {/* Device Assignment */}
