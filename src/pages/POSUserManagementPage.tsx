@@ -52,41 +52,65 @@ interface POSDevice {
 }
 
 interface Permission {
+  // Group 1 - Shift
   can_open_register: boolean;
   can_close_register: boolean;
+  can_view_shift_details: boolean;
+  can_view_profits: boolean;
+  // Group 2 - Sales
   can_apply_discount: boolean;
   max_discount_percent: number;
-  can_view_profits: boolean;
   can_edit_prices: boolean;
   can_void_sales: boolean;
   can_refund: boolean;
-  can_view_shift_details: boolean;
+  allow_credit_sale: boolean;
+  open_cash_drawer: boolean;
+  // Group 3 - Invoices
   can_view_invoice_history: boolean;
   can_edit_invoices: boolean;
   require_manager_for_invoices: boolean;
-  require_manager_approval: boolean;
+  print_invoices: boolean;
+  resend_invoice: boolean;
+  // Group 4 - Products
   manage_products_categories: boolean;
-  view_invoice_log: boolean;
-  edit_cancel_invoices: boolean;
+  edit_products: boolean;
+  delete_products: boolean;
+  view_inventory: boolean;
+  // Group 5 - Customers
+  add_customer: boolean;
+  view_customers: boolean;
+  edit_customers: boolean;
+  // Group 6 - Reports
+  view_sales_report: boolean;
+  export_reports: boolean;
 }
 
 const DEFAULT_PERMS: Permission = {
   can_open_register: true,
   can_close_register: true,
+  can_view_shift_details: false,
+  can_view_profits: false,
   can_apply_discount: false,
   max_discount_percent: 0,
-  can_view_profits: false,
   can_edit_prices: false,
   can_void_sales: false,
   can_refund: false,
-  can_view_shift_details: false,
+  allow_credit_sale: false,
+  open_cash_drawer: false,
   can_view_invoice_history: true,
   can_edit_invoices: false,
   require_manager_for_invoices: true,
-  require_manager_approval: true,
+  print_invoices: false,
+  resend_invoice: false,
   manage_products_categories: false,
-  view_invoice_log: false,
-  edit_cancel_invoices: false,
+  edit_products: false,
+  delete_products: false,
+  view_inventory: false,
+  add_customer: false,
+  view_customers: false,
+  edit_customers: false,
+  view_sales_report: false,
+  export_reports: false,
 };
 
 const ROLE_LABELS: Record<string, string> = {
