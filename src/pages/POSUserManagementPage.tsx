@@ -8,7 +8,7 @@ import {
   Smartphone, LockKeyhole, UnlockKeyhole, Search, Loader2,
   Monitor, CheckCircle2, Mail, KeyRound, UserPlus,
   DoorOpen, DoorClosed, Percent, Eye, PencilLine,
-  Ban, RotateCcw, ClipboardList, UserCheck,
+  Ban, RotateCcw, ClipboardList, UserCheck, FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
