@@ -434,22 +434,89 @@ export default function POSUserManagementPage() {
 
   const filteredUsers = users.filter(u => u.name.includes(search) || u.phone?.includes(search) || u.email?.includes(search));
 
-  const permConfig: Record<string, { label: string; icon: React.ReactNode }> = {
-    can_open_register: { label: "فتح الوردية", icon: <DoorOpen className="w-4 h-4" /> },
-    can_close_register: { label: "إغلاق الوردية", icon: <DoorClosed className="w-4 h-4" /> },
-    can_apply_discount: { label: "تطبيق خصم", icon: <Percent className="w-4 h-4" /> },
-    can_view_profits: { label: "مشاهدة الأرباح", icon: <Eye className="w-4 h-4" /> },
-    can_edit_prices: { label: "تعديل الأسعار", icon: <PencilLine className="w-4 h-4" /> },
-    can_void_sales: { label: "إلغاء عمليات بيع", icon: <Ban className="w-4 h-4" /> },
-    can_refund: { label: "استرجاع", icon: <RotateCcw className="w-4 h-4" /> },
-    can_view_shift_details: { label: "مشاهدة تفاصيل الوردية", icon: <ClipboardList className="w-4 h-4" /> },
-    can_view_invoice_history: { label: "رؤية سجل الفواتير", icon: <FileText className="w-4 h-4" /> },
-    can_edit_invoices: { label: "تعديل وإلغاء الفواتير", icon: <PencilLine className="w-4 h-4" /> },
-    require_manager_for_invoices: { label: "تعديل الفواتير بموافقة مدير", icon: <UserCheck className="w-4 h-4" /> },
-    require_manager_approval: { label: "يتطلب موافقة مدير", icon: <UserCheck className="w-4 h-4" /> },
-    manage_products_categories: { label: "تعريف منتجات وتصنيفات", icon: <Package className="w-4 h-4" /> },
-    view_invoice_log: { label: "الاطلاع على سجل الفواتير", icon: <FileText className="w-4 h-4" /> },
-    edit_cancel_invoices: { label: "تعديل الفواتير وإلغائها من سجل الفواتير", icon: <FilePen className="w-4 h-4" /> },
+  // Permission groups configuration
+  type PermGroup = {
+    title: string;
+    icon: React.ReactNode;
+    items: { key: keyof Permission; label: string; icon: React.ReactNode; dependsOn?: keyof Permission; dependsLabel?: string }[];
+  };
+
+  const permGroups: PermGroup[] = [
+    {
+      title: "الوردية",
+      icon: <DoorOpen className="w-4 h-4" />,
+      items: [
+        { key: "can_open_register", label: "فتح الوردية", icon: <DoorOpen className="w-4 h-4" /> },
+        { key: "can_close_register", label: "إغلاق الوردية", icon: <DoorClosed className="w-4 h-4" /> },
+        { key: "can_view_shift_details", label: "مشاهدة تفاصيل الوردية", icon: <ClipboardList className="w-4 h-4" /> },
+        { key: "can_view_profits", label: "مشاهدة الأرباح", icon: <Eye className="w-4 h-4" /> },
+      ],
+    },
+    {
+      title: "عمليات البيع",
+      icon: <ShoppingCart className="w-4 h-4" />,
+      items: [
+        { key: "can_apply_discount", label: "تطبيق خصم", icon: <Percent className="w-4 h-4" /> },
+        { key: "can_edit_prices", label: "تعديل الأسعار", icon: <PencilLine className="w-4 h-4" /> },
+        { key: "can_void_sales", label: "إلغاء عمليات بيع", icon: <Ban className="w-4 h-4" /> },
+        { key: "can_refund", label: "استرجاع", icon: <RotateCcw className="w-4 h-4" /> },
+        { key: "allow_credit_sale", label: "الدفع المؤجل / الدين", icon: <CreditCard className="w-4 h-4" /> },
+        { key: "open_cash_drawer", label: "فتح درج الكاش", icon: <Wallet className="w-4 h-4" /> },
+      ],
+    },
+    {
+      title: "الفواتير",
+      icon: <FileText className="w-4 h-4" />,
+      items: [
+        { key: "can_view_invoice_history", label: "رؤية سجل الفواتير", icon: <FileText className="w-4 h-4" /> },
+        { key: "can_edit_invoices", label: "تعديل وإلغاء الفواتير", icon: <FilePen className="w-4 h-4" />, dependsOn: "can_view_invoice_history", dependsLabel: "رؤية سجل الفواتير" },
+        { key: "require_manager_for_invoices", label: "تعديل الفواتير بموافقة مدير", icon: <UserCheck className="w-4 h-4" />, dependsOn: "can_edit_invoices", dependsLabel: "تعديل وإلغاء الفواتير" },
+        { key: "print_invoices", label: "طباعة الفواتير", icon: <Printer className="w-4 h-4" /> },
+        { key: "resend_invoice", label: "إعادة إرسال الفاتورة", icon: <Send className="w-4 h-4" /> },
+      ],
+    },
+    {
+      title: "المنتجات والمخزون",
+      icon: <Package className="w-4 h-4" />,
+      items: [
+        { key: "manage_products_categories", label: "تعريف منتجات وتصنيفات", icon: <Package className="w-4 h-4" /> },
+        { key: "edit_products", label: "تعديل المنتجات", icon: <PencilLine className="w-4 h-4" /> },
+        { key: "delete_products", label: "حذف المنتجات", icon: <Trash2 className="w-4 h-4" />, dependsOn: "manage_products_categories", dependsLabel: "تعريف منتجات وتصنيفات" },
+        { key: "view_inventory", label: "مشاهدة المخزون", icon: <PackageSearch className="w-4 h-4" /> },
+      ],
+    },
+    {
+      title: "العملاء",
+      icon: <UsersRound className="w-4 h-4" />,
+      items: [
+        { key: "add_customer", label: "إضافة عميل جديد", icon: <UserRoundPlus className="w-4 h-4" /> },
+        { key: "view_customers", label: "مشاهدة بيانات العملاء", icon: <UsersRound className="w-4 h-4" /> },
+        { key: "edit_customers", label: "تعديل بيانات العملاء", icon: <PencilLine className="w-4 h-4" />, dependsOn: "view_customers", dependsLabel: "مشاهدة بيانات العملاء" },
+      ],
+    },
+    {
+      title: "التقارير",
+      icon: <BarChart3 className="w-4 h-4" />,
+      items: [
+        { key: "view_sales_report", label: "مشاهدة تقرير المبيعات", icon: <BarChart3 className="w-4 h-4" /> },
+        { key: "export_reports", label: "تصدير التقارير", icon: <Download className="w-4 h-4" />, dependsOn: "view_sales_report", dependsLabel: "مشاهدة تقرير المبيعات" },
+      ],
+    },
+  ];
+
+  const handlePermToggle = (key: keyof Permission, value: boolean) => {
+    setUserPerms(prev => {
+      const next = { ...prev, [key]: value };
+      // Auto-disable dependents when parent is turned off
+      if (!value) {
+        permGroups.forEach(g => g.items.forEach(item => {
+          if (item.dependsOn === key) {
+            (next as any)[item.key] = false;
+          }
+        }));
+      }
+      return next;
+    });
   };
 
   return (
