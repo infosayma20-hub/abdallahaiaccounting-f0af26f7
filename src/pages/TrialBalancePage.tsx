@@ -363,6 +363,10 @@ const TrialBalancePage = () => {
         </div>
         <div className="flex items-center gap-4 flex-wrap text-xs">
           <label className="flex items-center gap-1.5 cursor-pointer">
+            <Checkbox checked={showComparison} onCheckedChange={(v) => setShowComparison(!!v)} />
+            <span className="text-muted-foreground">مقارنة الفترة السابقة</span>
+          </label>
+          <label className="flex items-center gap-1.5 cursor-pointer">
             <Checkbox checked={showZeroAccounts} onCheckedChange={(v) => setShowZeroAccounts(!!v)} />
             <span className="text-muted-foreground">الحسابات الصفرية</span>
           </label>
