@@ -1769,7 +1769,7 @@ const POSPage = () => {
       if (cashBox?.gl_account_code && cashBox.gl_account_code !== "1110") {
         await supabase.from("transactions").insert({
           user_id: dataOwnerId,
-          transaction_date: new Date().toISOString().split("T")[0],
+          transaction_date: new Date(session.opened_at).toISOString().split("T")[0],
           description: `ترحيل مبيعات وردية إلى ${cashBox.name} - ${session.cashier_name}`,
           debit_account_code: cashBox.gl_account_code,
           credit_account_code: "1110",
