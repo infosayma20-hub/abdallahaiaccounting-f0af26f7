@@ -55,21 +55,6 @@ export default function CashFlowWidget({ data, cashBalance, loading }: Props) {
         </div>
       </div>
 
-      {/* Summary cards */}
-      <div className="grid grid-cols-3 gap-2 mb-3">
-        <div className="rounded-xl bg-emerald-500/8 p-2.5 text-center">
-          <p className="text-[9px] text-muted-foreground">💚 الداخل</p>
-          <p className="text-xs font-bold text-emerald-600 tabular-nums" style={{ fontFamily: "JetBrains Mono" }}>₪{fmt(data.inflows)}</p>
-        </div>
-        <div className="rounded-xl bg-red-500/8 p-2.5 text-center">
-          <p className="text-[9px] text-muted-foreground">❤️ الخارج</p>
-          <p className="text-xs font-bold text-red-500 tabular-nums" style={{ fontFamily: "JetBrains Mono" }}>₪{fmt(data.outflows)}</p>
-        </div>
-        <div className="rounded-xl bg-primary/8 p-2.5 text-center">
-          <p className="text-[9px] text-muted-foreground">💙 الصافي</p>
-          <p className={`text-xs font-bold tabular-nums ${data.net >= 0 ? "text-primary" : "text-red-500"}`} style={{ fontFamily: "JetBrains Mono" }}>₪{fmt(data.net)}</p>
-        </div>
-      </div>
 
       {/* Runway */}
       <div className={`rounded-xl p-3 text-center ${runwayColor}`}>
