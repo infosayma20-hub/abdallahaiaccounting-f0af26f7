@@ -501,6 +501,27 @@ export default function FloorPlanEditorPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete section confirmation */}
+      <AlertDialog open={!!deletingSection} onOpenChange={(open) => !open && setDeletingSection(null)}>
+        <AlertDialogContent dir="rtl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>حذف القاعة</AlertDialogTitle>
+            <AlertDialogDescription>
+              سيتم حذف القاعة "{sections.find(s => s.id === deletingSection)?.name}" وجميع الطاولات الموجودة فيها ({tables.filter(t => t.section_id === deletingSection).length} طاولة). هل أنت متأكد؟
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-row-reverse gap-2">
+            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => deletingSection && handleDeleteSection(deletingSection)}
+            >
+              حذف
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
