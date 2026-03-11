@@ -306,7 +306,7 @@ const VoucherDrawer = ({ open, onClose, voucherType, onSaved }: VoucherDrawerPro
             cheque_date: c.due_date || formDate,
             amount: Number(c.amount) || amountNum,
             party_name: selectedContact?.contact_name || "",
-            party_type: selectedContact?.contact_type === "customer" ? "عميل" : "مورد",
+            party_type: isCustomer(selectedContact || {}) ? "عميل" : "مورد",
             bank_name: formChequeBankName || null,
             currency: formCurrency === "ILS" ? "شيكل" : formCurrency,
             status: "مسجل" as const,
