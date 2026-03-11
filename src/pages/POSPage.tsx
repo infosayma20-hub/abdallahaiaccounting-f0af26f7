@@ -1135,13 +1135,19 @@ const POSPage = () => {
         cashier_name: displayName,
         opening_cash: cash,
         state: "open",
-      })
+        cash_box_id: selectedCashBoxId || null,
+      } as any)
       .select()
       .single();
 
     if (error) {
       toast.error("خطأ في فتح الوردية");
       return;
+    }
+
+    // Save device binding
+    if (selectedCashBoxId) {
+      localStorage.setItem(`pos_default_cash_box_${dataOwnerId}`, selectedCashBoxId);
     }
 
     setSession({
