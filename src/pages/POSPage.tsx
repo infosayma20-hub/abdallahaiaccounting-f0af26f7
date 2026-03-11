@@ -586,6 +586,7 @@ const POSPage = () => {
             total_orders: sessions[0].total_orders,
             opened_at: sessions[0].opened_at,
             cashier_name: sessions[0].cashier_name || "",
+            cash_box_id: (sessions[0] as any).cash_box_id || null,
           });
         } else {
           // Load POS cash boxes for shift opening
