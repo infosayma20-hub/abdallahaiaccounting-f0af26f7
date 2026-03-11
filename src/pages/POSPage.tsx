@@ -735,7 +735,7 @@ const POSPage = () => {
   }, [products, posCategories]);
 
   const handleSaveCategory = async () => {
-    if (!userId || !dataOwnerId || !isAdmin || !newCatName.trim() || savingCategory) return;
+    if (!userId || !dataOwnerId || !(isAdmin || posPerms.manage_products_categories) || !newCatName.trim() || savingCategory) return;
     setSavingCategory(true);
     try {
       const { error } = await supabase.from("pos_categories").insert({
