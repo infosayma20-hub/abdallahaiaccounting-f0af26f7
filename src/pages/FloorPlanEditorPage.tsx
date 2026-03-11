@@ -278,17 +278,25 @@ export default function FloorPlanEditorPage() {
                   </Button>
                 </div>
                 {sections.map(sec => (
-                  <button
-                    key={sec.id}
-                    onClick={() => { setActiveSection(sec.id); setSelectedTable(null); }}
-                    className={`w-full text-right px-3 py-2 rounded-lg text-sm transition-colors ${
-                      activeSection === sec.id
-                        ? "bg-primary text-primary-foreground"
-                        : "hover:bg-muted text-foreground"
-                    }`}
-                  >
-                    {sec.name}
-                  </button>
+                  <div key={sec.id} className="flex items-center gap-1 group">
+                    <button
+                      onClick={() => { setActiveSection(sec.id); setSelectedTable(null); }}
+                      className={`flex-1 text-right px-3 py-2 rounded-lg text-sm transition-colors ${
+                        activeSection === sec.id
+                          ? "bg-primary text-primary-foreground"
+                          : "hover:bg-muted text-foreground"
+                      }`}
+                    >
+                      {sec.name}
+                    </button>
+                    <button
+                      onClick={() => setDeletingSection(sec.id)}
+                      className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-all"
+                      title="حذف القاعة"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 ))}
               </div>
 
