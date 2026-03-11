@@ -130,6 +130,7 @@ interface Session {
   total_orders: number;
   opened_at: string;
   cashier_name: string;
+  cash_box_id?: string | null;
 }
 
 interface Company {
@@ -585,6 +586,7 @@ const POSPage = () => {
             total_orders: sessions[0].total_orders,
             opened_at: sessions[0].opened_at,
             cashier_name: sessions[0].cashier_name || "",
+            cash_box_id: (sessions[0] as any).cash_box_id || null,
           });
         } else {
           // Load POS cash boxes for shift opening
@@ -1162,6 +1164,7 @@ const POSPage = () => {
       total_orders: 0,
       opened_at: data.opened_at,
       cashier_name: displayName,
+      cash_box_id: selectedCashBoxId || null,
     });
     setShowOpenShift(false);
     toast.success("تم فتح الوردية بنجاح");
@@ -1752,6 +1755,30 @@ const POSPage = () => {
           salary_year: now.getFullYear(),
           created_by: userId,
         } as any);
+      }
+    }
+
+    // Transfer sales to cash box GL account
+    if (session.cash_box_id && session.total_sales > 0) {
+      const { data: cashBox } = await supabase
+        .from("cash_boxes")
+        .select("gl_account_code, name")
+        .eq("id", session.cash_box_id)
+        .maybeSingle();
+
+      if (cashBox?.gl_account_code && cashBox.gl_account_code !== "1110") {
+        await supabase.from("transactions").insert({
+          user_id: dataOwnerId,
+          transaction_date: new Date().toISOString().split("T")[0],
+          description: `ترحيل مبيعات وردية إلى ${cashBox.name} - ${session.cashier_name}`,
+          debit_account_code: cashBox.gl_account_code,
+          credit_account_code: "1110",
+          amount: session.total_sales,
+          currency: "شيكل",
+          transaction_type: "pos_transfer",
+          reference: `SHIFT-TRANSFER-${session.id.slice(0, 8)}`,
+          idempotency_key: `SHIFT-TRANSFER-${session.id}`,
+        });
       }
     }
 
