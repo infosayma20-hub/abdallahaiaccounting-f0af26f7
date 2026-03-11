@@ -223,11 +223,18 @@ const FinanceHomePage = () => {
                 </thead>
                 <tbody>
                   {vouchers.slice(0, 10).map((v) => (
-                    <tr key={v.id} className="border-b last:border-0 hover:bg-muted/50 cursor-pointer" onClick={() => navigate(`/finance/${v.type === "receipt" ? "receipts" : v.type === "payment" ? "payments" : "journals"}`)}>
+                    <tr key={v.id} className="border-b last:border-0 hover:bg-muted/50">
                       <td className="py-2.5 px-2">
                         <Badge className={`${typeColor(v.type)} text-[10px]`}>{typeLabel(v.type)}</Badge>
                       </td>
-                      <td className="py-2.5 px-2 font-mono text-xs">{v.ref_number}</td>
+                      <td className="py-2.5 px-2">
+                        <button
+                          className="font-mono text-xs text-primary hover:underline cursor-pointer bg-transparent border-none p-0"
+                          onClick={() => navigate(`/finance/${v.type === "receipt" ? "receipts" : v.type === "payment" ? "payments" : "journals"}?edit=${v.id}`)}
+                        >
+                          {v.ref_number}
+                        </button>
+                      </td>
                       <td className="py-2.5 px-2 text-xs">{v.date}</td>
                       <td className="py-2.5 px-2 text-xs truncate max-w-[200px]">{v.description}</td>
                       <td className="py-2.5 px-2 font-mono text-xs font-medium">₪{formatAmount(Number(v.amount_ils || v.amount || 0))}</td>

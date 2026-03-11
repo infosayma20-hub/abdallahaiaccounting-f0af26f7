@@ -199,9 +199,10 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
       {/* Voucher Drawer */}
       <VoucherDrawer
         open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
+        onClose={() => { setDrawerOpen(false); setEditVoucherId(null); }}
         voucherType={voucherType}
         onSaved={fetchData}
+        editVoucherId={editVoucherId}
       />
     </div>
   );

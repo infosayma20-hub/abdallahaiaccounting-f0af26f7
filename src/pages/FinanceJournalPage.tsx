@@ -333,7 +333,14 @@ const FinanceJournalPage = () => {
                 <TableBody>
                   {filtered.map(v => (
                     <TableRow key={v.id}>
-                      <TableCell className="text-xs font-medium">{v.ref_number}</TableCell>
+                      <TableCell className="text-xs font-medium">
+                        <button
+                          className="text-primary hover:underline font-mono cursor-pointer bg-transparent border-none p-0"
+                          onClick={() => openVoucherForEdit(v.id)}
+                        >
+                          {v.ref_number}
+                        </button>
+                      </TableCell>
                       <TableCell className="text-xs">{v.date}</TableCell>
                       <TableCell><Badge variant="secondary" className="text-[10px]">{subtypeLabels[v.subtype] || "عادي"}</Badge></TableCell>
                       <TableCell className="text-xs truncate max-w-[250px]">{v.description}</TableCell>
