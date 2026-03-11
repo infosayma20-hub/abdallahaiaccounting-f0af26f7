@@ -358,6 +358,7 @@ const POSPage = () => {
   const [closingCash, setClosingCash] = useState("");
   const [cashBoxes, setCashBoxes] = useState<{ id: string; name: string; type: string }[]>([]);
   const [selectedCashBoxId, setSelectedCashBoxId] = useState<string>("");
+  const [rememberCashBox, setRememberCashBox] = useState(false);
 
   // New product form
   const PRESET_COLORS = [
@@ -598,6 +599,7 @@ const POSPage = () => {
           const savedBoxId = localStorage.getItem(`pos_default_cash_box_${dataOwnerId}`);
           if (savedBoxId && boxes?.some(b => b.id === savedBoxId)) {
             setSelectedCashBoxId(savedBoxId);
+            setRememberCashBox(true);
           } else if (boxes && boxes.length === 1) {
             setSelectedCashBoxId(boxes[0].id);
           }
@@ -1145,9 +1147,11 @@ const POSPage = () => {
       return;
     }
 
-    // Save device binding
-    if (selectedCashBoxId) {
+    // Save/remove device binding
+    if (rememberCashBox && selectedCashBoxId) {
       localStorage.setItem(`pos_default_cash_box_${dataOwnerId}`, selectedCashBoxId);
+    } else {
+      localStorage.removeItem(`pos_default_cash_box_${dataOwnerId}`);
     }
 
     setSession({
@@ -2873,22 +2877,15 @@ const POSPage = () => {
                     <option key={box.id} value={box.id}>{box.name}</option>
                   ))}
                 </select>
-                <div className="flex items-center gap-2 mt-2">
+                <label className="flex items-center gap-2 mt-2 cursor-pointer">
                   <input
                     type="checkbox"
-                    id="remember-box"
-                    checked={!!selectedCashBoxId && localStorage.getItem(`pos_default_cash_box_${dataOwnerId}`) === selectedCashBoxId}
-                    onChange={(e) => {
-                      if (e.target.checked && selectedCashBoxId) {
-                        localStorage.setItem(`pos_default_cash_box_${dataOwnerId}`, selectedCashBoxId);
-                      } else {
-                        localStorage.removeItem(`pos_default_cash_box_${dataOwnerId}`);
-                      }
-                    }}
+                    checked={rememberCashBox}
+                    onChange={(e) => setRememberCashBox(e.target.checked)}
                     className="rounded border-input"
                   />
-                  <label htmlFor="remember-box" className="text-xs text-muted-foreground">تذكر هذا الصندوق لهذا الجهاز</label>
-                </div>
+                  <span className="text-xs text-muted-foreground">تذكر هذا الصندوق لهذا الجهاز</span>
+                </label>
               </div>
             )}
             {cashBoxes.length === 0 && (
