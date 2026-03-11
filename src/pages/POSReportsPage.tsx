@@ -219,7 +219,7 @@ const POSReportsPage = () => {
           </div>
         ) : (
           <div className="mt-0">
-            {activeTab === "sales" && <POSSalesReport dailySales={data.dailySales} />}
+            {activeTab === "sales" && <POSSalesReport dailySales={data.dailySales} orders={[...data.paidOrders, ...data.returnOrders]} onRefetch={data.refetch} />}
             {activeTab === "products" && <POSProductsReport topProducts={data.topProducts} totalRevenue={data.totalSales} />}
             {activeTab === "payments" && <POSPaymentsReport paymentBreakdown={data.paymentBreakdown} totalSales={data.totalSales} paidOrders={data.paidOrders} />}
             {activeTab === "cashier" && <POSCashierReport cashierPerformance={data.cashierPerformance} />}

@@ -151,11 +151,8 @@ export default function InvoiceHistoryDrawer({
 
       if (sessionId) {
         query = query.eq("session_id", sessionId);
-      } else {
-        setOrders([]);
-        setLoading(false);
-        return;
       }
+      // When no sessionId, show all orders (not limited to session)
 
       query = query.order("created_at", { ascending: false }).limit(200) as any;
 
@@ -450,7 +447,7 @@ export default function InvoiceHistoryDrawer({
         <div className="px-5 py-3 border-b space-y-2.5" style={{ borderColor: "#E2E8F0" }}>
           <div className="flex items-center gap-2 text-xs font-medium" style={{ fontFamily: "Tajawal, sans-serif", color: "#64748B" }}>
             <ShoppingCart className="h-3.5 w-3.5" />
-            <span>فواتير الوردية الحالية</span>
+            <span>{sessionId ? "فواتير الوردية الحالية" : "جميع الفواتير"}</span>
           </div>
 
           {/* Status filter */}
