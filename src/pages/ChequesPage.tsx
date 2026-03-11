@@ -444,6 +444,53 @@ const ChequesPage = () => {
                   <Input className="h-9 rounded-xl" value={newCheque.bank_name} onChange={e => setNewCheque(p => ({ ...p, bank_name: e.target.value }))} placeholder="اختياري" />
                 </div>
               </div>
+              {/* حساب محاسبي */}
+              <div>
+                <Label className="text-xs">الحساب المحاسبي</Label>
+                <Popover open={accountPopoverOpen} onOpenChange={setAccountPopoverOpen}>
+                  <PopoverTrigger asChild>
+                    <Input
+                      className="h-9 rounded-xl"
+                      value={accountSearch || (newCheque.linked_account ? (() => {
+                        const acc = accounts.find(a => a.account_code === newCheque.linked_account);
+                        return acc ? `${acc.account_code} - ${acc.account_name}` : newCheque.linked_account;
+                      })() : '')}
+                      onChange={e => {
+                        setAccountSearch(e.target.value);
+                        if (!e.target.value) setNewCheque(p => ({ ...p, linked_account: '' }));
+                        setAccountPopoverOpen(true);
+                      }}
+                      onFocus={() => setAccountPopoverOpen(true)}
+                      placeholder="ابحث عن حساب من الشجرة"
+                    />
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[--radix-popover-trigger-width] p-1 rounded-xl max-h-48 overflow-y-auto" align="start" sideOffset={4}>
+                    {(() => {
+                      const filtered = accounts.filter(a =>
+                        !accountSearch ||
+                        a.account_code.includes(accountSearch) ||
+                        a.account_name.includes(accountSearch)
+                      ).slice(0, 20);
+                      return filtered.length > 0 ? filtered.map(a => (
+                        <button
+                          key={a.account_code}
+                          className="w-full text-right px-3 py-2 text-sm rounded-lg hover:bg-muted transition-colors flex items-center justify-between"
+                          onClick={() => {
+                            setNewCheque(p => ({ ...p, linked_account: a.account_code }));
+                            setAccountSearch('');
+                            setAccountPopoverOpen(false);
+                          }}
+                        >
+                          <span>{a.account_name}</span>
+                          <span className="text-xs text-muted-foreground font-mono">{a.account_code}</span>
+                        </button>
+                      )) : (
+                        <p className="text-xs text-muted-foreground text-center py-2">لا توجد نتائج</p>
+                      );
+                    })()}
+                  </PopoverContent>
+                </Popover>
+              </div>
               <div>
                 <Label className="text-xs">ملاحظات</Label>
                 <Input className="h-9 rounded-xl" value={newCheque.notes} onChange={e => setNewCheque(p => ({ ...p, notes: e.target.value }))} placeholder="اختياري" />
