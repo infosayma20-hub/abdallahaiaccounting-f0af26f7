@@ -60,6 +60,7 @@ const FinanceJournalPage = () => {
   const [quickType, setQuickType] = useState("customer");
   const [quickPhone, setQuickPhone] = useState("");
   const [quickSaving, setQuickSaving] = useState(false);
+  const [accountSearches, setAccountSearches] = useState<Record<string, string>>({});
 
   const fetchData = useCallback(async () => {
     if (!user) return;
