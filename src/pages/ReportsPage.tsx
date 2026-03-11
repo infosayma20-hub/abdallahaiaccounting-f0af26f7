@@ -176,7 +176,7 @@ const saveFavorites = (favs: string[]) => localStorage.setItem(FAVORITES_KEY, JS
 const ReportsPage = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(["financial"]));
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const [favorites, setFavorites] = useState<string[]>(loadFavorites);
 
   const toggleSection = (id: string) => {
