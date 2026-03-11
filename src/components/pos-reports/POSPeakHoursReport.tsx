@@ -35,26 +35,27 @@ const POSPeakHoursReport = ({ peakHoursData }: Props) => {
     };
   }, [peakHoursData]);
 
+  // Gold-based heatmap using FINIX brand colors
   const getColor = (value: number) => {
-    if (value === 0) return "#F1F5F9";
+    if (value === 0) return "hsl(var(--secondary))";
     const ratio = value / maxVal;
-    if (ratio > 0.7) return "#0070F2";
-    if (ratio > 0.4) return "#4299E1";
-    if (ratio > 0.15) return "#90CDF4";
-    return "#BEE3F8";
+    if (ratio > 0.7) return "#E8A020";    // Gold (peak)
+    if (ratio > 0.4) return "#F59E0B";    // Amber
+    if (ratio > 0.15) return "#FCD34D";   // Light amber
+    return "#FEF3C7";                      // Very light amber
   };
 
   const getTextColor = (value: number) => {
-    if (value === 0) return "#94A3B8";
+    if (value === 0) return "hsl(var(--muted-foreground))";
     const ratio = value / maxVal;
-    return ratio > 0.4 ? "white" : "#1A2332";
+    return ratio > 0.4 ? "white" : "hsl(var(--foreground))";
   };
 
   return (
     <div className="space-y-4">
-      <div className="bg-white border border-[#E2E8F0] rounded-lg overflow-hidden">
-        <div className="px-4 py-3 border-b border-[#E2E8F0]">
-          <h3 className="text-sm font-semibold text-[#1A2332]">خريطة أوقات الذروة</h3>
+      <div className="bg-card border border-border rounded-lg overflow-hidden">
+        <div className="px-4 py-3 border-b border-border">
+          <h3 className="text-sm font-semibold text-foreground">خريطة أوقات الذروة</h3>
         </div>
         <div className="p-4">
           <div className="overflow-x-auto">
@@ -62,12 +63,12 @@ const POSPeakHoursReport = ({ peakHoursData }: Props) => {
               <div className="flex gap-1 mb-1">
                 <div className="w-14 shrink-0" />
                 {HOURS.map(h => (
-                  <div key={h} className="flex-1 text-center text-[10px] text-[#637381] font-mono">{h}</div>
+                  <div key={h} className="flex-1 text-center text-[10px] text-muted-foreground font-mono">{h}</div>
                 ))}
               </div>
               {DAYS.map((day, dayIdx) => (
                 <div key={day} className="flex gap-1 mb-1">
-                  <div className="w-14 shrink-0 text-xs text-[#637381] flex items-center">{day}</div>
+                  <div className="w-14 shrink-0 text-xs text-muted-foreground flex items-center">{day}</div>
                   {HOURS.map(hour => {
                     const val = peakHoursData[`${dayIdx}-${hour}`] || 0;
                     return (
@@ -84,11 +85,11 @@ const POSPeakHoursReport = ({ peakHoursData }: Props) => {
                 </div>
               ))}
               {/* Legend */}
-              <div className="flex items-center gap-4 mt-4 text-[10px] text-[#637381] justify-center">
-                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded inline-block" style={{ background: "#0070F2" }} /> ذروة</span>
-                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded inline-block" style={{ background: "#4299E1" }} /> نشط</span>
-                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded inline-block" style={{ background: "#90CDF4" }} /> متوسط</span>
-                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded inline-block" style={{ background: "#BEE3F8" }} /> هادئ</span>
+              <div className="flex items-center gap-4 mt-4 text-[10px] text-muted-foreground justify-center">
+                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded inline-block" style={{ background: "#E8A020" }} /> ذروة</span>
+                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded inline-block" style={{ background: "#F59E0B" }} /> نشط</span>
+                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded inline-block" style={{ background: "#FCD34D" }} /> متوسط</span>
+                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded inline-block" style={{ background: "#FEF3C7" }} /> هادئ</span>
               </div>
             </div>
           </div>
@@ -96,20 +97,20 @@ const POSPeakHoursReport = ({ peakHoursData }: Props) => {
       </div>
 
       {insights.length > 0 && (
-        <div className="bg-white border border-[#E2E8F0] rounded-lg overflow-hidden">
-          <div className="px-4 py-3 border-b border-[#E2E8F0] flex items-center gap-2">
-            <Lightbulb className="w-4 h-4 text-[#0070F2]" />
-            <h3 className="text-sm font-semibold text-[#1A2332]">توصيات</h3>
+        <div className="bg-card border border-border rounded-lg overflow-hidden">
+          <div className="px-4 py-3 border-b border-border flex items-center gap-2">
+            <Lightbulb className="w-4 h-4 text-accent" />
+            <h3 className="text-sm font-semibold text-foreground">توصيات</h3>
           </div>
           <div className="p-4 space-y-2">
             {insights.map((insight, i) => (
-              <p key={i} className="text-sm text-[#637381] flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#0070F2] shrink-0" />
+              <p key={i} className="text-sm text-muted-foreground flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-accent shrink-0" />
                 {insight}
               </p>
             ))}
-            <p className="text-sm text-[#637381] flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#0070F2] shrink-0" />
+            <p className="text-sm text-muted-foreground flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-accent shrink-0" />
               اقتراح: فعّل عروض خاصة في الأوقات الهادئة لزيادة الحركة
             </p>
           </div>

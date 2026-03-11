@@ -89,7 +89,7 @@ export default function POSShiftsReport({ sessions, onRefresh }: Props) {
 
   if (sorted.length === 0) {
     return (
-      <div className="bg-white border border-[#E2E8F0] rounded-lg py-16 text-center text-[#637381]">
+      <div className="bg-card border border-border rounded-lg py-16 text-center text-muted-foreground">
         <p>لا توجد ورديات في الفترة المحددة</p>
       </div>
     );
@@ -99,27 +99,27 @@ export default function POSShiftsReport({ sessions, onRefresh }: Props) {
     <div className="space-y-4">
       {/* Summary KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white border border-[#E2E8F0] rounded-lg p-4">
-          <p className="text-xs font-medium text-[#637381] uppercase tracking-wider">إجمالي الورديات</p>
-          <p className="text-2xl font-bold text-[#1A2332] mt-2 font-mono">{stats.total}</p>
+        <div className="bg-card border border-border rounded-lg p-4">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">إجمالي الورديات</p>
+          <p className="text-2xl font-bold text-foreground mt-2 font-mono">{stats.total}</p>
           <div className="flex gap-2 mt-1">
-            {stats.open > 0 && <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#FFFBEB] text-[#D97706] border border-[#FDE68A]">{stats.open} مفتوحة</span>}
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#F8F9FA] text-[#637381] border border-[#E2E8F0]">{stats.closed} مغلقة</span>
+            {stats.open > 0 && <span className="text-[10px] px-1.5 py-0.5 rounded bg-warning/10 text-warning border border-warning/20">{stats.open} مفتوحة</span>}
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-secondary text-muted-foreground border border-border">{stats.closed} مغلقة</span>
           </div>
         </div>
-        <div className="bg-white border border-[#E2E8F0] rounded-lg p-4">
-          <p className="text-xs font-medium text-[#637381] uppercase tracking-wider">متوسط مدة الوردية</p>
-          <p className="text-2xl font-bold text-[#1A2332] mt-2 font-mono">
-            {stats.avgDuration.toFixed(1)}<span className="text-sm text-[#637381] mr-1">ساعة</span>
+        <div className="bg-card border border-border rounded-lg p-4">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">متوسط مدة الوردية</p>
+          <p className="text-2xl font-bold text-foreground mt-2 font-mono">
+            {stats.avgDuration.toFixed(1)}<span className="text-sm text-muted-foreground mr-1">ساعة</span>
           </p>
         </div>
-        <div className="bg-white border border-[#E2E8F0] rounded-lg p-4">
-          <p className="text-xs font-medium text-[#637381] uppercase tracking-wider">ورديات بعجز</p>
-          <p className="text-2xl font-bold text-[#C53030] mt-2 font-mono">{stats.deficits}</p>
+        <div className="bg-card border border-border rounded-lg p-4">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">ورديات بعجز</p>
+          <p className="text-2xl font-bold text-destructive mt-2 font-mono">{stats.deficits}</p>
         </div>
-        <div className="bg-white border border-[#E2E8F0] rounded-lg p-4">
-          <p className="text-xs font-medium text-[#637381] uppercase tracking-wider">صافي الفروقات</p>
-          <p className={`text-2xl font-bold mt-2 font-mono ${stats.totalVariance < 0 ? "text-[#C53030]" : stats.totalVariance > 0 ? "text-[#188038]" : "text-[#637381]"}`}>
+        <div className="bg-card border border-border rounded-lg p-4">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">صافي الفروقات</p>
+          <p className={`text-2xl font-bold mt-2 font-mono ${stats.totalVariance < 0 ? "text-destructive" : stats.totalVariance > 0 ? "text-success" : "text-muted-foreground"}`}>
             ₪{Math.abs(stats.totalVariance).toFixed(2)}
             {stats.totalVariance !== 0 && <span className="text-xs mr-1 font-normal">{stats.totalVariance > 0 ? "فائض" : "عجز"}</span>}
           </p>
@@ -127,70 +127,70 @@ export default function POSShiftsReport({ sessions, onRefresh }: Props) {
       </div>
 
       {/* Shifts Table */}
-      <div className="bg-white border border-[#E2E8F0] rounded-lg overflow-hidden">
-        <div className="px-4 py-3 border-b border-[#E2E8F0]">
-          <h3 className="text-sm font-semibold text-[#1A2332]">سجل الورديات</h3>
+      <div className="bg-card border border-border rounded-lg overflow-hidden">
+        <div className="px-4 py-3 border-b border-border">
+          <h3 className="text-sm font-semibold text-foreground">سجل الورديات</h3>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="bg-[#F8F9FA] border-b border-[#E2E8F0]">
-                <th className="text-right px-3 py-2.5 text-xs font-semibold text-[#637381] uppercase tracking-wider">الكاشير</th>
-                <th className="text-right px-3 py-2.5 text-xs font-semibold text-[#637381] uppercase tracking-wider">تاريخ الفتح</th>
-                <th className="text-right px-3 py-2.5 text-xs font-semibold text-[#637381] uppercase tracking-wider">وقت الفتح</th>
-                <th className="text-right px-3 py-2.5 text-xs font-semibold text-[#637381] uppercase tracking-wider">وقت الإغلاق</th>
-                <th className="text-right px-3 py-2.5 text-xs font-semibold text-[#637381] uppercase tracking-wider">المدة</th>
-                <th className="text-left px-3 py-2.5 text-xs font-semibold text-[#637381] uppercase tracking-wider">رصيد الفتح</th>
-                <th className="text-left px-3 py-2.5 text-xs font-semibold text-[#637381] uppercase tracking-wider">رصيد الإغلاق</th>
-                <th className="text-left px-3 py-2.5 text-xs font-semibold text-[#637381] uppercase tracking-wider">المتوقع</th>
-                <th className="text-left px-3 py-2.5 text-xs font-semibold text-[#637381] uppercase tracking-wider">الفرق</th>
-                <th className="text-left px-3 py-2.5 text-xs font-semibold text-[#637381] uppercase tracking-wider">المبيعات</th>
-                <th className="text-left px-3 py-2.5 text-xs font-semibold text-[#637381] uppercase tracking-wider">الطلبات</th>
-                <th className="text-center px-3 py-2.5 text-xs font-semibold text-[#637381] uppercase tracking-wider">تحكم</th>
+              <tr className="bg-secondary border-b border-border">
+                <th className="text-right px-3 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">الكاشير</th>
+                <th className="text-right px-3 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">تاريخ الفتح</th>
+                <th className="text-right px-3 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">وقت الفتح</th>
+                <th className="text-right px-3 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">وقت الإغلاق</th>
+                <th className="text-right px-3 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">المدة</th>
+                <th className="text-left px-3 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">رصيد الفتح</th>
+                <th className="text-left px-3 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">رصيد الإغلاق</th>
+                <th className="text-left px-3 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">المتوقع</th>
+                <th className="text-left px-3 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">الفرق</th>
+                <th className="text-left px-3 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">المبيعات</th>
+                <th className="text-left px-3 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">الطلبات</th>
+                <th className="text-center px-3 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">تحكم</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#F1F5F9]">
+            <tbody className="divide-y divide-secondary">
               {sorted.map((s) => {
                 const variance = s.cash_variance ?? 0;
                 return (
-                  <tr key={s.id} className="hover:bg-[#F8F9FA] transition-colors">
-                    <td className="px-3 py-3 text-sm text-[#1A2332] font-medium">{s.cashier_name || "—"}</td>
-                    <td className="px-3 py-3 text-sm text-[#637381] font-mono">{format(new Date(s.opened_at), "dd/MM/yyyy")}</td>
-                    <td className="px-3 py-3 text-sm font-mono text-[#637381]">{format(new Date(s.opened_at), "hh:mm a", { locale: ar })}</td>
+                  <tr key={s.id} className="hover:bg-secondary transition-colors">
+                    <td className="px-3 py-3 text-sm text-foreground font-medium">{s.cashier_name || "—"}</td>
+                    <td className="px-3 py-3 text-sm text-muted-foreground font-mono">{format(new Date(s.opened_at), "dd/MM/yyyy")}</td>
+                    <td className="px-3 py-3 text-sm font-mono text-muted-foreground">{format(new Date(s.opened_at), "hh:mm a", { locale: ar })}</td>
                     <td className="px-3 py-3 text-sm font-mono">
                       {s.closed_at
-                        ? <span className="text-[#637381]">{format(new Date(s.closed_at), "hh:mm a", { locale: ar })}</span>
-                        : <span className="text-[#D97706] text-xs font-medium">مفتوحة</span>
+                        ? <span className="text-muted-foreground">{format(new Date(s.closed_at), "hh:mm a", { locale: ar })}</span>
+                        : <span className="text-warning text-xs font-medium">مفتوحة</span>
                       }
                     </td>
-                    <td className="px-3 py-3 text-sm font-mono text-[#637381]">{formatDuration(s.opened_at, s.closed_at)}</td>
-                    <td className="px-3 py-3 text-sm font-mono text-[#637381] text-left">₪{s.opening_cash.toFixed(2)}</td>
-                    <td className="px-3 py-3 text-sm font-mono text-[#637381] text-left">{s.closing_cash != null ? `₪${s.closing_cash.toFixed(2)}` : "—"}</td>
-                    <td className="px-3 py-3 text-sm font-mono text-[#637381] text-left">{s.expected_cash != null ? `₪${s.expected_cash.toFixed(2)}` : "—"}</td>
+                    <td className="px-3 py-3 text-sm font-mono text-muted-foreground">{formatDuration(s.opened_at, s.closed_at)}</td>
+                    <td className="px-3 py-3 text-sm font-mono text-muted-foreground text-left">₪{s.opening_cash.toFixed(2)}</td>
+                    <td className="px-3 py-3 text-sm font-mono text-muted-foreground text-left">{s.closing_cash != null ? `₪${s.closing_cash.toFixed(2)}` : "—"}</td>
+                    <td className="px-3 py-3 text-sm font-mono text-muted-foreground text-left">{s.expected_cash != null ? `₪${s.expected_cash.toFixed(2)}` : "—"}</td>
                     <td className="px-3 py-3 text-sm font-mono text-left">
                       {s.state === "closed" ? (
                         <span className={`inline-flex items-center gap-1 font-bold ${
-                          variance < 0 ? "text-[#C53030]" : variance > 0 ? "text-[#188038]" : "text-[#637381]"
+                          variance < 0 ? "text-destructive" : variance > 0 ? "text-success" : "text-muted-foreground"
                         }`}>
                           {variance < 0 ? <TrendingDown className="h-3 w-3" /> : variance > 0 ? <TrendingUp className="h-3 w-3" /> : null}
                           {variance < 0 ? `(₪${Math.abs(variance).toFixed(2)})` : `₪${variance.toFixed(2)}`}
                         </span>
                       ) : "—"}
                     </td>
-                    <td className="px-3 py-3 text-sm font-mono font-medium text-[#1A2332] text-left">₪{s.total_sales.toFixed(2)}</td>
-                    <td className="px-3 py-3 text-sm font-mono text-[#637381] text-left">{s.total_orders}</td>
+                    <td className="px-3 py-3 text-sm font-mono font-medium text-foreground text-left">₪{s.total_sales.toFixed(2)}</td>
+                    <td className="px-3 py-3 text-sm font-mono text-muted-foreground text-left">{s.total_orders}</td>
                     <td className="px-3 py-3 text-center">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="icon" className="h-7 w-7">
-                            <MoreVertical className="h-4 w-4 text-[#637381]" />
+                            <MoreVertical className="h-4 w-4 text-muted-foreground" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem onClick={() => setConfirmAction({ type: "clear", session: s })}>
                             <Eraser className="h-4 w-4 ml-2" /> إفراغ البيانات
                           </DropdownMenuItem>
-                          <DropdownMenuItem className="text-[#C53030]" onClick={() => setConfirmAction({ type: "delete", session: s })}>
+                          <DropdownMenuItem className="text-destructive" onClick={() => setConfirmAction({ type: "delete", session: s })}>
                             <Trash2 className="h-4 w-4 ml-2" /> حذف الوردية
                           </DropdownMenuItem>
                         </DropdownMenuContent>
@@ -222,7 +222,7 @@ export default function POSShiftsReport({ sessions, onRefresh }: Props) {
             <AlertDialogCancel disabled={actionLoading}>إلغاء</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleAction} disabled={actionLoading}
-              className={confirmAction?.type === "delete" ? "bg-[#C53030] text-white hover:bg-[#9B2C2C]" : ""}
+              className={confirmAction?.type === "delete" ? "bg-destructive text-destructive-foreground hover:bg-destructive/90" : ""}
             >
               {actionLoading ? "جارٍ التنفيذ..." : confirmAction?.type === "clear" ? "إفراغ" : "حذف"}
             </AlertDialogAction>
