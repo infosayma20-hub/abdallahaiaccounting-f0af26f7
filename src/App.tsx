@@ -96,6 +96,9 @@ import FinanceJournalPage from "./pages/FinanceJournalPage";
 import BankAccountsPage from "./pages/BankAccountsPage";
 import CashBoxesPage from "./pages/CashBoxesPage";
 import CashTransferPage from "./pages/CashTransferPage";
+import MalakiLogin from "./pages/malaki/MalakiLogin";
+import MalakiPortal from "./pages/malaki/MalakiPortal";
+import MalakiSettings from "./pages/malaki/MalakiSettings";
 
 const queryClient = new QueryClient();
 
