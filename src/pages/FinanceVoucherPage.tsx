@@ -168,7 +168,14 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
                     const contact = contacts.find(c => c.id === v.contact_id);
                     return (
                       <TableRow key={v.id}>
-                        <TableCell className="text-xs font-medium">{v.ref_number}</TableCell>
+                        <TableCell className="text-xs font-medium">
+                          <button
+                            className="text-primary hover:underline font-mono cursor-pointer bg-transparent border-none p-0"
+                            onClick={() => { setEditVoucherId(v.id); setDrawerOpen(true); }}
+                          >
+                            {v.ref_number}
+                          </button>
+                        </TableCell>
                         <TableCell className="text-xs">{v.date}</TableCell>
                         <TableCell className="text-xs">{contact?.contact_name || "—"}</TableCell>
                         <TableCell className="text-xs truncate max-w-[200px]">{v.description}</TableCell>
