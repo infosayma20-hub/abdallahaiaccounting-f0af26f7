@@ -1,6 +1,7 @@
 import { RefreshCw, Settings2, Clock, Eye, EyeOff } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import BackButton from "@/components/BackButton";
+import { FinixLogo } from "@/components/ui/FinixLogo";
 import type { PeriodType } from "@/hooks/useDashboardData";
 
 interface Props {
@@ -28,16 +29,48 @@ export default function DashboardHeader({ companyName, period, onPeriodChange, l
 
   return (
     <div
-      className="col-span-12 rounded-2xl px-5 py-3 md:px-6 md:py-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3 bg-card border border-border shadow-soft"
+      className="col-span-12 rounded-2xl px-5 py-3 md:px-6 md:py-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3 bg-card border border-border shadow-soft relative overflow-hidden"
     >
+      {/* Subtle animated gradient shimmer */}
+      <div
+        className="absolute inset-0 pointer-events-none opacity-[0.04]"
+        style={{
+          background: "linear-gradient(120deg, transparent 30%, #E8A020 45%, #F45E0C 50%, #E8A020 55%, transparent 70%)",
+          backgroundSize: "300% 100%",
+          animation: "header-shimmer 8s ease-in-out infinite",
+        }}
+      />
+      {/* Subtle gold glow accent at the top-right */}
+      <div
+        className="absolute -top-12 -right-12 w-48 h-48 pointer-events-none opacity-[0.06] rounded-full blur-3xl"
+        style={{
+          background: "radial-gradient(circle, #E8A020 0%, transparent 70%)",
+          animation: "header-glow-pulse 6s ease-in-out infinite",
+        }}
+      />
+
+      <style>{`
+        @keyframes header-shimmer {
+          0%, 100% { background-position: 200% center; }
+          50% { background-position: -200% center; }
+        }
+        @keyframes header-glow-pulse {
+          0%, 100% { opacity: 0.04; transform: scale(1); }
+          50% { opacity: 0.1; transform: scale(1.15); }
+        }
+      `}</style>
+
       {/* Left */}
-      <div className="space-y-1.5">
+      <div className="space-y-1.5 relative z-10">
         <div className="flex items-center gap-3">
           <BackButton />
           <div className="space-y-1">
-            <h1 className="text-lg md:text-xl font-extrabold text-foreground" style={{ fontFamily: "Tajawal, sans-serif" }}>
-              {companyName || "شركتي"}
-            </h1>
+            <div className="flex items-center gap-2.5">
+              <h1 className="text-lg md:text-xl font-extrabold text-foreground" style={{ fontFamily: "Tajawal, sans-serif" }}>
+                {companyName || "شركتي"}
+              </h1>
+              <FinixLogo variant="icon" size="sm" className="opacity-80" />
+            </div>
             <p className="text-[11px] text-muted-foreground">نظام FINIX — لوحة المعلومات</p>
           </div>
         </div>
@@ -61,7 +94,7 @@ export default function DashboardHeader({ companyName, period, onPeriodChange, l
       </div>
 
       {/* Right */}
-      <div className="flex items-center gap-3 flex-wrap">
+      <div className="flex items-center gap-3 flex-wrap relative z-10">
         <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
           <Clock className="h-3 w-3" />
           <span>آخر تحديث: {timeLabel}</span>
