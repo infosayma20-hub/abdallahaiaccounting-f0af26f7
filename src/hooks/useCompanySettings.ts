@@ -16,6 +16,7 @@ export interface CompanySettings {
   website: string;
   tax_number: string;
   commercial_register: string;
+  licensed_dealer_number: string;
   // Currency
   base_currency: string;
   extra_currencies: string[];
