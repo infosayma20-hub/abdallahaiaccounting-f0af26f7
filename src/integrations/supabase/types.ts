@@ -3534,6 +3534,90 @@ export type Database = {
           },
         ]
       }
+      malaki_portal_settings: {
+        Row: {
+          branch_daily_targets: Json | null
+          company_name: string | null
+          exchange_rate_jod: number | null
+          exchange_rate_usd: number | null
+          id: string
+          linked_user_id: string | null
+          logo_url: string | null
+          rates_updated_at: string | null
+          rates_updated_by: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          branch_daily_targets?: Json | null
+          company_name?: string | null
+          exchange_rate_jod?: number | null
+          exchange_rate_usd?: number | null
+          id?: string
+          linked_user_id?: string | null
+          logo_url?: string | null
+          rates_updated_at?: string | null
+          rates_updated_by?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          branch_daily_targets?: Json | null
+          company_name?: string | null
+          exchange_rate_jod?: number | null
+          exchange_rate_usd?: number | null
+          id?: string
+          linked_user_id?: string | null
+          logo_url?: string | null
+          rates_updated_at?: string | null
+          rates_updated_by?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      malaki_portal_users: {
+        Row: {
+          allowed_branch_ids: string[] | null
+          can_see_all_branches: boolean | null
+          can_see_liquidity: boolean | null
+          can_see_sales: boolean | null
+          created_at: string | null
+          full_name: string
+          id: string
+          is_active: boolean | null
+          last_login: string | null
+          password_hash: string
+          role: string | null
+          username: string
+        }
+        Insert: {
+          allowed_branch_ids?: string[] | null
+          can_see_all_branches?: boolean | null
+          can_see_liquidity?: boolean | null
+          can_see_sales?: boolean | null
+          created_at?: string | null
+          full_name: string
+          id?: string
+          is_active?: boolean | null
+          last_login?: string | null
+          password_hash: string
+          role?: string | null
+          username: string
+        }
+        Update: {
+          allowed_branch_ids?: string[] | null
+          can_see_all_branches?: boolean | null
+          can_see_liquidity?: boolean | null
+          can_see_sales?: boolean | null
+          created_at?: string | null
+          full_name?: string
+          id?: string
+          is_active?: boolean | null
+          last_login?: string | null
+          password_hash?: string
+          role?: string | null
+          username?: string
+        }
+        Relationships: []
+      }
       modifier_groups: {
         Row: {
           created_at: string | null
@@ -7296,6 +7380,7 @@ export type Database = {
         }
         Returns: Json
       }
+      get_cash_box_balance: { Args: { p_box_id: string }; Returns: number }
       get_exchange_rate: {
         Args: { p_currency_code: string; p_date?: string; p_rate_type?: string }
         Returns: number
@@ -7323,6 +7408,22 @@ export type Database = {
         }
         Returns: undefined
       }
+      malaki_create_user: {
+        Args: {
+          p_can_see_all_branches?: boolean
+          p_can_see_liquidity?: boolean
+          p_can_see_sales?: boolean
+          p_full_name: string
+          p_password: string
+          p_role?: string
+          p_username: string
+        }
+        Returns: Json
+      }
+      malaki_set_password: {
+        Args: { p_new_password: string; p_user_id: string }
+        Returns: boolean
+      }
       reject_procurement_request: {
         Args: { p_reason?: string; p_rejected_by: string; p_request_id: string }
         Returns: Json
@@ -7331,6 +7432,10 @@ export type Database = {
       user_can_access: {
         Args: { _module: string; _user_id: string }
         Returns: boolean
+      }
+      verify_malaki_login: {
+        Args: { p_password: string; p_username: string }
+        Returns: Json
       }
     }
     Enums: {
