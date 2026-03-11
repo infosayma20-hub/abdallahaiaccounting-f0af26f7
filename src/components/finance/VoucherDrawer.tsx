@@ -210,10 +210,10 @@ const VoucherDrawer = ({ open, onClose, voucherType, onSaved }: VoucherDrawerPro
         case "cheque": debitCode = selectedBank?.incoming_checks_account_code || "1150"; break;
         case "transfer": debitCode = formTransferAccountCode || "1120"; break;
       }
-      creditCode = selectedContact?.contact_type === "supplier" ? "2100" : selectedContact?.contact_type === "employee" ? "1180" : "1130";
+      creditCode = isSupplier(selectedContact || {}) ? "2100" : isEmployee(selectedContact || {}) ? "1180" : "1130";
     } else {
       // Payment: Dr = contact account, Cr = payment account
-      debitCode = selectedContact?.contact_type === "customer" ? "1130" : selectedContact?.contact_type === "employee" ? "1180" : "2100";
+      debitCode = isCustomer(selectedContact || {}) ? "1130" : isEmployee(selectedContact || {}) ? "1180" : "2100";
       switch (formPaymentMethod) {
         case "cash": creditCode = formCashAccountCode || "1110"; break;
         case "bank": creditCode = selectedBank?.gl_account_code || "1120"; break;
