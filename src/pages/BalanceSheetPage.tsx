@@ -1,14 +1,19 @@
 import { useState, useEffect, useMemo } from "react";
-import { Loader2, Landmark, Printer, ChevronDown, ChevronRight } from "lucide-react";
+import { Loader2, Landmark, ChevronDown, ChevronRight, Calendar, FileSpreadsheet, Download, Printer, BarChart3, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { ReportHeader, ReportSummary, exportToExcel } from "@/components/ReportComponents";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ReportSummary, exportToExcel } from "@/components/ReportComponents";
 import { generateProfessionalPDFHtml, openPrintWindow, useCompanyInfo } from "@/components/ReportPrintLayout";
 import {
   fetchTransactions, fetchAccounts, buildAccountMap, normalizeAccountType,
   SupabaseTransaction, SupabaseAccount, buildAccountTree, flattenAccountTree, FlatAccountLine,
 } from "@/lib/supabase-data";
+import { format, endOfMonth, startOfMonth, subMonths, startOfYear, endOfYear, startOfWeek, endOfWeek, subDays } from "date-fns";
 
 const LEVEL_OPTIONS = [
   { value: 1, label: "المستوى 1 — الفئات الرئيسية" },
@@ -17,17 +22,31 @@ const LEVEL_OPTIONS = [
   { value: 4, label: "المستوى 4 — التفاصيل الكاملة" },
 ];
 
-const getSubcategory = (code: string, type: string): string => {
-  const num = parseInt(code);
-  if (type === "Asset") {
-    if (num >= 1100 && num < 1200) return "أصول متداولة";
-    return "أصول غير متداولة";
+const quickPeriods = [
+  { key: "today", label: "اليوم" },
+  { key: "yesterday", label: "أمس" },
+  { key: "this-week", label: "الأسبوع" },
+  { key: "this-month", label: "الشهر" },
+  { key: "last-month", label: "الشهر الماضي" },
+  { key: "this-quarter", label: "الربع" },
+  { key: "this-year", label: "السنة" },
+];
+
+const getQuickPeriodDate = (key: string): string => {
+  const now = new Date();
+  switch (key) {
+    case "today": return format(now, "yyyy-MM-dd");
+    case "yesterday": return format(subDays(now, 1), "yyyy-MM-dd");
+    case "this-week": return format(endOfWeek(now, { weekStartsOn: 0 }), "yyyy-MM-dd");
+    case "this-month": return format(endOfMonth(now), "yyyy-MM-dd");
+    case "last-month": return format(endOfMonth(subMonths(now, 1)), "yyyy-MM-dd");
+    case "this-quarter": {
+      const q = Math.floor(now.getMonth() / 3);
+      return format(endOfMonth(new Date(now.getFullYear(), q * 3 + 2, 1)), "yyyy-MM-dd");
+    }
+    case "this-year": return format(endOfYear(now), "yyyy-MM-dd");
+    default: return format(now, "yyyy-MM-dd");
   }
-  if (type === "Liability") {
-    if (num >= 2100 && num < 2200) return "التزامات متداولة";
-    return "التزامات غير متداولة";
-  }
-  return "حقوق الملكية";
 };
 
 const BalanceSheetPage = () => {
@@ -40,6 +59,9 @@ const BalanceSheetPage = () => {
   const [companyName, setCompanyName] = useState("");
   const [detailLevel, setDetailLevel] = useState(2);
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+  const [asOfDate, setAsOfDate] = useState(() => format(new Date(), "yyyy-MM-dd"));
+  const [activePeriod, setActivePeriod] = useState("this-month");
+  const [showZeroAccounts, setShowZeroAccounts] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -64,11 +86,16 @@ const BalanceSheetPage = () => {
     load();
   }, [user]);
 
+  const handleQuickPeriod = (key: string) => {
+    setActivePeriod(key);
+    setAsOfDate(getQuickPeriodDate(key));
+  };
+
   const accountMap = useMemo(() => buildAccountMap(accounts), [accounts]);
 
   const accountBalances = useMemo(() => {
     const balances: Record<string, number> = {};
-    transactions.filter(tx => !tx.is_deleted).forEach(tx => {
+    transactions.filter(tx => !tx.is_deleted && tx.transaction_date <= asOfDate).forEach(tx => {
       const amount = tx.amount || 0;
       if (tx.debit_account_code) {
         balances[tx.debit_account_code] = (balances[tx.debit_account_code] || 0) + amount;
@@ -78,9 +105,8 @@ const BalanceSheetPage = () => {
       }
     });
     return balances;
-  }, [transactions]);
+  }, [transactions, asOfDate]);
 
-  // Build hierarchical trees for each section
   const { assetTree, liabilityTree, equityTree, totalAssets, totalLiabilities, totalEquity, netProfit } = useMemo(() => {
     const isAsset = (a: SupabaseAccount) => normalizeAccountType(a.account_type || "") === "Asset";
     const isLiability = (a: SupabaseAccount) => normalizeAccountType(a.account_type || "") === "Liability";
@@ -94,14 +120,13 @@ const BalanceSheetPage = () => {
     const totalLiabilities = liabilityTree.reduce((s, n) => s + Math.abs(n.balance), 0);
     const totalEquityAccounts = equityTree.reduce((s, n) => s + Math.abs(n.balance), 0);
 
-    // Compute net profit: Revenue (credit balances, negative in our system) - Purchases/Expenses (debit balances, positive)
     let totalRevenue = 0;
     let totalPurchasesExpenses = 0;
     accounts.forEach(a => {
       const type = normalizeAccountType(a.account_type || "");
       const bal = accountBalances[a.account_code] || 0;
-      if (type === "Revenue") totalRevenue += Math.abs(bal); // credit balances are negative
-      if (type === "Purchases" || type === "Expenses") totalPurchasesExpenses += bal; // debit balances are positive
+      if (type === "Revenue") totalRevenue += Math.abs(bal);
+      if (type === "Purchases" || type === "Expenses") totalPurchasesExpenses += bal;
     });
     const netProfit = totalRevenue - totalPurchasesExpenses;
     const totalEquity = totalEquityAccounts + netProfit;
@@ -109,7 +134,7 @@ const BalanceSheetPage = () => {
     return { assetTree, liabilityTree, equityTree, totalAssets: Math.abs(totalAssets), totalLiabilities, totalEquity, netProfit };
   }, [accounts, accountBalances]);
 
-  const periodLabel = new Date().toLocaleDateString("ar-EG", { year: "numeric", month: "long", day: "numeric" });
+  const periodLabel = new Date(asOfDate).toLocaleDateString("en-US", { year: "numeric", month: "2-digit", day: "2-digit" });
   const isBalanced = Math.abs(totalAssets - (totalLiabilities + totalEquity)) < 1;
 
   const toggleGroup = (key: string) => {
@@ -134,10 +159,6 @@ const BalanceSheetPage = () => {
       });
       rows.push({ "البيان": `إجمالي ${title}`, "الكود": "", "الرصيد": total });
     };
-
-    const assetLines = flattenAccountTree(assetTree, detailLevel).filter(l => l.balance !== 0);
-    const liabLines = flattenAccountTree(liabilityTree, detailLevel).filter(l => l.balance !== 0);
-    const eqLines = flattenAccountTree(equityTree, detailLevel).filter(l => l.balance !== 0);
 
     addSection("الأصول", assetLines, totalAssets);
     addSection("الالتزامات", liabLines, totalLiabilities);
@@ -168,10 +189,6 @@ const BalanceSheetPage = () => {
       tableRows.push([`<strong>إجمالي ${title}</strong>`, "", `<strong>₪${total.toLocaleString()}</strong>`]);
     };
 
-    const assetLines = flattenAccountTree(assetTree, detailLevel).filter(l => l.balance !== 0);
-    const liabLines = flattenAccountTree(liabilityTree, detailLevel).filter(l => l.balance !== 0);
-    const eqLines = flattenAccountTree(equityTree, detailLevel).filter(l => l.balance !== 0);
-
     addSection("الأصول", assetLines, totalAssets);
     addSection("الالتزامات", liabLines, totalLiabilities);
     addSection("حقوق الملكية", eqLines, totalEquity);
@@ -199,7 +216,7 @@ const BalanceSheetPage = () => {
   };
 
   const renderHierarchicalSection = (title: string, lines: FlatAccountLine[], total: number, color: string) => {
-    if (lines.length === 0) return null;
+    if (lines.length === 0 && !showZeroAccounts) return null;
 
     return (
       <div className="space-y-1">
@@ -247,22 +264,80 @@ const BalanceSheetPage = () => {
     );
   };
 
-  // Flatten trees with level filter, excluding zero balances
-  const assetLines = useMemo(() => flattenAccountTree(assetTree, detailLevel).filter(l => l.balance !== 0), [assetTree, detailLevel]);
-  const liabLines = useMemo(() => flattenAccountTree(liabilityTree, detailLevel).filter(l => l.balance !== 0), [liabilityTree, detailLevel]);
-  const eqLines = useMemo(() => flattenAccountTree(equityTree, detailLevel).filter(l => l.balance !== 0), [equityTree, detailLevel]);
+  // Flatten trees with level filter
+  const assetLines = useMemo(() => flattenAccountTree(assetTree, detailLevel).filter(l => showZeroAccounts || l.balance !== 0), [assetTree, detailLevel, showZeroAccounts]);
+  const liabLines = useMemo(() => flattenAccountTree(liabilityTree, detailLevel).filter(l => showZeroAccounts || l.balance !== 0), [liabilityTree, detailLevel, showZeroAccounts]);
+  const eqLines = useMemo(() => flattenAccountTree(equityTree, detailLevel).filter(l => showZeroAccounts || l.balance !== 0), [equityTree, detailLevel, showZeroAccounts]);
 
   return (
     <div className="px-4 pt-6 space-y-5 pb-8" dir="rtl">
-      <ReportHeader
-        reportName="قائمة المركز المالي"
-        companyName={companyName}
-        period={`كما في ${periodLabel}`}
-        onBack={() => navigate(-1)}
-        onExportPDF={!loading ? handleExportPDF : undefined}
-        onExportExcel={!loading ? handleExportExcel : undefined}
-        icon={<Landmark className="h-5 w-5 text-primary" />}
-      />
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <button onClick={() => navigate(-1)} className="p-2 rounded-xl hover:bg-muted transition-colors">
+            <ArrowRight className="h-5 w-5 text-foreground" />
+          </button>
+          <div>
+            <h1 className="text-xl font-bold text-foreground">قائمة المركز المالي</h1>
+            <p className="text-[10px] text-muted-foreground">Balance Sheet</p>
+          </div>
+        </div>
+        <div className="p-2.5 rounded-xl bg-primary/10">
+          <Landmark className="h-5 w-5 text-primary" />
+        </div>
+      </div>
+
+      {/* Controls Card - matching Income Statement */}
+      <Card className="p-4 space-y-3">
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-2">
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+            <span className="text-xs text-muted-foreground">كما في:</span>
+            <Input type="date" value={asOfDate} onChange={e => { setAsOfDate(e.target.value); setActivePeriod("custom"); }} className="w-[160px] h-8 text-xs" />
+          </div>
+        </div>
+        <div className="flex gap-1.5 flex-wrap">
+          {quickPeriods.map(p => (
+            <button key={p.key} onClick={() => handleQuickPeriod(p.key)}
+              className={`px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all ${activePeriod === p.key ? "bg-primary text-primary-foreground shadow-sm" : "bg-muted/60 text-muted-foreground hover:bg-muted"}`}>
+              {p.label}
+            </button>
+          ))}
+        </div>
+        <div className="flex items-center gap-4 flex-wrap text-xs">
+          <label className="flex items-center gap-1.5 cursor-pointer">
+            <Checkbox checked={showZeroAccounts} onCheckedChange={(v) => setShowZeroAccounts(!!v)} />
+            <span className="text-muted-foreground">الحسابات الصفرية</span>
+          </label>
+          <div className="flex items-center gap-1.5 mr-4">
+            <span className="text-muted-foreground text-[10px]">مستوى التفصيل:</span>
+            {[1, 2, 3, 4].map(lv => (
+              <button
+                key={lv}
+                onClick={() => setDetailLevel(lv)}
+                className={`w-6 h-6 rounded text-[10px] font-bold transition-all ${
+                  detailLevel === lv
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "bg-muted/60 text-muted-foreground hover:bg-muted"
+                }`}
+              >
+                {lv}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button variant="outline" size="sm" className="h-7 text-[10px] gap-1" onClick={handleExportExcel} disabled={loading}>
+            <FileSpreadsheet className="h-3 w-3" /> Excel
+          </Button>
+          <Button variant="outline" size="sm" className="h-7 text-[10px] gap-1" onClick={handleExportPDF} disabled={loading}>
+            <Download className="h-3 w-3" /> PDF
+          </Button>
+          <Button variant="outline" size="sm" className="h-7 text-[10px] gap-1" onClick={() => window.print()} disabled={loading}>
+            <Printer className="h-3 w-3" /> طباعة
+          </Button>
+        </div>
+      </Card>
 
       {loading ? (
         <div className="flex items-center justify-center py-16">
@@ -275,29 +350,6 @@ const BalanceSheetPage = () => {
             { label: "إجمالي الالتزامات", value: totalLiabilities, color: "destructive" },
             { label: "حقوق الملكية", value: totalEquity, color: "warning" },
           ]} />
-
-          {/* Level Selector */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs text-muted-foreground font-medium">مستوى التفصيل:</span>
-            <div className="flex gap-1">
-              {LEVEL_OPTIONS.map(opt => (
-                <button
-                  key={opt.value}
-                  onClick={() => setDetailLevel(opt.value)}
-                  className={`px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all ${
-                    detailLevel === opt.value
-                      ? "bg-primary text-primary-foreground shadow-sm"
-                      : "bg-muted/60 text-muted-foreground hover:bg-muted"
-                  }`}
-                >
-                  {opt.value}
-                </button>
-              ))}
-              <span className="text-[10px] text-muted-foreground self-center mr-2">
-                {LEVEL_OPTIONS.find(o => o.value === detailLevel)?.label}
-              </span>
-            </div>
-          </div>
 
           {/* Balance check */}
           <div className={`text-center text-xs py-2 rounded-lg ${isBalanced ? "bg-primary/10 text-primary" : "bg-destructive/10 text-destructive"}`}>
