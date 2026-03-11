@@ -161,6 +161,9 @@ const App = () => (
               <Route path="/receipt/:orderId" element={<DigitalReceiptPage />} />
               <Route path="/survey/:token" element={<SurveyPage />} />
               <Route path="/loading-demo" element={<LoadingDemoPage />} />
+              <Route path="/malaki" element={<MalakiLogin />} />
+              <Route path="/malaki/dashboard" element={<MalakiPortal />} />
+              <Route path="/malaki/settings" element={<MalakiSettings />} />
               <Route path="/onboarding" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
               <Route path="/setup" element={<ProtectedRoute><SetupPage /></ProtectedRoute>} />
               <Route path="/pos" element={<ProtectedRoute><POSPage /></ProtectedRoute>} />
