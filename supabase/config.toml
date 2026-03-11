@@ -44,3 +44,9 @@ verify_jwt = false
 
 [functions.pos-pin-auth]
 verify_jwt = false
+
+[functions.malaki-auth]
+verify_jwt = false
+
+[functions.malaki-data]
+verify_jwt = false
