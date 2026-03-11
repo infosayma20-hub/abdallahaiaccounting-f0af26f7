@@ -766,7 +766,7 @@ const POSPage = () => {
   };
 
   const handleSaveNewProduct = async () => {
-    if (!userId || !dataOwnerId || !isAdmin || !newProduct.name.trim() || savingProduct) return;
+    if (!userId || !dataOwnerId || !(isAdmin || posPerms.manage_products_categories) || !newProduct.name.trim() || savingProduct) return;
     
     let finalCategoryId = newProduct.pos_category_id || null;
     let finalCategoryName = "";
