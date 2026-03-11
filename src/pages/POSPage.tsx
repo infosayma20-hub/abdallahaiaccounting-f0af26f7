@@ -2097,6 +2097,7 @@ const POSPage = () => {
             </span>
           )}
         </button>
+        )}
 
         {/* Shortcuts guide button */}
         <button
