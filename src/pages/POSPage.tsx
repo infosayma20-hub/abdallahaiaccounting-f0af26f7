@@ -599,6 +599,7 @@ const POSPage = () => {
           const savedBoxId = localStorage.getItem(`pos_default_cash_box_${dataOwnerId}`);
           if (savedBoxId && boxes?.some(b => b.id === savedBoxId)) {
             setSelectedCashBoxId(savedBoxId);
+            setRememberCashBox(true);
           } else if (boxes && boxes.length === 1) {
             setSelectedCashBoxId(boxes[0].id);
           }
