@@ -3993,7 +3993,7 @@ const POSPage = () => {
             sessionId={session?.id || null}
             cashierName={session?.cashier_name || ""}
             terminalName={terminal?.name || ""}
-            canEditInvoices={isAdmin || posPerms.can_edit_invoices}
+            canEditInvoices={isAdmin || posPerms.can_edit_invoices || posPerms.edit_cancel_invoices}
             requireManagerForInvoices={!isAdmin && posPerms.require_manager_for_invoices}
             onRecallToCart={(items, invoiceId, orderNumber, reason, approvedBy) => {
               setCart(items);
