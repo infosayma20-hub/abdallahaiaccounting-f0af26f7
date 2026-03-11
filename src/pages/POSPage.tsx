@@ -2840,7 +2840,7 @@ const POSPage = () => {
             {/* Action Buttons */}
             <div className="p-3 pt-0 space-y-2">
               {/* Top row: Kitchen + Save (only when table is selected) */}
-              {activeOrder.tableId && cart.length > 0 && (
+              {cart.length > 0 && (
                 <div className="flex gap-2">
                   <button
                     onClick={handleSendToKitchen}
