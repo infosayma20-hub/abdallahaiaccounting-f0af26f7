@@ -1,0 +1,431 @@
+import type { CompanySettings } from "@/hooks/useCompanySettings";
+
+interface InvoiceItem {
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  discount: number;
+  taxRate: number;
+  subtotal: number;
+}
+
+interface InvoiceData {
+  type: "sales" | "purchase";
+  invoiceNumber: string;
+  date: string;
+  dueDate?: string;
+  contactName: string;
+  items: InvoiceItem[];
+  notes: string;
+  status: string;
+  paymentMethod: string;
+  subtotal: number;
+  totalDiscount: number;
+  totalTax: number;
+  total: number;
+  paidAmount: number;
+  remainingAmount: number;
+  currency: string;
+  chequeDetails?: { number: string; bank: string; dueDate: string };
+}
+
+interface InvoicePrintViewProps {
+  invoice: InvoiceData;
+  settings: CompanySettings;
+  copyLabel?: string; // "أصلية" | "نسخة"
+}
+
+const fmtDate = (d: string) => {
+  if (!d) return "—";
+  const parts = d.split("-");
+  return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : d;
+};
+
+const fmtAmount = (n: number) =>
+  `₪${Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+const paymentLabels: Record<string, string> = {
+  cash: "نقداً",
+  transfer: "تحويل بنكي",
+  cheque: "شيك",
+  credit: "آجل",
+};
+
+const statusLabels: Record<string, string> = {
+  draft: "مسودة",
+  sent: "مُرسلة",
+  paid: "مدفوعة",
+};
+
+const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: InvoicePrintViewProps) => {
+  const isSales = invoice.type === "sales";
+  const today = new Date();
+  const fmtToday = `${String(today.getDate()).padStart(2, "0")}/${String(today.getMonth() + 1).padStart(2, "0")}/${today.getFullYear()}`;
+
+  // Calculate item-level tax
+  const calcItemTotal = (item: InvoiceItem) => {
+    const base = item.quantity * item.unitPrice;
+    const afterDiscount = base - (item.discount || 0);
+    const tax = afterDiscount * ((item.taxRate || 0) / 100);
+    return { base, afterDiscount, tax, total: afterDiscount + tax };
+  };
+
+  const subtotalBeforeTax = invoice.items.reduce((s, item) => s + calcItemTotal(item).afterDiscount, 0);
+  const totalTax = invoice.items.reduce((s, item) => s + calcItemTotal(item).tax, 0);
+  const grandTotal = subtotalBeforeTax + totalTax;
+
+  return (
+    <div
+      style={{
+        width: "100%",
+        maxWidth: "794px",
+        margin: "0 auto",
+        padding: "0",
+        fontFamily: "'IBM Plex Sans Arabic', 'Cairo', 'Segoe UI', sans-serif",
+        direction: "rtl",
+        fontSize: "11px",
+        lineHeight: 1.5,
+        color: "#1a1a2e",
+        background: "white",
+        position: "relative",
+      }}
+    >
+      {/* ━━━ COPY LABEL (أصلية / نسخة) ━━━ */}
+      <div
+        style={{
+          position: "absolute",
+          top: "12px",
+          left: "12px",
+          background: copyLabel === "أصلية" ? "#DC2626" : "#6B7280",
+          color: "white",
+          padding: "3px 14px",
+          borderRadius: "4px",
+          fontSize: "10px",
+          fontWeight: 700,
+          letterSpacing: "1px",
+          zIndex: 10,
+        }}
+      >
+        فاتورة {copyLabel}
+      </div>
+
+      {/* ━━━ HEADER ━━━ */}
+      <div
+        style={{
+          background: "linear-gradient(135deg, #1B3A5C 0%, #0F2640 100%)",
+          color: "white",
+          padding: "16px 28px 14px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+        }}
+      >
+        {/* Company Info - Right */}
+        <div style={{ display: "flex", alignItems: "flex-start", gap: "14px", flex: 1 }}>
+          {settings.logo_url ? (
+            <img
+              src={settings.logo_url}
+              alt="Logo"
+              style={{ width: "56px", height: "56px", borderRadius: "8px", objectFit: "contain", background: "white", padding: "3px" }}
+            />
+          ) : (
+            <div
+              style={{
+                width: "56px",
+                height: "56px",
+                borderRadius: "8px",
+                background: "rgba(255,255,255,0.15)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: "22px",
+                fontWeight: 800,
+                color: "#C9A84C",
+              }}
+            >
+              {settings.company_name?.charAt(0) || "F"}
+            </div>
+          )}
+          <div>
+            <div style={{ fontSize: "16px", fontWeight: 700 }}>{settings.company_name || "اسم الشركة"}</div>
+            {settings.address && <div style={{ fontSize: "10px", opacity: 0.85, marginTop: "2px" }}>📍 {settings.address}{settings.city ? ` - ${settings.city}` : ""}</div>}
+            {settings.phone && <div style={{ fontSize: "10px", opacity: 0.85 }}>📞 {settings.phone}</div>}
+            {settings.email && <div style={{ fontSize: "10px", opacity: 0.75 }}>✉️ {settings.email}</div>}
+          </div>
+        </div>
+
+        {/* Invoice Title - Left */}
+        <div style={{ textAlign: "left" }}>
+          <div style={{ fontSize: "20px", fontWeight: 700 }}>
+            {isSales ? "فاتورة مبيعات" : "فاتورة مشتريات"}
+          </div>
+          <div style={{ fontSize: "10px", opacity: 0.8, fontFamily: "'Segoe UI', sans-serif" }}>
+            {isSales ? "SALES INVOICE" : "PURCHASE INVOICE"}
+          </div>
+        </div>
+      </div>
+
+      {/* ━━━ GOLD ACCENT ━━━ */}
+      <div style={{ height: "3px", background: "linear-gradient(90deg, #C9A84C, #E8D48B, #C9A84C)" }} />
+
+      {/* ━━━ LEGAL & REGISTRATION STRIP ━━━ */}
+      <div
+        style={{
+          padding: "6px 28px",
+          background: "#F8FAFC",
+          borderBottom: "1px solid #E5E7EB",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          fontSize: "9px",
+          color: "#4B5563",
+        }}
+      >
+        <div style={{ display: "flex", gap: "20px", flexWrap: "wrap" }}>
+          {settings.licensed_dealer_number && (
+            <span><strong style={{ color: "#1B3A5C" }}>مشتغل مرخص:</strong> {settings.licensed_dealer_number}</span>
+          )}
+          {settings.tax_number && (
+            <span><strong style={{ color: "#1B3A5C" }}>الرقم الضريبي:</strong> {settings.tax_number}</span>
+          )}
+          {settings.commercial_register && (
+            <span><strong style={{ color: "#1B3A5C" }}>سجل تجاري:</strong> {settings.commercial_register}</span>
+          )}
+        </div>
+        <div style={{ fontWeight: 600, color: "#1B3A5C" }}>
+          العملة: شيكل إسرائيلي (₪ ILS)
+        </div>
+      </div>
+
+      {/* ━━━ INVOICE META & CUSTOMER ━━━ */}
+      <div style={{ padding: "12px 28px", display: "flex", justifyContent: "space-between", borderBottom: "1px solid #E5E7EB" }}>
+        {/* Customer Info */}
+        <div>
+          <div style={{ fontSize: "9px", color: "#6B7280", fontWeight: 600, textTransform: "uppercase", letterSpacing: "1px", marginBottom: "4px" }}>
+            {isSales ? "العميل" : "المورد"}
+          </div>
+          <div style={{ fontSize: "15px", fontWeight: 700, color: "#1B3A5C" }}>{invoice.contactName}</div>
+        </div>
+
+        {/* Invoice Details */}
+        <div style={{ textAlign: "left", fontSize: "10px" }}>
+          {[
+            { label: "رقم الفاتورة", value: invoice.invoiceNumber, mono: true },
+            { label: "تاريخ الإصدار", value: fmtDate(invoice.date) },
+            ...(invoice.dueDate ? [{ label: "تاريخ الاستحقاق", value: fmtDate(invoice.dueDate) }] : []),
+            { label: "طريقة الدفع", value: paymentLabels[invoice.paymentMethod] || invoice.paymentMethod },
+            { label: "الحالة", value: statusLabels[invoice.status] || invoice.status },
+          ].map((row, i) => (
+            <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: "20px", marginBottom: "3px" }}>
+              <span style={{ color: "#6B7280" }}>{row.label}:</span>
+              <span style={{ fontWeight: 600, color: "#1B3A5C", ...(row.mono ? { fontFamily: "monospace" } : {}) }}>{row.value}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ━━━ ITEMS TABLE ━━━ */}
+      <div style={{ padding: "8px 28px" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "10px", tableLayout: "fixed" }}>
+          <colgroup>
+            <col style={{ width: "5%" }} />
+            <col style={{ width: "33%" }} />
+            <col style={{ width: "10%" }} />
+            <col style={{ width: "13%" }} />
+            <col style={{ width: "10%" }} />
+            <col style={{ width: "10%" }} />
+            <col style={{ width: "6%" }} />
+            <col style={{ width: "13%" }} />
+          </colgroup>
+          <thead>
+            <tr style={{ background: "#1B3A5C", color: "white" }}>
+              {["#", "الصنف / الوصف", "الكمية", "سعر الوحدة", "الخصم", "المبلغ", "ض%", "الإجمالي"].map((h, i) => (
+                <th
+                  key={i}
+                  style={{
+                    padding: "6px 4px",
+                    textAlign: i >= 2 ? "center" : "right",
+                    fontWeight: 700,
+                    fontSize: "9px",
+                    borderBottom: "2px solid #C9A84C",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {invoice.items.map((item, idx) => {
+              const calc = calcItemTotal(item);
+              return (
+                <tr
+                  key={idx}
+                  style={{
+                    background: idx % 2 === 0 ? "white" : "#FAFBFC",
+                    borderBottom: "1px solid #F3F4F6",
+                  }}
+                >
+                  <td style={{ padding: "5px 4px", textAlign: "center", color: "#6B7280", fontWeight: 600 }}>{idx + 1}</td>
+                  <td style={{ padding: "5px 4px", fontWeight: 500, color: "#111827", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {item.description}
+                  </td>
+                  <td style={{ padding: "5px 4px", textAlign: "center", fontFeatureSettings: "'tnum'" }}>{item.quantity}</td>
+                  <td style={{ padding: "5px 4px", textAlign: "center", fontFeatureSettings: "'tnum'" }}>{fmtAmount(item.unitPrice)}</td>
+                  <td style={{ padding: "5px 4px", textAlign: "center", color: item.discount > 0 ? "#DC2626" : "#9CA3AF", fontFeatureSettings: "'tnum'" }}>
+                    {item.discount > 0 ? fmtAmount(item.discount) : "—"}
+                  </td>
+                  <td style={{ padding: "5px 4px", textAlign: "center", fontFeatureSettings: "'tnum'" }}>{fmtAmount(calc.afterDiscount)}</td>
+                  <td style={{ padding: "5px 4px", textAlign: "center", fontSize: "8px", color: "#6B7280" }}>
+                    {item.taxRate > 0 ? `${item.taxRate}%` : "—"}
+                  </td>
+                  <td style={{ padding: "5px 4px", textAlign: "center", fontWeight: 700, color: "#1B3A5C", fontFeatureSettings: "'tnum'" }}>
+                    {fmtAmount(calc.total)}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {/* ━━━ TOTALS SECTION ━━━ */}
+      <div style={{ padding: "0 28px 8px", display: "flex", justifyContent: "flex-start" }}>
+        <div
+          style={{
+            width: "280px",
+            border: "1px solid #E5E7EB",
+            borderRadius: "8px",
+            overflow: "hidden",
+          }}
+        >
+          {/* Subtotal */}
+          <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 14px", borderBottom: "1px solid #F3F4F6", fontSize: "10px" }}>
+            <span style={{ color: "#6B7280" }}>المجموع قبل الضريبة</span>
+            <span style={{ fontWeight: 600, fontFeatureSettings: "'tnum'" }}>{fmtAmount(subtotalBeforeTax)}</span>
+          </div>
+          {/* Discount */}
+          {invoice.totalDiscount > 0 && (
+            <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 14px", borderBottom: "1px solid #F3F4F6", fontSize: "10px" }}>
+              <span style={{ color: "#DC2626" }}>إجمالي الخصم</span>
+              <span style={{ fontWeight: 600, color: "#DC2626", fontFeatureSettings: "'tnum'" }}>-{fmtAmount(invoice.totalDiscount)}</span>
+            </div>
+          )}
+          {/* Tax */}
+          {totalTax > 0 && (
+            <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 14px", borderBottom: "1px solid #F3F4F6", fontSize: "10px" }}>
+              <span style={{ color: "#6B7280" }}>ضريبة القيمة المضافة ({settings.vat_rate || 16}%)</span>
+              <span style={{ fontWeight: 600, fontFeatureSettings: "'tnum'" }}>+{fmtAmount(totalTax)}</span>
+            </div>
+          )}
+          {/* Grand Total */}
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              padding: "8px 14px",
+              background: "#1B3A5C",
+              color: "white",
+              fontSize: "12px",
+              fontWeight: 700,
+            }}
+          >
+            <span>الإجمالي النهائي</span>
+            <span style={{ color: "#C9A84C", fontSize: "13px", fontFeatureSettings: "'tnum'" }}>{fmtAmount(grandTotal)}</span>
+          </div>
+          {/* Paid / Remaining */}
+          {invoice.paidAmount > 0 && (
+            <>
+              <div style={{ display: "flex", justifyContent: "space-between", padding: "5px 14px", borderTop: "1px solid #E5E7EB", fontSize: "10px" }}>
+                <span style={{ color: "#16A34A" }}>المبلغ المدفوع</span>
+                <span style={{ fontWeight: 600, color: "#16A34A", fontFeatureSettings: "'tnum'" }}>{fmtAmount(invoice.paidAmount)}</span>
+              </div>
+              {invoice.remainingAmount > 0 && (
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "5px 14px", borderTop: "1px solid #F3F4F6", fontSize: "10px" }}>
+                  <span style={{ color: "#DC2626", fontWeight: 600 }}>المبلغ المتبقي</span>
+                  <span style={{ fontWeight: 700, color: "#DC2626", fontFeatureSettings: "'tnum'" }}>{fmtAmount(invoice.remainingAmount)}</span>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* ━━━ CHEQUE DETAILS ━━━ */}
+      {invoice.paymentMethod === "cheque" && invoice.chequeDetails && (
+        <div style={{ margin: "0 28px 8px", padding: "8px 14px", background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: "8px", fontSize: "10px" }}>
+          <div style={{ fontWeight: 700, color: "#92400E", marginBottom: "4px" }}>تفاصيل الشيك:</div>
+          <div style={{ display: "flex", gap: "20px", color: "#78350F" }}>
+            <span>رقم: <strong>{invoice.chequeDetails.number}</strong></span>
+            <span>البنك: <strong>{invoice.chequeDetails.bank}</strong></span>
+            <span>تاريخ الاستحقاق: <strong>{fmtDate(invoice.chequeDetails.dueDate)}</strong></span>
+          </div>
+        </div>
+      )}
+
+      {/* ━━━ NOTES ━━━ */}
+      {invoice.notes && (
+        <div style={{ margin: "0 28px 8px", padding: "8px 14px", background: "#F9FAFB", border: "1px solid #E5E7EB", borderRadius: "8px", fontSize: "10px" }}>
+          <span style={{ fontWeight: 700, color: "#1B3A5C" }}>ملاحظات: </span>
+          <span style={{ color: "#4B5563" }}>{invoice.notes}</span>
+        </div>
+      )}
+
+      {/* ━━━ LEGAL NOTICE ━━━ */}
+      <div style={{ margin: "0 28px 8px", padding: "6px 14px", background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: "6px", fontSize: "8px", color: "#1E40AF", textAlign: "center" }}>
+        هذه الفاتورة صادرة وفقاً لأحكام قانون ضريبة الدخل الفلسطيني وقانون ضريبة القيمة المضافة • يرجى الاحتفاظ بها لأغراض المراجعة والتدقيق
+      </div>
+
+      {/* ━━━ FOOTER - SIGNATURES ━━━ */}
+      <div
+        style={{
+          margin: "0 28px",
+          padding: "10px 0",
+          borderTop: "1px solid #E5E7EB",
+          display: "flex",
+          justifyContent: "space-between",
+        }}
+      >
+        {/* Seller Signature */}
+        <div style={{ textAlign: "center", minWidth: "160px" }}>
+          <div style={{ fontSize: "10px", fontWeight: 700, color: "#1B3A5C", marginBottom: "8px" }}>توقيع البائع / المسؤول</div>
+          <div style={{ width: "130px", height: "40px", border: "1px dashed #D1D5DB", borderRadius: "6px", margin: "0 auto 4px" }} />
+          <div style={{ fontSize: "8px", color: "#9CA3AF" }}>الاسم والتوقيع</div>
+        </div>
+
+        {/* Buyer Signature */}
+        <div style={{ textAlign: "center", minWidth: "160px" }}>
+          <div style={{ fontSize: "10px", fontWeight: 700, color: "#1B3A5C", marginBottom: "8px" }}>توقيع {isSales ? "المشتري" : "المستلم"}</div>
+          <div style={{ width: "130px", height: "40px", border: "1px dashed #D1D5DB", borderRadius: "6px", margin: "0 auto 4px" }} />
+          <div style={{ fontSize: "8px", color: "#9CA3AF" }}>الاسم والتوقيع</div>
+        </div>
+
+        {/* Stamp */}
+        <div style={{ textAlign: "center", minWidth: "120px" }}>
+          <div style={{ fontSize: "10px", fontWeight: 700, color: "#1B3A5C", marginBottom: "8px" }}>الختم</div>
+          <div style={{ width: "60px", height: "60px", border: "1px dashed #D1D5DB", borderRadius: "50%", margin: "0 auto" }} />
+        </div>
+      </div>
+
+      {/* ━━━ BOTTOM BAR ━━━ */}
+      <div
+        style={{
+          background: "#1B3A5C",
+          color: "rgba(255,255,255,0.7)",
+          padding: "6px 28px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          fontSize: "9px",
+        }}
+      >
+        <span>طُبع بتاريخ: {fmtToday}</span>
+        <span style={{ color: "#C9A84C", fontWeight: 600 }}>FINIX AI Accounting</span>
+        <span>صفحة 1 من 1</span>
+      </div>
+    </div>
+  );
+};
+
+export default InvoicePrintView;
