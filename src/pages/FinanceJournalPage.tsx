@@ -469,9 +469,9 @@ const FinanceJournalPage = () => {
                       <Select value={quickType} onValueChange={setQuickType}>
                         <SelectTrigger className="mt-1 h-9"><SelectValue /></SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="customer">عميل</SelectItem>
-                          <SelectItem value="supplier">مورد</SelectItem>
-                          <SelectItem value="other">أخرى</SelectItem>
+                          <SelectItem value="عميل">عميل</SelectItem>
+                          <SelectItem value="مورد">مورد</SelectItem>
+                          <SelectItem value="أخرى">أخرى</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
