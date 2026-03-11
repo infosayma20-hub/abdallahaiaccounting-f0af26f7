@@ -177,6 +177,29 @@ export default function FloorPlanEditorPage() {
     toast.success("تم حذف الطاولة");
   };
 
+  const [deletingSection, setDeletingSection] = useState<string | null>(null);
+
+  const handleDeleteSection = async (sectionId: string) => {
+    // Check if section has tables
+    const sectionTables = tables.filter(t => t.section_id === sectionId);
+    if (sectionTables.length > 0) {
+      // Deactivate all tables in this section
+      await Promise.all(
+        sectionTables.map(t => supabase.from("restaurant_tables").update({ is_active: false }).eq("id", t.id))
+      );
+      setTables(prev => prev.filter(t => t.section_id !== sectionId));
+    }
+    await supabase.from("restaurant_sections").delete().eq("id", sectionId);
+    setSections(prev => prev.filter(s => s.id !== sectionId));
+    if (activeSection === sectionId) {
+      const remaining = sections.filter(s => s.id !== sectionId);
+      setActiveSection(remaining.length > 0 ? remaining[0].id : null);
+    }
+    setSelectedTable(null);
+    setDeletingSection(null);
+    toast.success("تم حذف القاعة وجميع طاولاتها");
+  };
+
   const handleSavePositions = async () => {
     setSaving(true);
     try {
