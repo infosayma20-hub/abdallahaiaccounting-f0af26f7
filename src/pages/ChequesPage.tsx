@@ -109,8 +109,11 @@ const ChequesPage = () => {
   const [deleteTarget, setDeleteTarget] = useState<Cheque | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [contacts, setContacts] = useState<{ id: string; contact_name: string; contact_type: string }[]>([]);
+  const [accounts, setAccounts] = useState<{ account_code: string; account_name: string; account_type: string }[]>([]);
   const [partySearch, setPartySearch] = useState("");
   const [partyPopoverOpen, setPartyPopoverOpen] = useState(false);
+  const [accountSearch, setAccountSearch] = useState("");
+  const [accountPopoverOpen, setAccountPopoverOpen] = useState(false);
   const [quickAddingContact, setQuickAddingContact] = useState(false);
   const [newCheque, setNewCheque] = useState({
     cheque_type: 'وارد' as ChequeType,
@@ -121,6 +124,7 @@ const ChequesPage = () => {
     currency: 'شيكل',
     party_name: '',
     party_type: 'عميل',
+    linked_account: '',
     notes: '',
   });
 
