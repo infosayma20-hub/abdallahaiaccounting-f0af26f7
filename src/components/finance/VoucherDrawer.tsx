@@ -391,7 +391,7 @@ const VoucherDrawer = ({ open, onClose, voucherType, onSaved, editVoucherId }: V
               </div>
               <div>
                 <h2 className="text-lg font-bold" style={{ fontFamily: "Tajawal, sans-serif" }}>
-                  {isReceipt ? "سند قبض جديد" : "سند صرف جديد"}
+                   {editVoucherId ? (isReceipt ? "تعديل سند قبض" : "تعديل سند صرف") : (isReceipt ? "سند قبض جديد" : "سند صرف جديد")}
                 </h2>
                 {formRefNumber && <p className="text-xs text-white/60">{formRefNumber}</p>}
               </div>
