@@ -426,7 +426,10 @@ const POSPage = () => {
      can_view_invoice_history: boolean;
      can_edit_invoices: boolean;
      require_manager_for_invoices: boolean;
-   }>({ can_view_invoice_history: true, can_edit_invoices: true, require_manager_for_invoices: true });
+     manage_products_categories: boolean;
+     view_invoice_log: boolean;
+     edit_cancel_invoices: boolean;
+   }>({ can_view_invoice_history: true, can_edit_invoices: true, require_manager_for_invoices: true, manage_products_categories: false, view_invoice_log: false, edit_cancel_invoices: false });
 
    // Modifiers
    const [modifierGroups, setModifierGroups] = useState<any[]>([]);
@@ -472,7 +475,7 @@ const POSPage = () => {
       if (!posUser) return;
       const { data: perms } = await supabase
         .from("pos_user_permissions")
-        .select("can_view_invoice_history, can_edit_invoices, require_manager_for_invoices")
+        .select("can_view_invoice_history, can_edit_invoices, require_manager_for_invoices, manage_products_categories, view_invoice_log, edit_cancel_invoices")
         .eq("pos_user_id", posUser.id)
         .maybeSingle();
       if (perms) {
@@ -480,6 +483,9 @@ const POSPage = () => {
           can_view_invoice_history: perms.can_view_invoice_history ?? true,
           can_edit_invoices: perms.can_edit_invoices ?? false,
           require_manager_for_invoices: perms.require_manager_for_invoices ?? true,
+          manage_products_categories: (perms as any).manage_products_categories ?? false,
+          view_invoice_log: (perms as any).view_invoice_log ?? false,
+          edit_cancel_invoices: (perms as any).edit_cancel_invoices ?? false,
         });
       }
     };
@@ -2078,7 +2084,7 @@ const POSPage = () => {
         )}
 
         {/* Invoice History Button - visible based on permissions */}
-        {(isAdmin || posPerms.can_view_invoice_history) && (
+        {(isAdmin || posPerms.can_view_invoice_history || posPerms.view_invoice_log) && (
         <button
           onClick={() => setShowInvoiceHistory(true)}
           className="flex items-center gap-1.5 h-9 px-3.5 rounded-lg text-xs font-medium transition-all"
@@ -2281,8 +2287,8 @@ const POSPage = () => {
                     </motion.button>
                   )}
 
-                  {/* Management buttons - admin only */}
-                  {!isSortMode && isAdmin && (
+                  {/* Management buttons - admin or manage_products_categories permission */}
+                  {!isSortMode && (isAdmin || posPerms.manage_products_categories) && (
                     <>
                       <button
                         onClick={() => setShowCategoryManager(true)}
@@ -3987,7 +3993,7 @@ const POSPage = () => {
             sessionId={session?.id || null}
             cashierName={session?.cashier_name || ""}
             terminalName={terminal?.name || ""}
-            canEditInvoices={isAdmin || posPerms.can_edit_invoices}
+            canEditInvoices={isAdmin || posPerms.can_edit_invoices || posPerms.edit_cancel_invoices}
             requireManagerForInvoices={!isAdmin && posPerms.require_manager_for_invoices}
             onRecallToCart={(items, invoiceId, orderNumber, reason, approvedBy) => {
               setCart(items);

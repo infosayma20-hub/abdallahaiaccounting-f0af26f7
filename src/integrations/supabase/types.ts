@@ -5149,13 +5149,16 @@ export type Database = {
           can_void_sales: boolean
           company_id: string
           created_at: string
+          edit_cancel_invoices: boolean
           id: string
+          manage_products_categories: boolean
           max_discount_percent: number
           pos_user_id: string
           require_manager_approval: boolean
           require_manager_for_invoices: boolean
           updated_at: string
           user_id: string
+          view_invoice_log: boolean
         }
         Insert: {
           can_apply_discount?: boolean
@@ -5170,13 +5173,16 @@ export type Database = {
           can_void_sales?: boolean
           company_id: string
           created_at?: string
+          edit_cancel_invoices?: boolean
           id?: string
+          manage_products_categories?: boolean
           max_discount_percent?: number
           pos_user_id: string
           require_manager_approval?: boolean
           require_manager_for_invoices?: boolean
           updated_at?: string
           user_id: string
+          view_invoice_log?: boolean
         }
         Update: {
           can_apply_discount?: boolean
@@ -5191,13 +5197,16 @@ export type Database = {
           can_void_sales?: boolean
           company_id?: string
           created_at?: string
+          edit_cancel_invoices?: boolean
           id?: string
+          manage_products_categories?: boolean
           max_discount_percent?: number
           pos_user_id?: string
           require_manager_approval?: boolean
           require_manager_for_invoices?: boolean
           updated_at?: string
           user_id?: string
+          view_invoice_log?: boolean
         }
         Relationships: [
           {

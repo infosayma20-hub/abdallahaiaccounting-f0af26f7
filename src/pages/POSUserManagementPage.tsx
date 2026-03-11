@@ -9,6 +9,7 @@ import {
   Monitor, CheckCircle2, Mail, KeyRound, UserPlus,
   DoorOpen, DoorClosed, Percent, Eye, PencilLine,
   Ban, RotateCcw, ClipboardList, UserCheck, FileText,
+  Package, FilePen,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -62,6 +63,9 @@ interface Permission {
   can_edit_invoices: boolean;
   require_manager_for_invoices: boolean;
   require_manager_approval: boolean;
+  manage_products_categories: boolean;
+  view_invoice_log: boolean;
+  edit_cancel_invoices: boolean;
 }
 
 const DEFAULT_PERMS: Permission = {
@@ -78,6 +82,9 @@ const DEFAULT_PERMS: Permission = {
   can_edit_invoices: false,
   require_manager_for_invoices: true,
   require_manager_approval: true,
+  manage_products_categories: false,
+  view_invoice_log: false,
+  edit_cancel_invoices: false,
 };
 
 const ROLE_LABELS: Record<string, string> = {
@@ -190,6 +197,9 @@ export default function POSUserManagementPage() {
       can_edit_invoices: perms.can_edit_invoices ?? false,
       require_manager_for_invoices: perms.require_manager_for_invoices ?? true,
       require_manager_approval: perms.require_manager_approval,
+      manage_products_categories: (perms as any).manage_products_categories ?? false,
+      view_invoice_log: (perms as any).view_invoice_log ?? false,
+      edit_cancel_invoices: (perms as any).edit_cancel_invoices ?? false,
     } : DEFAULT_PERMS);
 
     // Load device access
@@ -402,6 +412,9 @@ export default function POSUserManagementPage() {
     can_edit_invoices: { label: "تعديل وإلغاء الفواتير", icon: <PencilLine className="w-4 h-4" /> },
     require_manager_for_invoices: { label: "تعديل الفواتير بموافقة مدير", icon: <UserCheck className="w-4 h-4" /> },
     require_manager_approval: { label: "يتطلب موافقة مدير", icon: <UserCheck className="w-4 h-4" /> },
+    manage_products_categories: { label: "تعريف منتجات وتصنيفات", icon: <Package className="w-4 h-4" /> },
+    view_invoice_log: { label: "الاطلاع على سجل الفواتير", icon: <FileText className="w-4 h-4" /> },
+    edit_cancel_invoices: { label: "تعديل الفواتير وإلغائها من سجل الفواتير", icon: <FilePen className="w-4 h-4" /> },
   };
 
   return (
