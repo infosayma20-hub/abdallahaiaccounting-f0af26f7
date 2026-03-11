@@ -412,6 +412,9 @@ export default function POSUserManagementPage() {
     can_edit_invoices: { label: "تعديل وإلغاء الفواتير", icon: <PencilLine className="w-4 h-4" /> },
     require_manager_for_invoices: { label: "تعديل الفواتير بموافقة مدير", icon: <UserCheck className="w-4 h-4" /> },
     require_manager_approval: { label: "يتطلب موافقة مدير", icon: <UserCheck className="w-4 h-4" /> },
+    manage_products_categories: { label: "تعريف منتجات وتصنيفات", icon: <Package className="w-4 h-4" /> },
+    view_invoice_log: { label: "الاطلاع على سجل الفواتير", icon: <FileText className="w-4 h-4" /> },
+    edit_cancel_invoices: { label: "تعديل الفواتير وإلغائها من سجل الفواتير", icon: <FilePen className="w-4 h-4" /> },
   };
 
   return (
