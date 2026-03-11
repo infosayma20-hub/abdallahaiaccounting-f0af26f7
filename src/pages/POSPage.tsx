@@ -2916,6 +2916,7 @@ const POSPage = () => {
                     className="flex-1 h-10 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 border-2 border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400 hover:bg-amber-500/20 transition-all"
                   >
                     🖨️ إرسال إلى الطابعة
+                    <span className="text-[10px] bg-amber-500/20 rounded px-1 py-0.5 font-mono">F9</span>
                   </button>
                   <button
                     onClick={handleSaveToTable}
@@ -2923,6 +2924,7 @@ const POSPage = () => {
                     className="flex-1 h-10 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 border-2 border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-400 hover:bg-sky-500/20 transition-all disabled:opacity-40"
                   >
                     💾 {savingToTable ? "جاري الحفظ..." : "حفظ الطلب"}
+                    <span className="text-[10px] bg-sky-500/20 rounded px-1 py-0.5 font-mono">F10</span>
                   </button>
                 </div>
               )}
