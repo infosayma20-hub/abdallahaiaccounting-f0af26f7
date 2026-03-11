@@ -130,6 +130,7 @@ interface Session {
   total_orders: number;
   opened_at: string;
   cashier_name: string;
+  cash_box_id?: string | null;
 }
 
 interface Company {
