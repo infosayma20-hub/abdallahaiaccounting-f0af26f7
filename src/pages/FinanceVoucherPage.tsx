@@ -35,6 +35,7 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
   const [contacts, setContacts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [editVoucherId, setEditVoucherId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterPayment, setFilterPayment] = useState("all");
@@ -52,7 +53,15 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
   }, [user, voucherType]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
-  useEffect(() => { if (searchParams.get("new") === "1") setDrawerOpen(true); }, [searchParams]);
+  useEffect(() => {
+    const editId = searchParams.get("edit");
+    if (editId) {
+      setEditVoucherId(editId);
+      setDrawerOpen(true);
+    } else if (searchParams.get("new") === "1") {
+      setDrawerOpen(true);
+    }
+  }, [searchParams]);
 
   const filtered = useMemo(() => {
     return vouchers.filter(v => {
@@ -85,7 +94,7 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
             <p className="text-xs text-muted-foreground">{isReceipt ? "إدارة سندات القبض والمقبوضات" : "إدارة سندات الصرف والمدفوعات"}</p>
           </div>
         </div>
-        <Button size="sm" className="gap-2" onClick={() => setDrawerOpen(true)}>
+        <Button size="sm" className="gap-2" onClick={() => { setEditVoucherId(null); setDrawerOpen(true); }}>
           <Plus className="h-4 w-4" />{newTitle}
         </Button>
       </div>
@@ -167,7 +176,14 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
                     const contact = contacts.find(c => c.id === v.contact_id);
                     return (
                       <TableRow key={v.id}>
-                        <TableCell className="text-xs font-medium">{v.ref_number}</TableCell>
+                        <TableCell className="text-xs font-medium">
+                          <button
+                            className="text-primary hover:underline font-mono cursor-pointer bg-transparent border-none p-0"
+                            onClick={() => { setEditVoucherId(v.id); setDrawerOpen(true); }}
+                          >
+                            {v.ref_number}
+                          </button>
+                        </TableCell>
                         <TableCell className="text-xs">{v.date}</TableCell>
                         <TableCell className="text-xs">{contact?.contact_name || "—"}</TableCell>
                         <TableCell className="text-xs truncate max-w-[200px]">{v.description}</TableCell>
@@ -191,9 +207,10 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
       {/* Voucher Drawer */}
       <VoucherDrawer
         open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
+        onClose={() => { setDrawerOpen(false); setEditVoucherId(null); }}
         voucherType={voucherType}
         onSaved={fetchData}
+        editVoucherId={editVoucherId}
       />
     </div>
   );

@@ -37,6 +37,7 @@ const FinanceJournalPage = () => {
   const [contacts, setContacts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
+  const [editingVoucherId, setEditingVoucherId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [saving, setSaving] = useState(false);
@@ -77,7 +78,14 @@ const FinanceJournalPage = () => {
   }, [user]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
-  useEffect(() => { if (searchParams.get("new") === "1") setModalOpen(true); }, [searchParams]);
+  useEffect(() => {
+    const editId = searchParams.get("edit");
+    if (editId) {
+      openVoucherForEdit(editId);
+    } else if (searchParams.get("new") === "1") {
+      setModalOpen(true);
+    }
+  }, [searchParams]);
 
   // Auto-generate ref number when modal opens
   const generateRefNumber = useCallback(async () => {
@@ -134,11 +142,39 @@ const FinanceJournalPage = () => {
     setFormContactId("");
     setContactSearch("");
     setShowQuickAdd(false);
+    setEditingVoucherId(null);
     setLines([
       { id: "1", account_code: "", account_name: "", debit: 0, credit: 0 },
       { id: "2", account_code: "", account_name: "", debit: 0, credit: 0 },
     ]);
     generateRefNumber();
+  };
+
+  const openVoucherForEdit = async (voucherId: string) => {
+    const [vRes, lRes] = await Promise.all([
+      supabase.from("vouchers").select("*").eq("id", voucherId).single(),
+      supabase.from("voucher_lines").select("*").eq("voucher_id", voucherId).order("line_order"),
+    ]);
+    if (vRes.data) {
+      const v = vRes.data;
+      setFormDate(v.date || new Date().toISOString().split("T")[0]);
+      setFormRefNumber(v.ref_number || "");
+      setFormSubtype(v.subtype || "normal");
+      setFormDescription(v.description || "");
+      setFormNotes(v.notes || "");
+      setFormContactId(v.contact_id || "");
+      setEditingVoucherId(voucherId);
+      if (lRes.data && lRes.data.length > 0) {
+        setLines(lRes.data.map((l: any) => ({
+          id: String(l.id),
+          account_code: l.account_code || "",
+          account_name: l.account_name || "",
+          debit: Number(l.debit) || 0,
+          credit: Number(l.credit) || 0,
+        })));
+      }
+      setModalOpen(true);
+    }
   };
 
   const formatAmount = (n: number) => new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
@@ -173,9 +209,9 @@ const FinanceJournalPage = () => {
 
     setSaving(true);
 
-    const { data: voucher, error } = await supabase.from("vouchers").insert({
+    const voucherPayload = {
       user_id: user.id,
-      type: "journal",
+      type: "journal" as const,
       subtype: formSubtype,
       ref_number: formRefNumber || "",
       date: formDate,
@@ -187,7 +223,21 @@ const FinanceJournalPage = () => {
       status,
       posted_by: status === "posted" ? user.id : null,
       posted_at: status === "posted" ? new Date().toISOString() : null,
-    }).select().single();
+    };
+
+    let voucher: any = null;
+    let error: any = null;
+
+    if (editingVoucherId) {
+      const res = await supabase.from("vouchers").update(voucherPayload).eq("id", editingVoucherId).select().single();
+      voucher = res.data;
+      error = res.error;
+      if (voucher) await supabase.from("voucher_lines").delete().eq("voucher_id", editingVoucherId);
+    } else {
+      const res = await supabase.from("vouchers").insert(voucherPayload).select().single();
+      voucher = res.data;
+      error = res.error;
+    }
 
     if (error || !voucher) {
       toast({ title: "خطأ", description: error?.message || "حدث خطأ", variant: "destructive" });
@@ -263,7 +313,7 @@ const FinanceJournalPage = () => {
             <p className="text-xs text-muted-foreground">إدارة القيود المحاسبية اليدوية</p>
           </div>
         </div>
-        <Button size="sm" className="gap-2" onClick={() => { resetForm(); setModalOpen(true); }}>
+        <Button size="sm" className="gap-2" onClick={() => { resetForm(); setEditingVoucherId(null); setModalOpen(true); }}>
           <Plus className="h-4 w-4" />سند قيد جديد
         </Button>
       </div>
@@ -332,7 +382,14 @@ const FinanceJournalPage = () => {
                 <TableBody>
                   {filtered.map(v => (
                     <TableRow key={v.id}>
-                      <TableCell className="text-xs font-medium">{v.ref_number}</TableCell>
+                      <TableCell className="text-xs font-medium">
+                        <button
+                          className="text-primary hover:underline font-mono cursor-pointer bg-transparent border-none p-0"
+                          onClick={() => openVoucherForEdit(v.id)}
+                        >
+                          {v.ref_number}
+                        </button>
+                      </TableCell>
                       <TableCell className="text-xs">{v.date}</TableCell>
                       <TableCell><Badge variant="secondary" className="text-[10px]">{subtypeLabels[v.subtype] || "عادي"}</Badge></TableCell>
                       <TableCell className="text-xs truncate max-w-[250px]">{v.description}</TableCell>
@@ -362,7 +419,7 @@ const FinanceJournalPage = () => {
                   <BookOpen className="h-5 w-5" />
                 </div>
                 <div>
-                  <h2 className="text-base font-bold">سند قيد جديد</h2>
+                  <h2 className="text-base font-bold">{editingVoucherId ? "تعديل سند قيد" : "سند قيد جديد"}</h2>
                   {formRefNumber && <p className="text-[11px] text-white/60">{formRefNumber}</p>}
                 </div>
               </div>
@@ -607,7 +664,7 @@ const FinanceJournalPage = () => {
             <Button variant="outline" onClick={() => handleSave("draft")} disabled={saving}>حفظ كمسودة</Button>
             <Button className="flex-1 bg-[#0A2342] hover:bg-[#0D1B2A]" onClick={() => handleSave("posted")} disabled={saving || !isBalanced}>
               {saving ? <Loader2 className="h-4 w-4 animate-spin ml-1" /> : null}
-              ✓ إنشاء القيد
+              ✓ {editingVoucherId ? "تحديث القيد" : "إنشاء القيد"}
             </Button>
           </div>
         </DialogContent>

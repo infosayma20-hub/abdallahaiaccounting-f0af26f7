@@ -29,9 +29,10 @@ interface VoucherDrawerProps {
   onClose: () => void;
   voucherType: VoucherType;
   onSaved: () => void;
+  editVoucherId?: string | null;
 }
 
-const VoucherDrawer = ({ open, onClose, voucherType, onSaved }: VoucherDrawerProps) => {
+const VoucherDrawer = ({ open, onClose, voucherType, onSaved, editVoucherId }: VoucherDrawerProps) => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
@@ -125,9 +126,32 @@ const VoucherDrawer = ({ open, onClose, voucherType, onSaved }: VoucherDrawerPro
     if (cashAccs.length === 1) setFormCashAccountCode(cashAccs[0].account_code);
   };
 
+  // Load existing voucher for editing
+  const loadVoucherForEdit = useCallback(async (voucherId: string) => {
+    const { data } = await supabase.from("vouchers").select("*").eq("id", voucherId).single();
+    if (data) {
+      setFormDate(data.date || new Date().toISOString().split("T")[0]);
+      setFormRefNumber(data.ref_number || "");
+      setFormContactId(data.contact_id || "");
+      setFormAmount(String(data.amount || ""));
+      setFormCurrency(data.currency || "ILS");
+      setFormExchangeRate(String(data.exchange_rate || "1"));
+      setFormPaymentMethod(data.payment_method || "cash");
+      setFormBankAccountId(data.bank_account_id || "");
+      setFormDescription(data.description || "");
+      setFormNotes(data.notes || "");
+      setFormChequeBankName(data.cheque_bank_name || "");
+      if (data.cheque_due_date) setFormChequeDate(data.cheque_due_date);
+    }
+  }, []);
+
   useEffect(() => {
-    if (open) resetForm();
-  }, [open]);
+    if (open && editVoucherId) {
+      loadVoucherForEdit(editVoucherId);
+    } else if (open) {
+      resetForm();
+    }
+  }, [open, editVoucherId]);
 
   // Derived
   const cashAccounts = useMemo(() => accounts.filter(a => a.account_code?.startsWith("111")), [accounts]);
@@ -244,7 +268,7 @@ const VoucherDrawer = ({ open, onClose, voucherType, onSaved }: VoucherDrawerPro
 
     setSaving(true);
 
-    const { data: voucher, error } = await supabase.from("vouchers").insert({
+    const voucherPayload = {
       user_id: user.id,
       type: voucherType,
       ref_number: formRefNumber || "",
@@ -264,7 +288,23 @@ const VoucherDrawer = ({ open, onClose, voucherType, onSaved }: VoucherDrawerPro
       cheque_bank_name: formChequeBankName || null,
       posted_by: status === "posted" ? user.id : null,
       posted_at: status === "posted" ? new Date().toISOString() : null,
-    }).select().single();
+    };
+
+    let voucher: any = null;
+    let error: any = null;
+
+    if (editVoucherId) {
+      // Update existing voucher
+      const res = await supabase.from("vouchers").update(voucherPayload).eq("id", editVoucherId).select().single();
+      voucher = res.data;
+      error = res.error;
+      // Delete old lines to re-create
+      if (voucher) await supabase.from("voucher_lines").delete().eq("voucher_id", editVoucherId);
+    } else {
+      const res = await supabase.from("vouchers").insert(voucherPayload).select().single();
+      voucher = res.data;
+      error = res.error;
+    }
 
     if (error) {
       toast({ title: "خطأ", description: error.message, variant: "destructive" });
@@ -351,7 +391,7 @@ const VoucherDrawer = ({ open, onClose, voucherType, onSaved }: VoucherDrawerPro
               </div>
               <div>
                 <h2 className="text-lg font-bold" style={{ fontFamily: "Tajawal, sans-serif" }}>
-                  {isReceipt ? "سند قبض جديد" : "سند صرف جديد"}
+                   {editVoucherId ? (isReceipt ? "تعديل سند قبض" : "تعديل سند صرف") : (isReceipt ? "سند قبض جديد" : "سند صرف جديد")}
                 </h2>
                 {formRefNumber && <p className="text-xs text-white/60">{formRefNumber}</p>}
               </div>
