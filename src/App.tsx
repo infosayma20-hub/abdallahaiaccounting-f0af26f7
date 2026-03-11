@@ -96,6 +96,9 @@ import FinanceJournalPage from "./pages/FinanceJournalPage";
 import BankAccountsPage from "./pages/BankAccountsPage";
 import CashBoxesPage from "./pages/CashBoxesPage";
 import CashTransferPage from "./pages/CashTransferPage";
+import MalakiLogin from "./pages/malaki/MalakiLogin";
+import MalakiPortal from "./pages/malaki/MalakiPortal";
+import MalakiSettings from "./pages/malaki/MalakiSettings";
 
 const queryClient = new QueryClient();
 
@@ -158,6 +161,9 @@ const App = () => (
               <Route path="/receipt/:orderId" element={<DigitalReceiptPage />} />
               <Route path="/survey/:token" element={<SurveyPage />} />
               <Route path="/loading-demo" element={<LoadingDemoPage />} />
+              <Route path="/malaki" element={<MalakiLogin />} />
+              <Route path="/malaki/dashboard" element={<MalakiPortal />} />
+              <Route path="/malaki/settings" element={<MalakiSettings />} />
               <Route path="/onboarding" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
               <Route path="/setup" element={<ProtectedRoute><SetupPage /></ProtectedRoute>} />
               <Route path="/pos" element={<ProtectedRoute><POSPage /></ProtectedRoute>} />
