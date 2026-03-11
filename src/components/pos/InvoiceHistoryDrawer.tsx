@@ -214,18 +214,30 @@ export default function InvoiceHistoryDrawer({
     }
   };
 
-  // ── Recall: always require manager ──
+  // ── Recall: require manager based on permission ──
   const initiateRecall = (order: InvoiceOrder) => {
+    if (!canEditInvoices) {
+      toast.error("ليس لديك صلاحية تعديل الفواتير");
+      return;
+    }
     if (order.state !== "paid") {
       toast.error("لا يمكن استدعاء فاتورة غير مكتملة");
       return;
     }
     setRecallingOrder(order);
-    setPendingManagerAction("recall");
-    setManagerOverrideVariant("default");
-    setManagerOverrideTitle("موافقة المدير — استدعاء فاتورة");
-    setManagerOverrideDesc(`استدعاء الفاتورة #${order.order_number || "---"} بقيمة ₪${order.total.toFixed(2)} للتعديل`);
-    setShowManagerOverride(true);
+    if (requireManagerForInvoices) {
+      setPendingManagerAction("recall");
+      setManagerOverrideVariant("default");
+      setManagerOverrideTitle("موافقة المدير — استدعاء فاتورة");
+      setManagerOverrideDesc(`استدعاء الفاتورة #${order.order_number || "---"} بقيمة ₪${order.total.toFixed(2)} للتعديل`);
+      setShowManagerOverride(true);
+    } else {
+      // No manager approval needed, go straight to reason dialog
+      setRecallReason("");
+      setCustomReason("");
+      setPendingApprovedBy(null);
+      setShowReasonDialog(true);
+    }
   };
 
   const handleManagerApprovedForRecall = (managerName: string) => {
