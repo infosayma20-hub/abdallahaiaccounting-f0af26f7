@@ -268,7 +268,7 @@ const VoucherDrawer = ({ open, onClose, voucherType, onSaved, editVoucherId }: V
 
     setSaving(true);
 
-    const { data: voucher, error } = await supabase.from("vouchers").insert({
+    const voucherPayload = {
       user_id: user.id,
       type: voucherType,
       ref_number: formRefNumber || "",
@@ -288,7 +288,23 @@ const VoucherDrawer = ({ open, onClose, voucherType, onSaved, editVoucherId }: V
       cheque_bank_name: formChequeBankName || null,
       posted_by: status === "posted" ? user.id : null,
       posted_at: status === "posted" ? new Date().toISOString() : null,
-    }).select().single();
+    };
+
+    let voucher: any = null;
+    let error: any = null;
+
+    if (editVoucherId) {
+      // Update existing voucher
+      const res = await supabase.from("vouchers").update(voucherPayload).eq("id", editVoucherId).select().single();
+      voucher = res.data;
+      error = res.error;
+      // Delete old lines to re-create
+      if (voucher) await supabase.from("voucher_lines").delete().eq("voucher_id", editVoucherId);
+    } else {
+      const res = await supabase.from("vouchers").insert(voucherPayload).select().single();
+      voucher = res.data;
+      error = res.error;
+    }
 
     if (error) {
       toast({ title: "خطأ", description: error.message, variant: "destructive" });
