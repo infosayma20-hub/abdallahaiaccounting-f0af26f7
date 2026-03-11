@@ -247,6 +247,46 @@ export default function PortalSettings() {
             </div>
           )}
 
+          {createdCredentials && (
+            <div style={{
+              background: 'rgba(34,197,94,0.08)', borderRadius: 12,
+              padding: 18, marginBottom: 16,
+              border: '1px solid rgba(34,197,94,0.3)',
+              position: 'relative',
+            }}>
+              <button onClick={() => setCreatedCredentials(null)} style={{
+                position: 'absolute', top: 8, left: 8, background: 'none', border: 'none',
+                color: 'rgba(255,255,255,0.4)', cursor: 'pointer', fontSize: 18, lineHeight: 1,
+              }}>✕</button>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#22C55E', marginBottom: 12 }}>
+                ✅ تم إنشاء الحساب بنجاح — احفظ هذه البيانات
+              </div>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <tbody>
+                  {[
+                    { label: 'الاسم الكامل', value: createdCredentials.full_name },
+                    { label: 'اسم المستخدم', value: createdCredentials.username, mono: true },
+                    { label: 'كلمة المرور', value: createdCredentials.password, mono: true },
+                    { label: 'الدور', value: createdCredentials.role === 'owner' ? 'مالك' : createdCredentials.role === 'manager' ? 'مدير' : 'مشاهد' },
+                  ].map(row => (
+                    <tr key={row.label} style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+                      <td style={{ padding: '8px 12px', fontSize: 12, color: 'rgba(255,255,255,0.5)', width: 120 }}>{row.label}</td>
+                      <td style={{
+                        padding: '8px 12px', fontSize: 14, fontWeight: 600,
+                        fontFamily: row.mono ? 'JetBrains Mono, monospace' : 'Tajawal, sans-serif',
+                        color: 'white', letterSpacing: row.mono ? 1 : 0,
+                        userSelect: 'all',
+                      }}>{row.value}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div style={{ marginTop: 10, fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>
+                💡 انسخ هذه البيانات الآن — لن تظهر كلمة المرور مرة أخرى
+              </div>
+            </div>
+          )}
+
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
