@@ -434,10 +434,10 @@ const VoucherDrawer = ({ open, onClose, voucherType, onSaved }: VoucherDrawerPro
                     ))}
                   </SelectGroup>
                 )}
-                {filteredContacts.filter(c => !["customer", "supplier", "employee"].includes(c.contact_type)).length > 0 && (
+                {filteredContacts.filter(c => !isCustomer(c) && !isSupplier(c) && !isEmployee(c)).length > 0 && (
                   <SelectGroup>
                     <SelectLabel className="text-xs">أخرى</SelectLabel>
-                    {filteredContacts.filter(c => !["customer", "supplier", "employee"].includes(c.contact_type)).map(c => (
+                    {filteredContacts.filter(c => !isCustomer(c) && !isSupplier(c) && !isEmployee(c)).map(c => (
                       <SelectItem key={c.id} value={c.id}>{c.contact_name}</SelectItem>
                     ))}
                   </SelectGroup>
