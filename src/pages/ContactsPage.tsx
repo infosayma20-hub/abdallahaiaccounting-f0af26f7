@@ -303,7 +303,7 @@ const ContactsPage = () => {
 
   const customerCount = contacts.filter(c => ["عميل", "زبون", "زبون ومورد", "customer"].includes(c.contact_type)).length;
   const supplierCount = contacts.filter(c => ["مورد", "زبون ومورد", "supplier"].includes(c.contact_type)).length;
-  const supplierCount = contacts.filter(c => ["مورد", "زبون ومورد"].includes(c.contact_type)).length;
+  
   const totalOverdue = contacts.reduce((s, c) => s + (c.overdue_amount || 0), 0);
   const overLimitCount = contacts.filter(c => c.credit_limit && c.current_balance && c.current_balance > c.credit_limit).length;
   const totalBalance = filtered.reduce((s, c) => s + (c.current_balance || 0), 0);
