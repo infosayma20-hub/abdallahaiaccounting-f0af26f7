@@ -5143,6 +5143,8 @@ export type Database = {
       }
       pos_user_permissions: {
         Row: {
+          add_customer: boolean
+          allow_credit_sale: boolean
           can_apply_discount: boolean
           can_close_register: boolean
           can_edit_invoices: boolean
@@ -5155,18 +5157,30 @@ export type Database = {
           can_void_sales: boolean
           company_id: string
           created_at: string
+          delete_products: boolean
           edit_cancel_invoices: boolean
+          edit_customers: boolean
+          edit_products: boolean
+          export_reports: boolean
           id: string
           manage_products_categories: boolean
           max_discount_percent: number
+          open_cash_drawer: boolean
           pos_user_id: string
+          print_invoices: boolean
           require_manager_approval: boolean
           require_manager_for_invoices: boolean
+          resend_invoice: boolean
           updated_at: string
           user_id: string
+          view_customers: boolean
+          view_inventory: boolean
           view_invoice_log: boolean
+          view_sales_report: boolean
         }
         Insert: {
+          add_customer?: boolean
+          allow_credit_sale?: boolean
           can_apply_discount?: boolean
           can_close_register?: boolean
           can_edit_invoices?: boolean
@@ -5179,18 +5193,30 @@ export type Database = {
           can_void_sales?: boolean
           company_id: string
           created_at?: string
+          delete_products?: boolean
           edit_cancel_invoices?: boolean
+          edit_customers?: boolean
+          edit_products?: boolean
+          export_reports?: boolean
           id?: string
           manage_products_categories?: boolean
           max_discount_percent?: number
+          open_cash_drawer?: boolean
           pos_user_id: string
+          print_invoices?: boolean
           require_manager_approval?: boolean
           require_manager_for_invoices?: boolean
+          resend_invoice?: boolean
           updated_at?: string
           user_id: string
+          view_customers?: boolean
+          view_inventory?: boolean
           view_invoice_log?: boolean
+          view_sales_report?: boolean
         }
         Update: {
+          add_customer?: boolean
+          allow_credit_sale?: boolean
           can_apply_discount?: boolean
           can_close_register?: boolean
           can_edit_invoices?: boolean
@@ -5203,16 +5229,26 @@ export type Database = {
           can_void_sales?: boolean
           company_id?: string
           created_at?: string
+          delete_products?: boolean
           edit_cancel_invoices?: boolean
+          edit_customers?: boolean
+          edit_products?: boolean
+          export_reports?: boolean
           id?: string
           manage_products_categories?: boolean
           max_discount_percent?: number
+          open_cash_drawer?: boolean
           pos_user_id?: string
+          print_invoices?: boolean
           require_manager_approval?: boolean
           require_manager_for_invoices?: boolean
+          resend_invoice?: boolean
           updated_at?: string
           user_id?: string
+          view_customers?: boolean
+          view_inventory?: boolean
           view_invoice_log?: boolean
+          view_sales_report?: boolean
         }
         Relationships: [
           {
