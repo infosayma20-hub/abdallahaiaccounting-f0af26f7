@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
-export interface MalakiUser {
+export interface PortalUser {
   id: string;
   username: string;
   full_name: string;
@@ -12,25 +12,32 @@ export interface MalakiUser {
   allowed_branch_ids: string[] | null;
 }
 
-interface MalakiSession {
-  user: MalakiUser;
+interface PortalSession {
+  user: PortalUser;
   loginAt: number;
   rememberMe: boolean;
 }
 
-const SESSION_KEY = 'malaki_session';
+const SESSION_KEY = 'portal_session';
 const SESSION_DURATION = 12 * 60 * 60 * 1000;
 const REMEMBER_DURATION = 30 * 24 * 60 * 60 * 1000;
 
-export function useMalakiAuth() {
-  const [user, setUser] = useState<MalakiUser | null>(null);
+export function usePortalAuth() {
+  const [user, setUser] = useState<PortalUser | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Migrate old session key
+    const oldStored = localStorage.getItem('malaki_session');
+    if (oldStored && !localStorage.getItem(SESSION_KEY)) {
+      localStorage.setItem(SESSION_KEY, oldStored);
+      localStorage.removeItem('malaki_session');
+    }
+
     const stored = localStorage.getItem(SESSION_KEY);
     if (stored) {
       try {
-        const session: MalakiSession = JSON.parse(stored);
+        const session: PortalSession = JSON.parse(stored);
         const maxAge = session.rememberMe ? REMEMBER_DURATION : SESSION_DURATION;
         if (Date.now() - session.loginAt < maxAge) {
           setUser(session.user);
@@ -51,7 +58,7 @@ export function useMalakiAuth() {
     if (error) throw new Error('خطأ في الاتصال');
     if (!data?.success) throw new Error(data?.error || 'بيانات الدخول غير صحيحة');
 
-    const session: MalakiSession = {
+    const session: PortalSession = {
       user: data.user,
       loginAt: Date.now(),
       rememberMe,

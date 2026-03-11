@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { type SalesData, type BranchSales } from '@/hooks/useMalakiData';
-import { type BusinessDay } from '@/lib/malaki-business-day';
+import { type SalesData, type BranchSales } from '@/hooks/usePortalData';
+import { type BusinessDay } from '@/lib/portal-business-day';
 import { Loader2, TrendingUp, ShoppingBag, Receipt, Trophy, ChevronDown } from 'lucide-react';
 
 const GOLD = '#D4A017';
@@ -49,14 +49,13 @@ function BranchCard({ branch, rank }: { branch: BranchSales; rank: number }) {
 
   return (
     <div style={{ borderRadius: 16, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.06)' }}>
-      {/* Header */}
       <div style={{
         background: 'linear-gradient(135deg, #1A0A00, #2D1200)',
         borderTop: `3px solid ${GOLD}`, padding: '14px 18px',
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontSize: 24 }}>🍗</span>
+          <span style={{ fontSize: 24 }}>🏪</span>
           <div>
             <div style={{ fontSize: 16, fontWeight: 700 }}>{branch.name}</div>
             {branch.location && (
@@ -75,9 +74,7 @@ function BranchCard({ branch, rank }: { branch: BranchSales; rank: number }) {
         </div>
       </div>
 
-      {/* Body */}
       <div style={{ background: '#161616', padding: '16px 18px' }}>
-        {/* Sales figure */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 16 }}>
           <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>مبيعات اليوم</span>
           <span style={{ fontSize: 26, fontWeight: 700, fontFamily: 'JetBrains Mono, monospace', color: GOLD }}>
@@ -85,7 +82,6 @@ function BranchCard({ branch, rank }: { branch: BranchSales; rank: number }) {
           </span>
         </div>
 
-        {/* Quick stats */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 16 }}>
           {[
             { label: 'الطلبات', value: `${branch.orderCount}` },
@@ -107,7 +103,6 @@ function BranchCard({ branch, rank }: { branch: BranchSales; rank: number }) {
           ))}
         </div>
 
-        {/* Hourly chart */}
         <div style={{ marginBottom: 16 }}>
           <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 8 }}>المبيعات بالساعة</div>
           <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 60 }}>
@@ -138,10 +133,9 @@ function BranchCard({ branch, rank }: { branch: BranchSales; rank: number }) {
           </div>
         </div>
 
-        {/* Top meals */}
         {branch.topMeals.length > 0 && (
           <div>
-            <div style={{ fontSize: 12, color: GOLD, fontWeight: 700, marginBottom: 10 }}>🍗 أكثر الوجبات طلباً</div>
+            <div style={{ fontSize: 12, color: GOLD, fontWeight: 700, marginBottom: 10 }}>🏆 أكثر المنتجات طلباً</div>
             {mealsToShow.map((meal, i) => (
               <div key={meal.name} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 0' }}>
                 <div style={{
@@ -182,14 +176,13 @@ function BranchCard({ branch, rank }: { branch: BranchSales; rank: number }) {
                 fontFamily: 'Tajawal, sans-serif',
               }}>
                 <ChevronDown size={14} style={{ transform: showAllMeals ? 'rotate(180deg)' : undefined, transition: 'transform 0.2s' }} />
-                {showAllMeals ? 'عرض أقل' : 'عرض كل الوجبات'}
+                {showAllMeals ? 'عرض أقل' : 'عرض الكل'}
               </button>
             )}
           </div>
         )}
       </div>
 
-      {/* Footer */}
       <div style={{
         background: '#111111', padding: '10px 18px',
         borderTop: '1px solid rgba(255,255,255,0.06)',
@@ -209,7 +202,7 @@ interface Props {
   onRefresh: (date?: string) => void;
 }
 
-export default function MalakiSalesTab({ data, loading, businessDay, needsSetup, onRefresh }: Props) {
+export default function PortalSalesTab({ data, loading, businessDay, needsSetup, onRefresh }: Props) {
   const [dateFilter, setDateFilter] = useState<string | null>(null);
   const [customDate, setCustomDate] = useState('');
 
@@ -248,7 +241,6 @@ export default function MalakiSalesTab({ data, loading, businessDay, needsSetup,
 
   return (
     <div>
-      {/* KPI Row */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
@@ -280,7 +272,6 @@ export default function MalakiSalesTab({ data, loading, businessDay, needsSetup,
         />
       </div>
 
-      {/* Date filter */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
         <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>عرض مبيعات:</span>
         {[
@@ -292,7 +283,7 @@ export default function MalakiSalesTab({ data, loading, businessDay, needsSetup,
             key={chip.key || 'today'}
             onClick={() => {
               if (chip.key === 'custom') {
-                document.getElementById('malaki-date-picker')?.click();
+                document.getElementById('portal-date-picker')?.click();
               } else {
                 handleDateChip(chip.key);
               }
@@ -311,7 +302,7 @@ export default function MalakiSalesTab({ data, loading, businessDay, needsSetup,
           </button>
         ))}
         <input
-          id="malaki-date-picker"
+          id="portal-date-picker"
           type="date"
           value={customDate}
           onChange={e => {
@@ -325,7 +316,6 @@ export default function MalakiSalesTab({ data, loading, businessDay, needsSetup,
         />
       </div>
 
-      {/* Branch cards */}
       {sales.branches.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '40px 20px', color: 'rgba(255,255,255,0.4)', fontSize: 14 }}>
           لا توجد بيانات مبيعات لهذه الفترة

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useMalakiAuth } from '@/hooks/useMalakiAuth';
+import { usePortalAuth } from '@/hooks/usePortalAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { ArrowRight, Plus, Trash2, KeyRound, Loader2, Save } from 'lucide-react';
 
@@ -15,8 +15,8 @@ interface PortalUser {
   is_active: boolean;
 }
 
-export default function MalakiSettings() {
-  const { user, loading: authLoading } = useMalakiAuth();
+export default function PortalSettings() {
+  const { user, loading: authLoading } = usePortalAuth();
   const navigate = useNavigate();
   const [users, setUsers] = useState<PortalUser[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,7 +30,7 @@ export default function MalakiSettings() {
 
   useEffect(() => {
     if (!authLoading && (!user || user.role !== 'owner')) {
-      navigate('/malaki/dashboard', { replace: true });
+      navigate('/portal/dashboard', { replace: true });
     }
   }, [authLoading, user, navigate]);
 
@@ -129,20 +129,19 @@ export default function MalakiSettings() {
       minHeight: '100vh', background: '#0A0A0A', color: 'white',
       fontFamily: 'Tajawal, sans-serif', direction: 'rtl',
     }}>
-      {/* Header */}
       <div style={{
         height: 56, background: 'linear-gradient(135deg, #0A0A0A, #1A0A00)',
         borderBottom: '1px solid rgba(212,160,23,0.2)',
         padding: '0 20px', display: 'flex', alignItems: 'center', gap: 12,
       }}>
-        <button onClick={() => navigate('/malaki/dashboard')} style={{
+        <button onClick={() => navigate('/portal/dashboard')} style={{
           background: 'none', border: 'none', color: GOLD, cursor: 'pointer',
           display: 'flex', alignItems: 'center', gap: 4, fontSize: 14,
           fontFamily: 'Tajawal, sans-serif',
         }}>
           <ArrowRight size={18} /> رجوع
         </button>
-        <span style={{ fontSize: 16, fontWeight: 700 }}>⚙️ إعدادات البوابة</span>
+        <span style={{ fontSize: 16, fontWeight: 700 }}>⚙️ إعدادات بوابة الإدارة</span>
       </div>
 
       <div style={{ maxWidth: 800, margin: '0 auto', padding: 24 }}>
@@ -246,7 +245,6 @@ export default function MalakiSettings() {
             </div>
           )}
 
-          {/* Users table */}
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
@@ -302,8 +300,8 @@ export default function MalakiSettings() {
       </div>
 
       <style>{`
-        .malaki-settings select option { background: #1a1a1a; color: white; }
-        .malaki-settings input:focus { border-color: #D4A017 !important; box-shadow: 0 0 0 3px rgba(212,160,23,0.2) !important; }
+        select option { background: #1a1a1a; color: white; }
+        input:focus { border-color: #D4A017 !important; box-shadow: 0 0 0 3px rgba(212,160,23,0.2) !important; }
       `}</style>
     </div>
   );

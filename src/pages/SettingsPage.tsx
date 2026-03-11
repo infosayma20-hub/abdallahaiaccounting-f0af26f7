@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Building2, User, Wallet, FileText, ShoppingCart, Package, Users, Bell, Shield, Link2, Printer, Brain, Search, RotateCcw } from "lucide-react";
+import { Building2, User, Wallet, FileText, ShoppingCart, Package, Users, Bell, Shield, Link2, Printer, Brain, Search, RotateCcw, Monitor } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -10,6 +10,7 @@ import FinanceSettingsSection from "@/components/settings/FinanceSettingsSection
 import InvoiceSettingsSection from "@/components/settings/InvoiceSettingsSection";
 import POSSettingsSection from "@/components/settings/POSSettingsSection";
 import PrintSettingsSection from "@/components/settings/PrintSettingsSection";
+import PortalSettingsSection from "@/components/settings/PortalSettingsSection";
 
 const sections = [
   { id: "company", label: "الشركة", icon: Building2, ready: true },
@@ -23,6 +24,7 @@ const sections = [
   { id: "security", label: "الأمان", icon: Shield, ready: false },
   { id: "integrations", label: "التكاملات", icon: Link2, ready: false },
   { id: "print", label: "الطباعة", icon: Printer, ready: true },
+  { id: "portal", label: "بوابة الإدارة", icon: Monitor, ready: true },
   { id: "ai", label: "الذكاء الاصطناعي", icon: Brain, ready: false },
 ];
 
@@ -56,6 +58,8 @@ const SettingsPage = () => {
         return <POSSettingsSection settings={settings} onChange={updateSettings} />;
       case "print":
         return <PrintSettingsSection settings={settings} onChange={updateSettings} />;
+      case "portal":
+        return <PortalSettingsSection />;
       default:
         return (
           <div className="flex items-center justify-center h-64 text-muted-foreground">

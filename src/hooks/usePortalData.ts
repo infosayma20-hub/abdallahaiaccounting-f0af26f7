@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { getBusinessDay, getShiftRangeForDate, type BusinessDay } from '@/lib/malaki-business-day';
+import { getBusinessDay, getShiftRangeForDate, type BusinessDay } from '@/lib/portal-business-day';
 
 export interface BranchSales {
   id: string;
@@ -37,7 +37,7 @@ export interface LiquidityData {
   cashBoxes: CashBoxData[];
 }
 
-export function useMalakiData(userId: string | undefined) {
+export function usePortalData(userId: string | undefined) {
   const [salesData, setSalesData] = useState<SalesData | null>(null);
   const [liquidityData, setLiquidityData] = useState<LiquidityData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -82,7 +82,7 @@ export function useMalakiData(userId: string | undefined) {
         setLastUpdated(new Date());
       }
     } catch (err) {
-      console.error('Malaki data fetch error:', err);
+      console.error('Portal data fetch error:', err);
     } finally {
       setLoading(false);
     }

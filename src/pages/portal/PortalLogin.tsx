@@ -1,9 +1,9 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useMalakiAuth } from '@/hooks/useMalakiAuth';
+import { usePortalAuth } from '@/hooks/usePortalAuth';
 import { Eye, EyeOff, User, Lock, Loader2 } from 'lucide-react';
 
-export default function MalakiLogin() {
+export default function PortalLogin() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -12,10 +12,10 @@ export default function MalakiLogin() {
   const [loading, setLoading] = useState(false);
   const [shake, setShake] = useState(false);
   const navigate = useNavigate();
-  const { user, loading: authLoading, login } = useMalakiAuth();
+  const { user, loading: authLoading, login } = usePortalAuth();
 
   useEffect(() => {
-    if (!authLoading && user) navigate('/malaki/dashboard', { replace: true });
+    if (!authLoading && user) navigate('/portal/dashboard', { replace: true });
   }, [authLoading, user, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -25,7 +25,7 @@ export default function MalakiLogin() {
     setError('');
     try {
       await login(username, password, rememberMe);
-      navigate('/malaki/dashboard', { replace: true });
+      navigate('/portal/dashboard', { replace: true });
     } catch (err: any) {
       setError(err.message || 'خطأ في تسجيل الدخول');
       setShake(true);
@@ -38,23 +38,21 @@ export default function MalakiLogin() {
   if (authLoading) return null;
 
   return (
-    <div className="malaki-login" style={{
+    <div className="portal-login" style={{
       minHeight: '100vh',
       background: 'linear-gradient(160deg, #0A0A0A 0%, #1A0A00 50%, #2D1200 100%)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       fontFamily: 'Tajawal, sans-serif', direction: 'rtl',
       position: 'relative',
     }}>
-      {/* Pattern overlay */}
       <div style={{
         position: 'absolute', inset: 0,
         backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.015) 10px, rgba(255,255,255,0.015) 11px)',
         pointerEvents: 'none',
       }} />
 
-      {/* Login Card */}
       <div
-        className={shake ? 'malaki-shake' : ''}
+        className={shake ? 'portal-shake' : ''}
         style={{
           width: 'min(420px, 92vw)',
           background: 'rgba(255,255,255,0.04)',
@@ -66,7 +64,6 @@ export default function MalakiLogin() {
           position: 'relative', zIndex: 1,
         }}
       >
-        {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
           <div style={{
             width: 80, height: 80, borderRadius: '50%',
@@ -75,10 +72,10 @@ export default function MalakiLogin() {
             margin: '0 auto 16px',
             boxShadow: '0 8px 32px rgba(212,160,23,0.3)',
           }}>
-            <span style={{ fontSize: 22, fontWeight: 700, color: 'white' }}>الملكي</span>
+            <span style={{ fontSize: 20, fontWeight: 700, color: 'white' }}>📊</span>
           </div>
-          <div style={{ fontSize: 20, fontWeight: 800, color: 'white' }}>الدجاج الملكي</div>
-          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', marginTop: 4 }}>بوابة متابعة المبيعات</div>
+          <div style={{ fontSize: 20, fontWeight: 800, color: 'white' }}>بوابة الإدارة</div>
+          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', marginTop: 4 }}>متابعة المبيعات والسيولة</div>
           <div style={{
             height: 1, margin: '24px auto',
             background: 'linear-gradient(90deg, transparent, #D4A017, transparent)',
@@ -86,7 +83,6 @@ export default function MalakiLogin() {
         </div>
 
         <form onSubmit={handleSubmit}>
-          {/* Username */}
           <div style={{ marginBottom: 16, position: 'relative' }}>
             <User size={16} style={{ position: 'absolute', right: 16, top: 18, color: '#D4A017', zIndex: 2 }} />
             <input
@@ -94,7 +90,7 @@ export default function MalakiLogin() {
               onChange={e => setUsername(e.target.value)}
               placeholder="اسم المستخدم"
               autoComplete="username"
-              className="malaki-input"
+              className="portal-input"
               style={{
                 width: '100%', height: 52,
                 background: 'rgba(255,255,255,0.07)',
@@ -107,7 +103,6 @@ export default function MalakiLogin() {
             />
           </div>
 
-          {/* Password */}
           <div style={{ marginBottom: 16, position: 'relative' }}>
             <Lock size={16} style={{ position: 'absolute', right: 16, top: 18, color: '#D4A017', zIndex: 2 }} />
             <input
@@ -116,7 +111,7 @@ export default function MalakiLogin() {
               onChange={e => setPassword(e.target.value)}
               placeholder="كلمة المرور"
               autoComplete="current-password"
-              className="malaki-input"
+              className="portal-input"
               style={{
                 width: '100%', height: 52,
                 background: 'rgba(255,255,255,0.07)',
@@ -140,7 +135,6 @@ export default function MalakiLogin() {
             </button>
           </div>
 
-          {/* Remember me */}
           <label style={{
             display: 'flex', alignItems: 'center', gap: 8,
             marginBottom: 16, cursor: 'pointer',
@@ -155,7 +149,6 @@ export default function MalakiLogin() {
             تذكرني لـ 30 يوم
           </label>
 
-          {/* Submit */}
           <button
             type="submit"
             disabled={loading}
@@ -174,7 +167,6 @@ export default function MalakiLogin() {
             ) : 'دخول ←'}
           </button>
 
-          {/* Error */}
           {error && (
             <div style={{
               marginTop: 12, padding: '8px 12px', borderRadius: 8,
@@ -187,28 +179,27 @@ export default function MalakiLogin() {
         </form>
       </div>
 
-      {/* Footer */}
       <div style={{
         position: 'fixed', bottom: 16, width: '100%', textAlign: 'center',
         fontSize: 11, color: 'rgba(255,255,255,0.2)',
       }}>
-        نظام إدارة الدجاج الملكي • مدعوم بـ FINIX
+        بوابة الإدارة • مدعوم بـ FINIX
       </div>
 
       <style>{`
-        @keyframes malakiShake {
+        @keyframes portalShake {
           0%, 100% { transform: translateX(0); }
           10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
           20%, 40%, 60%, 80% { transform: translateX(5px); }
         }
-        .malaki-shake { animation: malakiShake 0.5s ease; }
-        .malaki-input:focus {
+        .portal-shake { animation: portalShake 0.5s ease; }
+        .portal-input:focus {
           border-color: #D4A017 !important;
           background: rgba(255,255,255,0.1) !important;
           box-shadow: 0 0 0 3px rgba(212,160,23,0.2) !important;
         }
-        .malaki-input::placeholder { color: rgba(255,255,255,0.4) !important; }
-        .malaki-login select option { background: #1a1a1a; color: white; }
+        .portal-input::placeholder { color: rgba(255,255,255,0.4) !important; }
+        .portal-login select option { background: #1a1a1a; color: white; }
       `}</style>
     </div>
   );

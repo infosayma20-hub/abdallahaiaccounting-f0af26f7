@@ -1,20 +1,19 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useMalakiAuth } from '@/hooks/useMalakiAuth';
-import { useMalakiData } from '@/hooks/useMalakiData';
-import { getBusinessDay, formatArabicTime, formatArabicDate } from '@/lib/malaki-business-day';
+import { usePortalAuth } from '@/hooks/usePortalAuth';
+import { usePortalData } from '@/hooks/usePortalData';
+import { getBusinessDay, formatArabicTime, formatArabicDate } from '@/lib/portal-business-day';
 import { LogOut, Settings, RefreshCw } from 'lucide-react';
-import MalakiSalesTab from './MalakiSalesTab';
-import MalakiLiquidityTab from './MalakiLiquidityTab';
+import PortalSalesTab from './PortalSalesTab';
+import PortalLiquidityTab from './PortalLiquidityTab';
 
-export default function MalakiPortal() {
-  const { user, loading: authLoading, logout } = useMalakiAuth();
+export default function PortalDashboard() {
+  const { user, loading: authLoading, logout } = usePortalAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'sales' | 'liquidity'>('sales');
   const [clock, setClock] = useState(new Date());
-  const { salesData, liquidityData, loading: dataLoading, needsSetup, lastUpdated, businessDay, refresh } = useMalakiData(user?.id);
+  const { salesData, liquidityData, loading: dataLoading, needsSetup, lastUpdated, businessDay, refresh } = usePortalData(user?.id);
 
-  // Load JetBrains Mono
   useEffect(() => {
     const link = document.createElement('link');
     link.href = 'https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap';
@@ -23,15 +22,13 @@ export default function MalakiPortal() {
     return () => { document.head.removeChild(link); };
   }, []);
 
-  // Clock
   useEffect(() => {
     const interval = setInterval(() => setClock(new Date()), 1000);
     return () => clearInterval(interval);
   }, []);
 
-  // Auth redirect
   useEffect(() => {
-    if (!authLoading && !user) navigate('/malaki', { replace: true });
+    if (!authLoading && !user) navigate('/portal', { replace: true });
   }, [authLoading, user, navigate]);
 
   if (authLoading || !user) return null;
@@ -52,22 +49,20 @@ export default function MalakiPortal() {
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         position: 'sticky', top: 0, zIndex: 50,
       }}>
-        {/* Right: Logo */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{
             width: 32, height: 32, borderRadius: '50%',
             background: 'linear-gradient(135deg, #D4A017, #8B5E00)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 9, fontWeight: 700, color: 'white',
-          }}>الملكي</div>
-          <span style={{ fontSize: 15, fontWeight: 700 }}>الدجاج الملكي</span>
+            fontSize: 14, color: 'white',
+          }}>📊</div>
+          <span style={{ fontSize: 15, fontWeight: 700 }}>بوابة الإدارة</span>
           <div className="hidden sm:block" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <div style={{ width: 1, height: 20, background: 'rgba(255,255,255,0.15)' }} />
-            <span style={{ fontSize: 12, color: '#D4A017' }}>بوابة المتابعة</span>
+            <span style={{ fontSize: 12, color: '#D4A017' }}>متابعة المبيعات والسيولة</span>
           </div>
         </div>
 
-        {/* Center: Business Day Indicator */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{
             padding: '6px 14px', borderRadius: 20,
@@ -85,11 +80,10 @@ export default function MalakiPortal() {
           </div>
         </div>
 
-        {/* Left: User + Actions */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span className="hidden sm:inline" style={{ fontSize: 13 }}>أهلاً، {user.full_name}</span>
           {user.role === 'owner' && (
-            <button onClick={() => navigate('/malaki/settings')} style={{
+            <button onClick={() => navigate('/portal/settings')} style={{
               background: 'none', border: '1px solid rgba(255,255,255,0.2)',
               borderRadius: 8, padding: '4px 10px', color: 'rgba(255,255,255,0.7)',
               cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontSize: 12,
@@ -97,7 +91,7 @@ export default function MalakiPortal() {
               <Settings size={14} />
             </button>
           )}
-          <button onClick={() => { logout(); navigate('/malaki'); }} style={{
+          <button onClick={() => { logout(); navigate('/portal'); }} style={{
             background: 'none', border: '1px solid rgba(255,255,255,0.2)',
             borderRadius: 8, padding: '4px 10px', color: 'rgba(255,255,255,0.7)',
             cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontSize: 12,
@@ -138,7 +132,6 @@ export default function MalakiPortal() {
 
       {/* CONTENT */}
       <div style={{ padding: '16px 20px', maxWidth: 1400, margin: '0 auto' }}>
-        {/* Auto-refresh indicator */}
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           marginBottom: 12,
@@ -169,7 +162,7 @@ export default function MalakiPortal() {
         </div>
 
         {activeTab === 'sales' && (
-          <MalakiSalesTab
+          <PortalSalesTab
             data={salesData}
             loading={dataLoading}
             businessDay={businessDay}
@@ -178,11 +171,10 @@ export default function MalakiPortal() {
           />
         )}
         {activeTab === 'liquidity' && (
-          <MalakiLiquidityTab data={liquidityData} loading={dataLoading} />
+          <PortalLiquidityTab data={liquidityData} loading={dataLoading} />
         )}
       </div>
 
-      {/* Mobile safe area */}
       <div style={{ height: 'env(safe-area-inset-bottom, 0px)' }} />
     </div>
   );

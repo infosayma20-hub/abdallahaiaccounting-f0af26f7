@@ -1,4 +1,4 @@
-import { type LiquidityData } from '@/hooks/useMalakiData';
+import { type LiquidityData } from '@/hooks/usePortalData';
 import { Loader2 } from 'lucide-react';
 
 const GOLD = '#D4A017';
@@ -19,7 +19,7 @@ interface Props {
   loading: boolean;
 }
 
-export default function MalakiLiquidityTab({ data, loading }: Props) {
+export default function PortalLiquidityTab({ data, loading }: Props) {
   if (loading && !data) {
     return (
       <div style={{ textAlign: 'center', padding: '60px 20px' }}>
@@ -46,14 +46,12 @@ export default function MalakiLiquidityTab({ data, loading }: Props) {
     return amount;
   };
 
-  // Currency totals
   const currencyTotals: Record<string, number> = {};
   data.cashBoxes.forEach(box => {
     currencyTotals[box.currency] = (currencyTotals[box.currency] || 0) + box.balance;
   });
   const totalILS = data.cashBoxes.reduce((sum, box) => sum + toILS(box.balance, box.currency), 0);
 
-  // Group by branch
   const branchGroups: Record<string, typeof data.cashBoxes> = {};
   data.cashBoxes.forEach(box => {
     const key = box.branchLocation || box.name;
@@ -63,7 +61,6 @@ export default function MalakiLiquidityTab({ data, loading }: Props) {
 
   return (
     <div>
-      {/* Exchange rates bar */}
       <div style={{
         padding: '8px 16px', marginBottom: 16,
         background: 'rgba(255,255,255,0.04)', borderRadius: 10,
@@ -78,7 +75,6 @@ export default function MalakiLiquidityTab({ data, loading }: Props) {
         <span>1 دولار = ₪{rates.usd}</span>
       </div>
 
-      {/* Total liquidity summary */}
       <div style={{
         background: 'linear-gradient(135deg, #0A0A0A, #1A1200)',
         border: '1px solid rgba(212,160,23,0.3)',
@@ -142,7 +138,6 @@ export default function MalakiLiquidityTab({ data, loading }: Props) {
         </div>
       </div>
 
-      {/* Branch liquidity cards */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fit, minmax(min(400px, 100%), 1fr))',
