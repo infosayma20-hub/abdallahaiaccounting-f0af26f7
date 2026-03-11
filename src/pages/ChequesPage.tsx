@@ -128,6 +128,12 @@ const ChequesPage = () => {
     notes: '',
   });
 
+  const fetchAccounts = async () => {
+    if (!user) return;
+    const { data } = await supabase.from('accounts').select('account_code, account_name, account_type').eq('user_id', user.id).eq('is_active', true).order('account_code');
+    setAccounts(data || []);
+  };
+
   const fetchContacts = async () => {
     if (!user) return;
     const { data } = await supabase.from('contacts').select('id, contact_name, contact_type').eq('user_id', user.id).eq('is_active', true);
