@@ -10,7 +10,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors,
@@ -177,6 +178,29 @@ export default function FloorPlanEditorPage() {
     toast.success("تم حذف الطاولة");
   };
 
+  const [deletingSection, setDeletingSection] = useState<string | null>(null);
+
+  const handleDeleteSection = async (sectionId: string) => {
+    // Check if section has tables
+    const sectionTables = tables.filter(t => t.section_id === sectionId);
+    if (sectionTables.length > 0) {
+      // Deactivate all tables in this section
+      await Promise.all(
+        sectionTables.map(t => supabase.from("restaurant_tables").update({ is_active: false }).eq("id", t.id))
+      );
+      setTables(prev => prev.filter(t => t.section_id !== sectionId));
+    }
+    await supabase.from("restaurant_sections").delete().eq("id", sectionId);
+    setSections(prev => prev.filter(s => s.id !== sectionId));
+    if (activeSection === sectionId) {
+      const remaining = sections.filter(s => s.id !== sectionId);
+      setActiveSection(remaining.length > 0 ? remaining[0].id : null);
+    }
+    setSelectedTable(null);
+    setDeletingSection(null);
+    toast.success("تم حذف القاعة وجميع طاولاتها");
+  };
+
   const handleSavePositions = async () => {
     setSaving(true);
     try {
@@ -255,17 +279,25 @@ export default function FloorPlanEditorPage() {
                   </Button>
                 </div>
                 {sections.map(sec => (
-                  <button
-                    key={sec.id}
-                    onClick={() => { setActiveSection(sec.id); setSelectedTable(null); }}
-                    className={`w-full text-right px-3 py-2 rounded-lg text-sm transition-colors ${
-                      activeSection === sec.id
-                        ? "bg-primary text-primary-foreground"
-                        : "hover:bg-muted text-foreground"
-                    }`}
-                  >
-                    {sec.name}
-                  </button>
+                  <div key={sec.id} className="flex items-center gap-1 group">
+                    <button
+                      onClick={() => { setActiveSection(sec.id); setSelectedTable(null); }}
+                      className={`flex-1 text-right px-3 py-2 rounded-lg text-sm transition-colors ${
+                        activeSection === sec.id
+                          ? "bg-primary text-primary-foreground"
+                          : "hover:bg-muted text-foreground"
+                      }`}
+                    >
+                      {sec.name}
+                    </button>
+                    <button
+                      onClick={() => setDeletingSection(sec.id)}
+                      className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-all"
+                      title="حذف القاعة"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 ))}
               </div>
 
@@ -469,6 +501,27 @@ export default function FloorPlanEditorPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete section confirmation */}
+      <AlertDialog open={!!deletingSection} onOpenChange={(open) => !open && setDeletingSection(null)}>
+        <AlertDialogContent dir="rtl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>حذف القاعة</AlertDialogTitle>
+            <AlertDialogDescription>
+              سيتم حذف القاعة "{sections.find(s => s.id === deletingSection)?.name}" وجميع الطاولات الموجودة فيها ({tables.filter(t => t.section_id === deletingSection).length} طاولة). هل أنت متأكد؟
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-row-reverse gap-2">
+            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => deletingSection && handleDeleteSection(deletingSection)}
+            >
+              حذف
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
