@@ -24,6 +24,7 @@ const sections = [
   { id: "security", label: "الأمان", icon: Shield, ready: false },
   { id: "integrations", label: "التكاملات", icon: Link2, ready: false },
   { id: "print", label: "الطباعة", icon: Printer, ready: true },
+  { id: "portal", label: "بوابة الإدارة", icon: Monitor, ready: true },
   { id: "ai", label: "الذكاء الاصطناعي", icon: Brain, ready: false },
 ];
 
