@@ -202,9 +202,9 @@ const FinanceJournalPage = () => {
 
     setSaving(true);
 
-    const { data: voucher, error } = await supabase.from("vouchers").insert({
+    const voucherPayload = {
       user_id: user.id,
-      type: "journal",
+      type: "journal" as const,
       subtype: formSubtype,
       ref_number: formRefNumber || "",
       date: formDate,
@@ -216,7 +216,21 @@ const FinanceJournalPage = () => {
       status,
       posted_by: status === "posted" ? user.id : null,
       posted_at: status === "posted" ? new Date().toISOString() : null,
-    }).select().single();
+    };
+
+    let voucher: any = null;
+    let error: any = null;
+
+    if (editingVoucherId) {
+      const res = await supabase.from("vouchers").update(voucherPayload).eq("id", editingVoucherId).select().single();
+      voucher = res.data;
+      error = res.error;
+      if (voucher) await supabase.from("voucher_lines").delete().eq("voucher_id", editingVoucherId);
+    } else {
+      const res = await supabase.from("vouchers").insert(voucherPayload).select().single();
+      voucher = res.data;
+      error = res.error;
+    }
 
     if (error || !voucher) {
       toast({ title: "خطأ", description: error?.message || "حدث خطأ", variant: "destructive" });
