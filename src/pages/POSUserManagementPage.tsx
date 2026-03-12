@@ -11,7 +11,7 @@ import {
   Ban, RotateCcw, ClipboardList, UserCheck, FileText,
   Package, FilePen, ShoppingCart, CreditCard, Printer,
   Send, PackageSearch, UserRoundPlus, UsersRound, BarChart3,
-  Download, Wallet,
+  Download, Wallet, Receipt, ShoppingBag, Truck, FolderPlus, PackagePlus, Tags,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -83,6 +83,15 @@ interface Permission {
   // Group 6 - Reports
   view_sales_report: boolean;
   export_reports: boolean;
+  // Group 7 - Financial Operations
+  can_add_inventory: boolean;
+  can_create_product: boolean;
+  can_record_purchases: boolean;
+  can_pay_purchases_cash: boolean;
+  can_create_supplier: boolean;
+  can_affect_inventory_on_purchase: boolean;
+  can_record_expenses: boolean;
+  can_create_expense_category: boolean;
 }
 
 const DEFAULT_PERMS: Permission = {
@@ -111,6 +120,14 @@ const DEFAULT_PERMS: Permission = {
   edit_customers: false,
   view_sales_report: false,
   export_reports: false,
+  can_add_inventory: false,
+  can_create_product: false,
+  can_record_purchases: false,
+  can_pay_purchases_cash: false,
+  can_create_supplier: false,
+  can_affect_inventory_on_purchase: false,
+  can_record_expenses: false,
+  can_create_expense_category: false,
 };
 
 const ROLE_LABELS: Record<string, string> = {
@@ -235,6 +252,14 @@ export default function POSUserManagementPage() {
       edit_customers: (perms as any).edit_customers ?? false,
       view_sales_report: (perms as any).view_sales_report ?? false,
       export_reports: (perms as any).export_reports ?? false,
+      can_add_inventory: (perms as any).can_add_inventory ?? false,
+      can_create_product: (perms as any).can_create_product ?? false,
+      can_record_purchases: (perms as any).can_record_purchases ?? false,
+      can_pay_purchases_cash: (perms as any).can_pay_purchases_cash ?? false,
+      can_create_supplier: (perms as any).can_create_supplier ?? false,
+      can_affect_inventory_on_purchase: (perms as any).can_affect_inventory_on_purchase ?? false,
+      can_record_expenses: (perms as any).can_record_expenses ?? false,
+      can_create_expense_category: (perms as any).can_create_expense_category ?? false,
     } : DEFAULT_PERMS);
 
     // Load device access
@@ -500,6 +525,20 @@ export default function POSUserManagementPage() {
       items: [
         { key: "view_sales_report", label: "مشاهدة تقرير المبيعات", icon: <BarChart3 className="w-4 h-4" /> },
         { key: "export_reports", label: "تصدير التقارير", icon: <Download className="w-4 h-4" />, dependsOn: "view_sales_report", dependsLabel: "مشاهدة تقرير المبيعات" },
+      ],
+    },
+    {
+      title: "العمليات المالية",
+      icon: <Receipt className="w-4 h-4" />,
+      items: [
+        { key: "can_add_inventory", label: "إدخال بضاعة للمخزون", icon: <PackagePlus className="w-4 h-4" /> },
+        { key: "can_create_product", label: "تعريف منتج جديد", icon: <FolderPlus className="w-4 h-4" />, dependsOn: "can_add_inventory", dependsLabel: "إدخال بضاعة للمخزون" },
+        { key: "can_record_purchases", label: "تسجيل مشتريات", icon: <ShoppingBag className="w-4 h-4" /> },
+        { key: "can_pay_purchases_cash", label: "دفع مشتريات نقداً من الصندوق", icon: <Wallet className="w-4 h-4" />, dependsOn: "can_record_purchases", dependsLabel: "تسجيل مشتريات" },
+        { key: "can_create_supplier", label: "تعريف مورد جديد", icon: <Truck className="w-4 h-4" />, dependsOn: "can_record_purchases", dependsLabel: "تسجيل مشتريات" },
+        { key: "can_affect_inventory_on_purchase", label: "ربط المشتريات بالمخزون", icon: <Package className="w-4 h-4" />, dependsOn: "can_record_purchases", dependsLabel: "تسجيل مشتريات" },
+        { key: "can_record_expenses", label: "صرف مصاريف", icon: <Receipt className="w-4 h-4" /> },
+        { key: "can_create_expense_category", label: "تعريف نوع مصروف جديد", icon: <Tags className="w-4 h-4" />, dependsOn: "can_record_expenses", dependsLabel: "صرف مصاريف" },
       ],
     },
   ];
