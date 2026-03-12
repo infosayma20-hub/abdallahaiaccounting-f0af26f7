@@ -128,6 +128,9 @@ const ContactsPage = () => {
   const [editing, setEditing] = useState(false);
   const [deleteContact, setDeleteContact] = useState<Contact | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [archiveContact, setArchiveContact] = useState<Contact | null>(null);
+  const [archiving, setArchiving] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [alerts, setAlerts] = useState<ContactAlert[]>([]);
   const [showAlerts, setShowAlerts] = useState(false);
