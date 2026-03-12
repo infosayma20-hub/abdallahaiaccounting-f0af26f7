@@ -576,7 +576,12 @@ const ContactsPage = () => {
                             {getInitials(contact.contact_name)}
                           </div>
                           <div className="min-w-0">
-                            <p className="text-sm font-semibold truncate">{contact.contact_name}</p>
+                            <div className="flex items-center gap-1.5">
+                              <p className="text-sm font-semibold truncate">{contact.contact_name}</p>
+                              {contact.is_archived && (
+                                <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 bg-muted text-muted-foreground">مؤرشف</Badge>
+                              )}
+                            </div>
                             {contact.phone && <p className="text-[10px] text-muted-foreground tabular-nums">{contact.phone}</p>}
                           </div>
                         </div>
