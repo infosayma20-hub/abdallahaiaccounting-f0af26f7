@@ -592,7 +592,7 @@ const ContactsPage = () => {
                           contact.contact_type === "زبون ومورد" ? "bg-blue-100 text-blue-700 dark:bg-blue-900/40" : 
                           "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40"
                         }`}>
-                          {contact.contact_type}
+                          {contact.contact_type === "عميل" ? "زبون" : contact.contact_type}
                         </Badge>
                       </td>
                       <td className="p-3 text-center">
