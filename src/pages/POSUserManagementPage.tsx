@@ -625,7 +625,7 @@ export default function POSUserManagementPage() {
                         <p className="text-xs text-muted-foreground mt-0.5">
                           {u.email && <span className="inline-flex items-center gap-1"><Mail className="w-3 h-3" />{u.email}</span>}
                           {u.phone && <span className="mr-2">{u.phone}</span>}
-                          {u.last_login_at && ` • آخر دخول: ${new Date(u.last_login_at).toLocaleDateString("ar")}`}
+                          {u.last_login_at && ` • آخر دخول: ${new Date(u.last_login_at).toLocaleDateString("en-GB")}`}
                         </p>
                       </div>
                       <div className="flex items-center gap-1">

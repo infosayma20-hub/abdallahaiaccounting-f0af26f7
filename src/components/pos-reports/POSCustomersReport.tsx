@@ -120,7 +120,7 @@ const POSCustomersReport = ({ dataOwnerId }: Props) => {
                 <td className="px-4 py-3 text-left text-sm font-mono font-semibold text-foreground">₪{c.total_spent?.toLocaleString()}</td>
                 <td className="px-4 py-3 text-left text-sm font-mono text-muted-foreground">₪{c.total_discounts?.toLocaleString()}</td>
                 <td className="px-4 py-3 text-left text-sm text-muted-foreground">
-                  {c.last_visit ? new Date(c.last_visit).toLocaleDateString("ar") : "-"}
+                  {c.last_visit ? new Date(c.last_visit).toLocaleDateString("en-GB") : "-"}
                 </td>
               </tr>
             ))}

@@ -204,7 +204,7 @@ const ExportPage = () => {
           </table>
 
           <div style="text-align:center;margin-top:30px;font-size:10px;color:#999;border-top:1px solid #e5e7eb;padding-top:15px;">
-            تم إنشاؤه بواسطة عبدالله AI للمحاسبة • ${new Date().toLocaleDateString("ar")}
+            تم إنشاؤه بواسطة عبدالله AI للمحاسبة • ${new Date().toLocaleDateString("en-GB")}
           </div>
         </body>
       </html>

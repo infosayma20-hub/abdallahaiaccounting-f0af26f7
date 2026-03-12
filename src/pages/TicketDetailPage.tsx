@@ -80,7 +80,7 @@ const TicketDetailPage = () => {
           <div className="flex items-center gap-2 mt-1">
             <Badge className={`text-[10px] ${statusColors[ticket.status] || ""}`}>{ticket.status}</Badge>
             {ticket.priority === "عاجل" && <Badge variant="destructive" className="text-[10px]">عاجل</Badge>}
-            <span className="text-[10px] text-muted-foreground">{new Date(ticket.created_at).toLocaleDateString("ar")}</span>
+            <span className="text-[10px] text-muted-foreground">{new Date(ticket.created_at).toLocaleDateString("en-GB")}</span>
           </div>
         </div>
         <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">

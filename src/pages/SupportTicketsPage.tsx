@@ -108,7 +108,7 @@ const SupportTicketsPage = () => {
                     {t.priority === "عاجل" && <Badge variant="destructive" className="text-[10px]">عاجل</Badge>}
                   </div>
                   <p className="text-xs text-muted-foreground truncate">{t.description || "بدون وصف"}</p>
-                  <p className="text-[10px] text-muted-foreground mt-1">{new Date(t.created_at).toLocaleDateString("ar")}</p>
+                  <p className="text-[10px] text-muted-foreground mt-1">{new Date(t.created_at).toLocaleDateString("en-GB")}</p>
                 </div>
                 <ArrowRight className="h-4 w-4 text-muted-foreground rotate-180 shrink-0" />
               </CardContent>
