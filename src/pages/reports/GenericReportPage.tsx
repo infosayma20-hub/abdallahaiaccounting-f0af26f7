@@ -903,7 +903,7 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
 
   const renderAgingTable = () => (
     <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr>
-      <th className={thClass}>{reportKey === "ar-aging" ? "العميل" : "المورد"}</th>
+      <th className={thClass}>{reportKey === "ar-aging" ? "الزبون" : "المورد"}</th>
       <th className={thClass}>التصنيف</th>
       <th className={`${thClass} !bg-green-700`}>جاري</th>
       <th className={`${thClass} !bg-yellow-600`}>1-30</th>
