@@ -125,7 +125,7 @@ const ContactPoliciesPage = () => {
             <ArrowRight className="h-5 w-5" />
           </button>
           <div>
-            <h1 className="text-xl font-bold">سياسات تصنيف العملاء</h1>
+            <h1 className="text-xl font-bold">سياسات تصنيف الزبائن</h1>
             <p className="text-xs text-muted-foreground">إدارة سياسات التصنيف A B C D</p>
           </div>
         </div>

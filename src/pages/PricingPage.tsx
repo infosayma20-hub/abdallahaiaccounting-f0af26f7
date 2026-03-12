@@ -45,7 +45,7 @@ const comparisonData = [
   { category: "المبيعات والمشتريات", features: [
     { label: "فواتير المبيعات", starter: true, professional: true, enterprise: true },
     { label: "فواتير المشتريات", starter: true, professional: true, enterprise: true },
-    { label: "إدارة العملاء والموردين", starter: true, professional: true, enterprise: true },
+    { label: "إدارة الزبائن والموردين", starter: true, professional: true, enterprise: true },
     { label: "نقطة البيع POS", starter: false, professional: true, enterprise: true },
     { label: "إدارة المخزون", starter: false, professional: true, enterprise: true },
   ]},

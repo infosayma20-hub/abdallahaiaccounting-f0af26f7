@@ -22,7 +22,7 @@ const TermsPage = () => {
 
           <section>
             <h2 className="text-base font-bold text-foreground">2. طبيعة الخدمة</h2>
-            <p className="text-sm text-muted-foreground leading-relaxed">يوفر التطبيق نظاماً محاسبياً سحابياً يعتمد على تقنيات الذكاء الاصطناعي لتسجيل المعاملات، إدارة العملاء والموردين، إصدار الفواتير، وإعداد التقارير المالية.</p>
+            <p className="text-sm text-muted-foreground leading-relaxed">يوفر التطبيق نظاماً محاسبياً سحابياً يعتمد على تقنيات الذكاء الاصطناعي لتسجيل المعاملات، إدارة الزبائن والموردين، إصدار الفواتير، وإعداد التقارير المالية.</p>
             <p className="text-sm text-muted-foreground leading-relaxed">التطبيق أداة مساعدة لإدارة البيانات المالية، ولا يُعد بديلاً عن الاستشارة المحاسبية أو القانونية المتخصصة.</p>
           </section>
 

@@ -54,7 +54,7 @@ const TABS = [
   { id: "returns", label: "المرتجعات", icon: RotateCcw },
   { id: "profit", label: "الربحية", icon: TrendingUp },
   { id: "shifts", label: "الورديات", icon: Timer },
-  { id: "customers", label: "العملاء", icon: UserCheck },
+  { id: "customers", label: "الزبائن", icon: UserCheck },
 ];
 
 const POSReportsPage = () => {

@@ -59,8 +59,8 @@ const POSCustomersReport = ({ dataOwnerId }: Props) => {
     }));
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.json_to_sheet(rows);
-    XLSX.utils.book_append_sheet(wb, ws, "العملاء");
-    XLSX.writeFile(wb, `عملاء-POS-${new Date().toISOString().slice(0, 10)}.xlsx`);
+    XLSX.utils.book_append_sheet(wb, ws, "الزبائن");
+    XLSX.writeFile(wb, `زبائن-POS-${new Date().toISOString().slice(0, 10)}.xlsx`);
   };
 
   return (

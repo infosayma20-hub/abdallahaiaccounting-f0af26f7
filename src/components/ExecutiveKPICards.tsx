@@ -175,7 +175,7 @@ const ExecutiveKPICards = ({
           ? "نسبة التحصيل ممتازة — استمر بالمتابعة"
           : collectionRate >= 60
             ? "هناك ذمم بحاجة متابعة — حسّن التحصيل"
-            : "نسبة التحصيل منخفضة — تابع العملاء المتأخرين",
+            : "نسبة التحصيل منخفضة — تابع الزبائن المتأخرين",
       sparkData: sparkData.collection,
       status: !hasIncome && !hasReceivables ? "yellow" : collectionRate >= 80 ? "green" : collectionRate >= 60 ? "yellow" : "red",
       loading,
