@@ -491,7 +491,7 @@ const POSPage = () => {
       if (!posUser) return;
       const { data: perms } = await supabase
         .from("pos_user_permissions")
-        .select("can_view_invoice_history, can_edit_invoices, require_manager_for_invoices, manage_products_categories, view_invoice_log, edit_cancel_invoices")
+        .select("can_view_invoice_history, can_edit_invoices, require_manager_for_invoices, manage_products_categories, view_invoice_log, edit_cancel_invoices, can_add_inventory, can_create_product, can_record_purchases, can_pay_purchases_cash, can_create_supplier, can_affect_inventory_on_purchase, can_record_expenses, can_create_expense_category")
         .eq("pos_user_id", posUser.id)
         .maybeSingle();
       if (perms) {
@@ -499,9 +499,17 @@ const POSPage = () => {
           can_view_invoice_history: perms.can_view_invoice_history ?? true,
           can_edit_invoices: perms.can_edit_invoices ?? false,
           require_manager_for_invoices: perms.require_manager_for_invoices ?? true,
-          manage_products_categories: perms.manage_products_categories ?? false,
-          view_invoice_log: perms.view_invoice_log ?? false,
-          edit_cancel_invoices: perms.edit_cancel_invoices ?? false,
+          manage_products_categories: (perms as any).manage_products_categories ?? false,
+          view_invoice_log: (perms as any).view_invoice_log ?? false,
+          edit_cancel_invoices: (perms as any).edit_cancel_invoices ?? false,
+          can_add_inventory: (perms as any).can_add_inventory ?? false,
+          can_create_product: (perms as any).can_create_product ?? false,
+          can_record_purchases: (perms as any).can_record_purchases ?? false,
+          can_pay_purchases_cash: (perms as any).can_pay_purchases_cash ?? false,
+          can_create_supplier: (perms as any).can_create_supplier ?? false,
+          can_affect_inventory_on_purchase: (perms as any).can_affect_inventory_on_purchase ?? false,
+          can_record_expenses: (perms as any).can_record_expenses ?? false,
+          can_create_expense_category: (perms as any).can_create_expense_category ?? false,
         });
       }
     };
