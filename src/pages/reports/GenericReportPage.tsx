@@ -1096,7 +1096,7 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
 
   const renderGroupedByContact = () => (
     <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr>
-      <th className={thClass}>{reportKey === "by-customer" ? "العميل" : "المورد"}</th>
+      <th className={thClass}>{reportKey === "by-customer" ? "الزبون" : "المورد"}</th>
       {reportKey === "by-customer" && <th className={thClass}>التصنيف</th>}
       <th className={thClass}>عدد الفواتير</th><th className={thClass}>الإجمالي</th>
       {reportKey === "by-customer" && <th className={thClass}>آخر عملية</th>}
