@@ -89,8 +89,8 @@ const CustomerReportsPage = () => {
         <div className="flex items-center gap-3">
           <button onClick={() => navigate(-1)} className="p-2 rounded-lg hover:bg-muted"><ArrowRight className="h-5 w-5" /></button>
           <div>
-            <h1 className="text-lg font-bold">تقارير العملاء والاستبيانات</h1>
-            <p className="text-xs text-muted-foreground">{customers.length} عميل | {surveys.length} استبيان</p>
+            <h1 className="text-lg font-bold">تقارير الزبائن والاستبيانات</h1>
+            <p className="text-xs text-muted-foreground">{customers.length} زبون | {surveys.length} استبيان</p>
           </div>
         </div>
         <Button variant="ghost" size="icon" onClick={loadData}><RefreshCw className="h-4 w-4" /></Button>
