@@ -1603,7 +1603,7 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
       <th className={thClass}>رقم الطلب</th><th className={thClass}>التاريخ</th><th className={thClass}>الزبون</th><th className={thClass}>المبلغ</th><th className={thClass}>السبب</th>
     </tr></thead><tbody>
       {data.map((r: any, i) => <tr key={i} className={`${trClass} bg-red-50/20`}>
-        <td className={`${tdClass} ${monoClass}`}>{r.order_number || "-"}</td><td className={`${tdClass} ${monoClass}`}>{r.created_at?.split("T")[0]}</td>
+         <td className={`${tdClass} ${monoClass}`}>{r.order_number || "-"}</td><td className={`${tdClass} ${monoClass}`}>{fmtDateDisplay(r.created_at?.split("T")[0])}</td>
         <td className={`${tdClass} font-medium`}>{r.customer_name || "-"}</td><td className={`${tdClass} ${monoClass} font-bold`}>{fmtAmt(r.total)}</td>
         <td className={`${tdClass} text-xs text-red-600`}>{r.return_reason || "-"}</td>
       </tr>)}
