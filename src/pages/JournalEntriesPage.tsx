@@ -218,7 +218,7 @@ const JournalEntriesPage = () => {
 
   const handleExport = () => {
     const data = filtered.map(tx => ({
-      "التاريخ": tx.transaction_date || "",
+      "التاريخ": fmtDateDisplay(tx.transaction_date) || "",
       "الوصف": tx.description || "",
       "النوع": getDisplayType(tx.transaction_type),
       "الحساب المدين": accountMap[tx.debit_account_code || ""] || tx.debit_account_code || "",
