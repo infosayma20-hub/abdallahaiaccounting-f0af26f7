@@ -1351,7 +1351,7 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
       <th className={thClass}>التاريخ</th><th className={thClass}>البيان</th><th className={thClass}>المبلغ</th><th className={thClass}>طريقة الدفع</th><th className={thClass}>المرجع</th>
     </tr></thead><tbody>
       {data.map((r: any, i) => <tr key={i} className={trClass}>
-        <td className={`${tdClass} ${monoClass}`}>{r.transaction_date}</td><td className={`${tdClass} text-xs`}>{r.description}</td>
+         <td className={`${tdClass} ${monoClass}`}>{fmtDateDisplay(r.transaction_date)}</td><td className={`${tdClass} text-xs`}>{r.description}</td>
         <td className={`${tdClass} ${monoClass} font-bold`}>{fmtAmt(r.amount)}</td>
         <td className={tdClass}>{r.payment_method || "-"}</td><td className={`${tdClass} ${monoClass}`}>{r.reference || "-"}</td>
       </tr>)}
