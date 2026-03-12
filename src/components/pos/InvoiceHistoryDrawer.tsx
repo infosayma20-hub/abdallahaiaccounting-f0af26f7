@@ -593,8 +593,8 @@ export default function InvoiceHistoryDrawer({
                   {format(new Date(selectedOrder.created_at), "yyyy/MM/dd HH:mm")}
                 </div>
                 <div>
-                  <span className="block text-[10px]" style={{ color: "#94A3B8" }}>العميل</span>
-                  {selectedOrder.customer_name || "عميل نقدي"}
+                  <span className="block text-[10px]" style={{ color: "#94A3B8" }}>الزبون</span>
+                  {selectedOrder.customer_name || "زبون نقدي"}
                 </div>
                 <div>
                   <span className="block text-[10px]" style={{ color: "#94A3B8" }}>طريقة الدفع</span>
