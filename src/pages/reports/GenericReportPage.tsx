@@ -616,6 +616,171 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
     setData(Object.values(heatmap).sort((a, b) => b.total - a.total));
   };
 
+  // ═══════════════════════════════════
+  // RECEIVABLES & PAYABLES LOADERS
+  // ═══════════════════════════════════
+
+  const loadARAgingDetail = async () => {
+    const contactTypes = ["عميل", "customer", "زبون"];
+    const { data: contacts } = await supabase.from("contacts").select("id, contact_name, current_balance, contact_class").eq("user_id", uid).in("contact_type", contactTypes).gt("current_balance", 0);
+    if (!contacts?.length) { setData([]); return; }
+    const { data: txns } = await supabase.from("transactions").select("contact_id, transaction_date, amount, transaction_type").eq("user_id", uid).eq("is_deleted", false).in("transaction_type", ["sale_credit", "sale_cash", "sale_bank", "sale_cheque"]);
+    const today = new Date();
+    setData(contacts.map(c => {
+      const cTxns = (txns || []).filter(t => t.contact_id === c.id);
+      const oldestUnpaid = cTxns.length > 0 ? new Date(cTxns[cTxns.length - 1].transaction_date) : today;
+      const days = differenceInDays(today, oldestUnpaid);
+      return {
+        name: c.contact_name, cls: c.contact_class || "C", total: c.current_balance || 0,
+        current: days <= 30 ? c.current_balance : 0, d31_60: days > 30 && days <= 60 ? c.current_balance : 0,
+        d61_90: days > 60 && days <= 90 ? c.current_balance : 0, over90: days > 90 ? c.current_balance : 0,
+      };
+    }).sort((a, b) => b.total - a.total));
+  };
+
+  const loadDSOReport = async () => {
+    const contactTypes = ["عميل", "customer", "زبون"];
+    const { data: contacts } = await supabase.from("contacts").select("id, contact_name, contact_class").eq("user_id", uid).in("contact_type", contactTypes);
+    if (!contacts?.length) { setData([]); return; }
+    const { data: txns } = await supabase.from("transactions").select("contact_id, transaction_date, amount, transaction_type").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo);
+    const today = new Date();
+    setData(contacts.map(c => {
+      const sales = (txns || []).filter(t => t.contact_id === c.id && (t.transaction_type?.includes("sale")));
+      const receipts = (txns || []).filter(t => t.contact_id === c.id && (t.transaction_type?.includes("receipt")));
+      const invCount = sales.length;
+      const paidCount = receipts.length;
+      const collDays: number[] = [];
+      sales.forEach((s, i) => { if (receipts[i]) collDays.push(differenceInDays(new Date(receipts[i].transaction_date), new Date(s.transaction_date))); });
+      const avgDays = collDays.length > 0 ? Math.round(collDays.reduce((a, b) => a + b, 0) / collDays.length) : 0;
+      const lateDays = collDays.filter(d => d > 30);
+      const avgLate = lateDays.length > 0 ? Math.round(lateDays.reduce((a, b) => a + b, 0) / lateDays.length) : 0;
+      const bestPayment = collDays.length > 0 ? Math.min(...collDays) : 0;
+      const worstPayment = collDays.length > 0 ? Math.max(...collDays) : 0;
+      const grade = avgDays < 30 && paidCount / Math.max(invCount, 1) > 0.8 ? "A" : avgDays <= 45 ? "B" : avgDays <= 60 ? "C" : "D";
+      return { name: c.contact_name, invCount, avgDays, avgLate, bestPayment, worstPayment, grade };
+    }).filter(r => r.invCount > 0).sort((a, b) => b.avgLate - a.avgLate));
+  };
+
+  const loadChecksReceivable = async () => {
+    const { data: cheques } = await supabase.from("cheques").select("*").eq("user_id", uid).eq("cheque_type", "وارد").order("cheque_date", { ascending: true });
+    const today = new Date();
+    setData((cheques || []).map(c => ({
+      party: c.party_name, number: c.cheque_number || "—", chequeDate: c.cheque_date,
+      amount: c.amount, daysUntilDue: differenceInDays(new Date(c.cheque_date), today),
+      status: c.status, bank: c.bank_name || "—",
+    })));
+  };
+
+  const loadCustomerProfitability = async () => {
+    const contactTypes = ["عميل", "customer", "زبون"];
+    const { data: contacts } = await supabase.from("contacts").select("id, contact_name").eq("user_id", uid).in("contact_type", contactTypes);
+    if (!contacts?.length) { setData([]); return; }
+    const { data: txns } = await supabase.from("transactions").select("contact_id, amount, transaction_type").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo);
+    setData(contacts.map(c => {
+      const sales = (txns || []).filter(t => t.contact_id === c.id && t.transaction_type?.includes("sale"));
+      const totalSales = sales.reduce((s, t) => s + (t.amount || 0), 0);
+      const invCount = sales.length;
+      const avgInv = invCount > 0 ? Math.round(totalSales / invCount) : 0;
+      return { name: c.contact_name, totalSales, invCount, avgInv };
+    }).filter(r => r.totalSales > 0).sort((a, b) => b.totalSales - a.totalSales));
+  };
+
+  const loadCustomerStatementAll = async () => {
+    const contactTypes = ["عميل", "customer", "زبون"];
+    const { data: contacts } = await supabase.from("contacts").select("id, contact_name").eq("user_id", uid).in("contact_type", contactTypes);
+    if (!contacts?.length) { setData([]); return; }
+    const { data: txns } = await supabase.from("transactions").select("contact_id, transaction_date, description, amount, debit_account_code, credit_account_code, reference, transaction_type").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo).order("transaction_date");
+    const rows: any[] = [];
+    contacts.forEach(c => {
+      const cTxns = (txns || []).filter(t => t.contact_id === c.id);
+      if (!cTxns.length) return;
+      let balance = 0;
+      cTxns.forEach(tx => {
+        const isDebit = tx.debit_account_code === "1130";
+        const debit = isDebit ? tx.amount : 0;
+        const credit = !isDebit ? tx.amount : 0;
+        balance += debit - credit;
+        rows.push({ contactName: c.contact_name, date: tx.transaction_date, ref: tx.reference || "—", desc: tx.description, debit, credit, balance });
+      });
+    });
+    setData(rows);
+  };
+
+  const loadAPAgingDetail = async () => {
+    const { data: contacts } = await supabase.from("contacts").select("id, contact_name, current_balance, contact_class").eq("user_id", uid).eq("contact_type", "مورد").lt("current_balance", 0);
+    if (!contacts?.length) { setData([]); return; }
+    const today = new Date();
+    setData(contacts.map(c => {
+      const bal = Math.abs(c.current_balance || 0);
+      return {
+        name: c.contact_name, total: bal,
+        current: bal, d31_60: 0, d61_90: 0, over90: 0,
+        priority: "🟢 مريح",
+      };
+    }).sort((a, b) => b.total - a.total));
+  };
+
+  const loadDPOReport = async () => {
+    const { data: contacts } = await supabase.from("contacts").select("id, contact_name").eq("user_id", uid).eq("contact_type", "مورد");
+    if (!contacts?.length) { setData([]); return; }
+    const { data: txns } = await supabase.from("transactions").select("contact_id, transaction_date, amount, transaction_type").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo);
+    setData(contacts.map(c => {
+      const purchases = (txns || []).filter(t => t.contact_id === c.id && t.transaction_type?.includes("purchase"));
+      const payments = (txns || []).filter(t => t.contact_id === c.id && t.transaction_type?.includes("payment"));
+      const totalPurchases = purchases.reduce((s, t) => s + (t.amount || 0), 0);
+      const payDays: number[] = [];
+      purchases.forEach((p, i) => { if (payments[i]) payDays.push(differenceInDays(new Date(payments[i].transaction_date), new Date(p.transaction_date))); });
+      const avgDays = payDays.length > 0 ? Math.round(payDays.reduce((a, b) => a + b, 0) / payDays.length) : 0;
+      const compliance = purchases.length > 0 ? Math.round((payments.length / purchases.length) * 100) : 0;
+      return { name: c.contact_name, totalPurchases, avgDays, compliance, invCount: purchases.length };
+    }).filter(r => r.totalPurchases > 0).sort((a, b) => b.totalPurchases - a.totalPurchases));
+  };
+
+  const loadChecksPayable = async () => {
+    const { data: cheques } = await supabase.from("cheques").select("*").eq("user_id", uid).eq("cheque_type", "صادر").order("cheque_date", { ascending: true });
+    const today = new Date();
+    setData((cheques || []).map(c => ({
+      party: c.party_name, number: c.cheque_number || "—", chequeDate: c.cheque_date,
+      amount: c.amount, daysUntilDue: differenceInDays(new Date(c.cheque_date), today),
+      status: c.status, bank: c.bank_name || "—",
+    })));
+  };
+
+  const loadSupplierPurchaseAnalysis = async () => {
+    const { data: contacts } = await supabase.from("contacts").select("id, contact_name").eq("user_id", uid).eq("contact_type", "مورد");
+    if (!contacts?.length) { setData([]); return; }
+    const { data: txns } = await supabase.from("transactions").select("contact_id, amount, transaction_type").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo);
+    const totalAllPurchases = (txns || []).filter(t => t.transaction_type?.includes("purchase")).reduce((s, t) => s + (t.amount || 0), 0);
+    setData(contacts.map(c => {
+      const purchases = (txns || []).filter(t => t.contact_id === c.id && t.transaction_type?.includes("purchase"));
+      const total = purchases.reduce((s, t) => s + (t.amount || 0), 0);
+      const invCount = purchases.length;
+      const avgInv = invCount > 0 ? Math.round(total / invCount) : 0;
+      const pct = totalAllPurchases > 0 ? Math.round((total / totalAllPurchases) * 100) : 0;
+      return { name: c.contact_name, total, invCount, avgInv, pct };
+    }).filter(r => r.total > 0).sort((a, b) => b.total - a.total));
+  };
+
+  const loadSupplierStatementAll = async () => {
+    const { data: contacts } = await supabase.from("contacts").select("id, contact_name").eq("user_id", uid).eq("contact_type", "مورد");
+    if (!contacts?.length) { setData([]); return; }
+    const { data: txns } = await supabase.from("transactions").select("contact_id, transaction_date, description, amount, debit_account_code, credit_account_code, reference").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo).order("transaction_date");
+    const rows: any[] = [];
+    contacts.forEach(c => {
+      const cTxns = (txns || []).filter(t => t.contact_id === c.id);
+      if (!cTxns.length) return;
+      let balance = 0;
+      cTxns.forEach(tx => {
+        const isCredit = tx.credit_account_code === "2100";
+        const debit = !isCredit ? tx.amount : 0;
+        const credit = isCredit ? tx.amount : 0;
+        balance += credit - debit;
+        rows.push({ contactName: c.contact_name, date: tx.transaction_date, ref: tx.reference || "—", desc: tx.description, debit, credit, balance });
+      });
+    });
+    setData(rows);
+  };
+
   const loadGenericTransactions = async () => {
     const { data: txns } = await supabase.from("transactions").select("id, transaction_date, description, amount, debit_account_code, credit_account_code, transaction_type, reference").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo).order("transaction_date", { ascending: false }).limit(200);
     setData(txns || []);
