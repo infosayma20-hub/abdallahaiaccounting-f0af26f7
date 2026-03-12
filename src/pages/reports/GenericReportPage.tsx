@@ -984,6 +984,72 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
               return <span className={`px-2 py-1 rounded-full text-xs ${colors[v] || "bg-muted"}`}>{labels[v] || v}</span>;
             }},
         ];
+      case "ar-aging-detail": case "ap-aging-detail":
+        return [
+          { key: "name", label: reportKey === "ar-aging-detail" ? "الزبون" : "المورد", type: "text" },
+          { key: "total", label: "الإجمالي", type: "currency", format: v => <span className="font-mono text-xs font-bold">{fmtAmtCell(v)}</span> },
+          { key: "current", label: "0-30", type: "currency", format: v => <span className="text-emerald-600 font-mono text-xs">{fmtAmtCell(v)}</span> },
+          { key: "d31_60", label: "31-60", type: "currency", format: v => <span className="text-amber-600 font-mono text-xs">{fmtAmtCell(v)}</span> },
+          { key: "d61_90", label: "61-90", type: "currency", format: v => <span className="text-orange-600 font-mono text-xs">{fmtAmtCell(v)}</span> },
+          { key: "over90", label: "+90", type: "currency", format: v => <span className="text-red-600 font-mono text-xs">{fmtAmtCell(v)}</span> },
+          ...(reportKey === "ar-aging-detail" ? [{ key: "cls", label: "التصنيف", type: "badge" as const }] : [{ key: "priority", label: "الأولوية", type: "text" as const }]),
+        ];
+      case "dso-report":
+        return [
+          { key: "name", label: "الزبون", type: "text" },
+          { key: "invCount", label: "عدد الفواتير", type: "number", align: "center" },
+          { key: "avgDays", label: "متوسط أيام السداد", type: "number", format: v => <span className={`font-mono text-xs ${v < 30 ? "text-emerald-600" : v <= 45 ? "text-amber-600" : "text-red-600"}`}>{v} يوم</span> },
+          { key: "avgLate", label: "متوسط التأخر", type: "number", format: v => <span className={`font-mono text-xs ${v === 0 ? "text-emerald-600" : "text-red-600"}`}>{v} يوم</span> },
+          { key: "bestPayment", label: "أفضل سداد", type: "number", format: v => <span className="font-mono text-xs">{v} يوم</span> },
+          { key: "worstPayment", label: "أسوأ سداد", type: "number", format: v => <span className="font-mono text-xs">{v} يوم</span> },
+          { key: "grade", label: "التصنيف", type: "badge", filterType: "select", filterOptions: ["A", "B", "C", "D"] },
+        ];
+      case "checks-receivable": case "checks-payable":
+        return [
+          { key: "party", label: reportKey === "checks-receivable" ? "الزبون" : "المورد", type: "text" },
+          { key: "number", label: "رقم الشيك", type: "text" },
+          { key: "chequeDate", label: "تاريخ الشيك", type: "date" },
+          { key: "amount", label: "المبلغ", type: "currency" },
+          { key: "daysUntilDue", label: "أيام حتى الاستحقاق", type: "number", format: v => <span className={`font-mono text-xs ${v < 0 ? "text-red-600 font-bold" : v <= 7 ? "text-amber-600" : "text-emerald-600"}`}>{v} يوم</span> },
+          { key: "status", label: "الحالة", type: "badge", filterType: "select", filterOptions: ["برسم التحصيل", "محصل", "مرتجع", "صادر", "مدفوع"],
+            format: v => {
+              const c: Record<string, string> = { "محصل": "bg-emerald-50 text-emerald-600", "مدفوع": "bg-emerald-50 text-emerald-600", "برسم التحصيل": "bg-amber-50 text-amber-600", "صادر": "bg-blue-50 text-blue-600", "مرتجع": "bg-red-50 text-red-600" };
+              return <span className={`px-2 py-1 rounded-full text-xs font-medium ${c[v] || "bg-muted"}`}>{v}</span>;
+            }},
+        ];
+      case "customer-profitability":
+        return [
+          { key: "name", label: "الزبون", type: "text" },
+          { key: "totalSales", label: "إجمالي المبيعات", type: "currency" },
+          { key: "invCount", label: "عدد الفواتير", type: "number", align: "center" },
+          { key: "avgInv", label: "متوسط الفاتورة", type: "currency" },
+        ];
+      case "customer-statement-all": case "supplier-statement-all":
+        return [
+          { key: "contactName", label: reportKey === "customer-statement-all" ? "الزبون" : "المورد", type: "text" },
+          { key: "date", label: "التاريخ", type: "date" },
+          { key: "ref", label: "المرجع", type: "text" },
+          { key: "desc", label: "البيان", type: "text" },
+          { key: "debit", label: "مدين", type: "currency", format: v => v > 0 ? <span className="font-mono text-xs">{fmtAmtCell(v)}</span> : <span className="font-mono text-xs">—</span> },
+          { key: "credit", label: "دائن", type: "currency", format: v => v > 0 ? <span className="font-mono text-xs">{fmtAmtCell(v)}</span> : <span className="font-mono text-xs">—</span> },
+          { key: "balance", label: "الرصيد", type: "currency", format: v => <span className={`font-mono text-xs font-bold ${v > 0 ? "text-red-600" : v < 0 ? "text-emerald-600" : ""}`}>{fmtAmtCell(v)}</span> },
+        ];
+      case "dpo-report":
+        return [
+          { key: "name", label: "المورد", type: "text" },
+          { key: "totalPurchases", label: "إجمالي المشتريات", type: "currency" },
+          { key: "invCount", label: "عدد الفواتير", type: "number", align: "center" },
+          { key: "avgDays", label: "متوسط أيام الدفع", type: "number", format: v => <span className="font-mono text-xs">{v} يوم</span> },
+          { key: "compliance", label: "الالتزام %", type: "percent" },
+        ];
+      case "supplier-purchase-analysis":
+        return [
+          { key: "name", label: "المورد", type: "text" },
+          { key: "total", label: "إجمالي المشتريات", type: "currency" },
+          { key: "invCount", label: "عدد الفواتير", type: "number", align: "center" },
+          { key: "avgInv", label: "متوسط الفاتورة", type: "currency" },
+          { key: "pct", label: "% من الإجمالي", type: "percent" },
+        ];
       default:
         return null;
     }
