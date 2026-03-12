@@ -107,7 +107,7 @@ const AppsLauncher = () => {
     );
   }, [search]);
 
-  const totalResults = filteredSections.reduce((a, s) => a + s.items.length, 0);
+  const totalResults = allFilteredApps.length;
 
   const handleStartTour = () => { update({ welcome_modal_shown: true }); setTourActive(true); };
   const handleSkipWelcome = () => { update({ welcome_modal_shown: true, full_tour_skipped: true }); };
