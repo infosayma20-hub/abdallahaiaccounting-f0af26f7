@@ -1336,7 +1336,7 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
 
   const renderPOSCancelled = () => (
     <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr>
-      <th className={thClass}>رقم الطلب</th><th className={thClass}>التاريخ</th><th className={thClass}>العميل</th><th className={thClass}>المبلغ</th><th className={thClass}>السبب</th>
+      <th className={thClass}>رقم الطلب</th><th className={thClass}>التاريخ</th><th className={thClass}>الزبون</th><th className={thClass}>المبلغ</th><th className={thClass}>السبب</th>
     </tr></thead><tbody>
       {data.map((r: any, i) => <tr key={i} className={`${trClass} bg-red-50/20`}>
         <td className={`${tdClass} ${monoClass}`}>{r.order_number || "-"}</td><td className={`${tdClass} ${monoClass}`}>{r.created_at?.split("T")[0]}</td>

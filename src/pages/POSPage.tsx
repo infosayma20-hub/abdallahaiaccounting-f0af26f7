@@ -3987,7 +3987,7 @@ const POSPage = () => {
         onApply={(data) => {
           setCustomerDataDiscount(data);
           setShowCustomerDataModal(false);
-          toast.success(`✅ تم تطبيق خصم ${data.discountPct}% — وفّر العميل ₪${data.discountAmount.toFixed(2)}`);
+          toast.success(`✅ تم تطبيق خصم ${data.discountPct}% — وفّر الزبون ₪${data.discountAmount.toFixed(2)}`);
         }}
         onSkip={() => {
           setCustomerDataDiscount(null);

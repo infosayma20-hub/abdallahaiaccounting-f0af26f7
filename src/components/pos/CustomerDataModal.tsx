@@ -254,7 +254,7 @@ const CustomerDataModal = ({
             className="flex-1 h-11 gap-2 rounded-xl font-bold"
           >
             <CheckCircle className="h-4 w-4" />
-            حفظ بيانات العميل
+            حفظ بيانات الزبون
           </Button>
         </div>
       </DialogContent>
