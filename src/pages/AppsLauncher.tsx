@@ -139,13 +139,15 @@ const AppsLauncher = () => {
           </div>
         </div>
 
-        {/* Sections */}
-        {filteredSections.map((section) => (
-          <div key={section.sectionTitle || "top"} className="mb-8">
-            {section.sectionTitle && (
-              <h3 className="text-xs font-bold text-muted-foreground/60 uppercase tracking-[0.12em] mb-3 px-1">{section.sectionTitle}</h3>
-            )}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {/* Apps Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredSections.map((section) => (
+            <React.Fragment key={section.sectionTitle || "top"}>
+              {section.sectionTitle && (
+                <div className="col-span-full">
+                  <h3 className="text-xs font-bold text-muted-foreground/60 uppercase tracking-[0.12em] mt-4 mb-1 px-1">{section.sectionTitle}</h3>
+                </div>
+              )}
               {section.items.map((app) => {
                 const idx = globalIndex++;
                 return (
@@ -159,9 +161,9 @@ const AppsLauncher = () => {
                   />
                 );
               })}
-            </div>
-          </div>
-        ))}
+            </React.Fragment>
+          ))}
+        </div>
 
         {totalResults === 0 && (
           <div className="text-center py-16 text-muted-foreground">
