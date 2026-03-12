@@ -446,6 +446,7 @@ const POSPage = () => {
    const [showInventoryInput, setShowInventoryInput] = useState(false);
    const [showPurchaseModal, setShowPurchaseModal] = useState(false);
    const [showExpenseModal, setShowExpenseModal] = useState(false);
+   const [showOpsDropdown, setShowOpsDropdown] = useState(false);
 
    // Modifiers
    const [modifierGroups, setModifierGroups] = useState<any[]>([]);
