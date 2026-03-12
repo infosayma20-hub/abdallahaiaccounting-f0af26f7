@@ -527,6 +527,20 @@ export default function POSUserManagementPage() {
         { key: "export_reports", label: "تصدير التقارير", icon: <Download className="w-4 h-4" />, dependsOn: "view_sales_report", dependsLabel: "مشاهدة تقرير المبيعات" },
       ],
     },
+    {
+      title: "العمليات المالية",
+      icon: <Receipt className="w-4 h-4" />,
+      items: [
+        { key: "can_add_inventory", label: "إدخال بضاعة للمخزون", icon: <PackagePlus className="w-4 h-4" /> },
+        { key: "can_create_product", label: "تعريف منتج جديد", icon: <FolderPlus className="w-4 h-4" />, dependsOn: "can_add_inventory", dependsLabel: "إدخال بضاعة للمخزون" },
+        { key: "can_record_purchases", label: "تسجيل مشتريات", icon: <ShoppingBag className="w-4 h-4" /> },
+        { key: "can_pay_purchases_cash", label: "دفع مشتريات نقداً من الصندوق", icon: <Wallet className="w-4 h-4" />, dependsOn: "can_record_purchases", dependsLabel: "تسجيل مشتريات" },
+        { key: "can_create_supplier", label: "تعريف مورد جديد", icon: <Truck className="w-4 h-4" />, dependsOn: "can_record_purchases", dependsLabel: "تسجيل مشتريات" },
+        { key: "can_affect_inventory_on_purchase", label: "ربط المشتريات بالمخزون", icon: <Package className="w-4 h-4" />, dependsOn: "can_record_purchases", dependsLabel: "تسجيل مشتريات" },
+        { key: "can_record_expenses", label: "صرف مصاريف", icon: <Receipt className="w-4 h-4" /> },
+        { key: "can_create_expense_category", label: "تعريف نوع مصروف جديد", icon: <Tags className="w-4 h-4" />, dependsOn: "can_record_expenses", dependsLabel: "صرف مصاريف" },
+      ],
+    },
   ];
 
   const handlePermToggle = (key: keyof Permission, value: boolean) => {
