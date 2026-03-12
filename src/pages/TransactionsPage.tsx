@@ -461,12 +461,7 @@ const TransactionsPage = () => {
     return parts.length ? parts.join(" • ") : "كل القيود";
   }, [typeFilter, accountFilter, dateFilter, accounts]);
 
-  const formatDate = (d: string) => {
-    if (!d) return "—";
-    const parts = d.split("-");
-    if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0].slice(2)}`;
-    return d;
-  };
+  const formatDate = (d: string) => fmtDateDisplay(d);
 
   // ━━ Trash View ━━
   if (showTrash) {
