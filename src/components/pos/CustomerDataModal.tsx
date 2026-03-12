@@ -152,7 +152,7 @@ const CustomerDataModal = ({
                   {existingCustomer.name?.[0] || "?"}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-foreground">✅ عميل موجود: {existingCustomer.name}</p>
+                  <p className="text-sm font-semibold text-foreground">✅ زبون موجود: {existingCustomer.name}</p>
                   <p className="text-[11px] text-muted-foreground">
                     {existingCustomer.total_visits} زيارة | أنفق ₪{existingCustomer.total_spent?.toFixed(0)}
                   </p>
