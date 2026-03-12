@@ -190,8 +190,8 @@ export default function PurchaseModal({ open, onOpenChange, dataOwnerId, userId,
               <div className="absolute z-50 w-full mt-1 bg-popover border rounded-lg shadow-lg max-h-40 overflow-y-auto">
                 {filteredSuppliers.map(s => (
                   <button key={s.id} className="w-full text-right px-3 py-2 hover:bg-accent text-sm"
-                    onClick={() => { setSelectedSupplier(s); setSupplierSearch(s.name); setShowSupplierDD(false); }}>
-                    {s.name} {s.phone && <span className="text-muted-foreground text-xs mr-2">{s.phone}</span>}
+                    onClick={() => { setSelectedSupplier(s); setSupplierSearch(s.contact_name); setShowSupplierDD(false); }}>
+                    {s.contact_name} {s.phone && <span className="text-muted-foreground text-xs mr-2">{s.phone}</span>}
                   </button>
                 ))}
                 {filteredSuppliers.length === 0 && <div className="p-3 text-sm text-muted-foreground text-center">لا توجد نتائج</div>}
