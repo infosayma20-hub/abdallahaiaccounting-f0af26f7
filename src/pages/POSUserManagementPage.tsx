@@ -252,6 +252,14 @@ export default function POSUserManagementPage() {
       edit_customers: (perms as any).edit_customers ?? false,
       view_sales_report: (perms as any).view_sales_report ?? false,
       export_reports: (perms as any).export_reports ?? false,
+      can_add_inventory: (perms as any).can_add_inventory ?? false,
+      can_create_product: (perms as any).can_create_product ?? false,
+      can_record_purchases: (perms as any).can_record_purchases ?? false,
+      can_pay_purchases_cash: (perms as any).can_pay_purchases_cash ?? false,
+      can_create_supplier: (perms as any).can_create_supplier ?? false,
+      can_affect_inventory_on_purchase: (perms as any).can_affect_inventory_on_purchase ?? false,
+      can_record_expenses: (perms as any).can_record_expenses ?? false,
+      can_create_expense_category: (perms as any).can_create_expense_category ?? false,
     } : DEFAULT_PERMS);
 
     // Load device access
