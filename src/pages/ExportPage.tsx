@@ -163,7 +163,7 @@ const ExportPage = () => {
             </div>
             <div style="text-align:left;font-size:12px;color:#666;">
               <span style="display:block;">الفترة: ${dateFrom || "بداية"} - ${dateTo || "نهاية"}</span>
-              <span style="display:block;">تاريخ التقرير: ${new Date().toLocaleDateString("ar")}</span>
+              <span style="display:block;">تاريخ التقرير: ${new Date().toLocaleDateString("en-GB")}</span>
             </div>
           </div>
 
