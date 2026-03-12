@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { ArrowRight, Loader2, RefreshCw, Plus, Search, MoreVertical, FileText, Pencil, Trash2, Eye, Download, Settings, Bell, AlertTriangle, TrendingUp, Users, ShoppingBag, User, ChevronDown, Filter, X } from "lucide-react";
+import { ArrowRight, Loader2, RefreshCw, Plus, Search, MoreVertical, FileText, Pencil, Trash2, Eye, Download, Settings, Bell, AlertTriangle, TrendingUp, Users, ShoppingBag, User, ChevronDown, Filter, X, Archive, ArchiveRestore } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
