@@ -83,6 +83,15 @@ interface Permission {
   // Group 6 - Reports
   view_sales_report: boolean;
   export_reports: boolean;
+  // Group 7 - Financial Operations
+  can_add_inventory: boolean;
+  can_create_product: boolean;
+  can_record_purchases: boolean;
+  can_pay_purchases_cash: boolean;
+  can_create_supplier: boolean;
+  can_affect_inventory_on_purchase: boolean;
+  can_record_expenses: boolean;
+  can_create_expense_category: boolean;
 }
 
 const DEFAULT_PERMS: Permission = {
