@@ -66,7 +66,7 @@ const POSPaymentsReport = ({ paymentBreakdown, totalSales, paidOrders }: Props) 
       {creditOrders.length > 0 && (
         <div className="bg-card border border-border rounded-lg overflow-hidden">
           <div className="px-4 py-3 border-b border-border">
-            <h3 className="text-sm font-semibold text-foreground">مبيعات العملاء</h3>
+            <h3 className="text-sm font-semibold text-foreground">مبيعات الزبائن</h3>
           </div>
           <table className="w-full">
             <thead>

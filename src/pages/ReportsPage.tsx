@@ -57,8 +57,8 @@ const sections: ReportSection[] = [
     reports: [
       { slug: "total-sales", label: "المبيعات الإجمالية", description: "إجمالي المبيعات حسب الفترة مع رسم بياني", icon: BarChart3, path: "/reports/total-sales", available: true },
       { slug: "invoice-register", label: "سجل الفواتير", description: "جميع فواتير البيع مع حالة الدفع", icon: Receipt, path: "/reports/invoice-register", available: true },
-      { slug: "by-customer", label: "المبيعات حسب العميل", description: "تحليل المبيعات مجمّعة حسب العميل", icon: Users, path: "/reports/by-customer", available: true },
-      { slug: "collections", label: "التحصيلات", description: "جميع المبالغ المحصلة من العملاء", icon: Wallet, path: "/reports/collections", available: true },
+      { slug: "by-customer", label: "المبيعات حسب الزبون", description: "تحليل المبيعات مجمّعة حسب الزبون", icon: Users, path: "/reports/by-customer", available: true },
+      { slug: "collections", label: "التحصيلات", description: "جميع المبالغ المحصلة من الزبائن", icon: Wallet, path: "/reports/collections", available: true },
       { slug: "daily-sales", label: "المبيعات اليومية", description: "ملخص المبيعات يوماً بيوم", icon: TrendingUp, path: "/reports/daily-sales", available: true },
       { slug: "sales-returns", label: "المرتجعات", description: "مردودات المبيعات وإشعارات الدائن", icon: ArrowLeftRight, path: "/reports/sales-returns", available: true },
       { slug: "sales-by-product", label: "المبيعات حسب الصنف", description: "كمية وقيمة المبيعات لكل منتج", icon: Package, path: "/reports/sales-by-product", available: true },
