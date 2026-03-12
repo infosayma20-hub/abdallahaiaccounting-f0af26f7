@@ -235,11 +235,6 @@ export default function ExpenseModal({ open, onOpenChange, dataOwnerId, userId, 
             <Textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="وصف اختياري..." rows={2} />
           </div>
 
-          {/* Balance info */}
-          <div className="text-sm bg-muted/50 rounded-lg px-4 py-3 text-center" style={{ borderRight: "3px solid #C9A84C" }}>
-            <span className="text-muted-foreground">الرصيد الحالي لعهدتك: </span>
-            <span className="font-bold" style={{ color: "#1B3A5C" }}>₪{sessionBalance.toFixed(2)}</span>
-          </div>
         </div>
 
         <DialogFooter>

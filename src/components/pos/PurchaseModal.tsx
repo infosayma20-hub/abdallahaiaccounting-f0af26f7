@@ -21,7 +21,7 @@ interface Props {
   onSuccess?: () => void;
 }
 
-interface Supplier { id: string; name: string; phone: string | null; }
+interface Supplier { id: string; contact_name: string; phone: string | null; }
 interface ProductItem { id: string; name: string; buy_price: number; quantity: number; unit: string; }
 
 export default function PurchaseModal({ open, onOpenChange, dataOwnerId, userId, sessionId, canCreateSupplier, canAffectInventory, canPayCash, onSuccess }: Props) {
