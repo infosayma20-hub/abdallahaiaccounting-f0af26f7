@@ -780,7 +780,7 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
         return [
           { key: "order_number", label: "رقم الطلب", type: "text" },
           { key: "created_at", label: "التاريخ", type: "date", format: v => <span className="font-mono text-xs">{v?.split("T")[0]}</span> },
-          { key: "customer_name", label: "العميل", type: "text" },
+          { key: "customer_name", label: "الزبون", type: "text" },
           { key: "total", label: "المبلغ", type: "currency" },
           { key: "return_reason", label: "السبب", type: "text", format: v => <span className="text-xs text-red-600">{v || "-"}</span> },
         ];
