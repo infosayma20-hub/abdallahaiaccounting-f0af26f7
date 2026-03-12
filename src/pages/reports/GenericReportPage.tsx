@@ -788,7 +788,7 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
         return [
           { key: "order_number", label: "رقم الطلب", type: "text" },
           { key: "created_at", label: "التاريخ", type: "date", format: v => <span className="font-mono text-xs">{v?.split("T")[0]}</span> },
-          { key: "customer_name", label: "العميل", type: "text" },
+          { key: "customer_name", label: "الزبون", type: "text" },
           { key: "total", label: "المبلغ", type: "currency" },
           { key: "state", label: "الحالة", type: "badge", filterType: "select", filterOptions: ["paid", "cancelled", "draft"],
             format: v => {
