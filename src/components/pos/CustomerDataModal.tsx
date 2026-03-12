@@ -202,7 +202,7 @@ const CustomerDataModal = ({
               <Textarea
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
-                placeholder="ملاحظة على العميل..."
+                placeholder="ملاحظة على الزبون..."
                 className="pr-10 min-h-[60px] resize-none text-sm"
                 rows={2}
               />
