@@ -1,0 +1,334 @@
+import {
+  BarChart3, DollarSign, ShoppingCart, ShoppingBag, Monitor, Package,
+  Landmark, Building2, Store, Users, Calculator, Settings, FileSpreadsheet,
+  Puzzle, ArrowLeftRight,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+
+/* ── Types ── */
+export interface NavChild {
+  label: string;
+  path: string;
+}
+
+export interface NavGroup {
+  groupLabel?: string;
+  children: NavChild[];
+}
+
+export interface NavItem {
+  id: string;
+  label: string;
+  description: string;
+  module: string;          // for ModuleIcon
+  icon: LucideIcon;        // for AppsLauncher cards
+  color: string;           // tailwind text color token
+  bgColor: string;         // tailwind bg color token
+  path: string;            // direct path or first child
+  isNew?: boolean;
+  keywords?: string[];
+  groups?: NavGroup[];      // sub-groups (sidebar accordion + app card expansion)
+  isDirect?: boolean;       // no expansion, just a link
+}
+
+export interface NavSection {
+  sectionTitle: string;
+  items: NavItem[];
+}
+
+/* ── Central navigation structure ── */
+export const navigationSections: NavSection[] = [
+  /* ── Top-level direct links ── */
+  {
+    sectionTitle: "",
+    items: [
+      {
+        id: "apps", label: "التطبيقات", description: "جميع التطبيقات", module: "home", icon: BarChart3,
+        color: "text-primary", bgColor: "bg-primary/10", path: "/apps", isDirect: true, keywords: ["تطبيقات"],
+      },
+      {
+        id: "dashboard", label: "لوحة المعلومات", description: "ملخص مالي شامل وتحليلات الأداء", module: "dashboard", icon: BarChart3,
+        color: "text-primary", bgColor: "bg-primary/10", path: "/dashboard", isDirect: true, keywords: ["لوحة", "معلومات", "داشبورد"],
+      },
+    ],
+  },
+
+  /* ══ المالية والمحاسبة ══ */
+  {
+    sectionTitle: "المالية والمحاسبة",
+    items: [
+      {
+        id: "finance", label: "المالية", description: "حسابات، قيود، وميزان مراجعة", module: "accounting", icon: DollarSign,
+        color: "text-emerald-500", bgColor: "bg-emerald-500/10", path: "/accounts",
+        keywords: ["مالية", "حسابات", "قيود", "ميزان"],
+        groups: [
+          {
+            groupLabel: "السندات",
+            children: [
+              { label: "لوحة المالية", path: "/finance" },
+              { label: "سند القبض", path: "/finance/receipts" },
+              { label: "سند الصرف", path: "/finance/payments" },
+              { label: "سند القيد", path: "/finance/journals" },
+            ],
+          },
+          {
+            groupLabel: "الدفاتر والحسابات",
+            children: [
+              { label: "شجرة الحسابات", path: "/accounts" },
+              { label: "دفتر اليومية", path: "/transactions" },
+              { label: "دفتر الأستاذ", path: "/general-ledger" },
+              { label: "كشف حساب", path: "/account-statement" },
+              { label: "ميزان المراجعة", path: "/trial-balance" },
+            ],
+          },
+          {
+            groupLabel: "الصناديق والبنوك",
+            children: [
+              { label: "الصناديق", path: "/finance/cash-boxes" },
+              { label: "الحسابات البنكية", path: "/finance/bank-accounts" },
+              { label: "تحويل بين الصناديق", path: "/finance/cash-boxes/transfer" },
+              { label: "الشيكات", path: "/finance/cheques" },
+            ],
+          },
+          {
+            groupLabel: "العملات",
+            children: [
+              { label: "إدارة العملات", path: "/currency-management" },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+
+  /* ══ المبيعات والمشتريات ══ */
+  {
+    sectionTitle: "المبيعات والمشتريات",
+    items: [
+      {
+        id: "sales", label: "المبيعات", description: "فواتير، نقاط بيع، وزبائن", module: "sales", icon: ShoppingCart,
+        color: "text-orange-500", bgColor: "bg-orange-500/10", path: "/invoices",
+        keywords: ["فواتير", "بيع", "زبائن", "عملاء"],
+        groups: [
+          {
+            groupLabel: "العمليات",
+            children: [
+              { label: "الفواتير", path: "/invoices" },
+              { label: "الطلبيات", path: "/orders" },
+              { label: "سندات القبض", path: "/finance/receipts" },
+            ],
+          },
+          {
+            groupLabel: "العملاء والمندوبون",
+            children: [
+              { label: "الزبائن", path: "/contacts?type=customer" },
+              { label: "المندوبين", path: "/sales-reps" },
+            ],
+          },
+          {
+            groupLabel: "الإعدادات",
+            children: [
+              { label: "سياسات التصنيف", path: "/contacts/policies" },
+            ],
+          },
+        ],
+      },
+      {
+        id: "purchases", label: "المشتريات", description: "موردين، فواتير مشتريات، ونقطة المشتريات", module: "purchases", icon: ShoppingBag,
+        color: "text-sky-500", bgColor: "bg-sky-500/10", path: "/bills",
+        keywords: ["مشتريات", "مورد", "استلام"],
+        groups: [
+          {
+            groupLabel: "العمليات",
+            children: [
+              { label: "فواتير مشتريات", path: "/bills" },
+              { label: "نقطة المشتريات", path: "/purchase-point" },
+              { label: "سندات الصرف", path: "/finance/payments" },
+            ],
+          },
+          {
+            groupLabel: "الموردون",
+            children: [
+              { label: "الموردين", path: "/contacts?type=supplier" },
+            ],
+          },
+          {
+            groupLabel: "الاستيراد",
+            children: [
+              { label: "ملفات الاستيراد", path: "/purchases/import" },
+              { label: "استيراد جديد", path: "/purchases/import/new" },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+
+  /* ══ العمليات ══ */
+  {
+    sectionTitle: "العمليات",
+    items: [
+      {
+        id: "pos", label: "نقطة البيع", description: "نظام POS متكامل للمبيعات المباشرة", module: "pos", icon: Monitor,
+        color: "text-emerald-400", bgColor: "bg-emerald-500/10", path: "/pos", isNew: true,
+        keywords: ["نقطة", "بيع", "كاشير", "pos", "مطعم"],
+        groups: [
+          {
+            groupLabel: "التشغيل",
+            children: [
+              { label: "نقطة البيع", path: "/pos" },
+              { label: "خريطة الطاولات", path: "/pos/floor-plan" },
+              { label: "إدارة الإضافات", path: "/pos/modifiers" },
+            ],
+          },
+          {
+            groupLabel: "الإدارة",
+            children: [
+              { label: "تقارير نقطة البيع", path: "/pos-reports" },
+              { label: "إدارة مستخدمي POS", path: "/pos-users" },
+            ],
+          },
+        ],
+      },
+      {
+        id: "inventory", label: "المخزون", description: "منتجات، حركات، وتقييم", module: "inventory", icon: Package,
+        color: "text-teal-500", bgColor: "bg-teal-500/10", path: "/inventory",
+        keywords: ["مخزون", "منتج", "بضاعة"],
+        groups: [
+          {
+            groupLabel: "المنتجات",
+            children: [
+              { label: "المنتجات", path: "/inventory" },
+            ],
+          },
+          {
+            groupLabel: "الحركات والتقييم",
+            children: [
+              { label: "حركات المخزون", path: "/inventory-movements" },
+              { label: "تقييم المخزون", path: "/inventory-valuation" },
+            ],
+          },
+        ],
+      },
+      {
+        id: "fixed-assets", label: "الأصول الثابتة", description: "سجل الأصول، الاستهلاك، والصيانة", module: "accounting", icon: Landmark,
+        color: "text-stone-600", bgColor: "bg-stone-500/10", path: "/fixed-assets", isDirect: true, isNew: true,
+        keywords: ["أصول", "استهلاك", "ثابتة"],
+      },
+      {
+        id: "contractor", label: "محاسب المشاريع والمقاولات", description: "إدارة مشاريع المقاولات والحركات المالية", module: "accounting", icon: Building2,
+        color: "text-amber-600", bgColor: "bg-amber-500/10", path: "/contractor", isDirect: true, isNew: true,
+        keywords: ["مقاولات", "مشاريع", "مقاول"],
+      },
+      {
+        id: "ecommerce", label: "إدارة المتاجر الإلكترونية", description: "إدارة مالية للمتاجر والصفحات الإلكترونية", module: "sales", icon: Store,
+        color: "text-amber-500", bgColor: "bg-amber-500/10", path: "/orders", isDirect: true,
+        keywords: ["متجر", "طلبات", "إلكتروني"],
+      },
+    ],
+  },
+
+  /* ══ الذكاء والتقارير ══ */
+  {
+    sectionTitle: "الذكاء والتقارير",
+    items: [
+      {
+        id: "reports", label: "التقارير", description: "أرباح وخسائر، ميزانية عمومية، وتحليلات مالية", module: "reports", icon: BarChart3,
+        color: "text-rose-500", bgColor: "bg-rose-500/10", path: "/reports",
+        keywords: ["تقارير", "تحليل"],
+        groups: [
+          {
+            groupLabel: "القوائم المالية",
+            children: [
+              { label: "قائمة الدخل", path: "/profit-loss" },
+              { label: "المركز المالي", path: "/balance-sheet" },
+            ],
+          },
+          {
+            groupLabel: "الدفاتر والتحليل",
+            children: [
+              { label: "ميزان المراجعة", path: "/trial-balance" },
+              { label: "مركز التقارير", path: "/reports" },
+            ],
+          },
+        ],
+      },
+      {
+        id: "ai-accountant", label: "الذكاء المالي", description: "محاسبة تحليلية بالذكاء الاصطناعي", module: "ai", icon: Calculator,
+        color: "text-primary", bgColor: "bg-primary/10", path: "/smart-accountant", isDirect: true,
+        keywords: ["محاسب", "ذكاء", "تحليل"],
+      },
+    ],
+  },
+
+  /* ══ الموارد البشرية ══ */
+  {
+    sectionTitle: "الموارد البشرية",
+    items: [
+      {
+        id: "hr", label: "الموارد البشرية", description: "موظفون، حضور، ورواتب", module: "hr", icon: Users,
+        color: "text-violet-500", bgColor: "bg-violet-500/10", path: "/employees",
+        keywords: ["موظف", "حضور", "رواتب", "موارد"],
+        groups: [
+          {
+            groupLabel: "الحضور والموظفون",
+            children: [
+              { label: "الموظفون", path: "/employees" },
+              { label: "لوحة الحضور HR", path: "/hr-attendance" },
+              { label: "بصمتي", path: "/my-attendance" },
+            ],
+          },
+          {
+            groupLabel: "الرواتب والإجازات",
+            children: [
+              { label: "الرواتب", path: "/payroll" },
+              { label: "الإجازات", path: "/leaves" },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+
+  /* ══ النظام ══ */
+  {
+    sectionTitle: "النظام",
+    items: [
+      {
+        id: "settings", label: "الإعدادات", description: "إعدادات النظام والملف الشخصي", module: "settings", icon: Settings,
+        color: "text-muted-foreground", bgColor: "bg-muted", path: "/settings",
+        keywords: ["إعدادات", "ملف", "شخصي"],
+        groups: [
+          {
+            groupLabel: "النظام",
+            children: [
+              { label: "الإعدادات", path: "/settings" },
+              { label: "الاشتراكات", path: "/subscription" },
+              { label: "التخصيص والدعم الفني", path: "/customization" },
+            ],
+          },
+          {
+            groupLabel: "الأدوات",
+            children: [
+              { label: "استيراد بيانات خارجية", path: "/opening-balances-import" },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+];
+
+/* ── Helper: flatten all children for a NavItem ── */
+export function getAllChildren(item: NavItem): NavChild[] {
+  if (!item.groups) return [];
+  return item.groups.flatMap(g => g.children);
+}
+
+/* ── Helper: get sections for apps (skip first "apps" link) ── */
+export function getAppSections(): NavSection[] {
+  return navigationSections.map(s => ({
+    ...s,
+    items: s.items.filter(i => i.id !== "apps"),
+  })).filter(s => s.items.length > 0);
+}
