@@ -137,27 +137,15 @@ const AppsLauncher = () => {
 
         {/* Apps Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredSections.map((section) => (
-            <React.Fragment key={section.sectionTitle || "top"}>
-              {section.sectionTitle && (
-                <div className="col-span-full">
-                  <h3 className="text-xs font-bold text-muted-foreground/60 uppercase tracking-[0.12em] mt-4 mb-1 px-1">{section.sectionTitle}</h3>
-                </div>
-              )}
-              {section.items.map((app) => {
-                const idx = globalIndex++;
-                return (
-                  <AppCard
-                    key={app.id}
-                    app={app}
-                    index={idx}
-                    isExpanded={expandedApp === app.id}
-                    onToggle={() => setExpandedApp(prev => prev === app.id ? null : app.id)}
-                    onNavigate={navigate}
-                  />
-                );
-              })}
-            </React.Fragment>
+          {allFilteredApps.map((app, idx) => (
+            <AppCard
+              key={app.id}
+              app={app}
+              index={idx}
+              isExpanded={expandedApp === app.id}
+              onToggle={() => setExpandedApp(prev => prev === app.id ? null : app.id)}
+              onNavigate={navigate}
+            />
           ))}
         </div>
 
