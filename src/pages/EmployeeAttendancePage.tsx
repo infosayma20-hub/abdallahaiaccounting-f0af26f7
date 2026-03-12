@@ -430,7 +430,7 @@ export default function EmployeeAttendancePage() {
             corrections.map(req => (
               <Card key={req.id} className="p-3">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-sm font-medium">{req.attendance_date}</span>
+                  <span className="text-sm font-medium">{fmtDateDisplay(req.attendance_date)}</span>
                   <Badge variant={req.status === "approved" ? "default" : req.status === "rejected" ? "destructive" : "outline"}>
                     {req.status === "pending" ? "قيد المراجعة" : req.status === "approved" ? "مقبول" : "مرفوض"}
                   </Badge>

@@ -500,7 +500,7 @@ const TransactionsPage = () => {
             <CardContent className="p-4 flex items-center justify-between">
               <div className="flex-1">
                 <p className="text-sm font-medium text-[#1A2332] line-through">{tx.description || "بدون وصف"}</p>
-                <p className="text-xs text-[#637381] mt-1">{tx.transaction_date} — ₪{tx.amount?.toFixed(2)}</p>
+                <p className="text-xs text-[#637381] mt-1">{fmtDateDisplay(tx.transaction_date)} — ₪{tx.amount?.toFixed(2)}</p>
               </div>
               <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => handleRestore(tx.id)} disabled={restoringId === tx.id}>
                 {restoringId === tx.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <RotateCcw className="h-3 w-3" />}

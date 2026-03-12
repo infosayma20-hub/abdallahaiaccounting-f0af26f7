@@ -611,7 +611,7 @@ export default function HRAttendancePage() {
                 </div>
                 <div className="bg-muted/50 rounded-lg p-3">
                   <p className="text-xs text-muted-foreground">التاريخ</p>
-                  <p className="font-medium">{reviewDialog.attendance_date}</p>
+                  <p className="font-medium">{fmtDateDisplay(reviewDialog.attendance_date)}</p>
                 </div>
               </div>
               <div className="bg-muted/50 rounded-lg p-3">

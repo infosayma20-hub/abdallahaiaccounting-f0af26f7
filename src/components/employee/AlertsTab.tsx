@@ -124,7 +124,7 @@ export default function AlertsTab({ incompleteDays, corrections, employeeId, use
           <Card key={req.id} className="border-border bg-card">
             <CardContent className="p-3 space-y-1">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">{req.attendance_date}</span>
+                <span className="text-sm font-medium">{fmtDateDisplay(req.attendance_date)}</span>
                 <Badge variant={req.status === "approved" ? "default" : req.status === "rejected" ? "destructive" : "outline"} className="text-[10px]">
                   {req.status === "pending" ? "قيد المراجعة" : req.status === "approved" ? "مقبول" : "مرفوض"}
                 </Badge>

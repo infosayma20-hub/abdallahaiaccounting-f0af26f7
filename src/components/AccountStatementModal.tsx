@@ -306,7 +306,7 @@ const AccountStatementModal = ({ open, onClose }: Props) => {
                       <tr><td colSpan={5} className="text-center py-8 text-muted-foreground">لا توجد حركات</td></tr>
                     ) : rows.map((r, i) => (
                       <tr key={r.id} className={i % 2 === 1 ? "bg-secondary/20" : ""}>
-                        <td className="px-3 py-2 font-mono text-muted-foreground">{r.transaction_date}</td>
+                        <td className="px-3 py-2 font-mono text-muted-foreground">{fmtDateDisplay(r.transaction_date)}</td>
                         <td className="px-3 py-2 text-foreground">{r.description}</td>
                         <td className="px-3 py-2 text-center text-primary font-semibold">{r.debit ? r.debit.toLocaleString() : "-"}</td>
                         <td className="px-3 py-2 text-center text-destructive font-semibold">{r.credit ? r.credit.toLocaleString() : "-"}</td>
