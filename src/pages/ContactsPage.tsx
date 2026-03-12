@@ -45,6 +45,8 @@ interface Contact {
   overdue_amount: number | null;
   last_transaction_date: string | null;
   avg_payment_days: number | null;
+  is_archived: boolean | null;
+  archived_at: string | null;
 }
 
 interface ContactAlert {
