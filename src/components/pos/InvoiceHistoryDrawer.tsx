@@ -534,7 +534,7 @@ export default function InvoiceHistoryDrawer({
                         <span>{time} — {date}</span>
                       </div>
                       <div className="text-[11px] mt-0.5" style={{ color: "#64748B" }}>
-                        {order.customer_name || "عميل نقدي"}
+                        {order.customer_name || "زبون نقدي"}
                       </div>
                     </div>
 
