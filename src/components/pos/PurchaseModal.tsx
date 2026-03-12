@@ -133,16 +133,17 @@ export default function PurchaseModal({ open, onOpenChange, dataOwnerId, userId,
     if (!newSupplier.name.trim()) { toast.error("أدخل اسم المورد"); return; }
     setSavingSupplier(true);
     try {
-      const { data, error } = await supabase.from("pos_suppliers").insert({
+      const { data, error } = await supabase.from("contacts").insert({
         user_id: dataOwnerId,
-        name: newSupplier.name,
+        contact_name: newSupplier.name,
+        contact_type: "مورد",
         phone: newSupplier.phone || null,
-        account_name: newSupplier.account_name || null,
-      }).select("id, name, phone").single();
+        is_active: true,
+      }).select("id, contact_name, phone").single();
       if (error) throw error;
       setSuppliers(prev => [...prev, data]);
       setSelectedSupplier(data);
-      setSupplierSearch(data.name);
+      setSupplierSearch(data.contact_name);
       setShowNewSupplier(false);
       setNewSupplier({ name: "", phone: "", account_name: "" });
       toast.success("تم إضافة المورد");
