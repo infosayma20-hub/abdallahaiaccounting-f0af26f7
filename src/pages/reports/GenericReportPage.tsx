@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
+import { fmtDateDisplay } from "@/lib/utils";
 
 interface GenericReportPageProps {
   reportKey: string;
