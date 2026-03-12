@@ -2186,6 +2186,41 @@ const POSPage = () => {
           </button>
         )}
 
+        {/* Financial Operations Buttons */}
+        {session && (isAdmin || posPerms.can_add_inventory) && (
+          <button
+            onClick={() => setShowInventoryInput(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
+            style={{ background: "rgba(201,168,76,0.2)", color: "#C9A84C", border: "1px solid rgba(201,168,76,0.3)" }}
+            title="إدخال بضاعة"
+          >
+            <Package className="h-3 w-3" />
+            إدخال بضاعة
+          </button>
+        )}
+        {session && (isAdmin || posPerms.can_record_purchases) && (
+          <button
+            onClick={() => setShowPurchaseModal(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
+            style={{ background: "rgba(201,168,76,0.2)", color: "#C9A84C", border: "1px solid rgba(201,168,76,0.3)" }}
+            title="تسجيل مشتريات"
+          >
+            <ShoppingBag className="h-3 w-3" />
+            مشتريات
+          </button>
+        )}
+        {session && (isAdmin || posPerms.can_record_expenses) && (
+          <button
+            onClick={() => setShowExpenseModal(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
+            style={{ background: "rgba(201,168,76,0.2)", color: "#C9A84C", border: "1px solid rgba(201,168,76,0.3)" }}
+            title="صرف مصروف"
+          >
+            <Receipt className="h-3 w-3" />
+            مصروف
+          </button>
+        )}
+
         <button
           onClick={() => navigate("/pos/floor-plan")}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 text-white/80 hover:text-white hover:bg-white/20 border border-white/20 transition-colors text-xs font-medium"
