@@ -1339,7 +1339,7 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
         return <tr key={i} className={trClass}>
           <td className={`${tdClass} ${monoClass}`}>{r.cheque_number || "-"}</td><td className={tdClass}>{r.bank_name || "-"}</td>
           <td className={`${tdClass} font-medium`}>{r.party_name}</td><td className={`${tdClass} ${monoClass} font-bold`}>{fmtAmt(r.amount)}</td>
-          <td className={`${tdClass} ${monoClass}`}>{r.cheque_date}</td><td className={tdClass}>{r.cheque_type}</td>
+          <td className={`${tdClass} ${monoClass}`}>{fmtDateDisplay(r.cheque_date)}</td><td className={tdClass}>{r.cheque_type}</td>
           <td className={tdClass}><span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[r.status] || ""}`}>{r.status}</span></td>
         </tr>;
       })}
