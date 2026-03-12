@@ -502,6 +502,18 @@ const ContactsPage = () => {
               </Button>
             ))}
           </div>
+          <Button 
+            variant={showArchived ? "default" : "outline"} 
+            size="sm" 
+            className={`text-xs gap-1.5 ${showArchived ? '' : ''}`}
+            onClick={() => setShowArchived(!showArchived)}
+          >
+            <Archive className="h-3.5 w-3.5" />
+            {showArchived ? `المؤرشفون (${archivedCount})` : `عرض المؤرشفين`}
+            {!showArchived && archivedCount > 0 && (
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">{archivedCount}</Badge>
+            )}
+          </Button>
           {(filterType || filterClass) && (
             <Button variant="ghost" size="sm" className="text-xs gap-1" onClick={() => { setFilterType(null); setFilterClass(null); }}>
               <X className="h-3 w-3" /> مسح الفلاتر
