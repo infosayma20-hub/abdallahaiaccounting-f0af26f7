@@ -49,7 +49,7 @@ export default function PurchaseModal({ open, onOpenChange, dataOwnerId, userId,
   useEffect(() => {
     if (!open) return;
     Promise.all([
-      supabase.from("contacts").select("id, contact_name, phone").eq("user_id", dataOwnerId).eq("contact_type", "مورد").eq("is_active", true).order("contact_name"),
+      supabase.from("contacts").select("id, contact_name, phone").eq("user_id", dataOwnerId).eq("contact_type", "مورد").eq("is_active", true).neq("is_archived", true).order("contact_name"),
       supabase.from("products").select("id, name, buy_price, quantity, unit").eq("user_id", dataOwnerId).order("name"),
     ]).then(([s, p]) => {
       setSuppliers(s.data || []);

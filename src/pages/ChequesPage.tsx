@@ -136,7 +136,7 @@ const ChequesPage = () => {
 
   const fetchContacts = async () => {
     if (!user) return;
-    const { data } = await supabase.from('contacts').select('id, contact_name, contact_type').eq('user_id', user.id).eq('is_active', true);
+    const { data } = await supabase.from('contacts').select('id, contact_name, contact_type').eq('user_id', user.id).eq('is_active', true).neq('is_archived', true);
     setContacts(data || []);
   };
 
