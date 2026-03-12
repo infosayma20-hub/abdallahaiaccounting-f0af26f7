@@ -4061,6 +4061,50 @@ const POSPage = () => {
           />
         )}
       </AnimatePresence>
+
+      {/* Financial Operation Modals */}
+      <InventoryInputModal
+        open={showInventoryInput}
+        onOpenChange={setShowInventoryInput}
+        dataOwnerId={dataOwnerId || ""}
+        userId={userId || ""}
+        sessionId={session?.id}
+        canCreateProduct={isAdmin || posPerms.can_create_product}
+        onSuccess={() => {
+          // Refresh products
+          if (dataOwnerId) {
+            supabase.from("products").select("*").eq("user_id", dataOwnerId).eq("is_pos_available", true).then(({ data }) => {
+              if (data) setProducts(data as any);
+            });
+          }
+        }}
+      />
+      <PurchaseModal
+        open={showPurchaseModal}
+        onOpenChange={setShowPurchaseModal}
+        dataOwnerId={dataOwnerId || ""}
+        userId={userId || ""}
+        sessionId={session?.id}
+        canCreateSupplier={isAdmin || posPerms.can_create_supplier}
+        canAffectInventory={isAdmin || posPerms.can_affect_inventory_on_purchase}
+        canPayCash={isAdmin || posPerms.can_pay_purchases_cash}
+        onSuccess={() => {
+          if (dataOwnerId) {
+            supabase.from("products").select("*").eq("user_id", dataOwnerId).eq("is_pos_available", true).then(({ data }) => {
+              if (data) setProducts(data as any);
+            });
+          }
+        }}
+      />
+      <ExpenseModal
+        open={showExpenseModal}
+        onOpenChange={setShowExpenseModal}
+        dataOwnerId={dataOwnerId || ""}
+        userId={userId || ""}
+        sessionId={session?.id}
+        canCreateCategory={isAdmin || posPerms.can_create_expense_category}
+        sessionBalance={session ? session.opening_cash + session.total_sales : 0}
+      />
     </div>
   );
 };
