@@ -97,18 +97,14 @@ const AppsLauncher = () => {
   const [expandedApp, setExpandedApp] = useState<string | null>(null);
   const [helpGuideOpen, setHelpGuideOpen] = useState(false);
 
-  const filteredSections = useMemo(() => {
+  const allFilteredApps = useMemo(() => {
+    const allApps = appSections.flatMap(s => s.items);
     const q = search.trim();
-    if (!q) return appSections;
-    return appSections
-      .map(s => ({
-        ...s,
-        items: s.items.filter(app =>
-          app.label.includes(q) || app.description.includes(q) || app.keywords?.some(k => k.includes(q))
-          || getAllChildren(app).some(c => c.label.includes(q))
-        ),
-      }))
-      .filter(s => s.items.length > 0);
+    if (!q) return allApps;
+    return allApps.filter(app =>
+      app.label.includes(q) || app.description.includes(q) || app.keywords?.some(k => k.includes(q))
+      || getAllChildren(app).some(c => c.label.includes(q))
+    );
   }, [search]);
 
   const totalResults = filteredSections.reduce((a, s) => a + s.items.length, 0);
