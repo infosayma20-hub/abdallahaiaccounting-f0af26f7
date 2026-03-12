@@ -987,7 +987,7 @@ const POSPage = () => {
         setCustomerName(data.contact_name, data.id);
         setCustomerSearch("");
         setShowContactDropdown(false);
-        toast.success(`تمت إضافة العميل "${data.contact_name}" بنجاح`);
+        toast.success(`تمت إضافة الزبون "${data.contact_name}" بنجاح`);
       }
     } catch (err: any) {
       toast.error("فشل في إضافة العميل: " + (err.message || "خطأ غير معروف"));
