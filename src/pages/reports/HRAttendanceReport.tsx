@@ -142,7 +142,7 @@ const HRAttendanceReport = () => {
                     <tr key={d.id} className="border-b border-border/40 hover:bg-muted/20">
                       <td className="p-3 font-medium text-foreground">{d.employees?.full_name || "-"}</td>
                       <td className="p-3 text-muted-foreground">{d.employees?.department || "-"}</td>
-                      <td className="p-3">{d.attendance_date}</td>
+                      <td className="p-3">{fmtDateDisplay(d.attendance_date)}</td>
                       <td className="p-3">{d.first_check_in ? format(new Date(d.first_check_in), "HH:mm") : "-"}</td>
                       <td className="p-3">{d.last_check_out ? format(new Date(d.last_check_out), "HH:mm") : "-"}</td>
                       <td className="p-3">{Number(d.total_hours || 0).toFixed(1)}</td>
