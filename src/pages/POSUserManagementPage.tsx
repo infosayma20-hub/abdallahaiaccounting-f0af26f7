@@ -120,6 +120,14 @@ const DEFAULT_PERMS: Permission = {
   edit_customers: false,
   view_sales_report: false,
   export_reports: false,
+  can_add_inventory: false,
+  can_create_product: false,
+  can_record_purchases: false,
+  can_pay_purchases_cash: false,
+  can_create_supplier: false,
+  can_affect_inventory_on_purchase: false,
+  can_record_expenses: false,
+  can_create_expense_category: false,
 };
 
 const ROLE_LABELS: Record<string, string> = {
