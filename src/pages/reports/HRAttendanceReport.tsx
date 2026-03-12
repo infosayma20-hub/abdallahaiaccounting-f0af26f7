@@ -58,7 +58,7 @@ const HRAttendanceReport = () => {
     const rows = attendanceData.map((d: any) => ({
       "الموظف": d.employees?.full_name || "-",
       "القسم": d.employees?.department || "-",
-      "التاريخ": d.attendance_date,
+      "التاريخ": fmtDateDisplay(d.attendance_date),
       "الحضور": d.first_check_in ? format(new Date(d.first_check_in), "HH:mm") : "-",
       "الانصراف": d.last_check_out ? format(new Date(d.last_check_out), "HH:mm") : "-",
       "الساعات": Number(d.total_hours || 0).toFixed(1),
