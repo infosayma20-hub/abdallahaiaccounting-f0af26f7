@@ -77,7 +77,7 @@ const TransactionBuilder = ({ transactionType, onClose, onSubmit, sending }: Tra
   useEffect(() => {
     if (!user?.id) return;
     supabase.from("contacts").select("id, contact_name, contact_type")
-      .eq("user_id", user.id).eq("is_active", true)
+      .eq("user_id", user.id).eq("is_active", true).neq("is_archived", true)
       .eq("contact_type", contactType)
       .then(({ data }) => {
         setParties((data || []).map(c => ({ id: c.id, name: c.contact_name, type: c.contact_type })));
