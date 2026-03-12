@@ -50,7 +50,7 @@ const CleanInputDock = ({ onSend, sending }: Props) => {
     const fetchMentionData = async () => {
       try {
         const [contactsRes, productsRes, employeesRes, accountsRes] = await Promise.all([
-          supabase.from('contacts').select('id, contact_name, contact_type').eq('user_id', user.id).eq('is_active', true),
+          supabase.from('contacts').select('id, contact_name, contact_type').eq('user_id', user.id).eq('is_active', true).neq('is_archived', true),
           supabase.from('products').select('id, name, unit').eq('user_id', user.id),
           supabase.from('employees').select('id, full_name, job_title').eq('user_id', user.id),
           supabase.from('accounts').select('id, account_name, account_code, account_type').eq('user_id', user.id).eq('is_active', true),

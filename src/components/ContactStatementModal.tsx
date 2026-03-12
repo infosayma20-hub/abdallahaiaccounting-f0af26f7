@@ -77,7 +77,7 @@ const ContactStatementModal = ({ open, onClose }: Props) => {
 
     // Load contacts and employees
     Promise.all([
-      supabase.from("contacts").select("id, contact_name, contact_type, phone, email, linked_account_code").eq("user_id", user.id).order("contact_name"),
+      supabase.from("contacts").select("id, contact_name, contact_type, phone, email, linked_account_code").eq("user_id", user.id).neq("is_archived", true).order("contact_name"),
       supabase.from("employees").select("id, full_name, department, position").eq("user_id", user.id).order("full_name"),
     ]).then(([c, e]) => {
       setContacts(c.data || []);

@@ -77,7 +77,7 @@ const VoucherDrawer = ({ open, onClose, voucherType, onSaved, editVoucherId }: V
   const fetchData = useCallback(async () => {
     if (!user || dataLoaded) return;
     const [cRes, aRes, bRes, vRes] = await Promise.all([
-      supabase.from("contacts").select("id, contact_name, contact_type, current_balance").eq("user_id", user.id),
+      supabase.from("contacts").select("id, contact_name, contact_type, current_balance").eq("user_id", user.id).neq("is_archived", true),
       supabase.from("accounts").select("account_code, account_name, account_type").eq("user_id", user.id).eq("is_active", true),
       supabase.from("bank_accounts").select("*").eq("user_id", user.id).eq("is_active", true),
       supabase.from("vouchers").select("ref_number").eq("user_id", user.id).eq("type", voucherType).order("created_at", { ascending: false }).limit(1),

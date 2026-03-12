@@ -68,7 +68,7 @@ const SmartReportWidget = ({ companyName = "" }: SmartReportWidgetProps) => {
       try {
         const [accRes, contactRes] = await Promise.all([
           supabase.from("accounts").select("account_code, account_name, account_type").eq("user_id", user.id).eq("is_active", true).order("account_code"),
-          supabase.from("contacts").select("id, contact_name, contact_type").eq("user_id", user.id).eq("is_active", true),
+          supabase.from("contacts").select("id, contact_name, contact_type").eq("user_id", user.id).eq("is_active", true).neq("is_archived", true),
         ]);
         const accItems: MentionOption[] = (accRes.data || []).map((a: any) => ({
           id: a.account_code,

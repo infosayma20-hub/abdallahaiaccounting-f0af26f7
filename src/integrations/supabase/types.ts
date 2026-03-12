@@ -1805,6 +1805,8 @@ export type Database = {
       contacts: {
         Row: {
           address: string | null
+          archived_at: string | null
+          archived_by: string | null
           avg_payment_days: number | null
           company_size: string | null
           contact_class: string | null
@@ -1819,6 +1821,7 @@ export type Database = {
           id: string
           industry: string | null
           is_active: boolean | null
+          is_archived: boolean | null
           last_transaction_date: string | null
           linked_account_code: string | null
           notes: string | null
@@ -1837,6 +1840,8 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          archived_at?: string | null
+          archived_by?: string | null
           avg_payment_days?: number | null
           company_size?: string | null
           contact_class?: string | null
@@ -1851,6 +1856,7 @@ export type Database = {
           id?: string
           industry?: string | null
           is_active?: boolean | null
+          is_archived?: boolean | null
           last_transaction_date?: string | null
           linked_account_code?: string | null
           notes?: string | null
@@ -1869,6 +1875,8 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          archived_at?: string | null
+          archived_by?: string | null
           avg_payment_days?: number | null
           company_size?: string | null
           contact_class?: string | null
@@ -1883,6 +1891,7 @@ export type Database = {
           id?: string
           industry?: string | null
           is_active?: boolean | null
+          is_archived?: boolean | null
           last_transaction_date?: string | null
           linked_account_code?: string | null
           notes?: string | null

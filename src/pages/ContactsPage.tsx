@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { ArrowRight, Loader2, RefreshCw, Plus, Search, MoreVertical, FileText, Pencil, Trash2, Eye, Download, Settings, Bell, AlertTriangle, TrendingUp, Users, ShoppingBag, User, ChevronDown, Filter, X } from "lucide-react";
+import { ArrowRight, Loader2, RefreshCw, Plus, Search, MoreVertical, FileText, Pencil, Trash2, Eye, Download, Settings, Bell, AlertTriangle, TrendingUp, Users, ShoppingBag, User, ChevronDown, Filter, X, Archive, ArchiveRestore } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -45,6 +45,8 @@ interface Contact {
   overdue_amount: number | null;
   last_transaction_date: string | null;
   avg_payment_days: number | null;
+  is_archived: boolean | null;
+  archived_at: string | null;
 }
 
 interface ContactAlert {
@@ -126,6 +128,9 @@ const ContactsPage = () => {
   const [editing, setEditing] = useState(false);
   const [deleteContact, setDeleteContact] = useState<Contact | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [archiveContact, setArchiveContact] = useState<Contact | null>(null);
+  const [archiving, setArchiving] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [alerts, setAlerts] = useState<ContactAlert[]>([]);
   const [showAlerts, setShowAlerts] = useState(false);
@@ -253,22 +258,58 @@ const ContactsPage = () => {
     if (!deleteContact) return;
     setDeleting(true);
     try {
+      // Only allow permanent delete if no transactions
       const { count } = await supabase.from('transactions').select('id', { count: 'exact', head: true }).eq('contact_id', deleteContact.id);
       if (count && count > 0) {
-        toast({ title: "لا يمكن حذف جهة اتصال مرتبطة بمعاملات مالية", variant: "destructive" });
+        toast({ title: "لا يمكن حذف جهة اتصال مرتبطة بمعاملات مالية، استخدم الأرشفة بدلاً من ذلك", variant: "destructive" });
         setDeleteContact(null);
         setDeleting(false);
         return;
       }
       const { error } = await supabase.from('contacts').delete().eq('id', deleteContact.id);
       if (error) throw error;
-      toast({ title: "تم حذف جهة الاتصال" });
+      toast({ title: "تم حذف جهة الاتصال نهائياً" });
       setDeleteContact(null);
       fetchContacts();
     } catch (err: any) {
       toast({ title: "خطأ", description: err.message, variant: "destructive" });
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const handleArchiveContact = async () => {
+    if (!archiveContact || !user) return;
+    setArchiving(true);
+    try {
+      const { error } = await supabase.from('contacts').update({
+        is_archived: true,
+        archived_at: new Date().toISOString(),
+        archived_by: user.id,
+      } as any).eq('id', archiveContact.id);
+      if (error) throw error;
+      toast({ title: `تم أرشفة "${archiveContact.contact_name}"` });
+      setArchiveContact(null);
+      fetchContacts();
+    } catch (err: any) {
+      toast({ title: "خطأ", description: err.message, variant: "destructive" });
+    } finally {
+      setArchiving(false);
+    }
+  };
+
+  const handleUnarchiveContact = async (contact: Contact) => {
+    try {
+      const { error } = await supabase.from('contacts').update({
+        is_archived: false,
+        archived_at: null,
+        archived_by: null,
+      } as any).eq('id', contact.id);
+      if (error) throw error;
+      toast({ title: `تم إلغاء أرشفة "${contact.contact_name}"` });
+      fetchContacts();
+    } catch (err: any) {
+      toast({ title: "خطأ", description: err.message, variant: "destructive" });
     }
   };
 
@@ -288,7 +329,9 @@ const ContactsPage = () => {
     setEditContact(contact);
   };
 
-  const filtered = useMemo(() => contacts.filter(c => {
+  const activeContacts = useMemo(() => contacts.filter(c => showArchived ? (c.is_archived === true) : (!c.is_archived)), [contacts, showArchived]);
+
+  const filtered = useMemo(() => activeContacts.filter(c => {
     const matchesType = !filterType || c.contact_type === filterType || 
       (filterType === "عميل" && ["زبون", "customer"].includes(c.contact_type)) ||
       (filterType === "مورد" && c.contact_type === "supplier");
@@ -299,13 +342,15 @@ const ContactsPage = () => {
       (c.tax_number || "").includes(searchQuery) ||
       (c.email || "").toLowerCase().includes(searchQuery.toLowerCase());
     return matchesType && matchesClass && matchesSearch;
-  }), [contacts, filterType, filterClass, searchQuery]);
+  }), [activeContacts, filterType, filterClass, searchQuery]);
 
-  const customerCount = contacts.filter(c => ["عميل", "زبون", "زبون ومورد", "customer"].includes(c.contact_type)).length;
-  const supplierCount = contacts.filter(c => ["مورد", "زبون ومورد", "supplier"].includes(c.contact_type)).length;
+  const nonArchivedContacts = useMemo(() => contacts.filter(c => !c.is_archived), [contacts]);
+  const customerCount = nonArchivedContacts.filter(c => ["عميل", "زبون", "زبون ومورد", "customer"].includes(c.contact_type)).length;
+  const supplierCount = nonArchivedContacts.filter(c => ["مورد", "زبون ومورد", "supplier"].includes(c.contact_type)).length;
+  const archivedCount = contacts.filter(c => c.is_archived).length;
   
-  const totalOverdue = contacts.reduce((s, c) => s + (c.overdue_amount || 0), 0);
-  const overLimitCount = contacts.filter(c => c.credit_limit && c.current_balance && c.current_balance > c.credit_limit).length;
+  const totalOverdue = nonArchivedContacts.reduce((s, c) => s + (c.overdue_amount || 0), 0);
+  const overLimitCount = nonArchivedContacts.filter(c => c.credit_limit && c.current_balance && c.current_balance > c.credit_limit).length;
   const totalBalance = filtered.reduce((s, c) => s + (c.current_balance || 0), 0);
   const totalOverdueFiltered = filtered.reduce((s, c) => s + (c.overdue_amount || 0), 0);
 
@@ -457,6 +502,18 @@ const ContactsPage = () => {
               </Button>
             ))}
           </div>
+          <Button 
+            variant={showArchived ? "default" : "outline"} 
+            size="sm" 
+            className={`text-xs gap-1.5 ${showArchived ? '' : ''}`}
+            onClick={() => setShowArchived(!showArchived)}
+          >
+            <Archive className="h-3.5 w-3.5" />
+            {showArchived ? `المؤرشفون (${archivedCount})` : `عرض المؤرشفين`}
+            {!showArchived && archivedCount > 0 && (
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">{archivedCount}</Badge>
+            )}
+          </Button>
           {(filterType || filterClass) && (
             <Button variant="ghost" size="sm" className="text-xs gap-1" onClick={() => { setFilterType(null); setFilterClass(null); }}>
               <X className="h-3 w-3" /> مسح الفلاتر
@@ -519,7 +576,12 @@ const ContactsPage = () => {
                             {getInitials(contact.contact_name)}
                           </div>
                           <div className="min-w-0">
-                            <p className="text-sm font-semibold truncate">{contact.contact_name}</p>
+                            <div className="flex items-center gap-1.5">
+                              <p className="text-sm font-semibold truncate">{contact.contact_name}</p>
+                              {contact.is_archived && (
+                                <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 bg-muted text-muted-foreground">مؤرشف</Badge>
+                              )}
+                            </div>
                             {contact.phone && <p className="text-[10px] text-muted-foreground tabular-nums">{contact.phone}</p>}
                           </div>
                         </div>
@@ -576,12 +638,25 @@ const ContactsPage = () => {
                               <FileText className="h-4 w-4 ml-2" /> كشف حساب
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => openEditDialog(contact)}>
-                              <Pencil className="h-4 w-4 ml-2" /> تعديل
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="text-destructive" onClick={() => setDeleteContact(contact)}>
-                              <Trash2 className="h-4 w-4 ml-2" /> حذف
-                            </DropdownMenuItem>
+                            {!contact.is_archived && (
+                              <DropdownMenuItem onClick={() => openEditDialog(contact)}>
+                                <Pencil className="h-4 w-4 ml-2" /> تعديل
+                              </DropdownMenuItem>
+                            )}
+                            {contact.is_archived ? (
+                              <DropdownMenuItem onClick={() => handleUnarchiveContact(contact)}>
+                                <ArchiveRestore className="h-4 w-4 ml-2" /> إلغاء الأرشفة
+                              </DropdownMenuItem>
+                            ) : (
+                              <>
+                                <DropdownMenuItem onClick={() => setArchiveContact(contact)}>
+                                  <Archive className="h-4 w-4 ml-2" /> أرشفة
+                                </DropdownMenuItem>
+                                <DropdownMenuItem className="text-destructive" onClick={() => setDeleteContact(contact)}>
+                                  <Trash2 className="h-4 w-4 ml-2" /> حذف نهائي
+                                </DropdownMenuItem>
+                              </>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </td>
@@ -769,16 +844,34 @@ const ContactsPage = () => {
         </DialogContent>
       </Dialog>
 
+      {/* Archive Confirmation */}
+      <AlertDialog open={!!archiveContact} onOpenChange={(o) => !o && setArchiveContact(null)}>
+        <AlertDialogContent dir="rtl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>أرشفة جهة الاتصال</AlertDialogTitle>
+            <AlertDialogDescription>
+              سيتم أرشفة "{archiveContact?.contact_name}". لن تظهر في القوائم لكن سيبقى تاريخها المالي محفوظاً. هل تريد المتابعة؟
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-row-reverse gap-2">
+            <AlertDialogAction onClick={handleArchiveContact} disabled={archiving}>
+              {archiving ? <Loader2 className="h-4 w-4 animate-spin" /> : "أرشفة"}
+            </AlertDialogAction>
+            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Delete Confirmation */}
       <AlertDialog open={!!deleteContact} onOpenChange={(o) => !o && setDeleteContact(null)}>
         <AlertDialogContent dir="rtl">
           <AlertDialogHeader>
-            <AlertDialogTitle>حذف جهة الاتصال</AlertDialogTitle>
-            <AlertDialogDescription>هل أنت متأكد من حذف "{deleteContact?.contact_name}"؟</AlertDialogDescription>
+            <AlertDialogTitle>حذف نهائي</AlertDialogTitle>
+            <AlertDialogDescription>هل أنت متأكد من حذف "{deleteContact?.contact_name}" نهائياً؟ هذا الإجراء لا يمكن التراجع عنه.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-row-reverse gap-2">
             <AlertDialogAction onClick={handleDeleteContact} disabled={deleting} className="bg-destructive text-destructive-foreground">
-              {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : "حذف"}
+              {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : "حذف نهائي"}
             </AlertDialogAction>
             <AlertDialogCancel>إلغاء</AlertDialogCancel>
           </AlertDialogFooter>

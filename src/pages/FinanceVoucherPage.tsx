@@ -42,7 +42,7 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
     setLoading(true);
     const [vRes, cRes] = await Promise.all([
       supabase.from("vouchers").select("*").eq("user_id", user.id).eq("type", voucherType).order("created_at", { ascending: false }),
-      supabase.from("contacts").select("id, contact_name, contact_type").eq("user_id", user.id),
+      supabase.from("contacts").select("id, contact_name, contact_type").eq("user_id", user.id).neq("is_archived", true),
     ]);
     setVouchers(vRes.data || []);
     setContacts(cRes.data || []);

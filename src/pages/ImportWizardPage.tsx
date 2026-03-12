@@ -152,7 +152,7 @@ const ImportWizardPage = () => {
   const { data: contacts = [], refetch: refetchContacts } = useQuery({
     queryKey: ["suppliers-for-import"],
     queryFn: async () => {
-      const { data } = await supabase.from("contacts").select("id, contact_name").eq("contact_type", "مورد");
+      const { data } = await supabase.from("contacts").select("id, contact_name").eq("contact_type", "مورد").neq("is_archived", true);
       return data || [];
     },
   });
