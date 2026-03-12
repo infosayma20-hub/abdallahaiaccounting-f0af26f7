@@ -1280,7 +1280,7 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
 
   const renderAllOrders = () => (
     <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr>
-      <th className={thClass}>رقم الطلب</th><th className={thClass}>التاريخ</th><th className={thClass}>العميل</th><th className={thClass}>المبلغ</th><th className={thClass}>الحالة</th>
+      <th className={thClass}>رقم الطلب</th><th className={thClass}>التاريخ</th><th className={thClass}>الزبون</th><th className={thClass}>المبلغ</th><th className={thClass}>الحالة</th>
     </tr></thead><tbody>
       {data.map((r: any, i) => {
         const stateColors: Record<string, string> = { paid: "bg-green-50 text-green-600", cancelled: "bg-red-50 text-red-600", draft: "bg-yellow-50 text-yellow-600" };
