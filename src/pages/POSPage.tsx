@@ -2201,20 +2201,20 @@ const POSPage = () => {
               <ChevronDown className="h-3 w-3" />
             </button>
             {showOpsDropdown && (
-              <div className="absolute top-full mt-1 right-0 z-50 bg-popover border rounded-lg shadow-lg min-w-[180px] py-1" dir="rtl">
+              <div className="absolute top-full mt-1 right-0 z-50 rounded-lg shadow-xl min-w-[200px] py-1 border" style={{ background: "#fff", color: "#1a1a1a" }} dir="rtl">
                 {(isAdmin || posPerms.can_add_inventory) && (
-                  <button className="w-full text-right px-4 py-2.5 hover:bg-accent text-sm flex items-center gap-2" onClick={() => { setShowInventoryInput(true); setShowOpsDropdown(false); }}>
-                    <Package className="h-4 w-4" /> إدخال بضاعة
+                  <button className="w-full text-right px-4 py-2.5 text-sm flex items-center gap-2.5 hover:bg-gray-100 transition-colors" style={{ color: "#1B3A5C" }} onClick={() => { setShowInventoryInput(true); setShowOpsDropdown(false); }}>
+                    <Package className="h-4 w-4" style={{ color: "#C9A84C" }} /> إدخال بضاعة
                   </button>
                 )}
                 {(isAdmin || posPerms.can_record_purchases) && (
-                  <button className="w-full text-right px-4 py-2.5 hover:bg-accent text-sm flex items-center gap-2" onClick={() => { setShowPurchaseModal(true); setShowOpsDropdown(false); }}>
-                    <ShoppingBag className="h-4 w-4" /> تسجيل مشتريات
+                  <button className="w-full text-right px-4 py-2.5 text-sm flex items-center gap-2.5 hover:bg-gray-100 transition-colors" style={{ color: "#1B3A5C" }} onClick={() => { setShowPurchaseModal(true); setShowOpsDropdown(false); }}>
+                    <ShoppingBag className="h-4 w-4" style={{ color: "#C9A84C" }} /> تسجيل مشتريات
                   </button>
                 )}
                 {(isAdmin || posPerms.can_record_expenses) && (
-                  <button className="w-full text-right px-4 py-2.5 hover:bg-accent text-sm flex items-center gap-2" onClick={() => { setShowExpenseModal(true); setShowOpsDropdown(false); }}>
-                    <Receipt className="h-4 w-4" /> صرف مصروف
+                  <button className="w-full text-right px-4 py-2.5 text-sm flex items-center gap-2.5 hover:bg-gray-100 transition-colors" style={{ color: "#1B3A5C" }} onClick={() => { setShowExpenseModal(true); setShowOpsDropdown(false); }}>
+                    <Receipt className="h-4 w-4" style={{ color: "#C9A84C" }} /> صرف مصروف
                   </button>
                 )}
               </div>
