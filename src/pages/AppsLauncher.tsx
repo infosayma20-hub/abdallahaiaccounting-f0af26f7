@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, ChevronDown, ArrowLeft } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
@@ -97,21 +97,17 @@ const AppsLauncher = () => {
   const [expandedApp, setExpandedApp] = useState<string | null>(null);
   const [helpGuideOpen, setHelpGuideOpen] = useState(false);
 
-  const filteredSections = useMemo(() => {
+  const allFilteredApps = useMemo(() => {
+    const allApps = appSections.flatMap(s => s.items);
     const q = search.trim();
-    if (!q) return appSections;
-    return appSections
-      .map(s => ({
-        ...s,
-        items: s.items.filter(app =>
-          app.label.includes(q) || app.description.includes(q) || app.keywords?.some(k => k.includes(q))
-          || getAllChildren(app).some(c => c.label.includes(q))
-        ),
-      }))
-      .filter(s => s.items.length > 0);
+    if (!q) return allApps;
+    return allApps.filter(app =>
+      app.label.includes(q) || app.description.includes(q) || app.keywords?.some(k => k.includes(q))
+      || getAllChildren(app).some(c => c.label.includes(q))
+    );
   }, [search]);
 
-  const totalResults = filteredSections.reduce((a, s) => a + s.items.length, 0);
+  const totalResults = allFilteredApps.length;
 
   const handleStartTour = () => { update({ welcome_modal_shown: true }); setTourActive(true); };
   const handleSkipWelcome = () => { update({ welcome_modal_shown: true, full_tour_skipped: true }); };
@@ -122,7 +118,7 @@ const AppsLauncher = () => {
   };
   const handleTourSkip = () => { setTourActive(false); update({ full_tour_skipped: true }); };
 
-  let globalIndex = 0;
+  
 
   return (
     <div className="min-h-full bg-background" dir="rtl">
@@ -141,27 +137,15 @@ const AppsLauncher = () => {
 
         {/* Apps Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredSections.map((section) => (
-            <React.Fragment key={section.sectionTitle || "top"}>
-              {section.sectionTitle && (
-                <div className="col-span-full">
-                  <h3 className="text-xs font-bold text-muted-foreground/60 uppercase tracking-[0.12em] mt-4 mb-1 px-1">{section.sectionTitle}</h3>
-                </div>
-              )}
-              {section.items.map((app) => {
-                const idx = globalIndex++;
-                return (
-                  <AppCard
-                    key={app.id}
-                    app={app}
-                    index={idx}
-                    isExpanded={expandedApp === app.id}
-                    onToggle={() => setExpandedApp(prev => prev === app.id ? null : app.id)}
-                    onNavigate={navigate}
-                  />
-                );
-              })}
-            </React.Fragment>
+          {allFilteredApps.map((app, idx) => (
+            <AppCard
+              key={app.id}
+              app={app}
+              index={idx}
+              isExpanded={expandedApp === app.id}
+              onToggle={() => setExpandedApp(prev => prev === app.id ? null : app.id)}
+              onNavigate={navigate}
+            />
           ))}
         </div>
 
