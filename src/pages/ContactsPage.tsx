@@ -844,16 +844,34 @@ const ContactsPage = () => {
         </DialogContent>
       </Dialog>
 
+      {/* Archive Confirmation */}
+      <AlertDialog open={!!archiveContact} onOpenChange={(o) => !o && setArchiveContact(null)}>
+        <AlertDialogContent dir="rtl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>أرشفة جهة الاتصال</AlertDialogTitle>
+            <AlertDialogDescription>
+              سيتم أرشفة "{archiveContact?.contact_name}". لن تظهر في القوائم لكن سيبقى تاريخها المالي محفوظاً. هل تريد المتابعة؟
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-row-reverse gap-2">
+            <AlertDialogAction onClick={handleArchiveContact} disabled={archiving}>
+              {archiving ? <Loader2 className="h-4 w-4 animate-spin" /> : "أرشفة"}
+            </AlertDialogAction>
+            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Delete Confirmation */}
       <AlertDialog open={!!deleteContact} onOpenChange={(o) => !o && setDeleteContact(null)}>
         <AlertDialogContent dir="rtl">
           <AlertDialogHeader>
-            <AlertDialogTitle>حذف جهة الاتصال</AlertDialogTitle>
-            <AlertDialogDescription>هل أنت متأكد من حذف "{deleteContact?.contact_name}"؟</AlertDialogDescription>
+            <AlertDialogTitle>حذف نهائي</AlertDialogTitle>
+            <AlertDialogDescription>هل أنت متأكد من حذف "{deleteContact?.contact_name}" نهائياً؟ هذا الإجراء لا يمكن التراجع عنه.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-row-reverse gap-2">
             <AlertDialogAction onClick={handleDeleteContact} disabled={deleting} className="bg-destructive text-destructive-foreground">
-              {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : "حذف"}
+              {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : "حذف نهائي"}
             </AlertDialogAction>
             <AlertDialogCancel>إلغاء</AlertDialogCancel>
           </AlertDialogFooter>
