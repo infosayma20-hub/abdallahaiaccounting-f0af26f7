@@ -68,7 +68,7 @@ const classConfig: Record<string, { color: string; bg: string; label: string }> 
 };
 
 const contactTypeOptions = [
-  { value: "عميل", label: "عميل" },
+  { value: "عميل", label: "زبون" },
   { value: "مورد", label: "مورد" },
   { value: "زبون ومورد", label: "زبون ومورد" },
 ];
