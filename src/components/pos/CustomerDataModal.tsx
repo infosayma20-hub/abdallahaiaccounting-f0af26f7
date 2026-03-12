@@ -163,7 +163,7 @@ const CustomerDataModal = ({
 
           {/* Name */}
           <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1.5 block">اسم العميل</label>
+            <label className="text-xs font-medium text-muted-foreground mb-1.5 block">اسم الزبون</label>
             <div className="relative">
               <User className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50" />
               <Input
