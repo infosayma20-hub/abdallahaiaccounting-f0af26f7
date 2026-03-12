@@ -329,7 +329,9 @@ const ContactsPage = () => {
     setEditContact(contact);
   };
 
-  const filtered = useMemo(() => contacts.filter(c => {
+  const activeContacts = useMemo(() => contacts.filter(c => showArchived ? (c.is_archived === true) : (!c.is_archived)), [contacts, showArchived]);
+
+  const filtered = useMemo(() => activeContacts.filter(c => {
     const matchesType = !filterType || c.contact_type === filterType || 
       (filterType === "عميل" && ["زبون", "customer"].includes(c.contact_type)) ||
       (filterType === "مورد" && c.contact_type === "supplier");
@@ -340,7 +342,7 @@ const ContactsPage = () => {
       (c.tax_number || "").includes(searchQuery) ||
       (c.email || "").toLowerCase().includes(searchQuery.toLowerCase());
     return matchesType && matchesClass && matchesSearch;
-  }), [contacts, filterType, filterClass, searchQuery]);
+  }), [activeContacts, filterType, filterClass, searchQuery]);
 
   const customerCount = contacts.filter(c => ["عميل", "زبون", "زبون ومورد", "customer"].includes(c.contact_type)).length;
   const supplierCount = contacts.filter(c => ["مورد", "زبون ومورد", "supplier"].includes(c.contact_type)).length;
