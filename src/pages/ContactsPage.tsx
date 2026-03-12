@@ -344,11 +344,13 @@ const ContactsPage = () => {
     return matchesType && matchesClass && matchesSearch;
   }), [activeContacts, filterType, filterClass, searchQuery]);
 
-  const customerCount = contacts.filter(c => ["عميل", "زبون", "زبون ومورد", "customer"].includes(c.contact_type)).length;
-  const supplierCount = contacts.filter(c => ["مورد", "زبون ومورد", "supplier"].includes(c.contact_type)).length;
+  const nonArchivedContacts = useMemo(() => contacts.filter(c => !c.is_archived), [contacts]);
+  const customerCount = nonArchivedContacts.filter(c => ["عميل", "زبون", "زبون ومورد", "customer"].includes(c.contact_type)).length;
+  const supplierCount = nonArchivedContacts.filter(c => ["مورد", "زبون ومورد", "supplier"].includes(c.contact_type)).length;
+  const archivedCount = contacts.filter(c => c.is_archived).length;
   
-  const totalOverdue = contacts.reduce((s, c) => s + (c.overdue_amount || 0), 0);
-  const overLimitCount = contacts.filter(c => c.credit_limit && c.current_balance && c.current_balance > c.credit_limit).length;
+  const totalOverdue = nonArchivedContacts.reduce((s, c) => s + (c.overdue_amount || 0), 0);
+  const overLimitCount = nonArchivedContacts.filter(c => c.credit_limit && c.current_balance && c.current_balance > c.credit_limit).length;
   const totalBalance = filtered.reduce((s, c) => s + (c.current_balance || 0), 0);
   const totalOverdueFiltered = filtered.reduce((s, c) => s + (c.overdue_amount || 0), 0);
 
