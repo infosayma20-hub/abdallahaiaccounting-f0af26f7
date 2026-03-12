@@ -61,6 +61,17 @@ const reportConfigs: Record<string, { title: string; description: string }> = {
   "pos-cashier-performance": { title: "أداء الكاشيرين", description: "أداء كل كاشير بالأرقام" },
   "pos-cancelled": { title: "الفواتير الملغية", description: "الفواتير الملغاة مع الأسباب" },
   "pos-peak-hours": { title: "ساعات الذروة", description: "توزيع المبيعات حسب الساعة" },
+  // Receivables & Payables reports
+  "ar-aging-detail": { title: "تعمير ذمم الزبائن", description: "تصنيف جميع الذمم المستحقة من الزبائن حسب عمر الدين" },
+  "dso-report": { title: "أيام التحصيل والأداء (DSO)", description: "متوسط أيام التحصيل لكل زبون مع التصنيف" },
+  "checks-receivable": { title: "تقرير الشيكات الواردة", description: "شيكات الزبائن مصنفة حسب الحالة والاستحقاق" },
+  "customer-profitability": { title: "ربحية الزبائن", description: "المبيعات والهوامش لكل زبون" },
+  "customer-statement-all": { title: "كشف حساب موحد للزبائن", description: "كشف حساب شامل لجميع الزبائن" },
+  "ap-aging-detail": { title: "تعمير ذمم الموردين", description: "المبالغ المستحقة للموردين حسب عمر الدين" },
+  "dpo-report": { title: "أيام سداد الموردين (DPO)", description: "متوسط أيام السداد لكل مورد" },
+  "checks-payable": { title: "تقرير الشيكات الصادرة", description: "شيكات الموردين مع تواريخ الاستحقاق" },
+  "supplier-purchase-analysis": { title: "تحليل المشتريات والموردين", description: "حجم المشتريات من كل مورد" },
+  "supplier-statement-all": { title: "كشف حساب موحد للموردين", description: "كشف حساب شامل لجميع الموردين" },
 };
 
 // ─── Helpers ───
