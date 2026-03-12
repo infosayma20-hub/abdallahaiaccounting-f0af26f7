@@ -285,6 +285,17 @@ const App = () => (
                       <Route path="/reports/pos-cashier-performance" element={<GenericReportPage reportKey="pos-cashier-performance" />} />
                       <Route path="/reports/pos-cancelled" element={<GenericReportPage reportKey="pos-cancelled" />} />
                       <Route path="/reports/pos-peak-hours" element={<GenericReportPage reportKey="pos-peak-hours" />} />
+                      {/* Receivables & Payables */}
+                      <Route path="/reports/ar-aging-detail" element={<GenericReportPage reportKey="ar-aging-detail" />} />
+                      <Route path="/reports/dso-report" element={<GenericReportPage reportKey="dso-report" />} />
+                      <Route path="/reports/checks-receivable" element={<GenericReportPage reportKey="checks-receivable" />} />
+                      <Route path="/reports/customer-profitability" element={<GenericReportPage reportKey="customer-profitability" />} />
+                      <Route path="/reports/customer-statement-all" element={<GenericReportPage reportKey="customer-statement-all" />} />
+                      <Route path="/reports/ap-aging-detail" element={<GenericReportPage reportKey="ap-aging-detail" />} />
+                      <Route path="/reports/dpo-report" element={<GenericReportPage reportKey="dpo-report" />} />
+                      <Route path="/reports/checks-payable" element={<GenericReportPage reportKey="checks-payable" />} />
+                      <Route path="/reports/supplier-purchase-analysis" element={<GenericReportPage reportKey="supplier-purchase-analysis" />} />
+                      <Route path="/reports/supplier-statement-all" element={<GenericReportPage reportKey="supplier-statement-all" />} />
                       {/* Management */}
                       <Route path="/reports/financial-kpi" element={<GenericReportPage reportKey="financial-kpi" />} />
                       <Route path="/reports/month-comparison" element={<GenericReportPage reportKey="month-comparison" />} />
