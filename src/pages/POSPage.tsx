@@ -12,7 +12,7 @@ import {
   UtensilsCrossed, Gamepad2, Shirt, Monitor, ShoppingBag, Printer,
   Apple, Zap, Coffee, Box, BarChart3, TrendingUp, PlusCircle, Tag,
   Eye, EyeOff, UserCheck, LayoutGrid, Grid3X3, Grid2X2, GripVertical,
-  FileText, Keyboard,
+  FileText, Keyboard, MoreHorizontal,
 } from "lucide-react";
 import TableSelectorBar, { type TableBarItem } from "@/components/pos/TableSelectorBar";
 import AllOrdersSheet from "@/components/pos/AllOrdersSheet";
