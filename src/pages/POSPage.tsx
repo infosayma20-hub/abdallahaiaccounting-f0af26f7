@@ -990,7 +990,7 @@ const POSPage = () => {
         toast.success(`تمت إضافة الزبون "${data.contact_name}" بنجاح`);
       }
     } catch (err: any) {
-      toast.error("فشل في إضافة العميل: " + (err.message || "خطأ غير معروف"));
+      toast.error("فشل في إضافة الزبون: " + (err.message || "خطأ غير معروف"));
     }
     setSavingCustomer(false);
     setShowQuickAddCustomer(false);
