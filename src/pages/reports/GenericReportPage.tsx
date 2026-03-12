@@ -61,6 +61,17 @@ const reportConfigs: Record<string, { title: string; description: string }> = {
   "pos-cashier-performance": { title: "أداء الكاشيرين", description: "أداء كل كاشير بالأرقام" },
   "pos-cancelled": { title: "الفواتير الملغية", description: "الفواتير الملغاة مع الأسباب" },
   "pos-peak-hours": { title: "ساعات الذروة", description: "توزيع المبيعات حسب الساعة" },
+  // Receivables & Payables reports
+  "ar-aging-detail": { title: "تعمير ذمم الزبائن", description: "تصنيف جميع الذمم المستحقة من الزبائن حسب عمر الدين" },
+  "dso-report": { title: "أيام التحصيل والأداء (DSO)", description: "متوسط أيام التحصيل لكل زبون مع التصنيف" },
+  "checks-receivable": { title: "تقرير الشيكات الواردة", description: "شيكات الزبائن مصنفة حسب الحالة والاستحقاق" },
+  "customer-profitability": { title: "ربحية الزبائن", description: "المبيعات والهوامش لكل زبون" },
+  "customer-statement-all": { title: "كشف حساب موحد للزبائن", description: "كشف حساب شامل لجميع الزبائن" },
+  "ap-aging-detail": { title: "تعمير ذمم الموردين", description: "المبالغ المستحقة للموردين حسب عمر الدين" },
+  "dpo-report": { title: "أيام سداد الموردين (DPO)", description: "متوسط أيام السداد لكل مورد" },
+  "checks-payable": { title: "تقرير الشيكات الصادرة", description: "شيكات الموردين مع تواريخ الاستحقاق" },
+  "supplier-purchase-analysis": { title: "تحليل المشتريات والموردين", description: "حجم المشتريات من كل مورد" },
+  "supplier-statement-all": { title: "كشف حساب موحد للموردين", description: "كشف حساب شامل لجميع الموردين" },
 };
 
 // ─── Helpers ───
@@ -137,6 +148,17 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
         case "pos-cashier-performance": await loadPOSCashierPerformance(); break;
         case "pos-cancelled": await loadPOSCancelled(); break;
         case "pos-peak-hours": await loadPOSPeakHours(); break;
+        // Receivables & Payables
+        case "ar-aging-detail": await loadARAgingDetail(); break;
+        case "dso-report": await loadDSOReport(); break;
+        case "checks-receivable": await loadChecksReceivable(); break;
+        case "customer-profitability": await loadCustomerProfitability(); break;
+        case "customer-statement-all": await loadCustomerStatementAll(); break;
+        case "ap-aging-detail": await loadAPAgingDetail(); break;
+        case "dpo-report": await loadDPOReport(); break;
+        case "checks-payable": await loadChecksPayable(); break;
+        case "supplier-purchase-analysis": await loadSupplierPurchaseAnalysis(); break;
+        case "supplier-statement-all": await loadSupplierStatementAll(); break;
         default: await loadGenericTransactions(); break;
       }
     } catch (e: any) {
@@ -594,6 +616,171 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
     setData(Object.values(heatmap).sort((a, b) => b.total - a.total));
   };
 
+  // ═══════════════════════════════════
+  // RECEIVABLES & PAYABLES LOADERS
+  // ═══════════════════════════════════
+
+  const loadARAgingDetail = async () => {
+    const contactTypes = ["عميل", "customer", "زبون"];
+    const { data: contacts } = await supabase.from("contacts").select("id, contact_name, current_balance, contact_class").eq("user_id", uid).in("contact_type", contactTypes).gt("current_balance", 0);
+    if (!contacts?.length) { setData([]); return; }
+    const { data: txns } = await supabase.from("transactions").select("contact_id, transaction_date, amount, transaction_type").eq("user_id", uid).eq("is_deleted", false).in("transaction_type", ["sale_credit", "sale_cash", "sale_bank", "sale_cheque"]);
+    const today = new Date();
+    setData(contacts.map(c => {
+      const cTxns = (txns || []).filter(t => t.contact_id === c.id);
+      const oldestUnpaid = cTxns.length > 0 ? new Date(cTxns[cTxns.length - 1].transaction_date) : today;
+      const days = differenceInDays(today, oldestUnpaid);
+      return {
+        name: c.contact_name, cls: c.contact_class || "C", total: c.current_balance || 0,
+        current: days <= 30 ? c.current_balance : 0, d31_60: days > 30 && days <= 60 ? c.current_balance : 0,
+        d61_90: days > 60 && days <= 90 ? c.current_balance : 0, over90: days > 90 ? c.current_balance : 0,
+      };
+    }).sort((a, b) => b.total - a.total));
+  };
+
+  const loadDSOReport = async () => {
+    const contactTypes = ["عميل", "customer", "زبون"];
+    const { data: contacts } = await supabase.from("contacts").select("id, contact_name, contact_class").eq("user_id", uid).in("contact_type", contactTypes);
+    if (!contacts?.length) { setData([]); return; }
+    const { data: txns } = await supabase.from("transactions").select("contact_id, transaction_date, amount, transaction_type").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo);
+    const today = new Date();
+    setData(contacts.map(c => {
+      const sales = (txns || []).filter(t => t.contact_id === c.id && (t.transaction_type?.includes("sale")));
+      const receipts = (txns || []).filter(t => t.contact_id === c.id && (t.transaction_type?.includes("receipt")));
+      const invCount = sales.length;
+      const paidCount = receipts.length;
+      const collDays: number[] = [];
+      sales.forEach((s, i) => { if (receipts[i]) collDays.push(differenceInDays(new Date(receipts[i].transaction_date), new Date(s.transaction_date))); });
+      const avgDays = collDays.length > 0 ? Math.round(collDays.reduce((a, b) => a + b, 0) / collDays.length) : 0;
+      const lateDays = collDays.filter(d => d > 30);
+      const avgLate = lateDays.length > 0 ? Math.round(lateDays.reduce((a, b) => a + b, 0) / lateDays.length) : 0;
+      const bestPayment = collDays.length > 0 ? Math.min(...collDays) : 0;
+      const worstPayment = collDays.length > 0 ? Math.max(...collDays) : 0;
+      const grade = avgDays < 30 && paidCount / Math.max(invCount, 1) > 0.8 ? "A" : avgDays <= 45 ? "B" : avgDays <= 60 ? "C" : "D";
+      return { name: c.contact_name, invCount, avgDays, avgLate, bestPayment, worstPayment, grade };
+    }).filter(r => r.invCount > 0).sort((a, b) => b.avgLate - a.avgLate));
+  };
+
+  const loadChecksReceivable = async () => {
+    const { data: cheques } = await supabase.from("cheques").select("*").eq("user_id", uid).eq("cheque_type", "وارد").order("cheque_date", { ascending: true });
+    const today = new Date();
+    setData((cheques || []).map(c => ({
+      party: c.party_name, number: c.cheque_number || "—", chequeDate: c.cheque_date,
+      amount: c.amount, daysUntilDue: differenceInDays(new Date(c.cheque_date), today),
+      status: c.status, bank: c.bank_name || "—",
+    })));
+  };
+
+  const loadCustomerProfitability = async () => {
+    const contactTypes = ["عميل", "customer", "زبون"];
+    const { data: contacts } = await supabase.from("contacts").select("id, contact_name").eq("user_id", uid).in("contact_type", contactTypes);
+    if (!contacts?.length) { setData([]); return; }
+    const { data: txns } = await supabase.from("transactions").select("contact_id, amount, transaction_type").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo);
+    setData(contacts.map(c => {
+      const sales = (txns || []).filter(t => t.contact_id === c.id && t.transaction_type?.includes("sale"));
+      const totalSales = sales.reduce((s, t) => s + (t.amount || 0), 0);
+      const invCount = sales.length;
+      const avgInv = invCount > 0 ? Math.round(totalSales / invCount) : 0;
+      return { name: c.contact_name, totalSales, invCount, avgInv };
+    }).filter(r => r.totalSales > 0).sort((a, b) => b.totalSales - a.totalSales));
+  };
+
+  const loadCustomerStatementAll = async () => {
+    const contactTypes = ["عميل", "customer", "زبون"];
+    const { data: contacts } = await supabase.from("contacts").select("id, contact_name").eq("user_id", uid).in("contact_type", contactTypes);
+    if (!contacts?.length) { setData([]); return; }
+    const { data: txns } = await supabase.from("transactions").select("contact_id, transaction_date, description, amount, debit_account_code, credit_account_code, reference, transaction_type").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo).order("transaction_date");
+    const rows: any[] = [];
+    contacts.forEach(c => {
+      const cTxns = (txns || []).filter(t => t.contact_id === c.id);
+      if (!cTxns.length) return;
+      let balance = 0;
+      cTxns.forEach(tx => {
+        const isDebit = tx.debit_account_code === "1130";
+        const debit = isDebit ? tx.amount : 0;
+        const credit = !isDebit ? tx.amount : 0;
+        balance += debit - credit;
+        rows.push({ contactName: c.contact_name, date: tx.transaction_date, ref: tx.reference || "—", desc: tx.description, debit, credit, balance });
+      });
+    });
+    setData(rows);
+  };
+
+  const loadAPAgingDetail = async () => {
+    const { data: contacts } = await supabase.from("contacts").select("id, contact_name, current_balance, contact_class").eq("user_id", uid).eq("contact_type", "مورد").lt("current_balance", 0);
+    if (!contacts?.length) { setData([]); return; }
+    const today = new Date();
+    setData(contacts.map(c => {
+      const bal = Math.abs(c.current_balance || 0);
+      return {
+        name: c.contact_name, total: bal,
+        current: bal, d31_60: 0, d61_90: 0, over90: 0,
+        priority: "🟢 مريح",
+      };
+    }).sort((a, b) => b.total - a.total));
+  };
+
+  const loadDPOReport = async () => {
+    const { data: contacts } = await supabase.from("contacts").select("id, contact_name").eq("user_id", uid).eq("contact_type", "مورد");
+    if (!contacts?.length) { setData([]); return; }
+    const { data: txns } = await supabase.from("transactions").select("contact_id, transaction_date, amount, transaction_type").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo);
+    setData(contacts.map(c => {
+      const purchases = (txns || []).filter(t => t.contact_id === c.id && t.transaction_type?.includes("purchase"));
+      const payments = (txns || []).filter(t => t.contact_id === c.id && t.transaction_type?.includes("payment"));
+      const totalPurchases = purchases.reduce((s, t) => s + (t.amount || 0), 0);
+      const payDays: number[] = [];
+      purchases.forEach((p, i) => { if (payments[i]) payDays.push(differenceInDays(new Date(payments[i].transaction_date), new Date(p.transaction_date))); });
+      const avgDays = payDays.length > 0 ? Math.round(payDays.reduce((a, b) => a + b, 0) / payDays.length) : 0;
+      const compliance = purchases.length > 0 ? Math.round((payments.length / purchases.length) * 100) : 0;
+      return { name: c.contact_name, totalPurchases, avgDays, compliance, invCount: purchases.length };
+    }).filter(r => r.totalPurchases > 0).sort((a, b) => b.totalPurchases - a.totalPurchases));
+  };
+
+  const loadChecksPayable = async () => {
+    const { data: cheques } = await supabase.from("cheques").select("*").eq("user_id", uid).eq("cheque_type", "صادر").order("cheque_date", { ascending: true });
+    const today = new Date();
+    setData((cheques || []).map(c => ({
+      party: c.party_name, number: c.cheque_number || "—", chequeDate: c.cheque_date,
+      amount: c.amount, daysUntilDue: differenceInDays(new Date(c.cheque_date), today),
+      status: c.status, bank: c.bank_name || "—",
+    })));
+  };
+
+  const loadSupplierPurchaseAnalysis = async () => {
+    const { data: contacts } = await supabase.from("contacts").select("id, contact_name").eq("user_id", uid).eq("contact_type", "مورد");
+    if (!contacts?.length) { setData([]); return; }
+    const { data: txns } = await supabase.from("transactions").select("contact_id, amount, transaction_type").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo);
+    const totalAllPurchases = (txns || []).filter(t => t.transaction_type?.includes("purchase")).reduce((s, t) => s + (t.amount || 0), 0);
+    setData(contacts.map(c => {
+      const purchases = (txns || []).filter(t => t.contact_id === c.id && t.transaction_type?.includes("purchase"));
+      const total = purchases.reduce((s, t) => s + (t.amount || 0), 0);
+      const invCount = purchases.length;
+      const avgInv = invCount > 0 ? Math.round(total / invCount) : 0;
+      const pct = totalAllPurchases > 0 ? Math.round((total / totalAllPurchases) * 100) : 0;
+      return { name: c.contact_name, total, invCount, avgInv, pct };
+    }).filter(r => r.total > 0).sort((a, b) => b.total - a.total));
+  };
+
+  const loadSupplierStatementAll = async () => {
+    const { data: contacts } = await supabase.from("contacts").select("id, contact_name").eq("user_id", uid).eq("contact_type", "مورد");
+    if (!contacts?.length) { setData([]); return; }
+    const { data: txns } = await supabase.from("transactions").select("contact_id, transaction_date, description, amount, debit_account_code, credit_account_code, reference").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo).order("transaction_date");
+    const rows: any[] = [];
+    contacts.forEach(c => {
+      const cTxns = (txns || []).filter(t => t.contact_id === c.id);
+      if (!cTxns.length) return;
+      let balance = 0;
+      cTxns.forEach(tx => {
+        const isCredit = tx.credit_account_code === "2100";
+        const debit = !isCredit ? tx.amount : 0;
+        const credit = isCredit ? tx.amount : 0;
+        balance += credit - debit;
+        rows.push({ contactName: c.contact_name, date: tx.transaction_date, ref: tx.reference || "—", desc: tx.description, debit, credit, balance });
+      });
+    });
+    setData(rows);
+  };
+
   const loadGenericTransactions = async () => {
     const { data: txns } = await supabase.from("transactions").select("id, transaction_date, description, amount, debit_account_code, credit_account_code, transaction_type, reference").eq("user_id", uid).eq("is_deleted", false).gte("transaction_date", dateFrom).lte("transaction_date", dateTo).order("transaction_date", { ascending: false }).limit(200);
     setData(txns || []);
@@ -797,6 +984,72 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
               return <span className={`px-2 py-1 rounded-full text-xs ${colors[v] || "bg-muted"}`}>{labels[v] || v}</span>;
             }},
         ];
+      case "ar-aging-detail": case "ap-aging-detail":
+        return [
+          { key: "name", label: reportKey === "ar-aging-detail" ? "الزبون" : "المورد", type: "text" },
+          { key: "total", label: "الإجمالي", type: "currency", format: v => <span className="font-mono text-xs font-bold">{fmtAmtCell(v)}</span> },
+          { key: "current", label: "0-30", type: "currency", format: v => <span className="text-emerald-600 font-mono text-xs">{fmtAmtCell(v)}</span> },
+          { key: "d31_60", label: "31-60", type: "currency", format: v => <span className="text-amber-600 font-mono text-xs">{fmtAmtCell(v)}</span> },
+          { key: "d61_90", label: "61-90", type: "currency", format: v => <span className="text-orange-600 font-mono text-xs">{fmtAmtCell(v)}</span> },
+          { key: "over90", label: "+90", type: "currency", format: v => <span className="text-red-600 font-mono text-xs">{fmtAmtCell(v)}</span> },
+          ...(reportKey === "ar-aging-detail" ? [{ key: "cls", label: "التصنيف", type: "badge" as const }] : [{ key: "priority", label: "الأولوية", type: "text" as const }]),
+        ];
+      case "dso-report":
+        return [
+          { key: "name", label: "الزبون", type: "text" },
+          { key: "invCount", label: "عدد الفواتير", type: "number", align: "center" },
+          { key: "avgDays", label: "متوسط أيام السداد", type: "number", format: v => <span className={`font-mono text-xs ${v < 30 ? "text-emerald-600" : v <= 45 ? "text-amber-600" : "text-red-600"}`}>{v} يوم</span> },
+          { key: "avgLate", label: "متوسط التأخر", type: "number", format: v => <span className={`font-mono text-xs ${v === 0 ? "text-emerald-600" : "text-red-600"}`}>{v} يوم</span> },
+          { key: "bestPayment", label: "أفضل سداد", type: "number", format: v => <span className="font-mono text-xs">{v} يوم</span> },
+          { key: "worstPayment", label: "أسوأ سداد", type: "number", format: v => <span className="font-mono text-xs">{v} يوم</span> },
+          { key: "grade", label: "التصنيف", type: "badge", filterType: "select", filterOptions: ["A", "B", "C", "D"] },
+        ];
+      case "checks-receivable": case "checks-payable":
+        return [
+          { key: "party", label: reportKey === "checks-receivable" ? "الزبون" : "المورد", type: "text" },
+          { key: "number", label: "رقم الشيك", type: "text" },
+          { key: "chequeDate", label: "تاريخ الشيك", type: "date" },
+          { key: "amount", label: "المبلغ", type: "currency" },
+          { key: "daysUntilDue", label: "أيام حتى الاستحقاق", type: "number", format: v => <span className={`font-mono text-xs ${v < 0 ? "text-red-600 font-bold" : v <= 7 ? "text-amber-600" : "text-emerald-600"}`}>{v} يوم</span> },
+          { key: "status", label: "الحالة", type: "badge", filterType: "select", filterOptions: ["برسم التحصيل", "محصل", "مرتجع", "صادر", "مدفوع"],
+            format: v => {
+              const c: Record<string, string> = { "محصل": "bg-emerald-50 text-emerald-600", "مدفوع": "bg-emerald-50 text-emerald-600", "برسم التحصيل": "bg-amber-50 text-amber-600", "صادر": "bg-blue-50 text-blue-600", "مرتجع": "bg-red-50 text-red-600" };
+              return <span className={`px-2 py-1 rounded-full text-xs font-medium ${c[v] || "bg-muted"}`}>{v}</span>;
+            }},
+        ];
+      case "customer-profitability":
+        return [
+          { key: "name", label: "الزبون", type: "text" },
+          { key: "totalSales", label: "إجمالي المبيعات", type: "currency" },
+          { key: "invCount", label: "عدد الفواتير", type: "number", align: "center" },
+          { key: "avgInv", label: "متوسط الفاتورة", type: "currency" },
+        ];
+      case "customer-statement-all": case "supplier-statement-all":
+        return [
+          { key: "contactName", label: reportKey === "customer-statement-all" ? "الزبون" : "المورد", type: "text" },
+          { key: "date", label: "التاريخ", type: "date" },
+          { key: "ref", label: "المرجع", type: "text" },
+          { key: "desc", label: "البيان", type: "text" },
+          { key: "debit", label: "مدين", type: "currency", format: v => v > 0 ? <span className="font-mono text-xs">{fmtAmtCell(v)}</span> : <span className="font-mono text-xs">—</span> },
+          { key: "credit", label: "دائن", type: "currency", format: v => v > 0 ? <span className="font-mono text-xs">{fmtAmtCell(v)}</span> : <span className="font-mono text-xs">—</span> },
+          { key: "balance", label: "الرصيد", type: "currency", format: v => <span className={`font-mono text-xs font-bold ${v > 0 ? "text-red-600" : v < 0 ? "text-emerald-600" : ""}`}>{fmtAmtCell(v)}</span> },
+        ];
+      case "dpo-report":
+        return [
+          { key: "name", label: "المورد", type: "text" },
+          { key: "totalPurchases", label: "إجمالي المشتريات", type: "currency" },
+          { key: "invCount", label: "عدد الفواتير", type: "number", align: "center" },
+          { key: "avgDays", label: "متوسط أيام الدفع", type: "number", format: v => <span className="font-mono text-xs">{v} يوم</span> },
+          { key: "compliance", label: "الالتزام %", type: "percent" },
+        ];
+      case "supplier-purchase-analysis":
+        return [
+          { key: "name", label: "المورد", type: "text" },
+          { key: "total", label: "إجمالي المشتريات", type: "currency" },
+          { key: "invCount", label: "عدد الفواتير", type: "number", align: "center" },
+          { key: "avgInv", label: "متوسط الفاتورة", type: "currency" },
+          { key: "pct", label: "% من الإجمالي", type: "percent" },
+        ];
       default:
         return null;
     }
@@ -818,6 +1071,16 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
         return { count: "sum", total: "sum" };
       case "pos-daily-sales":
         return { count: "sum", total: "sum" };
+      case "ar-aging-detail": case "ap-aging-detail":
+        return { current: "sum", d31_60: "sum", d61_90: "sum", over90: "sum", total: "sum" };
+      case "customer-profitability": case "supplier-purchase-analysis":
+        return { totalSales: "sum", total: "sum", invCount: "sum" };
+      case "checks-receivable": case "checks-payable":
+        return { amount: "sum" };
+      case "customer-statement-all": case "supplier-statement-all":
+        return { debit: "sum", credit: "sum" };
+      case "dpo-report":
+        return { totalPurchases: "sum", invCount: "sum" };
       default:
         return undefined;
     }
