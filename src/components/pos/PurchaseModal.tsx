@@ -59,7 +59,7 @@ export default function PurchaseModal({ open, onOpenChange, dataOwnerId, userId,
 
   const totalAmount = (parseFloat(quantity) || 0) * (parseFloat(unitPrice) || 0);
 
-  const filteredSuppliers = suppliers.filter(s => s.name.includes(supplierSearch)).slice(0, 15);
+  const filteredSuppliers = suppliers.filter(s => s.contact_name.includes(supplierSearch)).slice(0, 15);
   const filteredProducts = products.filter(p => p.name.includes(productSearch)).slice(0, 15);
 
   const handleSave = async () => {
