@@ -78,10 +78,10 @@ const appModules: AppModule[] = [
   },
   // Row 2: Sales cycle
   {
-    id: "sales", label: "المبيعات", description: "فواتير، نقاط بيع، وعملاء", icon: ShoppingCart, color: "text-orange-500", bgColor: "bg-orange-500/10", path: "/invoices",
-    keywords: ["فواتير", "بيع", "عملاء", "فات"],
+    id: "sales", label: "المبيعات", description: "فواتير، نقاط بيع، وزبائن", icon: ShoppingCart, color: "text-orange-500", bgColor: "bg-orange-500/10", path: "/invoices",
+    keywords: ["فواتير", "بيع", "زبائن", "عملاء", "فات"],
     children: [
-      { label: "العملاء", path: "/contacts?type=customer" },
+      { label: "الزبائن", path: "/contacts?type=customer" },
       { label: "الفواتير", path: "/invoices" },
       { label: "سندات القبض", path: "/receipts" },
       { label: "الطلبيات", path: "/orders" },

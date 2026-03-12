@@ -8,7 +8,7 @@ interface AppLayoutProps {
 
 const navItems = [
   { icon: Receipt, label: "المعاملات", path: "/transactions" },
-  { icon: Users, label: "العملاء", path: "/contacts" },
+  { icon: Users, label: "الزبائن", path: "/contacts" },
   { icon: FileText, label: "الحسابات", path: "/accounts" },
   { icon: Menu, label: "القائمة", path: "/menu" },
   { icon: Home, label: "الرئيسية", path: "/" },
