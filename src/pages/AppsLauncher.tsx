@@ -118,7 +118,7 @@ const AppsLauncher = () => {
   };
   const handleTourSkip = () => { setTourActive(false); update({ full_tour_skipped: true }); };
 
-  let globalIndex = 0;
+  
 
   return (
     <div className="min-h-full bg-background" dir="rtl">
