@@ -155,7 +155,7 @@ const ImportShipmentsPage = () => {
                   <TableCell className="font-mono text-xs">{s.shipment_number}</TableCell>
                   <TableCell>{s.shipment_name || "—"}</TableCell>
                   <TableCell>{s.contacts?.contact_name || "—"}</TableCell>
-                  <TableCell>{s.invoice_date ? format(new Date(s.invoice_date), "yyyy/MM/dd") : "—"}</TableCell>
+                  <TableCell>{s.invoice_date ? format(new Date(s.invoice_date), "dd/MM/yyyy") : "—"}</TableCell>
                   <TableCell>—</TableCell>
                   <TableCell className="font-mono">₪ {(s.total_items_cost_local || 0).toLocaleString("en", { minimumFractionDigits: 2 })}</TableCell>
                   <TableCell className="font-mono">₪ {(s.total_import_costs || 0).toLocaleString("en", { minimumFractionDigits: 2 })}</TableCell>

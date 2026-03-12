@@ -79,7 +79,7 @@ const ImportDetailPage = () => {
       {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <Card className="p-4"><p className="text-xs text-muted-foreground">المورد</p><p className="font-medium text-sm">{(shipment as any).contacts?.contact_name || "—"}</p></Card>
-        <Card className="p-4"><p className="text-xs text-muted-foreground">التاريخ</p><p className="font-medium text-sm">{shipment.invoice_date ? format(new Date(shipment.invoice_date), "yyyy/MM/dd") : "—"}</p></Card>
+        <Card className="p-4"><p className="text-xs text-muted-foreground">التاريخ</p><p className="font-medium text-sm">{shipment.invoice_date ? format(new Date(shipment.invoice_date), "dd/MM/yyyy") : "—"}</p></Card>
         <Card className="p-4"><p className="text-xs text-muted-foreground">قيمة البضاعة</p><p className="font-mono font-bold">₪ {fmt(shipment.total_items_cost_local)}</p></Card>
         <Card className="p-4"><p className="text-xs text-muted-foreground">تكاليف الاستيراد</p><p className="font-mono font-bold text-primary">₪ {fmt(shipment.total_import_costs)}</p></Card>
         <Card className="p-4"><p className="text-xs text-muted-foreground">التكلفة الإجمالية</p><p className="font-mono font-bold text-lg">₪ {fmt(shipment.total_landed_cost)}</p></Card>

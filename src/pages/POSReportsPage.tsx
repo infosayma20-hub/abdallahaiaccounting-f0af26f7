@@ -93,7 +93,7 @@ const POSReportsPage = () => {
     if (data.sessions.length > 0) {
       const ws5 = XLSX.utils.json_to_sheet(data.sessions.map(s => ({
         "الكاشير": s.cashier_name || "",
-        "تاريخ الفتح": format(new Date(s.opened_at), "yyyy-MM-dd"),
+        "تاريخ الفتح": format(new Date(s.opened_at), "dd/MM/yyyy"),
         "وقت الفتح": format(new Date(s.opened_at), "HH:mm"),
         "وقت الإغلاق": s.closed_at ? format(new Date(s.closed_at), "HH:mm") : "مفتوحة",
         "رصيد الفتح": s.opening_cash, "رصيد الإغلاق": s.closing_cash ?? "",
