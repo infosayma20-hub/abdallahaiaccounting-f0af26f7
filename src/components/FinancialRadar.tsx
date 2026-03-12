@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { Shield, AlertTriangle, Copy, TrendingUp, Clock, ChevronDown, ChevronUp, Zap, Eye } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { fmtDateDisplay } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 
 interface Anomaly {
