@@ -92,7 +92,7 @@ export default function PurchaseModal({ open, onOpenChange, dataOwnerId, userId,
           product_id: selectedProduct.id,
           quantity: qty,
           type: "purchase_in",
-          notes: `شراء من ${selectedSupplier.name}`,
+          notes: `شراء من ${selectedSupplier.contact_name}`,
           shift_id: sessionId || null,
           created_by: userId,
         });
