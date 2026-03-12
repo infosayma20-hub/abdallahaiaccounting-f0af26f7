@@ -131,8 +131,8 @@ const CustomerDataModal = ({
               <User className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-foreground">تسجيل بيانات العميل</h2>
-              <p className="text-xs text-muted-foreground">أضف بيانات العميل لهذا الطلب</p>
+              <h2 className="text-base font-bold text-foreground">تسجيل بيانات الزبون</h2>
+              <p className="text-xs text-muted-foreground">أضف بيانات الزبون لهذا الطلب</p>
             </div>
           </div>
         </div>
