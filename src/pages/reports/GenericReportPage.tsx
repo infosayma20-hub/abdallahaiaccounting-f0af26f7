@@ -16,7 +16,7 @@ interface GenericReportPageProps {
 }
 
 const reportConfigs: Record<string, { title: string; description: string }> = {
-  "ar-aging": { title: "أعمار الذمم المدينة", description: "أرصدة العملاء المستحقة مصنفة حسب العمر" },
+  "ar-aging": { title: "أعمار الذمم المدينة", description: "أرصدة الزبائن المستحقة مصنفة حسب العمر" },
   "ap-aging": { title: "أعمار الذمم الدائنة", description: "أرصدة الموردين المستحقة مصنفة حسب العمر" },
   "cash-flow": { title: "التدفقات النقدية", description: "التدفقات التشغيلية والاستثمارية والتمويلية (IAS 7)" },
   "daily-sales": { title: "المبيعات اليومية", description: "ملخص المبيعات يوماً بيوم" },
