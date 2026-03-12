@@ -126,7 +126,7 @@ const CustomerReportsPage = () => {
         <TabsList className="w-full">
           <TabsTrigger value="demographics" className="flex-1 text-xs">الديموغرافيا</TabsTrigger>
           <TabsTrigger value="cashiers" className="flex-1 text-xs">تقييم الموظفين</TabsTrigger>
-          <TabsTrigger value="customers" className="flex-1 text-xs">العملاء</TabsTrigger>
+          <TabsTrigger value="customers" className="flex-1 text-xs">الزبائن</TabsTrigger>
         </TabsList>
 
         <TabsContent value="demographics" className="space-y-4 mt-4">

@@ -49,8 +49,8 @@ const ClientsPage = () => {
             <ArrowRight className="h-5 w-5 text-foreground" />
           </button>
           <div>
-            <h1 className="text-lg font-bold text-foreground">العملاء</h1>
-            <p className="text-xs text-muted-foreground">{clients.length} عميل</p>
+            <h1 className="text-lg font-bold text-foreground">الزبائن</h1>
+            <p className="text-xs text-muted-foreground">{clients.length} زبون</p>
           </div>
         </div>
         <Button variant="ghost" size="icon" onClick={fetchClients} disabled={loading}>
