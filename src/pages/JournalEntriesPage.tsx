@@ -13,6 +13,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import JournalEntryPopup from "@/components/JournalEntryPopup";
+import { fmtDateDisplay } from "@/lib/utils";
 
 interface TransactionRow {
   id: string;
@@ -218,7 +219,7 @@ const JournalEntriesPage = () => {
 
   const handleExport = () => {
     const data = filtered.map(tx => ({
-      "التاريخ": tx.transaction_date || "",
+      "التاريخ": fmtDateDisplay(tx.transaction_date) || "",
       "الوصف": tx.description || "",
       "النوع": getDisplayType(tx.transaction_type),
       "الحساب المدين": accountMap[tx.debit_account_code || ""] || tx.debit_account_code || "",
@@ -384,7 +385,7 @@ const JournalEntriesPage = () => {
                   return (
                     <tr key={tx.id} className="border-b border-border/30 hover:bg-muted/20 transition-colors group">
                       <td className="px-4 py-3 text-xs text-muted-foreground tabular-nums">{idx}</td>
-                      <td className="px-4 py-3 text-xs text-foreground tabular-nums whitespace-nowrap">{tx.transaction_date || "—"}</td>
+                      <td className="px-4 py-3 text-xs text-foreground tabular-nums whitespace-nowrap">{fmtDateDisplay(tx.transaction_date) || "—"}</td>
                       <td className="px-4 py-3 text-xs text-foreground font-medium max-w-[250px] truncate">{tx.description || "—"}</td>
                       <td className="px-4 py-3">
                         <span className={`text-[10px] font-semibold px-2.5 py-1 rounded-lg whitespace-nowrap inline-block ${typeStyle[displayType] || "bg-muted text-muted-foreground"}`}>

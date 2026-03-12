@@ -130,7 +130,7 @@ const SupportAdminPage = () => {
                   <p className="text-xs text-muted-foreground">
                     {t.sector && `القطاع: ${t.sector} · `}
                     {t.assigned_to && `مسند لـ: ${t.assigned_to} · `}
-                    {new Date(t.created_at).toLocaleDateString("ar")}
+                    {new Date(t.created_at).toLocaleDateString("en-GB")}
                   </p>
                 </div>
                 <div className="flex gap-2">

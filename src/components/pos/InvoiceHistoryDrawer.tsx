@@ -509,7 +509,7 @@ export default function InvoiceHistoryDrawer({
               {filtered.map(order => {
                 const status = getStatusDisplay(order);
                 const time = format(new Date(order.created_at), "HH:mm");
-                const date = format(new Date(order.created_at), "yyyy/MM/dd");
+                const date = format(new Date(order.created_at), "dd/MM/yyyy");
                 return (
                   <div
                     key={order.id}
@@ -590,7 +590,7 @@ export default function InvoiceHistoryDrawer({
               <div className="grid grid-cols-2 gap-3 text-xs py-3 border-b" style={{ borderColor: "#E2E8F0", color: "#64748B" }}>
                 <div>
                   <span className="block text-[10px]" style={{ color: "#94A3B8" }}>التاريخ والوقت</span>
-                  {format(new Date(selectedOrder.created_at), "yyyy/MM/dd HH:mm")}
+                  {format(new Date(selectedOrder.created_at), "dd/MM/yyyy HH:mm")}
                 </div>
                 <div>
                   <span className="block text-[10px]" style={{ color: "#94A3B8" }}>الزبون</span>

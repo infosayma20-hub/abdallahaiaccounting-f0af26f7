@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { Shield, AlertTriangle, Copy, TrendingUp, Clock, ChevronDown, ChevronUp, Zap, Eye } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { fmtDateDisplay } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 
 interface Anomaly {
@@ -96,7 +97,7 @@ const FinancialRadar = () => {
               type: "duplicate",
               severity: "critical",
               title: "عملية مكررة محتملة",
-              description: `${group.length} عمليات بنفس المبلغ (₪${group[0].amount?.toLocaleString()}) والوصف في ${group[0].transaction_date}`,
+              description: `${group.length} عمليات بنفس المبلغ (₪${group[0].amount?.toLocaleString()}) والوصف في ${fmtDateDisplay(group[0].transaction_date)}`,
               amount: group[0].amount,
               date: group[0].transaction_date,
               relatedIds: group.map(g => g.id),

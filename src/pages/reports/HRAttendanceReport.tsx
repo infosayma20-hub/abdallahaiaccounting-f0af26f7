@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight, Download, Clock, AlertTriangle, CheckCircle } from "lucide-react";
+import { fmtDateDisplay } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -58,7 +59,7 @@ const HRAttendanceReport = () => {
     const rows = attendanceData.map((d: any) => ({
       "الموظف": d.employees?.full_name || "-",
       "القسم": d.employees?.department || "-",
-      "التاريخ": d.attendance_date,
+      "التاريخ": fmtDateDisplay(d.attendance_date),
       "الحضور": d.first_check_in ? format(new Date(d.first_check_in), "HH:mm") : "-",
       "الانصراف": d.last_check_out ? format(new Date(d.last_check_out), "HH:mm") : "-",
       "الساعات": Number(d.total_hours || 0).toFixed(1),
@@ -141,7 +142,7 @@ const HRAttendanceReport = () => {
                     <tr key={d.id} className="border-b border-border/40 hover:bg-muted/20">
                       <td className="p-3 font-medium text-foreground">{d.employees?.full_name || "-"}</td>
                       <td className="p-3 text-muted-foreground">{d.employees?.department || "-"}</td>
-                      <td className="p-3">{d.attendance_date}</td>
+                      <td className="p-3">{fmtDateDisplay(d.attendance_date)}</td>
                       <td className="p-3">{d.first_check_in ? format(new Date(d.first_check_in), "HH:mm") : "-"}</td>
                       <td className="p-3">{d.last_check_out ? format(new Date(d.last_check_out), "HH:mm") : "-"}</td>
                       <td className="p-3">{Number(d.total_hours || 0).toFixed(1)}</td>

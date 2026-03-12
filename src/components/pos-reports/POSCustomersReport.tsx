@@ -54,8 +54,8 @@ const POSCustomersReport = ({ dataOwnerId }: Props) => {
       "عدد الزيارات": c.total_visits,
       "إجمالي المشتريات": c.total_spent,
       "إجمالي الخصومات": c.total_discounts,
-      "آخر زيارة": c.last_visit ? new Date(c.last_visit).toLocaleDateString("ar") : "-",
-      "تاريخ التسجيل": new Date(c.created_at).toLocaleDateString("ar"),
+       "آخر زيارة": c.last_visit ? new Date(c.last_visit).toLocaleDateString("en-GB") : "-",
+      "تاريخ التسجيل": new Date(c.created_at).toLocaleDateString("en-GB"),
     }));
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.json_to_sheet(rows);
@@ -120,7 +120,7 @@ const POSCustomersReport = ({ dataOwnerId }: Props) => {
                 <td className="px-4 py-3 text-left text-sm font-mono font-semibold text-foreground">₪{c.total_spent?.toLocaleString()}</td>
                 <td className="px-4 py-3 text-left text-sm font-mono text-muted-foreground">₪{c.total_discounts?.toLocaleString()}</td>
                 <td className="px-4 py-3 text-left text-sm text-muted-foreground">
-                  {c.last_visit ? new Date(c.last_visit).toLocaleDateString("ar") : "-"}
+                  {c.last_visit ? new Date(c.last_visit).toLocaleDateString("en-GB") : "-"}
                 </td>
               </tr>
             ))}

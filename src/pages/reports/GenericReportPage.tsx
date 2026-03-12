@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
+import { fmtDateDisplay } from "@/lib/utils";
 
 interface GenericReportPageProps {
   reportKey: string;
@@ -1338,7 +1339,7 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
         return <tr key={i} className={trClass}>
           <td className={`${tdClass} ${monoClass}`}>{r.cheque_number || "-"}</td><td className={tdClass}>{r.bank_name || "-"}</td>
           <td className={`${tdClass} font-medium`}>{r.party_name}</td><td className={`${tdClass} ${monoClass} font-bold`}>{fmtAmt(r.amount)}</td>
-          <td className={`${tdClass} ${monoClass}`}>{r.cheque_date}</td><td className={tdClass}>{r.cheque_type}</td>
+          <td className={`${tdClass} ${monoClass}`}>{fmtDateDisplay(r.cheque_date)}</td><td className={tdClass}>{r.cheque_type}</td>
           <td className={tdClass}><span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[r.status] || ""}`}>{r.status}</span></td>
         </tr>;
       })}
@@ -1350,7 +1351,7 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
       <th className={thClass}>التاريخ</th><th className={thClass}>البيان</th><th className={thClass}>المبلغ</th><th className={thClass}>طريقة الدفع</th><th className={thClass}>المرجع</th>
     </tr></thead><tbody>
       {data.map((r: any, i) => <tr key={i} className={trClass}>
-        <td className={`${tdClass} ${monoClass}`}>{r.transaction_date}</td><td className={`${tdClass} text-xs`}>{r.description}</td>
+         <td className={`${tdClass} ${monoClass}`}>{fmtDateDisplay(r.transaction_date)}</td><td className={`${tdClass} text-xs`}>{r.description}</td>
         <td className={`${tdClass} ${monoClass} font-bold`}>{fmtAmt(r.amount)}</td>
         <td className={tdClass}>{r.payment_method || "-"}</td><td className={`${tdClass} ${monoClass}`}>{r.reference || "-"}</td>
       </tr>)}
@@ -1384,7 +1385,7 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
       <th className={thClass}>التاريخ</th><th className={thClass}>البيان</th><th className={thClass}>المبلغ</th><th className={thClass}>المرجع</th>
     </tr></thead><tbody>
       {data.map((r: any, i) => <tr key={i} className={trClass}>
-        <td className={`${tdClass} ${monoClass}`}>{r.transaction_date}</td><td className={`${tdClass} text-xs`}>{r.description}</td>
+         <td className={`${tdClass} ${monoClass}`}>{fmtDateDisplay(r.transaction_date)}</td><td className={`${tdClass} text-xs`}>{r.description}</td>
         <td className={`${tdClass} ${monoClass} font-bold text-red-500`}>{fmtAmt(r.amount)}</td>
         <td className={`${tdClass} ${monoClass}`}>{r.reference || "-"}</td>
       </tr>)}
@@ -1602,7 +1603,7 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
       <th className={thClass}>رقم الطلب</th><th className={thClass}>التاريخ</th><th className={thClass}>الزبون</th><th className={thClass}>المبلغ</th><th className={thClass}>السبب</th>
     </tr></thead><tbody>
       {data.map((r: any, i) => <tr key={i} className={`${trClass} bg-red-50/20`}>
-        <td className={`${tdClass} ${monoClass}`}>{r.order_number || "-"}</td><td className={`${tdClass} ${monoClass}`}>{r.created_at?.split("T")[0]}</td>
+         <td className={`${tdClass} ${monoClass}`}>{r.order_number || "-"}</td><td className={`${tdClass} ${monoClass}`}>{fmtDateDisplay(r.created_at?.split("T")[0])}</td>
         <td className={`${tdClass} font-medium`}>{r.customer_name || "-"}</td><td className={`${tdClass} ${monoClass} font-bold`}>{fmtAmt(r.total)}</td>
         <td className={`${tdClass} text-xs text-red-600`}>{r.return_reason || "-"}</td>
       </tr>)}
@@ -1625,7 +1626,7 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
       <th className={thClass}>التاريخ</th><th className={thClass}>البيان</th><th className={thClass}>مدين</th><th className={thClass}>دائن</th><th className={thClass}>المبلغ</th>
     </tr></thead><tbody>
       {data.map((r: any, i) => <tr key={i} className={trClass}>
-        <td className={`${tdClass} ${monoClass}`}>{r.transaction_date}</td><td className={`${tdClass} text-xs`}>{r.description}</td>
+        <td className={`${tdClass} ${monoClass}`}>{fmtDateDisplay(r.transaction_date)}</td><td className={`${tdClass} text-xs`}>{r.description}</td>
         <td className={`${tdClass} ${monoClass}`}>{r.debit_account_code}</td><td className={`${tdClass} ${monoClass}`}>{r.credit_account_code}</td>
         <td className={`${tdClass} ${monoClass} font-bold`}>{fmtAmt(r.amount || 0)}</td>
       </tr>)}

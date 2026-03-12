@@ -163,7 +163,7 @@ const ExportPage = () => {
             </div>
             <div style="text-align:left;font-size:12px;color:#666;">
               <span style="display:block;">الفترة: ${dateFrom || "بداية"} - ${dateTo || "نهاية"}</span>
-              <span style="display:block;">تاريخ التقرير: ${new Date().toLocaleDateString("ar")}</span>
+              <span style="display:block;">تاريخ التقرير: ${new Date().toLocaleDateString("en-GB")}</span>
             </div>
           </div>
 
@@ -204,7 +204,7 @@ const ExportPage = () => {
           </table>
 
           <div style="text-align:center;margin-top:30px;font-size:10px;color:#999;border-top:1px solid #e5e7eb;padding-top:15px;">
-            تم إنشاؤه بواسطة عبدالله AI للمحاسبة • ${new Date().toLocaleDateString("ar")}
+            تم إنشاؤه بواسطة عبدالله AI للمحاسبة • ${new Date().toLocaleDateString("en-GB")}
           </div>
         </body>
       </html>

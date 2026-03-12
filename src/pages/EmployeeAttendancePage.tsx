@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
+import { fmtDateDisplay } from "@/lib/utils";
 import {
   Clock, LogIn, LogOut, MapPin, QrCode, Calendar, AlertTriangle,
   CheckCircle2, XCircle, Timer, FileText, Send, Loader2
@@ -430,7 +431,7 @@ export default function EmployeeAttendancePage() {
             corrections.map(req => (
               <Card key={req.id} className="p-3">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-sm font-medium">{req.attendance_date}</span>
+                  <span className="text-sm font-medium">{fmtDateDisplay(req.attendance_date)}</span>
                   <Badge variant={req.status === "approved" ? "default" : req.status === "rejected" ? "destructive" : "outline"}>
                     {req.status === "pending" ? "قيد المراجعة" : req.status === "approved" ? "مقبول" : "مرفوض"}
                   </Badge>

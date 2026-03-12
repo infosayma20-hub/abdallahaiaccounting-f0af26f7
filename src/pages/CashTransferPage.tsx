@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { fmtDateDisplay } from "@/lib/utils";
 
 const CashTransferPage = () => {
   const navigate = useNavigate();
@@ -349,7 +350,7 @@ const CashTransferPage = () => {
                     const tb = boxes.find(b => b.id === t.to_box_id);
                     return (
                       <tr key={t.id} className="border-b last:border-0 hover:bg-muted/30">
-                        <td className="py-2.5 px-3 text-xs">{t.transfer_date}</td>
+                        <td className="py-2.5 px-3 text-xs">{fmtDateDisplay(t.transfer_date)}</td>
                         <td className="py-2.5 px-3 text-xs">{fb ? `${typeIcons[fb.type]} ${fb.name}` : "—"}</td>
                         <td className="py-2.5 px-3 text-xs">{tb ? `${typeIcons[tb.type]} ${tb.name}` : "—"}</td>
                         <td className="py-2.5 px-3 font-mono text-xs font-bold">₪{fmt(Number(t.amount))}</td>

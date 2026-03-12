@@ -676,7 +676,7 @@ const InventoryPage = () => {
                         {m.reference_note && <p className="text-[10px] text-muted-foreground">{m.reference_note}</p>}
                       </div>
                     </div>
-                    <p className="text-[10px] text-muted-foreground">{new Date(m.created_at).toLocaleDateString("ar")}</p>
+                    <p className="text-[10px] text-muted-foreground">{new Date(m.created_at).toLocaleDateString("en-GB")}</p>
                   </div>
                 );
               })}

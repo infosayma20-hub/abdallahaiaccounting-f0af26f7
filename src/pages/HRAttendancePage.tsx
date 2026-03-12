@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
+import { fmtDateDisplay } from "@/lib/utils";
 import {
   Users, Building2, Clock, CheckCircle2, XCircle, AlertTriangle,
   Calendar, FileText, Download, Loader2, Eye, Check, X, MapPin,
@@ -455,7 +456,7 @@ export default function HRAttendancePage() {
                 <div className="flex items-center justify-between mb-2">
                   <div>
                     <span className="font-medium">{(req as any).employees?.full_name}</span>
-                    <span className="text-xs text-muted-foreground mr-2">• {req.attendance_date}</span>
+                    <span className="text-xs text-muted-foreground mr-2">• {fmtDateDisplay(req.attendance_date)}</span>
                   </div>
                   <Badge variant="outline">
                     {req.request_type === "missing_checkin" ? "دخول مفقود" :
@@ -611,7 +612,7 @@ export default function HRAttendancePage() {
                 </div>
                 <div className="bg-muted/50 rounded-lg p-3">
                   <p className="text-xs text-muted-foreground">التاريخ</p>
-                  <p className="font-medium">{reviewDialog.attendance_date}</p>
+                  <p className="font-medium">{fmtDateDisplay(reviewDialog.attendance_date)}</p>
                 </div>
               </div>
               <div className="bg-muted/50 rounded-lg p-3">

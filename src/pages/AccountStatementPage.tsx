@@ -587,7 +587,7 @@ const AccountStatementPage = () => {
         "النوع": c.cheque_type,
         "المبلغ": c.amount,
         "العملة": c.currency,
-        "التاريخ": c.cheque_date,
+        "التاريخ": fmtDate(c.cheque_date),
         "الحالة": c.status,
         "البنك": c.bank_name || "—",
       }));

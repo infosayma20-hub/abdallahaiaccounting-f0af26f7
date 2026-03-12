@@ -22,6 +22,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import * as XLSX from "xlsx";
+import { fmtDateDisplay } from "@/lib/utils";
 
 interface Transaction {
   id: string;
@@ -395,7 +396,7 @@ const TransactionsPage = () => {
 
     const dataRows = filteredTransactions.map((tx, i) => ({
       "#": i + 1,
-      "التاريخ": tx.transaction_date,
+      "التاريخ": fmtDateDisplay(tx.transaction_date),
       "المرجع": tx.reference || "",
       "الوصف": tx.description || "",
       "النوع": typeBadgeConfig[tx.transaction_type]?.label || tx.transaction_type,
@@ -460,12 +461,7 @@ const TransactionsPage = () => {
     return parts.length ? parts.join(" • ") : "كل القيود";
   }, [typeFilter, accountFilter, dateFilter, accounts]);
 
-  const formatDate = (d: string) => {
-    if (!d) return "—";
-    const parts = d.split("-");
-    if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0].slice(2)}`;
-    return d;
-  };
+  const formatDate = (d: string) => fmtDateDisplay(d);
 
   // ━━ Trash View ━━
   if (showTrash) {
@@ -500,7 +496,7 @@ const TransactionsPage = () => {
             <CardContent className="p-4 flex items-center justify-between">
               <div className="flex-1">
                 <p className="text-sm font-medium text-[#1A2332] line-through">{tx.description || "بدون وصف"}</p>
-                <p className="text-xs text-[#637381] mt-1">{tx.transaction_date} — ₪{tx.amount?.toFixed(2)}</p>
+                <p className="text-xs text-[#637381] mt-1">{fmtDateDisplay(tx.transaction_date)} — ₪{tx.amount?.toFixed(2)}</p>
               </div>
               <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => handleRestore(tx.id)} disabled={restoringId === tx.id}>
                 {restoringId === tx.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <RotateCcw className="h-3 w-3" />}

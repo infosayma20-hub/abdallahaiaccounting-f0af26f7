@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { fmtDateDisplay } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -450,7 +451,7 @@ const OrdersPage = () => {
                   <TableRow key={o.id}>
                     <TableCell className="font-mono text-xs">{o.order_number || "—"}</TableCell>
                     <TableCell className="font-medium">{o.customer_name}</TableCell>
-                    <TableCell className="text-xs">{o.order_date}</TableCell>
+                    <TableCell className="text-xs">{fmtDateDisplay(o.order_date)}</TableCell>
                     <TableCell className="font-medium">{Number(o.total).toLocaleString()} ₪</TableCell>
                     <TableCell>
                       <Select value={o.status} onValueChange={v => updateStatus(o.id, v)}>
