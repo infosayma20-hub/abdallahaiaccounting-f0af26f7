@@ -509,7 +509,7 @@ export default function InvoiceHistoryDrawer({
               {filtered.map(order => {
                 const status = getStatusDisplay(order);
                 const time = format(new Date(order.created_at), "HH:mm");
-                const date = format(new Date(order.created_at), "yyyy/MM/dd");
+                const date = format(new Date(order.created_at), "dd/MM/yyyy");
                 return (
                   <div
                     key={order.id}
