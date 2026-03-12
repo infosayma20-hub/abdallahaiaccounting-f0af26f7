@@ -169,7 +169,7 @@ const CustomerDataModal = ({
               <Input
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
-                placeholder="اسم العميل"
+                placeholder="اسم الزبون"
                 className="h-11 pr-10"
               />
             </div>
