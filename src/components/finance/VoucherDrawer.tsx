@@ -438,7 +438,7 @@ const VoucherDrawer = ({ open, onClose, voucherType, onSaved, editVoucherId }: V
                 </div>
                 {filteredContacts.filter(isCustomer).length > 0 && (
                   <SelectGroup>
-                    <SelectLabel className="flex items-center gap-1.5 text-xs"><User className="h-3 w-3" /> العملاء</SelectLabel>
+                    <SelectLabel className="flex items-center gap-1.5 text-xs"><User className="h-3 w-3" /> الزبائن</SelectLabel>
                     {filteredContacts.filter(isCustomer).map(c => (
                       <SelectItem key={c.id} value={c.id}>
                         <span className="flex items-center gap-2">

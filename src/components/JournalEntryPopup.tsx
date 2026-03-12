@@ -367,7 +367,7 @@ const QuickAddContactDialog = ({
           <div className="p-2.5 rounded-lg bg-primary/5 border border-primary/15 text-[11px] text-muted-foreground space-y-1">
             <p className="font-semibold text-foreground">سيُنشأ تلقائياً:</p>
             <p>✅ حساب محاسبي: {accountPrefix}</p>
-            <p>✅ كرت في {isCustomer ? "العملاء" : "الموردين"}</p>
+            <p>✅ كرت في {isCustomer ? "الزبائن" : "الموردين"}</p>
           </div>
           <Button onClick={handleSave} disabled={saving || !name} className="w-full h-9 text-xs gap-1.5">
             {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}

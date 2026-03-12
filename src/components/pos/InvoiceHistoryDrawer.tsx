@@ -106,7 +106,7 @@ const RECALL_REASONS = [
   "خطأ في السعر",
   "إضافة صنف",
   "حذف صنف",
-  "تعديل العميل",
+  "تعديل الزبون",
 ];
 
 export default function InvoiceHistoryDrawer({
@@ -481,7 +481,7 @@ export default function InvoiceHistoryDrawer({
             <input
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              placeholder="بحث برقم الفاتورة أو اسم العميل..."
+              placeholder="بحث برقم الفاتورة أو اسم الزبون..."
               className="w-full h-9 pr-9 pl-3 rounded-lg border text-xs"
               style={{ fontFamily: "Tajawal, sans-serif", borderColor: "#E2E8F0" }}
             />
@@ -534,7 +534,7 @@ export default function InvoiceHistoryDrawer({
                         <span>{time} — {date}</span>
                       </div>
                       <div className="text-[11px] mt-0.5" style={{ color: "#64748B" }}>
-                        {order.customer_name || "عميل نقدي"}
+                        {order.customer_name || "زبون نقدي"}
                       </div>
                     </div>
 
@@ -593,8 +593,8 @@ export default function InvoiceHistoryDrawer({
                   {format(new Date(selectedOrder.created_at), "yyyy/MM/dd HH:mm")}
                 </div>
                 <div>
-                  <span className="block text-[10px]" style={{ color: "#94A3B8" }}>العميل</span>
-                  {selectedOrder.customer_name || "عميل نقدي"}
+                  <span className="block text-[10px]" style={{ color: "#94A3B8" }}>الزبون</span>
+                  {selectedOrder.customer_name || "زبون نقدي"}
                 </div>
                 <div>
                   <span className="block text-[10px]" style={{ color: "#94A3B8" }}>طريقة الدفع</span>

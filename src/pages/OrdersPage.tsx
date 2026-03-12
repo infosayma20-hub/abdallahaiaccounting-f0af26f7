@@ -609,7 +609,7 @@ const OrdersPage = () => {
             {/* Top Customers */}
             <Card>
               <CardContent className="p-4">
-                <h3 className="text-sm font-semibold text-foreground mb-4">⭐ أفضل العملاء</h3>
+                <h3 className="text-sm font-semibold text-foreground mb-4">⭐ أفضل الزبائن</h3>
                 {reportData.topCustomers.length > 0 ? (
                   <div className="space-y-3">
                     {reportData.topCustomers.map((c, i) => (

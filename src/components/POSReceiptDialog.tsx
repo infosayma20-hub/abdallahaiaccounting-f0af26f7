@@ -238,7 +238,7 @@ export default function POSReceiptDialog({ open, onOpenChange, data }: POSReceip
               )}
               {data.customerName && (
                 <div style={{ display: "flex", justifyContent: "space-between", padding: "2px 0", fontSize: "11px" }}>
-                  <span style={{ color: "#64748b" }}>العميل</span>
+                  <span style={{ color: "#64748b" }}>الزبون</span>
                   <span style={{ fontWeight: 500, color: "#334155" }}>{data.customerName}</span>
                 </div>
               )}

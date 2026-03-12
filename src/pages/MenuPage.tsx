@@ -8,7 +8,7 @@ const sections = [
     items: [
       { icon: FileText, label: "الفواتير", description: "مبيعات ومشتريات", color: "bg-warning/10", iconColor: "text-warning", path: "/invoices" },
       { icon: Receipt, label: "الشيكات", description: "واردة وصادرة", color: "bg-primary/10", iconColor: "text-primary", path: "/cheques" },
-      { icon: Users, label: "العملاء", description: "زبائن وموردين", color: "bg-primary/10", iconColor: "text-primary", path: "/contacts" },
+      { icon: Users, label: "الزبائن", description: "زبائن وموردين", color: "bg-primary/10", iconColor: "text-primary", path: "/contacts" },
       { icon: Package, label: "المخزون", description: "المنتجات والكميات", color: "bg-primary/10", iconColor: "text-primary", path: "/inventory" },
     ],
   },

@@ -511,12 +511,12 @@ export default function POSUserManagementPage() {
       ],
     },
     {
-      title: "العملاء",
+      title: "الزبائن",
       icon: <UsersRound className="w-4 h-4" />,
       items: [
-        { key: "add_customer", label: "إضافة عميل جديد", icon: <UserRoundPlus className="w-4 h-4" /> },
-        { key: "view_customers", label: "مشاهدة بيانات العملاء", icon: <UsersRound className="w-4 h-4" /> },
-        { key: "edit_customers", label: "تعديل بيانات العملاء", icon: <PencilLine className="w-4 h-4" />, dependsOn: "view_customers", dependsLabel: "مشاهدة بيانات العملاء" },
+        { key: "add_customer", label: "إضافة زبون جديد", icon: <UserRoundPlus className="w-4 h-4" /> },
+        { key: "view_customers", label: "مشاهدة بيانات الزبائن", icon: <UsersRound className="w-4 h-4" /> },
+        { key: "edit_customers", label: "تعديل بيانات الزبائن", icon: <PencilLine className="w-4 h-4" />, dependsOn: "view_customers", dependsLabel: "مشاهدة بيانات الزبائن" },
       ],
     },
     {

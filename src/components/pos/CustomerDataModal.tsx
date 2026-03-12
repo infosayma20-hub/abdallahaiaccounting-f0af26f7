@@ -131,8 +131,8 @@ const CustomerDataModal = ({
               <User className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-foreground">تسجيل بيانات العميل</h2>
-              <p className="text-xs text-muted-foreground">أضف بيانات العميل لهذا الطلب</p>
+              <h2 className="text-base font-bold text-foreground">تسجيل بيانات الزبون</h2>
+              <p className="text-xs text-muted-foreground">أضف بيانات الزبون لهذا الطلب</p>
             </div>
           </div>
         </div>
@@ -152,7 +152,7 @@ const CustomerDataModal = ({
                   {existingCustomer.name?.[0] || "?"}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-foreground">✅ عميل موجود: {existingCustomer.name}</p>
+                  <p className="text-sm font-semibold text-foreground">✅ زبون موجود: {existingCustomer.name}</p>
                   <p className="text-[11px] text-muted-foreground">
                     {existingCustomer.total_visits} زيارة | أنفق ₪{existingCustomer.total_spent?.toFixed(0)}
                   </p>
@@ -163,13 +163,13 @@ const CustomerDataModal = ({
 
           {/* Name */}
           <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1.5 block">اسم العميل</label>
+            <label className="text-xs font-medium text-muted-foreground mb-1.5 block">اسم الزبون</label>
             <div className="relative">
               <User className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50" />
               <Input
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
-                placeholder="اسم العميل"
+                placeholder="اسم الزبون"
                 className="h-11 pr-10"
               />
             </div>
@@ -202,7 +202,7 @@ const CustomerDataModal = ({
               <Textarea
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
-                placeholder="ملاحظة على العميل..."
+                placeholder="ملاحظة على الزبون..."
                 className="pr-10 min-h-[60px] resize-none text-sm"
                 rows={2}
               />
@@ -254,7 +254,7 @@ const CustomerDataModal = ({
             className="flex-1 h-11 gap-2 rounded-xl font-bold"
           >
             <CheckCircle className="h-4 w-4" />
-            حفظ بيانات العميل
+            حفظ بيانات الزبون
           </Button>
         </div>
       </DialogContent>

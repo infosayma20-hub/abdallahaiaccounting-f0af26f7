@@ -39,7 +39,7 @@ const PrivacyPage = () => {
             <h3 className="text-sm font-semibold text-foreground mt-3">ب) المعلومات المالية والتشغيلية</h3>
             <ul className="text-sm text-muted-foreground space-y-1 list-disc pr-5">
               <li>المعاملات المحاسبية</li>
-              <li>بيانات العملاء والموردين</li>
+              <li>بيانات الزبائن والموردين</li>
               <li>الفواتير والطلبيات</li>
               <li>التقارير المالية</li>
             </ul>

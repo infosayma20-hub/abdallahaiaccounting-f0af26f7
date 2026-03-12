@@ -987,10 +987,10 @@ const POSPage = () => {
         setCustomerName(data.contact_name, data.id);
         setCustomerSearch("");
         setShowContactDropdown(false);
-        toast.success(`تمت إضافة العميل "${data.contact_name}" بنجاح`);
+        toast.success(`تمت إضافة الزبون "${data.contact_name}" بنجاح`);
       }
     } catch (err: any) {
-      toast.error("فشل في إضافة العميل: " + (err.message || "خطأ غير معروف"));
+      toast.error("فشل في إضافة الزبون: " + (err.message || "خطأ غير معروف"));
     }
     setSavingCustomer(false);
     setShowQuickAddCustomer(false);
@@ -2837,7 +2837,7 @@ const POSPage = () => {
                     }`}
                   >
                     <User className="h-3 w-3" />
-                    {customerName || "العميل"}
+                    {customerName || "الزبون"}
                   </button>
                   <button
                     onClick={() => setShowOrderNoteInput(!showOrderNoteInput)}
@@ -3063,7 +3063,7 @@ const POSPage = () => {
                       : "border border-dashed border-muted-foreground/30 bg-muted/30 text-muted-foreground hover:bg-muted/50"
                   }`}
                 >
-                  {customerDataDiscount ? `✅ ${customerDataDiscount.customerName || customerDataDiscount.contactValue}${customerDataDiscount.discountPct > 0 ? ` — خصم ${customerDataDiscount.discountPct}%` : ""}` : "👤 تسجيل بيانات العميل"}
+                  {customerDataDiscount ? `✅ ${customerDataDiscount.customerName || customerDataDiscount.contactValue}${customerDataDiscount.discountPct > 0 ? ` — خصم ${customerDataDiscount.discountPct}%` : ""}` : "👤 تسجيل بيانات الزبون"}
                 </button>
               )}
               {/* Bottom row: Delete + Print + Pay */}
@@ -3495,7 +3495,7 @@ const POSPage = () => {
             {/* Customer for credit */}
             {paymentMethod === "credit" && (
               <div className="relative">
-                <label className="text-sm font-medium mb-1.5 block">اسم العميل</label>
+                <label className="text-sm font-medium mb-1.5 block">اسم الزبون</label>
                 <div className="relative">
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">@</span>
                   <Input
@@ -3987,7 +3987,7 @@ const POSPage = () => {
         onApply={(data) => {
           setCustomerDataDiscount(data);
           setShowCustomerDataModal(false);
-          toast.success(`✅ تم تطبيق خصم ${data.discountPct}% — وفّر العميل ₪${data.discountAmount.toFixed(2)}`);
+          toast.success(`✅ تم تطبيق خصم ${data.discountPct}% — وفّر الزبون ₪${data.discountAmount.toFixed(2)}`);
         }}
         onSkip={() => {
           setCustomerDataDiscount(null);

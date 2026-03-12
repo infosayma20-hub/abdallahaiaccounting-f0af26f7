@@ -95,7 +95,7 @@ type EntityTab = "customers" | "suppliers" | "employees" | "accounts";
 
 // ─── CONSTANTS ───
 const ENTITY_TABS: { key: EntityTab; label: string; icon: any; color: string; accountCode: string; type: string }[] = [
-  { key: "customers", label: "العملاء", icon: Users, color: "text-blue-500", accountCode: "1130", type: "عميل" },
+  { key: "customers", label: "الزبائن", icon: Users, color: "text-blue-500", accountCode: "1130", type: "عميل" },
   { key: "suppliers", label: "الموردين", icon: Truck, color: "text-amber-500", accountCode: "2100", type: "مورد" },
   { key: "employees", label: "الموظفين", icon: UserCheck, color: "text-emerald-500", accountCode: "1180", type: "موظف" },
   { key: "accounts", label: "الحسابات", icon: LayoutGrid, color: "text-purple-500", accountCode: "", type: "account" },

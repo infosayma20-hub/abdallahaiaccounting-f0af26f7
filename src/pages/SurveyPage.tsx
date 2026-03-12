@@ -131,7 +131,7 @@ const SurveyPage = () => {
         {company?.logo_url ? (
           <img src={company.logo_url} alt="" className="h-10 mx-auto mb-3 object-contain" />
         ) : (
-          <h1 className="text-xl font-bold mb-1">{company?.name || "استبيان رضا العملاء"}</h1>
+          <h1 className="text-xl font-bold mb-1">{company?.name || "استبيان رضا الزبائن"}</h1>
         )}
         <p className="text-sm text-white/80">نودّ معرفة رأيك في تجربتك معنا</p>
       </div>

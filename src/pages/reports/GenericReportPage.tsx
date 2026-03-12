@@ -16,7 +16,7 @@ interface GenericReportPageProps {
 }
 
 const reportConfigs: Record<string, { title: string; description: string }> = {
-  "ar-aging": { title: "أعمار الذمم المدينة", description: "أرصدة العملاء المستحقة مصنفة حسب العمر" },
+  "ar-aging": { title: "أعمار الذمم المدينة", description: "أرصدة الزبائن المستحقة مصنفة حسب العمر" },
   "ap-aging": { title: "أعمار الذمم الدائنة", description: "أرصدة الموردين المستحقة مصنفة حسب العمر" },
   "cash-flow": { title: "التدفقات النقدية", description: "التدفقات التشغيلية والاستثمارية والتمويلية (IAS 7)" },
   "daily-sales": { title: "المبيعات اليومية", description: "ملخص المبيعات يوماً بيوم" },
@@ -37,8 +37,8 @@ const reportConfigs: Record<string, { title: string; description: string }> = {
   "cheques": { title: "تقرير الشيكات", description: "شيكات واردة وصادرة ومستحقة مع الحالة" },
   "total-sales": { title: "المبيعات الإجمالية", description: "إجمالي المبيعات حسب الفترة" },
   "invoice-register": { title: "سجل الفواتير", description: "جميع فواتير البيع مع حالة الدفع" },
-  "by-customer": { title: "المبيعات حسب العميل", description: "تحليل مبيعات كل عميل" },
-  "collections": { title: "التحصيلات", description: "المبالغ المحصلة من العملاء" },
+  "by-customer": { title: "المبيعات حسب الزبون", description: "تحليل مبيعات كل زبون" },
+  "collections": { title: "التحصيلات", description: "المبالغ المحصلة من الزبائن" },
   "total-purchases": { title: "المشتريات الإجمالية", description: "إجمالي المشتريات حسب الفترة" },
   "purchase-invoice-register": { title: "فواتير المشتريات", description: "سجل فواتير الشراء" },
   "by-supplier": { title: "المشتريات حسب المورد", description: "تحليل مشتريات كل مورد" },
@@ -620,7 +620,7 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
     switch (reportKey) {
       case "ar-aging": case "ap-aging":
         return [
-          { key: "name", label: reportKey === "ar-aging" ? "العميل" : "المورد", type: "text" },
+          { key: "name", label: reportKey === "ar-aging" ? "الزبون" : "المورد", type: "text" },
           { key: "cls", label: "التصنيف", type: "badge", filterType: "select", filterOptions: ["A", "B", "C", "D", "-"] },
           { key: "current", label: "جاري", type: "currency", format: v => <span className="text-green-600 font-mono text-xs">{fmtAmtCell(v)}</span> },
           { key: "d30", label: "1-30", type: "currency", format: v => <span className="text-yellow-600 font-mono text-xs">{fmtAmtCell(v)}</span> },
@@ -678,7 +678,7 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
         ];
       case "by-customer": case "by-supplier":
         return [
-          { key: "name", label: reportKey === "by-customer" ? "العميل" : "المورد", type: "text" },
+          { key: "name", label: reportKey === "by-customer" ? "الزبون" : "المورد", type: "text" },
           ...(reportKey === "by-customer" ? [{ key: "cls", label: "التصنيف", type: "badge" as const, filterType: "select" as const, filterOptions: ["A", "B", "C", "D", "-"] }] : []),
           { key: "count", label: "عدد الفواتير", type: "number", align: "center" as const },
           { key: "total", label: "الإجمالي", type: "currency" as const },
@@ -780,7 +780,7 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
         return [
           { key: "order_number", label: "رقم الطلب", type: "text" },
           { key: "created_at", label: "التاريخ", type: "date", format: v => <span className="font-mono text-xs">{v?.split("T")[0]}</span> },
-          { key: "customer_name", label: "العميل", type: "text" },
+          { key: "customer_name", label: "الزبون", type: "text" },
           { key: "total", label: "المبلغ", type: "currency" },
           { key: "return_reason", label: "السبب", type: "text", format: v => <span className="text-xs text-red-600">{v || "-"}</span> },
         ];
@@ -788,7 +788,7 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
         return [
           { key: "order_number", label: "رقم الطلب", type: "text" },
           { key: "created_at", label: "التاريخ", type: "date", format: v => <span className="font-mono text-xs">{v?.split("T")[0]}</span> },
-          { key: "customer_name", label: "العميل", type: "text" },
+          { key: "customer_name", label: "الزبون", type: "text" },
           { key: "total", label: "المبلغ", type: "currency" },
           { key: "state", label: "الحالة", type: "badge", filterType: "select", filterOptions: ["paid", "cancelled", "draft"],
             format: v => {
@@ -903,7 +903,7 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
 
   const renderAgingTable = () => (
     <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr>
-      <th className={thClass}>{reportKey === "ar-aging" ? "العميل" : "المورد"}</th>
+      <th className={thClass}>{reportKey === "ar-aging" ? "الزبون" : "المورد"}</th>
       <th className={thClass}>التصنيف</th>
       <th className={`${thClass} !bg-green-700`}>جاري</th>
       <th className={`${thClass} !bg-yellow-600`}>1-30</th>
@@ -1096,7 +1096,7 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
 
   const renderGroupedByContact = () => (
     <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr>
-      <th className={thClass}>{reportKey === "by-customer" ? "العميل" : "المورد"}</th>
+      <th className={thClass}>{reportKey === "by-customer" ? "الزبون" : "المورد"}</th>
       {reportKey === "by-customer" && <th className={thClass}>التصنيف</th>}
       <th className={thClass}>عدد الفواتير</th><th className={thClass}>الإجمالي</th>
       {reportKey === "by-customer" && <th className={thClass}>آخر عملية</th>}
@@ -1280,7 +1280,7 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
 
   const renderAllOrders = () => (
     <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr>
-      <th className={thClass}>رقم الطلب</th><th className={thClass}>التاريخ</th><th className={thClass}>العميل</th><th className={thClass}>المبلغ</th><th className={thClass}>الحالة</th>
+      <th className={thClass}>رقم الطلب</th><th className={thClass}>التاريخ</th><th className={thClass}>الزبون</th><th className={thClass}>المبلغ</th><th className={thClass}>الحالة</th>
     </tr></thead><tbody>
       {data.map((r: any, i) => {
         const stateColors: Record<string, string> = { paid: "bg-green-50 text-green-600", cancelled: "bg-red-50 text-red-600", draft: "bg-yellow-50 text-yellow-600" };
@@ -1336,7 +1336,7 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
 
   const renderPOSCancelled = () => (
     <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr>
-      <th className={thClass}>رقم الطلب</th><th className={thClass}>التاريخ</th><th className={thClass}>العميل</th><th className={thClass}>المبلغ</th><th className={thClass}>السبب</th>
+      <th className={thClass}>رقم الطلب</th><th className={thClass}>التاريخ</th><th className={thClass}>الزبون</th><th className={thClass}>المبلغ</th><th className={thClass}>السبب</th>
     </tr></thead><tbody>
       {data.map((r: any, i) => <tr key={i} className={`${trClass} bg-red-50/20`}>
         <td className={`${tdClass} ${monoClass}`}>{r.order_number || "-"}</td><td className={`${tdClass} ${monoClass}`}>{r.created_at?.split("T")[0]}</td>
