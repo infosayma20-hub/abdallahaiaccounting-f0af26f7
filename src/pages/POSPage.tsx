@@ -432,7 +432,20 @@ const POSPage = () => {
      manage_products_categories: boolean;
      view_invoice_log: boolean;
      edit_cancel_invoices: boolean;
-   }>({ can_view_invoice_history: true, can_edit_invoices: true, require_manager_for_invoices: true, manage_products_categories: false, view_invoice_log: false, edit_cancel_invoices: false });
+     can_add_inventory: boolean;
+     can_create_product: boolean;
+     can_record_purchases: boolean;
+     can_pay_purchases_cash: boolean;
+     can_create_supplier: boolean;
+     can_affect_inventory_on_purchase: boolean;
+     can_record_expenses: boolean;
+     can_create_expense_category: boolean;
+   }>({ can_view_invoice_history: true, can_edit_invoices: true, require_manager_for_invoices: true, manage_products_categories: false, view_invoice_log: false, edit_cancel_invoices: false, can_add_inventory: false, can_create_product: false, can_record_purchases: false, can_pay_purchases_cash: false, can_create_supplier: false, can_affect_inventory_on_purchase: false, can_record_expenses: false, can_create_expense_category: false });
+
+   // Financial operation modals
+   const [showInventoryInput, setShowInventoryInput] = useState(false);
+   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
+   const [showExpenseModal, setShowExpenseModal] = useState(false);
 
    // Modifiers
    const [modifierGroups, setModifierGroups] = useState<any[]>([]);
