@@ -97,7 +97,7 @@ const FinancialRadar = () => {
               type: "duplicate",
               severity: "critical",
               title: "عملية مكررة محتملة",
-              description: `${group.length} عمليات بنفس المبلغ (₪${group[0].amount?.toLocaleString()}) والوصف في ${group[0].transaction_date}`,
+              description: `${group.length} عمليات بنفس المبلغ (₪${group[0].amount?.toLocaleString()}) والوصف في ${fmtDateDisplay(group[0].transaction_date)}`,
               amount: group[0].amount,
               date: group[0].transaction_date,
               relatedIds: group.map(g => g.id),
