@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { fmtDateDisplay } from "@/lib/utils";
 
 const CashTransferPage = () => {
   const navigate = useNavigate();
