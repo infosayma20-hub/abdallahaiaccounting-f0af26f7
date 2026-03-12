@@ -455,7 +455,7 @@ const ContactsPage = () => {
             <CardContent className="p-3 text-center">
               <Users className="h-5 w-5 text-emerald-600 mx-auto mb-1" />
               <p className="text-lg font-bold tabular-nums">{customerCount}</p>
-              <p className="text-[10px] text-muted-foreground">عملاء</p>
+              <p className="text-[10px] text-muted-foreground">زبائن</p>
             </CardContent>
           </Card>
           <Card className="cursor-pointer hover:shadow-md transition-shadow border-amber-200/50" onClick={() => setFilterType("مورد")}>
