@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
+import { fmtDateDisplay } from "@/lib/utils";
 import {
   Users, Building2, Clock, CheckCircle2, XCircle, AlertTriangle,
   Calendar, FileText, Download, Loader2, Eye, Check, X, MapPin,

@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import * as XLSX from "xlsx";
+import { fmtDateDisplay } from "@/lib/utils";
 
 interface Account {
   account_code: string;

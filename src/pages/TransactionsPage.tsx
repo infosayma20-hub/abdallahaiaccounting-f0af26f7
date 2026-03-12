@@ -22,6 +22,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import * as XLSX from "xlsx";
+import { fmtDateDisplay } from "@/lib/utils";
 
 interface Transaction {
   id: string;

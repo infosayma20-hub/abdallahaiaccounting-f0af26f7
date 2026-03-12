@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
+import { fmtDateDisplay } from "@/lib/utils";
 import {
   Clock, LogIn, LogOut, MapPin, QrCode, Calendar, AlertTriangle,
   CheckCircle2, XCircle, Timer, FileText, Send, Loader2
