@@ -1,17 +1,18 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowRight, Loader2, Pencil, Phone, Mail, MapPin, Globe, Building2, FileText, CreditCard, BarChart3, History, AlertTriangle, CheckCircle, Clock } from "lucide-react";
+import { ArrowRight, Loader2, Pencil, Phone, Mail, MapPin, Globe, Building2, FileText, CreditCard, BarChart3, History, AlertTriangle, CheckCircle, Clock, PieChart } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import ReceivablesAnalysisTab from "@/components/contacts/ReceivablesAnalysisTab";
 
 const classConfig: Record<string, { color: string; bg: string; label: string }> = {
-  A: { color: "text-emerald-700", bg: "bg-emerald-100 dark:bg-emerald-900/40", label: "عميل مميز" },
-  B: { color: "text-blue-700", bg: "bg-blue-100 dark:bg-blue-900/40", label: "عميل جيد" },
-  C: { color: "text-amber-700", bg: "bg-amber-100 dark:bg-amber-900/40", label: "عميل عادي" },
+  A: { color: "text-emerald-700", bg: "bg-emerald-100 dark:bg-emerald-900/40", label: "زبون مميز" },
+  B: { color: "text-blue-700", bg: "bg-blue-100 dark:bg-blue-900/40", label: "زبون جيد" },
+  C: { color: "text-amber-700", bg: "bg-amber-100 dark:bg-amber-900/40", label: "زبون عادي" },
   D: { color: "text-red-700", bg: "bg-red-100 dark:bg-red-900/40", label: "مخاطرة" },
 };
 
@@ -21,6 +22,7 @@ const ContactDetailPage = () => {
   const { user } = useAuth();
   const [contact, setContact] = useState<any>(null);
   const [transactions, setTransactions] = useState<any[]>([]);
+  const [cheques, setCheques] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("invoices");
 
@@ -28,12 +30,16 @@ const ContactDetailPage = () => {
     if (!user || !id) return;
     const fetch = async () => {
       setLoading(true);
-      const [{ data: contactData }, { data: txData }] = await Promise.all([
+      const [{ data: contactData }, { data: txData }, { data: chequeData }] = await Promise.all([
         supabase.from('contacts').select('*').eq('id', id).single(),
         supabase.from('transactions').select('*').eq('contact_id', id).eq('is_deleted', false).order('transaction_date', { ascending: false }).limit(200),
+        supabase.from('cheques').select('*').eq('user_id', user.id).order('cheque_date', { ascending: false }),
       ]);
       setContact(contactData);
       setTransactions((txData as any[]) || []);
+      // Filter cheques by party_name matching contact
+      const allCheques = (chequeData as any[]) || [];
+      setCheques(allCheques);
       setLoading(false);
     };
     fetch();
@@ -95,7 +101,7 @@ const ContactDetailPage = () => {
                 <h2 className="text-lg font-bold">{contact.contact_name}</h2>
                 <Badge className={`${cls.bg} ${cls.color} text-xs`}>[{contact.contact_class || "C"}] {cls.label}</Badge>
                 <Badge variant="secondary" className="text-xs">
-                  {contact.contact_type}
+                  {contact.contact_type === "عميل" ? "زبون" : contact.contact_type}
                 </Badge>
                 {contact.is_active !== false && (
                   <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 text-xs">
@@ -176,9 +182,10 @@ const ContactDetailPage = () => {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="w-full grid grid-cols-4">
+        <TabsList className="w-full grid grid-cols-5">
           <TabsTrigger value="invoices" className="gap-1 text-xs"><FileText className="h-3.5 w-3.5" /> الفواتير</TabsTrigger>
           <TabsTrigger value="payments" className="gap-1 text-xs"><CreditCard className="h-3.5 w-3.5" /> المدفوعات</TabsTrigger>
+          <TabsTrigger value="receivables" className="gap-1 text-xs"><PieChart className="h-3.5 w-3.5" /> تحليل الذمم</TabsTrigger>
           <TabsTrigger value="analysis" className="gap-1 text-xs"><BarChart3 className="h-3.5 w-3.5" /> التحليل</TabsTrigger>
           <TabsTrigger value="history" className="gap-1 text-xs"><History className="h-3.5 w-3.5" /> السجل</TabsTrigger>
         </TabsList>
@@ -247,6 +254,10 @@ const ContactDetailPage = () => {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="receivables">
+          <ReceivablesAnalysisTab contact={contact} transactions={transactions} cheques={cheques} />
         </TabsContent>
 
         <TabsContent value="analysis">
