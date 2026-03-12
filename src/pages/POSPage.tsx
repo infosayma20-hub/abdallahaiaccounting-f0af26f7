@@ -2186,39 +2186,39 @@ const POSPage = () => {
           </button>
         )}
 
-        {/* Financial Operations Buttons */}
-        {session && (isAdmin || posPerms.can_add_inventory) && (
-          <button
-            onClick={() => setShowInventoryInput(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
-            style={{ background: "rgba(201,168,76,0.2)", color: "#C9A84C", border: "1px solid rgba(201,168,76,0.3)" }}
-            title="إدخال بضاعة"
-          >
-            <Package className="h-3 w-3" />
-            إدخال بضاعة
-          </button>
-        )}
-        {session && (isAdmin || posPerms.can_record_purchases) && (
-          <button
-            onClick={() => setShowPurchaseModal(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
-            style={{ background: "rgba(201,168,76,0.2)", color: "#C9A84C", border: "1px solid rgba(201,168,76,0.3)" }}
-            title="تسجيل مشتريات"
-          >
-            <ShoppingBag className="h-3 w-3" />
-            مشتريات
-          </button>
-        )}
-        {session && (isAdmin || posPerms.can_record_expenses) && (
-          <button
-            onClick={() => setShowExpenseModal(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
-            style={{ background: "rgba(201,168,76,0.2)", color: "#C9A84C", border: "1px solid rgba(201,168,76,0.3)" }}
-            title="صرف مصروف"
-          >
-            <Receipt className="h-3 w-3" />
-            مصروف
-          </button>
+        {/* Financial Operations Dropdown */}
+        {session && (isAdmin || posPerms.can_add_inventory || posPerms.can_record_purchases || posPerms.can_record_expenses) && (
+          <div className="relative">
+            <button
+              onClick={() => setShowOpsDropdown(v => !v)}
+              onBlur={() => setTimeout(() => setShowOpsDropdown(false), 150)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
+              style={{ background: "rgba(201,168,76,0.2)", color: "#C9A84C", border: "1px solid rgba(201,168,76,0.3)" }}
+            >
+              <MoreHorizontal className="h-3 w-3" />
+              عمليات
+              <ChevronDown className="h-3 w-3" />
+            </button>
+            {showOpsDropdown && (
+              <div className="absolute top-full mt-1 right-0 z-50 bg-popover border rounded-lg shadow-lg min-w-[180px] py-1" dir="rtl">
+                {(isAdmin || posPerms.can_add_inventory) && (
+                  <button className="w-full text-right px-4 py-2.5 hover:bg-accent text-sm flex items-center gap-2" onClick={() => { setShowInventoryInput(true); setShowOpsDropdown(false); }}>
+                    <Package className="h-4 w-4" /> إدخال بضاعة
+                  </button>
+                )}
+                {(isAdmin || posPerms.can_record_purchases) && (
+                  <button className="w-full text-right px-4 py-2.5 hover:bg-accent text-sm flex items-center gap-2" onClick={() => { setShowPurchaseModal(true); setShowOpsDropdown(false); }}>
+                    <ShoppingBag className="h-4 w-4" /> تسجيل مشتريات
+                  </button>
+                )}
+                {(isAdmin || posPerms.can_record_expenses) && (
+                  <button className="w-full text-right px-4 py-2.5 hover:bg-accent text-sm flex items-center gap-2" onClick={() => { setShowExpenseModal(true); setShowOpsDropdown(false); }}>
+                    <Receipt className="h-4 w-4" /> صرف مصروف
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
         )}
 
         <button
