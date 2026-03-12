@@ -638,12 +638,25 @@ const ContactsPage = () => {
                               <FileText className="h-4 w-4 ml-2" /> كشف حساب
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => openEditDialog(contact)}>
-                              <Pencil className="h-4 w-4 ml-2" /> تعديل
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="text-destructive" onClick={() => setDeleteContact(contact)}>
-                              <Trash2 className="h-4 w-4 ml-2" /> حذف
-                            </DropdownMenuItem>
+                            {!contact.is_archived && (
+                              <DropdownMenuItem onClick={() => openEditDialog(contact)}>
+                                <Pencil className="h-4 w-4 ml-2" /> تعديل
+                              </DropdownMenuItem>
+                            )}
+                            {contact.is_archived ? (
+                              <DropdownMenuItem onClick={() => handleUnarchiveContact(contact)}>
+                                <ArchiveRestore className="h-4 w-4 ml-2" /> إلغاء الأرشفة
+                              </DropdownMenuItem>
+                            ) : (
+                              <>
+                                <DropdownMenuItem onClick={() => setArchiveContact(contact)}>
+                                  <Archive className="h-4 w-4 ml-2" /> أرشفة
+                                </DropdownMenuItem>
+                                <DropdownMenuItem className="text-destructive" onClick={() => setDeleteContact(contact)}>
+                                  <Trash2 className="h-4 w-4 ml-2" /> حذف نهائي
+                                </DropdownMenuItem>
+                              </>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </td>
