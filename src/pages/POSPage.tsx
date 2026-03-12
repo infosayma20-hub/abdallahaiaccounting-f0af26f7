@@ -3495,7 +3495,7 @@ const POSPage = () => {
             {/* Customer for credit */}
             {paymentMethod === "credit" && (
               <div className="relative">
-                <label className="text-sm font-medium mb-1.5 block">اسم العميل</label>
+                <label className="text-sm font-medium mb-1.5 block">اسم الزبون</label>
                 <div className="relative">
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">@</span>
                   <Input
