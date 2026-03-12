@@ -148,6 +148,17 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
         case "pos-cashier-performance": await loadPOSCashierPerformance(); break;
         case "pos-cancelled": await loadPOSCancelled(); break;
         case "pos-peak-hours": await loadPOSPeakHours(); break;
+        // Receivables & Payables
+        case "ar-aging-detail": await loadARAgingDetail(); break;
+        case "dso-report": await loadDSOReport(); break;
+        case "checks-receivable": await loadChecksReceivable(); break;
+        case "customer-profitability": await loadCustomerProfitability(); break;
+        case "customer-statement-all": await loadCustomerStatementAll(); break;
+        case "ap-aging-detail": await loadAPAgingDetail(); break;
+        case "dpo-report": await loadDPOReport(); break;
+        case "checks-payable": await loadChecksPayable(); break;
+        case "supplier-purchase-analysis": await loadSupplierPurchaseAnalysis(); break;
+        case "supplier-statement-all": await loadSupplierStatementAll(); break;
         default: await loadGenericTransactions(); break;
       }
     } catch (e: any) {
