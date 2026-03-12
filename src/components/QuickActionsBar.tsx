@@ -26,7 +26,7 @@ const ALL_ACTIONS: QuickAction[] = [
   { id: "cheque", label: "شيك", icon: Receipt, shortcut: "F8", action: "navigate", target: "/cheques", enabled: true },
   { id: "account_statement", label: "كشف حساب", icon: BarChart3, shortcut: "F6", action: "modal", target: "account_statement", enabled: true },
   { id: "contact_statement", label: "كشف شخصي", icon: UserCheck, shortcut: "F5", action: "modal", target: "contact_statement", enabled: true },
-  { id: "new_client", label: "عميل جديد", icon: Users, action: "navigate", target: "/contacts", enabled: false },
+  { id: "new_client", label: "زبون جديد", icon: Users, action: "navigate", target: "/contacts", enabled: false },
   { id: "new_product", label: "منتج جديد", icon: Package, action: "navigate", target: "/inventory", enabled: false },
 ];
 

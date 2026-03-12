@@ -396,7 +396,7 @@ const CleanInputDock = ({ onSend, sending }: Props) => {
                   <button onClick={() => handleQuickAdd('contact', 'عميل')}
                     className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-right hover:bg-[#F0FDF4] transition-colors"
                     style={{ fontFamily: "Tajawal, sans-serif", color: "#16A34A" }}>
-                    <PlusCircle className="h-3.5 w-3.5" /> أضف "{mentionSearch}" كعميل
+                    <PlusCircle className="h-3.5 w-3.5" /> أضف "{mentionSearch}" كزبون
                   </button>
                   <button onClick={() => handleQuickAdd('contact', 'مورد')}
                     className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-right hover:bg-[#F0FDF4] transition-colors"
