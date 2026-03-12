@@ -11,7 +11,7 @@ import {
   Ban, RotateCcw, ClipboardList, UserCheck, FileText,
   Package, FilePen, ShoppingCart, CreditCard, Printer,
   Send, PackageSearch, UserRoundPlus, UsersRound, BarChart3,
-  Download, Wallet,
+  Download, Wallet, Receipt, ShoppingBag, Truck, FolderPlus, PackagePlus, Tags,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
