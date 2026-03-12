@@ -1071,6 +1071,16 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
         return { count: "sum", total: "sum" };
       case "pos-daily-sales":
         return { count: "sum", total: "sum" };
+      case "ar-aging-detail": case "ap-aging-detail":
+        return { current: "sum", d31_60: "sum", d61_90: "sum", over90: "sum", total: "sum" };
+      case "customer-profitability": case "supplier-purchase-analysis":
+        return { totalSales: "sum", total: "sum", invCount: "sum" };
+      case "checks-receivable": case "checks-payable":
+        return { amount: "sum" };
+      case "customer-statement-all": case "supplier-statement-all":
+        return { debit: "sum", credit: "sum" };
+      case "dpo-report":
+        return { totalPurchases: "sum", invCount: "sum" };
       default:
         return undefined;
     }
