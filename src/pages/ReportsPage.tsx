@@ -44,7 +44,7 @@ const sections: ReportSection[] = [
       { slug: "cash-movement", label: "حركة الصندوق", description: "جميع حركات النقد الوارد والصادر", icon: Wallet, path: "/reports/cash-movement", available: true },
       { slug: "bank-movement", label: "حركة البنوك", description: "حركات الحسابات البنكية", icon: Building2, path: "/reports/bank-movement", available: true },
       { slug: "cheques-report", label: "تقرير الشيكات", description: "شيكات واردة وصادرة ومستحقة", icon: CreditCard, path: "/reports/cheques", available: true },
-      { slug: "ar-aging", label: "أعمار الذمم المدينة", description: "أرصدة العملاء حسب العمر (30/60/90 يوم)", icon: Clock, path: "/reports/ar-aging", available: true },
+      { slug: "ar-aging", label: "أعمار الذمم المدينة", description: "أرصدة الزبائن حسب العمر (30/60/90 يوم)", icon: Clock, path: "/reports/ar-aging", available: true },
       { slug: "ap-aging", label: "أعمار الذمم الدائنة", description: "أرصدة الموردين حسب العمر", icon: Clock, path: "/reports/ap-aging", available: true },
       { slug: "cash-flow", label: "التدفقات النقدية", description: "تدفقات تشغيلية واستثمارية وتمويلية", icon: Activity, path: "/reports/cash-flow", available: true },
     ],
