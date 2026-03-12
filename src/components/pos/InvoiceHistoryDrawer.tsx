@@ -106,7 +106,7 @@ const RECALL_REASONS = [
   "خطأ في السعر",
   "إضافة صنف",
   "حذف صنف",
-  "تعديل العميل",
+  "تعديل الزبون",
 ];
 
 export default function InvoiceHistoryDrawer({
