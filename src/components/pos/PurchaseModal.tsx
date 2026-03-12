@@ -21,7 +21,7 @@ interface Props {
   onSuccess?: () => void;
 }
 
-interface Supplier { id: string; name: string; phone: string | null; }
+interface Supplier { id: string; contact_name: string; phone: string | null; }
 interface ProductItem { id: string; name: string; buy_price: number; quantity: number; unit: string; }
 
 export default function PurchaseModal({ open, onOpenChange, dataOwnerId, userId, sessionId, canCreateSupplier, canAffectInventory, canPayCash, onSuccess }: Props) {
@@ -49,7 +49,7 @@ export default function PurchaseModal({ open, onOpenChange, dataOwnerId, userId,
   useEffect(() => {
     if (!open) return;
     Promise.all([
-      supabase.from("pos_suppliers").select("id, name, phone").eq("user_id", dataOwnerId).order("name"),
+      supabase.from("contacts").select("id, contact_name, phone").eq("user_id", dataOwnerId).eq("contact_type", "مورد").eq("is_active", true).order("contact_name"),
       supabase.from("products").select("id, name, buy_price, quantity, unit").eq("user_id", dataOwnerId).order("name"),
     ]).then(([s, p]) => {
       setSuppliers(s.data || []);
@@ -59,7 +59,7 @@ export default function PurchaseModal({ open, onOpenChange, dataOwnerId, userId,
 
   const totalAmount = (parseFloat(quantity) || 0) * (parseFloat(unitPrice) || 0);
 
-  const filteredSuppliers = suppliers.filter(s => s.name.includes(supplierSearch)).slice(0, 15);
+  const filteredSuppliers = suppliers.filter(s => s.contact_name.includes(supplierSearch)).slice(0, 15);
   const filteredProducts = products.filter(p => p.name.includes(productSearch)).slice(0, 15);
 
   const handleSave = async () => {
@@ -92,7 +92,7 @@ export default function PurchaseModal({ open, onOpenChange, dataOwnerId, userId,
           product_id: selectedProduct.id,
           quantity: qty,
           type: "purchase_in",
-          notes: `شراء من ${selectedSupplier.name}`,
+          notes: `شراء من ${selectedSupplier.contact_name}`,
           shift_id: sessionId || null,
           created_by: userId,
         });
@@ -106,19 +106,19 @@ export default function PurchaseModal({ open, onOpenChange, dataOwnerId, userId,
       await supabase.from("transactions").insert({
         user_id: dataOwnerId,
         transaction_date: new Date().toISOString().split("T")[0],
-        description: `مشتريات - ${selectedSupplier.name}${selectedProduct ? ` - ${selectedProduct.name}` : ""}`,
-        debit_account_code: "5110", // تكلفة المشتريات
+        description: `مشتريات - ${selectedSupplier.contact_name}${selectedProduct ? ` - ${selectedProduct.name}` : ""}`,
+        debit_account_code: "5110",
         credit_account_code: creditCode,
         amount: totalAmount,
         currency: "شيكل",
         transaction_type: paymentType === "cash" ? "purchase_cash" : "purchase_credit",
-        contact_id: null,
+        contact_id: selectedSupplier.id,
         reference: `PUR-POS-${Date.now()}`,
         payment_method: paymentType === "cash" ? "نقدي" : "آجل",
         idempotency_key: `POS-PUR-${Date.now()}`,
       });
 
-      toast.success(`تم تسجيل مشتريات بقيمة ₪${totalAmount.toFixed(2)} من ${selectedSupplier.name}`);
+      toast.success(`تم تسجيل مشتريات بقيمة ₪${totalAmount.toFixed(2)} من ${selectedSupplier.contact_name}`);
       onSuccess?.();
       resetForm();
       onOpenChange(false);
@@ -133,16 +133,17 @@ export default function PurchaseModal({ open, onOpenChange, dataOwnerId, userId,
     if (!newSupplier.name.trim()) { toast.error("أدخل اسم المورد"); return; }
     setSavingSupplier(true);
     try {
-      const { data, error } = await supabase.from("pos_suppliers").insert({
+      const { data, error } = await supabase.from("contacts").insert({
         user_id: dataOwnerId,
-        name: newSupplier.name,
+        contact_name: newSupplier.name,
+        contact_type: "مورد",
         phone: newSupplier.phone || null,
-        account_name: newSupplier.account_name || null,
-      }).select("id, name, phone").single();
+        is_active: true,
+      }).select("id, contact_name, phone").single();
       if (error) throw error;
       setSuppliers(prev => [...prev, data]);
       setSelectedSupplier(data);
-      setSupplierSearch(data.name);
+      setSupplierSearch(data.contact_name);
       setShowNewSupplier(false);
       setNewSupplier({ name: "", phone: "", account_name: "" });
       toast.success("تم إضافة المورد");
@@ -189,8 +190,8 @@ export default function PurchaseModal({ open, onOpenChange, dataOwnerId, userId,
               <div className="absolute z-50 w-full mt-1 bg-popover border rounded-lg shadow-lg max-h-40 overflow-y-auto">
                 {filteredSuppliers.map(s => (
                   <button key={s.id} className="w-full text-right px-3 py-2 hover:bg-accent text-sm"
-                    onClick={() => { setSelectedSupplier(s); setSupplierSearch(s.name); setShowSupplierDD(false); }}>
-                    {s.name} {s.phone && <span className="text-muted-foreground text-xs mr-2">{s.phone}</span>}
+                    onClick={() => { setSelectedSupplier(s); setSupplierSearch(s.contact_name); setShowSupplierDD(false); }}>
+                    {s.contact_name} {s.phone && <span className="text-muted-foreground text-xs mr-2">{s.phone}</span>}
                   </button>
                 ))}
                 {filteredSuppliers.length === 0 && <div className="p-3 text-sm text-muted-foreground text-center">لا توجد نتائج</div>}
