@@ -620,7 +620,7 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
     switch (reportKey) {
       case "ar-aging": case "ap-aging":
         return [
-          { key: "name", label: reportKey === "ar-aging" ? "العميل" : "المورد", type: "text" },
+          { key: "name", label: reportKey === "ar-aging" ? "الزبون" : "المورد", type: "text" },
           { key: "cls", label: "التصنيف", type: "badge", filterType: "select", filterOptions: ["A", "B", "C", "D", "-"] },
           { key: "current", label: "جاري", type: "currency", format: v => <span className="text-green-600 font-mono text-xs">{fmtAmtCell(v)}</span> },
           { key: "d30", label: "1-30", type: "currency", format: v => <span className="text-yellow-600 font-mono text-xs">{fmtAmtCell(v)}</span> },
