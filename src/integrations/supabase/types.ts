@@ -4575,6 +4575,118 @@ export type Database = {
           },
         ]
       }
+      pos_expense_categories: {
+        Row: {
+          account_code: string | null
+          created_at: string
+          id: string
+          name: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          account_code?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          type?: string
+          user_id: string
+        }
+        Update: {
+          account_code?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      pos_expenses: {
+        Row: {
+          amount: number
+          category_id: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          shift_id: string | null
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          category_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          shift_id?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          category_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          shift_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_expenses_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "pos_expense_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pos_inventory_movements: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          notes: string | null
+          product_id: string
+          quantity: number
+          shift_id: string | null
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          product_id: string
+          quantity?: number
+          shift_id?: string | null
+          type?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          product_id?: string
+          quantity?: number
+          shift_id?: string | null
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_inventory_movements_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pos_order_lines: {
         Row: {
           cost_price: number
@@ -4899,6 +5011,66 @@ export type Database = {
           },
         ]
       }
+      pos_purchases: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          notes: string | null
+          payment_type: string
+          product_id: string | null
+          quantity: number
+          shift_id: string | null
+          supplier_id: string | null
+          total_amount: number
+          unit_price: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          payment_type?: string
+          product_id?: string | null
+          quantity?: number
+          shift_id?: string | null
+          supplier_id?: string | null
+          total_amount?: number
+          unit_price?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          payment_type?: string
+          product_id?: string | null
+          quantity?: number
+          shift_id?: string | null
+          supplier_id?: string | null
+          total_amount?: number
+          unit_price?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_purchases_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_purchases_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "pos_suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pos_sessions: {
         Row: {
           approved_by_pos_user_id: string | null
@@ -5026,6 +5198,36 @@ export type Database = {
           },
         ]
       }
+      pos_suppliers: {
+        Row: {
+          account_name: string | null
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          phone: string | null
+          user_id: string
+        }
+        Insert: {
+          account_name?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          phone?: string | null
+          user_id: string
+        }
+        Update: {
+          account_name?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          phone?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       pos_terminals: {
         Row: {
           branch_id: string | null
@@ -5145,11 +5347,19 @@ export type Database = {
         Row: {
           add_customer: boolean
           allow_credit_sale: boolean
+          can_add_inventory: boolean
+          can_affect_inventory_on_purchase: boolean
           can_apply_discount: boolean
           can_close_register: boolean
+          can_create_expense_category: boolean
+          can_create_product: boolean
+          can_create_supplier: boolean
           can_edit_invoices: boolean
           can_edit_prices: boolean
           can_open_register: boolean
+          can_pay_purchases_cash: boolean
+          can_record_expenses: boolean
+          can_record_purchases: boolean
           can_refund: boolean
           can_view_invoice_history: boolean
           can_view_profits: boolean
@@ -5181,11 +5391,19 @@ export type Database = {
         Insert: {
           add_customer?: boolean
           allow_credit_sale?: boolean
+          can_add_inventory?: boolean
+          can_affect_inventory_on_purchase?: boolean
           can_apply_discount?: boolean
           can_close_register?: boolean
+          can_create_expense_category?: boolean
+          can_create_product?: boolean
+          can_create_supplier?: boolean
           can_edit_invoices?: boolean
           can_edit_prices?: boolean
           can_open_register?: boolean
+          can_pay_purchases_cash?: boolean
+          can_record_expenses?: boolean
+          can_record_purchases?: boolean
           can_refund?: boolean
           can_view_invoice_history?: boolean
           can_view_profits?: boolean
@@ -5217,11 +5435,19 @@ export type Database = {
         Update: {
           add_customer?: boolean
           allow_credit_sale?: boolean
+          can_add_inventory?: boolean
+          can_affect_inventory_on_purchase?: boolean
           can_apply_discount?: boolean
           can_close_register?: boolean
+          can_create_expense_category?: boolean
+          can_create_product?: boolean
+          can_create_supplier?: boolean
           can_edit_invoices?: boolean
           can_edit_prices?: boolean
           can_open_register?: boolean
+          can_pay_purchases_cash?: boolean
+          can_record_expenses?: boolean
+          can_record_purchases?: boolean
           can_refund?: boolean
           can_view_invoice_history?: boolean
           can_view_profits?: boolean
