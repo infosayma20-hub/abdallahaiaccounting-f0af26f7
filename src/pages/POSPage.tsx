@@ -2837,7 +2837,7 @@ const POSPage = () => {
                     }`}
                   >
                     <User className="h-3 w-3" />
-                    {customerName || "العميل"}
+                    {customerName || "الزبون"}
                   </button>
                   <button
                     onClick={() => setShowOrderNoteInput(!showOrderNoteInput)}
