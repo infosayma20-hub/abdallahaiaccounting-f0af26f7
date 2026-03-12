@@ -118,7 +118,7 @@ export default function PurchaseModal({ open, onOpenChange, dataOwnerId, userId,
         idempotency_key: `POS-PUR-${Date.now()}`,
       });
 
-      toast.success(`تم تسجيل مشتريات بقيمة ₪${totalAmount.toFixed(2)} من ${selectedSupplier.name}`);
+      toast.success(`تم تسجيل مشتريات بقيمة ₪${totalAmount.toFixed(2)} من ${selectedSupplier.contact_name}`);
       onSuccess?.();
       resetForm();
       onOpenChange(false);
