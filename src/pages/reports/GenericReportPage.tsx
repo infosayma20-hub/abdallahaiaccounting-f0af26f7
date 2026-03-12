@@ -678,7 +678,7 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
         ];
       case "by-customer": case "by-supplier":
         return [
-          { key: "name", label: reportKey === "by-customer" ? "العميل" : "المورد", type: "text" },
+          { key: "name", label: reportKey === "by-customer" ? "الزبون" : "المورد", type: "text" },
           ...(reportKey === "by-customer" ? [{ key: "cls", label: "التصنيف", type: "badge" as const, filterType: "select" as const, filterOptions: ["A", "B", "C", "D", "-"] }] : []),
           { key: "count", label: "عدد الفواتير", type: "number", align: "center" as const },
           { key: "total", label: "الإجمالي", type: "currency" as const },
