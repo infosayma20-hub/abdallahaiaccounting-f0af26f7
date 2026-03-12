@@ -455,7 +455,7 @@ export default function HRAttendancePage() {
                 <div className="flex items-center justify-between mb-2">
                   <div>
                     <span className="font-medium">{(req as any).employees?.full_name}</span>
-                    <span className="text-xs text-muted-foreground mr-2">• {req.attendance_date}</span>
+                    <span className="text-xs text-muted-foreground mr-2">• {fmtDateDisplay(req.attendance_date)}</span>
                   </div>
                   <Badge variant="outline">
                     {req.request_type === "missing_checkin" ? "دخول مفقود" :
