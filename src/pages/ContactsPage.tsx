@@ -258,22 +258,58 @@ const ContactsPage = () => {
     if (!deleteContact) return;
     setDeleting(true);
     try {
+      // Only allow permanent delete if no transactions
       const { count } = await supabase.from('transactions').select('id', { count: 'exact', head: true }).eq('contact_id', deleteContact.id);
       if (count && count > 0) {
-        toast({ title: "لا يمكن حذف جهة اتصال مرتبطة بمعاملات مالية", variant: "destructive" });
+        toast({ title: "لا يمكن حذف جهة اتصال مرتبطة بمعاملات مالية، استخدم الأرشفة بدلاً من ذلك", variant: "destructive" });
         setDeleteContact(null);
         setDeleting(false);
         return;
       }
       const { error } = await supabase.from('contacts').delete().eq('id', deleteContact.id);
       if (error) throw error;
-      toast({ title: "تم حذف جهة الاتصال" });
+      toast({ title: "تم حذف جهة الاتصال نهائياً" });
       setDeleteContact(null);
       fetchContacts();
     } catch (err: any) {
       toast({ title: "خطأ", description: err.message, variant: "destructive" });
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const handleArchiveContact = async () => {
+    if (!archiveContact || !user) return;
+    setArchiving(true);
+    try {
+      const { error } = await supabase.from('contacts').update({
+        is_archived: true,
+        archived_at: new Date().toISOString(),
+        archived_by: user.id,
+      } as any).eq('id', archiveContact.id);
+      if (error) throw error;
+      toast({ title: `تم أرشفة "${archiveContact.contact_name}"` });
+      setArchiveContact(null);
+      fetchContacts();
+    } catch (err: any) {
+      toast({ title: "خطأ", description: err.message, variant: "destructive" });
+    } finally {
+      setArchiving(false);
+    }
+  };
+
+  const handleUnarchiveContact = async (contact: Contact) => {
+    try {
+      const { error } = await supabase.from('contacts').update({
+        is_archived: false,
+        archived_at: null,
+        archived_by: null,
+      } as any).eq('id', contact.id);
+      if (error) throw error;
+      toast({ title: `تم إلغاء أرشفة "${contact.contact_name}"` });
+      fetchContacts();
+    } catch (err: any) {
+      toast({ title: "خطأ", description: err.message, variant: "destructive" });
     }
   };
 
