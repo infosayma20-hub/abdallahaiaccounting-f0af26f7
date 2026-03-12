@@ -396,7 +396,7 @@ const TransactionsPage = () => {
 
     const dataRows = filteredTransactions.map((tx, i) => ({
       "#": i + 1,
-      "التاريخ": tx.transaction_date,
+      "التاريخ": fmtDateDisplay(tx.transaction_date),
       "المرجع": tx.reference || "",
       "الوصف": tx.description || "",
       "النوع": typeBadgeConfig[tx.transaction_type]?.label || tx.transaction_type,
