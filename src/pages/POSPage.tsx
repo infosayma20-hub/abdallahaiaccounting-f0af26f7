@@ -3063,7 +3063,7 @@ const POSPage = () => {
                       : "border border-dashed border-muted-foreground/30 bg-muted/30 text-muted-foreground hover:bg-muted/50"
                   }`}
                 >
-                  {customerDataDiscount ? `✅ ${customerDataDiscount.customerName || customerDataDiscount.contactValue}${customerDataDiscount.discountPct > 0 ? ` — خصم ${customerDataDiscount.discountPct}%` : ""}` : "👤 تسجيل بيانات العميل"}
+                  {customerDataDiscount ? `✅ ${customerDataDiscount.customerName || customerDataDiscount.contactValue}${customerDataDiscount.discountPct > 0 ? ` — خصم ${customerDataDiscount.discountPct}%` : ""}` : "👤 تسجيل بيانات الزبون"}
                 </button>
               )}
               {/* Bottom row: Delete + Print + Pay */}
