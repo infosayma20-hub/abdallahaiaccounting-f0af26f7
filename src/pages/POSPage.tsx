@@ -4128,6 +4128,7 @@ const POSPage = () => {
         canCreateCategory={isAdmin || posPerms.can_create_expense_category}
         sessionBalance={session ? session.opening_cash + session.total_sales : 0}
       />
+      <SyncLogSheet open={showSyncLog} onOpenChange={setShowSyncLog} />
     </div>
   );
 };
