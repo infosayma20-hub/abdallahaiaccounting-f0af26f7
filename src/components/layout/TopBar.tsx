@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Search, Bell, Settings, HelpCircle, LogOut, User, Menu, Sun, Moon, FileText, Wallet, Users, X } from "lucide-react";
+import { Search, Bell, Settings, HelpCircle, LogOut, User, Menu, Sun, Moon, FileText, Wallet, Users, X, Keyboard } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/hooks/useTheme";
 import { useNavigate } from "react-router-dom";
