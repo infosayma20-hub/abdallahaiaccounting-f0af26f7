@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Calculator } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
@@ -10,6 +10,14 @@ const BUTTONS = [
   ["1", "2", "3", "+"],
   ["00", "0", ".", "="],
 ];
+
+const KEY_MAP: Record<string, string> = {
+  "0": "0", "1": "1", "2": "2", "3": "3", "4": "4",
+  "5": "5", "6": "6", "7": "7", "8": "8", "9": "9",
+  ".": ".", "+": "+", "-": "−", "*": "×", "/": "÷",
+  "Enter": "=", "=": "=", "Escape": "C", "Backspace": "C",
+  "%": "%",
+};
 
 const QuickCalculator = () => {
   const [open, setOpen] = useState(false);
@@ -86,6 +94,16 @@ const QuickCalculator = () => {
       }
     }
   }, [display, prev, op, resetNext, calculate]);
+
+  useEffect(() => {
+    if (!open) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const mapped = KEY_MAP[e.key];
+      if (mapped) { e.preventDefault(); handlePress(mapped); }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [open, handlePress]);
 
   const isOp = (btn: string) => ["+", "−", "×", "÷"].includes(btn);
   const isActiveOp = (btn: string) => op === btn && resetNext;
