@@ -961,7 +961,7 @@ serve(async (req) => {
             dataPromises.push(fetchChequesData(supabaseAdmin, userId, intent.contactName));
             break;
           case 'exchange_rates':
-            dataPromises.push(fetchExchangeRates(supabaseAdmin, userId));
+            dataPromises.push(fetchExchangeRates(supabaseAdmin, userId, intent.keyword));
             break;
           case 'top_customers':
             dataPromises.push(fetchTopCustomers(supabaseAdmin, userId, intent.dateFrom || yearStartISO(), intent.dateTo || todayISO()));
