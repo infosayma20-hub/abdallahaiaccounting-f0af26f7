@@ -65,10 +65,16 @@ const PrintSettingsSection = ({ settings, onChange }: Props) => {
           {[
             { key: "show_logo_on_invoice" as const, label: "إظهار الشعار" },
             { key: "show_address_on_invoice" as const, label: "إظهار العنوان" },
+            { key: "print_decorative_ornaments" as const, label: "زخارف تزيينية على الفاتورة" },
           ].map(item => (
             <div key={item.key} className="flex items-center justify-between p-3 bg-muted/40 rounded-lg">
-              <span className="text-sm">{item.label}</span>
-              <Switch checked={settings[item.key]} onCheckedChange={v => onChange({ [item.key]: v })} />
+              <div>
+                <span className="text-sm">{item.label}</span>
+                {item.key === "print_decorative_ornaments" && (
+                  <p className="text-xs text-muted-foreground mt-0.5">أشكال هندسية شفافة تضيف لمسة جمالية للهيدر والفوتر</p>
+                )}
+              </div>
+              <Switch checked={(settings as any)[item.key] ?? (item.key !== "print_decorative_ornaments")} onCheckedChange={v => onChange({ [item.key]: v } as any)} />
             </div>
           ))}
         </div>
