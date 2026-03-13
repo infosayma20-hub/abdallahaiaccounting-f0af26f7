@@ -1504,7 +1504,13 @@ export type Database = {
           invoice_default_notes: string | null
           invoice_font: string | null
           invoice_footer: string | null
+          invoice_footer_message: string | null
+          invoice_header_layout: string | null
           invoice_prefix: string | null
+          invoice_primary_color: string | null
+          invoice_show_amount_words: boolean | null
+          invoice_show_signature: boolean | null
+          invoice_show_tax_summary: boolean | null
           journal_prefix: string | null
           last_locked_period: string | null
           licensed_dealer_number: string | null
@@ -1600,7 +1606,13 @@ export type Database = {
           invoice_default_notes?: string | null
           invoice_font?: string | null
           invoice_footer?: string | null
+          invoice_footer_message?: string | null
+          invoice_header_layout?: string | null
           invoice_prefix?: string | null
+          invoice_primary_color?: string | null
+          invoice_show_amount_words?: boolean | null
+          invoice_show_signature?: boolean | null
+          invoice_show_tax_summary?: boolean | null
           journal_prefix?: string | null
           last_locked_period?: string | null
           licensed_dealer_number?: string | null
@@ -1696,7 +1708,13 @@ export type Database = {
           invoice_default_notes?: string | null
           invoice_font?: string | null
           invoice_footer?: string | null
+          invoice_footer_message?: string | null
+          invoice_header_layout?: string | null
           invoice_prefix?: string | null
+          invoice_primary_color?: string | null
+          invoice_show_amount_words?: boolean | null
+          invoice_show_signature?: boolean | null
+          invoice_show_tax_summary?: boolean | null
           journal_prefix?: string | null
           last_locked_period?: string | null
           licensed_dealer_number?: string | null
