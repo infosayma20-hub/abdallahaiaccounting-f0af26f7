@@ -242,7 +242,7 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
           <p className="text-xs text-muted-foreground mb-4">أضف أول سند لبدء تتبع {isReceipt ? "المقبوضات" : "المدفوعات"}</p>
           <Button className="rounded-xl gap-2 shadow-md shadow-primary/20" onClick={() => {
             if (isReceipt) { navigate("/finance/receipt/new"); }
-            else { setEditVoucherId(null); setDrawerOpen(true); }
+            else { navigate("/finance/payment/new"); }
           }}>
             <Plus className="h-4 w-4" /> {newTitle}
           </Button>
