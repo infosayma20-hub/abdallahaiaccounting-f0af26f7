@@ -28,6 +28,7 @@ import AuthPage from "./pages/AuthPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import PricingPage from "./pages/PricingPage";
 import InvoicesPage from "./pages/InvoicesPage";
+import InvoiceCreatePage from "./pages/InvoiceCreatePage";
 import InventoryPage from "./pages/InventoryPage";
 import StockMovementsPage from "./pages/StockMovementsPage";
 import InventoryValuationPage from "./pages/InventoryValuationPage";
