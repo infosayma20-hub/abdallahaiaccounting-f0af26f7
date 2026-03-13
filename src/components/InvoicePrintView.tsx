@@ -88,26 +88,48 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
         color: "#1a1a2e",
         background: "white",
         position: "relative",
+        overflow: "hidden",
       }}
     >
-      {/* ━━━ COPY LABEL (أصلية / نسخة) ━━━ */}
-      <div
-        style={{
-          position: "absolute",
-          top: "12px",
-          left: "12px",
-          background: copyLabel === "أصلية" ? "#DC2626" : "#6B7280",
-          color: "white",
-          padding: "3px 14px",
-          borderRadius: "4px",
-          fontSize: "10px",
-          fontWeight: 700,
-          letterSpacing: "1px",
-          zIndex: 10,
-        }}
-      >
-        فاتورة {copyLabel}
-      </div>
+      {/* ━━━ DECORATIVE ORNAMENTS (optional) ━━━ */}
+      {settings.print_decorative_ornaments && (
+        <>
+          {/* Top-right ornament */}
+          <div style={{
+            position: "absolute", top: "-20px", right: "-20px", width: "120px", height: "120px",
+            borderRadius: "50%", border: "1px solid rgba(201,168,76,0.08)",
+            zIndex: 0, pointerEvents: "none",
+          }} />
+          <div style={{
+            position: "absolute", top: "0px", right: "0px", width: "80px", height: "80px",
+            borderRadius: "50%", border: "1px solid rgba(201,168,76,0.06)",
+            zIndex: 0, pointerEvents: "none",
+          }} />
+          {/* Bottom-left ornament */}
+          <div style={{
+            position: "absolute", bottom: "-15px", left: "-15px", width: "100px", height: "100px",
+            borderRadius: "50%", border: "1px solid rgba(27,58,92,0.06)",
+            zIndex: 0, pointerEvents: "none",
+          }} />
+          <div style={{
+            position: "absolute", bottom: "5px", left: "5px", width: "60px", height: "60px",
+            borderRadius: "50%", border: "1px solid rgba(27,58,92,0.04)",
+            zIndex: 0, pointerEvents: "none",
+          }} />
+          {/* Subtle diamond pattern - top */}
+          <div style={{
+            position: "absolute", top: "68px", left: "0", right: "0", height: "1px",
+            background: "repeating-linear-gradient(90deg, transparent, transparent 18px, rgba(201,168,76,0.08) 18px, rgba(201,168,76,0.08) 20px)",
+            zIndex: 0, pointerEvents: "none",
+          }} />
+          {/* Subtle diamond pattern - bottom */}
+          <div style={{
+            position: "absolute", bottom: "32px", left: "0", right: "0", height: "1px",
+            background: "repeating-linear-gradient(90deg, transparent, transparent 18px, rgba(27,58,92,0.06) 18px, rgba(27,58,92,0.06) 20px)",
+            zIndex: 0, pointerEvents: "none",
+          }} />
+        </>
+      )}
 
       {/* ━━━ HEADER ━━━ */}
       <div
@@ -118,6 +140,8 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
           display: "flex",
           justifyContent: "space-between",
           alignItems: "flex-start",
+          position: "relative",
+          zIndex: 1,
         }}
       >
         {/* Company Info - Right */}
@@ -157,11 +181,30 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
         {/* Invoice Title - Left */}
         <div style={{ textAlign: "left" }}>
           <div style={{ fontSize: "20px", fontWeight: 700 }}>
-            {isSales ? "فاتورة مبيعات" : "فاتورة مشتريات"}
+            {isSales ? "فاتورة مبيعات أصلية" : "فاتورة مشتريات أصلية"}
           </div>
           <div style={{ fontSize: "10px", opacity: 0.8, fontFamily: "'Segoe UI', sans-serif" }}>
-            {isSales ? "SALES INVOICE" : "PURCHASE INVOICE"}
+            {isSales ? "ORIGINAL SALES INVOICE" : "ORIGINAL PURCHASE INVOICE"}
           </div>
+          {/* Copy label badge inline */}
+          {copyLabel && (
+            <div
+              style={{
+                display: "inline-block",
+                marginTop: "4px",
+                background: copyLabel === "أصلية" ? "rgba(201,168,76,0.25)" : "rgba(255,255,255,0.2)",
+                color: copyLabel === "أصلية" ? "#C9A84C" : "rgba(255,255,255,0.9)",
+                padding: "2px 12px",
+                borderRadius: "4px",
+                fontSize: "9px",
+                fontWeight: 700,
+                letterSpacing: "1px",
+                border: `1px solid ${copyLabel === "أصلية" ? "rgba(201,168,76,0.4)" : "rgba(255,255,255,0.3)"}`,
+              }}
+            >
+              {copyLabel === "أصلية" ? "نسخة أصلية" : `نسخة ${copyLabel}`}
+            </div>
+          )}
         </div>
       </div>
 
