@@ -49,8 +49,12 @@ const BankAccountsPage = () => {
   const fetchBanks = useCallback(async () => {
     if (!user) return;
     setLoading(true);
-    const { data } = await supabase.from("bank_accounts").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
-    setBanks(data || []);
+    const [{ data: bankData }, { data: accData }] = await Promise.all([
+      supabase.from("bank_accounts").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
+      supabase.from("accounts").select("account_code, account_name, account_type").eq("user_id", user.id).eq("is_active", true).order("account_code"),
+    ]);
+    setBanks(bankData || []);
+    setAccounts(accData || []);
     setLoading(false);
   }, [user]);
 
