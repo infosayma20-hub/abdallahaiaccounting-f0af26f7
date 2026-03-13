@@ -64,13 +64,12 @@ export const navigationSections: NavSection[] = [
     items: [
       {
         id: "finance", label: "المالية", description: "حسابات، قيود، وميزان مراجعة", module: "accounting", icon: DollarSign,
-        color: "text-emerald-500", bgColor: "bg-emerald-500/10", path: "/accounts",
+        color: "text-emerald-500", bgColor: "bg-emerald-500/10", path: "/finance/receipts",
         keywords: ["مالية", "حسابات", "قيود", "ميزان"],
         groups: [
           {
             groupLabel: "السندات",
             children: [
-              { label: "لوحة المالية", path: "/finance" },
               { label: "سند القبض", path: "/finance/receipts" },
               { label: "سند الصرف", path: "/finance/payments" },
               { label: "سند القيد", path: "/finance/journals" },

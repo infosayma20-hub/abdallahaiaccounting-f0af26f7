@@ -374,7 +374,7 @@ const FinanceJournalPage = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <button onClick={() => window.history.length > 2 ? navigate(-1) : navigate("/finance")} className="w-9 h-9 rounded-full bg-muted/60 flex items-center justify-center hover:bg-muted transition-all shadow-sm">
+          <button onClick={() => window.history.length > 2 ? navigate(-1) : navigate("/finance/receipts")} className="w-9 h-9 rounded-full bg-muted/60 flex items-center justify-center hover:bg-muted transition-all shadow-sm">
             <ArrowRight className="h-4 w-4 text-muted-foreground" />
           </button>
           <div className="flex items-center gap-2">
