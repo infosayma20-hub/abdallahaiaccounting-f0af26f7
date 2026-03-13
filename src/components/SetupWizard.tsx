@@ -209,14 +209,35 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
       }
 
       // 6. Create bank account if needed
-      if (data.hasBankAccount && data.bankName) {
+      if (data.hasBankAccount && data.bankName && !data.leaveForAccountant) {
+        const bankCurrLabel = data.bankCurrency === "ILS" ? "شيكل" : data.bankCurrency === "USD" ? "دولار" : data.bankCurrency === "JOD" ? "دينار" : data.bankCurrency;
+        const accountName = data.bankAccountName || `${data.bankName} - ${data.bankAccountType}`;
         await supabase.from("bank_accounts").insert({
           user_id: userId,
-          name: data.bankName,
+          name: accountName,
           bank_name: data.bankName,
+          account_type: data.bankAccountType,
           opening_balance: data.bankBalance,
           opening_balance_date: new Date().toISOString().split("T")[0],
-          currency: data.currency === "other" ? data.customCurrency : (data.currency === "ILS" ? "شيكل" : data.currency),
+          currency: bankCurrLabel,
+        });
+        // Create matching GL account under 1120 (Banks)
+        const { data: existingAccounts } = await supabase
+          .from("accounts")
+          .select("account_code")
+          .eq("user_id", userId)
+          .like("account_code", "112%")
+          .order("account_code", { ascending: false })
+          .limit(1);
+        const lastCode = existingAccounts?.[0]?.account_code || "1120";
+        const nextCode = String(parseInt(lastCode) + 1);
+        await supabase.from("accounts").insert({
+          user_id: userId,
+          account_code: nextCode,
+          account_name: accountName,
+          account_type: "asset",
+          parent_code: "1120",
+          is_system: false,
         });
       }
 
