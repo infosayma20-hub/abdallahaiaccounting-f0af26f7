@@ -241,6 +241,12 @@ const ChequesPage = () => {
   };
 
   const handleStatusChange = async (cheque: Cheque, newStatus: ChequeStatus) => {
+    // Intercept deposit: show bank account selection dialog
+    if (newStatus === 'مودع') {
+      setDepositTarget(cheque);
+      setSelectedBankAccount("");
+      return;
+    }
     const { error } = await supabase.from('cheques').update({ status: newStatus }).eq('id', cheque.id);
     if (error) {
       toast.error("خطأ في تحديث الحالة");
@@ -255,6 +261,37 @@ const ChequesPage = () => {
     setStatusHistory(prev => { const n = { ...prev }; delete n[cheque.id]; return n; });
     toast.success(`تم تحويل الحالة إلى "${newStatus}"`);
     fetchCheques();
+  };
+
+  const handleDeposit = async () => {
+    if (!depositTarget || !selectedBankAccount) {
+      toast.error("يرجى اختيار الحساب البنكي");
+      return;
+    }
+    const bank = bankAccounts.find(b => b.id === selectedBankAccount);
+    const glCode = bank?.gl_account_code || null;
+    
+    const { error } = await supabase.from('cheques').update({ 
+      status: 'مودع' as ChequeStatus,
+      linked_account: glCode || depositTarget.linked_account,
+    }).eq('id', depositTarget.id);
+    if (error) {
+      toast.error("خطأ في إيداع الشيك");
+      return;
+    }
+    await supabase.from('cheque_status_history').insert({
+      cheque_id: depositTarget.id,
+      user_id: user!.id,
+      from_status: depositTarget.status,
+      to_status: 'مودع' as ChequeStatus,
+      reason: `إيداع في ${bank?.name || 'حساب بنكي'}`,
+    });
+    setStatusHistory(prev => { const n = { ...prev }; delete n[depositTarget.id]; return n; });
+    toast.success(`تم إيداع الشيك في "${bank?.name}"`);
+    setDepositTarget(null);
+    setSelectedBankAccount("");
+    fetchCheques();
+  };
   };
 
   const handleDelete = async () => {
