@@ -569,6 +569,32 @@ const InvoicesPage = () => {
   const salesTotal = invoices.filter(i => i.type === "sales").reduce((s, i) => s + i.total, 0);
   const purchaseTotal = invoices.filter(i => i.type === "purchase").reduce((s, i) => s + i.total, 0);
 
+  const PAGE_SIZE = 15;
+
+  const sorted = useMemo(() => {
+    const arr = [...filtered].filter(inv => {
+      if (statusFilter !== "all" && inv.status !== statusFilter) return false;
+      return true;
+    });
+    arr.sort((a, b) => {
+      let cmp = 0;
+      switch (sortKey) {
+        case "date": cmp = new Date(a.date).getTime() - new Date(b.date).getTime(); break;
+        case "contact": cmp = a.contactName.localeCompare(b.contactName); break;
+        case "type": cmp = a.type.localeCompare(b.type); break;
+        case "total": cmp = a.total - b.total; break;
+        case "status": cmp = a.status.localeCompare(b.status); break;
+      }
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+    return arr;
+  }, [filtered, sortKey, sortDir, statusFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
+  const paginated = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  useEffect(() => { setPage(1); }, [searchQuery, filterType, statusFilter]);
+
   const statusConfig: Record<string, { label: string; color: string }> = {
     draft: { label: "مسودة", color: "bg-muted text-muted-foreground" },
     sent: { label: "مُرسلة", color: "bg-primary/10 text-primary" },
