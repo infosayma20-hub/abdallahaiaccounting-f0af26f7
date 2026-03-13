@@ -725,14 +725,14 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
                   <label className="text-sm font-bold text-foreground">🏦 هل لديك رصيد في البنك؟</label>
                   <div className="flex gap-3">
                     <ToggleCard
-                      selected={!data.hasBankAccount}
-                      onClick={() => update({ hasBankAccount: false })}
+                      selected={data.hasBankAccount === false}
+                      onClick={() => update({ hasBankAccount: false, leaveForAccountant: false })}
                       emoji="✕"
                       label="لا"
                       small
                     />
                     <ToggleCard
-                      selected={data.hasBankAccount}
+                      selected={data.hasBankAccount === true}
                       onClick={() => update({ hasBankAccount: true })}
                       emoji="🏦"
                       label="نعم"
@@ -740,25 +740,109 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
                     />
                   </div>
                   {data.hasBankAccount && (
-                    <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="space-y-3">
-                      <input
-                        type="text"
-                        value={data.bankName}
-                        onChange={e => update({ bankName: e.target.value })}
-                        placeholder="اسم البنك"
-                        className="w-full h-10 px-4 rounded-xl border border-border bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-                      />
-                      <div className="relative">
-                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">₪</span>
+                    <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="space-y-4 pt-2">
+                      {/* Bank Name */}
+                      <div className="space-y-1">
+                        <label className="text-xs font-semibold text-foreground">اسم البنك</label>
                         <input
-                          type="number"
-                          value={data.bankBalance || ""}
-                          onChange={e => update({ bankBalance: parseFloat(e.target.value) || 0 })}
-                          placeholder="الرصيد"
-                          className="w-full h-10 px-4 pr-10 rounded-xl border border-border bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-                          dir="ltr"
+                          type="text"
+                          value={data.bankName}
+                          onChange={e => update({ bankName: e.target.value })}
+                          placeholder="مثال: البنك العربي"
+                          className="w-full h-10 px-4 rounded-xl border border-border bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
                         />
                       </div>
+
+                      {/* Account Name */}
+                      <div className="space-y-1">
+                        <label className="text-xs font-semibold text-foreground">اسم الحساب البنكي</label>
+                        <input
+                          type="text"
+                          value={data.bankAccountName}
+                          onChange={e => update({ bankAccountName: e.target.value })}
+                          placeholder="مثال: البنك العربي - جاري شيكل"
+                          className="w-full h-10 px-4 rounded-xl border border-border bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                        />
+                        <p className="text-[10px] text-muted-foreground">سيظهر بهذا الاسم في شجرة الحسابات</p>
+                      </div>
+
+                      {/* Currency */}
+                      <div className="space-y-1">
+                        <label className="text-xs font-semibold text-foreground">💱 عملة الحساب</label>
+                        <div className="grid grid-cols-3 gap-2">
+                          {[
+                            { code: "ILS", label: "₪ شيكل" },
+                            { code: "USD", label: "$ دولار" },
+                            { code: "JOD", label: "د.أ دينار" },
+                          ].map(c => (
+                            <button
+                              key={c.code}
+                              onClick={() => update({ bankCurrency: c.code })}
+                              className={`py-2 rounded-xl border-2 text-xs font-bold transition-all ${
+                                data.bankCurrency === c.code
+                                  ? "border-primary bg-primary/10 text-primary"
+                                  : "border-border bg-card text-muted-foreground hover:border-primary/30"
+                              }`}
+                            >
+                              {c.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Account Type */}
+                      <div className="space-y-1">
+                        <label className="text-xs font-semibold text-foreground">📋 نوع الحساب</label>
+                        <div className="grid grid-cols-4 gap-2">
+                          {["جاري", "توفير", "قرض", "وديعة"].map(t => (
+                            <button
+                              key={t}
+                              onClick={() => update({ bankAccountType: t })}
+                              className={`py-2 rounded-xl border-2 text-xs font-bold transition-all ${
+                                data.bankAccountType === t
+                                  ? "border-primary bg-primary/10 text-primary"
+                                  : "border-border bg-card text-muted-foreground hover:border-primary/30"
+                              }`}
+                            >
+                              {t}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Balance */}
+                      <div className="space-y-1">
+                        <label className="text-xs font-semibold text-foreground">💰 الرصيد الحالي</label>
+                        <div className="relative">
+                          <span className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
+                            {data.bankCurrency === "ILS" ? "₪" : data.bankCurrency === "USD" ? "$" : "د.أ"}
+                          </span>
+                          <input
+                            type="number"
+                            value={data.bankBalance || ""}
+                            onChange={e => update({ bankBalance: parseFloat(e.target.value) || 0 })}
+                            placeholder="0"
+                            className="w-full h-10 px-4 pr-10 rounded-xl border border-border bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                            dir="ltr"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Leave for accountant */}
+                      <button
+                        onClick={() => update({ leaveForAccountant: !data.leaveForAccountant })}
+                        className={`w-full flex items-center gap-3 p-3 rounded-xl border-2 transition-all text-right ${
+                          data.leaveForAccountant
+                            ? "border-accent bg-accent/10"
+                            : "border-border bg-card hover:border-accent/30"
+                        }`}
+                      >
+                        <span className="text-lg">{data.leaveForAccountant ? "✅" : "⏸️"}</span>
+                        <div className="flex-1">
+                          <p className="text-xs font-bold text-foreground">اتركها للمحاسب</p>
+                          <p className="text-[10px] text-muted-foreground">لا تفتح الحساب الآن — سيراجعها المحاسب لاحقاً</p>
+                        </div>
+                      </button>
                     </motion.div>
                   )}
                 </div>
