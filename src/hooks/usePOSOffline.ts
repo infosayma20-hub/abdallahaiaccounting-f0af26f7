@@ -57,8 +57,8 @@ export function usePOSOffline({ userId, sessionId, terminalId, companyId }: UseP
     try {
       const productsRes = await supabase.from('products')
         .select('id, name_ar, sell_price, buy_price, quantity, category, sku, barcode, tax_rate, unit, is_pos_available, pos_category_id, color, image_url, min_quantity')
-        .eq('user_id', userId)
-        .eq('is_active', true);
+        .eq('user_id', userId as string)
+        .eq('is_active', true as any);
       const customersRes = await supabase.from('contacts')
         .select('id, contact_name, phone, current_balance, credit_limit, contact_type')
         .eq('user_id', userId)
