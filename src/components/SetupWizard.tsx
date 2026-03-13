@@ -29,9 +29,13 @@ interface SetupData {
   invoiceStartNumber: number;
   paymentTerms: string;
   cashBalance: number;
-  hasBankAccount: boolean;
+  hasBankAccount: boolean | null;
+  bankAccountName: string;
   bankName: string;
+  bankCurrency: string;
+  bankAccountType: string;
   bankBalance: number;
+  leaveForAccountant: boolean;
 }
 
 const BUSINESS_TYPES: { value: BusinessType; label: string; sublabel: string; emoji: string; modules: string }[] = [
