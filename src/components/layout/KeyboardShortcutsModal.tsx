@@ -65,10 +65,10 @@ const KeyboardShortcutsModal = ({ open, onClose }: KeyboardShortcutsModalProps) 
             <h3 className="text-[11px] font-bold text-primary mb-2 flex items-center gap-1.5">
               👥 جهات وصناديق
             </h3>
-            <ShortcutRow keys="Ctrl + C" label="الزبائن" />
-            <ShortcutRow keys="Ctrl + M" label="الموردين" />
-            <ShortcutRow keys="Ctrl + S" label="الصناديق" />
-            <ShortcutRow keys="Ctrl + Q" label="الشيكات" />
+            <ShortcutRow keys="Alt + C" label="الزبائن" />
+            <ShortcutRow keys="Alt + M" label="الموردين" />
+            <ShortcutRow keys="Alt + S" label="الصناديق" />
+            <ShortcutRow keys="Alt + Q" label="الشيكات" />
           </div>
 
           {/* More shortcuts */}
