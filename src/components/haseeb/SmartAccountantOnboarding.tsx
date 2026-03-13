@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
-  Zap, MessageCircle, Hash, AtSign, Package, Building2, Calendar,
-  BarChart3, UserPlus, Search, CheckCircle2, Sparkles, ArrowLeft
+  Zap, MessageCircle, Hash, Package, Building2, Calendar,
+  BarChart3, UserPlus, Search, CheckCircle2, Sparkles
 } from "lucide-react";
 
 interface Props {
@@ -20,15 +20,15 @@ const EXAMPLES_STEP1 = [
 ];
 
 const SANDBOX_EXAMPLES = [
-  { text: "قبضت من @سالم 300 شيكل", result: { type: "قبض نقدي", from: "سالم", amount: "₪300", entry: "ح/صندوق مدين ← ح/ذمم مدينة دائن" } },
+  { text: "قبضت من سالم 300 شيكل", result: { type: "قبض نقدي", from: "سالم", amount: "₪300", entry: "ح/صندوق مدين ← ح/ذمم مدينة دائن" } },
   { text: "دفعت كهرباء 150 شيكل", result: { type: "مصروف", from: "كهرباء", amount: "₪150", entry: "ح/مصاريف كهرباء مدين ← ح/صندوق دائن" } },
-  { text: "بعت @شركة النور 5 كراتين بـ 200 الكرتون", result: { type: "بيع", from: "شركة النور", amount: "₪1,000", entry: "ح/ذمم مدينة مدين ← ح/إيرادات دائن" } },
+  { text: "بعت شركة النور 5 كراتين بـ 200 الكرتون", result: { type: "بيع", from: "شركة النور", amount: "₪1,000", entry: "ح/ذمم مدينة مدين ← ح/إيرادات دائن" } },
 ];
 
 const RULES = [
-  { icon: MessageCircle, title: "💬 احكِ طبيعي", desc: "\"قبضت من...\"" },
+  { icon: MessageCircle, title: "💬 احكِ طبيعي", desc: "\"قبضت من محمد...\"" },
   { icon: Hash, title: "# اذكر المبلغ", desc: "\"500 شيكل\"" },
-  { icon: AtSign, title: "@ حدد الاسم", desc: "\"@محمد\"" },
+  { icon: UserPlus, title: "👤 اذكر الاسم", desc: "النظام يربطه تلقائياً" },
   { icon: Package, title: "📦 البضاعة:", desc: "الكمية + السعر" },
   { icon: Building2, title: "🏦 اذكر البنك", desc: "إذا من البنك" },
   { icon: Calendar, title: "📅 التاريخ", desc: "إذا شيك" },
@@ -37,7 +37,7 @@ const RULES = [
 const CAPABILITIES = [
   { icon: Zap, title: "تسجيل عمليات", desc: "جمل طبيعية → قيود محاسبية", color: "#C9A84C" },
   { icon: BarChart3, title: "عرض تقارير", desc: "\"شو وضعي المالي؟\"", color: "#006D8F" },
-  { icon: UserPlus, title: "إضافة جهات", desc: "\"أضف زبون @اسم\"", color: "#16A34A" },
+  { icon: UserPlus, title: "إضافة جهات", desc: "\"أضف زبون محمد\"", color: "#16A34A" },
   { icon: Search, title: "استعلامات", desc: "\"كم عليّ لشركة النور؟\"", color: "#7C3AED" },
 ];
 
