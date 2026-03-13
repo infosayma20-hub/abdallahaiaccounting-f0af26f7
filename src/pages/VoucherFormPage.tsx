@@ -364,7 +364,8 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           .from("vouchers")
           .insert({
             user_id: user.id,
-            type: "payment",
+            type: "payment" as const,
+            ref_number: refNumber || `PV-${new Date().getFullYear()}-0001`,
             date: paymentDate,
             contact_id: selectedContact.id,
             payment_method: payMethodMap[paymentMethod] || "cash",
