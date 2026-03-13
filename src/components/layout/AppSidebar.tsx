@@ -4,6 +4,7 @@ import { ChevronDown, X, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ModuleIcon from "@/components/ModuleIcon";
 import { useCompany } from "@/hooks/useCompanyContext";
+import QuickAccessGrid from "./QuickAccessGrid";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { FinixLogo } from "@/components/ui/FinixLogo";
 import { navigationSections, getAllChildren, type NavItem } from "@/config/navigationConfig";
