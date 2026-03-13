@@ -58,14 +58,20 @@ function saveConfig(items: QuickAccessItem[]) {
 
 interface QuickAccessGridProps {
   collapsed: boolean;
+  isSuperAdmin?: boolean;
 }
 
-const QuickAccessGrid = ({ collapsed }: QuickAccessGridProps) => {
+const QuickAccessGrid = ({ collapsed, isSuperAdmin = false }: QuickAccessGridProps) => {
   const navigate = useNavigate();
   const [items, setItems] = useState<QuickAccessItem[]>(loadConfig);
   const [showCustomize, setShowCustomize] = useState(false);
 
-  const enabled = items.filter(a => a.enabled).slice(0, 8);
+  // Filter out admin-only items if user is not super admin
+  const visibleItems = isSuperAdmin 
+    ? items 
+    : items.filter(item => !item.adminOnly);
+
+  const enabled = visibleItems.filter(a => a.enabled).slice(0, 8);
 
   const toggleItem = (id: string) => {
     setItems(prev => {
