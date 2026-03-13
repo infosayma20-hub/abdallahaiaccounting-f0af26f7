@@ -487,7 +487,7 @@ const FinanceJournalPage = () => {
                   <th className="px-3 py-3 text-right text-xs font-semibold">الوصف</th>
                   <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="المبلغ" field="amount" /></th>
                   <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="الحالة" field="status" /></th>
-                </tr>
+                  <th className="px-3 py-3 w-10"></th>
               </thead>
               <tbody>
                 {paged.map((v, i) => {
