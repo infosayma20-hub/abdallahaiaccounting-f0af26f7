@@ -821,7 +821,7 @@ const AccountStatementPage = () => {
         r.date ? format(new Date(r.date), "dd/MM/yy") : "",
         r.reference || "-",
         r.description || "",
-        r.type_label || "",
+        r.transaction_type || "",
         r.debit ? Number(r.debit).toLocaleString("en") : "-",
         r.credit ? Number(r.credit).toLocaleString("en") : "-",
         r.balance != null ? Number(r.balance).toLocaleString("en") : "-",
