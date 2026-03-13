@@ -289,6 +289,7 @@ const TopBar = ({ onMenuClick, sidebarCollapsed, onOpenHelpGuide }: TopBarProps)
           <TooltipContent side="bottom"><p>القائمة</p></TooltipContent>
         </Tooltip>
         <AppLogo />
+        <QuickAccessButton />
         <div className="flex-1 flex justify-center px-4">
           <div className="hidden md:block w-full max-w-[560px]"><GlobalSearchBar collapsed={false} onToggle={() => {}} /></div>
           <div className="md:hidden">
