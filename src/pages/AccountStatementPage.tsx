@@ -814,7 +814,7 @@ const AccountStatementPage = () => {
       element.style.zIndex = "";
       if (hadClass) element.classList.add("print-only");
 
-      const imgData = canvas.toDataURL("image/png");
+      const imgData = canvas.toDataURL("image/jpeg", 0.95);
       const pdf = new jsPDF("p", "mm", "a4");
       const pdfW = 210;
       const pageH = 297;
@@ -822,16 +822,16 @@ const AccountStatementPage = () => {
 
       // Multi-page support
       if (imgH <= pageH) {
-        pdf.addImage(imgData, "PNG", 0, 0, pdfW, imgH);
+        pdf.addImage(imgData, "JPEG", 0, 0, pdfW, imgH);
       } else {
         let heightLeft = imgH;
         let position = 0;
-        pdf.addImage(imgData, "PNG", 0, position, pdfW, imgH);
+        pdf.addImage(imgData, "JPEG", 0, position, pdfW, imgH);
         heightLeft -= pageH;
         while (heightLeft > 0) {
           position = heightLeft - imgH;
           pdf.addPage();
-          pdf.addImage(imgData, "PNG", 0, position, pdfW, imgH);
+          pdf.addImage(imgData, "JPEG", 0, position, pdfW, imgH);
           heightLeft -= pageH;
         }
       }
