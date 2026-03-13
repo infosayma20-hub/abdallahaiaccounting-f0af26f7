@@ -54,8 +54,21 @@ const CleanTopBar = ({
         </span>
       </div>
 
-      {/* Right: history + refresh + bell + health + more */}
+      {/* Right: help + history + refresh + bell + health + more */}
       <div className="flex items-center gap-1">
+        {/* Help */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={onShowHelp}
+              className="w-11 h-11 flex items-center justify-center"
+              aria-label="مساعدة"
+            >
+              <HelpCircle className="h-5 w-5" style={{ color: "#C9A84C" }} />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom"><p>دليل الأوامر</p></TooltipContent>
+        </Tooltip>
         {/* History */}
         <Tooltip>
           <TooltipTrigger asChild>
