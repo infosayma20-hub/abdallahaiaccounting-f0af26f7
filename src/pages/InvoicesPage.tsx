@@ -1039,7 +1039,7 @@ const InvoicesPage = () => {
 
         {/* PDF Preview Dialog */}
         <Dialog open={showPDFPreview} onOpenChange={setShowPDFPreview}>
-          <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto bg-background" dir="rtl">
+          <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto bg-background" dir="rtl">
             <DialogHeader>
               <DialogTitle>معاينة الفاتورة</DialogTitle>
               <DialogDescription>{generateInvoiceNumber(form.type)}</DialogDescription>
