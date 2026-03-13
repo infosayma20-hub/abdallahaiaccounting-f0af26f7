@@ -25,16 +25,15 @@ const Cmd = ({ text, onClick }: { text: string; onClick: () => void }) => (
     style={{ color: "#334155" }}
   >
     <span className="text-[#8B9BB4]">•</span>{" "}
-    {text.split(/(@\[.*?\])/g).map((part, i) =>
-      part.startsWith("@") ? <span key={i} className="font-bold" style={{ color: "#006D8F" }}>{part}</span> : part
+    {text.split(/(\[.*?\])/g).map((part, i) =>
+      part.startsWith("[") ? <span key={i} className="font-bold" style={{ color: "#006D8F" }}>{part}</span> : part
     )}
   </button>
 );
 
 const SmartAccountantHelpPanel = ({ open, onClose, onFillInput }: Props) => {
   const handleCmd = (text: string) => {
-    const clean = text.replace(/@\[/g, "@").replace(/\]/g, "");
-    onFillInput?.(clean);
+    onFillInput?.(text);
     onClose();
   };
 
