@@ -23,10 +23,14 @@ export function useGlobalShortcuts({ onShowShortcuts, onShowNewModal }: UseGloba
 
       // Ctrl combos
       if (e.ctrlKey || e.metaKey) {
-        if (e.key === "z" || e.key === "Z") { e.preventDefault(); navigate("/contacts?type=customer"); return; }
+        if (e.key === "c" || e.key === "C") { e.preventDefault(); navigate("/contacts?type=customer"); return; }
         if (e.key === "m" || e.key === "M") { e.preventDefault(); navigate("/contacts?type=supplier"); return; }
         if (e.key === "k" || e.key === "K") { e.preventDefault(); navigate("/account-statement"); return; }
         if (e.key === "s" || e.key === "S") { e.preventDefault(); navigate("/finance/cash-boxes"); return; }
+        if (e.key === "i" || e.key === "I") { e.preventDefault(); navigate("/inventory"); return; }
+        if (e.key === "l" || e.key === "L") { e.preventDefault(); navigate("/general-ledger"); return; }
+        if (e.key === "q" || e.key === "Q") { e.preventDefault(); navigate("/finance/cheques"); return; }
+        if (e.key === "t" || e.key === "T") { e.preventDefault(); navigate("/trial-balance"); return; }
         if (e.key === "f" || e.key === "F") {
           e.preventDefault();
           const searchInput = document.querySelector<HTMLInputElement>('input[placeholder*="ابحث"]');
