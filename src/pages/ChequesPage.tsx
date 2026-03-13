@@ -743,9 +743,8 @@ const ChequesPage = () => {
                   const isExpanded = expandedId === c.id;
                   const history = statusHistory[c.id] || [];
                   return (
-                    <>
+                    <Fragment key={c.id}>
                       <tr
-                        key={c.id}
                         className={`border-b border-border/50 transition-colors cursor-pointer ${
                           isSelected ? "bg-primary/5" : i % 2 === 0 ? "bg-background" : "bg-muted/20"
                         } hover:bg-primary/5`}
