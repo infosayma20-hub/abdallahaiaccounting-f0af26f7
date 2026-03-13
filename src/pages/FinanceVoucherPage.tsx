@@ -2,8 +2,9 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Loader2, Plus, DollarSign, Hash, Calendar, ArrowRight, Search, X,
-  ArrowUpDown, ChevronLeft, ChevronRight, FileText
+  ArrowUpDown, ChevronLeft, ChevronRight, FileText, Copy
 } from "lucide-react";
+import DuplicateConfirmModal from "@/components/DuplicateConfirmModal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

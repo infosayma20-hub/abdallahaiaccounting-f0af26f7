@@ -1422,6 +1422,20 @@ const InvoicesPage = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Duplicate Confirm Modal */}
+      <DuplicateConfirmModal
+        open={duplicateModal}
+        onClose={() => setDuplicateModal(false)}
+        onConfirm={confirmDuplicate}
+        docType="invoice"
+        info={{
+          contactName: duplicateTarget?.contactName,
+          itemsCount: duplicateTarget?.items?.length,
+          paymentMethod: duplicateTarget?.paymentMethod === "cash" ? "نقدي" : duplicateTarget?.paymentMethod === "credit" ? "آجل" : duplicateTarget?.paymentMethod === "cheque" ? "شيك" : "تحويل",
+          sourceRef: duplicateTarget?.invoiceNumber,
+        }}
+      />
     </div>
   );
 };

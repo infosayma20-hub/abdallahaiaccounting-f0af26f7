@@ -3,8 +3,9 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   ArrowRight, Loader2, Plus, Search, X, Trash2,
   FileText, BookOpen, Save, User, Building2, Users, Check, DollarSign,
-  ArrowUpDown, ChevronLeft, ChevronRight
+  ArrowUpDown, ChevronLeft, ChevronRight, Copy
 } from "lucide-react";
+import DuplicateConfirmModal from "@/components/DuplicateConfirmModal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
