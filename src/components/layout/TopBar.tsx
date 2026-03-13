@@ -16,6 +16,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import KeyboardShortcutsModal from "./KeyboardShortcutsModal";
+import ShortcutsTip from "./ShortcutsTip";
+import { useGlobalShortcuts } from "@/hooks/useGlobalShortcuts";
 
 interface TopBarProps {
   onMenuClick: () => void;
