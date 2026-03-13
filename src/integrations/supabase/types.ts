@@ -5084,6 +5084,7 @@ export type Database = {
           ils_equivalent: number | null
           is_return: boolean
           linked_transaction_id: string | null
+          local_id: string | null
           notes: string | null
           order_number: string | null
           order_type: string | null
@@ -5105,12 +5106,15 @@ export type Database = {
           subtotal: number
           survey_sent: boolean | null
           survey_token: string | null
+          sync_status: string | null
+          synced_at: string | null
           table_id: string | null
           tax_amount: number
           total: number
           transaction_id: string | null
           updated_at: string
           user_id: string
+          was_offline: boolean | null
         }
         Insert: {
           cancel_reason?: string | null
@@ -5132,6 +5136,7 @@ export type Database = {
           ils_equivalent?: number | null
           is_return?: boolean
           linked_transaction_id?: string | null
+          local_id?: string | null
           notes?: string | null
           order_number?: string | null
           order_type?: string | null
@@ -5153,12 +5158,15 @@ export type Database = {
           subtotal?: number
           survey_sent?: boolean | null
           survey_token?: string | null
+          sync_status?: string | null
+          synced_at?: string | null
           table_id?: string | null
           tax_amount?: number
           total?: number
           transaction_id?: string | null
           updated_at?: string
           user_id: string
+          was_offline?: boolean | null
         }
         Update: {
           cancel_reason?: string | null
@@ -5180,6 +5188,7 @@ export type Database = {
           ils_equivalent?: number | null
           is_return?: boolean
           linked_transaction_id?: string | null
+          local_id?: string | null
           notes?: string | null
           order_number?: string | null
           order_type?: string | null
@@ -5201,12 +5210,15 @@ export type Database = {
           subtotal?: number
           survey_sent?: boolean | null
           survey_token?: string | null
+          sync_status?: string | null
+          synced_at?: string | null
           table_id?: string | null
           tax_amount?: number
           total?: number
           transaction_id?: string | null
           updated_at?: string
           user_id?: string
+          was_offline?: boolean | null
         }
         Relationships: [
           {
@@ -5522,6 +5534,45 @@ export type Database = {
           id?: string
           name?: string
           phone?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      pos_sync_log: {
+        Row: {
+          created_at: string | null
+          device_id: string | null
+          failed_count: number | null
+          id: string
+          offline_duration_minutes: number | null
+          offline_started_at: string | null
+          online_restored_at: string | null
+          synced_count: number | null
+          transactions_count: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          device_id?: string | null
+          failed_count?: number | null
+          id?: string
+          offline_duration_minutes?: number | null
+          offline_started_at?: string | null
+          online_restored_at?: string | null
+          synced_count?: number | null
+          transactions_count?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          device_id?: string | null
+          failed_count?: number | null
+          id?: string
+          offline_duration_minutes?: number | null
+          offline_started_at?: string | null
+          online_restored_at?: string | null
+          synced_count?: number | null
+          transactions_count?: number | null
           user_id?: string
         }
         Relationships: []
