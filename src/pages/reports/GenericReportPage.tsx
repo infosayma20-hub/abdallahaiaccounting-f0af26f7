@@ -73,6 +73,13 @@ const reportConfigs: Record<string, { title: string; description: string }> = {
   "checks-payable": { title: "تقرير الشيكات الصادرة", description: "شيكات الموردين مع تواريخ الاستحقاق" },
   "supplier-purchase-analysis": { title: "تحليل المشتريات والموردين", description: "حجم المشتريات من كل مورد" },
   "supplier-statement-all": { title: "كشف حساب موحد للموردين", description: "كشف حساب شامل لجميع الموردين" },
+  // Invoice Tracking & Collection
+  "invoice-lifecycle": { title: "دورة حياة الفاتورة", description: "تتبع كل فاتورة من الإنشاء حتى الإغلاق" },
+  "dso-detailed": { title: "متوسط أيام التحصيل (DSO) المتقدم", description: "كم يوماً يستغرق كل زبون للسداد" },
+  "ar-aging-advanced": { title: "تعمير الذمم المدينة المتقدم", description: "توزيع الذمم على شرائح زمنية مع تفصيل كل فاتورة" },
+  "collection-efficiency": { title: "كفاءة التحصيل", description: "نسبة الفواتير المسدّدة في موعدها وتطورها شهرياً" },
+  "payment-allocation": { title: "سجل المدفوعات المرتبطة", description: "كل سند قبض مرتبط بأي فاتورة وبأي مبلغ" },
+  "unpaid-invoices": { title: "فواتير بدون نشاط دفع", description: "فواتير لم يُسجَّل عليها أي سند قبض" },
 };
 
 // ─── Helpers ───
@@ -160,6 +167,13 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
         case "checks-payable": await loadChecksPayable(); break;
         case "supplier-purchase-analysis": await loadSupplierPurchaseAnalysis(); break;
         case "supplier-statement-all": await loadSupplierStatementAll(); break;
+        // Invoice Tracking
+        case "invoice-lifecycle": await loadInvoiceLifecycle(); break;
+        case "dso-detailed": await loadDSODetailed(); break;
+        case "ar-aging-advanced": await loadARAgingAdvanced(); break;
+        case "collection-efficiency": await loadCollectionEfficiency(); break;
+        case "payment-allocation": await loadPaymentAllocation(); break;
+        case "unpaid-invoices": await loadUnpaidInvoices(); break;
         default: await loadGenericTransactions(); break;
       }
     } catch (e: any) {
@@ -788,8 +802,173 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
   };
 
   // ═══════════════════════════════════
-  // EXCEL EXPORT
+  // INVOICE TRACKING LOADERS
   // ═══════════════════════════════════
+
+  const loadInvoiceLifecycle = async () => {
+    const { data: invoices } = await supabase.from("invoices").select("id, invoice_number, invoice_date, due_date, total_amount, paid_amount, remaining_amount, status, payment_status, contact_name").eq("user_id", uid).eq("invoice_type", "sale").gte("invoice_date", dateFrom).lte("invoice_date", dateTo).order("invoice_date", { ascending: false });
+    if (!invoices?.length) { setData([]); return; }
+    const { data: linkData } = await supabase.from("payment_invoice_links").select("invoice_id, payment_id, allocated_amount");
+    const { data: voucherData } = await supabase.from("receipt_vouchers").select("id, payment_date").eq("user_id", uid);
+    const vMap = new Map((voucherData || []).map(v => [v.id, v.payment_date]));
+    const invLinks = new Map<string, string[]>();
+    (linkData || []).forEach(l => { if (!invLinks.has(l.invoice_id)) invLinks.set(l.invoice_id, []); invLinks.get(l.invoice_id)!.push(l.payment_id); });
+    const today = new Date();
+    setData(invoices.map(inv => {
+      const paid = inv.paid_amount || 0;
+      const remaining = inv.remaining_amount ?? (inv.total_amount - paid);
+      const isPaid = inv.payment_status === "paid" || paid >= inv.total_amount;
+      const paymentIds = invLinks.get(inv.id) || [];
+      const lastPayDate = paymentIds.map(pid => vMap.get(pid)).filter(Boolean).sort().pop();
+      let daysToClose: number | null = null;
+      let closureStatus = "جارية";
+      if (isPaid && lastPayDate) {
+        daysToClose = differenceInDays(new Date(lastPayDate), new Date(inv.invoice_date));
+        closureStatus = inv.due_date && lastPayDate <= inv.due_date ? "✅ في الموعد" : "⚠️ متأخر";
+      } else if (!isPaid && inv.due_date && today > new Date(inv.due_date)) {
+        closureStatus = "🔴 متأخرة";
+      } else if (!isPaid) {
+        closureStatus = "⏳ جارية";
+      }
+      return {
+        invoiceNumber: inv.invoice_number || "—", customer: inv.contact_name || "—",
+        issueDate: inv.invoice_date, dueDate: inv.due_date || "—",
+        total: inv.total_amount, paid, remaining,
+        daysToClose: daysToClose ?? "—", closureStatus,
+      };
+    }));
+  };
+
+  const loadDSODetailed = async () => {
+    const { data: invoices } = await supabase.from("invoices").select("id, invoice_date, due_date, total_amount, paid_amount, payment_status, contact_name, contact_id").eq("user_id", uid).eq("invoice_type", "sale").gte("invoice_date", dateFrom).lte("invoice_date", dateTo);
+    if (!invoices?.length) { setData([]); return; }
+    const { data: linkData } = await supabase.from("payment_invoice_links").select("invoice_id, payment_id");
+    const { data: voucherData } = await supabase.from("receipt_vouchers").select("id, payment_date").eq("user_id", uid);
+    const vMap = new Map((voucherData || []).map(v => [v.id, v.payment_date]));
+    const invLinks = new Map<string, string[]>();
+    (linkData || []).forEach(l => { if (!invLinks.has(l.invoice_id)) invLinks.set(l.invoice_id, []); invLinks.get(l.invoice_id)!.push(l.payment_id); });
+    const customerMap: Record<string, { name: string; days: number[]; invCount: number }> = {};
+    invoices.forEach(inv => {
+      const isPaid = inv.payment_status === "paid" || (inv.paid_amount || 0) >= inv.total_amount;
+      if (!isPaid) return;
+      const paymentIds = invLinks.get(inv.id) || [];
+      const lastPayDate = paymentIds.map(pid => vMap.get(pid)).filter(Boolean).sort().pop();
+      if (!lastPayDate) return;
+      const d = differenceInDays(new Date(lastPayDate), new Date(inv.invoice_date));
+      const key = inv.contact_name || "غير محدد";
+      if (!customerMap[key]) customerMap[key] = { name: key, days: [], invCount: 0 };
+      customerMap[key].days.push(d);
+      customerMap[key].invCount++;
+    });
+    setData(Object.values(customerMap).map(c => {
+      const avg = Math.round(c.days.reduce((a, b) => a + b, 0) / c.days.length);
+      const fastest = Math.min(...c.days);
+      const slowest = Math.max(...c.days);
+      const grade = avg < 30 ? "🟢 A ممتاز" : avg < 45 ? "🟡 B جيد" : avg < 60 ? "🟠 C مقبول" : "🔴 D خطر";
+      return { name: c.name, invCount: c.invCount, avgDSO: avg, fastest, slowest, grade };
+    }).sort((a, b) => a.avgDSO - b.avgDSO));
+  };
+
+  const loadARAgingAdvanced = async () => {
+    const { data: invoices } = await supabase.from("invoices").select("id, invoice_number, invoice_date, due_date, total_amount, paid_amount, remaining_amount, contact_name, payment_status").eq("user_id", uid).eq("invoice_type", "sale");
+    if (!invoices?.length) { setData([]); return; }
+    const today = new Date();
+    const customerMap: Record<string, { name: string; current: number; d1_30: number; d31_60: number; d61_90: number; over90: number; total: number }> = {};
+    invoices.forEach(inv => {
+      const remaining = inv.remaining_amount ?? (inv.total_amount - (inv.paid_amount || 0));
+      if (remaining <= 0) return;
+      const key = inv.contact_name || "غير محدد";
+      if (!customerMap[key]) customerMap[key] = { name: key, current: 0, d1_30: 0, d31_60: 0, d61_90: 0, over90: 0, total: 0 };
+      const overdue = inv.due_date ? differenceInDays(today, new Date(inv.due_date)) : 0;
+      if (overdue <= 0) customerMap[key].current += remaining;
+      else if (overdue <= 30) customerMap[key].d1_30 += remaining;
+      else if (overdue <= 60) customerMap[key].d31_60 += remaining;
+      else if (overdue <= 90) customerMap[key].d61_90 += remaining;
+      else customerMap[key].over90 += remaining;
+      customerMap[key].total += remaining;
+    });
+    setData(Object.values(customerMap).sort((a, b) => b.total - a.total));
+  };
+
+  const loadCollectionEfficiency = async () => {
+    const months = [];
+    for (let i = 11; i >= 0; i--) { const m = subMonths(new Date(), i); months.push({ label: format(m, "yyyy-MM"), from: format(startOfMonth(m), "yyyy-MM-dd"), to: format(endOfMonth(m), "yyyy-MM-dd") }); }
+    const { data: invoices } = await supabase.from("invoices").select("id, invoice_date, due_date, total_amount, paid_amount, payment_status, contact_name").eq("user_id", uid).eq("invoice_type", "sale").gte("invoice_date", months[0].from).lte("invoice_date", months[11].to);
+    const { data: linkData } = await supabase.from("payment_invoice_links").select("invoice_id, payment_id, allocated_amount");
+    const { data: voucherData } = await supabase.from("receipt_vouchers").select("id, payment_date").eq("user_id", uid);
+    const vMap = new Map((voucherData || []).map(v => [v.id, v.payment_date]));
+    const invLinks = new Map<string, { paymentIds: string[]; totalAllocated: number }>();
+    (linkData || []).forEach(l => {
+      if (!invLinks.has(l.invoice_id)) invLinks.set(l.invoice_id, { paymentIds: [], totalAllocated: 0 });
+      invLinks.get(l.invoice_id)!.paymentIds.push(l.payment_id);
+      invLinks.get(l.invoice_id)!.totalAllocated += l.allocated_amount;
+    });
+    setData(months.map(m => {
+      const mInvoices = (invoices || []).filter(i => i.invoice_date >= m.from && i.invoice_date <= m.to);
+      const issued = mInvoices.reduce((s, i) => s + i.total_amount, 0);
+      const collected = mInvoices.reduce((s, i) => { const link = invLinks.get(i.id); return s + (link?.totalAllocated || 0); }, 0);
+      const collectionRate = issued > 0 ? Math.round((collected / issued) * 100) : 0;
+      let onTime = 0, late = 0, avgDaysLate = 0;
+      const lateDays: number[] = [];
+      mInvoices.forEach(inv => {
+        const isPaid = inv.payment_status === "paid" || (inv.paid_amount || 0) >= inv.total_amount;
+        if (!isPaid) return;
+        const link = invLinks.get(inv.id);
+        if (!link) return;
+        const lastPayDate = link.paymentIds.map(pid => vMap.get(pid)).filter(Boolean).sort().pop();
+        if (!lastPayDate || !inv.due_date) return;
+        if (lastPayDate <= inv.due_date) onTime++;
+        else { late++; lateDays.push(differenceInDays(new Date(lastPayDate), new Date(inv.due_date))); }
+      });
+      avgDaysLate = lateDays.length > 0 ? Math.round(lateDays.reduce((a, b) => a + b, 0) / lateDays.length) : 0;
+      return { month: m.label, issued, collected, collectionRate, onTime, late, avgDaysLate };
+    }));
+  };
+
+  const loadPaymentAllocation = async () => {
+    const { data: linkData } = await supabase.from("payment_invoice_links").select("invoice_id, payment_id, allocated_amount");
+    if (!linkData?.length) { setData([]); return; }
+    const invIds = [...new Set(linkData.map(l => l.invoice_id))];
+    const payIds = [...new Set(linkData.map(l => l.payment_id))];
+    const { data: invoices } = await supabase.from("invoices").select("id, invoice_number").in("id", invIds);
+    const { data: vouchers } = await supabase.from("receipt_vouchers").select("id, receipt_number, payment_date, contact_name, payment_method").eq("user_id", uid).in("id", payIds);
+    const invMap = new Map((invoices || []).map(i => [i.id, i.invoice_number]));
+    const vMap = new Map((vouchers || []).map(v => [v.id, v]));
+    setData(linkData.filter(l => {
+      const v = vMap.get(l.payment_id);
+      return v && v.payment_date >= dateFrom && v.payment_date <= dateTo;
+    }).map(l => {
+      const v = vMap.get(l.payment_id)!;
+      return {
+        receiptNumber: v.receipt_number || "—",
+        paymentDate: v.payment_date,
+        customer: v.contact_name || "—",
+        paymentMethod: v.payment_method || "—",
+        invoiceNumber: invMap.get(l.invoice_id) || "—",
+        allocated: l.allocated_amount,
+      };
+    }).sort((a, b) => b.paymentDate.localeCompare(a.paymentDate)));
+  };
+
+  const loadUnpaidInvoices = async () => {
+    const { data: invoices } = await supabase.from("invoices").select("id, invoice_number, invoice_date, due_date, total_amount, contact_name, contact_id, payment_status, paid_amount, remaining_amount").eq("user_id", uid).eq("invoice_type", "sale").gte("invoice_date", dateFrom).lte("invoice_date", dateTo);
+    if (!invoices?.length) { setData([]); return; }
+    const { data: linkData } = await supabase.from("payment_invoice_links").select("invoice_id");
+    const linkedIds = new Set((linkData || []).map(l => l.invoice_id));
+    const today = new Date();
+    setData(invoices.filter(inv => {
+      const remaining = inv.remaining_amount ?? (inv.total_amount - (inv.paid_amount || 0));
+      return remaining > 0 && !linkedIds.has(inv.id);
+    }).map(inv => ({
+      invoiceNumber: inv.invoice_number || "—",
+      customer: inv.contact_name || "—",
+      issueDate: inv.invoice_date,
+      total: inv.total_amount,
+      daysSinceIssue: differenceInDays(today, new Date(inv.invoice_date)),
+    })).sort((a, b) => b.daysSinceIssue - a.daysSinceIssue));
+  };
+
+
   const exportExcel = () => {
     if (!data.length) return;
     const ws = XLSX.utils.json_to_sheet(data);
@@ -1051,6 +1230,65 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
           { key: "avgInv", label: "متوسط الفاتورة", type: "currency" },
           { key: "pct", label: "% من الإجمالي", type: "percent" },
         ];
+      case "invoice-lifecycle":
+        return [
+          { key: "invoiceNumber", label: "رقم الفاتورة", type: "text" },
+          { key: "customer", label: "الزبون", type: "text" },
+          { key: "issueDate", label: "تاريخ الإصدار", type: "date" },
+          { key: "dueDate", label: "تاريخ الاستحقاق", type: "date" },
+          { key: "total", label: "الإجمالي", type: "currency" },
+          { key: "paid", label: "المسدَّد", type: "currency", format: v => <span className="text-emerald-600 font-mono text-xs">{fmtAmtCell(v)}</span> },
+          { key: "remaining", label: "المتبقي", type: "currency", format: v => <span className={`font-mono text-xs ${v > 0 ? "text-red-600 font-bold" : "text-emerald-600"}`}>{fmtAmtCell(v)}</span> },
+          { key: "closureStatus", label: "الحالة", type: "text", filterType: "select", filterOptions: ["✅ في الموعد", "⚠️ متأخر", "⏳ جارية", "🔴 متأخرة"] },
+          { key: "daysToClose", label: "أيام الإغلاق", type: "text", format: v => <span className="font-mono text-xs">{v === "—" ? "—" : `${v} يوم`}</span> },
+        ];
+      case "dso-detailed":
+        return [
+          { key: "name", label: "الزبون", type: "text" },
+          { key: "invCount", label: "عدد الفواتير", type: "number", align: "center" },
+          { key: "avgDSO", label: "متوسط أيام التحصيل", type: "number", format: v => <span className={`font-mono text-xs ${v < 30 ? "text-emerald-600" : v < 45 ? "text-amber-600" : "text-red-600"}`}>{v} يوم</span> },
+          { key: "fastest", label: "أسرع دفعة", type: "number", format: v => <span className="font-mono text-xs text-emerald-600">{v} يوم</span> },
+          { key: "slowest", label: "أبطأ دفعة", type: "number", format: v => <span className="font-mono text-xs text-red-600">{v} يوم</span> },
+          { key: "grade", label: "التصنيف الائتماني", type: "text", filterType: "select", filterOptions: ["🟢 A ممتاز", "🟡 B جيد", "🟠 C مقبول", "🔴 D خطر"] },
+        ];
+      case "ar-aging-advanced":
+        return [
+          { key: "name", label: "الزبون", type: "text" },
+          { key: "current", label: "جارية", type: "currency", format: v => <span className="text-emerald-600 font-mono text-xs">{fmtAmtCell(v)}</span> },
+          { key: "d1_30", label: "1-30 يوم", type: "currency", format: v => <span className="text-amber-600 font-mono text-xs">{fmtAmtCell(v)}</span> },
+          { key: "d31_60", label: "31-60 يوم", type: "currency", format: v => <span className="text-orange-600 font-mono text-xs">{fmtAmtCell(v)}</span> },
+          { key: "d61_90", label: "61-90 يوم", type: "currency", format: v => <span className="text-red-500 font-mono text-xs">{fmtAmtCell(v)}</span> },
+          { key: "over90", label: "+90 يوم", type: "currency", format: v => <span className="text-red-700 font-mono text-xs font-bold">{fmtAmtCell(v)}</span> },
+          { key: "total", label: "الإجمالي", type: "currency", format: v => <span className="font-mono text-xs font-bold">{fmtAmtCell(v)}</span> },
+        ];
+      case "collection-efficiency":
+        return [
+          { key: "month", label: "الشهر", type: "text", sortable: false },
+          { key: "issued", label: "صادر ₪", type: "currency" },
+          { key: "collected", label: "محصَّل ₪", type: "currency", format: v => <span className="text-emerald-600 font-mono text-xs">{fmtAmtCell(v)}</span> },
+          { key: "collectionRate", label: "معدل التحصيل %", type: "percent", format: v => <span className={`font-mono text-xs font-bold ${v >= 80 ? "text-emerald-600" : v >= 50 ? "text-amber-600" : "text-red-600"}`}>{v}%</span> },
+          { key: "onTime", label: "في الموعد", type: "number", align: "center", format: v => <span className="text-emerald-600 font-mono text-xs">{v}</span> },
+          { key: "late", label: "متأخر", type: "number", align: "center", format: v => <span className={`font-mono text-xs ${v > 0 ? "text-red-600 font-bold" : ""}`}>{v}</span> },
+          { key: "avgDaysLate", label: "متوسط أيام التأخير", type: "number", format: v => <span className="font-mono text-xs">{v > 0 ? `${v} يوم` : "—"}</span> },
+        ];
+      case "payment-allocation":
+        return [
+          { key: "receiptNumber", label: "رقم السند", type: "text" },
+          { key: "paymentDate", label: "التاريخ", type: "date" },
+          { key: "customer", label: "الزبون", type: "text" },
+          { key: "paymentMethod", label: "طريقة الدفع", type: "badge", filterType: "select", filterOptions: ["نقدي", "بنك", "شيك"] },
+          { key: "invoiceNumber", label: "الفاتورة المرتبطة", type: "text" },
+          { key: "allocated", label: "المبلغ المخصص", type: "currency" },
+        ];
+      case "unpaid-invoices":
+        return [
+          { key: "invoiceNumber", label: "الفاتورة", type: "text" },
+          { key: "customer", label: "الزبون", type: "text" },
+          { key: "issueDate", label: "تاريخ الإصدار", type: "date" },
+          { key: "total", label: "المبلغ", type: "currency" },
+          { key: "daysSinceIssue", label: "أيام منذ الإصدار", type: "number",
+            format: v => <span className={`font-mono text-xs font-bold ${v > 60 ? "text-red-600" : v > 30 ? "text-amber-600" : ""}`}>{v} يوم {v > 60 ? "🔴" : ""}</span> },
+        ];
       default:
         return null;
     }
@@ -1082,6 +1320,18 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
         return { debit: "sum", credit: "sum" };
       case "dpo-report":
         return { totalPurchases: "sum", invCount: "sum" };
+      case "invoice-lifecycle":
+        return { total: "sum", paid: "sum", remaining: "sum" };
+      case "dso-detailed":
+        return { invCount: "sum" };
+      case "ar-aging-advanced":
+        return { current: "sum", d1_30: "sum", d31_60: "sum", d61_90: "sum", over90: "sum", total: "sum" };
+      case "collection-efficiency":
+        return { issued: "sum", collected: "sum", onTime: "sum", late: "sum" };
+      case "payment-allocation":
+        return { allocated: "sum" };
+      case "unpaid-invoices":
+        return { total: "sum" };
       default:
         return undefined;
     }
