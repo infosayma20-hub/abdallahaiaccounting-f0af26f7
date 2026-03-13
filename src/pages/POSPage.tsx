@@ -1,4 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { usePOSOffline } from "@/hooks/usePOSOffline";
+import OfflineStatusBar from "@/components/pos/OfflineStatusBar";
+import SyncLogSheet from "@/components/pos/SyncLogSheet";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,7 +15,7 @@ import {
   UtensilsCrossed, Gamepad2, Shirt, Monitor, ShoppingBag, Printer,
   Apple, Zap, Coffee, Box, BarChart3, TrendingUp, PlusCircle, Tag,
   Eye, EyeOff, UserCheck, LayoutGrid, Grid3X3, Grid2X2, GripVertical,
-  FileText, Keyboard, MoreHorizontal,
+  FileText, Keyboard, MoreHorizontal, RefreshCw,
 } from "lucide-react";
 import TableSelectorBar, { type TableBarItem } from "@/components/pos/TableSelectorBar";
 import AllOrdersSheet from "@/components/pos/AllOrdersSheet";
@@ -447,6 +450,7 @@ const POSPage = () => {
    const [showPurchaseModal, setShowPurchaseModal] = useState(false);
    const [showExpenseModal, setShowExpenseModal] = useState(false);
    const [showOpsDropdown, setShowOpsDropdown] = useState(false);
+   const [showSyncLog, setShowSyncLog] = useState(false);
 
    // Modifiers
    const [modifierGroups, setModifierGroups] = useState<any[]>([]);
@@ -458,7 +462,15 @@ const POSPage = () => {
 
    const userId = user?.id;
    const [dataOwnerId, setDataOwnerId] = useState<string | null>(null);
-   const isAdmin = userId === dataOwnerId; // Employee has different dataOwnerId
+    const isAdmin = userId === dataOwnerId; // Employee has different dataOwnerId
+
+   // ── Offline Mode ──
+   const offlineMode = usePOSOffline({
+     userId: dataOwnerId || userId || null,
+     sessionId: session?.id || null,
+     terminalId: terminal?.id || null,
+     companyId: company?.id || null,
+   });
 
   // ── Cart quantity map for badges on product cards ──
   const cartQtyMap = useMemo(() => {
@@ -2217,6 +2229,13 @@ const POSPage = () => {
                     <Receipt className="h-4 w-4" style={{ color: "#C9A84C" }} /> صرف مصروف
                   </button>
                 )}
+                <div className="border-t border-gray-200 my-1" />
+                <button className="w-full text-right px-4 py-2.5 text-sm flex items-center gap-2.5 hover:bg-gray-100 transition-colors" style={{ color: "#1B3A5C" }} onClick={() => { setShowSyncLog(true); setShowOpsDropdown(false); }}>
+                  <RefreshCw className="h-4 w-4" style={{ color: "#C9A84C" }} /> سجل المزامنة
+                  {offlineMode.pendingCount > 0 && (
+                    <span className="mr-auto text-[10px] bg-red-500 text-white rounded-full px-1.5 py-0.5">{offlineMode.pendingCount}</span>
+                  )}
+                </button>
               </div>
             )}
           </div>
@@ -2238,6 +2257,16 @@ const POSPage = () => {
           إغلاق الوردية
         </button>
       </header>
+
+      {/* ══════ OFFLINE STATUS BAR ══════ */}
+      <OfflineStatusBar
+        isOnline={offlineMode.isOnline}
+        pendingCount={offlineMode.pendingCount}
+        lastSyncAt={offlineMode.lastSyncAt}
+        isSyncing={offlineMode.isSyncing}
+        syncProgress={offlineMode.syncProgress}
+        onForceSync={offlineMode.syncPendingQueue}
+      />
 
       {/* ══════ MAIN ══════ */}
       <div className="flex-1 flex overflow-hidden">
@@ -4106,6 +4135,7 @@ const POSPage = () => {
         canCreateCategory={isAdmin || posPerms.can_create_expense_category}
         sessionBalance={session ? session.opening_cash + session.total_sales : 0}
       />
+      <SyncLogSheet open={showSyncLog} onOpenChange={setShowSyncLog} />
     </div>
   );
 };
