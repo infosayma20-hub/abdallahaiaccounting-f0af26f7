@@ -39,7 +39,7 @@ const fmt = (n: number) => `₪${Math.abs(n).toLocaleString()}`;
 const uid = () => Math.random().toString(36).slice(2);
 const STATUS_MESSAGES = ["📊 يقرأ بياناتك...", "🧮 يحسب...", "✍️ يصيغ الإجابة..."];
 
-const CleanSmartAccountant = ({ user, userName, data, cfoMode, onToggleCfo, onCheque, onJournal, onTransactionSuccess, onBack }: Props) => {
+const CleanSmartAccountant = ({ user, userName, data, cfoMode, onToggleCfo, onCheque, onJournal, onTransactionSuccess, onBack, onShowHelp, onReplayOnboarding }: Props) => {
   const { toast } = useToast();
   const [messages, setMessages] = useState<Message[]>([]);
   const [sending, setSending] = useState(false);
