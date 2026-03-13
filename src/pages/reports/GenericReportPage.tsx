@@ -73,6 +73,13 @@ const reportConfigs: Record<string, { title: string; description: string }> = {
   "checks-payable": { title: "تقرير الشيكات الصادرة", description: "شيكات الموردين مع تواريخ الاستحقاق" },
   "supplier-purchase-analysis": { title: "تحليل المشتريات والموردين", description: "حجم المشتريات من كل مورد" },
   "supplier-statement-all": { title: "كشف حساب موحد للموردين", description: "كشف حساب شامل لجميع الموردين" },
+  // Invoice Tracking & Collection
+  "invoice-lifecycle": { title: "دورة حياة الفاتورة", description: "تتبع كل فاتورة من الإنشاء حتى الإغلاق" },
+  "dso-detailed": { title: "متوسط أيام التحصيل (DSO) المتقدم", description: "كم يوماً يستغرق كل زبون للسداد" },
+  "ar-aging-advanced": { title: "تعمير الذمم المدينة المتقدم", description: "توزيع الذمم على شرائح زمنية مع تفصيل كل فاتورة" },
+  "collection-efficiency": { title: "كفاءة التحصيل", description: "نسبة الفواتير المسدّدة في موعدها وتطورها شهرياً" },
+  "payment-allocation": { title: "سجل المدفوعات المرتبطة", description: "كل سند قبض مرتبط بأي فاتورة وبأي مبلغ" },
+  "unpaid-invoices": { title: "فواتير بدون نشاط دفع", description: "فواتير لم يُسجَّل عليها أي سند قبض" },
 };
 
 // ─── Helpers ───
