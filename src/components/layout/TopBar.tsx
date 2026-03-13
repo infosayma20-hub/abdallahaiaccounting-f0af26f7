@@ -185,6 +185,55 @@ const ProfileDropdown = ({
   </DropdownMenu>
 );
 
+const QUICK_ITEMS = [
+  { label: "فاتورة جديدة", icon: FileText, shortcut: "F1", path: "/invoices/new" },
+  { label: "سند قبض", icon: Landmark, shortcut: "F2", path: "/finance/receipt/new" },
+  { label: "سند صرف", icon: Wallet, shortcut: "F3", path: "/finance/payment/new" },
+  { label: "سند قيد", icon: ClipboardList, shortcut: "F4", path: "/finance/journal/new" },
+  { label: "زبائن", icon: Users, shortcut: "Ctrl+Z", path: "/contacts?type=customer" },
+  { label: "موردين", icon: Store, shortcut: "Ctrl+M", path: "/contacts?type=supplier" },
+  { label: "كشف حساب", icon: BarChart3, shortcut: "Ctrl+K", path: "/finance/account-statement" },
+  { label: "صناديق", icon: Banknote, shortcut: "Ctrl+S", path: "/finance/cash-boxes" },
+];
+
+const QuickAccessButton = () => {
+  const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button className={cn(
+          "w-9 h-9 rounded-lg flex items-center justify-center transition-all duration-150",
+          open ? "bg-accent/15 text-accent" : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+        )}>
+          <Zap className="h-[18px] w-[18px]" strokeWidth={1.8} />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="start" sideOffset={8} className="w-[280px] p-2 rounded-xl" dir="rtl">
+        <p className="text-[11px] font-bold text-muted-foreground px-2 pb-1.5 flex items-center gap-1.5">
+          <Zap className="h-3 w-3 text-accent" />وصول سريع
+        </p>
+        <div className="grid grid-cols-2 gap-1">
+          {QUICK_ITEMS.map((item) => (
+            <button
+              key={item.path}
+              onClick={() => { navigate(item.path); setOpen(false); }}
+              className="flex items-center gap-2 px-2.5 py-2 rounded-lg text-right hover:bg-secondary transition-colors group"
+            >
+              <item.icon className="h-4 w-4 text-muted-foreground group-hover:text-accent transition-colors flex-shrink-0" strokeWidth={1.6} />
+              <div className="flex-1 min-w-0">
+                <p className="text-[11px] font-medium text-foreground truncate">{item.label}</p>
+              </div>
+              <kbd className="text-[9px] font-mono text-accent/70 bg-accent/10 rounded px-1 py-0.5 flex-shrink-0">{item.shortcut}</kbd>
+            </button>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+};
+
 const AppLogo = () => {
   const { company } = useCompany();
   const navigate = useNavigate();
