@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 import KeyboardShortcutsModal from "./KeyboardShortcutsModal";
 import ShortcutsTip from "./ShortcutsTip";
 import { useGlobalShortcuts } from "@/hooks/useGlobalShortcuts";
+import QuickCalculator from "./QuickCalculator";
 
 interface TopBarProps {
   onMenuClick: () => void;
