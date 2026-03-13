@@ -1,13 +1,15 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import {
   ArrowRight, Loader2, RefreshCw, Search, FileSpreadsheet,
   TrendingUp, TrendingDown, Wallet, Printer, Calendar,
   BookOpen, Users, Truck, UserCheck, ChevronLeft, LayoutGrid,
   Settings2, AlertTriangle, FileText, CreditCard, Send, X,
   Phone, Mail, MapPin, Clock, ChevronDown, Filter, Star,
-  MessageSquare, Link2, Eye, Pencil, Receipt,
+  MessageSquare, Link2, Eye, Pencil, Receipt, User, Menu,
 } from "lucide-react";
 import * as XLSX from "xlsx";
+import html2canvas from "html2canvas";
+import { jsPDF } from "jspdf";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -16,15 +18,19 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { format, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, differenceInDays, parseISO } from "date-fns";
+import { format, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, differenceInDays, parseISO, subYears } from "date-fns";
 import { ar } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
 import StatementPrintView from "@/components/StatementPrintView";
 
 // ─── TYPES ───
@@ -96,9 +102,11 @@ interface StatementRow {
   transaction_id: string;
   currency: string;
   payment_method: string | null;
+  dueDate?: string;
 }
 
 type EntityTab = "customers" | "suppliers" | "employees" | "accounts";
+type DetailLevel = "summary" | "total" | "lineItems";
 
 // ─── CONSTANTS ───
 const ENTITY_TABS: { key: EntityTab; label: string; icon: any; color: string; accountCode: string; type: string }[] = [
@@ -177,6 +185,10 @@ interface DisplayOptions {
   showCurrency: boolean;
   showCheques: boolean;
   showVoucherDetails: boolean;
+  showDueDate: boolean;
+  showContactCode: boolean;
+  showChildAccounts: boolean;
+  showSalesOrder: boolean;
 }
 
 const DEFAULT_DISPLAY_OPTIONS: DisplayOptions = {
@@ -185,6 +197,10 @@ const DEFAULT_DISPLAY_OPTIONS: DisplayOptions = {
   showCurrency: false,
   showCheques: true,
   showVoucherDetails: true,
+  showDueDate: true,
+  showContactCode: false,
+  showChildAccounts: false,
+  showSalesOrder: false,
 };
 
 // Column config
@@ -198,9 +214,11 @@ const DEFAULT_COLUMNS: ColumnConfig[] = [
   { key: "date", label: "التاريخ", visible: true },
   { key: "reference", label: "المرجع", visible: true },
   { key: "description", label: "البيان", visible: true },
+  { key: "dueDate", label: "الاستحقاق", visible: true },
   { key: "type", label: "النوع", visible: true },
   { key: "paymentMethod", label: "طريقة الدفع", visible: false },
   { key: "currency", label: "العملة", visible: false },
+  { key: "contactCode", label: "كود الجهة", visible: false },
   { key: "debit", label: "مدين", visible: true },
   { key: "credit", label: "دائن", visible: true },
   { key: "balance", label: "الرصيد", visible: true },
@@ -214,12 +232,24 @@ const AccountStatementPage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const printRef = useRef<HTMLDivElement>(null);
+  const isMobile = useIsMobile();
 
   // URL params
   const urlContactId = searchParams.get("contact_id") || "";
   const urlContactType = searchParams.get("contact_type") || "";
   const urlEmployeeName = searchParams.get("employee_name") || "";
   const urlAccountCode = searchParams.get("code") || "";
+
+  // Responsive sidebar
+  const [windowWidth, setWindowWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1400);
+  const sidebarCollapsed = windowWidth < 1280;
+  const [showMobileEntitySheet, setShowMobileEntitySheet] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   // State
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -248,12 +278,27 @@ const AccountStatementPage = () => {
   const [showPreviewDrawer, setShowPreviewDrawer] = useState(false);
   const [previewTxId, setPreviewTxId] = useState<string>("");
   const [txTypeFilter, setTxTypeFilter] = useState("all");
+  const [detailLevel, setDetailLevel] = useState<DetailLevel>("total");
+  const [showYearComparison, setShowYearComparison] = useState(false);
+  const [showPDFPreview, setShowPDFPreview] = useState(false);
+  const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string>("");
+  const [pdfGenerating, setPdfGenerating] = useState(false);
 
   // Load saved column prefs
   const [columns, setColumns] = useState<ColumnConfig[]>(() => {
     try {
       const saved = localStorage.getItem("statement_columns_prefs");
-      return saved ? JSON.parse(saved) : DEFAULT_COLUMNS;
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        // Merge with defaults in case new columns were added
+        const keys = parsed.map((c: ColumnConfig) => c.key);
+        const merged = [...parsed];
+        for (const def of DEFAULT_COLUMNS) {
+          if (!keys.includes(def.key)) merged.push(def);
+        }
+        return merged;
+      }
+      return DEFAULT_COLUMNS;
     } catch { return DEFAULT_COLUMNS; }
   });
 
@@ -516,6 +561,15 @@ const AccountStatementPage = () => {
     return cheques.filter(c => c.party_name === selectedEntityName);
   }, [cheques, selectedEntityName, displayOptions.showCheques]);
 
+  // ─── PDC (Post-Dated Cheques) ───
+  const pdcTotal = useMemo(() => {
+    if (!selectedEntityName) return 0;
+    const today = format(new Date(), "yyyy-MM-dd");
+    return cheques
+      .filter(c => c.party_name === selectedEntityName && c.cheque_type === "وارد" && c.status === "بانتظار" && c.cheque_date > today)
+      .reduce((s, c) => s + c.amount, 0);
+  }, [cheques, selectedEntityName]);
+
   // ─── STATEMENT ROWS ───
   const { rows, openingBalance, closingBalance, totalDebit, totalCredit } = useMemo(() => {
     if (!selectedEntityId) return { rows: [] as StatementRow[], openingBalance: 0, closingBalance: 0, totalDebit: 0, totalCredit: 0 };
@@ -592,6 +646,15 @@ const AccountStatementPage = () => {
       runningBalance += debit - credit;
       sumDebit += debit;
       sumCredit += credit;
+      // Due date: for invoices, default +30 days
+      let dueDate: string | undefined;
+      if (tx.reference?.startsWith("INV-") || tx.reference?.startsWith("PO-")) {
+        try {
+          const d = parseISO(tx.transaction_date);
+          d.setDate(d.getDate() + 30);
+          dueDate = format(d, "yyyy-MM-dd");
+        } catch {}
+      }
       return {
         date: tx.transaction_date,
         description: tx.description || tx.transaction_type || "—",
@@ -602,11 +665,56 @@ const AccountStatementPage = () => {
         transaction_id: tx.id,
         currency: tx.currency || "شيكل",
         payment_method: tx.payment_method || null,
+        dueDate,
       };
     });
 
     return { rows, openingBalance: openBal, closingBalance: runningBalance, totalDebit: sumDebit, totalCredit: sumCredit };
   }, [transactions, selectedEntityId, dateFrom, dateTo, activeTab, selectedAccount, selectedEmployee, selectedCurrency]);
+
+  // ─── YEAR COMPARISON DATA ───
+  const comparisonData = useMemo(() => {
+    if (!showYearComparison || !selectedEntityId) return null;
+    // Calculate same period last year
+    try {
+      const fromPrev = format(subYears(parseISO(dateFrom), 1), "yyyy-MM-dd");
+      const toPrev = format(subYears(parseISO(dateTo), 1), "yyyy-MM-dd");
+
+      let related: Transaction[];
+      let resolveDebitCredit: (tx: Transaction) => { isDebit: boolean; isCredit: boolean };
+
+      if (isAccountsTab && selectedAccount) {
+        const code = selectedAccount.account_code;
+        related = transactions.filter(tx => tx.debit_account_code === code || tx.credit_account_code === code);
+        resolveDebitCredit = (tx) => ({ isDebit: tx.debit_account_code === code, isCredit: tx.credit_account_code === code });
+      } else if (isEmployeesTab && selectedEmployee?.account_code) {
+        const code = selectedEmployee.account_code;
+        related = transactions.filter(tx => tx.debit_account_code === code || tx.credit_account_code === code);
+        resolveDebitCredit = (tx) => ({ isDebit: tx.debit_account_code === code, isCredit: tx.credit_account_code === code });
+      } else {
+        const accountCode = activeTabConfig.accountCode;
+        const contactName = selectedContact?.contact_name?.trim() || "";
+        const sameNameIds = new Set(contacts.filter(c => c.contact_name?.trim() === contactName).map(c => c.id));
+        related = transactions.filter(tx =>
+          (tx.contact_id && sameNameIds.has(tx.contact_id)) || (!tx.contact_id && contactName && tx.description?.includes(contactName))
+        );
+        resolveDebitCredit = (tx) => ({ isDebit: tx.debit_account_code === accountCode, isCredit: tx.credit_account_code === accountCode });
+      }
+
+      let prevDebit = 0, prevCredit = 0;
+      for (const tx of related) {
+        if (tx.transaction_date < fromPrev || tx.transaction_date > toPrev) continue;
+        const { isDebit, isCredit } = resolveDebitCredit(tx);
+        if (isDebit) prevDebit += tx.amount || 0;
+        if (isCredit) prevCredit += tx.amount || 0;
+      }
+      const prevBalance = prevDebit - prevCredit;
+      const change = closingBalance - prevBalance;
+      const changePct = prevBalance !== 0 ? ((change / Math.abs(prevBalance)) * 100) : 0;
+
+      return { prevDebit, prevCredit, prevBalance, change, changePct, fromPrev, toPrev };
+    } catch { return null; }
+  }, [showYearComparison, selectedEntityId, dateFrom, dateTo, transactions, closingBalance]);
 
   // Filter rows by type and search
   const filteredRows = useMemo(() => {
@@ -649,6 +757,47 @@ const AccountStatementPage = () => {
     return { ...tx, row };
   }, [previewTxId, transactions, rows]);
 
+  // ─── PDF PREVIEW ───
+  const handlePreviewPDF = useCallback(async () => {
+    setShowPDFPreview(true);
+    setPdfGenerating(true);
+    try {
+      // Wait for print view to render
+      await new Promise(r => setTimeout(r, 300));
+      const element = document.getElementById("statement-print-wrapper");
+      if (!element) { setPdfGenerating(false); return; }
+      element.style.display = "block";
+      element.style.position = "absolute";
+      element.style.left = "-9999px";
+      element.style.top = "0";
+
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        width: 794,
+        windowWidth: 794,
+      });
+
+      element.style.display = "";
+      element.style.position = "";
+      element.style.left = "";
+      element.style.top = "";
+
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF("p", "mm", "a4");
+      const pdfW = 210;
+      const pdfH = (canvas.height * pdfW) / canvas.width;
+      pdf.addImage(imgData, "PNG", 0, 0, pdfW, pdfH);
+      setPdfPreviewUrl(pdf.output("bloburl"));
+    } catch (err) {
+      console.error("PDF generation error:", err);
+      toast({ title: "خطأ في توليد PDF", variant: "destructive" });
+    } finally {
+      setPdfGenerating(false);
+    }
+  }, [toast]);
+
   // ─── EXPORT ───
   const handleExport = () => {
     if (!rows.length || !selectedEntityName) return;
@@ -658,16 +807,20 @@ const AccountStatementPage = () => {
       [`الفترة: من ${fmtDate(dateFrom)} إلى ${fmtDate(dateTo)}`],
       [],
     ];
-    const cols = ["التاريخ", "المرجع", "البيان", "النوع", "مدين ₪", "دائن ₪", "الرصيد ₪"];
+    const cols = ["التاريخ", "المرجع", "البيان", "الاستحقاق", "النوع", "مدين ₪", "دائن ₪", "الرصيد ₪"];
     headerRows.push(cols);
     const dataRows = [
-      ["", "", "رصيد أول المدة", "", openingBalance > 0 ? openingBalance : "", openingBalance < 0 ? Math.abs(openingBalance) : "", openingBalance],
-      ...rows.map(r => [r.date, r.reference || "", r.description, r.debit > 0 ? "مدين" : "دائن", r.debit || "", r.credit || "", r.balance]),
-      ["", "", "الإجمالي", "", totalDebit, totalCredit, closingBalance],
+      ["", "", "رصيد أول المدة", "", "", openingBalance > 0 ? openingBalance : "", openingBalance < 0 ? Math.abs(openingBalance) : "", openingBalance],
+      ...rows.map(r => [r.date, r.reference || "", r.description, r.dueDate ? fmtDate(r.dueDate) : "—", r.debit > 0 ? "مدين" : "دائن", r.debit || "", r.credit || "", r.balance]),
+      ["", "", "الإجمالي", "", "", totalDebit, totalCredit, closingBalance],
     ];
+    if (pdcTotal > 0) {
+      dataRows.push(["", "", "إجمالي شيكات آجلة (PDC)", "", "", "", pdcTotal, ""]);
+      dataRows.push(["", "", "الرصيد مع PDC", "", "", "", "", closingBalance - pdcTotal]);
+    }
     const allRows = [...headerRows, ...dataRows];
     const ws = XLSX.utils.aoa_to_sheet(allRows);
-    ws["!cols"] = [{ wch: 12 }, { wch: 18 }, { wch: 38 }, { wch: 8 }, { wch: 14 }, { wch: 14 }, { wch: 16 }];
+    ws["!cols"] = [{ wch: 12 }, { wch: 18 }, { wch: 38 }, { wch: 12 }, { wch: 8 }, { wch: 14 }, { wch: 14 }, { wch: 16 }];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "كشف الحساب");
     XLSX.writeFile(wb, `كشف-حساب-${selectedEntityName}-${dateFrom}.xlsx`);
@@ -709,7 +862,7 @@ const AccountStatementPage = () => {
     localStorage.setItem("statement_columns_prefs", JSON.stringify(newCols));
   };
 
-  const isColVisible = (key: string) => columns.find(c => c.key === key)?.visible ?? true;
+  const isColVisible = (key: string) => columns.find(c => c.key === key)?.visible ?? (key === "dueDate" ? displayOptions.showDueDate : false);
 
   // Send via WhatsApp
   const sendWhatsApp = () => {
@@ -719,6 +872,84 @@ const AccountStatementPage = () => {
     const msg = `السلام عليكم ${selectedEntityName}،\nنرفق كشف حسابكم للفترة من ${fmtDate(dateFrom)} إلى ${fmtDate(dateTo)}\nالرصيد الحالي: ${fmtAmount(closingBalance)} (${balType})\n${companyInfo.name}`;
     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, "_blank");
   };
+
+  const selectEntity = (id: string) => {
+    setSelectedEntityId(id);
+    setShowMobileEntitySheet(false);
+  };
+
+  // ─── SIDEBAR CONTENT (reusable) ───
+  const renderSidebarContent = () => (
+    <>
+      <div className="p-3 border-b border-border space-y-2.5">
+        <div className="relative">
+          <Search className="absolute right-2.5 top-2.5 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder={isAccountsTab ? "ابحث بالاسم أو الكود..." : "ابحث بالاسم أو الرقم..."}
+            value={entitySearch}
+            onChange={e => setEntitySearch(e.target.value)}
+            className="pr-9 h-9 text-xs bg-muted/50 border-0 rounded-lg"
+          />
+        </div>
+        <div className="bg-muted/30 rounded-lg p-2.5 space-y-1">
+          <div className="flex items-center justify-between text-[11px]">
+            <span className="text-muted-foreground">الرصيد الإجمالي:</span>
+            <span className={cn("font-bold tabular-nums", totalBalance > 0 ? "text-red-600" : totalBalance < 0 ? "text-emerald-600" : "text-foreground")}>
+              {fmtAmount(totalBalance)}
+            </span>
+          </div>
+          <div className="flex items-center gap-2 text-[10px]">
+            <span className="text-red-500">+{debitCount} مدين</span>
+            <span className="text-emerald-500">+{creditCount} دائن</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto">
+        {loading ? (
+          <div className="p-3 space-y-2">
+            {[1,2,3,4].map(i => <Skeleton key={i} className="h-14 w-full rounded-lg" />)}
+          </div>
+        ) : entityList.length === 0 ? (
+          <div className="p-6 text-center text-xs text-muted-foreground">لا توجد نتائج</div>
+        ) : (
+          entityList.map(entity => {
+            const isActive = entity.id === selectedEntityId;
+            const balPct = Math.min((Math.abs(entity.balance) / maxBalance) * 100, 100);
+            return (
+              <button
+                key={entity.id}
+                onClick={() => selectEntity(entity.id)}
+                className={cn(
+                  "w-full text-right px-3 py-3 border-b border-border/30 transition-all hover:bg-muted/30",
+                  isActive && "bg-primary/5 border-r-2 border-r-primary"
+                )}
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <span className={cn("text-xs font-semibold truncate", isActive ? "text-primary" : "text-foreground")}>
+                    {entity.name}
+                  </span>
+                  <span className={cn("text-xs font-bold tabular-nums shrink-0 mr-2",
+                    entity.balance > 0 ? "text-red-600" : entity.balance < 0 ? "text-emerald-600" : "text-muted-foreground"
+                  )}>
+                    {entity.balance === 0 ? "✓ مسدَّد" : fmtAmount(entity.balance)}
+                  </span>
+                </div>
+                {entity.balance !== 0 && (
+                  <div className="h-1 rounded-full bg-muted/50 overflow-hidden">
+                    <div
+                      className={cn("h-full rounded-full transition-all", entity.balance > 0 ? "bg-red-500" : "bg-emerald-500")}
+                      style={{ width: `${balPct}%` }}
+                    />
+                  </div>
+                )}
+              </button>
+            );
+          })
+        )}
+      </div>
+    </>
+  );
 
   // ─── RENDER ───
   return (
@@ -738,7 +969,7 @@ const AccountStatementPage = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 flex-wrap">
             <Button variant="ghost" size="icon" onClick={fetchData} disabled={loading} className="h-8 w-8">
               <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
             </Button>
@@ -750,6 +981,18 @@ const AccountStatementPage = () => {
             >
               <Settings2 className="w-3.5 h-3.5" /> تخصيص
             </Button>
+
+            {/* PDF Preview button */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handlePreviewPDF}
+              disabled={!selectedEntityId || rows.length === 0}
+              className="h-8 gap-1.5 text-xs"
+            >
+              <Eye className="w-3.5 h-3.5" /> معاينة PDF
+            </Button>
+
             <Button variant="outline" size="sm" onClick={() => window.print()} disabled={!selectedEntityId || rows.length === 0} className="h-8 gap-1.5 text-xs">
               <Printer className="w-3.5 h-3.5" /> طباعة
             </Button>
@@ -810,104 +1053,21 @@ const AccountStatementPage = () => {
         </div>
       </div>
 
-      {/* ─── BODY: Left Panel + Main ─── */}
+      {/* ─── BODY: Sidebar + Main ─── */}
       <div className="flex flex-1 overflow-hidden">
 
-        {/* ─── SIDE PANEL (RIGHT) ─── */}
-        <div className="border-l border-border bg-card flex flex-col shrink-0 w-[280px] no-print">
-          {/* Search */}
-          <div className="p-3 border-b border-border space-y-2.5">
-            <div className="relative">
-              <Search className="absolute right-2.5 top-2.5 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder={isAccountsTab ? "ابحث بالاسم أو الكود..." : "ابحث بالاسم أو الرقم..."}
-                value={entitySearch}
-                onChange={e => setEntitySearch(e.target.value)}
-                className="pr-9 h-9 text-xs bg-muted/50 border-0 rounded-lg"
-              />
-            </div>
-            <div className="bg-muted/30 rounded-lg p-2.5 space-y-1">
-              <div className="flex items-center justify-between text-[11px]">
-                <span className="text-muted-foreground">الرصيد الإجمالي:</span>
-                <span className="font-bold text-foreground tabular-nums">{fmtAmount(totalBalance)}</span>
-              </div>
-              <div className="flex items-center justify-between text-[10px]">
-                <span className="text-emerald-500 font-medium">↑{debitCount} مدين</span>
-                <span className="text-red-400 font-medium">↓{creditCount} دائن</span>
-              </div>
-            </div>
+        {/* ─── SIDE PANEL (RIGHT) — only on large screens ─── */}
+        {!sidebarCollapsed && (
+          <div className="border-l border-border bg-card flex flex-col shrink-0 no-print" style={{ width: "280px", minWidth: "280px" }}>
+            {renderSidebarContent()}
           </div>
-
-          {/* Entity list */}
-          <div className="flex-1 overflow-y-auto">
-            {loading ? (
-              <div className="p-3 space-y-3">
-                {[1,2,3].map(i => (
-                  <div key={i} className="space-y-2">
-                    <Skeleton className="h-4 w-3/4" />
-                    <Skeleton className="h-3 w-1/2" />
-                    <Skeleton className="h-1.5 w-full rounded-full" />
-                  </div>
-                ))}
-              </div>
-            ) : entityList.length === 0 ? (
-              <div className="p-6 text-center text-xs text-muted-foreground">
-                {isAccountsTab ? "لا توجد حسابات" : isEmployeesTab ? "لا يوجد موظفون" : "لا توجد جهات اتصال"}
-              </div>
-            ) : (
-              entityList.map(entity => {
-                const isActive = entity.id === selectedEntityId;
-                const absBalance = Math.abs(entity.balance);
-                const barWidth = maxBalance > 0 ? (absBalance / maxBalance) * 100 : 0;
-                return (
-                  <button
-                    key={entity.id}
-                    onClick={() => setSelectedEntityId(entity.id)}
-                    className={cn(
-                      "w-full text-right px-3 py-3 border-b border-border/40 transition-all hover:bg-muted/50",
-                      isActive && "bg-primary/5 border-r-[3px] border-r-primary"
-                    )}
-                  >
-                    <div className="flex items-start justify-between gap-2 mb-1.5">
-                      <p className={cn("text-xs font-bold truncate", isActive ? "text-primary" : "text-foreground")}>
-                        {entity.name}
-                      </p>
-                      <span className={cn(
-                        "shrink-0 text-[11px] font-bold tabular-nums",
-                        entity.balance > 0 ? "text-emerald-600" :
-                        entity.balance < 0 ? "text-red-500" :
-                        "text-muted-foreground"
-                      )}>
-                        {entity.balance === 0 ? "✓ مسدَّد" : fmtAmount(entity.balance)}
-                      </span>
-                    </div>
-                    {/* Progress bar */}
-                    {entity.balance !== 0 && (
-                      <div className="h-1 rounded-full bg-muted/60 overflow-hidden">
-                        <div
-                          className={cn(
-                            "h-full rounded-full transition-all",
-                            entity.balance > 0 ? "bg-emerald-500" : "bg-red-400"
-                          )}
-                          style={{ width: `${Math.min(barWidth, 100)}%` }}
-                        />
-                      </div>
-                    )}
-                    {entity.balance === 0 && (
-                      <div className="h-1 rounded-full bg-muted/40" />
-                    )}
-                  </button>
-                );
-              })
-            )}
-          </div>
-        </div>
+        )}
 
         {/* ─── MAIN CONTENT ─── */}
-        <div className="flex-1 flex flex-col overflow-y-auto">
+        <div className="flex-1 flex flex-col overflow-y-auto min-w-0">
           <div ref={printRef} className="print-area flex-1">
 
-            {/* Professional Print View */}
+            {/* Professional Print View (hidden until print/PDF) */}
             <div id="statement-print-wrapper" className="print-only">
               <StatementPrintView
                 company={companyInfo}
@@ -927,6 +1087,48 @@ const AccountStatementPage = () => {
                 dateTo={dateTo}
               />
             </div>
+
+            {/* Contact selector for collapsed sidebar (medium screens) */}
+            {sidebarCollapsed && !isMobile && (
+              <div className="px-4 pt-3 no-print">
+                <div className="flex items-center gap-2">
+                  <Select value={selectedEntityId} onValueChange={selectEntity}>
+                    <SelectTrigger className="h-9 text-xs bg-muted/50 border-border rounded-lg flex-1">
+                      <SelectValue placeholder="اختر جهة ▼" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-72">
+                      {entityList.map(e => (
+                        <SelectItem key={e.id} value={e.id} className="text-xs">
+                          <span className="flex items-center gap-2">
+                            {e.name}
+                            <span className={cn("text-[10px] tabular-nums", e.balance > 0 ? "text-red-600" : e.balance < 0 ? "text-emerald-600" : "text-muted-foreground")}>
+                              {e.balance === 0 ? "✓" : fmtAmount(e.balance)}
+                            </span>
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
+
+            {/* Mobile: Contact selector button */}
+            {isMobile && (
+              <div className="px-4 pt-3 no-print">
+                <Button
+                  variant="outline"
+                  className="w-full h-10 gap-2 text-xs justify-between"
+                  onClick={() => setShowMobileEntitySheet(true)}
+                >
+                  <span className="flex items-center gap-2">
+                    <User className="w-4 h-4" />
+                    {selectedEntityName || "اختر جهة لعرض كشفها"}
+                  </span>
+                  <ChevronDown className="w-4 h-4" />
+                </Button>
+              </div>
+            )}
 
             {!selectedEntityId ? (
               <div className="flex-1 flex items-center justify-center py-32">
@@ -961,10 +1163,9 @@ const AccountStatementPage = () => {
                 {/* ─── ENTITY INFO CARD ─── */}
                 <div className="p-4 no-print">
                   <div className="bg-card rounded-xl border border-border p-5">
-                    {/* Entity header */}
                     <div className="flex items-start justify-between mb-5">
                       <div className="space-y-2">
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-3 flex-wrap">
                           <h2 className="text-lg font-bold text-foreground">{selectedEntityName}</h2>
                           <Badge variant="secondary" className="text-[10px]">
                             {isAccountsTab ? selectedAccount?.account_type : isEmployeesTab ? "موظف" : selectedContact?.contact_type}
@@ -981,7 +1182,6 @@ const AccountStatementPage = () => {
                             </Badge>
                           )}
                         </div>
-                        {/* Contact details row */}
                         <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
                           {selectedEntityInfo.code && (
                             <span className="font-mono bg-muted/50 px-2 py-0.5 rounded text-[11px]">{selectedEntityInfo.code}</span>
@@ -1005,8 +1205,7 @@ const AccountStatementPage = () => {
                     </div>
 
                     {/* 4 KPI Cards */}
-                    <div className="grid grid-cols-4 gap-3">
-                      {/* Opening Balance */}
+                    <div className={cn("grid gap-3", isMobile ? "grid-cols-2" : "grid-cols-4")}>
                       <div className="rounded-xl border border-border bg-muted/20 p-3.5 text-center">
                         <div className="flex items-center justify-center gap-1.5 mb-1.5">
                           <BookOpen className="w-3.5 h-3.5 text-muted-foreground" />
@@ -1015,8 +1214,6 @@ const AccountStatementPage = () => {
                         <p className="text-lg font-bold tabular-nums text-foreground">{fmtAmount(openingBalance)}</p>
                         <p className="text-[10px] text-muted-foreground mt-0.5">{openingBalance >= 0 ? "مدين" : "دائن"}</p>
                       </div>
-
-                      {/* Total Debit */}
                       <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-3.5 text-center">
                         <div className="flex items-center justify-center gap-1.5 mb-1.5">
                           <TrendingUp className="w-3.5 h-3.5 text-red-500" />
@@ -1024,8 +1221,6 @@ const AccountStatementPage = () => {
                         </div>
                         <p className="text-lg font-bold tabular-nums text-red-600">{fmtAmount(totalDebit)}</p>
                       </div>
-
-                      {/* Total Credit */}
                       <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3.5 text-center">
                         <div className="flex items-center justify-center gap-1.5 mb-1.5">
                           <TrendingDown className="w-3.5 h-3.5 text-emerald-500" />
@@ -1033,8 +1228,6 @@ const AccountStatementPage = () => {
                         </div>
                         <p className="text-lg font-bold tabular-nums text-emerald-600">{fmtAmount(totalCredit)}</p>
                       </div>
-
-                      {/* Closing Balance / Oldest Invoice */}
                       <div className={cn("rounded-xl border p-3.5 text-center",
                         closingBalance > 0 ? "border-red-500/20 bg-red-50 dark:bg-red-500/5" :
                         closingBalance < 0 ? "border-emerald-500/20 bg-emerald-50 dark:bg-emerald-500/5" :
@@ -1065,7 +1258,6 @@ const AccountStatementPage = () => {
                 {/* ─── FILTER BAR ─── */}
                 <div className="px-4 pb-3 no-print">
                   <div className="bg-card rounded-xl border border-border p-3 space-y-3">
-                    {/* Row 1: Date range + quick periods */}
                     <div className="flex items-center gap-3 flex-wrap">
                       <div className="flex items-center gap-2">
                         <label className="text-[10px] text-muted-foreground font-semibold">من</label>
@@ -1092,7 +1284,6 @@ const AccountStatementPage = () => {
                       ))}
                     </div>
 
-                    {/* Row 2: Type filter + search */}
                     <div className="flex items-center gap-3 flex-wrap">
                       <div className="flex items-center gap-2">
                         <Filter className="w-3.5 h-3.5 text-muted-foreground" />
@@ -1117,6 +1308,17 @@ const AccountStatementPage = () => {
                           ))}
                         </SelectContent>
                       </Select>
+
+                      {/* Year comparison toggle */}
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <Checkbox
+                          checked={showYearComparison}
+                          onCheckedChange={(v) => setShowYearComparison(!!v)}
+                          className="h-3.5 w-3.5"
+                        />
+                        <span className="text-[11px] text-muted-foreground">مقارنة بالسنة السابقة</span>
+                      </label>
+
                       <div className="flex-1" />
                       <div className="relative">
                         <Search className="absolute right-2.5 top-2 w-3.5 h-3.5 text-muted-foreground" />
@@ -1130,6 +1332,61 @@ const AccountStatementPage = () => {
                     </div>
                   </div>
                 </div>
+
+                {/* ─── YEAR COMPARISON CARDS ─── */}
+                {showYearComparison && comparisonData && (
+                  <div className="px-4 pb-3 no-print">
+                    <div className="bg-card rounded-xl border border-border p-4">
+                      <h4 className="text-xs font-bold text-muted-foreground mb-3">📊 مقارنة بنفس الفترة من السنة الماضية ({fmtDate(comparisonData.fromPrev)} — {fmtDate(comparisonData.toPrev)})</h4>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <table className="w-full text-xs">
+                            <thead>
+                              <tr>
+                                <th className="text-right py-1 text-muted-foreground font-semibold"></th>
+                                <th className="text-left py-1 text-muted-foreground font-semibold">{fmtDate(dateFrom).slice(-4)}</th>
+                                <th className="text-left py-1 text-muted-foreground font-semibold">{fmtDate(comparisonData.fromPrev).slice(-4)}</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr className="border-b border-border/30">
+                                <td className="py-1.5 text-muted-foreground">إجمالي مدين</td>
+                                <td className="py-1.5 text-left tabular-nums font-semibold text-red-600">{fmtAmount(totalDebit)}</td>
+                                <td className="py-1.5 text-left tabular-nums font-semibold text-red-400">{fmtAmount(comparisonData.prevDebit)}</td>
+                              </tr>
+                              <tr className="border-b border-border/30">
+                                <td className="py-1.5 text-muted-foreground">إجمالي دائن</td>
+                                <td className="py-1.5 text-left tabular-nums font-semibold text-emerald-600">{fmtAmount(totalCredit)}</td>
+                                <td className="py-1.5 text-left tabular-nums font-semibold text-emerald-400">{fmtAmount(comparisonData.prevCredit)}</td>
+                              </tr>
+                              <tr>
+                                <td className="py-1.5 font-bold text-foreground">رصيد ختامي</td>
+                                <td className="py-1.5 text-left tabular-nums font-bold">{fmtAmount(closingBalance)}</td>
+                                <td className="py-1.5 text-left tabular-nums font-bold">{fmtAmount(comparisonData.prevBalance)}</td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+                        <div className="flex items-center justify-center">
+                          <div className={cn(
+                            "rounded-xl p-4 text-center border",
+                            comparisonData.change > 0 ? "bg-red-500/5 border-red-500/20" : "bg-emerald-500/5 border-emerald-500/20"
+                          )}>
+                            <p className="text-[10px] text-muted-foreground mb-1">التغيير</p>
+                            <p className={cn("text-lg font-bold tabular-nums", comparisonData.change > 0 ? "text-red-600" : "text-emerald-600")}>
+                              {comparisonData.change > 0 ? "+" : ""}{fmtAmount(comparisonData.change)}
+                            </p>
+                            {comparisonData.changePct !== 0 && (
+                              <p className={cn("text-xs font-semibold", comparisonData.change > 0 ? "text-red-500" : "text-emerald-500")}>
+                                ({comparisonData.changePct > 0 ? "+" : ""}{Math.round(comparisonData.changePct)}%)
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* ─── CHEQUES SECTION ─── */}
                 {displayOptions.showCheques && relatedCheques.length > 0 && (
@@ -1150,34 +1407,36 @@ const AccountStatementPage = () => {
                       </CollapsibleTrigger>
                       <CollapsibleContent>
                         <div className="mt-1 bg-card rounded-xl border border-border overflow-hidden">
-                          <table className="w-full text-[12px]">
-                            <thead>
-                              <tr style={{ background: "#0D1B2A" }}>
-                                <th className="text-right px-3 py-2 text-[10px] font-bold text-white">رقم الشيك</th>
-                                <th className="text-center px-3 py-2 text-[10px] font-bold text-white">النوع</th>
-                                <th className="text-left px-3 py-2 text-[10px] font-bold text-white">المبلغ</th>
-                                <th className="text-right px-3 py-2 text-[10px] font-bold text-white">التاريخ</th>
-                                <th className="text-center px-3 py-2 text-[10px] font-bold text-white">الحالة</th>
-                                <th className="text-right px-3 py-2 text-[10px] font-bold text-white">البنك</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {relatedCheques.map((c, i) => (
-                                <tr key={c.id} className={cn("border-b border-border/30 hover:bg-muted/20 transition-colors", i % 2 === 1 && "bg-muted/10")}>
-                                  <td className="px-3 py-2 text-right">
-                                    <button onClick={() => navigate("/cheques")} className="text-primary hover:underline font-mono text-[11px]">{c.cheque_number || "—"}</button>
-                                  </td>
-                                  <td className="px-3 py-2 text-center">
-                                    <span className={cn("text-[10px] font-semibold px-1.5 py-0.5 rounded border", c.cheque_type === "وارد" ? "border-emerald-500/30 text-emerald-500 bg-emerald-500/5" : "border-red-500/30 text-red-500 bg-red-500/5")}>{c.cheque_type}</span>
-                                  </td>
-                                  <td className="px-3 py-2 text-left font-mono font-semibold">{fmtAmount(c.amount)}</td>
-                                  <td className="px-3 py-2 text-right text-muted-foreground">{fmtDate(c.cheque_date)}</td>
-                                  <td className="px-3 py-2 text-center"><Badge variant="outline" className="text-[9px]">{c.status}</Badge></td>
-                                  <td className="px-3 py-2 text-right text-muted-foreground">{c.bank_name || "—"}</td>
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-[12px]" style={{ minWidth: "500px" }}>
+                              <thead>
+                                <tr style={{ background: "#0D1B2A" }}>
+                                  <th className="text-right px-3 py-2 text-[10px] font-bold text-white">رقم الشيك</th>
+                                  <th className="text-center px-3 py-2 text-[10px] font-bold text-white">النوع</th>
+                                  <th className="text-left px-3 py-2 text-[10px] font-bold text-white">المبلغ</th>
+                                  <th className="text-right px-3 py-2 text-[10px] font-bold text-white">التاريخ</th>
+                                  <th className="text-center px-3 py-2 text-[10px] font-bold text-white">الحالة</th>
+                                  <th className="text-right px-3 py-2 text-[10px] font-bold text-white">البنك</th>
                                 </tr>
-                              ))}
-                            </tbody>
-                          </table>
+                              </thead>
+                              <tbody>
+                                {relatedCheques.map((c, i) => (
+                                  <tr key={c.id} className={cn("border-b border-border/30 hover:bg-muted/20 transition-colors", i % 2 === 1 && "bg-muted/10")}>
+                                    <td className="px-3 py-2 text-right">
+                                      <button onClick={() => navigate("/cheques")} className="text-primary hover:underline font-mono text-[11px]">{c.cheque_number || "—"}</button>
+                                    </td>
+                                    <td className="px-3 py-2 text-center">
+                                      <span className={cn("text-[10px] font-semibold px-1.5 py-0.5 rounded border", c.cheque_type === "وارد" ? "border-emerald-500/30 text-emerald-500 bg-emerald-500/5" : "border-red-500/30 text-red-500 bg-red-500/5")}>{c.cheque_type}</span>
+                                    </td>
+                                    <td className="px-3 py-2 text-left font-mono font-semibold">{fmtAmount(c.amount)}</td>
+                                    <td className="px-3 py-2 text-right text-muted-foreground">{fmtDate(c.cheque_date)}</td>
+                                    <td className="px-3 py-2 text-center"><Badge variant="outline" className="text-[9px]">{c.status}</Badge></td>
+                                    <td className="px-3 py-2 text-right text-muted-foreground">{c.bank_name || "—"}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
                         </div>
                       </CollapsibleContent>
                     </Collapsible>
@@ -1201,27 +1460,31 @@ const AccountStatementPage = () => {
                     </div>
                   ) : (
                     <div className="bg-card rounded-xl border border-border overflow-hidden">
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-[13px]" style={{ tableLayout: "fixed" }}>
+                      <div className="overflow-x-auto" style={{ WebkitOverflowScrolling: "touch" }}>
+                        <table className="w-full text-[13px]" style={{ tableLayout: "fixed", minWidth: "800px" }}>
                           <colgroup>
-                            {isColVisible("date") && <col style={{ width: "110px" }} />}
-                            {isColVisible("reference") && <col style={{ width: "130px" }} />}
+                            {isColVisible("date") && <col style={{ width: "100px" }} />}
+                            {isColVisible("reference") && <col style={{ width: "120px" }} />}
                             {isColVisible("description") && <col />}
-                            {isColVisible("type") && <col style={{ width: "110px" }} />}
-                            {isColVisible("paymentMethod") && <col style={{ width: "90px" }} />}
-                            {isColVisible("currency") && <col style={{ width: "70px" }} />}
-                            {isColVisible("debit") && <col style={{ width: "120px" }} />}
-                            {isColVisible("credit") && <col style={{ width: "120px" }} />}
-                            {isColVisible("balance") && <col style={{ width: "140px" }} />}
+                            {isColVisible("dueDate") && <col style={{ width: "90px" }} />}
+                            {isColVisible("type") && <col style={{ width: "105px" }} />}
+                            {isColVisible("paymentMethod") && <col style={{ width: "85px" }} />}
+                            {isColVisible("currency") && <col style={{ width: "65px" }} />}
+                            {isColVisible("contactCode") && <col style={{ width: "80px" }} />}
+                            {isColVisible("debit") && <col style={{ width: "110px" }} />}
+                            {isColVisible("credit") && <col style={{ width: "110px" }} />}
+                            {isColVisible("balance") && <col style={{ width: "130px" }} />}
                           </colgroup>
                           <thead className="sticky top-0 z-10">
                             <tr style={{ background: "#0D1B2A" }}>
                               {isColVisible("date") && <th className="text-right px-3 py-3 text-[11px] font-bold text-white">التاريخ</th>}
                               {isColVisible("reference") && <th className="text-right px-3 py-3 text-[11px] font-bold text-white">المرجع</th>}
                               {isColVisible("description") && <th className="text-right px-3 py-3 text-[11px] font-bold text-white">البيان</th>}
+                              {isColVisible("dueDate") && <th className="text-right px-3 py-3 text-[11px] font-bold text-white">الاستحقاق</th>}
                               {isColVisible("type") && <th className="text-center px-3 py-3 text-[11px] font-bold text-white">النوع</th>}
                               {isColVisible("paymentMethod") && <th className="text-center px-3 py-3 text-[11px] font-bold text-white">الدفع</th>}
                               {isColVisible("currency") && <th className="text-center px-3 py-3 text-[11px] font-bold text-white">العملة</th>}
+                              {isColVisible("contactCode") && <th className="text-center px-3 py-3 text-[11px] font-bold text-white">كود الجهة</th>}
                               {isColVisible("debit") && <th className="text-left px-3 py-3 text-[11px] font-bold text-red-300">مدين ₪</th>}
                               {isColVisible("credit") && <th className="text-left px-3 py-3 text-[11px] font-bold text-emerald-300">دائن ₪</th>}
                               {isColVisible("balance") && <th className="text-left px-3 py-3 text-[11px] font-bold text-white">الرصيد ₪</th>}
@@ -1233,9 +1496,11 @@ const AccountStatementPage = () => {
                               {isColVisible("date") && <td className="px-3 py-2.5 text-xs text-muted-foreground italic">{fmtDate(dateFrom)}</td>}
                               {isColVisible("reference") && <td className="px-3 py-2.5 text-xs text-muted-foreground">—</td>}
                               {isColVisible("description") && <td className="px-3 py-2.5 text-xs font-bold text-foreground italic">رصيد مُرحَّل</td>}
+                              {isColVisible("dueDate") && <td className="px-3 py-2.5"></td>}
                               {isColVisible("type") && <td className="px-3 py-2.5"></td>}
                               {isColVisible("paymentMethod") && <td className="px-3 py-2.5"></td>}
                               {isColVisible("currency") && <td className="px-3 py-2.5"></td>}
+                              {isColVisible("contactCode") && <td className="px-3 py-2.5"></td>}
                               {isColVisible("debit") && <td className="px-3 py-2.5 text-xs text-left tabular-nums text-muted-foreground">{openingBalance > 0 ? fmtAmount(openingBalance) : "—"}</td>}
                               {isColVisible("credit") && <td className="px-3 py-2.5 text-xs text-left tabular-nums text-muted-foreground">{openingBalance < 0 ? fmtAmount(openingBalance) : "—"}</td>}
                               {isColVisible("balance") && <td className="px-3 py-2.5 text-left"><BalanceCell value={openingBalance} /></td>}
@@ -1273,6 +1538,11 @@ const AccountStatementPage = () => {
                                     </td>
                                   )}
                                   {isColVisible("description") && <td className="px-3 py-2 text-xs text-foreground truncate">{row.description}</td>}
+                                  {isColVisible("dueDate") && (
+                                    <td className="px-3 py-2 text-xs text-muted-foreground tabular-nums">
+                                      {row.dueDate ? fmtDate(row.dueDate) : "—"}
+                                    </td>
+                                  )}
                                   {isColVisible("type") && (
                                     <td className="px-3 py-2 text-center">
                                       <span className={cn("inline-block text-[10px] font-semibold px-2 py-0.5 rounded-md border", badge.color)}>
@@ -1282,6 +1552,7 @@ const AccountStatementPage = () => {
                                   )}
                                   {isColVisible("paymentMethod") && <td className="px-3 py-2 text-center text-[10px] text-muted-foreground">{row.payment_method || "—"}</td>}
                                   {isColVisible("currency") && <td className="px-3 py-2 text-center text-[10px] text-muted-foreground">{row.currency}</td>}
+                                  {isColVisible("contactCode") && <td className="px-3 py-2 text-center text-[10px] text-muted-foreground font-mono">{selectedEntityInfo.code || "—"}</td>}
                                   {isColVisible("debit") && (
                                     <td className="px-3 py-2 text-left tabular-nums font-semibold text-red-600">
                                       {row.debit > 0 ? fmtAmount(row.debit) : "—"}
@@ -1302,9 +1573,11 @@ const AccountStatementPage = () => {
                               {isColVisible("date") && <td className="px-3 py-3.5 text-xs font-bold text-white">—</td>}
                               {isColVisible("reference") && <td className="px-3 py-3.5 text-xs font-bold text-white">—</td>}
                               {isColVisible("description") && <td className="px-3 py-3.5 text-sm font-bold text-white">رصيد ختامي</td>}
+                              {isColVisible("dueDate") && <td className="px-3 py-3.5"></td>}
                               {isColVisible("type") && <td className="px-3 py-3.5"></td>}
                               {isColVisible("paymentMethod") && <td className="px-3 py-3.5"></td>}
                               {isColVisible("currency") && <td className="px-3 py-3.5"></td>}
+                              {isColVisible("contactCode") && <td className="px-3 py-3.5"></td>}
                               {isColVisible("debit") && <td className="px-3 py-3.5 text-left tabular-nums font-bold text-red-300 text-sm">{fmtAmount(totalDebit)}</td>}
                               {isColVisible("credit") && <td className="px-3 py-3.5 text-left tabular-nums font-bold text-emerald-300 text-sm">{fmtAmount(totalCredit)}</td>}
                               {isColVisible("balance") && (
@@ -1323,25 +1596,42 @@ const AccountStatementPage = () => {
                         </table>
                       </div>
 
-                      {/* Enhanced Footer */}
-                      <div className="bg-muted/60 border-t border-border px-4 py-3">
+                      {/* Enhanced Footer with PDC */}
+                      <div className="bg-muted/60 border-t border-border px-4 py-3 space-y-2">
                         <div className="flex items-center justify-between text-xs flex-wrap gap-2">
                           <span className="text-muted-foreground">
                             إجمالي الحركات: <strong className="text-foreground">{filteredRows.length} قيد</strong>
                           </span>
-                          <div className="flex items-center gap-4">
-                            <span>مدين: <strong className="text-red-600 tabular-nums">{fmtAmount(totalDebit)}</strong></span>
-                            <span>دائن: <strong className="text-emerald-600 tabular-nums">{fmtAmount(totalCredit)}</strong></span>
+                          <div className="flex items-center gap-4 flex-wrap">
+                            <span>إجمالي مدين: <strong className="text-red-600 tabular-nums">{fmtAmount(totalDebit)}</strong></span>
+                            <span>إجمالي دائن: <strong className="text-emerald-600 tabular-nums">{fmtAmount(totalCredit)}</strong></span>
                             <Separator orientation="vertical" className="h-4" />
                             <span>رصيد الفترة: <strong className="text-foreground tabular-nums">{fmtAmount(totalDebit - totalCredit)}</strong></span>
                             <Separator orientation="vertical" className="h-4" />
                             <span>
-                              رصيد ختامي: <strong className={cn("tabular-nums", closingBalance > 0 ? "text-red-600" : closingBalance < 0 ? "text-emerald-600" : "text-foreground")}>
+                              الرصيد الختامي: <strong className={cn("tabular-nums", closingBalance > 0 ? "text-red-600" : closingBalance < 0 ? "text-emerald-600" : "text-foreground")}>
                                 {fmtAmount(closingBalance)}
                               </strong> ({closingBalance >= 0 ? "مدين" : "دائن"})
                             </span>
                           </div>
-                          <span className="text-[10px] text-muted-foreground">أساس الاستحقاق · {fmtDate(format(new Date(), "yyyy-MM-dd"))}</span>
+                        </div>
+
+                        {/* PDC section */}
+                        {pdcTotal > 0 && (
+                          <div className="flex items-center gap-4 text-xs border-t border-border/50 pt-2 flex-wrap">
+                            <span className="text-muted-foreground">إجمالي شيكات آجلة (PDC):</span>
+                            <strong className="text-emerald-600 tabular-nums">{fmtAmount(pdcTotal)}</strong>
+                            <Separator orientation="vertical" className="h-4" />
+                            <span className="text-muted-foreground">الرصيد مع PDC:</span>
+                            <strong className={cn("tabular-nums", (closingBalance - pdcTotal) > 0 ? "text-red-600" : "text-emerald-600")}>
+                              {fmtAmount(closingBalance - pdcTotal)}
+                            </strong>
+                          </div>
+                        )}
+
+                        <div className="flex items-center justify-between text-[10px] text-muted-foreground border-t border-border/50 pt-2">
+                          <span>أساس المحاسبة: الاستحقاق</span>
+                          <span>تاريخ الطباعة: {fmtDate(format(new Date(), "yyyy-MM-dd"))}</span>
                         </div>
                       </div>
                     </div>
@@ -1353,15 +1643,59 @@ const AccountStatementPage = () => {
         </div>
       </div>
 
+      {/* ─── MOBILE ENTITY SHEET (Bottom Sheet) ─── */}
+      <Sheet open={showMobileEntitySheet} onOpenChange={setShowMobileEntitySheet}>
+        <SheetContent side="bottom" className="h-[70vh] rounded-t-2xl" dir="rtl">
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-2">
+              <User className="w-5 h-5" /> اختر جهة
+            </SheetTitle>
+          </SheetHeader>
+          <div className="flex flex-col h-full mt-3">
+            {renderSidebarContent()}
+          </div>
+        </SheetContent>
+      </Sheet>
+
       {/* ─── CUSTOMIZE PANEL (Sheet from right) ─── */}
       <Sheet open={showCustomizePanel} onOpenChange={setShowCustomizePanel}>
-        <SheetContent side="right" className="w-[340px]" dir="rtl">
+        <SheetContent side="right" className="w-[360px] overflow-y-auto" dir="rtl">
           <SheetHeader>
             <SheetTitle className="flex items-center gap-2">
               <Settings2 className="w-5 h-5" /> تخصيص الكشف
             </SheetTitle>
           </SheetHeader>
           <div className="space-y-6 mt-6">
+            {/* Detail level */}
+            <div className="space-y-3">
+              <h4 className="text-xs font-bold text-muted-foreground uppercase">📋 مستوى تفصيل الكشف</h4>
+              <RadioGroup value={detailLevel} onValueChange={(v) => setDetailLevel(v as DetailLevel)} className="space-y-2">
+                <div className="flex items-start gap-3 p-2 rounded-lg hover:bg-muted/30 transition-colors">
+                  <RadioGroupItem value="summary" id="summary" className="mt-0.5" />
+                  <div>
+                    <Label htmlFor="summary" className="text-sm font-medium cursor-pointer">ملخص فقط</Label>
+                    <p className="text-[10px] text-muted-foreground">فاتورة → رقم + تاريخ + إجمالي</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3 p-2 rounded-lg hover:bg-muted/30 transition-colors">
+                  <RadioGroupItem value="total" id="total" className="mt-0.5" />
+                  <div>
+                    <Label htmlFor="total" className="text-sm font-medium cursor-pointer">إجمالي الفاتورة</Label>
+                    <p className="text-[10px] text-muted-foreground">كل فاتورة في سطر واحد (افتراضي)</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3 p-2 rounded-lg hover:bg-muted/30 transition-colors">
+                  <RadioGroupItem value="lineItems" id="lineItems" className="mt-0.5" />
+                  <div>
+                    <Label htmlFor="lineItems" className="text-sm font-medium cursor-pointer">تفصيل البنود</Label>
+                    <p className="text-[10px] text-muted-foreground">كل صنف في الفاتورة في سطر منفصل (مثل كشف PEPSI)</p>
+                  </div>
+                </div>
+              </RadioGroup>
+            </div>
+
+            <Separator />
+
             {/* Column toggles */}
             <div className="space-y-3">
               <h4 className="text-xs font-bold text-muted-foreground uppercase">الأعمدة المعروضة</h4>
@@ -1383,12 +1717,16 @@ const AccountStatementPage = () => {
 
             <Separator />
 
-            {/* Display options */}
+            {/* Additional display options */}
             <div className="space-y-3">
-              <h4 className="text-xs font-bold text-muted-foreground uppercase">خيارات العرض</h4>
+              <h4 className="text-xs font-bold text-muted-foreground uppercase">── إضافي ──</h4>
               {[
+                { key: "showSalesOrder" as const, label: "إظهار أرقام أوامر البيع (SO)" },
+                { key: "showContactCode" as const, label: "إظهار كود العميل/رقمه في كل سطر" },
+                { key: "showDueDate" as const, label: "إظهار تاريخ الاستحقاق" },
                 { key: "showCheques" as const, label: "الشيكات المرتبطة" },
                 { key: "showVoucherDetails" as const, label: "تفاصيل السندات" },
+                { key: "showChildAccounts" as const, label: "إظهار الحسابات الفرعية (Show Child)" },
                 { key: "showNotes" as const, label: "الملاحظات" },
               ].map(opt => (
                 <label key={opt.key} className="flex items-center gap-3 cursor-pointer py-1">
@@ -1427,7 +1765,7 @@ const AccountStatementPage = () => {
 
             <Separator />
 
-            <Button variant="outline" size="sm" className="w-full" onClick={() => { saveColumns(DEFAULT_COLUMNS); setDisplayOptions(DEFAULT_DISPLAY_OPTIONS); }}>
+            <Button variant="outline" size="sm" className="w-full" onClick={() => { saveColumns(DEFAULT_COLUMNS); setDisplayOptions(DEFAULT_DISPLAY_OPTIONS); setDetailLevel("total"); }}>
               إعادة الضبط الافتراضي
             </Button>
           </div>
@@ -1439,7 +1777,6 @@ const AccountStatementPage = () => {
         <SheetContent side="left" className="w-[420px] p-0" dir="rtl">
           {previewTx ? (
             <div className="flex flex-col h-full">
-              {/* Header */}
               <div className="p-4 border-b border-border" style={{ background: "#0D1B2A" }}>
                 <div className="flex items-center justify-between mb-2">
                   <Badge className={getTypeBadge(previewTx.transaction_type).color + " text-[11px]"}>
@@ -1453,7 +1790,6 @@ const AccountStatementPage = () => {
                 <p className="text-white/60 text-xs mt-1">{fmtDate(previewTx.transaction_date)}</p>
               </div>
 
-              {/* Content */}
               <div className="flex-1 overflow-y-auto p-4 space-y-4">
                 <div className="space-y-3">
                   <div className="flex items-center justify-between text-sm">
@@ -1497,7 +1833,6 @@ const AccountStatementPage = () => {
                 </div>
               </div>
 
-              {/* Footer actions */}
               <div className="p-4 border-t border-border flex gap-2">
                 <Button
                   variant="outline"
@@ -1525,6 +1860,65 @@ const AccountStatementPage = () => {
           )}
         </SheetContent>
       </Sheet>
+
+      {/* ─── PDF PREVIEW MODAL ─── */}
+      <Dialog open={showPDFPreview} onOpenChange={setShowPDFPreview}>
+        <DialogContent className="max-w-[90vw] max-h-[90vh] w-[900px] p-0 overflow-hidden" dir="rtl">
+          <DialogHeader className="p-4 border-b border-border">
+            <div className="flex items-center justify-between">
+              <DialogTitle className="flex items-center gap-2">
+                <Eye className="w-5 h-5" /> معاينة كشف الحساب
+              </DialogTitle>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 gap-1.5 text-xs"
+                  disabled={!pdfPreviewUrl}
+                  onClick={() => {
+                    if (pdfPreviewUrl) {
+                      const a = document.createElement("a");
+                      a.href = pdfPreviewUrl;
+                      a.download = `كشف-حساب-${selectedEntityName}.pdf`;
+                      a.click();
+                    }
+                  }}
+                >
+                  <FileSpreadsheet className="w-3.5 h-3.5" /> تحميل PDF
+                </Button>
+                <Button
+                  size="sm"
+                  className="h-8 gap-1.5 text-xs"
+                  disabled={!pdfPreviewUrl}
+                  onClick={() => window.print()}
+                >
+                  <Printer className="w-3.5 h-3.5" /> طباعة مباشرة
+                </Button>
+              </div>
+            </div>
+          </DialogHeader>
+          <div className="flex-1 overflow-auto bg-muted/30 p-4" style={{ height: "calc(90vh - 80px)" }}>
+            {pdfGenerating ? (
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center space-y-3">
+                  <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto" />
+                  <p className="text-sm text-muted-foreground">جاري توليد المعاينة...</p>
+                </div>
+              </div>
+            ) : pdfPreviewUrl ? (
+              <iframe
+                src={pdfPreviewUrl}
+                className="w-full h-full rounded-lg border border-border bg-white"
+                title="PDF Preview"
+              />
+            ) : (
+              <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
+                لا يمكن عرض المعاينة
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
