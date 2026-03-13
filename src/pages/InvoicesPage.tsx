@@ -1391,7 +1391,7 @@ const InvoicesPage = () => {
 
       {/* Preview/Print Dialog */}
       <Dialog open={showPreviewDialog} onOpenChange={setShowPreviewDialog}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto bg-background" dir="rtl">
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto bg-background" dir="rtl">
           <DialogHeader>
             <DialogTitle>معاينة الفاتورة</DialogTitle>
             <DialogDescription>{selectedInvoice?.invoiceNumber}</DialogDescription>
