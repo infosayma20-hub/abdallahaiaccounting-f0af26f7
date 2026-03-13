@@ -76,9 +76,9 @@ const KeyboardShortcutsModal = ({ open, onClose }: KeyboardShortcutsModalProps) 
             <h3 className="text-[11px] font-bold text-primary mb-2 flex items-center gap-1.5">
               📊 تقارير ومخزون
             </h3>
-            <ShortcutRow keys="Ctrl + I" label="المخزون" />
-            <ShortcutRow keys="Ctrl + L" label="دفتر الأستاذ" />
-            <ShortcutRow keys="Ctrl + T" label="ميزان المراجعة" />
+            <ShortcutRow keys="Alt + I" label="المخزون" />
+            <ShortcutRow keys="Alt + L" label="دفتر الأستاذ" />
+            <ShortcutRow keys="Alt + T" label="ميزان المراجعة" />
             <ShortcutRow keys="Esc" label="إغلاق النوافذ" />
           </div>
         </div>
