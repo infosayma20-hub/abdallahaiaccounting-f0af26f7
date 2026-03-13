@@ -55,16 +55,14 @@ export function usePOSOffline({ userId, sessionId, terminalId, companyId }: UseP
   const preCacheData = useCallback(async () => {
     if (!userId) return;
     try {
-      const [productsRes, customersRes] = await Promise.all([
-        supabase.from('products')
-          .select('id, name_ar, sell_price, buy_price, quantity, category, sku, barcode, tax_rate, unit, is_pos_available, pos_category_id, color, image_url, min_quantity')
-          .eq('user_id', userId)
-          .eq('is_active', true),
-        supabase.from('contacts')
-          .select('id, contact_name, phone, current_balance, credit_limit, contact_type')
-          .eq('user_id', userId)
-          .or('contact_type.eq.عميل,contact_type.eq.both,contact_type.eq.customer'),
-      ]);
+      const productsRes = await supabase.from('products')
+        .select('id, name_ar, sell_price, buy_price, quantity, category, sku, barcode, tax_rate, unit, is_pos_available, pos_category_id, color, image_url, min_quantity')
+        .eq('user_id', userId)
+        .eq('is_active', true);
+      const customersRes = await supabase.from('contacts')
+        .select('id, contact_name, phone, current_balance, credit_limit, contact_type')
+        .eq('user_id', userId)
+        .or('contact_type.eq.عميل,contact_type.eq.both,contact_type.eq.customer');
 
       if (productsRes.data) await cacheProducts(productsRes.data);
       if (customersRes.data) await cacheCustomers(customersRes.data);
