@@ -26,6 +26,7 @@ const BankAccountsPage = () => {
   const { toast } = useToast();
 
   const [banks, setBanks] = useState<any[]>([]);
+  const [accounts, setAccounts] = useState<{ account_code: string; account_name: string; account_type: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
