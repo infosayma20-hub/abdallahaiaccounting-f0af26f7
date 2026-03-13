@@ -84,6 +84,42 @@ export interface CompanySettings {
   show_logo_on_invoice: boolean;
   show_address_on_invoice: boolean;
   invoice_footer: string;
+  // Inventory
+  inventory_costing_method: string;
+  inventory_default_unit: string;
+  inventory_low_stock_alert: boolean;
+  inventory_default_min_qty: number;
+  inventory_default_max_qty: number;
+  inventory_expiry_alert: boolean;
+  inventory_expiry_days: number;
+  inventory_auto_barcode: boolean;
+  inventory_allow_no_barcode: boolean;
+  // HR
+  hr_work_days_per_week: number;
+  hr_daily_hours: number;
+  hr_shift_start: string;
+  hr_shift_end: string;
+  hr_late_grace_minutes: number;
+  hr_require_qr: boolean;
+  hr_require_gps: boolean;
+  hr_annual_leave_days: number;
+  hr_sick_leave_days: number;
+  hr_carry_over_leave: boolean;
+  hr_salary_day: number;
+  hr_salary_currency: string;
+  hr_social_security: boolean;
+  // Security
+  security_session_timeout: number;
+  security_2fa_enabled: boolean;
+  security_passkeys_enabled: boolean;
+  security_ip_restrict: boolean;
+  security_allowed_ips: string;
+  security_lockout_enabled: boolean;
+  security_max_attempts: number;
+  security_audit_log: boolean;
+  security_new_device_alert: boolean;
+  // Generic extra fields (notifications, integrations, AI)
+  [key: string]: any;
 }
 
 const defaultSettings: CompanySettings = {
@@ -156,6 +192,40 @@ const defaultSettings: CompanySettings = {
   show_logo_on_invoice: true,
   show_address_on_invoice: true,
   invoice_footer: "شكراً لتعاملكم معنا",
+  // Inventory
+  inventory_costing_method: "weighted_avg",
+  inventory_default_unit: "piece",
+  inventory_low_stock_alert: true,
+  inventory_default_min_qty: 5,
+  inventory_default_max_qty: 1000,
+  inventory_expiry_alert: false,
+  inventory_expiry_days: 30,
+  inventory_auto_barcode: true,
+  inventory_allow_no_barcode: true,
+  // HR
+  hr_work_days_per_week: 6,
+  hr_daily_hours: 8,
+  hr_shift_start: "08:00",
+  hr_shift_end: "16:00",
+  hr_late_grace_minutes: 15,
+  hr_require_qr: false,
+  hr_require_gps: true,
+  hr_annual_leave_days: 14,
+  hr_sick_leave_days: 14,
+  hr_carry_over_leave: false,
+  hr_salary_day: 28,
+  hr_salary_currency: "ILS",
+  hr_social_security: false,
+  // Security
+  security_session_timeout: 60,
+  security_2fa_enabled: false,
+  security_passkeys_enabled: false,
+  security_ip_restrict: false,
+  security_allowed_ips: "",
+  security_lockout_enabled: true,
+  security_max_attempts: 5,
+  security_audit_log: true,
+  security_new_device_alert: true,
 };
 
 export function useCompanySettings() {
