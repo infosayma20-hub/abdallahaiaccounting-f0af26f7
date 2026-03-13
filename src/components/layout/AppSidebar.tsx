@@ -4,7 +4,7 @@ import { ChevronDown, X, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ModuleIcon from "@/components/ModuleIcon";
 import { useCompany } from "@/hooks/useCompanyContext";
-import QuickAccessGrid from "./QuickAccessGrid";
+
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { FinixLogo } from "@/components/ui/FinixLogo";
 import { navigationSections, getAllChildren, type NavItem } from "@/config/navigationConfig";
@@ -173,8 +173,6 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
         )}
       </div>
 
-      {/* Quick Access Grid */}
-      <QuickAccessGrid collapsed={collapsed} />
 
       {/* Navigation Sections */}
       <nav className="flex-1 overflow-y-auto py-2 px-3 space-y-5">
