@@ -802,8 +802,173 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
   };
 
   // ═══════════════════════════════════
-  // EXCEL EXPORT
+  // INVOICE TRACKING LOADERS
   // ═══════════════════════════════════
+
+  const loadInvoiceLifecycle = async () => {
+    const { data: invoices } = await supabase.from("invoices").select("id, invoice_number, invoice_date, due_date, total_amount, paid_amount, remaining_amount, status, payment_status, contact_name").eq("user_id", uid).eq("invoice_type", "sale").gte("invoice_date", dateFrom).lte("invoice_date", dateTo).order("invoice_date", { ascending: false });
+    if (!invoices?.length) { setData([]); return; }
+    const { data: linkData } = await supabase.from("payment_invoice_links").select("invoice_id, payment_id, allocated_amount");
+    const { data: voucherData } = await supabase.from("receipt_vouchers").select("id, payment_date").eq("user_id", uid);
+    const vMap = new Map((voucherData || []).map(v => [v.id, v.payment_date]));
+    const invLinks = new Map<string, string[]>();
+    (linkData || []).forEach(l => { if (!invLinks.has(l.invoice_id)) invLinks.set(l.invoice_id, []); invLinks.get(l.invoice_id)!.push(l.payment_id); });
+    const today = new Date();
+    setData(invoices.map(inv => {
+      const paid = inv.paid_amount || 0;
+      const remaining = inv.remaining_amount ?? (inv.total_amount - paid);
+      const isPaid = inv.payment_status === "paid" || paid >= inv.total_amount;
+      const paymentIds = invLinks.get(inv.id) || [];
+      const lastPayDate = paymentIds.map(pid => vMap.get(pid)).filter(Boolean).sort().pop();
+      let daysToClose: number | null = null;
+      let closureStatus = "جارية";
+      if (isPaid && lastPayDate) {
+        daysToClose = differenceInDays(new Date(lastPayDate), new Date(inv.invoice_date));
+        closureStatus = inv.due_date && lastPayDate <= inv.due_date ? "✅ في الموعد" : "⚠️ متأخر";
+      } else if (!isPaid && inv.due_date && today > new Date(inv.due_date)) {
+        closureStatus = "🔴 متأخرة";
+      } else if (!isPaid) {
+        closureStatus = "⏳ جارية";
+      }
+      return {
+        invoiceNumber: inv.invoice_number || "—", customer: inv.contact_name || "—",
+        issueDate: inv.invoice_date, dueDate: inv.due_date || "—",
+        total: inv.total_amount, paid, remaining,
+        daysToClose: daysToClose ?? "—", closureStatus,
+      };
+    }));
+  };
+
+  const loadDSODetailed = async () => {
+    const { data: invoices } = await supabase.from("invoices").select("id, invoice_date, due_date, total_amount, paid_amount, payment_status, contact_name, contact_id").eq("user_id", uid).eq("invoice_type", "sale").gte("invoice_date", dateFrom).lte("invoice_date", dateTo);
+    if (!invoices?.length) { setData([]); return; }
+    const { data: linkData } = await supabase.from("payment_invoice_links").select("invoice_id, payment_id");
+    const { data: voucherData } = await supabase.from("receipt_vouchers").select("id, payment_date").eq("user_id", uid);
+    const vMap = new Map((voucherData || []).map(v => [v.id, v.payment_date]));
+    const invLinks = new Map<string, string[]>();
+    (linkData || []).forEach(l => { if (!invLinks.has(l.invoice_id)) invLinks.set(l.invoice_id, []); invLinks.get(l.invoice_id)!.push(l.payment_id); });
+    const customerMap: Record<string, { name: string; days: number[]; invCount: number }> = {};
+    invoices.forEach(inv => {
+      const isPaid = inv.payment_status === "paid" || (inv.paid_amount || 0) >= inv.total_amount;
+      if (!isPaid) return;
+      const paymentIds = invLinks.get(inv.id) || [];
+      const lastPayDate = paymentIds.map(pid => vMap.get(pid)).filter(Boolean).sort().pop();
+      if (!lastPayDate) return;
+      const d = differenceInDays(new Date(lastPayDate), new Date(inv.invoice_date));
+      const key = inv.contact_name || "غير محدد";
+      if (!customerMap[key]) customerMap[key] = { name: key, days: [], invCount: 0 };
+      customerMap[key].days.push(d);
+      customerMap[key].invCount++;
+    });
+    setData(Object.values(customerMap).map(c => {
+      const avg = Math.round(c.days.reduce((a, b) => a + b, 0) / c.days.length);
+      const fastest = Math.min(...c.days);
+      const slowest = Math.max(...c.days);
+      const grade = avg < 30 ? "🟢 A ممتاز" : avg < 45 ? "🟡 B جيد" : avg < 60 ? "🟠 C مقبول" : "🔴 D خطر";
+      return { name: c.name, invCount: c.invCount, avgDSO: avg, fastest, slowest, grade };
+    }).sort((a, b) => a.avgDSO - b.avgDSO));
+  };
+
+  const loadARAgingAdvanced = async () => {
+    const { data: invoices } = await supabase.from("invoices").select("id, invoice_number, invoice_date, due_date, total_amount, paid_amount, remaining_amount, contact_name, payment_status").eq("user_id", uid).eq("invoice_type", "sale");
+    if (!invoices?.length) { setData([]); return; }
+    const today = new Date();
+    const customerMap: Record<string, { name: string; current: number; d1_30: number; d31_60: number; d61_90: number; over90: number; total: number }> = {};
+    invoices.forEach(inv => {
+      const remaining = inv.remaining_amount ?? (inv.total_amount - (inv.paid_amount || 0));
+      if (remaining <= 0) return;
+      const key = inv.contact_name || "غير محدد";
+      if (!customerMap[key]) customerMap[key] = { name: key, current: 0, d1_30: 0, d31_60: 0, d61_90: 0, over90: 0, total: 0 };
+      const overdue = inv.due_date ? differenceInDays(today, new Date(inv.due_date)) : 0;
+      if (overdue <= 0) customerMap[key].current += remaining;
+      else if (overdue <= 30) customerMap[key].d1_30 += remaining;
+      else if (overdue <= 60) customerMap[key].d31_60 += remaining;
+      else if (overdue <= 90) customerMap[key].d61_90 += remaining;
+      else customerMap[key].over90 += remaining;
+      customerMap[key].total += remaining;
+    });
+    setData(Object.values(customerMap).sort((a, b) => b.total - a.total));
+  };
+
+  const loadCollectionEfficiency = async () => {
+    const months = [];
+    for (let i = 11; i >= 0; i--) { const m = subMonths(new Date(), i); months.push({ label: format(m, "yyyy-MM"), from: format(startOfMonth(m), "yyyy-MM-dd"), to: format(endOfMonth(m), "yyyy-MM-dd") }); }
+    const { data: invoices } = await supabase.from("invoices").select("id, invoice_date, due_date, total_amount, paid_amount, payment_status, contact_name").eq("user_id", uid).eq("invoice_type", "sale").gte("invoice_date", months[0].from).lte("invoice_date", months[11].to);
+    const { data: linkData } = await supabase.from("payment_invoice_links").select("invoice_id, payment_id, allocated_amount");
+    const { data: voucherData } = await supabase.from("receipt_vouchers").select("id, payment_date").eq("user_id", uid);
+    const vMap = new Map((voucherData || []).map(v => [v.id, v.payment_date]));
+    const invLinks = new Map<string, { paymentIds: string[]; totalAllocated: number }>();
+    (linkData || []).forEach(l => {
+      if (!invLinks.has(l.invoice_id)) invLinks.set(l.invoice_id, { paymentIds: [], totalAllocated: 0 });
+      invLinks.get(l.invoice_id)!.paymentIds.push(l.payment_id);
+      invLinks.get(l.invoice_id)!.totalAllocated += l.allocated_amount;
+    });
+    setData(months.map(m => {
+      const mInvoices = (invoices || []).filter(i => i.invoice_date >= m.from && i.invoice_date <= m.to);
+      const issued = mInvoices.reduce((s, i) => s + i.total_amount, 0);
+      const collected = mInvoices.reduce((s, i) => { const link = invLinks.get(i.id); return s + (link?.totalAllocated || 0); }, 0);
+      const collectionRate = issued > 0 ? Math.round((collected / issued) * 100) : 0;
+      let onTime = 0, late = 0, avgDaysLate = 0;
+      const lateDays: number[] = [];
+      mInvoices.forEach(inv => {
+        const isPaid = inv.payment_status === "paid" || (inv.paid_amount || 0) >= inv.total_amount;
+        if (!isPaid) return;
+        const link = invLinks.get(inv.id);
+        if (!link) return;
+        const lastPayDate = link.paymentIds.map(pid => vMap.get(pid)).filter(Boolean).sort().pop();
+        if (!lastPayDate || !inv.due_date) return;
+        if (lastPayDate <= inv.due_date) onTime++;
+        else { late++; lateDays.push(differenceInDays(new Date(lastPayDate), new Date(inv.due_date))); }
+      });
+      avgDaysLate = lateDays.length > 0 ? Math.round(lateDays.reduce((a, b) => a + b, 0) / lateDays.length) : 0;
+      return { month: m.label, issued, collected, collectionRate, onTime, late, avgDaysLate };
+    }));
+  };
+
+  const loadPaymentAllocation = async () => {
+    const { data: linkData } = await supabase.from("payment_invoice_links").select("invoice_id, payment_id, allocated_amount");
+    if (!linkData?.length) { setData([]); return; }
+    const invIds = [...new Set(linkData.map(l => l.invoice_id))];
+    const payIds = [...new Set(linkData.map(l => l.payment_id))];
+    const { data: invoices } = await supabase.from("invoices").select("id, invoice_number").in("id", invIds);
+    const { data: vouchers } = await supabase.from("receipt_vouchers").select("id, receipt_number, payment_date, contact_name, payment_method").eq("user_id", uid).in("id", payIds);
+    const invMap = new Map((invoices || []).map(i => [i.id, i.invoice_number]));
+    const vMap = new Map((vouchers || []).map(v => [v.id, v]));
+    setData(linkData.filter(l => {
+      const v = vMap.get(l.payment_id);
+      return v && v.payment_date >= dateFrom && v.payment_date <= dateTo;
+    }).map(l => {
+      const v = vMap.get(l.payment_id)!;
+      return {
+        receiptNumber: v.receipt_number || "—",
+        paymentDate: v.payment_date,
+        customer: v.contact_name || "—",
+        paymentMethod: v.payment_method || "—",
+        invoiceNumber: invMap.get(l.invoice_id) || "—",
+        allocated: l.allocated_amount,
+      };
+    }).sort((a, b) => b.paymentDate.localeCompare(a.paymentDate)));
+  };
+
+  const loadUnpaidInvoices = async () => {
+    const { data: invoices } = await supabase.from("invoices").select("id, invoice_number, invoice_date, due_date, total_amount, contact_name, contact_id, payment_status, paid_amount").eq("user_id", uid).eq("invoice_type", "sale").gte("invoice_date", dateFrom).lte("invoice_date", dateTo);
+    if (!invoices?.length) { setData([]); return; }
+    const { data: linkData } = await supabase.from("payment_invoice_links").select("invoice_id");
+    const linkedIds = new Set((linkData || []).map(l => l.invoice_id));
+    const today = new Date();
+    setData(invoices.filter(inv => {
+      const remaining = inv.remaining_amount ?? (inv.total_amount - (inv.paid_amount || 0));
+      return remaining > 0 && !linkedIds.has(inv.id);
+    }).map(inv => ({
+      invoiceNumber: inv.invoice_number || "—",
+      customer: inv.contact_name || "—",
+      issueDate: inv.invoice_date,
+      total: inv.total_amount,
+      daysSinceIssue: differenceInDays(today, new Date(inv.invoice_date)),
+    })).sort((a, b) => b.daysSinceIssue - a.daysSinceIssue));
+  };
+
+
   const exportExcel = () => {
     if (!data.length) return;
     const ws = XLSX.utils.json_to_sheet(data);
