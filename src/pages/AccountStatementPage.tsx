@@ -873,7 +873,7 @@ const AccountStatementPage = () => {
       doc.text(`ILS ${Math.abs(finalBalance).toLocaleString("en")}`, pw - 14, fy + 26, { align: "right" });
 
       // Footer on every page
-      const pageCount = doc.internal.getNumberOfPages();
+      const pageCount = (doc as any).internal.getNumberOfPages();
       for (let i = 1; i <= pageCount; i++) {
         doc.setPage(i);
         doc.setTextColor(150, 150, 150);
