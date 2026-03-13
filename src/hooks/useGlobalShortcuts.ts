@@ -18,8 +18,8 @@ export function useGlobalShortcuts({ onShowShortcuts, onShowNewModal }: UseGloba
       // F-keys
       if (e.key === "F1") { e.preventDefault(); navigate("/invoices/new"); return; }
       if (e.key === "F2") { e.preventDefault(); navigate("/finance/receipt/new"); return; }
-      if (e.key === "F3") { e.preventDefault(); navigate("/finance/payments?new=1"); return; }
-      if (e.key === "F4") { e.preventDefault(); navigate("/finance/journals?new=1"); return; }
+      if (e.key === "F3") { e.preventDefault(); navigate("/finance/payment/new"); return; }
+      if (e.key === "F4") { e.preventDefault(); navigate("/finance/journal/new"); return; }
 
       // Ctrl combos
       if (e.ctrlKey || e.metaKey) {
