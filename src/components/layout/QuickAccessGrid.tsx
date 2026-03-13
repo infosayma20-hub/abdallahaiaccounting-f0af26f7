@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Zap, Settings2, FileText, Landmark, Wallet, ClipboardList, Users, Store, BarChart3, Banknote, Package, Receipt, Calculator, Building2, CreditCard, TrendingUp, BookOpen, ShoppingCart } from "lucide-react";
+import { Zap, Settings2, FileText, Landmark, Wallet, ClipboardList, Users, Store, BarChart3, Banknote, Package, Receipt, Calculator, Building2, CreditCard, TrendingUp, BookOpen, ShoppingCart, Shield } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 
@@ -11,6 +11,7 @@ export interface QuickAccessItem {
   shortcut?: string;
   path: string;
   enabled: boolean;
+  adminOnly?: boolean;
 }
 
 const ALL_ITEMS: QuickAccessItem[] = [
@@ -31,6 +32,8 @@ const ALL_ITEMS: QuickAccessItem[] = [
   { id: "reports", label: "التقارير", icon: TrendingUp, path: "/reports", enabled: false },
   { id: "ledger", label: "الأستاذ العام", icon: BookOpen, path: "/general-ledger", enabled: false },
   { id: "expenses", label: "المصروفات", icon: CreditCard, path: "/transactions?type=expense", enabled: false },
+  // Admin only
+  { id: "super_admin", label: "لوحة التحكم", icon: Shield, shortcut: "Alt+A", path: "/super-admin/dashboard", enabled: false, adminOnly: true },
 ];
 
 const STORAGE_KEY = "quick_access_grid_config";
