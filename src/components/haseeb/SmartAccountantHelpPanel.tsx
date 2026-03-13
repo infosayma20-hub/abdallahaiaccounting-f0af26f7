@@ -44,7 +44,7 @@ const SmartAccountantHelpPanel = ({ open, onClose, onFillInput }: Props) => {
           {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[80] bg-black/30"
+            className="fixed inset-0 z-[200] bg-black/30"
             onClick={onClose}
           />
           
@@ -52,7 +52,7 @@ const SmartAccountantHelpPanel = ({ open, onClose, onFillInput }: Props) => {
           <motion.div
             initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 250 }}
-            className="fixed top-0 right-0 bottom-0 z-[81] w-[360px] max-w-[90vw] bg-white shadow-2xl flex flex-col overflow-hidden"
+            className="fixed top-0 right-0 bottom-0 z-[201] w-[360px] max-w-[90vw] bg-white shadow-2xl flex flex-col overflow-hidden"
             dir="rtl"
           >
             {/* Header */}
