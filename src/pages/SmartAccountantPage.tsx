@@ -6,6 +6,8 @@ import { useAuth } from "@/hooks/useAuth";
 import TransactionToast, { useTransactionToast } from "@/components/TransactionToast";
 import ChequeDetailsDialog, { ChequeLineItem } from "@/components/ChequeDetailsDialog";
 import JournalEntryPopup from "@/components/JournalEntryPopup";
+import SmartAccountantOnboarding from "@/components/haseeb/SmartAccountantOnboarding";
+import SmartAccountantHelpPanel from "@/components/haseeb/SmartAccountantHelpPanel";
 
 export interface FinixFinancialData {
   cash: number;
