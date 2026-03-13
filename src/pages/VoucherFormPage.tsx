@@ -136,7 +136,20 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     supabase.from("contacts").select("id, contact_name, current_balance")
       .eq("user_id", user.id)
       .order("contact_name")
-      .then(({ data }) => setContacts(data || []));
+      .then(({ data }) => {
+        const contactsList = data || [];
+        setContacts(contactsList);
+        // Resolve duplicate contact
+        const dupContactId = (window as any).__duplicateContactId;
+        if (dupContactId) {
+          const found = contactsList.find(c => c.id === dupContactId);
+          if (found) {
+            setSelectedContact(found);
+            setContactSearch(found.contact_name);
+          }
+          delete (window as any).__duplicateContactId;
+        }
+      });
   }, [user]);
 
   // Load cash boxes, bank accounts, and generate ref number for payments
