@@ -164,6 +164,7 @@ const CleanTopBar = ({
                 {[
                   { icon: "👔", label: "وضع المدير المالي", action: () => { onToggleCfo(); setShowMenu(false); }, active: cfoMode },
                   { icon: "🔮", label: "التنبؤ المالي", action: () => setShowMenu(false) },
+                  { icon: "📖", label: "إعادة عرض الدليل", action: () => { onReplayOnboarding?.(); setShowMenu(false); } },
                   { icon: "⚙️", label: "الإعدادات", action: () => setShowMenu(false) },
                 ].map((item, i) => (
                   <button
