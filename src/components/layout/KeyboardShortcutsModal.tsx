@@ -54,9 +54,9 @@ const KeyboardShortcutsModal = ({ open, onClose }: KeyboardShortcutsModalProps) 
             <h3 className="text-[11px] font-bold text-primary mb-2 flex items-center gap-1.5">
               🧭 تنقل
             </h3>
-            <ShortcutRow keys="Ctrl + F" label="بحث سريع" />
-            <ShortcutRow keys="Ctrl + K" label="كشف حساب" />
-            <ShortcutRow keys="Ctrl + N" label="إنشاء جديد" />
+            <ShortcutRow keys="Alt + F" label="بحث سريع" />
+            <ShortcutRow keys="Alt + K" label="كشف حساب" />
+            <ShortcutRow keys="Alt + N" label="إنشاء جديد" />
             <ShortcutRow keys="Ctrl + /" label="هذه النافذة" />
           </div>
 
@@ -65,10 +65,10 @@ const KeyboardShortcutsModal = ({ open, onClose }: KeyboardShortcutsModalProps) 
             <h3 className="text-[11px] font-bold text-primary mb-2 flex items-center gap-1.5">
               👥 جهات وصناديق
             </h3>
-            <ShortcutRow keys="Ctrl + C" label="الزبائن" />
-            <ShortcutRow keys="Ctrl + M" label="الموردين" />
-            <ShortcutRow keys="Ctrl + S" label="الصناديق" />
-            <ShortcutRow keys="Ctrl + Q" label="الشيكات" />
+            <ShortcutRow keys="Alt + C" label="الزبائن" />
+            <ShortcutRow keys="Alt + M" label="الموردين" />
+            <ShortcutRow keys="Alt + S" label="الصناديق" />
+            <ShortcutRow keys="Alt + Q" label="الشيكات" />
           </div>
 
           {/* More shortcuts */}
@@ -76,9 +76,9 @@ const KeyboardShortcutsModal = ({ open, onClose }: KeyboardShortcutsModalProps) 
             <h3 className="text-[11px] font-bold text-primary mb-2 flex items-center gap-1.5">
               📊 تقارير ومخزون
             </h3>
-            <ShortcutRow keys="Ctrl + I" label="المخزون" />
-            <ShortcutRow keys="Ctrl + L" label="دفتر الأستاذ" />
-            <ShortcutRow keys="Ctrl + T" label="ميزان المراجعة" />
+            <ShortcutRow keys="Alt + I" label="المخزون" />
+            <ShortcutRow keys="Alt + L" label="دفتر الأستاذ" />
+            <ShortcutRow keys="Alt + T" label="ميزان المراجعة" />
             <ShortcutRow keys="Esc" label="إغلاق النوافذ" />
           </div>
         </div>

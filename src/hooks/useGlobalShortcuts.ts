@@ -21,8 +21,8 @@ export function useGlobalShortcuts({ onShowShortcuts, onShowNewModal }: UseGloba
       if (e.key === "F3") { e.preventDefault(); navigate("/finance/payment/new"); return; }
       if (e.key === "F4") { e.preventDefault(); navigate("/finance/journal/new"); return; }
 
-      // Ctrl combos
-      if (e.ctrlKey || e.metaKey) {
+      // Alt combos for navigation (avoid browser conflicts like Ctrl+C/S/T)
+      if (e.altKey) {
         if (e.key === "c" || e.key === "C") { e.preventDefault(); navigate("/contacts?type=customer"); return; }
         if (e.key === "m" || e.key === "M") { e.preventDefault(); navigate("/contacts?type=supplier"); return; }
         if (e.key === "k" || e.key === "K") { e.preventDefault(); navigate("/account-statement"); return; }
@@ -37,9 +37,11 @@ export function useGlobalShortcuts({ onShowShortcuts, onShowNewModal }: UseGloba
           searchInput?.focus();
           return;
         }
-        if (e.key === "/" || e.key === "÷") { e.preventDefault(); onShowShortcuts(); return; }
         if (e.key === "n" || e.key === "N") { e.preventDefault(); onShowNewModal?.(); return; }
       }
+
+      // Ctrl + / for shortcuts modal
+      if ((e.ctrlKey || e.metaKey) && (e.key === "/" || e.key === "÷")) { e.preventDefault(); onShowShortcuts(); return; }
     };
 
     document.addEventListener("keydown", handleKeyDown);
