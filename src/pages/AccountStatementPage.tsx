@@ -789,7 +789,7 @@ const AccountStatementPage = () => {
       const pdfW = 210;
       const pdfH = (canvas.height * pdfW) / canvas.width;
       pdf.addImage(imgData, "PNG", 0, 0, pdfW, pdfH);
-      setPdfPreviewUrl(pdf.output("bloburl"));
+      setPdfPreviewUrl(pdf.output("bloburl") as unknown as string);
     } catch (err) {
       console.error("PDF generation error:", err);
       toast({ title: "خطأ في توليد PDF", variant: "destructive" });
