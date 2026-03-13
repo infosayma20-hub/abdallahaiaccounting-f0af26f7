@@ -19,6 +19,84 @@ const PALESTINIAN_BANKS = [
   "بنك الأردن", "البنك الوطني", "Cairo Amman Bank", "أخرى",
 ];
 
+const AccountPicker = ({ accounts, value, onChange, placeholder }: {
+  accounts: { account_code: string; account_name: string; account_type: string }[];
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+}) => {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+
+  const selected = accounts.find(a => a.account_code === value);
+  const filtered = useMemo(() => {
+    if (!search.trim()) return accounts;
+    const q = search.trim().toLowerCase();
+    return accounts.filter(a => a.account_code.includes(q) || a.account_name.includes(q));
+  }, [accounts, search]);
+
+  const typeColor: Record<string, string> = {
+    "أصول": "text-blue-600", "التزامات": "text-red-500", "حقوق ملكية": "text-purple-600",
+    "إيرادات": "text-green-600", "مصروفات": "text-orange-500",
+  };
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className="mt-1.5 w-full h-11 rounded-lg border border-border bg-background px-3 flex items-center justify-between text-sm hover:bg-muted/50 transition-colors"
+          dir="rtl"
+        >
+          {selected ? (
+            <span className="flex items-center gap-2 font-mono text-foreground">
+              <span className="font-bold">{selected.account_code}</span>
+              <span className="text-muted-foreground">-</span>
+              <span className="text-foreground">{selected.account_name}</span>
+            </span>
+          ) : value ? (
+            <span className="font-mono text-foreground">{value}</span>
+          ) : (
+            <span className="text-muted-foreground">{placeholder || "اختر حساب..."}</span>
+          )}
+          <ChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="start" sideOffset={4} className="w-[var(--radix-popover-trigger-width)] p-0 rounded-xl max-h-[280px] overflow-hidden" dir="rtl">
+        <div className="p-2 border-b border-border">
+          <div className="relative">
+            <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="ابحث بالرقم أو الاسم..."
+              className="w-full h-9 rounded-lg bg-muted/50 pr-8 pl-3 text-xs outline-none focus:ring-1 focus:ring-accent"
+              autoFocus
+            />
+          </div>
+        </div>
+        <div className="overflow-y-auto max-h-[220px]">
+          {filtered.length === 0 ? (
+            <p className="text-center text-xs text-muted-foreground py-4">لا توجد نتائج</p>
+          ) : (
+            filtered.map(acc => (
+              <button
+                key={acc.account_code}
+                onClick={() => { onChange(acc.account_code); setOpen(false); setSearch(""); }}
+                className={`w-full flex items-center gap-2 px-3 py-2 text-right text-xs hover:bg-muted transition-colors ${value === acc.account_code ? "bg-accent/10" : ""}`}
+              >
+                <span className="font-mono font-bold text-foreground min-w-[44px]">{acc.account_code}</span>
+                <span className="flex-1 text-foreground truncate">{acc.account_name}</span>
+                <span className={`text-[9px] ${typeColor[acc.account_type] || "text-muted-foreground"}`}>{acc.account_type}</span>
+              </button>
+            ))
+          )}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+};
+
 const BankAccountsPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
