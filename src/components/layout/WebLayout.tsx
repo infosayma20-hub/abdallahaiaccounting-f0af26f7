@@ -49,12 +49,6 @@ const WebLayout = ({ children }: WebLayoutProps) => {
       {/* Lightweight navigation loader */}
       <GlobalNavigationLoader />
 
-      {/* Help Guide Modal */}
-      <HelpGuideModal
-        open={showHelpGuide}
-        onClose={() => setShowHelpGuide(false)}
-        onFillInput={() => {}}
-      />
     </div>
   );
 };

@@ -204,7 +204,7 @@ const HomeDashboard = () => {
           accounts={journalEntryAccounts}
         />
       )}
-      <HelpGuideModal open={showHelpGuide} onClose={() => setShowHelpGuide(false)} onFillInput={() => {}} />
+      
       <ShortcutsHelpDialog open={showShortcuts} onClose={() => setShowShortcuts(false)} />
       <AccountStatementModal open={showAccountStatement} onClose={() => setShowAccountStatement(false)} />
       <ContactStatementModal open={showContactStatement} onClose={() => setShowContactStatement(false)} />

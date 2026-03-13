@@ -917,14 +917,6 @@ const Dashboard = () => {
       {showOnboarding && !showPasskeyOnboarding && !showSetupWizard && (
         <OnboardingFlow onComplete={() => setShowOnboarding(false)} onFocusInput={() => { const input = document.querySelector<HTMLInputElement>("#smart-input-bar input"); input?.focus(); }} />
       )}
-      <HelpGuideModal
-        open={showHelpGuide}
-        onClose={() => setShowHelpGuide(false)}
-        onFillInput={(text, target) => {
-          if (target === "assistant") setInputValue(text);
-          else setDbCommand(text);
-        }}
-      />
       <TransactionToast show={txToast.show} onDone={txToast.handleDone} />
       <JournalEntryPopup
         open={showJournalEntry}

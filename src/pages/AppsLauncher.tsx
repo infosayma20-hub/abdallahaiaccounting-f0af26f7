@@ -164,7 +164,7 @@ const AppsLauncher = () => {
           <TourCompletionModal open={showCompletion} onClose={() => setShowCompletion(false)} />
         </>
       )}
-      <HelpGuideModal open={helpGuideOpen} onClose={() => setHelpGuideOpen(false)} />
+      
     </div>
   );
 };
