@@ -424,7 +424,7 @@ const FinanceJournalPage = () => {
           </div>
           <h3 className="text-base font-semibold text-foreground mb-1">لا توجد سندات قيد بعد</h3>
           <p className="text-xs text-muted-foreground mb-4">أضف أول سند قيد لبدء التسجيل المحاسبي</p>
-          <Button className="rounded-xl gap-2 shadow-md shadow-primary/20" onClick={() => { resetForm(); setEditingVoucherId(null); setModalOpen(true); }}>
+          <Button className="rounded-xl gap-2 shadow-md shadow-primary/20" onClick={() => navigate("/finance/journal/new")}>
             <Plus className="h-4 w-4" /> سند قيد جديد
           </Button>
         </div>
