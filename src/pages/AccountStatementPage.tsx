@@ -18,7 +18,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -280,8 +280,6 @@ const AccountStatementPage = () => {
   const [txTypeFilter, setTxTypeFilter] = useState("all");
   const [detailLevel, setDetailLevel] = useState<DetailLevel>("total");
   const [showYearComparison, setShowYearComparison] = useState(false);
-  const [showPDFPreview, setShowPDFPreview] = useState(false);
-  const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string>("");
   const [pdfGenerating, setPdfGenerating] = useState(false);
 
   // Load saved column prefs
@@ -770,16 +768,29 @@ const AccountStatementPage = () => {
     return { ...tx, row };
   }, [previewTxId, transactions, rows]);
 
-  // ─── PDF PREVIEW (jspdf-autotable, no html2canvas) ───
+  // ─── PDF PREVIEW (opens in new browser tab) ───
   const handlePreviewPDF = useCallback(async () => {
-    setShowPDFPreview(true);
+    if (!selectedEntityId || rows.length === 0) return;
+
+    const previewTab = window.open("", "_blank", "noopener,noreferrer");
+    if (!previewTab) {
+      toast({
+        title: "تعذر فتح المعاينة",
+        description: "المتصفح منع فتح تبويب جديد. اسمح بالنوافذ المنبثقة ثم حاول مرة أخرى.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    previewTab.document.write(`<!doctype html><html dir="rtl"><head><meta charset="utf-8" /><title>جاري التوليد...</title></head><body style="font-family: sans-serif; margin:0; height:100vh; display:flex; align-items:center; justify-content:center; background:#f3f4f6; color:#111827;">جاري تجهيز معاينة PDF...</body></html>`);
+    previewTab.document.close();
+
     setPdfGenerating(true);
     try {
       const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
       const pw = doc.internal.pageSize.width;
       const ph = doc.internal.pageSize.height;
 
-      // Header
       doc.setFillColor(27, 58, 92);
       doc.rect(0, 0, pw, 32, "F");
       doc.setTextColor(255, 255, 255);
@@ -792,7 +803,6 @@ const AccountStatementPage = () => {
       doc.setFontSize(8);
       doc.text(`From: ${dateFrom}  To: ${dateTo}`, pw / 2, 28, { align: "center" });
 
-      // Customer info box
       doc.setTextColor(0, 0, 0);
       doc.setFillColor(245, 245, 245);
       doc.rect(10, 36, pw - 20, 16, "F");
@@ -802,7 +812,6 @@ const AccountStatementPage = () => {
       doc.setFont("helvetica", "normal");
       doc.text(selectedEntityName || "", 42, 44);
 
-      // Balance
       const lastRow = rows[rows.length - 1];
       const finalBalance = lastRow ? lastRow.balance : 0;
       doc.setFont("helvetica", "bold");
@@ -810,14 +819,10 @@ const AccountStatementPage = () => {
       doc.setFont("helvetica", "normal");
       const balColor = finalBalance > 0 ? [220, 38, 38] : [34, 197, 94];
       doc.setTextColor(balColor[0], balColor[1], balColor[2]);
-      doc.text(
-        `ILS ${Math.abs(finalBalance).toLocaleString("en")} ${finalBalance > 0 ? "Dr" : "Cr"}`,
-        pw - 14, 44, { align: "right" }
-      );
+      doc.text(`ILS ${Math.abs(finalBalance).toLocaleString("en")} ${finalBalance > 0 ? "Dr" : "Cr"}`, pw - 14, 44, { align: "right" });
       doc.setTextColor(0, 0, 0);
 
-      // Table
-      const tableBody = rows.map(r => [
+      const tableBody = rows.map((r) => [
         r.date ? format(new Date(r.date), "dd/MM/yy") : "",
         r.reference || "-",
         r.description || "",
@@ -844,14 +849,8 @@ const AccountStatementPage = () => {
           6: { cellWidth: 24, halign: "right" },
         },
         alternateRowStyles: { fillColor: [248, 249, 250] },
-        didParseCell: (data) => {
-          if (data.row.index === tableBody.length - 1 && data.section === "body") {
-            // Last row styling
-          }
-        },
       });
 
-      // Totals
       const fy = (doc as any).lastAutoTable.finalY + 8;
       const totalDebit = rows.reduce((s, r) => s + (Number(r.debit) || 0), 0);
       const totalCredit = rows.reduce((s, r) => s + (Number(r.credit) || 0), 0);
@@ -872,7 +871,6 @@ const AccountStatementPage = () => {
       doc.text("Net Balance:", pw - 93, fy + 26);
       doc.text(`ILS ${Math.abs(finalBalance).toLocaleString("en")}`, pw - 14, fy + 26, { align: "right" });
 
-      // Footer on every page
       const pageCount = (doc as any).internal.getNumberOfPages();
       for (let i = 1; i <= pageCount; i++) {
         doc.setPage(i);
@@ -885,14 +883,19 @@ const AccountStatementPage = () => {
         doc.text("Confidential", pw - 14, ph - 7, { align: "right" });
       }
 
-      setPdfPreviewUrl(doc.output("bloburl") as unknown as string);
+      const pdfBlob = doc.output("blob");
+      const pdfBlobUrl = URL.createObjectURL(pdfBlob);
+      previewTab.location.replace(pdfBlobUrl);
+      window.setTimeout(() => URL.revokeObjectURL(pdfBlobUrl), 60_000);
     } catch (err) {
+      previewTab.close();
       console.error("PDF generation error:", err);
-      toast({ title: "خطأ في توليد PDF", variant: "destructive" });
+      const message = err instanceof Error ? err.message : "حدث خطأ غير متوقع";
+      toast({ title: "خطأ في توليد PDF", description: message, variant: "destructive" });
     } finally {
       setPdfGenerating(false);
     }
-  }, [toast, rows, dateFrom, dateTo, selectedEntityName, companyInfo, companyName]);
+  }, [toast, rows, dateFrom, dateTo, selectedEntityName, companyInfo, companyName, selectedEntityId]);
 
   // ─── EXPORT ───
   const handleExport = () => {
@@ -1093,10 +1096,11 @@ const AccountStatementPage = () => {
               variant="outline"
               size="sm"
               onClick={handlePreviewPDF}
-              disabled={!selectedEntityId || rows.length === 0}
+              disabled={!selectedEntityId || rows.length === 0 || pdfGenerating}
               className="h-8 gap-1.5 text-xs"
             >
-              <Eye className="w-3.5 h-3.5" /> معاينة PDF
+              {pdfGenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Eye className="w-3.5 h-3.5" />}
+              {pdfGenerating ? "جاري التوليد..." : "معاينة PDF"}
             </Button>
 
             <Button variant="outline" size="sm" onClick={() => window.print()} disabled={!selectedEntityId || rows.length === 0} className="h-8 gap-1.5 text-xs">
@@ -1978,64 +1982,6 @@ const AccountStatementPage = () => {
         </SheetContent>
       </Sheet>
 
-      {/* ─── PDF PREVIEW MODAL ─── */}
-      <Dialog open={showPDFPreview} onOpenChange={setShowPDFPreview}>
-        <DialogContent className="max-w-[90vw] max-h-[90vh] w-[900px] p-0 overflow-hidden" dir="rtl">
-          <DialogHeader className="p-4 border-b border-border">
-            <div className="flex items-center justify-between">
-              <DialogTitle className="flex items-center gap-2">
-                <Eye className="w-5 h-5" /> معاينة كشف الحساب
-              </DialogTitle>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 gap-1.5 text-xs"
-                  disabled={!pdfPreviewUrl}
-                  onClick={() => {
-                    if (pdfPreviewUrl) {
-                      const a = document.createElement("a");
-                      a.href = pdfPreviewUrl;
-                      a.download = `كشف-حساب-${selectedEntityName}.pdf`;
-                      a.click();
-                    }
-                  }}
-                >
-                  <FileSpreadsheet className="w-3.5 h-3.5" /> تحميل PDF
-                </Button>
-                <Button
-                  size="sm"
-                  className="h-8 gap-1.5 text-xs"
-                  disabled={!pdfPreviewUrl}
-                  onClick={() => window.print()}
-                >
-                  <Printer className="w-3.5 h-3.5" /> طباعة مباشرة
-                </Button>
-              </div>
-            </div>
-          </DialogHeader>
-          <div className="flex-1 overflow-auto bg-muted/30 p-4" style={{ height: "calc(90vh - 80px)" }}>
-            {pdfGenerating ? (
-              <div className="flex items-center justify-center h-full">
-                <div className="text-center space-y-3">
-                  <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto" />
-                  <p className="text-sm text-muted-foreground">جاري توليد المعاينة...</p>
-                </div>
-              </div>
-            ) : pdfPreviewUrl ? (
-              <iframe
-                src={pdfPreviewUrl}
-                className="w-full h-full rounded-lg border border-border bg-white"
-                title="PDF Preview"
-              />
-            ) : (
-              <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
-                لا يمكن عرض المعاينة
-              </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
