@@ -761,7 +761,7 @@ const AccountStatementPage = () => {
                   <Send className="w-3.5 h-3.5" /> إرسال <ChevronDown className="w-3 h-3" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" dir="rtl">
+              <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={sendWhatsApp} disabled={!selectedContact?.phone}>
                   <MessageSquare className="w-4 h-4 ml-2 text-emerald-500" /> واتساب
                 </DropdownMenuItem>
