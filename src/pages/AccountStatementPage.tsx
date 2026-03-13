@@ -881,7 +881,7 @@ const AccountStatementPage = () => {
         doc.setFont("helvetica", "normal");
         doc.line(10, ph - 12, pw - 10, ph - 12);
         doc.text(`Page ${i} / ${pageCount}`, pw / 2, ph - 7, { align: "center" });
-        doc.text(companySettings?.company_name || "FINIX", 14, ph - 7);
+        doc.text(companyInfo.name || companyName || "FINIX", 14, ph - 7);
         doc.text("Confidential", pw - 14, ph - 7, { align: "right" });
       }
 
