@@ -12,6 +12,12 @@ import POSSettingsSection from "@/components/settings/POSSettingsSection";
 import PrintSettingsSection from "@/components/settings/PrintSettingsSection";
 import PortalSettingsSection from "@/components/settings/PortalSettingsSection";
 import UsersSettingsSection from "@/components/settings/UsersSettingsSection";
+import InventorySettingsSection from "@/components/settings/InventorySettingsSection";
+import HRSettingsSection from "@/components/settings/HRSettingsSection";
+import NotificationsSettingsSection from "@/components/settings/NotificationsSettingsSection";
+import SecuritySettingsSection from "@/components/settings/SecuritySettingsSection";
+import IntegrationsSettingsSection from "@/components/settings/IntegrationsSettingsSection";
+import AISettingsSection from "@/components/settings/AISettingsSection";
 
 const sections = [
   { id: "company", label: "الشركة", icon: Building2, ready: true },
@@ -19,14 +25,14 @@ const sections = [
   { id: "finance", label: "المالية", icon: Wallet, ready: true },
   { id: "invoices", label: "الفواتير", icon: FileText, ready: true },
   { id: "pos", label: "نقطة البيع", icon: ShoppingCart, ready: true },
-  { id: "inventory", label: "المخزون", icon: Package, ready: false },
-  { id: "hr", label: "الموارد البشرية", icon: Users, ready: false },
-  { id: "notifications", label: "الإشعارات", icon: Bell, ready: false },
-  { id: "security", label: "الأمان", icon: Shield, ready: false },
-  { id: "integrations", label: "التكاملات", icon: Link2, ready: false },
+  { id: "inventory", label: "المخزون", icon: Package, ready: true },
+  { id: "hr", label: "الموارد البشرية", icon: Users, ready: true },
+  { id: "notifications", label: "الإشعارات", icon: Bell, ready: true },
+  { id: "security", label: "الأمان", icon: Shield, ready: true },
+  { id: "integrations", label: "التكاملات", icon: Link2, ready: true },
   { id: "print", label: "الطباعة", icon: Printer, ready: true },
   { id: "portal", label: "بوابة الإدارة", icon: Monitor, ready: true },
-  { id: "ai", label: "الذكاء الاصطناعي", icon: Brain, ready: false },
+  { id: "ai", label: "الذكاء الاصطناعي", icon: Brain, ready: true },
 ];
 
 const SettingsPage = () => {
