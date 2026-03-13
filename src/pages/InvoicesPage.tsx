@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { getAuthHeaders, getAuthHeadersJson } from "@/lib/edge-helpers";
-import { ArrowRight, Loader2, Plus, FileText, Printer, Search, ShoppingCart, Receipt, Package, Trash2, Save, Eye, AlertTriangle, CreditCard, Building2, Banknote, Clock, ChevronDown, X } from "lucide-react";
+import { ArrowRight, Loader2, Plus, FileText, Printer, Search, ShoppingCart, Receipt, Package, Trash2, Save, Eye, AlertTriangle, CreditCard, Building2, Banknote, Clock, ChevronDown, ChevronLeft, ChevronRight, X, Filter, LayoutGrid, Table2, ArrowUpDown, FileSpreadsheet } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -16,6 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import InvoicePrintView from "@/components/InvoicePrintView";
 import { createRoot } from "react-dom/client";
+import * as XLSX from "xlsx";
 
 interface Contact {
   id: string;
