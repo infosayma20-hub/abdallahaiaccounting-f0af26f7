@@ -73,6 +73,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
 
   // Form state
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split("T")[0]);
+  const [refNumber, setRefNumber] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("نقدي");
   const [amount, setAmount] = useState("");
   const [notes, setNotes] = useState("");
