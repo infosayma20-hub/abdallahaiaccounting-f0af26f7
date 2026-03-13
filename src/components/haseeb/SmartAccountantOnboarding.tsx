@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import OnboardingStep1 from "./onboarding/OnboardingStep1";
 import OnboardingStep2 from "./onboarding/OnboardingStep2";
