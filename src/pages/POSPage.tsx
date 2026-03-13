@@ -462,7 +462,15 @@ const POSPage = () => {
 
    const userId = user?.id;
    const [dataOwnerId, setDataOwnerId] = useState<string | null>(null);
-   const isAdmin = userId === dataOwnerId; // Employee has different dataOwnerId
+    const isAdmin = userId === dataOwnerId; // Employee has different dataOwnerId
+
+   // ── Offline Mode ──
+   const offlineMode = usePOSOffline({
+     userId: dataOwnerId || userId || null,
+     sessionId: session?.id || null,
+     terminalId: terminal?.id || null,
+     companyId: company?.id || null,
+   });
 
   // ── Cart quantity map for badges on product cards ──
   const cartQtyMap = useMemo(() => {
