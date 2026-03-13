@@ -140,7 +140,12 @@ const ChequesPage = () => {
     setAccounts(data || []);
   };
 
-  const fetchContacts = async () => {
+  const fetchBankAccounts = async () => {
+    if (!user) return;
+    const { data } = await supabase.from('bank_accounts').select('id, name, bank_name, gl_account_code').eq('user_id', user.id).eq('is_active', true);
+    setBankAccounts(data || []);
+  };
+
     if (!user) return;
     const { data } = await supabase.from('contacts').select('id, contact_name, contact_type').eq('user_id', user.id).eq('is_active', true).neq('is_archived', true);
     setContacts(data || []);
