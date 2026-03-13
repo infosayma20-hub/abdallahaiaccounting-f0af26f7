@@ -601,18 +601,33 @@ const InvoiceCreatePage = () => {
               <label className="text-[11px] text-muted-foreground mb-1 block font-medium">
                 {form.type === "sales" ? "الزبون" : "المورد"}
               </label>
-              <div className="relative">
-                <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                <Input
-                  placeholder={`ابحث عن ${form.type === "sales" ? "زبون" : "مورد"}...`}
-                  value={contactSearch}
-                  onChange={e => { setContactSearch(e.target.value); setForm(p => ({ ...p, contactName: e.target.value, contactId: null })); setSelectedContact(null); setShowContactDropdown(true); }}
-                  onFocus={() => setShowContactDropdown(true)}
-                  className="rounded-xl text-sm pr-9"
-                />
+              <div className="relative flex">
+                <div className="relative flex-1">
+                  <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                  <Input
+                    placeholder={`ابحث عن ${form.type === "sales" ? "زبون" : "مورد"}...`}
+                    value={contactSearch}
+                    onChange={e => { setContactSearch(e.target.value); setForm(p => ({ ...p, contactName: e.target.value, contactId: null })); setSelectedContact(null); setShowContactDropdown(true); }}
+                    onFocus={() => setShowContactDropdown(true)}
+                    className="rounded-xl rounded-l-none text-sm pr-9 border-l-0"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => { setShowContactDropdown(prev => !prev); }}
+                  className="flex items-center justify-center w-10 border border-border border-r-0 rounded-l-xl bg-muted/50 hover:bg-muted transition-colors"
+                >
+                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                </button>
               </div>
-              {showContactDropdown && contactSearch && filteredContacts.length > 0 && (
-                <div className="absolute z-50 top-full left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-popover border border-border rounded-xl shadow-lg">
+              {showContactDropdown && (
+                <div className="absolute z-50 top-full left-0 right-0 mt-1 max-h-56 overflow-y-auto bg-popover border border-border rounded-xl shadow-lg">
+                  <button
+                    onClick={() => { setShowContactDropdown(false); const name = contactSearch.trim() || (form.type === "sales" ? "زبون جديد" : "مورد جديد"); setContactSearch(name); setForm(p => ({ ...p, contactName: name, contactId: null })); }}
+                    className="w-full text-right px-3 py-2.5 text-sm hover:bg-muted transition-colors flex items-center gap-2 text-primary font-semibold border-b border-border"
+                  >
+                    <Plus className="h-3.5 w-3.5" /> إضافة {form.type === "sales" ? "زبون" : "مورد"} جديد
+                  </button>
                   {filteredContacts.map(c => (
                     <button key={c.id} onClick={() => selectContact(c)} className="w-full text-right px-3 py-2.5 text-sm hover:bg-muted transition-colors flex items-center justify-between gap-2">
                       <div>
@@ -627,6 +642,9 @@ const InvoiceCreatePage = () => {
                       </div>
                     </button>
                   ))}
+                  {filteredContacts.length === 0 && (
+                    <p className="text-center text-xs text-muted-foreground py-3">لا توجد نتائج</p>
+                  )}
                 </div>
               )}
               {!form.contactId && form.contactName.trim() && (
