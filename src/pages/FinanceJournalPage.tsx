@@ -352,7 +352,7 @@ const FinanceJournalPage = () => {
             </div>
           </div>
         </div>
-        <Button className="gap-1.5 rounded-xl shadow-md shadow-primary/20" onClick={() => { resetForm(); setEditingVoucherId(null); setModalOpen(true); }}>
+        <Button className="gap-1.5 rounded-xl shadow-md shadow-primary/20" onClick={() => navigate("/finance/journal/new")}>
           <Plus className="h-4 w-4" /> سند قيد جديد
         </Button>
       </div>
