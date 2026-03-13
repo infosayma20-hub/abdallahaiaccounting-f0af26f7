@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import DuplicateBanner from "@/components/DuplicateBanner";
 import {
   CheckCircle, Printer, Save, Search, Plus, Trash2, Loader2,
   BookOpen, User, Building2, Users, X

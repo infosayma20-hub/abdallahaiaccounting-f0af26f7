@@ -60,8 +60,12 @@ interface VoucherFormPageProps {
 
 const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const { company } = useCompany();
+
+  const fromDuplicate = searchParams.get("from_duplicate") === "true";
+  const [duplicateSourceRef, setDuplicateSourceRef] = useState<string | null>(null);
 
   const isReceipt = voucherType === "receipt";
   const pageTitle = isReceipt ? "سند قبض جديد" : "سند صرف جديد";
@@ -101,6 +105,30 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [savedReceiptNumber, setSavedReceiptNumber] = useState("");
+
+  // ─── Load Duplicate Data ───
+  useEffect(() => {
+    if (!fromDuplicate) return;
+    const draftKey = `draft_${voucherType}_new`;
+    const draft = localStorage.getItem(draftKey);
+    if (!draft) return;
+    try {
+      const data = JSON.parse(draft);
+      localStorage.removeItem(draftKey);
+      setDuplicateSourceRef(data._sourceRef || null);
+      if (data.paymentMethod) setPaymentMethod(data.paymentMethod);
+      if (data.notes) setNotes(data.notes);
+      if (data.depositType) setDepositType(data.depositType);
+      if (data.selectedCashBox) setSelectedCashBox(data.selectedCashBox);
+      if (data.selectedBankAccount) setSelectedBankAccount(data.selectedBankAccount);
+      if (data.contactId) {
+        // Will be resolved after contacts load
+        (window as any).__duplicateContactId = data.contactId;
+      }
+      // Amount is NOT copied (user must enter)
+      // Date is today (default)
+    } catch (e) { /* ignore */ }
+  }, [fromDuplicate, voucherType]);
 
   // Load contacts
   useEffect(() => {
