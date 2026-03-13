@@ -190,7 +190,7 @@ const PeriodicReportsPage = () => {
           count: outgoingCheques.length,
           total: outgoingCheques.reduce((s, c) => s + c.amount, 0),
           collected: outgoingCheques.filter(c => c.status === "محصل").length,
-          pending: outgoingCheques.filter(c => c.status === "بانتظار" || c.status === "معلق").length,
+          pending: outgoingCheques.filter(c => c.status === "مستحق" || c.status === "مسجل").length,
           returned: outgoingCheques.filter(c => c.status === "مرتجع").length,
         }
       };
