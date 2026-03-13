@@ -37,7 +37,7 @@ const RULES = [
 const CAPABILITIES = [
   { icon: Zap, title: "تسجيل عمليات", desc: "جمل طبيعية → قيود محاسبية", color: "#C9A84C" },
   { icon: BarChart3, title: "عرض تقارير", desc: "\"شو وضعي المالي؟\"", color: "#006D8F" },
-  { icon: UserPlus, title: "إضافة جهات", desc: "\"أضف زبون @اسم\"", color: "#16A34A" },
+  { icon: UserPlus, title: "إضافة جهات", desc: "\"أضف زبون محمد\"", color: "#16A34A" },
   { icon: Search, title: "استعلامات", desc: "\"كم عليّ لشركة النور؟\"", color: "#7C3AED" },
 ];
 
