@@ -98,6 +98,7 @@ import FinanceJournalPage from "./pages/FinanceJournalPage";
 import BankAccountsPage from "./pages/BankAccountsPage";
 import CashBoxesPage from "./pages/CashBoxesPage";
 import CashTransferPage from "./pages/CashTransferPage";
+import ReceiptNewPage from "./pages/ReceiptNewPage";
 import PortalLogin from "./pages/portal/PortalLogin";
 import PortalDashboard from "./pages/portal/PortalDashboard";
 import PortalSettings from "./pages/portal/PortalSettings";
