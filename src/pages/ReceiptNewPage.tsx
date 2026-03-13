@@ -303,7 +303,7 @@ const ReceiptNewPage = () => {
           amount: amountNum,
           party_name: selectedContact.contact_name,
           bank_name: checkBank,
-          status: "بالمحفظة" as const,
+          status: "مسجل" as const,
           currency: "شيكل",
         });
       }
