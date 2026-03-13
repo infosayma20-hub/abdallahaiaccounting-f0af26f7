@@ -951,7 +951,7 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
   };
 
   const loadUnpaidInvoices = async () => {
-    const { data: invoices } = await supabase.from("invoices").select("id, invoice_number, invoice_date, due_date, total_amount, contact_name, contact_id, payment_status, paid_amount").eq("user_id", uid).eq("invoice_type", "sale").gte("invoice_date", dateFrom).lte("invoice_date", dateTo);
+    const { data: invoices } = await supabase.from("invoices").select("id, invoice_number, invoice_date, due_date, total_amount, contact_name, contact_id, payment_status, paid_amount, remaining_amount").eq("user_id", uid).eq("invoice_type", "sale").gte("invoice_date", dateFrom).lte("invoice_date", dateTo);
     if (!invoices?.length) { setData([]); return; }
     const { data: linkData } = await supabase.from("payment_invoice_links").select("invoice_id");
     const linkedIds = new Set((linkData || []).map(l => l.invoice_id));
