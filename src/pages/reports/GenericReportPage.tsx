@@ -1320,6 +1320,18 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
         return { debit: "sum", credit: "sum" };
       case "dpo-report":
         return { totalPurchases: "sum", invCount: "sum" };
+      case "invoice-lifecycle":
+        return { total: "sum", paid: "sum", remaining: "sum" };
+      case "dso-detailed":
+        return { invCount: "sum" };
+      case "ar-aging-advanced":
+        return { current: "sum", d1_30: "sum", d31_60: "sum", d61_90: "sum", over90: "sum", total: "sum" };
+      case "collection-efficiency":
+        return { issued: "sum", collected: "sum", onTime: "sum", late: "sum" };
+      case "payment-allocation":
+        return { allocated: "sum" };
+      case "unpaid-invoices":
+        return { total: "sum" };
       default:
         return undefined;
     }

@@ -60,6 +60,7 @@ import HRAttendanceReport from "./pages/reports/HRAttendanceReport";
 import HRLeaveReport from "./pages/reports/HRLeaveReport";
 import HRStaffCostReport from "./pages/reports/HRStaffCostReport";
 import GenericReportPage from "./pages/reports/GenericReportPage";
+import CollectionDashboardPage from "./pages/reports/CollectionDashboardPage";
 import PeriodicReportsPage from "./pages/reports/PeriodicReportsPage";
 import CustomizationPage from "./pages/CustomizationPage";
 import SettingsPage from "./pages/SettingsPage";
