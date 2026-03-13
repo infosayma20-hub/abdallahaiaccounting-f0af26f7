@@ -81,7 +81,7 @@ const HomeDashboard = () => {
   const isMobile = useIsMobile();
   const dashboard = useDashboardData();
 
-  const [showHelpGuide, setShowHelpGuide] = useState(false);
+  
   const [showProfileDialog, setShowProfileDialog] = useState(false);
   const [showJournalEntry, setShowJournalEntry] = useState(false);
   const [journalEntryData, setJournalEntryData] = useState<any>(null);
