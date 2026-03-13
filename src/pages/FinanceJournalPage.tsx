@@ -841,6 +841,19 @@ const FinanceJournalPage = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Duplicate Confirm Modal */}
+      <DuplicateConfirmModal
+        open={duplicateModal}
+        onClose={() => setDuplicateModal(false)}
+        onConfirm={confirmDuplicate}
+        docType="journal"
+        info={{
+          description: duplicateTarget?.description,
+          linesCount: duplicateTarget?._lines?.length,
+          sourceRef: duplicateTarget?.ref_number,
+        }}
+      />
     </div>
   );
 };
