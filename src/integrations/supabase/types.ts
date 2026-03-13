@@ -1464,6 +1464,7 @@ export type Database = {
           allow_discount: boolean | null
           allow_invoice_edit_after_approval: boolean | null
           base_currency: string | null
+          business_type: string | null
           calendar_type: string | null
           city: string | null
           commercial_register: string | null
@@ -1479,9 +1480,12 @@ export type Database = {
           default_revenue_account: string | null
           e_invoice_enabled: boolean | null
           email: string | null
+          employee_count_range: string | null
           exchange_rate_source: string | null
           extra_currencies: Json | null
           fiscal_year_start: number | null
+          has_employees: boolean | null
+          has_pos: boolean | null
           hr_annual_leave_days: number | null
           hr_carry_over_leave: boolean | null
           hr_late_grace_minutes: number | null
@@ -1496,6 +1500,7 @@ export type Database = {
           id: string
           income_tax_enabled: boolean | null
           income_tax_rate: number | null
+          inventory_method: string | null
           invoice_default_notes: string | null
           invoice_font: string | null
           invoice_footer: string | null
@@ -1505,6 +1510,10 @@ export type Database = {
           licensed_dealer_number: string | null
           logo_url: string | null
           max_discount_percent: number | null
+          onboarding_completed: boolean | null
+          onboarding_completed_at: string | null
+          onboarding_skipped: boolean | null
+          onboarding_step: number | null
           paper_size: string | null
           payment_prefix: string | null
           period_lock_mode: string | null
@@ -1512,6 +1521,7 @@ export type Database = {
           pos_auto_print: boolean | null
           pos_auto_update_stock: boolean | null
           pos_branch_id: string | null
+          pos_count: number | null
           pos_day_cutoff_hour: number | null
           pos_default_opening_balance: number | null
           pos_deficit_alert: boolean | null
@@ -1550,6 +1560,7 @@ export type Database = {
           allow_discount?: boolean | null
           allow_invoice_edit_after_approval?: boolean | null
           base_currency?: string | null
+          business_type?: string | null
           calendar_type?: string | null
           city?: string | null
           commercial_register?: string | null
@@ -1565,9 +1576,12 @@ export type Database = {
           default_revenue_account?: string | null
           e_invoice_enabled?: boolean | null
           email?: string | null
+          employee_count_range?: string | null
           exchange_rate_source?: string | null
           extra_currencies?: Json | null
           fiscal_year_start?: number | null
+          has_employees?: boolean | null
+          has_pos?: boolean | null
           hr_annual_leave_days?: number | null
           hr_carry_over_leave?: boolean | null
           hr_late_grace_minutes?: number | null
@@ -1582,6 +1596,7 @@ export type Database = {
           id?: string
           income_tax_enabled?: boolean | null
           income_tax_rate?: number | null
+          inventory_method?: string | null
           invoice_default_notes?: string | null
           invoice_font?: string | null
           invoice_footer?: string | null
@@ -1591,6 +1606,10 @@ export type Database = {
           licensed_dealer_number?: string | null
           logo_url?: string | null
           max_discount_percent?: number | null
+          onboarding_completed?: boolean | null
+          onboarding_completed_at?: string | null
+          onboarding_skipped?: boolean | null
+          onboarding_step?: number | null
           paper_size?: string | null
           payment_prefix?: string | null
           period_lock_mode?: string | null
@@ -1598,6 +1617,7 @@ export type Database = {
           pos_auto_print?: boolean | null
           pos_auto_update_stock?: boolean | null
           pos_branch_id?: string | null
+          pos_count?: number | null
           pos_day_cutoff_hour?: number | null
           pos_default_opening_balance?: number | null
           pos_deficit_alert?: boolean | null
@@ -1636,6 +1656,7 @@ export type Database = {
           allow_discount?: boolean | null
           allow_invoice_edit_after_approval?: boolean | null
           base_currency?: string | null
+          business_type?: string | null
           calendar_type?: string | null
           city?: string | null
           commercial_register?: string | null
@@ -1651,9 +1672,12 @@ export type Database = {
           default_revenue_account?: string | null
           e_invoice_enabled?: boolean | null
           email?: string | null
+          employee_count_range?: string | null
           exchange_rate_source?: string | null
           extra_currencies?: Json | null
           fiscal_year_start?: number | null
+          has_employees?: boolean | null
+          has_pos?: boolean | null
           hr_annual_leave_days?: number | null
           hr_carry_over_leave?: boolean | null
           hr_late_grace_minutes?: number | null
@@ -1668,6 +1692,7 @@ export type Database = {
           id?: string
           income_tax_enabled?: boolean | null
           income_tax_rate?: number | null
+          inventory_method?: string | null
           invoice_default_notes?: string | null
           invoice_font?: string | null
           invoice_footer?: string | null
@@ -1677,6 +1702,10 @@ export type Database = {
           licensed_dealer_number?: string | null
           logo_url?: string | null
           max_discount_percent?: number | null
+          onboarding_completed?: boolean | null
+          onboarding_completed_at?: string | null
+          onboarding_skipped?: boolean | null
+          onboarding_step?: number | null
           paper_size?: string | null
           payment_prefix?: string | null
           period_lock_mode?: string | null
@@ -1684,6 +1713,7 @@ export type Database = {
           pos_auto_print?: boolean | null
           pos_auto_update_stock?: boolean | null
           pos_branch_id?: string | null
+          pos_count?: number | null
           pos_day_cutoff_hour?: number | null
           pos_default_opening_balance?: number | null
           pos_deficit_alert?: boolean | null
