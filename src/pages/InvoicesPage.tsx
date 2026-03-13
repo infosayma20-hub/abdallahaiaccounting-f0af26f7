@@ -1068,9 +1068,11 @@ const InvoicesPage = () => {
             <p className="text-xs text-muted-foreground">{invoices.length} فاتورة</p>
           </div>
         </div>
-        <Button variant="outline" size="sm" className="gap-1.5 rounded-xl" onClick={() => navigate("/invoices/new")}>
-          <Plus className="h-4 w-4" /> إنشاء فاتورة
-        </Button>
+        {invoices.length > 0 && (
+          <Button variant="outline" size="sm" className="gap-1.5 rounded-xl" onClick={() => navigate("/invoices/new")}>
+            <Plus className="h-4 w-4" /> إنشاء فاتورة
+          </Button>
+        )}
       </div>
 
       {/* Stats */}
