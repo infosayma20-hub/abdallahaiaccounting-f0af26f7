@@ -84,6 +84,9 @@ export const navigationSections: NavSection[] = [
               { label: "دفتر الأستاذ", path: "/general-ledger" },
               { label: "كشف حساب", path: "/account-statement" },
               { label: "ميزان المراجعة", path: "/trial-balance" },
+              { label: "الزبائن", path: "/contacts?type=customer" },
+              { label: "الموردين", path: "/contacts?type=supplier" },
+              { label: "المندوبين", path: "/sales-reps" },
             ],
           },
           {
@@ -124,13 +127,6 @@ export const navigationSections: NavSection[] = [
             ],
           },
           {
-            groupLabel: "العملاء والمندوبون",
-            children: [
-              { label: "الزبائن", path: "/contacts?type=customer" },
-              { label: "المندوبين", path: "/sales-reps" },
-            ],
-          },
-          {
             groupLabel: "الإعدادات",
             children: [
               { label: "سياسات التصنيف", path: "/contacts/policies" },
@@ -149,12 +145,6 @@ export const navigationSections: NavSection[] = [
               { label: "فواتير مشتريات", path: "/bills" },
               { label: "نقطة المشتريات", path: "/purchase-point" },
               { label: "سندات الصرف", path: "/finance/payments" },
-            ],
-          },
-          {
-            groupLabel: "الموردون",
-            children: [
-              { label: "الموردين", path: "/contacts?type=supplier" },
             ],
           },
           {
