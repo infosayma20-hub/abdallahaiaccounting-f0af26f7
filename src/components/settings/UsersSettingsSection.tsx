@@ -215,7 +215,7 @@ const UsersSettingsSection = () => {
     const { error } = await supabase
       .from("role_permissions")
       .update({ [field]: value, updated_at: new Date().toISOString() })
-      .eq("role", role)
+      .eq("role", role as any)
       .eq("module", module);
     if (error) {
       toast.error("فشل تحديث الصلاحية");
