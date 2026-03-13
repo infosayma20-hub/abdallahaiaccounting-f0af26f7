@@ -17,9 +17,10 @@ interface UsePOSOfflineOptions {
   userId: string | null;
   sessionId: string | null;
   terminalId: string | null;
+  companyId: string | null;
 }
 
-export function usePOSOffline({ userId, sessionId, terminalId }: UsePOSOfflineOptions) {
+export function usePOSOffline({ userId, sessionId, terminalId, companyId }: UsePOSOfflineOptions) {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [pendingCount, setPendingCount] = useState(0);
   const [lastSyncAt, setLastSyncAt] = useState<string | null>(
@@ -29,12 +30,22 @@ export function usePOSOffline({ userId, sessionId, terminalId }: UsePOSOfflineOp
   const [syncProgress, setSyncProgress] = useState({ current: 0, total: 0 });
   const offlineStartRef = useRef<string | null>(null);
   const syncIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const isSyncingRef = useRef(false);
 
   // ── Real connectivity check ──
   const checkConnection = useCallback(async (): Promise<boolean> => {
     try {
-      const { error } = await supabase.from('products').select('id').limit(1);
-      return !error;
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 5000);
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/`, {
+        method: 'HEAD',
+        signal: controller.signal,
+        headers: {
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        },
+      });
+      clearTimeout(timeout);
+      return res.ok;
     } catch {
       return false;
     }
@@ -68,10 +79,11 @@ export function usePOSOffline({ userId, sessionId, terminalId }: UsePOSOfflineOp
 
   // ── Sync pending sales ──
   const syncPendingQueue = useCallback(async () => {
-    if (!userId || isSyncing) return;
+    if (!userId || isSyncingRef.current) return;
     const pending = await getPendingSales();
     if (pending.length === 0) return;
 
+    isSyncingRef.current = true;
     setIsSyncing(true);
     setSyncProgress({ current: 0, total: pending.length });
 
@@ -81,12 +93,16 @@ export function usePOSOffline({ userId, sessionId, terminalId }: UsePOSOfflineOp
 
     for (const sale of pending) {
       try {
-        // Use the complete_pos_order RPC or direct insert
-        const { error } = await supabase.from('pos_orders').insert({
+        // Insert via pos_orders — cast to any since new columns may not be in generated types yet
+        const insertData: Record<string, any> = {
           user_id: userId,
+          company_id: companyId || '',
           session_id: sale.session_id,
           order_number: sale.order_number,
           total: sale.total,
+          subtotal: sale.total,
+          tax_amount: 0,
+          discount_amount: 0,
           state: 'paid',
           paid_at: sale.created_at,
           customer_id: sale.customer_id,
@@ -94,7 +110,11 @@ export function usePOSOffline({ userId, sessionId, terminalId }: UsePOSOfflineOp
           was_offline: true,
           local_id: sale.local_id,
           synced_at: new Date().toISOString(),
-        });
+          sync_status: 'synced',
+          notes: `عملية offline — ${sale.payment_method}`,
+        };
+
+        const { error } = await supabase.from('pos_orders').insert(insertData as any);
 
         if (error) throw error;
 
@@ -123,11 +143,26 @@ export function usePOSOffline({ userId, sessionId, terminalId }: UsePOSOfflineOp
         failed_count: failed,
         created_at: new Date().toISOString(),
       });
+
+      // Also log to server
+      try {
+        await supabase.from('pos_sync_log' as any).insert({
+          user_id: userId,
+          offline_started_at: offlineStart,
+          online_restored_at: new Date().toISOString(),
+          offline_duration_minutes: duration,
+          transactions_count: pending.length,
+          synced_count: synced,
+          failed_count: failed,
+        } as any);
+      } catch { /* ignore server log failure */ }
+
       offlineStartRef.current = null;
     }
 
     const count = await countPending();
     setPendingCount(count);
+    isSyncingRef.current = false;
     setIsSyncing(false);
 
     if (synced > 0) {
@@ -139,7 +174,7 @@ export function usePOSOffline({ userId, sessionId, terminalId }: UsePOSOfflineOp
 
     // Re-cache after sync
     await preCacheData();
-  }, [userId, isSyncing, preCacheData]);
+  }, [userId, companyId, preCacheData]);
 
   // ── Create offline sale ──
   const createOfflineSale = useCallback(async (
@@ -218,7 +253,7 @@ export function usePOSOffline({ userId, sessionId, terminalId }: UsePOSOfflineOp
         await preCacheData();
         await syncPendingQueue();
       }
-    }, 15 * 60 * 1000); // 15 minutes
+    }, 15 * 60 * 1000);
 
     return () => {
       if (syncIntervalRef.current) clearInterval(syncIntervalRef.current);
