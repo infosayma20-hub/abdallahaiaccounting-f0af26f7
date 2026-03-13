@@ -2251,6 +2251,16 @@ const POSPage = () => {
         </button>
       </header>
 
+      {/* ══════ OFFLINE STATUS BAR ══════ */}
+      <OfflineStatusBar
+        isOnline={offlineMode.isOnline}
+        pendingCount={offlineMode.pendingCount}
+        lastSyncAt={offlineMode.lastSyncAt}
+        isSyncing={offlineMode.isSyncing}
+        syncProgress={offlineMode.syncProgress}
+        onForceSync={offlineMode.syncPendingQueue}
+      />
+
       {/* ══════ MAIN ══════ */}
       <div className="flex-1 flex overflow-hidden">
         {/* ── LEFT: Products ── */}
