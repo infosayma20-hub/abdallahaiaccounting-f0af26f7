@@ -895,6 +895,72 @@ const ChequesPage = () => {
         </div>
       )}
 
+      {/* Deposit Dialog */}
+      <Dialog open={!!depositTarget} onOpenChange={(v) => { if (!v) { setDepositTarget(null); setSelectedBankAccount(""); } }}>
+        <DialogContent className="max-w-sm rounded-2xl" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="text-center">إيداع شيك في حساب بنكي</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 mt-2">
+            <div className="bg-muted/30 rounded-xl p-3 text-sm space-y-1">
+              <p className="text-muted-foreground">الجهة: <strong className="text-foreground">{depositTarget?.party_name}</strong></p>
+              <p className="text-muted-foreground">المبلغ: <strong className={depositTarget?.cheque_type === 'وارد' ? 'text-emerald-600' : 'text-destructive'}>{depositTarget?.amount.toLocaleString()} {depositTarget?.currency}</strong></p>
+              <p className="text-muted-foreground">الاستحقاق: <strong className="text-foreground">{depositTarget?.cheque_date && fmtDate(depositTarget.cheque_date)}</strong></p>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold">اختر الحساب البنكي *</Label>
+              {bankAccounts.length === 0 ? (
+                <div className="text-center py-4 space-y-2">
+                  <Building2 className="h-8 w-8 text-muted-foreground/30 mx-auto" />
+                  <p className="text-xs text-muted-foreground">لا توجد حسابات بنكية</p>
+                  <Button variant="outline" size="sm" className="rounded-xl text-xs" onClick={() => navigate('/finance/bank-accounts')}>
+                    إضافة حساب بنكي
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                  {bankAccounts.map(bank => (
+                    <button
+                      key={bank.id}
+                      onClick={() => setSelectedBankAccount(bank.id)}
+                      className={`w-full text-right px-3 py-2.5 rounded-xl border transition-all flex items-center justify-between ${
+                        selectedBankAccount === bank.id
+                          ? 'border-primary bg-primary/5 ring-1 ring-primary/20'
+                          : 'border-border hover:border-primary/30 hover:bg-muted/30'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Building2 className={`h-4 w-4 ${selectedBankAccount === bank.id ? 'text-primary' : 'text-muted-foreground'}`} />
+                        <div>
+                          <p className="text-sm font-medium text-foreground">{bank.name}</p>
+                          <p className="text-[10px] text-muted-foreground">{bank.bank_name}</p>
+                        </div>
+                      </div>
+                      {bank.gl_account_code && (
+                        <span className="text-[10px] text-muted-foreground font-mono">{bank.gl_account_code}</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <Button
+                onClick={handleDeposit}
+                disabled={!selectedBankAccount}
+                className="flex-1 rounded-xl h-10 shadow-md shadow-primary/20 gap-2"
+              >
+                <CheckCircle2 className="h-4 w-4" />
+                تأكيد الإيداع
+              </Button>
+              <Button variant="outline" className="rounded-xl h-10" onClick={() => { setDepositTarget(null); setSelectedBankAccount(""); }}>
+                إلغاء
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Delete Confirmation */}
       <AlertDialog open={!!deleteTarget} onOpenChange={(v) => !v && setDeleteTarget(null)}>
         <AlertDialogContent dir="rtl" className="rounded-2xl">
