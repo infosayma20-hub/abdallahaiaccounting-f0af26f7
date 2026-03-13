@@ -1688,7 +1688,7 @@ const AccountStatementPage = () => {
                   <RadioGroupItem value="lineItems" id="lineItems" className="mt-0.5" />
                   <div>
                     <Label htmlFor="lineItems" className="text-sm font-medium cursor-pointer">تفصيل البنود</Label>
-                    <p className="text-[10px] text-muted-foreground">كل صنف في الفاتورة في سطر منفصل (مثل كشف PEPSI)</p>
+                    <p className="text-[10px] text-muted-foreground">كل صنف في الفاتورة في سطر منفصل</p>
                   </div>
                 </div>
               </RadioGroup>
