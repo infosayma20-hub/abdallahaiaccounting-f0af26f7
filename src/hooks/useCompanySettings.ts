@@ -218,7 +218,8 @@ const defaultSettings: CompanySettings = {
   hr_salary_currency: "ILS",
   hr_social_security: false,
   // Security
-  security_session_timeout: 60,
+  security_session_timeout: 30,
+  security_warning_minutes: 2,
   security_2fa_enabled: false,
   security_passkeys_enabled: false,
   security_ip_restrict: false,
