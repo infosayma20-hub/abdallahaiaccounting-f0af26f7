@@ -215,7 +215,7 @@ const QuickAccessButton = () => {
           <Zap className="h-[18px] w-[18px]" strokeWidth={1.8} />
         </button>
       </PopoverTrigger>
-      <PopoverContent align="start" sideOffset={8} className="w-[280px] p-2 rounded-xl" dir="rtl">
+      <PopoverContent align="start" sideOffset={8} className="w-[340px] p-2 rounded-xl" dir="rtl">
         <p className="text-[11px] font-bold text-muted-foreground px-2 pb-1.5 flex items-center gap-1.5">
           <Zap className="h-3 w-3 text-accent" />وصول سريع
         </p>
@@ -227,9 +227,7 @@ const QuickAccessButton = () => {
               className="flex items-center gap-2 px-2.5 py-2 rounded-lg text-right hover:bg-secondary transition-colors group"
             >
               <item.icon className="h-4 w-4 text-muted-foreground group-hover:text-accent transition-colors flex-shrink-0" strokeWidth={1.6} />
-              <div className="flex-1 min-w-0">
-                <p className="text-[11px] font-medium text-foreground truncate">{item.label}</p>
-              </div>
+              <span className="text-[11px] font-medium text-foreground flex-1 whitespace-nowrap">{item.label}</span>
               <kbd className="text-[9px] font-mono text-accent/70 bg-accent/10 rounded px-1 py-0.5 flex-shrink-0">{item.shortcut}</kbd>
             </button>
           ))}
