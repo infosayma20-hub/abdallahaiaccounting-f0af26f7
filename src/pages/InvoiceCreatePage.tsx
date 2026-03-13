@@ -577,6 +577,9 @@ const InvoiceCreatePage = () => {
   // ─── RENDER ───
   return (
     <div className="px-4 lg:px-8 pt-4 pb-32 space-y-4 max-w-5xl mx-auto" dir="rtl">
+      {/* Duplicate Banner */}
+      {duplicateSourceRef && <DuplicateBanner sourceRef={duplicateSourceRef} />}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
