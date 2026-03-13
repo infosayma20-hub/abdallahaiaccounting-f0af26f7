@@ -63,7 +63,7 @@ export function usePOSOffline({ userId, sessionId, terminalId, companyId }: UseP
         supabase.from('contacts')
           .select('id, contact_name, phone, current_balance, credit_limit, contact_type')
           .eq('user_id', userId)
-          .in('contact_type', ['عميل', 'both', 'customer']),
+          .or('contact_type.eq.عميل,contact_type.eq.both,contact_type.eq.customer'),
       ]);
 
       if (productsRes.data) await cacheProducts(productsRes.data);
