@@ -168,8 +168,8 @@ const SessionManager = () => {
           <div className="fixed inset-0 bg-background/80 backdrop-blur-sm" />
           <div className="relative w-full max-w-md mx-4 bg-card rounded-2xl border border-border/50 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             <div className="p-8 text-center space-y-5">
-              <div className="w-16 h-16 rounded-2xl bg-amber-500/10 flex items-center justify-center mx-auto">
-                <Lock className="h-8 w-8 text-amber-500" />
+              <div className="w-16 h-16 rounded-2xl bg-accent/10 flex items-center justify-center mx-auto">
+                <Lock className="h-8 w-8 text-accent" />
               </div>
               <div>
                 <h3 className="text-lg font-bold text-foreground mb-1">هل لا تزال هنا؟</h3>
@@ -177,8 +177,8 @@ const SessionManager = () => {
                   سيتم تسجيل خروجك تلقائياً خلال:
                 </p>
               </div>
-              <div className="inline-flex items-center justify-center px-6 py-3 rounded-xl bg-amber-500/10 border border-amber-500/20">
-                <span className="text-3xl font-mono font-bold text-amber-600 tracking-wider">
+              <div className="inline-flex items-center justify-center px-6 py-3 rounded-xl bg-accent/10 border border-accent/20">
+                <span className="text-3xl font-mono font-bold text-accent tracking-wider">
                   {formatTime(countdown)}
                 </span>
               </div>
