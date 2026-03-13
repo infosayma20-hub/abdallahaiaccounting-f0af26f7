@@ -79,7 +79,7 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
     currency: "ILS",
     customCurrency: "",
     vatEnabled: null,
-    vatRate: 17,
+    vatRate: 16,
     inventoryMethod: "weighted_average",
     hasEmployees: null,
     employeeRange: "1-10",
