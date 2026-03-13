@@ -11,10 +11,11 @@ import InvoiceSettingsSection from "@/components/settings/InvoiceSettingsSection
 import POSSettingsSection from "@/components/settings/POSSettingsSection";
 import PrintSettingsSection from "@/components/settings/PrintSettingsSection";
 import PortalSettingsSection from "@/components/settings/PortalSettingsSection";
+import UsersSettingsSection from "@/components/settings/UsersSettingsSection";
 
 const sections = [
   { id: "company", label: "الشركة", icon: Building2, ready: true },
-  { id: "user", label: "المستخدم", icon: User, ready: false },
+  { id: "user", label: "المستخدمون", icon: User, ready: true },
   { id: "finance", label: "المالية", icon: Wallet, ready: true },
   { id: "invoices", label: "الفواتير", icon: FileText, ready: true },
   { id: "pos", label: "نقطة البيع", icon: ShoppingCart, ready: true },
@@ -48,6 +49,8 @@ const SettingsPage = () => {
     }
 
     switch (activeSection) {
+      case "user":
+        return <UsersSettingsSection />;
       case "company":
         return <CompanySettingsSection settings={settings} onChange={updateSettings} />;
       case "finance":

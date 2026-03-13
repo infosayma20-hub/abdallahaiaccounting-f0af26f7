@@ -6392,6 +6392,42 @@ export type Database = {
           },
         ]
       }
+      role_permissions: {
+        Row: {
+          can_approve: boolean
+          can_delete: boolean
+          can_read: boolean
+          can_write: boolean
+          created_at: string
+          id: string
+          module: string
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at: string
+        }
+        Insert: {
+          can_approve?: boolean
+          can_delete?: boolean
+          can_read?: boolean
+          can_write?: boolean
+          created_at?: string
+          id?: string
+          module: string
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+        }
+        Update: {
+          can_approve?: boolean
+          can_delete?: boolean
+          can_read?: boolean
+          can_write?: boolean
+          created_at?: string
+          id?: string
+          module?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       salary_slips: {
         Row: {
           absence_deduction: number | null
