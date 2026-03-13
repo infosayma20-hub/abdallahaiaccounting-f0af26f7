@@ -12,6 +12,8 @@ interface Props {
   onShowNotifications: () => void;
   onToggleHistory?: () => void;
   onRefreshData?: () => void;
+  onShowHelp?: () => void;
+  onReplayOnboarding?: () => void;
   todayConversationCount?: number;
   refreshing?: boolean;
 }
