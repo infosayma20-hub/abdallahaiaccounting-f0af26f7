@@ -49,6 +49,31 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [page, setPage] = useState(1);
 
+  // Duplicate
+  const [duplicateModal, setDuplicateModal] = useState(false);
+  const [duplicateTarget, setDuplicateTarget] = useState<any>(null);
+
+  const handleDuplicate = (v: any) => {
+    setDuplicateTarget(v);
+    setDuplicateModal(true);
+  };
+
+  const confirmDuplicate = () => {
+    if (!duplicateTarget) return;
+    const draftData = {
+      _sourceRef: duplicateTarget.ref_number,
+      paymentMethod: PAYMENT_LABELS[duplicateTarget.payment_method] || "نقدي",
+      notes: duplicateTarget.notes || "",
+      contactId: duplicateTarget.contact_id || null,
+      depositType: duplicateTarget.cash_box_id ? "cash_box" : "bank",
+      selectedCashBox: duplicateTarget.cash_box_id || "",
+      selectedBankAccount: duplicateTarget.bank_account_id || "",
+    };
+    localStorage.setItem(`draft_${voucherType}_new`, JSON.stringify(draftData));
+    setDuplicateModal(false);
+    navigate(isReceipt ? "/finance/receipt/new?from_duplicate=true" : "/finance/payment/new?from_duplicate=true");
+  };
+
   const fetchData = useCallback(async () => {
     if (!user) return;
     setLoading(true);
