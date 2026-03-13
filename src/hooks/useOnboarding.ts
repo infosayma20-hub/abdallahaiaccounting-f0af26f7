@@ -24,17 +24,19 @@ export const useOnboarding = () => {
   const { user } = useAuth();
   const [state, setState] = useState<OnboardingState>(defaultState);
   const [loading, setLoading] = useState(true);
+  const [businessType, setBusinessType] = useState<string | undefined>();
 
   useEffect(() => {
     if (!user) return;
-    const fetch = async () => {
-      const { data } = await supabase
-        .from("user_onboarding")
-        .select("*")
-        .eq("user_id", user.id)
-        .maybeSingle();
+    const fetchData = async () => {
+      // Fetch onboarding state and business_type in parallel
+      const [onboardingRes, settingsRes] = await Promise.all([
+        supabase.from("user_onboarding").select("*").eq("user_id", user.id).maybeSingle(),
+        supabase.from("company_settings").select("business_type").eq("user_id", user.id).maybeSingle(),
+      ]);
 
-      if (data) {
+      if (onboardingRes.data) {
+        const data = onboardingRes.data;
         setState({
           welcome_modal_shown: data.welcome_modal_shown,
           full_tour_completed: data.full_tour_completed,
@@ -44,9 +46,14 @@ export const useOnboarding = () => {
           dont_show_again: data.dont_show_again,
         });
       }
+
+      if (settingsRes.data?.business_type) {
+        setBusinessType(settingsRes.data.business_type as string);
+      }
+
       setLoading(false);
     };
-    fetch();
+    fetchData();
   }, [user]);
 
   const update = useCallback(
@@ -72,5 +79,5 @@ export const useOnboarding = () => {
   const shouldShowWelcome = !loading && !state.welcome_modal_shown && !state.dont_show_again;
   const shouldShowTour = !loading && state.welcome_modal_shown && !state.full_tour_completed && !state.full_tour_skipped && !state.dont_show_again;
 
-  return { state, loading, update, shouldShowWelcome, shouldShowTour };
+  return { state, loading, update, shouldShowWelcome, shouldShowTour, businessType };
 };
