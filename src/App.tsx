@@ -215,7 +215,7 @@ const App = () => (
                       <Route path="/receipts" element={<Navigate to="/finance/receipts" replace />} />
                       <Route path="/bills" element={<InvoicesPage />} />
                       <Route path="/payments" element={<Navigate to="/finance/payments" replace />} />
-                      <Route path="/finance" element={<FinanceHomePage />} />
+                      <Route path="/finance" element={<Navigate to="/finance/receipts" replace />} />
                       <Route path="/finance/receipts" element={<FinanceVoucherPage voucherType="receipt" />} />
                       <Route path="/finance/payments" element={<FinanceVoucherPage voucherType="payment" />} />
                       <Route path="/finance/journals" element={<FinanceJournalPage />} />

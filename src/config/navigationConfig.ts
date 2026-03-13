@@ -70,7 +70,6 @@ export const navigationSections: NavSection[] = [
           {
             groupLabel: "السندات",
             children: [
-              { label: "لوحة المالية", path: "/finance" },
               { label: "سند القبض", path: "/finance/receipts" },
               { label: "سند الصرف", path: "/finance/payments" },
               { label: "سند القيد", path: "/finance/journals" },

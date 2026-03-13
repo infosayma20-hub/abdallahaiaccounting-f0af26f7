@@ -170,7 +170,7 @@ const CashBoxesPage = () => {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate("/finance")} className="p-1.5 rounded-lg hover:bg-muted transition-colors">
+          <button onClick={() => navigate("/finance/receipts")} className="p-1.5 rounded-lg hover:bg-muted transition-colors">
             <ArrowRight className="h-5 w-5" />
           </button>
           <div>
