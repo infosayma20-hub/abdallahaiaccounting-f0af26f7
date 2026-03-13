@@ -32,7 +32,7 @@ const CleanTopBar = ({
 
   return (
     <div
-      className="h-[52px] flex items-center justify-between px-4 flex-shrink-0 relative z-[100]"
+      className="h-[48px] flex items-center justify-between px-3 flex-shrink-0 relative z-[100]"
       style={{
         background: "white",
         borderBottom: "1px solid #F1F5F9",
@@ -40,47 +40,40 @@ const CleanTopBar = ({
       }}
     >
       {/* Left: back + title */}
-      <div className="flex items-center gap-2.5">
+      <div className="flex items-center gap-2">
         <Tooltip>
           <TooltipTrigger asChild>
-            <button onClick={onBack} className="w-11 h-11 flex items-center justify-center -mr-2" aria-label="رجوع">
-              <ArrowRight className="h-5 w-5" style={{ color: "#8B9BB4" }} />
+            <button onClick={onBack} className="w-8 h-8 flex items-center justify-center rounded-md hover:bg-muted/60 transition-colors" aria-label="رجوع">
+              <ArrowRight className="h-4 w-4" style={{ color: "#8B9BB4" }} />
             </button>
           </TooltipTrigger>
           <TooltipContent side="bottom"><p>رجوع</p></TooltipContent>
         </Tooltip>
-        <span className="text-[15px] font-bold" style={{ color: "#0A2342", fontFamily: "Tajawal, sans-serif" }}>
+        <span className="text-[13px] font-bold" style={{ color: "#0A2342", fontFamily: "Tajawal, sans-serif" }}>
           المحاسب الذكي
         </span>
       </div>
 
-      {/* Right: help + history + refresh + bell + health + more */}
-      <div className="flex items-center gap-1">
+      {/* Right: actions */}
+      <div className="flex items-center gap-0.5">
         {/* Help */}
         <Tooltip>
           <TooltipTrigger asChild>
-            <button
-              onClick={onShowHelp}
-              className="w-11 h-11 flex items-center justify-center"
-              aria-label="مساعدة"
-            >
-              <HelpCircle className="h-5 w-5" style={{ color: "#C9A84C" }} />
+            <button onClick={onShowHelp} className="w-8 h-8 flex items-center justify-center rounded-md hover:bg-muted/60 transition-colors" aria-label="مساعدة">
+              <HelpCircle className="h-4 w-4" style={{ color: "#C9A84C" }} />
             </button>
           </TooltipTrigger>
           <TooltipContent side="bottom"><p>دليل الأوامر</p></TooltipContent>
         </Tooltip>
+
         {/* History */}
         <Tooltip>
           <TooltipTrigger asChild>
-            <button
-              onClick={onToggleHistory}
-              className="w-11 h-11 flex items-center justify-center relative"
-              aria-label="سجل المحادثات"
-            >
-              <Clock className="h-5 w-5" style={{ color: "#8B9BB4" }} />
+            <button onClick={onToggleHistory} className="w-8 h-8 flex items-center justify-center rounded-md hover:bg-muted/60 transition-colors relative" aria-label="سجل المحادثات">
+              <Clock className="h-4 w-4" style={{ color: "#8B9BB4" }} />
               {todayConversationCount > 0 && (
                 <span
-                  className="absolute -top-0.5 -left-0.5 min-w-[16px] h-4 rounded-full text-[9px] font-bold flex items-center justify-center px-1"
+                  className="absolute -top-0.5 -left-0.5 min-w-[14px] h-3.5 rounded-full text-[8px] font-bold flex items-center justify-center px-0.5"
                   style={{ background: "#0A2342", color: "white" }}
                 >
                   {todayConversationCount}
@@ -94,15 +87,8 @@ const CleanTopBar = ({
         {/* Refresh */}
         <Tooltip>
           <TooltipTrigger asChild>
-            <button
-              onClick={onRefreshData}
-              className="w-11 h-11 flex items-center justify-center"
-              aria-label="تحديث البيانات"
-            >
-              <RefreshCw
-                className={`h-4.5 w-4.5 transition-transform ${refreshing ? "animate-spin" : ""}`}
-                style={{ color: "#8B9BB4" }}
-              />
+            <button onClick={onRefreshData} className="w-8 h-8 flex items-center justify-center rounded-md hover:bg-muted/60 transition-colors" aria-label="تحديث البيانات">
+              <RefreshCw className={`h-3.5 w-3.5 transition-transform ${refreshing ? "animate-spin" : ""}`} style={{ color: "#8B9BB4" }} />
             </button>
           </TooltipTrigger>
           <TooltipContent side="bottom"><p>تحديث البيانات</p></TooltipContent>
@@ -111,14 +97,10 @@ const CleanTopBar = ({
         {/* Notifications bell */}
         <Tooltip>
           <TooltipTrigger asChild>
-            <button
-              onClick={onShowNotifications}
-              className="w-11 h-11 flex items-center justify-center relative"
-              aria-label="تنبيهات"
-            >
-              <Bell className="h-5 w-5" style={{ color: "#8B9BB4" }} />
+            <button onClick={onShowNotifications} className="w-8 h-8 flex items-center justify-center rounded-md hover:bg-muted/60 transition-colors relative" aria-label="تنبيهات">
+              <Bell className="h-4 w-4" style={{ color: "#8B9BB4" }} />
               {hasAnomalies && (
-                <span className="absolute top-2.5 right-2.5 w-2 h-2 rounded-full" style={{ background: "#DC2626" }} />
+                <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full" style={{ background: "#DC2626" }} />
               )}
             </button>
           </TooltipTrigger>
@@ -130,7 +112,7 @@ const CleanTopBar = ({
           <TooltipTrigger asChild>
             <button
               onClick={onShowFinancial}
-              className="flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold"
+              className="flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold mx-0.5"
               style={{ background: scoreBg, color: scoreColor }}
             >
               {scoreLabel} {healthScore}
@@ -143,12 +125,8 @@ const CleanTopBar = ({
         <div className="relative">
           <Tooltip>
             <TooltipTrigger asChild>
-              <button
-                onClick={() => setShowMenu(!showMenu)}
-                className="w-11 h-11 flex items-center justify-center"
-                aria-label="المزيد"
-              >
-                <MoreVertical className="h-5 w-5" style={{ color: "#8B9BB4" }} />
+              <button onClick={() => setShowMenu(!showMenu)} className="w-8 h-8 flex items-center justify-center rounded-md hover:bg-muted/60 transition-colors" aria-label="المزيد">
+                <MoreVertical className="h-4 w-4" style={{ color: "#8B9BB4" }} />
               </button>
             </TooltipTrigger>
             <TooltipContent side="bottom"><p>المزيد</p></TooltipContent>
@@ -158,7 +136,7 @@ const CleanTopBar = ({
             <>
               <div className="fixed inset-0 z-[150]" onClick={() => setShowMenu(false)} />
               <div
-                className="absolute left-0 top-12 w-[220px] z-[151] rounded-[14px] p-1.5 shadow-[0_8px_24px_rgba(10,35,66,0.12)]"
+                className="absolute left-0 top-10 w-[200px] z-[151] rounded-xl p-1 shadow-[0_8px_24px_rgba(10,35,66,0.12)]"
                 style={{ background: "white" }}
               >
                 {[
@@ -170,12 +148,12 @@ const CleanTopBar = ({
                   <button
                     key={i}
                     onClick={item.action}
-                    className="w-full flex items-center gap-3 h-12 px-3.5 rounded-lg text-sm transition-colors hover:bg-[#F8FAFC]"
+                    className="w-full flex items-center gap-2.5 h-10 px-3 rounded-lg text-[12px] transition-colors hover:bg-[#F8FAFC]"
                     style={{ fontFamily: "Tajawal, sans-serif", color: "#0A2342" }}
                   >
-                    <span>{item.icon}</span>
+                    <span className="text-sm">{item.icon}</span>
                     <span>{item.label}</span>
-                    {item.active && <span className="mr-auto text-[10px] px-2 py-0.5 rounded-full" style={{ background: "#C9A84C20", color: "#C9A84C" }}>مفعّل</span>}
+                    {item.active && <span className="mr-auto text-[9px] px-1.5 py-0.5 rounded-full" style={{ background: "#C9A84C20", color: "#C9A84C" }}>مفعّل</span>}
                   </button>
                 ))}
               </div>
