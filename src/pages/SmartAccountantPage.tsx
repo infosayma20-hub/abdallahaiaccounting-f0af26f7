@@ -46,12 +46,23 @@ const SmartAccountantPage = () => {
   const [showChequeDialog, setShowChequeDialog] = useState(false);
   const [pendingChequeData, setPendingChequeData] = useState<any>(null);
 
-  // Profile
+  // Onboarding & Help
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [onboardingChecked, setOnboardingChecked] = useState(false);
+  const [showHelpPanel, setShowHelpPanel] = useState(false);
+
+  // Profile + Onboarding check
   useEffect(() => {
     if (!user?.id) return;
-    supabase.from("profiles").select("display_name, company_name").eq("user_id", user.id).maybeSingle()
+    supabase.from("profiles").select("display_name, company_name, smart_accountant_onboarded").eq("user_id", user.id).maybeSingle()
       .then(({ data }) => {
-        if (data) setProfileName(data.display_name || data.company_name || "المستخدم");
+        if (data) {
+          setProfileName(data.display_name || data.company_name || "المستخدم");
+          if (!(data as any).smart_accountant_onboarded) {
+            setShowOnboarding(true);
+          }
+        }
+        setOnboardingChecked(true);
       });
   }, [user?.id]);
 
