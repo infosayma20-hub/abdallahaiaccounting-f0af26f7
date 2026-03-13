@@ -110,6 +110,7 @@ export interface CompanySettings {
   hr_social_security: boolean;
   // Security
   security_session_timeout: number;
+  security_warning_minutes: number;
   security_2fa_enabled: boolean;
   security_passkeys_enabled: boolean;
   security_ip_restrict: boolean;
