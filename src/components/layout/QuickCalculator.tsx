@@ -11,6 +11,14 @@ const BUTTONS = [
   ["00", "0", ".", "="],
 ];
 
+const KEY_MAP: Record<string, string> = {
+  "0": "0", "1": "1", "2": "2", "3": "3", "4": "4",
+  "5": "5", "6": "6", "7": "7", "8": "8", "9": "9",
+  ".": ".", "+": "+", "-": "−", "*": "×", "/": "÷",
+  "Enter": "=", "=": "=", "Escape": "C", "Backspace": "C",
+  "%": "%",
+};
+
 const QuickCalculator = () => {
   const [open, setOpen] = useState(false);
   const [display, setDisplay] = useState("0");
