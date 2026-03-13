@@ -263,12 +263,12 @@ const BankAccountsPage = () => {
                 <p className="text-[11px] text-muted-foreground">ربط هذا الحساب البنكي بحسابات FINIX</p>
                 <div>
                   <Label className="text-[13px] font-semibold" style={{ fontFamily: "Tajawal, sans-serif" }}>حساب البنك الرئيسي *</Label>
-                  <Input value={glAccountCode} onChange={e => setGlAccountCode(e.target.value)} placeholder="1120" className="mt-1.5 h-11 font-mono" />
+                  <AccountPicker accounts={accounts} value={glAccountCode} onChange={setGlAccountCode} placeholder="اختر حساب البنك..." />
                   <p className="text-[10px] text-muted-foreground mt-1">جميع العمليات الواردة والصادرة تُسجَّل في هذا الحساب</p>
                 </div>
                 <div>
                   <Label className="text-[13px] font-semibold" style={{ fontFamily: "Tajawal, sans-serif" }}>حساب عمولات البنك</Label>
-                  <Input value={commissionAccountCode} onChange={e => setCommissionAccountCode(e.target.value)} placeholder="6130" className="mt-1.5 h-11 font-mono" />
+                  <AccountPicker accounts={accounts} value={commissionAccountCode} onChange={setCommissionAccountCode} placeholder="اختر حساب العمولات..." />
                   <p className="text-[10px] text-muted-foreground mt-1">يُستخدم تلقائياً عند تسجيل رسوم خدمات بنكية</p>
                 </div>
               </div>
