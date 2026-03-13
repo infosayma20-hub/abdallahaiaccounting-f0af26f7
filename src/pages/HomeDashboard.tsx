@@ -95,14 +95,6 @@ const HomeDashboard = () => {
 
   // Setup wizard - now handled by /setup route, no longer needed here
 
-  // First-time help guide
-  useEffect(() => {
-    if (!user || !dashboard.profileData?.setup_completed) return;
-    if (!localStorage.getItem("help_guide_shown")) {
-      setTimeout(() => setShowHelpGuide(true), 1000);
-      localStorage.setItem("help_guide_shown", "true");
-    }
-  }, [user, dashboard.profileData?.setup_completed]);
 
   // Keyboard shortcuts
   useEffect(() => {
