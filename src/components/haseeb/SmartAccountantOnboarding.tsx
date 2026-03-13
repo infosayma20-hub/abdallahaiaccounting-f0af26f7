@@ -93,17 +93,17 @@ const SmartAccountantOnboarding = ({ userName, onComplete, onSkip }: Props) => {
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center" dir="rtl">
-      {/* Backdrop */}
+      {/* Backdrop - White background */}
       <motion.div 
         initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-        className="absolute inset-0" style={{ background: "linear-gradient(135deg, #1B3A5C 0%, #0A2342 50%, #1B3A5C 100%)" }} 
+        className="absolute inset-0 bg-white" 
       />
 
       {/* Skip button */}
       <button 
         onClick={onSkip}
-        className="absolute top-4 left-4 z-10 text-xs px-3 py-1.5 rounded-full transition-all hover:bg-white/20"
-        style={{ color: "rgba(255,255,255,0.6)", border: "1px solid rgba(255,255,255,0.2)" }}
+        className="absolute top-4 left-4 z-10 text-xs px-3 py-1.5 rounded-full transition-all hover:bg-slate-100"
+        style={{ color: "#64748B", border: "1px solid #E2E8F0" }}
       >
         تخطّي الدليل
       </button>
@@ -115,7 +115,7 @@ const SmartAccountantOnboarding = ({ userName, onComplete, onSkip }: Props) => {
             key={i}
             className="w-2.5 h-2.5 rounded-full transition-all duration-300"
             style={{
-              background: i === step ? "#C9A84C" : i < step ? "rgba(201,168,76,0.5)" : "rgba(255,255,255,0.2)",
+              background: i === step ? "#C9A84C" : i < step ? "rgba(201,168,76,0.5)" : "#CBD5E1",
               transform: i === step ? "scale(1.3)" : "scale(1)",
             }}
           />
