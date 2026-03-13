@@ -58,7 +58,13 @@ const KeyboardShortcutsModal = ({ open, onClose }: KeyboardShortcutsModalProps) 
             <ShortcutRow keys="Alt + K" label="كشف حساب" />
             <ShortcutRow keys="Alt + N" label="إنشاء جديد" />
             <ShortcutRow keys="Ctrl + /" label="هذه النافذة" />
+          <div className="bg-secondary/30 rounded-xl p-3 space-y-1">
+            <h3 className="text-[11px] font-bold text-primary mb-2 flex items-center gap-1.5">
+              ⚡ إدارة النظام
+            </h3>
+            <ShortcutRow keys="Alt + A" label="لوحة Super Admin" />
           </div>
+        </div>
 
           {/* Contacts & Finance */}
           <div className="bg-secondary/30 rounded-xl p-3 space-y-1">
