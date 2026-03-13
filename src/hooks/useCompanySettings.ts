@@ -59,6 +59,13 @@ export interface CompanySettings {
   allow_discount: boolean;
   max_discount_percent: number;
   e_invoice_enabled: boolean;
+  // Invoice Template
+  invoice_header_layout: string;
+  invoice_primary_color: string;
+  invoice_show_signature: boolean;
+  invoice_show_tax_summary: boolean;
+  invoice_show_amount_words: boolean;
+  invoice_footer_message: string;
   // POS
   pos_name: string;
   pos_branch_id: string;
