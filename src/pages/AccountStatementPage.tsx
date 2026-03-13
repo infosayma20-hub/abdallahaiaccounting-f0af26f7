@@ -768,16 +768,29 @@ const AccountStatementPage = () => {
     return { ...tx, row };
   }, [previewTxId, transactions, rows]);
 
-  // ─── PDF PREVIEW (jspdf-autotable, no html2canvas) ───
+  // ─── PDF PREVIEW (opens in new browser tab) ───
   const handlePreviewPDF = useCallback(async () => {
-    setShowPDFPreview(true);
+    if (!selectedEntityId || rows.length === 0) return;
+
+    const previewTab = window.open("", "_blank", "noopener,noreferrer");
+    if (!previewTab) {
+      toast({
+        title: "تعذر فتح المعاينة",
+        description: "المتصفح منع فتح تبويب جديد. اسمح بالنوافذ المنبثقة ثم حاول مرة أخرى.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    previewTab.document.write(`<!doctype html><html dir="rtl"><head><meta charset="utf-8" /><title>جاري التوليد...</title></head><body style="font-family: sans-serif; margin:0; height:100vh; display:flex; align-items:center; justify-content:center; background:#f3f4f6; color:#111827;">جاري تجهيز معاينة PDF...</body></html>`);
+    previewTab.document.close();
+
     setPdfGenerating(true);
     try {
       const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
       const pw = doc.internal.pageSize.width;
       const ph = doc.internal.pageSize.height;
 
-      // Header
       doc.setFillColor(27, 58, 92);
       doc.rect(0, 0, pw, 32, "F");
       doc.setTextColor(255, 255, 255);
@@ -790,7 +803,6 @@ const AccountStatementPage = () => {
       doc.setFontSize(8);
       doc.text(`From: ${dateFrom}  To: ${dateTo}`, pw / 2, 28, { align: "center" });
 
-      // Customer info box
       doc.setTextColor(0, 0, 0);
       doc.setFillColor(245, 245, 245);
       doc.rect(10, 36, pw - 20, 16, "F");
@@ -800,7 +812,6 @@ const AccountStatementPage = () => {
       doc.setFont("helvetica", "normal");
       doc.text(selectedEntityName || "", 42, 44);
 
-      // Balance
       const lastRow = rows[rows.length - 1];
       const finalBalance = lastRow ? lastRow.balance : 0;
       doc.setFont("helvetica", "bold");
@@ -808,14 +819,10 @@ const AccountStatementPage = () => {
       doc.setFont("helvetica", "normal");
       const balColor = finalBalance > 0 ? [220, 38, 38] : [34, 197, 94];
       doc.setTextColor(balColor[0], balColor[1], balColor[2]);
-      doc.text(
-        `ILS ${Math.abs(finalBalance).toLocaleString("en")} ${finalBalance > 0 ? "Dr" : "Cr"}`,
-        pw - 14, 44, { align: "right" }
-      );
+      doc.text(`ILS ${Math.abs(finalBalance).toLocaleString("en")} ${finalBalance > 0 ? "Dr" : "Cr"}`, pw - 14, 44, { align: "right" });
       doc.setTextColor(0, 0, 0);
 
-      // Table
-      const tableBody = rows.map(r => [
+      const tableBody = rows.map((r) => [
         r.date ? format(new Date(r.date), "dd/MM/yy") : "",
         r.reference || "-",
         r.description || "",
@@ -842,14 +849,8 @@ const AccountStatementPage = () => {
           6: { cellWidth: 24, halign: "right" },
         },
         alternateRowStyles: { fillColor: [248, 249, 250] },
-        didParseCell: (data) => {
-          if (data.row.index === tableBody.length - 1 && data.section === "body") {
-            // Last row styling
-          }
-        },
       });
 
-      // Totals
       const fy = (doc as any).lastAutoTable.finalY + 8;
       const totalDebit = rows.reduce((s, r) => s + (Number(r.debit) || 0), 0);
       const totalCredit = rows.reduce((s, r) => s + (Number(r.credit) || 0), 0);
@@ -870,7 +871,6 @@ const AccountStatementPage = () => {
       doc.text("Net Balance:", pw - 93, fy + 26);
       doc.text(`ILS ${Math.abs(finalBalance).toLocaleString("en")}`, pw - 14, fy + 26, { align: "right" });
 
-      // Footer on every page
       const pageCount = (doc as any).internal.getNumberOfPages();
       for (let i = 1; i <= pageCount; i++) {
         doc.setPage(i);
@@ -883,14 +883,19 @@ const AccountStatementPage = () => {
         doc.text("Confidential", pw - 14, ph - 7, { align: "right" });
       }
 
-      setPdfPreviewUrl(doc.output("bloburl") as unknown as string);
+      const pdfBlob = doc.output("blob");
+      const pdfBlobUrl = URL.createObjectURL(pdfBlob);
+      previewTab.location.replace(pdfBlobUrl);
+      window.setTimeout(() => URL.revokeObjectURL(pdfBlobUrl), 60_000);
     } catch (err) {
+      previewTab.close();
       console.error("PDF generation error:", err);
-      toast({ title: "خطأ في توليد PDF", variant: "destructive" });
+      const message = err instanceof Error ? err.message : "حدث خطأ غير متوقع";
+      toast({ title: "خطأ في توليد PDF", description: message, variant: "destructive" });
     } finally {
       setPdfGenerating(false);
     }
-  }, [toast, rows, dateFrom, dateTo, selectedEntityName, companyInfo, companyName]);
+  }, [toast, rows, dateFrom, dateTo, selectedEntityName, companyInfo, companyName, selectedEntityId]);
 
   // ─── EXPORT ───
   const handleExport = () => {
