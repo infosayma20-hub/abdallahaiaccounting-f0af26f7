@@ -113,27 +113,24 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   // Load cash boxes, bank accounts, and generate ref number for payments
   useEffect(() => {
     if (!user) return;
-    const promises: Promise<any>[] = [
-      supabase.from("cash_boxes").select("id, name, gl_account_code").eq("user_id", user.id).eq("is_active", true),
-      supabase.from("bank_accounts").select("id, name, bank_name, gl_account_code").eq("user_id", user.id).eq("is_active", true),
-    ];
-    if (!isReceipt) {
-      promises.push(
-        supabase.from("vouchers").select("ref_number").eq("user_id", user.id).eq("type", "payment").order("created_at", { ascending: false }).limit(1)
-      );
-    }
-    Promise.all(promises).then(([cbRes, baRes, vRes]) => {
+    const load = async () => {
+      const [cbRes, baRes] = await Promise.all([
+        supabase.from("cash_boxes").select("id, name, gl_account_code").eq("user_id", user.id).eq("is_active", true),
+        supabase.from("bank_accounts").select("id, name, bank_name, gl_account_code").eq("user_id", user.id).eq("is_active", true),
+      ]);
       setCashBoxes(cbRes.data || []);
       setBankAccounts(baRes.data || []);
       if (cbRes.data?.length) setSelectedCashBox(cbRes.data[0].id);
       if (baRes.data?.length) setSelectedBankAccount(baRes.data[0].id);
-      if (!isReceipt && vRes) {
-        const lastRef = (vRes.data || [])[0]?.ref_number || "";
+      if (!isReceipt) {
+        const { data: vData } = await supabase.from("vouchers").select("ref_number").eq("user_id", user.id).eq("type", "payment").order("created_at", { ascending: false }).limit(1);
+        const lastRef = (vData || [])[0]?.ref_number || "";
         const match = lastRef.match(/(\d+)$/);
         const nextNum = match ? String(parseInt(match[1]) + 1).padStart(Math.max(match[1].length, 4), "0") : "0001";
         setRefNumber(`PV-${new Date().getFullYear()}-${nextNum}`);
       }
-    });
+    };
+    load();
   }, [user, isReceipt]);
 
   // Load invoices when contact is selected
