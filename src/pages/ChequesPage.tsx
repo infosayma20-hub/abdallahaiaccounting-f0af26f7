@@ -292,7 +292,6 @@ const ChequesPage = () => {
     setSelectedBankAccount("");
     fetchCheques();
   };
-  };
 
   const handleDelete = async () => {
     if (!deleteTarget || deleting) return;
