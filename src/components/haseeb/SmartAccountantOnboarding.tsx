@@ -26,9 +26,9 @@ const SANDBOX_EXAMPLES = [
 ];
 
 const RULES = [
-  { icon: MessageCircle, title: "💬 احكِ طبيعي", desc: "\"قبضت من...\"" },
+  { icon: MessageCircle, title: "💬 احكِ طبيعي", desc: "\"قبضت من محمد...\"" },
   { icon: Hash, title: "# اذكر المبلغ", desc: "\"500 شيكل\"" },
-  { icon: AtSign, title: "@ حدد الاسم", desc: "\"@محمد\"" },
+  { icon: UserPlus, title: "👤 اذكر الاسم", desc: "النظام يربطه تلقائياً" },
   { icon: Package, title: "📦 البضاعة:", desc: "الكمية + السعر" },
   { icon: Building2, title: "🏦 اذكر البنك", desc: "إذا من البنك" },
   { icon: Calendar, title: "📅 التاريخ", desc: "إذا شيك" },
