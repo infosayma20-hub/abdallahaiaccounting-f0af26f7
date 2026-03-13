@@ -1,0 +1,5 @@
+
+ALTER TABLE public.profiles 
+ADD COLUMN IF NOT EXISTS smart_accountant_onboarded BOOLEAN DEFAULT FALSE,
+ADD COLUMN IF NOT EXISTS smart_accountant_onboarded_at TIMESTAMPTZ,
+ADD COLUMN IF NOT EXISTS help_views INTEGER DEFAULT 0;

@@ -31,13 +31,15 @@ interface Props {
   onJournal: (data: any, accounts?: any[]) => void;
   onTransactionSuccess: () => void;
   onBack: () => void;
+  onShowHelp?: () => void;
+  onReplayOnboarding?: () => void;
 }
 
 const fmt = (n: number) => `₪${Math.abs(n).toLocaleString()}`;
 const uid = () => Math.random().toString(36).slice(2);
 const STATUS_MESSAGES = ["📊 يقرأ بياناتك...", "🧮 يحسب...", "✍️ يصيغ الإجابة..."];
 
-const CleanSmartAccountant = ({ user, userName, data, cfoMode, onToggleCfo, onCheque, onJournal, onTransactionSuccess, onBack }: Props) => {
+const CleanSmartAccountant = ({ user, userName, data, cfoMode, onToggleCfo, onCheque, onJournal, onTransactionSuccess, onBack, onShowHelp, onReplayOnboarding }: Props) => {
   const { toast } = useToast();
   const [messages, setMessages] = useState<Message[]>([]);
   const [sending, setSending] = useState(false);
@@ -290,6 +292,8 @@ const CleanSmartAccountant = ({ user, userName, data, cfoMode, onToggleCfo, onCh
         onShowNotifications={() => setShowNotifications(true)}
         onToggleHistory={() => setShowHistory(!showHistory)}
         onRefreshData={handleRefreshData}
+        onShowHelp={onShowHelp}
+        onReplayOnboarding={onReplayOnboarding}
         todayConversationCount={todayConvCount}
         refreshing={refreshing}
       />

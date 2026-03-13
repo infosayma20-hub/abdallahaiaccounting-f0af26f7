@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowRight, Bell, MoreVertical, Clock, RefreshCw } from "lucide-react";
+import { ArrowRight, Bell, MoreVertical, Clock, RefreshCw, HelpCircle } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 
 interface Props {
@@ -12,6 +12,8 @@ interface Props {
   onShowNotifications: () => void;
   onToggleHistory?: () => void;
   onRefreshData?: () => void;
+  onShowHelp?: () => void;
+  onReplayOnboarding?: () => void;
   todayConversationCount?: number;
   refreshing?: boolean;
 }
@@ -19,6 +21,7 @@ interface Props {
 const CleanTopBar = ({
   healthScore, hasAnomalies, cfoMode, onToggleCfo, onBack,
   onShowFinancial, onShowNotifications, onToggleHistory, onRefreshData,
+  onShowHelp, onReplayOnboarding,
   todayConversationCount = 0, refreshing = false,
 }: Props) => {
   const [showMenu, setShowMenu] = useState(false);
@@ -51,8 +54,21 @@ const CleanTopBar = ({
         </span>
       </div>
 
-      {/* Right: history + refresh + bell + health + more */}
+      {/* Right: help + history + refresh + bell + health + more */}
       <div className="flex items-center gap-1">
+        {/* Help */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={onShowHelp}
+              className="w-11 h-11 flex items-center justify-center"
+              aria-label="مساعدة"
+            >
+              <HelpCircle className="h-5 w-5" style={{ color: "#C9A84C" }} />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom"><p>دليل الأوامر</p></TooltipContent>
+        </Tooltip>
         {/* History */}
         <Tooltip>
           <TooltipTrigger asChild>
@@ -148,6 +164,7 @@ const CleanTopBar = ({
                 {[
                   { icon: "👔", label: "وضع المدير المالي", action: () => { onToggleCfo(); setShowMenu(false); }, active: cfoMode },
                   { icon: "🔮", label: "التنبؤ المالي", action: () => setShowMenu(false) },
+                  { icon: "📖", label: "إعادة عرض الدليل", action: () => { onReplayOnboarding?.(); setShowMenu(false); } },
                   { icon: "⚙️", label: "الإعدادات", action: () => setShowMenu(false) },
                 ].map((item, i) => (
                   <button

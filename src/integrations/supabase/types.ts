@@ -5856,12 +5856,15 @@ export type Database = {
           has_employees: boolean | null
           has_inventory: boolean | null
           has_receivables: boolean | null
+          help_views: number | null
           id: string
           invited_by: string | null
           is_suspended: boolean
           last_seen_at: string | null
           role: string
           setup_completed: boolean | null
+          smart_accountant_onboarded: boolean | null
+          smart_accountant_onboarded_at: string | null
           updated_at: string
           user_id: string
           work_field: string | null
@@ -5878,12 +5881,15 @@ export type Database = {
           has_employees?: boolean | null
           has_inventory?: boolean | null
           has_receivables?: boolean | null
+          help_views?: number | null
           id?: string
           invited_by?: string | null
           is_suspended?: boolean
           last_seen_at?: string | null
           role?: string
           setup_completed?: boolean | null
+          smart_accountant_onboarded?: boolean | null
+          smart_accountant_onboarded_at?: string | null
           updated_at?: string
           user_id: string
           work_field?: string | null
@@ -5900,12 +5906,15 @@ export type Database = {
           has_employees?: boolean | null
           has_inventory?: boolean | null
           has_receivables?: boolean | null
+          help_views?: number | null
           id?: string
           invited_by?: string | null
           is_suspended?: boolean
           last_seen_at?: string | null
           role?: string
           setup_completed?: boolean | null
+          smart_accountant_onboarded?: boolean | null
+          smart_accountant_onboarded_at?: string | null
           updated_at?: string
           user_id?: string
           work_field?: string | null
