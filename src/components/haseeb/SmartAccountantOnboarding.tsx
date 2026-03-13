@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
-  Zap, MessageCircle, Hash, AtSign, Package, Building2, Calendar,
-  BarChart3, UserPlus, Search, CheckCircle2, Sparkles, ArrowLeft
+  Zap, MessageCircle, Hash, Package, Building2, Calendar,
+  BarChart3, UserPlus, Search, CheckCircle2, Sparkles
 } from "lucide-react";
 
 interface Props {
