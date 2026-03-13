@@ -73,14 +73,14 @@ const SmartAccountantHelpPanel = ({ open, onClose, onFillInput }: Props) => {
               <Section icon={Banknote} title="أوامر مالية">
                 <div className="space-y-0.5">
                   <p className="text-[10px] font-bold mb-1" style={{ color: "#8B9BB4" }}>القبض والدفع:</p>
-                  <Cmd text="قبضت من @[اسم] [مبلغ] [نقداً/شيك]" onClick={() => handleCmd("قبضت من @[اسم] [مبلغ] نقداً")} />
+                  <Cmd text="قبضت من [اسم] [مبلغ] [نقداً/شيك]" onClick={() => handleCmd("قبضت من [اسم] [مبلغ] نقداً")} />
                   <Cmd text="دفعت [بيان] [مبلغ] [من البنك/من الصندوق]" onClick={() => handleCmd("دفعت [بيان] [مبلغ] من الصندوق")} />
-                  <Cmd text="قبضت شيك من @[اسم] بتاريخ [DD/MM]" onClick={() => handleCmd("قبضت شيك من @[اسم] بتاريخ ")} />
+                  <Cmd text="قبضت شيك من [اسم] بتاريخ [DD/MM]" onClick={() => handleCmd("قبضت شيك من [اسم] بتاريخ ")} />
 
                   <p className="text-[10px] font-bold mb-1 mt-3" style={{ color: "#8B9BB4" }}>المبيعات والمشتريات:</p>
-                  <Cmd text="بعت @[عميل] [كمية] [صنف] بـ [سعر] [نقداً/حساب]" onClick={() => handleCmd("بعت @[عميل] [كمية] [صنف] بـ [سعر] نقداً")} />
-                  <Cmd text="اشتريت من @[مورد] [كمية] [صنف] بـ [سعر]" onClick={() => handleCmd("اشتريت من @[مورد] [كمية] [صنف] بـ [سعر]")} />
-                  <Cmd text="سجل فاتورة لـ@[عميل] بمبلغ [X] على الحساب" onClick={() => handleCmd("سجل فاتورة لـ@[عميل] بمبلغ [X] على الحساب")} />
+                  <Cmd text="بعت [عميل] [كمية] [صنف] بـ [سعر] [نقداً/حساب]" onClick={() => handleCmd("بعت [عميل] [كمية] [صنف] بـ [سعر] نقداً")} />
+                  <Cmd text="اشتريت من [مورد] [كمية] [صنف] بـ [سعر]" onClick={() => handleCmd("اشتريت من [مورد] [كمية] [صنف] بـ [سعر]")} />
+                  <Cmd text="سجل فاتورة لـ[عميل] بمبلغ [X] على الحساب" onClick={() => handleCmd("سجل فاتورة لـ[عميل] بمبلغ [X] على الحساب")} />
 
                   <p className="text-[10px] font-bold mb-1 mt-3" style={{ color: "#8B9BB4" }}>المصاريف:</p>
                   <Cmd text="دفعت [نوع المصروف] [مبلغ]" onClick={() => handleCmd("دفعت [نوع المصروف] [مبلغ]")} />
@@ -91,19 +91,19 @@ const SmartAccountantHelpPanel = ({ open, onClose, onFillInput }: Props) => {
               <Section icon={BarChart3} title="استعلامات وتقارير">
                 <div className="space-y-0.5">
                   <Cmd text="شو وضعي المالي اليوم؟" onClick={() => handleCmd("شو وضعي المالي اليوم؟")} />
-                  <Cmd text="كم عليّ لـ@[مورد]؟" onClick={() => handleCmd("كم عليّ لـ@[مورد]؟")} />
-                  <Cmd text="كم لي عند @[عميل]؟" onClick={() => handleCmd("كم لي عند @[عميل]؟")} />
+                  <Cmd text="كم عليّ لـ[مورد]؟" onClick={() => handleCmd("كم عليّ لـ[مورد]؟")} />
+                  <Cmd text="كم لي عند [عميل]؟" onClick={() => handleCmd("كم لي عند [عميل]؟")} />
                   <Cmd text="اعرض الذمم المتأخرة" onClick={() => handleCmd("اعرض الذمم المتأخرة")} />
-                  <Cmd text="كشف حساب @[اسم] هذا الشهر" onClick={() => handleCmd("كشف حساب @[اسم] هذا الشهر")} />
+                  <Cmd text="كشف حساب [اسم] هذا الشهر" onClick={() => handleCmd("كشف حساب [اسم] هذا الشهر")} />
                   <Cmd text="اعرض أرباح وخسائر [الشهر/السنة]" onClick={() => handleCmd("اعرض أرباح وخسائر هذا الشهر")} />
                 </div>
               </Section>
 
               <Section icon={UserPlus} title="إضافة جهات وأصناف">
                 <div className="space-y-0.5">
-                  <Cmd text="أضف زبون @[اسم]" onClick={() => handleCmd("أضف زبون @[اسم]")} />
-                  <Cmd text="أضف مورد @[اسم]" onClick={() => handleCmd("أضف مورد @[اسم]")} />
-                  <Cmd text="أضف منتج @[اسم] شراء [X] بيع [Y]" onClick={() => handleCmd("أضف منتج @[اسم] شراء [X] بيع [Y]")} />
+                  <Cmd text="أضف زبون [اسم]" onClick={() => handleCmd("أضف زبون [اسم]")} />
+                  <Cmd text="أضف مورد [اسم]" onClick={() => handleCmd("أضف مورد [اسم]")} />
+                  <Cmd text="أضف منتج [اسم] شراء [X] بيع [Y]" onClick={() => handleCmd("أضف منتج [اسم] شراء [X] بيع [Y]")} />
                 </div>
               </Section>
 
