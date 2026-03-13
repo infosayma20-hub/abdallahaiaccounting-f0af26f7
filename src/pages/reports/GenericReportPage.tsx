@@ -1230,6 +1230,65 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
           { key: "avgInv", label: "متوسط الفاتورة", type: "currency" },
           { key: "pct", label: "% من الإجمالي", type: "percent" },
         ];
+      case "invoice-lifecycle":
+        return [
+          { key: "invoiceNumber", label: "رقم الفاتورة", type: "text" },
+          { key: "customer", label: "الزبون", type: "text" },
+          { key: "issueDate", label: "تاريخ الإصدار", type: "date" },
+          { key: "dueDate", label: "تاريخ الاستحقاق", type: "date" },
+          { key: "total", label: "الإجمالي", type: "currency" },
+          { key: "paid", label: "المسدَّد", type: "currency", format: v => <span className="text-emerald-600 font-mono text-xs">{fmtAmtCell(v)}</span> },
+          { key: "remaining", label: "المتبقي", type: "currency", format: v => <span className={`font-mono text-xs ${v > 0 ? "text-red-600 font-bold" : "text-emerald-600"}`}>{fmtAmtCell(v)}</span> },
+          { key: "closureStatus", label: "الحالة", type: "text", filterType: "select", filterOptions: ["✅ في الموعد", "⚠️ متأخر", "⏳ جارية", "🔴 متأخرة"] },
+          { key: "daysToClose", label: "أيام الإغلاق", type: "text", format: v => <span className="font-mono text-xs">{v === "—" ? "—" : `${v} يوم`}</span> },
+        ];
+      case "dso-detailed":
+        return [
+          { key: "name", label: "الزبون", type: "text" },
+          { key: "invCount", label: "عدد الفواتير", type: "number", align: "center" },
+          { key: "avgDSO", label: "متوسط أيام التحصيل", type: "number", format: v => <span className={`font-mono text-xs ${v < 30 ? "text-emerald-600" : v < 45 ? "text-amber-600" : "text-red-600"}`}>{v} يوم</span> },
+          { key: "fastest", label: "أسرع دفعة", type: "number", format: v => <span className="font-mono text-xs text-emerald-600">{v} يوم</span> },
+          { key: "slowest", label: "أبطأ دفعة", type: "number", format: v => <span className="font-mono text-xs text-red-600">{v} يوم</span> },
+          { key: "grade", label: "التصنيف الائتماني", type: "text", filterType: "select", filterOptions: ["🟢 A ممتاز", "🟡 B جيد", "🟠 C مقبول", "🔴 D خطر"] },
+        ];
+      case "ar-aging-advanced":
+        return [
+          { key: "name", label: "الزبون", type: "text" },
+          { key: "current", label: "جارية", type: "currency", format: v => <span className="text-emerald-600 font-mono text-xs">{fmtAmtCell(v)}</span> },
+          { key: "d1_30", label: "1-30 يوم", type: "currency", format: v => <span className="text-amber-600 font-mono text-xs">{fmtAmtCell(v)}</span> },
+          { key: "d31_60", label: "31-60 يوم", type: "currency", format: v => <span className="text-orange-600 font-mono text-xs">{fmtAmtCell(v)}</span> },
+          { key: "d61_90", label: "61-90 يوم", type: "currency", format: v => <span className="text-red-500 font-mono text-xs">{fmtAmtCell(v)}</span> },
+          { key: "over90", label: "+90 يوم", type: "currency", format: v => <span className="text-red-700 font-mono text-xs font-bold">{fmtAmtCell(v)}</span> },
+          { key: "total", label: "الإجمالي", type: "currency", format: v => <span className="font-mono text-xs font-bold">{fmtAmtCell(v)}</span> },
+        ];
+      case "collection-efficiency":
+        return [
+          { key: "month", label: "الشهر", type: "text", sortable: false },
+          { key: "issued", label: "صادر ₪", type: "currency" },
+          { key: "collected", label: "محصَّل ₪", type: "currency", format: v => <span className="text-emerald-600 font-mono text-xs">{fmtAmtCell(v)}</span> },
+          { key: "collectionRate", label: "معدل التحصيل %", type: "percent", format: v => <span className={`font-mono text-xs font-bold ${v >= 80 ? "text-emerald-600" : v >= 50 ? "text-amber-600" : "text-red-600"}`}>{v}%</span> },
+          { key: "onTime", label: "في الموعد", type: "number", align: "center", format: v => <span className="text-emerald-600 font-mono text-xs">{v}</span> },
+          { key: "late", label: "متأخر", type: "number", align: "center", format: v => <span className={`font-mono text-xs ${v > 0 ? "text-red-600 font-bold" : ""}`}>{v}</span> },
+          { key: "avgDaysLate", label: "متوسط أيام التأخير", type: "number", format: v => <span className="font-mono text-xs">{v > 0 ? `${v} يوم` : "—"}</span> },
+        ];
+      case "payment-allocation":
+        return [
+          { key: "receiptNumber", label: "رقم السند", type: "text" },
+          { key: "paymentDate", label: "التاريخ", type: "date" },
+          { key: "customer", label: "الزبون", type: "text" },
+          { key: "paymentMethod", label: "طريقة الدفع", type: "badge", filterType: "select", filterOptions: ["نقدي", "بنك", "شيك"] },
+          { key: "invoiceNumber", label: "الفاتورة المرتبطة", type: "text" },
+          { key: "allocated", label: "المبلغ المخصص", type: "currency" },
+        ];
+      case "unpaid-invoices":
+        return [
+          { key: "invoiceNumber", label: "الفاتورة", type: "text" },
+          { key: "customer", label: "الزبون", type: "text" },
+          { key: "issueDate", label: "تاريخ الإصدار", type: "date" },
+          { key: "total", label: "المبلغ", type: "currency" },
+          { key: "daysSinceIssue", label: "أيام منذ الإصدار", type: "number",
+            format: v => <span className={`font-mono text-xs font-bold ${v > 60 ? "text-red-600" : v > 30 ? "text-amber-600" : ""}`}>{v} يوم {v > 60 ? "🔴" : ""}</span> },
+        ];
       default:
         return null;
     }
