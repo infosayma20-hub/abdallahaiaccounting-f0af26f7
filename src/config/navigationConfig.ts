@@ -148,12 +148,6 @@ export const navigationSections: NavSection[] = [
             ],
           },
           {
-            groupLabel: "الموردون",
-            children: [
-              { label: "الموردين", path: "/contacts?type=supplier" },
-            ],
-          },
-          {
             groupLabel: "الاستيراد",
             children: [
               { label: "ملفات الاستيراد", path: "/purchases/import" },
