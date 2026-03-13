@@ -127,9 +127,13 @@ const fmtCurrency = (n: number) =>
 // ─── Component ───
 const InvoiceCreatePage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const { toast } = useToast();
   const { settings: companySettings } = useCompanySettings();
+
+  const fromDuplicate = searchParams.get("from_duplicate") === "true";
+  const [duplicateSourceRef, setDuplicateSourceRef] = useState<string | null>(null);
 
   // Data
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -171,6 +175,44 @@ const InvoiceCreatePage = () => {
     transferRef: "",
     transferBank: "",
   });
+
+  // ─── Load Duplicate Data ───
+  useEffect(() => {
+    if (!fromDuplicate) return;
+    const draftKey = "draft_invoice_new";
+    const draft = localStorage.getItem(draftKey);
+    if (!draft) return;
+    try {
+      const data = JSON.parse(draft);
+      localStorage.removeItem(draftKey);
+      setDuplicateSourceRef(data._sourceRef || null);
+      setForm(prev => ({
+        ...prev,
+        type: data.type || prev.type,
+        contactName: data.contactName || "",
+        contactId: data.contactId || null,
+        paymentTerms: data.paymentTerms || "net_30",
+        paymentMethod: data.paymentMethod || "cash",
+        currency: data.currency || "شيكل",
+        exchangeRate: data.exchangeRate || 1,
+        notes: data.notes || "",
+        notesInternal: data.notesInternal || "",
+        salespersonId: data.salespersonId || null,
+        billingAddress: data.billingAddress || "",
+        taxInclusive: data.taxInclusive || false,
+        items: data.items?.length ? data.items.map((item: any) => ({ ...item, id: crypto.randomUUID() })) : [createEmptyItem()],
+        // Reset excluded fields
+        date: new Date().toISOString().split("T")[0],
+        dueDate: "",
+        chequeNumber: "",
+        chequeBank: "",
+        chequeDueDate: "",
+        transferRef: "",
+        transferBank: "",
+      }));
+      if (data.contactSearch) setContactSearch(data.contactSearch);
+    } catch (e) { /* ignore parse errors */ }
+  }, [fromDuplicate]);
 
   // ─── Data Fetching ───
   useEffect(() => {
