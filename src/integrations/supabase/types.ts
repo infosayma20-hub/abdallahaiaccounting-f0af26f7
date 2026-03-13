@@ -2992,6 +2992,48 @@ export type Database = {
           },
         ]
       }
+      generated_reports: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          data: Json | null
+          id: string
+          pdf_url: string | null
+          period_end: string
+          period_start: string
+          period_type: string
+          report_type: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          data?: Json | null
+          id?: string
+          pdf_url?: string | null
+          period_end: string
+          period_start: string
+          period_type?: string
+          report_type?: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          data?: Json | null
+          id?: string
+          pdf_url?: string | null
+          period_end?: string
+          period_start?: string
+          period_type?: string
+          report_type?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       import_cost_distribution: {
         Row: {
           allocated_amount: number | null

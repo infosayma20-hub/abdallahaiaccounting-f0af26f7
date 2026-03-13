@@ -5,7 +5,7 @@ import {
   Sparkles, PieChart, Wallet, DollarSign, Building2, TrendingUp,
   Briefcase, Calculator, ArrowLeftRight, ShoppingCart, ClipboardList,
   Clock, AlertTriangle, Activity, BookOpen, CreditCard,
-  ArrowRight, Monitor, Layers,
+  ArrowRight, Monitor, Layers, CalendarRange,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
@@ -276,6 +276,23 @@ const ReportsPage = () => {
               <ReportCard key={report.slug} report={report} isFavorite={true} onToggleFavorite={() => toggleFavorite(report.slug)} onClick={() => report.available && navigate(report.path)} />
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Periodic Reports Banner */}
+      {!searchQuery.trim() && (
+        <div
+          onClick={() => navigate("/reports/periodic")}
+          className="rounded-xl border-2 border-dashed border-[hsl(var(--accent))]/40 bg-[hsl(var(--accent))]/5 p-4 flex items-center gap-4 cursor-pointer hover:bg-[hsl(var(--accent))]/10 hover:border-[hsl(var(--accent))]/60 transition-all group"
+        >
+          <div className="w-12 h-12 rounded-xl bg-[hsl(var(--accent))]/15 flex items-center justify-center shrink-0">
+            <CalendarRange className="h-6 w-6 text-[hsl(var(--accent))]" />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-sm font-bold text-foreground">التقارير الدورية</h3>
+            <p className="text-[11px] text-muted-foreground">قوالب جاهزة — شهري، ربعي، نصف سنوي، سنوي — تُولَّد تلقائياً مع رسوم بيانية</p>
+          </div>
+          <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-[hsl(var(--accent))] group-hover:-translate-x-1 transition-all rotate-180" />
         </div>
       )}
 

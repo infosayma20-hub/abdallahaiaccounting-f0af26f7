@@ -59,6 +59,7 @@ import HRAttendanceReport from "./pages/reports/HRAttendanceReport";
 import HRLeaveReport from "./pages/reports/HRLeaveReport";
 import HRStaffCostReport from "./pages/reports/HRStaffCostReport";
 import GenericReportPage from "./pages/reports/GenericReportPage";
+import PeriodicReportsPage from "./pages/reports/PeriodicReportsPage";
 import CustomizationPage from "./pages/CustomizationPage";
 import SettingsPage from "./pages/SettingsPage";
 import IndustryTemplatesPage from "./pages/IndustryTemplatesPage";
@@ -299,6 +300,7 @@ const App = () => (
                       {/* Management */}
                       <Route path="/reports/financial-kpi" element={<GenericReportPage reportKey="financial-kpi" />} />
                       <Route path="/reports/month-comparison" element={<GenericReportPage reportKey="month-comparison" />} />
+                      <Route path="/reports/periodic" element={<PeriodicReportsPage />} />
                       <Route path="/customization" element={<CustomizationPage />} />
                       <Route path="/customization/templates" element={<IndustryTemplatesPage />} />
                       <Route path="/customization/request" element={<CustomizationRequestPage />} />
