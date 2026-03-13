@@ -729,8 +729,21 @@ const AccountStatementPage = () => {
         r.reference.toLowerCase().includes(q)
       );
     }
+    // Summary mode: group by reference, keep only one row per reference
+    if (detailLevel === "summary") {
+      const grouped: StatementRow[] = [];
+      const seen = new Set<string>();
+      for (const r of result) {
+        const key = r.reference || r.transaction_id;
+        if (!seen.has(key)) {
+          seen.add(key);
+          grouped.push({ ...r, description: r.reference ? `${getTypeBadge(r.transaction_type).label} — ${r.reference}` : r.description });
+        }
+      }
+      return grouped;
+    }
     return result;
-  }, [rows, txSearch, txTypeFilter]);
+  }, [rows, txSearch, txTypeFilter, detailLevel]);
 
   // Last transaction date for entity
   const lastTxDate = useMemo(() => {
