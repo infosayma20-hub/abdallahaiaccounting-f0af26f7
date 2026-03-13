@@ -49,6 +49,8 @@ const SettingsPage = () => {
     }
 
     switch (activeSection) {
+      case "user":
+        return <UsersSettingsSection />;
       case "company":
         return <CompanySettingsSection settings={settings} onChange={updateSettings} />;
       case "finance":
