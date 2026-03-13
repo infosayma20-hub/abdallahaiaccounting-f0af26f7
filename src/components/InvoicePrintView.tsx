@@ -186,27 +186,28 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
           <div style={{ fontSize: "10px", opacity: 0.8, fontFamily: "'Segoe UI', sans-serif" }}>
             {isSales ? "ORIGINAL SALES INVOICE" : "ORIGINAL PURCHASE INVOICE"}
           </div>
-          {/* Copy label badge inline */}
-          {copyLabel && (
-            <div
-              style={{
-                display: "inline-block",
-                marginTop: "4px",
-                background: copyLabel === "أصلية" ? "rgba(201,168,76,0.25)" : "rgba(255,255,255,0.2)",
-                color: copyLabel === "أصلية" ? "#C9A84C" : "rgba(255,255,255,0.9)",
-                padding: "2px 12px",
-                borderRadius: "4px",
-                fontSize: "9px",
-                fontWeight: 700,
-                letterSpacing: "1px",
-                border: `1px solid ${copyLabel === "أصلية" ? "rgba(201,168,76,0.4)" : "rgba(255,255,255,0.3)"}`,
-              }}
-            >
-              {copyLabel === "أصلية" ? "نسخة أصلية" : `نسخة ${copyLabel}`}
-            </div>
-          )}
         </div>
       </div>
+
+      {/* ━━━ COPY LABEL (centered badge) ━━━ */}
+      {copyLabel && (
+        <div style={{ textAlign: "center", padding: "6px 0 2px", position: "relative", zIndex: 1 }}>
+          <span
+            style={{
+              display: "inline-block",
+              background: copyLabel === "أصلية" ? "#DC2626" : "#6B7280",
+              color: "white",
+              padding: "3px 20px",
+              borderRadius: "4px",
+              fontSize: "10px",
+              fontWeight: 700,
+              letterSpacing: "1px",
+            }}
+          >
+            {copyLabel === "أصلية" ? "نسخة أصلية" : `نسخة ${copyLabel}`}
+          </span>
+        </div>
+      )}
 
       {/* ━━━ GOLD ACCENT ━━━ */}
       <div style={{ height: "3px", background: "linear-gradient(90deg, #C9A84C, #E8D48B, #C9A84C)" }} />
