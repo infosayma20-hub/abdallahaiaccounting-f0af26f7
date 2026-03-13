@@ -298,6 +298,7 @@ const TopBar = ({ onMenuClick, sidebarCollapsed, onOpenHelpGuide }: TopBarProps)
           </div>
         </div>
         <div className="flex items-center gap-1">
+          <QuickCalculator />
           <div className="relative">
             <IconButton icon={Keyboard} onClick={() => setShortcutsOpen(true)} title="اختصارات لوحة المفاتيح (Ctrl+/)" />
             <ShortcutsTip onShowShortcuts={() => setShortcutsOpen(true)} />
