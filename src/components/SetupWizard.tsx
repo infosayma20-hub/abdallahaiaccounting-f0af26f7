@@ -89,9 +89,13 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
     invoiceStartNumber: 1,
     paymentTerms: "cash",
     cashBalance: 0,
-    hasBankAccount: false,
+    hasBankAccount: null,
+    bankAccountName: "",
     bankName: "",
+    bankCurrency: "ILS",
+    bankAccountType: "جاري",
     bankBalance: 0,
+    leaveForAccountant: false,
   });
   const [completedItems, setCompletedItems] = useState<string[]>([]);
 
