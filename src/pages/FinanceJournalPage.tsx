@@ -529,8 +529,16 @@ const FinanceJournalPage = () => {
                           {statusLabelMap[v.status] || v.status}
                         </span>
                       </td>
+                      <td className="px-3 py-2">
+                        <button
+                          onClick={e => { e.stopPropagation(); handleDuplicate(v); }}
+                          className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-primary transition-colors"
+                          title="جديد مشابه"
+                        >
+                          <Copy className="h-3.5 w-3.5" />
+                        </button>
+                      </td>
                     </tr>
-                  );
                 })}
               </tbody>
               <tfoot>
