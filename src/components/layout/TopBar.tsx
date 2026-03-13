@@ -250,9 +250,6 @@ const AppLogo = () => {
       ) : (
         <FinixLogo variant="icon" size="sm" />
       )}
-      <span className="text-[13px] font-bold text-foreground max-w-[200px] truncate">
-        {company.name || "شركتي"}
-      </span>
     </button>
   );
 };
