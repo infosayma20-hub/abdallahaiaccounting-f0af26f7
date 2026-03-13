@@ -196,9 +196,11 @@ const BankAccountsPage = () => {
           </button>
           <h1 className="text-xl font-bold text-foreground" style={{ fontFamily: "Tajawal, sans-serif" }}>الحسابات البنكية</h1>
         </div>
-        <Button size="sm" className="gap-2 text-white" style={{ background: "var(--gradient-navy, linear-gradient(135deg, #050F1E, #0A2342))" }} onClick={() => { resetForm(); setModalOpen(true); }}>
-          <Plus className="h-4 w-4" />إضافة حساب بنكي
-        </Button>
+        {banks.length > 0 && (
+          <Button size="sm" className="gap-2 text-white" style={{ background: "var(--gradient-navy, linear-gradient(135deg, #050F1E, #0A2342))" }} onClick={() => { resetForm(); setModalOpen(true); }}>
+            <Plus className="h-4 w-4" />إضافة حساب بنكي
+          </Button>
+        )}
       </div>
 
       {/* Banks Grid */}
