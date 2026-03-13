@@ -2,21 +2,18 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   ArrowRight, Loader2, Plus, Search, X, Trash2,
-  FileText, BookOpen, Save, User, Building2, Users, Check, DollarSign
+  FileText, BookOpen, Save, User, Building2, Users, Check, DollarSign,
+  ArrowUpDown, ChevronLeft, ChevronRight
 } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import BackButton from "@/components/BackButton";
 
 interface JournalLine {
   id: string;
@@ -302,111 +299,241 @@ const FinanceJournalPage = () => {
 
   const subtypeLabels: Record<string, string> = { normal: "عادي", opening: "افتتاحي", adjustment: "تسوية", closing: "إقفالي" };
 
+  const PER_PAGE = 15;
+  const [pageCurrent, setPageCurrent] = useState(1);
+  const [sortKey, setSortKey] = useState<string>("date");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+
+  const sortedFiltered = useMemo(() => {
+    const arr = [...filtered];
+    arr.sort((a: any, b: any) => {
+      let av = a[sortKey], bv = b[sortKey];
+      if (typeof av === "string") { av = av?.toLowerCase() || ""; bv = bv?.toLowerCase() || ""; }
+      if (av < bv) return sortDir === "asc" ? -1 : 1;
+      if (av > bv) return sortDir === "asc" ? 1 : -1;
+      return 0;
+    });
+    return arr;
+  }, [filtered, sortKey, sortDir]);
+
+  const totalPagesCalc = Math.max(1, Math.ceil(sortedFiltered.length / PER_PAGE));
+  const paged = sortedFiltered.slice((pageCurrent - 1) * PER_PAGE, pageCurrent * PER_PAGE);
+
+  useEffect(() => { setPageCurrent(1); }, [searchQuery, filterStatus]);
+
+  const toggleSort = (key: string) => {
+    if (sortKey === key) setSortDir(d => d === "asc" ? "desc" : "asc");
+    else { setSortKey(key); setSortDir("desc"); }
+    setPageCurrent(1);
+  };
+
+  const SortHeader = ({ label, field }: { label: string; field: string }) => (
+    <button onClick={() => toggleSort(field)} className="flex items-center gap-1 hover:text-primary-foreground/80 transition-colors w-full">
+      {label}
+      <ArrowUpDown className={`h-3 w-3 ${sortKey === field ? "opacity-100" : "opacity-30"}`} />
+    </button>
+  );
+
   return (
-    <div className="px-4 lg:px-8 pt-6 pb-8 space-y-6" dir="rtl">
+    <div className="p-4 md:p-6 pb-24 space-y-5" dir="rtl">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <BackButton />
-          <div>
-            <h1 className="text-xl font-bold text-foreground">سندات القيد</h1>
-            <p className="text-xs text-muted-foreground">إدارة القيود المحاسبية اليدوية</p>
+          <button onClick={() => window.history.length > 2 ? navigate(-1) : navigate("/finance")} className="w-9 h-9 rounded-full bg-muted/60 flex items-center justify-center hover:bg-muted transition-all shadow-sm">
+            <ArrowRight className="h-4 w-4 text-muted-foreground" />
+          </button>
+          <div className="flex items-center gap-2">
+            <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
+              <BookOpen className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-foreground">سندات القيد</h1>
+              <p className="text-xs text-muted-foreground">إدارة القيود المحاسبية اليدوية</p>
+            </div>
           </div>
         </div>
-        <Button size="sm" className="gap-2" onClick={() => { resetForm(); setEditingVoucherId(null); setModalOpen(true); }}>
-          <Plus className="h-4 w-4" />سند قيد جديد
+        <Button className="gap-1.5 rounded-xl shadow-md shadow-primary/20" onClick={() => { resetForm(); setEditingVoucherId(null); setModalOpen(true); }}>
+          <Plus className="h-4 w-4" /> سند قيد جديد
         </Button>
       </div>
 
-      {/* KPI Strip */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <Card><CardContent className="p-4 text-center">
-          <FileText className="h-5 w-5 mx-auto text-primary mb-1" />
-          <p className="text-2xl font-bold text-foreground">{vouchers.length}</p>
-          <p className="text-[10px] text-muted-foreground">إجمالي السندات</p>
-        </CardContent></Card>
-        <Card><CardContent className="p-4 text-center">
-          <DollarSign className="h-5 w-5 mx-auto text-emerald-500 mb-1" />
-          <p className="text-lg font-bold text-foreground">{fmt(totalAll)}</p>
-          <p className="text-[10px] text-muted-foreground">إجمالي المبالغ المرحّلة</p>
-        </CardContent></Card>
-        <Card><CardContent className="p-4 text-center">
-          <BookOpen className="h-5 w-5 mx-auto text-blue-500 mb-1" />
-          <p className="text-2xl font-bold text-foreground">{vouchers.filter(v => v.status === "posted").length}</p>
-          <p className="text-[10px] text-muted-foreground">مرحّل</p>
-        </CardContent></Card>
-        <Card><CardContent className="p-4 text-center">
-          <FileText className="h-5 w-5 mx-auto text-orange-500 mb-1" />
-          <p className="text-2xl font-bold text-foreground">{vouchers.filter(v => v.status === "draft").length}</p>
-          <p className="text-[10px] text-muted-foreground">مسودة</p>
-        </CardContent></Card>
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {[
+          { label: "إجمالي السندات", value: vouchers.length, icon: FileText, color: "text-primary", bg: "bg-primary/5 border-primary/10" },
+          { label: "إجمالي المبالغ المرحّلة", value: fmt(totalAll), icon: DollarSign, color: "text-emerald-500", bg: "bg-emerald-50 border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800" },
+          { label: "مرحّل", value: vouchers.filter(v => v.status === "posted").length, icon: BookOpen, color: "text-blue-500", bg: "bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800" },
+          { label: "مسودة", value: vouchers.filter(v => v.status === "draft").length, icon: FileText, color: "text-orange-500", bg: "bg-orange-50 border-orange-200 dark:bg-orange-900/20 dark:border-orange-800" },
+        ].map((k, i) => (
+          <div key={i} className={`rounded-2xl border p-4 ${k.bg}`}>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-[10px] text-muted-foreground font-medium mb-1">{k.label}</p>
+                <p className={`text-lg font-bold ${k.color}`}>{k.value}</p>
+              </div>
+              <k.icon className={`h-5 w-5 ${k.color} opacity-50`} />
+            </div>
+          </div>
+        ))}
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-wrap gap-3">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="ابحث بالمرجع، الوصف..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pr-9" />
+      {/* Toolbar */}
+      <div className="space-y-3">
+        <div className="relative">
+          <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 pointer-events-none" />
+          <Input
+            placeholder="ابحث بالمرجع، الوصف..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            className="pr-10 rounded-xl bg-muted/30"
+          />
+          {searchQuery && (
+            <button onClick={() => setSearchQuery("")} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
-        <Select value={filterStatus} onValueChange={setFilterStatus}>
-          <SelectTrigger className="w-[140px]"><SelectValue placeholder="الحالة" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">جميع الحالات</SelectItem>
-            <SelectItem value="posted">مرحّل</SelectItem>
-            <SelectItem value="draft">مسودة</SelectItem>
-            <SelectItem value="cancelled">ملغي</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex-1" />
+          <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <SelectTrigger className="w-[140px] rounded-xl text-xs">
+              <SelectValue placeholder="حالة السند" />
+            </SelectTrigger>
+            <SelectContent className="bg-background z-50">
+              <SelectItem value="all">جميع الحالات</SelectItem>
+              <SelectItem value="posted">✅ مرحّل</SelectItem>
+              <SelectItem value="draft">📝 مسودة</SelectItem>
+              <SelectItem value="cancelled">🔴 ملغي</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
-      {/* Table */}
-      <Card>
-        <CardContent className="p-0">
-          {loading ? (
-            <div className="flex items-center justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
-          ) : filtered.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-16">لا توجد سندات قيد بعد</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="text-right">الرقم</TableHead>
-                    <TableHead className="text-right">التاريخ</TableHead>
-                    <TableHead className="text-right">النوع</TableHead>
-                    <TableHead className="text-right">الوصف</TableHead>
-                    <TableHead className="text-right">المبلغ</TableHead>
-                    <TableHead className="text-right">الحالة</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filtered.map(v => (
-                    <TableRow key={v.id}>
-                      <TableCell className="text-xs font-medium">
+      {/* Loading */}
+      {loading && (
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        </div>
+      )}
+
+      {/* Empty */}
+      {!loading && vouchers.length === 0 && (
+        <div className="text-center py-16">
+          <div className="w-20 h-20 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-4">
+            <BookOpen className="h-10 w-10 text-muted-foreground/40" />
+          </div>
+          <h3 className="text-base font-semibold text-foreground mb-1">لا توجد سندات قيد بعد</h3>
+          <p className="text-xs text-muted-foreground mb-4">أضف أول سند قيد لبدء التسجيل المحاسبي</p>
+          <Button className="rounded-xl gap-2 shadow-md shadow-primary/20" onClick={() => { resetForm(); setEditingVoucherId(null); setModalOpen(true); }}>
+            <Plus className="h-4 w-4" /> سند قيد جديد
+          </Button>
+        </div>
+      )}
+
+      {/* No results */}
+      {!loading && vouchers.length > 0 && filtered.length === 0 && (
+        <div className="text-center py-12 space-y-2">
+          <Search className="h-10 w-10 text-muted-foreground/20 mx-auto" />
+          <p className="text-sm text-muted-foreground">لا توجد سندات تطابق البحث</p>
+          <Button variant="ghost" size="sm" onClick={() => { setSearchQuery(""); setFilterStatus("all"); }}>مسح الفلاتر</Button>
+        </div>
+      )}
+
+      {/* TABLE */}
+      {!loading && paged.length > 0 && (
+        <div className="rounded-2xl border border-border/50 overflow-hidden shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-primary text-primary-foreground">
+                  <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="الرقم" field="ref_number" /></th>
+                  <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="التاريخ" field="date" /></th>
+                  <th className="px-3 py-3 text-right text-xs font-semibold">النوع</th>
+                  <th className="px-3 py-3 text-right text-xs font-semibold">الوصف</th>
+                  <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="المبلغ" field="amount" /></th>
+                  <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="الحالة" field="status" /></th>
+                </tr>
+              </thead>
+              <tbody>
+                {paged.map((v, i) => {
+                  const statusStyles: Record<string, string> = {
+                    "posted": "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+                    "draft": "bg-muted text-muted-foreground",
+                    "cancelled": "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+                  };
+                  const dotColor: Record<string, string> = {
+                    "posted": "bg-green-500",
+                    "draft": "bg-muted-foreground",
+                    "cancelled": "bg-red-500",
+                  };
+                  const statusLabelMap: Record<string, string> = { posted: "مرحّل", draft: "مسودة", cancelled: "ملغي" };
+                  return (
+                    <tr
+                      key={v.id}
+                      className={`border-b border-border/50 transition-colors ${i % 2 === 0 ? "bg-background" : "bg-muted/20"} hover:bg-primary/5`}
+                    >
+                      <td className="px-3 py-3">
                         <button
-                          className="text-primary hover:underline font-mono cursor-pointer bg-transparent border-none p-0"
+                          className="text-primary hover:underline font-mono text-xs cursor-pointer bg-transparent border-none p-0"
                           onClick={() => openVoucherForEdit(v.id)}
                         >
                           {v.ref_number}
                         </button>
-                      </TableCell>
-                      <TableCell className="text-xs">{v.date}</TableCell>
-                      <TableCell><Badge variant="secondary" className="text-[10px]">{subtypeLabels[v.subtype] || "عادي"}</Badge></TableCell>
-                      <TableCell className="text-xs truncate max-w-[250px]">{v.description}</TableCell>
-                      <TableCell className="text-xs font-bold">{fmt(Number(v.amount || 0))}</TableCell>
-                      <TableCell>
-                        {v.status === "posted" ? <Badge className="bg-emerald-100 text-emerald-700 text-[10px]">مرحّل</Badge> :
-                         v.status === "cancelled" ? <Badge className="bg-red-100 text-red-700 text-[10px]">ملغي</Badge> :
-                         <Badge variant="secondary" className="text-[10px]">مسودة</Badge>}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                      </td>
+                      <td className="px-3 py-3 text-xs text-foreground tabular-nums">{v.date}</td>
+                      <td className="px-3 py-3">
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-lg bg-muted text-muted-foreground">
+                          {subtypeLabels[v.subtype] || "عادي"}
+                        </span>
+                      </td>
+                      <td className="px-3 py-3 text-xs text-muted-foreground truncate max-w-[250px]">{v.description}</td>
+                      <td className="px-3 py-3 text-sm font-bold tabular-nums text-foreground">{fmt(Number(v.amount || 0))}</td>
+                      <td className="px-3 py-3">
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${statusStyles[v.status] || "bg-muted text-muted-foreground"}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${dotColor[v.status] || "bg-muted-foreground"}`} />
+                          {statusLabelMap[v.status] || v.status}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+              <tfoot>
+                <tr className="bg-primary/5 border-t-2 border-primary/20 font-bold text-sm">
+                  <td colSpan={4} className="px-3 py-3 text-right text-foreground">المجموع ({filtered.length} سند)</td>
+                  <td className="px-3 py-3 tabular-nums text-foreground">{fmt(filtered.reduce((s, v) => s + Number(v.amount || 0), 0))}</td>
+                  <td className="px-3 py-3" />
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+
+          {/* Pagination */}
+          {sortedFiltered.length > PER_PAGE && (
+            <div className="flex items-center justify-between px-4 py-3 border-t border-border/50 bg-muted/20">
+              <p className="text-xs text-muted-foreground">
+                عرض {Math.min((pageCurrent - 1) * PER_PAGE + 1, sortedFiltered.length)}–{Math.min(pageCurrent * PER_PAGE, sortedFiltered.length)} من {sortedFiltered.length}
+              </p>
+              <div className="flex items-center gap-1">
+                <Button variant="outline" size="sm" className="rounded-lg h-8 text-xs" disabled={pageCurrent <= 1} onClick={() => setPageCurrent(p => p - 1)}>
+                  <ChevronRight className="h-3.5 w-3.5 ml-1" /> السابق
+                </Button>
+                {Array.from({ length: totalPagesCalc }, (_, i) => i + 1).slice(
+                  Math.max(0, pageCurrent - 3), Math.min(totalPagesCalc, pageCurrent + 2)
+                ).map(n => (
+                  <Button key={n} variant={pageCurrent === n ? "default" : "outline"} size="sm" className="rounded-lg h-8 w-8 text-xs p-0" onClick={() => setPageCurrent(n)}>
+                    {n}
+                  </Button>
+                ))}
+                <Button variant="outline" size="sm" className="rounded-lg h-8 text-xs" disabled={pageCurrent >= totalPagesCalc} onClick={() => setPageCurrent(p => p + 1)}>
+                  التالي <ChevronLeft className="h-3.5 w-3.5 mr-1" />
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">صفحة {pageCurrent} من {totalPagesCalc}</p>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      )}
 
       {/* Full Screen Modal */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
