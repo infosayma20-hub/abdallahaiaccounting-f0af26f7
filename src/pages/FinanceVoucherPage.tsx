@@ -153,7 +153,10 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
             </div>
           </div>
         </div>
-        <Button className="gap-1.5 rounded-xl shadow-md shadow-primary/20" onClick={() => { setEditVoucherId(null); setDrawerOpen(true); }}>
+        <Button className="gap-1.5 rounded-xl shadow-md shadow-primary/20" onClick={() => {
+          if (isReceipt) { navigate("/finance/receipt/new"); }
+          else { setEditVoucherId(null); setDrawerOpen(true); }
+        }}>
           <Plus className="h-4 w-4" /> {newTitle}
         </Button>
       </div>
@@ -237,7 +240,10 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
           </div>
           <h3 className="text-base font-semibold text-foreground mb-1">لا توجد سندات بعد</h3>
           <p className="text-xs text-muted-foreground mb-4">أضف أول سند لبدء تتبع {isReceipt ? "المقبوضات" : "المدفوعات"}</p>
-          <Button className="rounded-xl gap-2 shadow-md shadow-primary/20" onClick={() => { setEditVoucherId(null); setDrawerOpen(true); }}>
+          <Button className="rounded-xl gap-2 shadow-md shadow-primary/20" onClick={() => {
+            if (isReceipt) { navigate("/finance/receipt/new"); }
+            else { setEditVoucherId(null); setDrawerOpen(true); }
+          }}>
             <Plus className="h-4 w-4" /> {newTitle}
           </Button>
         </div>

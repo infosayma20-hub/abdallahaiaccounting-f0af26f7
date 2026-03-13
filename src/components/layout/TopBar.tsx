@@ -189,8 +189,8 @@ const ProfileDropdown = ({
 const QUICK_ITEMS = [
   { label: "فاتورة جديدة", icon: FileText, shortcut: "F1", path: "/invoices/new" },
   { label: "سند قبض", icon: Landmark, shortcut: "F2", path: "/finance/receipt/new" },
-  { label: "سند صرف", icon: Wallet, shortcut: "F3", path: "/finance/payments" },
-  { label: "سند قيد", icon: ClipboardList, shortcut: "F4", path: "/finance/journals" },
+  { label: "سند صرف", icon: Wallet, shortcut: "F3", path: "/finance/payments?new=1" },
+  { label: "سند قيد", icon: ClipboardList, shortcut: "F4", path: "/finance/journals?new=1" },
   { label: "زبائن", icon: Users, shortcut: "Ctrl+C", path: "/contacts?type=customer" },
   { label: "موردين", icon: Store, shortcut: "Ctrl+M", path: "/contacts?type=supplier" },
   { label: "كشف حساب", icon: BarChart3, shortcut: "Ctrl+K", path: "/account-statement" },
