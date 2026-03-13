@@ -14,7 +14,7 @@ interface WebLayoutProps {
 const WebLayout = ({ children }: WebLayoutProps) => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  const [showHelpGuide, setShowHelpGuide] = useState(false);
+  
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background" dir="rtl">
