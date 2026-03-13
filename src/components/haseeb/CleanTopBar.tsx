@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowRight, Bell, MoreVertical, Clock, RefreshCw } from "lucide-react";
+import { ArrowRight, Bell, MoreVertical, Clock, RefreshCw, HelpCircle } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 
 interface Props {
