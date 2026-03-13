@@ -4,8 +4,7 @@ import { Search, ChevronDown, ArrowLeft } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useOnboarding } from "@/hooks/useOnboarding";
 import WelcomeModal from "@/components/onboarding/WelcomeModal";
-import SpotlightTour from "@/components/onboarding/SpotlightTour";
-import TourCompletionModal from "@/components/onboarding/TourCompletionModal";
+import AppTourModal from "@/components/onboarding/AppTourModal";
 import { motion } from "framer-motion";
 import { Input } from "@/components/ui/input";
 
@@ -90,12 +89,10 @@ const AppCard = ({
 const AppsLauncher = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { shouldShowWelcome, shouldShowTour, update, loading: onboardingLoading } = useOnboarding();
+  const { shouldShowWelcome, shouldShowTour, update, loading: onboardingLoading, businessType } = useOnboarding();
   const [tourActive, setTourActive] = useState(false);
-  const [showCompletion, setShowCompletion] = useState(false);
   const [search, setSearch] = useState("");
   const [expandedApp, setExpandedApp] = useState<string | null>(null);
-  const [helpGuideOpen, setHelpGuideOpen] = useState(false);
 
   const allFilteredApps = useMemo(() => {
     const allApps = appSections.flatMap(s => s.items);
@@ -114,11 +111,8 @@ const AppsLauncher = () => {
   const handleTourComplete = () => {
     setTourActive(false);
     update({ full_tour_completed: true, modules_toured: appSections.flatMap(s => s.items.map(i => i.id)) });
-    setShowCompletion(true);
   };
   const handleTourSkip = () => { setTourActive(false); update({ full_tour_skipped: true }); };
-
-  
 
   return (
     <div className="min-h-full bg-background" dir="rtl">
@@ -160,11 +154,14 @@ const AppsLauncher = () => {
       {!onboardingLoading && (
         <>
           <WelcomeModal open={shouldShowWelcome} onStartTour={handleStartTour} onSkip={handleSkipWelcome} />
-          <SpotlightTour active={tourActive} onComplete={handleTourComplete} onSkip={handleTourSkip} />
-          <TourCompletionModal open={showCompletion} onClose={() => setShowCompletion(false)} />
+          <AppTourModal
+            open={tourActive || shouldShowTour}
+            businessType={businessType}
+            onComplete={handleTourComplete}
+            onSkip={handleTourSkip}
+          />
         </>
       )}
-      
     </div>
   );
 };
