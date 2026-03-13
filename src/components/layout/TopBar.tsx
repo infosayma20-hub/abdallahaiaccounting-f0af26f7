@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Search, Bell, Settings, HelpCircle, LogOut, User, Menu, Sun, Moon, FileText, Wallet, Users, X, Keyboard, Zap, Landmark, ClipboardList, Store, BarChart3, Banknote } from "lucide-react";
+import { Search, Bell, Settings, HelpCircle, LogOut, User, Menu, Sun, Moon, FileText, Wallet, Users, X, Keyboard, Zap, Landmark, ClipboardList, Store, BarChart3, Banknote, Package, BookOpen, CreditCard, TrendingUp, Calculator, Receipt } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { useTheme } from "@/hooks/useTheme";
@@ -189,12 +189,16 @@ const ProfileDropdown = ({
 const QUICK_ITEMS = [
   { label: "فاتورة جديدة", icon: FileText, shortcut: "F1", path: "/invoices/new" },
   { label: "سند قبض", icon: Landmark, shortcut: "F2", path: "/finance/receipt/new" },
-  { label: "سند صرف", icon: Wallet, shortcut: "F3", path: "/finance/payment/new" },
-  { label: "سند قيد", icon: ClipboardList, shortcut: "F4", path: "/finance/journal/new" },
-  { label: "زبائن", icon: Users, shortcut: "Ctrl+Z", path: "/contacts?type=customer" },
+  { label: "سند صرف", icon: Wallet, shortcut: "F3", path: "/finance/payments" },
+  { label: "سند قيد", icon: ClipboardList, shortcut: "F4", path: "/finance/journals" },
+  { label: "زبائن", icon: Users, shortcut: "Ctrl+C", path: "/contacts?type=customer" },
   { label: "موردين", icon: Store, shortcut: "Ctrl+M", path: "/contacts?type=supplier" },
-  { label: "كشف حساب", icon: BarChart3, shortcut: "Ctrl+K", path: "/finance/account-statement" },
+  { label: "كشف حساب", icon: BarChart3, shortcut: "Ctrl+K", path: "/account-statement" },
   { label: "صناديق", icon: Banknote, shortcut: "Ctrl+S", path: "/finance/cash-boxes" },
+  { label: "المخزون", icon: Package, shortcut: "Ctrl+I", path: "/inventory" },
+  { label: "دفتر الأستاذ", icon: BookOpen, shortcut: "Ctrl+L", path: "/general-ledger" },
+  { label: "الشيكات", icon: CreditCard, shortcut: "Ctrl+Q", path: "/finance/cheques" },
+  { label: "ميزان المراجعة", icon: TrendingUp, shortcut: "Ctrl+T", path: "/trial-balance" },
 ];
 
 const QuickAccessButton = () => {
@@ -211,7 +215,7 @@ const QuickAccessButton = () => {
           <Zap className="h-[18px] w-[18px]" strokeWidth={1.8} />
         </button>
       </PopoverTrigger>
-      <PopoverContent align="start" sideOffset={8} className="w-[280px] p-2 rounded-xl" dir="rtl">
+      <PopoverContent align="start" sideOffset={8} className="w-[340px] p-2 rounded-xl" dir="rtl">
         <p className="text-[11px] font-bold text-muted-foreground px-2 pb-1.5 flex items-center gap-1.5">
           <Zap className="h-3 w-3 text-accent" />وصول سريع
         </p>
@@ -223,9 +227,7 @@ const QuickAccessButton = () => {
               className="flex items-center gap-2 px-2.5 py-2 rounded-lg text-right hover:bg-secondary transition-colors group"
             >
               <item.icon className="h-4 w-4 text-muted-foreground group-hover:text-accent transition-colors flex-shrink-0" strokeWidth={1.6} />
-              <div className="flex-1 min-w-0">
-                <p className="text-[11px] font-medium text-foreground truncate">{item.label}</p>
-              </div>
+              <span className="text-[11px] font-medium text-foreground flex-1 whitespace-nowrap">{item.label}</span>
               <kbd className="text-[9px] font-mono text-accent/70 bg-accent/10 rounded px-1 py-0.5 flex-shrink-0">{item.shortcut}</kbd>
             </button>
           ))}
