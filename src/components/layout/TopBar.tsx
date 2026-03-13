@@ -246,6 +246,10 @@ const TopBar = ({ onMenuClick, sidebarCollapsed, onOpenHelpGuide }: TopBarProps)
           </div>
         </div>
         <div className="flex items-center gap-1">
+          <div className="relative">
+            <IconButton icon={Keyboard} onClick={() => setShortcutsOpen(true)} title="اختصارات لوحة المفاتيح (Ctrl+/)" />
+            <ShortcutsTip onShowShortcuts={() => setShortcutsOpen(true)} />
+          </div>
           <IconButton icon={theme === "dark" ? Moon : Sun} onClick={toggleTheme} title={theme === "dark" ? "وضع فاتح" : "وضع داكن"} />
           <div className="relative">
             <IconButton icon={Bell} badge={unreadCount > 0} onClick={() => setNotificationsOpen(!notificationsOpen)} title="الإشعارات" />
