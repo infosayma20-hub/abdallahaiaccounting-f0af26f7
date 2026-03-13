@@ -4,13 +4,13 @@ import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { 
-  FileText, Plus, Search, ArrowLeft, CheckCircle2, 
-  Clock, AlertTriangle, Ban, RefreshCw, Download, ChevronDown, ChevronUp,
-  Building2, Calendar, Hash, User, Banknote, Filter, 
-  ArrowDownCircle, ArrowUpCircle, Table2, LayoutGrid, Eye, Trash2,
-  TrendingUp, TrendingDown, History, Image as ImageIcon, StickyNote
+  FileText, Plus, Search, CheckCircle2, 
+  Clock, AlertTriangle, Ban, RefreshCw, ChevronDown, ChevronUp,
+  Building2, Calendar, Hash, User, Banknote,
+  ArrowDownCircle, ArrowUpCircle, Eye, Trash2,
+  History, StickyNote, ArrowRight, ArrowUpDown,
+  ChevronLeft, ChevronRight, Loader2, X
 } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +20,7 @@ import { Label } from "@/components/ui/label";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { UserPlus } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 
 type ChequeStatus = 'مسجل' | 'آجل' | 'مستحق' | 'مودع' | 'محصل' | 'مرتجع' | 'ملغي';
 type ChequeType = 'وارد' | 'صادر';
@@ -60,7 +61,6 @@ const statusConfig: Record<ChequeStatus, { icon: any; color: string; bg: string;
   'ملغي': { icon: Ban, color: 'text-muted-foreground', bg: 'bg-muted/30', badgeClass: 'bg-muted/40 text-muted-foreground', label: 'ملغي' },
 };
 
-// Smart transitions: only show logical next actions
 const smartTransitions: Record<ChequeStatus, { status: ChequeStatus; label: string; variant: 'default' | 'destructive' | 'outline' }[]> = {
   'مسجل': [
     { status: 'آجل', label: 'تأجيل', variant: 'outline' },
@@ -85,12 +85,11 @@ const smartTransitions: Record<ChequeStatus, { status: ChequeStatus; label: stri
   'ملغي': [],
 };
 
-const quickFilters = [
-  { key: 'today', label: 'مستحقة اليوم', icon: AlertTriangle },
-  { key: 'due', label: 'مستحقة', icon: Clock },
-  { key: 'soon', label: 'آجلة خلال 7 أيام', icon: Calendar },
-  { key: 'returned', label: 'مرتجعة', icon: RefreshCw },
-];
+const STATUS_FILTERS = ['الكل', 'مسجل', 'آجل', 'مستحق', 'مودع', 'محصل', 'مرتجع', 'ملغي'];
+const PER_PAGE = 15;
+
+type SortKey = 'party_name' | 'cheque_type' | 'amount' | 'cheque_date' | 'status' | 'bank_name' | 'cheque_number';
+type SortDir = 'asc' | 'desc';
 
 const ChequesPage = () => {
   const { user } = useAuth();
@@ -99,9 +98,7 @@ const ChequesPage = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
-  const [filterStatus, setFilterStatus] = useState<string>("all");
-  const [quickFilter, setQuickFilter] = useState<string>("");
-  const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
+  const [filterStatus, setFilterStatus] = useState<string>("الكل");
   const [addOpen, setAddOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -115,6 +112,12 @@ const ChequesPage = () => {
   const [accountSearch, setAccountSearch] = useState("");
   const [accountPopoverOpen, setAccountPopoverOpen] = useState(false);
   const [quickAddingContact, setQuickAddingContact] = useState(false);
+
+  const [sortKey, setSortKey] = useState<SortKey>("cheque_date");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const [page, setPage] = useState(1);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+
   const [newCheque, setNewCheque] = useState({
     cheque_type: 'وارد' as ChequeType,
     cheque_number: '',
@@ -201,7 +204,6 @@ const ChequesPage = () => {
     try {
       const today = new Date().toISOString().split('T')[0];
       const chequeStatus: ChequeStatus = newCheque.cheque_date > today ? 'آجل' : 'مستحق';
-
       const { error } = await supabase.from('cheques').insert({
         user_id: user.id,
         cheque_type: newCheque.cheque_type,
@@ -216,14 +218,13 @@ const ChequesPage = () => {
         linked_account: newCheque.linked_account || null,
         notes: newCheque.notes || null,
       });
-
       if (error) throw error;
       toast.success(`تم تسجيل شيك ${newCheque.cheque_type} بنجاح`);
       setAddOpen(false);
       setNewCheque({ cheque_type: 'وارد', cheque_number: '', bank_name: '', cheque_date: '', amount: '', currency: 'شيكل', party_name: '', party_type: 'عميل', linked_account: '', notes: '' });
       setPartySearch('');
       fetchCheques();
-    } catch (err: any) {
+    } catch {
       toast.error("خطأ في حفظ الشيك");
     } finally {
       setSubmitting(false);
@@ -242,7 +243,6 @@ const ChequesPage = () => {
       from_status: cheque.status,
       to_status: newStatus,
     });
-    // Clear history cache for this cheque
     setStatusHistory(prev => { const n = { ...prev }; delete n[cheque.id]; return n; });
     toast.success(`تم تحويل الحالة إلى "${newStatus}"`);
     fetchCheques();
@@ -252,7 +252,6 @@ const ChequesPage = () => {
     if (!deleteTarget || deleting) return;
     setDeleting(true);
     try {
-      // Delete history first
       await supabase.from('cheque_status_history').delete().eq('cheque_id', deleteTarget.id);
       const { error } = await supabase.from('cheques').delete().eq('id', deleteTarget.id);
       if (error) throw error;
@@ -267,31 +266,66 @@ const ChequesPage = () => {
   };
 
   const today = new Date().toISOString().split('T')[0];
-  const in7days = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0];
 
+  // Filtering
   const filtered = useMemo(() => {
     return cheques.filter(c => {
       if (filterType !== 'all' && c.cheque_type !== filterType) return false;
-      if (filterStatus !== 'all' && c.status !== filterStatus) return false;
-      if (quickFilter === 'today' && !(c.status === 'مستحق' && c.cheque_date <= today)) return false;
-      if (quickFilter === 'due' && c.status !== 'مستحق') return false;
-      if (quickFilter === 'soon' && !(c.status === 'آجل' && c.cheque_date <= in7days)) return false;
-      if (quickFilter === 'returned' && c.status !== 'مرتجع') return false;
+      if (filterStatus !== 'الكل' && c.status !== filterStatus) return false;
       if (search) {
         const s = search.toLowerCase();
         if (!c.party_name.toLowerCase().includes(s) && !c.cheque_number?.toLowerCase().includes(s) && !c.bank_name?.toLowerCase().includes(s)) return false;
       }
       return true;
     });
-  }, [cheques, filterType, filterStatus, quickFilter, search, today, in7days]);
+  }, [cheques, filterType, filterStatus, search]);
 
-  // Analytics
+  // Sorting
+  const sorted = useMemo(() => {
+    const arr = [...filtered];
+    arr.sort((a, b) => {
+      let av: any = a[sortKey], bv: any = b[sortKey];
+      if (typeof av === 'string') { av = (av || '').toLowerCase(); bv = (bv || '').toLowerCase(); }
+      if (av < bv) return sortDir === 'asc' ? -1 : 1;
+      if (av > bv) return sortDir === 'asc' ? 1 : -1;
+      return 0;
+    });
+    return arr;
+  }, [filtered, sortKey, sortDir]);
+
+  const totalPages = Math.max(1, Math.ceil(sorted.length / PER_PAGE));
+  const paged = sorted.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+
+  useEffect(() => { setPage(1); }, [search, filterType, filterStatus]);
+
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortKey(key); setSortDir('asc'); }
+    setPage(1);
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+  const allPageSelected = paged.length > 0 && paged.every(p => selected.has(p.id));
+  const toggleAllPage = () => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      if (allPageSelected) paged.forEach(p => next.delete(p.id));
+      else paged.forEach(p => next.add(p.id));
+      return next;
+    });
+  };
+
+  // KPIs
   const totalIncoming = cheques.filter(c => c.cheque_type === 'وارد').reduce((s, c) => s + c.amount, 0);
   const totalOutgoing = cheques.filter(c => c.cheque_type === 'صادر').reduce((s, c) => s + c.amount, 0);
-  const totalDueToday = cheques.filter(c => c.status === 'مستحق').reduce((s, c) => s + c.amount, 0);
-  const dueCount = cheques.filter(c => c.status === 'مستحق').length;
+  const totalDue = cheques.filter(c => c.status === 'مستحق').reduce((s, c) => s + c.amount, 0);
   const totalPending = cheques.filter(c => c.status === 'آجل').reduce((s, c) => s + c.amount, 0);
-  const totalReturned = cheques.filter(c => c.status === 'مرتجع').reduce((s, c) => s + c.amount, 0);
 
   const dueTodayCheques = cheques.filter(c => c.status === 'مستحق' && c.cheque_date <= today);
 
@@ -311,32 +345,35 @@ const ChequesPage = () => {
     try { return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }); } catch { return d; }
   };
 
-  const kpiCards = [
-    { label: 'شيكات واردة', value: totalIncoming, count: cheques.filter(c => c.cheque_type === 'وارد').length, color: 'text-emerald-600', bg: 'bg-emerald-500/10', icon: ArrowDownCircle },
-    { label: 'شيكات صادرة', value: totalOutgoing, count: cheques.filter(c => c.cheque_type === 'صادر').length, color: 'text-red-500', bg: 'bg-red-500/10', icon: ArrowUpCircle },
-    { label: 'مستحقة', value: totalDueToday, count: dueCount, color: 'text-red-600', bg: 'bg-red-500/10', icon: AlertTriangle },
-    { label: 'آجلة', value: totalPending, count: cheques.filter(c => c.status === 'آجل').length, color: 'text-amber-600', bg: 'bg-amber-500/10', icon: Clock },
-    { label: 'مرتجعة', value: totalReturned, count: cheques.filter(c => c.status === 'مرتجع').length, color: 'text-rose-700', bg: 'bg-rose-500/10', icon: RefreshCw },
-  ];
+  const SortHeader = ({ label, field }: { label: string; field: SortKey }) => (
+    <button onClick={() => toggleSort(field)} className="flex items-center gap-1 hover:text-primary-foreground/80 transition-colors w-full">
+      {label}
+      <ArrowUpDown className={`h-3 w-3 ${sortKey === field ? "opacity-100" : "opacity-30"}`} />
+    </button>
+  );
 
   return (
-    <div className="px-4 pt-4 pb-24 space-y-4 max-w-5xl mx-auto" dir="rtl">
+    <div className="p-4 md:p-6 pb-24 space-y-5" dir="rtl">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate(-1)} className="p-2 rounded-xl bg-muted/50 hover:bg-muted transition-colors">
-            <ArrowLeft className="h-4 w-4" />
+          <button onClick={() => window.history.length > 2 ? navigate(-1) : navigate("/apps")} className="w-9 h-9 rounded-full bg-muted/60 flex items-center justify-center hover:bg-muted transition-all shadow-sm">
+            <ArrowRight className="h-4 w-4 text-muted-foreground" />
           </button>
-          <div>
-            <h1 className="text-lg font-bold text-foreground">إدارة الشيكات</h1>
-            <p className="text-[11px] text-muted-foreground">{cheques.length} شيك مسجل</p>
+          <div className="flex items-center gap-2">
+            <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
+              <Banknote className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-foreground">إدارة الشيكات</h1>
+              <p className="text-xs text-muted-foreground">{filtered.length} شيك من أصل {cheques.length}</p>
+            </div>
           </div>
         </div>
         <Dialog open={addOpen} onOpenChange={setAddOpen}>
           <DialogTrigger asChild>
-            <Button size="sm" className="rounded-xl gap-1.5 shadow-md shadow-primary/20">
-              <Plus className="h-4 w-4" />
-              شيك جديد
+            <Button className="gap-1.5 rounded-xl shadow-md shadow-primary/20">
+              <Plus className="h-4 w-4" /> شيك جديد
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto rounded-2xl" dir="rtl">
@@ -386,13 +423,13 @@ const ChequesPage = () => {
                   <PopoverContent className="w-[--radix-popover-trigger-width] p-1 rounded-xl max-h-48 overflow-y-auto" align="start" sideOffset={4}>
                     {(() => {
                       const targetType = newCheque.cheque_type === 'وارد' ? 'عميل' : 'مورد';
-                      const filtered = contacts
+                      const filteredContacts = contacts
                         .filter(c => c.contact_type === targetType || c.contact_type === 'كلاهما')
                         .filter(c => !partySearch || c.contact_name.toLowerCase().includes(partySearch.toLowerCase()));
                       const exactMatch = contacts.some(c => c.contact_name === partySearch.trim());
                       return (
                         <>
-                          {filtered.length > 0 ? filtered.map(c => (
+                          {filteredContacts.length > 0 ? filteredContacts.map(c => (
                             <button
                               key={c.id}
                               className="w-full text-right px-3 py-2 text-sm rounded-lg hover:bg-muted transition-colors flex items-center gap-2"
@@ -444,7 +481,6 @@ const ChequesPage = () => {
                   <Input className="h-9 rounded-xl" value={newCheque.bank_name} onChange={e => setNewCheque(p => ({ ...p, bank_name: e.target.value }))} placeholder="اختياري" />
                 </div>
               </div>
-              {/* حساب محاسبي */}
               <div>
                 <Label className="text-xs">الحساب المحاسبي</Label>
                 <Popover open={accountPopoverOpen} onOpenChange={setAccountPopoverOpen}>
@@ -466,12 +502,12 @@ const ChequesPage = () => {
                   </PopoverTrigger>
                   <PopoverContent className="w-[--radix-popover-trigger-width] p-1 rounded-xl max-h-48 overflow-y-auto" align="start" sideOffset={4}>
                     {(() => {
-                      const filtered = accounts.filter(a =>
+                      const filteredAccts = accounts.filter(a =>
                         !accountSearch ||
                         a.account_code.includes(accountSearch) ||
                         a.account_name.includes(accountSearch)
                       ).slice(0, 20);
-                      return filtered.length > 0 ? filtered.map(a => (
+                      return filteredAccts.length > 0 ? filteredAccts.map(a => (
                         <button
                           key={a.account_code}
                           className="w-full text-right px-3 py-2 text-sm rounded-lg hover:bg-muted transition-colors flex items-center justify-between"
@@ -504,19 +540,42 @@ const ChequesPage = () => {
         </Dialog>
       </div>
 
-      {/* ═══ Due Today Alert Banner ═══ */}
+      {/* KPI Cards */}
+      {cheques.length > 0 && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {[
+            { label: "شيكات واردة", value: `₪${totalIncoming.toLocaleString()}`, count: cheques.filter(c => c.cheque_type === 'وارد').length, icon: ArrowDownCircle, color: "text-emerald-600", bg: "bg-emerald-50 border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800" },
+            { label: "شيكات صادرة", value: `₪${totalOutgoing.toLocaleString()}`, count: cheques.filter(c => c.cheque_type === 'صادر').length, icon: ArrowUpCircle, color: "text-destructive", bg: "bg-destructive/5 border-destructive/10" },
+            { label: "مستحقة", value: `₪${totalDue.toLocaleString()}`, count: cheques.filter(c => c.status === 'مستحق').length, icon: AlertTriangle, color: "text-yellow-600", bg: "bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-800" },
+            { label: "آجلة", value: `₪${totalPending.toLocaleString()}`, count: cheques.filter(c => c.status === 'آجل').length, icon: Clock, color: "text-primary", bg: "bg-primary/5 border-primary/10" },
+          ].map((k, i) => (
+            <div key={i} className={`rounded-2xl border p-4 ${k.bg}`}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-[10px] text-muted-foreground font-medium mb-1">{k.label}</p>
+                  <p className={`text-lg font-bold ${k.color}`}>{k.value}</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">{k.count} شيك</p>
+                </div>
+                <k.icon className={`h-5 w-5 ${k.color} opacity-50`} />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Due Today Alert */}
       {dueTodayCheques.length > 0 && (
-        <div className="relative overflow-hidden rounded-2xl border-2 border-red-500/30 bg-red-500/5 p-3.5">
+        <div className="relative overflow-hidden rounded-2xl border-2 border-destructive/30 bg-destructive/5 p-3.5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-red-500/15 flex items-center justify-center">
-                <AlertTriangle className="h-5 w-5 text-red-600 animate-pulse" />
+              <div className="w-9 h-9 rounded-xl bg-destructive/15 flex items-center justify-center">
+                <AlertTriangle className="h-5 w-5 text-destructive animate-pulse" />
               </div>
               <div>
-                <p className="text-sm font-bold text-red-700 dark:text-red-400">
+                <p className="text-sm font-bold text-destructive">
                   {dueTodayCheques.length} شيك مستحق اليوم
                 </p>
-                <p className="text-xs text-red-600/70">
+                <p className="text-xs text-destructive/70">
                   بقيمة إجمالية {dueTodayCheques.reduce((s, c) => s + c.amount, 0).toLocaleString()} ₪
                 </p>
               </div>
@@ -524,8 +583,8 @@ const ChequesPage = () => {
             <Button
               size="sm"
               variant="outline"
-              className="rounded-xl border-red-500/30 text-red-600 hover:bg-red-500/10 text-xs"
-              onClick={() => { setQuickFilter('today'); setFilterType('all'); setFilterStatus('all'); }}
+              className="rounded-xl border-destructive/30 text-destructive hover:bg-destructive/10 text-xs"
+              onClick={() => { setFilterStatus('مستحق'); setFilterType('all'); }}
             >
               <Eye className="h-3.5 w-3.5 ml-1" />
               عرض الآن
@@ -534,315 +593,259 @@ const ChequesPage = () => {
         </div>
       )}
 
-      {/* ═══ KPI Analytics Cards ═══ */}
-      <div className="grid grid-cols-5 gap-2">
-        {kpiCards.map((kpi) => {
-          const KIcon = kpi.icon;
-          return (
-            <Card key={kpi.label} className="border-0 shadow-sm overflow-hidden">
-              <CardContent className="p-3 text-center space-y-1">
-                <div className={`w-8 h-8 rounded-lg ${kpi.bg} flex items-center justify-center mx-auto`}>
-                  <KIcon className={`h-4 w-4 ${kpi.color}`} />
-                </div>
-                <p className="text-[10px] text-muted-foreground">{kpi.label}</p>
-                <p className={`text-sm font-bold ${kpi.color}`}>{kpi.value.toLocaleString()}</p>
-                <p className="text-[9px] text-muted-foreground">{kpi.count} شيك</p>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
-
-      {/* ═══ Quick Filters + Search ═══ */}
-      <div className="space-y-2">
-        <div className="flex gap-1.5 flex-wrap">
-          {quickFilters.map((qf) => {
-            const QIcon = qf.icon;
-            const isActive = quickFilter === qf.key;
-            return (
-              <button
-                key={qf.key}
-                onClick={() => setQuickFilter(isActive ? '' : qf.key)}
-                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[10px] font-medium transition-all active:scale-95 ${
-                  isActive
-                    ? 'bg-primary text-primary-foreground shadow-md shadow-primary/20'
-                    : 'bg-secondary text-muted-foreground hover:bg-primary/10 hover:text-primary'
-                }`}
-              >
-                <QIcon className="h-3 w-3" />
-                {qf.label}
+      {/* Toolbar */}
+      {cheques.length > 0 && (
+        <div className="space-y-3">
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 pointer-events-none" />
+            <Input
+              placeholder="ابحث بالاسم، رقم الشيك، البنك..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="pr-10 rounded-xl bg-muted/30"
+            />
+            {search && (
+              <button onClick={() => setSearch("")} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                <X className="h-3.5 w-3.5" />
               </button>
-            );
-          })}
-        </div>
-        <div className="flex gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-            <Input className="h-9 pr-9 text-xs rounded-xl" placeholder="بحث بالاسم، رقم الشيك، البنك..." value={search} onChange={e => setSearch(e.target.value)} />
+            )}
           </div>
-          <Select value={filterType} onValueChange={v => { setFilterType(v); setQuickFilter(''); }}>
-            <SelectTrigger className="h-9 w-24 text-xs rounded-xl"><SelectValue placeholder="النوع" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">الكل</SelectItem>
-              <SelectItem value="وارد">وارد</SelectItem>
-              <SelectItem value="صادر">صادر</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={filterStatus} onValueChange={v => { setFilterStatus(v); setQuickFilter(''); }}>
-            <SelectTrigger className="h-9 w-24 text-xs rounded-xl"><SelectValue placeholder="الحالة" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">الكل</SelectItem>
-              <SelectItem value="آجل">آجل</SelectItem>
-              <SelectItem value="مستحق">مستحق</SelectItem>
-              <SelectItem value="مودع">مودع</SelectItem>
-              <SelectItem value="محصل">محصل</SelectItem>
-              <SelectItem value="مرتجع">مرتجع</SelectItem>
-              <SelectItem value="ملغي">ملغي</SelectItem>
-            </SelectContent>
-          </Select>
-          {/* View Toggle */}
-          <button
-            onClick={() => setViewMode(viewMode === 'cards' ? 'table' : 'cards')}
-            className="h-9 w-9 rounded-xl bg-secondary flex items-center justify-center hover:bg-primary/10 transition-colors"
-            title={viewMode === 'cards' ? 'عرض جدولي' : 'عرض بطاقات'}
-          >
-            {viewMode === 'cards' ? <Table2 className="h-4 w-4 text-muted-foreground" /> : <LayoutGrid className="h-4 w-4 text-muted-foreground" />}
-          </button>
-        </div>
-      </div>
 
-      {/* ═══ Results Count ═══ */}
-      <div className="flex items-center justify-between">
-        <p className="text-[11px] text-muted-foreground">{filtered.length} نتيجة</p>
-        {quickFilter && (
-          <button onClick={() => setQuickFilter('')} className="text-[10px] text-primary hover:underline">
-            إزالة الفلتر ✕
-          </button>
-        )}
-      </div>
+          {/* Status pills + type filter */}
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex gap-2 overflow-x-auto pb-1 flex-1">
+              {STATUS_FILTERS.map(st => (
+                <button key={st} onClick={() => setFilterStatus(st)} className={`px-4 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${filterStatus === st ? "bg-primary text-primary-foreground shadow-sm" : "bg-muted/50 text-muted-foreground hover:bg-muted"}`}>
+                  {st}
+                </button>
+              ))}
+            </div>
+            <Select value={filterType} onValueChange={setFilterType}>
+              <SelectTrigger className="w-[140px] rounded-xl text-xs">
+                <SelectValue placeholder="نوع الشيك" />
+              </SelectTrigger>
+              <SelectContent className="bg-background z-50">
+                <SelectItem value="all">كل الأنواع</SelectItem>
+                <SelectItem value="وارد">⬇ وارد</SelectItem>
+                <SelectItem value="صادر">⬆ صادر</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-      {/* ═══ Content ═══ */}
-      {loading ? (
-        <div className="text-center py-12 text-muted-foreground text-sm">جارِ التحميل...</div>
-      ) : filtered.length === 0 ? (
-        <div className="text-center py-16 space-y-2">
-          <Banknote className="h-12 w-12 text-muted-foreground/20 mx-auto" />
-          <p className="text-sm text-muted-foreground">لا توجد شيكات</p>
-          <p className="text-[11px] text-muted-foreground/60">سجّل أول شيك باستخدام الزر أعلاه</p>
+          {selected.size > 0 && (
+            <div className="text-xs text-primary font-semibold">{selected.size} شيك محدد</div>
+          )}
         </div>
-      ) : viewMode === 'table' ? (
-        /* ═══ TABLE VIEW ═══ */
-        <div className="border rounded-2xl overflow-hidden">
+      )}
+
+      {/* Loading */}
+      {loading && (
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        </div>
+      )}
+
+      {/* Empty */}
+      {!loading && cheques.length === 0 && (
+        <div className="text-center py-16">
+          <div className="w-20 h-20 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-4">
+            <Banknote className="h-10 w-10 text-muted-foreground/40" />
+          </div>
+          <h3 className="text-base font-semibold text-foreground mb-1">لا توجد شيكات بعد</h3>
+          <p className="text-xs text-muted-foreground mb-4">سجّل أول شيك لبدء التتبع</p>
+          <Button className="rounded-xl gap-2 shadow-md shadow-primary/20" onClick={() => setAddOpen(true)}>
+            <Plus className="h-4 w-4" /> شيك جديد
+          </Button>
+        </div>
+      )}
+
+      {/* No results */}
+      {!loading && cheques.length > 0 && filtered.length === 0 && (
+        <div className="text-center py-12 space-y-2">
+          <Search className="h-10 w-10 text-muted-foreground/20 mx-auto" />
+          <p className="text-sm text-muted-foreground">لا توجد شيكات تطابق البحث</p>
+          <Button variant="ghost" size="sm" onClick={() => { setSearch(""); setFilterType("all"); setFilterStatus("الكل"); }}>مسح الفلاتر</Button>
+        </div>
+      )}
+
+      {/* TABLE */}
+      {!loading && paged.length > 0 && (
+        <div className="rounded-2xl border border-border/50 overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
-            <table className="w-full text-xs">
+            <table className="w-full text-sm">
               <thead>
-                <tr className="bg-muted/50">
-                  <th className="px-3 py-2.5 text-right font-semibold text-foreground">#</th>
-                  <th className="px-3 py-2.5 text-right font-semibold text-foreground">الجهة</th>
-                  <th className="px-3 py-2.5 text-center font-semibold text-foreground">النوع</th>
-                  <th className="px-3 py-2.5 text-center font-semibold text-foreground">المبلغ</th>
-                  <th className="px-3 py-2.5 text-center font-semibold text-foreground">الاستحقاق</th>
-                  <th className="px-3 py-2.5 text-center font-semibold text-foreground">الحالة</th>
-                  <th className="px-3 py-2.5 text-center font-semibold text-foreground">البنك</th>
-                  <th className="px-3 py-2.5 text-center font-semibold text-foreground">إجراء</th>
+                <tr className="bg-primary text-primary-foreground">
+                  <th className="px-3 py-3 text-right w-10">
+                    <Checkbox checked={allPageSelected} onCheckedChange={toggleAllPage} className="border-primary-foreground/50 data-[state=checked]:bg-primary-foreground data-[state=checked]:text-primary" />
+                  </th>
+                  <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="رقم الشيك" field="cheque_number" /></th>
+                  <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="الجهة" field="party_name" /></th>
+                  <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="النوع" field="cheque_type" /></th>
+                  <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="المبلغ" field="amount" /></th>
+                  <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="الاستحقاق" field="cheque_date" /></th>
+                  <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="الحالة" field="status" /></th>
+                  <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="البنك" field="bank_name" /></th>
+                  <th className="px-3 py-3 text-right text-xs font-semibold">إجراءات</th>
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((c, i) => {
+                {paged.map((c, i) => {
                   const sc = statusConfig[c.status];
                   const transitions = smartTransitions[c.status];
+                  const isSelected = selected.has(c.id);
+                  const isExpanded = expandedId === c.id;
+                  const history = statusHistory[c.id] || [];
                   return (
-                    <tr key={c.id} className="border-t border-border/30 hover:bg-muted/20 transition-colors">
-                      <td className="px-3 py-2.5 text-muted-foreground">{c.cheque_number || (i + 1)}</td>
-                      <td className="px-3 py-2.5 font-semibold text-foreground">{c.party_name}</td>
-                      <td className="px-3 py-2.5 text-center">
-                        <Badge variant="outline" className="text-[9px]">
-                          {c.cheque_type === 'وارد' ? '⬇ وارد' : '⬆ صادر'}
-                        </Badge>
-                      </td>
-                      <td className={`px-3 py-2.5 text-center font-bold ${c.cheque_type === 'وارد' ? 'text-emerald-600' : 'text-red-500'}`}>
-                        {c.amount.toLocaleString()} ₪
-                      </td>
-                      <td className="px-3 py-2.5 text-center text-muted-foreground">{fmtDate(c.cheque_date)}</td>
-                      <td className="px-3 py-2.5 text-center">
-                        <Badge className={`text-[9px] border-0 ${sc.badgeClass}`}>{sc.label}</Badge>
-                      </td>
-                      <td className="px-3 py-2.5 text-center text-muted-foreground">{c.bank_name || '-'}</td>
-                      <td className="px-3 py-2.5 text-center">
-                        <div className="flex items-center justify-center gap-1">
-                          {transitions.slice(0, 2).map((t) => (
+                    <>
+                      <tr
+                        key={c.id}
+                        className={`border-b border-border/50 transition-colors cursor-pointer ${
+                          isSelected ? "bg-primary/5" : i % 2 === 0 ? "bg-background" : "bg-muted/20"
+                        } hover:bg-primary/5`}
+                        onClick={() => toggleExpand(c.id)}
+                      >
+                        <td className="px-3 py-3" onClick={e => e.stopPropagation()}>
+                          <Checkbox checked={isSelected} onCheckedChange={() => toggleSelect(c.id)} />
+                        </td>
+                        <td className="px-3 py-3 text-xs text-muted-foreground font-mono" dir="ltr">{c.cheque_number || "—"}</td>
+                        <td className="px-3 py-3">
+                          <p className="text-sm font-semibold text-foreground">{c.party_name}</p>
+                        </td>
+                        <td className="px-3 py-3">
+                          <Badge variant="outline" className="text-[10px]">
+                            {c.cheque_type === 'وارد' ? '⬇ وارد' : '⬆ صادر'}
+                          </Badge>
+                        </td>
+                        <td className={`px-3 py-3 text-sm font-bold tabular-nums ${c.cheque_type === 'وارد' ? 'text-emerald-600' : 'text-destructive'}`}>
+                          {c.amount.toLocaleString()} ₪
+                        </td>
+                        <td className="px-3 py-3 text-xs text-muted-foreground tabular-nums">{fmtDate(c.cheque_date)}</td>
+                        <td className="px-3 py-3">
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${sc.badgeClass}`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${sc.color.replace('text-', 'bg-')}`} />
+                            {sc.label}
+                          </span>
+                        </td>
+                        <td className="px-3 py-3 text-xs text-muted-foreground">{c.bank_name || '—'}</td>
+                        <td className="px-3 py-3" onClick={e => e.stopPropagation()}>
+                          <div className="flex items-center gap-1">
+                            {transitions.slice(0, 2).map((t) => (
+                              <button
+                                key={t.status}
+                                onClick={() => handleStatusChange(c, t.status)}
+                                className={`px-2 py-1 rounded-lg text-[10px] font-medium transition-all hover:opacity-80 ${
+                                  t.variant === 'destructive' ? 'bg-destructive/10 text-destructive' : t.variant === 'default' ? 'bg-primary/10 text-primary' : 'bg-muted text-foreground'
+                                }`}
+                              >
+                                {t.label}
+                              </button>
+                            ))}
                             <button
-                              key={t.status}
-                              onClick={() => handleStatusChange(c, t.status)}
-                              className={`px-2 py-0.5 rounded-md text-[9px] font-medium transition-all hover:opacity-80 ${
-                                t.variant === 'destructive' ? 'bg-destructive/10 text-destructive' : t.variant === 'default' ? 'bg-primary/10 text-primary' : 'bg-muted text-foreground'
-                              }`}
+                              onClick={() => setDeleteTarget(c)}
+                              className="p-1.5 rounded-lg hover:bg-destructive/10 transition-colors"
+                              title="حذف"
                             >
-                              {t.label}
+                              <Trash2 className="h-3.5 w-3.5 text-destructive" />
                             </button>
-                          ))}
-                        </div>
-                      </td>
-                    </tr>
+                          </div>
+                        </td>
+                      </tr>
+                      {/* Expanded Details Row */}
+                      {isExpanded && (
+                        <tr key={`${c.id}-details`}>
+                          <td colSpan={9} className="bg-muted/10 border-b border-border/50 px-6 py-4">
+                            <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-[11px]">
+                                <div className="flex items-center gap-1.5 text-muted-foreground">
+                                  <User className="h-3 w-3" />
+                                  <span>الجهة: <strong className="text-foreground">{c.party_name}</strong></span>
+                                </div>
+                                <div className="flex items-center gap-1.5 text-muted-foreground">
+                                  <Calendar className="h-3 w-3" />
+                                  <span>الاستحقاق: <strong className="text-foreground">{fmtDate(c.cheque_date)}</strong></span>
+                                </div>
+                                {c.linked_account && (
+                                  <div className="flex items-center gap-1.5 text-muted-foreground">
+                                    <Hash className="h-3 w-3" />
+                                    <span>الحساب: <strong className="text-foreground">{c.linked_account}</strong></span>
+                                  </div>
+                                )}
+                                <div className="flex items-center gap-1.5 text-muted-foreground">
+                                  <Clock className="h-3 w-3" />
+                                  <span>التسجيل: <strong className="text-foreground">{fmtDate(c.created_at)}</strong></span>
+                                </div>
+                              </div>
+                              {c.notes && (
+                                <div className="flex items-start gap-1.5 text-[11px] text-muted-foreground bg-muted/30 rounded-xl p-2.5">
+                                  <StickyNote className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                                  <span>{c.notes}</span>
+                                </div>
+                              )}
+                              {history.length > 0 && (
+                                <div>
+                                  <p className="text-[11px] font-semibold text-foreground flex items-center gap-1 mb-2">
+                                    <History className="h-3.5 w-3.5 text-primary" />
+                                    سجل تغيير الحالات
+                                  </p>
+                                  <div className="space-y-1.5 mr-3 border-r-2 border-primary/20 pr-3">
+                                    {history.map((h) => (
+                                      <div key={h.id} className="flex items-center gap-2 text-[10px]">
+                                        <div className="w-2 h-2 rounded-full bg-primary -mr-[17px]" />
+                                        <span className="text-muted-foreground">{fmtTime(h.created_at)}</span>
+                                        <span className="text-foreground">
+                                          {h.from_status ? `${h.from_status} → ${h.to_status}` : `تسجيل: ${h.to_status}`}
+                                        </span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </>
                   );
                 })}
               </tbody>
+              {/* Footer totals */}
+              <tfoot>
+                <tr className="bg-primary/5 border-t-2 border-primary/20 font-bold text-sm">
+                  <td colSpan={4} className="px-3 py-3 text-right text-foreground">المجموع ({filtered.length} شيك)</td>
+                  <td className="px-3 py-3 tabular-nums text-foreground">₪{filtered.reduce((s, c) => s + c.amount, 0).toLocaleString()}</td>
+                  <td colSpan={4} className="px-3 py-3 text-xs text-muted-foreground font-normal">إجمالي قيمة الشيكات</td>
+                </tr>
+              </tfoot>
             </table>
           </div>
-        </div>
-      ) : (
-        /* ═══ CARD VIEW ═══ */
-        <div className="space-y-2">
-          {filtered.map((cheque) => {
-            const sc = statusConfig[cheque.status];
-            const StatusIcon = sc.icon;
-            const transitions = smartTransitions[cheque.status];
-            const isExpanded = expandedId === cheque.id;
-            const history = statusHistory[cheque.id] || [];
 
-            return (
-              <Card key={cheque.id} className="border-0 shadow-sm overflow-hidden">
-                <CardContent className="p-0">
-                  {/* Main Row */}
-                  <div
-                    className="p-3.5 cursor-pointer hover:bg-muted/20 transition-colors"
-                    onClick={() => toggleExpand(cheque.id)}
-                  >
-                    <div className="flex items-start justify-between">
-                      {/* Right: Amount + Date */}
-                      <div className="flex items-start gap-3">
-                        <div className={`w-10 h-10 rounded-xl ${sc.bg} flex items-center justify-center flex-shrink-0 mt-0.5`}>
-                          <StatusIcon className={`h-5 w-5 ${sc.color}`} />
-                        </div>
-                        <div>
-                          <p className={`text-lg font-extrabold ${cheque.cheque_type === 'وارد' ? 'text-emerald-600' : 'text-red-500'}`}>
-                            {cheque.amount.toLocaleString()} <span className="text-xs font-semibold opacity-70">{cheque.currency}</span>
-                          </p>
-                          <p className="text-sm font-semibold text-foreground mt-0.5">{cheque.party_name}</p>
-                          <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                            <Badge variant="outline" className="text-[9px] h-5 rounded-md">
-                              {cheque.cheque_type === 'وارد' ? '⬇ وارد' : '⬆ صادر'}
-                            </Badge>
-                            <Badge className={`text-[9px] h-5 rounded-md border-0 ${sc.badgeClass}`}>
-                              {sc.label}
-                            </Badge>
-                            {cheque.cheque_number && (
-                              <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground">
-                                <Hash className="h-3 w-3" />{cheque.cheque_number}
-                              </span>
-                            )}
-                            {cheque.bank_name && (
-                              <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground">
-                                <Building2 className="h-3 w-3" />{cheque.bank_name}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                      {/* Left: Date + Expand */}
-                      <div className="flex flex-col items-end gap-1.5">
-                        <span className="text-[11px] text-muted-foreground flex items-center gap-1">
-                          <Calendar className="h-3 w-3" />
-                          {fmtDate(cheque.cheque_date)}
-                        </span>
-                        {isExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground/40" /> : <ChevronDown className="h-4 w-4 text-muted-foreground/40" />}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Smart Action Buttons */}
-                  {transitions.length > 0 && (
-                    <div className="px-3.5 pb-3 flex gap-1.5 flex-wrap">
-                      {transitions.map((t) => (
-                        <Button
-                          key={t.status}
-                          size="sm"
-                          variant={t.variant === 'destructive' ? 'destructive' : t.variant === 'default' ? 'default' : 'outline'}
-                          className="h-7 text-[10px] rounded-lg gap-1 px-3"
-                          onClick={(e) => { e.stopPropagation(); handleStatusChange(cheque, t.status); }}
-                        >
-                          {t.label}
-                        </Button>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* ═══ Expanded Details ═══ */}
-                  {isExpanded && (
-                    <div className="border-t border-border/30 bg-muted/10 p-3.5 space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
-                      {/* Info Grid */}
-                      <div className="grid grid-cols-2 gap-2 text-[11px]">
-                        <div className="flex items-center gap-1.5 text-muted-foreground">
-                          <User className="h-3 w-3" />
-                          <span>الجهة: <strong className="text-foreground">{cheque.party_name}</strong></span>
-                        </div>
-                        <div className="flex items-center gap-1.5 text-muted-foreground">
-                          <Calendar className="h-3 w-3" />
-                          <span>الاستحقاق: <strong className="text-foreground">{fmtDate(cheque.cheque_date)}</strong></span>
-                        </div>
-                        {cheque.cheque_number && (
-                          <div className="flex items-center gap-1.5 text-muted-foreground">
-                            <Hash className="h-3 w-3" />
-                            <span>رقم الشيك: <strong className="text-foreground">{cheque.cheque_number}</strong></span>
-                          </div>
-                        )}
-                        {cheque.bank_name && (
-                          <div className="flex items-center gap-1.5 text-muted-foreground">
-                            <Building2 className="h-3 w-3" />
-                            <span>البنك: <strong className="text-foreground">{cheque.bank_name}</strong></span>
-                          </div>
-                        )}
-                        <div className="flex items-center gap-1.5 text-muted-foreground">
-                          <Clock className="h-3 w-3" />
-                          <span>تاريخ التسجيل: <strong className="text-foreground">{fmtDate(cheque.created_at)}</strong></span>
-                        </div>
-                      </div>
-
-                      {/* Notes */}
-                      {cheque.notes && (
-                        <div className="flex items-start gap-1.5 text-[11px] text-muted-foreground bg-muted/30 rounded-xl p-2.5">
-                          <StickyNote className="h-3 w-3 mt-0.5 flex-shrink-0" />
-                          <span>{cheque.notes}</span>
-                        </div>
-                      )}
-
-                      {/* Status History Timeline */}
-                      {history.length > 0 && (
-                        <div>
-                          <p className="text-[11px] font-semibold text-foreground flex items-center gap-1 mb-2">
-                            <History className="h-3.5 w-3.5 text-primary" />
-                            سجل تغيير الحالات
-                          </p>
-                          <div className="space-y-1.5 mr-3 border-r-2 border-primary/20 pr-3">
-                            {history.map((h) => (
-                              <div key={h.id} className="flex items-center gap-2 text-[10px]">
-                                <div className="w-2 h-2 rounded-full bg-primary -mr-[17px]" />
-                                <span className="text-muted-foreground">{fmtTime(h.created_at)}</span>
-                                <span className="text-foreground">
-                                  {h.from_status ? `${h.from_status} → ${h.to_status}` : `تسجيل: ${h.to_status}`}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Delete Button */}
-                      <div className="pt-1 border-t border-border/30">
-                        <button
-                          onClick={(e) => { e.stopPropagation(); setDeleteTarget(cheque); }}
-                          className="flex items-center gap-1.5 text-[10px] text-destructive hover:underline"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                          حذف الشيك
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            );
-          })}
+          {/* Pagination */}
+          {sorted.length > PER_PAGE && (
+            <div className="flex items-center justify-between px-4 py-3 border-t border-border/50 bg-muted/20">
+              <p className="text-xs text-muted-foreground">
+                عرض {Math.min((page - 1) * PER_PAGE + 1, sorted.length)}–{Math.min(page * PER_PAGE, sorted.length)} من {sorted.length}
+              </p>
+              <div className="flex items-center gap-1">
+                <Button variant="outline" size="sm" className="rounded-lg h-8 text-xs" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
+                  <ChevronRight className="h-3.5 w-3.5 ml-1" /> السابق
+                </Button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).slice(
+                  Math.max(0, page - 3), Math.min(totalPages, page + 2)
+                ).map(n => (
+                  <Button key={n} variant={page === n ? "default" : "outline"} size="sm" className="rounded-lg h-8 w-8 text-xs p-0" onClick={() => setPage(n)}>
+                    {n}
+                  </Button>
+                ))}
+                <Button variant="outline" size="sm" className="rounded-lg h-8 text-xs" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>
+                  التالي <ChevronLeft className="h-3.5 w-3.5 mr-1" />
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {selected.size > 0 ? `${selected.size} شيك محدد` : `صفحة ${page} من ${totalPages}`}
+              </p>
+            </div>
+          )}
         </div>
       )}
 
