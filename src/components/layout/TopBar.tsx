@@ -250,7 +250,7 @@ const AppLogo = () => {
       ) : (
         <FinixLogo variant="icon" size="sm" />
       )}
-      <span className="hidden md:block text-[13px] font-bold text-foreground max-w-[140px] truncate">
+      <span className="text-[13px] font-bold text-foreground max-w-[200px] truncate">
         {company.name || "شركتي"}
       </span>
     </button>
