@@ -107,11 +107,14 @@ const ChequesPage = () => {
   const [deleting, setDeleting] = useState(false);
   const [contacts, setContacts] = useState<{ id: string; contact_name: string; contact_type: string }[]>([]);
   const [accounts, setAccounts] = useState<{ account_code: string; account_name: string; account_type: string }[]>([]);
+  const [bankAccounts, setBankAccounts] = useState<{ id: string; name: string; bank_name: string; gl_account_code: string | null }[]>([]);
   const [partySearch, setPartySearch] = useState("");
   const [partyPopoverOpen, setPartyPopoverOpen] = useState(false);
   const [accountSearch, setAccountSearch] = useState("");
   const [accountPopoverOpen, setAccountPopoverOpen] = useState(false);
   const [quickAddingContact, setQuickAddingContact] = useState(false);
+  const [depositTarget, setDepositTarget] = useState<Cheque | null>(null);
+  const [selectedBankAccount, setSelectedBankAccount] = useState<string>("");
 
   const [sortKey, setSortKey] = useState<SortKey>("cheque_date");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
