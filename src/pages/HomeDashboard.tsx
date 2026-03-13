@@ -17,7 +17,7 @@ import ChequesCalendarWidget from "@/components/dashboard/ChequesCalendarWidget"
 import InventoryPulseWidget from "@/components/dashboard/InventoryPulseWidget";
 import ExchangeRatesWidget from "@/components/dashboard/ExchangeRatesWidget";
 import CompleteProfileDialog from "@/components/CompleteProfileDialog";
-import HelpGuideModal from "@/components/HelpGuideModal";
+
 import JournalEntryPopup from "@/components/JournalEntryPopup";
 import AccountStatementModal from "@/components/AccountStatementModal";
 import ContactStatementModal from "@/components/ContactStatementModal";
@@ -81,7 +81,7 @@ const HomeDashboard = () => {
   const isMobile = useIsMobile();
   const dashboard = useDashboardData();
 
-  const [showHelpGuide, setShowHelpGuide] = useState(false);
+  
   const [showProfileDialog, setShowProfileDialog] = useState(false);
   const [showJournalEntry, setShowJournalEntry] = useState(false);
   const [journalEntryData, setJournalEntryData] = useState<any>(null);
@@ -95,14 +95,6 @@ const HomeDashboard = () => {
 
   // Setup wizard - now handled by /setup route, no longer needed here
 
-  // First-time help guide
-  useEffect(() => {
-    if (!user || !dashboard.profileData?.setup_completed) return;
-    if (!localStorage.getItem("help_guide_shown")) {
-      setTimeout(() => setShowHelpGuide(true), 1000);
-      localStorage.setItem("help_guide_shown", "true");
-    }
-  }, [user, dashboard.profileData?.setup_completed]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -212,7 +204,7 @@ const HomeDashboard = () => {
           accounts={journalEntryAccounts}
         />
       )}
-      <HelpGuideModal open={showHelpGuide} onClose={() => setShowHelpGuide(false)} onFillInput={() => {}} />
+      
       <ShortcutsHelpDialog open={showShortcuts} onClose={() => setShowShortcuts(false)} />
       <AccountStatementModal open={showAccountStatement} onClose={() => setShowAccountStatement(false)} />
       <ContactStatementModal open={showContactStatement} onClose={() => setShowContactStatement(false)} />

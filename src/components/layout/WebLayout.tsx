@@ -1,7 +1,7 @@
 import { useState } from "react";
 import AppSidebar from "./AppSidebar";
 import TopBar from "./TopBar";
-import HelpGuideModal from "../HelpGuideModal";
+
 import SubscriptionExpiryBanner from "../SubscriptionExpiryBanner";
 import TrialBanner from "../billing/TrialBanner";
 import TrialExpiredGate from "../trial/TrialExpiredGate";
@@ -14,7 +14,7 @@ interface WebLayoutProps {
 const WebLayout = ({ children }: WebLayoutProps) => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  const [showHelpGuide, setShowHelpGuide] = useState(false);
+  
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background" dir="rtl">
@@ -31,7 +31,7 @@ const WebLayout = ({ children }: WebLayoutProps) => {
         <TopBar
           onMenuClick={() => setMobileSidebarOpen(true)}
           sidebarCollapsed={sidebarCollapsed}
-          onOpenHelpGuide={() => setShowHelpGuide(true)}
+          onOpenHelpGuide={() => {}}
         />
 
         {/* Subscription / Trial Banners */}
@@ -49,12 +49,6 @@ const WebLayout = ({ children }: WebLayoutProps) => {
       {/* Lightweight navigation loader */}
       <GlobalNavigationLoader />
 
-      {/* Help Guide Modal */}
-      <HelpGuideModal
-        open={showHelpGuide}
-        onClose={() => setShowHelpGuide(false)}
-        onFillInput={() => {}}
-      />
     </div>
   );
 };

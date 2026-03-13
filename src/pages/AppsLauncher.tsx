@@ -8,7 +8,7 @@ import SpotlightTour from "@/components/onboarding/SpotlightTour";
 import TourCompletionModal from "@/components/onboarding/TourCompletionModal";
 import { motion } from "framer-motion";
 import { Input } from "@/components/ui/input";
-import HelpGuideModal from "@/components/HelpGuideModal";
+
 import { getAppSections, getAllChildren, type NavItem } from "@/config/navigationConfig";
 
 const appSections = getAppSections();
@@ -164,7 +164,7 @@ const AppsLauncher = () => {
           <TourCompletionModal open={showCompletion} onClose={() => setShowCompletion(false)} />
         </>
       )}
-      <HelpGuideModal open={helpGuideOpen} onClose={() => setHelpGuideOpen(false)} />
+      
     </div>
   );
 };

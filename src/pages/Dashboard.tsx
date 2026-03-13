@@ -3,7 +3,7 @@ import { getAuthHeaders, getAuthHeadersJson } from "@/lib/edge-helpers";
 import { Wallet, Mic, Send, Loader2, Bell, Sparkles, Database, FileText, Package, TrendingUp, TrendingDown, ArrowLeft, ChevronDown, Users, UserPlus, Plus, Paperclip, BarChart3, Clock, AlertTriangle, Sun, Moon, HelpCircle, AtSign, BookOpen } from "lucide-react";
 import SmartAlertCard from "@/components/SmartAlertCard";
 import { Badge } from "@/components/ui/badge";
-import HelpGuideModal from "@/components/HelpGuideModal";
+
 import MentionInput, { MentionItem } from "@/components/MentionInput";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -917,14 +917,6 @@ const Dashboard = () => {
       {showOnboarding && !showPasskeyOnboarding && !showSetupWizard && (
         <OnboardingFlow onComplete={() => setShowOnboarding(false)} onFocusInput={() => { const input = document.querySelector<HTMLInputElement>("#smart-input-bar input"); input?.focus(); }} />
       )}
-      <HelpGuideModal
-        open={showHelpGuide}
-        onClose={() => setShowHelpGuide(false)}
-        onFillInput={(text, target) => {
-          if (target === "assistant") setInputValue(text);
-          else setDbCommand(text);
-        }}
-      />
       <TransactionToast show={txToast.show} onDone={txToast.handleDone} />
       <JournalEntryPopup
         open={showJournalEntry}
