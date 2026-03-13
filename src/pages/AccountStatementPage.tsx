@@ -1096,10 +1096,11 @@ const AccountStatementPage = () => {
               variant="outline"
               size="sm"
               onClick={handlePreviewPDF}
-              disabled={!selectedEntityId || rows.length === 0}
+              disabled={!selectedEntityId || rows.length === 0 || pdfGenerating}
               className="h-8 gap-1.5 text-xs"
             >
-              <Eye className="w-3.5 h-3.5" /> معاينة PDF
+              {pdfGenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Eye className="w-3.5 h-3.5" />}
+              {pdfGenerating ? "جاري التوليد..." : "معاينة PDF"}
             </Button>
 
             <Button variant="outline" size="sm" onClick={() => window.print()} disabled={!selectedEntityId || rows.length === 0} className="h-8 gap-1.5 text-xs">
