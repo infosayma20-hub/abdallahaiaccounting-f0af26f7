@@ -170,9 +170,9 @@ function detectIntents(message: string): QueryIntent[] {
     return intents;
   }
 
-  // Exchange rates
-  if (/سعر\s+الصرف|الدولار|اليورو|الدينار|عملة|عملات|صرف/i.test(message)) {
-    intents.push({ type: 'exchange_rates' });
+  // Exchange rates & currency conversion
+  if (/سعر\s+الصرف|الدولار|اليورو|الدينار|عملة|عملات|صرف|شيكل|لشيكل|بالشيكل|تحويل|كم\s+يساوي/i.test(message)) {
+    intents.push({ type: 'exchange_rates', keyword: message });
     return intents;
   }
 
