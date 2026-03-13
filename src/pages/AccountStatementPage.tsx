@@ -8,8 +8,8 @@ import {
   MessageSquare, Link2, Eye, Pencil, Receipt, User, Menu,
 } from "lucide-react";
 import * as XLSX from "xlsx";
-import html2canvas from "html2canvas";
 import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -770,80 +770,129 @@ const AccountStatementPage = () => {
     return { ...tx, row };
   }, [previewTxId, transactions, rows]);
 
-  // ─── PDF PREVIEW ───
+  // ─── PDF PREVIEW (jspdf-autotable, no html2canvas) ───
   const handlePreviewPDF = useCallback(async () => {
     setShowPDFPreview(true);
     setPdfGenerating(true);
     try {
-      await new Promise(r => setTimeout(r, 100));
-      const element = document.getElementById("statement-print-wrapper");
-      if (!element) { setPdfGenerating(false); return; }
+      const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+      const pw = doc.internal.pageSize.width;
+      const ph = doc.internal.pageSize.height;
 
-      // Temporarily remove print-only class (it has display:none !important)
-      const hadClass = element.classList.contains("print-only");
-      if (hadClass) element.classList.remove("print-only");
-      element.style.display = "block";
-      element.style.position = "absolute";
-      element.style.left = "-9999px";
-      element.style.top = "0";
-      element.style.width = "794px";
-      element.style.background = "white";
-      element.style.color = "black";
-      element.style.zIndex = "-1";
+      // Header
+      doc.setFillColor(27, 58, 92);
+      doc.rect(0, 0, pw, 32, "F");
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(13);
+      doc.setFont("helvetica", "bold");
+      doc.text(companyInfo.name || companyName || "FINIX ERP", pw / 2, 12, { align: "center" });
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      doc.text("Customer Account Statement", pw / 2, 20, { align: "center" });
+      doc.setFontSize(8);
+      doc.text(`From: ${dateFrom}  To: ${dateTo}`, pw / 2, 28, { align: "center" });
 
-      // Wait for render
-      await new Promise(r => setTimeout(r, 500));
+      // Customer info box
+      doc.setTextColor(0, 0, 0);
+      doc.setFillColor(245, 245, 245);
+      doc.rect(10, 36, pw - 20, 16, "F");
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "bold");
+      doc.text("Customer:", 14, 44);
+      doc.setFont("helvetica", "normal");
+      doc.text(selectedEntityName || "", 42, 44);
 
-      const canvas = await html2canvas(element, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        width: 794,
-        windowWidth: 794,
-        backgroundColor: "#ffffff",
+      // Balance
+      const lastRow = rows[rows.length - 1];
+      const finalBalance = lastRow ? lastRow.balance : 0;
+      doc.setFont("helvetica", "bold");
+      doc.text("Balance:", pw - 68, 44);
+      doc.setFont("helvetica", "normal");
+      const balColor = finalBalance > 0 ? [220, 38, 38] : [34, 197, 94];
+      doc.setTextColor(balColor[0], balColor[1], balColor[2]);
+      doc.text(
+        `ILS ${Math.abs(finalBalance).toLocaleString("en")} ${finalBalance > 0 ? "Dr" : "Cr"}`,
+        pw - 14, 44, { align: "right" }
+      );
+      doc.setTextColor(0, 0, 0);
+
+      // Table
+      const tableBody = rows.map(r => [
+        r.date ? format(new Date(r.date), "dd/MM/yy") : "",
+        r.reference || "-",
+        r.description || "",
+        r.transaction_type || "",
+        r.debit ? Number(r.debit).toLocaleString("en") : "-",
+        r.credit ? Number(r.credit).toLocaleString("en") : "-",
+        r.balance != null ? Number(r.balance).toLocaleString("en") : "-",
+      ]);
+
+      autoTable(doc, {
+        startY: 56,
+        head: [["Date", "Reference", "Description", "Type", "Debit", "Credit", "Balance"]],
+        body: tableBody,
+        theme: "striped",
+        headStyles: { fillColor: [27, 58, 92], textColor: [255, 255, 255], fontSize: 8, fontStyle: "bold", halign: "center" },
+        bodyStyles: { fontSize: 7.5, cellPadding: 2 },
+        columnStyles: {
+          0: { cellWidth: 20, halign: "center" },
+          1: { cellWidth: 26, halign: "center" },
+          2: { cellWidth: 52 },
+          3: { cellWidth: 22, halign: "center" },
+          4: { cellWidth: 22, halign: "right" },
+          5: { cellWidth: 22, halign: "right" },
+          6: { cellWidth: 24, halign: "right" },
+        },
+        alternateRowStyles: { fillColor: [248, 249, 250] },
+        didParseCell: (data) => {
+          if (data.row.index === tableBody.length - 1 && data.section === "body") {
+            // Last row styling
+          }
+        },
       });
 
-      // Restore
-      element.style.display = "";
-      element.style.position = "";
-      element.style.left = "";
-      element.style.top = "";
-      element.style.width = "";
-      element.style.background = "";
-      element.style.color = "";
-      element.style.zIndex = "";
-      if (hadClass) element.classList.add("print-only");
+      // Totals
+      const fy = (doc as any).lastAutoTable.finalY + 8;
+      const totalDebit = rows.reduce((s, r) => s + (Number(r.debit) || 0), 0);
+      const totalCredit = rows.reduce((s, r) => s + (Number(r.credit) || 0), 0);
 
-      const imgData = canvas.toDataURL("image/jpeg", 0.95);
-      const pdf = new jsPDF("p", "mm", "a4");
-      const pdfW = 210;
-      const pageH = 297;
-      const imgH = (canvas.height * pdfW) / canvas.width;
+      doc.setFillColor(240, 240, 240);
+      doc.rect(pw - 98, fy, 88, 28, "F");
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(0, 0, 0);
+      doc.text("Total Debit:", pw - 93, fy + 8);
+      doc.text(`ILS ${totalDebit.toLocaleString("en")}`, pw - 14, fy + 8, { align: "right" });
+      doc.text("Total Credit:", pw - 93, fy + 16);
+      doc.text(`ILS ${totalCredit.toLocaleString("en")}`, pw - 14, fy + 16, { align: "right" });
 
-      // Multi-page support
-      if (imgH <= pageH) {
-        pdf.addImage(imgData, "JPEG", 0, 0, pdfW, imgH);
-      } else {
-        let heightLeft = imgH;
-        let position = 0;
-        pdf.addImage(imgData, "JPEG", 0, position, pdfW, imgH);
-        heightLeft -= pageH;
-        while (heightLeft > 0) {
-          position = heightLeft - imgH;
-          pdf.addPage();
-          pdf.addImage(imgData, "JPEG", 0, position, pdfW, imgH);
-          heightLeft -= pageH;
-        }
+      doc.setFillColor(27, 58, 92);
+      doc.rect(pw - 98, fy + 20, 88, 9, "F");
+      doc.setTextColor(255, 255, 255);
+      doc.text("Net Balance:", pw - 93, fy + 26);
+      doc.text(`ILS ${Math.abs(finalBalance).toLocaleString("en")}`, pw - 14, fy + 26, { align: "right" });
+
+      // Footer on every page
+      const pageCount = (doc as any).internal.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setTextColor(150, 150, 150);
+        doc.setFontSize(7);
+        doc.setFont("helvetica", "normal");
+        doc.line(10, ph - 12, pw - 10, ph - 12);
+        doc.text(`Page ${i} / ${pageCount}`, pw / 2, ph - 7, { align: "center" });
+        doc.text(companyInfo.name || companyName || "FINIX", 14, ph - 7);
+        doc.text("Confidential", pw - 14, ph - 7, { align: "right" });
       }
 
-      setPdfPreviewUrl(pdf.output("bloburl") as unknown as string);
+      setPdfPreviewUrl(doc.output("bloburl") as unknown as string);
     } catch (err) {
       console.error("PDF generation error:", err);
       toast({ title: "خطأ في توليد PDF", variant: "destructive" });
     } finally {
       setPdfGenerating(false);
     }
-  }, [toast]);
+  }, [toast, rows, dateFrom, dateTo, selectedEntityName, companyInfo, companyName]);
 
   // ─── EXPORT ───
   const handleExport = () => {
