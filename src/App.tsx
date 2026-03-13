@@ -305,6 +305,14 @@ const App = () => (
                       <Route path="/reports/checks-payable" element={<GenericReportPage reportKey="checks-payable" />} />
                       <Route path="/reports/supplier-purchase-analysis" element={<GenericReportPage reportKey="supplier-purchase-analysis" />} />
                       <Route path="/reports/supplier-statement-all" element={<GenericReportPage reportKey="supplier-statement-all" />} />
+                      {/* Invoice Tracking & Collection */}
+                      <Route path="/reports/invoice-lifecycle" element={<GenericReportPage reportKey="invoice-lifecycle" />} />
+                      <Route path="/reports/dso-detailed" element={<GenericReportPage reportKey="dso-detailed" />} />
+                      <Route path="/reports/ar-aging-advanced" element={<GenericReportPage reportKey="ar-aging-advanced" />} />
+                      <Route path="/reports/collection-efficiency" element={<GenericReportPage reportKey="collection-efficiency" />} />
+                      <Route path="/reports/payment-allocation" element={<GenericReportPage reportKey="payment-allocation" />} />
+                      <Route path="/reports/unpaid-invoices" element={<GenericReportPage reportKey="unpaid-invoices" />} />
+                      <Route path="/reports/collection-dashboard" element={<CollectionDashboardPage />} />
                       {/* Management */}
                       <Route path="/reports/financial-kpi" element={<GenericReportPage reportKey="financial-kpi" />} />
                       <Route path="/reports/month-comparison" element={<GenericReportPage reportKey="month-comparison" />} />
