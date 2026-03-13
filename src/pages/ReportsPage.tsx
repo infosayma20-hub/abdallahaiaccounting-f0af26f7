@@ -150,6 +150,21 @@ const sections: ReportSection[] = [
     ],
   },
   {
+    id: "invoice-tracking",
+    label: "تقارير تتبع الفواتير والتحصيل",
+    icon: Receipt,
+    color: "#0891B2",
+    reports: [
+      { slug: "invoice-lifecycle", label: "دورة حياة الفاتورة", description: "تتبع كل فاتورة من الإنشاء حتى الإغلاق مع أيام الإغلاق", icon: FileText, path: "/reports/invoice-lifecycle", available: true, isNew: true },
+      { slug: "dso-detailed", label: "متوسط أيام التحصيل (DSO) المتقدم", description: "كم يوماً يستغرق كل زبون للسداد مع رسم بياني شهري", icon: TrendingUp, path: "/reports/dso-detailed", available: true, isNew: true },
+      { slug: "ar-aging-advanced", label: "تعمير الذمم المدينة المتقدم", description: "توزيع الذمم على شرائح زمنية مع تفصيل كل فاتورة", icon: Layers, path: "/reports/ar-aging-advanced", available: true, isNew: true },
+      { slug: "collection-efficiency", label: "كفاءة التحصيل", description: "نسبة الفواتير المسددة في موعدها وتطورها شهرياً", icon: Activity, path: "/reports/collection-efficiency", available: true, isNew: true },
+      { slug: "payment-allocation", label: "سجل المدفوعات المرتبطة", description: "كل سند قبض مرتبط بأي فاتورة وبأي مبلغ", icon: Receipt, path: "/reports/payment-allocation", available: true, isNew: true },
+      { slug: "unpaid-invoices", label: "فواتير بدون نشاط دفع", description: "فواتير لم يُسجَّل عليها أي سند قبض إطلاقاً", icon: AlertTriangle, path: "/reports/unpaid-invoices", available: true, isNew: true },
+      { slug: "collection-dashboard", label: "لوحة تحكم التحصيل", description: "لوحة موحدة تجمع كل مقاييس التحصيل في مكان واحد", icon: Monitor, path: "/reports/collection-dashboard", available: true, isNew: true },
+    ],
+  },
+  {
     id: "orders",
     label: "الطلبات",
     icon: ShoppingCart,
