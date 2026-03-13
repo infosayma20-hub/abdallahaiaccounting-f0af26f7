@@ -182,8 +182,8 @@ const SmartAccountantOnboarding = ({ userName, onComplete, onSkip }: Props) => {
               transition={{ duration: 0.4 }}
               className="text-center space-y-6"
             >
-              <p className="text-xs font-medium" style={{ color: "rgba(201,168,76,0.8)" }}>الخطوة 2 من 4</p>
-              <h2 className="text-xl font-extrabold text-white" style={{ fontFamily: "Tajawal, sans-serif" }}>
+              <p className="text-xs font-medium text-[#C9A84C]">الخطوة 2 من 4</p>
+              <h2 className="text-xl font-extrabold text-slate-900" style={{ fontFamily: "Tajawal, sans-serif" }}>
                 قواعد الكتابة الذهبية ✨
               </h2>
 
@@ -194,11 +194,10 @@ const SmartAccountantOnboarding = ({ userName, onComplete, onSkip }: Props) => {
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: i * 0.1 }}
-                    className="p-4 rounded-2xl text-center space-y-2"
-                    style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)" }}
+                    className="p-4 rounded-2xl text-center space-y-2 bg-slate-50 border border-slate-200"
                   >
-                    <p className="text-lg font-bold text-white">{rule.title}</p>
-                    <p className="text-xs" style={{ color: "rgba(255,255,255,0.5)" }}>{rule.desc}</p>
+                    <p className="text-lg font-bold text-slate-900">{rule.title}</p>
+                    <p className="text-xs text-slate-500">{rule.desc}</p>
                   </motion.div>
                 ))}
               </div>
@@ -206,15 +205,13 @@ const SmartAccountantOnboarding = ({ userName, onComplete, onSkip }: Props) => {
               <div className="flex gap-3 justify-center">
                 <button
                   onClick={() => setStep(0)}
-                  className="px-6 py-3 rounded-2xl text-sm font-medium transition-all hover:bg-white/10"
-                  style={{ color: "rgba(255,255,255,0.6)", border: "1px solid rgba(255,255,255,0.2)" }}
+                  className="px-6 py-3 rounded-2xl text-sm font-medium transition-all hover:bg-slate-100 text-slate-600 border border-slate-300"
                 >
                   ← السابق
                 </button>
                 <button
                   onClick={() => setStep(2)}
-                  className="px-8 py-3 rounded-2xl text-sm font-bold transition-all hover:opacity-90 active:scale-95"
-                  style={{ background: "#C9A84C", color: "#1B3A5C" }}
+                  className="px-8 py-3 rounded-2xl text-sm font-bold transition-all hover:opacity-90 active:scale-95 bg-[#C9A84C] text-slate-900"
                 >
                   التالي ←
                 </button>
