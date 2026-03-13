@@ -539,6 +539,7 @@ const FinanceJournalPage = () => {
                         </button>
                       </td>
                     </tr>
+                  );
                 })}
               </tbody>
               <tfoot>
