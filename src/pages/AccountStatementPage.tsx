@@ -892,7 +892,7 @@ const AccountStatementPage = () => {
     } finally {
       setPdfGenerating(false);
     }
-  }, [toast, rows, dateFrom, dateTo, selectedEntityName, companySettings]);
+  }, [toast, rows, dateFrom, dateTo, selectedEntityName, companyInfo, companyName]);
 
   // ─── EXPORT ───
   const handleExport = () => {
