@@ -28,21 +28,55 @@ const ContactDetailPage = () => {
 
   useEffect(() => {
     if (!user || !id) return;
-    const fetch = async () => {
+    const fetchData = async () => {
       setLoading(true);
-      const [{ data: contactData }, { data: txData }, { data: chequeData }] = await Promise.all([
-        supabase.from('contacts').select('*').eq('id', id).single(),
-        supabase.from('transactions').select('*').eq('contact_id', id).eq('is_deleted', false).order('transaction_date', { ascending: false }).limit(200),
-        supabase.from('cheques').select('*').eq('user_id', user.id).order('cheque_date', { ascending: false }),
-      ]);
+      // First get the contact to know the name
+      const { data: contactData } = await supabase.from('contacts').select('*').eq('id', id).single();
       setContact(contactData);
-      setTransactions((txData as any[]) || []);
-      // Filter cheques by party_name matching contact
-      const allCheques = (chequeData as any[]) || [];
-      setCheques(allCheques);
+      const contactName = (contactData as any)?.contact_name?.trim() || "";
+      
+      // Find all contact IDs with the same name (handle duplicates)
+      const { data: sameNameContacts } = await supabase
+        .from('contacts')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('contact_name', contactName);
+      const allIds = (sameNameContacts || []).map((c: any) => c.id);
+      if (!allIds.includes(id)) allIds.push(id);
+
+      // Fetch transactions matching any of these IDs OR by name fallback
+      const { data: txByIds } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('is_deleted', false)
+        .in('contact_id', allIds)
+        .order('transaction_date', { ascending: false })
+        .limit(500);
+      
+      // Also fetch transactions with no contact_id but matching name in description
+      const { data: txByName } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('is_deleted', false)
+        .is('contact_id', null)
+        .ilike('description', `%${contactName}%`)
+        .order('transaction_date', { ascending: false })
+        .limit(200);
+      
+      const idSet = new Set((txByIds || []).map((t: any) => t.id));
+      const merged = [...(txByIds || []), ...(txByName || []).filter((t: any) => !idSet.has(t.id))];
+      setTransactions(merged);
+
+      const { data: chequeData } = await supabase
+        .from('cheques')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('cheque_date', { ascending: false });
+      setCheques((chequeData as any[]) || []);
       setLoading(false);
     };
-    fetch();
+    fetchData();
   }, [user, id]);
 
   const stats = useMemo(() => {

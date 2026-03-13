@@ -339,10 +339,21 @@ const AccountStatementPage = () => {
     if (isAccountsTab || isEmployeesTab) return {};
     const map: Record<string, number> = {};
     const accountCode = activeTabConfig.accountCode;
+    // Build a set of all contact IDs per contact name for merging duplicates
+    const nameToIds = new Map<string, Set<string>>();
+    for (const c of tabContacts) {
+      const name = c.contact_name?.trim();
+      if (!nameToIds.has(name)) nameToIds.set(name, new Set());
+      nameToIds.get(name)!.add(c.id);
+    }
     for (const c of tabContacts) {
       let bal = 0;
+      const name = c.contact_name?.trim();
+      const relatedIds = nameToIds.get(name) || new Set([c.id]);
       for (const tx of transactions) {
-        if (tx.contact_id !== c.id) continue;
+        const matches = (tx.contact_id && relatedIds.has(tx.contact_id)) ||
+          (!tx.contact_id && tx.description?.includes(name));
+        if (!matches) continue;
         if (tx.debit_account_code === accountCode) bal += tx.amount || 0;
         if (tx.credit_account_code === accountCode) bal -= tx.amount || 0;
       }
@@ -466,7 +477,15 @@ const AccountStatementPage = () => {
       return { rows: [] as StatementRow[], openingBalance: 0, closingBalance: 0, totalDebit: 0, totalCredit: 0 };
     } else {
       const accountCode = activeTabConfig.accountCode;
-      related = transactions.filter(tx => tx.contact_id === selectedEntityId);
+      const contactName = selectedContact?.contact_name?.trim() || "";
+      // Find all contact IDs with the same name (handle duplicates)
+      const sameNameIds = new Set(
+        contacts.filter(c => c.contact_name?.trim() === contactName).map(c => c.id)
+      );
+      related = transactions.filter(tx =>
+        (tx.contact_id && sameNameIds.has(tx.contact_id)) ||
+        (!tx.contact_id && contactName && tx.description?.includes(contactName))
+      );
       resolveDebitCredit = (tx) => ({
         isDebit: tx.debit_account_code === accountCode,
         isCredit: tx.credit_account_code === accountCode,
