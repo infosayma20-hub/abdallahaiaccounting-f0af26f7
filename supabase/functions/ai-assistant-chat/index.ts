@@ -523,32 +523,117 @@ ${cheques.map((c: any) => `  ${c.cheque_type === 'وارد' ? '📥' : '📤'} $
 `;
 }
 
-async function fetchExchangeRates(supabase: any, userId: string): Promise<string> {
+async function fetchExchangeRates(supabase: any, userId: string, keyword?: string): Promise<string> {
+  // Always fetch live rates from free API
+  const CURRENCY_NAMES: Record<string, string> = {
+    USD: 'دولار أمريكي',
+    EUR: 'يورو',
+    JOD: 'دينار أردني',
+    GBP: 'جنيه إسترليني',
+    EGP: 'جنيه مصري',
+    TRY: 'ليرة تركية',
+  };
+
+  let liveRates: Record<string, number> = {};
+  try {
+    const res = await fetch('https://open.er-api.com/v6/latest/ILS', { signal: AbortSignal.timeout(6000) });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.rates) {
+        for (const code of Object.keys(CURRENCY_NAMES)) {
+          if (data.rates[code] && data.rates[code] > 0) {
+            liveRates[code] = Math.round((1 / data.rates[code]) * 10000) / 10000;
+          }
+        }
+      }
+    }
+  } catch { /* fallback below */ }
+
+  // Fallback to fawazahmed0
+  if (Object.keys(liveRates).length < 3) {
+    try {
+      const res = await fetch('https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/ils.json', { signal: AbortSignal.timeout(6000) });
+      if (res.ok) {
+        const data = await res.json();
+        const ilsRates = data.ils;
+        if (ilsRates) {
+          for (const code of Object.keys(CURRENCY_NAMES)) {
+            if (!liveRates[code] && ilsRates[code.toLowerCase()] && ilsRates[code.toLowerCase()] > 0) {
+              liveRates[code] = Math.round((1 / ilsRates[code.toLowerCase()]) * 10000) / 10000;
+            }
+          }
+        }
+      }
+    } catch { /* use what we have */ }
+  }
+
+  // Detect conversion request (e.g., "500 يورو لشيكل كم")
+  let conversionInfo = '';
+  if (keyword) {
+    const convMatch = keyword.match(/(\d[\d,\.]*)\s*(دولار|يورو|دينار|جنيه\s*إسترليني|جنيه\s*مصري|ليرة|شيكل)/i);
+    if (convMatch) {
+      const amount = parseFloat(convMatch[1].replace(/,/g, ''));
+      const currWord = convMatch[2];
+      const codeMap: Record<string, string> = {
+        'دولار': 'USD', 'يورو': 'EUR', 'دينار': 'JOD',
+        'جنيه إسترليني': 'GBP', 'جنيه مصري': 'EGP', 'ليرة': 'TRY', 'شيكل': 'ILS',
+      };
+      let fromCode = '';
+      for (const [word, code] of Object.entries(codeMap)) {
+        if (currWord.includes(word) || word.includes(currWord)) { fromCode = code; break; }
+      }
+      
+      if (fromCode && fromCode !== 'ILS' && liveRates[fromCode]) {
+        const ilsAmount = amount * liveRates[fromCode];
+        conversionInfo = `
+=== تحويل العملة ===
+${amount} ${CURRENCY_NAMES[fromCode]} = ${ilsAmount.toFixed(2)} ₪ (شيكل إسرائيلي)
+سعر الصرف المستخدم: 1 ${CURRENCY_NAMES[fromCode]} = ${liveRates[fromCode]} ₪
+`;
+      } else if (fromCode === 'ILS') {
+        // Converting from ILS to another currency
+        const toMatch = keyword.match(/(?:ل|بال|إلى|ب)(دولار|يورو|دينار|جنيه|ليرة)/i);
+        if (toMatch) {
+          let toCode = '';
+          for (const [word, code] of Object.entries(codeMap)) {
+            if (toMatch[1].includes(word) || word.includes(toMatch[1])) { toCode = code; break; }
+          }
+          if (toCode && liveRates[toCode]) {
+            const foreignAmount = amount / liveRates[toCode];
+            conversionInfo = `
+=== تحويل العملة ===
+${amount} شيكل = ${foreignAmount.toFixed(2)} ${CURRENCY_NAMES[toCode]}
+سعر الصرف المستخدم: 1 ${CURRENCY_NAMES[toCode]} = ${liveRates[toCode]} ₪
+`;
+          }
+        }
+      }
+    }
+  }
+
+  // Also get user's registered currencies
   const { data: currencies } = await supabase
     .from('currencies')
     .select('code, name_ar, symbol, is_base, is_active')
     .eq('user_id', userId)
     .eq('is_active', true);
 
-  const { data: rates } = await supabase
-    .from('exchange_rates')
-    .select('currency_id, mid_rate, buy_rate, sell_rate, rate_date')
-    .eq('user_id', userId)
-    .order('rate_date', { ascending: false })
-    .limit(20);
-
-  if ((!currencies || currencies.length === 0) && (!rates || rates.length === 0)) {
-    return '\n=== أسعار الصرف ===\nلا توجد عملات أو أسعار صرف مسجلة.\n';
+  let result = '';
+  if (conversionInfo) {
+    result += conversionInfo;
   }
 
-  return `
-=== أسعار الصرف (بيانات حقيقية) ===
-العملات المسجلة:
-${(currencies || []).map((c: any) => `  ${c.code} (${c.name_ar}) ${c.symbol}${c.is_base ? ' — العملة الأساسية' : ''}`).join('\n')}
-
-آخر أسعار الصرف:
-${(rates || []).map((r: any) => `  عملة ID:${r.currency_id} — سعر وسط: ${r.mid_rate} — شراء: ${r.buy_rate || '-'} — بيع: ${r.sell_rate || '-'} — تاريخ: ${r.rate_date}`).join('\n')}
+  result += `
+=== أسعار الصرف الحية مقابل الشيكل (₪) ===
+${Object.entries(liveRates).map(([code, rate]) => `  1 ${CURRENCY_NAMES[code]} (${code}) = ${rate} ₪`).join('\n')}
+تاريخ التحديث: ${new Date().toISOString().split('T')[0]}
 `;
+
+  if (currencies && currencies.length > 0) {
+    result += `\nالعملات المسجلة في النظام:\n${currencies.map((c: any) => `  ${c.code} (${c.name_ar}) ${c.symbol}${c.is_base ? ' — العملة الأساسية' : ''}`).join('\n')}\n`;
+  }
+
+  return result;
 }
 
 async function fetchIncomeStatement(supabase: any, userId: string, dateFrom: string, dateTo: string): Promise<string> {
