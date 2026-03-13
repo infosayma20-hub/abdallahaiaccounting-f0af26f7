@@ -31,7 +31,7 @@ const WebLayout = ({ children }: WebLayoutProps) => {
         <TopBar
           onMenuClick={() => setMobileSidebarOpen(true)}
           sidebarCollapsed={sidebarCollapsed}
-          onOpenHelpGuide={() => setShowHelpGuide(true)}
+          onOpenHelpGuide={() => {}}
         />
 
         {/* Subscription / Trial Banners */}
