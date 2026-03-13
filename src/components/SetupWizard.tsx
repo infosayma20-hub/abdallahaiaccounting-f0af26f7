@@ -245,6 +245,12 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
       const items: string[] = [];
       items.push(`شجرة حسابات لـ ${data.businessType || "نشاطك"}`);
       if (data.cashBalance > 0) items.push(`الصندوق الرئيسي — رصيد ₪${data.cashBalance.toLocaleString()}`);
+      if (data.hasBankAccount && data.bankName && !data.leaveForAccountant) {
+        items.push(`حساب بنكي: ${data.bankAccountName || data.bankName} (${data.bankAccountType})`);
+      }
+      if (data.leaveForAccountant) {
+        items.push("⏳ الحساب البنكي — معلّق للمراجعة من المحاسب");
+      }
       items.push(`تسلسل الفواتير: ${data.invoicePrefix}-2026-0001`);
       const mods: string[] = ["المحاسبة"];
       if (hasInv) mods.push("المخزون");
