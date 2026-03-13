@@ -330,8 +330,8 @@ const SmartAccountantOnboarding = ({ userName, onComplete, onSkip }: Props) => {
               transition={{ duration: 0.4 }}
               className="text-center space-y-6"
             >
-              <p className="text-xs font-medium" style={{ color: "rgba(201,168,76,0.8)" }}>الخطوة 4 من 4</p>
-              <h2 className="text-xl font-extrabold text-white" style={{ fontFamily: "Tajawal, sans-serif" }}>
+              <p className="text-xs font-medium text-[#C9A84C]">الخطوة 4 من 4</p>
+              <h2 className="text-xl font-extrabold text-slate-900" style={{ fontFamily: "Tajawal, sans-serif" }}>
                 ماذا يستطيع أن يفعل؟ 🚀
               </h2>
 
@@ -342,14 +342,13 @@ const SmartAccountantOnboarding = ({ userName, onComplete, onSkip }: Props) => {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.15 }}
-                    className="p-5 rounded-2xl text-center space-y-3"
-                    style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)" }}
+                    className="p-5 rounded-2xl text-center space-y-3 bg-slate-50 border border-slate-200"
                   >
                     <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto" style={{ background: `${cap.color}20` }}>
                       <cap.icon className="h-6 w-6" style={{ color: cap.color }} />
                     </div>
-                    <p className="text-sm font-bold text-white">{cap.title}</p>
-                    <p className="text-[11px]" style={{ color: "rgba(255,255,255,0.5)" }}>{cap.desc}</p>
+                    <p className="text-sm font-bold text-slate-900">{cap.title}</p>
+                    <p className="text-[11px] text-slate-500">{cap.desc}</p>
                   </motion.div>
                 ))}
               </div>
@@ -357,15 +356,13 @@ const SmartAccountantOnboarding = ({ userName, onComplete, onSkip }: Props) => {
               <div className="flex gap-3 justify-center">
                 <button
                   onClick={() => setStep(2)}
-                  className="px-6 py-3 rounded-2xl text-sm font-medium transition-all hover:bg-white/10"
-                  style={{ color: "rgba(255,255,255,0.6)", border: "1px solid rgba(255,255,255,0.2)" }}
+                  className="px-6 py-3 rounded-2xl text-sm font-medium transition-all hover:bg-slate-100 text-slate-600 border border-slate-300"
                 >
                   ← السابق
                 </button>
                 <button
                   onClick={onComplete}
-                  className="px-8 py-3 rounded-2xl text-sm font-bold transition-all hover:opacity-90 active:scale-95 flex items-center gap-2"
-                  style={{ background: "linear-gradient(135deg, #C9A84C, #E8D5A3)", color: "#1B3A5C" }}
+                  className="px-8 py-3 rounded-2xl text-sm font-bold transition-all hover:opacity-90 active:scale-95 flex items-center gap-2 bg-gradient-to-br from-[#C9A84C] to-[#E8D5A3] text-slate-900"
                 >
                   <Sparkles className="h-4 w-4" />
                   ابدأ الاستخدام
