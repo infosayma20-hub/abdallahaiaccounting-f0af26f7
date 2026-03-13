@@ -155,7 +155,7 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
         </div>
         <Button className="gap-1.5 rounded-xl shadow-md shadow-primary/20" onClick={() => {
           if (isReceipt) { navigate("/finance/receipt/new"); }
-          else { setEditVoucherId(null); setDrawerOpen(true); }
+          else { navigate("/finance/payment/new"); }
         }}>
           <Plus className="h-4 w-4" /> {newTitle}
         </Button>
