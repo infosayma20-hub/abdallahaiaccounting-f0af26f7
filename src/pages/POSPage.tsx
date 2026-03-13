@@ -1,4 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { usePOSOffline } from "@/hooks/usePOSOffline";
+import OfflineStatusBar from "@/components/pos/OfflineStatusBar";
+import SyncLogSheet from "@/components/pos/SyncLogSheet";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
