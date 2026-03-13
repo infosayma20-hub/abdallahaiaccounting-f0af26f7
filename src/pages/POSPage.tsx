@@ -2229,6 +2229,13 @@ const POSPage = () => {
                     <Receipt className="h-4 w-4" style={{ color: "#C9A84C" }} /> صرف مصروف
                   </button>
                 )}
+                <div className="border-t border-gray-200 my-1" />
+                <button className="w-full text-right px-4 py-2.5 text-sm flex items-center gap-2.5 hover:bg-gray-100 transition-colors" style={{ color: "#1B3A5C" }} onClick={() => { setShowSyncLog(true); setShowOpsDropdown(false); }}>
+                  <RefreshCw className="h-4 w-4" style={{ color: "#C9A84C" }} /> سجل المزامنة
+                  {offlineMode.pendingCount > 0 && (
+                    <span className="mr-auto text-[10px] bg-red-500 text-white rounded-full px-1.5 py-0.5">{offlineMode.pendingCount}</span>
+                  )}
+                </button>
               </div>
             )}
           </div>
