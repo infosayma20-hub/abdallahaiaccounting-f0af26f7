@@ -39,7 +39,10 @@ Deno.serve(async (req) => {
       _user_id: adminUser.id,
       _role: "admin",
     });
-    if (!hasAdmin) {
+    const { data: hasSuperAdmin } = await supabase.rpc("is_super_admin", {
+      _user_id: adminUser.id,
+    });
+    if (!hasAdmin && !hasSuperAdmin) {
       return new Response(JSON.stringify({ error: "ليس لديك صلاحية" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
