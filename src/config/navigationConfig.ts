@@ -84,6 +84,9 @@ export const navigationSections: NavSection[] = [
               { label: "دفتر الأستاذ", path: "/general-ledger" },
               { label: "كشف حساب", path: "/account-statement" },
               { label: "ميزان المراجعة", path: "/trial-balance" },
+              { label: "الزبائن", path: "/contacts?type=customer" },
+              { label: "الموردين", path: "/contacts?type=supplier" },
+              { label: "المندوبين", path: "/sales-reps" },
             ],
           },
           {
