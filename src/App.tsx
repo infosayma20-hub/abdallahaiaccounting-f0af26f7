@@ -98,7 +98,8 @@ import FinanceJournalPage from "./pages/FinanceJournalPage";
 import BankAccountsPage from "./pages/BankAccountsPage";
 import CashBoxesPage from "./pages/CashBoxesPage";
 import CashTransferPage from "./pages/CashTransferPage";
-import ReceiptNewPage from "./pages/ReceiptNewPage";
+import VoucherFormPage from "./pages/VoucherFormPage";
+import JournalNewPage from "./pages/JournalNewPage";
 import PortalLogin from "./pages/portal/PortalLogin";
 import PortalDashboard from "./pages/portal/PortalDashboard";
 import PortalSettings from "./pages/portal/PortalSettings";
@@ -217,7 +218,9 @@ const App = () => (
                       <Route path="/finance/receipts" element={<FinanceVoucherPage voucherType="receipt" />} />
                       <Route path="/finance/payments" element={<FinanceVoucherPage voucherType="payment" />} />
                       <Route path="/finance/journals" element={<FinanceJournalPage />} />
-                      <Route path="/finance/receipt/new" element={<ReceiptNewPage />} />
+                      <Route path="/finance/journal/new" element={<JournalNewPage />} />
+                      <Route path="/finance/receipt/new" element={<VoucherFormPage voucherType="receipt" />} />
+                      <Route path="/finance/payment/new" element={<VoucherFormPage voucherType="payment" />} />
                       <Route path="/finance/cheques" element={<ChequesPage />} />
                       <Route path="/finance/bank-accounts" element={<BankAccountsPage />} />
                       <Route path="/finance/cash-boxes" element={<CashBoxesPage />} />
