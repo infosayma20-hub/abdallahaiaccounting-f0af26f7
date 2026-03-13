@@ -60,24 +60,25 @@ const KeyboardShortcutsModal = ({ open, onClose }: KeyboardShortcutsModalProps) 
             <ShortcutRow keys="Ctrl + /" label="هذه النافذة" />
           </div>
 
-          {/* Contacts */}
+          {/* Contacts & Finance */}
           <div className="bg-secondary/30 rounded-xl p-3 space-y-1">
             <h3 className="text-[11px] font-bold text-primary mb-2 flex items-center gap-1.5">
-              👥 جهات الاتصال
+              👥 جهات وصناديق
             </h3>
-            <ShortcutRow keys="Ctrl + Z" label="الزبائن" />
+            <ShortcutRow keys="Ctrl + C" label="الزبائن" />
             <ShortcutRow keys="Ctrl + M" label="الموردين" />
             <ShortcutRow keys="Ctrl + S" label="الصناديق" />
+            <ShortcutRow keys="Ctrl + Q" label="الشيكات" />
           </div>
 
-          {/* Tips */}
+          {/* More shortcuts */}
           <div className="bg-secondary/30 rounded-xl p-3 space-y-1">
             <h3 className="text-[11px] font-bold text-primary mb-2 flex items-center gap-1.5">
-              💡 نصائح
+              📊 تقارير ومخزون
             </h3>
-            <p className="text-[11px] text-muted-foreground leading-relaxed">
-              اضغط F1 في أي صفحة لإنشاء فاتورة جديدة فوراً
-            </p>
+            <ShortcutRow keys="Ctrl + I" label="المخزون" />
+            <ShortcutRow keys="Ctrl + L" label="دفتر الأستاذ" />
+            <ShortcutRow keys="Ctrl + T" label="ميزان المراجعة" />
             <ShortcutRow keys="Esc" label="إغلاق النوافذ" />
           </div>
         </div>
