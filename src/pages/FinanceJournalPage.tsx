@@ -3,8 +3,9 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   ArrowRight, Loader2, Plus, Search, X, Trash2,
   FileText, BookOpen, Save, User, Building2, Users, Check, DollarSign,
-  ArrowUpDown, ChevronLeft, ChevronRight
+  ArrowUpDown, ChevronLeft, ChevronRight, Copy
 } from "lucide-react";
+import DuplicateConfirmModal from "@/components/DuplicateConfirmModal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -38,6 +39,40 @@ const FinanceJournalPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [saving, setSaving] = useState(false);
+
+  // Duplicate
+  const [duplicateModal, setDuplicateModal] = useState(false);
+  const [duplicateTarget, setDuplicateTarget] = useState<any>(null);
+
+  const handleDuplicate = async (v: any) => {
+    setDuplicateTarget(v);
+    // Fetch voucher lines for journal
+    if (user) {
+      const { data: vLines } = await supabase.from("voucher_lines").select("*").eq("voucher_id", v.id).order("line_order");
+      setDuplicateTarget({ ...v, _lines: vLines || [] });
+    }
+    setDuplicateModal(true);
+  };
+
+  const confirmDuplicate = () => {
+    if (!duplicateTarget) return;
+    const draftData = {
+      _sourceRef: duplicateTarget.ref_number,
+      description: duplicateTarget.description || "",
+      notes: duplicateTarget.notes || "",
+      subtype: duplicateTarget.subtype || "normal",
+      contactId: duplicateTarget.contact_id || "",
+      lines: (duplicateTarget._lines || []).map((l: any) => ({
+        account_code: l.account_code,
+        account_name: l.account_name,
+        debit: l.debit || 0,
+        credit: l.credit || 0,
+      })),
+    };
+    localStorage.setItem("draft_journal_new", JSON.stringify(draftData));
+    setDuplicateModal(false);
+    navigate("/finance/journal/new?from_duplicate=true");
+  };
 
   // Form
   const [formDate, setFormDate] = useState(new Date().toISOString().split("T")[0]);
@@ -452,6 +487,7 @@ const FinanceJournalPage = () => {
                   <th className="px-3 py-3 text-right text-xs font-semibold">الوصف</th>
                   <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="المبلغ" field="amount" /></th>
                   <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="الحالة" field="status" /></th>
+                  <th className="px-3 py-3 w-10"></th>
                 </tr>
               </thead>
               <tbody>
@@ -493,6 +529,15 @@ const FinanceJournalPage = () => {
                           <span className={`w-1.5 h-1.5 rounded-full ${dotColor[v.status] || "bg-muted-foreground"}`} />
                           {statusLabelMap[v.status] || v.status}
                         </span>
+                      </td>
+                      <td className="px-3 py-2">
+                        <button
+                          onClick={e => { e.stopPropagation(); handleDuplicate(v); }}
+                          className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-primary transition-colors"
+                          title="جديد مشابه"
+                        >
+                          <Copy className="h-3.5 w-3.5" />
+                        </button>
                       </td>
                     </tr>
                   );
@@ -796,6 +841,19 @@ const FinanceJournalPage = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Duplicate Confirm Modal */}
+      <DuplicateConfirmModal
+        open={duplicateModal}
+        onClose={() => setDuplicateModal(false)}
+        onConfirm={confirmDuplicate}
+        docType="journal"
+        info={{
+          description: duplicateTarget?.description,
+          linesCount: duplicateTarget?._lines?.length,
+          sourceRef: duplicateTarget?.ref_number,
+        }}
+      />
     </div>
   );
 };

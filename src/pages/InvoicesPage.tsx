@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { getAuthHeaders, getAuthHeadersJson } from "@/lib/edge-helpers";
-import { ArrowRight, Loader2, Plus, FileText, Printer, Search, ShoppingCart, Receipt, Package, Trash2, Save, Eye, AlertTriangle, CreditCard, Building2, Banknote, Clock, ChevronDown, ChevronLeft, ChevronRight, X, Filter, LayoutGrid, Table2, ArrowUpDown, FileSpreadsheet } from "lucide-react";
+import { ArrowRight, Loader2, Plus, FileText, Printer, Search, ShoppingCart, Receipt, Package, Trash2, Save, Eye, AlertTriangle, CreditCard, Building2, Banknote, Clock, ChevronDown, ChevronLeft, ChevronRight, X, Filter, LayoutGrid, Table2, ArrowUpDown, FileSpreadsheet, Copy } from "lucide-react";
+import DuplicateConfirmModal from "@/components/DuplicateConfirmModal";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -100,6 +101,41 @@ const InvoicesPage = () => {
   const [sortKey, setSortKey] = useState<"date" | "contact" | "type" | "total" | "status">("date");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [statusFilter, setStatusFilter] = useState("all");
+
+  // Duplicate state
+  const [duplicateModal, setDuplicateModal] = useState(false);
+  const [duplicateTarget, setDuplicateTarget] = useState<Invoice | null>(null);
+
+  const handleDuplicate = (inv: Invoice) => {
+    setDuplicateTarget(inv);
+    setDuplicateModal(true);
+  };
+
+  const confirmDuplicate = () => {
+    if (!duplicateTarget) return;
+    const draftData = {
+      _sourceRef: duplicateTarget.invoiceNumber,
+      type: duplicateTarget.type,
+      contactName: duplicateTarget.contactName,
+      contactId: (duplicateTarget as any).contactId || null,
+      paymentMethod: duplicateTarget.paymentMethod,
+      currency: duplicateTarget.currency,
+      notes: duplicateTarget.notes,
+      items: duplicateTarget.items?.map(item => ({
+        description: item.description,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        discount: item.discount,
+        taxRate: item.taxRate,
+        subtotal: item.subtotal,
+        productId: item.productId,
+      })),
+      contactSearch: duplicateTarget.contactName,
+    };
+    localStorage.setItem("draft_invoice_new", JSON.stringify(draftData));
+    setDuplicateModal(false);
+    navigate("/invoices/new?from_duplicate=true");
+  };
 
   const [form, setForm] = useState({
     type: "sales" as "sales" | "purchase",
@@ -1366,6 +1402,9 @@ const InvoicesPage = () => {
                 <Button size="sm" variant="outline" className="gap-1.5 rounded-xl" onClick={handlePrint}>
                   <Printer className="h-4 w-4" /> طباعة
                 </Button>
+                <Button size="sm" variant="outline" className="gap-1.5 rounded-xl" onClick={() => { setShowPreviewDialog(false); handleDuplicate(selectedInvoice); }}>
+                  <Copy className="h-4 w-4" /> جديد مشابه
+                </Button>
                 <Select value={selectedInvoice.status} onValueChange={(v) => updateStatus(selectedInvoice.id, v as Invoice["status"])}>
                   <SelectTrigger className="w-32 text-xs rounded-xl h-9"><SelectValue /></SelectTrigger>
                   <SelectContent className="bg-background">
@@ -1383,6 +1422,20 @@ const InvoicesPage = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Duplicate Confirm Modal */}
+      <DuplicateConfirmModal
+        open={duplicateModal}
+        onClose={() => setDuplicateModal(false)}
+        onConfirm={confirmDuplicate}
+        docType="invoice"
+        info={{
+          contactName: duplicateTarget?.contactName,
+          itemsCount: duplicateTarget?.items?.length,
+          paymentMethod: duplicateTarget?.paymentMethod === "cash" ? "نقدي" : duplicateTarget?.paymentMethod === "credit" ? "آجل" : duplicateTarget?.paymentMethod === "cheque" ? "شيك" : "تحويل",
+          sourceRef: duplicateTarget?.invoiceNumber,
+        }}
+      />
     </div>
   );
 };

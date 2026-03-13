@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowRight, FileText, Search, CheckCircle, AlertTriangle, Info, Printer, Save, Landmark, CreditCard, Building2, Receipt as ReceiptIcon, Banknote, User } from "lucide-react";
+import DuplicateBanner from "@/components/DuplicateBanner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompany } from "@/hooks/useCompanyContext";
@@ -59,8 +60,12 @@ interface VoucherFormPageProps {
 
 const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const { company } = useCompany();
+
+  const fromDuplicate = searchParams.get("from_duplicate") === "true";
+  const [duplicateSourceRef, setDuplicateSourceRef] = useState<string | null>(null);
 
   const isReceipt = voucherType === "receipt";
   const pageTitle = isReceipt ? "سند قبض جديد" : "سند صرف جديد";
@@ -101,13 +106,50 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   const [saved, setSaved] = useState(false);
   const [savedReceiptNumber, setSavedReceiptNumber] = useState("");
 
+  // ─── Load Duplicate Data ───
+  useEffect(() => {
+    if (!fromDuplicate) return;
+    const draftKey = `draft_${voucherType}_new`;
+    const draft = localStorage.getItem(draftKey);
+    if (!draft) return;
+    try {
+      const data = JSON.parse(draft);
+      localStorage.removeItem(draftKey);
+      setDuplicateSourceRef(data._sourceRef || null);
+      if (data.paymentMethod) setPaymentMethod(data.paymentMethod);
+      if (data.notes) setNotes(data.notes);
+      if (data.depositType) setDepositType(data.depositType);
+      if (data.selectedCashBox) setSelectedCashBox(data.selectedCashBox);
+      if (data.selectedBankAccount) setSelectedBankAccount(data.selectedBankAccount);
+      if (data.contactId) {
+        // Will be resolved after contacts load
+        (window as any).__duplicateContactId = data.contactId;
+      }
+      // Amount is NOT copied (user must enter)
+      // Date is today (default)
+    } catch (e) { /* ignore */ }
+  }, [fromDuplicate, voucherType]);
+
   // Load contacts
   useEffect(() => {
     if (!user) return;
     supabase.from("contacts").select("id, contact_name, current_balance")
       .eq("user_id", user.id)
       .order("contact_name")
-      .then(({ data }) => setContacts(data || []));
+      .then(({ data }) => {
+        const contactsList = data || [];
+        setContacts(contactsList);
+        // Resolve duplicate contact
+        const dupContactId = (window as any).__duplicateContactId;
+        if (dupContactId) {
+          const found = contactsList.find(c => c.id === dupContactId);
+          if (found) {
+            setSelectedContact(found);
+            setContactSearch(found.contact_name);
+          }
+          delete (window as any).__duplicateContactId;
+        }
+      });
   }, [user]);
 
   // Load cash boxes, bank accounts, and generate ref number for payments
@@ -461,6 +503,8 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
 
   return (
     <div className="max-w-4xl mx-auto space-y-5" dir="rtl">
+      {/* Duplicate Banner */}
+      {duplicateSourceRef && <DuplicateBanner sourceRef={duplicateSourceRef} />}
       {/* Header */}
       <div className="flex items-center gap-3">
         <BackButton />

@@ -2,8 +2,9 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Loader2, Plus, DollarSign, Hash, Calendar, ArrowRight, Search, X,
-  ArrowUpDown, ChevronLeft, ChevronRight, FileText
+  ArrowUpDown, ChevronLeft, ChevronRight, FileText, Copy
 } from "lucide-react";
+import DuplicateConfirmModal from "@/components/DuplicateConfirmModal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,6 +48,31 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
   const [sortKey, setSortKey] = useState<SortKey>("date");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [page, setPage] = useState(1);
+
+  // Duplicate
+  const [duplicateModal, setDuplicateModal] = useState(false);
+  const [duplicateTarget, setDuplicateTarget] = useState<any>(null);
+
+  const handleDuplicate = (v: any) => {
+    setDuplicateTarget(v);
+    setDuplicateModal(true);
+  };
+
+  const confirmDuplicate = () => {
+    if (!duplicateTarget) return;
+    const draftData = {
+      _sourceRef: duplicateTarget.ref_number,
+      paymentMethod: PAYMENT_LABELS[duplicateTarget.payment_method] || "نقدي",
+      notes: duplicateTarget.notes || "",
+      contactId: duplicateTarget.contact_id || null,
+      depositType: duplicateTarget.cash_box_id ? "cash_box" : "bank",
+      selectedCashBox: duplicateTarget.cash_box_id || "",
+      selectedBankAccount: duplicateTarget.bank_account_id || "",
+    };
+    localStorage.setItem(`draft_${voucherType}_new`, JSON.stringify(draftData));
+    setDuplicateModal(false);
+    navigate(isReceipt ? "/finance/receipt/new?from_duplicate=true" : "/finance/payment/new?from_duplicate=true");
+  };
 
   const fetchData = useCallback(async () => {
     if (!user) return;
@@ -272,6 +298,7 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
                   <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="طريقة الدفع" field="payment_label" /></th>
                   <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="المبلغ" field="amount_display" /></th>
                   <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="الحالة" field="status_label" /></th>
+                  <th className="px-3 py-3 w-10"></th>
                 </tr>
               </thead>
               <tbody>
@@ -309,6 +336,15 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
                           <span className={`w-1.5 h-1.5 rounded-full ${dotColor[v.status_label] || "bg-muted-foreground"}`} />
                           {v.status_label}
                         </span>
+                      </td>
+                      <td className="px-3 py-2">
+                        <button
+                          onClick={e => { e.stopPropagation(); handleDuplicate(v); }}
+                          className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-primary transition-colors"
+                          title="جديد مشابه"
+                        >
+                          <Copy className="h-3.5 w-3.5" />
+                        </button>
                       </td>
                     </tr>
                   );
@@ -358,6 +394,19 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
         voucherType={voucherType}
         onSaved={fetchData}
         editVoucherId={editVoucherId}
+      />
+
+      {/* Duplicate Confirm Modal */}
+      <DuplicateConfirmModal
+        open={duplicateModal}
+        onClose={() => setDuplicateModal(false)}
+        onConfirm={confirmDuplicate}
+        docType={isReceipt ? "receipt" : "payment"}
+        info={{
+          contactName: duplicateTarget?.contact_name,
+          paymentMethod: duplicateTarget?.payment_label,
+          sourceRef: duplicateTarget?.ref_number,
+        }}
       />
     </div>
   );

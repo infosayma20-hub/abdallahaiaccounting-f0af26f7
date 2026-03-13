@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import DuplicateBanner from "@/components/DuplicateBanner";
 import {
   CheckCircle, Printer, Save, Search, Plus, Trash2, Loader2,
   BookOpen, User, Building2, Users, X
@@ -34,7 +35,11 @@ const subtypeLabels: Record<string, string> = { normal: "عادي", opening: "ا
 
 const JournalNewPage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
+
+  const fromDuplicate = searchParams.get("from_duplicate") === "true";
+  const [duplicateSourceRef, setDuplicateSourceRef] = useState<string | null>(null);
 
   const [formDate, setFormDate] = useState(new Date().toISOString().split("T")[0]);
   const [formRefNumber, setFormRefNumber] = useState("");
@@ -55,6 +60,33 @@ const JournalNewPage = () => {
     { id: "1", account_code: "", account_name: "", debit: 0, credit: 0 },
     { id: "2", account_code: "", account_name: "", debit: 0, credit: 0 },
   ]);
+
+  // ─── Load Duplicate Data ───
+  useEffect(() => {
+    if (!fromDuplicate) return;
+    const draftKey = "draft_journal_new";
+    const draft = localStorage.getItem(draftKey);
+    if (!draft) return;
+    try {
+      const data = JSON.parse(draft);
+      localStorage.removeItem(draftKey);
+      setDuplicateSourceRef(data._sourceRef || null);
+      if (data.description) setFormDescription(data.description);
+      if (data.notes) setFormNotes(data.notes);
+      if (data.subtype) setFormSubtype(data.subtype);
+      if (data.contactId) setFormContactId(data.contactId);
+      if (data.lines?.length) {
+        setLines(data.lines.map((l: any, i: number) => ({
+          id: String(Date.now() + i),
+          account_code: l.account_code || "",
+          account_name: l.account_name || "",
+          debit: l.debit || 0,
+          credit: l.credit || 0,
+        })));
+      }
+      // Date is today (default), ref number auto-generated
+    } catch (e) { /* ignore */ }
+  }, [fromDuplicate]);
 
   // Load data
   useEffect(() => {
@@ -225,6 +257,8 @@ const JournalNewPage = () => {
 
   return (
     <div className="max-w-4xl mx-auto space-y-5" dir="rtl">
+      {/* Duplicate Banner */}
+      {duplicateSourceRef && <DuplicateBanner sourceRef={duplicateSourceRef} />}
       {/* Header */}
       <div className="flex items-center gap-3">
         <BackButton />

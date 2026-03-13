@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import DuplicateBanner from "@/components/DuplicateBanner";
 import {
   ArrowRight, Loader2, Plus, FileText, Trash2, Save, Eye, AlertTriangle,
   CreditCard, Building2, Banknote, Clock, Search, Package, Receipt,
@@ -126,9 +127,13 @@ const fmtCurrency = (n: number) =>
 // ─── Component ───
 const InvoiceCreatePage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const { toast } = useToast();
   const { settings: companySettings } = useCompanySettings();
+
+  const fromDuplicate = searchParams.get("from_duplicate") === "true";
+  const [duplicateSourceRef, setDuplicateSourceRef] = useState<string | null>(null);
 
   // Data
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -171,6 +176,44 @@ const InvoiceCreatePage = () => {
     transferBank: "",
   });
 
+  // ─── Load Duplicate Data ───
+  useEffect(() => {
+    if (!fromDuplicate) return;
+    const draftKey = "draft_invoice_new";
+    const draft = localStorage.getItem(draftKey);
+    if (!draft) return;
+    try {
+      const data = JSON.parse(draft);
+      localStorage.removeItem(draftKey);
+      setDuplicateSourceRef(data._sourceRef || null);
+      setForm(prev => ({
+        ...prev,
+        type: data.type || prev.type,
+        contactName: data.contactName || "",
+        contactId: data.contactId || null,
+        paymentTerms: data.paymentTerms || "net_30",
+        paymentMethod: data.paymentMethod || "cash",
+        currency: data.currency || "شيكل",
+        exchangeRate: data.exchangeRate || 1,
+        notes: data.notes || "",
+        notesInternal: data.notesInternal || "",
+        salespersonId: data.salespersonId || null,
+        billingAddress: data.billingAddress || "",
+        taxInclusive: data.taxInclusive || false,
+        items: data.items?.length ? data.items.map((item: any) => ({ ...item, id: crypto.randomUUID() })) : [createEmptyItem()],
+        // Reset excluded fields
+        date: new Date().toISOString().split("T")[0],
+        dueDate: "",
+        chequeNumber: "",
+        chequeBank: "",
+        chequeDueDate: "",
+        transferRef: "",
+        transferBank: "",
+      }));
+      if (data.contactSearch) setContactSearch(data.contactSearch);
+    } catch (e) { /* ignore parse errors */ }
+  }, [fromDuplicate]);
+
   // ─── Data Fetching ───
   useEffect(() => {
     if (!user) return;
@@ -180,9 +223,22 @@ const InvoiceCreatePage = () => {
         supabase.from("products").select("*").eq("user_id", user.id).order("name"),
         supabase.from("sales_representatives").select("id, full_name").eq("user_id", user.id).eq("is_active", true),
       ]);
-      setContacts((cRes.data || []) as Contact[]);
+      const contactsList = (cRes.data || []) as Contact[];
+      setContacts(contactsList);
       setProducts((pRes.data as any[]) || []);
       setSalesReps(((sRes.data || []) as any[]).map(s => ({ id: s.id, name: s.full_name })));
+
+      // Resolve duplicate contact after contacts load
+      if (fromDuplicate) {
+        const draft = form.contactId;
+        if (draft) {
+          const found = contactsList.find(c => c.id === draft);
+          if (found) {
+            setSelectedContact(found);
+            setContactSearch(found.contact_name);
+          }
+        }
+      }
     };
     fetchAll();
   }, [user]);
@@ -534,6 +590,9 @@ const InvoiceCreatePage = () => {
   // ─── RENDER ───
   return (
     <div className="px-4 lg:px-8 pt-4 pb-32 space-y-4 max-w-5xl mx-auto" dir="rtl">
+      {/* Duplicate Banner */}
+      {duplicateSourceRef && <DuplicateBanner sourceRef={duplicateSourceRef} />}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
