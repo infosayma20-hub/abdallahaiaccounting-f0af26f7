@@ -26,12 +26,18 @@ export const useOnboarding = () => {
   const [loading, setLoading] = useState(true);
   const [businessType, setBusinessType] = useState<string | undefined>();
   const fetchedRef = useRef(false);
+  const stateRef = useRef(state);
+  stateRef.current = state;
+
+  // Local dismissed guard — set synchronously, survives re-renders
+  const [dismissed, setDismissed] = useState(() =>
+    typeof window !== "undefined" && sessionStorage.getItem("welcome_modal_shown") === "true"
+  );
 
   const userId = user?.id;
 
   useEffect(() => {
     if (!userId) return;
-    // Prevent double-fetch when user object ref changes
     if (fetchedRef.current) return;
     fetchedRef.current = true;
 
@@ -43,14 +49,21 @@ export const useOnboarding = () => {
 
       if (onboardingRes.data) {
         const data = onboardingRes.data;
-        setState({
+        const loaded: OnboardingState = {
           welcome_modal_shown: data.welcome_modal_shown,
           full_tour_completed: data.full_tour_completed,
           full_tour_skipped: data.full_tour_skipped,
           modules_toured: (data.modules_toured as string[]) || [],
           module_first_visits: (data.module_first_visits as Record<string, string>) || {},
           dont_show_again: data.dont_show_again,
-        });
+        };
+        setState(loaded);
+        stateRef.current = loaded;
+
+        // If already shown in DB, mark dismissed
+        if (data.welcome_modal_shown) {
+          setDismissed(true);
+        }
       }
 
       if (settingsRes.data?.business_type) {
@@ -65,11 +78,15 @@ export const useOnboarding = () => {
   const update = useCallback(
     async (partial: Partial<OnboardingState>) => {
       if (!userId) return;
-      const newState = { ...state, ...partial };
-      setState(newState);
 
-      // Clear session guard so modal won't reappear
-      if (partial.welcome_modal_shown) {
+      // Use ref for latest state to avoid stale closure
+      const newState = { ...stateRef.current, ...partial };
+      setState(newState);
+      stateRef.current = newState;
+
+      // Immediately mark dismissed so modal can't reappear
+      if (partial.welcome_modal_shown || partial.full_tour_skipped || partial.dont_show_again) {
+        setDismissed(true);
         sessionStorage.setItem("welcome_modal_shown", "true");
       }
 
@@ -84,12 +101,10 @@ export const useOnboarding = () => {
           { onConflict: "user_id" }
         );
     },
-    [userId, state]
+    [userId]
   );
 
-  // Use sessionStorage guard to prevent modal showing twice in same session
-  const sessionGuard = typeof window !== "undefined" && sessionStorage.getItem("welcome_modal_shown") === "true";
-  const shouldShowWelcome = !loading && !state.welcome_modal_shown && !state.dont_show_again && !sessionGuard;
+  const shouldShowWelcome = !loading && !dismissed && !state.welcome_modal_shown && !state.dont_show_again;
   const shouldShowTour = !loading && state.welcome_modal_shown && !state.full_tour_completed && !state.full_tour_skipped && !state.dont_show_again;
 
   return { state, loading, update, shouldShowWelcome, shouldShowTour, businessType };
