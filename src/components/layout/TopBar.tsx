@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Search, Bell, Settings, HelpCircle, LogOut, User, Menu, Sun, Moon, FileText, Wallet, Users, X } from "lucide-react";
+import { Search, Bell, Settings, HelpCircle, LogOut, User, Menu, Sun, Moon, FileText, Wallet, Users, X, Keyboard } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/hooks/useTheme";
 import { useNavigate } from "react-router-dom";
@@ -16,6 +16,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import KeyboardShortcutsModal from "./KeyboardShortcutsModal";
+import ShortcutsTip from "./ShortcutsTip";
+import { useGlobalShortcuts } from "@/hooks/useGlobalShortcuts";
 
 interface TopBarProps {
   onMenuClick: () => void;
@@ -206,7 +209,12 @@ const TopBar = ({ onMenuClick, sidebarCollapsed, onOpenHelpGuide }: TopBarProps)
   const [userAvatarUrl, setUserAvatarUrl] = useState<string | null>(null);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const { unreadCount } = useNotifications();
+
+  useGlobalShortcuts({
+    onShowShortcuts: () => setShortcutsOpen(true),
+  });
 
   useEffect(() => {
     if (!user?.id) return;
@@ -238,6 +246,10 @@ const TopBar = ({ onMenuClick, sidebarCollapsed, onOpenHelpGuide }: TopBarProps)
           </div>
         </div>
         <div className="flex items-center gap-1">
+          <div className="relative">
+            <IconButton icon={Keyboard} onClick={() => setShortcutsOpen(true)} title="اختصارات لوحة المفاتيح (Ctrl+/)" />
+            <ShortcutsTip onShowShortcuts={() => setShortcutsOpen(true)} />
+          </div>
           <IconButton icon={theme === "dark" ? Moon : Sun} onClick={toggleTheme} title={theme === "dark" ? "وضع فاتح" : "وضع داكن"} />
           <div className="relative">
             <IconButton icon={Bell} badge={unreadCount > 0} onClick={() => setNotificationsOpen(!notificationsOpen)} title="الإشعارات" />
@@ -250,6 +262,7 @@ const TopBar = ({ onMenuClick, sidebarCollapsed, onOpenHelpGuide }: TopBarProps)
           <ProfileDropdown displayName={displayName} email={user?.email || ""} initials={initials} avatarUrl={userAvatarUrl} onNavigate={navigate} onSignOut={signOut} />
         </div>
       </div>
+      <KeyboardShortcutsModal open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
     </header>
   );
 };
