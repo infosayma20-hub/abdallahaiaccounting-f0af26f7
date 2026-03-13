@@ -191,7 +191,7 @@ const ChequesPage = () => {
     setLoading(false);
   };
 
-  useEffect(() => { fetchCheques(); fetchContacts(); fetchAccounts(); }, [user]);
+  useEffect(() => { fetchCheques(); fetchContacts(); fetchAccounts(); fetchBankAccounts(); }, [user]);
 
   const fetchHistory = async (chequeId: string) => {
     if (statusHistory[chequeId]) return;
