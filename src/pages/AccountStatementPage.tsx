@@ -477,7 +477,15 @@ const AccountStatementPage = () => {
       return { rows: [] as StatementRow[], openingBalance: 0, closingBalance: 0, totalDebit: 0, totalCredit: 0 };
     } else {
       const accountCode = activeTabConfig.accountCode;
-      related = transactions.filter(tx => tx.contact_id === selectedEntityId);
+      const contactName = selectedContact?.contact_name?.trim() || "";
+      // Find all contact IDs with the same name (handle duplicates)
+      const sameNameIds = new Set(
+        contacts.filter(c => c.contact_name?.trim() === contactName).map(c => c.id)
+      );
+      related = transactions.filter(tx =>
+        (tx.contact_id && sameNameIds.has(tx.contact_id)) ||
+        (!tx.contact_id && contactName && tx.description?.includes(contactName))
+      );
       resolveDebitCredit = (tx) => ({
         isDebit: tx.debit_account_code === accountCode,
         isCredit: tx.credit_account_code === accountCode,
