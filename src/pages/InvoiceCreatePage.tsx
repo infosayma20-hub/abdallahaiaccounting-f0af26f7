@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import DuplicateBanner from "@/components/DuplicateBanner";
 import {
   ArrowRight, Loader2, Plus, FileText, Trash2, Save, Eye, AlertTriangle,
   CreditCard, Building2, Banknote, Clock, Search, Package, Receipt,
