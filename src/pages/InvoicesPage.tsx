@@ -1088,36 +1088,6 @@ const InvoicesPage = () => {
   }
 
   // ─── INVOICES LIST PAGE ───
-  const [viewMode, setViewMode] = useState<"cards" | "table">("table");
-  const [page, setPage] = useState(1);
-  const [sortKey, setSortKey] = useState<"date" | "contact" | "type" | "total" | "status">("date");
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const PAGE_SIZE = 15;
-
-  const sorted = useMemo(() => {
-    const arr = [...filtered].filter(inv => {
-      if (statusFilter !== "all" && inv.status !== statusFilter) return false;
-      return true;
-    });
-    arr.sort((a, b) => {
-      let cmp = 0;
-      switch (sortKey) {
-        case "date": cmp = new Date(a.date).getTime() - new Date(b.date).getTime(); break;
-        case "contact": cmp = a.contactName.localeCompare(b.contactName); break;
-        case "type": cmp = a.type.localeCompare(b.type); break;
-        case "total": cmp = a.total - b.total; break;
-        case "status": cmp = a.status.localeCompare(b.status); break;
-      }
-      return sortDir === "asc" ? cmp : -cmp;
-    });
-    return arr;
-  }, [filtered, sortKey, sortDir, statusFilter]);
-
-  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
-  const paginated = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-
-  useEffect(() => { setPage(1); }, [searchQuery, filterType, statusFilter]);
 
   const toggleSort = (key: typeof sortKey) => {
     if (sortKey === key) setSortDir(d => d === "asc" ? "desc" : "asc");
