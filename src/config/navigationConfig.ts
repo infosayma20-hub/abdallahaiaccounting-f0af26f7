@@ -127,13 +127,6 @@ export const navigationSections: NavSection[] = [
             ],
           },
           {
-            groupLabel: "العملاء والمندوبون",
-            children: [
-              { label: "الزبائن", path: "/contacts?type=customer" },
-              { label: "المندوبين", path: "/sales-reps" },
-            ],
-          },
-          {
             groupLabel: "الإعدادات",
             children: [
               { label: "سياسات التصنيف", path: "/contacts/policies" },
