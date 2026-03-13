@@ -1,8 +1,9 @@
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
+import { AlertTriangle, Lock, Shield } from "lucide-react";
 import type { CompanySettings } from "@/hooks/useCompanySettings";
 
 interface Props {
@@ -11,29 +12,94 @@ interface Props {
 }
 
 const SecuritySettingsSection = ({ settings, onChange }: Props) => {
+  const timeoutValue = settings.security_session_timeout ?? 30;
+  const warningValue = settings.security_warning_minutes ?? 2;
+
+  const handleTimeoutChange = (v: string) => {
+    const num = Number(v);
+    onChange({ security_session_timeout: num });
+    // Sync to SessionManager via event
+    const s = { timeout: num, warning: warningValue };
+    localStorage.setItem("session_timeout_settings", JSON.stringify(s));
+    window.dispatchEvent(new Event("session_settings_updated"));
+  };
+
+  const handleWarningChange = (v: string) => {
+    const num = Number(v);
+    onChange({ security_warning_minutes: num });
+    const s = { timeout: timeoutValue, warning: num };
+    localStorage.setItem("session_timeout_settings", JSON.stringify(s));
+    window.dispatchEvent(new Event("session_settings_updated"));
+  };
+
   return (
     <div className="p-6 space-y-8">
-      {/* Session */}
+      {/* Session Timeout */}
       <div>
         <h3 className="text-base font-semibold text-foreground mb-4 flex items-center gap-2">
           <span className="w-1 h-5 bg-primary rounded-full" />
-          الجلسة والمصادقة
+          <Lock className="h-4 w-4 text-primary" />
+          انتهاء الجلسة التلقائي
         </h3>
-        <div className="space-y-4">
+
+        <div className="space-y-4 p-4 bg-muted/20 rounded-xl border border-border/30">
           <div className="space-y-2">
-            <Label>مدة الجلسة قبل تسجيل الخروج التلقائي</Label>
-            <Select value={String(settings.security_session_timeout ?? 60)} onValueChange={v => onChange({ security_session_timeout: Number(v) })}>
+            <Label className="font-medium">مدة الخمول قبل تسجيل الخروج</Label>
+            <Select value={String(timeoutValue)} onValueChange={handleTimeoutChange}>
               <SelectTrigger className="max-w-xs"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="15">15 دقيقة</SelectItem>
-                <SelectItem value="30">30 دقيقة</SelectItem>
-                <SelectItem value="60">ساعة واحدة</SelectItem>
+                <SelectItem value="30">
+                  <span className="flex items-center gap-2">
+                    30 دقيقة
+                    <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-md font-bold">موصى به</span>
+                  </span>
+                </SelectItem>
+                <SelectItem value="60">60 دقيقة</SelectItem>
                 <SelectItem value="120">ساعتان</SelectItem>
-                <SelectItem value="480">8 ساعات</SelectItem>
-                <SelectItem value="0">بدون حد</SelectItem>
+                <SelectItem value="0">لا تسجيل خروج تلقائي</SelectItem>
               </SelectContent>
             </Select>
+
+            {timeoutValue === 0 && (
+              <div className="flex items-start gap-2 p-3 bg-destructive/10 rounded-lg border border-destructive/20">
+                <AlertTriangle className="h-4 w-4 text-destructive mt-0.5 flex-shrink-0" />
+                <p className="text-xs text-destructive font-medium leading-relaxed">
+                  غير موصى به — بياناتك المالية قد تكون في خطر إذا تركت الجهاز مفتوحاً دون رقابة
+                </p>
+              </div>
+            )}
           </div>
+
+          {timeoutValue > 0 && (
+            <div className="space-y-2">
+              <Label className="font-medium">تنبيه قبل الخروج بـ</Label>
+              <Select value={String(warningValue)} onValueChange={handleWarningChange}>
+                <SelectTrigger className="max-w-xs"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0">لا تنبيه</SelectItem>
+                  <SelectItem value="2">دقيقتان</SelectItem>
+                  <SelectItem value="5">5 دقائق</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] text-muted-foreground">
+                ستظهر نافذة تحذير قبل انتهاء الجلسة بالمدة المحددة
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <Separator />
+
+      {/* Auth */}
+      <div>
+        <h3 className="text-base font-semibold text-foreground mb-4 flex items-center gap-2">
+          <span className="w-1 h-5 bg-primary rounded-full" />
+          <Shield className="h-4 w-4 text-primary" />
+          المصادقة
+        </h3>
+        <div className="space-y-3">
           <div className="flex items-center justify-between p-3 bg-muted/40 rounded-lg">
             <div>
               <p className="font-medium text-sm">المصادقة الثنائية (2FA)</p>
