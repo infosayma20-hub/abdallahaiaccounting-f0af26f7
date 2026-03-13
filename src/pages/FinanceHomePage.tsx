@@ -104,7 +104,7 @@ const FinanceHomePage = () => {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="min-w-[180px]">
-              <DropdownMenuItem onClick={() => navigate("/finance/receipts?new=1")}>
+              <DropdownMenuItem onClick={() => navigate("/finance/receipt/new")}>
                 <ArrowDown className="h-4 w-4 ml-2 text-emerald-600" />سند قبض جديد
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => navigate("/finance/payments?new=1")}>
