@@ -297,13 +297,13 @@ const ReceiptNewPage = () => {
       if (paymentMethod === "شيك" && !asDraft && checkNumber) {
         await supabase.from("cheques").insert({
           user_id: user.id,
-          cheque_type: "وارد",
+          cheque_type: "وارد" as const,
           cheque_number: checkNumber,
           cheque_date: checkDate || paymentDate,
           amount: amountNum,
           party_name: selectedContact.contact_name,
           bank_name: checkBank,
-          status: "بالمحفظة",
+          status: "بالمحفظة" as const,
           currency: "شيكل",
         });
       }
