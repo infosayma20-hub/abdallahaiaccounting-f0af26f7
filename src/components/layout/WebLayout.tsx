@@ -6,6 +6,7 @@ import SubscriptionExpiryBanner from "../SubscriptionExpiryBanner";
 import TrialBanner from "../billing/TrialBanner";
 import TrialExpiredGate from "../trial/TrialExpiredGate";
 import { GlobalNavigationLoader } from "../ui/GlobalNavigationLoader";
+import SessionManager from "../SessionManager";
 
 interface WebLayoutProps {
   children: React.ReactNode;
@@ -49,6 +50,8 @@ const WebLayout = ({ children }: WebLayoutProps) => {
       {/* Lightweight navigation loader */}
       <GlobalNavigationLoader />
 
+      {/* Session timeout manager */}
+      <SessionManager />
     </div>
   );
 };
