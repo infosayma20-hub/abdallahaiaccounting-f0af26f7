@@ -69,6 +69,18 @@ const SettingsPage = () => {
         return <PrintSettingsSection settings={settings} onChange={updateSettings} />;
       case "portal":
         return <PortalSettingsSection />;
+      case "inventory":
+        return <InventorySettingsSection settings={settings} onChange={updateSettings} />;
+      case "hr":
+        return <HRSettingsSection settings={settings} onChange={updateSettings} />;
+      case "notifications":
+        return <NotificationsSettingsSection settings={settings} onChange={updateSettings} />;
+      case "security":
+        return <SecuritySettingsSection settings={settings} onChange={updateSettings} />;
+      case "integrations":
+        return <IntegrationsSettingsSection settings={settings} onChange={updateSettings} />;
+      case "ai":
+        return <AISettingsSection settings={settings} onChange={updateSettings} />;
       default:
         return (
           <div className="flex items-center justify-center h-64 text-muted-foreground">
