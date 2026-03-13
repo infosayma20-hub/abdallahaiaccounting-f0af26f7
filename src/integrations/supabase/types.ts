@@ -1482,6 +1482,17 @@ export type Database = {
           exchange_rate_source: string | null
           extra_currencies: Json | null
           fiscal_year_start: number | null
+          hr_annual_leave_days: number | null
+          hr_carry_over_leave: boolean | null
+          hr_late_grace_minutes: number | null
+          hr_require_gps: boolean | null
+          hr_require_qr: boolean | null
+          hr_salary_currency: string | null
+          hr_salary_day: number | null
+          hr_shift_end: string | null
+          hr_shift_start: string | null
+          hr_sick_leave_days: number | null
+          hr_social_security: boolean | null
           id: string
           income_tax_enabled: boolean | null
           income_tax_rate: number | null
@@ -1557,6 +1568,17 @@ export type Database = {
           exchange_rate_source?: string | null
           extra_currencies?: Json | null
           fiscal_year_start?: number | null
+          hr_annual_leave_days?: number | null
+          hr_carry_over_leave?: boolean | null
+          hr_late_grace_minutes?: number | null
+          hr_require_gps?: boolean | null
+          hr_require_qr?: boolean | null
+          hr_salary_currency?: string | null
+          hr_salary_day?: number | null
+          hr_shift_end?: string | null
+          hr_shift_start?: string | null
+          hr_sick_leave_days?: number | null
+          hr_social_security?: boolean | null
           id?: string
           income_tax_enabled?: boolean | null
           income_tax_rate?: number | null
@@ -1632,6 +1654,17 @@ export type Database = {
           exchange_rate_source?: string | null
           extra_currencies?: Json | null
           fiscal_year_start?: number | null
+          hr_annual_leave_days?: number | null
+          hr_carry_over_leave?: boolean | null
+          hr_late_grace_minutes?: number | null
+          hr_require_gps?: boolean | null
+          hr_require_qr?: boolean | null
+          hr_salary_currency?: string | null
+          hr_salary_day?: number | null
+          hr_shift_end?: string | null
+          hr_shift_start?: string | null
+          hr_sick_leave_days?: number | null
+          hr_social_security?: boolean | null
           id?: string
           income_tax_enabled?: boolean | null
           income_tax_rate?: number | null
