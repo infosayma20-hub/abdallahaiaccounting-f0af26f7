@@ -488,7 +488,7 @@ const FinanceJournalPage = () => {
                   <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="المبلغ" field="amount" /></th>
                   <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="الحالة" field="status" /></th>
                   <th className="px-3 py-3 w-10"></th>
-              </thead>
+                </tr>
               <tbody>
                 {paged.map((v, i) => {
                   const statusStyles: Record<string, string> = {
