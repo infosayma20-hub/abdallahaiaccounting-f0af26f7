@@ -1982,64 +1982,6 @@ const AccountStatementPage = () => {
         </SheetContent>
       </Sheet>
 
-      {/* ─── PDF PREVIEW MODAL ─── */}
-      <Dialog open={showPDFPreview} onOpenChange={setShowPDFPreview}>
-        <DialogContent className="max-w-[90vw] max-h-[90vh] w-[900px] p-0 overflow-hidden" dir="rtl">
-          <DialogHeader className="p-4 border-b border-border">
-            <div className="flex items-center justify-between">
-              <DialogTitle className="flex items-center gap-2">
-                <Eye className="w-5 h-5" /> معاينة كشف الحساب
-              </DialogTitle>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 gap-1.5 text-xs"
-                  disabled={!pdfPreviewUrl}
-                  onClick={() => {
-                    if (pdfPreviewUrl) {
-                      const a = document.createElement("a");
-                      a.href = pdfPreviewUrl;
-                      a.download = `كشف-حساب-${selectedEntityName}.pdf`;
-                      a.click();
-                    }
-                  }}
-                >
-                  <FileSpreadsheet className="w-3.5 h-3.5" /> تحميل PDF
-                </Button>
-                <Button
-                  size="sm"
-                  className="h-8 gap-1.5 text-xs"
-                  disabled={!pdfPreviewUrl}
-                  onClick={() => window.print()}
-                >
-                  <Printer className="w-3.5 h-3.5" /> طباعة مباشرة
-                </Button>
-              </div>
-            </div>
-          </DialogHeader>
-          <div className="flex-1 overflow-auto bg-muted/30 p-4" style={{ height: "calc(90vh - 80px)" }}>
-            {pdfGenerating ? (
-              <div className="flex items-center justify-center h-full">
-                <div className="text-center space-y-3">
-                  <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto" />
-                  <p className="text-sm text-muted-foreground">جاري توليد المعاينة...</p>
-                </div>
-              </div>
-            ) : pdfPreviewUrl ? (
-              <iframe
-                src={pdfPreviewUrl}
-                className="w-full h-full rounded-lg border border-border bg-white"
-                title="PDF Preview"
-              />
-            ) : (
-              <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
-                لا يمكن عرض المعاينة
-              </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
