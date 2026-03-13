@@ -257,6 +257,8 @@ const JournalNewPage = () => {
 
   return (
     <div className="max-w-4xl mx-auto space-y-5" dir="rtl">
+      {/* Duplicate Banner */}
+      {duplicateSourceRef && <DuplicateBanner sourceRef={duplicateSourceRef} />}
       {/* Header */}
       <div className="flex items-center gap-3">
         <BackButton />
