@@ -312,7 +312,6 @@ const TopBar = ({ onMenuClick, sidebarCollapsed, onOpenHelpGuide }: TopBarProps)
             <NotificationsPanel open={notificationsOpen} onClose={() => setNotificationsOpen(false)} />
           </div>
           <IconButton icon={Settings} onClick={() => navigate("/settings")} title="الإعدادات" className="hidden sm:flex" />
-          <IconButton icon={HelpCircle} onClick={onOpenHelpGuide} title="دليل الاستخدام" className="hidden sm:flex" />
           <div className="w-px h-6 bg-border mx-1.5 hidden sm:block" />
           <ProfileDropdown displayName={displayName} email={user?.email || ""} initials={initials} avatarUrl={userAvatarUrl} onNavigate={navigate} onSignOut={signOut} />
         </div>
