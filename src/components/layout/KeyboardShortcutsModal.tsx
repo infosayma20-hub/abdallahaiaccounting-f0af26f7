@@ -58,13 +58,7 @@ const KeyboardShortcutsModal = ({ open, onClose }: KeyboardShortcutsModalProps) 
             <ShortcutRow keys="Alt + K" label="كشف حساب" />
             <ShortcutRow keys="Alt + N" label="إنشاء جديد" />
             <ShortcutRow keys="Ctrl + /" label="هذه النافذة" />
-          <div className="bg-secondary/30 rounded-xl p-3 space-y-1">
-            <h3 className="text-[11px] font-bold text-primary mb-2 flex items-center gap-1.5">
-              ⚡ إدارة النظام
-            </h3>
-            <ShortcutRow keys="Alt + A" label="لوحة Super Admin" />
           </div>
-        </div>
 
           {/* Contacts & Finance */}
           <div className="bg-secondary/30 rounded-xl p-3 space-y-1">
@@ -86,6 +80,17 @@ const KeyboardShortcutsModal = ({ open, onClose }: KeyboardShortcutsModalProps) 
             <ShortcutRow keys="Alt + L" label="دفتر الأستاذ" />
             <ShortcutRow keys="Alt + T" label="ميزان المراجعة" />
             <ShortcutRow keys="Esc" label="إغلاق النوافذ" />
+          </div>
+
+          {/* Admin */}
+          <div className="bg-secondary/30 rounded-xl p-3 space-y-1 sm:col-span-2">
+            <h3 className="text-[11px] font-bold text-primary mb-2 flex items-center gap-1.5">
+              🛡️ Super Admin
+            </h3>
+            <div className="grid grid-cols-2 gap-2">
+              <ShortcutRow keys="Alt + A" label="لوحة التحكم الإدارية" />
+              <span className="text-[11px] text-muted-foreground flex items-center">لوحة تحكم النظام الكاملة</span>
+            </div>
           </div>
         </div>
 
