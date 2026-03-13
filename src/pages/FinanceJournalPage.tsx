@@ -40,6 +40,40 @@ const FinanceJournalPage = () => {
   const [filterStatus, setFilterStatus] = useState("all");
   const [saving, setSaving] = useState(false);
 
+  // Duplicate
+  const [duplicateModal, setDuplicateModal] = useState(false);
+  const [duplicateTarget, setDuplicateTarget] = useState<any>(null);
+
+  const handleDuplicate = async (v: any) => {
+    setDuplicateTarget(v);
+    // Fetch voucher lines for journal
+    if (user) {
+      const { data: vLines } = await supabase.from("voucher_lines").select("*").eq("voucher_id", v.id).order("line_order");
+      setDuplicateTarget({ ...v, _lines: vLines || [] });
+    }
+    setDuplicateModal(true);
+  };
+
+  const confirmDuplicate = () => {
+    if (!duplicateTarget) return;
+    const draftData = {
+      _sourceRef: duplicateTarget.ref_number,
+      description: duplicateTarget.description || "",
+      notes: duplicateTarget.notes || "",
+      subtype: duplicateTarget.subtype || "normal",
+      contactId: duplicateTarget.contact_id || "",
+      lines: (duplicateTarget._lines || []).map((l: any) => ({
+        account_code: l.account_code,
+        account_name: l.account_name,
+        debit: l.debit || 0,
+        credit: l.credit || 0,
+      })),
+    };
+    localStorage.setItem("draft_journal_new", JSON.stringify(draftData));
+    setDuplicateModal(false);
+    navigate("/finance/journal/new?from_duplicate=true");
+  };
+
   // Form
   const [formDate, setFormDate] = useState(new Date().toISOString().split("T")[0]);
   const [formRefNumber, setFormRefNumber] = useState("");

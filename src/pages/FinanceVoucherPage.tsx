@@ -395,6 +395,19 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
         onSaved={fetchData}
         editVoucherId={editVoucherId}
       />
+
+      {/* Duplicate Confirm Modal */}
+      <DuplicateConfirmModal
+        open={duplicateModal}
+        onClose={() => setDuplicateModal(false)}
+        onConfirm={confirmDuplicate}
+        docType={isReceipt ? "receipt" : "payment"}
+        info={{
+          contactName: duplicateTarget?.contact_name,
+          paymentMethod: duplicateTarget?.payment_label,
+          sourceRef: duplicateTarget?.ref_number,
+        }}
+      />
     </div>
   );
 };
