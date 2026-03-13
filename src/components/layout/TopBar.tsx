@@ -189,12 +189,16 @@ const ProfileDropdown = ({
 const QUICK_ITEMS = [
   { label: "فاتورة جديدة", icon: FileText, shortcut: "F1", path: "/invoices/new" },
   { label: "سند قبض", icon: Landmark, shortcut: "F2", path: "/finance/receipt/new" },
-  { label: "سند صرف", icon: Wallet, shortcut: "F3", path: "/finance/payment/new" },
-  { label: "سند قيد", icon: ClipboardList, shortcut: "F4", path: "/finance/journal/new" },
-  { label: "زبائن", icon: Users, shortcut: "Ctrl+Z", path: "/contacts?type=customer" },
+  { label: "سند صرف", icon: Wallet, shortcut: "F3", path: "/finance/payments" },
+  { label: "سند قيد", icon: ClipboardList, shortcut: "F4", path: "/finance/journals" },
+  { label: "زبائن", icon: Users, shortcut: "Ctrl+C", path: "/contacts?type=customer" },
   { label: "موردين", icon: Store, shortcut: "Ctrl+M", path: "/contacts?type=supplier" },
-  { label: "كشف حساب", icon: BarChart3, shortcut: "Ctrl+K", path: "/finance/account-statement" },
+  { label: "كشف حساب", icon: BarChart3, shortcut: "Ctrl+K", path: "/account-statement" },
   { label: "صناديق", icon: Banknote, shortcut: "Ctrl+S", path: "/finance/cash-boxes" },
+  { label: "المخزون", icon: Package, shortcut: "Ctrl+I", path: "/inventory" },
+  { label: "دفتر الأستاذ", icon: BookOpen, shortcut: "Ctrl+L", path: "/general-ledger" },
+  { label: "الشيكات", icon: CreditCard, shortcut: "Ctrl+Q", path: "/finance/cheques" },
+  { label: "ميزان المراجعة", icon: TrendingUp, shortcut: "Ctrl+T", path: "/trial-balance" },
 ];
 
 const QuickAccessButton = () => {
