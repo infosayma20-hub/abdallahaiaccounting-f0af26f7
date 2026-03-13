@@ -4321,6 +4321,45 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_invoice_links: {
+        Row: {
+          allocated_amount: number
+          created_at: string | null
+          id: string
+          invoice_id: string
+          payment_id: string
+        }
+        Insert: {
+          allocated_amount?: number
+          created_at?: string | null
+          id?: string
+          invoice_id: string
+          payment_id: string
+        }
+        Update: {
+          allocated_amount?: number
+          created_at?: string | null
+          id?: string
+          invoice_id?: string
+          payment_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_invoice_links_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_invoice_links_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "receipt_vouchers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payments: {
         Row: {
           amount: number | null
@@ -6477,6 +6516,94 @@ export type Database = {
             columns: ["branch_id"]
             isOneToOne: false
             referencedRelation: "branches_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      receipt_vouchers: {
+        Row: {
+          amount: number
+          bank_account_id: string | null
+          bank_name: string | null
+          cash_box_id: string | null
+          check_date: string | null
+          check_number: string | null
+          contact_id: string | null
+          contact_name: string | null
+          created_at: string | null
+          deposit_account_code: string | null
+          id: string
+          linked_transaction_id: string | null
+          notes: string | null
+          payment_date: string
+          payment_method: string | null
+          receipt_number: string | null
+          status: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          bank_account_id?: string | null
+          bank_name?: string | null
+          cash_box_id?: string | null
+          check_date?: string | null
+          check_number?: string | null
+          contact_id?: string | null
+          contact_name?: string | null
+          created_at?: string | null
+          deposit_account_code?: string | null
+          id?: string
+          linked_transaction_id?: string | null
+          notes?: string | null
+          payment_date?: string
+          payment_method?: string | null
+          receipt_number?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          bank_account_id?: string | null
+          bank_name?: string | null
+          cash_box_id?: string | null
+          check_date?: string | null
+          check_number?: string | null
+          contact_id?: string | null
+          contact_name?: string | null
+          created_at?: string | null
+          deposit_account_code?: string | null
+          id?: string
+          linked_transaction_id?: string | null
+          notes?: string | null
+          payment_date?: string
+          payment_method?: string | null
+          receipt_number?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "receipt_vouchers_bank_account_id_fkey"
+            columns: ["bank_account_id"]
+            isOneToOne: false
+            referencedRelation: "bank_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "receipt_vouchers_cash_box_id_fkey"
+            columns: ["cash_box_id"]
+            isOneToOne: false
+            referencedRelation: "cash_boxes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "receipt_vouchers_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
             referencedColumns: ["id"]
           },
         ]
