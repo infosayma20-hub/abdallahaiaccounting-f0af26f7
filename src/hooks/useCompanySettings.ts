@@ -84,6 +84,42 @@ export interface CompanySettings {
   show_logo_on_invoice: boolean;
   show_address_on_invoice: boolean;
   invoice_footer: string;
+  // Inventory
+  inventory_costing_method: string;
+  inventory_default_unit: string;
+  inventory_low_stock_alert: boolean;
+  inventory_default_min_qty: number;
+  inventory_default_max_qty: number;
+  inventory_expiry_alert: boolean;
+  inventory_expiry_days: number;
+  inventory_auto_barcode: boolean;
+  inventory_allow_no_barcode: boolean;
+  // HR
+  hr_work_days_per_week: number;
+  hr_daily_hours: number;
+  hr_shift_start: string;
+  hr_shift_end: string;
+  hr_late_grace_minutes: number;
+  hr_require_qr: boolean;
+  hr_require_gps: boolean;
+  hr_annual_leave_days: number;
+  hr_sick_leave_days: number;
+  hr_carry_over_leave: boolean;
+  hr_salary_day: number;
+  hr_salary_currency: string;
+  hr_social_security: boolean;
+  // Security
+  security_session_timeout: number;
+  security_2fa_enabled: boolean;
+  security_passkeys_enabled: boolean;
+  security_ip_restrict: boolean;
+  security_allowed_ips: string;
+  security_lockout_enabled: boolean;
+  security_max_attempts: number;
+  security_audit_log: boolean;
+  security_new_device_alert: boolean;
+  // Generic extra fields (notifications, integrations, AI)
+  [key: string]: any;
 }
 
 const defaultSettings: CompanySettings = {
