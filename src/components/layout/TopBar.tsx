@@ -209,7 +209,12 @@ const TopBar = ({ onMenuClick, sidebarCollapsed, onOpenHelpGuide }: TopBarProps)
   const [userAvatarUrl, setUserAvatarUrl] = useState<string | null>(null);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const { unreadCount } = useNotifications();
+
+  useGlobalShortcuts({
+    onShowShortcuts: () => setShortcutsOpen(true),
+  });
 
   useEffect(() => {
     if (!user?.id) return;
