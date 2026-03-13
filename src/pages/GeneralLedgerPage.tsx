@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import {
   ArrowRight, Loader2, RefreshCw, Search, BookOpen, FileSpreadsheet,
+  X, ArrowUpDown, ChevronLeft, ChevronRight, DollarSign, TrendingUp, TrendingDown,
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
@@ -10,10 +11,6 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import {
-  fetchTransactions, fetchAccounts, buildAccountMap, getAccountNameOnly,
-  SupabaseTransaction, SupabaseAccount,
-} from "@/lib/supabase-data";
 
 interface LedgerRow {
   date: string;
@@ -23,32 +20,67 @@ interface LedgerRow {
   balance: number;
 }
 
+type SortKey = "date" | "description" | "debit" | "credit" | "balance";
+type SortDir = "asc" | "desc";
+const PER_PAGE = 15;
+
 const GeneralLedgerPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const [transactions, setTransactions] = useState<SupabaseTransaction[]>([]);
-  const [accounts, setAccounts] = useState<SupabaseAccount[]>([]);
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [accounts, setAccounts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [companyName, setCompanyName] = useState("");
 
   const [selectedAccount, setSelectedAccount] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
 
-  const accountMap = useMemo(() => buildAccountMap(accounts), [accounts]);
+  const [sortKey, setSortKey] = useState<SortKey>("date");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
+  const [page, setPage] = useState(1);
+
+  const accountMap = useMemo(() => {
+    const map: Record<string, any> = {};
+    accounts.forEach(a => { map[a.account_code] = a; });
+    return map;
+  }, [accounts]);
 
   const fetchData = async () => {
     if (!user) return;
     setLoading(true);
     try {
-      const [txData, accData, profileRes] = await Promise.all([
-        fetchTransactions(user.id),
-        fetchAccounts(user.id),
+      // Fetch ALL transactions (no limit) to ensure complete ledger
+      const fetchAllTransactions = async () => {
+        let allData: any[] = [];
+        let from = 0;
+        const batchSize = 1000;
+        while (true) {
+          const { data, error } = await supabase
+            .from("transactions")
+            .select("id, transaction_date, description, transaction_type, debit_account_code, credit_account_code, amount, currency, reference, payment_method, is_deleted, is_opening_balance, contact_id")
+            .eq("user_id", user.id)
+            .range(from, from + batchSize - 1)
+            .order("transaction_date", { ascending: true });
+          if (error) throw error;
+          if (!data || data.length === 0) break;
+          allData = allData.concat(data);
+          if (data.length < batchSize) break;
+          from += batchSize;
+        }
+        return allData;
+      };
+
+      const [txData, accRes, profileRes] = await Promise.all([
+        fetchAllTransactions(),
+        supabase.from("accounts").select("id, account_name, account_code, account_type, is_active, parent_code").eq("user_id", user.id).order("account_code"),
         supabase.from("profiles").select("display_name, company_name").eq("user_id", user.id).maybeSingle(),
       ]);
       setTransactions(txData);
+      const accData = accRes.data || [];
       setAccounts(accData);
       if (!selectedAccount && accData.length > 0) {
         setSelectedAccount(accData[0].account_name);
@@ -65,28 +97,23 @@ const GeneralLedgerPage = () => {
 
   useEffect(() => { fetchData(); }, [user]);
 
-  // Account names sorted
   const accountNames = useMemo(() =>
     accounts.map(a => a.account_name).filter(Boolean).sort(),
     [accounts]
   );
 
   // Build ledger rows
-  const { rows, openingBalance } = useMemo(() => {
+  const { rows: allRows, openingBalance } = useMemo(() => {
     if (!selectedAccount) return { rows: [], openingBalance: 0 };
 
-    // Find the account code for the selected account name
     const selectedAcc = accounts.find(a => a.account_name === selectedAccount);
     const selectedCode = selectedAcc?.account_code || "";
 
     const filtered = transactions.filter(tx => !tx.is_deleted);
-
-    // Sort by date
     const sorted = [...filtered].sort((a, b) =>
       (a.transaction_date || "").localeCompare(b.transaction_date || "")
     );
 
-    // Calculate opening balance (before dateFrom)
     let openBal = 0;
     const ledgerTx: { date: string; description: string; debit: number; credit: number }[] = [];
 
@@ -94,19 +121,15 @@ const GeneralLedgerPage = () => {
       const amount = tx.amount || 0;
       const isDebit = tx.debit_account_code === selectedCode;
       const isCredit = tx.credit_account_code === selectedCode;
-
       if (!isDebit && !isCredit) continue;
 
       const txDate = tx.transaction_date || "";
 
-      // Before period → opening balance
       if (dateFrom && txDate < dateFrom) {
         if (isDebit) openBal += amount;
         if (isCredit) openBal -= amount;
         continue;
       }
-
-      // After period → skip
       if (dateTo && txDate > dateTo) continue;
 
       ledgerTx.push({
@@ -117,7 +140,6 @@ const GeneralLedgerPage = () => {
       });
     }
 
-    // Build rows with running balance
     let bal = openBal;
     const rows: LedgerRow[] = ledgerTx.map(tx => {
       bal += tx.debit - tx.credit;
@@ -127,15 +149,48 @@ const GeneralLedgerPage = () => {
     return { rows, openingBalance: openBal };
   }, [transactions, accounts, selectedAccount, dateFrom, dateTo]);
 
-  const totalDebit = rows.reduce((s, r) => s + r.debit, 0);
-  const totalCredit = rows.reduce((s, r) => s + r.credit, 0);
-  const closingBalance = rows.length > 0 ? rows[rows.length - 1].balance : openingBalance;
+  // Search filter
+  const filteredRows = useMemo(() => {
+    if (!searchQuery) return allRows;
+    const q = searchQuery.toLowerCase();
+    return allRows.filter(r =>
+      r.description.toLowerCase().includes(q) || r.date.includes(searchQuery)
+    );
+  }, [allRows, searchQuery]);
+
+  // Sorting
+  const sortedRows = useMemo(() => {
+    const arr = [...filteredRows];
+    arr.sort((a, b) => {
+      let av: any = a[sortKey], bv: any = b[sortKey];
+      if (typeof av === "string") { av = av.toLowerCase(); bv = (bv || "").toLowerCase(); }
+      if (av < bv) return sortDir === "asc" ? -1 : 1;
+      if (av > bv) return sortDir === "asc" ? 1 : -1;
+      return 0;
+    });
+    return arr;
+  }, [filteredRows, sortKey, sortDir]);
+
+  const totalPages = Math.max(1, Math.ceil(sortedRows.length / PER_PAGE));
+  const pagedRows = sortedRows.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+
+  useEffect(() => { setPage(1); }, [searchQuery, selectedAccount, dateFrom, dateTo]);
+
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) setSortDir(d => d === "asc" ? "desc" : "asc");
+    else { setSortKey(key); setSortDir("asc"); }
+    setPage(1);
+  };
+
+  const totalDebit = allRows.reduce((s, r) => s + r.debit, 0);
+  const totalCredit = allRows.reduce((s, r) => s + r.credit, 0);
+  const closingBalance = allRows.length > 0 ? allRows[allRows.length - 1].balance : openingBalance;
 
   // Export
   const handleExport = () => {
     const data = [
       { "التاريخ": "", "البيان": "رصيد أول المدة", "مدين": "", "دائن": "", "الرصيد": openingBalance },
-      ...rows.map(r => ({
+      ...allRows.map(r => ({
         "التاريخ": r.date,
         "البيان": r.description,
         "مدين": r.debit || "",
@@ -151,48 +206,53 @@ const GeneralLedgerPage = () => {
     XLSX.writeFile(wb, `دفتر_الأستاذ_${selectedAccount}_${Date.now()}.xlsx`);
   };
 
-  const dateRangeLabel = dateFrom && dateTo
-    ? `${dateFrom} — ${dateTo}`
-    : dateFrom ? `من ${dateFrom}` : dateTo ? `حتى ${dateTo}` : "جميع الفترات";
+  const SortHeader = ({ label, field }: { label: string; field: SortKey }) => (
+    <button onClick={() => toggleSort(field)} className="flex items-center gap-1 hover:text-primary-foreground/80 transition-colors w-full">
+      {label}
+      <ArrowUpDown className={`h-3 w-3 ${sortKey === field ? "opacity-100" : "opacity-30"}`} />
+    </button>
+  );
 
   return (
-    <div className="space-y-6 max-w-[1400px] mx-auto pb-10" dir="rtl">
+    <div className="p-4 md:p-6 pb-24 space-y-5" dir="rtl">
       {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate(-1)} className="p-2 rounded-xl hover:bg-muted transition-colors">
-            <ArrowRight className="h-5 w-5 text-foreground" />
+          <button onClick={() => window.history.length > 2 ? navigate(-1) : navigate("/apps")} className="w-9 h-9 rounded-full bg-muted/60 flex items-center justify-center hover:bg-muted transition-all shadow-sm">
+            <ArrowRight className="h-4 w-4 text-muted-foreground" />
           </button>
-          <div>
-            <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
+          <div className="flex items-center gap-2">
+            <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
               <BookOpen className="h-5 w-5 text-primary" />
-              دفتر الأستاذ العام
-            </h1>
-            <p className="text-xs text-muted-foreground">
-              {companyName && `${companyName} • `}{selectedAccount || "اختر حساب"} • {dateRangeLabel}
-            </p>
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-foreground">دفتر الأستاذ العام</h1>
+              <p className="text-xs text-muted-foreground">
+                {companyName && `${companyName} • `}{selectedAccount || "اختر حساب"} • {allRows.length} حركة
+              </p>
+            </div>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={fetchData} className="gap-1.5">
+          <Button variant="outline" size="sm" className="gap-1.5 rounded-xl" onClick={fetchData}>
             <RefreshCw className="h-3.5 w-3.5" /> تحديث
           </Button>
-          <Button variant="outline" size="sm" onClick={handleExport} disabled={rows.length === 0} className="gap-1.5">
-            <FileSpreadsheet className="h-3.5 w-3.5" /> تصدير Excel
+          <Button className="gap-1.5 rounded-xl shadow-md shadow-primary/20" onClick={handleExport} disabled={allRows.length === 0}>
+            <FileSpreadsheet className="h-4 w-4" /> تصدير Excel
           </Button>
         </div>
       </div>
 
       {/* Filters */}
-      <div className="bg-card rounded-xl p-4 shadow-card border border-border/40">
+      <div className="bg-card rounded-2xl p-4 shadow-sm border border-border/40">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          <div className="space-y-1 sm:col-span-2 lg:col-span-1">
-            <label className="text-[11px] text-muted-foreground">الحساب</label>
+          <div className="space-y-1 sm:col-span-2 lg:col-span-2">
+            <label className="text-[11px] text-muted-foreground font-medium">الحساب</label>
             <Select value={selectedAccount} onValueChange={setSelectedAccount}>
-              <SelectTrigger className="h-9 rounded-lg bg-secondary/50 border-0 text-sm">
+              <SelectTrigger className="h-9 rounded-xl bg-muted/30 border-0 text-sm">
                 <SelectValue placeholder="اختر الحساب..." />
               </SelectTrigger>
-              <SelectContent className="max-h-60">
+              <SelectContent className="max-h-60 bg-background z-50">
                 {accountNames.map(name => (
                   <SelectItem key={name} value={name}>{name}</SelectItem>
                 ))}
@@ -200,111 +260,184 @@ const GeneralLedgerPage = () => {
             </Select>
           </div>
           <div className="space-y-1">
-            <label className="text-[11px] text-muted-foreground">من تاريخ</label>
+            <label className="text-[11px] text-muted-foreground font-medium">من تاريخ</label>
             <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)}
-              className="h-9 rounded-lg bg-secondary/50 border-0 text-sm" />
+              className="h-9 rounded-xl bg-muted/30 border-0 text-sm" />
           </div>
           <div className="space-y-1">
-            <label className="text-[11px] text-muted-foreground">إلى تاريخ</label>
+            <label className="text-[11px] text-muted-foreground font-medium">إلى تاريخ</label>
             <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)}
-              className="h-9 rounded-lg bg-secondary/50 border-0 text-sm" />
+              className="h-9 rounded-xl bg-muted/30 border-0 text-sm" />
           </div>
         </div>
       </div>
 
-      {/* Summary */}
+      {/* KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="bg-card rounded-xl p-4 shadow-card border border-border/40">
-          <p className="text-[11px] text-muted-foreground">رصيد أول المدة</p>
-          <p className={`text-lg font-bold tabular-nums ${openingBalance >= 0 ? "text-primary" : "text-destructive"}`}>
-            ₪{openingBalance.toLocaleString()}
-          </p>
-        </div>
-        <div className="bg-card rounded-xl p-4 shadow-card border border-border/40">
-          <p className="text-[11px] text-muted-foreground">إجمالي المدين</p>
-          <p className="text-lg font-bold text-primary tabular-nums">₪{totalDebit.toLocaleString()}</p>
-        </div>
-        <div className="bg-card rounded-xl p-4 shadow-card border border-border/40">
-          <p className="text-[11px] text-muted-foreground">إجمالي الدائن</p>
-          <p className="text-lg font-bold text-destructive tabular-nums">₪{totalCredit.toLocaleString()}</p>
-        </div>
-        <div className="bg-card rounded-xl p-4 shadow-card border border-border/40">
-          <p className="text-[11px] text-muted-foreground">الرصيد الختامي</p>
-          <p className={`text-lg font-bold tabular-nums ${closingBalance >= 0 ? "text-primary" : "text-destructive"}`}>
-            ₪{closingBalance.toLocaleString()}
-          </p>
-        </div>
+        {[
+          { label: "رصيد أول المدة", value: `₪${openingBalance.toLocaleString()}`, icon: DollarSign, color: openingBalance >= 0 ? "text-primary" : "text-destructive", bg: "bg-primary/5 border-primary/10" },
+          { label: "إجمالي المدين", value: `₪${totalDebit.toLocaleString()}`, icon: TrendingUp, color: "text-primary", bg: "bg-primary/5 border-primary/10" },
+          { label: "إجمالي الدائن", value: `₪${totalCredit.toLocaleString()}`, icon: TrendingDown, color: "text-destructive", bg: "bg-destructive/5 border-destructive/10" },
+          { label: "الرصيد الختامي", value: `₪${closingBalance.toLocaleString()}`, icon: DollarSign, color: closingBalance >= 0 ? "text-primary" : "text-destructive", bg: closingBalance >= 0 ? "bg-primary/5 border-primary/10" : "bg-destructive/5 border-destructive/10" },
+        ].map((k, i) => (
+          <div key={i} className={`rounded-2xl border p-4 ${k.bg}`}>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-[10px] text-muted-foreground font-medium mb-1">{k.label}</p>
+                <p className={`text-lg font-bold tabular-nums ${k.color}`}>{k.value}</p>
+              </div>
+              <k.icon className={`h-5 w-5 ${k.color} opacity-50`} />
+            </div>
+          </div>
+        ))}
       </div>
 
-      {/* Table */}
-      {loading ? (
+      {/* Search */}
+      {allRows.length > 0 && (
+        <div className="relative">
+          <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 pointer-events-none" />
+          <Input
+            placeholder="ابحث في البيان أو التاريخ..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            className="pr-10 rounded-xl bg-muted/30"
+          />
+          {searchQuery && (
+            <button onClick={() => setSearchQuery("")} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Loading */}
+      {loading && (
         <div className="flex items-center justify-center py-20">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <Loader2 className="h-10 w-10 animate-spin text-primary" />
         </div>
-      ) : !selectedAccount ? (
-        <div className="text-center py-20 space-y-3">
-          <BookOpen className="h-12 w-12 text-muted-foreground/30 mx-auto" />
-          <p className="text-sm text-muted-foreground">اختر حساباً لعرض حركاته</p>
+      )}
+
+      {/* Empty - no account */}
+      {!loading && !selectedAccount && (
+        <div className="text-center py-16">
+          <div className="w-20 h-20 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-4">
+            <BookOpen className="h-10 w-10 text-muted-foreground/40" />
+          </div>
+          <h3 className="text-base font-semibold text-foreground mb-1">اختر حساباً</h3>
+          <p className="text-xs text-muted-foreground">اختر حساباً لعرض حركاته في دفتر الأستاذ</p>
         </div>
-      ) : rows.length === 0 ? (
-        <div className="text-center py-20 space-y-3">
-          <BookOpen className="h-12 w-12 text-muted-foreground/30 mx-auto" />
-          <p className="text-sm text-muted-foreground">لا توجد حركات لهذا الحساب في الفترة المحددة</p>
+      )}
+
+      {/* Empty - no rows */}
+      {!loading && selectedAccount && allRows.length === 0 && (
+        <div className="text-center py-16">
+          <div className="w-20 h-20 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-4">
+            <BookOpen className="h-10 w-10 text-muted-foreground/40" />
+          </div>
+          <h3 className="text-base font-semibold text-foreground mb-1">لا توجد حركات</h3>
+          <p className="text-xs text-muted-foreground">لا توجد حركات لهذا الحساب في الفترة المحددة</p>
         </div>
-      ) : (
-        <div className="bg-card rounded-xl shadow-card border border-border/40 overflow-hidden">
+      )}
+
+      {/* No search results */}
+      {!loading && allRows.length > 0 && filteredRows.length === 0 && (
+        <div className="text-center py-12 space-y-2">
+          <Search className="h-10 w-10 text-muted-foreground/20 mx-auto" />
+          <p className="text-sm text-muted-foreground">لا توجد حركات تطابق البحث</p>
+          <Button variant="ghost" size="sm" onClick={() => setSearchQuery("")}>مسح البحث</Button>
+        </div>
+      )}
+
+      {/* TABLE */}
+      {!loading && pagedRows.length > 0 && (
+        <div className="rounded-2xl border border-border/50 overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b-2 border-primary/20 bg-muted/40">
-                  <th className="text-right px-4 py-3 text-[11px] font-bold text-muted-foreground w-[100px]">التاريخ</th>
-                  <th className="text-right px-4 py-3 text-[11px] font-bold text-muted-foreground min-w-[250px]">البيان</th>
-                  <th className="text-left px-4 py-3 text-[11px] font-bold text-primary w-[120px]">مدين (₪)</th>
-                  <th className="text-left px-4 py-3 text-[11px] font-bold text-destructive w-[120px]">دائن (₪)</th>
-                  <th className="text-left px-4 py-3 text-[11px] font-bold text-foreground w-[130px]">الرصيد (₪)</th>
+                <tr className="bg-primary text-primary-foreground">
+                  <th className="px-3 py-3 text-right text-xs font-semibold w-[110px]"><SortHeader label="التاريخ" field="date" /></th>
+                  <th className="px-3 py-3 text-right text-xs font-semibold min-w-[250px]"><SortHeader label="البيان" field="description" /></th>
+                  <th className="px-3 py-3 text-left text-xs font-semibold w-[120px]"><SortHeader label="مدين (₪)" field="debit" /></th>
+                  <th className="px-3 py-3 text-left text-xs font-semibold w-[120px]"><SortHeader label="دائن (₪)" field="credit" /></th>
+                  <th className="px-3 py-3 text-left text-xs font-semibold w-[130px]"><SortHeader label="الرصيد (₪)" field="balance" /></th>
                 </tr>
               </thead>
               <tbody>
                 {/* Opening Balance Row */}
-                <tr className="bg-muted/20 border-b border-border/40">
-                  <td className="px-4 py-2.5 text-xs text-muted-foreground">—</td>
-                  <td className="px-4 py-2.5 text-xs font-bold text-foreground">رصيد أول المدة</td>
-                  <td className="px-4 py-2.5 text-xs text-muted-foreground">—</td>
-                  <td className="px-4 py-2.5 text-xs text-muted-foreground">—</td>
-                  <td className={`px-4 py-2.5 text-xs font-bold tabular-nums ${openingBalance >= 0 ? "text-primary" : "text-destructive"}`}>
-                    ₪{openingBalance.toLocaleString()}
-                  </td>
-                </tr>
+                {page === 1 && (
+                  <tr className="bg-muted/30 border-b border-border/50">
+                    <td className="px-3 py-3 text-xs text-muted-foreground">—</td>
+                    <td className="px-3 py-3 text-sm font-bold text-foreground">رصيد أول المدة</td>
+                    <td className="px-3 py-3 text-xs text-muted-foreground">—</td>
+                    <td className="px-3 py-3 text-xs text-muted-foreground">—</td>
+                    <td className={`px-3 py-3 text-sm font-bold tabular-nums text-left ${openingBalance >= 0 ? "text-primary" : "text-destructive"}`}>
+                      ₪{openingBalance.toLocaleString()}
+                    </td>
+                  </tr>
+                )}
 
-                {rows.map((row, i) => (
-                  <tr key={i} className="border-b border-border/30 hover:bg-muted/20 transition-colors">
-                    <td className="px-4 py-2.5 text-xs text-foreground tabular-nums whitespace-nowrap">{row.date}</td>
-                    <td className="px-4 py-2.5 text-xs text-foreground font-medium">{row.description}</td>
-                    <td className="px-4 py-2.5 text-xs font-bold text-primary tabular-nums text-left">
+                {pagedRows.map((row, i) => (
+                  <tr
+                    key={i}
+                    className={`border-b border-border/50 transition-colors ${i % 2 === 0 ? "bg-background" : "bg-muted/20"} hover:bg-primary/5`}
+                  >
+                    <td className="px-3 py-3 text-xs text-foreground tabular-nums whitespace-nowrap">{row.date}</td>
+                    <td className="px-3 py-3 text-sm font-medium text-foreground">{row.description}</td>
+                    <td className="px-3 py-3 text-sm font-bold text-primary tabular-nums text-left">
                       {row.debit > 0 ? `₪${row.debit.toLocaleString()}` : ""}
                     </td>
-                    <td className="px-4 py-2.5 text-xs font-bold text-destructive tabular-nums text-left">
+                    <td className="px-3 py-3 text-sm font-bold text-destructive tabular-nums text-left">
                       {row.credit > 0 ? `₪${row.credit.toLocaleString()}` : ""}
                     </td>
-                    <td className={`px-4 py-2.5 text-xs font-bold tabular-nums text-left ${row.balance >= 0 ? "text-primary" : "text-destructive"}`}>
+                    <td className={`px-3 py-3 text-sm font-bold tabular-nums text-left ${row.balance >= 0 ? "text-primary" : "text-destructive"}`}>
                       ₪{row.balance.toLocaleString()}
                     </td>
                   </tr>
                 ))}
-
-                {/* Totals Row */}
-                <tr className="bg-muted/30 border-t-2 border-primary/20">
-                  <td className="px-4 py-3 text-xs font-bold text-foreground">—</td>
-                  <td className="px-4 py-3 text-xs font-bold text-foreground">الإجمالي</td>
-                  <td className="px-4 py-3 text-xs font-bold text-primary tabular-nums text-left">₪{totalDebit.toLocaleString()}</td>
-                  <td className="px-4 py-3 text-xs font-bold text-destructive tabular-nums text-left">₪{totalCredit.toLocaleString()}</td>
-                  <td className={`px-4 py-3 text-xs font-bold tabular-nums text-left ${closingBalance >= 0 ? "text-primary" : "text-destructive"}`}>
+              </tbody>
+              {/* Footer totals */}
+              <tfoot>
+                <tr className="bg-primary/5 border-t-2 border-primary/20 font-bold text-sm">
+                  <td className="px-3 py-3 text-right text-foreground">—</td>
+                  <td className="px-3 py-3 text-right text-foreground">الإجمالي ({allRows.length} حركة)</td>
+                  <td className="px-3 py-3 tabular-nums text-primary text-left">₪{totalDebit.toLocaleString()}</td>
+                  <td className="px-3 py-3 tabular-nums text-destructive text-left">₪{totalCredit.toLocaleString()}</td>
+                  <td className={`px-3 py-3 tabular-nums text-left ${closingBalance >= 0 ? "text-primary" : "text-destructive"}`}>
                     ₪{closingBalance.toLocaleString()}
                   </td>
                 </tr>
-              </tbody>
+              </tfoot>
             </table>
           </div>
+
+          {/* Pagination */}
+          {sortedRows.length > PER_PAGE && (
+            <div className="flex items-center justify-between px-4 py-3 border-t border-border/50 bg-muted/20">
+              <p className="text-xs text-muted-foreground">
+                عرض {Math.min((page - 1) * PER_PAGE + 1, sortedRows.length)}–{Math.min(page * PER_PAGE, sortedRows.length)} من {sortedRows.length}
+              </p>
+              <div className="flex items-center gap-1">
+                <Button variant="ghost" size="icon" className="h-7 w-7" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+                {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                  let pg: number;
+                  if (totalPages <= 5) pg = i + 1;
+                  else if (page <= 3) pg = i + 1;
+                  else if (page >= totalPages - 2) pg = totalPages - 4 + i;
+                  else pg = page - 2 + i;
+                  return (
+                    <Button key={pg} variant={page === pg ? "default" : "ghost"} size="icon" className="h-7 w-7 text-xs" onClick={() => setPage(pg)}>
+                      {pg}
+                    </Button>
+                  );
+                })}
+                <Button variant="ghost" size="icon" className="h-7 w-7" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
