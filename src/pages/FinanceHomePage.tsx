@@ -107,10 +107,10 @@ const FinanceHomePage = () => {
               <DropdownMenuItem onClick={() => navigate("/finance/receipt/new")}>
                 <ArrowDown className="h-4 w-4 ml-2 text-emerald-600" />سند قبض جديد
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => navigate("/finance/payments?new=1")}>
+              <DropdownMenuItem onClick={() => navigate("/finance/payment/new")}>
                 <ArrowUp className="h-4 w-4 ml-2 text-red-600" />سند صرف جديد
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => navigate("/finance/journals?new=1")}>
+              <DropdownMenuItem onClick={() => navigate("/finance/journal/new")}>
                 <FileText className="h-4 w-4 ml-2 text-blue-600" />سند قيد جديد
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => navigate("/finance/cheques?new=1")}>
