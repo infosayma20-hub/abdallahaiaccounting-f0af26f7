@@ -95,6 +95,11 @@ const InvoicesPage = () => {
   const [showContactDropdown, setShowContactDropdown] = useState(false);
   const [contactDebtWarning, setContactDebtWarning] = useState<string | null>(null);
   const [showPDFPreview, setShowPDFPreview] = useState(false);
+  const [viewMode, setViewMode] = useState<"cards" | "table">("table");
+  const [page, setPage] = useState(1);
+  const [sortKey, setSortKey] = useState<"date" | "contact" | "type" | "total" | "status">("date");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const [statusFilter, setStatusFilter] = useState("all");
 
   const [form, setForm] = useState({
     type: "sales" as "sales" | "purchase",
