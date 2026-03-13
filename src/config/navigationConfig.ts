@@ -50,6 +50,11 @@ export const navigationSections: NavSection[] = [
         id: "dashboard", label: "لوحة المعلومات", description: "ملخص مالي شامل وتحليلات الأداء", module: "dashboard", icon: BarChart3,
         color: "text-primary", bgColor: "bg-primary/10", path: "/dashboard", isDirect: true, keywords: ["لوحة", "معلومات", "داشبورد"],
       },
+      {
+        id: "ai-accountant", label: "المحاسب الذكي", description: "محاسبة تحليلية بالذكاء الاصطناعي", module: "ai", icon: Calculator,
+        color: "text-primary", bgColor: "bg-primary/10", path: "/smart-accountant", isDirect: true,
+        keywords: ["محاسب", "ذكاء", "تحليل", "ai"],
+      },
     ],
   },
 
@@ -252,11 +257,6 @@ export const navigationSections: NavSection[] = [
             ],
           },
         ],
-      },
-      {
-        id: "ai-accountant", label: "الذكاء المالي", description: "محاسبة تحليلية بالذكاء الاصطناعي", module: "ai", icon: Calculator,
-        color: "text-primary", bgColor: "bg-primary/10", path: "/smart-accountant", isDirect: true,
-        keywords: ["محاسب", "ذكاء", "تحليل"],
       },
     ],
   },
