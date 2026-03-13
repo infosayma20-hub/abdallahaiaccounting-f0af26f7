@@ -54,9 +54,9 @@ const KeyboardShortcutsModal = ({ open, onClose }: KeyboardShortcutsModalProps) 
             <h3 className="text-[11px] font-bold text-primary mb-2 flex items-center gap-1.5">
               🧭 تنقل
             </h3>
-            <ShortcutRow keys="Ctrl + F" label="بحث سريع" />
-            <ShortcutRow keys="Ctrl + K" label="كشف حساب" />
-            <ShortcutRow keys="Ctrl + N" label="إنشاء جديد" />
+            <ShortcutRow keys="Alt + F" label="بحث سريع" />
+            <ShortcutRow keys="Alt + K" label="كشف حساب" />
+            <ShortcutRow keys="Alt + N" label="إنشاء جديد" />
             <ShortcutRow keys="Ctrl + /" label="هذه النافذة" />
           </div>
 
