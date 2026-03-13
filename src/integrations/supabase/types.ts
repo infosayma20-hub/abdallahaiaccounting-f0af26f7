@@ -3330,11 +3330,47 @@ export type Database = {
           },
         ]
       }
+      invoice_activity_log: {
+        Row: {
+          action: string
+          details: Json | null
+          id: string
+          invoice_id: string
+          performed_at: string | null
+          user_id: string
+        }
+        Insert: {
+          action: string
+          details?: Json | null
+          id?: string
+          invoice_id: string
+          performed_at?: string | null
+          user_id: string
+        }
+        Update: {
+          action?: string
+          details?: Json | null
+          id?: string
+          invoice_id?: string
+          performed_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_activity_log_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoice_items: {
         Row: {
           created_at: string | null
           description: string | null
           discount: number | null
+          discount_type: string | null
           id: string
           invoice_id: string
           product_id: string | null
@@ -3342,12 +3378,14 @@ export type Database = {
           quantity: number
           tax_rate: number | null
           total_amount: number
+          unit_of_measure: string | null
           unit_price: number
         }
         Insert: {
           created_at?: string | null
           description?: string | null
           discount?: number | null
+          discount_type?: string | null
           id?: string
           invoice_id: string
           product_id?: string | null
@@ -3355,12 +3393,14 @@ export type Database = {
           quantity?: number
           tax_rate?: number | null
           total_amount?: number
+          unit_of_measure?: string | null
           unit_price?: number
         }
         Update: {
           created_at?: string | null
           description?: string | null
           discount?: number | null
+          discount_type?: string | null
           id?: string
           invoice_id?: string
           product_id?: string | null
@@ -3368,11 +3408,68 @@ export type Database = {
           quantity?: number
           tax_rate?: number | null
           total_amount?: number
+          unit_of_measure?: string | null
           unit_price?: number
         }
         Relationships: [
           {
             foreignKeyName: "invoice_items_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoice_payments: {
+        Row: {
+          amount: number
+          bank_account_id: string | null
+          cash_box_id: string | null
+          check_date: string | null
+          check_number: string | null
+          created_at: string | null
+          id: string
+          invoice_id: string
+          linked_transaction_id: string | null
+          notes: string | null
+          payment_date: string
+          payment_method: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          bank_account_id?: string | null
+          cash_box_id?: string | null
+          check_date?: string | null
+          check_number?: string | null
+          created_at?: string | null
+          id?: string
+          invoice_id: string
+          linked_transaction_id?: string | null
+          notes?: string | null
+          payment_date?: string
+          payment_method?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          bank_account_id?: string | null
+          cash_box_id?: string | null
+          check_date?: string | null
+          check_number?: string | null
+          created_at?: string | null
+          id?: string
+          invoice_id?: string
+          linked_transaction_id?: string | null
+          notes?: string | null
+          payment_date?: string
+          payment_method?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_payments_invoice_id_fkey"
             columns: ["invoice_id"]
             isOneToOne: false
             referencedRelation: "invoices"
@@ -3438,76 +3535,106 @@ export type Database = {
       }
       invoices: {
         Row: {
+          amount_in_words: string | null
+          billing_address: string | null
           contact_id: string | null
           contact_name: string | null
           created_at: string
           currency: string | null
           discount_amount: number | null
           due_date: string | null
+          exchange_rate: number | null
           id: string
           invoice_date: string
           invoice_number: string | null
           invoice_type: string
+          last_sent_at: string | null
           linked_transaction_id: string | null
           notes: string | null
+          notes_internal: string | null
           paid_amount: number | null
           payment_method: string | null
           payment_status: string | null
+          payment_terms: string | null
+          pdf_url: string | null
           remaining_amount: number | null
+          salesperson_id: string | null
+          sent_via: string[] | null
           source: string | null
           status: string | null
           subtotal: number
           tax_amount: number | null
+          tax_inclusive: boolean | null
           total_amount: number
           updated_at: string
           user_id: string
         }
         Insert: {
+          amount_in_words?: string | null
+          billing_address?: string | null
           contact_id?: string | null
           contact_name?: string | null
           created_at?: string
           currency?: string | null
           discount_amount?: number | null
           due_date?: string | null
+          exchange_rate?: number | null
           id?: string
           invoice_date?: string
           invoice_number?: string | null
           invoice_type?: string
+          last_sent_at?: string | null
           linked_transaction_id?: string | null
           notes?: string | null
+          notes_internal?: string | null
           paid_amount?: number | null
           payment_method?: string | null
           payment_status?: string | null
+          payment_terms?: string | null
+          pdf_url?: string | null
           remaining_amount?: number | null
+          salesperson_id?: string | null
+          sent_via?: string[] | null
           source?: string | null
           status?: string | null
           subtotal?: number
           tax_amount?: number | null
+          tax_inclusive?: boolean | null
           total_amount?: number
           updated_at?: string
           user_id: string
         }
         Update: {
+          amount_in_words?: string | null
+          billing_address?: string | null
           contact_id?: string | null
           contact_name?: string | null
           created_at?: string
           currency?: string | null
           discount_amount?: number | null
           due_date?: string | null
+          exchange_rate?: number | null
           id?: string
           invoice_date?: string
           invoice_number?: string | null
           invoice_type?: string
+          last_sent_at?: string | null
           linked_transaction_id?: string | null
           notes?: string | null
+          notes_internal?: string | null
           paid_amount?: number | null
           payment_method?: string | null
           payment_status?: string | null
+          payment_terms?: string | null
+          pdf_url?: string | null
           remaining_amount?: number | null
+          salesperson_id?: string | null
+          sent_via?: string[] | null
           source?: string | null
           status?: string | null
           subtotal?: number
           tax_amount?: number | null
+          tax_inclusive?: boolean | null
           total_amount?: number
           updated_at?: string
           user_id?: string

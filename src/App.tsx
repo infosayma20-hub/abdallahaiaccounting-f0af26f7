@@ -28,6 +28,7 @@ import AuthPage from "./pages/AuthPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import PricingPage from "./pages/PricingPage";
 import InvoicesPage from "./pages/InvoicesPage";
+import InvoiceCreatePage from "./pages/InvoiceCreatePage";
 import InventoryPage from "./pages/InventoryPage";
 import StockMovementsPage from "./pages/StockMovementsPage";
 import InventoryValuationPage from "./pages/InventoryValuationPage";
@@ -197,6 +198,7 @@ const App = () => (
                       <Route path="/smart-report" element={<SmartReportPage />} />
                       {/* pricing is now a public route */}
                       <Route path="/invoices" element={<InvoicesPage />} />
+                      <Route path="/invoices/new" element={<InvoiceCreatePage />} />
                       <Route path="/inventory" element={<InventoryPage />} />
                       <Route path="/reports" element={<ReportsPage />} />
                       <Route path="/cheques" element={<ChequesPage />} />
