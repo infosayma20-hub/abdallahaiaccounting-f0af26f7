@@ -133,19 +133,19 @@ const SmartAccountantOnboarding = ({ userName, onComplete, onSkip }: Props) => {
               transition={{ duration: 0.4 }}
               className="text-center space-y-8"
             >
-              <p className="text-xs font-medium" style={{ color: "rgba(201,168,76,0.8)" }}>الخطوة 1 من 4</p>
+              <p className="text-xs font-medium text-[#C9A84C]">الخطوة 1 من 4</p>
               
               <div className="space-y-4">
                 <div className="text-6xl">🤖</div>
-                <h1 className="text-2xl font-extrabold text-white" style={{ fontFamily: "Tajawal, sans-serif" }}>
+                <h1 className="text-2xl font-extrabold text-slate-900" style={{ fontFamily: "Tajawal, sans-serif" }}>
                   أنا محاسبك الشخصي الذكي
                 </h1>
-                <p className="text-sm leading-relaxed" style={{ color: "rgba(255,255,255,0.7)" }}>
+                <p className="text-sm leading-relaxed text-slate-600">
                   احكِ معي بالعربي العادي — أنا أفهم وأسجّل
                 </p>
-                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full" style={{ background: "rgba(201,168,76,0.15)", border: "1px solid rgba(201,168,76,0.3)" }}>
-                  <Zap className="h-4 w-4" style={{ color: "#C9A84C" }} />
-                  <span className="text-sm font-bold" style={{ color: "#C9A84C" }}>كل عملية في 5 ثواني بدل دقائق</span>
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#C9A84C]/15 border border-[#C9A84C]/30">
+                  <Zap className="h-4 w-4 text-[#C9A84C]" />
+                  <span className="text-sm font-bold text-[#C9A84C]">كل عملية في 5 ثواني بدل دقائق</span>
                 </div>
               </div>
 
@@ -158,8 +158,7 @@ const SmartAccountantOnboarding = ({ userName, onComplete, onSkip }: Props) => {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -15 }}
                     transition={{ duration: 0.3 }}
-                    className="px-5 py-3 rounded-2xl text-sm font-medium"
-                    style={{ background: "rgba(255,255,255,0.1)", color: "white", border: "1px solid rgba(255,255,255,0.15)" }}
+                    className="px-5 py-3 rounded-2xl text-sm font-medium bg-slate-100 text-slate-800 border border-slate-200"
                   >
                     → {EXAMPLES_STEP1[exampleIdx]}
                   </motion.div>
@@ -168,8 +167,7 @@ const SmartAccountantOnboarding = ({ userName, onComplete, onSkip }: Props) => {
 
               <button
                 onClick={() => setStep(1)}
-                className="px-8 py-3 rounded-2xl text-sm font-bold transition-all hover:opacity-90 active:scale-95"
-                style={{ background: "#C9A84C", color: "#1B3A5C" }}
+                className="px-8 py-3 rounded-2xl text-sm font-bold transition-all hover:opacity-90 active:scale-95 bg-[#C9A84C] text-slate-900"
               >
                 التالي ←
               </button>
