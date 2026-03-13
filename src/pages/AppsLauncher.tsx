@@ -4,7 +4,7 @@ import { Search, ChevronDown, ArrowLeft } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useOnboarding } from "@/hooks/useOnboarding";
 import WelcomeModal from "@/components/onboarding/WelcomeModal";
-import AppTourModal from "@/components/onboarding/AppTourModal";
+import SpotlightTour from "@/components/onboarding/SpotlightTour";
 import { motion } from "framer-motion";
 import { Input } from "@/components/ui/input";
 
@@ -154,9 +154,8 @@ const AppsLauncher = () => {
       {!onboardingLoading && (
         <>
           <WelcomeModal open={shouldShowWelcome} onStartTour={handleStartTour} onSkip={handleSkipWelcome} />
-          <AppTourModal
-            open={tourActive || shouldShowTour}
-            businessType={businessType}
+          <SpotlightTour
+            active={tourActive || shouldShowTour}
             onComplete={handleTourComplete}
             onSkip={handleTourSkip}
           />
