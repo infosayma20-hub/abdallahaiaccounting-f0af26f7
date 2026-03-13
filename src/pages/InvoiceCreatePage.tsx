@@ -949,7 +949,7 @@ const InvoiceCreatePage = () => {
                 <Send className="h-4 w-4" /> إرسال <ChevronDown className="h-3 w-3" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" dir="rtl">
+            <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={handleWhatsApp} className="gap-2">📱 إرسال واتساب</DropdownMenuItem>
               <DropdownMenuItem className="gap-2">📧 إرسال إيميل</DropdownMenuItem>
               <DropdownMenuItem className="gap-2">📋 نسخ رابط الفاتورة</DropdownMenuItem>
