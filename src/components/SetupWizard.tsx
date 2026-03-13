@@ -1,87 +1,230 @@
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Loader2, ChevronLeft, Store, Briefcase, UtensilsCrossed, ShoppingCart, HardHat, MoreHorizontal, Package, Users, HandCoins } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Loader2, ChevronLeft, Building2, MapPin, Zap, SkipForward } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { FinixLogo } from "@/components/ui/FinixLogo";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface SetupWizardProps {
   userId: string;
   onComplete: () => void;
 }
 
-type BusinessType = "تجارة" | "خدمات" | "مطعم" | "متجر إلكتروني" | "مقاولات" | "أخرى";
+type BusinessType = "تجارة" | "خدمات" | "مطعم" | "متجر إلكتروني" | "مقاولات" | "عيادة" | "تعليم" | "أخرى";
 
 interface SetupData {
+  companyName: string;
+  city: string;
   businessType: BusinessType | null;
-  hasInventory: boolean | null;
-  hasReceivables: boolean | null;
+  currency: string;
+  customCurrency: string;
+  vatEnabled: boolean | null;
+  vatRate: number;
+  inventoryMethod: string;
   hasEmployees: boolean | null;
+  employeeRange: string;
+  hasPOS: boolean | null;
+  posCount: number;
+  invoicePrefix: string;
+  invoiceStartNumber: number;
+  paymentTerms: string;
+  cashBalance: number;
+  hasBankAccount: boolean;
+  bankName: string;
+  bankBalance: number;
 }
 
-const businessTypes: { value: BusinessType; label: string; icon: React.ElementType; emoji: string }[] = [
-  { value: "تجارة", label: "تجارة", icon: Store, emoji: "🏪" },
-  { value: "خدمات", label: "خدمات", icon: Briefcase, emoji: "💼" },
-  { value: "مطعم", label: "مطعم / كافيه", icon: UtensilsCrossed, emoji: "🍽️" },
-  { value: "متجر إلكتروني", label: "متجر إلكتروني", icon: ShoppingCart, emoji: "🛒" },
-  { value: "مقاولات", label: "مقاولات", icon: HardHat, emoji: "🏗️" },
-  { value: "أخرى", label: "نشاط آخر", icon: MoreHorizontal, emoji: "📋" },
+const BUSINESS_TYPES: { value: BusinessType; label: string; sublabel: string; emoji: string; modules: string }[] = [
+  { value: "تجارة", label: "تجارة", sublabel: "وتوزيع", emoji: "🏪", modules: "المبيعات + المخزون + نقطة البيع" },
+  { value: "خدمات", label: "خدمات", sublabel: "مهنية", emoji: "🛠️", modules: "المبيعات + الفواتير + التقارير" },
+  { value: "مطعم", label: "مطعم / كافيه", sublabel: "", emoji: "🍽️", modules: "المبيعات + المخزون + نقطة البيع + الطاولات" },
+  { value: "مقاولات", label: "مقاولات", sublabel: "وإنشاء", emoji: "🏗️", modules: "المبيعات + المشتريات + محاسب المشاريع" },
+  { value: "متجر إلكتروني", label: "متجر", sublabel: "إلكتروني", emoji: "🛒", modules: "المبيعات + المخزون + المتاجر" },
+  { value: "عيادة", label: "عيادة /", sublabel: "صيدلية", emoji: "🏥", modules: "المبيعات + الفواتير + التقارير" },
+  { value: "تعليم", label: "تعليم /", sublabel: "تدريب", emoji: "📚", modules: "المبيعات + الفواتير + التقارير" },
+  { value: "أخرى", label: "نشاط", sublabel: "آخر", emoji: "⚙️", modules: "جميع الوحدات مفعّلة" },
 ];
+
+const CURRENCIES = [
+  { code: "ILS", symbol: "₪", label: "شيكل" },
+  { code: "USD", symbol: "$", label: "دولار" },
+  { code: "JOD", symbol: "د.أ", label: "دينار" },
+];
+
+const needsInventory = (bt: BusinessType | null) =>
+  bt ? ["تجارة", "مطعم", "متجر إلكتروني"].includes(bt) : false;
+
+const TOTAL_STEPS = 6;
+
+const pageVariants = {
+  enter: { opacity: 0, y: 30 },
+  center: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -20 },
+};
 
 const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
   const { toast } = useToast();
-  const [step, setStep] = useState(0);
+  // -1 = welcome, 0-5 = steps 1-6, 7 = completion
+  const [step, setStep] = useState(-1);
   const [saving, setSaving] = useState(false);
+  const [userName, setUserName] = useState("");
   const [data, setData] = useState<SetupData>({
+    companyName: "",
+    city: "",
     businessType: null,
-    hasInventory: null,
-    hasReceivables: null,
+    currency: "ILS",
+    customCurrency: "",
+    vatEnabled: null,
+    vatRate: 17,
+    inventoryMethod: "weighted_average",
     hasEmployees: null,
+    employeeRange: "1-10",
+    hasPOS: null,
+    posCount: 1,
+    invoicePrefix: "INV",
+    invoiceStartNumber: 1,
+    paymentTerms: "cash",
+    cashBalance: 0,
+    hasBankAccount: false,
+    bankName: "",
+    bankBalance: 0,
   });
+  const [completedItems, setCompletedItems] = useState<string[]>([]);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("display_name, company_name")
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (profile) {
+        setUserName(profile.display_name || "");
+        if (profile.company_name && profile.company_name !== "شركتي") {
+          setData(d => ({ ...d, companyName: profile.company_name || "" }));
+        }
+      }
+    };
+    fetchUser();
+  }, [userId]);
+
+  const update = useCallback((partial: Partial<SetupData>) => {
+    setData(d => ({ ...d, ...partial }));
+  }, []);
+
+  const handleSkipAll = async () => {
+    setSaving(true);
+    try {
+      await supabase.functions.invoke("setup-accounts", {
+        body: { userId, businessType: "أخرى", hasInventory: true, hasReceivables: true, hasEmployees: false },
+      });
+      await supabase.from("profiles").update({ setup_completed: true, business_type: "أخرى" }).eq("user_id", userId);
+      await supabase.from("company_settings" as any).upsert({
+        user_id: userId,
+        onboarding_completed: true,
+        onboarding_skipped: true,
+        onboarding_completed_at: new Date().toISOString(),
+      } as any, { onConflict: "user_id" });
+      onComplete();
+    } catch {
+      toast({ title: "خطأ", variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const handleFinish = async () => {
     setSaving(true);
     try {
-      // Create accounts first (critical)
-      const { error } = await supabase.functions.invoke("setup-accounts", {
+      const hasInv = needsInventory(data.businessType);
+      
+      // 1. Setup accounts
+      await supabase.functions.invoke("setup-accounts", {
         body: {
           userId,
-          businessType: data.businessType,
-          hasInventory: data.hasInventory,
-          hasReceivables: data.hasReceivables,
-          hasEmployees: data.hasEmployees,
+          businessType: data.businessType || "أخرى",
+          hasInventory: hasInv,
+          hasReceivables: true,
+          hasEmployees: data.hasEmployees ?? false,
         },
       });
 
-      if (error) throw error;
-
-      // Verify accounts were created (or already exist)
-      const { count: accountsCount, error: countError } = await supabase
+      // 2. Verify accounts
+      const { count } = await supabase
         .from("accounts")
         .select("id", { count: "exact", head: true })
         .eq("user_id", userId);
+      if (!count || count === 0) throw new Error("لم يتم إنشاء شجرة الحسابات");
 
-      if (countError) throw countError;
-      if (!accountsCount || accountsCount === 0) {
-        throw new Error("لم يتم إنشاء شجرة الحسابات، حاول مرة أخرى");
+      // 3. Update profile
+      await supabase.from("profiles").update({
+        setup_completed: true,
+        business_type: data.businessType,
+        has_inventory: hasInv,
+        has_receivables: true,
+        has_employees: data.hasEmployees ?? false,
+        company_name: data.companyName || undefined,
+      }).eq("user_id", userId);
+
+      // 4. Update company settings
+      const settingsPayload: Record<string, any> = {
+        user_id: userId,
+        company_name: data.companyName || null,
+        city: data.city || null,
+        business_type: data.businessType,
+        base_currency: data.currency === "other" ? data.customCurrency : data.currency,
+        vat_enabled: data.vatEnabled ?? false,
+        vat_rate: data.vatEnabled ? data.vatRate : 0,
+        inventory_method: data.inventoryMethod,
+        has_employees: data.hasEmployees ?? false,
+        employee_count_range: data.hasEmployees ? data.employeeRange : null,
+        has_pos: data.hasPOS ?? false,
+        pos_count: data.hasPOS ? data.posCount : 0,
+        invoice_prefix: data.invoicePrefix,
+        default_payment_terms: data.paymentTerms === "cash" ? "نقدي" : data.paymentTerms === "net15" ? "صافي 15" : data.paymentTerms === "net30" ? "صافي 30" : "صافي 60",
+        onboarding_completed: true,
+        onboarding_skipped: false,
+        onboarding_completed_at: new Date().toISOString(),
+      };
+      await supabase.from("company_settings" as any).upsert(settingsPayload as any, { onConflict: "user_id" });
+
+      // 5. Create cash box if balance > 0
+      if (data.cashBalance > 0) {
+        await supabase.from("cash_boxes").upsert({
+          user_id: userId,
+          name: "الخزينة الرئيسية",
+          type: "main",
+          opening_balance: data.cashBalance,
+          opening_balance_date: new Date().toISOString().split("T")[0],
+          currency: data.currency === "other" ? data.customCurrency : (data.currency === "ILS" ? "شيكل" : data.currency),
+        }, { onConflict: "user_id,name" as any });
       }
 
-      // Mark setup complete only after successful accounts creation
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .update({
-          business_type: data.businessType,
-          has_inventory: data.hasInventory ?? false,
-          has_receivables: data.hasReceivables ?? false,
-          has_employees: data.hasEmployees ?? false,
-          setup_completed: true,
-        })
-        .eq("user_id", userId);
+      // 6. Create bank account if needed
+      if (data.hasBankAccount && data.bankName) {
+        await supabase.from("bank_accounts").insert({
+          user_id: userId,
+          name: data.bankName,
+          bank_name: data.bankName,
+          opening_balance: data.bankBalance,
+          opening_balance_date: new Date().toISOString().split("T")[0],
+          currency: data.currency === "other" ? data.customCurrency : (data.currency === "ILS" ? "شيكل" : data.currency),
+        });
+      }
 
-      if (profileError) throw profileError;
+      // Build completion items
+      const items: string[] = [];
+      items.push(`شجرة حسابات لـ ${data.businessType || "نشاطك"}`);
+      if (data.cashBalance > 0) items.push(`الصندوق الرئيسي — رصيد ₪${data.cashBalance.toLocaleString()}`);
+      items.push(`تسلسل الفواتير: ${data.invoicePrefix}-2026-0001`);
+      const mods: string[] = ["المحاسبة"];
+      if (hasInv) mods.push("المخزون");
+      if (data.hasPOS) mods.push("نقطة البيع");
+      if (data.hasEmployees) mods.push("الموارد البشرية");
+      items.push(mods.join(" + "));
+      setCompletedItems(items);
 
-      toast({ title: "✅ تم إعداد نظامك المالي بنجاح!" });
-      onComplete();
+      setStep(7); // completion screen
     } catch (err: any) {
       console.error("Setup error:", err);
       toast({ title: "خطأ في الإعداد", description: err.message, variant: "destructive" });
@@ -91,188 +234,632 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
   };
 
   const goNext = () => {
-    if (step < 3) setStep(step + 1);
-    else handleFinish();
-  };
-
-  const canProceed = () => {
-    switch (step) {
-      case 0: return data.businessType !== null;
-      case 1: return data.hasInventory !== null;
-      case 2: return data.hasReceivables !== null;
-      case 3: return data.hasEmployees !== null;
-      default: return false;
+    if (step === 5) {
+      handleFinish();
+    } else {
+      setStep(s => s + 1);
     }
   };
 
+  const goBack = () => setStep(s => Math.max(-1, s - 1));
+
+  const handleSkipStep = () => goNext();
+
+  const progressPct = step < 0 ? 0 : ((step + 1) / TOTAL_STEPS) * 100;
+
+  // ─── Render ───
   return (
-    <div className="fixed inset-0 z-[70] bg-background flex flex-col" dir="rtl">
-      {/* Progress bar */}
-      <div className="px-6 pt-6 pb-2">
-        <div className="flex gap-1.5">
-          {[0, 1, 2, 3].map((i) => (
-            <div
-              key={i}
-              className={`h-1.5 flex-1 rounded-full transition-all duration-500 ${
-                i <= step ? "bg-primary" : "bg-muted"
-              }`}
+    <div className="fixed inset-0 z-[70] bg-background flex flex-col overflow-hidden" dir="rtl">
+      {/* Progress Bar */}
+      {step >= 0 && step <= 5 && (
+        <div className="px-6 pt-5 pb-2">
+          <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+            <motion.div
+              className="h-full bg-primary rounded-full"
+              initial={{ width: 0 }}
+              animate={{ width: `${progressPct}%` }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
             />
-          ))}
+          </div>
+          <p className="text-[11px] text-muted-foreground mt-2 text-center">
+            الخطوة {step + 1} من {TOTAL_STEPS}
+          </p>
         </div>
-        <p className="text-[11px] text-muted-foreground mt-2 text-center">
-          الخطوة {step + 1} من 4
-        </p>
-      </div>
+      )}
 
       {/* Content */}
-      <div className="flex-1 flex flex-col items-center justify-center px-6">
-        {/* Step 0: Business Type */}
-        {step === 0 && (
-          <div className="w-full max-w-sm animate-in fade-in slide-in-from-bottom-4 duration-400">
-            <div className="text-center mb-8">
-              <div className="text-5xl mb-4">🏢</div>
-              <h2 className="text-2xl font-bold text-foreground mb-2">ما نوع نشاطك؟</h2>
-              <p className="text-sm text-muted-foreground">سنجهّز لك النظام المالي المناسب تلقائياً</p>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              {businessTypes.map((bt) => (
+      <div className="flex-1 flex flex-col items-center justify-center px-6 overflow-y-auto">
+        <AnimatePresence mode="wait">
+          {/* ─── Welcome Screen ─── */}
+          {step === -1 && (
+            <motion.div key="welcome" variants={pageVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.3 }} className="w-full max-w-md text-center space-y-8">
+              <motion.div
+                animate={{ scale: [1, 1.05, 1] }}
+                transition={{ repeat: Infinity, duration: 2.5, ease: "easeInOut" }}
+              >
+                <FinixLogo variant="full" size="lg" className="mx-auto" />
+              </motion.div>
+              <div className="space-y-3">
+                <h1 className="text-2xl md:text-3xl font-extrabold text-foreground">
+                  مرحباً {userName ? userName.split(" ")[0] : ""} 👋
+                </h1>
+                <p className="text-muted-foreground text-sm">
+                  سنجهّز نظامك في أقل من دقيقتين
+                </p>
+              </div>
+              <div className="flex items-center justify-center gap-2">
+                {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
+                  <div key={i} className="w-2.5 h-2.5 rounded-full bg-muted" />
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                6 أسئلة سريعة تساعدنا على تهيئة نظام محاسبي مثالي لعملك
+              </p>
+              <div className="space-y-3 pt-2">
                 <button
-                  key={bt.value}
-                  onClick={() => setData({ ...data, businessType: bt.value })}
-                  className={`flex flex-col items-center gap-2.5 p-4 rounded-2xl border-2 transition-all active:scale-[0.97] ${
-                    data.businessType === bt.value
-                      ? "border-primary bg-primary/10 shadow-md shadow-primary/15"
-                      : "border-border bg-card hover:border-primary/30 hover:bg-primary/5"
-                  }`}
+                  onClick={() => setStep(0)}
+                  className="w-full h-14 rounded-2xl bg-primary text-primary-foreground text-base font-bold shadow-lg shadow-primary/20 hover:opacity-90 transition-all flex items-center justify-center gap-2"
                 >
-                  <span className="text-2xl">{bt.emoji}</span>
-                  <span className="text-xs font-semibold text-foreground">{bt.label}</span>
+                  <Zap className="h-5 w-5" />
+                  هيّا نبدأ
                 </button>
-              ))}
-            </div>
-          </div>
-        )}
+                <button
+                  onClick={handleSkipAll}
+                  disabled={saving}
+                  className="w-full py-2 text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center justify-center gap-1"
+                >
+                  {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <SkipForward className="h-3 w-3" />}
+                  تخطّي كل شيء — ادخل مباشرة
+                </button>
+              </div>
+            </motion.div>
+          )}
 
-        {/* Step 1: Inventory */}
-        {step === 1 && (
-          <div className="w-full max-w-sm animate-in fade-in slide-in-from-bottom-4 duration-400">
-            <div className="text-center mb-8">
-              <div className="text-5xl mb-4">📦</div>
-              <h2 className="text-2xl font-bold text-foreground mb-2">هل لديك مخزون؟</h2>
-              <p className="text-sm text-muted-foreground">هل تتعامل مع بضاعة أو منتجات تحتاج متابعة كمياتها؟</p>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <YesNoCard
-                selected={data.hasInventory === true}
-                onClick={() => setData({ ...data, hasInventory: true })}
-                emoji="✅"
-                label="نعم، لدي مخزون"
-              />
-              <YesNoCard
-                selected={data.hasInventory === false}
-                onClick={() => setData({ ...data, hasInventory: false })}
-                emoji="❌"
-                label="لا، لا أحتاج"
-              />
-            </div>
-          </div>
-        )}
+          {/* ─── Step 1: Company Info ─── */}
+          {step === 0 && (
+            <motion.div key="s1" variants={pageVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.3 }} className="w-full max-w-md">
+              <div className="text-center mb-8">
+                <div className="text-5xl mb-4">🏢</div>
+                <h2 className="text-2xl font-bold text-foreground mb-2">ما اسم شركتك أو نشاطك؟</h2>
+                <p className="text-sm text-muted-foreground">سيظهر هذا الاسم في فواتيرك وتقاريرك</p>
+              </div>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Building2 className="h-4 w-4" />
+                    <span>اسم الشركة / النشاط</span>
+                  </div>
+                  <input
+                    type="text"
+                    value={data.companyName}
+                    onChange={e => update({ companyName: e.target.value })}
+                    placeholder="مثال: شركة النور للتجارة"
+                    className="w-full h-12 px-4 rounded-xl border border-border bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
+                    autoFocus
+                  />
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <MapPin className="h-4 w-4" />
+                    <span>المدينة</span>
+                  </div>
+                  <input
+                    type="text"
+                    value={data.city}
+                    onChange={e => update({ city: e.target.value })}
+                    placeholder="مثال: رام الله / نابلس / عمّان"
+                    className="w-full h-12 px-4 rounded-xl border border-border bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
+                  />
+                </div>
+                <p className="text-[11px] text-muted-foreground text-center pt-2">
+                  يمكنك إضافة الشعار والعنوان الكامل لاحقاً من الإعدادات
+                </p>
+              </div>
+            </motion.div>
+          )}
 
-        {/* Step 2: Receivables */}
-        {step === 2 && (
-          <div className="w-full max-w-sm animate-in fade-in slide-in-from-bottom-4 duration-400">
-            <div className="text-center mb-8">
-              <div className="text-5xl mb-4">💳</div>
-              <h2 className="text-2xl font-bold text-foreground mb-2">هل تبيع بالآجل؟</h2>
-              <p className="text-sm text-muted-foreground">هل لديك زبائن يشترون الآن ويدفعون لاحقاً؟</p>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <YesNoCard
-                selected={data.hasReceivables === true}
-                onClick={() => setData({ ...data, hasReceivables: true })}
-                emoji="✅"
-                label="نعم، بيع آجل"
-              />
-              <YesNoCard
-                selected={data.hasReceivables === false}
-                onClick={() => setData({ ...data, hasReceivables: false })}
-                emoji="❌"
-                label="لا، نقدي فقط"
-              />
-            </div>
-          </div>
-        )}
+          {/* ─── Step 2: Business Type ─── */}
+          {step === 1 && (
+            <motion.div key="s2" variants={pageVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.3 }} className="w-full max-w-lg">
+              <div className="text-center mb-8">
+                <div className="text-5xl mb-4">📊</div>
+                <h2 className="text-2xl font-bold text-foreground mb-2">ما طبيعة نشاطك التجاري؟</h2>
+                <p className="text-sm text-muted-foreground">سنهيئ الوحدات المناسبة لك تلقائياً</p>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {BUSINESS_TYPES.map(bt => (
+                  <button
+                    key={bt.value}
+                    onClick={() => update({ businessType: bt.value })}
+                    className={`flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all active:scale-[0.97] ${
+                      data.businessType === bt.value
+                        ? "border-primary bg-primary/10 shadow-md shadow-primary/15"
+                        : "border-border bg-card hover:border-primary/30 hover:bg-primary/5"
+                    }`}
+                  >
+                    <span className="text-3xl">{bt.emoji}</span>
+                    <span className="text-xs font-bold text-foreground">{bt.label}</span>
+                    {bt.sublabel && <span className="text-[10px] text-muted-foreground -mt-1">{bt.sublabel}</span>}
+                  </button>
+                ))}
+              </div>
+              {data.businessType && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mt-4 text-center"
+                >
+                  <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-emerald-500/10 text-emerald-600 text-xs font-bold">
+                    ✓ سنفعّل: {BUSINESS_TYPES.find(b => b.value === data.businessType)?.modules}
+                  </span>
+                </motion.div>
+              )}
+            </motion.div>
+          )}
 
-        {/* Step 3: Employees */}
-        {step === 3 && (
-          <div className="w-full max-w-sm animate-in fade-in slide-in-from-bottom-4 duration-400">
-            <div className="text-center mb-8">
-              <div className="text-5xl mb-4">👥</div>
-              <h2 className="text-2xl font-bold text-foreground mb-2">هل لديك موظفين؟</h2>
-              <p className="text-sm text-muted-foreground">هل تدفع رواتب لفريق عمل؟</p>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <YesNoCard
-                selected={data.hasEmployees === true}
-                onClick={() => setData({ ...data, hasEmployees: true })}
-                emoji="✅"
-                label="نعم، لدي موظفين"
-              />
-              <YesNoCard
-                selected={data.hasEmployees === false}
-                onClick={() => setData({ ...data, hasEmployees: false })}
-                emoji="❌"
-                label="لا، أعمل وحدي"
-              />
-            </div>
-          </div>
-        )}
+          {/* ─── Step 3: Financial Settings ─── */}
+          {step === 2 && (
+            <motion.div key="s3" variants={pageVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.3 }} className="w-full max-w-md">
+              <div className="text-center mb-8">
+                <div className="text-5xl mb-4">💱</div>
+                <h2 className="text-2xl font-bold text-foreground mb-2">كيف تعمل مالياً؟</h2>
+                <p className="text-sm text-muted-foreground">3 إعدادات تحدد آلية عمل حساباتك</p>
+              </div>
+              <div className="space-y-6">
+                {/* Currency */}
+                <div className="space-y-2">
+                  <label className="text-sm font-bold text-foreground flex items-center gap-2">💱 العملة الأساسية</label>
+                  <div className="flex gap-2">
+                    {CURRENCIES.map(c => (
+                      <button
+                        key={c.code}
+                        onClick={() => update({ currency: c.code })}
+                        className={`flex-1 py-3 rounded-xl border-2 text-sm font-bold transition-all ${
+                          data.currency === c.code
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border bg-card text-muted-foreground hover:border-primary/30"
+                        }`}
+                      >
+                        {c.symbol} {c.label}
+                      </button>
+                    ))}
+                    <button
+                      onClick={() => update({ currency: "other" })}
+                      className={`flex-1 py-3 rounded-xl border-2 text-sm font-bold transition-all ${
+                        data.currency === "other"
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border bg-card text-muted-foreground hover:border-primary/30"
+                      }`}
+                    >
+                      أخرى
+                    </button>
+                  </div>
+                  {data.currency === "other" && (
+                    <input
+                      type="text"
+                      value={data.customCurrency}
+                      onChange={e => update({ customCurrency: e.target.value })}
+                      placeholder="أدخل رمز العملة (مثال: EUR)"
+                      className="w-full h-10 px-4 rounded-xl border border-border bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    />
+                  )}
+                </div>
+
+                {/* VAT */}
+                <div className="space-y-2">
+                  <label className="text-sm font-bold text-foreground flex items-center gap-2">🧾 ضريبة القيمة المضافة</label>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => update({ vatEnabled: false })}
+                      className={`flex-1 py-3 rounded-xl border-2 text-sm font-bold transition-all ${
+                        data.vatEnabled === false
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border bg-card text-muted-foreground hover:border-primary/30"
+                      }`}
+                    >
+                      لا — معفي
+                    </button>
+                    <button
+                      onClick={() => update({ vatEnabled: true })}
+                      className={`flex-1 py-3 rounded-xl border-2 text-sm font-bold transition-all ${
+                        data.vatEnabled === true
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border bg-card text-muted-foreground hover:border-primary/30"
+                      }`}
+                    >
+                      نعم — أحسب الضريبة
+                    </button>
+                  </div>
+                  {data.vatEnabled && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground">النسبة:</span>
+                      <input
+                        type="number"
+                        value={data.vatRate}
+                        onChange={e => update({ vatRate: parseFloat(e.target.value) || 0 })}
+                        className="w-20 h-10 px-3 rounded-xl border border-border bg-card text-foreground text-sm text-center focus:outline-none focus:ring-2 focus:ring-primary/30"
+                      />
+                      <span className="text-sm text-muted-foreground">%</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Inventory Method */}
+                {needsInventory(data.businessType) && (
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-foreground flex items-center gap-2">📦 طريقة تقييم المخزون</label>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => update({ inventoryMethod: "fifo" })}
+                        className={`flex-1 py-3 px-2 rounded-xl border-2 text-xs font-bold transition-all ${
+                          data.inventoryMethod === "fifo"
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border bg-card text-muted-foreground hover:border-primary/30"
+                        }`}
+                      >
+                        <div>FIFO</div>
+                        <div className="font-normal text-[10px] mt-0.5 opacity-70">الأول يدخل أول يخرج</div>
+                      </button>
+                      <button
+                        onClick={() => update({ inventoryMethod: "weighted_average" })}
+                        className={`flex-1 py-3 px-2 rounded-xl border-2 text-xs font-bold transition-all ${
+                          data.inventoryMethod === "weighted_average"
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border bg-card text-muted-foreground hover:border-primary/30"
+                        }`}
+                      >
+                        <div>متوسط مرجّح</div>
+                        <div className="font-normal text-[10px] mt-0.5 opacity-70">الأبسط والأشيع</div>
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+
+          {/* ─── Step 4: POS & Employees ─── */}
+          {step === 3 && (
+            <motion.div key="s4" variants={pageVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.3 }} className="w-full max-w-md">
+              <div className="text-center mb-8">
+                <div className="text-5xl mb-4">👥</div>
+                <h2 className="text-2xl font-bold text-foreground mb-2">هل لديك فريق عمل أو نقطة بيع؟</h2>
+                <p className="text-sm text-muted-foreground">سنجهّز الصلاحيات وأنظمة البيع</p>
+              </div>
+              <div className="space-y-6">
+                {/* Employees */}
+                <div className="space-y-3">
+                  <label className="text-sm font-bold text-foreground flex items-center gap-2">👥 هل لديك موظفون؟</label>
+                  <div className="flex gap-3">
+                    <ToggleCard
+                      selected={data.hasEmployees === false}
+                      onClick={() => update({ hasEmployees: false })}
+                      emoji="🙋"
+                      label="لا، أعمل وحدي"
+                    />
+                    <ToggleCard
+                      selected={data.hasEmployees === true}
+                      onClick={() => update({ hasEmployees: true })}
+                      emoji="👥"
+                      label="نعم، لدي فريق"
+                    />
+                  </div>
+                  {data.hasEmployees && (
+                    <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="space-y-2">
+                      <span className="text-xs text-muted-foreground">عدد الموظفين التقريبي</span>
+                      <div className="flex gap-2">
+                        {["1-10", "10-25", "25-50", "50+"].map(r => (
+                          <button
+                            key={r}
+                            onClick={() => update({ employeeRange: r })}
+                            className={`flex-1 py-2 rounded-lg border text-xs font-bold transition-all ${
+                              data.employeeRange === r
+                                ? "border-primary bg-primary/10 text-primary"
+                                : "border-border bg-card text-muted-foreground"
+                            }`}
+                          >
+                            {r}
+                          </button>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+                </div>
+
+                {/* POS */}
+                <div className="space-y-3">
+                  <label className="text-sm font-bold text-foreground flex items-center gap-2">🖥️ هل لديك نقطة بيع (كاشير)؟</label>
+                  <div className="flex gap-3">
+                    <ToggleCard
+                      selected={data.hasPOS === false}
+                      onClick={() => update({ hasPOS: false })}
+                      emoji="🧾"
+                      label="لا، بالفاتورة فقط"
+                    />
+                    <ToggleCard
+                      selected={data.hasPOS === true}
+                      onClick={() => update({ hasPOS: true })}
+                      emoji="🖥️"
+                      label="نعم، لدي كاشير"
+                    />
+                  </div>
+                  {data.hasPOS && (
+                    <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="flex items-center gap-3">
+                      <span className="text-xs text-muted-foreground">عدد نقاط البيع:</span>
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => update({ posCount: Math.max(1, data.posCount - 1) })} className="w-8 h-8 rounded-lg border border-border bg-card text-foreground flex items-center justify-center font-bold">−</button>
+                        <span className="text-sm font-bold w-6 text-center">{data.posCount}</span>
+                        <button onClick={() => update({ posCount: data.posCount + 1 })} className="w-8 h-8 rounded-lg border border-border bg-card text-foreground flex items-center justify-center font-bold">+</button>
+                      </div>
+                    </motion.div>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* ─── Step 5: Invoice Settings ─── */}
+          {step === 4 && (
+            <motion.div key="s5" variants={pageVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.3 }} className="w-full max-w-md">
+              <div className="text-center mb-8">
+                <div className="text-5xl mb-4">🧾</div>
+                <h2 className="text-2xl font-bold text-foreground mb-2">كيف تريد ترقيم فواتيرك؟</h2>
+                <p className="text-sm text-muted-foreground">هذا سيُطبَّق على أول فاتورة تنشئها</p>
+              </div>
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <label className="text-sm font-bold text-foreground">📄 بادئة رقم الفاتورة</label>
+                  <input
+                    type="text"
+                    value={data.invoicePrefix}
+                    onChange={e => update({ invoicePrefix: e.target.value.toUpperCase() })}
+                    className="w-full h-12 px-4 rounded-xl border border-border bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    dir="ltr"
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    ستبدو فاتورتك: <span className="font-mono font-bold text-foreground">{data.invoicePrefix}-2026-{String(data.invoiceStartNumber).padStart(4, "0")}</span>
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-bold text-foreground">🔢 من أي رقم تبدأ؟</label>
+                  <input
+                    type="number"
+                    value={data.invoiceStartNumber}
+                    onChange={e => update({ invoiceStartNumber: parseInt(e.target.value) || 1 })}
+                    className="w-32 h-12 px-4 rounded-xl border border-border bg-card text-foreground text-sm text-center focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    min={1}
+                    dir="ltr"
+                  />
+                  <p className="text-[11px] text-muted-foreground">إذا كان لديك فواتير سابقة اكتب رقمها الأخير</p>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-bold text-foreground">⏰ شروط الدفع الافتراضية</label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {[
+                      { key: "cash", label: "نقدي فوري" },
+                      { key: "net15", label: "صافي 15" },
+                      { key: "net30", label: "صافي 30" },
+                      { key: "net60", label: "صافي 60" },
+                    ].map(t => (
+                      <button
+                        key={t.key}
+                        onClick={() => update({ paymentTerms: t.key })}
+                        className={`py-2.5 rounded-xl border-2 text-xs font-bold transition-all ${
+                          data.paymentTerms === t.key
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border bg-card text-muted-foreground hover:border-primary/30"
+                        }`}
+                      >
+                        {t.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* ─── Step 6: Opening Balances ─── */}
+          {step === 5 && (
+            <motion.div key="s6" variants={pageVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.3 }} className="w-full max-w-md">
+              <div className="text-center mb-8">
+                <div className="text-5xl mb-4">💰</div>
+                <h2 className="text-2xl font-bold text-foreground mb-2">هل لديك رصيد نقدي حالي؟</h2>
+                <p className="text-sm text-muted-foreground">سنضبط رصيد الصندوق الابتدائي</p>
+              </div>
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <label className="text-sm font-bold text-foreground">💰 رصيد الصندوق الحالي</label>
+                  <div className="relative">
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">₪</span>
+                    <input
+                      type="number"
+                      value={data.cashBalance || ""}
+                      onChange={e => update({ cashBalance: parseFloat(e.target.value) || 0 })}
+                      placeholder="0"
+                      className="w-full h-12 px-4 pr-10 rounded-xl border border-border bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                      dir="ltr"
+                    />
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">المبلغ النقدي الموجود عندك الآن</p>
+                </div>
+
+                <div className="space-y-3">
+                  <label className="text-sm font-bold text-foreground">🏦 هل لديك رصيد في البنك؟</label>
+                  <div className="flex gap-3">
+                    <ToggleCard
+                      selected={!data.hasBankAccount}
+                      onClick={() => update({ hasBankAccount: false })}
+                      emoji="✕"
+                      label="لا"
+                      small
+                    />
+                    <ToggleCard
+                      selected={data.hasBankAccount}
+                      onClick={() => update({ hasBankAccount: true })}
+                      emoji="🏦"
+                      label="نعم"
+                      small
+                    />
+                  </div>
+                  {data.hasBankAccount && (
+                    <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="space-y-3">
+                      <input
+                        type="text"
+                        value={data.bankName}
+                        onChange={e => update({ bankName: e.target.value })}
+                        placeholder="اسم البنك"
+                        className="w-full h-10 px-4 rounded-xl border border-border bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                      />
+                      <div className="relative">
+                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">₪</span>
+                        <input
+                          type="number"
+                          value={data.bankBalance || ""}
+                          onChange={e => update({ bankBalance: parseFloat(e.target.value) || 0 })}
+                          placeholder="الرصيد"
+                          className="w-full h-10 px-4 pr-10 rounded-xl border border-border bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                          dir="ltr"
+                        />
+                      </div>
+                    </motion.div>
+                  )}
+                </div>
+
+                <p className="text-[11px] text-muted-foreground text-center">
+                  يمكنك إضافة المزيد من الصناديق والبنوك لاحقاً من قسم المالية
+                </p>
+              </div>
+            </motion.div>
+          )}
+
+          {/* ─── Completion Screen ─── */}
+          {step === 7 && (
+            <motion.div key="done" variants={pageVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.3 }} className="w-full max-w-md text-center space-y-6">
+              {/* Confetti-like circles */}
+              <div className="relative">
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: [0, 1.3, 1] }}
+                  transition={{ duration: 0.8, ease: "easeOut" }}
+                  className="w-24 h-24 rounded-full bg-primary/10 mx-auto flex items-center justify-center"
+                >
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.3, duration: 0.5 }}
+                  >
+                    <FinixLogo variant="icon" size="lg" />
+                  </motion.div>
+                </motion.div>
+                {/* Decorative circles */}
+                {[...Array(8)].map((_, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ scale: 0, opacity: 0 }}
+                    animate={{ scale: 1, opacity: [0, 1, 0] }}
+                    transition={{ delay: 0.5 + i * 0.1, duration: 1 }}
+                    className="absolute w-3 h-3 rounded-full"
+                    style={{
+                      background: ["hsl(var(--primary))", "#10b981", "#f59e0b", "#ec4899"][i % 4],
+                      top: `${50 + 45 * Math.sin((i * Math.PI * 2) / 8)}%`,
+                      left: `${50 + 45 * Math.cos((i * Math.PI * 2) / 8)}%`,
+                      transform: "translate(-50%, -50%)",
+                    }}
+                  />
+                ))}
+              </div>
+
+              <div className="space-y-2">
+                <h2 className="text-2xl font-extrabold text-foreground">
+                  🎉 نظامك جاهز يا {userName ? userName.split(" ")[0] : ""}!
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  تم تهيئة {completedItems.length} إعداد بناءً على نشاطك
+                </p>
+              </div>
+
+              <div className="space-y-2 text-right">
+                {completedItems.map((item, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.8 + i * 0.15 }}
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500/10"
+                  >
+                    <span className="text-emerald-500 font-bold">✅</span>
+                    <span className="text-sm text-foreground">{item}</span>
+                  </motion.div>
+                ))}
+              </div>
+
+              <motion.button
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 1.5 }}
+                onClick={onComplete}
+                className="w-full h-14 rounded-2xl bg-primary text-primary-foreground text-base font-bold shadow-lg shadow-primary/20 hover:opacity-90 transition-all flex items-center justify-center gap-2"
+              >
+                <Zap className="h-5 w-5" />
+                ابدأ الاستخدام
+              </motion.button>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Footer */}
-      <div className="px-6 pb-10 pt-4 space-y-3">
-        <Button
-          onClick={goNext}
-          disabled={!canProceed() || saving}
-          className="w-full h-14 rounded-2xl text-base font-semibold shadow-lg shadow-primary/20"
-        >
-          {saving ? (
-            <>
-              <Loader2 className="h-5 w-5 animate-spin" />
-              جاري إعداد نظامك...
-            </>
-          ) : step < 3 ? (
-            <>
-              التالي
-              <ChevronLeft className="h-4 w-4" />
-            </>
-          ) : (
-            "🚀 جهّز نظامي المالي"
-          )}
-        </Button>
-        {step > 0 && !saving && (
+      {step >= 0 && step <= 5 && (
+        <div className="px-6 pb-8 pt-4 space-y-3">
           <button
-            onClick={() => setStep(step - 1)}
-            className="w-full py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            onClick={goNext}
+            disabled={saving}
+            className="w-full h-14 rounded-2xl bg-primary text-primary-foreground text-base font-bold shadow-lg shadow-primary/20 hover:opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
           >
-            رجوع
+            {saving ? (
+              <>
+                <Loader2 className="h-5 w-5 animate-spin" />
+                جاري إعداد نظامك...
+              </>
+            ) : step === 5 ? (
+              "🚀 جهّز نظامي"
+            ) : (
+              <>
+                التالي
+                <ChevronLeft className="h-4 w-4" />
+              </>
+            )}
           </button>
-        )}
-      </div>
+          <div className="flex items-center justify-between">
+            {step > 0 ? (
+              <button onClick={goBack} className="py-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+                رجوع
+              </button>
+            ) : <div />}
+            <button onClick={handleSkipStep} className="py-2 text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
+              <SkipForward className="h-3 w-3" />
+              تخطّي
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
-const YesNoCard = ({ selected, onClick, emoji, label }: { selected: boolean; onClick: () => void; emoji: string; label: string }) => (
+const ToggleCard = ({ selected, onClick, emoji, label, small }: { selected: boolean; onClick: () => void; emoji: string; label: string; small?: boolean }) => (
   <button
     onClick={onClick}
-    className={`flex flex-col items-center gap-3 p-5 rounded-2xl border-2 transition-all active:scale-[0.97] ${
+    className={`flex-1 flex flex-col items-center gap-2 ${small ? "p-3" : "p-4"} rounded-2xl border-2 transition-all active:scale-[0.97] ${
       selected
         ? "border-primary bg-primary/10 shadow-md shadow-primary/15"
         : "border-border bg-card hover:border-primary/30 hover:bg-primary/5"
     }`}
   >
-    <span className="text-3xl">{emoji}</span>
+    <span className={small ? "text-xl" : "text-2xl"}>{emoji}</span>
     <span className="text-xs font-semibold text-foreground text-center">{label}</span>
   </button>
 );
