@@ -762,14 +762,24 @@ const AccountStatementPage = () => {
     setShowPDFPreview(true);
     setPdfGenerating(true);
     try {
-      // Wait for print view to render
-      await new Promise(r => setTimeout(r, 300));
+      await new Promise(r => setTimeout(r, 100));
       const element = document.getElementById("statement-print-wrapper");
       if (!element) { setPdfGenerating(false); return; }
+
+      // Temporarily remove print-only class (it has display:none !important)
+      const hadClass = element.classList.contains("print-only");
+      if (hadClass) element.classList.remove("print-only");
       element.style.display = "block";
       element.style.position = "absolute";
       element.style.left = "-9999px";
       element.style.top = "0";
+      element.style.width = "794px";
+      element.style.background = "white";
+      element.style.color = "black";
+      element.style.zIndex = "-1";
+
+      // Wait for render
+      await new Promise(r => setTimeout(r, 500));
 
       const canvas = await html2canvas(element, {
         scale: 2,
@@ -777,18 +787,42 @@ const AccountStatementPage = () => {
         allowTaint: true,
         width: 794,
         windowWidth: 794,
+        backgroundColor: "#ffffff",
       });
 
+      // Restore
       element.style.display = "";
       element.style.position = "";
       element.style.left = "";
       element.style.top = "";
+      element.style.width = "";
+      element.style.background = "";
+      element.style.color = "";
+      element.style.zIndex = "";
+      if (hadClass) element.classList.add("print-only");
 
       const imgData = canvas.toDataURL("image/png");
       const pdf = new jsPDF("p", "mm", "a4");
       const pdfW = 210;
-      const pdfH = (canvas.height * pdfW) / canvas.width;
-      pdf.addImage(imgData, "PNG", 0, 0, pdfW, pdfH);
+      const pageH = 297;
+      const imgH = (canvas.height * pdfW) / canvas.width;
+
+      // Multi-page support
+      if (imgH <= pageH) {
+        pdf.addImage(imgData, "PNG", 0, 0, pdfW, imgH);
+      } else {
+        let heightLeft = imgH;
+        let position = 0;
+        pdf.addImage(imgData, "PNG", 0, position, pdfW, imgH);
+        heightLeft -= pageH;
+        while (heightLeft > 0) {
+          position = heightLeft - imgH;
+          pdf.addPage();
+          pdf.addImage(imgData, "PNG", 0, position, pdfW, imgH);
+          heightLeft -= pageH;
+        }
+      }
+
       setPdfPreviewUrl(pdf.output("bloburl") as unknown as string);
     } catch (err) {
       console.error("PDF generation error:", err);
