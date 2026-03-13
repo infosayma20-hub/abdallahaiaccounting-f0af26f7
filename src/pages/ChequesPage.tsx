@@ -850,7 +850,7 @@ const ChequesPage = () => {
                           </td>
                         </tr>
                       )}
-                    </>
+                    </Fragment>
                   );
                 })}
               </tbody>
