@@ -785,7 +785,7 @@ const AccountStatementPage = () => {
       doc.setTextColor(255, 255, 255);
       doc.setFontSize(13);
       doc.setFont("helvetica", "bold");
-      doc.text(companySettings?.company_name || "FINIX ERP", pw / 2, 12, { align: "center" });
+      doc.text(companyInfo.name || companyName || "FINIX ERP", pw / 2, 12, { align: "center" });
       doc.setFontSize(10);
       doc.setFont("helvetica", "normal");
       doc.text("Customer Account Statement", pw / 2, 20, { align: "center" });
