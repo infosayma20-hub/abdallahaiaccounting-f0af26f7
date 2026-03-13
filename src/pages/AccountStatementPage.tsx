@@ -3,7 +3,9 @@ import {
   ArrowRight, Loader2, RefreshCw, Search, FileSpreadsheet,
   TrendingUp, TrendingDown, Wallet, Printer, Calendar,
   BookOpen, Users, Truck, UserCheck, ChevronLeft, LayoutGrid,
-  Settings2, AlertTriangle, FileText, CreditCard,
+  Settings2, AlertTriangle, FileText, CreditCard, Send, X,
+  Phone, Mail, MapPin, Clock, ChevronDown, Filter, Star,
+  MessageSquare, Link2, Eye, Pencil, Receipt,
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
@@ -13,11 +15,15 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Separator } from "@/components/ui/separator";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { format, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear } from "date-fns";
+import { format, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, differenceInDays, parseISO } from "date-fns";
+import { ar } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import StatementPrintView from "@/components/StatementPrintView";
 
@@ -32,6 +38,7 @@ interface Contact {
   linked_account_code: string | null;
   credit_limit?: number;
   current_balance?: number;
+  contact_class?: string;
 }
 
 interface Account {
@@ -119,6 +126,15 @@ const CURRENCIES = [
   { value: "يورو", label: "€ يورو" },
 ];
 
+const TX_TYPE_FILTERS = [
+  { value: "all", label: "الكل" },
+  { value: "sale", label: "فواتير مبيعات" },
+  { value: "receipt", label: "سندات قبض" },
+  { value: "payment", label: "سندات صرف" },
+  { value: "journal", label: "قيود محاسبية" },
+  { value: "purchase", label: "فواتير مشتريات" },
+];
+
 // ─── FORMAT HELPERS ───
 const fmtAmount = (n: number, currency?: string) => {
   if (n === 0) return "—";
@@ -130,6 +146,28 @@ const fmtDate = (d: string) => {
   if (!d) return "—";
   const parts = d.split("-");
   return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : d;
+};
+
+const getDayName = (d: string) => {
+  try {
+    const date = parseISO(d);
+    const today = new Date();
+    const diff = differenceInDays(today, date);
+    if (diff === 0) return "اليوم";
+    if (diff === 1) return "أمس";
+    return format(date, "EEEE", { locale: ar });
+  } catch { return ""; }
+};
+
+const getTypeBadge = (txType: string) => {
+  if (txType.includes("sale") || txType.includes("فاتورة")) return { label: "فاتورة مبيعات", color: "bg-blue-500/10 text-blue-600 border-blue-500/20" };
+  if (txType.includes("receipt") || txType.includes("قبض")) return { label: "سند قبض", color: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" };
+  if (txType.includes("payment") || txType.includes("صرف")) return { label: "سند صرف", color: "bg-red-500/10 text-red-600 border-red-500/20" };
+  if (txType.includes("purchase") || txType.includes("مشتريات")) return { label: "فاتورة مشتريات", color: "bg-amber-500/10 text-amber-600 border-amber-500/20" };
+  if (txType.includes("journal") || txType.includes("قيد") || txType.includes("salary")) return { label: "قيد محاسبي", color: "bg-purple-500/10 text-purple-600 border-purple-500/20" };
+  if (txType.includes("pos")) return { label: "مبيعات POS", color: "bg-teal-500/10 text-teal-600 border-teal-500/20" };
+  if (txType.includes("cheque")) return { label: "شيك", color: "bg-indigo-500/10 text-indigo-600 border-indigo-500/20" };
+  return { label: "حركة", color: "bg-muted text-muted-foreground border-border" };
 };
 
 // Display options type
@@ -148,6 +186,26 @@ const DEFAULT_DISPLAY_OPTIONS: DisplayOptions = {
   showCheques: true,
   showVoucherDetails: true,
 };
+
+// Column config
+interface ColumnConfig {
+  key: string;
+  label: string;
+  visible: boolean;
+}
+
+const DEFAULT_COLUMNS: ColumnConfig[] = [
+  { key: "date", label: "التاريخ", visible: true },
+  { key: "reference", label: "المرجع", visible: true },
+  { key: "description", label: "البيان", visible: true },
+  { key: "type", label: "النوع", visible: true },
+  { key: "paymentMethod", label: "طريقة الدفع", visible: false },
+  { key: "currency", label: "العملة", visible: false },
+  { key: "debit", label: "مدين", visible: true },
+  { key: "credit", label: "دائن", visible: true },
+  { key: "balance", label: "الرصيد", visible: true },
+  { key: "notes", label: "ملاحظات", visible: false },
+];
 
 // ─── MAIN COMPONENT ───
 const AccountStatementPage = () => {
@@ -174,7 +232,7 @@ const AccountStatementPage = () => {
   const [companyInfo, setCompanyInfo] = useState({
     name: "", logo_url: "", address: "", phone: "", email: "", website: "", tax_number: "",
   });
-  const [fiscalYearStart, setFiscalYearStart] = useState(1); // month 1-12
+  const [fiscalYearStart, setFiscalYearStart] = useState(1);
   const [activeTab, setActiveTab] = useState<EntityTab>(
     urlAccountCode ? "accounts" : urlEmployeeName ? "employees" : urlContactType === "مورد" ? "suppliers" : "customers"
   );
@@ -186,7 +244,18 @@ const AccountStatementPage = () => {
   const [activePeriod, setActivePeriod] = useState("");
   const [selectedCurrency, setSelectedCurrency] = useState("all");
   const [displayOptions, setDisplayOptions] = useState<DisplayOptions>(DEFAULT_DISPLAY_OPTIONS);
-  const [showDisplayPanel, setShowDisplayPanel] = useState(false);
+  const [showCustomizePanel, setShowCustomizePanel] = useState(false);
+  const [showPreviewDrawer, setShowPreviewDrawer] = useState(false);
+  const [previewTxId, setPreviewTxId] = useState<string>("");
+  const [txTypeFilter, setTxTypeFilter] = useState("all");
+
+  // Load saved column prefs
+  const [columns, setColumns] = useState<ColumnConfig[]>(() => {
+    try {
+      const saved = localStorage.getItem("statement_columns_prefs");
+      return saved ? JSON.parse(saved) : DEFAULT_COLUMNS;
+    } catch { return DEFAULT_COLUMNS; }
+  });
 
   const activeTabConfig = ENTITY_TABS.find(t => t.key === activeTab)!;
   const isAccountsTab = activeTab === "accounts";
@@ -200,7 +269,7 @@ const AccountStatementPage = () => {
       const [{ data: contactData }, { data: accData }, { data: txData }, profileRes, { data: empData }, { data: csData }, { data: chequeData }] = await Promise.all([
         supabase
           .from("contacts")
-          .select("id, contact_name, contact_type, phone, email, address, linked_account_code, credit_limit, current_balance")
+          .select("id, contact_name, contact_type, phone, email, address, linked_account_code, credit_limit, current_balance, contact_class")
           .eq("user_id", user.id)
           .eq("is_active", true)
           .order("contact_name"),
@@ -339,7 +408,6 @@ const AccountStatementPage = () => {
     if (isAccountsTab || isEmployeesTab) return {};
     const map: Record<string, number> = {};
     const accountCode = activeTabConfig.accountCode;
-    // Build a set of all contact IDs per contact name for merging duplicates
     const nameToIds = new Map<string, Set<string>>();
     for (const c of tabContacts) {
       const name = c.contact_name?.trim();
@@ -425,10 +493,10 @@ const AccountStatementPage = () => {
     : selectedContact?.contact_name || "";
 
   const selectedEntityInfo = isAccountsTab
-    ? { type: selectedAccount?.account_type || "", code: selectedAccount?.account_code || "", phone: "", address: "" }
+    ? { type: selectedAccount?.account_type || "", code: selectedAccount?.account_code || "", phone: "", address: "", email: "" }
     : isEmployeesTab
-    ? { type: "موظف", code: selectedEmployee?.account_code || "", phone: selectedEmployee?.phone || "", address: selectedEmployee?.job_title || selectedEmployee?.department || "" }
-    : { type: selectedContact?.contact_type || "", code: "", phone: selectedContact?.phone || "", address: selectedContact?.address || "" };
+    ? { type: "موظف", code: selectedEmployee?.account_code || "", phone: selectedEmployee?.phone || "", address: selectedEmployee?.job_title || selectedEmployee?.department || "", email: "" }
+    : { type: selectedContact?.contact_type || "", code: "", phone: selectedContact?.phone || "", address: selectedContact?.address || "", email: selectedContact?.email || "" };
 
   // ─── CREDIT LIMIT CHECK ───
   const creditLimitWarning = useMemo(() => {
@@ -478,7 +546,6 @@ const AccountStatementPage = () => {
     } else {
       const accountCode = activeTabConfig.accountCode;
       const contactName = selectedContact?.contact_name?.trim() || "";
-      // Find all contact IDs with the same name (handle duplicates)
       const sameNameIds = new Set(
         contacts.filter(c => c.contact_name?.trim() === contactName).map(c => c.id)
       );
@@ -541,79 +608,68 @@ const AccountStatementPage = () => {
     return { rows, openingBalance: openBal, closingBalance: runningBalance, totalDebit: sumDebit, totalCredit: sumCredit };
   }, [transactions, selectedEntityId, dateFrom, dateTo, activeTab, selectedAccount, selectedEmployee, selectedCurrency]);
 
+  // Filter rows by type and search
   const filteredRows = useMemo(() => {
-    if (!txSearch.trim()) return rows;
-    const q = txSearch.toLowerCase();
-    return rows.filter(r =>
-      r.description.toLowerCase().includes(q) ||
-      r.reference.toLowerCase().includes(q)
-    );
-  }, [rows, txSearch]);
+    let result = rows;
+    if (txTypeFilter !== "all") {
+      result = result.filter(r => r.transaction_type.includes(txTypeFilter));
+    }
+    if (txSearch.trim()) {
+      const q = txSearch.toLowerCase();
+      result = result.filter(r =>
+        r.description.toLowerCase().includes(q) ||
+        r.reference.toLowerCase().includes(q)
+      );
+    }
+    return result;
+  }, [rows, txSearch, txTypeFilter]);
+
+  // Last transaction date for entity
+  const lastTxDate = useMemo(() => {
+    if (!rows.length) return null;
+    return rows[rows.length - 1].date;
+  }, [rows]);
+
+  // Oldest open invoice for contact
+  const oldestOpenInvoice = useMemo(() => {
+    if (!rows.length || isAccountsTab) return null;
+    const invoiceRows = rows.filter(r => r.reference?.startsWith("INV-") || r.reference?.startsWith("PO-"));
+    if (!invoiceRows.length) return null;
+    const oldest = invoiceRows[0];
+    const days = differenceInDays(new Date(), parseISO(oldest.date));
+    return { ref: oldest.reference, days };
+  }, [rows, isAccountsTab]);
+
+  // Preview transaction data
+  const previewTx = useMemo(() => {
+    if (!previewTxId) return null;
+    const tx = transactions.find(t => t.id === previewTxId);
+    if (!tx) return null;
+    const row = rows.find(r => r.transaction_id === previewTxId);
+    return { ...tx, row };
+  }, [previewTxId, transactions, rows]);
 
   // ─── EXPORT ───
   const handleExport = () => {
     if (!rows.length || !selectedEntityName) return;
-
     const headerRows = [
       [companyInfo.name || companyName || "كشف حساب"],
       [`كشف حساب - ${selectedEntityName}`],
-      [`الفترة: من ${dateFrom} إلى ${dateTo}`],
-      [companyInfo.phone ? `📞 ${companyInfo.phone}` : "", "", "", companyInfo.email ? `✉️ ${companyInfo.email}` : "", "", companyInfo.tax_number ? `رقم ضريبي: ${companyInfo.tax_number}` : ""],
+      [`الفترة: من ${fmtDate(dateFrom)} إلى ${fmtDate(dateTo)}`],
       [],
     ];
-
     const cols = ["التاريخ", "المرجع", "البيان", "النوع", "مدين ₪", "دائن ₪", "الرصيد ₪"];
-    if (displayOptions.showPaymentMethod) cols.splice(4, 0, "طريقة الدفع");
-    if (displayOptions.showCurrency) cols.splice(4, 0, "العملة");
     headerRows.push(cols);
-
     const dataRows = [
       ["", "", "رصيد أول المدة", "", openingBalance > 0 ? openingBalance : "", openingBalance < 0 ? Math.abs(openingBalance) : "", openingBalance],
-      ...rows.map(r => {
-        const row: any[] = [
-          r.date,
-          r.reference || "",
-          r.description,
-          r.debit > 0 ? "مدين" : "دائن",
-        ];
-        if (displayOptions.showCurrency) row.push(r.currency);
-        if (displayOptions.showPaymentMethod) row.push(r.payment_method || "");
-        row.push(r.debit || "", r.credit || "", r.balance);
-        return row;
-      }),
+      ...rows.map(r => [r.date, r.reference || "", r.description, r.debit > 0 ? "مدين" : "دائن", r.debit || "", r.credit || "", r.balance]),
       ["", "", "الإجمالي", "", totalDebit, totalCredit, closingBalance],
     ];
-
     const allRows = [...headerRows, ...dataRows];
     const ws = XLSX.utils.aoa_to_sheet(allRows);
-    ws["!cols"] = [
-      { wch: 12 }, { wch: 18 }, { wch: 38 }, { wch: 8 },
-      { wch: 14 }, { wch: 14 }, { wch: 16 },
-    ];
-    ws["!merges"] = [
-      { s: { r: 0, c: 0 }, e: { r: 0, c: 6 } },
-      { s: { r: 1, c: 0 }, e: { r: 1, c: 6 } },
-      { s: { r: 2, c: 0 }, e: { r: 2, c: 6 } },
-    ];
-
+    ws["!cols"] = [{ wch: 12 }, { wch: 18 }, { wch: 38 }, { wch: 8 }, { wch: 14 }, { wch: 14 }, { wch: 16 }];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "كشف الحساب");
-
-    // Add cheques sheet if showing
-    if (displayOptions.showCheques && relatedCheques.length > 0) {
-      const chequeRows = relatedCheques.map(c => ({
-        "رقم الشيك": c.cheque_number || "—",
-        "النوع": c.cheque_type,
-        "المبلغ": c.amount,
-        "العملة": c.currency,
-        "التاريخ": fmtDate(c.cheque_date),
-        "الحالة": c.status,
-        "البنك": c.bank_name || "—",
-      }));
-      const ws2 = XLSX.utils.json_to_sheet(chequeRows);
-      XLSX.utils.book_append_sheet(wb, ws2, "الشيكات");
-    }
-
     XLSX.writeFile(wb, `كشف-حساب-${selectedEntityName}-${dateFrom}.xlsx`);
   };
 
@@ -621,6 +677,12 @@ const AccountStatementPage = () => {
   const totalBalance = useMemo(() => Object.values(allBalances).reduce((s, b) => s + b, 0), [allBalances]);
   const debitCount = useMemo(() => Object.values(allBalances).filter(b => b > 0).length, [allBalances]);
   const creditCount = useMemo(() => Object.values(allBalances).filter(b => b < 0).length, [allBalances]);
+
+  // Max balance for progress bar scaling
+  const maxBalance = useMemo(() => {
+    const vals = Object.values(allBalances).map(Math.abs);
+    return vals.length ? Math.max(...vals, 1) : 1;
+  }, [allBalances]);
 
   // Navigate to voucher/journal
   const navigateToReference = (ref: string, txId: string) => {
@@ -636,12 +698,35 @@ const AccountStatementPage = () => {
     }
   };
 
+  const openPreview = (txId: string) => {
+    setPreviewTxId(txId);
+    setShowPreviewDrawer(true);
+  };
+
+  // Save column prefs
+  const saveColumns = (newCols: ColumnConfig[]) => {
+    setColumns(newCols);
+    localStorage.setItem("statement_columns_prefs", JSON.stringify(newCols));
+  };
+
+  const isColVisible = (key: string) => columns.find(c => c.key === key)?.visible ?? true;
+
+  // Send via WhatsApp
+  const sendWhatsApp = () => {
+    if (!selectedContact?.phone) return;
+    const phone = selectedContact.phone.replace(/\D/g, "");
+    const balType = closingBalance >= 0 ? "مدين" : "دائن";
+    const msg = `السلام عليكم ${selectedEntityName}،\nنرفق كشف حسابكم للفترة من ${fmtDate(dateFrom)} إلى ${fmtDate(dateTo)}\nالرصيد الحالي: ${fmtAmount(closingBalance)} (${balType})\n${companyInfo.name}`;
+    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, "_blank");
+  };
+
   // ─── RENDER ───
   return (
     <div className="min-h-screen bg-background flex flex-col" dir="rtl">
       {/* ─── TOP BAR ─── */}
       <div className="sticky top-0 z-20 bg-card/95 backdrop-blur border-b border-border no-print">
-        <div className="flex items-center justify-between px-4 py-2.5">
+        {/* Row 1: Nav + Actions */}
+        <div className="flex items-center justify-between px-4 py-2">
           <div className="flex items-center gap-3">
             <button onClick={() => navigate(-1)} className="p-1.5 rounded-lg hover:bg-muted transition-colors">
               <ArrowRight className="w-5 h-5 text-foreground" />
@@ -649,142 +734,107 @@ const AccountStatementPage = () => {
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <span>المحاسبة</span>
               <ChevronLeft className="w-3 h-3" />
-              <span className="text-foreground font-semibold text-sm">كشف الحساب</span>
+              <span className="text-foreground font-bold text-base">كشف الحساب</span>
             </div>
           </div>
 
-          {/* Entity type tabs */}
-          <div className="flex items-center gap-1 bg-muted/50 rounded-lg p-0.5">
-            {ENTITY_TABS.map(tab => (
-              <button
-                key={tab.key}
-                onClick={() => { setActiveTab(tab.key); setSelectedEntityId(""); setEntitySearch(""); }}
-                className={cn(
-                  "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all",
-                  activeTab === tab.key
-                    ? "bg-card text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                <tab.icon className={cn("w-3.5 h-3.5", activeTab === tab.key && tab.color)} />
-                {tab.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Actions */}
           <div className="flex items-center gap-1.5">
             <Button variant="ghost" size="icon" onClick={fetchData} disabled={loading} className="h-8 w-8">
               <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
             </Button>
             <Button
-              variant={showDisplayPanel ? "default" : "outline"}
+              variant="outline"
               size="sm"
-              onClick={() => setShowDisplayPanel(!showDisplayPanel)}
+              onClick={() => setShowCustomizePanel(true)}
               className="h-8 gap-1.5 text-xs"
             >
-              <Settings2 className="w-3.5 h-3.5" /> خيارات العرض
+              <Settings2 className="w-3.5 h-3.5" /> تخصيص
             </Button>
             <Button variant="outline" size="sm" onClick={() => window.print()} disabled={!selectedEntityId || rows.length === 0} className="h-8 gap-1.5 text-xs">
               <Printer className="w-3.5 h-3.5" /> طباعة
             </Button>
+
+            {/* Send dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" disabled={!selectedEntityId || rows.length === 0} className="h-8 gap-1.5 text-xs">
+                  <Send className="w-3.5 h-3.5" /> إرسال <ChevronDown className="w-3 h-3" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" dir="rtl">
+                <DropdownMenuItem onClick={sendWhatsApp} disabled={!selectedContact?.phone}>
+                  <MessageSquare className="w-4 h-4 ml-2 text-emerald-500" /> واتساب
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => {
+                  if (selectedContact?.email) {
+                    const subject = `كشف حساب - ${selectedEntityName}`;
+                    window.open(`mailto:${selectedContact.email}?subject=${encodeURIComponent(subject)}`);
+                  }
+                }} disabled={!selectedContact?.email}>
+                  <Mail className="w-4 h-4 ml-2 text-blue-500" /> إيميل
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => {
+                  navigator.clipboard.writeText(window.location.href);
+                  toast({ title: "تم نسخ الرابط ✅" });
+                }}>
+                  <Link2 className="w-4 h-4 ml-2" /> نسخ رابط الكشف
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
             <Button variant="outline" size="sm" onClick={handleExport} disabled={!selectedEntityId || rows.length === 0} className="h-8 gap-1.5 text-xs">
               <FileSpreadsheet className="w-3.5 h-3.5" /> Excel
             </Button>
           </div>
         </div>
 
-        {/* Display Options Panel */}
-        {showDisplayPanel && (
-          <div className="border-t border-border bg-muted/30 px-4 py-3">
-            <div className="flex items-center gap-6 flex-wrap">
-              {/* Currency filter */}
-              <div className="flex items-center gap-2">
-                <label className="text-[11px] font-semibold text-muted-foreground">العملة:</label>
-                <Select value={selectedCurrency} onValueChange={setSelectedCurrency}>
-                  <SelectTrigger className="h-7 w-32 text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {CURRENCIES.map(c => (
-                      <SelectItem key={c.value} value={c.value} className="text-xs">{c.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="h-5 w-px bg-border" />
-
-              {/* Fiscal year */}
-              <div className="flex items-center gap-2">
-                <label className="text-[11px] font-semibold text-muted-foreground">السنة المالية:</label>
-                <div className="flex gap-1">
-                  {FISCAL_YEARS.map(y => (
-                    <button
-                      key={y}
-                      onClick={() => setFiscalYear(y)}
-                      className={cn(
-                        "px-2 py-0.5 rounded text-[11px] font-medium transition-all",
-                        activePeriod === `سنة ${y}`
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
-                      )}
-                    >
-                      {y}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="h-5 w-px bg-border" />
-
-              {/* Display checkboxes */}
-              <div className="flex items-center gap-4 flex-wrap">
-                {[
-                  { key: "showPaymentMethod" as const, label: "طريقة الدفع" },
-                  { key: "showCurrency" as const, label: "العملة" },
-                  { key: "showCheques" as const, label: "الشيكات المرتبطة" },
-                  { key: "showVoucherDetails" as const, label: "تفاصيل السندات" },
-                  { key: "showNotes" as const, label: "الملاحظات" },
-                ].map(opt => (
-                  <label key={opt.key} className="flex items-center gap-1.5 cursor-pointer">
-                    <Checkbox
-                      checked={displayOptions[opt.key]}
-                      onCheckedChange={(v) => setDisplayOptions(prev => ({ ...prev, [opt.key]: !!v }))}
-                      className="h-3.5 w-3.5"
-                    />
-                    <span className="text-[11px] text-foreground">{opt.label}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
+        {/* Row 2: Entity type tabs */}
+        <div className="px-4 pb-2">
+          <div className="flex items-center gap-1 bg-muted/50 rounded-lg p-0.5 w-fit">
+            {ENTITY_TABS.map(tab => (
+              <button
+                key={tab.key}
+                onClick={() => { setActiveTab(tab.key); setSelectedEntityId(""); setEntitySearch(""); }}
+                className={cn(
+                  "flex items-center gap-1.5 px-4 py-2 rounded-md text-xs font-semibold transition-all",
+                  activeTab === tab.key
+                    ? "bg-card text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <tab.icon className={cn("w-4 h-4", activeTab === tab.key && tab.color)} />
+                {tab.label}
+              </button>
+            ))}
           </div>
-        )}
+        </div>
       </div>
 
       {/* ─── BODY: Left Panel + Main ─── */}
       <div className="flex flex-1 overflow-hidden">
 
-        {/* ─── LEFT PANEL ─── */}
+        {/* ─── SIDE PANEL (RIGHT) ─── */}
         <div className="border-l border-border bg-card flex flex-col shrink-0 w-[280px] no-print">
           {/* Search */}
-          <div className="p-3 border-b border-border space-y-2">
+          <div className="p-3 border-b border-border space-y-2.5">
             <div className="relative">
-              <Search className="absolute right-2.5 top-2 w-4 h-4 text-muted-foreground" />
+              <Search className="absolute right-2.5 top-2.5 w-4 h-4 text-muted-foreground" />
               <Input
                 placeholder={isAccountsTab ? "ابحث بالاسم أو الكود..." : "ابحث بالاسم أو الرقم..."}
                 value={entitySearch}
                 onChange={e => setEntitySearch(e.target.value)}
-                className="pr-9 h-8 text-xs bg-muted/50 border-0"
+                className="pr-9 h-9 text-xs bg-muted/50 border-0 rounded-lg"
               />
             </div>
-            <div className="flex items-center justify-between text-[10px] text-muted-foreground px-1">
-              <span>الرصيد الإجمالي: <strong className="text-foreground">{fmtAmount(totalBalance)}</strong></span>
-              <span>
-                <span className="text-emerald-500">↑{debitCount} مدين</span>
-                {" "}
-                <span className="text-red-400">↓{creditCount} دائن</span>
-              </span>
+            <div className="bg-muted/30 rounded-lg p-2.5 space-y-1">
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="text-muted-foreground">الرصيد الإجمالي:</span>
+                <span className="font-bold text-foreground tabular-nums">{fmtAmount(totalBalance)}</span>
+              </div>
+              <div className="flex items-center justify-between text-[10px]">
+                <span className="text-emerald-500 font-medium">↑{debitCount} مدين</span>
+                <span className="text-red-400 font-medium">↓{creditCount} دائن</span>
+              </div>
             </div>
           </div>
 
@@ -796,6 +846,7 @@ const AccountStatementPage = () => {
                   <div key={i} className="space-y-2">
                     <Skeleton className="h-4 w-3/4" />
                     <Skeleton className="h-3 w-1/2" />
+                    <Skeleton className="h-1.5 w-full rounded-full" />
                   </div>
                 ))}
               </div>
@@ -806,33 +857,45 @@ const AccountStatementPage = () => {
             ) : (
               entityList.map(entity => {
                 const isActive = entity.id === selectedEntityId;
+                const absBalance = Math.abs(entity.balance);
+                const barWidth = maxBalance > 0 ? (absBalance / maxBalance) * 100 : 0;
                 return (
                   <button
                     key={entity.id}
                     onClick={() => setSelectedEntityId(entity.id)}
                     className={cn(
-                      "w-full text-right px-3 py-2.5 border-b border-border/50 transition-all hover:bg-muted/50",
-                      isActive && "bg-primary/5 border-r-2 border-r-primary"
+                      "w-full text-right px-3 py-3 border-b border-border/40 transition-all hover:bg-muted/50",
+                      isActive && "bg-primary/5 border-r-[3px] border-r-primary"
                     )}
                   >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <p className={cn("text-xs font-semibold truncate", isActive ? "text-primary" : "text-foreground")}>
-                          {entity.name}
-                        </p>
-                        <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
-                          {entity.subtitle}
-                        </p>
-                      </div>
+                    <div className="flex items-start justify-between gap-2 mb-1.5">
+                      <p className={cn("text-xs font-bold truncate", isActive ? "text-primary" : "text-foreground")}>
+                        {entity.name}
+                      </p>
                       <span className={cn(
-                        "shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-md tabular-nums",
-                        entity.balance > 0 ? "bg-emerald-500/10 text-emerald-500" :
-                        entity.balance < 0 ? "bg-red-500/10 text-red-400" :
-                        "bg-muted text-muted-foreground"
+                        "shrink-0 text-[11px] font-bold tabular-nums",
+                        entity.balance > 0 ? "text-emerald-600" :
+                        entity.balance < 0 ? "text-red-500" :
+                        "text-muted-foreground"
                       )}>
-                        {fmtAmount(entity.balance)}
+                        {entity.balance === 0 ? "✓ مسدَّد" : fmtAmount(entity.balance)}
                       </span>
                     </div>
+                    {/* Progress bar */}
+                    {entity.balance !== 0 && (
+                      <div className="h-1 rounded-full bg-muted/60 overflow-hidden">
+                        <div
+                          className={cn(
+                            "h-full rounded-full transition-all",
+                            entity.balance > 0 ? "bg-emerald-500" : "bg-red-400"
+                          )}
+                          style={{ width: `${Math.min(barWidth, 100)}%` }}
+                        />
+                      </div>
+                    )}
+                    {entity.balance === 0 && (
+                      <div className="h-1 rounded-full bg-muted/40" />
+                    )}
                   </button>
                 );
               })
@@ -887,12 +950,9 @@ const AccountStatementPage = () => {
                   )}>
                     <AlertTriangle className="w-4 h-4 shrink-0" />
                     <div className="text-xs">
-                      <strong>
-                        {creditLimitWarning.level === "exceeded" ? "⚠️ تم تجاوز سقف الائتمان!" : "⚠️ اقتراب من سقف الائتمان"}
-                      </strong>
+                      <strong>{creditLimitWarning.level === "exceeded" ? "⚠️ تم تجاوز سقف الائتمان!" : "⚠️ اقتراب من سقف الائتمان"}</strong>
                       <span className="mr-2">
-                        الرصيد الحالي: {fmtAmount(creditLimitWarning.balance)} من أصل {fmtAmount(creditLimitWarning.limit)}
-                        ({Math.round(creditLimitWarning.pct)}%)
+                        الرصيد: {fmtAmount(creditLimitWarning.balance)} من {fmtAmount(creditLimitWarning.limit)} ({Math.round(creditLimitWarning.pct)}%)
                       </span>
                     </div>
                   </div>
@@ -900,99 +960,178 @@ const AccountStatementPage = () => {
 
                 {/* ─── ENTITY INFO CARD ─── */}
                 <div className="p-4 no-print">
-                  <div className="bg-card rounded-xl border border-border p-4">
-                    <div className="flex items-start justify-between mb-4">
-                      <div>
-                        <h2 className="text-base font-bold text-foreground">{selectedEntityName}</h2>
-                        <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground flex-wrap">
-                          {isAccountsTab && selectedAccount && (
-                            <>
-                              <span className="font-mono">{selectedAccount.account_code}</span>
-                              <Badge variant="secondary" className="text-[10px]">{selectedAccount.account_type}</Badge>
-                            </>
+                  <div className="bg-card rounded-xl border border-border p-5">
+                    {/* Entity header */}
+                    <div className="flex items-start justify-between mb-5">
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-3">
+                          <h2 className="text-lg font-bold text-foreground">{selectedEntityName}</h2>
+                          <Badge variant="secondary" className="text-[10px]">
+                            {isAccountsTab ? selectedAccount?.account_type : isEmployeesTab ? "موظف" : selectedContact?.contact_type}
+                          </Badge>
+                          {selectedContact?.contact_class && (
+                            <Badge className={cn("text-[10px]",
+                              selectedContact.contact_class === "A" ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/30" :
+                              selectedContact.contact_class === "B" ? "bg-blue-500/10 text-blue-600 border-blue-500/30" :
+                              selectedContact.contact_class === "C" ? "bg-amber-500/10 text-amber-600 border-amber-500/30" :
+                              "bg-red-500/10 text-red-600 border-red-500/30"
+                            )} variant="outline">
+                              <Star className="w-3 h-3 ml-1" />
+                              {selectedContact.contact_class === "A" ? "ممتاز" : selectedContact.contact_class === "B" ? "جيد" : selectedContact.contact_class === "C" ? "عادي" : "مخاطرة"}
+                            </Badge>
                           )}
-                          {isEmployeesTab && selectedEmployee && (
-                            <>
-                              {selectedEmployee.account_code && <span className="font-mono">{selectedEmployee.account_code}</span>}
-                              {selectedEmployee.job_title && <span>💼 {selectedEmployee.job_title}</span>}
-                              {selectedEmployee.department && <span>🏢 {selectedEmployee.department}</span>}
-                              {selectedEmployee.phone && <span>📞 {selectedEmployee.phone}</span>}
-                              <Badge variant="secondary" className="text-[10px]">موظف</Badge>
-                              {!selectedEmployee.account_code && <Badge variant="destructive" className="text-[10px]">بدون حساب محاسبي</Badge>}
-                            </>
+                        </div>
+                        {/* Contact details row */}
+                        <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
+                          {selectedEntityInfo.code && (
+                            <span className="font-mono bg-muted/50 px-2 py-0.5 rounded text-[11px]">{selectedEntityInfo.code}</span>
                           )}
-                          {!isAccountsTab && !isEmployeesTab && selectedContact && (
-                            <>
-                              {selectedContact.phone && <span>📞 {selectedContact.phone}</span>}
-                              {selectedContact.address && <span>📍 {selectedContact.address}</span>}
-                              <Badge variant="secondary" className="text-[10px]">{selectedContact.contact_type}</Badge>
-                              {creditLimitWarning && creditLimitWarning.limit > 0 && (
-                                <Badge variant="outline" className="text-[10px]">
-                                  سقف ائتمان: {fmtAmount(creditLimitWarning.limit)}
-                                </Badge>
-                              )}
-                            </>
+                          {selectedEntityInfo.phone && (
+                            <span className="flex items-center gap-1"><Phone className="w-3 h-3" />{selectedEntityInfo.phone}</span>
+                          )}
+                          {selectedEntityInfo.email && (
+                            <span className="flex items-center gap-1"><Mail className="w-3 h-3" />{selectedEntityInfo.email}</span>
+                          )}
+                          {selectedEntityInfo.address && (
+                            <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{selectedEntityInfo.address}</span>
+                          )}
+                          {lastTxDate && (
+                            <span className="flex items-center gap-1 text-muted-foreground">
+                              <Clock className="w-3 h-3" /> آخر معاملة: {getDayName(lastTxDate)} {fmtDate(lastTxDate)}
+                            </span>
                           )}
                         </div>
                       </div>
                     </div>
 
-                    {/* 4 KPI cards */}
+                    {/* 4 KPI Cards */}
                     <div className="grid grid-cols-4 gap-3">
-                      <KPIChip label="رصيد افتتاحي" value={openingBalance} icon={BookOpen} />
-                      <KPIChip label="إجمالي مدين" value={totalDebit} icon={TrendingUp} variant="debit" />
-                      <KPIChip label="إجمالي دائن" value={totalCredit} icon={TrendingDown} variant="credit" />
-                      <KPIChip label="رصيد ختامي" value={closingBalance} icon={Wallet} variant="closing" />
+                      {/* Opening Balance */}
+                      <div className="rounded-xl border border-border bg-muted/20 p-3.5 text-center">
+                        <div className="flex items-center justify-center gap-1.5 mb-1.5">
+                          <BookOpen className="w-3.5 h-3.5 text-muted-foreground" />
+                          <span className="text-[10px] text-muted-foreground font-semibold">رصيد افتتاحي</span>
+                        </div>
+                        <p className="text-lg font-bold tabular-nums text-foreground">{fmtAmount(openingBalance)}</p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">{openingBalance >= 0 ? "مدين" : "دائن"}</p>
+                      </div>
+
+                      {/* Total Debit */}
+                      <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-3.5 text-center">
+                        <div className="flex items-center justify-center gap-1.5 mb-1.5">
+                          <TrendingUp className="w-3.5 h-3.5 text-red-500" />
+                          <span className="text-[10px] text-red-600 font-semibold">إجمالي مدين</span>
+                        </div>
+                        <p className="text-lg font-bold tabular-nums text-red-600">{fmtAmount(totalDebit)}</p>
+                      </div>
+
+                      {/* Total Credit */}
+                      <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3.5 text-center">
+                        <div className="flex items-center justify-center gap-1.5 mb-1.5">
+                          <TrendingDown className="w-3.5 h-3.5 text-emerald-500" />
+                          <span className="text-[10px] text-emerald-600 font-semibold">إجمالي دائن</span>
+                        </div>
+                        <p className="text-lg font-bold tabular-nums text-emerald-600">{fmtAmount(totalCredit)}</p>
+                      </div>
+
+                      {/* Closing Balance / Oldest Invoice */}
+                      <div className={cn("rounded-xl border p-3.5 text-center",
+                        closingBalance > 0 ? "border-red-500/20 bg-red-50 dark:bg-red-500/5" :
+                        closingBalance < 0 ? "border-emerald-500/20 bg-emerald-50 dark:bg-emerald-500/5" :
+                        "border-border bg-muted/20"
+                      )}>
+                        <div className="flex items-center justify-center gap-1.5 mb-1.5">
+                          <Wallet className="w-3.5 h-3.5 text-foreground" />
+                          <span className="text-[10px] text-foreground font-semibold">رصيد ختامي</span>
+                        </div>
+                        <p className={cn("text-lg font-bold tabular-nums",
+                          closingBalance > 0 ? "text-red-600" : closingBalance < 0 ? "text-emerald-600" : "text-muted-foreground"
+                        )}>
+                          {fmtAmount(closingBalance)}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">
+                          {closingBalance > 0 ? "🔴 مدين (عليه)" : closingBalance < 0 ? "🟢 دائن (له)" : "مسدَّد"}
+                        </p>
+                        {oldestOpenInvoice && (
+                          <p className="text-[9px] text-muted-foreground mt-1 border-t border-border/50 pt-1">
+                            ⏰ أقدم فاتورة: {oldestOpenInvoice.ref} ({oldestOpenInvoice.days} يوم)
+                          </p>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
 
                 {/* ─── FILTER BAR ─── */}
                 <div className="px-4 pb-3 no-print">
-                  <div className="bg-card rounded-xl border border-border p-3">
+                  <div className="bg-card rounded-xl border border-border p-3 space-y-3">
+                    {/* Row 1: Date range + quick periods */}
                     <div className="flex items-center gap-3 flex-wrap">
                       <div className="flex items-center gap-2">
-                        <label className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">من</label>
-                        <Input type="date" value={dateFrom} onChange={e => { setDateFrom(e.target.value); setActivePeriod(""); }} className="h-8 w-36 text-xs bg-muted/50 border-0" />
+                        <label className="text-[10px] text-muted-foreground font-semibold">من</label>
+                        <Input type="date" value={dateFrom} onChange={e => { setDateFrom(e.target.value); setActivePeriod(""); }} className="h-8 w-36 text-xs bg-muted/50 border-0 rounded-lg" />
                       </div>
                       <div className="flex items-center gap-2">
-                        <label className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">إلى</label>
-                        <Input type="date" value={dateTo} onChange={e => { setDateTo(e.target.value); setActivePeriod(""); }} className="h-8 w-36 text-xs bg-muted/50 border-0" />
+                        <label className="text-[10px] text-muted-foreground font-semibold">إلى</label>
+                        <Input type="date" value={dateTo} onChange={e => { setDateTo(e.target.value); setActivePeriod(""); }} className="h-8 w-36 text-xs bg-muted/50 border-0 rounded-lg" />
                       </div>
-
                       <div className="h-5 w-px bg-border" />
-
                       {QUICK_PERIODS.map(p => (
                         <button
                           key={p.label}
                           onClick={() => { setDateFrom(p.from()); setDateTo(p.to()); setActivePeriod(p.label); }}
                           className={cn(
-                            "px-2.5 py-1 rounded-full text-[11px] font-medium transition-all",
+                            "px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all border",
                             activePeriod === p.label
-                              ? "bg-primary text-primary-foreground"
-                              : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
+                              ? "bg-primary text-primary-foreground border-primary"
+                              : "bg-muted/50 text-muted-foreground border-border/50 hover:bg-muted hover:text-foreground"
                           )}
                         >
                           {p.label}
                         </button>
                       ))}
+                    </div>
 
+                    {/* Row 2: Type filter + search */}
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <div className="flex items-center gap-2">
+                        <Filter className="w-3.5 h-3.5 text-muted-foreground" />
+                        <Select value={txTypeFilter} onValueChange={setTxTypeFilter}>
+                          <SelectTrigger className="h-8 w-40 text-xs bg-muted/50 border-0 rounded-lg">
+                            <SelectValue placeholder="النوع" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {TX_TYPE_FILTERS.map(f => (
+                              <SelectItem key={f.value} value={f.value} className="text-xs">{f.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <Select value={selectedCurrency} onValueChange={setSelectedCurrency}>
+                        <SelectTrigger className="h-8 w-32 text-xs bg-muted/50 border-0 rounded-lg">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {CURRENCIES.map(c => (
+                            <SelectItem key={c.value} value={c.value} className="text-xs">{c.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                       <div className="flex-1" />
-
                       <div className="relative">
-                        <Search className="absolute right-2 top-2 w-3.5 h-3.5 text-muted-foreground" />
+                        <Search className="absolute right-2.5 top-2 w-3.5 h-3.5 text-muted-foreground" />
                         <Input
-                          placeholder="بحث في الحركات..."
+                          placeholder="🔍 بحث في الحركات..."
                           value={txSearch}
                           onChange={e => setTxSearch(e.target.value)}
-                          className="pr-8 h-8 w-48 text-xs bg-muted/50 border-0"
+                          className="pr-8 h-8 w-52 text-xs bg-muted/50 border-0 rounded-lg"
                         />
                       </div>
                     </div>
                   </div>
                 </div>
 
-                {/* ─── RELATED CHEQUES SECTION ─── */}
+                {/* ─── CHEQUES SECTION ─── */}
                 {displayOptions.showCheques && relatedCheques.length > 0 && (
                   <div className="px-4 pb-3 no-print">
                     <Collapsible>
@@ -1004,12 +1143,8 @@ const AccountStatementPage = () => {
                             <Badge variant="secondary" className="text-[10px]">{relatedCheques.length}</Badge>
                           </div>
                           <div className="flex items-center gap-3 text-[10px]">
-                            <span className="text-emerald-500">
-                              واردة: {fmtAmount(relatedCheques.filter(c => c.cheque_type === "وارد").reduce((s, c) => s + c.amount, 0))}
-                            </span>
-                            <span className="text-red-400">
-                              صادرة: {fmtAmount(relatedCheques.filter(c => c.cheque_type === "صادر").reduce((s, c) => s + c.amount, 0))}
-                            </span>
+                            <span className="text-emerald-500">واردة: {fmtAmount(relatedCheques.filter(c => c.cheque_type === "وارد").reduce((s, c) => s + c.amount, 0))}</span>
+                            <span className="text-red-400">صادرة: {fmtAmount(relatedCheques.filter(c => c.cheque_type === "صادر").reduce((s, c) => s + c.amount, 0))}</span>
                           </div>
                         </div>
                       </CollapsibleTrigger>
@@ -1017,41 +1152,27 @@ const AccountStatementPage = () => {
                         <div className="mt-1 bg-card rounded-xl border border-border overflow-hidden">
                           <table className="w-full text-[12px]">
                             <thead>
-                              <tr className="bg-muted/40 border-b border-border">
-                                <th className="text-right px-3 py-2 text-[10px] font-bold text-muted-foreground">رقم الشيك</th>
-                                <th className="text-center px-3 py-2 text-[10px] font-bold text-muted-foreground">النوع</th>
-                                <th className="text-left px-3 py-2 text-[10px] font-bold text-muted-foreground">المبلغ</th>
-                                <th className="text-right px-3 py-2 text-[10px] font-bold text-muted-foreground">التاريخ</th>
-                                <th className="text-center px-3 py-2 text-[10px] font-bold text-muted-foreground">الحالة</th>
-                                <th className="text-right px-3 py-2 text-[10px] font-bold text-muted-foreground">البنك</th>
+                              <tr style={{ background: "#0D1B2A" }}>
+                                <th className="text-right px-3 py-2 text-[10px] font-bold text-white">رقم الشيك</th>
+                                <th className="text-center px-3 py-2 text-[10px] font-bold text-white">النوع</th>
+                                <th className="text-left px-3 py-2 text-[10px] font-bold text-white">المبلغ</th>
+                                <th className="text-right px-3 py-2 text-[10px] font-bold text-white">التاريخ</th>
+                                <th className="text-center px-3 py-2 text-[10px] font-bold text-white">الحالة</th>
+                                <th className="text-right px-3 py-2 text-[10px] font-bold text-white">البنك</th>
                               </tr>
                             </thead>
                             <tbody>
-                              {relatedCheques.map(c => (
-                                <tr key={c.id} className="border-b border-border/30 hover:bg-muted/20 transition-colors">
+                              {relatedCheques.map((c, i) => (
+                                <tr key={c.id} className={cn("border-b border-border/30 hover:bg-muted/20 transition-colors", i % 2 === 1 && "bg-muted/10")}>
                                   <td className="px-3 py-2 text-right">
-                                    <button
-                                      onClick={() => navigate("/cheques")}
-                                      className="text-primary hover:underline font-mono text-[11px]"
-                                    >
-                                      {c.cheque_number || "—"}
-                                    </button>
+                                    <button onClick={() => navigate("/cheques")} className="text-primary hover:underline font-mono text-[11px]">{c.cheque_number || "—"}</button>
                                   </td>
                                   <td className="px-3 py-2 text-center">
-                                    <span className={cn(
-                                      "text-[10px] font-semibold px-1.5 py-0.5 rounded border",
-                                      c.cheque_type === "وارد"
-                                        ? "border-emerald-500/30 text-emerald-500 bg-emerald-500/5"
-                                        : "border-red-500/30 text-red-500 bg-red-500/5"
-                                    )}>
-                                      {c.cheque_type}
-                                    </span>
+                                    <span className={cn("text-[10px] font-semibold px-1.5 py-0.5 rounded border", c.cheque_type === "وارد" ? "border-emerald-500/30 text-emerald-500 bg-emerald-500/5" : "border-red-500/30 text-red-500 bg-red-500/5")}>{c.cheque_type}</span>
                                   </td>
                                   <td className="px-3 py-2 text-left font-mono font-semibold">{fmtAmount(c.amount)}</td>
                                   <td className="px-3 py-2 text-right text-muted-foreground">{fmtDate(c.cheque_date)}</td>
-                                  <td className="px-3 py-2 text-center">
-                                    <Badge variant="outline" className="text-[9px]">{c.status}</Badge>
-                                  </td>
+                                  <td className="px-3 py-2 text-center"><Badge variant="outline" className="text-[9px]">{c.status}</Badge></td>
                                   <td className="px-3 py-2 text-right text-muted-foreground">{c.bank_name || "—"}</td>
                                 </tr>
                               ))}
@@ -1083,122 +1204,144 @@ const AccountStatementPage = () => {
                       <div className="overflow-x-auto">
                         <table className="w-full text-[13px]" style={{ tableLayout: "fixed" }}>
                           <colgroup>
-                            <col style={{ width: "100px" }} />
-                            <col style={{ width: "120px" }} />
-                            <col />
-                            <col style={{ width: "80px" }} />
-                            {displayOptions.showPaymentMethod && <col style={{ width: "90px" }} />}
-                            {displayOptions.showCurrency && <col style={{ width: "70px" }} />}
-                            <col style={{ width: "110px" }} />
-                            <col style={{ width: "110px" }} />
-                            <col style={{ width: "130px" }} />
+                            {isColVisible("date") && <col style={{ width: "110px" }} />}
+                            {isColVisible("reference") && <col style={{ width: "130px" }} />}
+                            {isColVisible("description") && <col />}
+                            {isColVisible("type") && <col style={{ width: "110px" }} />}
+                            {isColVisible("paymentMethod") && <col style={{ width: "90px" }} />}
+                            {isColVisible("currency") && <col style={{ width: "70px" }} />}
+                            {isColVisible("debit") && <col style={{ width: "120px" }} />}
+                            {isColVisible("credit") && <col style={{ width: "120px" }} />}
+                            {isColVisible("balance") && <col style={{ width: "140px" }} />}
                           </colgroup>
-                          <thead>
-                            <tr className="border-b-2 border-border bg-muted/40">
-                              <th className="text-right px-3 py-2.5 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">التاريخ</th>
-                              <th className="text-right px-3 py-2.5 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">المرجع</th>
-                              <th className="text-right px-3 py-2.5 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">البيان</th>
-                              <th className="text-center px-3 py-2.5 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">النوع</th>
-                              {displayOptions.showPaymentMethod && (
-                                <th className="text-center px-3 py-2.5 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">الدفع</th>
-                              )}
-                              {displayOptions.showCurrency && (
-                                <th className="text-center px-3 py-2.5 text-[11px] font-bold text-muted-foreground uppercase tracking-wider">العملة</th>
-                              )}
-                              <th className="text-left px-3 py-2.5 text-[11px] font-bold uppercase tracking-wider" style={{ color: "hsl(var(--destructive))" }}>مدين ₪</th>
-                              <th className="text-left px-3 py-2.5 text-[11px] font-bold uppercase tracking-wider" style={{ color: "hsl(var(--success))" }}>دائن ₪</th>
-                              <th className="text-left px-3 py-2.5 text-[11px] font-bold text-foreground uppercase tracking-wider">الرصيد ₪</th>
+                          <thead className="sticky top-0 z-10">
+                            <tr style={{ background: "#0D1B2A" }}>
+                              {isColVisible("date") && <th className="text-right px-3 py-3 text-[11px] font-bold text-white">التاريخ</th>}
+                              {isColVisible("reference") && <th className="text-right px-3 py-3 text-[11px] font-bold text-white">المرجع</th>}
+                              {isColVisible("description") && <th className="text-right px-3 py-3 text-[11px] font-bold text-white">البيان</th>}
+                              {isColVisible("type") && <th className="text-center px-3 py-3 text-[11px] font-bold text-white">النوع</th>}
+                              {isColVisible("paymentMethod") && <th className="text-center px-3 py-3 text-[11px] font-bold text-white">الدفع</th>}
+                              {isColVisible("currency") && <th className="text-center px-3 py-3 text-[11px] font-bold text-white">العملة</th>}
+                              {isColVisible("debit") && <th className="text-left px-3 py-3 text-[11px] font-bold text-red-300">مدين ₪</th>}
+                              {isColVisible("credit") && <th className="text-left px-3 py-3 text-[11px] font-bold text-emerald-300">دائن ₪</th>}
+                              {isColVisible("balance") && <th className="text-left px-3 py-3 text-[11px] font-bold text-white">الرصيد ₪</th>}
                             </tr>
                           </thead>
                           <tbody>
                             {/* Opening balance */}
-                            <tr className="bg-muted/20 border-b border-border/50">
-                              <td className="px-3 py-2 text-xs text-muted-foreground italic">{fmtDate(dateFrom)}</td>
-                              <td className="px-3 py-2 text-xs text-muted-foreground">—</td>
-                              <td className="px-3 py-2 text-xs font-semibold text-foreground italic">رصيد مُرحَّل</td>
-                              <td className="px-3 py-2"></td>
-                              {displayOptions.showPaymentMethod && <td className="px-3 py-2"></td>}
-                              {displayOptions.showCurrency && <td className="px-3 py-2"></td>}
-                              <td className="px-3 py-2 text-xs text-left tabular-nums text-muted-foreground">
-                                {openingBalance > 0 ? fmtAmount(openingBalance) : "—"}
-                              </td>
-                              <td className="px-3 py-2 text-xs text-left tabular-nums text-muted-foreground">
-                                {openingBalance < 0 ? fmtAmount(openingBalance) : "—"}
-                              </td>
-                              <td className="px-3 py-2 text-xs text-left font-bold tabular-nums">
-                                <BalanceCell value={openingBalance} />
-                              </td>
+                            <tr className="bg-muted/30 border-b-2 border-border/60">
+                              {isColVisible("date") && <td className="px-3 py-2.5 text-xs text-muted-foreground italic">{fmtDate(dateFrom)}</td>}
+                              {isColVisible("reference") && <td className="px-3 py-2.5 text-xs text-muted-foreground">—</td>}
+                              {isColVisible("description") && <td className="px-3 py-2.5 text-xs font-bold text-foreground italic">رصيد مُرحَّل</td>}
+                              {isColVisible("type") && <td className="px-3 py-2.5"></td>}
+                              {isColVisible("paymentMethod") && <td className="px-3 py-2.5"></td>}
+                              {isColVisible("currency") && <td className="px-3 py-2.5"></td>}
+                              {isColVisible("debit") && <td className="px-3 py-2.5 text-xs text-left tabular-nums text-muted-foreground">{openingBalance > 0 ? fmtAmount(openingBalance) : "—"}</td>}
+                              {isColVisible("credit") && <td className="px-3 py-2.5 text-xs text-left tabular-nums text-muted-foreground">{openingBalance < 0 ? fmtAmount(openingBalance) : "—"}</td>}
+                              {isColVisible("balance") && <td className="px-3 py-2.5 text-left"><BalanceCell value={openingBalance} /></td>}
                             </tr>
 
                             {/* Transaction rows */}
-                            {filteredRows.map((row) => (
-                              <tr key={row.transaction_id} className="border-b border-border/30 hover:bg-[hsl(210,80%,96%)]/10 transition-colors" style={{ height: "40px" }}>
-                                <td className="px-3 py-2 text-xs tabular-nums text-muted-foreground">{fmtDate(row.date)}</td>
-                                <td className="px-3 py-2 text-xs">
-                                  {row.reference ? (
-                                    <button
-                                      onClick={() => navigateToReference(row.reference, row.transaction_id)}
-                                      className="text-primary hover:underline font-mono text-[11px]"
-                                    >
-                                      {row.reference}
-                                    </button>
-                                  ) : <span className="text-muted-foreground">—</span>}
-                                </td>
-                                <td className="px-3 py-2 text-xs text-foreground truncate">{row.description}</td>
-                                <td className="px-3 py-2 text-center">
-                                  <span className={cn(
-                                    "inline-block text-[10px] font-semibold px-1.5 py-0.5 rounded border",
-                                    row.debit > 0
-                                      ? "border-red-500/30 text-red-500 bg-red-500/5"
-                                      : "border-emerald-500/30 text-emerald-500 bg-emerald-500/5"
-                                  )}>
-                                    {row.debit > 0 ? "مدين" : "دائن"}
-                                  </span>
-                                </td>
-                                {displayOptions.showPaymentMethod && (
-                                  <td className="px-3 py-2 text-center text-[10px] text-muted-foreground">{row.payment_method || "—"}</td>
-                                )}
-                                {displayOptions.showCurrency && (
-                                  <td className="px-3 py-2 text-center text-[10px] text-muted-foreground">{row.currency}</td>
-                                )}
-                                <td className="px-3 py-2 text-left tabular-nums font-semibold" style={{ color: row.debit > 0 ? "hsl(var(--destructive))" : undefined }}>
-                                  {row.debit > 0 ? fmtAmount(row.debit) : "—"}
-                                </td>
-                                <td className="px-3 py-2 text-left tabular-nums font-semibold" style={{ color: row.credit > 0 ? "hsl(var(--success))" : undefined }}>
-                                  {row.credit > 0 ? fmtAmount(row.credit) : "—"}
-                                </td>
-                                <td className="px-3 py-2 text-left">
-                                  <BalanceCell value={row.balance} />
-                                </td>
-                              </tr>
-                            ))}
+                            {filteredRows.map((row, i) => {
+                              const badge = getTypeBadge(row.transaction_type);
+                              return (
+                                <tr
+                                  key={row.transaction_id}
+                                  className={cn(
+                                    "border-b border-border/30 hover:bg-primary/5 transition-colors cursor-pointer",
+                                    i % 2 === 1 && "bg-muted/10"
+                                  )}
+                                  onClick={() => openPreview(row.transaction_id)}
+                                  style={{ height: "44px" }}
+                                >
+                                  {isColVisible("date") && (
+                                    <td className="px-3 py-2">
+                                      <div className="text-xs tabular-nums text-foreground">{fmtDate(row.date)}</div>
+                                      <div className="text-[9px] text-muted-foreground">{getDayName(row.date)}</div>
+                                    </td>
+                                  )}
+                                  {isColVisible("reference") && (
+                                    <td className="px-3 py-2 text-xs">
+                                      {row.reference ? (
+                                        <button
+                                          onClick={(e) => { e.stopPropagation(); openPreview(row.transaction_id); }}
+                                          className="text-primary hover:underline font-mono text-[11px] font-semibold"
+                                        >
+                                          {row.reference}
+                                        </button>
+                                      ) : <span className="text-muted-foreground">—</span>}
+                                    </td>
+                                  )}
+                                  {isColVisible("description") && <td className="px-3 py-2 text-xs text-foreground truncate">{row.description}</td>}
+                                  {isColVisible("type") && (
+                                    <td className="px-3 py-2 text-center">
+                                      <span className={cn("inline-block text-[10px] font-semibold px-2 py-0.5 rounded-md border", badge.color)}>
+                                        {badge.label}
+                                      </span>
+                                    </td>
+                                  )}
+                                  {isColVisible("paymentMethod") && <td className="px-3 py-2 text-center text-[10px] text-muted-foreground">{row.payment_method || "—"}</td>}
+                                  {isColVisible("currency") && <td className="px-3 py-2 text-center text-[10px] text-muted-foreground">{row.currency}</td>}
+                                  {isColVisible("debit") && (
+                                    <td className="px-3 py-2 text-left tabular-nums font-semibold text-red-600">
+                                      {row.debit > 0 ? fmtAmount(row.debit) : "—"}
+                                    </td>
+                                  )}
+                                  {isColVisible("credit") && (
+                                    <td className="px-3 py-2 text-left tabular-nums font-semibold text-emerald-600">
+                                      {row.credit > 0 ? fmtAmount(row.credit) : "—"}
+                                    </td>
+                                  )}
+                                  {isColVisible("balance") && <td className="px-3 py-2 text-left"><BalanceCell value={row.balance} /></td>}
+                                </tr>
+                              );
+                            })}
 
                             {/* Closing balance */}
-                            <tr className="bg-primary/10 border-t-2 border-primary/30">
-                              <td className="px-3 py-3 text-xs font-bold text-foreground">—</td>
-                              <td className="px-3 py-3 text-xs font-bold text-foreground">—</td>
-                              <td className="px-3 py-3 text-xs font-bold text-foreground">رصيد ختامي</td>
-                              <td className="px-3 py-3"></td>
-                              {displayOptions.showPaymentMethod && <td className="px-3 py-3"></td>}
-                              {displayOptions.showCurrency && <td className="px-3 py-3"></td>}
-                              <td className="px-3 py-3 text-left tabular-nums font-bold" style={{ color: "hsl(var(--destructive))" }}>{fmtAmount(totalDebit)}</td>
-                              <td className="px-3 py-3 text-left tabular-nums font-bold" style={{ color: "hsl(var(--success))" }}>{fmtAmount(totalCredit)}</td>
-                              <td className="px-3 py-3 text-left">
-                                <BalanceCell value={closingBalance} bold />
-                              </td>
+                            <tr style={{ background: "hsl(210, 50%, 15%)" }}>
+                              {isColVisible("date") && <td className="px-3 py-3.5 text-xs font-bold text-white">—</td>}
+                              {isColVisible("reference") && <td className="px-3 py-3.5 text-xs font-bold text-white">—</td>}
+                              {isColVisible("description") && <td className="px-3 py-3.5 text-sm font-bold text-white">رصيد ختامي</td>}
+                              {isColVisible("type") && <td className="px-3 py-3.5"></td>}
+                              {isColVisible("paymentMethod") && <td className="px-3 py-3.5"></td>}
+                              {isColVisible("currency") && <td className="px-3 py-3.5"></td>}
+                              {isColVisible("debit") && <td className="px-3 py-3.5 text-left tabular-nums font-bold text-red-300 text-sm">{fmtAmount(totalDebit)}</td>}
+                              {isColVisible("credit") && <td className="px-3 py-3.5 text-left tabular-nums font-bold text-emerald-300 text-sm">{fmtAmount(totalCredit)}</td>}
+                              {isColVisible("balance") && (
+                                <td className="px-3 py-3.5 text-left">
+                                  <span className={cn("text-sm font-bold tabular-nums px-2 py-1 rounded",
+                                    closingBalance > 0 ? "text-red-300 bg-red-500/20" :
+                                    closingBalance < 0 ? "text-emerald-300 bg-emerald-500/20" :
+                                    "text-white/70"
+                                  )}>
+                                    {fmtAmount(closingBalance)}
+                                  </span>
+                                </td>
+                              )}
                             </tr>
                           </tbody>
                         </table>
                       </div>
 
-                      {/* Footer totals bar */}
-                      <div className="bg-muted/60 border-t border-border px-4 py-2.5 flex items-center justify-between text-xs">
-                        <span className="text-muted-foreground">إجمالي الحركات: <strong className="text-foreground">{filteredRows.length} قيد</strong></span>
-                        <div className="flex items-center gap-4">
-                          <span>مدين: <strong style={{ color: "hsl(var(--destructive))" }}>{fmtAmount(totalDebit)}</strong></span>
-                          <span>دائن: <strong style={{ color: "hsl(var(--success))" }}>{fmtAmount(totalCredit)}</strong></span>
-                          <span className="border-r border-border pr-4">رصيد الفترة: <strong className="text-foreground">{fmtAmount(totalDebit - totalCredit)}</strong></span>
-                          <span>رصيد ختامي: <strong className="text-foreground">{fmtAmount(closingBalance)}</strong> ({closingBalance >= 0 ? "مدين" : "دائن"})</span>
+                      {/* Enhanced Footer */}
+                      <div className="bg-muted/60 border-t border-border px-4 py-3">
+                        <div className="flex items-center justify-between text-xs flex-wrap gap-2">
+                          <span className="text-muted-foreground">
+                            إجمالي الحركات: <strong className="text-foreground">{filteredRows.length} قيد</strong>
+                          </span>
+                          <div className="flex items-center gap-4">
+                            <span>مدين: <strong className="text-red-600 tabular-nums">{fmtAmount(totalDebit)}</strong></span>
+                            <span>دائن: <strong className="text-emerald-600 tabular-nums">{fmtAmount(totalCredit)}</strong></span>
+                            <Separator orientation="vertical" className="h-4" />
+                            <span>رصيد الفترة: <strong className="text-foreground tabular-nums">{fmtAmount(totalDebit - totalCredit)}</strong></span>
+                            <Separator orientation="vertical" className="h-4" />
+                            <span>
+                              رصيد ختامي: <strong className={cn("tabular-nums", closingBalance > 0 ? "text-red-600" : closingBalance < 0 ? "text-emerald-600" : "text-foreground")}>
+                                {fmtAmount(closingBalance)}
+                              </strong> ({closingBalance >= 0 ? "مدين" : "دائن"})
+                            </span>
+                          </div>
+                          <span className="text-[10px] text-muted-foreground">أساس الاستحقاق · {fmtDate(format(new Date(), "yyyy-MM-dd"))}</span>
                         </div>
                       </div>
                     </div>
@@ -1209,50 +1352,192 @@ const AccountStatementPage = () => {
           </div>
         </div>
       </div>
+
+      {/* ─── CUSTOMIZE PANEL (Sheet from right) ─── */}
+      <Sheet open={showCustomizePanel} onOpenChange={setShowCustomizePanel}>
+        <SheetContent side="right" className="w-[340px]" dir="rtl">
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-2">
+              <Settings2 className="w-5 h-5" /> تخصيص الكشف
+            </SheetTitle>
+          </SheetHeader>
+          <div className="space-y-6 mt-6">
+            {/* Column toggles */}
+            <div className="space-y-3">
+              <h4 className="text-xs font-bold text-muted-foreground uppercase">الأعمدة المعروضة</h4>
+              {columns.map((col, idx) => (
+                <label key={col.key} className="flex items-center gap-3 cursor-pointer py-1">
+                  <Checkbox
+                    checked={col.visible}
+                    onCheckedChange={(v) => {
+                      const newCols = [...columns];
+                      newCols[idx] = { ...col, visible: !!v };
+                      saveColumns(newCols);
+                    }}
+                    className="h-4 w-4"
+                  />
+                  <span className="text-sm text-foreground">{col.label}</span>
+                </label>
+              ))}
+            </div>
+
+            <Separator />
+
+            {/* Display options */}
+            <div className="space-y-3">
+              <h4 className="text-xs font-bold text-muted-foreground uppercase">خيارات العرض</h4>
+              {[
+                { key: "showCheques" as const, label: "الشيكات المرتبطة" },
+                { key: "showVoucherDetails" as const, label: "تفاصيل السندات" },
+                { key: "showNotes" as const, label: "الملاحظات" },
+              ].map(opt => (
+                <label key={opt.key} className="flex items-center gap-3 cursor-pointer py-1">
+                  <Checkbox
+                    checked={displayOptions[opt.key]}
+                    onCheckedChange={(v) => setDisplayOptions(prev => ({ ...prev, [opt.key]: !!v }))}
+                    className="h-4 w-4"
+                  />
+                  <span className="text-sm text-foreground">{opt.label}</span>
+                </label>
+              ))}
+            </div>
+
+            <Separator />
+
+            {/* Fiscal year */}
+            <div className="space-y-2">
+              <h4 className="text-xs font-bold text-muted-foreground uppercase">السنة المالية</h4>
+              <div className="flex flex-wrap gap-1.5">
+                {FISCAL_YEARS.map(y => (
+                  <button
+                    key={y}
+                    onClick={() => setFiscalYear(y)}
+                    className={cn(
+                      "px-3 py-1.5 rounded-lg text-xs font-medium transition-all border",
+                      activePeriod === `سنة ${y}`
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-muted text-muted-foreground border-border hover:text-foreground"
+                    )}
+                  >
+                    {y}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <Separator />
+
+            <Button variant="outline" size="sm" className="w-full" onClick={() => { saveColumns(DEFAULT_COLUMNS); setDisplayOptions(DEFAULT_DISPLAY_OPTIONS); }}>
+              إعادة الضبط الافتراضي
+            </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* ─── TRANSACTION PREVIEW DRAWER (Sheet from left) ─── */}
+      <Sheet open={showPreviewDrawer} onOpenChange={setShowPreviewDrawer}>
+        <SheetContent side="left" className="w-[420px] p-0" dir="rtl">
+          {previewTx ? (
+            <div className="flex flex-col h-full">
+              {/* Header */}
+              <div className="p-4 border-b border-border" style={{ background: "#0D1B2A" }}>
+                <div className="flex items-center justify-between mb-2">
+                  <Badge className={getTypeBadge(previewTx.transaction_type).color + " text-[11px]"}>
+                    {getTypeBadge(previewTx.transaction_type).label}
+                  </Badge>
+                  <button onClick={() => setShowPreviewDrawer(false)} className="text-white/60 hover:text-white">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+                <h3 className="text-white font-bold text-base">{previewTx.reference || "بدون مرجع"}</h3>
+                <p className="text-white/60 text-xs mt-1">{fmtDate(previewTx.transaction_date)}</p>
+              </div>
+
+              {/* Content */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">البيان</span>
+                    <span className="text-foreground font-medium text-right max-w-[250px]">{previewTx.description}</span>
+                  </div>
+                  {!isAccountsTab && (
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">الجهة</span>
+                      <span className="text-foreground font-medium">{selectedEntityName}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">الحالة</span>
+                    <Badge variant={previewTx.row && previewTx.row.balance > 0 ? "destructive" : "default"} className="text-[10px]">
+                      {previewTx.row && previewTx.row.balance > 0 ? "غير مسدّدة" : "مسدّدة"}
+                    </Badge>
+                  </div>
+                  {previewTx.payment_method && (
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">طريقة الدفع</span>
+                      <span className="text-foreground">{previewTx.payment_method}</span>
+                    </div>
+                  )}
+                  <Separator />
+                  <div className="bg-muted/30 rounded-lg p-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">حساب مدين</span>
+                      <span className="text-xs font-mono text-foreground">{previewTx.debit_account_code}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">حساب دائن</span>
+                      <span className="text-xs font-mono text-foreground">{previewTx.credit_account_code}</span>
+                    </div>
+                    <Separator />
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-bold text-foreground">المبلغ</span>
+                      <span className="text-base font-bold tabular-nums text-primary">{fmtAmount(previewTx.amount)}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer actions */}
+              <div className="p-4 border-t border-border flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 gap-1.5"
+                  onClick={() => {
+                    if (previewTx.reference) navigateToReference(previewTx.reference, previewTx.id);
+                  }}
+                >
+                  <Pencil className="w-3.5 h-3.5" /> تعديل
+                </Button>
+                <Button
+                  size="sm"
+                  className="flex-1 gap-1.5"
+                  onClick={() => {
+                    if (previewTx.reference) navigateToReference(previewTx.reference, previewTx.id);
+                  }}
+                >
+                  <Eye className="w-3.5 h-3.5" /> عرض المستند
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="p-8 text-center text-muted-foreground">جاري التحميل...</div>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 };
 
 // ─── SUB-COMPONENTS ───
 
-function KPIChip({ label, value, icon: Icon, variant }: { label: string; value: number; icon: any; variant?: "debit" | "credit" | "closing" }) {
-  const colorClass = variant === "debit"
-    ? "border-red-500/20 bg-red-500/5"
-    : variant === "credit"
-    ? "border-emerald-500/20 bg-emerald-500/5"
-    : variant === "closing"
-    ? "border-primary/20 bg-primary/5"
-    : "border-border bg-muted/30";
-
-  const valueColor = variant === "debit"
-    ? "text-red-500"
-    : variant === "credit"
-    ? "text-emerald-500"
-    : variant === "closing"
-    ? (value >= 0 ? "text-primary" : "text-red-500")
-    : "text-foreground";
-
-  return (
-    <div className={cn("rounded-lg border p-3 text-center", colorClass)}>
-      <div className="flex items-center justify-center gap-1 mb-1">
-        <Icon className="w-3 h-3 text-muted-foreground" />
-        <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">{label}</span>
-      </div>
-      <p className={cn("text-lg font-bold tabular-nums", valueColor)}>{fmtAmount(value)}</p>
-      {(variant === "closing" || !variant) && (
-        <p className="text-[10px] text-muted-foreground mt-0.5">{value >= 0 ? "مدين" : "دائن"}</p>
-      )}
-    </div>
-  );
-}
-
 function BalanceCell({ value, bold }: { value: number; bold?: boolean }) {
   return (
     <span className={cn(
       "inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs tabular-nums",
       bold ? "font-bold text-sm" : "font-semibold",
-      value > 0 ? "text-primary bg-primary/10" :
-      value < 0 ? "text-red-500 bg-red-500/10" :
+      value > 0 ? "text-red-600 bg-red-500/10" :
+      value < 0 ? "text-emerald-600 bg-emerald-500/10" :
       "text-muted-foreground"
     )}>
       {fmtAmount(value)}
