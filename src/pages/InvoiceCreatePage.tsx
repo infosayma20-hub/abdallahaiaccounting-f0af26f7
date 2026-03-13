@@ -182,7 +182,7 @@ const InvoiceCreatePage = () => {
       ]);
       setContacts((cRes.data || []) as Contact[]);
       setProducts((pRes.data as any[]) || []);
-      setSalesReps((sRes.data || []) as SalesRep[]);
+      setSalesReps(((sRes.data || []) as any[]).map(s => ({ id: s.id, name: s.full_name })));
     };
     fetchAll();
   }, [user]);
