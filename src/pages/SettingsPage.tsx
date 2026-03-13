@@ -11,6 +11,7 @@ import InvoiceSettingsSection from "@/components/settings/InvoiceSettingsSection
 import POSSettingsSection from "@/components/settings/POSSettingsSection";
 import PrintSettingsSection from "@/components/settings/PrintSettingsSection";
 import PortalSettingsSection from "@/components/settings/PortalSettingsSection";
+import UsersSettingsSection from "@/components/settings/UsersSettingsSection";
 
 const sections = [
   { id: "company", label: "الشركة", icon: Building2, ready: true },
