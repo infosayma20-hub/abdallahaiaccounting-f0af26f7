@@ -1,7 +1,7 @@
 import { useState } from "react";
 import AppSidebar from "./AppSidebar";
 import TopBar from "./TopBar";
-import HelpGuideModal from "../HelpGuideModal";
+
 import SubscriptionExpiryBanner from "../SubscriptionExpiryBanner";
 import TrialBanner from "../billing/TrialBanner";
 import TrialExpiredGate from "../trial/TrialExpiredGate";
