@@ -223,9 +223,22 @@ const InvoiceCreatePage = () => {
         supabase.from("products").select("*").eq("user_id", user.id).order("name"),
         supabase.from("sales_representatives").select("id, full_name").eq("user_id", user.id).eq("is_active", true),
       ]);
-      setContacts((cRes.data || []) as Contact[]);
+      const contactsList = (cRes.data || []) as Contact[];
+      setContacts(contactsList);
       setProducts((pRes.data as any[]) || []);
       setSalesReps(((sRes.data || []) as any[]).map(s => ({ id: s.id, name: s.full_name })));
+
+      // Resolve duplicate contact after contacts load
+      if (fromDuplicate) {
+        const draft = form.contactId;
+        if (draft) {
+          const found = contactsList.find(c => c.id === draft);
+          if (found) {
+            setSelectedContact(found);
+            setContactSearch(found.contact_name);
+          }
+        }
+      }
     };
     fetchAll();
   }, [user]);
