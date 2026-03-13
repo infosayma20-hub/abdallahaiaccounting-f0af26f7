@@ -38,6 +38,7 @@ export function useGlobalShortcuts({ onShowShortcuts, onShowNewModal }: UseGloba
           return;
         }
         if (e.key === "n" || e.key === "N") { e.preventDefault(); onShowNewModal?.(); return; }
+        if (e.key === "a" || e.key === "A") { e.preventDefault(); navigate("/super-admin/dashboard"); return; }
       }
 
       // Ctrl + / for shortcuts modal

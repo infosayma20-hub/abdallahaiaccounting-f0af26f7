@@ -81,6 +81,17 @@ const KeyboardShortcutsModal = ({ open, onClose }: KeyboardShortcutsModalProps) 
             <ShortcutRow keys="Alt + T" label="ميزان المراجعة" />
             <ShortcutRow keys="Esc" label="إغلاق النوافذ" />
           </div>
+
+          {/* Admin */}
+          <div className="bg-secondary/30 rounded-xl p-3 space-y-1 sm:col-span-2">
+            <h3 className="text-[11px] font-bold text-primary mb-2 flex items-center gap-1.5">
+              🛡️ Super Admin
+            </h3>
+            <div className="grid grid-cols-2 gap-2">
+              <ShortcutRow keys="Alt + A" label="لوحة التحكم الإدارية" />
+              <span className="text-[11px] text-muted-foreground flex items-center">لوحة تحكم النظام الكاملة</span>
+            </div>
+          </div>
         </div>
 
         <p className="text-[10px] text-muted-foreground text-center mt-2 pt-2 border-t border-border/30">
