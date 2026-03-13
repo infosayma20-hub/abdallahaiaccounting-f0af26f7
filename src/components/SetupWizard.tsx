@@ -174,6 +174,20 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
         company_name: data.companyName || undefined,
       }).eq("user_id", userId);
 
+      // 3b. Upsert companies table so company name appears in top bar immediately
+      if (data.companyName) {
+        const { data: existingCompany } = await supabase
+          .from("companies")
+          .select("id")
+          .eq("owner_id", userId)
+          .maybeSingle();
+        if (existingCompany) {
+          await supabase.from("companies").update({ name: data.companyName }).eq("id", existingCompany.id);
+        } else {
+          await supabase.from("companies").insert({ owner_id: userId, name: data.companyName });
+        }
+      }
+
       // 4. Update company settings
       const settingsPayload: Record<string, any> = {
         user_id: userId,
