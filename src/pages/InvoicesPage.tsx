@@ -102,6 +102,41 @@ const InvoicesPage = () => {
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [statusFilter, setStatusFilter] = useState("all");
 
+  // Duplicate state
+  const [duplicateModal, setDuplicateModal] = useState(false);
+  const [duplicateTarget, setDuplicateTarget] = useState<Invoice | null>(null);
+
+  const handleDuplicate = (inv: Invoice) => {
+    setDuplicateTarget(inv);
+    setDuplicateModal(true);
+  };
+
+  const confirmDuplicate = () => {
+    if (!duplicateTarget) return;
+    const draftData = {
+      _sourceRef: duplicateTarget.invoiceNumber,
+      type: duplicateTarget.type,
+      contactName: duplicateTarget.contactName,
+      contactId: (duplicateTarget as any).contactId || null,
+      paymentMethod: duplicateTarget.paymentMethod,
+      currency: duplicateTarget.currency,
+      notes: duplicateTarget.notes,
+      items: duplicateTarget.items?.map(item => ({
+        description: item.description,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        discount: item.discount,
+        taxRate: item.taxRate,
+        subtotal: item.subtotal,
+        productId: item.productId,
+      })),
+      contactSearch: duplicateTarget.contactName,
+    };
+    localStorage.setItem("draft_invoice_new", JSON.stringify(draftData));
+    setDuplicateModal(false);
+    navigate("/invoices/new?from_duplicate=true");
+  };
+
   const [form, setForm] = useState({
     type: "sales" as "sales" | "purchase",
     contactName: "",
