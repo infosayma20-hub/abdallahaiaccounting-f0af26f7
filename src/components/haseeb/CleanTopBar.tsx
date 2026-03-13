@@ -21,6 +21,7 @@ interface Props {
 const CleanTopBar = ({
   healthScore, hasAnomalies, cfoMode, onToggleCfo, onBack,
   onShowFinancial, onShowNotifications, onToggleHistory, onRefreshData,
+  onShowHelp, onReplayOnboarding,
   todayConversationCount = 0, refreshing = false,
 }: Props) => {
   const [showMenu, setShowMenu] = useState(false);
