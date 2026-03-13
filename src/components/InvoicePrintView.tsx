@@ -181,10 +181,10 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
         {/* Invoice Title - Left */}
         <div style={{ textAlign: "left" }}>
           <div style={{ fontSize: "20px", fontWeight: 700 }}>
-            {isSales ? "فاتورة مبيعات أصلية" : "فاتورة مشتريات أصلية"}
+            {isSales ? "فاتورة مبيعات" : "فاتورة مشتريات"}
           </div>
           <div style={{ fontSize: "10px", opacity: 0.8, fontFamily: "'Segoe UI', sans-serif" }}>
-            {isSales ? "ORIGINAL SALES INVOICE" : "ORIGINAL PURCHASE INVOICE"}
+            {isSales ? "SALES INVOICE" : "PURCHASE INVOICE"}
           </div>
         </div>
       </div>
