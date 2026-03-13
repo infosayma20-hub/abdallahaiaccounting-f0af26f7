@@ -1762,21 +1762,32 @@ const AccountStatementPage = () => {
             <Separator />
 
             {/* Additional display options */}
-            <div className="space-y-3">
+             <div className="space-y-3">
               <h4 className="text-xs font-bold text-muted-foreground uppercase">── إضافي ──</h4>
               {[
-                { key: "showSalesOrder" as const, label: "إظهار أرقام أوامر البيع (SO)" },
-                { key: "showContactCode" as const, label: "إظهار كود العميل/رقمه في كل سطر" },
-                { key: "showDueDate" as const, label: "إظهار تاريخ الاستحقاق" },
-                { key: "showCheques" as const, label: "الشيكات المرتبطة" },
-                { key: "showVoucherDetails" as const, label: "تفاصيل السندات" },
-                { key: "showChildAccounts" as const, label: "إظهار الحسابات الفرعية (Show Child)" },
-                { key: "showNotes" as const, label: "الملاحظات" },
+                { key: "showSalesOrder" as const, label: "إظهار أرقام أوامر البيع (SO)", colKey: "" },
+                { key: "showContactCode" as const, label: "إظهار كود العميل/رقمه في كل سطر", colKey: "contactCode" },
+                { key: "showDueDate" as const, label: "إظهار تاريخ الاستحقاق", colKey: "dueDate" },
+                { key: "showPaymentMethod" as const, label: "إظهار طريقة الدفع", colKey: "paymentMethod" },
+                { key: "showCurrency" as const, label: "إظهار العملة", colKey: "currency" },
+                { key: "showCheques" as const, label: "الشيكات المرتبطة", colKey: "" },
+                { key: "showVoucherDetails" as const, label: "تفاصيل السندات", colKey: "" },
+                { key: "showChildAccounts" as const, label: "إظهار الحسابات الفرعية (Show Child)", colKey: "" },
+                { key: "showNotes" as const, label: "الملاحظات", colKey: "notes" },
               ].map(opt => (
                 <label key={opt.key} className="flex items-center gap-3 cursor-pointer py-1">
                   <Checkbox
                     checked={displayOptions[opt.key]}
-                    onCheckedChange={(v) => setDisplayOptions(prev => ({ ...prev, [opt.key]: !!v }))}
+                    onCheckedChange={(v) => {
+                      setDisplayOptions(prev => ({ ...prev, [opt.key]: !!v }));
+                      // Sync with column visibility
+                      if (opt.colKey) {
+                        const newCols = columns.map(c =>
+                          c.key === opt.colKey ? { ...c, visible: !!v } : c
+                        );
+                        saveColumns(newCols);
+                      }
+                    }}
                     className="h-4 w-4"
                   />
                   <span className="text-sm text-foreground">{opt.label}</span>
