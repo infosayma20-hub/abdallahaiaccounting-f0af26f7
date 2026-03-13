@@ -55,11 +55,11 @@ export function usePOSOffline({ userId, sessionId, terminalId, companyId }: UseP
   const preCacheData = useCallback(async () => {
     if (!userId) return;
     try {
-      const productsRes = await supabase.from('products')
+      const productsRes: any = await (supabase.from('products') as any)
         .select('id, name_ar, sell_price, buy_price, quantity, category, sku, barcode, tax_rate, unit, is_pos_available, pos_category_id, color, image_url, min_quantity')
-        .eq('user_id', userId as string)
-        .eq('is_active', true as any);
-      const customersRes = await supabase.from('contacts')
+        .eq('user_id', userId)
+        .eq('is_active', true);
+      const customersRes: any = await (supabase.from('contacts') as any)
         .select('id, contact_name, phone, current_balance, credit_limit, contact_type')
         .eq('user_id', userId)
         .or('contact_type.eq.عميل,contact_type.eq.both,contact_type.eq.customer');
