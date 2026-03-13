@@ -31,6 +31,8 @@ interface Props {
   onJournal: (data: any, accounts?: any[]) => void;
   onTransactionSuccess: () => void;
   onBack: () => void;
+  onShowHelp?: () => void;
+  onReplayOnboarding?: () => void;
 }
 
 const fmt = (n: number) => `₪${Math.abs(n).toLocaleString()}`;
