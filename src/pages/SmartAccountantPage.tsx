@@ -163,9 +163,33 @@ const SmartAccountantPage = () => {
     }
   };
 
+  // Onboarding handlers
+  const handleOnboardingComplete = async () => {
+    setShowOnboarding(false);
+    if (!user?.id) return;
+    await supabase.from("profiles").update({
+      smart_accountant_onboarded: true,
+      smart_accountant_onboarded_at: new Date().toISOString(),
+    } as any).eq("user_id", user.id);
+  };
+
+  const handleHelpPanelFill = (text: string) => {
+    // This will be used later to fill the input dock
+    setShowHelpPanel(false);
+  };
+
   // Single-column clean layout for both mobile and desktop
   return (
     <div className="finix-clean-screen" dir="rtl">
+      {/* Onboarding Overlay */}
+      {showOnboarding && (
+        <SmartAccountantOnboarding
+          userName={profileName}
+          onComplete={handleOnboardingComplete}
+          onSkip={handleOnboardingComplete}
+        />
+      )}
+
       <Suspense fallback={
         <div className="h-screen bg-[#F8FAFC] flex items-center justify-center">
           <div className="w-8 h-8 border-2 border-t-transparent border-[#0A2342] rounded-full animate-spin" />
@@ -181,8 +205,17 @@ const SmartAccountantPage = () => {
           onJournal={(d: any, a?: any[]) => { setJournalEntryData(d); setJournalEntryAccounts(a || []); setShowJournalEntry(true); }}
           onTransactionSuccess={() => txToast.trigger()}
           onBack={() => window.history.length > 2 ? navigate(-1) : navigate('/apps')}
+          onShowHelp={() => setShowHelpPanel(true)}
+          onReplayOnboarding={() => setShowOnboarding(true)}
         />
       </Suspense>
+
+      {/* Help Panel */}
+      <SmartAccountantHelpPanel
+        open={showHelpPanel}
+        onClose={() => setShowHelpPanel(false)}
+        onFillInput={handleHelpPanelFill}
+      />
 
       <TransactionToast show={txToast.show} onDone={txToast.handleDone} />
       <JournalEntryPopup open={showJournalEntry} onClose={() => { setShowJournalEntry(false); setJournalEntryData(null); }} onSuccess={() => txToast.trigger()} initialData={journalEntryData} accounts={journalEntryAccounts.length > 0 ? journalEntryAccounts : undefined} />
