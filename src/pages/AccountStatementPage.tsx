@@ -729,8 +729,21 @@ const AccountStatementPage = () => {
         r.reference.toLowerCase().includes(q)
       );
     }
+    // Summary mode: group by reference, keep only one row per reference
+    if (detailLevel === "summary") {
+      const grouped: StatementRow[] = [];
+      const seen = new Set<string>();
+      for (const r of result) {
+        const key = r.reference || r.transaction_id;
+        if (!seen.has(key)) {
+          seen.add(key);
+          grouped.push({ ...r, description: r.reference ? `${getTypeBadge(r.transaction_type).label} — ${r.reference}` : r.description });
+        }
+      }
+      return grouped;
+    }
     return result;
-  }, [rows, txSearch, txTypeFilter]);
+  }, [rows, txSearch, txTypeFilter, detailLevel]);
 
   // Last transaction date for entity
   const lastTxDate = useMemo(() => {
@@ -762,14 +775,24 @@ const AccountStatementPage = () => {
     setShowPDFPreview(true);
     setPdfGenerating(true);
     try {
-      // Wait for print view to render
-      await new Promise(r => setTimeout(r, 300));
+      await new Promise(r => setTimeout(r, 100));
       const element = document.getElementById("statement-print-wrapper");
       if (!element) { setPdfGenerating(false); return; }
+
+      // Temporarily remove print-only class (it has display:none !important)
+      const hadClass = element.classList.contains("print-only");
+      if (hadClass) element.classList.remove("print-only");
       element.style.display = "block";
       element.style.position = "absolute";
       element.style.left = "-9999px";
       element.style.top = "0";
+      element.style.width = "794px";
+      element.style.background = "white";
+      element.style.color = "black";
+      element.style.zIndex = "-1";
+
+      // Wait for render
+      await new Promise(r => setTimeout(r, 500));
 
       const canvas = await html2canvas(element, {
         scale: 2,
@@ -777,18 +800,42 @@ const AccountStatementPage = () => {
         allowTaint: true,
         width: 794,
         windowWidth: 794,
+        backgroundColor: "#ffffff",
       });
 
+      // Restore
       element.style.display = "";
       element.style.position = "";
       element.style.left = "";
       element.style.top = "";
+      element.style.width = "";
+      element.style.background = "";
+      element.style.color = "";
+      element.style.zIndex = "";
+      if (hadClass) element.classList.add("print-only");
 
-      const imgData = canvas.toDataURL("image/png");
+      const imgData = canvas.toDataURL("image/jpeg", 0.95);
       const pdf = new jsPDF("p", "mm", "a4");
       const pdfW = 210;
-      const pdfH = (canvas.height * pdfW) / canvas.width;
-      pdf.addImage(imgData, "PNG", 0, 0, pdfW, pdfH);
+      const pageH = 297;
+      const imgH = (canvas.height * pdfW) / canvas.width;
+
+      // Multi-page support
+      if (imgH <= pageH) {
+        pdf.addImage(imgData, "JPEG", 0, 0, pdfW, imgH);
+      } else {
+        let heightLeft = imgH;
+        let position = 0;
+        pdf.addImage(imgData, "JPEG", 0, position, pdfW, imgH);
+        heightLeft -= pageH;
+        while (heightLeft > 0) {
+          position = heightLeft - imgH;
+          pdf.addPage();
+          pdf.addImage(imgData, "JPEG", 0, position, pdfW, imgH);
+          heightLeft -= pageH;
+        }
+      }
+
       setPdfPreviewUrl(pdf.output("bloburl") as unknown as string);
     } catch (err) {
       console.error("PDF generation error:", err);
@@ -862,7 +909,17 @@ const AccountStatementPage = () => {
     localStorage.setItem("statement_columns_prefs", JSON.stringify(newCols));
   };
 
-  const isColVisible = (key: string) => columns.find(c => c.key === key)?.visible ?? (key === "dueDate" ? displayOptions.showDueDate : false);
+  const isColVisible = (key: string) => {
+    const col = columns.find(c => c.key === key);
+    if (col) return col.visible;
+    // Fallback to displayOptions for columns not in the columns array
+    if (key === "dueDate") return displayOptions.showDueDate;
+    if (key === "paymentMethod") return displayOptions.showPaymentMethod;
+    if (key === "contactCode") return displayOptions.showContactCode;
+    if (key === "currency") return displayOptions.showCurrency;
+    if (key === "notes") return displayOptions.showNotes;
+    return false;
+  };
 
   // Send via WhatsApp
   const sendWhatsApp = () => {
@@ -1688,7 +1745,7 @@ const AccountStatementPage = () => {
                   <RadioGroupItem value="lineItems" id="lineItems" className="mt-0.5" />
                   <div>
                     <Label htmlFor="lineItems" className="text-sm font-medium cursor-pointer">تفصيل البنود</Label>
-                    <p className="text-[10px] text-muted-foreground">كل صنف في الفاتورة في سطر منفصل (مثل كشف PEPSI)</p>
+                    <p className="text-[10px] text-muted-foreground">كل صنف في الفاتورة في سطر منفصل</p>
                   </div>
                 </div>
               </RadioGroup>
@@ -1718,21 +1775,32 @@ const AccountStatementPage = () => {
             <Separator />
 
             {/* Additional display options */}
-            <div className="space-y-3">
+             <div className="space-y-3">
               <h4 className="text-xs font-bold text-muted-foreground uppercase">── إضافي ──</h4>
               {[
-                { key: "showSalesOrder" as const, label: "إظهار أرقام أوامر البيع (SO)" },
-                { key: "showContactCode" as const, label: "إظهار كود العميل/رقمه في كل سطر" },
-                { key: "showDueDate" as const, label: "إظهار تاريخ الاستحقاق" },
-                { key: "showCheques" as const, label: "الشيكات المرتبطة" },
-                { key: "showVoucherDetails" as const, label: "تفاصيل السندات" },
-                { key: "showChildAccounts" as const, label: "إظهار الحسابات الفرعية (Show Child)" },
-                { key: "showNotes" as const, label: "الملاحظات" },
+                { key: "showSalesOrder" as const, label: "إظهار أرقام أوامر البيع (SO)", colKey: "" },
+                { key: "showContactCode" as const, label: "إظهار كود العميل/رقمه في كل سطر", colKey: "contactCode" },
+                { key: "showDueDate" as const, label: "إظهار تاريخ الاستحقاق", colKey: "dueDate" },
+                { key: "showPaymentMethod" as const, label: "إظهار طريقة الدفع", colKey: "paymentMethod" },
+                { key: "showCurrency" as const, label: "إظهار العملة", colKey: "currency" },
+                { key: "showCheques" as const, label: "الشيكات المرتبطة", colKey: "" },
+                { key: "showVoucherDetails" as const, label: "تفاصيل السندات", colKey: "" },
+                { key: "showChildAccounts" as const, label: "إظهار الحسابات الفرعية (Show Child)", colKey: "" },
+                { key: "showNotes" as const, label: "الملاحظات", colKey: "notes" },
               ].map(opt => (
                 <label key={opt.key} className="flex items-center gap-3 cursor-pointer py-1">
                   <Checkbox
                     checked={displayOptions[opt.key]}
-                    onCheckedChange={(v) => setDisplayOptions(prev => ({ ...prev, [opt.key]: !!v }))}
+                    onCheckedChange={(v) => {
+                      setDisplayOptions(prev => ({ ...prev, [opt.key]: !!v }));
+                      // Sync with column visibility
+                      if (opt.colKey) {
+                        const newCols = columns.map(c =>
+                          c.key === opt.colKey ? { ...c, visible: !!v } : c
+                        );
+                        saveColumns(newCols);
+                      }
+                    }}
                     className="h-4 w-4"
                   />
                   <span className="text-sm text-foreground">{opt.label}</span>
