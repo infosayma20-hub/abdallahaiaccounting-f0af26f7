@@ -896,7 +896,17 @@ const AccountStatementPage = () => {
     localStorage.setItem("statement_columns_prefs", JSON.stringify(newCols));
   };
 
-  const isColVisible = (key: string) => columns.find(c => c.key === key)?.visible ?? (key === "dueDate" ? displayOptions.showDueDate : false);
+  const isColVisible = (key: string) => {
+    const col = columns.find(c => c.key === key);
+    if (col) return col.visible;
+    // Fallback to displayOptions for columns not in the columns array
+    if (key === "dueDate") return displayOptions.showDueDate;
+    if (key === "paymentMethod") return displayOptions.showPaymentMethod;
+    if (key === "contactCode") return displayOptions.showContactCode;
+    if (key === "currency") return displayOptions.showCurrency;
+    if (key === "notes") return displayOptions.showNotes;
+    return false;
+  };
 
   // Send via WhatsApp
   const sendWhatsApp = () => {
