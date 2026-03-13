@@ -167,6 +167,13 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
         case "checks-payable": await loadChecksPayable(); break;
         case "supplier-purchase-analysis": await loadSupplierPurchaseAnalysis(); break;
         case "supplier-statement-all": await loadSupplierStatementAll(); break;
+        // Invoice Tracking
+        case "invoice-lifecycle": await loadInvoiceLifecycle(); break;
+        case "dso-detailed": await loadDSODetailed(); break;
+        case "ar-aging-advanced": await loadARAgingAdvanced(); break;
+        case "collection-efficiency": await loadCollectionEfficiency(); break;
+        case "payment-allocation": await loadPaymentAllocation(); break;
+        case "unpaid-invoices": await loadUnpaidInvoices(); break;
         default: await loadGenericTransactions(); break;
       }
     } catch (e: any) {
