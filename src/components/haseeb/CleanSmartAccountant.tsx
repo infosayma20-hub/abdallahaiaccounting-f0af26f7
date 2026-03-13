@@ -292,6 +292,8 @@ const CleanSmartAccountant = ({ user, userName, data, cfoMode, onToggleCfo, onCh
         onShowNotifications={() => setShowNotifications(true)}
         onToggleHistory={() => setShowHistory(!showHistory)}
         onRefreshData={handleRefreshData}
+        onShowHelp={onShowHelp}
+        onReplayOnboarding={onReplayOnboarding}
         todayConversationCount={todayConvCount}
         refreshing={refreshing}
       />
