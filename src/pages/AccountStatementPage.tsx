@@ -280,8 +280,6 @@ const AccountStatementPage = () => {
   const [txTypeFilter, setTxTypeFilter] = useState("all");
   const [detailLevel, setDetailLevel] = useState<DetailLevel>("total");
   const [showYearComparison, setShowYearComparison] = useState(false);
-  const [showPDFPreview, setShowPDFPreview] = useState(false);
-  const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string>("");
   const [pdfGenerating, setPdfGenerating] = useState(false);
 
   // Load saved column prefs
