@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 
@@ -25,14 +25,20 @@ export const useOnboarding = () => {
   const [state, setState] = useState<OnboardingState>(defaultState);
   const [loading, setLoading] = useState(true);
   const [businessType, setBusinessType] = useState<string | undefined>();
+  const fetchedRef = useRef(false);
+
+  const userId = user?.id;
 
   useEffect(() => {
-    if (!user) return;
+    if (!userId) return;
+    // Prevent double-fetch when user object ref changes
+    if (fetchedRef.current) return;
+    fetchedRef.current = true;
+
     const fetchData = async () => {
-      // Fetch onboarding state and business_type in parallel
       const [onboardingRes, settingsRes] = await Promise.all([
-        supabase.from("user_onboarding").select("*").eq("user_id", user.id).maybeSingle(),
-        supabase.from("company_settings").select("business_type").eq("user_id", user.id).maybeSingle(),
+        supabase.from("user_onboarding").select("*").eq("user_id", userId).maybeSingle(),
+        supabase.from("company_settings").select("business_type").eq("user_id", userId).maybeSingle(),
       ]);
 
       if (onboardingRes.data) {
@@ -54,29 +60,36 @@ export const useOnboarding = () => {
       setLoading(false);
     };
     fetchData();
-  }, [user]);
+  }, [userId]);
 
   const update = useCallback(
     async (partial: Partial<OnboardingState>) => {
-      if (!user) return;
+      if (!userId) return;
       const newState = { ...state, ...partial };
       setState(newState);
+
+      // Clear session guard so modal won't reappear
+      if (partial.welcome_modal_shown) {
+        sessionStorage.setItem("welcome_modal_shown", "true");
+      }
 
       await supabase
         .from("user_onboarding")
         .upsert(
           {
-            user_id: user.id,
+            user_id: userId,
             ...newState,
             ...(partial.full_tour_completed ? { full_tour_completed_at: new Date().toISOString() } : {}),
           },
           { onConflict: "user_id" }
         );
     },
-    [user, state]
+    [userId, state]
   );
 
-  const shouldShowWelcome = !loading && !state.welcome_modal_shown && !state.dont_show_again;
+  // Use sessionStorage guard to prevent modal showing twice in same session
+  const sessionGuard = typeof window !== "undefined" && sessionStorage.getItem("welcome_modal_shown") === "true";
+  const shouldShowWelcome = !loading && !state.welcome_modal_shown && !state.dont_show_again && !sessionGuard;
   const shouldShowTour = !loading && state.welcome_modal_shown && !state.full_tour_completed && !state.full_tour_skipped && !state.dont_show_again;
 
   return { state, loading, update, shouldShowWelcome, shouldShowTour, businessType };
