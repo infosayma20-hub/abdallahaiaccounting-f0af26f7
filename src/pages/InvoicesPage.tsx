@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { getAuthHeaders, getAuthHeadersJson } from "@/lib/edge-helpers";
-import { ArrowRight, Loader2, Plus, FileText, Printer, Search, ShoppingCart, Receipt, Package, Trash2, Save, Eye, AlertTriangle, CreditCard, Building2, Banknote, Clock, ChevronDown, X } from "lucide-react";
+import { ArrowRight, Loader2, Plus, FileText, Printer, Search, ShoppingCart, Receipt, Package, Trash2, Save, Eye, AlertTriangle, CreditCard, Building2, Banknote, Clock, ChevronDown, ChevronLeft, ChevronRight, X, Filter, LayoutGrid, Table2, ArrowUpDown, FileSpreadsheet } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -16,6 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import InvoicePrintView from "@/components/InvoicePrintView";
 import { createRoot } from "react-dom/client";
+import * as XLSX from "xlsx";
 
 interface Contact {
   id: string;
@@ -93,6 +95,11 @@ const InvoicesPage = () => {
   const [showContactDropdown, setShowContactDropdown] = useState(false);
   const [contactDebtWarning, setContactDebtWarning] = useState<string | null>(null);
   const [showPDFPreview, setShowPDFPreview] = useState(false);
+  const [viewMode, setViewMode] = useState<"cards" | "table">("table");
+  const [page, setPage] = useState(1);
+  const [sortKey, setSortKey] = useState<"date" | "contact" | "type" | "total" | "status">("date");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const [statusFilter, setStatusFilter] = useState("all");
 
   const [form, setForm] = useState({
     type: "sales" as "sales" | "purchase",
@@ -561,6 +568,32 @@ const InvoicesPage = () => {
 
   const salesTotal = invoices.filter(i => i.type === "sales").reduce((s, i) => s + i.total, 0);
   const purchaseTotal = invoices.filter(i => i.type === "purchase").reduce((s, i) => s + i.total, 0);
+
+  const PAGE_SIZE = 15;
+
+  const sorted = useMemo(() => {
+    const arr = [...filtered].filter(inv => {
+      if (statusFilter !== "all" && inv.status !== statusFilter) return false;
+      return true;
+    });
+    arr.sort((a, b) => {
+      let cmp = 0;
+      switch (sortKey) {
+        case "date": cmp = new Date(a.date).getTime() - new Date(b.date).getTime(); break;
+        case "contact": cmp = a.contactName.localeCompare(b.contactName); break;
+        case "type": cmp = a.type.localeCompare(b.type); break;
+        case "total": cmp = a.total - b.total; break;
+        case "status": cmp = a.status.localeCompare(b.status); break;
+      }
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+    return arr;
+  }, [filtered, sortKey, sortDir, statusFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
+  const paginated = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  useEffect(() => { setPage(1); }, [searchQuery, filterType, statusFilter]);
 
   const statusConfig: Record<string, { label: string; color: string }> = {
     draft: { label: "مسودة", color: "bg-muted text-muted-foreground" },
@@ -1055,65 +1088,141 @@ const InvoicesPage = () => {
   }
 
   // ─── INVOICES LIST PAGE ───
+
+  const toggleSort = (key: typeof sortKey) => {
+    if (sortKey === key) setSortDir(d => d === "asc" ? "desc" : "asc");
+    else { setSortKey(key); setSortDir("desc"); }
+  };
+
+  const SortHeader = ({ label, field }: { label: string; field: typeof sortKey }) => (
+    <button onClick={() => toggleSort(field)} className="flex items-center gap-1 hover:text-foreground transition-colors">
+      {label}
+      <ArrowUpDown className={`h-3 w-3 ${sortKey === field ? "text-primary" : "text-muted-foreground/40"}`} />
+    </button>
+  );
+
+  const handleExport = () => {
+    const rows = sorted.map(inv => ({
+      "رقم الفاتورة": inv.invoiceNumber,
+      "التاريخ": inv.date,
+      "النوع": inv.type === "sales" ? "مبيعات" : "مشتريات",
+      "العميل/المورد": inv.contactName,
+      "الحالة": statusConfig[inv.status]?.label || inv.status,
+      "طريقة الدفع": paymentLabels[inv.paymentMethod] || inv.paymentMethod,
+      "الإجمالي الفرعي": inv.subtotal,
+      "الخصم": inv.totalDiscount,
+      "الضريبة": inv.totalTax,
+      "الإجمالي": inv.total,
+      "المدفوع": inv.paidAmount,
+      "المتبقي": inv.remainingAmount,
+      "العملة": inv.currency,
+      "ملاحظات": inv.notes,
+    }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    ws["!cols"] = [{ wch: 16 }, { wch: 12 }, { wch: 10 }, { wch: 20 }, { wch: 10 }, { wch: 12 }, { wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 8 }, { wch: 25 }];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "الفواتير");
+    XLSX.writeFile(wb, `الفواتير_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    toast({ title: "تم تصدير التقرير ✅" });
+  };
+
+  const netTotal = salesTotal - purchaseTotal;
+  const paidTotal = invoices.reduce((s, i) => s + i.paidAmount, 0);
+  const unpaidTotal = invoices.reduce((s, i) => s + i.remainingAmount, 0);
+
   return (
     <div className="px-4 pt-6 pb-24 space-y-5" dir="rtl">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <button onClick={() => window.history.length > 2 ? navigate(-1) : navigate("/apps")} className="p-2 rounded-xl hover:bg-muted transition-colors">
-            <ArrowRight className="h-5 w-5 text-foreground" />
+          <button onClick={() => window.history.length > 2 ? navigate(-1) : navigate("/apps")} className="w-9 h-9 rounded-full bg-muted/60 flex items-center justify-center hover:bg-muted transition-all shadow-sm">
+            <ArrowRight className="h-4 w-4 text-muted-foreground" />
           </button>
           <div>
             <h1 className="text-xl font-bold text-foreground">الفواتير</h1>
-            <p className="text-xs text-muted-foreground">{invoices.length} فاتورة</p>
+            <p className="text-xs text-muted-foreground">{sorted.length} فاتورة</p>
           </div>
         </div>
-        {invoices.length > 0 && (
-          <Button variant="outline" size="sm" className="gap-1.5 rounded-xl" onClick={() => navigate("/invoices/new")}>
-            <Plus className="h-4 w-4" /> إنشاء فاتورة
+        <div className="flex items-center gap-2">
+          <div className="flex items-center bg-muted/50 rounded-xl p-0.5">
+            <button onClick={() => setViewMode("cards")} className={`p-1.5 rounded-lg transition-all ${viewMode === "cards" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground"}`}>
+              <LayoutGrid className="h-4 w-4" />
+            </button>
+            <button onClick={() => setViewMode("table")} className={`p-1.5 rounded-lg transition-all ${viewMode === "table" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground"}`}>
+              <Table2 className="h-4 w-4" />
+            </button>
+          </div>
+          <Button variant="outline" size="sm" className="gap-1.5 rounded-xl" onClick={handleExport} disabled={sorted.length === 0}>
+            <FileSpreadsheet className="h-4 w-4" /> تصدير Excel
           </Button>
-        )}
+        </div>
       </div>
 
-      {/* Stats */}
+      {/* Summary KPIs */}
       {invoices.length > 0 && (
-        <div className="grid grid-cols-2 gap-3">
-          <div className="rounded-2xl bg-gradient-to-br from-primary/5 to-primary/10 p-4 border border-primary/10">
-            <Receipt className="h-5 w-5 text-primary mb-1" />
+        <div className="grid grid-cols-3 gap-3">
+          <div className="rounded-2xl bg-primary/5 border border-primary/10 p-3 text-center">
+            <Receipt className="h-4 w-4 text-primary mx-auto mb-1" />
             <p className="text-lg font-bold text-primary tabular-nums">₪{salesTotal.toLocaleString()}</p>
-            <p className="text-[10px] text-primary/70 font-medium">فواتير المبيعات</p>
+            <p className="text-[10px] text-primary/70">فواتير المبيعات</p>
           </div>
-          <div className="rounded-2xl bg-gradient-to-br from-destructive/5 to-destructive/10 p-4 border border-destructive/10">
-            <ShoppingCart className="h-5 w-5 text-destructive mb-1" />
+          <div className="rounded-2xl bg-destructive/5 border border-destructive/10 p-3 text-center">
+            <ShoppingCart className="h-4 w-4 text-destructive mx-auto mb-1" />
             <p className="text-lg font-bold text-destructive tabular-nums">₪{purchaseTotal.toLocaleString()}</p>
-            <p className="text-[10px] text-destructive/70 font-medium">فواتير المشتريات</p>
+            <p className="text-[10px] text-destructive/70">فواتير المشتريات</p>
+          </div>
+          <div className="rounded-2xl bg-muted/50 border border-border/30 p-3 text-center">
+            <p className="text-lg font-bold text-foreground tabular-nums">₪{netTotal.toLocaleString()}</p>
+            <p className="text-[10px] text-muted-foreground mt-1">صافي الحركة</p>
           </div>
         </div>
       )}
 
       {/* Search & Filters */}
       {invoices.length > 0 && (
-        <>
-          <div className="relative">
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="ابحث برقم الفاتورة أو اسم العميل..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pr-10 rounded-xl border-border/50 bg-muted/30" />
-          </div>
-          <div className="flex gap-2">
-            {(["all", "sales", "purchase"] as const).map(type => (
-              <button key={type} onClick={() => setFilterType(type)} className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all ${filterType === type ? "bg-primary text-primary-foreground shadow-md shadow-primary/20" : "bg-muted/50 text-muted-foreground hover:bg-muted"}`}>
-                {type === "all" ? "الكل" : type === "sales" ? "مبيعات" : "مشتريات"}
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="relative flex-1 min-w-[180px]">
+            <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 pointer-events-none" />
+            <Input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="ابحث برقم الفاتورة أو اسم العميل..." className="pr-9 rounded-xl text-sm" />
+            {searchQuery && (
+              <button onClick={() => setSearchQuery("")} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                <X className="h-3.5 w-3.5" />
               </button>
-            ))}
+            )}
           </div>
-        </>
+          <Select value={filterType} onValueChange={v => setFilterType(v as any)}>
+            <SelectTrigger className="w-[120px] rounded-xl">
+              <Filter className="h-3.5 w-3.5 ml-1.5 text-muted-foreground" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-background z-50">
+              <SelectItem value="all">الكل</SelectItem>
+              <SelectItem value="sales">مبيعات</SelectItem>
+              <SelectItem value="purchase">مشتريات</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-[120px] rounded-xl">
+              <SelectValue placeholder="الحالة" />
+            </SelectTrigger>
+            <SelectContent className="bg-background z-50">
+              <SelectItem value="all">جميع الحالات</SelectItem>
+              <SelectItem value="draft">مسودة</SelectItem>
+              <SelectItem value="sent">مُرسلة</SelectItem>
+              <SelectItem value="paid">مدفوعة</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       )}
 
+      {/* Loading */}
       {loading && (
         <div className="flex items-center justify-center py-20">
           <Loader2 className="h-10 w-10 animate-spin text-primary" />
         </div>
       )}
 
+      {/* Empty */}
       {!loading && invoices.length === 0 && (
         <div className="text-center py-16">
           <div className="w-20 h-20 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-4">
@@ -1127,31 +1236,90 @@ const InvoicesPage = () => {
         </div>
       )}
 
-      {!loading && filtered.length > 0 && (
-        <div className="space-y-3">
-          {filtered.map(inv => {
+      {/* No results */}
+      {!loading && invoices.length > 0 && sorted.length === 0 && (
+        <div className="text-center py-12 space-y-2">
+          <Search className="h-10 w-10 text-muted-foreground/20 mx-auto" />
+          <p className="text-sm text-muted-foreground">لا توجد نتائج مطابقة</p>
+          <Button variant="ghost" size="sm" onClick={() => { setSearchQuery(""); setFilterType("all"); setStatusFilter("all"); }}>مسح الفلاتر</Button>
+        </div>
+      )}
+
+      {/* TABLE VIEW */}
+      {!loading && viewMode === "table" && paginated.length > 0 && (
+        <Card className="border-0 shadow-sm rounded-2xl overflow-hidden">
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/30">
+                  <TableHead className="text-right"><SortHeader label="التاريخ" field="date" /></TableHead>
+                  <TableHead className="text-right"><SortHeader label="العميل/المورد" field="contact" /></TableHead>
+                  <TableHead className="text-right">الرقم</TableHead>
+                  <TableHead className="text-right"><SortHeader label="النوع" field="type" /></TableHead>
+                  <TableHead className="text-right"><SortHeader label="الحالة" field="status" /></TableHead>
+                  <TableHead className="text-right">الدفع</TableHead>
+                  <TableHead className="text-right"><SortHeader label="الإجمالي" field="total" /></TableHead>
+                  <TableHead className="text-right">المتبقي</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {paginated.map(inv => {
+                  const st = statusConfig[inv.status];
+                  return (
+                    <TableRow key={inv.id} className="hover:bg-muted/20 cursor-pointer" onClick={() => { setSelectedInvoice(inv); setShowPreviewDialog(true); }}>
+                      <TableCell className="text-xs text-muted-foreground whitespace-nowrap">{inv.date}</TableCell>
+                      <TableCell className="font-medium text-sm">{inv.contactName}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground font-mono">{inv.invoiceNumber}</TableCell>
+                      <TableCell>
+                        <Badge variant="secondary" className={`text-[10px] ${
+                          inv.type === "sales" ? "bg-primary/10 text-primary" : "bg-destructive/10 text-destructive"
+                        }`}>
+                          {inv.type === "sales" ? "مبيعات" : "مشتريات"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="secondary" className={`text-[10px] ${st.color}`}>{st.label}</Badge>
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground">{paymentLabels[inv.paymentMethod] || inv.paymentMethod}</TableCell>
+                      <TableCell className="font-bold tabular-nums text-sm">₪{inv.total.toLocaleString()}</TableCell>
+                      <TableCell className={`tabular-nums text-sm font-semibold ${inv.remainingAmount > 0 ? "text-destructive" : "text-muted-foreground"}`}>
+                        {inv.remainingAmount > 0 ? `₪${inv.remainingAmount.toLocaleString()}` : "—"}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* CARD VIEW */}
+      {!loading && viewMode === "cards" && paginated.length > 0 && (
+        <div className="space-y-2">
+          {paginated.map(inv => {
             const st = statusConfig[inv.status];
             return (
               <Card key={inv.id} className="border-0 shadow-sm rounded-2xl cursor-pointer hover:shadow-md transition-all" onClick={() => { setSelectedInvoice(inv); setShowPreviewDialog(true); }}>
                 <CardContent className="p-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${inv.type === "sales" ? "bg-primary/10" : "bg-destructive/10"}`}>
-                        {inv.type === "sales" ? <Receipt className="h-5 w-5 text-primary" /> : <ShoppingCart className="h-5 w-5 text-destructive" />}
+                  <div className="flex items-center gap-3">
+                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${inv.type === "sales" ? "bg-primary/10" : "bg-destructive/10"}`}>
+                      {inv.type === "sales" ? <Receipt className="h-4 w-4 text-primary" /> : <ShoppingCart className="h-4 w-4 text-destructive" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-semibold text-foreground truncate">{inv.contactName}</p>
+                        <p className="text-sm font-bold text-foreground tabular-nums">₪{inv.total.toLocaleString()}</p>
                       </div>
-                      <div>
-                        <p className="text-sm font-bold text-foreground">{inv.contactName}</p>
+                      <div className="flex items-center justify-between mt-1">
                         <p className="text-[10px] text-muted-foreground">{inv.invoiceNumber} • {inv.date}</p>
-                        <div className="flex gap-1 mt-1">
+                        <div className="flex gap-1">
                           <Badge className={`text-[9px] px-2 py-0 border-0 ${st.color}`}>{st.label}</Badge>
-                          {inv.paymentMethod && <Badge variant="outline" className="text-[9px] px-1.5 py-0">{paymentLabels[inv.paymentMethod] || inv.paymentMethod}</Badge>}
+                          <Badge variant="outline" className="text-[9px] px-1.5 py-0">{paymentLabels[inv.paymentMethod]}</Badge>
                         </div>
                       </div>
-                    </div>
-                    <div className="text-left">
-                      <p className="text-sm font-bold text-foreground tabular-nums">₪{inv.total.toLocaleString()}</p>
                       {inv.remainingAmount > 0 && (
-                        <p className="text-[10px] text-destructive font-medium">متبقي: ₪{inv.remainingAmount.toLocaleString()}</p>
+                        <p className="text-[10px] text-destructive font-medium mt-0.5">متبقي: ₪{inv.remainingAmount.toLocaleString()}</p>
                       )}
                     </div>
                   </div>
@@ -1160,6 +1328,29 @@ const InvoicesPage = () => {
             );
           })}
         </div>
+      )}
+
+      {/* Pagination */}
+      {!loading && sorted.length > PAGE_SIZE && (
+        <div className="flex items-center justify-center gap-3 pt-2">
+          <Button variant="outline" size="sm" className="rounded-xl gap-1" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
+            <ChevronRight className="h-4 w-4" /> السابق
+          </Button>
+          <span className="text-sm text-muted-foreground tabular-nums">{page} / {totalPages}</span>
+          <Button variant="outline" size="sm" className="rounded-xl gap-1" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>
+            التالي <ChevronLeft className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
+
+      {/* Create FAB */}
+      {invoices.length > 0 && (
+        <Button
+          className="fixed bottom-20 left-4 rounded-2xl gap-2 shadow-lg shadow-primary/30 z-40"
+          onClick={() => navigate("/invoices/new")}
+        >
+          <Plus className="h-4 w-4" /> إنشاء فاتورة
+        </Button>
       )}
 
       {/* Preview/Print Dialog */}
