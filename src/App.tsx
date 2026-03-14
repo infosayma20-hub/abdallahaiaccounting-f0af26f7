@@ -96,6 +96,7 @@ import SetupPage from "./pages/SetupPage";
 import FinanceHomePage from "./pages/FinanceHomePage";
 import FinanceVoucherPage from "./pages/FinanceVoucherPage";
 import FinanceJournalPage from "./pages/FinanceJournalPage";
+import KitchenDisplayPage from "./pages/KitchenDisplayPage";
 import BankAccountsPage from "./pages/BankAccountsPage";
 import CashBoxesPage from "./pages/CashBoxesPage";
 import CashTransferPage from "./pages/CashTransferPage";
