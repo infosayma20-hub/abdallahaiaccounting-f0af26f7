@@ -1,7 +1,10 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { getAuthHeaders, getAuthHeadersJson } from "@/lib/edge-helpers";
-import { ArrowRight, Loader2, Plus, FileText, Printer, Search, ShoppingCart, Receipt, Package, Trash2, Save, Eye, AlertTriangle, CreditCard, Building2, Banknote, Clock, ChevronDown, ChevronLeft, ChevronRight, X, Filter, LayoutGrid, Table2, ArrowUpDown, FileSpreadsheet, Copy } from "lucide-react";
+import { ArrowRight, Loader2, Plus, FileText, Printer, Search, ShoppingCart, Receipt, Package, Trash2, Save, Eye, AlertTriangle, CreditCard, Building2, Banknote, Clock, ChevronDown, ChevronLeft, ChevronRight, X, Filter, LayoutGrid, Table2, ArrowUpDown, FileSpreadsheet, Copy, Pencil } from "lucide-react";
 import DuplicateConfirmModal from "@/components/DuplicateConfirmModal";
+import { useDocumentPermissions } from "@/hooks/useDocumentPermissions";
+import DeleteDocumentDialog from "@/components/documents/DeleteDocumentDialog";
+import EditPostedWarningDialog from "@/components/documents/EditPostedWarningDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -78,7 +81,10 @@ const InvoicesPage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const { settings: companySettings } = useCompanySettings();
+  const { canEdit, canDelete } = useDocumentPermissions();
   const printRef = useRef<HTMLDivElement>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showEditWarning, setShowEditWarning] = useState(false);
 
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -589,11 +595,46 @@ const InvoicesPage = () => {
     }, 200);
   };
 
-  const updateStatus = (id: string, status: Invoice["status"]) => {
+  const updateStatus = async (id: string, status: Invoice["status"]) => {
+    // Update in DB
+    const dbStatus = status === 'paid' ? 'paid' : status === 'sent' ? 'sent' : 'draft';
+    await supabase.from("invoices").update({ status: dbStatus } as any).eq("id", id);
+    
     const updated = invoices.map(inv => inv.id === id ? { ...inv, status } : inv);
-    saveInvoices(updated);
+    setInvoices(updated);
     if (selectedInvoice?.id === id) setSelectedInvoice({ ...selectedInvoice, status });
     toast({ title: "تم تحديث الحالة ✅" });
+  };
+
+  const handleDeleteInvoice = async (id: string, reason: string) => {
+    try {
+      // Delete invoice items first, then the invoice
+      await supabase.from("invoice_items").delete().eq("invoice_id", id);
+      const { error } = await supabase.from("invoices").delete().eq("id", id);
+      if (error) throw error;
+      
+      // Also remove from local state
+      setInvoices(prev => prev.filter(inv => inv.id !== id));
+      setShowPreviewDialog(false);
+      setSelectedInvoice(null);
+      
+      // Log to document_edit_history
+      if (user) {
+        await supabase.from("document_edit_history" as any).insert({
+          document_id: id,
+          document_type: 'invoice',
+          edit_reason: reason,
+          edited_by: user.id,
+          old_data: {},
+          new_data: { action: 'delete' },
+        } as any);
+      }
+      
+      toast({ title: "تم حذف الفاتورة بنجاح ✅" });
+    } catch (err: any) {
+      console.error('Delete invoice error:', err);
+      toast({ title: "خطأ في حذف الفاتورة", description: err.message, variant: "destructive" });
+    }
   };
 
   const filtered = invoices.filter(inv => {
@@ -1405,6 +1446,23 @@ const InvoicesPage = () => {
                 <Button size="sm" variant="outline" className="gap-1.5 rounded-xl" onClick={() => { setShowPreviewDialog(false); handleDuplicate(selectedInvoice); }}>
                   <Copy className="h-4 w-4" /> جديد مشابه
                 </Button>
+                {canEdit({ status: selectedInvoice.status }) && (
+                  <Button size="sm" variant="outline" className="gap-1.5 rounded-xl" onClick={() => {
+                    if (selectedInvoice.status !== "draft") {
+                      setShowEditWarning(true);
+                    } else {
+                      setShowPreviewDialog(false);
+                      navigate(`/invoices/new?edit=${selectedInvoice.id}`);
+                    }
+                  }}>
+                    <Pencil className="h-4 w-4" /> تعديل
+                  </Button>
+                )}
+                {canDelete({ status: selectedInvoice.status }) && (
+                  <Button size="sm" variant="destructive" className="gap-1.5 rounded-xl" onClick={() => setShowDeleteDialog(true)}>
+                    <Trash2 className="h-4 w-4" /> حذف
+                  </Button>
+                )}
                 <Select value={selectedInvoice.status} onValueChange={(v) => updateStatus(selectedInvoice.id, v as Invoice["status"])}>
                   <SelectTrigger className="w-32 text-xs rounded-xl h-9"><SelectValue /></SelectTrigger>
                   <SelectContent className="bg-background">
@@ -1436,6 +1494,35 @@ const InvoicesPage = () => {
           sourceRef: duplicateTarget?.invoiceNumber,
         }}
       />
+
+      {/* Delete Dialog */}
+      {selectedInvoice && (
+        <DeleteDocumentDialog
+          open={showDeleteDialog}
+          onClose={() => setShowDeleteDialog(false)}
+          onConfirm={(reason) => {
+            handleDeleteInvoice(selectedInvoice.id, reason);
+            setShowDeleteDialog(false);
+          }}
+          docNumber={selectedInvoice.invoiceNumber}
+          docAmount={selectedInvoice.total}
+        />
+      )}
+
+      {/* Edit Posted Warning */}
+      {selectedInvoice && (
+        <EditPostedWarningDialog
+          open={showEditWarning}
+          onClose={() => setShowEditWarning(false)}
+          onConfirm={() => {
+            setShowEditWarning(false);
+            setShowPreviewDialog(false);
+            navigate(`/invoices/new?edit=${selectedInvoice.id}`);
+          }}
+          docNumber={selectedInvoice.invoiceNumber}
+          docAmount={selectedInvoice.total}
+        />
+      )}
     </div>
   );
 };
