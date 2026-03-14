@@ -84,6 +84,8 @@ export interface CompanySettings {
   pos_day_cutoff_hour: number;
   pos_disable_cogs: boolean;
   pos_disable_stock_deduction: boolean;
+  pos_show_return_policy: boolean;
+  pos_return_policy_days: number;
   // Print
   primary_color: string;
   invoice_font: string;
