@@ -197,7 +197,7 @@ export function useDashboardData() {
   ), [transactions]);
 
   // Compute KPIs for a given range
-  const computeKPIs = useCallback((txs: any[], allTxs: any[]) => {
+  const computeKPIs = useCallback((txs: any[], allTxs: any[], allTxsIncludingOB: any[]) => {
     const revenue = txs.filter((t) => t.credit_account_code?.startsWith("4")).reduce((s, t) => s + (t.amount || 0), 0);
     const purchases = txs.filter((t) => t.debit_account_code?.startsWith("51") || t.debit_account_code?.startsWith("52")).reduce((s, t) => s + (t.amount || 0), 0);
     const genExpenses = txs.filter((t) => {
@@ -207,18 +207,18 @@ export function useDashboardData() {
     const expenses = purchases + genExpenses;
     const netProfit = revenue - expenses;
 
-    // Balance sheet items use ALL transactions (cumulative)
-    const recDr = allTxs.filter((t) => t.debit_account_code === "1130").reduce((s, t) => s + (t.amount || 0), 0);
-    const recCr = allTxs.filter((t) => t.credit_account_code === "1130").reduce((s, t) => s + (t.amount || 0), 0);
+    // Balance sheet items use ALL transactions INCLUDING opening balances (cumulative)
+    const recDr = allTxsIncludingOB.filter((t) => t.debit_account_code === "1130").reduce((s, t) => s + (t.amount || 0), 0);
+    const recCr = allTxsIncludingOB.filter((t) => t.credit_account_code === "1130").reduce((s, t) => s + (t.amount || 0), 0);
     const receivables = recDr - recCr;
 
-    const payCr = allTxs.filter((t) => t.credit_account_code?.startsWith("2")).reduce((s, t) => s + (t.amount || 0), 0);
-    const payDr = allTxs.filter((t) => t.debit_account_code?.startsWith("2")).reduce((s, t) => s + (t.amount || 0), 0);
+    const payCr = allTxsIncludingOB.filter((t) => t.credit_account_code?.startsWith("2")).reduce((s, t) => s + (t.amount || 0), 0);
+    const payDr = allTxsIncludingOB.filter((t) => t.debit_account_code?.startsWith("2")).reduce((s, t) => s + (t.amount || 0), 0);
     const payables = payCr - payDr;
 
     // Cash = cash account (1110) + bank (1120)
-    const cashDr = allTxs.filter((t) => t.debit_account_code === "1110" || t.debit_account_code === "1120").reduce((s, t) => s + (t.amount || 0), 0);
-    const cashCr = allTxs.filter((t) => t.credit_account_code === "1110" || t.credit_account_code === "1120").reduce((s, t) => s + (t.amount || 0), 0);
+    const cashDr = allTxsIncludingOB.filter((t) => t.debit_account_code === "1110" || t.debit_account_code === "1120").reduce((s, t) => s + (t.amount || 0), 0);
+    const cashCr = allTxsIncludingOB.filter((t) => t.credit_account_code === "1110" || t.credit_account_code === "1120").reduce((s, t) => s + (t.amount || 0), 0);
     const cashBalance = cashDr - cashCr;
 
     return { revenue, expenses, netProfit, receivables, payables, cashBalance };
