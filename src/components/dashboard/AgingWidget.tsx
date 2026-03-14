@@ -27,7 +27,7 @@ export default function AgingWidget({ receivables, payables, loading }: Props) {
 
   if (loading) {
     return (
-      <div className="col-span-12 lg:col-span-6 bg-card rounded-2xl p-5 shadow-sm border border-border/30 animate-pulse">
+      <div className="col-span-12 lg:col-span-4 bg-card rounded-2xl p-5 shadow-sm border border-border/30 animate-pulse">
         <div className="h-6 w-32 bg-muted rounded mb-4" />
         <div className="h-[200px] bg-muted rounded-xl" />
       </div>
@@ -35,7 +35,7 @@ export default function AgingWidget({ receivables, payables, loading }: Props) {
   }
 
   return (
-    <div className="col-span-12 lg:col-span-6 bg-card rounded-2xl p-5 shadow-sm border border-border/30">
+    <div className="col-span-12 lg:col-span-4 bg-card rounded-2xl p-5 shadow-sm border border-border/30">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-sm font-bold text-foreground">📊 أعمار الذمم</h3>
         <div className="flex bg-secondary/50 rounded-lg p-0.5">
