@@ -16,6 +16,7 @@ interface Contact {
   id: string;
   contact_name: string;
   current_balance: number;
+  calculated_balance?: number;
 }
 
 interface Invoice {
@@ -107,6 +108,32 @@ const ReceiptNewPage = () => {
       if (baRes.data?.length) setSelectedBankAccount(baRes.data[0].id);
     });
   }, [user]);
+
+  // Calculate real balance from transactions when contact is selected
+  useEffect(() => {
+    if (!user || !selectedContact) return;
+    
+    // Find all contact IDs with the same name (handles duplicates)
+    const sameNameIds = contacts
+      .filter(c => c.contact_name === selectedContact.contact_name)
+      .map(c => c.id);
+    const contactIds = [...new Set([selectedContact.id, ...sameNameIds])];
+    
+    // Calculate balance from transactions: debit to 1130 (receivables) minus credit to 1130
+    supabase.from("transactions")
+      .select("amount, debit_account_code, credit_account_code")
+      .eq("user_id", user.id)
+      .in("contact_id", contactIds)
+      .or("is_deleted.is.null,is_deleted.eq.false")
+      .then(({ data: txns }) => {
+        let balance = 0;
+        (txns || []).forEach(t => {
+          if (t.debit_account_code === '1130') balance += Number(t.amount);
+          if (t.credit_account_code === '1130') balance -= Number(t.amount);
+        });
+        setSelectedContact(prev => prev ? { ...prev, calculated_balance: balance } : prev);
+      });
+  }, [user, selectedContact?.id, contacts]);
 
   // Load invoices when contact is selected — also fetch from duplicate contacts with same name
   useEffect(() => {
@@ -411,7 +438,7 @@ const ReceiptNewPage = () => {
           {selectedContact && (
             <div className="bg-primary/5 border border-primary/20 rounded-xl p-3 flex flex-wrap items-center gap-4 text-xs">
               <span className="flex items-center gap-1.5">
-                💰 رصيد الزبون: <span className="font-bold text-foreground">₪{formatAmount(selectedContact.current_balance || 0)}</span>
+                💰 رصيد الزبون: <span className={`font-bold ${(selectedContact.calculated_balance ?? (selectedContact.current_balance || 0)) > 0 ? 'text-destructive' : 'text-primary'}`}>₪{formatAmount(selectedContact.calculated_balance ?? (selectedContact.current_balance || 0))}</span>
               </span>
               <span className="flex items-center gap-1.5">
                 📄 فواتير مفتوحة: <span className="font-bold text-foreground">{openInvoiceCount} فاتورة</span>
