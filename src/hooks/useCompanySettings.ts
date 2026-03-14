@@ -294,18 +294,44 @@ export function useCompanySettings() {
     });
   }, [originalSettings]);
 
+  // Known DB columns — payload must only include these
+  const DB_COLUMNS = new Set([
+    "company_name","logo_url","address","city","phone","email","website","tax_number",
+    "commercial_register","base_currency","extra_currencies","exchange_rate_source",
+    "calendar_type","fiscal_year_start","default_revenue_account","default_expense_account",
+    "default_cash_account","default_bank_account","default_receivable_account","default_payable_account",
+    "vat_enabled","vat_rate","vat_inclusive","vat_sales_account","vat_purchases_account",
+    "income_tax_enabled","income_tax_rate","invoice_prefix","receipt_prefix","payment_prefix",
+    "journal_prefix","purchase_order_prefix","reset_numbering_yearly","period_lock_mode",
+    "last_locked_period","default_payment_terms","default_invoice_currency","default_invoice_language",
+    "invoice_default_notes","show_bank_on_invoice","show_tax_on_invoice",
+    "allow_invoice_edit_after_approval","allow_discount","max_discount_percent","e_invoice_enabled",
+    "pos_name","pos_branch_id","pos_payment_methods","pos_require_shift",
+    "pos_default_opening_balance","pos_deficit_alert","pos_deficit_threshold","pos_receipt_size",
+    "pos_auto_print","pos_show_tax","pos_receipt_copies","pos_auto_update_stock",
+    "pos_warn_out_of_stock","pos_prevent_zero_stock","primary_color","invoice_font","paper_size",
+    "show_logo_on_invoice","show_address_on_invoice","invoice_footer","pos_day_cutoff_hour",
+    "licensed_dealer_number","pos_disable_cogs","pos_disable_stock_deduction",
+    "hr_annual_leave_days","hr_sick_leave_days","hr_carry_over_leave","hr_salary_day",
+    "hr_salary_currency","hr_social_security","hr_require_qr","hr_require_gps",
+    "hr_shift_start","hr_shift_end","hr_late_grace_minutes",
+    "onboarding_completed","onboarding_step","business_type","has_employees",
+    "employee_count_range","has_pos","pos_count","inventory_method",
+    "onboarding_skipped","onboarding_completed_at",
+    "invoice_header_layout","invoice_primary_color","invoice_show_signature",
+    "invoice_show_tax_summary","invoice_show_amount_words","invoice_footer_message",
+    "can_edit_posted","can_delete_posted",
+  ]);
+
   const saveSettings = async () => {
     if (!user) return;
     setSaving(true);
     try {
-      const { id, user_id, ...rest } = settings as any;
-      const payload = {
-        ...rest,
-        user_id: user.id,
-        updated_by: user.id,
-        extra_currencies: settings.extra_currencies,
-        pos_payment_methods: settings.pos_payment_methods,
-      };
+      const raw = settings as any;
+      const payload: Record<string, any> = { user_id: user.id, updated_by: user.id };
+      for (const key of DB_COLUMNS) {
+        if (key in raw) payload[key] = raw[key];
+      }
 
       // Check if exists
       const { data: existing } = await supabase
