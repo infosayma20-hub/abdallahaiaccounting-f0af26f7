@@ -587,6 +587,17 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
 
   const formatAmount = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+  if (editLoading) {
+    return (
+      <div className="flex items-center justify-center py-20" dir="rtl">
+        <div className="text-center space-y-3">
+          <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin mx-auto" />
+          <p className="text-sm text-muted-foreground">جاري تحميل بيانات السند...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (saved) {
     return (
       <div className="max-w-2xl mx-auto space-y-6" dir="rtl">
