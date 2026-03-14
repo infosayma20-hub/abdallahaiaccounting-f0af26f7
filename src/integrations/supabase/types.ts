@@ -3656,6 +3656,7 @@ export type Database = {
           billing_address: string | null
           contact_id: string | null
           contact_name: string | null
+          correction_reason: string | null
           created_at: string
           currency: string | null
           discount_amount: number | null
@@ -3665,10 +3666,12 @@ export type Database = {
           invoice_date: string
           invoice_number: string | null
           invoice_type: string
+          is_credit_note: boolean | null
           last_sent_at: string | null
           linked_transaction_id: string | null
           notes: string | null
           notes_internal: string | null
+          original_invoice_id: string | null
           paid_amount: number | null
           payment_method: string | null
           payment_status: string | null
@@ -3691,6 +3694,7 @@ export type Database = {
           billing_address?: string | null
           contact_id?: string | null
           contact_name?: string | null
+          correction_reason?: string | null
           created_at?: string
           currency?: string | null
           discount_amount?: number | null
@@ -3700,10 +3704,12 @@ export type Database = {
           invoice_date?: string
           invoice_number?: string | null
           invoice_type?: string
+          is_credit_note?: boolean | null
           last_sent_at?: string | null
           linked_transaction_id?: string | null
           notes?: string | null
           notes_internal?: string | null
+          original_invoice_id?: string | null
           paid_amount?: number | null
           payment_method?: string | null
           payment_status?: string | null
@@ -3726,6 +3732,7 @@ export type Database = {
           billing_address?: string | null
           contact_id?: string | null
           contact_name?: string | null
+          correction_reason?: string | null
           created_at?: string
           currency?: string | null
           discount_amount?: number | null
@@ -3735,10 +3742,12 @@ export type Database = {
           invoice_date?: string
           invoice_number?: string | null
           invoice_type?: string
+          is_credit_note?: boolean | null
           last_sent_at?: string | null
           linked_transaction_id?: string | null
           notes?: string | null
           notes_internal?: string | null
+          original_invoice_id?: string | null
           paid_amount?: number | null
           payment_method?: string | null
           payment_status?: string | null
@@ -3762,6 +3771,13 @@ export type Database = {
             columns: ["contact_id"]
             isOneToOne: false
             referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_original_invoice_id_fkey"
+            columns: ["original_invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
             referencedColumns: ["id"]
           },
         ]
