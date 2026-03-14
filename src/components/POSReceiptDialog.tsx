@@ -436,8 +436,8 @@ export default function POSReceiptDialog({ open, onOpenChange, data, showReturnP
           </div>
         )}
 
-        {/* Actions */}
-        <div className="px-4 pb-2 space-y-2">
+        {/* Actions - Fixed at bottom */}
+        <div className="px-4 pb-3 pt-2 space-y-2 shrink-0 border-t border-border bg-background">
           <div className="flex gap-2">
             <Button onClick={handlePrint} className="flex-1 gap-2 h-10" variant="outline">
               <Printer className="h-4 w-4" />
