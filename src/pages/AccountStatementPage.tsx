@@ -167,14 +167,26 @@ const getDayName = (d: string) => {
   } catch { return ""; }
 };
 
+const PAYMENT_METHOD_AR: Record<string, string> = {
+  cash: "نقدي", نقدي: "نقدي",
+  credit: "آجل", آجل: "آجل",
+  bank: "بنك", بنك: "بنك",
+  cheque: "شيك", شيك: "شيك",
+  check: "شيك",
+  transfer: "تحويل", تحويل: "تحويل",
+  card: "بطاقة", بطاقة: "بطاقة",
+  employee_account: "حساب موظف",
+};
+
 const getTypeBadge = (txType: string) => {
+  if (txType.includes("pos")) return { label: "مبيعات POS", color: "bg-teal-500/10 text-teal-600 border-teal-500/20" };
   if (txType.includes("sale") || txType.includes("فاتورة")) return { label: "فاتورة مبيعات", color: "bg-blue-500/10 text-blue-600 border-blue-500/20" };
   if (txType.includes("receipt") || txType.includes("قبض")) return { label: "سند قبض", color: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" };
   if (txType.includes("payment") || txType.includes("صرف")) return { label: "سند صرف", color: "bg-red-500/10 text-red-600 border-red-500/20" };
   if (txType.includes("purchase") || txType.includes("مشتريات")) return { label: "فاتورة مشتريات", color: "bg-amber-500/10 text-amber-600 border-amber-500/20" };
   if (txType.includes("journal") || txType.includes("قيد") || txType.includes("salary")) return { label: "قيد محاسبي", color: "bg-purple-500/10 text-purple-600 border-purple-500/20" };
-  if (txType.includes("pos")) return { label: "مبيعات POS", color: "bg-teal-500/10 text-teal-600 border-teal-500/20" };
   if (txType.includes("cheque")) return { label: "شيك", color: "bg-indigo-500/10 text-indigo-600 border-indigo-500/20" };
+  if (txType.includes("opening_balance")) return { label: "رصيد افتتاحي", color: "bg-muted text-muted-foreground border-border" };
   return { label: "حركة", color: "bg-muted text-muted-foreground border-border" };
 };
 
