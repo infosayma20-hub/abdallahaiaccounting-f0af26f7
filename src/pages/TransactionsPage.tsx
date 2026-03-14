@@ -50,23 +50,45 @@ interface Account {
 
 // ━━ Type Badge ━━
 const typeBadgeConfig: Record<string, { label: string; bg: string; text: string }> = {
+  // مبيعات
+  sale:               { label: "فاتورة مبيعات",  bg: "bg-[#DBEAFE]", text: "text-[#1E40AF]" },
   pos_sale:           { label: "مبيعات POS",     bg: "bg-[#DBEAFE]", text: "text-[#1E40AF]" },
   pos_cogs:           { label: "تكلفة مبيعات",   bg: "bg-[#FEF3C7]", text: "text-[#92400E]" },
+  pos_transfer:       { label: "ترحيل وردية",    bg: "bg-[#DBEAFE]", text: "text-[#1E40AF]" },
   sale_cash:          { label: "بيع نقدي",       bg: "bg-[#DBEAFE]", text: "text-[#1E40AF]" },
   sale_credit:        { label: "بيع آجل",        bg: "bg-[#E0E7FF]", text: "text-[#3730A3]" },
   sale_bank:          { label: "بيع بنكي",       bg: "bg-[#DBEAFE]", text: "text-[#1E40AF]" },
   sale_cheque:        { label: "بيع شيك",        bg: "bg-[#DBEAFE]", text: "text-[#1E40AF]" },
+  // مشتريات
+  purchase:           { label: "فاتورة مشتريات", bg: "bg-[#EDE9FE]", text: "text-[#5B21B6]" },
   purchase_cash:      { label: "شراء نقدي",      bg: "bg-[#EDE9FE]", text: "text-[#5B21B6]" },
   purchase_credit:    { label: "شراء آجل",       bg: "bg-[#EDE9FE]", text: "text-[#5B21B6]" },
   purchase_bank:      { label: "شراء بنكي",      bg: "bg-[#EDE9FE]", text: "text-[#5B21B6]" },
   purchase_cheque:    { label: "شراء شيك",       bg: "bg-[#EDE9FE]", text: "text-[#5B21B6]" },
+  // سندات
   receipt:            { label: "سند قبض",        bg: "bg-[#D1FAE5]", text: "text-[#065F46]" },
   payment:            { label: "سند صرف",        bg: "bg-[#FEE2E2]", text: "text-[#991B1B]" },
+  // مصروفات ورواتب
+  expense:            { label: "مصروفات",        bg: "bg-[#FEE2E2]", text: "text-[#991B1B]" },
   salary:             { label: "رواتب",          bg: "bg-[#FFEDD5]", text: "text-[#9A3412]" },
+  // مخزون
+  inventory_in:       { label: "إدخال مخزون",    bg: "bg-[#D1FAE5]", text: "text-[#065F46]" },
+  import_cost:        { label: "تكلفة استيراد",   bg: "bg-[#EDE9FE]", text: "text-[#5B21B6]" },
+  return:             { label: "مرتجع",          bg: "bg-[#FFEDD5]", text: "text-[#9A3412]" },
+  // شيكات
+  cheque_register:    { label: "تسجيل شيك",      bg: "bg-[#E0E7FF]", text: "text-[#3730A3]" },
+  cheque_deposit:     { label: "إيداع شيك",      bg: "bg-[#DBEAFE]", text: "text-[#1E40AF]" },
+  cheque_collection:  { label: "تحصيل شيك",      bg: "bg-[#D1FAE5]", text: "text-[#065F46]" },
+  cheque_bounce:      { label: "شيك مرتجع",      bg: "bg-[#FEE2E2]", text: "text-[#991B1B]" },
+  cheque_endorsement: { label: "تظهير شيك",      bg: "bg-[#FEF3C7]", text: "text-[#92400E]" },
+  cheque_return:      { label: "إرجاع شيك",      bg: "bg-[#FFEDD5]", text: "text-[#9A3412]" },
+  cheque_cancel:      { label: "إلغاء شيك",      bg: "bg-[#F3F4F6]", text: "text-[#374151]" },
+  bank_fee:           { label: "عمولة بنكية",    bg: "bg-[#FEF9C3]", text: "text-[#854D0E]" },
+  // تحويلات وأخرى
+  cash_transfer:      { label: "تحويل صندوق",    bg: "bg-[#FEF3C7]", text: "text-[#92400E]" },
   exchange_diff:      { label: "فروق عملة",      bg: "bg-[#FEF9C3]", text: "text-[#854D0E]" },
   opening_balance:    { label: "رصيد افتتاحي",   bg: "bg-[#F3F4F6]", text: "text-[#374151]" },
   manual:             { label: "قيد يدوي",       bg: "bg-[#F3F4F6]", text: "text-[#374151]" },
-  cheque_collection:  { label: "تحصيل شيك",      bg: "bg-[#D1FAE5]", text: "text-[#065F46]" },
   journal:            { label: "قيد يومية",      bg: "bg-[#F3F4F6]", text: "text-[#374151]" },
 };
 
