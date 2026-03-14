@@ -5,6 +5,7 @@ import type { PeriodType } from "@/hooks/useDashboardData";
 
 interface Props {
   companyName: string;
+  companyLogo?: string;
   period: PeriodType;
   onPeriodChange: (p: PeriodType) => void;
   lastUpdated: Date;
