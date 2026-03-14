@@ -280,7 +280,7 @@ const AccountStatementPage = () => {
   const [employeeEntities, setEmployeeEntities] = useState<EmployeeEntity[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [cheques, setCheques] = useState<Cheque[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [invoiceItemsMap, setInvoiceItemsMap] = useState<Record<string, InvoiceLineItem[]>>({});
   const [companyName, setCompanyName] = useState("");
   const [companyInfo, setCompanyInfo] = useState({
     name: "", logo_url: "", address: "", phone: "", email: "", website: "", tax_number: "",
