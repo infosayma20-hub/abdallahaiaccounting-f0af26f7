@@ -141,6 +141,7 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
       data = data.filter(v =>
         (v.ref_number || "").toLowerCase().includes(q) ||
         (v.description || "").toLowerCase().includes(q) ||
+        (v.notes || "").toLowerCase().includes(q) ||
         (v.contact_name || "").toLowerCase().includes(q)
       );
     }
