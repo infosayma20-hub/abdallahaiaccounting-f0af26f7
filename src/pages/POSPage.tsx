@@ -414,6 +414,7 @@ const POSPage = () => {
   // Receipt
   const [showReceipt, setShowReceipt] = useState(false);
   const [receiptData, setReceiptData] = useState<any>(null);
+  const [posReturnPolicy, setPosReturnPolicy] = useState({ show: true, days: 7 });
 
   // Kitchen
   const [showKitchenTicket, setShowKitchenTicket] = useState(false);
@@ -723,6 +724,19 @@ const POSPage = () => {
       }
 
       await Promise.all([loadProducts(), loadCategories(), loadExchangeRates(), loadContacts(), loadEmployees(), loadModifiers()]);
+
+      // Load return policy settings
+      const { data: rpData } = await supabase
+        .from("company_settings" as any)
+        .select("pos_show_return_policy, pos_return_policy_days")
+        .eq("user_id", dataOwnerId)
+        .maybeSingle();
+      if (rpData) {
+        setPosReturnPolicy({
+          show: (rpData as any).pos_show_return_policy ?? true,
+          days: (rpData as any).pos_return_policy_days ?? 7,
+        });
+      }
     } catch (err) {
       console.error("POS init error:", err);
       toast.error("خطأ في تحميل نقطة البيع");
@@ -3976,7 +3990,7 @@ const POSPage = () => {
       </Dialog>
 
       {/* ── Receipt Dialog ── */}
-      <POSReceiptDialog open={showReceipt} onOpenChange={setShowReceipt} data={receiptData} />
+      <POSReceiptDialog open={showReceipt} onOpenChange={setShowReceipt} data={receiptData} showReturnPolicy={posReturnPolicy.show} returnPolicyDays={posReturnPolicy.days} />
 
       {/* ── Kitchen Ticket Dialog ── */}
       <Dialog open={showKitchenTicket} onOpenChange={setShowKitchenTicket}>

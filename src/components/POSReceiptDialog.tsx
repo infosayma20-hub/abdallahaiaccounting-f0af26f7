@@ -47,15 +47,17 @@ interface POSReceiptDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   data: ReceiptData | null;
+  showReturnPolicy?: boolean;
+  returnPolicyDays?: number;
 }
 
 const paymentMethodLabel: Record<string, string> = {
   cash: "نقد",
-  card: "شبكة",
+  card: "بطاقة",
   credit: "آجل",
 };
 
-export default function POSReceiptDialog({ open, onOpenChange, data }: POSReceiptDialogProps) {
+export default function POSReceiptDialog({ open, onOpenChange, data, showReturnPolicy = true, returnPolicyDays = 7 }: POSReceiptDialogProps) {
   const receiptRef = useRef<HTMLDivElement>(null);
   const [showEmail, setShowEmail] = useState(false);
   const [email, setEmail] = useState("");
@@ -187,9 +189,9 @@ export default function POSReceiptDialog({ open, onOpenChange, data }: POSReceip
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[400px] max-h-[90vh] overflow-y-auto p-0" dir="rtl">
+      <DialogContent className="sm:max-w-[400px] max-h-[95vh] flex flex-col p-0" dir="rtl">
         {/* Success header */}
-        <div className="bg-[#0f172a] text-white p-4 flex items-center gap-3">
+        <div className="bg-[#0f172a] text-white p-4 flex items-center gap-3 shrink-0">
           <div className="w-10 h-10 rounded-full bg-[#16a34a] flex items-center justify-center shrink-0">
             <CheckCircle className="h-5 w-5" />
           </div>
@@ -202,8 +204,8 @@ export default function POSReceiptDialog({ open, onOpenChange, data }: POSReceip
           </div>
         </div>
 
-        {/* Receipt Preview */}
-        <div className="px-4 pb-2">
+        {/* Receipt Preview - Scrollable */}
+        <div className="flex-1 overflow-y-auto min-h-0 px-4 pb-2">
           <div className="bg-white text-[#1a1a1a] rounded-xl border border-border overflow-hidden shadow-sm">
             <div ref={receiptRef} className="p-5" style={{ fontFamily: "'Segoe UI', Arial, sans-serif", fontSize: "12px", direction: "rtl" }}>
               
@@ -386,12 +388,16 @@ export default function POSReceiptDialog({ open, onOpenChange, data }: POSReceip
               <div style={{ textAlign: "center" }}>
                 <div style={{ fontSize: "12px", fontWeight: 600, color: "#475569", marginBottom: "2px" }}>شكراً لتعاملكم معنا 🙏</div>
                 <div style={{ fontSize: "10px", color: "#94a3b8" }}>Thank you for your purchase</div>
-                <div style={{ fontSize: "9px", color: "#cbd5e1", marginTop: "4px" }}>
-                  المرتجعات خلال 7 أيام مع الإيصال الأصلي
-                </div>
-                <div style={{ fontSize: "9px", color: "#cbd5e1" }}>
-                  Returns within 7 days with original receipt
-                </div>
+                {showReturnPolicy && (
+                  <>
+                    <div style={{ fontSize: "9px", color: "#cbd5e1", marginTop: "4px" }}>
+                      المرتجعات خلال {returnPolicyDays} أيام مع الإيصال الأصلي
+                    </div>
+                    <div style={{ fontSize: "9px", color: "#cbd5e1" }}>
+                      Returns within {returnPolicyDays} days with original receipt
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -430,8 +436,8 @@ export default function POSReceiptDialog({ open, onOpenChange, data }: POSReceip
           </div>
         )}
 
-        {/* Actions */}
-        <div className="px-4 pb-2 space-y-2">
+        {/* Actions - Fixed at bottom */}
+        <div className="px-4 pb-3 pt-2 space-y-2 shrink-0 border-t border-border bg-background">
           <div className="flex gap-2">
             <Button onClick={handlePrint} className="flex-1 gap-2 h-10" variant="outline">
               <Printer className="h-4 w-4" />

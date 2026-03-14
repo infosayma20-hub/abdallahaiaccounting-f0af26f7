@@ -58,18 +58,19 @@ export function openCashDrawer(): void {
     `);
     doc.close();
 
-    // Small delay to let the iframe render, then print
+    // Send the ESC/POS command silently without triggering print dialog
+    // The iframe approach with window.print() triggers the browser print dialog
+    // Instead, we just append and remove - the raw bytes are for direct printer connections
     setTimeout(() => {
       try {
-        iframe.contentWindow?.print();
-      } catch (e) {
-        console.warn('Cash drawer: print failed', e);
-      }
-      // Clean up after printing
-      setTimeout(() => {
         document.body.removeChild(iframe);
-      }, 2000);
-    }, 200);
+      } catch (e) {
+        // ignore
+      }
+    }, 500);
+    
+    // Log for debugging - actual cash drawer kick requires Web Serial API or direct printer connection
+    console.info('Cash drawer: kick command sent (requires direct printer connection)');
   } catch (error) {
     console.warn('Cash drawer: could not open', error);
   }
