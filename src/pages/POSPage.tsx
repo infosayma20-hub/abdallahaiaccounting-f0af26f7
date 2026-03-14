@@ -525,6 +525,7 @@ const POSPage = () => {
           can_affect_inventory_on_purchase: (perms as any).can_affect_inventory_on_purchase ?? false,
           can_record_expenses: (perms as any).can_record_expenses ?? false,
           can_create_expense_category: (perms as any).can_create_expense_category ?? false,
+          open_cash_drawer: (perms as any).open_cash_drawer ?? false,
         });
       }
     };
