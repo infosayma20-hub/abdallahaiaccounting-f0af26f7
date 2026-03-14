@@ -2096,29 +2096,8 @@ const POSPage = () => {
 
         <div className="flex-1" />
 
-        {/* Sales summary - admin only */}
-        {session && isAdmin && (
-          <div className="flex items-center gap-3 text-xs">
-            <button
-              onClick={() => setShowSalesSummary(prev => !prev)}
-              className="p-1.5 rounded-lg hover:bg-white/10 transition-colors text-white/50 hover:text-white/80"
-              title={showSalesSummary ? "إخفاء المبيعات" : "إظهار المبيعات"}
-            >
-              {showSalesSummary ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
-            </button>
-            {showSalesSummary && (
-              <>
-                <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-white/10">
-                  <BarChart3 className="h-3.5 w-3.5 text-amber-400" />
-                  <span className="text-white/70">مبيعات اليوم:</span>
-                  <span className="font-bold text-amber-400 tabular-nums">₪{session.total_sales.toFixed(0)}</span>
-                </div>
-                <span className="text-white/60">{session.total_orders} طلب</span>
-              </>
-            )}
 
-          </div>
-        )}
+
 
         {/* Invoice History Button - visible based on permissions */}
         {(isAdmin || posPerms.can_view_invoice_history || posPerms.view_invoice_log) && (
