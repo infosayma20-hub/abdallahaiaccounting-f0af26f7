@@ -47,6 +47,8 @@ interface POSReceiptDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   data: ReceiptData | null;
+  showReturnPolicy?: boolean;
+  returnPolicyDays?: number;
 }
 
 const paymentMethodLabel: Record<string, string> = {
