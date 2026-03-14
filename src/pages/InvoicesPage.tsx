@@ -66,6 +66,8 @@ interface Invoice {
   transferDetails?: { reference: string; bank: string };
   is_credit_note?: boolean;
   original_invoice_id?: string;
+  receiptsCount?: number;
+  contactId?: string;
 }
 
 const createEmptyItem = (): InvoiceItem => ({
