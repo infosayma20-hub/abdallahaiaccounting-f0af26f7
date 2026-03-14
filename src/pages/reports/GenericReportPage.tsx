@@ -1622,6 +1622,22 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
         return { count: "sum", total: "sum" };
       case "pos-daily-sales":
         return { discount: "sum", total: "sum" };
+      case "pos-sales-by-category":
+        return { qty: "sum", revenue: "sum", cost: "sum", profit: "sum" };
+      case "pos-period-comparison":
+        return { orders: "sum", sales: "sum", discounts: "sum" };
+      case "pos-invoice-register":
+        return { subtotal: "sum", discount: "sum", tax: "sum", total: "sum" };
+      case "pos-pending-orders":
+        return { total: "sum" };
+      case "pos-shift-open-close":
+        return { opening: "sum", closing: "sum" };
+      case "pos-payment-methods":
+        return { count: "sum", total: "sum" };
+      case "pos-product-movement":
+        return { sold_qty: "sum", return_qty: "sum", net_qty: "sum", revenue: "sum" };
+      case "pos-category-totals":
+        return { items: "sum", qty: "sum", revenue: "sum" };
       case "ar-aging-detail": case "ap-aging-detail":
         return { current: "sum", d31_60: "sum", d61_90: "sum", over90: "sum", total: "sum" };
       case "customer-profitability": case "supplier-purchase-analysis":
