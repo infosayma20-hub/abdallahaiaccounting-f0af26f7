@@ -282,6 +282,101 @@ const InvoiceCreatePage = () => {
     return afterDiscount + tax;
   }, []);
 
+  useEffect(() => {
+    if (!isEditMode || !editInvoiceId) {
+      setLoadingEditInvoice(false);
+      return;
+    }
+    if (!user) return;
+
+    let mounted = true;
+
+    const loadInvoiceForEdit = async () => {
+      setLoadingEditInvoice(true);
+      try {
+        const { data, error } = await supabase
+          .from("invoices")
+          .select("*, invoice_items(*)")
+          .eq("id", editInvoiceId)
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        if (error || !data) {
+          toast({ title: "تعذر تحميل الفاتورة للتعديل", variant: "destructive" });
+          navigate("/invoices");
+          return;
+        }
+
+        const mappedItems: InvoiceItem[] = (data.invoice_items || []).map((item: any) => {
+          const normalized: InvoiceItem = {
+            id: item.id || crypto.randomUUID(),
+            productId: item.product_id || undefined,
+            description: item.product_name || item.description || "",
+            quantity: Number(item.quantity) || 1,
+            unitPrice: Number(item.unit_price) || 0,
+            discount: Number(item.discount) || 0,
+            discountType: item.discount_type === "amount" ? "amount" : "percent",
+            taxRate: Number(item.tax_rate) || 0,
+            unitOfMeasure: item.unit_of_measure || "قطعة",
+            subtotal: Number(item.total_amount) || 0,
+          };
+          normalized.subtotal = calcItemSubtotal(normalized);
+          return normalized;
+        });
+
+        if (!mounted) return;
+
+        const paymentTerms = data.payment_terms || "net_30";
+
+        setForm(prev => ({
+          ...prev,
+          type: data.invoice_type === "purchase" ? "purchase" : "sales",
+          contactName: data.contact_name || "",
+          contactId: data.contact_id || null,
+          date: data.invoice_date || prev.date,
+          dueDate: data.due_date || "",
+          paymentTerms,
+          paymentMethod: mapDbPaymentMethod(data.payment_method),
+          currency: data.currency || "شيكل",
+          exchangeRate: Number(data.exchange_rate) || 1,
+          notes: data.notes || "",
+          notesInternal: data.notes_internal || "",
+          salespersonId: data.salesperson_id || null,
+          billingAddress: data.billing_address || "",
+          taxInclusive: Boolean(data.tax_inclusive),
+          items: mappedItems.length ? mappedItems : [createEmptyItem()],
+          chequeNumber: "",
+          chequeBank: "",
+          chequeDueDate: "",
+          transferRef: "",
+          transferBank: "",
+        }));
+
+        setContactSearch(data.contact_name || "");
+      } catch (err: any) {
+        console.error("Load invoice for edit failed:", err);
+        toast({ title: "خطأ أثناء تحميل الفاتورة", description: err.message, variant: "destructive" });
+        navigate("/invoices");
+      } finally {
+        if (mounted) setLoadingEditInvoice(false);
+      }
+    };
+
+    loadInvoiceForEdit();
+    return () => {
+      mounted = false;
+    };
+  }, [isEditMode, editInvoiceId, user, calcItemSubtotal, toast, navigate]);
+
+  useEffect(() => {
+    if (!form.contactId) {
+      setSelectedContact(null);
+      return;
+    }
+    const matched = contacts.find(c => c.id === form.contactId) || null;
+    setSelectedContact(matched);
+  }, [contacts, form.contactId]);
+
   const getItemDiscountAmount = useCallback((item: InvoiceItem) => {
     const base = item.quantity * item.unitPrice;
     return item.discountType === "percent" ? base * (item.discount / 100) : item.discount;
