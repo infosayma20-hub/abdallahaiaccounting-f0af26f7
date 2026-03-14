@@ -1191,7 +1191,7 @@ const InvoiceCreatePage = () => {
             <Save className="h-4 w-4" /> حفظ كمسودة
           </Button>
           <Button className="flex-1 rounded-xl gap-1.5 h-11 text-sm font-bold shadow-lg shadow-primary/20" onClick={() => handleCreate(false)} disabled={creating}>
-            {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : <><FileText className="h-4 w-4" /> إنشاء الفاتورة</>}
+            {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : <><FileText className="h-4 w-4" /> {isEditMode ? "حفظ التعديلات" : "إنشاء الفاتورة"}</>}
           </Button>
           <Button variant="outline" className="rounded-xl gap-1.5 h-11 text-sm" onClick={handlePrint}>
             <Eye className="h-4 w-4" /> معاينة PDF
