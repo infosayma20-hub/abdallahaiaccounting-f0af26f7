@@ -3779,7 +3779,7 @@ const POSPage = () => {
             </div>
 
             <div>
-              <label className="text-sm font-medium mb-1.5 block">المبلغ الموجود في الصندوق (₪)</label>
+              <label className="text-sm font-medium mb-1.5 block">النقدية — شيكل (₪)</label>
               <Input
                 type="number"
                 value={closingCash}
@@ -3788,6 +3788,29 @@ const POSPage = () => {
                 className="text-2xl h-14 text-center font-bold"
                 autoFocus
               />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-sm font-medium mb-1.5 block">دولار ($)</label>
+                <Input
+                  type="number"
+                  value={closingCashUSD}
+                  onChange={(e) => setClosingCashUSD(e.target.value)}
+                  placeholder="0.00"
+                  className="text-lg h-12 text-center font-bold"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-1.5 block">دينار (د.أ)</label>
+                <Input
+                  type="number"
+                  value={closingCashJOD}
+                  onChange={(e) => setClosingCashJOD(e.target.value)}
+                  placeholder="0.00"
+                  className="text-lg h-12 text-center font-bold"
+                />
+              </div>
             </div>
           </div>
           <DialogFooter>
