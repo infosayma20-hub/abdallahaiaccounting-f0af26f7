@@ -48,7 +48,7 @@ import HRAttendancePage from "./pages/HRAttendancePage";
 import BranchDisplayPage from "./pages/BranchDisplayPage";
 import EmployeeApp from "./pages/EmployeeApp";
 import RoleGuard from "./components/RoleGuard";
-import VoucherPage from "./pages/VoucherPage";
+// VoucherPage removed — unified under FinanceVoucherPage
 import AppsLauncher from "./pages/AppsLauncher";
 import OpeningBalancesImportPage from "./pages/OpeningBalancesImportPage";
 import CurrencyManagementPage from "./pages/CurrencyManagementPage";
@@ -221,7 +221,9 @@ const App = () => (
                       <Route path="/finance/journals" element={<FinanceJournalPage />} />
                       <Route path="/finance/journal/new" element={<JournalNewPage />} />
                       <Route path="/finance/receipt/new" element={<VoucherFormPage voucherType="receipt" />} />
+                      <Route path="/finance/receipt/:id/edit" element={<VoucherFormPage voucherType="receipt" />} />
                       <Route path="/finance/payment/new" element={<VoucherFormPage voucherType="payment" />} />
+                      <Route path="/finance/payment/:id/edit" element={<VoucherFormPage voucherType="payment" />} />
                       <Route path="/finance/cheques" element={<ChequesPage />} />
                       <Route path="/finance/bank-accounts" element={<BankAccountsPage />} />
                       <Route path="/finance/cash-boxes" element={<CashBoxesPage />} />

@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import VoucherDrawer from "@/components/finance/VoucherDrawer";
+// VoucherDrawer removed — edit now navigates to VoucherFormPage
 
 type VoucherType = "receipt" | "payment";
 
@@ -39,8 +39,6 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
   const [vouchers, setVouchers] = useState<any[]>([]);
   const [contacts, setContacts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [editVoucherId, setEditVoucherId] = useState<string | null>(null);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -112,9 +110,15 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
   useEffect(() => { fetchData(); }, [fetchData]);
   useEffect(() => {
     const editId = searchParams.get("edit");
-    if (editId) { setEditVoucherId(editId); setDrawerOpen(true); }
-    else if (searchParams.get("new") === "1") setDrawerOpen(true);
-  }, [searchParams]);
+    if (editId) {
+      const editPath = isReceipt
+        ? `/finance/receipt/${editId}/edit`
+        : `/finance/payment/${editId}/edit`;
+      navigate(editPath);
+    } else if (searchParams.get("new") === "1") {
+      navigate(isReceipt ? "/finance/receipt/new" : "/finance/payment/new");
+    }
+  }, [searchParams, isReceipt, navigate]);
 
   const tableData = useMemo(() => {
     return vouchers.map(v => {
@@ -348,13 +352,10 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
                         <button
                           className="text-primary hover:underline font-mono text-xs cursor-pointer bg-transparent border-none p-0"
                           onClick={() => {
-                            if (isReceipt) {
-                              // Receipt vouchers don't use VoucherDrawer
-                              // Just view details (could navigate to edit page in future)
-                              setEditVoucherId(v.id); setDrawerOpen(true);
-                            } else {
-                              setEditVoucherId(v.id); setDrawerOpen(true);
-                            }
+                            const editPath = isReceipt
+                              ? `/finance/receipt/${v.id}/edit`
+                              : `/finance/payment/${v.id}/edit`;
+                            navigate(editPath);
                           }}
                         >
                           {v.ref_number}
@@ -420,15 +421,6 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
           )}
         </div>
       )}
-
-      {/* Voucher Drawer */}
-      <VoucherDrawer
-        open={drawerOpen}
-        onClose={() => { setDrawerOpen(false); setEditVoucherId(null); }}
-        voucherType={voucherType}
-        onSaved={fetchData}
-        editVoucherId={editVoucherId}
-      />
 
       {/* Duplicate Confirm Modal */}
       <DuplicateConfirmModal

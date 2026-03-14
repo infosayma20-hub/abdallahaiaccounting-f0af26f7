@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, useParams } from "react-router-dom";
 import { ArrowRight, FileText, Search, CheckCircle, AlertTriangle, Info, Printer, Save, Landmark, CreditCard, Building2, Receipt as ReceiptIcon, Banknote, User } from "lucide-react";
 import DuplicateBanner from "@/components/DuplicateBanner";
 import { supabase } from "@/integrations/supabase/client";
@@ -61,20 +61,28 @@ interface VoucherFormPageProps {
 const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { id: editId } = useParams<{ id: string }>();
   const { user } = useAuth();
   const { company } = useCompany();
 
   const fromDuplicate = searchParams.get("from_duplicate") === "true";
   const [duplicateSourceRef, setDuplicateSourceRef] = useState<string | null>(null);
+  const isEditMode = !!editId;
 
   const isReceipt = voucherType === "receipt";
-  const pageTitle = isReceipt ? "سند قبض جديد" : "سند صرف جديد";
-  const pageDesc = isReceipt ? "تسجيل دفعة من زبون وربطها بالفواتير" : "تسجيل دفعة لمورد وربطها بالفواتير";
+  const pageTitle = isEditMode 
+    ? (isReceipt ? "تعديل سند قبض" : "تعديل سند صرف")
+    : (isReceipt ? "سند قبض جديد" : "سند صرف جديد");
+  const pageDesc = isEditMode
+    ? (isReceipt ? "تعديل بيانات سند القبض" : "تعديل بيانات سند الصرف")
+    : (isReceipt ? "تسجيل دفعة من زبون وربطها بالفواتير" : "تسجيل دفعة لمورد وربطها بالفواتير");
   const contactLabel = isReceipt ? "الزبون / المورد" : "المورد / الجهة";
   const contactPlaceholder = isReceipt ? "ابحث عن زبون..." : "ابحث عن مورد...";
   const amountLabel = isReceipt ? "المبلغ المقبوض" : "المبلغ المدفوع";
   const listPath = isReceipt ? "/finance/receipts" : "/finance/payments";
   const voucherLabel = isReceipt ? "سند القبض" : "سند الصرف";
+  const [editLoading, setEditLoading] = useState(false);
+  const [editVoucherStatus, setEditVoucherStatus] = useState<string | null>(null);
 
   // Form state
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split("T")[0]);
@@ -151,6 +159,69 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         }
       });
   }, [user]);
+
+  // ─── Load existing voucher for editing ───
+  useEffect(() => {
+    if (!editId || !user) return;
+    setEditLoading(true);
+    const loadVoucher = async () => {
+      try {
+        if (isReceipt) {
+          const { data } = await supabase
+            .from("receipt_vouchers")
+            .select("*")
+            .eq("id", editId)
+            .eq("user_id", user.id)
+            .single();
+          if (data) {
+            setPaymentDate(data.payment_date || new Date().toISOString().split("T")[0]);
+            setRefNumber(data.receipt_number || "");
+            setPaymentMethod(data.payment_method || "نقدي");
+            setAmount(String(data.amount || ""));
+            setNotes(data.notes || "");
+            setCheckNumber(data.check_number || "");
+            setCheckDate(data.check_date || "");
+            setCheckBank(data.bank_name || "");
+            setEditVoucherStatus(data.status || "posted");
+            if (data.cash_box_id) { setDepositType("cash_box"); setSelectedCashBox(data.cash_box_id); }
+            if (data.bank_account_id) { setDepositType("bank"); setSelectedBankAccount(data.bank_account_id); }
+            // Resolve contact
+            if (data.contact_id) {
+              const { data: c } = await supabase.from("contacts").select("id, contact_name, current_balance").eq("id", data.contact_id).single();
+              if (c) { setSelectedContact(c); setContactSearch(c.contact_name); }
+            }
+          }
+        } else {
+          const { data } = await supabase
+            .from("vouchers")
+            .select("*")
+            .eq("id", editId)
+            .eq("user_id", user.id)
+            .single();
+          if (data) {
+            setPaymentDate(data.date || new Date().toISOString().split("T")[0]);
+            setRefNumber(data.ref_number || "");
+            const methodMap: Record<string, string> = { cash: "نقدي", cheque: "شيك", transfer: "تحويل", card: "بطاقة" };
+            setPaymentMethod(methodMap[data.payment_method] || data.payment_method || "نقدي");
+            setAmount(String(data.amount || data.amount_ils || ""));
+            setNotes(data.notes || data.description || "");
+            setCheckNumber(data.cheque_number || "");
+            setCheckDate(data.cheque_due_date || "");
+            setCheckBank(data.cheque_bank_name || "");
+            setEditVoucherStatus(data.status || "posted");
+            if (data.bank_account_id) { setDepositType("bank"); setSelectedBankAccount(data.bank_account_id); }
+            // Resolve contact
+            if (data.contact_id) {
+              const { data: c } = await supabase.from("contacts").select("id, contact_name, current_balance").eq("id", data.contact_id).single();
+              if (c) { setSelectedContact(c); setContactSearch(c.contact_name); }
+            }
+          }
+        }
+      } catch (e) { /* ignore */ }
+      setEditLoading(false);
+    };
+    loadVoucher();
+  }, [editId, user, isReceipt]);
 
   // Load cash boxes, bank accounts, and generate ref number for payments
   useEffect(() => {
@@ -295,7 +366,56 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         bankAccountId = selectedBankAccount;
       }
 
-      // Create journal entry via RPC (for receipts)
+      // ─── EDIT MODE: Update existing voucher ───
+      if (isEditMode && editId) {
+        if (isReceipt) {
+          const { error } = await supabase
+            .from("receipt_vouchers")
+            .update({
+              contact_id: selectedContact.id,
+              contact_name: selectedContact.contact_name,
+              payment_date: paymentDate,
+              amount: amountNum,
+              payment_method: paymentMethod,
+              check_number: paymentMethod === "شيك" ? checkNumber : null,
+              check_date: paymentMethod === "شيك" && checkDate ? checkDate : null,
+              bank_name: paymentMethod === "شيك" ? checkBank : null,
+              cash_box_id: cashBoxId,
+              bank_account_id: bankAccountId,
+              deposit_account_code: depositAccountCode,
+              notes,
+            })
+            .eq("id", editId)
+            .eq("user_id", user.id);
+          if (error) throw error;
+          toast.success(`تم تحديث ${voucherLabel} بنجاح`);
+        } else {
+          const payMethodMap: Record<string, string> = { "نقدي": "cash", "شيك": "cheque", "تحويل": "transfer", "بطاقة": "card" };
+          const { error } = await supabase
+            .from("vouchers")
+            .update({
+              date: paymentDate,
+              contact_id: selectedContact.id,
+              payment_method: payMethodMap[paymentMethod] || "cash",
+              amount: amountNum,
+              amount_ils: amountNum,
+              description: notes || `سند صرف إلى ${selectedContact.contact_name}`,
+              notes: notes || null,
+              bank_account_id: bankAccountId,
+              cheque_number: paymentMethod === "شيك" ? checkNumber : null,
+              cheque_due_date: paymentMethod === "شيك" && checkDate ? checkDate : null,
+              cheque_bank_name: paymentMethod === "شيك" ? checkBank : null,
+            })
+            .eq("id", editId)
+            .eq("user_id", user.id);
+          if (error) throw error;
+          toast.success(`تم تحديث ${voucherLabel} بنجاح`);
+        }
+        navigate(listPath);
+        return;
+      }
+
+      // ─── CREATE MODE: Original insert logic ───
       let txId: string | null = null;
       if (!asDraft && isReceipt) {
         const { data: txResult } = await supabase.rpc("create_receipt_with_entry", {
@@ -311,14 +431,13 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         txId = (txResult as any)?.transaction_id || null;
       }
 
-      // For payments, create transaction directly
       if (!asDraft && !isReceipt) {
         const payMethodMap: Record<string, string> = { "نقدي": "نقدي", "شيك": "شيك", "تحويل": "بنك", "بطاقة": "بطاقة" };
         const { data: txData } = await supabase.from("transactions").insert({
           user_id: user.id,
           transaction_date: paymentDate,
           description: notes || `سند صرف إلى ${selectedContact.contact_name}`,
-          debit_account_code: "2100", // Accounts payable
+          debit_account_code: "2100",
           credit_account_code: depositAccountCode,
           amount: amountNum,
           currency: "شيكل",
@@ -330,9 +449,6 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         txId = txData?.id || null;
       }
 
-      // Insert voucher
-      const tableName = isReceipt ? "receipt_vouchers" : "vouchers";
-      
       if (isReceipt) {
         const { data: receipt, error: receiptError } = await supabase
           .from("receipt_vouchers")
@@ -358,7 +474,6 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
 
         if (receiptError) throw receiptError;
 
-        // Link invoices
         const selectedInvoices = invoices.filter(i => i.selected && (i.allocatedAmount || 0) > 0);
         if (selectedInvoices.length > 0 && receipt) {
           const links = selectedInvoices.map(inv => ({
@@ -381,7 +496,6 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           }
         }
 
-        // Register cheque
         if (paymentMethod === "شيك" && !asDraft && checkNumber) {
           await supabase.from("cheques").insert({
             user_id: user.id,
@@ -400,7 +514,6 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         setSaved(true);
         setSavedReceiptNumber(receipt?.receipt_number || "");
       } else {
-        // Payment voucher - save to vouchers table
         const payMethodMap: Record<string, string> = { "نقدي": "cash", "شيك": "cheque", "تحويل": "transfer", "بطاقة": "card" };
         const { data: voucher, error: voucherError } = await supabase
           .from("vouchers")
@@ -430,7 +543,6 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
 
         if (voucherError) throw voucherError;
 
-        // Register cheque for payments
         if (paymentMethod === "شيك" && !asDraft && checkNumber) {
           await supabase.from("cheques").insert({
             user_id: user.id,
@@ -445,7 +557,6 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           });
         }
 
-        // Link invoices for payments too
         const selectedInvoices = invoices.filter(i => i.selected && (i.allocatedAmount || 0) > 0);
         if (selectedInvoices.length > 0 && voucher) {
           for (const inv of selectedInvoices) {
@@ -475,6 +586,17 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   const handlePrint = () => { window.print(); };
 
   const formatAmount = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  if (editLoading) {
+    return (
+      <div className="flex items-center justify-center py-20" dir="rtl">
+        <div className="text-center space-y-3">
+          <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin mx-auto" />
+          <p className="text-sm text-muted-foreground">جاري تحميل بيانات السند...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (saved) {
     return (
@@ -768,10 +890,12 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
 
       {/* Action Buttons */}
       <div className="flex items-center justify-between bg-card rounded-2xl border border-border p-4">
-        <button onClick={() => handleSave(true)} disabled={saving}
-          className="px-5 py-2.5 rounded-xl border border-border text-foreground text-sm hover:bg-secondary/50 transition-all disabled:opacity-50">
-          حفظ كمسودة
-        </button>
+        {!isEditMode ? (
+          <button onClick={() => handleSave(true)} disabled={saving}
+            className="px-5 py-2.5 rounded-xl border border-border text-foreground text-sm hover:bg-secondary/50 transition-all disabled:opacity-50">
+            حفظ كمسودة
+          </button>
+        ) : <div />}
         <div className="flex items-center gap-3">
           <button onClick={handlePrint}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-all">
@@ -780,7 +904,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           <button onClick={() => handleSave(false)} disabled={saving || amountNum <= 0 || !selectedContact}
             className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-bold hover:opacity-90 transition-all disabled:opacity-50">
             <Save className="h-4 w-4" />
-            {saving ? "جارٍ الحفظ..." : "حفظ وترحيل"}
+            {saving ? "جارٍ الحفظ..." : isEditMode ? "تحديث السند" : "حفظ وترحيل"}
           </button>
         </div>
       </div>
