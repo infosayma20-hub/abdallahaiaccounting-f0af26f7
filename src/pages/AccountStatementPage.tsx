@@ -1029,34 +1029,47 @@ const AccountStatementPage = () => {
     if (!element) return;
     setPdfGenerating(true);
     try {
-      const canvas = await html2canvas(element, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: "#ffffff",
-        windowWidth: 794,
-      });
-      const imgData = canvas.toDataURL("image/png");
-      const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-      const pdfWidth = pdf.internal.pageSize.width;
-      const pdfHeight = pdf.internal.pageSize.height;
-      const ratio = canvas.height / canvas.width;
-      const imgHeight = pdfWidth * ratio;
-
-      let heightLeft = imgHeight;
-      let position = 0;
-
-      pdf.addImage(imgData, "PNG", 0, position, pdfWidth, imgHeight);
-      heightLeft -= pdfHeight;
-
-      while (heightLeft > 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, "PNG", 0, position, pdfWidth, imgHeight);
-        heightLeft -= pdfHeight;
+      const printWindow = window.open("", "_blank");
+      if (!printWindow) {
+        toast({ title: "يرجى السماح بالنوافذ المنبثقة لتحميل PDF", variant: "destructive" });
+        return;
+      }
+      // Clone logos to base64 to avoid CORS
+      const cloned = element.cloneNode(true) as HTMLElement;
+      const imgs = cloned.querySelectorAll("img");
+      for (const img of Array.from(imgs)) {
+        try {
+          const src = (img as HTMLImageElement).src;
+          if (src && !src.startsWith("data:")) {
+            const resp = await fetch(src, { mode: "cors" });
+            const blob = await resp.blob();
+            const dataUrl = await new Promise<string>((res) => {
+              const reader = new FileReader();
+              reader.onloadend = () => res(reader.result as string);
+              reader.readAsDataURL(blob);
+            });
+            (img as HTMLImageElement).src = dataUrl;
+          }
+        } catch { /* keep original src */ }
       }
 
-      pdf.save(`كشف-حساب-${selectedEntityName}-${dateFrom}.pdf`);
+      printWindow.document.write(`<!DOCTYPE html><html dir="rtl" lang="ar"><head>
+        <meta charset="utf-8" />
+        <title>كشف حساب - ${selectedEntityName}</title>
+        <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet" />
+        <style>
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body { font-family: 'Cairo', 'Inter', sans-serif; direction: rtl; background: #fff; }
+          @page { size: A4; margin: 0; }
+          @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+        </style>
+      </head><body>${cloned.outerHTML}</body></html>`);
+      printWindow.document.close();
+      printWindow.onload = () => {
+        setTimeout(() => {
+          printWindow.print();
+        }, 600);
+      };
     } catch (err) {
       console.error("PDF download error:", err);
       toast({ title: "خطأ في تحميل PDF", variant: "destructive" });
