@@ -367,16 +367,14 @@ export default function POSReceiptDialog({ open, onOpenChange, data, showReturnP
               <hr style={{ border: "none", borderTop: "1px dashed #d1d5db", margin: "8px 0" }} />
 
               {/* ═══ QR CODE ═══ */}
-              <div style={{ textAlign: "center", margin: "8px 0" }}>
-                <div style={{ width: "72px", height: "72px", margin: "0 auto", border: "2px solid #e2e8f0", borderRadius: "8px", display: "flex", alignItems: "center", justifyContent: "center", padding: "8px" }}>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "2px", width: "40px", height: "40px" }}>
-                    {qrPattern.flat().map((cell, idx) => (
-                      <div key={idx} style={{ background: cell ? "#1e293b" : "transparent", borderRadius: "1px" }} />
-                    ))}
+              {receiptUrl && (
+                <div style={{ textAlign: "center", margin: "8px 0" }}>
+                  <div style={{ width: "88px", height: "88px", margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <QRCodeSVG value={receiptUrl} size={80} level="M" />
                   </div>
+                  <div style={{ fontSize: "8px", color: "#94a3b8", marginTop: "4px" }}>امسح للتحقق من الإيصال</div>
                 </div>
-                <div style={{ fontSize: "8px", color: "#94a3b8", marginTop: "4px" }}>امسح للتحقق من الإيصال</div>
-              </div>
+              )}
 
               {/* ═══ BARCODE ═══ */}
               <div style={{ textAlign: "center", fontFamily: "monospace", fontSize: "11px", letterSpacing: "3px", color: "#64748b", margin: "4px 0" }}>
