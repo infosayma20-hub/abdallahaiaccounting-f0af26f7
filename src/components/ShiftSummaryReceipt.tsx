@@ -3,6 +3,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Printer, CheckCircle } from "lucide-react";
 
+interface CurrencyBreakdown {
+  [key: string]: { sales: number; count: number };
+}
+
 interface ShiftSummaryData {
   companyName: string;
   terminalName: string;
@@ -14,9 +18,13 @@ interface ShiftSummaryData {
   totalExpenses?: number;
   totalOrders: number;
   closingCash: number;
+  closingCashUSD?: number;
+  closingCashJOD?: number;
   expectedCash: number;
   variance: number;
   sessionId: string;
+  currencyBreakdown?: CurrencyBreakdown;
+  exchangeRates?: Record<string, number>;
 }
 
 interface ShiftSummaryReceiptProps {
