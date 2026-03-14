@@ -61,20 +61,28 @@ interface VoucherFormPageProps {
 const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { id: editId } = useParams<{ id: string }>();
   const { user } = useAuth();
   const { company } = useCompany();
 
   const fromDuplicate = searchParams.get("from_duplicate") === "true";
   const [duplicateSourceRef, setDuplicateSourceRef] = useState<string | null>(null);
+  const isEditMode = !!editId;
 
   const isReceipt = voucherType === "receipt";
-  const pageTitle = isReceipt ? "سند قبض جديد" : "سند صرف جديد";
-  const pageDesc = isReceipt ? "تسجيل دفعة من زبون وربطها بالفواتير" : "تسجيل دفعة لمورد وربطها بالفواتير";
+  const pageTitle = isEditMode 
+    ? (isReceipt ? "تعديل سند قبض" : "تعديل سند صرف")
+    : (isReceipt ? "سند قبض جديد" : "سند صرف جديد");
+  const pageDesc = isEditMode
+    ? (isReceipt ? "تعديل بيانات سند القبض" : "تعديل بيانات سند الصرف")
+    : (isReceipt ? "تسجيل دفعة من زبون وربطها بالفواتير" : "تسجيل دفعة لمورد وربطها بالفواتير");
   const contactLabel = isReceipt ? "الزبون / المورد" : "المورد / الجهة";
   const contactPlaceholder = isReceipt ? "ابحث عن زبون..." : "ابحث عن مورد...";
   const amountLabel = isReceipt ? "المبلغ المقبوض" : "المبلغ المدفوع";
   const listPath = isReceipt ? "/finance/receipts" : "/finance/payments";
   const voucherLabel = isReceipt ? "سند القبض" : "سند الصرف";
+  const [editLoading, setEditLoading] = useState(false);
+  const [editVoucherStatus, setEditVoucherStatus] = useState<string | null>(null);
 
   // Form state
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split("T")[0]);
