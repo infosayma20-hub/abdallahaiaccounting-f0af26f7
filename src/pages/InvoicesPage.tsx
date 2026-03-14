@@ -1595,7 +1595,7 @@ const InvoicesPage = () => {
               </div>
 
               <div ref={printRef} className="bg-white rounded-2xl border border-border/50 overflow-hidden">
-                <InvoicePrintView invoice={selectedInvoice} settings={companySettings} copyLabel={selectedInvoice.status === "sent" ? "أصلية" : selectedInvoice.status === "draft" ? "مسودة" : "أصلية"} />
+                <InvoiceDocumentPreview invoice={selectedInvoice} settings={companySettings} />
               </div>
             </div>
           )}
