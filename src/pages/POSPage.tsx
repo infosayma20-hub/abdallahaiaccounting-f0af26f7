@@ -367,6 +367,8 @@ const POSPage = () => {
   const [savingCustomer, setSavingCustomer] = useState(false);
   const [openingCash, setOpeningCash] = useState("");
   const [closingCash, setClosingCash] = useState("");
+  const [closingCashUSD, setClosingCashUSD] = useState("");
+  const [closingCashJOD, setClosingCashJOD] = useState("");
   const [cashBoxes, setCashBoxes] = useState<{ id: string; name: string; type: string }[]>([]);
   const [selectedCashBoxId, setSelectedCashBoxId] = useState<string>("");
   const [rememberCashBox, setRememberCashBox] = useState(false);
@@ -1864,6 +1866,8 @@ const POSPage = () => {
   const handleCloseShift = async () => {
     if (!session || !userId) return;
     const cash = parseFloat(closingCash) || 0;
+    const cashUSD = parseFloat(closingCashUSD) || 0;
+    const cashJOD = parseFloat(closingCashJOD) || 0;
 
     // Fetch total expenses for this session
     const { data: expensesData } = await supabase
@@ -1871,6 +1875,21 @@ const POSPage = () => {
       .select("amount")
       .eq("shift_id", session.id);
     const totalExpenses = (expensesData || []).reduce((sum: number, e: any) => sum + (Number(e.amount) || 0), 0);
+
+    // Fetch sales breakdown by payment currency
+    const { data: ordersData } = await supabase
+      .from("pos_orders")
+      .select("payment_currency, payment_currency_amount, total")
+      .eq("session_id", session.id)
+      .eq("state", "paid");
+
+    const currencyBreakdown: Record<string, { sales: number; count: number }> = {};
+    (ordersData || []).forEach((o: any) => {
+      const cur = o.payment_currency || "ILS";
+      if (!currencyBreakdown[cur]) currencyBreakdown[cur] = { sales: 0, count: 0 };
+      currencyBreakdown[cur].sales += Number(o.payment_currency_amount) || Number(o.total) || 0;
+      currencyBreakdown[cur].count += 1;
+    });
 
     const expected = session.opening_cash + session.total_sales - totalExpenses;
     const variance = cash - expected;
@@ -2006,9 +2025,13 @@ const POSPage = () => {
       totalExpenses,
       totalOrders: session.total_orders,
       closingCash: cash,
+      closingCashUSD: cashUSD,
+      closingCashJOD: cashJOD,
       expectedCash: expected,
       variance,
       sessionId: session.id,
+      currencyBreakdown,
+      exchangeRates,
     });
 
     setShowCloseShift(false);
@@ -3756,7 +3779,7 @@ const POSPage = () => {
             </div>
 
             <div>
-              <label className="text-sm font-medium mb-1.5 block">المبلغ الموجود في الصندوق (₪)</label>
+              <label className="text-sm font-medium mb-1.5 block">النقدية — شيكل (₪)</label>
               <Input
                 type="number"
                 value={closingCash}
@@ -3765,6 +3788,29 @@ const POSPage = () => {
                 className="text-2xl h-14 text-center font-bold"
                 autoFocus
               />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-sm font-medium mb-1.5 block">دولار ($)</label>
+                <Input
+                  type="number"
+                  value={closingCashUSD}
+                  onChange={(e) => setClosingCashUSD(e.target.value)}
+                  placeholder="0.00"
+                  className="text-lg h-12 text-center font-bold"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-1.5 block">دينار (د.أ)</label>
+                <Input
+                  type="number"
+                  value={closingCashJOD}
+                  onChange={(e) => setClosingCashJOD(e.target.value)}
+                  placeholder="0.00"
+                  className="text-lg h-12 text-center font-bold"
+                />
+              </div>
             </div>
           </div>
           <DialogFooter>
