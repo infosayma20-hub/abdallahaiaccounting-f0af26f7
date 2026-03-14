@@ -2193,7 +2193,7 @@ const AccountStatementPage = () => {
             <Button size="sm" className="w-full" onClick={() => {
               localStorage.setItem("stmt_display_options", JSON.stringify(displayOptions));
               localStorage.setItem("stmt_detail_level", detailLevel);
-              toast.success("تم حفظ خياراتك بنجاح");
+              toast({ title: "تم حفظ خياراتك بنجاح ✅" });
             }}>
               💾 احفظ خياراتي
             </Button>
