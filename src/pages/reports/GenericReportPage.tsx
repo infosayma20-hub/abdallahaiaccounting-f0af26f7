@@ -166,8 +166,10 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
         case "pos-period-comparison": await loadPOSPeriodComparison(); break;
         case "pos-invoice-register": await loadPOSInvoiceRegister(); break;
         case "pos-pending-orders": await loadPOSPendingOrders(); break;
+        case "pos-invoice-timing": await loadPOSInvoiceTiming(); break;
         case "pos-shift-open-close": await loadPOSShiftOpenClose(); break;
         case "pos-payment-methods": await loadPOSPaymentMethods(); break;
+        case "pos-credit-sales": await loadPOSCreditSales(); break;
         case "pos-product-movement": await loadPOSProductMovement(); break;
         case "pos-category-totals": await loadPOSCategoryTotals(); break;
         case "pos-cash-reconciliation": await loadPOSCashReconciliation(); break;
