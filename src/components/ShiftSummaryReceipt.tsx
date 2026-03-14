@@ -212,16 +212,52 @@ export default function ShiftSummaryReceipt({ open, onOpenChange, data }: ShiftS
               <span style={{ fontWeight: 600 }}>{data.totalOrders}</span>
             </div>
 
+            {/* Currency Breakdown */}
+            {data.currencyBreakdown && Object.keys(data.currencyBreakdown).length > 0 && (
+              <>
+                <hr style={{ border: "none", borderTop: "1px dashed #ccc", margin: "6px 0" }} />
+                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1, color: "#94a3b8", textAlign: "center", margin: "6px 0 4px" }}>
+                  تفاصيل العملات المقبوضة
+                </div>
+                {Object.entries(data.currencyBreakdown).map(([cur, info]) => {
+                  const symbol = cur === "ILS" ? "₪" : cur === "USD" ? "$" : cur === "JOD" ? "د.أ" : cur === "EUR" ? "€" : cur;
+                  const label = cur === "ILS" ? "شيكل" : cur === "USD" ? "دولار" : cur === "JOD" ? "دينار" : cur === "EUR" ? "يورو" : cur;
+                  return (
+                    <div key={cur} style={{ display: "flex", justifyContent: "space-between", padding: "2px 0", fontSize: 12, color: "#475569" }}>
+                      <span>{label} ({info.count} طلب)</span>
+                      <span style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{symbol}{info.sales.toFixed(2)}</span>
+                    </div>
+                  );
+                })}
+              </>
+            )}
+
             <hr style={{ border: "none", borderTop: "1px solid #e0e0e0", margin: "6px 0" }} />
 
+            {/* ILS Summary */}
+            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1, color: "#94a3b8", textAlign: "center", margin: "6px 0 4px" }}>
+              تسليم النقدية
+            </div>
             <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", fontSize: 13, fontWeight: 700, color: "#0f172a" }}>
-              <span>المتوقع في الصندوق</span>
+              <span>المتوقع (شيكل)</span>
               <span style={{ fontVariantNumeric: "tabular-nums" }}>₪{data.expectedCash.toFixed(2)}</span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", fontSize: 13, fontWeight: 700, color: "#0f172a" }}>
-              <span>النقدية الفعلية (المسلّمة)</span>
+              <span>المسلّم (شيكل)</span>
               <span style={{ fontVariantNumeric: "tabular-nums" }}>₪{data.closingCash.toFixed(2)}</span>
             </div>
+            {(data.closingCashUSD || 0) > 0 && (
+              <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", fontSize: 12, color: "#475569" }}>
+                <span>المسلّم (دولار)</span>
+                <span style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>${(data.closingCashUSD || 0).toFixed(2)}</span>
+              </div>
+            )}
+            {(data.closingCashJOD || 0) > 0 && (
+              <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", fontSize: 12, color: "#475569" }}>
+                <span>المسلّم (دينار)</span>
+                <span style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>د.أ{(data.closingCashJOD || 0).toFixed(2)}</span>
+              </div>
+            )}
 
             <hr style={{ border: "none", borderTop: "2px solid #1a1a1a", margin: "8px 0" }} />
 
