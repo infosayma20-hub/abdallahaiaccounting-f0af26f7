@@ -109,7 +109,9 @@ export function useDashboardData() {
   const [cheques, setCheques] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [contacts, setContacts] = useState<any[]>([]);
+  const [invoiceItems, setInvoiceItems] = useState<any[]>([]);
   const [profileData, setProfileData] = useState<any>(null);
+  const [companyLogo, setCompanyLogo] = useState<string>("");
 
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
