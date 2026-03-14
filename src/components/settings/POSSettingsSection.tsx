@@ -157,6 +157,28 @@ const POSSettingsSection = ({ settings, onChange }: Props) => {
 
       <Separator />
 
+      {/* Return Policy */}
+      <div>
+        <h3 className="text-base font-semibold text-foreground mb-4 flex items-center gap-2">
+          <span className="w-1 h-5 bg-primary rounded-full" />
+          سياسة المرتجعات
+        </h3>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between p-3 bg-muted/40 rounded-lg">
+            <span className="text-sm">إظهار سياسة المرتجعات على الإيصال</span>
+            <Switch checked={settings.pos_show_return_policy} onCheckedChange={v => onChange({ pos_show_return_policy: v })} />
+          </div>
+          {settings.pos_show_return_policy && (
+            <div className="space-y-2">
+              <Label>مدة المرتجعات (أيام)</Label>
+              <Input type="number" min={0} value={settings.pos_return_policy_days} onChange={e => onChange({ pos_return_policy_days: Number(e.target.value) })} />
+            </div>
+          )}
+        </div>
+      </div>
+
+      <Separator />
+
       {/* Stock */}
       <div>
         <h3 className="text-base font-semibold text-foreground mb-4 flex items-center gap-2">
