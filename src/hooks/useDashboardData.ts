@@ -226,9 +226,9 @@ export function useDashboardData() {
 
   const kpis = useMemo<DashboardKPI>(() => {
     const periodTx = filterByRange(plTx, range);
-    const current = computeKPIs(periodTx, plTx);
+    const current = computeKPIs(periodTx, plTx, transactions);
     const prevTx = filterByRange(plTx, prevRange);
-    const prev = computeKPIs(prevTx, plTx);
+    const prev = computeKPIs(prevTx, plTx, transactions);
 
     return {
       ...current,
@@ -239,7 +239,7 @@ export function useDashboardData() {
       prevReceivables: prev.receivables,
       prevPayables: prev.payables,
     };
-  }, [plTx, range, prevRange, filterByRange, computeKPIs]);
+  }, [plTx, transactions, range, prevRange, filterByRange, computeKPIs]);
 
   // Chart data
   const chartData = useMemo<ChartDataPoint[]>(() => {
