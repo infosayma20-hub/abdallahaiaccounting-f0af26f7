@@ -124,7 +124,7 @@ const InvoicesPage = () => {
       _sourceRef: duplicateTarget.invoiceNumber,
       type: duplicateTarget.type,
       contactName: duplicateTarget.contactName,
-      contactId: (duplicateTarget as any).contactId || null,
+      contactId: duplicateTarget.contactId || null,
       paymentMethod: duplicateTarget.paymentMethod,
       currency: duplicateTarget.currency,
       notes: duplicateTarget.notes,
