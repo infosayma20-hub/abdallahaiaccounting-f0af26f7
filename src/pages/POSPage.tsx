@@ -2025,9 +2025,13 @@ const POSPage = () => {
       totalExpenses,
       totalOrders: session.total_orders,
       closingCash: cash,
+      closingCashUSD: cashUSD,
+      closingCashJOD: cashJOD,
       expectedCash: expected,
       variance,
       sessionId: session.id,
+      currencyBreakdown,
+      exchangeRates,
     });
 
     setShowCloseShift(false);
