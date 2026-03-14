@@ -1793,7 +1793,15 @@ const POSPage = () => {
   const handleCloseShift = async () => {
     if (!session || !userId) return;
     const cash = parseFloat(closingCash) || 0;
-    const expected = session.opening_cash + session.total_sales;
+
+    // Fetch total expenses for this session
+    const { data: expensesData } = await supabase
+      .from("pos_expenses")
+      .select("amount")
+      .eq("shift_id", session.id);
+    const totalExpenses = (expensesData || []).reduce((sum: number, e: any) => sum + (Number(e.amount) || 0), 0);
+
+    const expected = session.opening_cash + session.total_sales - totalExpenses;
     const variance = cash - expected;
     const closedAt = new Date().toISOString();
 
@@ -1924,6 +1932,7 @@ const POSPage = () => {
       closedAt,
       openingCash: session.opening_cash,
       totalSales: session.total_sales,
+      totalExpenses,
       totalOrders: session.total_orders,
       closingCash: cash,
       expectedCash: expected,
