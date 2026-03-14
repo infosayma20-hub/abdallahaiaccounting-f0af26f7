@@ -3643,21 +3643,23 @@ const POSPage = () => {
           </div>
 
           {/* Complete sale button */}
-          <motion.div whileTap={{ scale: 0.98 }}>
-            <Button
-              onClick={handleCompleteOrder}
-              disabled={processing || (paymentMethod === "credit" && !customerName) || (paymentMethod === "employee_account" && !selectedEmployee)}
-              className="w-full h-14 text-lg font-bold gap-2 rounded-xl"
-              style={{ backgroundColor: "#16A34A" }}
-            >
-              {processing ? (
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <CheckCircle className="h-5 w-5" />
-              )}
-              {processing ? "جاري المعالجة..." : "إتمام البيع ✅"}
-            </Button>
-          </motion.div>
+          <div className="flex-shrink-0 px-6 pb-5 pt-3 border-t border-border bg-background">
+            <motion.div whileTap={{ scale: 0.98 }}>
+              <Button
+                onClick={handleCompleteOrder}
+                disabled={processing || (paymentMethod === "credit" && !customerName) || (paymentMethod === "employee_account" && !selectedEmployee)}
+                className="w-full h-14 text-lg font-bold gap-2 rounded-xl"
+                style={{ backgroundColor: "#16A34A" }}
+              >
+                {processing ? (
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <CheckCircle className="h-5 w-5" />
+                )}
+                {processing ? "جاري المعالجة..." : "إتمام البيع ✅"}
+              </Button>
+            </motion.div>
+          </div>
         </DialogContent>
       </Dialog>
 
