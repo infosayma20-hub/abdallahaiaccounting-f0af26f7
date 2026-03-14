@@ -823,8 +823,37 @@ const AccountStatementPage = () => {
       }
       return grouped;
     }
+    // Line items mode: expand invoice rows into per-item rows
+    if (detailLevel === "lineItems") {
+      const expanded: StatementRow[] = [];
+      for (const r of result) {
+        const items = invoiceItemsMap[r.transaction_id];
+        if (items && items.length > 0) {
+          // Parent row (invoice header)
+          expanded.push(r);
+          // Sub-rows for each line item
+          for (const item of items) {
+            const qty = item.quantity || 1;
+            const unitLabel = item.unit_of_measure ? ` ${item.unit_of_measure}` : "";
+            const discountLabel = item.discount ? ` (خصم ${item.discount})` : "";
+            expanded.push({
+              ...r,
+              description: `   ↳ ${item.product_name} — ${qty}${unitLabel} × ${item.unit_price.toLocaleString("en-US")}${discountLabel}`,
+              debit: r.debit > 0 ? item.total_amount : 0,
+              credit: r.credit > 0 ? item.total_amount : 0,
+              balance: 0, // sub-rows don't show running balance
+              isLineItem: true,
+              lineItemDetail: `${qty}${unitLabel} × ${item.unit_price.toLocaleString("en-US")}`,
+            });
+          }
+        } else {
+          expanded.push(r);
+        }
+      }
+      return expanded;
+    }
     return result;
-  }, [rows, txSearch, txTypeFilter, detailLevel]);
+  }, [rows, txSearch, txTypeFilter, detailLevel, invoiceItemsMap]);
 
   // Last transaction date for entity
   const lastTxDate = useMemo(() => {
