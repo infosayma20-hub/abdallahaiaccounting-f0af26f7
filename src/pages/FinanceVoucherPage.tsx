@@ -55,6 +55,83 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
   const [duplicateModal, setDuplicateModal] = useState(false);
   const [duplicateTarget, setDuplicateTarget] = useState<any>(null);
 
+  // Delete
+  const [deleteDialog, setDeleteDialog] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<any>(null);
+
+  // Edit posted warning
+  const [editWarning, setEditWarning] = useState(false);
+  const [editTarget, setEditTarget] = useState<any>(null);
+
+  const handleEdit = (v: any) => {
+    const isPosted = v.status === "posted" || v.status_label === "مرحّل";
+    if (isPosted) {
+      setEditTarget(v);
+      setEditWarning(true);
+    } else {
+      navigateToEdit(v);
+    }
+  };
+
+  const navigateToEdit = (v: any) => {
+    const editPath = isReceipt
+      ? `/finance/receipt/${v.id}/edit`
+      : `/finance/payment/${v.id}/edit`;
+    navigate(editPath);
+  };
+
+  const confirmEditPosted = () => {
+    if (!editTarget) return;
+    // Log edit action
+    if (user) {
+      supabase.from("document_edit_history" as any).insert({
+        document_id: editTarget.id,
+        document_type: isReceipt ? "receipt" : "payment",
+        old_data: editTarget,
+        edit_reason: "فتح تعديل مستند مرحّل",
+        edited_by: user.id,
+        user_id: user.id,
+      } as any);
+    }
+    setEditWarning(false);
+    navigateToEdit(editTarget);
+  };
+
+  const handleDelete = (v: any) => {
+    setDeleteTarget(v);
+    setDeleteDialog(true);
+  };
+
+  const confirmDelete = async (reason: string) => {
+    if (!deleteTarget || !user) return;
+    try {
+      const table = isReceipt ? "receipt_vouchers" : "vouchers";
+      const { error } = await supabase
+        .from(table as any)
+        .update({ status: "cancelled" } as any)
+        .eq("id", deleteTarget.id);
+
+      if (error) throw error;
+
+      // Log deletion
+      await supabase.from("document_edit_history" as any).insert({
+        document_id: deleteTarget.id,
+        document_type: isReceipt ? "receipt" : "payment",
+        old_data: deleteTarget,
+        edit_reason: reason,
+        edited_by: user.id,
+        user_id: user.id,
+        changes: { action: "delete", reason },
+      } as any);
+
+      toast({ title: "تم حذف المستند بنجاح ✅" });
+      setDeleteDialog(false);
+      fetchData();
+    } catch (err: any) {
+      toast({ title: "خطأ في الحذف", description: err.message, variant: "destructive" });
+    }
+  };
+
   const handleDuplicate = (v: any) => {
     setDuplicateTarget(v);
     setDuplicateModal(true);
