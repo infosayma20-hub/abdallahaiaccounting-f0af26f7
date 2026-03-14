@@ -12,6 +12,8 @@ interface StatementRow {
   payment_method?: string | null;
   currency?: string;
   dueDate?: string;
+  isLineItem?: boolean;
+  lineItemDetail?: string;
 }
 
 interface CompanyInfo {
@@ -158,18 +160,45 @@ const StatementPrintView = ({
   }, [contact.paymentTermsDays]);
 
   const renderCellValue = (col: string, row: StatementRow) => {
+    const isSubRow = !!row.isLineItem;
+
     switch (col) {
       case "date":
-        return <span style={{ color: "#374151", fontFeatureSettings: "'tnum'" }}>{fmtDate(row.date)}</span>;
+        return isSubRow
+          ? <span style={{ color: "#9CA3AF", fontWeight: 600 }}>↳</span>
+          : <span style={{ color: "#374151", fontFeatureSettings: "'tnum'" }}>{fmtDate(row.date)}</span>;
       case "reference":
+        if (isSubRow) return <span style={{ color: "#D1D5DB" }}>—</span>;
         return row.reference
           ? <span style={{ color: "#1B3A5C", fontWeight: 600, fontFamily: "monospace", fontSize: "8px" }}>{row.reference}</span>
           : <span style={{ color: "#9CA3AF" }}>—</span>;
       case "description":
-        return <span style={{ color: "#111827" }}>{row.description}</span>;
+        return (
+          <span style={{ color: isSubRow ? "#4B5563" : "#111827", fontWeight: isSubRow ? 600 : 500 }}>
+            {row.description}
+          </span>
+        );
       case "dueDate":
-        return <span style={{ color: "#6B7280", fontFeatureSettings: "'tnum'" }}>{row.dueDate ? fmtDate(row.dueDate) : "—"}</span>;
+        return isSubRow
+          ? <span style={{ color: "#D1D5DB" }}>—</span>
+          : <span style={{ color: "#6B7280", fontFeatureSettings: "'tnum'" }}>{row.dueDate ? fmtDate(row.dueDate) : "—"}</span>;
       case "type": {
+        if (isSubRow) {
+          return (
+            <span style={{
+              fontSize: "7px",
+              fontWeight: 700,
+              padding: "1px 4px",
+              borderRadius: "3px",
+              background: "#EEF2FF",
+              color: "#4338CA",
+              border: "1px solid #C7D2FE",
+            }}>
+              بند فاتورة
+            </span>
+          );
+        }
+
         const label = getTypeBadgeLabel(row.transaction_type);
         const isDebitType = row.debit > 0;
         return (
@@ -187,16 +216,23 @@ const StatementPrintView = ({
         );
       }
       case "paymentMethod":
-        return <span style={{ color: "#6B7280", fontSize: "8px" }}>{PAYMENT_METHOD_AR[row.payment_method || ""] || row.payment_method || "—"}</span>;
+        return isSubRow
+          ? <span style={{ color: "#D1D5DB" }}>—</span>
+          : <span style={{ color: "#6B7280", fontSize: "8px" }}>{PAYMENT_METHOD_AR[row.payment_method || ""] || row.payment_method || "—"}</span>;
       case "currency":
-        return <span style={{ color: "#6B7280", fontSize: "8px" }}>{row.currency || "—"}</span>;
+        return isSubRow
+          ? <span style={{ color: "#D1D5DB" }}>—</span>
+          : <span style={{ color: "#6B7280", fontSize: "8px" }}>{row.currency || "—"}</span>;
       case "contactCode":
-        return <span style={{ color: "#6B7280", fontFamily: "monospace", fontSize: "8px" }}>{contactCode || "—"}</span>;
+        return isSubRow
+          ? <span style={{ color: "#D1D5DB" }}>—</span>
+          : <span style={{ color: "#6B7280", fontFamily: "monospace", fontSize: "8px" }}>{contactCode || "—"}</span>;
       case "debit":
         return (
           <span style={{
             fontWeight: row.debit > 0 ? 700 : 400,
             color: row.debit > 0 ? "#DC2626" : "#9CA3AF",
+            opacity: isSubRow ? 0.85 : 1,
             fontFeatureSettings: "'tnum'",
           }}>
             {row.debit > 0 ? fmtAmount(row.debit) : "—"}
@@ -207,12 +243,14 @@ const StatementPrintView = ({
           <span style={{
             fontWeight: row.credit > 0 ? 700 : 400,
             color: row.credit > 0 ? "#16A34A" : "#9CA3AF",
+            opacity: isSubRow ? 0.85 : 1,
             fontFeatureSettings: "'tnum'",
           }}>
             {row.credit > 0 ? fmtAmount(row.credit) : "—"}
           </span>
         );
       case "balance":
+        if (isSubRow) return <span style={{ color: "#D1D5DB" }}>—</span>;
         return (
           <>
             <span style={{
@@ -450,30 +488,34 @@ const StatementPrintView = ({
             </tr>
 
             {/* Rows */}
-            {rows.map((row, i) => (
-              <tr
-                key={row.transaction_id}
-                style={{
-                  background: i % 2 === 0 ? "white" : "#FAFBFC",
-                  borderBottom: "1px solid #F3F4F6",
-                }}
-              >
-                {activeColumns.map(col => (
-                  <td
-                    key={col.key}
-                    style={{
-                      padding: "4px 4px",
-                      textAlign: isAmountCol(col.key) ? "left" : isCenterCol(col.key) ? "center" : "right",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {renderCellValue(col.key, row)}
-                  </td>
-                ))}
-              </tr>
-            ))}
+            {rows.map((row, i) => {
+              const isSubRow = !!row.isLineItem;
+              return (
+                <tr
+                  key={`${row.transaction_id}-${i}-${isSubRow ? "item" : "row"}`}
+                  style={{
+                    background: isSubRow ? "#F8FAFF" : (i % 2 === 0 ? "white" : "#FAFBFC"),
+                    borderBottom: "1px solid #F3F4F6",
+                  }}
+                >
+                  {activeColumns.map(col => (
+                    <td
+                      key={col.key}
+                      style={{
+                        padding: "4px 4px",
+                        textAlign: isAmountCol(col.key) ? "left" : isCenterCol(col.key) ? "center" : "right",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: col.key === "description" ? "normal" : "nowrap",
+                        verticalAlign: "top",
+                      }}
+                    >
+                      {renderCellValue(col.key, row)}
+                    </td>
+                  ))}
+                </tr>
+              );
+            })}
 
             {/* Closing balance */}
             <tr style={{ background: "#1B3A5C", color: "white", fontWeight: 700 }}>
