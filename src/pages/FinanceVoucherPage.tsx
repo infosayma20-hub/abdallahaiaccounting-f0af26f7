@@ -80,16 +80,10 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
 
     if (isReceipt) {
       // Receipts are stored in receipt_vouchers table
-      const [rvRes, cRes, linkRes] = await Promise.all([
+      const [rvRes, cRes] = await Promise.all([
         supabase.from("receipt_vouchers").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
         supabase.from("contacts").select("id, contact_name, contact_type").eq("user_id", user.id).neq("is_archived", true),
-        supabase.from("payment_invoice_links").select("payment_id, invoice_id"),
       ]);
-      // Count linked invoices per receipt
-      const linkCountMap = new Map<string, number>();
-      for (const link of (linkRes.data || [])) {
-        linkCountMap.set(link.payment_id, (linkCountMap.get(link.payment_id) || 0) + 1);
-      }
       // Map receipt_vouchers fields to unified format
       const mapped = (rvRes.data || []).map((rv: any) => ({
         ...rv,
@@ -98,7 +92,7 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
         amount_ils: rv.amount,
         amount: rv.amount,
         type: "receipt",
-        linked_invoices_count: linkCountMap.get(rv.id) || 0,
+        // payment_method is already in Arabic in receipt_vouchers
       }));
       setVouchers(mapped);
       setContacts(cRes.data || []);
@@ -330,7 +324,6 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
                   <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="طريقة الدفع" field="payment_label" /></th>
                   <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="المبلغ" field="amount_display" /></th>
                   <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="الحالة" field="status_label" /></th>
-                  {isReceipt && <th className="px-3 py-3 text-right text-xs font-semibold">الفواتير</th>}
                   <th className="px-3 py-3 w-10"></th>
                 </tr>
               </thead>
@@ -378,17 +371,6 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
                           {v.status_label}
                         </span>
                       </td>
-                      {isReceipt && (
-                        <td className="px-3 py-3">
-                          {(v.linked_invoices_count || 0) > 0 ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
-                              {v.linked_invoices_count} فاتورة
-                            </span>
-                          ) : (
-                            <span className="text-[10px] text-muted-foreground/50">غير مرتبط</span>
-                          )}
-                        </td>
-                      )}
                       <td className="px-3 py-2">
                         <button
                           onClick={e => { e.stopPropagation(); handleDuplicate(v); }}
@@ -407,7 +389,6 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
                   <td colSpan={5} className="px-3 py-3 text-right text-foreground">المجموع ({filtered.length} سند)</td>
                   <td className="px-3 py-3 tabular-nums text-foreground">₪{filtered.reduce((s, v) => s + v.amount_display, 0).toLocaleString()}</td>
                   <td className="px-3 py-3" />
-                  {isReceipt && <td className="px-3 py-3" />}
                 </tr>
               </tfoot>
             </table>

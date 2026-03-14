@@ -1,15 +1,13 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { getAuthHeaders, getAuthHeadersJson } from "@/lib/edge-helpers";
-import { ArrowRight, Loader2, Plus, FileText, Printer, Search, ShoppingCart, Receipt, Package, Trash2, Save, Eye, AlertTriangle, CreditCard, Building2, Banknote, Clock, ChevronDown, ChevronLeft, ChevronRight, X, Filter, LayoutGrid, Table2, ArrowUpDown, FileSpreadsheet, Copy, Settings, Pencil, ClipboardList, Scissors, FileEdit } from "lucide-react";
+import { ArrowRight, Loader2, Plus, FileText, Printer, Search, ShoppingCart, Receipt, Package, Trash2, Save, Eye, AlertTriangle, CreditCard, Building2, Banknote, Clock, ChevronDown, ChevronLeft, ChevronRight, X, Filter, LayoutGrid, Table2, ArrowUpDown, FileSpreadsheet, Copy } from "lucide-react";
 import DuplicateConfirmModal from "@/components/DuplicateConfirmModal";
-import CreditNoteModal from "@/components/CreditNoteModal";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -19,7 +17,6 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import InvoicePrintView from "@/components/InvoicePrintView";
-import InvoiceDocumentPreview from "@/components/InvoiceDocumentPreview";
 import { createRoot } from "react-dom/client";
 import * as XLSX from "xlsx";
 
@@ -64,10 +61,6 @@ interface Invoice {
   currency: string;
   chequeDetails?: { number: string; bank: string; dueDate: string };
   transferDetails?: { reference: string; bank: string };
-  is_credit_note?: boolean;
-  original_invoice_id?: string;
-  receiptsCount?: number;
-  contactId?: string;
 }
 
 const createEmptyItem = (): InvoiceItem => ({
@@ -113,10 +106,6 @@ const InvoicesPage = () => {
   const [duplicateModal, setDuplicateModal] = useState(false);
   const [duplicateTarget, setDuplicateTarget] = useState<Invoice | null>(null);
 
-  // Credit Note state
-  const [creditNoteModal, setCreditNoteModal] = useState(false);
-  const [creditNoteMode, setCreditNoteMode] = useState<"full" | "partial" | "correction">("full");
-
   const handleDuplicate = (inv: Invoice) => {
     setDuplicateTarget(inv);
     setDuplicateModal(true);
@@ -148,113 +137,6 @@ const InvoicesPage = () => {
     navigate("/invoices/new?from_duplicate=true");
   };
 
-  // Credit Note handler
-  const handleCreditNote = async (data: { mode: "full" | "partial" | "correction"; reason: string; customReason: string; selectedItems?: string[] }) => {
-    if (!selectedInvoice || !user) return;
-
-    const reasonText = data.reason === "other" ? data.customReason : 
-      data.reason === "price_error" ? "خطأ في السعر" :
-      data.reason === "quantity_error" ? "خطأ في الكمية" :
-      data.reason === "goods_return" ? "إرجاع بضاعة" : data.reason;
-
-    // Determine items and amount for credit note
-    const creditItems = data.mode === "partial" && data.selectedItems
-      ? selectedInvoice.items.filter(i => data.selectedItems!.includes(i.id))
-      : selectedInvoice.items;
-    
-    const creditTotal = creditItems.reduce((s, i) => s + i.subtotal, 0);
-
-    try {
-      // Create credit note invoice
-      const { data: cnInv, error: cnErr } = await supabase.from("invoices").insert({
-        user_id: user.id,
-        invoice_type: selectedInvoice.type === "sales" ? "sale" : "purchase",
-        contact_name: selectedInvoice.contactName,
-        invoice_date: new Date().toISOString().split("T")[0],
-        subtotal: -creditTotal,
-        discount_amount: 0,
-        tax_amount: 0,
-        total_amount: -creditTotal,
-        paid_amount: 0,
-        remaining_amount: 0,
-        payment_status: "paid",
-        payment_method: "آجل",
-        currency: selectedInvoice.currency,
-        notes: `إشعار دائن مقابل ${selectedInvoice.invoiceNumber} — ${reasonText}`,
-        source: "credit_note",
-        status: "sent",
-        original_invoice_id: selectedInvoice.id,
-        correction_reason: reasonText,
-        is_credit_note: true,
-      } as any).select("id, invoice_number").single();
-
-      if (cnErr) throw cnErr;
-
-      // Insert credit note items (negative quantities)
-      const itemsToInsert = creditItems.filter(i => i.description.trim()).map(item => ({
-        invoice_id: cnInv.id,
-        product_name: item.description,
-        quantity: -item.quantity,
-        unit_price: item.unitPrice,
-        discount: item.discount,
-        tax_rate: item.taxRate,
-        total_amount: -item.subtotal,
-      }));
-      if (itemsToInsert.length > 0) {
-        await supabase.from("invoice_items").insert(itemsToInsert as any);
-      }
-
-      // Create reversal journal entry
-      const debitCode = selectedInvoice.type === "sales" ? "4100" : "2100";
-      const creditCode = selectedInvoice.type === "sales" ? "1130" : "5110";
-      
-      await supabase.from("transactions").insert({
-        user_id: user.id,
-        transaction_date: new Date().toISOString().split("T")[0],
-        description: `إشعار دائن — ${reasonText} — مقابل ${selectedInvoice.invoiceNumber}`,
-        debit_account_code: debitCode,
-        credit_account_code: creditCode,
-        amount: creditTotal,
-        currency: selectedInvoice.currency === "شيكل" ? "شيكل" : selectedInvoice.currency,
-        transaction_type: "credit_note",
-        reference: `CN-${selectedInvoice.invoiceNumber}`,
-        idempotency_key: `CN-${selectedInvoice.id}-${Date.now()}`,
-      } as any);
-
-      toast({ title: `تم إنشاء الإشعار الدائن ${cnInv.invoice_number} ✅`, description: `عكس ${data.mode === "full" ? "كامل" : "جزئي"} للفاتورة ${selectedInvoice.invoiceNumber}` });
-
-      // For correction mode: open new invoice with same data
-      if (data.mode === "correction") {
-        const draftData = {
-          _sourceRef: selectedInvoice.invoiceNumber,
-          type: selectedInvoice.type,
-          contactName: selectedInvoice.contactName,
-          paymentMethod: selectedInvoice.paymentMethod,
-          currency: selectedInvoice.currency,
-          notes: `فاتورة تصحيح مقابل ${selectedInvoice.invoiceNumber}`,
-          items: selectedInvoice.items.map(item => ({
-            description: item.description,
-            quantity: item.quantity,
-            unitPrice: item.unitPrice,
-            discount: item.discount,
-            taxRate: item.taxRate,
-            subtotal: item.subtotal,
-            productId: item.productId,
-          })),
-          contactSearch: selectedInvoice.contactName,
-          correction_of: selectedInvoice.id,
-        };
-        localStorage.setItem("draft_invoice_new", JSON.stringify(draftData));
-        navigate("/invoices/new?correction=true");
-      }
-
-      await fetchInvoices();
-      setShowPreviewDialog(false);
-    } catch (err: any) {
-      toast({ title: "خطأ في إنشاء الإشعار الدائن", description: err.message, variant: "destructive" });
-    }
-  };
-
   const [form, setForm] = useState({
     type: "sales" as "sales" | "purchase",
     contactName: "",
@@ -276,28 +158,20 @@ const InvoicesPage = () => {
     if (!user) return;
     setLoading(true);
     try {
-      // Fetch from database + payment links
-      const [invRes, linkRes] = await Promise.all([
-        supabase.from("invoices").select("*, invoice_items(*)").eq("user_id", user.id).order("created_at", { ascending: false }),
-        supabase.from("payment_invoice_links").select("invoice_id, payment_id"),
-      ]);
-      const dbInvoices = invRes.data || [];
-      const linkData = linkRes.data || [];
+      // Fetch from database
+      const { data: dbInvoices } = await supabase
+        .from("invoices")
+        .select("*, invoice_items(*)")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
 
-      // Count receipts per invoice
-      const receiptCountMap = new Map<string, number>();
-      for (const link of linkData) {
-        receiptCountMap.set(link.invoice_id, (receiptCountMap.get(link.invoice_id) || 0) + 1);
-      }
-
-      const mapped: Invoice[] = (dbInvoices).map((inv: any) => ({
+      const mapped: Invoice[] = (dbInvoices || []).map((inv: any) => ({
         id: inv.id,
         type: inv.invoice_type === 'sale' ? 'sales' : 'purchase',
         invoiceNumber: inv.invoice_number || '',
         date: inv.invoice_date || '',
         dueDate: inv.due_date || undefined,
         contactName: inv.contact_name || '',
-        contactId: inv.contact_id || undefined,
         items: (inv.invoice_items || []).map((item: any) => ({
           id: item.id,
           productId: item.product_id || undefined,
@@ -318,9 +192,6 @@ const InvoicesPage = () => {
         paidAmount: Number(inv.paid_amount) || 0,
         remainingAmount: Number(inv.remaining_amount) || 0,
         currency: inv.currency || 'شيكل',
-        is_credit_note: inv.is_credit_note || false,
-        original_invoice_id: inv.original_invoice_id || undefined,
-        receiptsCount: receiptCountMap.get(inv.id) || 0,
       }));
 
       // Also load legacy localStorage invoices
@@ -1425,7 +1296,6 @@ const InvoicesPage = () => {
                   <TableHead className="text-right">الدفع</TableHead>
                   <TableHead className="text-right"><SortHeader label="الإجمالي" field="total" /></TableHead>
                   <TableHead className="text-right">المتبقي</TableHead>
-                  <TableHead className="text-right">السندات</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1450,15 +1320,6 @@ const InvoicesPage = () => {
                       <TableCell className="font-bold tabular-nums text-sm">₪{inv.total.toLocaleString()}</TableCell>
                       <TableCell className={`tabular-nums text-sm font-semibold ${inv.remainingAmount > 0 ? "text-destructive" : "text-muted-foreground"}`}>
                         {inv.remainingAmount > 0 ? `₪${inv.remainingAmount.toLocaleString()}` : "—"}
-                      </TableCell>
-                      <TableCell>
-                        {(inv.receiptsCount || 0) > 0 ? (
-                          <Badge variant="secondary" className="text-[9px] bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border-0">
-                            {inv.receiptsCount} سند قبض
-                          </Badge>
-                        ) : (
-                          <span className="text-[10px] text-muted-foreground/50">—</span>
-                        )}
                       </TableCell>
                     </TableRow>
                   );
@@ -1532,79 +1393,18 @@ const InvoicesPage = () => {
       <Dialog open={showPreviewDialog} onOpenChange={setShowPreviewDialog}>
         <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto bg-background" dir="rtl">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              معاينة الفاتورة
-              {selectedInvoice?.is_credit_note && (
-                <Badge className="bg-destructive/10 text-destructive border-0 text-[10px]">إشعار دائن</Badge>
-              )}
-            </DialogTitle>
+            <DialogTitle>معاينة الفاتورة</DialogTitle>
             <DialogDescription>{selectedInvoice?.invoiceNumber}</DialogDescription>
           </DialogHeader>
           {selectedInvoice && (
             <div className="space-y-4">
-              <div className="flex gap-2 flex-wrap items-center">
+              <div className="flex gap-2 flex-wrap">
                 <Button size="sm" variant="outline" className="gap-1.5 rounded-xl" onClick={handlePrint}>
                   <Printer className="h-4 w-4" /> طباعة
                 </Button>
                 <Button size="sm" variant="outline" className="gap-1.5 rounded-xl" onClick={() => { setShowPreviewDialog(false); handleDuplicate(selectedInvoice); }}>
                   <Copy className="h-4 w-4" /> جديد مشابه
                 </Button>
-
-                {/* Credit Note / Correction Dropdown */}
-                {selectedInvoice.status !== "draft" && !(selectedInvoice as any).is_credit_note && (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button size="sm" variant="outline" className="gap-1.5 rounded-xl">
-                        <Settings className="h-4 w-4" /> تصحيح <ChevronDown className="h-3 w-3" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start" className="w-56 bg-background">
-                      <DropdownMenuItem onClick={() => { setCreditNoteMode("full"); setCreditNoteModal(true); }} className="gap-2">
-                        <ClipboardList className="h-4 w-4 text-primary" />
-                        <div>
-                          <p className="text-sm font-medium">إشعار دائن — عكس كامل</p>
-                          <p className="text-[10px] text-muted-foreground">يعكس الفاتورة بالكامل</p>
-                        </div>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => { setCreditNoteMode("partial"); setCreditNoteModal(true); }} className="gap-2">
-                        <Scissors className="h-4 w-4 text-primary" />
-                        <div>
-                          <p className="text-sm font-medium">إشعار دائن — عكس جزئي</p>
-                          <p className="text-[10px] text-muted-foreground">تحديد البنود المراد عكسها</p>
-                        </div>
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => { setCreditNoteMode("correction"); setCreditNoteModal(true); }} className="gap-2">
-                        <FileEdit className="h-4 w-4 text-primary" />
-                        <div>
-                          <p className="text-sm font-medium">فاتورة تصحيح</p>
-                          <p className="text-[10px] text-muted-foreground">عكس + إنشاء فاتورة جديدة</p>
-                        </div>
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                )}
-
-                {/* Draft edit */}
-                {selectedInvoice.status === "draft" && (
-                  <Button size="sm" variant="outline" className="gap-1.5 rounded-xl" onClick={() => {
-                    const draftData = {
-                      editId: selectedInvoice.id,
-                      type: selectedInvoice.type,
-                      contactName: selectedInvoice.contactName,
-                      paymentMethod: selectedInvoice.paymentMethod,
-                      currency: selectedInvoice.currency,
-                      notes: selectedInvoice.notes,
-                      items: selectedInvoice.items,
-                      contactSearch: selectedInvoice.contactName,
-                    };
-                    localStorage.setItem("draft_invoice_new", JSON.stringify(draftData));
-                    navigate("/invoices/new?edit=true");
-                  }}>
-                    <Pencil className="h-4 w-4" /> تعديل المسودة
-                  </Button>
-                )}
-
                 <Select value={selectedInvoice.status} onValueChange={(v) => updateStatus(selectedInvoice.id, v as Invoice["status"])}>
                   <SelectTrigger className="w-32 text-xs rounded-xl h-9"><SelectValue /></SelectTrigger>
                   <SelectContent className="bg-background">
@@ -1615,37 +1415,13 @@ const InvoicesPage = () => {
                 </Select>
               </div>
 
-              {/* Linked Receipts Section */}
-              {(selectedInvoice.receiptsCount || 0) > 0 && (
-                <div className="rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-900/20 p-3">
-                  <h4 className="text-xs font-semibold text-blue-800 dark:text-blue-300 mb-2 flex items-center gap-1.5">
-                    <Receipt className="h-3.5 w-3.5" /> سندات القبض المرتبطة ({selectedInvoice.receiptsCount})
-                  </h4>
-                  <Button size="sm" variant="outline" className="text-xs rounded-lg gap-1" onClick={() => {
-                    setShowPreviewDialog(false);
-                    navigate("/finance/receipts");
-                  }}>
-                    عرض السندات →
-                  </Button>
-                </div>
-              )}
-
               <div ref={printRef} className="bg-white rounded-2xl border border-border/50 overflow-hidden">
-                <InvoiceDocumentPreview invoice={selectedInvoice} settings={companySettings} />
+                <InvoicePrintView invoice={selectedInvoice} settings={companySettings} copyLabel="أصلية" />
               </div>
             </div>
           )}
         </DialogContent>
       </Dialog>
-
-      {/* Credit Note Modal */}
-      <CreditNoteModal
-        open={creditNoteModal}
-        onClose={() => setCreditNoteModal(false)}
-        invoice={selectedInvoice}
-        mode={creditNoteMode}
-        onConfirm={handleCreditNote}
-      />
 
       {/* Duplicate Confirm Modal */}
       <DuplicateConfirmModal

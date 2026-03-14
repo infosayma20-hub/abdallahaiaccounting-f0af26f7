@@ -221,14 +221,7 @@ const App = () => (
                       <Route path="/finance/journals" element={<FinanceJournalPage />} />
                       <Route path="/finance/journal/new" element={<JournalNewPage />} />
                       <Route path="/finance/receipt/new" element={<VoucherFormPage voucherType="receipt" />} />
-                      <Route path="/finance/receipts/new" element={<VoucherFormPage voucherType="receipt" />} />
                       <Route path="/finance/payment/new" element={<VoucherFormPage voucherType="payment" />} />
-                      <Route path="/finance/payments/new" element={<VoucherFormPage voucherType="payment" />} />
-                      {/* Legacy voucher routes redirect to unified system */}
-                      <Route path="/vouchers/receipt" element={<Navigate to="/finance/receipts/new" replace />} />
-                      <Route path="/vouchers/payment" element={<Navigate to="/finance/payments/new" replace />} />
-                      <Route path="/finance/receipt-voucher" element={<Navigate to="/finance/receipts/new" replace />} />
-                      <Route path="/finance/payment-voucher" element={<Navigate to="/finance/payments/new" replace />} />
                       <Route path="/finance/cheques" element={<ChequesPage />} />
                       <Route path="/finance/bank-accounts" element={<BankAccountsPage />} />
                       <Route path="/finance/cash-boxes" element={<CashBoxesPage />} />
