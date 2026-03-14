@@ -16,6 +16,7 @@ interface Contact {
   id: string;
   contact_name: string;
   current_balance: number;
+  calculated_balance?: number;
 }
 
 interface Invoice {
