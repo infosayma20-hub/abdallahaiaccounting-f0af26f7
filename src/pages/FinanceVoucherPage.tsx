@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import VoucherDrawer from "@/components/finance/VoucherDrawer";
+// VoucherDrawer removed — edit now navigates to VoucherFormPage
 
 type VoucherType = "receipt" | "payment";
 
