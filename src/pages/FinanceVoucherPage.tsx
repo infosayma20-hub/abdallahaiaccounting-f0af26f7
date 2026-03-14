@@ -2,16 +2,19 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Loader2, Plus, DollarSign, Hash, Calendar, ArrowRight, Search, X,
-  ArrowUpDown, ChevronLeft, ChevronRight, FileText, Copy
+  ArrowUpDown, ChevronLeft, ChevronRight, FileText, Copy, Pencil, Trash2
 } from "lucide-react";
 import DuplicateConfirmModal from "@/components/DuplicateConfirmModal";
+import DeleteDocumentDialog from "@/components/documents/DeleteDocumentDialog";
+import EditPostedWarningDialog from "@/components/documents/EditPostedWarningDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-// VoucherDrawer removed — edit now navigates to VoucherFormPage
+import { useDocumentPermissions } from "@/hooks/useDocumentPermissions";
+import { toast } from "@/hooks/use-toast";
 
 type VoucherType = "receipt" | "payment";
 
@@ -30,6 +33,7 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
+  const { canEdit, canDelete } = useDocumentPermissions();
 
   const isReceipt = voucherType === "receipt";
   const title = isReceipt ? "سندات القبض" : "سندات الصرف";
@@ -50,6 +54,83 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
   // Duplicate
   const [duplicateModal, setDuplicateModal] = useState(false);
   const [duplicateTarget, setDuplicateTarget] = useState<any>(null);
+
+  // Delete
+  const [deleteDialog, setDeleteDialog] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<any>(null);
+
+  // Edit posted warning
+  const [editWarning, setEditWarning] = useState(false);
+  const [editTarget, setEditTarget] = useState<any>(null);
+
+  const handleEdit = (v: any) => {
+    const isPosted = v.status === "posted" || v.status_label === "مرحّل";
+    if (isPosted) {
+      setEditTarget(v);
+      setEditWarning(true);
+    } else {
+      navigateToEdit(v);
+    }
+  };
+
+  const navigateToEdit = (v: any) => {
+    const editPath = isReceipt
+      ? `/finance/receipt/${v.id}/edit`
+      : `/finance/payment/${v.id}/edit`;
+    navigate(editPath);
+  };
+
+  const confirmEditPosted = () => {
+    if (!editTarget) return;
+    // Log edit action
+    if (user) {
+      supabase.from("document_edit_history" as any).insert({
+        document_id: editTarget.id,
+        document_type: isReceipt ? "receipt" : "payment",
+        old_data: editTarget,
+        edit_reason: "فتح تعديل مستند مرحّل",
+        edited_by: user.id,
+        user_id: user.id,
+      } as any);
+    }
+    setEditWarning(false);
+    navigateToEdit(editTarget);
+  };
+
+  const handleDelete = (v: any) => {
+    setDeleteTarget(v);
+    setDeleteDialog(true);
+  };
+
+  const confirmDelete = async (reason: string) => {
+    if (!deleteTarget || !user) return;
+    try {
+      const table = isReceipt ? "receipt_vouchers" : "vouchers";
+      const { error } = await supabase
+        .from(table as any)
+        .update({ status: "cancelled" } as any)
+        .eq("id", deleteTarget.id);
+
+      if (error) throw error;
+
+      // Log deletion
+      await supabase.from("document_edit_history" as any).insert({
+        document_id: deleteTarget.id,
+        document_type: isReceipt ? "receipt" : "payment",
+        old_data: deleteTarget,
+        edit_reason: reason,
+        edited_by: user.id,
+        user_id: user.id,
+        changes: { action: "delete", reason },
+      } as any);
+
+      toast({ title: "تم حذف المستند بنجاح ✅" });
+      setDeleteDialog(false);
+      fetchData();
+    } catch (err: any) {
+      toast({ title: "خطأ في الحذف", description: err.message, variant: "destructive" });
+    }
+  };
 
   const handleDuplicate = (v: any) => {
     setDuplicateTarget(v);
@@ -373,13 +454,33 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
                         </span>
                       </td>
                       <td className="px-3 py-2">
-                        <button
-                          onClick={e => { e.stopPropagation(); handleDuplicate(v); }}
-                          className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-primary transition-colors"
-                          title="جديد مشابه"
-                        >
-                          <Copy className="h-3.5 w-3.5" />
-                        </button>
+                        <div className="flex items-center gap-0.5">
+                          {canEdit(v) && (
+                            <button
+                              onClick={e => { e.stopPropagation(); handleEdit(v); }}
+                              className="p-1.5 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors"
+                              title="تعديل"
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                          {canDelete(v) && v.status !== "cancelled" && (
+                            <button
+                              onClick={e => { e.stopPropagation(); handleDelete(v); }}
+                              className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                              title="حذف"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                          <button
+                            onClick={e => { e.stopPropagation(); handleDuplicate(v); }}
+                            className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-primary transition-colors"
+                            title="جديد مشابه"
+                          >
+                            <Copy className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -433,6 +534,24 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
           paymentMethod: duplicateTarget?.payment_label,
           sourceRef: duplicateTarget?.ref_number,
         }}
+      />
+
+      {/* Edit Posted Warning */}
+      <EditPostedWarningDialog
+        open={editWarning}
+        onClose={() => setEditWarning(false)}
+        onConfirm={confirmEditPosted}
+        docNumber={editTarget?.ref_number}
+        docAmount={editTarget?.amount_display}
+      />
+
+      {/* Delete Dialog */}
+      <DeleteDocumentDialog
+        open={deleteDialog}
+        onClose={() => setDeleteDialog(false)}
+        onConfirm={confirmDelete}
+        docNumber={deleteTarget?.ref_number}
+        docAmount={deleteTarget?.amount_display}
       />
     </div>
   );

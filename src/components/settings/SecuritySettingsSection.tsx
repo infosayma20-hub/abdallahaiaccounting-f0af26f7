@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { AlertTriangle, Lock, Shield } from "lucide-react";
 import type { CompanySettings } from "@/hooks/useCompanySettings";
+import AdvancedPermissionsSection from "./AdvancedPermissionsSection";
 
 interface Props {
   settings: CompanySettings;
@@ -154,6 +155,11 @@ const SecuritySettingsSection = ({ settings, onChange }: Props) => {
           )}
         </div>
       </div>
+
+      <Separator />
+
+      {/* Advanced Permissions */}
+      <AdvancedPermissionsSection settings={settings} onChange={onChange} />
 
       <Separator />
 
