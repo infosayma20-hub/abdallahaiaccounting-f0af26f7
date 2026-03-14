@@ -343,19 +343,23 @@ const ReceiptNewPage = () => {
         }
       }
 
-      // Register cheque if payment method is cheque
-      if (paymentMethod === "شيك" && !asDraft && checkNumber) {
-        await supabase.from("cheques").insert({
-          user_id: user.id,
-          cheque_type: "وارد" as const,
-          cheque_number: checkNumber,
-          cheque_date: checkDate || paymentDate,
-          amount: amountNum,
-          party_name: selectedContact.contact_name,
-          bank_name: checkBank,
-          status: "مسجل" as const,
-          currency: "شيكل",
-        });
+      // Register cheques if payment method is cheque
+      if (paymentMethod === "شيك" && !asDraft) {
+        for (const line of chequeLines) {
+          if (!line.cheque_number && !line.amount) continue;
+          await supabase.from("cheques").insert({
+            user_id: user.id,
+            cheque_type: "وارد" as const,
+            cheque_number: line.cheque_number || null,
+            cheque_date: line.due_date || paymentDate,
+            amount: parseFloat(line.amount) || 0,
+            party_name: selectedContact.contact_name,
+            bank_name: line.bank_name || null,
+            status: "مسجل" as const,
+            currency: "شيكل",
+            receipt_voucher_id: receipt?.id || null,
+          });
+        }
       }
 
       toast.success(asDraft ? "تم حفظ المسودة" : `تم ترحيل سند القبض ${receipt?.receipt_number}`);
