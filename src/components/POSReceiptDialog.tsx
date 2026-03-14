@@ -53,7 +53,7 @@ interface POSReceiptDialogProps {
 
 const paymentMethodLabel: Record<string, string> = {
   cash: "نقد",
-  card: "شبكة",
+  card: "بطاقة",
   credit: "آجل",
 };
 
