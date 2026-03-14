@@ -2448,6 +2448,13 @@ const AccountStatementPage = () => {
                 dateTo={dateTo}
                 columns={columns}
                 contactCode={selectedEntityInfo.code}
+                detailLevel={detailLevel}
+                pdcCheques={pdcCheques}
+                pdcTotal={pdcTotal}
+                bouncedCheques={bouncedCheques}
+                bouncedTotal={bouncedTotal}
+                includeBounced={displayOptions.includeBounced}
+                includePDC={displayOptions.includePDC}
               />
             </div>
           </div>
