@@ -768,7 +768,7 @@ const ReceiptNewPage = () => {
           حفظ كمسودة
         </button>
         <div className="flex items-center gap-3">
-          <button onClick={handlePrint}
+          <button onClick={handlePrintPDF}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-all">
             <Printer className="h-4 w-4" /> طباعة
           </button>
