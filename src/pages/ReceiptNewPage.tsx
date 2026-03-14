@@ -438,7 +438,7 @@ const ReceiptNewPage = () => {
           {selectedContact && (
             <div className="bg-primary/5 border border-primary/20 rounded-xl p-3 flex flex-wrap items-center gap-4 text-xs">
               <span className="flex items-center gap-1.5">
-                💰 رصيد الزبون: <span className="font-bold text-foreground">₪{formatAmount(selectedContact.current_balance || 0)}</span>
+                💰 رصيد الزبون: <span className={`font-bold ${(selectedContact.calculated_balance ?? selectedContact.current_balance || 0) > 0 ? 'text-destructive' : 'text-primary'}`}>₪{formatAmount(selectedContact.calculated_balance ?? selectedContact.current_balance || 0)}</span>
               </span>
               <span className="flex items-center gap-1.5">
                 📄 فواتير مفتوحة: <span className="font-bold text-foreground">{openInvoiceCount} فاتورة</span>
