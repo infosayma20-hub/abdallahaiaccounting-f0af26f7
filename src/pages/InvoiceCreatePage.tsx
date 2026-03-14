@@ -753,6 +753,17 @@ const InvoiceCreatePage = () => {
   const paymentLabels: Record<string, string> = { cash: "نقداً", transfer: "تحويل", cheque: "شيك", credit: "آجل" };
 
   // ─── RENDER ───
+  if (loadingEditInvoice) {
+    return (
+      <div className="px-4 lg:px-8 pt-10 pb-10 max-w-5xl mx-auto" dir="rtl">
+        <div className="flex items-center justify-center gap-2 text-muted-foreground text-sm">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          جاري تحميل بيانات الفاتورة...
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="px-4 lg:px-8 pt-4 pb-32 space-y-4 max-w-5xl mx-auto" dir="rtl">
       {/* Duplicate Banner */}
@@ -765,7 +776,7 @@ const InvoiceCreatePage = () => {
             <ArrowRight className="h-5 w-5 text-foreground" />
           </button>
           <div>
-            <h1 className="text-lg font-bold text-foreground">إنشاء فاتورة جديدة</h1>
+            <h1 className="text-lg font-bold text-foreground">{isEditMode ? "تعديل الفاتورة" : "إنشاء فاتورة جديدة"}</h1>
             <p className="text-xs text-muted-foreground">
               {form.type === "sales" ? "فاتورة مبيعات" : "فاتورة مشتريات"}
             </p>
