@@ -160,6 +160,14 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
         case "exchange-gain-loss": await loadExchangeGainLoss(); break;
         case "all-orders": await loadAllOrders(); break;
         case "pos-daily-sales": await loadPOSDailySales(); break;
+        case "pos-sales-by-category": await loadPOSSalesByCategory(); break;
+        case "pos-period-comparison": await loadPOSPeriodComparison(); break;
+        case "pos-invoice-register": await loadPOSInvoiceRegister(); break;
+        case "pos-pending-orders": await loadPOSPendingOrders(); break;
+        case "pos-shift-open-close": await loadPOSShiftOpenClose(); break;
+        case "pos-payment-methods": await loadPOSPaymentMethods(); break;
+        case "pos-product-movement": await loadPOSProductMovement(); break;
+        case "pos-category-totals": await loadPOSCategoryTotals(); break;
         case "pos-cash-reconciliation": await loadPOSCashReconciliation(); break;
         case "pos-cashier-performance": await loadPOSCashierPerformance(); break;
         case "pos-cancelled": await loadPOSCancelled(); break;
