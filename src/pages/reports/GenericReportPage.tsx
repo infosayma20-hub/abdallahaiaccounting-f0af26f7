@@ -1704,6 +1704,10 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
         return { sold_qty: "sum", return_qty: "sum", net_qty: "sum", revenue: "sum" };
       case "pos-category-totals":
         return { items: "sum", qty: "sum", revenue: "sum" };
+      case "pos-invoice-timing":
+        return { total: "sum" };
+      case "pos-credit-sales":
+        return { orders: "sum", credit_total: "sum" };
       case "ar-aging-detail": case "ap-aging-detail":
         return { current: "sum", d31_60: "sum", d61_90: "sum", over90: "sum", total: "sum" };
       case "customer-profitability": case "supplier-purchase-analysis":
