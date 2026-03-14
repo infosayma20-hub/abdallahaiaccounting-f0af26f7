@@ -147,7 +147,10 @@ const InvoiceCreatePage = () => {
   const { settings: companySettings } = useCompanySettings();
 
   const fromDuplicate = searchParams.get("from_duplicate") === "true";
+  const editInvoiceId = searchParams.get("edit");
+  const isEditMode = Boolean(editInvoiceId);
   const [duplicateSourceRef, setDuplicateSourceRef] = useState<string | null>(null);
+  const [loadingEditInvoice, setLoadingEditInvoice] = useState(isEditMode);
 
   // Data
   const [contacts, setContacts] = useState<Contact[]>([]);
