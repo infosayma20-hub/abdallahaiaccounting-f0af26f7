@@ -202,6 +202,8 @@ const defaultSettings: CompanySettings = {
   pos_day_cutoff_hour: 6,
   pos_disable_cogs: false,
   pos_disable_stock_deduction: false,
+  pos_show_return_policy: true,
+  pos_return_policy_days: 7,
   primary_color: "#22C55E",
   invoice_font: "classic",
   paper_size: "A4",
