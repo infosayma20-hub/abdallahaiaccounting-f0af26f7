@@ -322,7 +322,7 @@ const StatementPrintView = ({
   return (
     <div
       id="statement-print-wrapper"
-      className="statement-print-page statement-page bg-white text-black print-only"
+      className={`statement-print-page statement-page bg-white text-black ${isPreview ? '' : 'print-only'}`}
       style={{
         width: "100%", maxWidth: "794px", margin: "0 auto", padding: "0",
         fontFamily: "'Cairo', 'Segoe UI', sans-serif", direction: "rtl",
