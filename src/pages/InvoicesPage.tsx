@@ -108,6 +108,10 @@ const InvoicesPage = () => {
   const [duplicateModal, setDuplicateModal] = useState(false);
   const [duplicateTarget, setDuplicateTarget] = useState<Invoice | null>(null);
 
+  // Credit Note state
+  const [creditNoteModal, setCreditNoteModal] = useState(false);
+  const [creditNoteMode, setCreditNoteMode] = useState<"full" | "partial" | "correction">("full");
+
   const handleDuplicate = (inv: Invoice) => {
     setDuplicateTarget(inv);
     setDuplicateModal(true);
@@ -137,6 +141,113 @@ const InvoicesPage = () => {
     localStorage.setItem("draft_invoice_new", JSON.stringify(draftData));
     setDuplicateModal(false);
     navigate("/invoices/new?from_duplicate=true");
+  };
+
+  // Credit Note handler
+  const handleCreditNote = async (data: { mode: "full" | "partial" | "correction"; reason: string; customReason: string; selectedItems?: string[] }) => {
+    if (!selectedInvoice || !user) return;
+
+    const reasonText = data.reason === "other" ? data.customReason : 
+      data.reason === "price_error" ? "خطأ في السعر" :
+      data.reason === "quantity_error" ? "خطأ في الكمية" :
+      data.reason === "goods_return" ? "إرجاع بضاعة" : data.reason;
+
+    // Determine items and amount for credit note
+    const creditItems = data.mode === "partial" && data.selectedItems
+      ? selectedInvoice.items.filter(i => data.selectedItems!.includes(i.id))
+      : selectedInvoice.items;
+    
+    const creditTotal = creditItems.reduce((s, i) => s + i.subtotal, 0);
+
+    try {
+      // Create credit note invoice
+      const { data: cnInv, error: cnErr } = await supabase.from("invoices").insert({
+        user_id: user.id,
+        invoice_type: selectedInvoice.type === "sales" ? "sale" : "purchase",
+        contact_name: selectedInvoice.contactName,
+        invoice_date: new Date().toISOString().split("T")[0],
+        subtotal: -creditTotal,
+        discount_amount: 0,
+        tax_amount: 0,
+        total_amount: -creditTotal,
+        paid_amount: 0,
+        remaining_amount: 0,
+        payment_status: "paid",
+        payment_method: "آجل",
+        currency: selectedInvoice.currency,
+        notes: `إشعار دائن مقابل ${selectedInvoice.invoiceNumber} — ${reasonText}`,
+        source: "credit_note",
+        status: "sent",
+        original_invoice_id: selectedInvoice.id,
+        correction_reason: reasonText,
+        is_credit_note: true,
+      } as any).select("id, invoice_number").single();
+
+      if (cnErr) throw cnErr;
+
+      // Insert credit note items (negative quantities)
+      const itemsToInsert = creditItems.filter(i => i.description.trim()).map(item => ({
+        invoice_id: cnInv.id,
+        product_name: item.description,
+        quantity: -item.quantity,
+        unit_price: item.unitPrice,
+        discount: item.discount,
+        tax_rate: item.taxRate,
+        total_amount: -item.subtotal,
+      }));
+      if (itemsToInsert.length > 0) {
+        await supabase.from("invoice_items").insert(itemsToInsert as any);
+      }
+
+      // Create reversal journal entry
+      const debitCode = selectedInvoice.type === "sales" ? "4100" : "2100";
+      const creditCode = selectedInvoice.type === "sales" ? "1130" : "5110";
+      
+      await supabase.from("transactions").insert({
+        user_id: user.id,
+        transaction_date: new Date().toISOString().split("T")[0],
+        description: `إشعار دائن — ${reasonText} — مقابل ${selectedInvoice.invoiceNumber}`,
+        debit_account_code: debitCode,
+        credit_account_code: creditCode,
+        amount: creditTotal,
+        currency: selectedInvoice.currency === "شيكل" ? "شيكل" : selectedInvoice.currency,
+        transaction_type: "credit_note",
+        reference: `CN-${selectedInvoice.invoiceNumber}`,
+        idempotency_key: `CN-${selectedInvoice.id}-${Date.now()}`,
+      } as any);
+
+      toast({ title: `تم إنشاء الإشعار الدائن ${cnInv.invoice_number} ✅`, description: `عكس ${data.mode === "full" ? "كامل" : "جزئي"} للفاتورة ${selectedInvoice.invoiceNumber}` });
+
+      // For correction mode: open new invoice with same data
+      if (data.mode === "correction") {
+        const draftData = {
+          _sourceRef: selectedInvoice.invoiceNumber,
+          type: selectedInvoice.type,
+          contactName: selectedInvoice.contactName,
+          paymentMethod: selectedInvoice.paymentMethod,
+          currency: selectedInvoice.currency,
+          notes: `فاتورة تصحيح مقابل ${selectedInvoice.invoiceNumber}`,
+          items: selectedInvoice.items.map(item => ({
+            description: item.description,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            discount: item.discount,
+            taxRate: item.taxRate,
+            subtotal: item.subtotal,
+            productId: item.productId,
+          })),
+          contactSearch: selectedInvoice.contactName,
+          correction_of: selectedInvoice.id,
+        };
+        localStorage.setItem("draft_invoice_new", JSON.stringify(draftData));
+        navigate("/invoices/new?correction=true");
+      }
+
+      await fetchInvoices();
+      setShowPreviewDialog(false);
+    } catch (err: any) {
+      toast({ title: "خطأ في إنشاء الإشعار الدائن", description: err.message, variant: "destructive" });
+    }
   };
 
   const [form, setForm] = useState({
