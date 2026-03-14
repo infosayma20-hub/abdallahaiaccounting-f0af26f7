@@ -12,6 +12,8 @@ interface StatementRow {
   payment_method?: string | null;
   currency?: string;
   dueDate?: string;
+  isLineItem?: boolean;
+  lineItemDetail?: string;
 }
 
 interface CompanyInfo {
