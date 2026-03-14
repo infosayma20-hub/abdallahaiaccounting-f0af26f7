@@ -407,11 +407,11 @@ const AccountStatementPage = () => {
               .in("invoice_id", invoiceIds.slice(0, 200)),
             supabase
               .from("purchase_invoice_items")
-              .select("invoice_id, product_name, quantity, unit_price, total_amount, unit_of_measure, discount")
+              .select("invoice_id, product_name, quantity, unit_price, total_amount, discount")
               .in("invoice_id", invoiceIds.slice(0, 200)),
           ]);
 
-          const allItems = [...(salesItems || []), ...(purchaseItems || [])];
+          const allItems = [...((salesItems || []) as any[]), ...((purchaseItems || []) as any[])];
           // Build map: transaction_id -> line items
           const txToInvId: Record<string, string> = {};
           allInvoices.forEach(inv => {
@@ -421,13 +421,13 @@ const AccountStatementPage = () => {
           const itemsMap: Record<string, InvoiceLineItem[]> = {};
           for (const [txId, invId] of Object.entries(txToInvId)) {
             itemsMap[txId] = allItems
-              .filter(item => item.invoice_id === invId)
-              .map(item => ({
+              .filter((item: any) => item.invoice_id === invId)
+              .map((item: any) => ({
                 product_name: item.product_name,
                 quantity: item.quantity,
                 unit_price: item.unit_price,
                 total_amount: item.total_amount,
-                unit_of_measure: item.unit_of_measure,
+                unit_of_measure: item.unit_of_measure || null,
                 discount: item.discount,
               }));
           }
