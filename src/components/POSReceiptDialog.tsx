@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Printer, Mail, CheckCircle, Send, Download } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ReceiptModifier {
   group_name: string;
@@ -149,7 +150,7 @@ export default function POSReceiptDialog({ open, onOpenChange, data }: POSReceip
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${(await (await import("@/integrations/supabase/client")).supabase.auth.getSession()).data.session?.access_token}`,
+            Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
           body: JSON.stringify({
