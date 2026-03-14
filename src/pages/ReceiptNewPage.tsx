@@ -67,6 +67,17 @@ const ReceiptNewPage = () => {
   const [checkDate, setCheckDate] = useState("");
   const [checkBank, setCheckBank] = useState("");
 
+  // Multiple cheque lines
+  interface ChequeLine { id: string; cheque_number: string; amount: string; due_date: string; bank_name: string; }
+  const [chequeLines, setChequeLines] = useState<ChequeLine[]>([{ id: crypto.randomUUID(), cheque_number: '', amount: '', due_date: '', bank_name: '' }]);
+  const addChequeLine = () => setChequeLines(prev => [...prev, { id: crypto.randomUUID(), cheque_number: '', amount: '', due_date: '', bank_name: '' }]);
+  const removeChequeLine = (id: string) => { if (chequeLines.length > 1) setChequeLines(prev => prev.filter(l => l.id !== id)); };
+  const updateChequeLine = (id: string, field: keyof ChequeLine, value: string) => setChequeLines(prev => prev.map(l => l.id === id ? { ...l, [field]: value } : l));
+  const chequesTotal = chequeLines.reduce((s, l) => s + (parseFloat(l.amount) || 0), 0);
+
+  // Sync amount with cheques total
+  useEffect(() => { if (paymentMethod === 'شيك' && chequesTotal > 0) setAmount(String(chequesTotal)); }, [chequesTotal, paymentMethod]);
+
   // Contact
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [contactSearch, setContactSearch] = useState("");
