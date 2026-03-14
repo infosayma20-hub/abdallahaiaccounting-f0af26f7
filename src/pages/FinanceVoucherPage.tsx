@@ -19,7 +19,7 @@ interface Props {
   voucherType: VoucherType;
 }
 
-const PAYMENT_LABELS: Record<string, string> = { cash: "نقدي", bank: "بنك", cheque: "شيك", transfer: "تحويل" };
+const PAYMENT_LABELS: Record<string, string> = { cash: "نقدي", bank: "بنك", cheque: "شيك", transfer: "تحويل", "نقدي": "نقدي", "شيك": "شيك", "تحويل": "تحويل", "بطاقة": "بطاقة" };
 const STATUS_LABELS: Record<string, string> = { posted: "مرحّل", draft: "مسودة", cancelled: "ملغي" };
 
 type SortKey = "ref_number" | "date" | "contact_name" | "payment_label" | "amount_display" | "status_label";
@@ -77,14 +77,37 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
   const fetchData = useCallback(async () => {
     if (!user) return;
     setLoading(true);
-    const [vRes, cRes] = await Promise.all([
-      supabase.from("vouchers").select("*").eq("user_id", user.id).eq("type", voucherType).order("created_at", { ascending: false }),
-      supabase.from("contacts").select("id, contact_name, contact_type").eq("user_id", user.id).neq("is_archived", true),
-    ]);
-    setVouchers(vRes.data || []);
-    setContacts(cRes.data || []);
+
+    if (isReceipt) {
+      // Receipts are stored in receipt_vouchers table
+      const [rvRes, cRes] = await Promise.all([
+        supabase.from("receipt_vouchers").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
+        supabase.from("contacts").select("id, contact_name, contact_type").eq("user_id", user.id).neq("is_archived", true),
+      ]);
+      // Map receipt_vouchers fields to unified format
+      const mapped = (rvRes.data || []).map((rv: any) => ({
+        ...rv,
+        ref_number: rv.receipt_number,
+        date: rv.payment_date,
+        amount_ils: rv.amount,
+        amount: rv.amount,
+        type: "receipt",
+        // payment_method is already in Arabic in receipt_vouchers
+      }));
+      setVouchers(mapped);
+      setContacts(cRes.data || []);
+    } else {
+      // Payments are stored in vouchers table
+      const [vRes, cRes] = await Promise.all([
+        supabase.from("vouchers").select("*").eq("user_id", user.id).eq("type", "payment").order("created_at", { ascending: false }),
+        supabase.from("contacts").select("id, contact_name, contact_type").eq("user_id", user.id).neq("is_archived", true),
+      ]);
+      setVouchers(vRes.data || []);
+      setContacts(cRes.data || []);
+    }
+
     setLoading(false);
-  }, [user, voucherType]);
+  }, [user, voucherType, isReceipt]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
   useEffect(() => {
@@ -95,11 +118,13 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
 
   const tableData = useMemo(() => {
     return vouchers.map(v => {
-      const contact = contacts.find(c => c.id === v.contact_id);
+      // For receipts, contact_name is directly on the record
+      // For payments, we look up from contacts list
+      const contactName = v.contact_name || contacts.find(c => c.id === v.contact_id)?.contact_name || "—";
       return {
         ...v,
-        contact_name: contact?.contact_name || "—",
-        payment_label: PAYMENT_LABELS[v.payment_method] || "—",
+        contact_name: contactName,
+        payment_label: PAYMENT_LABELS[v.payment_method] || v.payment_method || "—",
         status_label: STATUS_LABELS[v.status] || v.status,
         amount_display: Number(v.amount_ils || v.amount || 0),
       };
@@ -116,6 +141,7 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
       data = data.filter(v =>
         (v.ref_number || "").toLowerCase().includes(q) ||
         (v.description || "").toLowerCase().includes(q) ||
+        (v.notes || "").toLowerCase().includes(q) ||
         (v.contact_name || "").toLowerCase().includes(q)
       );
     }
@@ -321,14 +347,22 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
                       <td className="px-3 py-3">
                         <button
                           className="text-primary hover:underline font-mono text-xs cursor-pointer bg-transparent border-none p-0"
-                          onClick={() => { setEditVoucherId(v.id); setDrawerOpen(true); }}
+                          onClick={() => {
+                            if (isReceipt) {
+                              // Receipt vouchers don't use VoucherDrawer
+                              // Just view details (could navigate to edit page in future)
+                              setEditVoucherId(v.id); setDrawerOpen(true);
+                            } else {
+                              setEditVoucherId(v.id); setDrawerOpen(true);
+                            }
+                          }}
                         >
                           {v.ref_number}
                         </button>
                       </td>
                       <td className="px-3 py-3 text-xs text-foreground tabular-nums">{v.date || "—"}</td>
                       <td className="px-3 py-3 text-sm font-medium text-foreground">{v.contact_name}</td>
-                      <td className="px-3 py-3 text-xs text-muted-foreground truncate max-w-[200px]">{v.description || "—"}</td>
+                      <td className="px-3 py-3 text-xs text-muted-foreground truncate max-w-[200px]">{v.description || v.notes || "—"}</td>
                       <td className="px-3 py-3 text-xs text-muted-foreground">{v.payment_label}</td>
                       <td className="px-3 py-3 text-sm font-bold tabular-nums text-foreground">₪{v.amount_display.toLocaleString()}</td>
                       <td className="px-3 py-3">
