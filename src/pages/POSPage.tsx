@@ -3307,7 +3307,7 @@ const POSPage = () => {
             <div className="grid grid-cols-4 gap-3">
               {[
                 { key: "cash", label: "نقد", icon: Banknote, color: "#16A34A" },
-                { key: "card", label: "شبكة", icon: CreditCard, color: "#3B82F6" },
+                { key: "card", label: "بطاقة", icon: CreditCard, color: "#3B82F6" },
                 { key: "credit", label: "آجل", icon: Receipt, color: "#F59E0B" },
                 { key: "employee_account", label: "حساب موظف", icon: UserCheck, color: "#8B5CF6" },
               ].map((m) => {
