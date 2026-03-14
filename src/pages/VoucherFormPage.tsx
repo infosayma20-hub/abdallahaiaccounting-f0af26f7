@@ -99,6 +99,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   const [contactSearch, setContactSearch] = useState("");
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [showContactDropdown, setShowContactDropdown] = useState(false);
+  const [computedBalance, setComputedBalance] = useState<number | null>(null);
 
   // Deposit
   const [cashBoxes, setCashBoxes] = useState<CashBox[]>([]);
@@ -159,6 +160,26 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         }
       });
   }, [user]);
+
+  // ─── Compute real balance from transactions ───
+  useEffect(() => {
+    if (!selectedContact || !user) { setComputedBalance(null); return; }
+    const accountCode = isReceipt ? "1130" : "2100";
+    supabase.from("transactions")
+      .select("debit_account_code, credit_account_code, amount")
+      .eq("user_id", user.id)
+      .eq("is_deleted", false)
+      .eq("contact_id", selectedContact.id)
+      .then(({ data }) => {
+        if (!data) { setComputedBalance(0); return; }
+        let balance = 0;
+        for (const t of data) {
+          if (t.debit_account_code === accountCode) balance += t.amount;
+          if (t.credit_account_code === accountCode) balance -= t.amount;
+        }
+        setComputedBalance(balance);
+      });
+  }, [selectedContact, user, isReceipt]);
 
   // ─── Load existing voucher for editing ───
   useEffect(() => {
@@ -678,7 +699,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           {selectedContact && (
             <div className="bg-primary/5 border border-primary/20 rounded-xl p-3 flex flex-wrap items-center gap-4 text-xs">
               <span className="flex items-center gap-1.5">
-                💰 رصيد {isReceipt ? "الزبون" : "المورد"}: <span className="font-bold text-foreground">₪{formatAmount(selectedContact.current_balance || 0)}</span>
+                💰 رصيد {isReceipt ? "الزبون" : "المورد"}: <span className={`font-bold ${(computedBalance ?? 0) > 0 ? "text-destructive" : "text-primary"}`}>₪{formatAmount(computedBalance ?? selectedContact.current_balance ?? 0)}</span>
               </span>
               <span className="flex items-center gap-1.5">
                 📄 فواتير مفتوحة: <span className="font-bold text-foreground">{openInvoiceCount} فاتورة</span>
