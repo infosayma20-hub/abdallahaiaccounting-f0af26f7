@@ -148,6 +148,7 @@ const HomeDashboard = () => {
           {/* W1: Header */}
           <DashboardHeader
             companyName={displayName}
+            companyLogo={dashboard.companyLogo}
             period={dashboard.period}
             onPeriodChange={dashboard.setPeriod}
             lastUpdated={dashboard.lastUpdated}
