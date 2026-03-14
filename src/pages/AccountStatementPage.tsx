@@ -301,12 +301,16 @@ const AccountStatementPage = () => {
   const [dateTo, setDateTo] = useState(format(endOfMonth(new Date()), "yyyy-MM-dd"));
   const [activePeriod, setActivePeriod] = useState("");
   const [selectedCurrency, setSelectedCurrency] = useState("all");
-  const [displayOptions, setDisplayOptions] = useState<DisplayOptions>(DEFAULT_DISPLAY_OPTIONS);
+  const [displayOptions, setDisplayOptions] = useState<DisplayOptions>(() => {
+    try { const s = localStorage.getItem("stmt_display_options"); if (s) return { ...DEFAULT_DISPLAY_OPTIONS, ...JSON.parse(s) }; } catch {} return DEFAULT_DISPLAY_OPTIONS;
+  });
   const [showCustomizePanel, setShowCustomizePanel] = useState(false);
   const [showPreviewDrawer, setShowPreviewDrawer] = useState(false);
   const [previewTxId, setPreviewTxId] = useState<string>("");
   const [txTypeFilter, setTxTypeFilter] = useState("all");
-  const [detailLevel, setDetailLevel] = useState<DetailLevel>("total");
+  const [detailLevel, setDetailLevel] = useState<DetailLevel>(() => {
+    try { const s = localStorage.getItem("stmt_detail_level"); if (s) return s as DetailLevel; } catch {} return "total";
+  });
   const [showYearComparison, setShowYearComparison] = useState(false);
   const [pdfGenerating, setPdfGenerating] = useState(false);
   const [showPdfModal, setShowPdfModal] = useState(false);
@@ -2186,7 +2190,22 @@ const AccountStatementPage = () => {
 
             <Separator />
 
-            <Button variant="outline" size="sm" className="w-full" onClick={() => { saveColumns(DEFAULT_COLUMNS); setDisplayOptions(DEFAULT_DISPLAY_OPTIONS); setDetailLevel("total"); }}>
+            <Button size="sm" className="w-full" onClick={() => {
+              localStorage.setItem("stmt_display_options", JSON.stringify(displayOptions));
+              localStorage.setItem("stmt_detail_level", detailLevel);
+              toast({ title: "تم حفظ خياراتك بنجاح ✅" });
+            }}>
+              💾 احفظ خياراتي
+            </Button>
+
+            <Button variant="outline" size="sm" className="w-full" onClick={() => {
+              saveColumns(DEFAULT_COLUMNS);
+              setDisplayOptions(DEFAULT_DISPLAY_OPTIONS);
+              setDetailLevel("total");
+              localStorage.removeItem("stmt_display_options");
+              localStorage.removeItem("stmt_detail_level");
+              localStorage.removeItem("statement_columns_prefs");
+            }}>
               إعادة الضبط الافتراضي
             </Button>
           </div>
