@@ -2212,7 +2212,7 @@ const AccountStatementPage = () => {
                   address: selectedEntityInfo.address,
                   email: selectedContact?.email || "",
                 }}
-                rows={rows}
+                rows={filteredRows}
                 openingBalance={openingBalance}
                 closingBalance={closingBalance}
                 totalDebit={totalDebit}
