@@ -1955,22 +1955,16 @@ const AccountStatementPage = () => {
                 size="sm"
                 className="h-8 gap-1.5 text-xs"
                 onClick={handleDownloadPDF}
+                disabled={pdfGenerating}
               >
-                <FileSpreadsheet className="w-3.5 h-3.5" /> تحميل PDF
+                {pdfGenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileSpreadsheet className="w-3.5 h-3.5" />}
+                {pdfGenerating ? "جاري التحميل..." : "تحميل PDF"}
               </Button>
               <Button
                 variant="secondary"
                 size="sm"
                 className="h-8 gap-1.5 text-xs"
-                onClick={() => {
-                  try {
-                    const doc = generatePdfDoc();
-                    doc.autoPrint();
-                    const uri = doc.output("datauristring");
-                    const w = window.open(uri);
-                    if (!w) window.print();
-                  } catch { window.print(); }
-                }}
+                onClick={handlePrintStatement}
               >
                 <Printer className="w-3.5 h-3.5" /> طباعة
               </Button>
@@ -1978,19 +1972,35 @@ const AccountStatementPage = () => {
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8 text-white hover:bg-white/20"
-                onClick={() => { setShowPdfModal(false); setPdfDataUri(""); }}
+                onClick={() => setShowPdfModal(false)}
               >
                 <X className="w-5 h-5" />
               </Button>
             </div>
           </div>
 
-          {/* PDF iframe */}
-          <iframe
-            src={pdfDataUri}
-            style={{ flex: 1, width: "100%", border: "none" }}
-            title="كشف الحساب PDF"
-          />
+          {/* HTML Document Preview */}
+          <div style={{ flex: 1, overflow: "auto", background: "#e5e7eb", padding: "20px", display: "flex", justifyContent: "center" }}>
+            <div id="statement-preview-doc" style={{ width: "794px", minHeight: "1123px", background: "white", boxShadow: "0 4px 20px rgba(0,0,0,0.2)" }}>
+              <StatementPrintView
+                company={companyInfo}
+                contact={{
+                  name: selectedEntityName,
+                  type: selectedEntityInfo.type,
+                  phone: selectedEntityInfo.phone,
+                  address: selectedEntityInfo.address,
+                  email: selectedContact?.email || "",
+                }}
+                rows={rows}
+                openingBalance={openingBalance}
+                closingBalance={closingBalance}
+                totalDebit={totalDebit}
+                totalCredit={totalCredit}
+                dateFrom={dateFrom}
+                dateTo={dateTo}
+              />
+            </div>
+          </div>
         </div>
       )}
 
