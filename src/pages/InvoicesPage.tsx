@@ -307,6 +307,8 @@ const InvoicesPage = () => {
         paidAmount: Number(inv.paid_amount) || 0,
         remainingAmount: Number(inv.remaining_amount) || 0,
         currency: inv.currency || 'شيكل',
+        is_credit_note: inv.is_credit_note || false,
+        original_invoice_id: inv.original_invoice_id || undefined,
       }));
 
       // Also load legacy localStorage invoices
