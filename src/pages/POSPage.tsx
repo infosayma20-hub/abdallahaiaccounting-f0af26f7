@@ -1711,6 +1711,11 @@ const POSPage = () => {
       setShowPayment(false);
       setShowReceipt(true);
 
+      // Auto-open cash drawer after successful payment (if cash payment and permitted)
+      if (paymentMethod === "cash" && (isAdmin || posPerms.open_cash_drawer)) {
+        openCashDrawer();
+      }
+
       // Send digital receipt & survey if customer data was collected
       if (customerDataDiscount && surveyToken) {
         try {
