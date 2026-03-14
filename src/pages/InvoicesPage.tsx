@@ -19,6 +19,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import InvoicePrintView from "@/components/InvoicePrintView";
+import InvoiceDocumentPreview from "@/components/InvoiceDocumentPreview";
 import { createRoot } from "react-dom/client";
 import * as XLSX from "xlsx";
 
