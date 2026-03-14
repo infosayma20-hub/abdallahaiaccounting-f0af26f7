@@ -202,8 +202,8 @@ export default function POSReceiptDialog({ open, onOpenChange, data }: POSReceip
           </div>
         </div>
 
-        {/* Receipt Preview */}
-        <div className="px-4 pb-2">
+        {/* Receipt Preview - Scrollable */}
+        <div className="flex-1 overflow-y-auto min-h-0 px-4 pb-2">
           <div className="bg-white text-[#1a1a1a] rounded-xl border border-border overflow-hidden shadow-sm">
             <div ref={receiptRef} className="p-5" style={{ fontFamily: "'Segoe UI', Arial, sans-serif", fontSize: "12px", direction: "rtl" }}>
               
