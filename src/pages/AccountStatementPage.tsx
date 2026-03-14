@@ -520,13 +520,6 @@ const AccountStatementPage = () => {
       }
 
       if (profileRes.data?.company_name) setCompanyName(profileRes.data.company_name);
-                discount: item.discount,
-              }));
-          }
-          setInvoiceItemsMap(itemsMap);
-        }
-      }
-      if (profileRes.data?.company_name) setCompanyName(profileRes.data.company_name);
 
       const cs = csData as any;
       if (cs) {
