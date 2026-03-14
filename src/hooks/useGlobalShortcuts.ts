@@ -28,7 +28,7 @@ export function useGlobalShortcuts({ onShowShortcuts, onShowNewModal }: UseGloba
         if (e.key === "k" || e.key === "K") { e.preventDefault(); navigate("/account-statement"); return; }
         if (e.key === "s" || e.key === "S") { e.preventDefault(); navigate("/finance/cash-boxes"); return; }
         if (e.key === "i" || e.key === "I") { e.preventDefault(); navigate("/inventory"); return; }
-        if (e.key === "l" || e.key === "L") { e.preventDefault(); navigate("/general-ledger"); return; }
+        if (e.key === "l" || e.key === "L") { e.preventDefault(); navigate("/journal-entries"); return; }
         if (e.key === "q" || e.key === "Q") { e.preventDefault(); navigate("/finance/cheques"); return; }
         if (e.key === "t" || e.key === "T") { e.preventDefault(); navigate("/trial-balance"); return; }
         if (e.key === "f" || e.key === "F") {
