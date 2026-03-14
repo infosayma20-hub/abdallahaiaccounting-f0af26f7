@@ -110,9 +110,15 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
   useEffect(() => { fetchData(); }, [fetchData]);
   useEffect(() => {
     const editId = searchParams.get("edit");
-    if (editId) { setEditVoucherId(editId); setDrawerOpen(true); }
-    else if (searchParams.get("new") === "1") setDrawerOpen(true);
-  }, [searchParams]);
+    if (editId) {
+      const editPath = isReceipt
+        ? `/finance/receipt/${editId}/edit`
+        : `/finance/payment/${editId}/edit`;
+      navigate(editPath);
+    } else if (searchParams.get("new") === "1") {
+      navigate(isReceipt ? "/finance/receipt/new" : "/finance/payment/new");
+    }
+  }, [searchParams, isReceipt, navigate]);
 
   const tableData = useMemo(() => {
     return vouchers.map(v => {
