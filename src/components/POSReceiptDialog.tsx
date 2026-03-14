@@ -57,7 +57,7 @@ const paymentMethodLabel: Record<string, string> = {
   credit: "آجل",
 };
 
-export default function POSReceiptDialog({ open, onOpenChange, data }: POSReceiptDialogProps) {
+export default function POSReceiptDialog({ open, onOpenChange, data, showReturnPolicy = true, returnPolicyDays = 7 }: POSReceiptDialogProps) {
   const receiptRef = useRef<HTMLDivElement>(null);
   const [showEmail, setShowEmail] = useState(false);
   const [email, setEmail] = useState("");
