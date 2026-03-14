@@ -184,10 +184,8 @@ export default function POSReceiptDialog({ open, onOpenChange, data, showReturnP
   const dateStr = now.toLocaleDateString("ar-PS", { year: "numeric", month: "2-digit", day: "2-digit" });
   const timeStr = now.toLocaleTimeString("ar-PS", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 
-  // Generate simple QR pattern (visual only)
-  const qrPattern = [
-    [1,1,1,0,1], [1,0,1,1,0], [1,1,1,0,1], [0,1,0,1,1], [1,0,1,1,1]
-  ];
+  // Generate QR URL for digital receipt
+  const receiptUrl = data.orderId ? `${window.location.origin}/receipt/${data.orderId}` : null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
