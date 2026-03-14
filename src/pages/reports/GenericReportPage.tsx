@@ -2361,6 +2361,22 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
         <Button variant="outline" size="sm" onClick={loadReport} className="text-xs h-8">تحديث</Button>
       </Card>
 
+      {/* KPI Summary Cards for POS reports */}
+      {!loading && data.length > 0 && reportKey.startsWith("pos-") && (() => {
+        const kpis = getPOSKPIs();
+        if (!kpis.length) return null;
+        return (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 print:grid-cols-4">
+            {kpis.map((kpi, i) => (
+              <Card key={i} className="p-3 border-border/50">
+                <p className="text-[10px] text-muted-foreground mb-1">{kpi.label}</p>
+                <p className="text-lg font-bold font-mono text-foreground">{kpi.value}</p>
+              </Card>
+            ))}
+          </div>
+        );
+      })()}
+
       {/* Content */}
       <Card className="overflow-hidden border-border/50">
         {renderContent()}
