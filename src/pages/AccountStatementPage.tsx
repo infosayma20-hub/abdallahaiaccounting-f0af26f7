@@ -1984,6 +1984,79 @@ const AccountStatementPage = () => {
         </SheetContent>
       </Sheet>
 
+      {/* ─── PDF PREVIEW MODAL (in-page, no popup) ─── */}
+      {showPdfModal && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 9999,
+            background: "rgba(0,0,0,0.75)",
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
+          {/* Toolbar */}
+          <div
+            style={{
+              background: "#1B3A5C",
+              padding: "10px 20px",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              flexShrink: 0,
+            }}
+            dir="rtl"
+          >
+            <span style={{ color: "white", fontWeight: "bold", fontSize: 15 }}>
+              <Eye className="w-4 h-4 inline-block ml-2" style={{ verticalAlign: "middle" }} />
+              معاينة كشف الحساب
+            </span>
+            <div style={{ display: "flex", gap: 8 }}>
+              <Button
+                variant="secondary"
+                size="sm"
+                className="h-8 gap-1.5 text-xs"
+                onClick={handleDownloadPDF}
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5" /> تحميل PDF
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                className="h-8 gap-1.5 text-xs"
+                onClick={() => {
+                  try {
+                    const doc = generatePdfDoc();
+                    doc.autoPrint();
+                    const uri = doc.output("datauristring");
+                    const w = window.open(uri);
+                    if (!w) window.print();
+                  } catch { window.print(); }
+                }}
+              >
+                <Printer className="w-3.5 h-3.5" /> طباعة
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-white hover:bg-white/20"
+                onClick={() => { setShowPdfModal(false); setPdfDataUri(""); }}
+              >
+                <X className="w-5 h-5" />
+              </Button>
+            </div>
+          </div>
+
+          {/* PDF iframe */}
+          <iframe
+            src={pdfDataUri}
+            style={{ flex: 1, width: "100%", border: "none" }}
+            title="كشف الحساب PDF"
+          />
+        </div>
+      )}
+
     </div>
   );
 };
