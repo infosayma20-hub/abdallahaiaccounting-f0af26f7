@@ -99,6 +99,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   const [contactSearch, setContactSearch] = useState("");
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [showContactDropdown, setShowContactDropdown] = useState(false);
+  const [computedBalance, setComputedBalance] = useState<number | null>(null);
 
   // Deposit
   const [cashBoxes, setCashBoxes] = useState<CashBox[]>([]);
