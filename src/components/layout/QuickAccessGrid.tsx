@@ -22,7 +22,7 @@ const ALL_ITEMS: QuickAccessItem[] = [
   { id: "customers", label: "زبائن", icon: Users, shortcut: "Alt+C", path: "/contacts?type=customer", enabled: true },
   { id: "suppliers", label: "موردين", icon: Store, shortcut: "Alt+M", path: "/contacts?type=supplier", enabled: true },
   { id: "account_stmt", label: "كشف حساب", icon: BarChart3, shortcut: "Alt+K", path: "/finance/account-statement", enabled: true },
-  { id: "cash_boxes", label: "صناديق", icon: Banknote, shortcut: "Alt+S", path: "/finance/cash-boxes", enabled: true },
+  { id: "pos", label: "نقطة البيع", icon: ShoppingCart, shortcut: "Alt+S", path: "/pos", enabled: true },
   // Extra items for customization
   { id: "inventory", label: "المخزون", icon: Package, path: "/inventory", enabled: false },
   { id: "cheques", label: "الشيكات", icon: Receipt, path: "/cheques", enabled: false },
