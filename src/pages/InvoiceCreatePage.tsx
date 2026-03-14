@@ -69,6 +69,20 @@ const PAYMENT_TERMS: { value: string; label: string; days: number }[] = [
   { value: "custom", label: "مخصص", days: -1 },
 ];
 
+const mapDbPaymentMethod = (method?: string | null): "cash" | "transfer" | "cheque" | "credit" => {
+  if (method === "cash" || method === "نقدي") return "cash";
+  if (method === "transfer" || method === "بنك") return "transfer";
+  if (method === "cheque" || method === "شيك") return "cheque";
+  return "credit";
+};
+
+const mapPaymentMethodToDb = (method: "cash" | "transfer" | "cheque" | "credit") => {
+  if (method === "cash") return "نقدي";
+  if (method === "transfer") return "بنك";
+  if (method === "cheque") return "شيك";
+  return "آجل";
+};
+
 const createEmptyItem = (): InvoiceItem => ({
   id: crypto.randomUUID(),
   description: "",
