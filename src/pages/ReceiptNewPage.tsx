@@ -432,7 +432,7 @@ const ReceiptNewPage = () => {
       const blobUrl = doc.output('bloburl');
       const iframe = document.createElement('iframe');
       iframe.style.display = 'none';
-      iframe.src = blobUrl as string;
+      iframe.src = String(blobUrl);
       document.body.appendChild(iframe);
       iframe.onload = () => iframe.contentWindow?.print();
     } catch (err: any) {
