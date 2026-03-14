@@ -126,6 +126,10 @@ const ChequeActionModal = ({
         return { debit: `ح/ذمم ${partyName} ${amt}`, credit: `ح/شيكات قيد التحصيل ${amt}` };
       case 'endorse':
         return { debit: `ح/ذمم ${endorsedToName || 'المورد'} ${amt}`, credit: `ح/شيكات واردة ${amt}` };
+      case 'return_to_customer':
+        return { debit: `ح/ذمم ${partyName} ${amt}`, credit: `ح/شيكات واردة ${amt}` };
+      case 'cancel':
+        return { debit: `ح/ذمم ${partyName} ${amt}`, credit: `ح/شيكات واردة ${amt}` };
       default:
         return null;
     }
