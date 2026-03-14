@@ -15,6 +15,7 @@ import AgingWidget from "@/components/dashboard/AgingWidget";
 import RecentActivityWidget from "@/components/dashboard/RecentActivityWidget";
 import ChequesCalendarWidget from "@/components/dashboard/ChequesCalendarWidget";
 import InventoryPulseWidget from "@/components/dashboard/InventoryPulseWidget";
+import TopSellingWidget from "@/components/dashboard/TopSellingWidget";
 import ExchangeRatesWidget from "@/components/dashboard/ExchangeRatesWidget";
 import CompleteProfileDialog from "@/components/CompleteProfileDialog";
 
