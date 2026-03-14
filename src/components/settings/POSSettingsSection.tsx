@@ -228,6 +228,11 @@ const POSSettingsSection = ({ settings, onChange }: Props) => {
           </div>
         </div>
       </div>
+
+      <Separator />
+
+      {/* Kitchen Stations */}
+      <KitchenStationsManager />
     </div>
   );
 };
