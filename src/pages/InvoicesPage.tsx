@@ -1494,6 +1494,35 @@ const InvoicesPage = () => {
           sourceRef: duplicateTarget?.invoiceNumber,
         }}
       />
+
+      {/* Delete Dialog */}
+      {selectedInvoice && (
+        <DeleteDocumentDialog
+          open={showDeleteDialog}
+          onClose={() => setShowDeleteDialog(false)}
+          onConfirm={(reason) => {
+            handleDeleteInvoice(selectedInvoice.id, reason);
+            setShowDeleteDialog(false);
+          }}
+          docNumber={selectedInvoice.invoiceNumber}
+          docAmount={selectedInvoice.total}
+        />
+      )}
+
+      {/* Edit Posted Warning */}
+      {selectedInvoice && (
+        <EditPostedWarningDialog
+          open={showEditWarning}
+          onClose={() => setShowEditWarning(false)}
+          onConfirm={() => {
+            setShowEditWarning(false);
+            setShowPreviewDialog(false);
+            navigate(`/invoices/new?edit=${selectedInvoice.id}`);
+          }}
+          docNumber={selectedInvoice.invoiceNumber}
+          docAmount={selectedInvoice.total}
+        />
+      )}
     </div>
   );
 };
