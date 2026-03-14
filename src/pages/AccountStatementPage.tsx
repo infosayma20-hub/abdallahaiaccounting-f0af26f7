@@ -8,8 +8,8 @@ import {
   MessageSquare, Link2, Eye, Pencil, Receipt, User, Menu,
 } from "lucide-react";
 import * as XLSX from "xlsx";
+import html2canvas from "html2canvas";
 import { jsPDF } from "jspdf";
-import autoTable from "jspdf-autotable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
