@@ -15,6 +15,7 @@ import AgingWidget from "@/components/dashboard/AgingWidget";
 import RecentActivityWidget from "@/components/dashboard/RecentActivityWidget";
 import ChequesCalendarWidget from "@/components/dashboard/ChequesCalendarWidget";
 import InventoryPulseWidget from "@/components/dashboard/InventoryPulseWidget";
+import TopSellingWidget from "@/components/dashboard/TopSellingWidget";
 import ExchangeRatesWidget from "@/components/dashboard/ExchangeRatesWidget";
 import CompleteProfileDialog from "@/components/CompleteProfileDialog";
 
@@ -147,6 +148,7 @@ const HomeDashboard = () => {
           {/* W1: Header */}
           <DashboardHeader
             companyName={displayName}
+            companyLogo={dashboard.companyLogo}
             period={dashboard.period}
             onPeriodChange={dashboard.setPeriod}
             lastUpdated={dashboard.lastUpdated}
@@ -172,7 +174,10 @@ const HomeDashboard = () => {
             loading={dashboard.loading}
           />
 
-          {/* W12: Recent Activity (moved here, replaces Financial Health) */}
+          {/* Top Selling Items */}
+          <TopSellingWidget items={dashboard.topSellingItems} loading={dashboard.loading} />
+
+          {/* Recent Activity */}
           <RecentActivityWidget activities={dashboard.recentActivity} loading={dashboard.loading} />
 
           {/* W5: Cash Flow */}

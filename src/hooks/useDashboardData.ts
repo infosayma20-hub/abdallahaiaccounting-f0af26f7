@@ -109,7 +109,9 @@ export function useDashboardData() {
   const [cheques, setCheques] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [contacts, setContacts] = useState<any[]>([]);
+  const [invoiceItems, setInvoiceItems] = useState<any[]>([]);
   const [profileData, setProfileData] = useState<any>(null);
+  const [companyLogo, setCompanyLogo] = useState<string>("");
 
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
@@ -121,7 +123,7 @@ export function useDashboardData() {
     if (!user) return;
     setLoading(true);
     try {
-      const [txRes, acctRes, chqRes, prodRes, contactRes, profileRes] = await Promise.all([
+      const [txRes, acctRes, chqRes, prodRes, contactRes, profileRes, invoiceItemsRes, settingsRes] = await Promise.all([
         supabase
           .from("transactions")
           .select("id, transaction_date, description, transaction_type, debit_account_code, credit_account_code, amount, currency, is_deleted, is_opening_balance, contact_id, created_at")
@@ -153,6 +155,15 @@ export function useDashboardData() {
           .select("display_name, company_name, setup_completed")
           .eq("user_id", user.id)
           .maybeSingle(),
+        supabase
+          .from("invoice_items")
+          .select("product_name, quantity, total_amount, invoice_id")
+          .limit(1000),
+        supabase
+          .from("company_settings")
+          .select("logo_url")
+          .eq("user_id", user.id)
+          .maybeSingle(),
       ]);
 
       setTransactions(txRes.data || []);
@@ -160,7 +171,9 @@ export function useDashboardData() {
       setCheques(chqRes.data || []);
       setProducts(prodRes.data || []);
       setContacts(contactRes.data || []);
+      setInvoiceItems(invoiceItemsRes.data || []);
       setProfileData(profileRes.data);
+      setCompanyLogo(settingsRes.data?.logo_url || "");
       setLastUpdated(new Date());
     } catch (err) {
       console.error("Dashboard fetch error:", err);
@@ -197,7 +210,7 @@ export function useDashboardData() {
   ), [transactions]);
 
   // Compute KPIs for a given range
-  const computeKPIs = useCallback((txs: any[], allTxs: any[]) => {
+  const computeKPIs = useCallback((txs: any[], allTxs: any[], allTxsIncludingOB: any[]) => {
     const revenue = txs.filter((t) => t.credit_account_code?.startsWith("4")).reduce((s, t) => s + (t.amount || 0), 0);
     const purchases = txs.filter((t) => t.debit_account_code?.startsWith("51") || t.debit_account_code?.startsWith("52")).reduce((s, t) => s + (t.amount || 0), 0);
     const genExpenses = txs.filter((t) => {
@@ -207,18 +220,18 @@ export function useDashboardData() {
     const expenses = purchases + genExpenses;
     const netProfit = revenue - expenses;
 
-    // Balance sheet items use ALL transactions (cumulative)
-    const recDr = allTxs.filter((t) => t.debit_account_code === "1130").reduce((s, t) => s + (t.amount || 0), 0);
-    const recCr = allTxs.filter((t) => t.credit_account_code === "1130").reduce((s, t) => s + (t.amount || 0), 0);
+    // Balance sheet items use ALL transactions INCLUDING opening balances (cumulative)
+    const recDr = allTxsIncludingOB.filter((t) => t.debit_account_code === "1130").reduce((s, t) => s + (t.amount || 0), 0);
+    const recCr = allTxsIncludingOB.filter((t) => t.credit_account_code === "1130").reduce((s, t) => s + (t.amount || 0), 0);
     const receivables = recDr - recCr;
 
-    const payCr = allTxs.filter((t) => t.credit_account_code?.startsWith("2")).reduce((s, t) => s + (t.amount || 0), 0);
-    const payDr = allTxs.filter((t) => t.debit_account_code?.startsWith("2")).reduce((s, t) => s + (t.amount || 0), 0);
+    const payCr = allTxsIncludingOB.filter((t) => t.credit_account_code?.startsWith("2")).reduce((s, t) => s + (t.amount || 0), 0);
+    const payDr = allTxsIncludingOB.filter((t) => t.debit_account_code?.startsWith("2")).reduce((s, t) => s + (t.amount || 0), 0);
     const payables = payCr - payDr;
 
     // Cash = cash account (1110) + bank (1120)
-    const cashDr = allTxs.filter((t) => t.debit_account_code === "1110" || t.debit_account_code === "1120").reduce((s, t) => s + (t.amount || 0), 0);
-    const cashCr = allTxs.filter((t) => t.credit_account_code === "1110" || t.credit_account_code === "1120").reduce((s, t) => s + (t.amount || 0), 0);
+    const cashDr = allTxsIncludingOB.filter((t) => t.debit_account_code === "1110" || t.debit_account_code === "1120").reduce((s, t) => s + (t.amount || 0), 0);
+    const cashCr = allTxsIncludingOB.filter((t) => t.credit_account_code === "1110" || t.credit_account_code === "1120").reduce((s, t) => s + (t.amount || 0), 0);
     const cashBalance = cashDr - cashCr;
 
     return { revenue, expenses, netProfit, receivables, payables, cashBalance };
@@ -226,9 +239,9 @@ export function useDashboardData() {
 
   const kpis = useMemo<DashboardKPI>(() => {
     const periodTx = filterByRange(plTx, range);
-    const current = computeKPIs(periodTx, plTx);
+    const current = computeKPIs(periodTx, plTx, transactions);
     const prevTx = filterByRange(plTx, prevRange);
-    const prev = computeKPIs(prevTx, plTx);
+    const prev = computeKPIs(prevTx, plTx, transactions);
 
     return {
       ...current,
@@ -239,7 +252,7 @@ export function useDashboardData() {
       prevReceivables: prev.receivables,
       prevPayables: prev.payables,
     };
-  }, [plTx, range, prevRange, filterByRange, computeKPIs]);
+  }, [plTx, transactions, range, prevRange, filterByRange, computeKPIs]);
 
   // Chart data
   const chartData = useMemo<ChartDataPoint[]>(() => {
@@ -473,6 +486,20 @@ export function useDashboardData() {
       .slice(0, 8);
   }, [plTx, range, contacts, filterByRange]);
 
+  // Top selling items (from invoice_items)
+  const topSellingItems = useMemo(() => {
+    const itemMap: Record<string, { name: string; totalQty: number; totalAmount: number }> = {};
+    invoiceItems.forEach((item) => {
+      const name = item.product_name || "غير محدد";
+      if (!itemMap[name]) itemMap[name] = { name, totalQty: 0, totalAmount: 0 };
+      itemMap[name].totalQty += item.quantity || 0;
+      itemMap[name].totalAmount += item.total_amount || 0;
+    });
+    return Object.values(itemMap)
+      .sort((a, b) => b.totalAmount - a.totalAmount)
+      .slice(0, 8);
+  }, [invoiceItems]);
+
   return {
     // Data
     kpis,
@@ -486,7 +513,9 @@ export function useDashboardData() {
     inventorySummary,
     cashFlowData,
     topSales,
+    topSellingItems,
     profileData,
+    companyLogo,
     // State
     loading,
     lastUpdated,
