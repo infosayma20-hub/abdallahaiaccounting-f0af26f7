@@ -21,28 +21,29 @@ export function useGlobalShortcuts({ onShowShortcuts, onShowNewModal }: UseGloba
       if (e.key === "F3") { e.preventDefault(); navigate("/finance/payment/new"); return; }
       if (e.key === "F4") { e.preventDefault(); navigate("/finance/journal/new"); return; }
 
-      // Alt combos for navigation (avoid browser conflicts like Ctrl+C/S/T)
+      // Alt combos — use e.code for keyboard-layout independence (works with Arabic keyboards)
       if (e.altKey) {
-        if (e.key === "c" || e.key === "C") { e.preventDefault(); navigate("/contacts?type=customer"); return; }
-        if (e.key === "m" || e.key === "M") { e.preventDefault(); navigate("/contacts?type=supplier"); return; }
-        if (e.key === "k" || e.key === "K") { e.preventDefault(); navigate("/account-statement"); return; }
-        if (e.key === "s" || e.key === "S") { e.preventDefault(); navigate("/finance/cash-boxes"); return; }
-        if (e.key === "i" || e.key === "I") { e.preventDefault(); navigate("/inventory"); return; }
-        if (e.key === "l" || e.key === "L") { e.preventDefault(); navigate("/journal-entries"); return; }
-        if (e.key === "q" || e.key === "Q") { e.preventDefault(); navigate("/finance/cheques"); return; }
-        if (e.key === "t" || e.key === "T") { e.preventDefault(); navigate("/trial-balance"); return; }
-        if (e.key === "f" || e.key === "F") {
+        const code = e.code;
+        if (code === "KeyC") { e.preventDefault(); navigate("/contacts?type=customer"); return; }
+        if (code === "KeyM") { e.preventDefault(); navigate("/contacts?type=supplier"); return; }
+        if (code === "KeyK") { e.preventDefault(); navigate("/account-statement"); return; }
+        if (code === "KeyS") { e.preventDefault(); navigate("/finance/cash-boxes"); return; }
+        if (code === "KeyI") { e.preventDefault(); navigate("/inventory"); return; }
+        if (code === "KeyL") { e.preventDefault(); navigate("/journal-entries"); return; }
+        if (code === "KeyQ") { e.preventDefault(); navigate("/finance/cheques"); return; }
+        if (code === "KeyT") { e.preventDefault(); navigate("/trial-balance"); return; }
+        if (code === "KeyF") {
           e.preventDefault();
           const searchInput = document.querySelector<HTMLInputElement>('input[placeholder*="ابحث"]');
           searchInput?.focus();
           return;
         }
-        if (e.key === "n" || e.key === "N") { e.preventDefault(); onShowNewModal?.(); return; }
-        if (e.key === "a" || e.key === "A") { e.preventDefault(); navigate("/super-admin/dashboard"); return; }
+        if (code === "KeyN") { e.preventDefault(); onShowNewModal?.(); return; }
+        if (code === "KeyA") { e.preventDefault(); navigate("/super-admin/dashboard"); return; }
       }
 
       // Ctrl + / for shortcuts modal
-      if ((e.ctrlKey || e.metaKey) && (e.key === "/" || e.key === "÷")) { e.preventDefault(); onShowShortcuts(); return; }
+      if ((e.ctrlKey || e.metaKey) && (e.key === "/" || e.key === "÷" || e.code === "Slash")) { e.preventDefault(); onShowShortcuts(); return; }
     };
 
     document.addEventListener("keydown", handleKeyDown);
