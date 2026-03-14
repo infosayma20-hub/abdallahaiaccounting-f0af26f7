@@ -1367,13 +1367,101 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
           { key: "cancelled", label: "الملغية", type: "number",
             format: v => <span className={`font-mono text-xs ${v > 0 ? "text-red-500 font-bold" : ""}`}>{v}</span> },
         ];
+      case "pos-sales-by-category":
+        return [
+          { key: "category", label: "الفئة", type: "text", filterType: "select", filterOptions: [...new Set(data.map((r: any) => r.category).filter(Boolean))] },
+          { key: "product", label: "المنتج", type: "text" },
+          { key: "qty", label: "الكمية المباعة", type: "number", align: "center" },
+          { key: "revenue", label: "إجمالي المبيعات", type: "currency" },
+          { key: "cost", label: "التكلفة", type: "currency" },
+          { key: "profit", label: "الربح", type: "currency", format: (v: number) => <span className={`font-mono text-xs font-bold ${v >= 0 ? "text-green-600" : "text-destructive"}`}>{fmtAmtCell(v)}</span> },
+          { key: "pct", label: "% من الإجمالي", type: "number", format: (v: number) => <span className="font-mono text-xs">{v.toFixed(1)}%</span> },
+        ];
+      case "pos-period-comparison":
+        return [
+          { key: "period", label: "الفترة", type: "date" },
+          { key: "orders", label: "عدد الفواتير", type: "number", align: "center" },
+          { key: "sales", label: "المبيعات", type: "currency" },
+          { key: "discounts", label: "الخصومات", type: "currency" },
+          { key: "avg", label: "متوسط الفاتورة", type: "currency" },
+          { key: "growth", label: "نمو %", type: "number", format: (v: number) => <span className={`font-mono text-xs font-bold ${v > 0 ? "text-green-600" : v < 0 ? "text-destructive" : ""}`}>{v > 0 ? "+" : ""}{v.toFixed(1)}%</span> },
+        ];
+      case "pos-invoice-register":
+        return [
+          { key: "order_number", label: "رقم الفاتورة", type: "text" },
+          { key: "date", label: "التاريخ", type: "date" },
+          { key: "time", label: "الوقت", type: "text" },
+          { key: "cashier", label: "الكاشير", type: "text", filterType: "select", filterOptions: [...new Set(data.map((r: any) => r.cashier).filter(Boolean))] },
+          { key: "customer", label: "العميل", type: "text" },
+          { key: "subtotal", label: "المبلغ", type: "currency" },
+          { key: "discount", label: "الخصم", type: "currency" },
+          { key: "tax", label: "الضريبة", type: "currency" },
+          { key: "total", label: "الصافي", type: "currency" },
+          { key: "currency", label: "العملة", type: "text", filterType: "select", filterOptions: [...new Set(data.map((r: any) => r.currency).filter(Boolean))] },
+          { key: "state", label: "الحالة", type: "badge", filterType: "select", filterOptions: ["paid", "cancelled", "draft"],
+            format: (v: string) => {
+              const colors: Record<string, string> = { paid: "bg-green-50 text-green-600", cancelled: "bg-red-50 text-red-600", draft: "bg-yellow-50 text-yellow-600" };
+              const labels: Record<string, string> = { paid: "مكتمل", cancelled: "ملغي", draft: "معلق" };
+              return <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${colors[v] || ""}`}>{labels[v] || v}</span>;
+            }
+          },
+        ];
+      case "pos-pending-orders":
+        return [
+          { key: "order_number", label: "رقم الطلب", type: "text" },
+          { key: "date", label: "التاريخ", type: "date" },
+          { key: "time", label: "الوقت", type: "text" },
+          { key: "cashier", label: "الكاشير", type: "text", filterType: "select", filterOptions: [...new Set(data.map((r: any) => r.cashier).filter(Boolean))] },
+          { key: "customer", label: "العميل", type: "text" },
+          { key: "total", label: "الإجمالي", type: "currency" },
+          { key: "wait_minutes", label: "مدة الانتظار (دقيقة)", type: "number",
+            format: (v: number) => <span className={`font-mono text-xs font-bold ${v > 60 ? "text-destructive" : v > 30 ? "text-yellow-600" : ""}`}>{v}</span> },
+        ];
+      case "pos-shift-open-close":
+        return [
+          { key: "cashier", label: "الكاشير", type: "text", filterType: "select", filterOptions: [...new Set(data.map((r: any) => r.cashier).filter(Boolean))] },
+          { key: "date", label: "التاريخ", type: "date" },
+          { key: "open_time", label: "وقت الفتح", type: "text" },
+          { key: "close_time", label: "وقت الإغلاق", type: "text" },
+          { key: "opening", label: "مبلغ الافتتاح", type: "currency" },
+          { key: "closing", label: "مبلغ الإغلاق", type: "currency" },
+          { key: "duration_hrs", label: "المدة (ساعة)", type: "number", format: (v: number) => <span className="font-mono text-xs">{v.toFixed(1)}</span> },
+          { key: "state", label: "الحالة", type: "badge", format: (v: string) => <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${v === "open" ? "bg-yellow-50 text-yellow-600" : "bg-green-50 text-green-600"}`}>{v === "open" ? "مفتوحة" : "مغلقة"}</span> },
+        ];
+      case "pos-payment-methods":
+        return [
+          { key: "method", label: "طريقة الدفع", type: "text" },
+          { key: "count", label: "عدد المعاملات", type: "number", align: "center" },
+          { key: "total", label: "الإجمالي", type: "currency" },
+          { key: "avg", label: "المتوسط", type: "currency" },
+          { key: "max", label: "الأعلى", type: "currency" },
+          { key: "min", label: "الأقل", type: "currency" },
+          { key: "pct", label: "%", type: "number", format: (v: number) => <span className="font-mono text-xs">{v.toFixed(1)}%</span> },
+        ];
+      case "pos-product-movement":
+        return [
+          { key: "product", label: "الصنف", type: "text" },
+          { key: "sold_qty", label: "الكمية المباعة", type: "number", align: "center" },
+          { key: "return_qty", label: "المرتجعة", type: "number", align: "center", format: (v: number) => <span className={`font-mono text-xs ${v > 0 ? "text-destructive font-bold" : ""}`}>{v}</span> },
+          { key: "net_qty", label: "صافي الكمية", type: "number", align: "center" },
+          { key: "revenue", label: "إجمالي المبيعات", type: "currency" },
+          { key: "avg_price", label: "متوسط السعر", type: "currency" },
+        ];
+      case "pos-category-totals":
+        return [
+          { key: "category", label: "الفئة", type: "text" },
+          { key: "items", label: "عدد الأصناف", type: "number", align: "center" },
+          { key: "qty", label: "إجمالي الكميات", type: "number", align: "center" },
+          { key: "revenue", label: "إجمالي المبيعات", type: "currency" },
+          { key: "pct", label: "% من الإجمالي", type: "number", format: (v: number) => <span className="font-mono text-xs">{v.toFixed(1)}%</span> },
+        ];
       case "pos-cancelled":
         return [
           { key: "order_number", label: "رقم الطلب", type: "text" },
-          { key: "created_at", label: "التاريخ", type: "date", format: v => <span className="font-mono text-xs">{v?.split("T")[0]}</span> },
+          { key: "created_at", label: "التاريخ", type: "date", format: (v: string) => <span className="font-mono text-xs">{v?.split("T")[0]}</span> },
           { key: "customer_name", label: "الزبون", type: "text" },
           { key: "total", label: "المبلغ", type: "currency" },
-          { key: "return_reason", label: "السبب", type: "text", format: v => <span className="text-xs text-red-600">{v || "-"}</span> },
+          { key: "return_reason", label: "السبب", type: "text", format: (v: string) => <span className="text-xs text-destructive">{v || "-"}</span> },
         ];
       case "all-orders":
         return [
