@@ -488,30 +488,34 @@ const StatementPrintView = ({
             </tr>
 
             {/* Rows */}
-            {rows.map((row, i) => (
-              <tr
-                key={row.transaction_id}
-                style={{
-                  background: i % 2 === 0 ? "white" : "#FAFBFC",
-                  borderBottom: "1px solid #F3F4F6",
-                }}
-              >
-                {activeColumns.map(col => (
-                  <td
-                    key={col.key}
-                    style={{
-                      padding: "4px 4px",
-                      textAlign: isAmountCol(col.key) ? "left" : isCenterCol(col.key) ? "center" : "right",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {renderCellValue(col.key, row)}
-                  </td>
-                ))}
-              </tr>
-            ))}
+            {rows.map((row, i) => {
+              const isSubRow = !!row.isLineItem;
+              return (
+                <tr
+                  key={`${row.transaction_id}-${i}-${isSubRow ? "item" : "row"}`}
+                  style={{
+                    background: isSubRow ? "#F8FAFF" : (i % 2 === 0 ? "white" : "#FAFBFC"),
+                    borderBottom: "1px solid #F3F4F6",
+                  }}
+                >
+                  {activeColumns.map(col => (
+                    <td
+                      key={col.key}
+                      style={{
+                        padding: "4px 4px",
+                        textAlign: isAmountCol(col.key) ? "left" : isCenterCol(col.key) ? "center" : "right",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: col.key === "description" ? "normal" : "nowrap",
+                        verticalAlign: "top",
+                      }}
+                    >
+                      {renderCellValue(col.key, row)}
+                    </td>
+                  ))}
+                </tr>
+              );
+            })}
 
             {/* Closing balance */}
             <tr style={{ background: "#1B3A5C", color: "white", fontWeight: 700 }}>
