@@ -571,18 +571,19 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
   };
 
   const loadPOSDailySales = async () => {
-    const { data: orders } = await supabase.from("pos_orders").select("id, created_at, total, session_id").eq("user_id", uid).eq("state", "paid").gte("created_at", dateFrom).lte("created_at", dateTo + "T23:59:59");
+    const { data: orders } = await supabase.from("pos_orders").select("id, order_number, created_at, total, session_id, customer_name, discount_amount, payment_currency, currency").eq("user_id", uid).eq("state", "paid").gte("created_at", dateFrom).lte("created_at", dateTo + "T23:59:59").order("created_at", { ascending: false });
     const { data: sessions } = await supabase.from("pos_sessions").select("id, cashier_name").eq("user_id", uid);
     const sessMap = new Map((sessions || []).map(s => [s.id, s.cashier_name || "غير محدد"]));
-    const dayMap: Record<string, { date: string; cashier: string; count: number; total: number }> = {};
-    (orders || []).forEach(o => {
-      const d = o.created_at.split("T")[0];
-      const cashier = sessMap.get(o.session_id) || "غير محدد";
-      const key = `${d}-${cashier}`;
-      if (!dayMap[key]) dayMap[key] = { date: d, cashier, count: 0, total: 0 };
-      dayMap[key].count++; dayMap[key].total += o.total;
-    });
-    setData(Object.values(dayMap).sort((a, b) => b.date.localeCompare(a.date)));
+    setData((orders || []).map(o => ({
+      order_number: o.order_number || "—",
+      date: o.created_at.split("T")[0],
+      time: o.created_at.split("T")[1]?.substring(0, 5) || "",
+      cashier: sessMap.get(o.session_id) || "غير محدد",
+      customer_name: o.customer_name || "—",
+      currency: o.payment_currency || o.currency || "ILS",
+      discount: o.discount_amount || 0,
+      total: o.total,
+    })));
   };
 
   const loadPOSCashReconciliation = async () => {
@@ -1126,12 +1127,14 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
         ];
       case "pos-daily-sales":
         return [
+          { key: "order_number", label: "رقم الفاتورة", type: "text" },
           { key: "date", label: "التاريخ", type: "date" },
+          { key: "time", label: "الوقت", type: "text" },
           { key: "cashier", label: "الكاشير", type: "text", filterType: "select", filterOptions: [...new Set(data.map((r: any) => r.cashier).filter(Boolean))] },
-          { key: "count", label: "عدد الفواتير", type: "number", align: "center" },
+          { key: "customer_name", label: "الزبون", type: "text" },
+          { key: "currency", label: "العملة", type: "text", filterType: "select", filterOptions: [...new Set(data.map((r: any) => r.currency).filter(Boolean))] },
+          { key: "discount", label: "الخصم", type: "currency" },
           { key: "total", label: "الإجمالي", type: "currency" },
-          { key: "avg", label: "متوسط الفاتورة", type: "currency",
-            format: (v, row) => <span className="font-mono text-xs">{row.count > 0 ? fmtAmtCell(row.total / row.count) : "—"}</span> },
         ];
       case "pos-cashier-performance":
         return [
@@ -1309,7 +1312,7 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
       case "by-customer": case "by-supplier":
         return { count: "sum", total: "sum" };
       case "pos-daily-sales":
-        return { count: "sum", total: "sum" };
+        return { discount: "sum", total: "sum" };
       case "ar-aging-detail": case "ap-aging-detail":
         return { current: "sum", d31_60: "sum", d61_90: "sum", over90: "sum", total: "sum" };
       case "customer-profitability": case "supplier-purchase-analysis":
