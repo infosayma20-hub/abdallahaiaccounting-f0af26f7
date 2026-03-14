@@ -592,11 +592,46 @@ const InvoicesPage = () => {
     }, 200);
   };
 
-  const updateStatus = (id: string, status: Invoice["status"]) => {
+  const updateStatus = async (id: string, status: Invoice["status"]) => {
+    // Update in DB
+    const dbStatus = status === 'paid' ? 'paid' : status === 'sent' ? 'sent' : 'draft';
+    await supabase.from("invoices").update({ status: dbStatus } as any).eq("id", id);
+    
     const updated = invoices.map(inv => inv.id === id ? { ...inv, status } : inv);
-    saveInvoices(updated);
+    setInvoices(updated);
     if (selectedInvoice?.id === id) setSelectedInvoice({ ...selectedInvoice, status });
     toast({ title: "تم تحديث الحالة ✅" });
+  };
+
+  const handleDeleteInvoice = async (id: string, reason: string) => {
+    try {
+      // Delete invoice items first, then the invoice
+      await supabase.from("invoice_items").delete().eq("invoice_id", id);
+      const { error } = await supabase.from("invoices").delete().eq("id", id);
+      if (error) throw error;
+      
+      // Also remove from local state
+      setInvoices(prev => prev.filter(inv => inv.id !== id));
+      setShowPreviewDialog(false);
+      setSelectedInvoice(null);
+      
+      // Log to document_edit_history
+      if (user) {
+        await supabase.from("document_edit_history" as any).insert({
+          document_id: id,
+          document_type: 'invoice',
+          edit_reason: reason,
+          edited_by: user.id,
+          old_data: {},
+          new_data: { action: 'delete' },
+        } as any);
+      }
+      
+      toast({ title: "تم حذف الفاتورة بنجاح ✅" });
+    } catch (err: any) {
+      console.error('Delete invoice error:', err);
+      toast({ title: "خطأ في حذف الفاتورة", description: err.message, variant: "destructive" });
+    }
   };
 
   const filtered = invoices.filter(inv => {
