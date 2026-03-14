@@ -91,6 +91,15 @@ interface Cheque {
   bank_name: string | null;
 }
 
+interface InvoiceLineItem {
+  product_name: string;
+  quantity: number;
+  unit_price: number;
+  total_amount: number;
+  unit_of_measure?: string | null;
+  discount?: number | null;
+}
+
 interface StatementRow {
   date: string;
   description: string;
@@ -103,6 +112,8 @@ interface StatementRow {
   currency: string;
   payment_method: string | null;
   dueDate?: string;
+  isLineItem?: boolean;
+  lineItemDetail?: string;
 }
 
 type EntityTab = "customers" | "suppliers" | "employees" | "accounts";
