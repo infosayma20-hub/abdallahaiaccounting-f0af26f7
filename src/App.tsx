@@ -294,6 +294,14 @@ const App = () => (
                       <Route path="/reports/order-performance" element={<GenericReportPage reportKey="order-performance" />} />
                       {/* POS */}
                       <Route path="/reports/pos-daily-sales" element={<GenericReportPage reportKey="pos-daily-sales" />} />
+                      <Route path="/reports/pos-sales-by-category" element={<GenericReportPage reportKey="pos-sales-by-category" />} />
+                      <Route path="/reports/pos-period-comparison" element={<GenericReportPage reportKey="pos-period-comparison" />} />
+                      <Route path="/reports/pos-invoice-register" element={<GenericReportPage reportKey="pos-invoice-register" />} />
+                      <Route path="/reports/pos-pending-orders" element={<GenericReportPage reportKey="pos-pending-orders" />} />
+                      <Route path="/reports/pos-shift-open-close" element={<GenericReportPage reportKey="pos-shift-open-close" />} />
+                      <Route path="/reports/pos-payment-methods" element={<GenericReportPage reportKey="pos-payment-methods" />} />
+                      <Route path="/reports/pos-product-movement" element={<GenericReportPage reportKey="pos-product-movement" />} />
+                      <Route path="/reports/pos-category-totals" element={<GenericReportPage reportKey="pos-category-totals" />} />
                       <Route path="/reports/pos-cash-reconciliation" element={<GenericReportPage reportKey="pos-cash-reconciliation" />} />
                       <Route path="/reports/pos-cashier-performance" element={<GenericReportPage reportKey="pos-cashier-performance" />} />
                       <Route path="/reports/pos-cancelled" element={<GenericReportPage reportKey="pos-cancelled" />} />
