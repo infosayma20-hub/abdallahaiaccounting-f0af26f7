@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,6 +51,7 @@ interface POSReceiptDialogProps {
   data: ReceiptData | null;
   showReturnPolicy?: boolean;
   returnPolicyDays?: number;
+  autoPrint?: boolean;
 }
 
 const paymentMethodLabel: Record<string, string> = {
@@ -59,15 +60,14 @@ const paymentMethodLabel: Record<string, string> = {
   credit: "آجل",
 };
 
-export default function POSReceiptDialog({ open, onOpenChange, data, showReturnPolicy = true, returnPolicyDays = 7 }: POSReceiptDialogProps) {
+export default function POSReceiptDialog({ open, onOpenChange, data, showReturnPolicy = true, returnPolicyDays = 7, autoPrint = false }: POSReceiptDialogProps) {
   const receiptRef = useRef<HTMLDivElement>(null);
   const [showEmail, setShowEmail] = useState(false);
   const [email, setEmail] = useState("");
   const [sending, setSending] = useState(false);
+  const autoPrintDone = useRef(false);
 
-  if (!data) return null;
-
-  const handlePrint = () => {
+  const doPrint = useCallback(() => {
     const content = receiptRef.current;
     if (!content) return;
 
@@ -137,7 +137,25 @@ export default function POSReceiptDialog({ open, onOpenChange, data, showReturnP
       printWindow.print();
       printWindow.close();
     }, 300);
-  };
+  }, []);
+
+  // Auto-print when dialog opens
+  useEffect(() => {
+    if (open && autoPrint && data && !autoPrintDone.current) {
+      autoPrintDone.current = true;
+      const timer = setTimeout(() => {
+        doPrint();
+      }, 600);
+      return () => clearTimeout(timer);
+    }
+    if (!open) {
+      autoPrintDone.current = false;
+    }
+  }, [open, autoPrint, data, doPrint]);
+
+  if (!data) return null;
+
+  const handlePrint = () => doPrint();
 
   const handleSendEmail = async () => {
     if (!email.trim()) {

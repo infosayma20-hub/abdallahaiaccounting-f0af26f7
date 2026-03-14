@@ -1774,8 +1774,8 @@ const POSPage = () => {
         console.error("Kitchen ticket creation error:", err);
       }
 
-      // Auto-open cash drawer after successful payment (if cash payment and permitted)
-      if (paymentMethod === "cash" && (isAdmin || posPerms.open_cash_drawer)) {
+      // Auto-open cash drawer after successful payment
+      if (isAdmin || posPerms.open_cash_drawer) {
         openCashDrawer();
       }
 
@@ -4056,7 +4056,7 @@ const POSPage = () => {
       </Dialog>
 
       {/* ── Receipt Dialog ── */}
-      <POSReceiptDialog open={showReceipt} onOpenChange={setShowReceipt} data={receiptData} showReturnPolicy={posReturnPolicy.show} returnPolicyDays={posReturnPolicy.days} />
+      <POSReceiptDialog open={showReceipt} onOpenChange={setShowReceipt} data={receiptData} showReturnPolicy={posReturnPolicy.show} returnPolicyDays={posReturnPolicy.days} autoPrint />
 
       {/* ── Kitchen Ticket Dialog ── */}
       <Dialog open={showKitchenTicket} onOpenChange={setShowKitchenTicket}>
