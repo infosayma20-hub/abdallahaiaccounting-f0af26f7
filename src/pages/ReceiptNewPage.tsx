@@ -67,6 +67,17 @@ const ReceiptNewPage = () => {
   const [checkDate, setCheckDate] = useState("");
   const [checkBank, setCheckBank] = useState("");
 
+  // Multiple cheque lines
+  interface ChequeLine { id: string; cheque_number: string; amount: string; due_date: string; bank_name: string; }
+  const [chequeLines, setChequeLines] = useState<ChequeLine[]>([{ id: crypto.randomUUID(), cheque_number: '', amount: '', due_date: '', bank_name: '' }]);
+  const addChequeLine = () => setChequeLines(prev => [...prev, { id: crypto.randomUUID(), cheque_number: '', amount: '', due_date: '', bank_name: '' }]);
+  const removeChequeLine = (id: string) => { if (chequeLines.length > 1) setChequeLines(prev => prev.filter(l => l.id !== id)); };
+  const updateChequeLine = (id: string, field: keyof ChequeLine, value: string) => setChequeLines(prev => prev.map(l => l.id === id ? { ...l, [field]: value } : l));
+  const chequesTotal = chequeLines.reduce((s, l) => s + (parseFloat(l.amount) || 0), 0);
+
+  // Sync amount with cheques total
+  useEffect(() => { if (paymentMethod === 'شيك' && chequesTotal > 0) setAmount(String(chequesTotal)); }, [chequesTotal, paymentMethod]);
+
   // Contact
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [contactSearch, setContactSearch] = useState("");
@@ -332,19 +343,23 @@ const ReceiptNewPage = () => {
         }
       }
 
-      // Register cheque if payment method is cheque
-      if (paymentMethod === "شيك" && !asDraft && checkNumber) {
-        await supabase.from("cheques").insert({
-          user_id: user.id,
-          cheque_type: "وارد" as const,
-          cheque_number: checkNumber,
-          cheque_date: checkDate || paymentDate,
-          amount: amountNum,
-          party_name: selectedContact.contact_name,
-          bank_name: checkBank,
-          status: "مسجل" as const,
-          currency: "شيكل",
-        });
+      // Register cheques if payment method is cheque
+      if (paymentMethod === "شيك" && !asDraft) {
+        for (const line of chequeLines) {
+          if (!line.cheque_number && !line.amount) continue;
+          await supabase.from("cheques").insert({
+            user_id: user.id,
+            cheque_type: "وارد" as const,
+            cheque_number: line.cheque_number || null,
+            cheque_date: line.due_date || paymentDate,
+            amount: parseFloat(line.amount) || 0,
+            party_name: selectedContact.contact_name,
+            bank_name: line.bank_name || null,
+            status: "مسجل" as const,
+            currency: "شيكل",
+            receipt_voucher_id: receipt?.id || null,
+          });
+        }
       }
 
       toast.success(asDraft ? "تم حفظ المسودة" : `تم ترحيل سند القبض ${receipt?.receipt_number}`);
@@ -623,21 +638,42 @@ const ReceiptNewPage = () => {
             </div>
           </div>
 
-          {/* Cheque details */}
+          {/* Cheque details — multiple cheques */}
           {paymentMethod === "شيك" && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 border-t border-border/30">
-              <div>
-                <Label className="text-xs mb-1.5 block">رقم الشيك</Label>
-                <Input value={checkNumber} onChange={e => setCheckNumber(e.target.value)} placeholder="رقم الشيك" />
+            <div className="pt-2 border-t border-border/30 space-y-3">
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5">📋 الشيكات الواردة</h4>
+                <span className="text-[10px] text-muted-foreground">{chequeLines.length} شيك — ₪{chequesTotal.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
-              <div>
-                <Label className="text-xs mb-1.5 block">تاريخ الشيك</Label>
-                <Input type="date" value={checkDate} onChange={e => setCheckDate(e.target.value)} />
+              <div className="rounded-xl border border-border overflow-hidden">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="bg-muted/50 text-muted-foreground">
+                      <th className="p-2 text-right font-medium">#</th>
+                      <th className="p-2 text-right font-medium">رقم الشيك</th>
+                      <th className="p-2 text-right font-medium">المبلغ</th>
+                      <th className="p-2 text-right font-medium">الاستحقاق</th>
+                      <th className="p-2 text-right font-medium">البنك</th>
+                      <th className="p-2 text-right font-medium w-10"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {chequeLines.map((line, idx) => (
+                      <tr key={line.id} className="border-t border-border/30">
+                        <td className="p-2 text-muted-foreground">{idx + 1}</td>
+                        <td className="p-2"><Input value={line.cheque_number} onChange={e => updateChequeLine(line.id, 'cheque_number', e.target.value)} placeholder="رقم الشيك" className="h-7 text-xs" /></td>
+                        <td className="p-2"><Input type="number" value={line.amount} onChange={e => updateChequeLine(line.id, 'amount', e.target.value)} placeholder="0" className="h-7 text-xs font-mono text-left" /></td>
+                        <td className="p-2"><Input type="date" value={line.due_date} onChange={e => updateChequeLine(line.id, 'due_date', e.target.value)} className="h-7 text-xs" /></td>
+                        <td className="p-2"><Input value={line.bank_name} onChange={e => updateChequeLine(line.id, 'bank_name', e.target.value)} placeholder="البنك" className="h-7 text-xs" /></td>
+                        <td className="p-2">{chequeLines.length > 1 && <button onClick={() => removeChequeLine(line.id)} className="text-destructive hover:text-destructive/80"><X className="h-3.5 w-3.5" /></button>}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-              <div>
-                <Label className="text-xs mb-1.5 block">اسم البنك</Label>
-                <Input value={checkBank} onChange={e => setCheckBank(e.target.value)} placeholder="اسم البنك" />
-              </div>
+              <button onClick={addChequeLine} className="flex items-center gap-1.5 w-full justify-center py-2 rounded-xl border border-dashed border-border text-xs text-muted-foreground hover:bg-muted/30 transition-colors">
+                + إضافة شيك آخر
+              </button>
             </div>
           )}
         </CardContent>
