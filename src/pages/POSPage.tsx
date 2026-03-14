@@ -3519,10 +3519,16 @@ const POSPage = () => {
 
             {/* Customer for credit */}
             {paymentMethod === "credit" && (
-              <div className="relative">
-                <label className="text-sm font-medium mb-1.5 block">اسم الزبون</label>
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.25 }}
+                className="space-y-2"
+              >
+                <label className="text-sm font-bold block">اسم الزبون</label>
                 <div className="relative">
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">@</span>
+                  <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                   <Input
                     value={customerSearch || customerName}
                     onChange={(e) => {
@@ -3532,39 +3538,55 @@ const POSPage = () => {
                     }}
                     onFocus={() => setShowContactDropdown(true)}
                     placeholder="ابحث عن زبون..."
-                    className="h-10 pr-8"
+                    className="h-11 pr-10 text-sm"
+                    autoFocus
                   />
                 </div>
-                {showContactDropdown && (
-                  <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-lg shadow-lg max-h-40 overflow-y-auto">
-                    {filteredContacts.map((contact) => (
-                      <button
-                        key={contact.id}
-                        onClick={() => {
-                          setCustomerName(contact.contact_name, contact.id);
-                          setCustomerSearch("");
-                          setShowContactDropdown(false);
-                        }}
-                        className="w-full px-3 py-2 text-sm text-right hover:bg-muted/50 transition flex items-center gap-2"
-                      >
-                        <User className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                        <span>{contact.contact_name}</span>
-                      </button>
-                    ))}
-                    <button
-                      onClick={() => {
-                        setNewCustomerName(customerSearch || "");
-                        setShowQuickAddCustomer(true);
-                        setShowContactDropdown(false);
-                      }}
-                      className="w-full px-3 py-2 text-sm text-right hover:bg-primary/10 transition flex items-center gap-2 border-t border-border text-primary font-medium"
-                    >
-                      <PlusCircle className="h-3.5 w-3.5 shrink-0" />
-                      <span>إضافة زبون جديد</span>
-                    </button>
-                  </div>
-                )}
-              </div>
+
+                {/* Inline scrollable customer list */}
+                <div className="border border-border rounded-xl overflow-hidden bg-card">
+                  <ScrollArea className="max-h-[200px]">
+                    {filteredContacts.length > 0 ? (
+                      <div className="divide-y divide-border">
+                        {filteredContacts.map((contact) => (
+                          <button
+                            key={contact.id}
+                            onClick={() => {
+                              setCustomerName(contact.contact_name, contact.id);
+                              setCustomerSearch("");
+                              setShowContactDropdown(false);
+                            }}
+                            className={`w-full px-3 py-2.5 text-sm text-right hover:bg-primary/5 transition flex items-center gap-2 ${
+                              customerName === contact.contact_name ? "bg-primary/10 font-semibold" : ""
+                            }`}
+                          >
+                            <User className="h-4 w-4 text-muted-foreground shrink-0" />
+                            <span className="flex-1 truncate">{contact.contact_name}</span>
+                            {customerName === contact.contact_name && (
+                              <CheckCircle className="h-4 w-4 text-primary shrink-0" />
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="py-6 text-center text-sm text-muted-foreground">
+                        لا يوجد نتائج
+                      </div>
+                    )}
+                  </ScrollArea>
+                  <button
+                    onClick={() => {
+                      setNewCustomerName(customerSearch || "");
+                      setShowQuickAddCustomer(true);
+                      setShowContactDropdown(false);
+                    }}
+                    className="w-full px-3 py-2.5 text-sm text-right hover:bg-primary/10 transition flex items-center gap-2 border-t border-border text-primary font-semibold bg-primary/5"
+                  >
+                    <PlusCircle className="h-4 w-4 shrink-0" />
+                    <span>إضافة زبون جديد</span>
+                  </button>
+                </div>
+              </motion.div>
             )}
 
             {/* Employee selector for employee_account */}
