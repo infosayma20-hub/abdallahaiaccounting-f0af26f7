@@ -187,9 +187,9 @@ export default function POSReceiptDialog({ open, onOpenChange, data }: POSReceip
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[400px] max-h-[90vh] overflow-y-auto p-0" dir="rtl">
+      <DialogContent className="sm:max-w-[400px] max-h-[95vh] flex flex-col p-0" dir="rtl">
         {/* Success header */}
-        <div className="bg-[#0f172a] text-white p-4 flex items-center gap-3">
+        <div className="bg-[#0f172a] text-white p-4 flex items-center gap-3 shrink-0">
           <div className="w-10 h-10 rounded-full bg-[#16a34a] flex items-center justify-center shrink-0">
             <CheckCircle className="h-5 w-5" />
           </div>
