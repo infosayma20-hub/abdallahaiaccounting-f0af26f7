@@ -298,8 +298,10 @@ const App = () => (
                       <Route path="/reports/pos-period-comparison" element={<GenericReportPage reportKey="pos-period-comparison" />} />
                       <Route path="/reports/pos-invoice-register" element={<GenericReportPage reportKey="pos-invoice-register" />} />
                       <Route path="/reports/pos-pending-orders" element={<GenericReportPage reportKey="pos-pending-orders" />} />
+                      <Route path="/reports/pos-invoice-timing" element={<GenericReportPage reportKey="pos-invoice-timing" />} />
                       <Route path="/reports/pos-shift-open-close" element={<GenericReportPage reportKey="pos-shift-open-close" />} />
                       <Route path="/reports/pos-payment-methods" element={<GenericReportPage reportKey="pos-payment-methods" />} />
+                      <Route path="/reports/pos-credit-sales" element={<GenericReportPage reportKey="pos-credit-sales" />} />
                       <Route path="/reports/pos-product-movement" element={<GenericReportPage reportKey="pos-product-movement" />} />
                       <Route path="/reports/pos-category-totals" element={<GenericReportPage reportKey="pos-category-totals" />} />
                       <Route path="/reports/pos-cash-reconciliation" element={<GenericReportPage reportKey="pos-cash-reconciliation" />} />
