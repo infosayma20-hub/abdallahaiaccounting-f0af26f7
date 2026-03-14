@@ -118,11 +118,13 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
 
   const tableData = useMemo(() => {
     return vouchers.map(v => {
-      const contact = contacts.find(c => c.id === v.contact_id);
+      // For receipts, contact_name is directly on the record
+      // For payments, we look up from contacts list
+      const contactName = v.contact_name || contacts.find(c => c.id === v.contact_id)?.contact_name || "—";
       return {
         ...v,
-        contact_name: contact?.contact_name || "—",
-        payment_label: PAYMENT_LABELS[v.payment_method] || "—",
+        contact_name: contactName,
+        payment_label: PAYMENT_LABELS[v.payment_method] || v.payment_method || "—",
         status_label: STATUS_LABELS[v.status] || v.status,
         amount_display: Number(v.amount_ils || v.amount || 0),
       };
