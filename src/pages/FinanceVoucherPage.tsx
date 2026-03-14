@@ -346,14 +346,22 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
                       <td className="px-3 py-3">
                         <button
                           className="text-primary hover:underline font-mono text-xs cursor-pointer bg-transparent border-none p-0"
-                          onClick={() => { setEditVoucherId(v.id); setDrawerOpen(true); }}
+                          onClick={() => {
+                            if (isReceipt) {
+                              // Receipt vouchers don't use VoucherDrawer
+                              // Just view details (could navigate to edit page in future)
+                              setEditVoucherId(v.id); setDrawerOpen(true);
+                            } else {
+                              setEditVoucherId(v.id); setDrawerOpen(true);
+                            }
+                          }}
                         >
                           {v.ref_number}
                         </button>
                       </td>
                       <td className="px-3 py-3 text-xs text-foreground tabular-nums">{v.date || "—"}</td>
                       <td className="px-3 py-3 text-sm font-medium text-foreground">{v.contact_name}</td>
-                      <td className="px-3 py-3 text-xs text-muted-foreground truncate max-w-[200px]">{v.description || "—"}</td>
+                      <td className="px-3 py-3 text-xs text-muted-foreground truncate max-w-[200px]">{v.description || v.notes || "—"}</td>
                       <td className="px-3 py-3 text-xs text-muted-foreground">{v.payment_label}</td>
                       <td className="px-3 py-3 text-sm font-bold tabular-nums text-foreground">₪{v.amount_display.toLocaleString()}</td>
                       <td className="px-3 py-3">
