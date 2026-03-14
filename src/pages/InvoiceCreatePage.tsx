@@ -499,30 +499,36 @@ const InvoiceCreatePage = () => {
     return true;
   };
 
-  // ─── Create Invoice ───
+  // ─── Create / Update Invoice ───
   const handleCreate = async (asDraft = false) => {
     if (!asDraft && !validate()) return;
     if (!user) return;
     setCreating(true);
 
-    const paymentMethodAr = form.paymentMethod === 'cash' ? 'نقدي' : form.paymentMethod === 'transfer' ? 'بنك' : form.paymentMethod === 'cheque' ? 'شيك' : 'آجل';
+    const paymentMethodDb = mapPaymentMethodToDb(form.paymentMethod);
 
     try {
-      // If new contact, create in DB
-      if (form.contactName.trim() && !form.contactId) {
-        const { data: newContact } = await supabase.from("contacts").insert({
-          user_id: user.id,
-          contact_name: form.contactName.trim(),
-          contact_type: form.type === "sales" ? "عميل" : "مورد",
-        } as any).select("id").single();
-        if (newContact) form.contactId = newContact.id;
+      let contactId = form.contactId;
+
+      if (form.contactName.trim() && !contactId) {
+        const { data: newContact, error: contactError } = await supabase
+          .from("contacts")
+          .insert({
+            user_id: user.id,
+            contact_name: form.contactName.trim(),
+            contact_type: form.type === "sales" ? "عميل" : "مورد",
+          } as any)
+          .select("id")
+          .single();
+
+        if (contactError) throw contactError;
+        contactId = newContact?.id ?? null;
       }
 
-      const { data: dbInv, error: invErr } = await supabase.from("invoices").insert({
-        user_id: user.id,
-        invoice_type: form.type === 'sales' ? 'sale' : 'purchase',
+      const invoicePayload = {
+        invoice_type: form.type === "sales" ? "sale" : "purchase",
         contact_name: form.contactName,
-        contact_id: form.contactId,
+        contact_id: contactId,
         invoice_date: form.date,
         due_date: form.dueDate || null,
         subtotal: summary.subtotal,
@@ -531,8 +537,8 @@ const InvoiceCreatePage = () => {
         total_amount: summary.total,
         paid_amount: summary.paidAmount,
         remaining_amount: summary.remainingAmount,
-        payment_status: summary.remainingAmount <= 0 ? 'paid' : 'unpaid',
-        payment_method: paymentMethodAr,
+        payment_status: summary.remainingAmount <= 0 ? "paid" : "unpaid",
+        payment_method: paymentMethodDb,
         currency: form.currency,
         notes: form.notes,
         notes_internal: form.notesInternal || null,
@@ -542,41 +548,90 @@ const InvoiceCreatePage = () => {
         amount_in_words: amountInWords,
         payment_terms: form.paymentTerms,
         exchange_rate: form.exchangeRate,
-        source: 'manual',
-        status: asDraft ? 'draft' : 'sent',
-      } as any).select('id, invoice_number').single();
+      };
 
-      if (invErr || !dbInv) {
-        console.error('DB invoice error:', invErr);
-        toast({ title: "خطأ في حفظ الفاتورة", variant: "destructive" });
-        setCreating(false);
+      const buildItemsPayload = (invoiceId: string) =>
+        form.items
+          .filter(i => i.description.trim())
+          .map(item => ({
+            invoice_id: invoiceId,
+            product_id: item.productId || null,
+            product_name: item.description,
+            quantity: item.quantity,
+            unit_price: item.unitPrice,
+            discount: item.discount,
+            discount_type: item.discountType,
+            tax_rate: item.taxRate,
+            total_amount: calcItemSubtotal(item),
+            unit_of_measure: item.unitOfMeasure,
+          }));
+
+      if (isEditMode && editInvoiceId) {
+        const updatePayload: Record<string, any> = { ...invoicePayload };
+        if (asDraft) updatePayload.status = "draft";
+
+        const { error: updateError } = await supabase
+          .from("invoices")
+          .update(updatePayload as any)
+          .eq("id", editInvoiceId)
+          .eq("user_id", user.id);
+
+        if (updateError) throw updateError;
+
+        const { error: deleteItemsError } = await supabase
+          .from("invoice_items")
+          .delete()
+          .eq("invoice_id", editInvoiceId);
+
+        if (deleteItemsError) throw deleteItemsError;
+
+        const updatedItems = buildItemsPayload(editInvoiceId);
+        if (updatedItems.length > 0) {
+          const { error: itemsError } = await supabase.from("invoice_items").insert(updatedItems as any);
+          if (itemsError) throw itemsError;
+        }
+
+        await supabase.from("invoice_activity_log").insert({
+          invoice_id: editInvoiceId,
+          user_id: user.id,
+          action: asDraft ? "updated_draft" : "updated",
+          details: { total: summary.total, payment_method: paymentMethodDb },
+        } as any);
+
+        toast({ title: asDraft ? "تم حفظ التعديلات كمسودة ✅" : "تم تحديث الفاتورة ✅" });
+        navigate("/invoices");
         return;
       }
 
-      // Insert items
-      const itemsToInsert = form.items.filter(i => i.description.trim()).map(item => ({
-        invoice_id: dbInv.id,
-        product_id: item.productId || null,
-        product_name: item.description,
-        quantity: item.quantity,
-        unit_price: item.unitPrice,
-        discount: item.discountType === "percent" ? item.discount : item.discount,
-        discount_type: item.discountType,
-        tax_rate: item.taxRate,
-        total_amount: calcItemSubtotal(item),
-        unit_of_measure: item.unitOfMeasure,
-      }));
+      const { data: dbInv, error: invErr } = await supabase
+        .from("invoices")
+        .insert({
+          ...invoicePayload,
+          user_id: user.id,
+          source: "manual",
+          status: asDraft ? "draft" : "sent",
+        } as any)
+        .select("id, invoice_number")
+        .single();
+
+      if (invErr || !dbInv) throw invErr ?? new Error("Invoice insert failed");
+
+      const itemsToInsert = buildItemsPayload(dbInv.id);
       if (itemsToInsert.length > 0) {
-        await supabase.from("invoice_items").insert(itemsToInsert as any);
+        const { error: itemsError } = await supabase.from("invoice_items").insert(itemsToInsert as any);
+        if (itemsError) throw itemsError;
       }
 
       if (!asDraft) {
-        // Update inventory
         for (const item of form.items) {
           if (!item.productId) continue;
           const prod = products.find(p => p.id === item.productId);
           if (!prod) continue;
-          const newQty = form.type === "sales" ? Number(prod.quantity) - item.quantity : Number(prod.quantity) + item.quantity;
+
+          const newQty = form.type === "sales"
+            ? Number(prod.quantity) - item.quantity
+            : Number(prod.quantity) + item.quantity;
+
           await supabase.from("products").update({ quantity: newQty } as any).eq("id", item.productId);
           await supabase.from("stock_movements").insert({
             product_id: item.productId,
@@ -587,7 +642,6 @@ const InvoiceCreatePage = () => {
           } as any);
         }
 
-        // Create cheque if needed
         if (form.paymentMethod === "cheque") {
           await supabase.from("cheques").insert({
             user_id: user.id,
@@ -604,7 +658,6 @@ const InvoiceCreatePage = () => {
           } as any);
         }
 
-        // Create journal entry via RPC
         const debitCode = form.paymentMethod === "cash" ? "1110" : form.paymentMethod === "transfer" ? "1120" : form.paymentMethod === "cheque" ? "1150" : "1130";
         await supabase.from("transactions").insert({
           user_id: user.id,
@@ -615,28 +668,28 @@ const InvoiceCreatePage = () => {
           amount: summary.total,
           currency: form.currency,
           transaction_type: form.type === "sales" ? "sale" : "purchase",
-          contact_id: form.contactId,
+          contact_id: contactId,
           reference: dbInv.invoice_number,
-          payment_method: paymentMethodAr,
+          payment_method: paymentMethodDb,
           idempotency_key: `INV-${dbInv.id}`,
         } as any);
       }
 
-      // Log activity
       await supabase.from("invoice_activity_log").insert({
         invoice_id: dbInv.id,
         user_id: user.id,
         action: asDraft ? "created_draft" : "created",
-        details: { total: summary.total, payment_method: paymentMethodAr },
+        details: { total: summary.total, payment_method: paymentMethodDb },
       } as any);
 
       toast({ title: asDraft ? "تم حفظ المسودة ✅" : `تم إنشاء الفاتورة ${dbInv.invoice_number} ✅` });
       navigate("/invoices");
     } catch (err: any) {
-      console.error('Invoice creation error:', err);
-      toast({ title: "خطأ في إنشاء الفاتورة", description: err.message, variant: "destructive" });
+      console.error("Invoice save error:", err);
+      toast({ title: "خطأ في حفظ الفاتورة", description: err.message, variant: "destructive" });
+    } finally {
+      setCreating(false);
     }
-    setCreating(false);
   };
 
   // ─── Print Preview ───
