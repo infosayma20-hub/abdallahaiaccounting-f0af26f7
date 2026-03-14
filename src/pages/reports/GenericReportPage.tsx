@@ -649,8 +649,213 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
   };
 
   // ═══════════════════════════════════
-  // RECEIVABLES & PAYABLES LOADERS
+  // NEW POS REPORT LOADERS
   // ═══════════════════════════════════
+
+  const loadPOSSalesByCategory = async () => {
+    const { data: orders } = await supabase.from("pos_orders").select("id").eq("user_id", uid).eq("state", "paid").gte("created_at", dateFrom).lte("created_at", dateTo + "T23:59:59");
+    if (!orders?.length) { setData([]); return; }
+    const orderIds = orders.map(o => o.id);
+    // Fetch in batches of 500
+    const allLines: any[] = [];
+    for (let i = 0; i < orderIds.length; i += 500) {
+      const batch = orderIds.slice(i, i + 500);
+      const { data: lines } = await supabase.from("pos_order_lines").select("product_id, product_name, qty, total, cost_price, unit_price").in("order_id", batch);
+      if (lines) allLines.push(...lines);
+    }
+    // Get product categories
+    const prodIds = [...new Set(allLines.filter(l => l.product_id).map(l => l.product_id))];
+    const prodCatMap = new Map<string, string>();
+    if (prodIds.length) {
+      for (let i = 0; i < prodIds.length; i += 500) {
+        const batch = prodIds.slice(i, i + 500);
+        const { data: prods } = await supabase.from("products").select("id, category").in("id", batch);
+        (prods || []).forEach(p => prodCatMap.set(p.id, p.category || "بدون فئة"));
+      }
+    }
+    const catMap: Record<string, { category: string; product: string; qty: number; revenue: number; cost: number }> = {};
+    allLines.forEach(l => {
+      const cat = l.product_id ? (prodCatMap.get(l.product_id) || "بدون فئة") : "بدون فئة";
+      const key = `${cat}||${l.product_name}`;
+      if (!catMap[key]) catMap[key] = { category: cat, product: l.product_name, qty: 0, revenue: 0, cost: 0 };
+      catMap[key].qty += l.qty;
+      catMap[key].revenue += l.total;
+      catMap[key].cost += l.cost_price * l.qty;
+    });
+    const totalRevenue = Object.values(catMap).reduce((s, c) => s + c.revenue, 0);
+    setData(Object.values(catMap).map(c => ({
+      ...c, profit: c.revenue - c.cost,
+      pct: totalRevenue > 0 ? ((c.revenue / totalRevenue) * 100) : 0,
+    })).sort((a, b) => b.revenue - a.revenue));
+  };
+
+  const loadPOSPeriodComparison = async () => {
+    const { data: orders } = await supabase.from("pos_orders").select("created_at, total, discount_amount").eq("user_id", uid).eq("state", "paid").gte("created_at", dateFrom).lte("created_at", dateTo + "T23:59:59");
+    // Group by day
+    const dayMap: Record<string, { period: string; sales: number; orders: number; discounts: number }> = {};
+    (orders || []).forEach(o => {
+      const d = o.created_at.split("T")[0];
+      if (!dayMap[d]) dayMap[d] = { period: d, sales: 0, orders: 0, discounts: 0 };
+      dayMap[d].sales += o.total;
+      dayMap[d].orders++;
+      dayMap[d].discounts += o.discount_amount || 0;
+    });
+    const sorted = Object.values(dayMap).sort((a, b) => a.period.localeCompare(b.period));
+    // Calculate growth
+    const result = sorted.map((d, i) => ({
+      ...d,
+      avg: d.orders > 0 ? Math.round(d.sales / d.orders) : 0,
+      growth: i > 0 && sorted[i - 1].sales > 0
+        ? (((d.sales - sorted[i - 1].sales) / sorted[i - 1].sales) * 100)
+        : 0,
+    }));
+    setData(result);
+  };
+
+  const loadPOSInvoiceRegister = async () => {
+    const { data: orders } = await supabase.from("pos_orders").select("id, order_number, created_at, total, discount_amount, tax_amount, subtotal, state, customer_name, session_id, payment_currency, currency").eq("user_id", uid).gte("created_at", dateFrom).lte("created_at", dateTo + "T23:59:59").order("created_at", { ascending: false });
+    const { data: sessions } = await supabase.from("pos_sessions").select("id, cashier_name").eq("user_id", uid);
+    const sessMap = new Map((sessions || []).map(s => [s.id, s.cashier_name || "غير محدد"]));
+    setData((orders || []).map(o => ({
+      order_number: o.order_number || "—",
+      date: o.created_at.split("T")[0],
+      time: o.created_at.split("T")[1]?.substring(0, 5) || "",
+      cashier: sessMap.get(o.session_id) || "غير محدد",
+      customer: o.customer_name || "—",
+      subtotal: o.subtotal,
+      discount: o.discount_amount || 0,
+      tax: o.tax_amount || 0,
+      total: o.total,
+      currency: o.payment_currency || o.currency || "ILS",
+      state: o.state,
+    })));
+  };
+
+  const loadPOSPendingOrders = async () => {
+    const { data: orders } = await supabase.from("pos_orders").select("id, order_number, created_at, total, customer_name, session_id, table_id, guest_count").eq("user_id", uid).eq("state", "draft").order("created_at", { ascending: false });
+    const { data: sessions } = await supabase.from("pos_sessions").select("id, cashier_name").eq("user_id", uid);
+    const sessMap = new Map((sessions || []).map(s => [s.id, s.cashier_name || "غير محدد"]));
+    setData((orders || []).map(o => {
+      const mins = Math.round((Date.now() - new Date(o.created_at).getTime()) / 60000);
+      return {
+        order_number: o.order_number || "—",
+        date: o.created_at.split("T")[0],
+        time: o.created_at.split("T")[1]?.substring(0, 5) || "",
+        cashier: sessMap.get(o.session_id) || "غير محدد",
+        customer: o.customer_name || "—",
+        total: o.total,
+        wait_minutes: mins,
+      };
+    }));
+  };
+
+  const loadPOSShiftOpenClose = async () => {
+    const { data: sessions } = await supabase.from("pos_sessions").select("id, cashier_name, opened_at, closed_at, opening_cash, closing_cash, state").eq("user_id", uid).eq("is_deleted", false).gte("opened_at", dateFrom).lte("opened_at", dateTo + "T23:59:59").order("opened_at", { ascending: false });
+    setData((sessions || []).map(s => {
+      const dur = s.closed_at ? Math.round((new Date(s.closed_at).getTime() - new Date(s.opened_at).getTime()) / 3600000 * 10) / 10 : 0;
+      return {
+        cashier: s.cashier_name || "غير محدد",
+        date: s.opened_at.split("T")[0],
+        open_time: s.opened_at.split("T")[1]?.substring(0, 5) || "",
+        close_time: s.closed_at ? s.closed_at.split("T")[1]?.substring(0, 5) || "" : "مفتوحة",
+        opening: s.opening_cash || 0,
+        closing: s.closing_cash ?? 0,
+        duration_hrs: dur,
+        state: s.state,
+      };
+    }));
+  };
+
+  const loadPOSPaymentMethods = async () => {
+    const { data: payments } = await supabase.from("pos_payments").select("payment_method, amount, currency").eq("user_id", uid).gte("created_at", dateFrom).lte("created_at", dateTo + "T23:59:59");
+    const methodMap: Record<string, { method: string; count: number; total: number; max: number; min: number }> = {};
+    (payments || []).forEach(p => {
+      const m = p.payment_method === "cash" ? "نقدي" : p.payment_method === "card" ? "بطاقة" : p.payment_method === "credit" ? "آجل" : p.payment_method || "نقدي";
+      if (!methodMap[m]) methodMap[m] = { method: m, count: 0, total: 0, max: 0, min: Infinity };
+      methodMap[m].count++;
+      methodMap[m].total += p.amount;
+      methodMap[m].max = Math.max(methodMap[m].max, p.amount);
+      methodMap[m].min = Math.min(methodMap[m].min, p.amount);
+    });
+    const totalAll = Object.values(methodMap).reduce((s, m) => s + m.total, 0);
+    setData(Object.values(methodMap).map(m => ({
+      ...m,
+      avg: m.count > 0 ? Math.round(m.total / m.count) : 0,
+      min: m.min === Infinity ? 0 : m.min,
+      pct: totalAll > 0 ? ((m.total / totalAll) * 100) : 0,
+    })).sort((a, b) => b.total - a.total));
+  };
+
+  const loadPOSProductMovement = async () => {
+    // Paid orders
+    const { data: paidOrders } = await supabase.from("pos_orders").select("id").eq("user_id", uid).eq("state", "paid").gte("created_at", dateFrom).lte("created_at", dateTo + "T23:59:59");
+    // Return orders
+    const { data: returnOrders } = await supabase.from("pos_orders").select("id").eq("user_id", uid).eq("is_return", true).gte("created_at", dateFrom).lte("created_at", dateTo + "T23:59:59");
+    const paidIds = (paidOrders || []).map(o => o.id);
+    const returnIds = (returnOrders || []).map(o => o.id);
+    const allIds = [...paidIds, ...returnIds];
+    if (!allIds.length) { setData([]); return; }
+    const allLines: any[] = [];
+    for (let i = 0; i < allIds.length; i += 500) {
+      const batch = allIds.slice(i, i + 500);
+      const { data: lines } = await supabase.from("pos_order_lines").select("product_name, product_id, qty, total, unit_price, order_id").in("order_id", batch);
+      if (lines) allLines.push(...lines);
+    }
+    const returnIdSet = new Set(returnIds);
+    const prodMap: Record<string, { product: string; sold_qty: number; return_qty: number; revenue: number; avg_price: number }> = {};
+    allLines.forEach(l => {
+      const key = l.product_name;
+      if (!prodMap[key]) prodMap[key] = { product: key, sold_qty: 0, return_qty: 0, revenue: 0, avg_price: 0 };
+      if (returnIdSet.has(l.order_id)) {
+        prodMap[key].return_qty += l.qty;
+      } else {
+        prodMap[key].sold_qty += l.qty;
+        prodMap[key].revenue += l.total;
+      }
+    });
+    setData(Object.values(prodMap).map(p => ({
+      ...p,
+      net_qty: p.sold_qty - p.return_qty,
+      avg_price: p.sold_qty > 0 ? Math.round(p.revenue / p.sold_qty) : 0,
+    })).sort((a, b) => b.revenue - a.revenue));
+  };
+
+  const loadPOSCategoryTotals = async () => {
+    const { data: orders } = await supabase.from("pos_orders").select("id").eq("user_id", uid).eq("state", "paid").gte("created_at", dateFrom).lte("created_at", dateTo + "T23:59:59");
+    if (!orders?.length) { setData([]); return; }
+    const orderIds = orders.map(o => o.id);
+    const allLines: any[] = [];
+    for (let i = 0; i < orderIds.length; i += 500) {
+      const batch = orderIds.slice(i, i + 500);
+      const { data: lines } = await supabase.from("pos_order_lines").select("product_id, qty, total").in("order_id", batch);
+      if (lines) allLines.push(...lines);
+    }
+    const prodIds = [...new Set(allLines.filter(l => l.product_id).map(l => l.product_id))];
+    const prodCatMap = new Map<string, string>();
+    if (prodIds.length) {
+      for (let i = 0; i < prodIds.length; i += 500) {
+        const batch = prodIds.slice(i, i + 500);
+        const { data: prods } = await supabase.from("products").select("id, category").in("id", batch);
+        (prods || []).forEach(p => prodCatMap.set(p.id, p.category || "بدون فئة"));
+      }
+    }
+    const catMap: Record<string, { category: string; items: number; qty: number; revenue: number }> = {};
+    const seenProducts = new Map<string, Set<string>>();
+    allLines.forEach(l => {
+      const cat = l.product_id ? (prodCatMap.get(l.product_id) || "بدون فئة") : "بدون فئة";
+      if (!catMap[cat]) { catMap[cat] = { category: cat, items: 0, qty: 0, revenue: 0 }; seenProducts.set(cat, new Set()); }
+      catMap[cat].qty += l.qty;
+      catMap[cat].revenue += l.total;
+      if (l.product_id) seenProducts.get(cat)!.add(l.product_id);
+    });
+    const totalRevenue = Object.values(catMap).reduce((s, c) => s + c.revenue, 0);
+    setData(Object.values(catMap).map(c => ({
+      ...c,
+      items: seenProducts.get(c.category)?.size || 0,
+      pct: totalRevenue > 0 ? ((c.revenue / totalRevenue) * 100) : 0,
+    })).sort((a, b) => b.revenue - a.revenue));
+  };
+
 
   const loadARAgingDetail = async () => {
     const contactTypes = ["عميل", "customer", "زبون"];
