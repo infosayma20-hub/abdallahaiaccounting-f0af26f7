@@ -69,7 +69,13 @@ export default function DashboardHeader({ companyName, companyLogo, period, onPe
               <h1 className="text-lg md:text-xl font-extrabold text-foreground" style={{ fontFamily: "Tajawal, sans-serif" }}>
                 {companyName || "شركتي"}
               </h1>
-              <FinixLogo variant="icon" size="sm" className="opacity-80" />
+              {companyLogo ? (
+                <img src={companyLogo} alt="شعار الشركة" className="h-8 w-8 rounded-lg object-contain" />
+              ) : (
+                <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Building2 className="h-4 w-4 text-primary" />
+                </div>
+              )}
             </div>
             <p className="text-[11px] text-muted-foreground">نظام FINIX — لوحة المعلومات</p>
           </div>
