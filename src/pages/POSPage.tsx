@@ -1774,8 +1774,8 @@ const POSPage = () => {
         console.error("Kitchen ticket creation error:", err);
       }
 
-      // Auto-open cash drawer after successful payment (if cash payment and permitted)
-      if (paymentMethod === "cash" && (isAdmin || posPerms.open_cash_drawer)) {
+      // Auto-open cash drawer after successful payment
+      if (isAdmin || posPerms.open_cash_drawer) {
         openCashDrawer();
       }
 
