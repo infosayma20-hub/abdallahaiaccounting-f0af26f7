@@ -740,7 +740,7 @@ const AccountStatementPage = () => {
     return cheques.filter(c =>
       c.party_name === selectedEntityName &&
       c.cheque_type === "وارد" &&
-      (c.status === "بانتظار" || c.status === "registered" || c.status === "deposited") &&
+      (c.status === "مسجل" || c.status === "آجل" || c.status === "مستحق" || c.status === "مودع" || c.status === "بانتظار" || c.status === "registered" || c.status === "deposited") &&
       c.cheque_date > today
     );
   }, [cheques, selectedEntityName]);
