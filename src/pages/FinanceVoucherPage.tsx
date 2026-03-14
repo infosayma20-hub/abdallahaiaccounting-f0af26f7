@@ -2,16 +2,19 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Loader2, Plus, DollarSign, Hash, Calendar, ArrowRight, Search, X,
-  ArrowUpDown, ChevronLeft, ChevronRight, FileText, Copy
+  ArrowUpDown, ChevronLeft, ChevronRight, FileText, Copy, Pencil, Trash2
 } from "lucide-react";
 import DuplicateConfirmModal from "@/components/DuplicateConfirmModal";
+import DeleteDocumentDialog from "@/components/documents/DeleteDocumentDialog";
+import EditPostedWarningDialog from "@/components/documents/EditPostedWarningDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-// VoucherDrawer removed — edit now navigates to VoucherFormPage
+import { useDocumentPermissions } from "@/hooks/useDocumentPermissions";
+import { toast } from "@/hooks/use-toast";
 
 type VoucherType = "receipt" | "payment";
 
