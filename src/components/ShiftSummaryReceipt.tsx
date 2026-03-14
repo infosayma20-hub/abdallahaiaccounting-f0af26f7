@@ -220,12 +220,14 @@ export default function ShiftSummaryReceipt({ open, onOpenChange, data }: ShiftS
                   تفاصيل العملات المقبوضة
                 </div>
                 {Object.entries(data.currencyBreakdown).map(([cur, info]) => {
-                  const symbol = cur === "ILS" ? "₪" : cur === "USD" ? "$" : cur === "JOD" ? "د.أ" : cur === "EUR" ? "€" : cur;
+                  const symbol = cur === "ILS" ? "₪" : cur === "USD" ? "$" : cur === "JOD" ? "د.أ " : cur === "EUR" ? "€" : cur;
                   const label = cur === "ILS" ? "شيكل" : cur === "USD" ? "دولار" : cur === "JOD" ? "دينار" : cur === "EUR" ? "يورو" : cur;
+                  const prefix = cur === "JOD" ? "" : symbol;
+                  const suffix = cur === "JOD" ? " د.أ" : "";
                   return (
                     <div key={cur} style={{ display: "flex", justifyContent: "space-between", padding: "2px 0", fontSize: 12, color: "#475569" }}>
                       <span>{label} ({info.count} طلب)</span>
-                      <span style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{symbol}{info.sales.toFixed(2)}</span>
+                      <span style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{prefix}{info.sales.toFixed(2)}{suffix}</span>
                     </div>
                   );
                 })}
@@ -242,6 +244,21 @@ export default function ShiftSummaryReceipt({ open, onOpenChange, data }: ShiftS
               <span>المتوقع (شيكل)</span>
               <span style={{ fontVariantNumeric: "tabular-nums" }}>₪{data.expectedCash.toFixed(2)}</span>
             </div>
+            {data.currencyBreakdown?.USD && (
+              <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", fontSize: 12, fontWeight: 600, color: "#0f172a" }}>
+                <span>المتوقع (دولار)</span>
+                <span style={{ fontVariantNumeric: "tabular-nums" }}>${data.currencyBreakdown.USD.sales.toFixed(2)}</span>
+              </div>
+            )}
+            {data.currencyBreakdown?.JOD && (
+              <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", fontSize: 12, fontWeight: 600, color: "#0f172a" }}>
+                <span>المتوقع (دينار)</span>
+                <span style={{ fontVariantNumeric: "tabular-nums" }}>{data.currencyBreakdown.JOD.sales.toFixed(2)} د.أ</span>
+              </div>
+            )}
+
+            <hr style={{ border: "none", borderTop: "1px dashed #ccc", margin: "4px 0" }} />
+
             <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", fontSize: 13, fontWeight: 700, color: "#0f172a" }}>
               <span>المسلّم (شيكل)</span>
               <span style={{ fontVariantNumeric: "tabular-nums" }}>₪{data.closingCash.toFixed(2)}</span>
@@ -255,7 +272,7 @@ export default function ShiftSummaryReceipt({ open, onOpenChange, data }: ShiftS
             {(data.closingCashJOD || 0) > 0 && (
               <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", fontSize: 12, color: "#475569" }}>
                 <span>المسلّم (دينار)</span>
-                <span style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>د.أ{(data.closingCashJOD || 0).toFixed(2)}</span>
+                <span style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{(data.closingCashJOD || 0).toFixed(2)} د.أ</span>
               </div>
             )}
 
