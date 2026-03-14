@@ -214,6 +214,8 @@ interface DisplayOptions {
   showContactCode: boolean;
   showChildAccounts: boolean;
   showSalesOrder: boolean;
+  includeBounced: boolean;
+  includePDC: boolean;
 }
 
 const DEFAULT_DISPLAY_OPTIONS: DisplayOptions = {
@@ -226,6 +228,8 @@ const DEFAULT_DISPLAY_OPTIONS: DisplayOptions = {
   showContactCode: false,
   showChildAccounts: false,
   showSalesOrder: false,
+  includeBounced: false,
+  includePDC: false,
 };
 
 // Column config
