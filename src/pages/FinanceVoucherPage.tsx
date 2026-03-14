@@ -422,15 +422,6 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
         </div>
       )}
 
-      {/* Voucher Drawer */}
-      <VoucherDrawer
-        open={drawerOpen}
-        onClose={() => { setDrawerOpen(false); setEditVoucherId(null); }}
-        voucherType={voucherType}
-        onSaved={fetchData}
-        editVoucherId={editVoucherId}
-      />
-
       {/* Duplicate Confirm Modal */}
       <DuplicateConfirmModal
         open={duplicateModal}
