@@ -378,56 +378,148 @@ const AccountStatementPage = () => {
       setCheques((chequeData as Cheque[]) || []);
 
       // Fetch invoice line items for lineItems detail level
-      const txIds = ((txData as Transaction[]) || [])
-        .filter(tx => tx.reference?.startsWith("INV-") || tx.reference?.startsWith("PO-") || tx.reference?.startsWith("PUR-") || tx.reference?.startsWith("POS-"))
-        .map(tx => tx.id);
+      const allTx = ((txData as Transaction[]) || []);
+      const candidateTx = allTx.filter(tx => {
+        const ref = tx.reference || "";
+        return ref.startsWith("INV-") || ref.startsWith("PO-") || ref.startsWith("PUR-") || ref.startsWith("POS-");
+      });
 
-      if (txIds.length > 0) {
-        const [{ data: invData }, { data: purInvData }] = await Promise.all([
-          supabase
-            .from("invoices")
-            .select("id, linked_transaction_id, invoice_number")
-            .eq("user_id", user.id)
-            .in("linked_transaction_id", txIds.slice(0, 200)),
-          supabase
-            .from("purchase_invoices")
-            .select("id, linked_transaction_id, invoice_number")
-            .eq("user_id", user.id)
-            .in("linked_transaction_id", txIds.slice(0, 200)),
+      const txIds = candidateTx.map(tx => tx.id);
+      const invoiceRefs = Array.from(new Set(
+        candidateTx
+          .map(tx => (tx.reference || "").trim())
+          .filter(Boolean)
+      ));
+
+      if (txIds.length === 0 && invoiceRefs.length === 0) {
+        setInvoiceItemsMap({});
+      } else {
+        const limitedTxIds = txIds.slice(0, 500);
+        const limitedRefs = invoiceRefs.slice(0, 500);
+
+        const [salesInvByTxRes, salesInvByRefRes, purchaseInvByTxRes, purchaseInvByRefRes] = await Promise.all([
+          limitedTxIds.length
+            ? supabase
+                .from("invoices")
+                .select("id, linked_transaction_id, invoice_number")
+                .eq("user_id", user.id)
+                .in("linked_transaction_id", limitedTxIds)
+            : Promise.resolve({ data: [] as any[] }),
+          limitedRefs.length
+            ? supabase
+                .from("invoices")
+                .select("id, linked_transaction_id, invoice_number")
+                .eq("user_id", user.id)
+                .in("invoice_number", limitedRefs)
+            : Promise.resolve({ data: [] as any[] }),
+          limitedTxIds.length
+            ? supabase
+                .from("purchase_invoices")
+                .select("id, linked_transaction_id, invoice_number")
+                .eq("user_id", user.id)
+                .in("linked_transaction_id", limitedTxIds)
+            : Promise.resolve({ data: [] as any[] }),
+          limitedRefs.length
+            ? supabase
+                .from("purchase_invoices")
+                .select("id, linked_transaction_id, invoice_number")
+                .eq("user_id", user.id)
+                .in("invoice_number", limitedRefs)
+            : Promise.resolve({ data: [] as any[] }),
         ]);
 
-        const allInvoices = [...(invData || []), ...(purInvData || [])];
-        const invoiceIds = allInvoices.map(inv => inv.id);
+        const invoiceById = new Map<string, any>();
+        [
+          ...(salesInvByTxRes.data || []),
+          ...(salesInvByRefRes.data || []),
+          ...(purchaseInvByTxRes.data || []),
+          ...(purchaseInvByRefRes.data || []),
+        ].forEach((inv: any) => {
+          if (inv?.id) invoiceById.set(inv.id, inv);
+        });
+
+        const allInvoices = Array.from(invoiceById.values());
+        const invoiceByTxId = new Map<string, any>();
+        const invoiceByNumber = new Map<string, any>();
+
+        allInvoices.forEach((inv: any) => {
+          if (inv.linked_transaction_id) {
+            invoiceByTxId.set(inv.linked_transaction_id, inv);
+          }
+          if (inv.invoice_number) {
+            invoiceByNumber.set(String(inv.invoice_number).trim().toUpperCase(), inv);
+          }
+        });
+
+        const txToInvId: Record<string, string> = {};
+        candidateTx.forEach((tx) => {
+          const refKey = (tx.reference || "").trim().toUpperCase();
+          const matchedInvoice = invoiceByTxId.get(tx.id) || invoiceByNumber.get(refKey);
+          if (matchedInvoice?.id) {
+            txToInvId[tx.id] = matchedInvoice.id;
+          }
+        });
+
+        const invoiceIds = Array.from(new Set(Object.values(txToInvId)));
 
         if (invoiceIds.length > 0) {
           const [{ data: salesItems }, { data: purchaseItems }] = await Promise.all([
             supabase
               .from("invoice_items")
               .select("invoice_id, product_name, quantity, unit_price, total_amount, unit_of_measure, discount")
-              .in("invoice_id", invoiceIds.slice(0, 200)),
+              .in("invoice_id", invoiceIds),
             supabase
               .from("purchase_invoice_items")
-              .select("invoice_id, product_name, quantity, unit_price, total_amount, discount")
-              .in("invoice_id", invoiceIds.slice(0, 200)),
+              .select("invoice_id, product_name, quantity, unit_price, total_amount, unit, discount_pct")
+              .in("invoice_id", invoiceIds),
           ]);
 
-          const allItems = [...((salesItems || []) as any[]), ...((purchaseItems || []) as any[])];
-          // Build map: transaction_id -> line items
-          const txToInvId: Record<string, string> = {};
-          allInvoices.forEach(inv => {
-            if (inv.linked_transaction_id) txToInvId[inv.linked_transaction_id] = inv.id;
+          const normalizedItems = [
+            ...((salesItems || []) as any[]).map((item: any) => ({
+              invoice_id: item.invoice_id,
+              product_name: item.product_name,
+              quantity: item.quantity,
+              unit_price: item.unit_price,
+              total_amount: item.total_amount,
+              unit_of_measure: item.unit_of_measure || null,
+              discount: item.discount ?? null,
+            })),
+            ...((purchaseItems || []) as any[]).map((item: any) => ({
+              invoice_id: item.invoice_id,
+              product_name: item.product_name,
+              quantity: item.quantity,
+              unit_price: item.unit_price,
+              total_amount: item.total_amount,
+              unit_of_measure: item.unit || null,
+              discount: item.discount_pct ?? null,
+            })),
+          ];
+
+          const itemsByInvoiceId: Record<string, InvoiceLineItem[]> = {};
+          normalizedItems.forEach((item: any) => {
+            if (!itemsByInvoiceId[item.invoice_id]) itemsByInvoiceId[item.invoice_id] = [];
+            itemsByInvoiceId[item.invoice_id].push({
+              product_name: item.product_name || "بند",
+              quantity: Number(item.quantity || 0),
+              unit_price: Number(item.unit_price || 0),
+              total_amount: Number(item.total_amount || (Number(item.quantity || 0) * Number(item.unit_price || 0))),
+              unit_of_measure: item.unit_of_measure || null,
+              discount: item.discount,
+            });
           });
 
           const itemsMap: Record<string, InvoiceLineItem[]> = {};
-          for (const [txId, invId] of Object.entries(txToInvId)) {
-            itemsMap[txId] = allItems
-              .filter((item: any) => item.invoice_id === invId)
-              .map((item: any) => ({
-                product_name: item.product_name,
-                quantity: item.quantity,
-                unit_price: item.unit_price,
-                total_amount: item.total_amount,
-                unit_of_measure: item.unit_of_measure || null,
+          Object.entries(txToInvId).forEach(([txId, invId]) => {
+            itemsMap[txId] = itemsByInvoiceId[invId] || [];
+          });
+
+          setInvoiceItemsMap(itemsMap);
+        } else {
+          setInvoiceItemsMap({});
+        }
+      }
+
+      if (profileRes.data?.company_name) setCompanyName(profileRes.data.company_name);
                 discount: item.discount,
               }));
           }
