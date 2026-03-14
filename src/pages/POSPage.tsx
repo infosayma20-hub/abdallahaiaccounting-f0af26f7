@@ -367,6 +367,8 @@ const POSPage = () => {
   const [savingCustomer, setSavingCustomer] = useState(false);
   const [openingCash, setOpeningCash] = useState("");
   const [closingCash, setClosingCash] = useState("");
+  const [closingCashUSD, setClosingCashUSD] = useState("");
+  const [closingCashJOD, setClosingCashJOD] = useState("");
   const [cashBoxes, setCashBoxes] = useState<{ id: string; name: string; type: string }[]>([]);
   const [selectedCashBoxId, setSelectedCashBoxId] = useState<string>("");
   const [rememberCashBox, setRememberCashBox] = useState(false);
