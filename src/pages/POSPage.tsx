@@ -1932,6 +1932,7 @@ const POSPage = () => {
       closedAt,
       openingCash: session.opening_cash,
       totalSales: session.total_sales,
+      totalExpenses,
       totalOrders: session.total_orders,
       closingCash: cash,
       expectedCash: expected,
