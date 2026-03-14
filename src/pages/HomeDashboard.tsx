@@ -174,7 +174,10 @@ const HomeDashboard = () => {
             loading={dashboard.loading}
           />
 
-          {/* W12: Recent Activity (moved here, replaces Financial Health) */}
+          {/* Top Selling Items */}
+          <TopSellingWidget items={dashboard.topSellingItems} loading={dashboard.loading} />
+
+          {/* Recent Activity */}
           <RecentActivityWidget activities={dashboard.recentActivity} loading={dashboard.loading} />
 
           {/* W5: Cash Flow */}
