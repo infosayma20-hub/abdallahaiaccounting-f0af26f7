@@ -51,6 +51,7 @@ interface POSReceiptDialogProps {
   data: ReceiptData | null;
   showReturnPolicy?: boolean;
   returnPolicyDays?: number;
+  autoPrint?: boolean;
 }
 
 const paymentMethodLabel: Record<string, string> = {
