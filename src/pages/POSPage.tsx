@@ -3282,7 +3282,7 @@ const POSPage = () => {
       </Dialog>
 
       <Dialog open={showPayment} onOpenChange={setShowPayment}>
-        <DialogContent className="sm:max-w-lg max-h-[90vh] flex flex-col" dir="rtl">
+        <DialogContent className="sm:max-w-lg max-h-[95vh] flex flex-col p-0 gap-0 overflow-hidden" dir="rtl">
           <DialogHeader className="flex-shrink-0">
             <DialogTitle className="text-lg font-bold">طريقة الدفع</DialogTitle>
           </DialogHeader>
