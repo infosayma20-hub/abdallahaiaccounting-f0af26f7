@@ -19,6 +19,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import InvoicePrintView from "@/components/InvoicePrintView";
+import InvoiceDocumentPreview from "@/components/InvoiceDocumentPreview";
 import { createRoot } from "react-dom/client";
 import * as XLSX from "xlsx";
 
@@ -65,6 +66,8 @@ interface Invoice {
   transferDetails?: { reference: string; bank: string };
   is_credit_note?: boolean;
   original_invoice_id?: string;
+  receiptsCount?: number;
+  contactId?: string;
 }
 
 const createEmptyItem = (): InvoiceItem => ({
@@ -273,20 +276,28 @@ const InvoicesPage = () => {
     if (!user) return;
     setLoading(true);
     try {
-      // Fetch from database
-      const { data: dbInvoices } = await supabase
-        .from("invoices")
-        .select("*, invoice_items(*)")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
+      // Fetch from database + payment links
+      const [invRes, linkRes] = await Promise.all([
+        supabase.from("invoices").select("*, invoice_items(*)").eq("user_id", user.id).order("created_at", { ascending: false }),
+        supabase.from("payment_invoice_links").select("invoice_id, payment_id"),
+      ]);
+      const dbInvoices = invRes.data || [];
+      const linkData = linkRes.data || [];
 
-      const mapped: Invoice[] = (dbInvoices || []).map((inv: any) => ({
+      // Count receipts per invoice
+      const receiptCountMap = new Map<string, number>();
+      for (const link of linkData) {
+        receiptCountMap.set(link.invoice_id, (receiptCountMap.get(link.invoice_id) || 0) + 1);
+      }
+
+      const mapped: Invoice[] = (dbInvoices).map((inv: any) => ({
         id: inv.id,
         type: inv.invoice_type === 'sale' ? 'sales' : 'purchase',
         invoiceNumber: inv.invoice_number || '',
         date: inv.invoice_date || '',
         dueDate: inv.due_date || undefined,
         contactName: inv.contact_name || '',
+        contactId: inv.contact_id || undefined,
         items: (inv.invoice_items || []).map((item: any) => ({
           id: item.id,
           productId: item.product_id || undefined,
@@ -309,6 +320,7 @@ const InvoicesPage = () => {
         currency: inv.currency || 'شيكل',
         is_credit_note: inv.is_credit_note || false,
         original_invoice_id: inv.original_invoice_id || undefined,
+        receiptsCount: receiptCountMap.get(inv.id) || 0,
       }));
 
       // Also load legacy localStorage invoices
@@ -1413,6 +1425,7 @@ const InvoicesPage = () => {
                   <TableHead className="text-right">الدفع</TableHead>
                   <TableHead className="text-right"><SortHeader label="الإجمالي" field="total" /></TableHead>
                   <TableHead className="text-right">المتبقي</TableHead>
+                  <TableHead className="text-right">السندات</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1437,6 +1450,15 @@ const InvoicesPage = () => {
                       <TableCell className="font-bold tabular-nums text-sm">₪{inv.total.toLocaleString()}</TableCell>
                       <TableCell className={`tabular-nums text-sm font-semibold ${inv.remainingAmount > 0 ? "text-destructive" : "text-muted-foreground"}`}>
                         {inv.remainingAmount > 0 ? `₪${inv.remainingAmount.toLocaleString()}` : "—"}
+                      </TableCell>
+                      <TableCell>
+                        {(inv.receiptsCount || 0) > 0 ? (
+                          <Badge variant="secondary" className="text-[9px] bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border-0">
+                            {inv.receiptsCount} سند قبض
+                          </Badge>
+                        ) : (
+                          <span className="text-[10px] text-muted-foreground/50">—</span>
+                        )}
                       </TableCell>
                     </TableRow>
                   );
@@ -1593,8 +1615,23 @@ const InvoicesPage = () => {
                 </Select>
               </div>
 
+              {/* Linked Receipts Section */}
+              {(selectedInvoice.receiptsCount || 0) > 0 && (
+                <div className="rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-900/20 p-3">
+                  <h4 className="text-xs font-semibold text-blue-800 dark:text-blue-300 mb-2 flex items-center gap-1.5">
+                    <Receipt className="h-3.5 w-3.5" /> سندات القبض المرتبطة ({selectedInvoice.receiptsCount})
+                  </h4>
+                  <Button size="sm" variant="outline" className="text-xs rounded-lg gap-1" onClick={() => {
+                    setShowPreviewDialog(false);
+                    navigate("/finance/receipts");
+                  }}>
+                    عرض السندات →
+                  </Button>
+                </div>
+              )}
+
               <div ref={printRef} className="bg-white rounded-2xl border border-border/50 overflow-hidden">
-                <InvoicePrintView invoice={selectedInvoice} settings={companySettings} copyLabel={selectedInvoice.status === "sent" ? "أصلية" : selectedInvoice.status === "draft" ? "مسودة" : "أصلية"} />
+                <InvoiceDocumentPreview invoice={selectedInvoice} settings={companySettings} />
               </div>
             </div>
           )}
