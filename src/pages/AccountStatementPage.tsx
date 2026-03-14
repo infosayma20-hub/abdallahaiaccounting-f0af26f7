@@ -91,6 +91,15 @@ interface Cheque {
   bank_name: string | null;
 }
 
+interface InvoiceLineItem {
+  product_name: string;
+  quantity: number;
+  unit_price: number;
+  total_amount: number;
+  unit_of_measure?: string | null;
+  discount?: number | null;
+}
+
 interface StatementRow {
   date: string;
   description: string;
@@ -103,6 +112,8 @@ interface StatementRow {
   currency: string;
   payment_method: string | null;
   dueDate?: string;
+  isLineItem?: boolean;
+  lineItemDetail?: string;
 }
 
 type EntityTab = "customers" | "suppliers" | "employees" | "accounts";
@@ -269,6 +280,7 @@ const AccountStatementPage = () => {
   const [employeeEntities, setEmployeeEntities] = useState<EmployeeEntity[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [cheques, setCheques] = useState<Cheque[]>([]);
+  const [invoiceItemsMap, setInvoiceItemsMap] = useState<Record<string, InvoiceLineItem[]>>({});
   const [loading, setLoading] = useState(true);
   const [companyName, setCompanyName] = useState("");
   const [companyInfo, setCompanyInfo] = useState({
@@ -364,6 +376,64 @@ const AccountStatementPage = () => {
       setAccounts((accData as Account[]) || []);
       setTransactions((txData as Transaction[]) || []);
       setCheques((chequeData as Cheque[]) || []);
+
+      // Fetch invoice line items for lineItems detail level
+      const txIds = ((txData as Transaction[]) || [])
+        .filter(tx => tx.reference?.startsWith("INV-") || tx.reference?.startsWith("PO-") || tx.reference?.startsWith("PUR-") || tx.reference?.startsWith("POS-"))
+        .map(tx => tx.id);
+
+      if (txIds.length > 0) {
+        const [{ data: invData }, { data: purInvData }] = await Promise.all([
+          supabase
+            .from("invoices")
+            .select("id, linked_transaction_id, invoice_number")
+            .eq("user_id", user.id)
+            .in("linked_transaction_id", txIds.slice(0, 200)),
+          supabase
+            .from("purchase_invoices")
+            .select("id, linked_transaction_id, invoice_number")
+            .eq("user_id", user.id)
+            .in("linked_transaction_id", txIds.slice(0, 200)),
+        ]);
+
+        const allInvoices = [...(invData || []), ...(purInvData || [])];
+        const invoiceIds = allInvoices.map(inv => inv.id);
+
+        if (invoiceIds.length > 0) {
+          const [{ data: salesItems }, { data: purchaseItems }] = await Promise.all([
+            supabase
+              .from("invoice_items")
+              .select("invoice_id, product_name, quantity, unit_price, total_amount, unit_of_measure, discount")
+              .in("invoice_id", invoiceIds.slice(0, 200)),
+            supabase
+              .from("purchase_invoice_items")
+              .select("invoice_id, product_name, quantity, unit_price, total_amount, discount")
+              .in("invoice_id", invoiceIds.slice(0, 200)),
+          ]);
+
+          const allItems = [...((salesItems || []) as any[]), ...((purchaseItems || []) as any[])];
+          // Build map: transaction_id -> line items
+          const txToInvId: Record<string, string> = {};
+          allInvoices.forEach(inv => {
+            if (inv.linked_transaction_id) txToInvId[inv.linked_transaction_id] = inv.id;
+          });
+
+          const itemsMap: Record<string, InvoiceLineItem[]> = {};
+          for (const [txId, invId] of Object.entries(txToInvId)) {
+            itemsMap[txId] = allItems
+              .filter((item: any) => item.invoice_id === invId)
+              .map((item: any) => ({
+                product_name: item.product_name,
+                quantity: item.quantity,
+                unit_price: item.unit_price,
+                total_amount: item.total_amount,
+                unit_of_measure: item.unit_of_measure || null,
+                discount: item.discount,
+              }));
+          }
+          setInvoiceItemsMap(itemsMap);
+        }
+      }
       if (profileRes.data?.company_name) setCompanyName(profileRes.data.company_name);
 
       const cs = csData as any;
@@ -753,8 +823,37 @@ const AccountStatementPage = () => {
       }
       return grouped;
     }
+    // Line items mode: expand invoice rows into per-item rows
+    if (detailLevel === "lineItems") {
+      const expanded: StatementRow[] = [];
+      for (const r of result) {
+        const items = invoiceItemsMap[r.transaction_id];
+        if (items && items.length > 0) {
+          // Parent row (invoice header)
+          expanded.push(r);
+          // Sub-rows for each line item
+          for (const item of items) {
+            const qty = item.quantity || 1;
+            const unitLabel = item.unit_of_measure ? ` ${item.unit_of_measure}` : "";
+            const discountLabel = item.discount ? ` (خصم ${item.discount})` : "";
+            expanded.push({
+              ...r,
+              description: `   ↳ ${item.product_name} — ${qty}${unitLabel} × ${item.unit_price.toLocaleString("en-US")}${discountLabel}`,
+              debit: r.debit > 0 ? item.total_amount : 0,
+              credit: r.credit > 0 ? item.total_amount : 0,
+              balance: 0, // sub-rows don't show running balance
+              isLineItem: true,
+              lineItemDetail: `${qty}${unitLabel} × ${item.unit_price.toLocaleString("en-US")}`,
+            });
+          }
+        } else {
+          expanded.push(r);
+        }
+      }
+      return expanded;
+    }
     return result;
-  }, [rows, txSearch, txTypeFilter, detailLevel]);
+  }, [rows, txSearch, txTypeFilter, detailLevel, invoiceItemsMap]);
 
   // Last transaction date for entity
   const lastTxDate = useMemo(() => {
@@ -1571,61 +1670,78 @@ const AccountStatementPage = () => {
                             {/* Transaction rows */}
                             {filteredRows.map((row, i) => {
                               const badge = getTypeBadge(row.transaction_type);
+                              const isSubRow = row.isLineItem;
                               return (
                                 <tr
-                                  key={row.transaction_id}
+                                  key={`${row.transaction_id}-${i}`}
                                   className={cn(
-                                    "border-b border-border/30 hover:bg-primary/5 transition-colors cursor-pointer",
-                                    i % 2 === 1 && "bg-muted/10"
+                                    "border-b border-border/30 transition-colors",
+                                    isSubRow
+                                      ? "bg-primary/[0.03] hover:bg-primary/[0.06]"
+                                      : cn("hover:bg-primary/5 cursor-pointer", i % 2 === 1 && "bg-muted/10")
                                   )}
-                                  onClick={() => openPreview(row.transaction_id)}
-                                  style={{ height: "44px" }}
+                                  onClick={() => !isSubRow && openPreview(row.transaction_id)}
+                                  style={{ height: isSubRow ? "36px" : "44px" }}
                                 >
                                   {isColVisible("date") && (
                                     <td className="px-3 py-2">
-                                      <div className="text-xs tabular-nums text-foreground">{fmtDate(row.date)}</div>
-                                      <div className="text-[9px] text-muted-foreground">{getDayName(row.date)}</div>
+                                      {!isSubRow ? (
+                                        <>
+                                          <div className="text-xs tabular-nums text-foreground">{fmtDate(row.date)}</div>
+                                          <div className="text-[9px] text-muted-foreground">{getDayName(row.date)}</div>
+                                        </>
+                                      ) : <span className="text-[10px] text-muted-foreground/50">↳</span>}
                                     </td>
                                   )}
                                   {isColVisible("reference") && (
                                     <td className="px-3 py-2 text-xs">
-                                      {row.reference ? (
+                                      {!isSubRow && row.reference ? (
                                         <button
                                           onClick={(e) => { e.stopPropagation(); openPreview(row.transaction_id); }}
                                           className="text-primary hover:underline font-mono text-[11px] font-semibold"
                                         >
                                           {row.reference}
                                         </button>
-                                      ) : <span className="text-muted-foreground">—</span>}
+                                      ) : <span className="text-muted-foreground">{isSubRow ? "" : "—"}</span>}
                                     </td>
                                   )}
-                                  {isColVisible("description") && <td className="px-3 py-2 text-xs text-foreground truncate">{row.description}</td>}
+                                  {isColVisible("description") && (
+                                    <td className={cn("px-3 py-2 text-xs truncate", isSubRow ? "text-muted-foreground pr-6" : "text-foreground")}>
+                                      {row.description}
+                                    </td>
+                                  )}
                                   {isColVisible("dueDate") && (
                                     <td className="px-3 py-2 text-xs text-muted-foreground tabular-nums">
-                                      {row.dueDate ? fmtDate(row.dueDate) : "—"}
+                                      {!isSubRow && row.dueDate ? fmtDate(row.dueDate) : isSubRow ? "" : "—"}
                                     </td>
                                   )}
                                   {isColVisible("type") && (
                                     <td className="px-3 py-2 text-center">
-                                      <span className={cn("inline-block text-[10px] font-semibold px-2 py-0.5 rounded-md border", badge.color)}>
-                                        {badge.label}
-                                      </span>
+                                      {!isSubRow ? (
+                                        <span className={cn("inline-block text-[10px] font-semibold px-2 py-0.5 rounded-md border", badge.color)}>
+                                          {badge.label}
+                                        </span>
+                                      ) : <span className="text-[9px] text-muted-foreground">بند</span>}
                                     </td>
                                   )}
-                                  {isColVisible("paymentMethod") && <td className="px-3 py-2 text-center text-[10px] text-muted-foreground">{PAYMENT_METHOD_AR[row.payment_method || ""] || row.payment_method || "—"}</td>}
-                                  {isColVisible("currency") && <td className="px-3 py-2 text-center text-[10px] text-muted-foreground">{row.currency}</td>}
-                                  {isColVisible("contactCode") && <td className="px-3 py-2 text-center text-[10px] text-muted-foreground font-mono">{selectedEntityInfo.code || "—"}</td>}
+                                  {isColVisible("paymentMethod") && <td className="px-3 py-2 text-center text-[10px] text-muted-foreground">{!isSubRow ? (PAYMENT_METHOD_AR[row.payment_method || ""] || row.payment_method || "—") : ""}</td>}
+                                  {isColVisible("currency") && <td className="px-3 py-2 text-center text-[10px] text-muted-foreground">{!isSubRow ? row.currency : ""}</td>}
+                                  {isColVisible("contactCode") && <td className="px-3 py-2 text-center text-[10px] text-muted-foreground font-mono">{!isSubRow ? (selectedEntityInfo.code || "—") : ""}</td>}
                                   {isColVisible("debit") && (
-                                    <td className="px-3 py-2 text-left tabular-nums font-semibold text-red-600">
+                                    <td className={cn("px-3 py-2 text-left tabular-nums", isSubRow ? "text-[10px] text-red-500/70" : "font-semibold text-red-600")}>
                                       {row.debit > 0 ? fmtAmount(row.debit) : "—"}
                                     </td>
                                   )}
                                   {isColVisible("credit") && (
-                                    <td className="px-3 py-2 text-left tabular-nums font-semibold text-emerald-600">
+                                    <td className={cn("px-3 py-2 text-left tabular-nums", isSubRow ? "text-[10px] text-emerald-500/70" : "font-semibold text-emerald-600")}>
                                       {row.credit > 0 ? fmtAmount(row.credit) : "—"}
                                     </td>
                                   )}
-                                  {isColVisible("balance") && <td className="px-3 py-2 text-left"><BalanceCell value={row.balance} /></td>}
+                                  {isColVisible("balance") && (
+                                    <td className="px-3 py-2 text-left">
+                                      {!isSubRow ? <BalanceCell value={row.balance} /> : <span className="text-muted-foreground/30">—</span>}
+                                    </td>
+                                  )}
                                 </tr>
                               );
                             })}
