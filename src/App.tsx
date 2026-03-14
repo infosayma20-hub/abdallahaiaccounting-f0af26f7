@@ -48,7 +48,7 @@ import HRAttendancePage from "./pages/HRAttendancePage";
 import BranchDisplayPage from "./pages/BranchDisplayPage";
 import EmployeeApp from "./pages/EmployeeApp";
 import RoleGuard from "./components/RoleGuard";
-import VoucherPage from "./pages/VoucherPage";
+// VoucherPage removed — unified under FinanceVoucherPage
 import AppsLauncher from "./pages/AppsLauncher";
 import OpeningBalancesImportPage from "./pages/OpeningBalancesImportPage";
 import CurrencyManagementPage from "./pages/CurrencyManagementPage";
