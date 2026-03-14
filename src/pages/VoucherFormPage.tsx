@@ -890,10 +890,12 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
 
       {/* Action Buttons */}
       <div className="flex items-center justify-between bg-card rounded-2xl border border-border p-4">
-        <button onClick={() => handleSave(true)} disabled={saving}
-          className="px-5 py-2.5 rounded-xl border border-border text-foreground text-sm hover:bg-secondary/50 transition-all disabled:opacity-50">
-          حفظ كمسودة
-        </button>
+        {!isEditMode ? (
+          <button onClick={() => handleSave(true)} disabled={saving}
+            className="px-5 py-2.5 rounded-xl border border-border text-foreground text-sm hover:bg-secondary/50 transition-all disabled:opacity-50">
+            حفظ كمسودة
+          </button>
+        ) : <div />}
         <div className="flex items-center gap-3">
           <button onClick={handlePrint}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-all">
@@ -902,7 +904,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           <button onClick={() => handleSave(false)} disabled={saving || amountNum <= 0 || !selectedContact}
             className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-bold hover:opacity-90 transition-all disabled:opacity-50">
             <Save className="h-4 w-4" />
-            {saving ? "جارٍ الحفظ..." : "حفظ وترحيل"}
+            {saving ? "جارٍ الحفظ..." : isEditMode ? "تحديث السند" : "حفظ وترحيل"}
           </button>
         </div>
       </div>
