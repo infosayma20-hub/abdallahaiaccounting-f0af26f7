@@ -1,7 +1,8 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, FileText, Search, CheckCircle, AlertTriangle, Info, Printer, Save, Landmark, CreditCard, Building2, Receipt as ReceiptIcon, Banknote, User } from "lucide-react";
+import { ArrowRight, FileText, Search, CheckCircle, AlertTriangle, Info, Printer, Save, Landmark, CreditCard, Building2, Receipt as ReceiptIcon, Banknote, User, Eye, Download, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { generateReceiptPDF, type ReceiptPDFData, type CompanyPDFData } from "@/utils/generateReceiptPDF";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompany } from "@/hooks/useCompanyContext";
 import { Card, CardContent } from "@/components/ui/card";
@@ -85,6 +86,8 @@ const ReceiptNewPage = () => {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [savedReceiptNumber, setSavedReceiptNumber] = useState("");
+  const [showPdfModal, setShowPdfModal] = useState(false);
+  const [pdfDataUri, setPdfDataUri] = useState("");
 
   // Load contacts
   useEffect(() => {
@@ -354,9 +357,88 @@ const ReceiptNewPage = () => {
     }
   };
 
-  const handlePrint = () => {
-    window.print();
-  };
+  const buildReceiptData = useCallback((): ReceiptPDFData => {
+    const selectedInvs = invoices.filter(i => i.selected && (i.allocatedAmount || 0) > 0);
+    const cbName = cashBoxes.find(c => c.id === selectedCashBox)?.name;
+    const baName = bankAccounts.find(b => b.id === selectedBankAccount)?.name;
+
+    return {
+      receipt_number: savedReceiptNumber,
+      payment_date: paymentDate,
+      amount: amountNum,
+      payment_method: paymentMethod,
+      check_number: paymentMethod === 'شيك' ? checkNumber : undefined,
+      check_date: paymentMethod === 'شيك' ? checkDate : undefined,
+      bank_name: paymentMethod === 'شيك' ? checkBank : undefined,
+      cash_box_name: depositType === 'cash_box' ? cbName : undefined,
+      bank_account_name: depositType === 'bank' ? baName : undefined,
+      notes: notes || undefined,
+      contact_name: selectedContact?.contact_name || '',
+      linked_invoices: selectedInvs.length > 0 ? selectedInvs.map(inv => ({
+        invoice_number: inv.invoice_number || '—',
+        invoice_date: inv.invoice_date || '',
+        total_amount: inv.total_amount,
+        allocated_amount: inv.allocatedAmount || 0,
+        remaining_after: Math.max(0, (inv.remaining_amount ?? inv.total_amount) - (inv.paid_amount ?? 0) - (inv.allocatedAmount || 0)),
+      })) : undefined,
+    };
+  }, [savedReceiptNumber, paymentDate, amountNum, paymentMethod, checkNumber, checkDate, checkBank, depositType, selectedCashBox, selectedBankAccount, cashBoxes, bankAccounts, notes, selectedContact, invoices]);
+
+  const getCompanyData = useCallback(async (): Promise<CompanyPDFData> => {
+    if (!user) return {};
+    const { data } = await supabase.from("company_settings")
+      .select("company_name, phone, email, address, tax_number, logo_url")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    return data || {};
+  }, [user]);
+
+  const handlePreviewPDF = useCallback(async () => {
+    try {
+      const [receiptData, companyData] = await Promise.all([
+        Promise.resolve(buildReceiptData()),
+        getCompanyData(),
+      ]);
+      const doc = generateReceiptPDF(receiptData, companyData);
+      const dataUri = doc.output('datauristring');
+      setPdfDataUri(dataUri);
+      setShowPdfModal(true);
+    } catch (err: any) {
+      toast.error('خطأ في إنشاء PDF: ' + (err.message || ''));
+    }
+  }, [buildReceiptData, getCompanyData]);
+
+  const handleDownloadPDF = useCallback(async () => {
+    try {
+      const [receiptData, companyData] = await Promise.all([
+        Promise.resolve(buildReceiptData()),
+        getCompanyData(),
+      ]);
+      const doc = generateReceiptPDF(receiptData, companyData);
+      doc.save(`سند-قبض-${savedReceiptNumber}.pdf`);
+    } catch (err: any) {
+      toast.error('خطأ: ' + (err.message || ''));
+    }
+  }, [buildReceiptData, getCompanyData, savedReceiptNumber]);
+
+  const handlePrintPDF = useCallback(async () => {
+    try {
+      const [receiptData, companyData] = await Promise.all([
+        Promise.resolve(buildReceiptData()),
+        getCompanyData(),
+      ]);
+      const doc = generateReceiptPDF(receiptData, companyData);
+      doc.autoPrint();
+      const blobUrl = doc.output('bloburl');
+      const iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      iframe.src = String(blobUrl);
+      document.body.appendChild(iframe);
+      iframe.onload = () => iframe.contentWindow?.print();
+    } catch (err: any) {
+      toast.error('خطأ: ' + (err.message || ''));
+    }
+  }, [buildReceiptData, getCompanyData]);
 
   const formatAmount = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -369,18 +451,47 @@ const ReceiptNewPage = () => {
           </div>
           <h2 className="text-xl font-bold text-foreground">تم حفظ سند القبض بنجاح</h2>
           <p className="text-muted-foreground">رقم السند: <span className="font-mono font-bold text-foreground">{savedReceiptNumber}</span></p>
-          <div className="flex items-center justify-center gap-3 pt-4">
-            <button onClick={handlePrint} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-secondary text-foreground text-sm font-medium hover:bg-secondary/80 transition-all">
+          <div className="flex flex-wrap items-center justify-center gap-3 pt-4">
+            <button onClick={handlePreviewPDF} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-accent text-accent-foreground text-sm font-medium hover:opacity-90 transition-all">
+              <Eye className="h-4 w-4" /> معاينة PDF
+            </button>
+            <button onClick={handlePrintPDF} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-secondary text-foreground text-sm font-medium hover:bg-secondary/80 transition-all">
               <Printer className="h-4 w-4" /> طباعة الإيصال
+            </button>
+            <button onClick={handleDownloadPDF} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-secondary text-foreground text-sm font-medium hover:bg-secondary/80 transition-all">
+              <Download className="h-4 w-4" /> تحميل PDF
             </button>
             <button onClick={() => navigate("/finance/receipts")} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-bold hover:opacity-90 transition-all">
               العودة للسندات
             </button>
-            <button onClick={() => { setSaved(false); setAmount(""); setNotes(""); setSelectedContact(null); setInvoices([]); }} className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-border text-foreground text-sm hover:bg-secondary/50 transition-all">
+            <button onClick={() => { setSaved(false); setAmount(""); setNotes(""); setSelectedContact(null); setInvoices([]); setShowPdfModal(false); setPdfDataUri(""); }} className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-border text-foreground text-sm hover:bg-secondary/50 transition-all">
               سند قبض جديد
             </button>
           </div>
         </div>
+
+        {/* PDF Preview Modal */}
+        {showPdfModal && pdfDataUri && (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.75)', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ background: '#1B3A5C', padding: '10px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ color: 'white', fontWeight: 'bold', fontSize: '15px' }}>
+                معاينة سند القبض {savedReceiptNumber}
+              </span>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button onClick={handleDownloadPDF} style={{ background: '#C9A84C', color: 'white', border: 'none', borderRadius: '6px', padding: '6px 16px', cursor: 'pointer', fontWeight: 'bold' }}>
+                  ⬇️ تحميل PDF
+                </button>
+                <button onClick={handlePrintPDF} style={{ background: 'white', color: '#1B3A5C', border: 'none', borderRadius: '6px', padding: '6px 16px', cursor: 'pointer', fontWeight: 'bold' }}>
+                  🖨️ طباعة
+                </button>
+                <button onClick={() => setShowPdfModal(false)} style={{ background: 'transparent', color: 'white', border: '1px solid white', borderRadius: '6px', padding: '6px 12px', cursor: 'pointer' }}>
+                  ✕
+                </button>
+              </div>
+            </div>
+            <iframe src={pdfDataUri} style={{ flex: 1, width: '100%', border: 'none' }} title="سند القبض" />
+          </div>
+        )}
       </div>
     );
   }
@@ -657,7 +768,7 @@ const ReceiptNewPage = () => {
           حفظ كمسودة
         </button>
         <div className="flex items-center gap-3">
-          <button onClick={handlePrint}
+          <button onClick={handlePrintPDF}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-all">
             <Printer className="h-4 w-4" /> طباعة
           </button>
