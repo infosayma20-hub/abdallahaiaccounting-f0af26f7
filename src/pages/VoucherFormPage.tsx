@@ -161,6 +161,26 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       });
   }, [user]);
 
+  // ─── Compute real balance from transactions ───
+  useEffect(() => {
+    if (!selectedContact || !user) { setComputedBalance(null); return; }
+    const accountCode = isReceipt ? "1130" : "2100";
+    supabase.from("transactions")
+      .select("debit_account_code, credit_account_code, amount")
+      .eq("user_id", user.id)
+      .eq("is_deleted", false)
+      .eq("contact_id", selectedContact.id)
+      .then(({ data }) => {
+        if (!data) { setComputedBalance(0); return; }
+        let balance = 0;
+        for (const t of data) {
+          if (t.debit_account_code === accountCode) balance += t.amount;
+          if (t.credit_account_code === accountCode) balance -= t.amount;
+        }
+        setComputedBalance(balance);
+      });
+  }, [selectedContact, user, isReceipt]);
+
   // ─── Load existing voucher for editing ───
   useEffect(() => {
     if (!editId || !user) return;
