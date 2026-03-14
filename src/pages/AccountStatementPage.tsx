@@ -282,7 +282,6 @@ const AccountStatementPage = () => {
   const [showYearComparison, setShowYearComparison] = useState(false);
   const [pdfGenerating, setPdfGenerating] = useState(false);
   const [showPdfModal, setShowPdfModal] = useState(false);
-  const [pdfDataUri, setPdfDataUri] = useState<string>("");
 
   // Load saved column prefs
   const [columns, setColumns] = useState<ColumnConfig[]>(() => {
