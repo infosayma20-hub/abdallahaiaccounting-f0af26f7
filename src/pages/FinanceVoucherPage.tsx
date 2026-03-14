@@ -454,13 +454,33 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
                         </span>
                       </td>
                       <td className="px-3 py-2">
-                        <button
-                          onClick={e => { e.stopPropagation(); handleDuplicate(v); }}
-                          className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-primary transition-colors"
-                          title="جديد مشابه"
-                        >
-                          <Copy className="h-3.5 w-3.5" />
-                        </button>
+                        <div className="flex items-center gap-0.5">
+                          {canEdit(v) && (
+                            <button
+                              onClick={e => { e.stopPropagation(); handleEdit(v); }}
+                              className="p-1.5 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors"
+                              title="تعديل"
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                          {canDelete(v) && v.status !== "cancelled" && (
+                            <button
+                              onClick={e => { e.stopPropagation(); handleDelete(v); }}
+                              className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                              title="حذف"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                          <button
+                            onClick={e => { e.stopPropagation(); handleDuplicate(v); }}
+                            className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-primary transition-colors"
+                            title="جديد مشابه"
+                          >
+                            <Copy className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
