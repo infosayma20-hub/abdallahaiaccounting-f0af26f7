@@ -77,14 +77,37 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
   const fetchData = useCallback(async () => {
     if (!user) return;
     setLoading(true);
-    const [vRes, cRes] = await Promise.all([
-      supabase.from("vouchers").select("*").eq("user_id", user.id).eq("type", voucherType).order("created_at", { ascending: false }),
-      supabase.from("contacts").select("id, contact_name, contact_type").eq("user_id", user.id).neq("is_archived", true),
-    ]);
-    setVouchers(vRes.data || []);
-    setContacts(cRes.data || []);
+
+    if (isReceipt) {
+      // Receipts are stored in receipt_vouchers table
+      const [rvRes, cRes] = await Promise.all([
+        supabase.from("receipt_vouchers").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
+        supabase.from("contacts").select("id, contact_name, contact_type").eq("user_id", user.id).neq("is_archived", true),
+      ]);
+      // Map receipt_vouchers fields to unified format
+      const mapped = (rvRes.data || []).map((rv: any) => ({
+        ...rv,
+        ref_number: rv.receipt_number,
+        date: rv.payment_date,
+        amount_ils: rv.amount,
+        amount: rv.amount,
+        type: "receipt",
+        // payment_method is already in Arabic in receipt_vouchers
+      }));
+      setVouchers(mapped);
+      setContacts(cRes.data || []);
+    } else {
+      // Payments are stored in vouchers table
+      const [vRes, cRes] = await Promise.all([
+        supabase.from("vouchers").select("*").eq("user_id", user.id).eq("type", "payment").order("created_at", { ascending: false }),
+        supabase.from("contacts").select("id, contact_name, contact_type").eq("user_id", user.id).neq("is_archived", true),
+      ]);
+      setVouchers(vRes.data || []);
+      setContacts(cRes.data || []);
+    }
+
     setLoading(false);
-  }, [user, voucherType]);
+  }, [user, voucherType, isReceipt]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
   useEffect(() => {
