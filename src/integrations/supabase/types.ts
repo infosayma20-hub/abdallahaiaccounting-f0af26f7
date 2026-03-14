@@ -1502,6 +1502,8 @@ export type Database = {
           base_currency: string | null
           business_type: string | null
           calendar_type: string | null
+          can_delete_posted: boolean | null
+          can_edit_posted: boolean | null
           city: string | null
           commercial_register: string | null
           company_name: string | null
@@ -1604,6 +1606,8 @@ export type Database = {
           base_currency?: string | null
           business_type?: string | null
           calendar_type?: string | null
+          can_delete_posted?: boolean | null
+          can_edit_posted?: boolean | null
           city?: string | null
           commercial_register?: string | null
           company_name?: string | null
@@ -1706,6 +1710,8 @@ export type Database = {
           base_currency?: string | null
           business_type?: string | null
           calendar_type?: string | null
+          can_delete_posted?: boolean | null
+          can_edit_posted?: boolean | null
           city?: string | null
           commercial_register?: string | null
           company_name?: string | null
@@ -2437,6 +2443,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      document_edit_history: {
+        Row: {
+          changes: Json | null
+          document_id: string
+          document_type: string
+          edit_reason: string | null
+          edited_at: string | null
+          edited_by: string
+          id: string
+          new_data: Json | null
+          old_data: Json | null
+          user_id: string
+        }
+        Insert: {
+          changes?: Json | null
+          document_id: string
+          document_type: string
+          edit_reason?: string | null
+          edited_at?: string | null
+          edited_by: string
+          id?: string
+          new_data?: Json | null
+          old_data?: Json | null
+          user_id: string
+        }
+        Update: {
+          changes?: Json | null
+          document_id?: string
+          document_type?: string
+          edit_reason?: string | null
+          edited_at?: string | null
+          edited_by?: string
+          id?: string
+          new_data?: Json | null
+          old_data?: Json | null
+          user_id?: string
+        }
+        Relationships: []
       }
       employee_allowances: {
         Row: {
