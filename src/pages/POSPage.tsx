@@ -3990,7 +3990,7 @@ const POSPage = () => {
       </Dialog>
 
       {/* ── Receipt Dialog ── */}
-      <POSReceiptDialog open={showReceipt} onOpenChange={setShowReceipt} data={receiptData} />
+      <POSReceiptDialog open={showReceipt} onOpenChange={setShowReceipt} data={receiptData} showReturnPolicy={posReturnPolicy.show} returnPolicyDays={posReturnPolicy.days} />
 
       {/* ── Kitchen Ticket Dialog ── */}
       <Dialog open={showKitchenTicket} onOpenChange={setShowKitchenTicket}>
