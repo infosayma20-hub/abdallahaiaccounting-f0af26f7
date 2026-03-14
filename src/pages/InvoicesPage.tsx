@@ -276,20 +276,28 @@ const InvoicesPage = () => {
     if (!user) return;
     setLoading(true);
     try {
-      // Fetch from database
-      const { data: dbInvoices } = await supabase
-        .from("invoices")
-        .select("*, invoice_items(*)")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
+      // Fetch from database + payment links
+      const [invRes, linkRes] = await Promise.all([
+        supabase.from("invoices").select("*, invoice_items(*)").eq("user_id", user.id).order("created_at", { ascending: false }),
+        supabase.from("payment_invoice_links").select("invoice_id, payment_id"),
+      ]);
+      const dbInvoices = invRes.data || [];
+      const linkData = linkRes.data || [];
 
-      const mapped: Invoice[] = (dbInvoices || []).map((inv: any) => ({
+      // Count receipts per invoice
+      const receiptCountMap = new Map<string, number>();
+      for (const link of linkData) {
+        receiptCountMap.set(link.invoice_id, (receiptCountMap.get(link.invoice_id) || 0) + 1);
+      }
+
+      const mapped: Invoice[] = (dbInvoices).map((inv: any) => ({
         id: inv.id,
         type: inv.invoice_type === 'sale' ? 'sales' : 'purchase',
         invoiceNumber: inv.invoice_number || '',
         date: inv.invoice_date || '',
         dueDate: inv.due_date || undefined,
         contactName: inv.contact_name || '',
+        contactId: inv.contact_id || undefined,
         items: (inv.invoice_items || []).map((item: any) => ({
           id: item.id,
           productId: item.product_id || undefined,
@@ -312,6 +320,7 @@ const InvoicesPage = () => {
         currency: inv.currency || 'شيكل',
         is_credit_note: inv.is_credit_note || false,
         original_invoice_id: inv.original_invoice_id || undefined,
+        receiptsCount: receiptCountMap.get(inv.id) || 0,
       }));
 
       // Also load legacy localStorage invoices
