@@ -328,9 +328,19 @@ export function useCompanySettings() {
     setSaving(true);
     try {
       const raw = settings as any;
-      const payload: Record<string, any> = { user_id: user.id, updated_by: user.id };
+      const UUID_COLUMNS = new Set([
+        "updated_by", "pos_branch_id", "default_bank_account",
+      ]);
+      const payload: Record<string, any> = { user_id: user.id, updated_by: user.id || null };
       for (const key of DB_COLUMNS) {
-        if (key in raw) payload[key] = raw[key];
+        if (key in raw) {
+          // Convert empty strings to null for UUID columns
+          if (UUID_COLUMNS.has(key) && raw[key] === "") {
+            payload[key] = null;
+          } else {
+            payload[key] = raw[key];
+          }
+        }
       }
 
       // Check if exists
