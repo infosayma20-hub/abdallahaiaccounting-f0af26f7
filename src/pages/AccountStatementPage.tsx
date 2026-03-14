@@ -734,13 +734,42 @@ const AccountStatementPage = () => {
   }, [cheques, selectedEntityName, displayOptions.showCheques]);
 
   // ─── PDC (Post-Dated Cheques) ───
-  const pdcTotal = useMemo(() => {
-    if (!selectedEntityName) return 0;
+  const pdcCheques = useMemo(() => {
+    if (!selectedEntityName) return [];
     const today = format(new Date(), "yyyy-MM-dd");
-    return cheques
-      .filter(c => c.party_name === selectedEntityName && c.cheque_type === "وارد" && c.status === "بانتظار" && c.cheque_date > today)
-      .reduce((s, c) => s + c.amount, 0);
+    return cheques.filter(c =>
+      c.party_name === selectedEntityName &&
+      c.cheque_type === "وارد" &&
+      (c.status === "بانتظار" || c.status === "registered" || c.status === "deposited") &&
+      c.cheque_date > today
+    );
   }, [cheques, selectedEntityName]);
+
+  const pdcTotal = useMemo(() => {
+    return pdcCheques.reduce((s, c) => s + c.amount, 0);
+  }, [pdcCheques]);
+
+  // ─── BOUNCED CHEQUES ───
+  const bouncedCheques = useMemo(() => {
+    if (!displayOptions.includeBounced || !selectedEntityName) return [];
+    return cheques
+      .filter(c =>
+        c.party_name === selectedEntityName &&
+        c.status === "مرتجع" &&
+        (!dateFrom || c.cheque_date >= dateFrom) &&
+        (!dateTo || c.cheque_date <= dateTo)
+      )
+      .map(c => ({
+        date: c.cheque_date,
+        reference: c.cheque_number || "",
+        description: `شيك مرتجع #${c.cheque_number || "—"}`,
+        amount: c.amount,
+      }));
+  }, [cheques, selectedEntityName, displayOptions.includeBounced, dateFrom, dateTo]);
+
+  const bouncedTotal = useMemo(() => {
+    return bouncedCheques.reduce((s, c) => s + c.amount, 0);
+  }, [bouncedCheques]);
 
   // ─── STATEMENT ROWS ───
   const { rows, openingBalance, closingBalance, totalDebit, totalCredit } = useMemo(() => {
