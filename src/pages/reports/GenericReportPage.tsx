@@ -571,7 +571,7 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
   };
 
   const loadPOSDailySales = async () => {
-    const { data: orders } = await supabase.from("pos_orders").select("id, order_number, created_at, total, session_id, customer_name, payment_method, discount_amount").eq("user_id", uid).eq("state", "paid").gte("created_at", dateFrom).lte("created_at", dateTo + "T23:59:59").order("created_at", { ascending: false });
+    const { data: orders } = await supabase.from("pos_orders").select("id, order_number, created_at, total, session_id, customer_name, discount_amount, payment_currency, currency").eq("user_id", uid).eq("state", "paid").gte("created_at", dateFrom).lte("created_at", dateTo + "T23:59:59").order("created_at", { ascending: false });
     const { data: sessions } = await supabase.from("pos_sessions").select("id, cashier_name").eq("user_id", uid);
     const sessMap = new Map((sessions || []).map(s => [s.id, s.cashier_name || "غير محدد"]));
     setData((orders || []).map(o => ({
@@ -580,7 +580,7 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
       time: o.created_at.split("T")[1]?.substring(0, 5) || "",
       cashier: sessMap.get(o.session_id) || "غير محدد",
       customer_name: o.customer_name || "—",
-      payment_method: o.payment_method === "cash" ? "نقدي" : o.payment_method === "card" ? "بطاقة" : o.payment_method === "credit" ? "آجل" : o.payment_method || "نقدي",
+      currency: o.payment_currency || o.currency || "ILS",
       discount: o.discount_amount || 0,
       total: o.total,
     })));
