@@ -1145,6 +1145,8 @@ const AccountStatementPage = () => {
                 totalCredit={totalCredit}
                 dateFrom={dateFrom}
                 dateTo={dateTo}
+                columns={columns}
+                contactCode={selectedEntityInfo.code}
               />
             </div>
 
