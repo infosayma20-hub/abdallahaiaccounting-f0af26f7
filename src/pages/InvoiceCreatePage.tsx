@@ -189,6 +189,7 @@ const InvoiceCreatePage = () => {
     items: [createEmptyItem()] as InvoiceItem[],
     chequeNumber: "",
     chequeBank: "",
+    chequeBankAccountId: "" as string,
     chequeDueDate: "",
     transferRef: "",
     transferBank: "",
