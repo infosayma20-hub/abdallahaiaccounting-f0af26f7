@@ -1451,6 +1451,15 @@ const InvoicesPage = () => {
                       <TableCell className={`tabular-nums text-sm font-semibold ${inv.remainingAmount > 0 ? "text-destructive" : "text-muted-foreground"}`}>
                         {inv.remainingAmount > 0 ? `₪${inv.remainingAmount.toLocaleString()}` : "—"}
                       </TableCell>
+                      <TableCell>
+                        {(inv.receiptsCount || 0) > 0 ? (
+                          <Badge variant="secondary" className="text-[9px] bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border-0">
+                            {inv.receiptsCount} سند قبض
+                          </Badge>
+                        ) : (
+                          <span className="text-[10px] text-muted-foreground/50">—</span>
+                        )}
+                      </TableCell>
                     </TableRow>
                   );
                 })}
