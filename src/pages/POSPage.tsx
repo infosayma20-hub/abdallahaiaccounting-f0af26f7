@@ -1691,6 +1691,7 @@ const POSPage = () => {
 
       const tableName = activeOrder.tableName;
       const receiptInfo = {
+        orderId,
         orderNumber: res.order_number,
         date: new Date().toISOString(),
         cashierName: session.cashier_name,
