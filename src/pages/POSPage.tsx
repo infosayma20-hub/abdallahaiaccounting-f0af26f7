@@ -2213,6 +2213,24 @@ const POSPage = () => {
         </button>
         )}
 
+        {/* Kitchen Display */}
+        <button
+          onClick={() => window.open("/pos/kitchen", "_blank")}
+          className="flex items-center gap-1.5 h-9 px-3.5 rounded-lg text-xs font-medium transition-all"
+          style={{
+            fontFamily: "Tajawal, sans-serif",
+            fontWeight: 500,
+            fontSize: 13,
+            background: "transparent",
+            border: "1px solid rgba(255,255,255,0.2)",
+            color: "white",
+          }}
+          title="شاشة المطبخ"
+        >
+          <ChefHat className="h-3.5 w-3.5" />
+          المطبخ
+        </button>
+
         {/* Shortcuts guide button */}
         <button
           onClick={() => setShowShortcutsGuide(true)}
