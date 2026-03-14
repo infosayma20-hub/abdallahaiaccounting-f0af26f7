@@ -23,7 +23,7 @@ const PERIODS: { key: PeriodType; label: string }[] = [
   { key: "year", label: "هذه السنة" },
 ];
 
-export default function DashboardHeader({ companyName, period, onPeriodChange, lastUpdated, onRefresh, onCustomize, loading, privacyMode, onTogglePrivacy }: Props) {
+export default function DashboardHeader({ companyName, companyLogo, period, onPeriodChange, lastUpdated, onRefresh, onCustomize, loading, privacyMode, onTogglePrivacy }: Props) {
   const minutesAgo = Math.floor((Date.now() - lastUpdated.getTime()) / 60000);
   const timeLabel = minutesAgo < 1 ? "الآن" : `منذ ${minutesAgo} دقيقة`;
 
