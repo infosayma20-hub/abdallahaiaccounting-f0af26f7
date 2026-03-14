@@ -1534,7 +1534,7 @@ const InvoicesPage = () => {
                         <Settings className="h-4 w-4" /> تصحيح <ChevronDown className="h-3 w-3" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start" className="w-56 bg-background" dir="rtl">
+                    <DropdownMenuContent align="start" className="w-56 bg-background">
                       <DropdownMenuItem onClick={() => { setCreditNoteMode("full"); setCreditNoteModal(true); }} className="gap-2">
                         <ClipboardList className="h-4 w-4 text-primary" />
                         <div>
