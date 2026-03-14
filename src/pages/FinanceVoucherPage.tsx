@@ -39,8 +39,6 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
   const [vouchers, setVouchers] = useState<any[]>([]);
   const [contacts, setContacts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [editVoucherId, setEditVoucherId] = useState<string | null>(null);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
