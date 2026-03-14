@@ -352,6 +352,7 @@ const InvoiceCreatePage = () => {
           items: mappedItems.length ? mappedItems : [createEmptyItem()],
           chequeNumber: "",
           chequeBank: "",
+          chequeBankAccountId: "",
           chequeDueDate: "",
           transferRef: "",
           transferBank: "",
