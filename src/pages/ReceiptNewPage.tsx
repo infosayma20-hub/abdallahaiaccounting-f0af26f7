@@ -86,6 +86,8 @@ const ReceiptNewPage = () => {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [savedReceiptNumber, setSavedReceiptNumber] = useState("");
+  const [showPdfModal, setShowPdfModal] = useState(false);
+  const [pdfDataUri, setPdfDataUri] = useState("");
 
   // Load contacts
   useEffect(() => {
