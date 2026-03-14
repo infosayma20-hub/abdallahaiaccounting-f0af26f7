@@ -1735,7 +1735,7 @@ const POSPage = () => {
 
         if (stationsData && stationsData.length > 0) {
           // Load product station assignments
-          const productIds = cart.filter(i => i.productId).map(i => i.productId);
+          const productIds = cart.filter(i => i.product_id).map(i => i.product_id);
           const { data: productsWithStations } = await supabase
             .from("products")
             .select("id, kitchen_station_id")
