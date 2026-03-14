@@ -2525,7 +2525,7 @@ const POSPage = () => {
                                 cardSize === "S" 
                                   ? "text-[10px] font-bold" 
                                   : "text-[11px]"
-                              }`}>
+                              }`} dir="rtl" style={{ unicodeBidi: "plaintext" }}>
                                 {product.name}
                               </p>
 
