@@ -2120,8 +2120,8 @@ const AccountStatementPage = () => {
                             <strong className="text-emerald-600 tabular-nums">{fmtAmount(pdcTotal)}</strong>
                             <Separator orientation="vertical" className="h-4" />
                             <span className="text-muted-foreground">الرصيد مع PDC:</span>
-                            <strong className={cn("tabular-nums", (closingBalance - pdcTotal) > 0 ? "text-red-600" : "text-emerald-600")}>
-                              {fmtAmount(closingBalance - pdcTotal)}
+                            <strong className={cn("tabular-nums", (closingBalance + pdcTotal) > 0 ? "text-red-600" : "text-emerald-600")}>
+                              {fmtAmount(closingBalance + pdcTotal)}
                             </strong>
                           </div>
                         )}
