@@ -501,6 +501,7 @@ const InvoiceCreatePage = () => {
       if (!form.chequeNumber.trim()) { toast({ title: "يرجى إدخال رقم الشيك", variant: "destructive" }); return false; }
       if (!form.chequeBank.trim()) { toast({ title: "يرجى إدخال اسم البنك", variant: "destructive" }); return false; }
       if (!form.chequeDueDate) { toast({ title: "يرجى تحديد تاريخ استحقاق الشيك", variant: "destructive" }); return false; }
+      if (!form.chequeBankAccountId) { toast({ title: "يرجى اختيار الحساب البنكي", variant: "destructive" }); return false; }
     }
     return true;
   };
