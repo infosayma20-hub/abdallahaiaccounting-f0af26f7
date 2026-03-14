@@ -225,6 +225,7 @@ const InvoiceCreatePage = () => {
         dueDate: "",
         chequeNumber: "",
         chequeBank: "",
+        chequeBankAccountId: "",
         chequeDueDate: "",
         transferRef: "",
         transferBank: "",
