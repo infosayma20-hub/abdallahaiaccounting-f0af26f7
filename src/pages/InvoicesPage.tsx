@@ -1506,18 +1506,79 @@ const InvoicesPage = () => {
       <Dialog open={showPreviewDialog} onOpenChange={setShowPreviewDialog}>
         <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto bg-background" dir="rtl">
           <DialogHeader>
-            <DialogTitle>معاينة الفاتورة</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              معاينة الفاتورة
+              {selectedInvoice?.is_credit_note && (
+                <Badge className="bg-destructive/10 text-destructive border-0 text-[10px]">إشعار دائن</Badge>
+              )}
+            </DialogTitle>
             <DialogDescription>{selectedInvoice?.invoiceNumber}</DialogDescription>
           </DialogHeader>
           {selectedInvoice && (
             <div className="space-y-4">
-              <div className="flex gap-2 flex-wrap">
+              <div className="flex gap-2 flex-wrap items-center">
                 <Button size="sm" variant="outline" className="gap-1.5 rounded-xl" onClick={handlePrint}>
                   <Printer className="h-4 w-4" /> طباعة
                 </Button>
                 <Button size="sm" variant="outline" className="gap-1.5 rounded-xl" onClick={() => { setShowPreviewDialog(false); handleDuplicate(selectedInvoice); }}>
                   <Copy className="h-4 w-4" /> جديد مشابه
                 </Button>
+
+                {/* Credit Note / Correction Dropdown */}
+                {selectedInvoice.status !== "draft" && !(selectedInvoice as any).is_credit_note && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button size="sm" variant="outline" className="gap-1.5 rounded-xl">
+                        <Settings className="h-4 w-4" /> تصحيح <ChevronDown className="h-3 w-3" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-56 bg-background" dir="rtl">
+                      <DropdownMenuItem onClick={() => { setCreditNoteMode("full"); setCreditNoteModal(true); }} className="gap-2">
+                        <ClipboardList className="h-4 w-4 text-primary" />
+                        <div>
+                          <p className="text-sm font-medium">إشعار دائن — عكس كامل</p>
+                          <p className="text-[10px] text-muted-foreground">يعكس الفاتورة بالكامل</p>
+                        </div>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => { setCreditNoteMode("partial"); setCreditNoteModal(true); }} className="gap-2">
+                        <Scissors className="h-4 w-4 text-primary" />
+                        <div>
+                          <p className="text-sm font-medium">إشعار دائن — عكس جزئي</p>
+                          <p className="text-[10px] text-muted-foreground">تحديد البنود المراد عكسها</p>
+                        </div>
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => { setCreditNoteMode("correction"); setCreditNoteModal(true); }} className="gap-2">
+                        <FileEdit className="h-4 w-4 text-primary" />
+                        <div>
+                          <p className="text-sm font-medium">فاتورة تصحيح</p>
+                          <p className="text-[10px] text-muted-foreground">عكس + إنشاء فاتورة جديدة</p>
+                        </div>
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+
+                {/* Draft edit */}
+                {selectedInvoice.status === "draft" && (
+                  <Button size="sm" variant="outline" className="gap-1.5 rounded-xl" onClick={() => {
+                    const draftData = {
+                      editId: selectedInvoice.id,
+                      type: selectedInvoice.type,
+                      contactName: selectedInvoice.contactName,
+                      paymentMethod: selectedInvoice.paymentMethod,
+                      currency: selectedInvoice.currency,
+                      notes: selectedInvoice.notes,
+                      items: selectedInvoice.items,
+                      contactSearch: selectedInvoice.contactName,
+                    };
+                    localStorage.setItem("draft_invoice_new", JSON.stringify(draftData));
+                    navigate("/invoices/new?edit=true");
+                  }}>
+                    <Pencil className="h-4 w-4" /> تعديل المسودة
+                  </Button>
+                )}
+
                 <Select value={selectedInvoice.status} onValueChange={(v) => updateStatus(selectedInvoice.id, v as Invoice["status"])}>
                   <SelectTrigger className="w-32 text-xs rounded-xl h-9"><SelectValue /></SelectTrigger>
                   <SelectContent className="bg-background">
@@ -1529,12 +1590,21 @@ const InvoicesPage = () => {
               </div>
 
               <div ref={printRef} className="bg-white rounded-2xl border border-border/50 overflow-hidden">
-                <InvoicePrintView invoice={selectedInvoice} settings={companySettings} copyLabel="أصلية" />
+                <InvoicePrintView invoice={selectedInvoice} settings={companySettings} copyLabel={selectedInvoice.status === "sent" ? "أصلية" : selectedInvoice.status === "draft" ? "مسودة" : "أصلية"} />
               </div>
             </div>
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Credit Note Modal */}
+      <CreditNoteModal
+        open={creditNoteModal}
+        onClose={() => setCreditNoteModal(false)}
+        invoice={selectedInvoice}
+        mode={creditNoteMode}
+        onConfirm={handleCreditNote}
+      />
 
       {/* Duplicate Confirm Modal */}
       <DuplicateConfirmModal
