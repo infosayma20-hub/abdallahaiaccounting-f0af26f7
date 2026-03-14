@@ -1747,7 +1747,7 @@ const POSPage = () => {
           // Group items by station
           const stationItems: Record<string, any[]> = {};
           cart.forEach(item => {
-            const stationId = stationMap.get(item.productId) || defaultStationId;
+            const stationId = stationMap.get(item.product_id) || defaultStationId;
             if (!stationItems[stationId]) stationItems[stationId] = [];
             stationItems[stationId].push({
               name: item.name,
