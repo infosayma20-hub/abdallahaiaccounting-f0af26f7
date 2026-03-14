@@ -49,7 +49,7 @@ type SortKey = "name" | "category" | "quantity" | "min_quantity" | "buy_price" |
 type SortDir = "asc" | "desc";
 
 const stockStatus = (p: Product) => {
-  if (p.quantity === 0) return "نفد";
+  if (p.quantity <= 0) return "نفد";
   if (p.min_quantity > 0 && p.quantity <= p.min_quantity) return "منخفض";
   return "متوفر";
 };
