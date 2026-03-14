@@ -51,6 +51,7 @@ interface Invoice {
   date: string;
   dueDate?: string;
   contactName: string;
+  contactId?: string | null;
   items: InvoiceItem[];
   notes: string;
   status: "draft" | "sent" | "paid";
@@ -123,7 +124,7 @@ const InvoicesPage = () => {
       _sourceRef: duplicateTarget.invoiceNumber,
       type: duplicateTarget.type,
       contactName: duplicateTarget.contactName,
-      contactId: (duplicateTarget as any).contactId || null,
+      contactId: duplicateTarget.contactId || null,
       paymentMethod: duplicateTarget.paymentMethod,
       currency: duplicateTarget.currency,
       notes: duplicateTarget.notes,
@@ -178,6 +179,7 @@ const InvoicesPage = () => {
         date: inv.invoice_date || '',
         dueDate: inv.due_date || undefined,
         contactName: inv.contact_name || '',
+        contactId: inv.contact_id || null,
         items: (inv.invoice_items || []).map((item: any) => ({
           id: item.id,
           productId: item.product_id || undefined,
