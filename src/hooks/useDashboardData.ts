@@ -171,7 +171,9 @@ export function useDashboardData() {
       setCheques(chqRes.data || []);
       setProducts(prodRes.data || []);
       setContacts(contactRes.data || []);
+      setInvoiceItems(invoiceItemsRes.data || []);
       setProfileData(profileRes.data);
+      setCompanyLogo(settingsRes.data?.logo_url || "");
       setLastUpdated(new Date());
     } catch (err) {
       console.error("Dashboard fetch error:", err);
