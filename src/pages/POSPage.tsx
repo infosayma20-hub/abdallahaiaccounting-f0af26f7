@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { usePOSOffline } from "@/hooks/usePOSOffline";
+import { openCashDrawer } from "@/lib/cash-drawer";
 import OfflineStatusBar from "@/components/pos/OfflineStatusBar";
 import SyncLogSheet from "@/components/pos/SyncLogSheet";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -443,7 +444,8 @@ const POSPage = () => {
      can_affect_inventory_on_purchase: boolean;
      can_record_expenses: boolean;
      can_create_expense_category: boolean;
-   }>({ can_view_invoice_history: true, can_edit_invoices: true, require_manager_for_invoices: true, manage_products_categories: false, view_invoice_log: false, edit_cancel_invoices: false, can_add_inventory: false, can_create_product: false, can_record_purchases: false, can_pay_purchases_cash: false, can_create_supplier: false, can_affect_inventory_on_purchase: false, can_record_expenses: false, can_create_expense_category: false });
+     open_cash_drawer: boolean;
+   }>({ can_view_invoice_history: true, can_edit_invoices: true, require_manager_for_invoices: true, manage_products_categories: false, view_invoice_log: false, edit_cancel_invoices: false, can_add_inventory: false, can_create_product: false, can_record_purchases: false, can_pay_purchases_cash: false, can_create_supplier: false, can_affect_inventory_on_purchase: false, can_record_expenses: false, can_create_expense_category: false, open_cash_drawer: false });
 
    // Financial operation modals
    const [showInventoryInput, setShowInventoryInput] = useState(false);
@@ -504,7 +506,7 @@ const POSPage = () => {
       if (!posUser) return;
       const { data: perms } = await supabase
         .from("pos_user_permissions")
-        .select("can_view_invoice_history, can_edit_invoices, require_manager_for_invoices, manage_products_categories, view_invoice_log, edit_cancel_invoices, can_add_inventory, can_create_product, can_record_purchases, can_pay_purchases_cash, can_create_supplier, can_affect_inventory_on_purchase, can_record_expenses, can_create_expense_category")
+        .select("can_view_invoice_history, can_edit_invoices, require_manager_for_invoices, manage_products_categories, view_invoice_log, edit_cancel_invoices, can_add_inventory, can_create_product, can_record_purchases, can_pay_purchases_cash, can_create_supplier, can_affect_inventory_on_purchase, can_record_expenses, can_create_expense_category, open_cash_drawer")
         .eq("pos_user_id", posUser.id)
         .maybeSingle();
       if (perms) {
@@ -523,6 +525,7 @@ const POSPage = () => {
           can_affect_inventory_on_purchase: (perms as any).can_affect_inventory_on_purchase ?? false,
           can_record_expenses: (perms as any).can_record_expenses ?? false,
           can_create_expense_category: (perms as any).can_create_expense_category ?? false,
+          open_cash_drawer: (perms as any).open_cash_drawer ?? false,
         });
       }
     };
@@ -1707,6 +1710,11 @@ const POSPage = () => {
       setReceiptData(receiptInfo);
       setShowPayment(false);
       setShowReceipt(true);
+
+      // Auto-open cash drawer after successful payment (if cash payment and permitted)
+      if (paymentMethod === "cash" && (isAdmin || posPerms.open_cash_drawer)) {
+        openCashDrawer();
+      }
 
       // Send digital receipt & survey if customer data was collected
       if (customerDataDiscount && surveyToken) {
