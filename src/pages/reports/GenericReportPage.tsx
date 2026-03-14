@@ -1127,12 +1127,14 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
         ];
       case "pos-daily-sales":
         return [
+          { key: "order_number", label: "رقم الفاتورة", type: "text" },
           { key: "date", label: "التاريخ", type: "date" },
+          { key: "time", label: "الوقت", type: "text" },
           { key: "cashier", label: "الكاشير", type: "text", filterType: "select", filterOptions: [...new Set(data.map((r: any) => r.cashier).filter(Boolean))] },
-          { key: "count", label: "عدد الفواتير", type: "number", align: "center" },
+          { key: "customer_name", label: "الزبون", type: "text" },
+          { key: "payment_method", label: "طريقة الدفع", type: "text", filterType: "select", filterOptions: [...new Set(data.map((r: any) => r.payment_method).filter(Boolean))] },
+          { key: "discount", label: "الخصم", type: "currency" },
           { key: "total", label: "الإجمالي", type: "currency" },
-          { key: "avg", label: "متوسط الفاتورة", type: "currency",
-            format: (v, row) => <span className="font-mono text-xs">{row.count > 0 ? fmtAmtCell(row.total / row.count) : "—"}</span> },
         ];
       case "pos-cashier-performance":
         return [
