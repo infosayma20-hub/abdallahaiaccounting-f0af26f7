@@ -2190,7 +2190,22 @@ const AccountStatementPage = () => {
 
             <Separator />
 
-            <Button variant="outline" size="sm" className="w-full" onClick={() => { saveColumns(DEFAULT_COLUMNS); setDisplayOptions(DEFAULT_DISPLAY_OPTIONS); setDetailLevel("total"); }}>
+            <Button size="sm" className="w-full" onClick={() => {
+              localStorage.setItem("stmt_display_options", JSON.stringify(displayOptions));
+              localStorage.setItem("stmt_detail_level", detailLevel);
+              toast.success("تم حفظ خياراتك بنجاح");
+            }}>
+              💾 احفظ خياراتي
+            </Button>
+
+            <Button variant="outline" size="sm" className="w-full" onClick={() => {
+              saveColumns(DEFAULT_COLUMNS);
+              setDisplayOptions(DEFAULT_DISPLAY_OPTIONS);
+              setDetailLevel("total");
+              localStorage.removeItem("stmt_display_options");
+              localStorage.removeItem("stmt_detail_level");
+              localStorage.removeItem("statement_columns_prefs");
+            }}>
               إعادة الضبط الافتراضي
             </Button>
           </div>
