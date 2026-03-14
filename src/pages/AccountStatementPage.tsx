@@ -1610,7 +1610,7 @@ const AccountStatementPage = () => {
                                       </span>
                                     </td>
                                   )}
-                                  {isColVisible("paymentMethod") && <td className="px-3 py-2 text-center text-[10px] text-muted-foreground">{row.payment_method || "—"}</td>}
+                                  {isColVisible("paymentMethod") && <td className="px-3 py-2 text-center text-[10px] text-muted-foreground">{PAYMENT_METHOD_AR[row.payment_method || ""] || row.payment_method || "—"}</td>}
                                   {isColVisible("currency") && <td className="px-3 py-2 text-center text-[10px] text-muted-foreground">{row.currency}</td>}
                                   {isColVisible("contactCode") && <td className="px-3 py-2 text-center text-[10px] text-muted-foreground font-mono">{selectedEntityInfo.code || "—"}</td>}
                                   {isColVisible("debit") && (
