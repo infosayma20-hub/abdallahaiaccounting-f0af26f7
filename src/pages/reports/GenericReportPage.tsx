@@ -860,8 +860,52 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
     })).sort((a, b) => b.revenue - a.revenue));
   };
 
+  const loadPOSInvoiceTiming = async () => {
+    const { data: orders } = await supabase.from("pos_orders").select("id, order_number, created_at, paid_at, total, session_id, customer_name").eq("user_id", uid).eq("state", "paid").gte("created_at", dateFrom).lte("created_at", dateTo + "T23:59:59").order("created_at", { ascending: false });
+    const { data: sessions } = await supabase.from("pos_sessions").select("id, cashier_name").eq("user_id", uid);
+    const sessMap = new Map((sessions || []).map(s => [s.id, s.cashier_name || "غير محدد"]));
+    setData((orders || []).map(o => {
+      const openTime = new Date(o.created_at);
+      const closeTime = o.paid_at ? new Date(o.paid_at) : openTime;
+      const durationMin = Math.round((closeTime.getTime() - openTime.getTime()) / 60000);
+      return {
+        order_number: o.order_number || "—",
+        date: o.created_at.split("T")[0],
+        open_time: o.created_at.split("T")[1]?.substring(0, 5) || "",
+        close_time: o.paid_at ? o.paid_at.split("T")[1]?.substring(0, 5) || "" : "—",
+        duration_min: durationMin,
+        cashier: sessMap.get(o.session_id) || "غير محدد",
+        customer: o.customer_name || "—",
+        total: o.total,
+      };
+    }));
+  };
 
-  const loadARAgingDetail = async () => {
+  const loadPOSCreditSales = async () => {
+    const { data: payments } = await supabase.from("pos_payments").select("order_id, amount, payment_method, created_at").eq("user_id", uid).eq("payment_method", "credit").gte("created_at", dateFrom).lte("created_at", dateTo + "T23:59:59");
+    if (!payments?.length) { setData([]); return; }
+    const orderIds = [...new Set(payments.map(p => p.order_id))];
+    const allOrders: any[] = [];
+    for (let i = 0; i < orderIds.length; i += 500) {
+      const batch = orderIds.slice(i, i + 500);
+      const { data: ords } = await supabase.from("pos_orders").select("id, order_number, created_at, total, customer_name, customer_id").in("id", batch);
+      if (ords) allOrders.push(...ords);
+    }
+    const orderMap = new Map(allOrders.map(o => [o.id, o]));
+    // Group by customer
+    const custMap: Record<string, { customer: string; orders: number; credit_total: number; invoices: string[] }> = {};
+    payments.forEach(p => {
+      const order = orderMap.get(p.order_id);
+      const custName = order?.customer_name || "عميل غير مسمى";
+      if (!custMap[custName]) custMap[custName] = { customer: custName, orders: 0, credit_total: 0, invoices: [] };
+      custMap[custName].orders++;
+      custMap[custName].credit_total += p.amount;
+      if (order?.order_number) custMap[custName].invoices.push(order.order_number);
+    });
+    setData(Object.values(custMap).sort((a, b) => b.credit_total - a.credit_total));
+  };
+
+
     const contactTypes = ["عميل", "customer", "زبون"];
     const { data: contacts } = await supabase.from("contacts").select("id, contact_name, current_balance, contact_class").eq("user_id", uid).in("contact_type", contactTypes).gt("current_balance", 0);
     if (!contacts?.length) { setData([]); return; }
