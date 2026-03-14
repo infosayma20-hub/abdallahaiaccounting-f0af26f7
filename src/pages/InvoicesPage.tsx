@@ -1446,6 +1446,23 @@ const InvoicesPage = () => {
                 <Button size="sm" variant="outline" className="gap-1.5 rounded-xl" onClick={() => { setShowPreviewDialog(false); handleDuplicate(selectedInvoice); }}>
                   <Copy className="h-4 w-4" /> جديد مشابه
                 </Button>
+                {canEdit({ status: selectedInvoice.status }) && (
+                  <Button size="sm" variant="outline" className="gap-1.5 rounded-xl" onClick={() => {
+                    if (selectedInvoice.status !== "draft") {
+                      setShowEditWarning(true);
+                    } else {
+                      setShowPreviewDialog(false);
+                      navigate(`/invoices/new?edit=${selectedInvoice.id}`);
+                    }
+                  }}>
+                    <Pencil className="h-4 w-4" /> تعديل
+                  </Button>
+                )}
+                {canDelete({ status: selectedInvoice.status }) && (
+                  <Button size="sm" variant="destructive" className="gap-1.5 rounded-xl" onClick={() => setShowDeleteDialog(true)}>
+                    <Trash2 className="h-4 w-4" /> حذف
+                  </Button>
+                )}
                 <Select value={selectedInvoice.status} onValueChange={(v) => updateStatus(selectedInvoice.id, v as Invoice["status"])}>
                   <SelectTrigger className="w-32 text-xs rounded-xl h-9"><SelectValue /></SelectTrigger>
                   <SelectContent className="bg-background">
