@@ -33,6 +33,7 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
+  const { canEdit, canDelete } = useDocumentPermissions();
 
   const isReceipt = voucherType === "receipt";
   const title = isReceipt ? "سندات القبض" : "سندات الصرف";
