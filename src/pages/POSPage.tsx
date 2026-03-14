@@ -1645,15 +1645,27 @@ const POSPage = () => {
           .eq("id", activeOrder.tableId);
       }
 
+      const newTotalSales = (session?.total_sales || 0) + effectiveTotal;
+      const newTotalOrders = (session?.total_orders || 0) + 1;
+
       setSession((prev) =>
         prev
           ? {
               ...prev,
-              total_sales: prev.total_sales + effectiveTotal,
-              total_orders: prev.total_orders + 1,
+              total_sales: newTotalSales,
+              total_orders: newTotalOrders,
             }
           : null
       );
+
+      // Persist totals to DB
+      await supabase
+        .from("pos_sessions")
+        .update({
+          total_sales: newTotalSales,
+          total_orders: newTotalOrders,
+        })
+        .eq("id", session.id);
 
       // Record employee account movement
       if (paymentMethod === "employee_account" && selectedEmployee) {
