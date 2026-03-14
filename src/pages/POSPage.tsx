@@ -1726,6 +1726,54 @@ const POSPage = () => {
       setShowPayment(false);
       setShowReceipt(true);
 
+      // Create kitchen tickets (split by station)
+      try {
+        const { data: stationsData } = await supabase
+          .from("kitchen_stations")
+          .select("id")
+          .eq("is_active", true);
+
+        if (stationsData && stationsData.length > 0) {
+          // Load product station assignments
+          const productIds = cart.filter(i => i.productId).map(i => i.productId);
+          const { data: productsWithStations } = await supabase
+            .from("products")
+            .select("id, kitchen_station_id")
+            .in("id", productIds);
+
+          const stationMap = new Map((productsWithStations || []).map((p: any) => [p.id, p.kitchen_station_id]));
+          const defaultStationId = (stationsData as any[])[0].id;
+
+          // Group items by station
+          const stationItems: Record<string, any[]> = {};
+          cart.forEach(item => {
+            const stationId = stationMap.get(item.productId) || defaultStationId;
+            if (!stationItems[stationId]) stationItems[stationId] = [];
+            stationItems[stationId].push({
+              name: item.name,
+              qty: item.qty,
+              note: item.note,
+              modifiers: item.modifiers || [],
+            });
+          });
+
+          // Create a ticket per station
+          const ticketInserts = Object.entries(stationItems).map(([stationId, items]) => ({
+            user_id: dataOwnerId,
+            order_id: orderId,
+            station_id: stationId,
+            items,
+            status: "pending",
+          }));
+
+          if (ticketInserts.length > 0) {
+            await supabase.from("kitchen_tickets").insert(ticketInserts as any);
+          }
+        }
+      } catch (err) {
+        console.error("Kitchen ticket creation error:", err);
+      }
+
       // Auto-open cash drawer after successful payment (if cash payment and permitted)
       if (paymentMethod === "cash" && (isAdmin || posPerms.open_cash_drawer)) {
         openCashDrawer();
