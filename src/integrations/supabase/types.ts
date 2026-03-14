@@ -1187,28 +1187,37 @@ export type Database = {
       }
       cheque_status_history: {
         Row: {
+          action_type: string | null
           cheque_id: string
           created_at: string
+          details: Json | null
           from_status: Database["public"]["Enums"]["cheque_status"] | null
           id: string
+          linked_transaction_id: string | null
           reason: string | null
           to_status: Database["public"]["Enums"]["cheque_status"]
           user_id: string
         }
         Insert: {
+          action_type?: string | null
           cheque_id: string
           created_at?: string
+          details?: Json | null
           from_status?: Database["public"]["Enums"]["cheque_status"] | null
           id?: string
+          linked_transaction_id?: string | null
           reason?: string | null
           to_status: Database["public"]["Enums"]["cheque_status"]
           user_id: string
         }
         Update: {
+          action_type?: string | null
           cheque_id?: string
           created_at?: string
+          details?: Json | null
           from_status?: Database["public"]["Enums"]["cheque_status"] | null
           id?: string
+          linked_transaction_id?: string | null
           reason?: string | null
           to_status?: Database["public"]["Enums"]["cheque_status"]
           user_id?: string
@@ -1226,12 +1235,20 @@ export type Database = {
       cheques: {
         Row: {
           amount: number
+          bank_fees: number | null
           bank_name: string | null
+          bounce_date: string | null
+          bounce_reason: string | null
           cheque_date: string
           cheque_number: string | null
           cheque_type: Database["public"]["Enums"]["cheque_type"]
+          collection_date: string | null
           created_at: string
           currency: string
+          deposit_bank_account_id: string | null
+          deposit_date: string | null
+          endorsed_to_contact_id: string | null
+          endorsed_to_name: string | null
           id: string
           image_url: string | null
           linked_account: string | null
@@ -1239,18 +1256,27 @@ export type Database = {
           notes: string | null
           party_name: string
           party_type: string
+          receipt_voucher_id: string | null
           status: Database["public"]["Enums"]["cheque_status"]
           updated_at: string
           user_id: string
         }
         Insert: {
           amount: number
+          bank_fees?: number | null
           bank_name?: string | null
+          bounce_date?: string | null
+          bounce_reason?: string | null
           cheque_date: string
           cheque_number?: string | null
           cheque_type: Database["public"]["Enums"]["cheque_type"]
+          collection_date?: string | null
           created_at?: string
           currency?: string
+          deposit_bank_account_id?: string | null
+          deposit_date?: string | null
+          endorsed_to_contact_id?: string | null
+          endorsed_to_name?: string | null
           id?: string
           image_url?: string | null
           linked_account?: string | null
@@ -1258,18 +1284,27 @@ export type Database = {
           notes?: string | null
           party_name: string
           party_type?: string
+          receipt_voucher_id?: string | null
           status?: Database["public"]["Enums"]["cheque_status"]
           updated_at?: string
           user_id: string
         }
         Update: {
           amount?: number
+          bank_fees?: number | null
           bank_name?: string | null
+          bounce_date?: string | null
+          bounce_reason?: string | null
           cheque_date?: string
           cheque_number?: string | null
           cheque_type?: Database["public"]["Enums"]["cheque_type"]
+          collection_date?: string | null
           created_at?: string
           currency?: string
+          deposit_bank_account_id?: string | null
+          deposit_date?: string | null
+          endorsed_to_contact_id?: string | null
+          endorsed_to_name?: string | null
           id?: string
           image_url?: string | null
           linked_account?: string | null
@@ -1277,6 +1312,7 @@ export type Database = {
           notes?: string | null
           party_name?: string
           party_type?: string
+          receipt_voucher_id?: string | null
           status?: Database["public"]["Enums"]["cheque_status"]
           updated_at?: string
           user_id?: string
@@ -8229,6 +8265,7 @@ export type Database = {
         | "محصل"
         | "مرتجع"
         | "ملغي"
+        | "مظهر"
       cheque_type: "وارد" | "صادر"
       product_category:
         | "بضاعة عامة"
@@ -8376,7 +8413,16 @@ export const Constants = {
         "worker",
         "supervisor",
       ],
-      cheque_status: ["مسجل", "آجل", "مستحق", "مودع", "محصل", "مرتجع", "ملغي"],
+      cheque_status: [
+        "مسجل",
+        "آجل",
+        "مستحق",
+        "مودع",
+        "محصل",
+        "مرتجع",
+        "ملغي",
+        "مظهر",
+      ],
       cheque_type: ["وارد", "صادر"],
       product_category: [
         "بضاعة عامة",
