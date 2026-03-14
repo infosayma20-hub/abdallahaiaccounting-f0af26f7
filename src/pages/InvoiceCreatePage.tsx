@@ -156,6 +156,7 @@ const InvoiceCreatePage = () => {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [salesReps, setSalesReps] = useState<SalesRep[]>([]);
+  const [bankAccounts, setBankAccounts] = useState<{ id: string; name: string; bank_name: string; currency: string; gl_account_code: string | null }[]>([]);
   const [creating, setCreating] = useState(false);
 
   // Contact search
@@ -188,6 +189,7 @@ const InvoiceCreatePage = () => {
     items: [createEmptyItem()] as InvoiceItem[],
     chequeNumber: "",
     chequeBank: "",
+    chequeBankAccountId: "" as string,
     chequeDueDate: "",
     transferRef: "",
     transferBank: "",
@@ -223,6 +225,7 @@ const InvoiceCreatePage = () => {
         dueDate: "",
         chequeNumber: "",
         chequeBank: "",
+        chequeBankAccountId: "",
         chequeDueDate: "",
         transferRef: "",
         transferBank: "",
@@ -235,15 +238,17 @@ const InvoiceCreatePage = () => {
   useEffect(() => {
     if (!user) return;
     const fetchAll = async () => {
-      const [cRes, pRes, sRes] = await Promise.all([
+      const [cRes, pRes, sRes, bRes] = await Promise.all([
         supabase.from("contacts").select("id, contact_name, contact_type, phone, email, address, payment_terms_days, current_balance, credit_limit, tax_number, sales_rep_id").eq("user_id", user.id).neq("is_archived", true).order("contact_name"),
         supabase.from("products").select("*").eq("user_id", user.id).order("name"),
         supabase.from("sales_representatives").select("id, full_name").eq("user_id", user.id).eq("is_active", true),
+        supabase.from("bank_accounts").select("id, name, bank_name, currency, gl_account_code").eq("user_id", user.id).eq("is_active", true),
       ]);
       const contactsList = (cRes.data || []) as Contact[];
       setContacts(contactsList);
       setProducts((pRes.data as any[]) || []);
       setSalesReps(((sRes.data || []) as any[]).map(s => ({ id: s.id, name: s.full_name })));
+      setBankAccounts((bRes.data || []) as any[]);
 
       // Resolve duplicate contact after contacts load
       if (fromDuplicate) {
@@ -347,6 +352,7 @@ const InvoiceCreatePage = () => {
           items: mappedItems.length ? mappedItems : [createEmptyItem()],
           chequeNumber: "",
           chequeBank: "",
+          chequeBankAccountId: "",
           chequeDueDate: "",
           transferRef: "",
           transferBank: "",
@@ -495,6 +501,7 @@ const InvoiceCreatePage = () => {
       if (!form.chequeNumber.trim()) { toast({ title: "يرجى إدخال رقم الشيك", variant: "destructive" }); return false; }
       if (!form.chequeBank.trim()) { toast({ title: "يرجى إدخال اسم البنك", variant: "destructive" }); return false; }
       if (!form.chequeDueDate) { toast({ title: "يرجى تحديد تاريخ استحقاق الشيك", variant: "destructive" }); return false; }
+      if (!form.chequeBankAccountId) { toast({ title: "يرجى اختيار الحساب البنكي", variant: "destructive" }); return false; }
     }
     return true;
   };
@@ -654,6 +661,8 @@ const InvoiceCreatePage = () => {
             bank_name: form.chequeBank || null,
             currency: form.currency,
             status: "مسجل",
+            deposit_bank_account_id: form.chequeBankAccountId || null,
+            linked_account: bankAccounts.find(b => b.id === form.chequeBankAccountId)?.gl_account_code || null,
             notes: `مرتبط بفاتورة ${dbInv.invoice_number}`,
           } as any);
         }
@@ -959,6 +968,33 @@ const InvoiceCreatePage = () => {
                 <div><label className="text-[10px] text-muted-foreground mb-0.5 block">رقم الشيك *</label><Input value={form.chequeNumber} onChange={e => setForm(p => ({ ...p, chequeNumber: e.target.value }))} className="rounded-lg text-sm" /></div>
                 <div><label className="text-[10px] text-muted-foreground mb-0.5 block">البنك *</label><Input value={form.chequeBank} onChange={e => setForm(p => ({ ...p, chequeBank: e.target.value }))} className="rounded-lg text-sm" /></div>
                 <div><label className="text-[10px] text-muted-foreground mb-0.5 block">تاريخ الشيك *</label><Input type="date" value={form.chequeDueDate} onChange={e => setForm(p => ({ ...p, chequeDueDate: e.target.value }))} className="rounded-lg text-sm" dir="ltr" /></div>
+              </div>
+              <div>
+                <label className="text-[10px] text-muted-foreground mb-0.5 block">الحساب البنكي *</label>
+                <Select value={form.chequeBankAccountId} onValueChange={v => {
+                  const ba = bankAccounts.find(b => b.id === v);
+                  setForm(p => ({ ...p, chequeBankAccountId: v, chequeBank: ba?.bank_name || p.chequeBank }));
+                }}>
+                  <SelectTrigger className="rounded-lg text-sm"><SelectValue placeholder="اختر الحساب البنكي" /></SelectTrigger>
+                  <SelectContent>
+                    {bankAccounts
+                      .filter(b => {
+                        const currMap: Record<string, string> = { "شيكل": "ILS", "دولار": "USD", "دينار": "JOD", "يورو": "EUR" };
+                        const targetCode = currMap[form.currency] || form.currency;
+                        return !b.currency || b.currency === targetCode || b.currency === form.currency;
+                      })
+                      .map(b => (
+                        <SelectItem key={b.id} value={b.id}>{b.name} - {b.bank_name}</SelectItem>
+                      ))}
+                    {bankAccounts.filter(b => {
+                      const currMap: Record<string, string> = { "شيكل": "ILS", "دولار": "USD", "دينار": "JOD", "يورو": "EUR" };
+                      const targetCode = currMap[form.currency] || form.currency;
+                      return !b.currency || b.currency === targetCode || b.currency === form.currency;
+                    }).length === 0 && (
+                      <div className="px-3 py-2 text-xs text-muted-foreground">لا توجد حسابات بنكية بعملة {form.currency}</div>
+                    )}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           )}
