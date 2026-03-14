@@ -27,14 +27,31 @@ const DigitalReceiptPage = () => {
       if (oErr || !orderData) { setError("الفاتورة غير موجودة"); setLoading(false); return; }
       setOrder(orderData);
 
-      const [linesRes, companyRes, sessionRes] = await Promise.all([
+      // Try company_id first, fallback to owner_id via user_id
+      const companyId = (orderData as any).company_id;
+      const userId = (orderData as any).user_id;
+
+      const [linesRes, companyRes, companyByOwnerRes, sessionRes, settingsRes] = await Promise.all([
         supabase.from("pos_order_lines").select("*").eq("order_id", orderId),
-        supabase.from("companies").select("name, logo_url, phone, address").eq("id", (orderData as any).company_id).single(),
+        companyId
+          ? supabase.from("companies").select("name, logo_url, phone, address").eq("id", companyId).single()
+          : Promise.resolve({ data: null }),
+        supabase.from("companies").select("name, logo_url, phone, address").eq("owner_id", userId).single(),
         supabase.from("pos_sessions").select("cashier_name").eq("id", (orderData as any).session_id).single(),
+        supabase.from("company_settings").select("company_name, address, email").eq("id", userId).single(),
       ]);
 
       setLines(linesRes.data || []);
-      setCompany(companyRes.data);
+      const companyData = companyRes?.data || companyByOwnerRes?.data;
+      const settings = settingsRes?.data as any;
+      // Use company_settings name as override if available
+      if (settings?.company_name && companyData) {
+        companyData.name = settings.company_name;
+      }
+      if (settings?.address && companyData) {
+        companyData.address = settings.address;
+      }
+      setCompany(companyData);
       setCashierName((sessionRes.data as any)?.cashier_name || "");
     } catch { setError("خطأ في تحميل الفاتورة"); }
     setLoading(false);
