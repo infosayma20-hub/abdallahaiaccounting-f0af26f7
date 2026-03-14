@@ -80,10 +80,16 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
 
     if (isReceipt) {
       // Receipts are stored in receipt_vouchers table
-      const [rvRes, cRes] = await Promise.all([
+      const [rvRes, cRes, linkRes] = await Promise.all([
         supabase.from("receipt_vouchers").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
         supabase.from("contacts").select("id, contact_name, contact_type").eq("user_id", user.id).neq("is_archived", true),
+        supabase.from("payment_invoice_links").select("payment_id, invoice_id"),
       ]);
+      // Count linked invoices per receipt
+      const linkCountMap = new Map<string, number>();
+      for (const link of (linkRes.data || [])) {
+        linkCountMap.set(link.payment_id, (linkCountMap.get(link.payment_id) || 0) + 1);
+      }
       // Map receipt_vouchers fields to unified format
       const mapped = (rvRes.data || []).map((rv: any) => ({
         ...rv,
@@ -92,7 +98,7 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
         amount_ils: rv.amount,
         amount: rv.amount,
         type: "receipt",
-        // payment_method is already in Arabic in receipt_vouchers
+        linked_invoices_count: linkCountMap.get(rv.id) || 0,
       }));
       setVouchers(mapped);
       setContacts(cRes.data || []);
