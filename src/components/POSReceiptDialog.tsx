@@ -388,12 +388,16 @@ export default function POSReceiptDialog({ open, onOpenChange, data, showReturnP
               <div style={{ textAlign: "center" }}>
                 <div style={{ fontSize: "12px", fontWeight: 600, color: "#475569", marginBottom: "2px" }}>شكراً لتعاملكم معنا 🙏</div>
                 <div style={{ fontSize: "10px", color: "#94a3b8" }}>Thank you for your purchase</div>
-                <div style={{ fontSize: "9px", color: "#cbd5e1", marginTop: "4px" }}>
-                  المرتجعات خلال 7 أيام مع الإيصال الأصلي
-                </div>
-                <div style={{ fontSize: "9px", color: "#cbd5e1" }}>
-                  Returns within 7 days with original receipt
-                </div>
+                {showReturnPolicy && (
+                  <>
+                    <div style={{ fontSize: "9px", color: "#cbd5e1", marginTop: "4px" }}>
+                      المرتجعات خلال {returnPolicyDays} أيام مع الإيصال الأصلي
+                    </div>
+                    <div style={{ fontSize: "9px", color: "#cbd5e1" }}>
+                      Returns within {returnPolicyDays} days with original receipt
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </div>
