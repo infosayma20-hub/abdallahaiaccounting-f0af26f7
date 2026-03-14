@@ -1042,7 +1042,7 @@ const AccountStatementPage = () => {
               {pdfGenerating ? "جاري التوليد..." : "معاينة PDF"}
             </Button>
 
-            <Button variant="outline" size="sm" onClick={() => window.print()} disabled={!selectedEntityId || rows.length === 0} className="h-8 gap-1.5 text-xs">
+            <Button variant="outline" size="sm" onClick={handlePrintStatement} disabled={!selectedEntityId || rows.length === 0} className="h-8 gap-1.5 text-xs">
               <Printer className="w-3.5 h-3.5" /> طباعة
             </Button>
 
