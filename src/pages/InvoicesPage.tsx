@@ -179,6 +179,7 @@ const InvoicesPage = () => {
         date: inv.invoice_date || '',
         dueDate: inv.due_date || undefined,
         contactName: inv.contact_name || '',
+        contactId: inv.contact_id || null,
         items: (inv.invoice_items || []).map((item: any) => ({
           id: item.id,
           productId: item.product_id || undefined,
