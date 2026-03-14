@@ -8,8 +8,8 @@ import {
   MessageSquare, Link2, Eye, Pencil, Receipt, User, Menu,
 } from "lucide-react";
 import * as XLSX from "xlsx";
+import html2canvas from "html2canvas";
 import { jsPDF } from "jspdf";
-import autoTable from "jspdf-autotable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -282,7 +282,6 @@ const AccountStatementPage = () => {
   const [showYearComparison, setShowYearComparison] = useState(false);
   const [pdfGenerating, setPdfGenerating] = useState(false);
   const [showPdfModal, setShowPdfModal] = useState(false);
-  const [pdfDataUri, setPdfDataUri] = useState<string>("");
 
   // Load saved column prefs
   const [columns, setColumns] = useState<ColumnConfig[]>(() => {
@@ -770,134 +769,71 @@ const AccountStatementPage = () => {
     return { ...tx, row };
   }, [previewTxId, transactions, rows]);
 
-  // ─── Generate PDF doc (reusable) ───
-  const generatePdfDoc = useCallback(() => {
-    const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-    const pw = doc.internal.pageSize.width;
-    const ph = doc.internal.pageSize.height;
-
-    doc.setFillColor(27, 58, 92);
-    doc.rect(0, 0, pw, 32, "F");
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(13);
-    doc.setFont("helvetica", "bold");
-    doc.text(companyInfo.name || companyName || "FINIX ERP", pw / 2, 12, { align: "center" });
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-    doc.text("Customer Account Statement", pw / 2, 20, { align: "center" });
-    doc.setFontSize(8);
-    doc.text(`From: ${dateFrom}  To: ${dateTo}`, pw / 2, 28, { align: "center" });
-
-    doc.setTextColor(0, 0, 0);
-    doc.setFillColor(245, 245, 245);
-    doc.rect(10, 36, pw - 20, 16, "F");
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "bold");
-    doc.text("Customer:", 14, 44);
-    doc.setFont("helvetica", "normal");
-    doc.text(selectedEntityName || "", 42, 44);
-
-    const lastRow = rows[rows.length - 1];
-    const finalBalance = lastRow ? lastRow.balance : 0;
-    doc.setFont("helvetica", "bold");
-    doc.text("Balance:", pw - 68, 44);
-    doc.setFont("helvetica", "normal");
-    const balColor = finalBalance > 0 ? [220, 38, 38] : [34, 197, 94];
-    doc.setTextColor(balColor[0], balColor[1], balColor[2]);
-    doc.text(`ILS ${Math.abs(finalBalance).toLocaleString("en")} ${finalBalance > 0 ? "Dr" : "Cr"}`, pw - 14, 44, { align: "right" });
-    doc.setTextColor(0, 0, 0);
-
-    const tableBody = rows.map((r) => [
-      r.date ? format(new Date(r.date), "dd/MM/yy") : "",
-      r.reference || "-",
-      r.description || "",
-      r.transaction_type || "",
-      r.debit ? Number(r.debit).toLocaleString("en") : "-",
-      r.credit ? Number(r.credit).toLocaleString("en") : "-",
-      r.balance != null ? Number(r.balance).toLocaleString("en") : "-",
-    ]);
-
-    autoTable(doc, {
-      startY: 56,
-      head: [["Date", "Reference", "Description", "Type", "Debit", "Credit", "Balance"]],
-      body: tableBody,
-      theme: "striped",
-      headStyles: { fillColor: [27, 58, 92], textColor: [255, 255, 255], fontSize: 8, fontStyle: "bold", halign: "center" },
-      bodyStyles: { fontSize: 7.5, cellPadding: 2 },
-      columnStyles: {
-        0: { cellWidth: 20, halign: "center" },
-        1: { cellWidth: 26, halign: "center" },
-        2: { cellWidth: 52 },
-        3: { cellWidth: 22, halign: "center" },
-        4: { cellWidth: 22, halign: "right" },
-        5: { cellWidth: 22, halign: "right" },
-        6: { cellWidth: 24, halign: "right" },
-      },
-      alternateRowStyles: { fillColor: [248, 249, 250] },
-    });
-
-    const fy = (doc as any).lastAutoTable.finalY + 8;
-    const td = rows.reduce((s, r) => s + (Number(r.debit) || 0), 0);
-    const tc = rows.reduce((s, r) => s + (Number(r.credit) || 0), 0);
-
-    doc.setFillColor(240, 240, 240);
-    doc.rect(pw - 98, fy, 88, 28, "F");
-    doc.setFontSize(9);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(0, 0, 0);
-    doc.text("Total Debit:", pw - 93, fy + 8);
-    doc.text(`ILS ${td.toLocaleString("en")}`, pw - 14, fy + 8, { align: "right" });
-    doc.text("Total Credit:", pw - 93, fy + 16);
-    doc.text(`ILS ${tc.toLocaleString("en")}`, pw - 14, fy + 16, { align: "right" });
-
-    doc.setFillColor(27, 58, 92);
-    doc.rect(pw - 98, fy + 20, 88, 9, "F");
-    doc.setTextColor(255, 255, 255);
-    doc.text("Net Balance:", pw - 93, fy + 26);
-    doc.text(`ILS ${Math.abs(finalBalance).toLocaleString("en")}`, pw - 14, fy + 26, { align: "right" });
-
-    const pageCount = (doc as any).internal.getNumberOfPages();
-    for (let i = 1; i <= pageCount; i++) {
-      doc.setPage(i);
-      doc.setTextColor(150, 150, 150);
-      doc.setFontSize(7);
-      doc.setFont("helvetica", "normal");
-      doc.line(10, ph - 12, pw - 10, ph - 12);
-      doc.text(`Page ${i} / ${pageCount}`, pw / 2, ph - 7, { align: "center" });
-      doc.text(companyInfo.name || companyName || "FINIX", 14, ph - 7);
-      doc.text("Confidential", pw - 14, ph - 7, { align: "right" });
-    }
-
-    return doc;
-  }, [rows, dateFrom, dateTo, selectedEntityName, companyInfo, companyName]);
-
-  // ─── PDF PREVIEW (in-page modal with data URI) ───
+  // ─── PDF PREVIEW (HTML-based modal) ───
   const handlePreviewPDF = useCallback(() => {
     if (!selectedEntityId || rows.length === 0) return;
+    setShowPdfModal(true);
+  }, [selectedEntityId, rows]);
+
+  const handleDownloadPDF = useCallback(async () => {
+    const element = document.getElementById("statement-preview-doc");
+    if (!element) return;
     setPdfGenerating(true);
     try {
-      const doc = generatePdfDoc();
-      const dataUri = doc.output("datauristring");
-      setPdfDataUri(dataUri);
-      setShowPdfModal(true);
-    } catch (err) {
-      console.error("PDF generation error:", err);
-      const message = err instanceof Error ? err.message : "حدث خطأ غير متوقع";
-      toast({ title: "خطأ في توليد PDF", description: message, variant: "destructive" });
-    } finally {
-      setPdfGenerating(false);
-    }
-  }, [generatePdfDoc, toast, selectedEntityId, rows]);
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: "#ffffff",
+        windowWidth: 794,
+      });
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+      const pdfWidth = pdf.internal.pageSize.width;
+      const pdfHeight = pdf.internal.pageSize.height;
+      const ratio = canvas.height / canvas.width;
+      const imgHeight = pdfWidth * ratio;
 
-  const handleDownloadPDF = useCallback(() => {
-    try {
-      const doc = generatePdfDoc();
-      doc.save(`كشف-حساب-${selectedEntityName}.pdf`);
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      pdf.addImage(imgData, "PNG", 0, position, pdfWidth, imgHeight);
+      heightLeft -= pdfHeight;
+
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, "PNG", 0, position, pdfWidth, imgHeight);
+        heightLeft -= pdfHeight;
+      }
+
+      pdf.save(`كشف-حساب-${selectedEntityName}-${dateFrom}.pdf`);
     } catch (err) {
       console.error("PDF download error:", err);
       toast({ title: "خطأ في تحميل PDF", variant: "destructive" });
+    } finally {
+      setPdfGenerating(false);
     }
-  }, [generatePdfDoc, selectedEntityName, toast]);
+  }, [selectedEntityName, dateFrom, toast]);
+
+  const handlePrintStatement = useCallback(() => {
+    const element = document.getElementById("statement-preview-doc");
+    if (!element) { window.print(); return; }
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) { window.print(); return; }
+    printWindow.document.write(`<!DOCTYPE html><html dir="rtl"><head>
+      <meta charset="utf-8" />
+      <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet" />
+      <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Cairo', 'Inter', sans-serif; direction: rtl; }
+        @page { size: A4; margin: 0; }
+        @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+      </style>
+    </head><body>${element.outerHTML}</body></html>`);
+    printWindow.document.close();
+    printWindow.onload = () => { printWindow.print(); printWindow.close(); };
+  }, []);
 
   // ─── EXPORT ───
   const handleExport = () => {
@@ -1105,7 +1041,7 @@ const AccountStatementPage = () => {
               {pdfGenerating ? "جاري التوليد..." : "معاينة PDF"}
             </Button>
 
-            <Button variant="outline" size="sm" onClick={() => window.print()} disabled={!selectedEntityId || rows.length === 0} className="h-8 gap-1.5 text-xs">
+            <Button variant="outline" size="sm" onClick={handlePrintStatement} disabled={!selectedEntityId || rows.length === 0} className="h-8 gap-1.5 text-xs">
               <Printer className="w-3.5 h-3.5" /> طباعة
             </Button>
 
@@ -2018,22 +1954,16 @@ const AccountStatementPage = () => {
                 size="sm"
                 className="h-8 gap-1.5 text-xs"
                 onClick={handleDownloadPDF}
+                disabled={pdfGenerating}
               >
-                <FileSpreadsheet className="w-3.5 h-3.5" /> تحميل PDF
+                {pdfGenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileSpreadsheet className="w-3.5 h-3.5" />}
+                {pdfGenerating ? "جاري التحميل..." : "تحميل PDF"}
               </Button>
               <Button
                 variant="secondary"
                 size="sm"
                 className="h-8 gap-1.5 text-xs"
-                onClick={() => {
-                  try {
-                    const doc = generatePdfDoc();
-                    doc.autoPrint();
-                    const uri = doc.output("datauristring");
-                    const w = window.open(uri);
-                    if (!w) window.print();
-                  } catch { window.print(); }
-                }}
+                onClick={handlePrintStatement}
               >
                 <Printer className="w-3.5 h-3.5" /> طباعة
               </Button>
@@ -2041,19 +1971,35 @@ const AccountStatementPage = () => {
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8 text-white hover:bg-white/20"
-                onClick={() => { setShowPdfModal(false); setPdfDataUri(""); }}
+                onClick={() => setShowPdfModal(false)}
               >
                 <X className="w-5 h-5" />
               </Button>
             </div>
           </div>
 
-          {/* PDF iframe */}
-          <iframe
-            src={pdfDataUri}
-            style={{ flex: 1, width: "100%", border: "none" }}
-            title="كشف الحساب PDF"
-          />
+          {/* HTML Document Preview */}
+          <div style={{ flex: 1, overflow: "auto", background: "#e5e7eb", padding: "20px", display: "flex", justifyContent: "center" }}>
+            <div id="statement-preview-doc" style={{ width: "794px", minHeight: "1123px", background: "white", boxShadow: "0 4px 20px rgba(0,0,0,0.2)" }}>
+              <StatementPrintView
+                company={companyInfo}
+                contact={{
+                  name: selectedEntityName,
+                  type: selectedEntityInfo.type,
+                  phone: selectedEntityInfo.phone,
+                  address: selectedEntityInfo.address,
+                  email: selectedContact?.email || "",
+                }}
+                rows={rows}
+                openingBalance={openingBalance}
+                closingBalance={closingBalance}
+                totalDebit={totalDebit}
+                totalCredit={totalCredit}
+                dateFrom={dateFrom}
+                dateTo={dateTo}
+              />
+            </div>
+          </div>
         </div>
       )}
 
