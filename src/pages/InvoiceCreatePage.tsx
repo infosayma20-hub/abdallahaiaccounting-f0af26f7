@@ -660,6 +660,8 @@ const InvoiceCreatePage = () => {
             bank_name: form.chequeBank || null,
             currency: form.currency,
             status: "مسجل",
+            deposit_bank_account_id: form.chequeBankAccountId || null,
+            linked_account: bankAccounts.find(b => b.id === form.chequeBankAccountId)?.gl_account_code || null,
             notes: `مرتبط بفاتورة ${dbInv.invoice_number}`,
           } as any);
         }
