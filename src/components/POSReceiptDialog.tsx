@@ -24,6 +24,7 @@ interface ReceiptItem {
 }
 
 interface ReceiptData {
+  orderId?: string;
   orderNumber: string;
   date: string;
   cashierName: string;
