@@ -160,6 +160,69 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       });
   }, [user]);
 
+  // ─── Load existing voucher for editing ───
+  useEffect(() => {
+    if (!editId || !user) return;
+    setEditLoading(true);
+    const loadVoucher = async () => {
+      try {
+        if (isReceipt) {
+          const { data } = await supabase
+            .from("receipt_vouchers")
+            .select("*")
+            .eq("id", editId)
+            .eq("user_id", user.id)
+            .single();
+          if (data) {
+            setPaymentDate(data.payment_date || new Date().toISOString().split("T")[0]);
+            setRefNumber(data.receipt_number || "");
+            setPaymentMethod(data.payment_method || "نقدي");
+            setAmount(String(data.amount || ""));
+            setNotes(data.notes || "");
+            setCheckNumber(data.check_number || "");
+            setCheckDate(data.check_date || "");
+            setCheckBank(data.bank_name || "");
+            setEditVoucherStatus(data.status || "posted");
+            if (data.cash_box_id) { setDepositType("cash_box"); setSelectedCashBox(data.cash_box_id); }
+            if (data.bank_account_id) { setDepositType("bank"); setSelectedBankAccount(data.bank_account_id); }
+            // Resolve contact
+            if (data.contact_id) {
+              const { data: c } = await supabase.from("contacts").select("id, contact_name, current_balance").eq("id", data.contact_id).single();
+              if (c) { setSelectedContact(c); setContactSearch(c.contact_name); }
+            }
+          }
+        } else {
+          const { data } = await supabase
+            .from("vouchers")
+            .select("*")
+            .eq("id", editId)
+            .eq("user_id", user.id)
+            .single();
+          if (data) {
+            setPaymentDate(data.date || new Date().toISOString().split("T")[0]);
+            setRefNumber(data.ref_number || "");
+            const methodMap: Record<string, string> = { cash: "نقدي", cheque: "شيك", transfer: "تحويل", card: "بطاقة" };
+            setPaymentMethod(methodMap[data.payment_method] || data.payment_method || "نقدي");
+            setAmount(String(data.amount || data.amount_ils || ""));
+            setNotes(data.notes || data.description || "");
+            setCheckNumber(data.cheque_number || "");
+            setCheckDate(data.cheque_due_date || "");
+            setCheckBank(data.cheque_bank_name || "");
+            setEditVoucherStatus(data.status || "posted");
+            if (data.bank_account_id) { setDepositType("bank"); setSelectedBankAccount(data.bank_account_id); }
+            // Resolve contact
+            if (data.contact_id) {
+              const { data: c } = await supabase.from("contacts").select("id, contact_name, current_balance").eq("id", data.contact_id).single();
+              if (c) { setSelectedContact(c); setContactSearch(c.contact_name); }
+            }
+          }
+        }
+      } catch (e) { /* ignore */ }
+      setEditLoading(false);
+    };
+    loadVoucher();
+  }, [editId, user, isReceipt]);
+
   // Load cash boxes, bank accounts, and generate ref number for payments
   useEffect(() => {
     if (!user) return;
