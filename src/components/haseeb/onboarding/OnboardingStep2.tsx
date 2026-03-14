@@ -207,22 +207,33 @@ const OnboardingStep2 = ({ onNext, onBack }: Props) => {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.3 }}
-        className="flex flex-wrap gap-2 justify-center mb-4"
+        className="flex flex-col items-center gap-2 mb-4"
       >
-        {SANDBOX_EXAMPLES.map((ex, i) => (
-          <button
-            key={i}
-            onClick={() => {
-              setInput(ex.text);
-              setUserStartedTyping(true);
-              handleSend(ex.text);
-            }}
-            disabled={isLoading}
-            className="px-3 py-1.5 rounded-xl text-[11px] transition-all hover:bg-slate-200 active:scale-95 bg-slate-100 text-slate-600 border border-slate-200 disabled:opacity-40"
+        {!result && !isLoading && (
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-xs font-bold text-primary mb-1"
           >
-            {ex.text}
-          </button>
-        ))}
+            👇 اختر مثالاً لتجربته
+          </motion.p>
+        )}
+        <div className="flex flex-wrap gap-2 justify-center">
+          {SANDBOX_EXAMPLES.map((ex, i) => (
+            <button
+              key={i}
+              onClick={() => {
+                setInput(ex.text);
+                setUserStartedTyping(true);
+                handleSend(ex.text);
+              }}
+              disabled={isLoading}
+              className="px-3 py-1.5 rounded-xl text-[11px] transition-all hover:bg-primary/10 hover:border-primary/40 active:scale-95 bg-slate-100 text-slate-600 border border-slate-200 disabled:opacity-40"
+            >
+              {ex.text}
+            </button>
+          ))}
+        </div>
       </motion.div>
 
       {/* Loading */}
