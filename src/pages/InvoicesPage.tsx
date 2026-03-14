@@ -81,7 +81,10 @@ const InvoicesPage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const { settings: companySettings } = useCompanySettings();
+  const { canEdit, canDelete } = useDocumentPermissions();
   const printRef = useRef<HTMLDivElement>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showEditWarning, setShowEditWarning] = useState(false);
 
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
