@@ -158,6 +158,11 @@ const SecuritySettingsSection = ({ settings, onChange }: Props) => {
 
       <Separator />
 
+      {/* Advanced Permissions */}
+      <AdvancedPermissionsSection settings={settings} onChange={onChange} />
+
+      <Separator />
+
       {/* Audit */}
       <div>
         <h3 className="text-base font-semibold text-foreground mb-4 flex items-center gap-2">
