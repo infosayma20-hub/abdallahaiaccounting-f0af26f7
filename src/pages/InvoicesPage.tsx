@@ -51,6 +51,7 @@ interface Invoice {
   date: string;
   dueDate?: string;
   contactName: string;
+  contactId?: string | null;
   items: InvoiceItem[];
   notes: string;
   status: "draft" | "sent" | "paid";
