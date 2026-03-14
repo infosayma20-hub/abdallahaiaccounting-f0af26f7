@@ -1,7 +1,6 @@
-import { RefreshCw, Settings2, Clock, Eye, EyeOff } from "lucide-react";
+import { RefreshCw, Settings2, Clock, Eye, EyeOff, Building2 } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import BackButton from "@/components/BackButton";
-import { FinixLogo } from "@/components/ui/FinixLogo";
 import type { PeriodType } from "@/hooks/useDashboardData";
 
 interface Props {
