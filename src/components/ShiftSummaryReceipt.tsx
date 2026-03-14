@@ -144,6 +144,12 @@ export default function ShiftSummaryReceipt({ open, onOpenChange, data }: ShiftS
               <span>إجمالي المبيعات</span>
               <span style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums", color: "#16a34a" }}>₪{data.totalSales.toFixed(2)}</span>
             </div>
+            {(data.totalExpenses || 0) > 0 && (
+              <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", fontSize: 12, color: "#475569" }}>
+                <span>مصروفات من الصندوق</span>
+                <span style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums", color: "#dc2626" }}>-₪{(data.totalExpenses || 0).toFixed(2)}</span>
+              </div>
+            )}
             <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", fontSize: 12, color: "#475569" }}>
               <span>عدد الطلبات</span>
               <span style={{ fontWeight: 600 }}>{data.totalOrders}</span>
