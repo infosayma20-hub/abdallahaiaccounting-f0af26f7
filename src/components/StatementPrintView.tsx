@@ -195,7 +195,8 @@ const StatementPrintView = ({
   bouncedTotal = 0,
   includeBounced = false,
   includePDC = false,
-}: StatementPrintViewProps) => {
+  isPreview = false,
+}: StatementPrintViewProps & { isPreview?: boolean }) => {
   const isDebit = closingBalance >= 0;
   const today = new Date();
   const soaNumber = statementNumber || `SOA-${today.getFullYear()}-${String(Date.now()).slice(-4).padStart(4, "0")}`;
@@ -321,7 +322,7 @@ const StatementPrintView = ({
   return (
     <div
       id="statement-print-wrapper"
-      className="statement-print-page statement-page bg-white text-black print-only"
+      className={`statement-print-page statement-page bg-white text-black ${isPreview ? '' : 'print-only'}`}
       style={{
         width: "100%", maxWidth: "794px", margin: "0 auto", padding: "0",
         fontFamily: "'Cairo', 'Segoe UI', sans-serif", direction: "rtl",

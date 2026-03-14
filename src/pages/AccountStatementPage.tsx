@@ -2363,6 +2363,7 @@ const AccountStatementPage = () => {
           <div style={{ flex: 1, overflow: "auto", background: "#e5e7eb", padding: "20px", display: "flex", justifyContent: "center" }}>
             <div id="statement-preview-doc" style={{ width: "794px", minHeight: "1123px", background: "white", boxShadow: "0 4px 20px rgba(0,0,0,0.2)" }}>
               <StatementPrintView
+                isPreview
                 company={companyInfo}
                 contact={{
                   name: selectedEntityName,
