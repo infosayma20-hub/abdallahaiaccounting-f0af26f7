@@ -11,6 +11,7 @@ interface ShiftSummaryData {
   closedAt: string;
   openingCash: number;
   totalSales: number;
+  totalExpenses?: number;
   totalOrders: number;
   closingCash: number;
   expectedCash: number;
