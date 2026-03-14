@@ -1066,9 +1066,205 @@ const AccountStatementPage = () => {
     printWindow.onload = () => { printWindow.print(); printWindow.close(); };
   }, []);
 
-  // ─── EXPORT ───
-  const handleExport = () => {
-    if (!rows.length || !selectedEntityName) return;
+  // ─── EXPORT (ExcelJS professional) ───
+  const handleExport = async () => {
+    if (!filteredRows.length || !selectedEntityName) return;
+    try {
+      const wb = new ExcelJS.Workbook();
+      wb.creator = "FINIX ERP";
+      wb.created = new Date();
+      const ws = wb.addWorksheet("كشف الحساب", {
+        views: [{ rightToLeft: true, state: "frozen" as const, ySplit: 7 }],
+        pageSetup: {
+          paperSize: 9,
+          orientation: "portrait" as const,
+          fitToPage: true,
+          fitToWidth: 1,
+          fitToHeight: 0,
+        },
+      });
+
+      const isDetailMode = detailLevel === "lineItems";
+      const colDefs = [
+        { key: "date", header: "التاريخ", width: 14 },
+        { key: "reference", header: "المرجع", width: 18 },
+        { key: "description", header: "البيان", width: isDetailMode ? 40 : 30 },
+        ...(!isDetailMode ? [
+          { key: "due_date", header: "الاستحقاق", width: 14 },
+          { key: "payment_method", header: "طريقة الدفع", width: 14 },
+        ] : []),
+        { key: "type", header: "النوع", width: 14 },
+        { key: "debit", header: "مدين ₪", width: 14 },
+        { key: "credit", header: "دائن ₪", width: 14 },
+        { key: "balance", header: "الرصيد ₪", width: 16 },
+      ];
+
+      ws.columns = colDefs.map(c => ({ key: c.key, width: c.width }));
+
+      // Header rows
+      const lastCol = String.fromCharCode(64 + colDefs.length);
+      ws.mergeCells(`A1:${lastCol}1`);
+      const titleCell = ws.getCell("A1");
+      titleCell.value = companyInfo.name || companyName || "FINIX ERP";
+      titleCell.font = { bold: true, size: 16, color: { argb: "FFFFFFFF" } };
+      titleCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1B3A5C" } };
+      titleCell.alignment = { horizontal: "center", vertical: "middle", readingOrder: "rightToLeft" as any };
+      ws.getRow(1).height = 30;
+
+      ws.mergeCells(`A2:${lastCol}2`);
+      const stmtCell = ws.getCell("A2");
+      stmtCell.value = "كشف الحساب — Statement of Account";
+      stmtCell.font = { bold: true, size: 12, color: { argb: "FFC9A84C" } };
+      stmtCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1B3A5C" } };
+      stmtCell.alignment = { horizontal: "center", readingOrder: "rightToLeft" as any };
+      ws.getRow(2).height = 22;
+
+      const infoData = [
+        ["العميل:", selectedEntityName, "", "", "من:", fmtDate(dateFrom)],
+        ["الهاتف:", selectedEntityInfo.phone || "—", "", "", "إلى:", fmtDate(dateTo)],
+        ["الرقم الضريبي:", companyInfo.tax_number || "—", "", "", "تاريخ الطباعة:", fmtDate(format(new Date(), "yyyy-MM-dd"))],
+      ];
+      infoData.forEach((row, i) => {
+        const wsRow = ws.getRow(3 + i);
+        wsRow.values = row;
+        wsRow.getCell(1).font = { bold: true, color: { argb: "FF1B3A5C" } };
+        wsRow.height = 18;
+      });
+
+      ws.getRow(6).height = 8;
+
+      // Table header
+      const headerRow = ws.getRow(7);
+      headerRow.values = colDefs.map(c => c.header);
+      headerRow.height = 22;
+      headerRow.eachCell((cell) => {
+        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1B3A5C" } };
+        cell.font = { bold: true, size: 10, color: { argb: "FFFFFFFF" } };
+        cell.alignment = { horizontal: "center", vertical: "middle", readingOrder: "rightToLeft" as any };
+        cell.border = { bottom: { style: "thin", color: { argb: "FFC9A84C" } } };
+      });
+
+      // Opening balance row
+      let currentRow = 8;
+      const obRow = ws.getRow(currentRow);
+      const obData: any[] = [fmtDate(dateFrom), "—", "رصيد أول المدة"];
+      if (!isDetailMode) { obData.push("—", "—"); }
+      obData.push("", openingBalance > 0 ? openingBalance : "", openingBalance < 0 ? Math.abs(openingBalance) : "", openingBalance);
+      obRow.values = obData;
+      obRow.height = 20;
+      obRow.eachCell((cell) => {
+        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFDBEAFE" } };
+        cell.font = { italic: true, size: 10 };
+        cell.alignment = { readingOrder: "rightToLeft" as any };
+      });
+      currentRow++;
+
+      // Data rows
+      let isAlternate = false;
+      filteredRows.forEach(tx => {
+        const isItemLine = !!tx.isLineItem;
+        const badge = getTypeBadge(tx.transaction_type);
+
+        const rowData: any[] = [
+          isItemLine ? "" : fmtDate(tx.date),
+          isItemLine ? "" : (tx.reference || "—"),
+          isItemLine ? `    ↳ ${tx.description.replace(/^\s*↳\s*/, "")}` : tx.description,
+        ];
+        if (!isDetailMode) {
+          rowData.push(isItemLine ? "" : (tx.dueDate ? fmtDate(tx.dueDate) : "—"));
+          rowData.push(isItemLine ? "" : (PAYMENT_METHOD_AR[tx.payment_method || ""] || tx.payment_method || "—"));
+        }
+        rowData.push(isItemLine ? "بند" : badge.label);
+        rowData.push(tx.debit > 0 ? tx.debit : "");
+        rowData.push(tx.credit > 0 ? tx.credit : "");
+        rowData.push(!isItemLine ? tx.balance : "");
+
+        const wsRow = ws.getRow(currentRow);
+        wsRow.values = rowData;
+        wsRow.height = isItemLine ? 16 : 20;
+
+        const bgColor = isItemLine ? "FFFFF8E1" : isAlternate ? "FFF8F9FA" : "FFFFFFFF";
+        wsRow.eachCell((cell, colNum) => {
+          cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: bgColor } };
+          cell.alignment = { readingOrder: "rightToLeft" as any, vertical: "middle" };
+          cell.border = { bottom: { style: "hair", color: { argb: "FFE2E8F0" } } };
+          cell.font = { size: isItemLine ? 9 : 10, color: { argb: isItemLine ? "FF64748B" : "FF1A1A1A" } };
+        });
+
+        // Color debit/credit
+        const debitIdx = isDetailMode ? 5 : 7;
+        const creditIdx = isDetailMode ? 6 : 8;
+        if (tx.debit > 0 && wsRow.getCell(debitIdx)) {
+          wsRow.getCell(debitIdx).font = { color: { argb: "FFDC2626" }, bold: true, size: 10 };
+          wsRow.getCell(debitIdx).numFmt = "#,##0.00";
+        }
+        if (tx.credit > 0 && wsRow.getCell(creditIdx)) {
+          wsRow.getCell(creditIdx).font = { color: { argb: "FF16A34A" }, bold: true, size: 10 };
+          wsRow.getCell(creditIdx).numFmt = "#,##0.00";
+        }
+        const balIdx = isDetailMode ? 7 : 9;
+        if (!isItemLine && wsRow.getCell(balIdx)) {
+          wsRow.getCell(balIdx).numFmt = "#,##0.00";
+        }
+
+        if (!isItemLine) isAlternate = !isAlternate;
+        currentRow++;
+      });
+
+      // Closing row
+      currentRow++;
+      const totalRow = ws.getRow(currentRow);
+      const closingData: any[] = ["—", "—", "الرصيد الختامي"];
+      if (!isDetailMode) { closingData.push("", ""); }
+      closingData.push("", totalDebit, totalCredit, closingBalance);
+      totalRow.values = closingData;
+      totalRow.height = 25;
+      totalRow.eachCell((cell) => {
+        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1B3A5C" } };
+        cell.font = { bold: true, size: 11, color: { argb: "FFFFFFFF" } };
+        cell.alignment = { horizontal: "center", readingOrder: "rightToLeft" as any };
+      });
+      const balCellIdx = isDetailMode ? 7 : 9;
+      if (totalRow.getCell(balCellIdx)) {
+        totalRow.getCell(balCellIdx).font = { bold: true, size: 12, color: { argb: "FFC9A84C" } };
+        totalRow.getCell(balCellIdx).numFmt = "#,##0.00";
+      }
+
+      // PDC rows
+      if (displayOptions.includePDC && pdcTotal > 0) {
+        currentRow += 2;
+        const pdcHeader = ws.getRow(currentRow);
+        pdcHeader.values = ["", "", "شيكات واردة برسم التحصيل (PDC)"];
+        pdcHeader.font = { bold: true, size: 10, color: { argb: "FF1E40AF" } };
+        currentRow++;
+        pdcCheques.forEach(chk => {
+          const r = ws.getRow(currentRow);
+          r.values = ["", chk.cheque_number || "—", `شيك بنك ${chk.bank_name || "—"}`, fmtDate(chk.cheque_date), "", "", "", chk.amount, ""];
+          r.height = 18;
+          currentRow++;
+        });
+      }
+
+      // AutoFilter
+      ws.autoFilter = {
+        from: { row: 7, column: 1 },
+        to: { row: currentRow - 1, column: colDefs.length },
+      };
+
+      const buffer = await wb.xlsx.writeBuffer();
+      const blob = new Blob([buffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+      saveAs(blob, `كشف-حساب-${selectedEntityName}-${dateFrom}.xlsx`);
+    } catch (err) {
+      console.error("Excel export error:", err);
+      // Fallback to XLSX
+      handleExportFallback();
+    }
+  };
+
+  // Fallback export with xlsx library
+  const handleExportFallback = () => {
     const headerRows = [
       [companyInfo.name || companyName || "كشف حساب"],
       [`كشف حساب - ${selectedEntityName}`],
@@ -1079,19 +1275,15 @@ const AccountStatementPage = () => {
     headerRows.push(cols);
     const dataRows = [
       ["", "", "رصيد أول المدة", "", "", openingBalance > 0 ? openingBalance : "", openingBalance < 0 ? Math.abs(openingBalance) : "", openingBalance],
-      ...rows.map(r => [r.date, r.reference || "", r.description, r.dueDate ? fmtDate(r.dueDate) : "—", r.debit > 0 ? "مدين" : "دائن", r.debit || "", r.credit || "", r.balance]),
+      ...filteredRows.map(r => [r.date, r.reference || "", r.description, r.dueDate ? fmtDate(r.dueDate) : "—", r.debit > 0 ? "مدين" : "دائن", r.debit || "", r.credit || "", r.balance]),
       ["", "", "الإجمالي", "", "", totalDebit, totalCredit, closingBalance],
     ];
-    if (pdcTotal > 0) {
-      dataRows.push(["", "", "إجمالي شيكات آجلة (PDC)", "", "", "", pdcTotal, ""]);
-      dataRows.push(["", "", "الرصيد مع PDC", "", "", "", "", closingBalance - pdcTotal]);
-    }
     const allRows = [...headerRows, ...dataRows];
     const ws = XLSX.utils.aoa_to_sheet(allRows);
     ws["!cols"] = [{ wch: 12 }, { wch: 18 }, { wch: 38 }, { wch: 12 }, { wch: 8 }, { wch: 14 }, { wch: 14 }, { wch: 16 }];
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "كشف الحساب");
-    XLSX.writeFile(wb, `كشف-حساب-${selectedEntityName}-${dateFrom}.xlsx`);
+    const wbk = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wbk, ws, "كشف الحساب");
+    XLSX.writeFile(wbk, `كشف-حساب-${selectedEntityName}-${dateFrom}.xlsx`);
   };
 
   const allBalances = isAccountsTab ? accountBalances : isEmployeesTab ? employeeBalances : contactBalances;
