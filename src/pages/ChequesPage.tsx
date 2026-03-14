@@ -310,13 +310,15 @@ const ChequesPage = () => {
         updatePayload.bounce_date = data.bounceDate;
         updatePayload.bounce_reason = data.bounceReason;
         updatePayload.bank_fees = data.bankFees || 0;
-        // Journal: debit receivables (1130), credit cheques-in-collection (1125)
+        const contactId = findContactId(cheque.party_name);
+        // Journal: debit receivables (1130), credit cheques-in-collection (1125) — returns balance to customer
         const { data: txResult } = await supabase.from('transactions').insert({
           user_id: user.id, transaction_date: data.bounceDate || new Date().toISOString().split('T')[0],
           description: `شيك مرتجع - ${cheque.party_name} #${cheque.cheque_number || ''} - ${data.bounceReason}`,
           debit_account_code: '1130', credit_account_code: '1125',
           amount: cheque.amount, currency: cheque.currency || 'شيكل',
-          transaction_type: 'cheque_bounce', reference: `CHQ-BNC-${cheque.id.slice(0, 8)}`,
+          transaction_type: 'cheque_bounce', contact_id: contactId,
+          reference: `CHQ-BNC-${cheque.id.slice(0, 8)}`,
           idempotency_key: `CHQ-BNC-${cheque.id}`,
         }).select('id').single();
         txId = txResult?.id || null;
@@ -347,6 +349,52 @@ const ChequesPage = () => {
           idempotency_key: `CHQ-END-${cheque.id}`,
         }).select('id').single();
         txId = txResult?.id || null;
+      }
+
+      if (data.action === 'return_to_customer') {
+        const contactId = findContactId(cheque.party_name);
+        const today = new Date().toISOString().split('T')[0];
+        // Reverse registration: debit receivables (1130), credit incoming cheques (1150)
+        const { data: txResult } = await supabase.from('transactions').insert({
+          user_id: user.id, transaction_date: today,
+          description: `إرجاع شيك للزبون - ${cheque.party_name} #${cheque.cheque_number || ''} - ${data.returnReason || ''}`,
+          debit_account_code: '1130', credit_account_code: '1150',
+          amount: cheque.amount, currency: cheque.currency || 'شيكل',
+          transaction_type: 'cheque_return', contact_id: contactId,
+          reference: `CHQ-RTN-${cheque.id.slice(0, 8)}`,
+          idempotency_key: `CHQ-RTN-${cheque.id}`,
+        }).select('id').single();
+        txId = txResult?.id || null;
+      }
+
+      if (data.action === 'cancel') {
+        const contactId = findContactId(cheque.party_name);
+        const today = new Date().toISOString().split('T')[0];
+        if (cheque.cheque_type === 'وارد') {
+          // Reverse incoming registration: debit receivables (1130), credit incoming cheques (1150)
+          const { data: txResult } = await supabase.from('transactions').insert({
+            user_id: user.id, transaction_date: today,
+            description: `إلغاء شيك وارد - ${cheque.party_name} #${cheque.cheque_number || ''} - ${data.cancelReason || ''}`,
+            debit_account_code: '1130', credit_account_code: '1150',
+            amount: cheque.amount, currency: cheque.currency || 'شيكل',
+            transaction_type: 'cheque_cancel', contact_id: contactId,
+            reference: `CHQ-CAN-${cheque.id.slice(0, 8)}`,
+            idempotency_key: `CHQ-CAN-${cheque.id}`,
+          }).select('id').single();
+          txId = txResult?.id || null;
+        } else {
+          // Reverse outgoing: debit outgoing cheques (1160), credit supplier payables (2100)
+          const { data: txResult } = await supabase.from('transactions').insert({
+            user_id: user.id, transaction_date: today,
+            description: `إلغاء شيك صادر - ${cheque.party_name} #${cheque.cheque_number || ''} - ${data.cancelReason || ''}`,
+            debit_account_code: '1160', credit_account_code: '2100',
+            amount: cheque.amount, currency: cheque.currency || 'شيكل',
+            transaction_type: 'cheque_cancel', contact_id: contactId,
+            reference: `CHQ-CAN-${cheque.id.slice(0, 8)}`,
+            idempotency_key: `CHQ-CAN-${cheque.id}`,
+          }).select('id').single();
+          txId = txResult?.id || null;
+        }
       }
 
       // Update cheque
