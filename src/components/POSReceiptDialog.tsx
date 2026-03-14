@@ -60,11 +60,27 @@ const paymentMethodLabel: Record<string, string> = {
   credit: "آجل",
 };
 
-export default function POSReceiptDialog({ open, onOpenChange, data, showReturnPolicy = true, returnPolicyDays = 7 }: POSReceiptDialogProps) {
+export default function POSReceiptDialog({ open, onOpenChange, data, showReturnPolicy = true, returnPolicyDays = 7, autoPrint = false }: POSReceiptDialogProps) {
   const receiptRef = useRef<HTMLDivElement>(null);
   const [showEmail, setShowEmail] = useState(false);
   const [email, setEmail] = useState("");
   const [sending, setSending] = useState(false);
+  const autoPrintDone = useRef(false);
+
+  // Auto-print when dialog opens
+  useEffect(() => {
+    if (open && autoPrint && data && !autoPrintDone.current) {
+      autoPrintDone.current = true;
+      // Small delay to ensure DOM is rendered
+      const timer = setTimeout(() => {
+        handlePrint();
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+    if (!open) {
+      autoPrintDone.current = false;
+    }
+  }, [open, autoPrint, data]);
 
   if (!data) return null;
 
