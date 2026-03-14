@@ -108,13 +108,22 @@ const ReceiptNewPage = () => {
     });
   }, [user]);
 
-  // Load invoices when contact is selected
+  // Load invoices when contact is selected — also fetch from duplicate contacts with same name
   useEffect(() => {
     if (!user || !selectedContact) { setInvoices([]); return; }
+    
+    // Find all contact IDs with the same name (handles duplicates)
+    const sameNameIds = contacts
+      .filter(c => c.contact_name === selectedContact.contact_name)
+      .map(c => c.id);
+    
+    // Always include the selected contact's ID
+    const contactIds = [...new Set([selectedContact.id, ...sameNameIds])];
+    
     supabase.from("invoices")
       .select("id, invoice_number, invoice_date, due_date, total_amount, paid_amount, remaining_amount, status")
       .eq("user_id", user.id)
-      .eq("contact_id", selectedContact.id)
+      .in("contact_id", contactIds)
       .in("payment_status", ["unpaid", "partial"])
       .order("invoice_date", { ascending: true })
       .then(({ data }) => {
@@ -124,7 +133,7 @@ const ReceiptNewPage = () => {
           allocatedAmount: Math.max(0, (inv.remaining_amount ?? inv.total_amount) - (inv.paid_amount ?? 0)),
         })));
       });
-  }, [user, selectedContact]);
+  }, [user, selectedContact, contacts]);
 
   const filteredContacts = useMemo(() => {
     if (!contactSearch.trim()) return contacts.slice(0, 10);
