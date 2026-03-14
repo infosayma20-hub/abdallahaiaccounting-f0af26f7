@@ -486,6 +486,20 @@ export function useDashboardData() {
       .slice(0, 8);
   }, [plTx, range, contacts, filterByRange]);
 
+  // Top selling items (from invoice_items)
+  const topSellingItems = useMemo(() => {
+    const itemMap: Record<string, { name: string; totalQty: number; totalAmount: number }> = {};
+    invoiceItems.forEach((item) => {
+      const name = item.product_name || "غير محدد";
+      if (!itemMap[name]) itemMap[name] = { name, totalQty: 0, totalAmount: 0 };
+      itemMap[name].totalQty += item.quantity || 0;
+      itemMap[name].totalAmount += item.total_amount || 0;
+    });
+    return Object.values(itemMap)
+      .sort((a, b) => b.totalAmount - a.totalAmount)
+      .slice(0, 8);
+  }, [invoiceItems]);
+
   return {
     // Data
     kpis,
@@ -499,7 +513,9 @@ export function useDashboardData() {
     inventorySummary,
     cashFlowData,
     topSales,
+    topSellingItems,
     profileData,
+    companyLogo,
     // State
     loading,
     lastUpdated,
