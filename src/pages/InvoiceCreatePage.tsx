@@ -969,6 +969,33 @@ const InvoiceCreatePage = () => {
                 <div><label className="text-[10px] text-muted-foreground mb-0.5 block">البنك *</label><Input value={form.chequeBank} onChange={e => setForm(p => ({ ...p, chequeBank: e.target.value }))} className="rounded-lg text-sm" /></div>
                 <div><label className="text-[10px] text-muted-foreground mb-0.5 block">تاريخ الشيك *</label><Input type="date" value={form.chequeDueDate} onChange={e => setForm(p => ({ ...p, chequeDueDate: e.target.value }))} className="rounded-lg text-sm" dir="ltr" /></div>
               </div>
+              <div>
+                <label className="text-[10px] text-muted-foreground mb-0.5 block">الحساب البنكي *</label>
+                <Select value={form.chequeBankAccountId} onValueChange={v => {
+                  const ba = bankAccounts.find(b => b.id === v);
+                  setForm(p => ({ ...p, chequeBankAccountId: v, chequeBank: ba?.bank_name || p.chequeBank }));
+                }}>
+                  <SelectTrigger className="rounded-lg text-sm"><SelectValue placeholder="اختر الحساب البنكي" /></SelectTrigger>
+                  <SelectContent>
+                    {bankAccounts
+                      .filter(b => {
+                        const currMap: Record<string, string> = { "شيكل": "ILS", "دولار": "USD", "دينار": "JOD", "يورو": "EUR" };
+                        const targetCode = currMap[form.currency] || form.currency;
+                        return !b.currency || b.currency === targetCode || b.currency === form.currency;
+                      })
+                      .map(b => (
+                        <SelectItem key={b.id} value={b.id}>{b.name} - {b.bank_name}</SelectItem>
+                      ))}
+                    {bankAccounts.filter(b => {
+                      const currMap: Record<string, string> = { "شيكل": "ILS", "دولار": "USD", "دينار": "JOD", "يورو": "EUR" };
+                      const targetCode = currMap[form.currency] || form.currency;
+                      return !b.currency || b.currency === targetCode || b.currency === form.currency;
+                    }).length === 0 && (
+                      <div className="px-3 py-2 text-xs text-muted-foreground">لا توجد حسابات بنكية بعملة {form.currency}</div>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           )}
 
