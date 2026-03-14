@@ -535,6 +535,24 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
           sourceRef: duplicateTarget?.ref_number,
         }}
       />
+
+      {/* Edit Posted Warning */}
+      <EditPostedWarningDialog
+        open={editWarning}
+        onClose={() => setEditWarning(false)}
+        onConfirm={confirmEditPosted}
+        docNumber={editTarget?.ref_number}
+        docAmount={editTarget?.amount_display}
+      />
+
+      {/* Delete Dialog */}
+      <DeleteDocumentDialog
+        open={deleteDialog}
+        onClose={() => setDeleteDialog(false)}
+        onConfirm={confirmDelete}
+        docNumber={deleteTarget?.ref_number}
+        docAmount={deleteTarget?.amount_display}
+      />
     </div>
   );
 };
