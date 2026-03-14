@@ -1132,7 +1132,7 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
           { key: "time", label: "الوقت", type: "text" },
           { key: "cashier", label: "الكاشير", type: "text", filterType: "select", filterOptions: [...new Set(data.map((r: any) => r.cashier).filter(Boolean))] },
           { key: "customer_name", label: "الزبون", type: "text" },
-          { key: "payment_method", label: "طريقة الدفع", type: "text", filterType: "select", filterOptions: [...new Set(data.map((r: any) => r.payment_method).filter(Boolean))] },
+          { key: "currency", label: "العملة", type: "text", filterType: "select", filterOptions: [...new Set(data.map((r: any) => r.currency).filter(Boolean))] },
           { key: "discount", label: "الخصم", type: "currency" },
           { key: "total", label: "الإجمالي", type: "currency" },
         ];
