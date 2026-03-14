@@ -123,7 +123,7 @@ export function useDashboardData() {
     if (!user) return;
     setLoading(true);
     try {
-      const [txRes, acctRes, chqRes, prodRes, contactRes, profileRes] = await Promise.all([
+      const [txRes, acctRes, chqRes, prodRes, contactRes, profileRes, invoiceItemsRes, settingsRes] = await Promise.all([
         supabase
           .from("transactions")
           .select("id, transaction_date, description, transaction_type, debit_account_code, credit_account_code, amount, currency, is_deleted, is_opening_balance, contact_id, created_at")
@@ -153,6 +153,15 @@ export function useDashboardData() {
         supabase
           .from("profiles")
           .select("display_name, company_name, setup_completed")
+          .eq("user_id", user.id)
+          .maybeSingle(),
+        supabase
+          .from("invoice_items")
+          .select("product_name, quantity, total_amount, invoice_id")
+          .limit(1000),
+        supabase
+          .from("company_settings")
+          .select("logo_url")
           .eq("user_id", user.id)
           .maybeSingle(),
       ]);
