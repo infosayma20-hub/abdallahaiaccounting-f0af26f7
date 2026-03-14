@@ -62,8 +62,10 @@ const reportConfigs: Record<string, { title: string; description: string }> = {
   "pos-period-comparison": { title: "مقارنة زمنية للمبيعات", description: "مقارنة يومية / أسبوعية / شهرية" },
   "pos-invoice-register": { title: "كشف فواتير POS", description: "جميع فواتير نقطة البيع مع التفاصيل" },
   "pos-pending-orders": { title: "فواتير معلقة", description: "الطلبات المفتوحة غير المكتملة" },
+  "pos-invoice-timing": { title: "كشف أوقات الفواتير", description: "مدة الخدمة لكل فاتورة من الفتح للإغلاق" },
   "pos-shift-open-close": { title: "تقرير فتح/إغلاق الصندوق", description: "أوقات فتح وإغلاق الورديات" },
   "pos-payment-methods": { title: "طرق الدفع", description: "توزيع المبيعات حسب طريقة الدفع" },
+  "pos-credit-sales": { title: "بطاقات الائتمان والمديونيات", description: "المبيعات الآجلة ومديونيات العملاء" },
   "pos-product-movement": { title: "حركة أصناف POS", description: "الكميات المباعة والمرتجعة لكل صنف" },
   "pos-category-totals": { title: "مجاميع حركات الأصناف", description: "إجماليات المبيعات حسب الفئة" },
   "pos-cash-reconciliation": { title: "تسوية الصندوق", description: "المتوقع مقابل الفعلي" },
@@ -164,8 +166,10 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
         case "pos-period-comparison": await loadPOSPeriodComparison(); break;
         case "pos-invoice-register": await loadPOSInvoiceRegister(); break;
         case "pos-pending-orders": await loadPOSPendingOrders(); break;
+        case "pos-invoice-timing": await loadPOSInvoiceTiming(); break;
         case "pos-shift-open-close": await loadPOSShiftOpenClose(); break;
         case "pos-payment-methods": await loadPOSPaymentMethods(); break;
+        case "pos-credit-sales": await loadPOSCreditSales(); break;
         case "pos-product-movement": await loadPOSProductMovement(); break;
         case "pos-category-totals": await loadPOSCategoryTotals(); break;
         case "pos-cash-reconciliation": await loadPOSCashReconciliation(); break;
@@ -856,8 +860,52 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
     })).sort((a, b) => b.revenue - a.revenue));
   };
 
+  const loadPOSInvoiceTiming = async () => {
+    const { data: orders } = await supabase.from("pos_orders").select("id, order_number, created_at, paid_at, total, session_id, customer_name").eq("user_id", uid).eq("state", "paid").gte("created_at", dateFrom).lte("created_at", dateTo + "T23:59:59").order("created_at", { ascending: false });
+    const { data: sessions } = await supabase.from("pos_sessions").select("id, cashier_name").eq("user_id", uid);
+    const sessMap = new Map((sessions || []).map(s => [s.id, s.cashier_name || "غير محدد"]));
+    setData((orders || []).map(o => {
+      const openTime = new Date(o.created_at);
+      const closeTime = o.paid_at ? new Date(o.paid_at) : openTime;
+      const durationMin = Math.round((closeTime.getTime() - openTime.getTime()) / 60000);
+      return {
+        order_number: o.order_number || "—",
+        date: o.created_at.split("T")[0],
+        open_time: o.created_at.split("T")[1]?.substring(0, 5) || "",
+        close_time: o.paid_at ? o.paid_at.split("T")[1]?.substring(0, 5) || "" : "—",
+        duration_min: durationMin,
+        cashier: sessMap.get(o.session_id) || "غير محدد",
+        customer: o.customer_name || "—",
+        total: o.total,
+      };
+    }));
+  };
 
-  const loadARAgingDetail = async () => {
+  const loadPOSCreditSales = async () => {
+    const { data: payments } = await supabase.from("pos_payments").select("order_id, amount, payment_method, created_at").eq("user_id", uid).eq("payment_method", "credit").gte("created_at", dateFrom).lte("created_at", dateTo + "T23:59:59");
+    if (!payments?.length) { setData([]); return; }
+    const orderIds = [...new Set(payments.map(p => p.order_id))];
+    const allOrders: any[] = [];
+    for (let i = 0; i < orderIds.length; i += 500) {
+      const batch = orderIds.slice(i, i + 500);
+      const { data: ords } = await supabase.from("pos_orders").select("id, order_number, created_at, total, customer_name, customer_id").in("id", batch);
+      if (ords) allOrders.push(...ords);
+    }
+    const orderMap = new Map(allOrders.map(o => [o.id, o]));
+    // Group by customer
+    const custMap: Record<string, { customer: string; orders: number; credit_total: number; invoices: string[] }> = {};
+    payments.forEach(p => {
+      const order = orderMap.get(p.order_id);
+      const custName = order?.customer_name || "عميل غير مسمى";
+      if (!custMap[custName]) custMap[custName] = { customer: custName, orders: 0, credit_total: 0, invoices: [] };
+      custMap[custName].orders++;
+      custMap[custName].credit_total += p.amount;
+      if (order?.order_number) custMap[custName].invoices.push(order.order_number);
+    });
+    setData(Object.values(custMap).sort((a, b) => b.credit_total - a.credit_total));
+  };
+
+
     const contactTypes = ["عميل", "customer", "زبون"];
     const { data: contacts } = await supabase.from("contacts").select("id, contact_name, current_balance, contact_class").eq("user_id", uid).in("contact_type", contactTypes).gt("current_balance", 0);
     if (!contacts?.length) { setData([]); return; }
@@ -1193,9 +1241,51 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
 
   const exportExcel = () => {
     if (!data.length) return;
-    const ws = XLSX.utils.json_to_sheet(data);
+    const cols = getReportColumns();
+    const colLabels = cols ? cols.map(c => c.label) : Object.keys(data[0]);
+    const colKeys = cols ? cols.map(c => c.key) : Object.keys(data[0]);
+    
+    // Build header rows
+    const headerRows = [
+      [config.title],
+      [`الفترة: ${dateFrom} إلى ${dateTo}`],
+      [`تاريخ التصدير: ${format(new Date(), "yyyy-MM-dd HH:mm")}`],
+      [],
+      colLabels,
+    ];
+    
+    // Build data rows
+    const dataRows = data.map(row => colKeys.map(k => {
+      const v = row[k];
+      return typeof v === "number" ? v : (v ?? "");
+    }));
+    
+    // Build totals row
+    const totalsConfig = getReportTotals();
+    if (totalsConfig) {
+      const totalsRow = colKeys.map(k => {
+        if (totalsConfig[k] === "sum") return data.reduce((s, r) => s + (Number(r[k]) || 0), 0);
+        return "";
+      });
+      totalsRow[0] = "الإجمالي";
+      dataRows.push(totalsRow);
+    }
+    
+    const allRows = [...headerRows, ...dataRows];
+    const ws = XLSX.utils.aoa_to_sheet(allRows);
+    
+    // Set column widths
+    ws['!cols'] = colKeys.map(() => ({ wch: 18 }));
+    
+    // Merge title row
+    ws['!merges'] = [
+      { s: { r: 0, c: 0 }, e: { r: 0, c: colKeys.length - 1 } },
+      { s: { r: 1, c: 0 }, e: { r: 1, c: colKeys.length - 1 } },
+      { s: { r: 2, c: 0 }, e: { r: 2, c: colKeys.length - 1 } },
+    ];
+    
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, config.title);
+    XLSX.utils.book_append_sheet(wb, ws, config.title.substring(0, 31));
     XLSX.writeFile(wb, `${config.title}-${dateFrom}.xlsx`);
     toast.success("تم تصدير التقرير بنجاح");
   };
@@ -1463,6 +1553,24 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
           { key: "total", label: "المبلغ", type: "currency" },
           { key: "return_reason", label: "السبب", type: "text", format: (v: string) => <span className="text-xs text-destructive">{v || "-"}</span> },
         ];
+      case "pos-invoice-timing":
+        return [
+          { key: "order_number", label: "رقم الفاتورة", type: "text" },
+          { key: "date", label: "التاريخ", type: "date" },
+          { key: "open_time", label: "وقت الفتح", type: "text" },
+          { key: "close_time", label: "وقت الإغلاق", type: "text" },
+          { key: "duration_min", label: "مدة الخدمة (دقيقة)", type: "number",
+            format: (v: number) => <span className={`font-mono text-xs font-bold ${v > 30 ? "text-destructive" : v > 15 ? "text-yellow-600" : "text-green-600"}`}>{v}</span> },
+          { key: "cashier", label: "الكاشير", type: "text", filterType: "select", filterOptions: [...new Set(data.map((r: any) => r.cashier).filter(Boolean))] },
+          { key: "customer", label: "العميل", type: "text" },
+          { key: "total", label: "الإجمالي", type: "currency" },
+        ];
+      case "pos-credit-sales":
+        return [
+          { key: "customer", label: "العميل", type: "text" },
+          { key: "orders", label: "عدد الفواتير", type: "number", align: "center" },
+          { key: "credit_total", label: "المبلغ الآجل", type: "currency" },
+        ];
       case "all-orders":
         return [
           { key: "order_number", label: "رقم الطلب", type: "text" },
@@ -1638,6 +1746,10 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
         return { sold_qty: "sum", return_qty: "sum", net_qty: "sum", revenue: "sum" };
       case "pos-category-totals":
         return { items: "sum", qty: "sum", revenue: "sum" };
+      case "pos-invoice-timing":
+        return { total: "sum" };
+      case "pos-credit-sales":
+        return { orders: "sum", credit_total: "sum" };
       case "ar-aging-detail": case "ap-aging-detail":
         return { current: "sum", d31_60: "sum", d61_90: "sum", over90: "sum", total: "sum" };
       case "customer-profitability": case "supplier-purchase-analysis":
@@ -2211,9 +2323,87 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
     </tbody></table></div>
   );
 
-  // ═══════════════════════════════════
-  // MAIN LAYOUT
-  // ═══════════════════════════════════
+  // KPI Summary for POS reports
+  const getPOSKPIs = (): { label: string; value: string }[] => {
+    if (!data.length) return [];
+    switch (reportKey) {
+      case "pos-daily-sales":
+      case "pos-invoice-register": {
+        const total = data.reduce((s, r) => s + (r.total || 0), 0);
+        const disc = data.reduce((s, r) => s + (r.discount || 0), 0);
+        return [
+          { label: "عدد الفواتير", value: String(data.length) },
+          { label: "إجمالي المبيعات", value: `₪${total.toLocaleString("en", { minimumFractionDigits: 2 })}` },
+          { label: "إجمالي الخصومات", value: `₪${disc.toLocaleString("en", { minimumFractionDigits: 2 })}` },
+          { label: "متوسط الفاتورة", value: `₪${(total / data.length).toLocaleString("en", { minimumFractionDigits: 2 })}` },
+        ];
+      }
+      case "pos-cashier-performance": {
+        const totalSales = data.reduce((s, r) => s + (r.total || 0), 0);
+        const totalOrders = data.reduce((s, r) => s + (r.count || 0), 0);
+        return [
+          { label: "عدد الكاشيرين", value: String(data.length) },
+          { label: "إجمالي المبيعات", value: `₪${totalSales.toLocaleString("en", { minimumFractionDigits: 2 })}` },
+          { label: "إجمالي الطلبات", value: String(totalOrders) },
+          { label: "المتوسط لكل كاشير", value: `₪${(totalSales / data.length).toLocaleString("en", { minimumFractionDigits: 2 })}` },
+        ];
+      }
+      case "pos-sales-by-category": {
+        const totalRev = data.reduce((s, r) => s + (r.revenue || 0), 0);
+        const totalProfit = data.reduce((s, r) => s + (r.profit || 0), 0);
+        const totalQty = data.reduce((s, r) => s + (r.qty || 0), 0);
+        return [
+          { label: "عدد الأصناف", value: String(data.length) },
+          { label: "إجمالي المبيعات", value: `₪${totalRev.toLocaleString("en", { minimumFractionDigits: 2 })}` },
+          { label: "إجمالي الربح", value: `₪${totalProfit.toLocaleString("en", { minimumFractionDigits: 2 })}` },
+          { label: "إجمالي الكميات", value: String(totalQty) },
+        ];
+      }
+      case "pos-payment-methods": {
+        const totalAmt = data.reduce((s, r) => s + (r.total || 0), 0);
+        const totalTx = data.reduce((s, r) => s + (r.count || 0), 0);
+        return [
+          { label: "طرق الدفع", value: String(data.length) },
+          { label: "إجمالي المبلغ", value: `₪${totalAmt.toLocaleString("en", { minimumFractionDigits: 2 })}` },
+          { label: "عدد المعاملات", value: String(totalTx) },
+          { label: "المتوسط", value: `₪${(totalTx > 0 ? totalAmt / totalTx : 0).toLocaleString("en", { minimumFractionDigits: 2 })}` },
+        ];
+      }
+      case "pos-product-movement": {
+        const soldQty = data.reduce((s, r) => s + (r.sold_qty || 0), 0);
+        const retQty = data.reduce((s, r) => s + (r.return_qty || 0), 0);
+        const rev = data.reduce((s, r) => s + (r.revenue || 0), 0);
+        return [
+          { label: "عدد الأصناف", value: String(data.length) },
+          { label: "إجمالي المبيعات", value: `₪${rev.toLocaleString("en", { minimumFractionDigits: 2 })}` },
+          { label: "الكميات المباعة", value: String(soldQty) },
+          { label: "الكميات المرتجعة", value: String(retQty) },
+        ];
+      }
+      case "pos-invoice-timing": {
+        const avgDur = data.reduce((s, r) => s + (r.duration_min || 0), 0) / data.length;
+        const maxDur = Math.max(...data.map(r => r.duration_min || 0));
+        return [
+          { label: "عدد الفواتير", value: String(data.length) },
+          { label: "متوسط مدة الخدمة", value: `${avgDur.toFixed(1)} دقيقة` },
+          { label: "أطول خدمة", value: `${maxDur} دقيقة` },
+          { label: "إجمالي المبيعات", value: `₪${data.reduce((s, r) => s + (r.total || 0), 0).toLocaleString("en", { minimumFractionDigits: 2 })}` },
+        ];
+      }
+      case "pos-credit-sales": {
+        const totalCredit = data.reduce((s, r) => s + (r.credit_total || 0), 0);
+        const totalOrd = data.reduce((s, r) => s + (r.orders || 0), 0);
+        return [
+          { label: "عدد العملاء", value: String(data.length) },
+          { label: "إجمالي المديونيات", value: `₪${totalCredit.toLocaleString("en", { minimumFractionDigits: 2 })}` },
+          { label: "عدد الفواتير", value: String(totalOrd) },
+        ];
+      }
+      default:
+        return [];
+    }
+  };
+
   return (
     <div className="space-y-4 max-w-[1200px] mx-auto pb-10" dir="rtl">
       {/* Header */}
@@ -2248,6 +2438,22 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
         </div>
         <Button variant="outline" size="sm" onClick={loadReport} className="text-xs h-8">تحديث</Button>
       </Card>
+
+      {/* KPI Summary Cards for POS reports */}
+      {!loading && data.length > 0 && reportKey.startsWith("pos-") && (() => {
+        const kpis = getPOSKPIs();
+        if (!kpis.length) return null;
+        return (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 print:grid-cols-4">
+            {kpis.map((kpi, i) => (
+              <Card key={i} className="p-3 border-border/50">
+                <p className="text-[10px] text-muted-foreground mb-1">{kpi.label}</p>
+                <p className="text-lg font-bold font-mono text-foreground">{kpi.value}</p>
+              </Card>
+            ))}
+          </div>
+        );
+      })()}
 
       {/* Content */}
       <Card className="overflow-hidden border-border/50">
