@@ -626,7 +626,7 @@ const StatementPrintView = ({
                     الرصيد مع الشيكات الآجلة
                   </td>
                   <td style={{ padding: "4px 8px", textAlign: "left", color: "#1E40AF", fontFeatureSettings: "'tnum'", fontSize: "10px" }}>
-                    {fmtAmount(Math.abs(closingBalance) + pdcTotal)}
+                    {fmtAmount(closingBalance + pdcTotal)}
                   </td>
                   <td></td>
                 </tr>
