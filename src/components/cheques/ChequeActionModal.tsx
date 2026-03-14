@@ -23,7 +23,7 @@ export const ACTION_CONFIGS: Record<ActionType, ActionConfig> = {
   collected: { id: 'collected', label: 'تم التحصيل', emoji: '✅', color: 'text-emerald-600', nextStatus: 'محصل', description: 'يُنشئ قيد محاسبي تلقائي' },
   bounced: { id: 'bounced', label: 'شيك مرتجع (بدون رصيد)', emoji: '⛔', color: 'text-red-600', nextStatus: 'مرتجع', description: 'يُعيد الذمة للزبون تلقائياً' },
   endorse: { id: 'endorse', label: 'تظهير لمورد', emoji: '📤', color: 'text-purple-600', nextStatus: 'مظهر' },
-  return_to_customer: { id: 'return_to_customer', label: 'إرجاع للزبون', emoji: '↩️', color: 'text-amber-600', nextStatus: 'مسجل' },
+  return_to_customer: { id: 'return_to_customer', label: 'إرجاع للزبون', emoji: '↩️', color: 'text-amber-600', nextStatus: 'ملغي', description: 'يُعيد الذمة للزبون تلقائياً' },
   cancel: { id: 'cancel', label: 'إلغاء الشيك', emoji: '🚫', color: 'text-red-600', nextStatus: 'ملغي' },
 };
 
