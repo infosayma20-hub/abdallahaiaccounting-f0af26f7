@@ -2227,6 +2227,8 @@ const AccountStatementPage = () => {
                 { key: "showVoucherDetails" as const, label: "تفاصيل السندات", colKey: "" },
                 { key: "showChildAccounts" as const, label: "إظهار الحسابات الفرعية (Show Child)", colKey: "" },
                 { key: "showNotes" as const, label: "الملاحظات", colKey: "notes" },
+                { key: "includeBounced" as const, label: "⚙️ أضف الشيكات المرتجعة للرصيد", colKey: "" },
+                { key: "includePDC" as const, label: "📅 أظهر الشيكات الواردة برسم التحصيل (PDC)", colKey: "" },
               ].map(opt => (
                 <label key={opt.key} className="flex items-center gap-3 cursor-pointer py-1">
                   <Checkbox
