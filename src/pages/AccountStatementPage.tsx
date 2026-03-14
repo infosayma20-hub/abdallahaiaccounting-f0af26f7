@@ -533,17 +533,28 @@ const AccountStatementPage = () => {
       if (profileRes.data?.company_name) setCompanyName(profileRes.data.company_name);
 
       const cs = csData as any;
+      const comp = companyData as any;
       if (cs) {
         setCompanyInfo({
-          name: cs.company_name || profileRes.data?.company_name || "",
-          logo_url: cs.logo_url || "",
-          address: cs.address || "",
-          phone: cs.phone || "",
-          email: cs.email || "",
+          name: cs.company_name || comp?.name || profileRes.data?.company_name || "",
+          logo_url: cs.logo_url || comp?.logo_url || "",
+          address: cs.address || comp?.address || "",
+          phone: cs.phone || comp?.phone || "",
+          email: cs.email || comp?.email || "",
           website: cs.website || "",
-          tax_number: cs.tax_number || "",
+          tax_number: cs.tax_number || comp?.tax_number || "",
         });
         if (cs.fiscal_year_start) setFiscalYearStart(cs.fiscal_year_start);
+      } else if (comp) {
+        setCompanyInfo({
+          name: comp.name || profileRes.data?.company_name || "",
+          logo_url: comp.logo_url || "",
+          address: comp.address || "",
+          phone: comp.phone || "",
+          email: comp.email || "",
+          website: "",
+          tax_number: comp.tax_number || "",
+        });
       } else if (profileRes.data) {
         setCompanyInfo(prev => ({ ...prev, name: profileRes.data?.company_name || profileRes.data?.display_name || "" }));
       }
