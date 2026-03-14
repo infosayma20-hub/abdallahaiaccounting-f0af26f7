@@ -195,7 +195,7 @@ const StatementPrintView = ({
   bouncedTotal = 0,
   includeBounced = false,
   includePDC = false,
-  isPreview?: boolean;
+  isPreview = false,
 }: StatementPrintViewProps & { isPreview?: boolean }) => {
   const isDebit = closingBalance >= 0;
   const today = new Date();
