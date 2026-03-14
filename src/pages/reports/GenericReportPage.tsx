@@ -1511,6 +1511,24 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
           { key: "total", label: "المبلغ", type: "currency" },
           { key: "return_reason", label: "السبب", type: "text", format: (v: string) => <span className="text-xs text-destructive">{v || "-"}</span> },
         ];
+      case "pos-invoice-timing":
+        return [
+          { key: "order_number", label: "رقم الفاتورة", type: "text" },
+          { key: "date", label: "التاريخ", type: "date" },
+          { key: "open_time", label: "وقت الفتح", type: "text" },
+          { key: "close_time", label: "وقت الإغلاق", type: "text" },
+          { key: "duration_min", label: "مدة الخدمة (دقيقة)", type: "number",
+            format: (v: number) => <span className={`font-mono text-xs font-bold ${v > 30 ? "text-destructive" : v > 15 ? "text-yellow-600" : "text-green-600"}`}>{v}</span> },
+          { key: "cashier", label: "الكاشير", type: "text", filterType: "select", filterOptions: [...new Set(data.map((r: any) => r.cashier).filter(Boolean))] },
+          { key: "customer", label: "العميل", type: "text" },
+          { key: "total", label: "الإجمالي", type: "currency" },
+        ];
+      case "pos-credit-sales":
+        return [
+          { key: "customer", label: "العميل", type: "text" },
+          { key: "orders", label: "عدد الفواتير", type: "number", align: "center" },
+          { key: "credit_total", label: "المبلغ الآجل", type: "currency" },
+        ];
       case "all-orders":
         return [
           { key: "order_number", label: "رقم الطلب", type: "text" },
