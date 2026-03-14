@@ -348,13 +348,10 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
                         <button
                           className="text-primary hover:underline font-mono text-xs cursor-pointer bg-transparent border-none p-0"
                           onClick={() => {
-                            if (isReceipt) {
-                              // Receipt vouchers don't use VoucherDrawer
-                              // Just view details (could navigate to edit page in future)
-                              setEditVoucherId(v.id); setDrawerOpen(true);
-                            } else {
-                              setEditVoucherId(v.id); setDrawerOpen(true);
-                            }
+                            const editPath = isReceipt
+                              ? `/finance/receipt/${v.id}/edit`
+                              : `/finance/payment/${v.id}/edit`;
+                            navigate(editPath);
                           }}
                         >
                           {v.ref_number}

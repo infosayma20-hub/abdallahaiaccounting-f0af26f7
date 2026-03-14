@@ -366,7 +366,56 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         bankAccountId = selectedBankAccount;
       }
 
-      // Create journal entry via RPC (for receipts)
+      // ─── EDIT MODE: Update existing voucher ───
+      if (isEditMode && editId) {
+        if (isReceipt) {
+          const { error } = await supabase
+            .from("receipt_vouchers")
+            .update({
+              contact_id: selectedContact.id,
+              contact_name: selectedContact.contact_name,
+              payment_date: paymentDate,
+              amount: amountNum,
+              payment_method: paymentMethod,
+              check_number: paymentMethod === "شيك" ? checkNumber : null,
+              check_date: paymentMethod === "شيك" && checkDate ? checkDate : null,
+              bank_name: paymentMethod === "شيك" ? checkBank : null,
+              cash_box_id: cashBoxId,
+              bank_account_id: bankAccountId,
+              deposit_account_code: depositAccountCode,
+              notes,
+            })
+            .eq("id", editId)
+            .eq("user_id", user.id);
+          if (error) throw error;
+          toast.success(`تم تحديث ${voucherLabel} بنجاح`);
+        } else {
+          const payMethodMap: Record<string, string> = { "نقدي": "cash", "شيك": "cheque", "تحويل": "transfer", "بطاقة": "card" };
+          const { error } = await supabase
+            .from("vouchers")
+            .update({
+              date: paymentDate,
+              contact_id: selectedContact.id,
+              payment_method: payMethodMap[paymentMethod] || "cash",
+              amount: amountNum,
+              amount_ils: amountNum,
+              description: notes || `سند صرف إلى ${selectedContact.contact_name}`,
+              notes: notes || null,
+              bank_account_id: bankAccountId,
+              cheque_number: paymentMethod === "شيك" ? checkNumber : null,
+              cheque_due_date: paymentMethod === "شيك" && checkDate ? checkDate : null,
+              cheque_bank_name: paymentMethod === "شيك" ? checkBank : null,
+            })
+            .eq("id", editId)
+            .eq("user_id", user.id);
+          if (error) throw error;
+          toast.success(`تم تحديث ${voucherLabel} بنجاح`);
+        }
+        navigate(listPath);
+        return;
+      }
+
+      // ─── CREATE MODE: Original insert logic ───
       let txId: string | null = null;
       if (!asDraft && isReceipt) {
         const { data: txResult } = await supabase.rpc("create_receipt_with_entry", {
@@ -382,14 +431,13 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         txId = (txResult as any)?.transaction_id || null;
       }
 
-      // For payments, create transaction directly
       if (!asDraft && !isReceipt) {
         const payMethodMap: Record<string, string> = { "نقدي": "نقدي", "شيك": "شيك", "تحويل": "بنك", "بطاقة": "بطاقة" };
         const { data: txData } = await supabase.from("transactions").insert({
           user_id: user.id,
           transaction_date: paymentDate,
           description: notes || `سند صرف إلى ${selectedContact.contact_name}`,
-          debit_account_code: "2100", // Accounts payable
+          debit_account_code: "2100",
           credit_account_code: depositAccountCode,
           amount: amountNum,
           currency: "شيكل",
@@ -401,9 +449,6 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         txId = txData?.id || null;
       }
 
-      // Insert voucher
-      const tableName = isReceipt ? "receipt_vouchers" : "vouchers";
-      
       if (isReceipt) {
         const { data: receipt, error: receiptError } = await supabase
           .from("receipt_vouchers")
@@ -429,7 +474,6 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
 
         if (receiptError) throw receiptError;
 
-        // Link invoices
         const selectedInvoices = invoices.filter(i => i.selected && (i.allocatedAmount || 0) > 0);
         if (selectedInvoices.length > 0 && receipt) {
           const links = selectedInvoices.map(inv => ({
@@ -452,7 +496,6 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           }
         }
 
-        // Register cheque
         if (paymentMethod === "شيك" && !asDraft && checkNumber) {
           await supabase.from("cheques").insert({
             user_id: user.id,
@@ -471,7 +514,6 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         setSaved(true);
         setSavedReceiptNumber(receipt?.receipt_number || "");
       } else {
-        // Payment voucher - save to vouchers table
         const payMethodMap: Record<string, string> = { "نقدي": "cash", "شيك": "cheque", "تحويل": "transfer", "بطاقة": "card" };
         const { data: voucher, error: voucherError } = await supabase
           .from("vouchers")
@@ -501,7 +543,6 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
 
         if (voucherError) throw voucherError;
 
-        // Register cheque for payments
         if (paymentMethod === "شيك" && !asDraft && checkNumber) {
           await supabase.from("cheques").insert({
             user_id: user.id,
@@ -516,7 +557,6 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           });
         }
 
-        // Link invoices for payments too
         const selectedInvoices = invoices.filter(i => i.selected && (i.allocatedAmount || 0) > 0);
         if (selectedInvoices.length > 0 && voucher) {
           for (const inv of selectedInvoices) {
