@@ -19,7 +19,7 @@ interface Props {
   voucherType: VoucherType;
 }
 
-const PAYMENT_LABELS: Record<string, string> = { cash: "نقدي", bank: "بنك", cheque: "شيك", transfer: "تحويل" };
+const PAYMENT_LABELS: Record<string, string> = { cash: "نقدي", bank: "بنك", cheque: "شيك", transfer: "تحويل", "نقدي": "نقدي", "شيك": "شيك", "تحويل": "تحويل", "بطاقة": "بطاقة" };
 const STATUS_LABELS: Record<string, string> = { posted: "مرحّل", draft: "مسودة", cancelled: "ملغي" };
 
 type SortKey = "ref_number" | "date" | "contact_name" | "payment_label" | "amount_display" | "status_label";
