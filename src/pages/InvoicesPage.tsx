@@ -63,6 +63,8 @@ interface Invoice {
   currency: string;
   chequeDetails?: { number: string; bank: string; dueDate: string };
   transferDetails?: { reference: string; bank: string };
+  is_credit_note?: boolean;
+  original_invoice_id?: string;
 }
 
 const createEmptyItem = (): InvoiceItem => ({
