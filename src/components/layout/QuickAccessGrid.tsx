@@ -30,7 +30,7 @@ const ALL_ITEMS: QuickAccessItem[] = [
   { id: "banks", label: "البنوك", icon: Building2, path: "/bank-accounts", enabled: false },
   { id: "pos", label: "نقطة البيع", icon: ShoppingCart, path: "/pos", enabled: false },
   { id: "reports", label: "التقارير", icon: TrendingUp, path: "/reports", enabled: false },
-  { id: "ledger", label: "الأستاذ العام", icon: BookOpen, path: "/general-ledger", enabled: false },
+  { id: "journal_entries", label: "دفتر اليومية", icon: BookOpen, path: "/journal-entries", enabled: true },
   { id: "expenses", label: "المصروفات", icon: CreditCard, path: "/transactions?type=expense", enabled: false },
   // Admin only
   { id: "super_admin", label: "لوحة التحكم", icon: Shield, shortcut: "Alt+A", path: "/super-admin/dashboard", enabled: false, adminOnly: true },
