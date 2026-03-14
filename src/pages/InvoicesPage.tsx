@@ -1615,6 +1615,21 @@ const InvoicesPage = () => {
                 </Select>
               </div>
 
+              {/* Linked Receipts Section */}
+              {(selectedInvoice.receiptsCount || 0) > 0 && (
+                <div className="rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-900/20 p-3">
+                  <h4 className="text-xs font-semibold text-blue-800 dark:text-blue-300 mb-2 flex items-center gap-1.5">
+                    <Receipt className="h-3.5 w-3.5" /> سندات القبض المرتبطة ({selectedInvoice.receiptsCount})
+                  </h4>
+                  <Button size="sm" variant="outline" className="text-xs rounded-lg gap-1" onClick={() => {
+                    setShowPreviewDialog(false);
+                    navigate("/finance/receipts");
+                  }}>
+                    عرض السندات →
+                  </Button>
+                </div>
+              )}
+
               <div ref={printRef} className="bg-white rounded-2xl border border-border/50 overflow-hidden">
                 <InvoiceDocumentPreview invoice={selectedInvoice} settings={companySettings} />
               </div>
