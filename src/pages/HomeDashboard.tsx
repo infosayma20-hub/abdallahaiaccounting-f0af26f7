@@ -183,19 +183,13 @@ const HomeDashboard = () => {
           {/* W5: Cash Flow */}
           <CashFlowWidget data={dashboard.cashFlowData} cashBalance={dashboard.kpis.cashBalance} loading={dashboard.loading} />
 
-          {/* W7: Aging */}
+          {/* Row: Aging + Inventory + Cheques (4+4+4) */}
           <AgingWidget receivables={dashboard.agingData.receivables} payables={dashboard.agingData.payables} loading={dashboard.loading} />
+          <InventoryPulseWidget alerts={dashboard.inventoryAlerts} summary={dashboard.inventorySummary} loading={dashboard.loading} />
+          <ChequesCalendarWidget cheques={dashboard.upcomingCheques} loading={dashboard.loading} />
 
           {/* Exchange Rates */}
           <ExchangeRatesWidget />
-
-          {/* W10: Inventory */}
-          <InventoryPulseWidget alerts={dashboard.inventoryAlerts} summary={dashboard.inventorySummary} loading={dashboard.loading} />
-
-          {/* W11: Cheques */}
-          <ChequesCalendarWidget cheques={dashboard.upcomingCheques} loading={dashboard.loading} />
-
-          {/* (Recent Activity moved to col-4 above) */}
         </div>
       </div>
 
