@@ -96,6 +96,7 @@ import SetupPage from "./pages/SetupPage";
 import FinanceHomePage from "./pages/FinanceHomePage";
 import FinanceVoucherPage from "./pages/FinanceVoucherPage";
 import FinanceJournalPage from "./pages/FinanceJournalPage";
+import KitchenDisplayPage from "./pages/KitchenDisplayPage";
 import BankAccountsPage from "./pages/BankAccountsPage";
 import CashBoxesPage from "./pages/CashBoxesPage";
 import CashTransferPage from "./pages/CashTransferPage";
@@ -179,6 +180,7 @@ const App = () => (
               <Route path="/pos/floor-plan" element={<ProtectedRoute><FloorPlanPage /></ProtectedRoute>} />
               <Route path="/pos/floor-plan/edit" element={<ProtectedRoute><FloorPlanEditorPage /></ProtectedRoute>} />
               <Route path="/pos/modifiers" element={<ProtectedRoute><ModifierManagerPage /></ProtectedRoute>} />
+              <Route path="/pos/kitchen" element={<ProtectedRoute><KitchenDisplayPage /></ProtectedRoute>} />
               <Route path="/purchase-point" element={<ProtectedRoute><PurchasePointPage /></ProtectedRoute>} />
               <Route path="/worker/procurement" element={<ProtectedRoute><WorkerProcurementPage /></ProtectedRoute>} />
               <Route path="/*" element={

@@ -5,6 +5,7 @@ import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import type { CompanySettings } from "@/hooks/useCompanySettings";
+import KitchenStationsManager from "./KitchenStationsManager";
 
 interface Props {
   settings: CompanySettings;
@@ -227,6 +228,11 @@ const POSSettingsSection = ({ settings, onChange }: Props) => {
           </div>
         </div>
       </div>
+
+      <Separator />
+
+      {/* Kitchen Stations */}
+      <KitchenStationsManager />
     </div>
   );
 };

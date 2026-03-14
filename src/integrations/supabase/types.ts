@@ -3827,6 +3827,99 @@ export type Database = {
           },
         ]
       }
+      kitchen_stations: {
+        Row: {
+          color: string | null
+          created_at: string | null
+          display_order: number | null
+          id: string
+          is_active: boolean | null
+          name: string
+          station_type: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string | null
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          station_type?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string | null
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          station_type?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      kitchen_tickets: {
+        Row: {
+          accepted_at: string | null
+          completed_at: string | null
+          created_at: string | null
+          id: string
+          items: Json
+          order_id: string
+          printed_at: string | null
+          station_id: string
+          status: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          items?: Json
+          order_id: string
+          printed_at?: string | null
+          station_id: string
+          status?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          accepted_at?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          items?: Json
+          order_id?: string
+          printed_at?: string | null
+          station_id?: string
+          status?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kitchen_tickets_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "pos_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kitchen_tickets_station_id_fkey"
+            columns: ["station_id"]
+            isOneToOne: false
+            referencedRelation: "kitchen_stations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       leave_requests: {
         Row: {
           approved_at: string | null
@@ -6208,6 +6301,7 @@ export type Database = {
           image_url: string | null
           is_pos_available: boolean | null
           is_weighted: boolean | null
+          kitchen_station_id: string | null
           min_quantity: number
           name: string
           notes: string | null
@@ -6232,6 +6326,7 @@ export type Database = {
           image_url?: string | null
           is_pos_available?: boolean | null
           is_weighted?: boolean | null
+          kitchen_station_id?: string | null
           min_quantity?: number
           name: string
           notes?: string | null
@@ -6256,6 +6351,7 @@ export type Database = {
           image_url?: string | null
           is_pos_available?: boolean | null
           is_weighted?: boolean | null
+          kitchen_station_id?: string | null
           min_quantity?: number
           name?: string
           notes?: string | null
@@ -6271,6 +6367,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "products_kitchen_station_id_fkey"
+            columns: ["kitchen_station_id"]
+            isOneToOne: false
+            referencedRelation: "kitchen_stations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "products_pos_category_id_fkey"
             columns: ["pos_category_id"]

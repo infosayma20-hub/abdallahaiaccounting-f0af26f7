@@ -16,7 +16,7 @@ import {
   UtensilsCrossed, Gamepad2, Shirt, Monitor, ShoppingBag, Printer,
   Apple, Zap, Coffee, Box, BarChart3, TrendingUp, PlusCircle, Tag,
   Eye, EyeOff, UserCheck, LayoutGrid, Grid3X3, Grid2X2, GripVertical,
-  FileText, Keyboard, MoreHorizontal, RefreshCw,
+  FileText, Keyboard, MoreHorizontal, RefreshCw, ChefHat,
 } from "lucide-react";
 import TableSelectorBar, { type TableBarItem } from "@/components/pos/TableSelectorBar";
 import AllOrdersSheet from "@/components/pos/AllOrdersSheet";
@@ -1726,6 +1726,54 @@ const POSPage = () => {
       setShowPayment(false);
       setShowReceipt(true);
 
+      // Create kitchen tickets (split by station)
+      try {
+        const { data: stationsData } = await supabase
+          .from("kitchen_stations")
+          .select("id")
+          .eq("is_active", true);
+
+        if (stationsData && stationsData.length > 0) {
+          // Load product station assignments
+          const productIds = cart.filter(i => i.product_id).map(i => i.product_id);
+          const { data: productsWithStations } = await supabase
+            .from("products")
+            .select("id, kitchen_station_id")
+            .in("id", productIds);
+
+          const stationMap = new Map((productsWithStations || []).map((p: any) => [p.id, p.kitchen_station_id]));
+          const defaultStationId = (stationsData as any[])[0].id;
+
+          // Group items by station
+          const stationItems: Record<string, any[]> = {};
+          cart.forEach(item => {
+            const stationId = stationMap.get(item.product_id) || defaultStationId;
+            if (!stationItems[stationId]) stationItems[stationId] = [];
+            stationItems[stationId].push({
+              name: item.name,
+              qty: item.qty,
+              note: item.note,
+              modifiers: item.modifiers || [],
+            });
+          });
+
+          // Create a ticket per station
+          const ticketInserts = Object.entries(stationItems).map(([stationId, items]) => ({
+            user_id: dataOwnerId,
+            order_id: orderId,
+            station_id: stationId,
+            items,
+            status: "pending",
+          }));
+
+          if (ticketInserts.length > 0) {
+            await supabase.from("kitchen_tickets").insert(ticketInserts as any);
+          }
+        }
+      } catch (err) {
+        console.error("Kitchen ticket creation error:", err);
+      }
+
       // Auto-open cash drawer after successful payment (if cash payment and permitted)
       if (paymentMethod === "cash" && (isAdmin || posPerms.open_cash_drawer)) {
         openCashDrawer();
@@ -2164,6 +2212,24 @@ const POSPage = () => {
           )}
         </button>
         )}
+
+        {/* Kitchen Display */}
+        <button
+          onClick={() => window.open("/pos/kitchen", "_blank")}
+          className="flex items-center gap-1.5 h-9 px-3.5 rounded-lg text-xs font-medium transition-all"
+          style={{
+            fontFamily: "Tajawal, sans-serif",
+            fontWeight: 500,
+            fontSize: 13,
+            background: "transparent",
+            border: "1px solid rgba(255,255,255,0.2)",
+            color: "white",
+          }}
+          title="شاشة المطبخ"
+        >
+          <ChefHat className="h-3.5 w-3.5" />
+          المطبخ
+        </button>
 
         {/* Shortcuts guide button */}
         <button
