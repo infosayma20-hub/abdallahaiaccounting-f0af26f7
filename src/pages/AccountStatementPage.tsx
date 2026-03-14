@@ -340,7 +340,7 @@ const AccountStatementPage = () => {
     if (!user) return;
     setLoading(true);
     try {
-      const [{ data: contactData }, { data: accData }, { data: txData }, profileRes, { data: empData }, { data: csData }, { data: chequeData }] = await Promise.all([
+      const [{ data: contactData }, { data: accData }, { data: txData }, profileRes, { data: empData }, { data: csData }, { data: chequeData }, { data: companyData }] = await Promise.all([
         supabase
           .from("contacts")
           .select("id, contact_name, contact_type, phone, email, address, linked_account_code, credit_limit, current_balance, contact_class")
@@ -377,6 +377,11 @@ const AccountStatementPage = () => {
           .select("id, cheque_number, cheque_type, amount, currency, cheque_date, party_name, status, bank_name")
           .eq("user_id", user.id)
           .order("cheque_date", { ascending: false }),
+        supabase
+          .from("companies")
+          .select("id, name, logo_url, address, phone, email, tax_number")
+          .eq("owner_id", user.id)
+          .maybeSingle(),
       ]);
       setContacts((contactData as Contact[]) || []);
       setAccounts((accData as Account[]) || []);
