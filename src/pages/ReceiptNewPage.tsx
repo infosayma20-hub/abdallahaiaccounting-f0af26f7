@@ -109,6 +109,32 @@ const ReceiptNewPage = () => {
     });
   }, [user]);
 
+  // Calculate real balance from transactions when contact is selected
+  useEffect(() => {
+    if (!user || !selectedContact) return;
+    
+    // Find all contact IDs with the same name (handles duplicates)
+    const sameNameIds = contacts
+      .filter(c => c.contact_name === selectedContact.contact_name)
+      .map(c => c.id);
+    const contactIds = [...new Set([selectedContact.id, ...sameNameIds])];
+    
+    // Calculate balance from transactions: debit to 1130 (receivables) minus credit to 1130
+    supabase.from("transactions")
+      .select("amount, debit_account_code, credit_account_code")
+      .eq("user_id", user.id)
+      .in("contact_id", contactIds)
+      .or("is_deleted.is.null,is_deleted.eq.false")
+      .then(({ data: txns }) => {
+        let balance = 0;
+        (txns || []).forEach(t => {
+          if (t.debit_account_code === '1130') balance += Number(t.amount);
+          if (t.credit_account_code === '1130') balance -= Number(t.amount);
+        });
+        setSelectedContact(prev => prev ? { ...prev, calculated_balance: balance } : prev);
+      });
+  }, [user, selectedContact?.id, contacts]);
+
   // Load invoices when contact is selected — also fetch from duplicate contacts with same name
   useEffect(() => {
     if (!user || !selectedContact) { setInvoices([]); return; }
