@@ -1670,61 +1670,78 @@ const AccountStatementPage = () => {
                             {/* Transaction rows */}
                             {filteredRows.map((row, i) => {
                               const badge = getTypeBadge(row.transaction_type);
+                              const isSubRow = row.isLineItem;
                               return (
                                 <tr
-                                  key={row.transaction_id}
+                                  key={`${row.transaction_id}-${i}`}
                                   className={cn(
-                                    "border-b border-border/30 hover:bg-primary/5 transition-colors cursor-pointer",
-                                    i % 2 === 1 && "bg-muted/10"
+                                    "border-b border-border/30 transition-colors",
+                                    isSubRow
+                                      ? "bg-primary/[0.03] hover:bg-primary/[0.06]"
+                                      : cn("hover:bg-primary/5 cursor-pointer", i % 2 === 1 && "bg-muted/10")
                                   )}
-                                  onClick={() => openPreview(row.transaction_id)}
-                                  style={{ height: "44px" }}
+                                  onClick={() => !isSubRow && openPreview(row.transaction_id)}
+                                  style={{ height: isSubRow ? "36px" : "44px" }}
                                 >
                                   {isColVisible("date") && (
                                     <td className="px-3 py-2">
-                                      <div className="text-xs tabular-nums text-foreground">{fmtDate(row.date)}</div>
-                                      <div className="text-[9px] text-muted-foreground">{getDayName(row.date)}</div>
+                                      {!isSubRow ? (
+                                        <>
+                                          <div className="text-xs tabular-nums text-foreground">{fmtDate(row.date)}</div>
+                                          <div className="text-[9px] text-muted-foreground">{getDayName(row.date)}</div>
+                                        </>
+                                      ) : <span className="text-[10px] text-muted-foreground/50">↳</span>}
                                     </td>
                                   )}
                                   {isColVisible("reference") && (
                                     <td className="px-3 py-2 text-xs">
-                                      {row.reference ? (
+                                      {!isSubRow && row.reference ? (
                                         <button
                                           onClick={(e) => { e.stopPropagation(); openPreview(row.transaction_id); }}
                                           className="text-primary hover:underline font-mono text-[11px] font-semibold"
                                         >
                                           {row.reference}
                                         </button>
-                                      ) : <span className="text-muted-foreground">—</span>}
+                                      ) : <span className="text-muted-foreground">{isSubRow ? "" : "—"}</span>}
                                     </td>
                                   )}
-                                  {isColVisible("description") && <td className="px-3 py-2 text-xs text-foreground truncate">{row.description}</td>}
+                                  {isColVisible("description") && (
+                                    <td className={cn("px-3 py-2 text-xs truncate", isSubRow ? "text-muted-foreground pr-6" : "text-foreground")}>
+                                      {row.description}
+                                    </td>
+                                  )}
                                   {isColVisible("dueDate") && (
                                     <td className="px-3 py-2 text-xs text-muted-foreground tabular-nums">
-                                      {row.dueDate ? fmtDate(row.dueDate) : "—"}
+                                      {!isSubRow && row.dueDate ? fmtDate(row.dueDate) : isSubRow ? "" : "—"}
                                     </td>
                                   )}
                                   {isColVisible("type") && (
                                     <td className="px-3 py-2 text-center">
-                                      <span className={cn("inline-block text-[10px] font-semibold px-2 py-0.5 rounded-md border", badge.color)}>
-                                        {badge.label}
-                                      </span>
+                                      {!isSubRow ? (
+                                        <span className={cn("inline-block text-[10px] font-semibold px-2 py-0.5 rounded-md border", badge.color)}>
+                                          {badge.label}
+                                        </span>
+                                      ) : <span className="text-[9px] text-muted-foreground">بند</span>}
                                     </td>
                                   )}
-                                  {isColVisible("paymentMethod") && <td className="px-3 py-2 text-center text-[10px] text-muted-foreground">{PAYMENT_METHOD_AR[row.payment_method || ""] || row.payment_method || "—"}</td>}
-                                  {isColVisible("currency") && <td className="px-3 py-2 text-center text-[10px] text-muted-foreground">{row.currency}</td>}
-                                  {isColVisible("contactCode") && <td className="px-3 py-2 text-center text-[10px] text-muted-foreground font-mono">{selectedEntityInfo.code || "—"}</td>}
+                                  {isColVisible("paymentMethod") && <td className="px-3 py-2 text-center text-[10px] text-muted-foreground">{!isSubRow ? (PAYMENT_METHOD_AR[row.payment_method || ""] || row.payment_method || "—") : ""}</td>}
+                                  {isColVisible("currency") && <td className="px-3 py-2 text-center text-[10px] text-muted-foreground">{!isSubRow ? row.currency : ""}</td>}
+                                  {isColVisible("contactCode") && <td className="px-3 py-2 text-center text-[10px] text-muted-foreground font-mono">{!isSubRow ? (selectedEntityInfo.code || "—") : ""}</td>}
                                   {isColVisible("debit") && (
-                                    <td className="px-3 py-2 text-left tabular-nums font-semibold text-red-600">
+                                    <td className={cn("px-3 py-2 text-left tabular-nums", isSubRow ? "text-[10px] text-red-500/70" : "font-semibold text-red-600")}>
                                       {row.debit > 0 ? fmtAmount(row.debit) : "—"}
                                     </td>
                                   )}
                                   {isColVisible("credit") && (
-                                    <td className="px-3 py-2 text-left tabular-nums font-semibold text-emerald-600">
+                                    <td className={cn("px-3 py-2 text-left tabular-nums", isSubRow ? "text-[10px] text-emerald-500/70" : "font-semibold text-emerald-600")}>
                                       {row.credit > 0 ? fmtAmount(row.credit) : "—"}
                                     </td>
                                   )}
-                                  {isColVisible("balance") && <td className="px-3 py-2 text-left"><BalanceCell value={row.balance} /></td>}
+                                  {isColVisible("balance") && (
+                                    <td className="px-3 py-2 text-left">
+                                      {!isSubRow ? <BalanceCell value={row.balance} /> : <span className="text-muted-foreground/30">—</span>}
+                                    </td>
+                                  )}
                                 </tr>
                               );
                             })}
