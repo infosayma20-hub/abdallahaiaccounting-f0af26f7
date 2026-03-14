@@ -220,12 +220,14 @@ export default function ShiftSummaryReceipt({ open, onOpenChange, data }: ShiftS
                   تفاصيل العملات المقبوضة
                 </div>
                 {Object.entries(data.currencyBreakdown).map(([cur, info]) => {
-                  const symbol = cur === "ILS" ? "₪" : cur === "USD" ? "$" : cur === "JOD" ? "د.أ" : cur === "EUR" ? "€" : cur;
+                  const symbol = cur === "ILS" ? "₪" : cur === "USD" ? "$" : cur === "JOD" ? "د.أ " : cur === "EUR" ? "€" : cur;
                   const label = cur === "ILS" ? "شيكل" : cur === "USD" ? "دولار" : cur === "JOD" ? "دينار" : cur === "EUR" ? "يورو" : cur;
+                  const prefix = cur === "JOD" ? "" : symbol;
+                  const suffix = cur === "JOD" ? " د.أ" : "";
                   return (
                     <div key={cur} style={{ display: "flex", justifyContent: "space-between", padding: "2px 0", fontSize: 12, color: "#475569" }}>
                       <span>{label} ({info.count} طلب)</span>
-                      <span style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{symbol}{info.sales.toFixed(2)}</span>
+                      <span style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{prefix}{info.sales.toFixed(2)}{suffix}</span>
                     </div>
                   );
                 })}
