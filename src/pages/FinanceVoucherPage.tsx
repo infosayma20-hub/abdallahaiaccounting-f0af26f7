@@ -330,6 +330,7 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
                   <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="طريقة الدفع" field="payment_label" /></th>
                   <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="المبلغ" field="amount_display" /></th>
                   <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="الحالة" field="status_label" /></th>
+                  {isReceipt && <th className="px-3 py-3 text-right text-xs font-semibold">الفواتير</th>}
                   <th className="px-3 py-3 w-10"></th>
                 </tr>
               </thead>
