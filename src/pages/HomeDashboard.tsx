@@ -174,11 +174,11 @@ const HomeDashboard = () => {
             loading={dashboard.loading}
           />
 
+          {/* Recent Activity - beside revenue chart */}
+          <RecentActivityWidget activities={dashboard.recentActivity} loading={dashboard.loading} />
+
           {/* Top Selling Items */}
           <TopSellingWidget items={dashboard.topSellingItems} loading={dashboard.loading} />
-
-          {/* Recent Activity */}
-          <RecentActivityWidget activities={dashboard.recentActivity} loading={dashboard.loading} />
 
           {/* W5: Cash Flow */}
           <CashFlowWidget data={dashboard.cashFlowData} cashBalance={dashboard.kpis.cashBalance} loading={dashboard.loading} />
