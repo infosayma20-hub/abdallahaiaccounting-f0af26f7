@@ -1526,6 +1526,7 @@ export type Database = {
           has_pos: boolean | null
           hr_annual_leave_days: number | null
           hr_carry_over_leave: boolean | null
+          hr_daily_hours: number | null
           hr_late_grace_minutes: number | null
           hr_require_gps: boolean | null
           hr_require_qr: boolean | null
@@ -1535,9 +1536,19 @@ export type Database = {
           hr_shift_start: string | null
           hr_sick_leave_days: number | null
           hr_social_security: boolean | null
+          hr_work_days_per_week: number | null
           id: string
           income_tax_enabled: boolean | null
           income_tax_rate: number | null
+          inventory_allow_no_barcode: boolean | null
+          inventory_auto_barcode: boolean | null
+          inventory_costing_method: string | null
+          inventory_default_max_qty: number | null
+          inventory_default_min_qty: number | null
+          inventory_default_unit: string | null
+          inventory_expiry_alert: boolean | null
+          inventory_expiry_days: number | null
+          inventory_low_stock_alert: boolean | null
           inventory_method: string | null
           invoice_default_notes: string | null
           invoice_font: string | null
@@ -1586,6 +1597,16 @@ export type Database = {
           purchase_order_prefix: string | null
           receipt_prefix: string | null
           reset_numbering_yearly: boolean | null
+          security_2fa_enabled: boolean | null
+          security_allowed_ips: string | null
+          security_audit_log: boolean | null
+          security_ip_restrict: boolean | null
+          security_lockout_enabled: boolean | null
+          security_max_attempts: number | null
+          security_new_device_alert: boolean | null
+          security_passkeys_enabled: boolean | null
+          security_session_timeout: number | null
+          security_warning_minutes: number | null
           show_address_on_invoice: boolean | null
           show_bank_on_invoice: boolean | null
           show_logo_on_invoice: boolean | null
@@ -1632,6 +1653,7 @@ export type Database = {
           has_pos?: boolean | null
           hr_annual_leave_days?: number | null
           hr_carry_over_leave?: boolean | null
+          hr_daily_hours?: number | null
           hr_late_grace_minutes?: number | null
           hr_require_gps?: boolean | null
           hr_require_qr?: boolean | null
@@ -1641,9 +1663,19 @@ export type Database = {
           hr_shift_start?: string | null
           hr_sick_leave_days?: number | null
           hr_social_security?: boolean | null
+          hr_work_days_per_week?: number | null
           id?: string
           income_tax_enabled?: boolean | null
           income_tax_rate?: number | null
+          inventory_allow_no_barcode?: boolean | null
+          inventory_auto_barcode?: boolean | null
+          inventory_costing_method?: string | null
+          inventory_default_max_qty?: number | null
+          inventory_default_min_qty?: number | null
+          inventory_default_unit?: string | null
+          inventory_expiry_alert?: boolean | null
+          inventory_expiry_days?: number | null
+          inventory_low_stock_alert?: boolean | null
           inventory_method?: string | null
           invoice_default_notes?: string | null
           invoice_font?: string | null
@@ -1692,6 +1724,16 @@ export type Database = {
           purchase_order_prefix?: string | null
           receipt_prefix?: string | null
           reset_numbering_yearly?: boolean | null
+          security_2fa_enabled?: boolean | null
+          security_allowed_ips?: string | null
+          security_audit_log?: boolean | null
+          security_ip_restrict?: boolean | null
+          security_lockout_enabled?: boolean | null
+          security_max_attempts?: number | null
+          security_new_device_alert?: boolean | null
+          security_passkeys_enabled?: boolean | null
+          security_session_timeout?: number | null
+          security_warning_minutes?: number | null
           show_address_on_invoice?: boolean | null
           show_bank_on_invoice?: boolean | null
           show_logo_on_invoice?: boolean | null
@@ -1738,6 +1780,7 @@ export type Database = {
           has_pos?: boolean | null
           hr_annual_leave_days?: number | null
           hr_carry_over_leave?: boolean | null
+          hr_daily_hours?: number | null
           hr_late_grace_minutes?: number | null
           hr_require_gps?: boolean | null
           hr_require_qr?: boolean | null
@@ -1747,9 +1790,19 @@ export type Database = {
           hr_shift_start?: string | null
           hr_sick_leave_days?: number | null
           hr_social_security?: boolean | null
+          hr_work_days_per_week?: number | null
           id?: string
           income_tax_enabled?: boolean | null
           income_tax_rate?: number | null
+          inventory_allow_no_barcode?: boolean | null
+          inventory_auto_barcode?: boolean | null
+          inventory_costing_method?: string | null
+          inventory_default_max_qty?: number | null
+          inventory_default_min_qty?: number | null
+          inventory_default_unit?: string | null
+          inventory_expiry_alert?: boolean | null
+          inventory_expiry_days?: number | null
+          inventory_low_stock_alert?: boolean | null
           inventory_method?: string | null
           invoice_default_notes?: string | null
           invoice_font?: string | null
@@ -1798,6 +1851,16 @@ export type Database = {
           purchase_order_prefix?: string | null
           receipt_prefix?: string | null
           reset_numbering_yearly?: boolean | null
+          security_2fa_enabled?: boolean | null
+          security_allowed_ips?: string | null
+          security_audit_log?: boolean | null
+          security_ip_restrict?: boolean | null
+          security_lockout_enabled?: boolean | null
+          security_max_attempts?: number | null
+          security_new_device_alert?: boolean | null
+          security_passkeys_enabled?: boolean | null
+          security_session_timeout?: number | null
+          security_warning_minutes?: number | null
           show_address_on_invoice?: boolean | null
           show_bank_on_invoice?: boolean | null
           show_logo_on_invoice?: boolean | null
