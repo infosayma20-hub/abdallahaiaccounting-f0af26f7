@@ -2260,7 +2260,7 @@ const POSPage = () => {
 
         {/* Kitchen Display - icon only */}
         <button
-          onClick={() => window.open("/pos/kitchen", "_blank")}
+          onClick={() => navigate("/pos/kitchen")}
           className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-white/15 transition-all group"
           style={{ border: "1px solid rgba(255,255,255,0.15)" }}
           title="شاشة المطبخ"
