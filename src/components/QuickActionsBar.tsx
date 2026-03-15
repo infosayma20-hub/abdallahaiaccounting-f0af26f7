@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   FileText, Wallet, Landmark, ClipboardList, Receipt, Users, Package,
-  BarChart3, UserCheck, Zap, Settings2, GripVertical, X, Keyboard,
+  BarChart3, UserCheck, Zap, Settings2, GripVertical, X, Keyboard, ShoppingCart,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
