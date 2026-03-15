@@ -765,19 +765,6 @@ const POSPage = () => {
       }
 
       await Promise.all([loadProducts(), loadCategories(), loadExchangeRates(), loadContacts(), loadEmployees(), loadModifiers()]);
-
-      // Load return policy settings
-      const { data: rpData } = await supabase
-        .from("company_settings" as any)
-        .select("pos_show_return_policy, pos_return_policy_days")
-        .eq("user_id", dataOwnerId)
-        .maybeSingle();
-      if (rpData) {
-        setPosReturnPolicy({
-          show: (rpData as any).pos_show_return_policy ?? true,
-          days: (rpData as any).pos_return_policy_days ?? 7,
-        });
-      }
     } catch (err) {
       console.error("POS init error:", err);
       toast.error("خطأ في تحميل نقطة البيع");
