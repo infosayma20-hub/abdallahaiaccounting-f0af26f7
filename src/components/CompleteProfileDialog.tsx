@@ -32,6 +32,19 @@ const CompleteProfileDialog = ({ open, onClose, user }: CompleteProfileDialogPro
         data: { phone, company_name: companyName, address, country, work_field: workField },
       });
 
+      // Sync to profiles table
+      await supabase.from("profiles").upsert(
+        {
+          user_id: user.id,
+          company_name: companyName || null,
+          country: country || null,
+          address: address || null,
+          work_field: workField || null,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "user_id" }
+      );
+
       // Sync to Airtable with full data
       await supabase.functions.invoke("airtable-create-client", {
         body: {
