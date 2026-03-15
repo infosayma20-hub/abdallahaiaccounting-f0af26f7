@@ -172,6 +172,8 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
         has_receivables: true,
         has_employees: data.hasEmployees ?? false,
         company_name: data.companyName || undefined,
+        address: data.city || undefined,
+        work_field: data.businessType || undefined,
       }).eq("user_id", userId);
 
       // 3b. Upsert companies table so company name appears in top bar immediately
