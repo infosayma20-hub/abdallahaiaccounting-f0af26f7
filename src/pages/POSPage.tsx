@@ -89,6 +89,22 @@ interface OrderTab {
   guestName: string;
 }
 
+const POSThemeToggle = () => {
+  const { theme, toggleTheme } = useTheme();
+  return (
+    <button
+      onClick={toggleTheme}
+      className="h-8 w-8 rounded-lg flex items-center justify-center bg-white/10 text-white/50 hover:text-white/90 hover:bg-white/20 transition-all group relative"
+      title={theme === "dark" ? "وضع فاتح" : "وضع داكن"}
+    >
+      {theme === "dark" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+      <span className="absolute top-full mt-1.5 px-2 py-1 rounded text-[10px] font-medium bg-black/90 text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+        {theme === "dark" ? "وضع فاتح" : "وضع داكن"}
+      </span>
+    </button>
+  );
+};
+
 const createNewOrder = (index: number, tableId?: string | null, tableName?: string | null, guestCount?: number, guestName?: string): OrderTab => ({
   id: crypto.randomUUID(),
   name: tableName ? `${tableName}` : `طلب ${index}`,
