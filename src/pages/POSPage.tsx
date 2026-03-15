@@ -205,7 +205,7 @@ const SortableCategoryChip = ({ cat, isActive, isSortMode, isDragging, onClick }
     opacity: isDragging ? 0.4 : 1,
     backgroundColor: isActive ? cat.color : cat.color + "20",
     borderColor: isSortMode ? "hsl(var(--primary))" : isActive ? cat.color : cat.color + "50",
-    color: isActive ? "#fff" : "#1E293B",
+    color: isActive ? "#fff" : undefined,
     boxShadow: isDragging ? "0 8px 25px rgba(0,0,0,0.2)" : isActive ? `0 2px 8px ${cat.color}40` : "none",
     borderStyle: isSortMode ? "dashed" as const : "solid" as const,
     cursor: isSortMode ? "grab" as const : "pointer" as const,
