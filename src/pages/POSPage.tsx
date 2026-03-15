@@ -699,11 +699,9 @@ const POSPage = () => {
         }
 
         const rawDefaultOpeningCash = (posSettings as any)?.pos_default_opening_balance;
-        const defaultOpeningCash =
-          rawDefaultOpeningCash === null || rawDefaultOpeningCash === undefined
-            ? 500
-            : Number(rawDefaultOpeningCash);
-        setOpeningCash(String(Number.isFinite(defaultOpeningCash) ? defaultOpeningCash : 500));
+        if (rawDefaultOpeningCash && Number(rawDefaultOpeningCash) > 0) {
+          setOpeningCash(String(Number(rawDefaultOpeningCash)));
+        }
 
         const { data: sessions } = await supabase
           .from("pos_sessions")
