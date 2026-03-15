@@ -683,6 +683,28 @@ const POSPage = () => {
         setTerminal(term ? { id: term.id, name: term.name, company_id: term.company_id } : null);
 
         const displayName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "";
+
+        // Load POS settings needed at startup (receipt policy + default opening cash)
+        const { data: posSettings } = await supabase
+          .from("company_settings" as any)
+          .select("pos_show_return_policy, pos_return_policy_days, pos_default_opening_balance")
+          .eq("user_id", dataOwnerId)
+          .maybeSingle();
+
+        if (posSettings) {
+          setPosReturnPolicy({
+            show: (posSettings as any).pos_show_return_policy ?? true,
+            days: (posSettings as any).pos_return_policy_days ?? 7,
+          });
+        }
+
+        const rawDefaultOpeningCash = (posSettings as any)?.pos_default_opening_balance;
+        const defaultOpeningCash =
+          rawDefaultOpeningCash === null || rawDefaultOpeningCash === undefined
+            ? 500
+            : Number(rawDefaultOpeningCash);
+        setOpeningCash(String(Number.isFinite(defaultOpeningCash) ? defaultOpeningCash : 500));
+
         const { data: sessions } = await supabase
           .from("pos_sessions")
           .select("*")
