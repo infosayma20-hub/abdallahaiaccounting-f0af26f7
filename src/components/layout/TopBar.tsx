@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Search, Bell, Settings, LogOut, User, Menu, Sun, Moon, FileText, Wallet, Users, X, Keyboard, Zap, Landmark, ClipboardList, Store, BarChart3, Banknote, Package, BookOpen, CreditCard, TrendingUp, Calculator, Receipt } from "lucide-react";
+import { Search, Bell, Settings, LogOut, User, Menu, Sun, Moon, FileText, Wallet, Users, X, Keyboard, Zap, Landmark, ClipboardList, Store, BarChart3, Banknote, Package, BookOpen, CreditCard, TrendingUp, Calculator, Receipt, ShoppingCart } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { useTheme } from "@/hooks/useTheme";
@@ -191,14 +191,14 @@ const QUICK_ITEMS = [
   { label: "سند قبض", icon: Landmark, shortcut: "F2", path: "/finance/receipt/new" },
   { label: "سند صرف", icon: Wallet, shortcut: "F3", path: "/finance/payment/new" },
   { label: "سند قيد", icon: ClipboardList, shortcut: "F4", path: "/finance/journal/new" },
-  { label: "زبائن", icon: Users, shortcut: "Ctrl+C", path: "/contacts?type=customer" },
-  { label: "موردين", icon: Store, shortcut: "Ctrl+M", path: "/contacts?type=supplier" },
-  { label: "كشف حساب", icon: BarChart3, shortcut: "Ctrl+K", path: "/account-statement" },
-  { label: "صناديق", icon: Banknote, shortcut: "Ctrl+S", path: "/finance/cash-boxes" },
-  { label: "المخزون", icon: Package, shortcut: "Ctrl+I", path: "/inventory" },
-  { label: "دفتر الأستاذ", icon: BookOpen, shortcut: "Ctrl+L", path: "/general-ledger" },
-  { label: "الشيكات", icon: CreditCard, shortcut: "Ctrl+Q", path: "/finance/cheques" },
-  { label: "ميزان المراجعة", icon: TrendingUp, shortcut: "Ctrl+T", path: "/trial-balance" },
+  { label: "زبائن", icon: Users, shortcut: "Alt+C", path: "/contacts?type=customer" },
+  { label: "موردين", icon: Store, shortcut: "Alt+M", path: "/contacts?type=supplier" },
+  { label: "كشف حساب", icon: BarChart3, shortcut: "Alt+K", path: "/account-statement" },
+  { label: "صناديق", icon: Banknote, shortcut: "Alt+S", path: "/finance/cash-boxes" },
+  { label: "المخزون", icon: Package, shortcut: "Alt+I", path: "/inventory" },
+  { label: "الشيكات", icon: CreditCard, shortcut: "Alt+Q", path: "/finance/cheques" },
+  { label: "نقطة البيع", icon: ShoppingCart, shortcut: "", path: "/pos" },
+  { label: "ميزان المراجعة", icon: TrendingUp, shortcut: "Alt+T", path: "/trial-balance" },
 ];
 
 const QuickAccessButton = () => {

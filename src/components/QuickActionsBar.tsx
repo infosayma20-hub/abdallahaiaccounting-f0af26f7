@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   FileText, Wallet, Landmark, ClipboardList, Receipt, Users, Package,
-  BarChart3, UserCheck, Zap, Settings2, GripVertical, X, Keyboard,
+  BarChart3, UserCheck, Zap, Settings2, GripVertical, X, Keyboard, ShoppingCart,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -19,15 +19,15 @@ export interface QuickAction {
 }
 
 const ALL_ACTIONS: QuickAction[] = [
-  { id: "invoice", label: "فاتورة", icon: FileText, shortcut: "F3", action: "navigate", target: "/invoices", enabled: true },
-  { id: "receipt", label: "سند قبض", icon: Landmark, shortcut: "F1", action: "navigate", target: "/transactions", enabled: true },
-  { id: "payment", label: "سند صرف", icon: Wallet, shortcut: "F2", action: "navigate", target: "/transactions", enabled: true },
-  { id: "journal", label: "سند قيد", icon: ClipboardList, shortcut: "F4", action: "modal", target: "journal", enabled: true },
-  { id: "cheque", label: "شيك", icon: Receipt, shortcut: "F8", action: "navigate", target: "/cheques", enabled: true },
-  { id: "account_statement", label: "كشف حساب", icon: BarChart3, shortcut: "F6", action: "modal", target: "account_statement", enabled: true },
-  { id: "contact_statement", label: "كشف شخصي", icon: UserCheck, shortcut: "F5", action: "modal", target: "contact_statement", enabled: true },
-  { id: "new_client", label: "زبون جديد", icon: Users, action: "navigate", target: "/contacts", enabled: false },
-  { id: "new_product", label: "منتج جديد", icon: Package, action: "navigate", target: "/inventory", enabled: false },
+  { id: "invoice", label: "فاتورة جديدة", icon: FileText, shortcut: "F1", action: "navigate", target: "/invoices/new", enabled: true },
+  { id: "receipt", label: "سند قبض", icon: Landmark, shortcut: "F2", action: "navigate", target: "/finance/receipt/new", enabled: true },
+  { id: "payment", label: "سند صرف", icon: Wallet, shortcut: "F3", action: "navigate", target: "/finance/payment/new", enabled: true },
+  { id: "journal", label: "سند قيد", icon: ClipboardList, shortcut: "F4", action: "navigate", target: "/finance/journal/new", enabled: true },
+  { id: "pos", label: "نقطة البيع", icon: ShoppingCart, action: "navigate", target: "/pos", enabled: true },
+  { id: "account_statement", label: "كشف حساب", icon: BarChart3, shortcut: "Alt+K", action: "navigate", target: "/account-statement", enabled: true },
+  { id: "cheque", label: "الشيكات", icon: Receipt, shortcut: "Alt+Q", action: "navigate", target: "/finance/cheques", enabled: true },
+  { id: "new_client", label: "زبائن", icon: Users, shortcut: "Alt+C", action: "navigate", target: "/contacts?type=customer", enabled: false },
+  { id: "new_product", label: "المخزون", icon: Package, shortcut: "Alt+I", action: "navigate", target: "/inventory", enabled: false },
 ];
 
 const STORAGE_KEY = "quick_actions_config";
