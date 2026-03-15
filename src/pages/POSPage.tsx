@@ -16,8 +16,9 @@ import {
   UtensilsCrossed, Gamepad2, Shirt, Monitor, ShoppingBag, Printer,
   Apple, Zap, Coffee, Box, BarChart3, TrendingUp, PlusCircle, Tag,
   Eye, EyeOff, UserCheck, LayoutGrid, Grid3X3, Grid2X2, GripVertical,
-  FileText, Keyboard, MoreHorizontal, RefreshCw, ChefHat,
+  FileText, Keyboard, MoreHorizontal, RefreshCw, ChefHat, Sun, Moon,
 } from "lucide-react";
+import { useTheme } from "@/hooks/useTheme";
 import TableSelectorBar, { type TableBarItem } from "@/components/pos/TableSelectorBar";
 import AllOrdersSheet from "@/components/pos/AllOrdersSheet";
 import { Button } from "@/components/ui/button";
@@ -87,6 +88,22 @@ interface OrderTab {
   guestCount: number;
   guestName: string;
 }
+
+const POSThemeToggle = () => {
+  const { theme, toggleTheme } = useTheme();
+  return (
+    <button
+      onClick={toggleTheme}
+      className="h-8 w-8 rounded-lg flex items-center justify-center bg-white/10 text-white/50 hover:text-white/90 hover:bg-white/20 transition-all group relative"
+      title={theme === "dark" ? "وضع فاتح" : "وضع داكن"}
+    >
+      {theme === "dark" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+      <span className="absolute top-full mt-1.5 px-2 py-1 rounded text-[10px] font-medium bg-black/90 text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+        {theme === "dark" ? "وضع فاتح" : "وضع داكن"}
+      </span>
+    </button>
+  );
+};
 
 const createNewOrder = (index: number, tableId?: string | null, tableName?: string | null, guestCount?: number, guestName?: string): OrderTab => ({
   id: crypto.randomUUID(),
@@ -2213,66 +2230,105 @@ const POSPage = () => {
 
 
 
-        {/* Invoice History Button - visible based on permissions */}
+        {/* Invoice History - icon only */}
         {(isAdmin || posPerms.can_view_invoice_history || posPerms.view_invoice_log) && (
         <button
           onClick={() => setShowInvoiceHistory(true)}
-          className="flex items-center gap-1.5 h-9 px-3.5 rounded-lg text-xs font-medium transition-all"
-          style={{
-            fontFamily: "Tajawal, sans-serif",
-            fontWeight: 500,
-            fontSize: 13,
-            background: "transparent",
-            border: "1px solid rgba(255,255,255,0.2)",
-            color: "white",
-          }}
+          className="relative h-8 w-8 rounded-lg flex items-center justify-center hover:bg-white/15 transition-all group"
+          style={{ border: "1px solid rgba(255,255,255,0.15)" }}
+          title="سجل الفواتير"
         >
-          <FileText className="h-3.5 w-3.5" />
-          سجل الفواتير
-          {session && (
+          <FileText className="h-4 w-4 text-white/70 group-hover:text-white" />
+          {session && session.total_orders > 0 && (
             <span
-              className="rounded-full px-1.5 py-px"
-              style={{
-                background: "#C9A84C",
-                color: "#0A2342",
-                fontFamily: "JetBrains Mono, monospace",
-                fontWeight: 600,
-                fontSize: 11,
-                marginRight: 4,
-              }}
+              className="absolute -top-1 -left-1 rounded-full px-1 py-px text-[9px] font-bold"
+              style={{ background: "#C9A84C", color: "#0A2342" }}
             >
               {session.total_orders}
             </span>
           )}
+          <span className="absolute top-full mt-1.5 px-2 py-1 rounded text-[10px] font-medium bg-black/90 text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">سجل الفواتير</span>
         </button>
         )}
 
-        {/* Kitchen Display */}
+        {/* Kitchen Display - icon only */}
         <button
           onClick={() => window.open("/pos/kitchen", "_blank")}
-          className="flex items-center gap-1.5 h-9 px-3.5 rounded-lg text-xs font-medium transition-all"
-          style={{
-            fontFamily: "Tajawal, sans-serif",
-            fontWeight: 500,
-            fontSize: 13,
-            background: "transparent",
-            border: "1px solid rgba(255,255,255,0.2)",
-            color: "white",
-          }}
+          className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-white/15 transition-all group"
+          style={{ border: "1px solid rgba(255,255,255,0.15)" }}
           title="شاشة المطبخ"
         >
-          <ChefHat className="h-3.5 w-3.5" />
-          المطبخ
+          <ChefHat className="h-4 w-4 text-white/70 group-hover:text-white" />
+          <span className="absolute top-full mt-1.5 px-2 py-1 rounded text-[10px] font-medium bg-black/90 text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">المطبخ</span>
         </button>
 
-        {/* Shortcuts guide button */}
+        {/* Tables - icon only */}
+        <button
+          onClick={() => navigate("/pos/floor-plan")}
+          className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-white/15 transition-all group"
+          style={{ border: "1px solid rgba(255,255,255,0.15)" }}
+          title="الطاولات"
+        >
+          <UtensilsCrossed className="h-4 w-4 text-white/70 group-hover:text-white" />
+          <span className="absolute top-full mt-1.5 px-2 py-1 rounded text-[10px] font-medium bg-black/90 text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">الطاولات</span>
+        </button>
+
+        {/* Financial Operations - icon only */}
+        {session && (isAdmin || posPerms.can_add_inventory || posPerms.can_record_purchases || posPerms.can_record_expenses) && (
+          <div className="relative">
+            <button
+              onClick={() => setShowOpsDropdown(v => !v)}
+              onBlur={() => setTimeout(() => setShowOpsDropdown(false), 150)}
+              className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-white/15 transition-all group"
+              style={{ border: "1px solid rgba(201,168,76,0.4)" }}
+              title="عمليات"
+            >
+              <MoreHorizontal className="h-4 w-4" style={{ color: "#C9A84C" }} />
+              <span className="absolute top-full mt-1.5 px-2 py-1 rounded text-[10px] font-medium bg-black/90 text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">عمليات</span>
+            </button>
+            {showOpsDropdown && (
+              <div className="absolute top-full mt-1 right-0 z-50 rounded-lg shadow-xl min-w-[200px] py-1 border" style={{ background: "#fff", color: "#1a1a1a" }} dir="rtl">
+                {(isAdmin || posPerms.can_add_inventory) && (
+                  <button className="w-full text-right px-4 py-2.5 text-sm flex items-center gap-2.5 hover:bg-gray-100 transition-colors" style={{ color: "#1B3A5C" }} onClick={() => { setShowInventoryInput(true); setShowOpsDropdown(false); }}>
+                    <Package className="h-4 w-4" style={{ color: "#C9A84C" }} /> إدخال بضاعة
+                  </button>
+                )}
+                {(isAdmin || posPerms.can_record_purchases) && (
+                  <button className="w-full text-right px-4 py-2.5 text-sm flex items-center gap-2.5 hover:bg-gray-100 transition-colors" style={{ color: "#1B3A5C" }} onClick={() => { setShowPurchaseModal(true); setShowOpsDropdown(false); }}>
+                    <ShoppingBag className="h-4 w-4" style={{ color: "#C9A84C" }} /> تسجيل مشتريات
+                  </button>
+                )}
+                {(isAdmin || posPerms.can_record_expenses) && (
+                  <button className="w-full text-right px-4 py-2.5 text-sm flex items-center gap-2.5 hover:bg-gray-100 transition-colors" style={{ color: "#1B3A5C" }} onClick={() => { setShowExpenseModal(true); setShowOpsDropdown(false); }}>
+                    <Receipt className="h-4 w-4" style={{ color: "#C9A84C" }} /> صرف مصروف
+                  </button>
+                )}
+                <div className="border-t border-gray-200 my-1" />
+                <button className="w-full text-right px-4 py-2.5 text-sm flex items-center gap-2.5 hover:bg-gray-100 transition-colors" style={{ color: "#1B3A5C" }} onClick={() => { setShowSyncLog(true); setShowOpsDropdown(false); }}>
+                  <RefreshCw className="h-4 w-4" style={{ color: "#C9A84C" }} /> سجل المزامنة
+                  {offlineMode.pendingCount > 0 && (
+                    <span className="mr-auto text-[10px] bg-red-500 text-white rounded-full px-1.5 py-0.5">{offlineMode.pendingCount}</span>
+                  )}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="w-px h-5" style={{ background: "rgba(255,255,255,0.1)" }} />
+
+        {/* Shortcuts guide */}
         <button
           onClick={() => setShowShortcutsGuide(true)}
-          className="p-1.5 rounded-lg bg-white/10 text-white/50 hover:text-white/90 hover:bg-white/20 transition-all"
+          className="h-8 w-8 rounded-lg flex items-center justify-center bg-white/10 text-white/50 hover:text-white/90 hover:bg-white/20 transition-all group relative"
           title="دليل الاختصارات"
         >
           <Keyboard className="h-4 w-4" />
+          <span className="absolute top-full mt-1.5 px-2 py-1 rounded text-[10px] font-medium bg-black/90 text-white whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">اختصارات</span>
         </button>
+
+        {/* Theme toggle */}
+        <POSThemeToggle />
 
         {/* Card size toggle */}
         <div className="flex items-center gap-0.5 bg-white/10 rounded-lg p-0.5">
@@ -2310,56 +2366,9 @@ const POSPage = () => {
           </button>
         )}
 
-        {/* Financial Operations Dropdown */}
-        {session && (isAdmin || posPerms.can_add_inventory || posPerms.can_record_purchases || posPerms.can_record_expenses) && (
-          <div className="relative">
-            <button
-              onClick={() => setShowOpsDropdown(v => !v)}
-              onBlur={() => setTimeout(() => setShowOpsDropdown(false), 150)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
-              style={{ background: "rgba(201,168,76,0.2)", color: "#C9A84C", border: "1px solid rgba(201,168,76,0.3)" }}
-            >
-              <MoreHorizontal className="h-3 w-3" />
-              عمليات
-              <ChevronDown className="h-3 w-3" />
-            </button>
-            {showOpsDropdown && (
-              <div className="absolute top-full mt-1 right-0 z-50 rounded-lg shadow-xl min-w-[200px] py-1 border" style={{ background: "#fff", color: "#1a1a1a" }} dir="rtl">
-                {(isAdmin || posPerms.can_add_inventory) && (
-                  <button className="w-full text-right px-4 py-2.5 text-sm flex items-center gap-2.5 hover:bg-gray-100 transition-colors" style={{ color: "#1B3A5C" }} onClick={() => { setShowInventoryInput(true); setShowOpsDropdown(false); }}>
-                    <Package className="h-4 w-4" style={{ color: "#C9A84C" }} /> إدخال بضاعة
-                  </button>
-                )}
-                {(isAdmin || posPerms.can_record_purchases) && (
-                  <button className="w-full text-right px-4 py-2.5 text-sm flex items-center gap-2.5 hover:bg-gray-100 transition-colors" style={{ color: "#1B3A5C" }} onClick={() => { setShowPurchaseModal(true); setShowOpsDropdown(false); }}>
-                    <ShoppingBag className="h-4 w-4" style={{ color: "#C9A84C" }} /> تسجيل مشتريات
-                  </button>
-                )}
-                {(isAdmin || posPerms.can_record_expenses) && (
-                  <button className="w-full text-right px-4 py-2.5 text-sm flex items-center gap-2.5 hover:bg-gray-100 transition-colors" style={{ color: "#1B3A5C" }} onClick={() => { setShowExpenseModal(true); setShowOpsDropdown(false); }}>
-                    <Receipt className="h-4 w-4" style={{ color: "#C9A84C" }} /> صرف مصروف
-                  </button>
-                )}
-                <div className="border-t border-gray-200 my-1" />
-                <button className="w-full text-right px-4 py-2.5 text-sm flex items-center gap-2.5 hover:bg-gray-100 transition-colors" style={{ color: "#1B3A5C" }} onClick={() => { setShowSyncLog(true); setShowOpsDropdown(false); }}>
-                  <RefreshCw className="h-4 w-4" style={{ color: "#C9A84C" }} /> سجل المزامنة
-                  {offlineMode.pendingCount > 0 && (
-                    <span className="mr-auto text-[10px] bg-red-500 text-white rounded-full px-1.5 py-0.5">{offlineMode.pendingCount}</span>
-                  )}
-                </button>
-              </div>
-            )}
-          </div>
-        )}
+        <div className="w-px h-5" style={{ background: "rgba(255,255,255,0.1)" }} />
 
-        <button
-          onClick={() => navigate("/pos/floor-plan")}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 text-white/80 hover:text-white hover:bg-white/20 border border-white/20 transition-colors text-xs font-medium"
-        >
-          <UtensilsCrossed className="h-3 w-3" />
-          الطاولات
-        </button>
-
+        {/* Close shift */}
         <button
           onClick={() => setShowCloseShift(true)}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-destructive/20 text-destructive hover:bg-destructive/30 transition-colors text-xs font-medium"
