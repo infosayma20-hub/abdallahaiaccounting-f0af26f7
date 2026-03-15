@@ -320,12 +320,22 @@ export function useCompanySettings() {
     "hr_annual_leave_days","hr_sick_leave_days","hr_carry_over_leave","hr_salary_day",
     "hr_salary_currency","hr_social_security","hr_require_qr","hr_require_gps",
     "hr_shift_start","hr_shift_end","hr_late_grace_minutes",
+    "hr_work_days_per_week","hr_daily_hours",
     "onboarding_completed","onboarding_step","business_type","has_employees",
     "employee_count_range","has_pos","pos_count","inventory_method",
     "onboarding_skipped","onboarding_completed_at",
     "invoice_header_layout","invoice_primary_color","invoice_show_signature",
     "invoice_show_tax_summary","invoice_show_amount_words","invoice_footer_message",
     "can_edit_posted","can_delete_posted",
+    // Inventory
+    "inventory_costing_method","inventory_default_unit","inventory_low_stock_alert",
+    "inventory_default_min_qty","inventory_default_max_qty","inventory_expiry_alert",
+    "inventory_expiry_days","inventory_auto_barcode","inventory_allow_no_barcode",
+    // Security
+    "security_session_timeout","security_warning_minutes","security_2fa_enabled",
+    "security_passkeys_enabled","security_ip_restrict","security_allowed_ips",
+    "security_lockout_enabled","security_max_attempts","security_audit_log",
+    "security_new_device_alert",
   ]);
 
   const saveSettings = async () => {
