@@ -187,23 +187,10 @@ const AuthPage = () => {
         <div className="w-full max-w-sm space-y-6">
           {/* Mobile logo */}
           <div className="text-center space-y-2 lg:hidden">
-            <div className="flex flex-col items-center gap-1" dir="ltr">
-              <svg width={40} height={40} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <rect x="8" y="20" width="8" height="36" rx="2" fill="hsl(var(--foreground))" />
-                <rect x="8" y="20" width="28" height="8" rx="2" fill="hsl(var(--foreground))" />
-                <rect x="8" y="34" width="20" height="7" rx="2" fill="hsl(var(--foreground))" />
-                <path d="M36 20 C36 14, 40 6, 48 2 C44 10, 43 16, 36 20Z" fill="url(#mob-wing)" />
-                <path d="M36 18 C38 12, 44 4, 54 1 C48 10, 44 15, 36 18Z" fill="url(#mob-wing)" opacity="0.85" />
-                <path d="M36 16 C40 10, 48 3, 58 2 C52 10, 46 14, 36 16Z" fill="url(#mob-wing)" opacity="0.65" />
-                <defs>
-                  <linearGradient id="mob-wing" x1="0%" y1="100%" x2="100%" y2="0%">
-                    <stop offset="0%" stopColor="#E8A020" />
-                    <stop offset="100%" stopColor="#F45E0C" />
-                  </linearGradient>
-                </defs>
-              </svg>
+            <div className="flex flex-col items-center gap-2" dir="ltr">
+              <img src="/logo-icon.svg" alt="قيود" width={40} height={40} />
               <span style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 800, fontSize: 22, color: "hsl(var(--foreground))", letterSpacing: "0.03em", lineHeight: 1 }}>
-                FINIX
+                QOYOD
               </span>
             </div>
           </div>
