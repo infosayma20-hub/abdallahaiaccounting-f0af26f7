@@ -67,6 +67,10 @@ const PurchaseOrderCreatePage = () => {
 
   const prefs = loadPrefs();
   const [supplierId, setSupplierId] = useState(prefs.supplierId || "");
+  const [defaultBranchId, setDefaultBranchId] = useState(prefs.branchId || "");
+  const UNIT_OPTIONS = useMemo(() => [...new Set([...DEFAULT_UNITS, ...loadCustomUnits()])], []);
+  const [unitOptions, setUnitOptions] = useState(UNIT_OPTIONS);
+  const [customUnitInput, setCustomUnitInput] = useState("");
   const [branchId, setBranchId] = useState(prefs.branchId || "");
   const [orderDate, setOrderDate] = useState(new Date().toISOString().split("T")[0]);
   const [expectedDate, setExpectedDate] = useState("");
