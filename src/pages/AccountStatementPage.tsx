@@ -342,7 +342,7 @@ const AccountStatementPage = () => {
     if (!user) return;
     setLoading(true);
     try {
-      const [{ data: contactData }, { data: accData }, { data: txData }, profileRes, { data: empData }, { data: csData }, { data: chequeData }, { data: companyData }, { data: posSupplierData }] = await Promise.all([
+      const [{ data: contactData }, { data: accData }, { data: txData }, profileRes, { data: empData }, { data: csData }, { data: chequeData }, { data: companyData }] = await Promise.all([
         supabase
           .from("contacts")
           .select("id, contact_name, contact_type, phone, email, address, linked_account_code, credit_limit, current_balance, contact_class")
