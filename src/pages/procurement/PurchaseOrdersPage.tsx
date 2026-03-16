@@ -213,7 +213,7 @@ const PurchaseOrdersPage = () => {
                             <DropdownMenuTrigger asChild>
                               <Button size="sm" variant="ghost" className="h-7 w-7 p-0"><ChevronDown className="h-3 w-3" /></Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" dir="rtl">
+                            <DropdownMenuContent align="end">
                               <DropdownMenuItem onClick={() => handlePrint(o)}><Printer className="h-3.5 w-3.5 ml-2" />طباعة</DropdownMenuItem>
                               <DropdownMenuItem onClick={() => handleWhatsApp(o)}><Share2 className="h-3.5 w-3.5 ml-2" />مشاركة WhatsApp</DropdownMenuItem>
                               <DropdownMenuItem onClick={() => copyOrderNumber(o.order_number)}><Copy className="h-3.5 w-3.5 ml-2" />نسخ رقم الطلبية</DropdownMenuItem>
