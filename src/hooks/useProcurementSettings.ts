@@ -62,6 +62,7 @@ export function useSuppliersCrud() {
 
 // ── Categories CRUD ──
 export function useCategoriesCrud() {
+  const { user } = useAuth();
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
