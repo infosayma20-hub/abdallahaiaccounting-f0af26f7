@@ -219,7 +219,7 @@ const CashBoxDrawer = ({ open, onClose, defaultType, editBox, hasMainBox, onSave
           {!editBox && (
             <div>
               <Label className="text-xs font-bold mb-2 block">نوع الصندوق</Label>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {([
                   { key: "main" as const, icon: "🏛️", label: "رئيسي", desc: "صندوق أم يستقبل كل التحويلات" },
                   { key: "branch" as const, icon: "🏪", label: "فرع", desc: "صندوق فرع يُرحَّل للرئيسي" },
