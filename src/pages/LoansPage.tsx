@@ -114,11 +114,11 @@ export default function LoansPage() {
         <td style="text-align:center">${i + 1}</td>
         <td style="font-weight:600">${l.employees?.full_name || "-"}</td>
         <td>${l.employees?.branches?.name || "-"}</td>
-        <td style="font-family:monospace;text-align:left">${Number(l.total_amount).toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
-        <td style="font-family:monospace;text-align:left">${Number(l.monthly_installment).toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
+        <td style="text-align:left">${Number(l.total_amount).toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
+        <td style="text-align:left">${Number(l.monthly_installment).toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
         <td style="text-align:center">${l.total_months} شهر</td>
-        <td style="font-family:monospace;text-align:left">${paidAmt.toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
-        <td style="font-family:monospace;text-align:left">${Number(l.remaining_amount).toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
+        <td style="text-align:left">${paidAmt.toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
+        <td style="text-align:left">${Number(l.remaining_amount).toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
         <td style="text-align:center">${startDate}</td>
         <td style="text-align:center">${endDate}</td>
       </tr>`;
