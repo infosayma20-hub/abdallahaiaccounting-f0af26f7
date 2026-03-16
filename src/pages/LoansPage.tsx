@@ -25,8 +25,7 @@ export default function LoansPage() {
       if (!user) return [];
       const { data, error } = await supabase
         .from("employee_loans")
-        .select("*, employees(full_name, department, employee_number), loan_installments(*)")
-        .eq("user_id", user.id)
+        .select("*, employees(full_name, department), loan_installments(*)")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data || [];
