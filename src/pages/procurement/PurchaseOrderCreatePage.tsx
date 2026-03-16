@@ -220,25 +220,21 @@ const PurchaseOrderCreatePage = () => {
 
   const handleAddItem = async () => {
     if (!newItem.name.trim()) { toast({ title: "أدخل اسم الصنف", variant: "destructive" }); return; }
+    if (!newItem.unit.trim()) { toast({ title: "أدخل الوحدة", variant: "destructive" }); return; }
     if (!newItem.category_id) { toast({ title: "اختر التصنيف", variant: "destructive" }); return; }
+    // Save custom unit
+    if (!DEFAULT_UNITS.includes(newItem.unit)) { saveCustomUnit(newItem.unit); setUnitOptions(prev => [...new Set([...prev, newItem.unit])]); }
     setSavingDialog(true);
     const ok = await itemsCrud.create({
       name: newItem.name, category_id: newItem.category_id,
       unit: newItem.unit, default_price: newItem.default_price || 0,
       notes: newItem.notes || null, is_active: true, sort_order: 0,
     });
-    // Also add to products (inventory) table
     if (ok && user) {
       const catName = categories.find((c: any) => c.id === newItem.category_id)?.name || "بضاعة عامة";
       await supabase.from("products").insert({
-        user_id: user.id,
-        name: newItem.name,
-        unit: newItem.unit,
-        buy_price: newItem.default_price || 0,
-        sell_price: 0,
-        quantity: 0,
-        min_quantity: 0,
-        category: catName,
+        user_id: user.id, name: newItem.name, unit: newItem.unit,
+        buy_price: newItem.default_price || 0, sell_price: 0, quantity: 0, min_quantity: 0, category: catName,
       } as any);
     }
     setSavingDialog(false);
