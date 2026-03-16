@@ -148,18 +148,22 @@ export default function HRDeductionsPage() {
       });
     });
 
-    // Payment vouchers
+    // Payment vouchers from vouchers table
     paymentVouchers.forEach(v => {
-      const emp = empMap[v.employee_id] || { name: v.contact_name || "—", dept: "", branch: "" };
+      // Extract employee name from description (format: "type - employee name")
+      const descParts = (v.description || "").split(" - ");
+      const empName = descParts.length > 1 ? descParts.slice(1).join(" - ").split(" | ")[0].trim() : v.description || "—";
+      const deductionType = descParts[0]?.trim() || "سند صرف";
+      const matchedEmp = employees.find(e => v.description?.includes(e.full_name));
       rows.push({
         id: `pv-${v.id}`,
-        employeeName: emp.name,
-        employeeDept: emp.dept,
-        employeeBranch: emp.branch,
-        type: v.employee_deduction_type || "سند صرف",
+        employeeName: matchedEmp?.full_name || empName,
+        employeeDept: matchedEmp?.department || "",
+        employeeBranch: matchedEmp?.branch || "",
+        type: deductionType,
         description: v.description || v.notes || "",
         amount: Number(v.amount),
-        date: v.voucher_date || v.created_at?.split("T")[0] || "",
+        date: v.date || v.created_at?.split("T")[0] || "",
         source: "سند صرف",
         sourceId: v.id,
         status: v.status === "posted" ? "مرحّل" : "مسودة",
