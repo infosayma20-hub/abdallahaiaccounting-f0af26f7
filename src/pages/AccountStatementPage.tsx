@@ -627,10 +627,20 @@ const AccountStatementPage = () => {
   const employeeBalances = useMemo(() => {
     if (!isEmployeesTab) return {};
     const map: Record<string, number> = {};
+    // Count how many employees share each account code
+    const codeCount: Record<string, number> = {};
+    for (const emp of employeeEntities) {
+      if (emp.account_code) codeCount[emp.account_code] = (codeCount[emp.account_code] || 0) + 1;
+    }
     for (const emp of employeeEntities) {
       if (!emp.account_code) { map[emp.id] = 0; continue; }
+      const shared = (codeCount[emp.account_code] || 1) > 1;
+      const empName = emp.full_name?.trim() || "";
       let bal = 0;
       for (const tx of transactions) {
+        const matchesCode = tx.debit_account_code === emp.account_code || tx.credit_account_code === emp.account_code;
+        if (!matchesCode) continue;
+        if (shared && empName && !tx.description?.includes(empName)) continue;
         if (tx.debit_account_code === emp.account_code) bal += tx.amount || 0;
         if (tx.credit_account_code === emp.account_code) bal -= tx.amount || 0;
       }
@@ -808,9 +818,16 @@ const AccountStatementPage = () => {
       });
     } else if (isEmployeesTab && selectedEmployee?.account_code) {
       const code = selectedEmployee.account_code;
-      related = transactions.filter(tx =>
-        tx.debit_account_code === code || tx.credit_account_code === code
-      );
+      const empName = selectedEmployee.full_name?.trim() || "";
+      // If multiple employees share the same account code, also filter by name
+      const sameCodeCount = employeeEntities.filter(e => e.account_code === code).length;
+      related = transactions.filter(tx => {
+        const matchesCode = tx.debit_account_code === code || tx.credit_account_code === code;
+        if (!matchesCode) return false;
+        if (sameCodeCount <= 1) return true;
+        // Multiple employees on same code: match by name in description
+        return empName && tx.description?.includes(empName);
+      });
       resolveDebitCredit = (tx) => ({
         isDebit: tx.debit_account_code === code,
         isCredit: tx.credit_account_code === code,
@@ -909,7 +926,14 @@ const AccountStatementPage = () => {
         resolveDebitCredit = (tx) => ({ isDebit: tx.debit_account_code === code, isCredit: tx.credit_account_code === code });
       } else if (isEmployeesTab && selectedEmployee?.account_code) {
         const code = selectedEmployee.account_code;
-        related = transactions.filter(tx => tx.debit_account_code === code || tx.credit_account_code === code);
+        const empName = selectedEmployee.full_name?.trim() || "";
+        const sameCodeCount = employeeEntities.filter(e => e.account_code === code).length;
+        related = transactions.filter(tx => {
+          const matchesCode = tx.debit_account_code === code || tx.credit_account_code === code;
+          if (!matchesCode) return false;
+          if (sameCodeCount <= 1) return true;
+          return empName && tx.description?.includes(empName);
+        });
         resolveDebitCredit = (tx) => ({ isDebit: tx.debit_account_code === code, isCredit: tx.credit_account_code === code });
       } else {
         const accountCode = activeTabConfig.accountCode;
