@@ -266,9 +266,6 @@ const ProcurementInvoiceCreatePage = () => {
                   <SelectItem value="paid">مدفوعة نقداً</SelectItem>
                 </SelectContent>
               </Select>
-              <p className="text-[10px] text-muted-foreground mt-1">
-                تحدد طريقة التسجيل المحاسبي: آجل = ذمم موردين، نقداً = خصم من الصندوق
-              </p>
             </div>
           </CardContent>
         </Card>
