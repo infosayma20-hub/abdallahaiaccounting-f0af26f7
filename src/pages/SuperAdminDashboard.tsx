@@ -1820,6 +1820,10 @@ export default function SuperAdminDashboard() {
             <PlatformSettings />
           </TabsContent>
 
+          <TabsContent value="tools">
+            <ResetTransactionsTool />
+          </TabsContent>
+
           <TabsContent value="revenue">
             <RevenueReports />
           </TabsContent>
