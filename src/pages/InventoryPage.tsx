@@ -444,7 +444,9 @@ const InventoryPage = () => {
                       </td>
                       <td className="px-3 py-3 text-xs text-muted-foreground font-mono" dir="ltr">{p.sku || "—"}</td>
                       <td className="px-3 py-3">
-                        <p className="text-sm font-semibold text-foreground">{p.name}</p>
+                        <button onClick={() => openMovements(p)} className="text-sm font-semibold text-foreground hover:text-primary hover:underline transition-colors text-right">
+                          {p.name}
+                        </button>
                       </td>
                       <td className="px-3 py-3 text-xs text-muted-foreground">{p.category}</td>
                       <td className="px-3 py-3 text-sm font-bold tabular-nums text-foreground">{p.quantity.toLocaleString()}</td>
