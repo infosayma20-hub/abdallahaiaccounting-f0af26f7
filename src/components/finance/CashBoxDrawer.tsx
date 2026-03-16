@@ -75,16 +75,19 @@ const CashBoxDrawer = ({ open, onClose, defaultType, editBox, hasMainBox, onSave
     main: "linear-gradient(135deg, #0A2342, #006D8F)",
     branch: "linear-gradient(135deg, #065F46, #059669)",
     pos: "linear-gradient(135deg, #4C1D95, #7C3AED)",
+    petty: "linear-gradient(135deg, #92400E, #D97706)",
   };
   const titles: Record<string, string> = {
     main: "إنشاء الصندوق الرئيسي",
     branch: "إضافة صندوق فرع",
     pos: "إضافة صندوق نقطة بيع",
+    petty: "إضافة صندوق نثرية",
   };
   const placeholders: Record<string, string> = {
     main: "مثال: الصندوق الرئيسي",
     branch: "مثال: صندوق فرع رام الله",
     pos: "مثال: كاشير 1 — المعرض",
+    petty: "مثال: نثرية المكتب الرئيسي",
   };
 
   const handleSave = async () => {
