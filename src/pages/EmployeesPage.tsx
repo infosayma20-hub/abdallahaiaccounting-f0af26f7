@@ -173,7 +173,26 @@ const EmployeesPage = () => {
     setLoading(false);
   };
 
-  useEffect(() => { fetchEmployees(); }, [user]);
+  const fetchBranches = async () => {
+    if (!user) return;
+    const { data } = await supabase.from("branches").select("id, name").eq("user_id", user.id).eq("is_active", true).order("name");
+    setBranchesList((data as Branch[]) || []);
+  };
+
+  const handleAddBranch = async () => {
+    if (!user || !newBranchName.trim()) return;
+    const { error } = await supabase.from("branches").insert({
+      user_id: user.id, name: newBranchName.trim(),
+      latitude: 0, longitude: 0, radius_meters: 100,
+    } as any);
+    if (error) { toast.error("خطأ في إضافة الفرع"); return; }
+    toast.success("تم إضافة الفرع");
+    setNewBranchName("");
+    setShowAddBranch(false);
+    fetchBranches();
+  };
+
+  useEffect(() => { fetchEmployees(); fetchBranches(); }, [user]);
 
   useEffect(() => {
     if (!user) return;
