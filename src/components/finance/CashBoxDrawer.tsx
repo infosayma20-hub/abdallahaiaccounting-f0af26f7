@@ -221,10 +221,11 @@ const CashBoxDrawer = ({ open, onClose, defaultType, editBox, hasMainBox, onSave
               <Label className="text-xs font-bold mb-2 block">نوع الصندوق</Label>
               <div className="grid grid-cols-3 gap-3">
                 {([
-                  { key: "main", icon: "🏛️", label: "رئيسي", desc: "صندوق أم يستقبل كل التحويلات" },
-                  { key: "branch", icon: "🏪", label: "فرع", desc: "صندوق فرع يُرحَّل للرئيسي" },
-                  { key: "pos", icon: "🖥️", label: "نقطة بيع", desc: "مرتبط بـ POS يستقبل مبيعات" },
-                ] as const).map(t => (
+                  { key: "main" as const, icon: "🏛️", label: "رئيسي", desc: "صندوق أم يستقبل كل التحويلات" },
+                  { key: "branch" as const, icon: "🏪", label: "فرع", desc: "صندوق فرع يُرحَّل للرئيسي" },
+                  { key: "pos" as const, icon: "🖥️", label: "نقطة بيع", desc: "مرتبط بـ POS يستقبل مبيعات" },
+                  { key: "petty" as const, icon: "🗃️", label: "نثرية", desc: "مصروفات صغيرة ومتكررة" },
+                ]).map(t => (
                   <button
                     key={t.key}
                     onClick={() => setBoxType(t.key)}
