@@ -87,6 +87,14 @@ import ContractFormPage from "./pages/ContractFormPage";
 import ContractPreviewPage from "./pages/ContractPreviewPage";
 import LoadingDemoPage from "./pages/LoadingDemoPage";
 import ImportShipmentsPage from "./pages/ImportShipmentsPage";
+import SuppliersPage from "./pages/procurement/SuppliersPage";
+import SupplierDetailPage from "./pages/procurement/SupplierDetailPage";
+import PurchaseOrderCreatePage from "./pages/procurement/PurchaseOrderCreatePage";
+import PurchaseOrdersPage from "./pages/procurement/PurchaseOrdersPage";
+import ProcurementInvoicesPage from "./pages/procurement/ProcurementInvoicesPage";
+import ProcurementInvoiceCreatePage from "./pages/procurement/ProcurementInvoiceCreatePage";
+import SupplierStatementPage from "./pages/procurement/SupplierStatementPage";
+import WeeklyProcurementReportPage from "./pages/procurement/WeeklyProcurementReportPage";
 import ImportWizardPage from "./pages/ImportWizardPage";
 import ImportDetailPage from "./pages/ImportDetailPage";
 import BillingPage from "./pages/BillingPage";
@@ -348,6 +356,15 @@ const App = () => (
                       <Route path="/purchases/import" element={<ImportShipmentsPage />} />
                       <Route path="/purchases/import/new" element={<ImportWizardPage />} />
                       <Route path="/purchases/import/:id" element={<ImportDetailPage />} />
+                      {/* Procurement Module */}
+                      <Route path="/procurement/suppliers" element={<SuppliersPage />} />
+                      <Route path="/procurement/suppliers/:id" element={<SupplierDetailPage />} />
+                      <Route path="/procurement/orders" element={<PurchaseOrdersPage />} />
+                      <Route path="/procurement/orders/new" element={<PurchaseOrderCreatePage />} />
+                      <Route path="/procurement/invoices" element={<ProcurementInvoicesPage />} />
+                      <Route path="/procurement/invoices/new" element={<ProcurementInvoiceCreatePage />} />
+                      <Route path="/procurement/supplier-statement" element={<SupplierStatementPage />} />
+                      <Route path="/procurement/weekly-report" element={<WeeklyProcurementReportPage />} />
                       <Route path="/reports/import-cost-analysis" element={<GenericReportPage reportKey="import-cost-analysis" />} />
                       <Route path="*" element={<NotFound />} />
                     </Routes>

@@ -134,23 +134,32 @@ export const navigationSections: NavSection[] = [
         ],
       },
       {
-        id: "purchases", label: "المشتريات", description: "موردين، فواتير مشتريات، ونقطة المشتريات", module: "purchases", icon: ShoppingBag,
-        color: "text-sky-500", bgColor: "bg-sky-500/10", path: "/bills",
-        keywords: ["مشتريات", "مورد", "استلام"],
+        id: "purchases", label: "المشتريات", description: "موردين، طلبيات، فواتير مشتريات، وتقارير", module: "purchases", icon: ShoppingBag,
+        color: "text-sky-500", bgColor: "bg-sky-500/10", path: "/procurement/orders/new",
+        keywords: ["مشتريات", "مورد", "استلام", "طلبية"],
         groups: [
           {
-            groupLabel: "العمليات",
+            groupLabel: "إدارة المشتريات",
             children: [
-              { label: "فواتير مشتريات", path: "/bills" },
-              { label: "نقطة المشتريات", path: "/purchase-point" },
-              { label: "سندات الصرف", path: "/finance/payments" },
+              { label: "طلب مشتريات", path: "/procurement/orders/new" },
+              { label: "الطلبيات", path: "/procurement/orders" },
+              { label: "فواتير المشتريات", path: "/procurement/invoices" },
+              { label: "الموردون", path: "/procurement/suppliers" },
             ],
           },
           {
-            groupLabel: "الاستيراد",
+            groupLabel: "التقارير",
             children: [
+              { label: "كشف حساب مورد", path: "/procurement/supplier-statement" },
+              { label: "التقرير الأسبوعي", path: "/procurement/weekly-report" },
+            ],
+          },
+          {
+            groupLabel: "عمليات أخرى",
+            children: [
+              { label: "نقطة المشتريات", path: "/purchase-point" },
+              { label: "سندات الصرف", path: "/finance/payments" },
               { label: "ملفات الاستيراد", path: "/purchases/import" },
-              { label: "استيراد جديد", path: "/purchases/import/new" },
             ],
           },
         ],

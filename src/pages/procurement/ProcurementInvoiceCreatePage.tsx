@@ -1,0 +1,242 @@
+import { useState, useEffect } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { AlertTriangle, Check } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useProcurementInvoices, useSuppliers, ProcurementOrderItem } from "@/hooks/useProcurement";
+import BackButton from "@/components/BackButton";
+import { Skeleton } from "@/components/ui/skeleton";
+
+interface InvoiceLine {
+  item_name: string;
+  unit: string;
+  ordered_quantity: number;
+  received_quantity: number;
+  unit_price: number;
+  notes: string;
+}
+
+const ProcurementInvoiceCreatePage = () => {
+  const [searchParams] = useSearchParams();
+  const orderId = searchParams.get("orderId");
+  const navigate = useNavigate();
+  const { createInvoice } = useProcurementInvoices();
+  const { suppliers } = useSuppliers();
+
+  const [loading, setLoading] = useState(!!orderId);
+  const [supplierId, setSupplierId] = useState("");
+  const [supplierName, setSupplierName] = useState("");
+  const [branchId, setBranchId] = useState("");
+  const [orderNumber, setOrderNumber] = useState("");
+  const [invoiceDate, setInvoiceDate] = useState(new Date().toISOString().split("T")[0]);
+  const [supplierInvoiceNumber, setSupplierInvoiceNumber] = useState("");
+  const [paymentStatus, setPaymentStatus] = useState("unpaid");
+  const [discount, setDiscount] = useState(0);
+  const [tax, setTax] = useState(0);
+  const [notes, setNotes] = useState("");
+  const [lines, setLines] = useState<InvoiceLine[]>([]);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!orderId) { setLoading(false); return; }
+    (async () => {
+      const { data: order } = await supabase.from("procurement_orders" as any).select("*, procurement_suppliers(*)").eq("id", orderId).single();
+      if (order) {
+        const o = order as any;
+        setSupplierId(o.supplier_id);
+        setSupplierName(o.procurement_suppliers?.name || "");
+        setBranchId(o.branch_id || "");
+        setOrderNumber(o.order_number || "");
+        const { data: items } = await supabase.from("procurement_order_items" as any).select("*").eq("order_id", orderId);
+        setLines(((items as any) || []).map((i: any) => ({
+          item_name: i.item_name,
+          unit: i.unit,
+          ordered_quantity: Number(i.quantity),
+          received_quantity: Number(i.quantity),
+          unit_price: Number(i.unit_price),
+          notes: "",
+        })));
+      }
+      setLoading(false);
+    })();
+  }, [orderId]);
+
+  const subtotal = lines.reduce((s, l) => s + l.received_quantity * l.unit_price, 0);
+  const total = subtotal - discount + tax;
+
+  const updateLine = (idx: number, field: string, value: any) => {
+    setLines(lines.map((l, i) => i === idx ? { ...l, [field]: value } : l));
+  };
+
+  const handleSave = async () => {
+    if (!supplierId || lines.length === 0) return;
+    setSaving(true);
+    const result = await createInvoice(
+      { supplier_id: supplierId, branch_id: branchId, invoice_date: invoiceDate, supplier_invoice_number: supplierInvoiceNumber, payment_status: paymentStatus, discount, tax, notes },
+      lines,
+      orderId || undefined
+    );
+    setSaving(false);
+    if (result) navigate("/procurement/invoices");
+  };
+
+  if (loading) return <div className="p-6"><Skeleton className="h-64 w-full" /></div>;
+
+  return (
+    <div className="p-4 md:p-6 space-y-4">
+      <div className="flex items-center gap-3">
+        <BackButton />
+        <h1 className="text-xl font-bold text-foreground">استلام بضاعة وإنشاء فاتورة</h1>
+        {orderNumber && <Badge variant="outline" className="font-mono">{orderNumber}</Badge>}
+      </div>
+
+      <div className="grid md:grid-cols-3 gap-3">
+        <Card>
+          <CardContent className="p-4 space-y-3">
+            <div>
+              <Label>المورد</Label>
+              {orderId ? (
+                <Input value={supplierName} disabled />
+              ) : (
+                <Select value={supplierId} onValueChange={v => { setSupplierId(v); setSupplierName(suppliers.find(s => s.id === v)?.name || ""); }}>
+                  <SelectTrigger><SelectValue placeholder="اختر المورد" /></SelectTrigger>
+                  <SelectContent>{suppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
+                </Select>
+              )}
+            </div>
+            <div>
+              <Label>رقم فاتورة المورد</Label>
+              <Input value={supplierInvoiceNumber} onChange={e => setSupplierInvoiceNumber(e.target.value)} placeholder="رقم الفاتورة من المورد" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 space-y-3">
+            <div>
+              <Label>تاريخ الفاتورة</Label>
+              <Input type="date" value={invoiceDate} onChange={e => setInvoiceDate(e.target.value)} />
+            </div>
+            <div>
+              <Label>حالة الدفع</Label>
+              <Select value={paymentStatus} onValueChange={setPaymentStatus}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="unpaid">غير مدفوعة</SelectItem>
+                  <SelectItem value="partial">مدفوعة جزئياً</SelectItem>
+                  <SelectItem value="paid">مدفوعة بالكامل</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 space-y-3">
+            <div>
+              <Label>ملاحظات</Label>
+              <Textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3} />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm">بنود الاستلام</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>الصنف</TableHead>
+                <TableHead>الوحدة</TableHead>
+                <TableHead>الكمية المطلوبة</TableHead>
+                <TableHead>الكمية المستلمة</TableHead>
+                <TableHead>السعر الفعلي</TableHead>
+                <TableHead>الإجمالي</TableHead>
+                <TableHead>ملاحظة</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {lines.map((line, idx) => {
+                const variance = line.received_quantity < line.ordered_quantity;
+                return (
+                  <TableRow key={idx}>
+                    <TableCell className="font-medium">{line.item_name}</TableCell>
+                    <TableCell>{line.unit}</TableCell>
+                    <TableCell>{line.ordered_quantity}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <Input
+                          type="number"
+                          value={line.received_quantity}
+                          onChange={e => updateLine(idx, "received_quantity", Number(e.target.value))}
+                          className="h-8 w-20 text-center"
+                        />
+                        {variance && <AlertTriangle className="h-4 w-4 text-orange-500" />}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        type="number"
+                        value={line.unit_price}
+                        onChange={e => updateLine(idx, "unit_price", Number(e.target.value))}
+                        className="h-8 w-24 text-center"
+                      />
+                    </TableCell>
+                    <TableCell className="font-mono">{(line.received_quantity * line.unit_price).toLocaleString("en", { minimumFractionDigits: 2 })}</TableCell>
+                    <TableCell>
+                      <Input
+                        value={line.notes}
+                        onChange={e => updateLine(idx, "notes", e.target.value)}
+                        className="h-8 w-28 text-xs"
+                        placeholder="ملاحظة"
+                      />
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex flex-col items-end gap-1 text-sm max-w-xs mr-auto">
+            <div className="flex justify-between w-full">
+              <span className="text-muted-foreground">المجموع الفرعي</span>
+              <span>{subtotal.toLocaleString("en", { minimumFractionDigits: 2 })} ₪</span>
+            </div>
+            <div className="flex justify-between w-full items-center">
+              <span className="text-muted-foreground">خصم</span>
+              <Input type="number" value={discount} onChange={e => setDiscount(Number(e.target.value))} className="h-7 w-24 text-center text-xs" />
+            </div>
+            <div className="flex justify-between w-full items-center">
+              <span className="text-muted-foreground">ضريبة</span>
+              <Input type="number" value={tax} onChange={e => setTax(Number(e.target.value))} className="h-7 w-24 text-center text-xs" />
+            </div>
+            <div className="flex justify-between w-full border-t pt-2 text-base font-bold">
+              <span>الإجمالي النهائي</span>
+              <span>{total.toLocaleString("en", { minimumFractionDigits: 2 })} ₪</span>
+            </div>
+          </div>
+          <div className="flex justify-end mt-4">
+            <Button variant="accent" onClick={handleSave} disabled={saving} className="min-w-[200px]">
+              <Check className="h-4 w-4 ml-1" />
+              تأكيد وتسجيل الفاتورة
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+export default ProcurementInvoiceCreatePage;
