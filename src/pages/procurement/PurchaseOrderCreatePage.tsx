@@ -100,8 +100,8 @@ const PurchaseOrderCreatePage = () => {
   const [editItem, setEditItem] = useState<any>(null);
 
   useEffect(() => {
-    if (supplierId || branchId) savePrefs({ supplierId, branchId, cardSize });
-  }, [supplierId, branchId, cardSize]);
+    if (supplierId || defaultBranchId) savePrefs({ supplierId, branchId: defaultBranchId, cardSize });
+  }, [supplierId, defaultBranchId, cardSize]);
 
   useEffect(() => { searchRef.current?.focus(); }, [activeCategory]);
 
