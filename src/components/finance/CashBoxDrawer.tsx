@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 interface CashBoxDrawerProps {
   open: boolean;
   onClose: () => void;
-  defaultType: "main" | "branch" | "pos";
+  defaultType: "main" | "branch" | "pos" | "petty";
   editBox?: any;
   hasMainBox: boolean;
   onSaved: () => void;
