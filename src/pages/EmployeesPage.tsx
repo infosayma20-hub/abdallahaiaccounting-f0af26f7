@@ -312,6 +312,17 @@ const EmployeesPage = () => {
     return list;
   }, [employees, search, filterBranch, filterStatus, filterJob, sortField, sortDir]);
 
+  // Pagination
+  const totalPages = Math.ceil(filtered.length / perPage);
+  const paged = useMemo(() => {
+    if (groupByBranch) return filtered; // no pagination when grouped
+    const start = (page - 1) * perPage;
+    return filtered.slice(start, start + perPage);
+  }, [filtered, page, perPage, groupByBranch]);
+
+  // Reset page on filter change
+  useEffect(() => { setPage(1); }, [search, filterBranch, filterStatus, filterJob, perPage]);
+
   const activeCount = employees.filter(e => e.is_active).length;
   const totalSalaries = employees.filter(e => e.is_active).reduce((s, e) => s + Number(e.base_salary || 0), 0);
 
@@ -332,55 +343,18 @@ const EmployeesPage = () => {
     else { setSortField(field); setSortDir("asc"); }
   };
 
-  const SortIcon = ({ field }: { field: SortField }) => {
-    if (sortField !== field) return <ArrowUpDown className="h-3 w-3 opacity-40" />;
-    return sortDir === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />;
-  };
+  const SortHeader = ({ label, field }: { label: string; field: SortField }) => (
+    <button onClick={() => toggleSort(field)} className="flex items-center gap-1 hover:text-primary-foreground/80 transition-colors w-full">
+      {label}
+      <ArrowUpDown className={`h-3 w-3 ${sortField === field ? "opacity-100" : "opacity-30"}`} />
+    </button>
+  );
 
   const leaveBalance = selectedEmployee ? calculateLeaveBalance(
     selectedEmployee.start_date,
     Number((selectedEmployee as any).previous_year_balance) || 0,
     leaves.filter(l => (l.status === "موافق عليها" || l.status === "موافقة" || l.status === "معتمدة") && new Date(l.start_date).getFullYear() === new Date().getFullYear()).reduce((s: number, l: any) => s + Number(l.days_count || 0), 0)
   ) : null;
-
-  // Advance/loan totals per employee (for table display)
-  const getAdvanceBadge = (emp: Employee) => {
-    // We don't have per-employee advance data preloaded for table, so show base_salary-based indicator
-    // We'll show it properly once the drawer is open
-    return null;
-  };
-
-  const renderEmployeeRow = (emp: Employee, idx: number) => (
-    <TableRow
-      key={emp.id}
-      className="cursor-pointer hover:bg-muted/50 transition-colors"
-      onClick={() => openEmployeeDrawer(emp)}
-    >
-      <TableCell className="sticky right-0 bg-background z-10 font-medium">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs flex-shrink-0">
-            {emp.full_name?.charAt(0)}
-          </div>
-          <div className="min-w-0">
-            <p className="font-medium text-sm truncate">{emp.full_name}</p>
-            <p className="text-[10px] text-muted-foreground">{emp.id_number || "—"}</p>
-          </div>
-        </div>
-      </TableCell>
-      <TableCell className="text-sm">{emp.department || "—"}</TableCell>
-      <TableCell className="text-sm">{emp.job_title || emp.position || "—"}</TableCell>
-      <TableCell className="text-sm">{emp.start_date || "—"}</TableCell>
-      <TableCell className="text-sm font-medium">{formatCurrency(Number(emp.base_salary || 0))}</TableCell>
-      <TableCell>
-        <Badge
-          variant={emp.is_active ? "default" : (emp as any).is_terminated ? "destructive" : "secondary"}
-          className={`text-[10px] ${emp.is_active ? "bg-emerald-500/15 text-emerald-700 border-emerald-200 hover:bg-emerald-500/20" : (emp as any).is_terminated ? "bg-destructive/15 text-destructive" : "bg-muted text-muted-foreground"}`}
-        >
-          {emp.is_active ? "نشط" : (emp as any).is_terminated ? "منتهي" : "موقوف"}
-        </Badge>
-      </TableCell>
-    </TableRow>
-  );
 
   // Mobile card view
   const renderMobileCard = (emp: Employee) => (
@@ -399,7 +373,7 @@ const EmployeesPage = () => {
         </div>
         <Badge
           variant={emp.is_active ? "default" : "secondary"}
-          className={`text-[10px] ${emp.is_active ? "bg-emerald-500/15 text-emerald-700 border-emerald-200" : ""}`}
+          className={`text-[10px] ${emp.is_active ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" : ""}`}
         >
           {emp.is_active ? "نشط" : "متوقف"}
         </Badge>
@@ -407,68 +381,133 @@ const EmployeesPage = () => {
     </Card>
   );
 
+  const renderEmployeeRow = (emp: Employee, idx: number) => {
+    const stLabel = emp.is_active ? "نشط" : (emp as any).is_terminated ? "منتهي" : "موقوف";
+    const stStyles = {
+      "نشط": "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+      "موقوف": "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
+      "منتهي": "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+    }[stLabel] || "";
+    const dotColor = {
+      "نشط": "bg-green-500",
+      "موقوف": "bg-yellow-500",
+      "منتهي": "bg-red-500",
+    }[stLabel] || "bg-muted";
+
+    return (
+      <tr
+        key={emp.id}
+        className={`border-b border-border/50 transition-colors cursor-pointer ${
+          idx % 2 === 0 ? "bg-background" : "bg-muted/20"
+        } hover:bg-primary/5`}
+        onClick={() => openEmployeeDrawer(emp)}
+      >
+        <td className="px-3 py-3">
+          <div className="flex items-center gap-2 justify-end">
+            <div className="min-w-0 text-right">
+              <p className="text-sm font-semibold text-foreground truncate">{emp.full_name}</p>
+              <p className="text-[10px] text-muted-foreground">{emp.id_number || "—"}</p>
+            </div>
+            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs flex-shrink-0">
+              {emp.full_name?.charAt(0)}
+            </div>
+          </div>
+        </td>
+        <td className="px-3 py-3 text-xs text-muted-foreground">{emp.department || "—"}</td>
+        <td className="px-3 py-3 text-xs text-muted-foreground">{emp.job_title || emp.position || "—"}</td>
+        <td className="px-3 py-3 text-xs text-muted-foreground tabular-nums">{emp.start_date || "—"}</td>
+        <td className="px-3 py-3 text-sm font-bold tabular-nums text-foreground">{formatCurrency(Number(emp.base_salary || 0))}</td>
+        <td className="px-3 py-3">
+          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${stStyles}`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${dotColor}`} />
+            {stLabel}
+          </span>
+        </td>
+        <td className="px-3 py-3" onClick={e => e.stopPropagation()}>
+          <div className="flex items-center gap-1">
+            <button onClick={() => { setForm(emp); setEditingId(emp.id); setShowForm(true); }} className="p-1.5 rounded-lg hover:bg-primary/10 transition-colors" title="تعديل">
+              <Pencil className="h-3.5 w-3.5 text-primary" />
+            </button>
+            <button onClick={() => navigate(`/account-statement?employee_name=${encodeURIComponent(emp.full_name)}`)} className="p-1.5 rounded-lg hover:bg-accent/50 transition-colors" title="كشف حساب">
+              <FileBarChart className="h-3.5 w-3.5 text-accent-foreground" />
+            </button>
+            <button onClick={() => handleDelete(emp.id)} className="p-1.5 rounded-lg hover:bg-destructive/10 transition-colors" title="حذف">
+              <Trash2 className="h-3.5 w-3.5 text-destructive" />
+            </button>
+          </div>
+        </td>
+      </tr>
+    );
+  };
+
   return (
-    <div className="p-4 md:p-6 space-y-4 max-w-full mx-auto" dir="rtl">
+    <div className="p-4 md:p-6 space-y-5 max-w-full mx-auto" dir="rtl">
       {/* Header */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <BackButton />
           <div>
-            <h1 className="text-2xl font-bold text-foreground">إدارة الموظفين</h1>
-            <p className="text-sm text-muted-foreground">نظام الموارد البشرية - قانون العمل الفلسطيني</p>
+            <h1 className="text-xl font-bold text-foreground">إدارة الموظفين</h1>
+            <p className="text-xs text-muted-foreground">نظام الموارد البشرية - قانون العمل الفلسطيني</p>
           </div>
         </div>
         <div className="flex gap-2 flex-wrap">
-          <Button variant="outline" size="sm" onClick={() => setShowHolidays(true)} className="gap-1">
+          <Button variant="outline" size="sm" onClick={() => setShowHolidays(true)} className="gap-1 rounded-xl">
             <CalendarDays className="h-4 w-4" /> العطل الرسمية
           </Button>
-          <Button variant="outline" size="sm" onClick={() => setShowImport(true)} className="gap-1">
+          <Button variant="outline" size="sm" onClick={() => setShowImport(true)} className="gap-1 rounded-xl">
             <Upload className="h-4 w-4" /> استيراد Excel
           </Button>
-          <Button variant="outline" size="sm" onClick={() => setShowDeductionsExport(true)} className="gap-1">
+          <Button variant="outline" size="sm" onClick={() => setShowDeductionsExport(true)} className="gap-1 rounded-xl">
             <Download className="h-4 w-4" /> تصدير المسحوبات
           </Button>
-          <Button onClick={() => { setForm(emptyEmployee); setEditingId(null); setShowForm(true); }} className="gap-2">
+          <Button onClick={() => { setForm(emptyEmployee); setEditingId(null); setShowForm(true); }} className="gap-1.5 rounded-xl shadow-md shadow-primary/20">
             <Plus className="h-4 w-4" /> إضافة موظف
           </Button>
         </div>
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card><CardContent className="p-4 text-center">
-          <Users className="h-5 w-5 mx-auto text-primary mb-1" />
-          <p className="text-2xl font-bold text-foreground">{activeCount}</p>
-          <p className="text-xs text-muted-foreground">موظف نشط</p>
-        </CardContent></Card>
-        <Card><CardContent className="p-4 text-center">
-          <DollarSign className="h-5 w-5 mx-auto text-muted-foreground mb-1" />
-          <p className="text-2xl font-bold text-foreground">{totalSalaries.toLocaleString()}</p>
-          <p className="text-xs text-muted-foreground">إجمالي الرواتب</p>
-        </CardContent></Card>
-        <Card><CardContent className="p-4 text-center">
-          <Calendar className="h-5 w-5 mx-auto text-muted-foreground mb-1" />
-          <p className="text-2xl font-bold text-foreground">{employees.length - activeCount}</p>
-          <p className="text-xs text-muted-foreground">غير نشط</p>
-        </CardContent></Card>
-        <Card><CardContent className="p-4 text-center">
-          <FileText className="h-5 w-5 mx-auto text-muted-foreground mb-1" />
-          <p className="text-2xl font-bold text-foreground">{employees.length}</p>
-          <p className="text-xs text-muted-foreground">إجمالي السجلات</p>
-        </CardContent></Card>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {[
+          { label: "موظف نشط", value: activeCount, icon: Users, color: "text-primary", bg: "bg-primary/5 border-primary/10" },
+          { label: "إجمالي الرواتب", value: `₪${totalSalaries.toLocaleString()}`, icon: DollarSign, color: "text-primary", bg: "bg-primary/5 border-primary/10" },
+          { label: "غير نشط", value: employees.length - activeCount, icon: Calendar, color: "text-yellow-600", bg: "bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-800" },
+          { label: "إجمالي السجلات", value: employees.length, icon: FileText, color: "text-muted-foreground", bg: "bg-muted/50 border-border" },
+        ].map((k, i) => (
+          <div key={i} className={`rounded-2xl border p-4 ${k.bg}`}>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-[10px] text-muted-foreground font-medium mb-1">{k.label}</p>
+                <p className={`text-lg font-bold ${k.color}`}>{k.value}</p>
+              </div>
+              <k.icon className={`h-5 w-5 ${k.color} opacity-50`} />
+            </div>
+          </div>
+        ))}
       </div>
 
-      {/* Toolbar: Search + Filters */}
-      <div className="flex flex-col md:flex-row gap-3 items-start md:items-center">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="بحث بالاسم، رقم الهوية، الوظيفة..." value={search} onChange={e => setSearch(e.target.value)} className="pr-10" />
+      {/* Toolbar */}
+      <div className="space-y-3">
+        <div className="relative">
+          <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 pointer-events-none" />
+          <Input
+            placeholder="بحث بالاسم، رقم الهوية، الوظيفة..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="pr-10 rounded-xl bg-muted/30"
+          />
+          {search && (
+            <button onClick={() => setSearch("")} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
 
         {!isMobile && (
-          <div className="flex gap-2 flex-wrap items-center">
+          <div className="flex items-center gap-3 flex-wrap">
             <Select value={filterBranch} onValueChange={setFilterBranch}>
-              <SelectTrigger className="w-[140px] h-9 text-xs">
+              <SelectTrigger className="w-[140px] rounded-xl text-xs">
                 <Filter className="h-3 w-3 ml-1" />
                 <SelectValue placeholder="الفرع" />
               </SelectTrigger>
@@ -479,7 +518,7 @@ const EmployeesPage = () => {
             </Select>
 
             <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger className="w-[120px] h-9 text-xs">
+              <SelectTrigger className="w-[120px] rounded-xl text-xs">
                 <SelectValue placeholder="الحالة" />
               </SelectTrigger>
               <SelectContent>
@@ -490,7 +529,7 @@ const EmployeesPage = () => {
             </Select>
 
             <Select value={filterJob} onValueChange={setFilterJob}>
-              <SelectTrigger className="w-[140px] h-9 text-xs">
+              <SelectTrigger className="w-[140px] rounded-xl text-xs">
                 <SelectValue placeholder="الوظيفة" />
               </SelectTrigger>
               <SelectContent>
@@ -503,7 +542,7 @@ const EmployeesPage = () => {
               variant={groupByBranch ? "default" : "outline"}
               size="sm"
               onClick={() => setGroupByBranch(!groupByBranch)}
-              className="gap-1 text-xs h-9"
+              className="gap-1 text-xs rounded-xl"
             >
               <Layers className="h-3 w-3" /> تجميع بالفرع
             </Button>
@@ -514,10 +553,9 @@ const EmployeesPage = () => {
       {/* Main Content */}
       {loading ? (
         <div className="flex items-center justify-center py-20">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <Loader2 className="h-10 w-10 animate-spin text-primary" />
         </div>
       ) : isMobile ? (
-        /* MOBILE: Card View */
         <div className="space-y-2">
           {filtered.length === 0 ? (
             <p className="text-muted-foreground text-center py-8">لا يوجد موظفون</p>
@@ -525,66 +563,94 @@ const EmployeesPage = () => {
             filtered.map(emp => renderMobileCard(emp))
           )}
         </div>
+      ) : filtered.length === 0 ? (
+        <div className="text-center py-12 space-y-2">
+          <Search className="h-10 w-10 text-muted-foreground/20 mx-auto" />
+          <p className="text-sm text-muted-foreground">لا يوجد موظفون يطابقون البحث</p>
+          <Button variant="ghost" size="sm" onClick={() => { setSearch(""); setFilterBranch("all"); setFilterStatus("all"); setFilterJob("all"); }}>مسح الفلاتر</Button>
+        </div>
       ) : (
-        /* DESKTOP: Table View */
-        <Card className="overflow-hidden">
+        <div className="rounded-2xl border border-border/50 overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-muted/30">
-                  <TableHead className="sticky right-0 bg-muted/30 z-10 cursor-pointer select-none min-w-[200px]" onClick={() => toggleSort("full_name")}>
-                    <div className="flex items-center gap-1">الموظف <SortIcon field="full_name" /></div>
-                  </TableHead>
-                  <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("department")}>
-                    <div className="flex items-center gap-1">الفرع <SortIcon field="department" /></div>
-                  </TableHead>
-                  <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("job_title")}>
-                    <div className="flex items-center gap-1">الوظيفة <SortIcon field="job_title" /></div>
-                  </TableHead>
-                  <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("start_date")}>
-                    <div className="flex items-center gap-1">تاريخ التعيين <SortIcon field="start_date" /></div>
-                  </TableHead>
-                  <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("base_salary")}>
-                    <div className="flex items-center gap-1">الراتب الأساسي <SortIcon field="base_salary" /></div>
-                  </TableHead>
-                  <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("is_active")}>
-                    <div className="flex items-center gap-1">الحالة <SortIcon field="is_active" /></div>
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filtered.length === 0 ? (
-                  <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-12">لا يوجد موظفون</TableCell></TableRow>
-                ) : groupByBranch && groupedData ? (
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-primary text-primary-foreground">
+                  <th className="px-3 py-3 text-right text-xs font-semibold min-w-[200px]"><SortHeader label="الموظف" field="full_name" /></th>
+                  <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="الفرع" field="department" /></th>
+                  <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="الوظيفة" field="job_title" /></th>
+                  <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="تاريخ التعيين" field="start_date" /></th>
+                  <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="الراتب الأساسي" field="base_salary" /></th>
+                  <th className="px-3 py-3 text-right text-xs font-semibold"><SortHeader label="الحالة" field="is_active" /></th>
+                  <th className="px-3 py-3 text-right text-xs font-semibold">إجراءات</th>
+                </tr>
+              </thead>
+              <tbody>
+                {groupByBranch && groupedData ? (
                   Object.entries(groupedData).map(([branch, emps]) => (
                     <>
-                      <TableRow key={`group-${branch}`} className="bg-muted/50">
-                        <TableCell colSpan={6} className="font-bold text-sm py-2">
+                      <tr key={`group-${branch}`} className="bg-muted/50">
+                        <td colSpan={7} className="px-3 py-2 font-bold text-sm">
                           <div className="flex items-center gap-2">
                             <Layers className="h-4 w-4 text-primary" />
-                            {branch} <Badge variant="secondary" className="text-[10px] mr-2">{emps.length}</Badge>
+                            {branch}
+                            <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-semibold">{emps.length}</span>
                           </div>
-                        </TableCell>
-                      </TableRow>
+                        </td>
+                      </tr>
                       {emps.map((emp, i) => renderEmployeeRow(emp, i))}
                     </>
                   ))
                 ) : (
-                  filtered.map((emp, i) => renderEmployeeRow(emp, i))
+                  paged.map((emp, i) => renderEmployeeRow(emp, i))
                 )}
-              </TableBody>
-            </Table>
+              </tbody>
+              <tfoot>
+                <tr className="bg-primary/5 border-t-2 border-primary/20 font-bold text-sm">
+                  <td className="px-3 py-3 text-right text-foreground">المجموع ({filtered.length} موظف)</td>
+                  <td className="px-3 py-3" />
+                  <td className="px-3 py-3" />
+                  <td className="px-3 py-3" />
+                  <td className="px-3 py-3 tabular-nums text-foreground">₪{filtered.reduce((s, e) => s + Number(e.base_salary || 0), 0).toLocaleString()}</td>
+                  <td className="px-3 py-3 text-xs text-green-600 font-semibold">{filtered.filter(e => e.is_active).length} نشط</td>
+                  <td className="px-3 py-3" />
+                </tr>
+              </tfoot>
+            </table>
           </div>
 
-          {/* Summary Row */}
-          <div className="border-t border-border bg-muted/20 px-4 py-2.5 flex items-center gap-6 text-sm font-medium sticky bottom-0">
-            <span>إجمالي: <strong>{filtered.length}</strong> موظف</span>
-            <span className="text-muted-foreground">|</span>
-            <span>الرواتب: <strong>₪{filtered.reduce((s, e) => s + Number(e.base_salary || 0), 0).toLocaleString()}</strong></span>
-            <span className="text-muted-foreground">|</span>
-            <span>نشط: <strong className="text-emerald-600">{filtered.filter(e => e.is_active).length}</strong></span>
-          </div>
-        </Card>
+          {/* Pagination */}
+          {!groupByBranch && filtered.length > perPage && (
+            <div className="flex items-center justify-between px-4 py-3 border-t border-border/50 bg-muted/20">
+              <div className="flex items-center gap-2">
+                <p className="text-xs text-muted-foreground">
+                  عرض {Math.min((page - 1) * perPage + 1, filtered.length)}–{Math.min(page * perPage, filtered.length)} من {filtered.length}
+                </p>
+                <Select value={String(perPage)} onValueChange={v => { setPerPage(Number(v)); setPage(1); }}>
+                  <SelectTrigger className="h-7 w-[70px] text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {PAGE_SIZE_OPTIONS.map(n => <SelectItem key={n} value={String(n)} className="text-xs">{n}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center gap-1">
+                <Button variant="outline" size="sm" className="rounded-lg h-8 text-xs" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
+                  <ChevronRight className="h-3.5 w-3.5 ml-1" /> السابق
+                </Button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).slice(
+                  Math.max(0, page - 3), Math.min(totalPages, page + 2)
+                ).map(n => (
+                  <Button key={n} variant={page === n ? "default" : "outline"} size="sm" className="rounded-lg h-8 w-8 text-xs p-0" onClick={() => setPage(n)}>
+                    {n}
+                  </Button>
+                ))}
+                <Button variant="outline" size="sm" className="rounded-lg h-8 text-xs" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>
+                  التالي <ChevronLeft className="h-3.5 w-3.5 mr-1" />
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">صفحة {page} من {totalPages}</p>
+            </div>
+          )}
+        </div>
       )}
 
       {/* Employee Detail DRAWER */}
