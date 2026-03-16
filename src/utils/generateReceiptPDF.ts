@@ -319,7 +319,7 @@ export const generateReceiptPDF = (receipt: ReceiptPDFData, company: CompanyPDFD
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(7.5);
   doc.setFont('helvetica', 'normal');
-  doc.text(company.company_name || 'FINIX ERP', 15, H - 5);
+  doc.text(company.company_name || 'QOYOD قيود', 15, H - 5);
 
   doc.text(`Printed: ${new Date().toLocaleDateString('en-GB')}`, W / 2, H - 5, { align: 'center' });
 
