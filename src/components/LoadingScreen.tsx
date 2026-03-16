@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { FinixLogo } from "@/components/ui/FinixLogo";
 
 type Phase = "logo" | "tagline" | "bar" | "done";
 
