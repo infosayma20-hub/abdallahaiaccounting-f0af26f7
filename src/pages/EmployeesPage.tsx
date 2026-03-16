@@ -105,9 +105,12 @@ const EmployeesPage = () => {
   const [filterJob, setFilterJob] = useState<string>("all");
   const [groupByBranch, setGroupByBranch] = useState(false);
 
-  // Sort
+  // Sort & Pagination
   const [sortField, setSortField] = useState<SortField>("full_name");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(15);
+  const PAGE_SIZE_OPTIONS = [15, 30, 100];
 
   // Sub-data
   const [deductions, setDeductions] = useState<any[]>([]);
