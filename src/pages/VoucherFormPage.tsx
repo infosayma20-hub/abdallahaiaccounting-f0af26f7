@@ -638,6 +638,11 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         setSavedReceiptNumber(receipt?.receipt_number || "");
       } else {
         const payMethodMap: Record<string, string> = { "نقدي": "cash", "شيك": "cheque", "تحويل": "transfer", "بطاقة": "card" };
+        const isEmpPay = partyType === "employee" && selectedEmployee;
+        const categoryLabel = empCategory === "أخرى" ? empCategoryCustom : empCategory;
+        const violationNote = empCategory === "مخالفة" && violationReason ? ` - السبب: ${violationReason}` : "";
+        const empDesc = isEmpPay ? `${categoryLabel} - ${selectedEmployee.full_name}${violationNote}` : "";
+
         const { data: voucher, error: voucherError } = await supabase
           .from("vouchers")
           .insert({
@@ -645,13 +650,13 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             type: "payment" as const,
             ref_number: refNumber || `PV-${new Date().getFullYear()}-0001`,
             date: paymentDate,
-            contact_id: selectedContact.id,
+            contact_id: isEmpPay ? null : selectedContact?.id,
             payment_method: payMethodMap[paymentMethod] || "cash",
             amount: amountNum,
             amount_ils: amountNum,
             currency: "ILS",
             exchange_rate: 1,
-            description: notes || `سند صرف إلى ${selectedContact.contact_name}`,
+            description: isEmpPay ? (empDesc + (notes ? ` | ${notes}` : "")) : (notes || `سند صرف إلى ${selectedContact?.contact_name || ""}`),
             notes: notes || null,
             status: asDraft ? "draft" : "posted",
             bank_account_id: bankAccountId,
