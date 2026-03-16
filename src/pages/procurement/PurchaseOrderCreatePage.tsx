@@ -321,9 +321,13 @@ const PurchaseOrderCreatePage = () => {
                       key={cat.id}
                       onClick={() => setActiveCategory(isActive ? null : cat.id)}
                       className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                        isActive ? "shadow-sm text-white" : "border border-border text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+                        isActive ? "shadow-sm text-white" : "hover:opacity-80"
                       }`}
-                      style={isActive ? { backgroundColor: cat.color || "#6b7280" } : {}}
+                      style={{
+                        backgroundColor: isActive ? (cat.color || "#6b7280") : `${cat.color || "#6b7280"}18`,
+                        color: isActive ? "white" : (cat.color || "#6b7280"),
+                        border: `1px solid ${cat.color || "#6b7280"}40`,
+                      }}
                     >
                       <Icon className="h-3.5 w-3.5" />
                       <span>{cat.name}</span>
