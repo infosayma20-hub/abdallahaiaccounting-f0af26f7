@@ -89,6 +89,7 @@ import LoadingDemoPage from "./pages/LoadingDemoPage";
 import AdvancesPage from "./pages/AdvancesPage";
 import MalakiImportPage from "./pages/MalakiImportPage";
 import PayrollPage from "./pages/PayrollPage";
+import MonthlyPayrollInputPage from "./pages/MonthlyPayrollInputPage";
 import LeavesPage from "./pages/LeavesPage";
 import ImportShipmentsPage from "./pages/ImportShipmentsPage";
 // Supplier pages removed — use existing pos_suppliers management
