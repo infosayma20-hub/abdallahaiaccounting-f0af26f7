@@ -47,7 +47,7 @@ const WeeklyProcurementReportPage = () => {
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Card><CardContent className="p-4 flex items-center gap-3"><ShoppingCart className="h-8 w-8 text-blue-400" /><div><p className="text-xs text-muted-foreground">طلبيات مُرسلة</p><p className="text-2xl font-bold">{weekOrders.filter((o: any) => o.status !== "draft").length}</p></div></CardContent></Card>
+        <Card><CardContent className="p-4 flex items-center gap-3"><ShoppingCart className="h-8 w-8 text-blue-400" /><div><p className="text-xs text-muted-foreground">طلبيات مُرسلة</p><p className="text-2xl font-bold">{weekOrders.filter((o: any) => o.status !== "draft" && o.status !== "cancelled").length}</p></div></CardContent></Card>
         <Card><CardContent className="p-4 flex items-center gap-3"><FileText className="h-8 w-8 text-green-400" /><div><p className="text-xs text-muted-foreground">فواتير مستلمة</p><p className="text-2xl font-bold">{weekInvoices.length}</p></div></CardContent></Card>
         <Card><CardContent className="p-4 flex items-center gap-3"><DollarSign className="h-8 w-8 text-accent" /><div><p className="text-xs text-muted-foreground">قيمة المشتريات</p><p className="text-xl font-bold">{totalInvoicesValue.toLocaleString("en", { minimumFractionDigits: 2 })} ₪</p></div></CardContent></Card>
         <Card><CardContent className="p-4 flex items-center gap-3"><AlertTriangle className="h-8 w-8 text-orange-400" /><div><p className="text-xs text-muted-foreground">غير مدفوع</p><p className="text-xl font-bold text-destructive">{unpaidAmount.toLocaleString("en", { minimumFractionDigits: 2 })} ₪</p></div></CardContent></Card>
