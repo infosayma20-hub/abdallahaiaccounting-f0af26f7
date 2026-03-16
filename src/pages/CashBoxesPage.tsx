@@ -96,9 +96,10 @@ const CashBoxesPage = () => {
       main: "linear-gradient(135deg, #0A2342, #006D8F)",
       branch: "linear-gradient(135deg, #065F46, #059669)",
       pos: "linear-gradient(135deg, #4C1D95, #7C3AED)",
+      petty: "linear-gradient(135deg, #92400E, #D97706)",
     };
-    const typeLabels: Record<string, string> = { main: "رئيسي", branch: "فرع", pos: "نقطة بيع" };
-    const TypeIcon = box.type === "main" ? Landmark : box.type === "branch" ? Building2 : Monitor;
+    const typeLabels: Record<string, string> = { main: "رئيسي", branch: "فرع", pos: "نقطة بيع", petty: "نثرية" };
+    const TypeIcon = box.type === "main" ? Landmark : box.type === "branch" ? Building2 : box.type === "petty" ? Wallet : Monitor;
 
     return (
       <Card className="overflow-hidden min-w-[280px]">
