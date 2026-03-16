@@ -13,6 +13,7 @@ import { Plus, Banknote, ChevronDown, ChevronUp } from "lucide-react";
 import { formatCurrency } from "@/lib/hr-utils";
 import AdvanceRequestModal from "./AdvanceRequestModal";
 
+const monthNames = ["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
 const DEDUCTION_TYPES = ["أكل", "مشتريات", "مخالفات", "توصيل", "عجز", "فائض", "غياب", "أخرى"];
 
 interface Props {
@@ -137,6 +138,7 @@ export default function EmployeeDeductionsTab({ employeeId, employeeName, userId
             </TableBody>
           </Table>
 
+          {/* Expanded installments */}
           {expandedAdvance && installments[expandedAdvance] && (
             <Card className="p-3 mr-4 bg-muted/20">
               <Table>
@@ -249,6 +251,7 @@ export default function EmployeeDeductionsTab({ employeeId, employeeName, userId
         </DialogContent>
       </Dialog>
 
+      {/* Advance Request Modal */}
       <AdvanceRequestModal
         open={showAdvanceModal}
         onClose={() => setShowAdvanceModal(false)}
