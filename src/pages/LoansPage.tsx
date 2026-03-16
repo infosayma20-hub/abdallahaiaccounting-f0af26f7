@@ -298,6 +298,10 @@ function AddLoanDialog({ open, onOpenChange, userId, companyId, onSuccess }: {
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
 
+  // Cash boxes
+  const [cashBoxes, setCashBoxes] = useState<{ id: string; name: string; gl_account_code: string | null }[]>([]);
+  const [selectedCashBox, setSelectedCashBox] = useState("");
+
   // Derived
   const amount = parseFloat(totalAmount) || 0;
   const installment = parseFloat(monthlyInstallment) || 0;
