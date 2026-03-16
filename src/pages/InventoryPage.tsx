@@ -314,6 +314,11 @@ const InventoryPage = () => {
     "وارد": { label: "وارد", color: "text-primary", icon: TrendingUp },
     "صادر": { label: "صادر", color: "text-destructive", icon: TrendingDown },
     "تعديل يدوي": { label: "تعديل", color: "text-yellow-600", icon: Pencil },
+    "إدخال بضاعة": { label: "إدخال بضاعة", color: "text-primary", icon: TrendingUp },
+    "مشتريات": { label: "مشتريات", color: "text-primary", icon: TrendingUp },
+    "بيع POS": { label: "بيع POS", color: "text-destructive", icon: TrendingDown },
+    "طلب ملغي": { label: "طلب ملغي", color: "text-muted-foreground", icon: History },
+    "طلب POS": { label: "طلب POS", color: "text-yellow-600", icon: History },
   };
 
   const SortHeader = ({ label, field }: { label: string; field: SortKey }) => (
