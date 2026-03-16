@@ -9,11 +9,51 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { fileData, fileName, fileType, userId } = await req.json();
+    const body = await req.json();
+    const { fileData, fileName, fileType, userId, image, task, prompt } = body;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
+    // Invoice number extraction mode
+    if (task === "extract_invoice_number" && image) {
+      const extractMessages = [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: prompt || "Extract the invoice number from this document. Return ONLY the invoice number as plain text. If not found, return NOT_FOUND." },
+            { type: "image_url", image_url: { url: image } },
+          ],
+        },
+      ];
+
+      const extractResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ model: "google/gemini-2.5-flash", messages: extractMessages }),
+      });
+
+      if (!extractResponse.ok) {
+        const t = await extractResponse.text();
+        console.error("AI extraction error:", extractResponse.status, t);
+        return new Response(JSON.stringify({ invoice_number: null, text: null }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const extractData = await extractResponse.json();
+      const extractedText = extractData.choices?.[0]?.message?.content?.trim() || "";
+      
+      const invoiceNumber = extractedText === "NOT_FOUND" ? null : extractedText;
+      return new Response(JSON.stringify({ invoice_number: invoiceNumber, text: extractedText }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Original document analysis mode
     const isImage = fileType?.startsWith("image/");
 
     const messages: any[] = [
@@ -48,7 +88,6 @@ serve(async (req) => {
         ],
       });
     } else {
-      // For non-image files, send as text context
       let textContent = "";
       try {
         textContent = atob(fileData);
