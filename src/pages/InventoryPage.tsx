@@ -185,10 +185,65 @@ const InventoryPage = () => {
     setSelectedProduct(product);
     setShowMovementsDialog(true);
     setMovementsLoading(true);
-    const { data } = await supabase
-      .from("stock_movements").select("*").eq("product_id", product.id)
-      .order("created_at", { ascending: false });
-    setMovements(data || []);
+    
+    // Query all movement sources in parallel
+    const [stockRes, posInvRes, posLinesRes] = await Promise.all([
+      supabase.from("stock_movements").select("*").eq("product_id", product.id),
+      supabase.from("pos_inventory_movements").select("*").eq("product_id", product.id),
+      supabase.from("pos_order_lines").select("id, qty, created_at, order_id, pos_orders!inner(state, order_number)").eq("product_id", product.id),
+    ]);
+
+    const allMovements: StockMovement[] = [];
+
+    // stock_movements
+    (stockRes.data || []).forEach((m: any) => {
+      allMovements.push({
+        id: m.id,
+        product_id: m.product_id,
+        movement_type: m.movement_type,
+        quantity: m.quantity,
+        reference_note: m.reference_note,
+        created_at: m.created_at,
+      });
+    });
+
+    // pos_inventory_movements (manual input / purchases)
+    (posInvRes.data || []).forEach((m: any) => {
+      const typeMap: Record<string, string> = {
+        production_in: "إدخال بضاعة",
+        purchase_in: "مشتريات",
+        adjustment: "تعديل يدوي",
+      };
+      allMovements.push({
+        id: m.id,
+        product_id: m.product_id,
+        movement_type: typeMap[m.type] || m.type,
+        quantity: m.quantity,
+        reference_note: m.notes || null,
+        created_at: m.created_at,
+      });
+    });
+
+    // POS sales (completed orders)
+    (posLinesRes.data || []).forEach((line: any) => {
+      const order = line.pos_orders;
+      if (!order) return;
+      const stateLabel = order.state === 'completed' ? 'مبيعات POS' : 
+                         order.state === 'cancelled' ? 'طلب ملغي' : order.state;
+      allMovements.push({
+        id: line.id,
+        product_id: product.id,
+        movement_type: order.state === 'completed' ? 'بيع POS' : 
+                       order.state === 'cancelled' ? 'طلب ملغي' : 'طلب POS',
+        quantity: line.qty,
+        reference_note: `${stateLabel} - طلب #${order.order_number}`,
+        created_at: line.created_at,
+      });
+    });
+
+    // Sort by date descending
+    allMovements.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    setMovements(allMovements);
     setMovementsLoading(false);
   };
 
