@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { X, Loader2, Check, Landmark, Building2, Monitor, Plus } from "lucide-react";
+import { X, Loader2, Check, Landmark, Building2, Monitor, Plus, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 interface CashBoxDrawerProps {
   open: boolean;
   onClose: () => void;
-  defaultType: "main" | "branch" | "pos";
+  defaultType: "main" | "branch" | "pos" | "petty";
   editBox?: any;
   hasMainBox: boolean;
   onSaved: () => void;
@@ -24,7 +24,7 @@ const CashBoxDrawer = ({ open, onClose, defaultType, editBox, hasMainBox, onSave
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const [boxType, setBoxType] = useState<"main" | "branch" | "pos">(defaultType);
+  const [boxType, setBoxType] = useState<"main" | "branch" | "pos" | "petty">(defaultType);
   const [name, setName] = useState("");
   const [location, setLocation] = useState("");
   const [currency, setCurrency] = useState("ILS");
@@ -75,16 +75,19 @@ const CashBoxDrawer = ({ open, onClose, defaultType, editBox, hasMainBox, onSave
     main: "linear-gradient(135deg, #0A2342, #006D8F)",
     branch: "linear-gradient(135deg, #065F46, #059669)",
     pos: "linear-gradient(135deg, #4C1D95, #7C3AED)",
+    petty: "linear-gradient(135deg, #92400E, #D97706)",
   };
   const titles: Record<string, string> = {
     main: "إنشاء الصندوق الرئيسي",
     branch: "إضافة صندوق فرع",
     pos: "إضافة صندوق نقطة بيع",
+    petty: "إضافة صندوق نثرية",
   };
   const placeholders: Record<string, string> = {
     main: "مثال: الصندوق الرئيسي",
     branch: "مثال: صندوق فرع رام الله",
     pos: "مثال: كاشير 1 — المعرض",
+    petty: "مثال: نثرية المكتب الرئيسي",
   };
 
   const handleSave = async () => {
@@ -199,7 +202,7 @@ const CashBoxDrawer = ({ open, onClose, defaultType, editBox, hasMainBox, onSave
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
-                {boxType === "main" ? <Landmark className="h-5 w-5" /> : boxType === "branch" ? <Building2 className="h-5 w-5" /> : <Monitor className="h-5 w-5" />}
+                {boxType === "main" ? <Landmark className="h-5 w-5" /> : boxType === "branch" ? <Building2 className="h-5 w-5" /> : boxType === "petty" ? <Wallet className="h-5 w-5" /> : <Monitor className="h-5 w-5" />}
               </div>
               <div>
                 <h2 className="text-lg font-bold" style={{ fontFamily: "Tajawal, sans-serif" }}>{editBox ? `تعديل — ${editBox.name}` : titles[boxType]}</h2>
@@ -216,12 +219,13 @@ const CashBoxDrawer = ({ open, onClose, defaultType, editBox, hasMainBox, onSave
           {!editBox && (
             <div>
               <Label className="text-xs font-bold mb-2 block">نوع الصندوق</Label>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {([
-                  { key: "main", icon: "🏛️", label: "رئيسي", desc: "صندوق أم يستقبل كل التحويلات" },
-                  { key: "branch", icon: "🏪", label: "فرع", desc: "صندوق فرع يُرحَّل للرئيسي" },
-                  { key: "pos", icon: "🖥️", label: "نقطة بيع", desc: "مرتبط بـ POS يستقبل مبيعات" },
-                ] as const).map(t => (
+                  { key: "main" as const, icon: "🏛️", label: "رئيسي", desc: "صندوق أم يستقبل كل التحويلات" },
+                  { key: "branch" as const, icon: "🏪", label: "فرع", desc: "صندوق فرع يُرحَّل للرئيسي" },
+                  { key: "pos" as const, icon: "🖥️", label: "نقطة بيع", desc: "مرتبط بـ POS يستقبل مبيعات" },
+                  { key: "petty" as const, icon: "🗃️", label: "نثرية", desc: "مصروفات صغيرة ومتكررة" },
+                ]).map(t => (
                   <button
                     key={t.key}
                     onClick={() => setBoxType(t.key)}
@@ -335,7 +339,7 @@ const CashBoxDrawer = ({ open, onClose, defaultType, editBox, hasMainBox, onSave
           </div>
 
           {/* Branch transfer settings */}
-          {boxType === "branch" && (
+          {(boxType === "branch" || boxType === "petty") && (
             <div className="space-y-3">
               <h3 className="text-xs font-bold">ترحيل للرئيسي</h3>
               <div className="flex items-center gap-3">
@@ -392,7 +396,7 @@ const CashBoxDrawer = ({ open, onClose, defaultType, editBox, hasMainBox, onSave
           <Button variant="ghost" onClick={onClose} className="h-11 px-6">إلغاء</Button>
           <Button
             className="flex-1 h-11 text-base font-bold gap-2 text-white"
-            style={{ background: gradients[boxType].includes("#0A2342") ? "#0A2342" : boxType === "branch" ? "#059669" : "#7C3AED" }}
+            style={{ background: boxType === "main" ? "#0A2342" : boxType === "branch" ? "#059669" : boxType === "petty" ? "#D97706" : "#7C3AED" }}
             disabled={saving || !name.trim() || (boxType === "main" && hasMainBox && !editBox)}
             onClick={handleSave}
           >

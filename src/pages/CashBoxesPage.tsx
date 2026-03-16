@@ -17,7 +17,7 @@ const CashBoxesPage = () => {
   const [boxes, setBoxes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [drawerType, setDrawerType] = useState<"main" | "branch" | "pos">("branch");
+  const [drawerType, setDrawerType] = useState<"main" | "branch" | "pos" | "petty">("branch");
   const [editBox, setEditBox] = useState<any>(null);
 
   const fetchBoxes = useCallback(async () => {
@@ -74,15 +74,17 @@ const CashBoxesPage = () => {
   const mainBoxes = useMemo(() => boxes.filter(b => b.type === "main"), [boxes]);
   const branchBoxes = useMemo(() => boxes.filter(b => b.type === "branch"), [boxes]);
   const posBoxes = useMemo(() => boxes.filter(b => b.type === "pos"), [boxes]);
+  const pettyBoxes = useMemo(() => boxes.filter(b => b.type === "petty"), [boxes]);
 
   const totalBalance = useMemo(() => Object.values(balances).reduce((s, b) => s + b.balance, 0), [balances]);
   const mainBalance = useMemo(() => mainBoxes.reduce((s, b) => s + (balances[b.gl_account_code]?.balance || 0), 0), [mainBoxes, balances]);
   const branchBalance = useMemo(() => branchBoxes.reduce((s, b) => s + (balances[b.gl_account_code]?.balance || 0), 0), [branchBoxes, balances]);
   const posBalance = useMemo(() => posBoxes.reduce((s, b) => s + (balances[b.gl_account_code]?.balance || 0), 0), [posBoxes, balances]);
+  const pettyBalance = useMemo(() => pettyBoxes.reduce((s, b) => s + (balances[b.gl_account_code]?.balance || 0), 0), [pettyBoxes, balances]);
 
   const fmt = (n: number) => new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
 
-  const openAdd = (type: "main" | "branch" | "pos") => {
+  const openAdd = (type: "main" | "branch" | "pos" | "petty") => {
     setEditBox(null);
     setDrawerType(type);
     setDrawerOpen(true);
@@ -94,9 +96,10 @@ const CashBoxesPage = () => {
       main: "linear-gradient(135deg, #0A2342, #006D8F)",
       branch: "linear-gradient(135deg, #065F46, #059669)",
       pos: "linear-gradient(135deg, #4C1D95, #7C3AED)",
+      petty: "linear-gradient(135deg, #92400E, #D97706)",
     };
-    const typeLabels: Record<string, string> = { main: "رئيسي", branch: "فرع", pos: "نقطة بيع" };
-    const TypeIcon = box.type === "main" ? Landmark : box.type === "branch" ? Building2 : Monitor;
+    const typeLabels: Record<string, string> = { main: "رئيسي", branch: "فرع", pos: "نقطة بيع", petty: "نثرية" };
+    const TypeIcon = box.type === "main" ? Landmark : box.type === "branch" ? Building2 : box.type === "petty" ? Wallet : Monitor;
 
     return (
       <Card className="overflow-hidden min-w-[280px]">
@@ -184,12 +187,13 @@ const CashBoxesPage = () => {
       </div>
 
       {/* KPI Strip */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         {[
           { label: "إجمالي السيولة النقدية", value: `₪${fmt(totalBalance)}`, sub: "مجموع أرصدة كل الصناديق", icon: "💰", color: "#C9A84C" },
           { label: "الصندوق الرئيسي", value: `₪${fmt(mainBalance)}`, sub: mainBoxes[0]?.name || "غير معرّف", icon: "🏛️", color: "#0A2342" },
           { label: "صناديق الفروع", value: `₪${fmt(branchBalance)}`, sub: `${branchBoxes.length} صندوق فرع نشط`, icon: "🏪", color: "#059669" },
           { label: "صناديق نقاط البيع", value: `₪${fmt(posBalance)}`, sub: `${posBoxes.length} صندوق POS نشط`, icon: "🖥️", color: "#7C3AED" },
+          { label: "صناديق النثرية", value: `₪${fmt(pettyBalance)}`, sub: `${pettyBoxes.length} صندوق نثرية نشط`, icon: "🗃️", color: "#D97706" },
         ].map((kpi, i) => (
           <Card key={i} className="p-4">
             <div className="flex items-start gap-3">
@@ -273,6 +277,29 @@ const CashBoxesPage = () => {
             ) : (
               <Card className="p-6 text-center border-dashed">
                 <p className="text-sm text-muted-foreground">لا توجد صناديق نقاط بيع</p>
+              </Card>
+            )}
+          </section>
+
+          {/* Petty Cash Boxes */}
+          <section>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">🗃️</span>
+                <h2 className="text-sm font-bold">صناديق النثرية</h2>
+                <Badge variant="secondary" className="text-[10px]">{pettyBoxes.length}</Badge>
+              </div>
+              <Button variant="outline" size="sm" className="text-xs gap-1" onClick={() => openAdd("petty")}>
+                <Plus className="h-3 w-3" /> إضافة صندوق نثرية
+              </Button>
+            </div>
+            {pettyBoxes.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {pettyBoxes.map(b => <BoxCard key={b.id} box={b} />)}
+              </div>
+            ) : (
+              <Card className="p-6 text-center border-dashed">
+                <p className="text-sm text-muted-foreground">لا توجد صناديق نثرية</p>
               </Card>
             )}
           </section>
