@@ -13,15 +13,21 @@ export interface PosSupplier {
   account_name: string | null;
 }
 
-export interface Product {
+export interface ItemCategory {
   id: string;
   name: string;
+  icon: string | null;
+  color: string | null;
+  sort_order: number;
+}
+
+export interface ProcurementItem {
+  id: string;
+  category_id: string | null;
+  name: string;
   unit: string;
-  buy_price: number;
-  sell_price: number;
-  category: string;
-  barcode: string | null;
-  image_url: string | null;
+  default_price: number;
+  is_active: boolean;
 }
 
 export interface ProcurementOrder {
@@ -79,25 +85,43 @@ export function useSuppliers() {
   return { suppliers, loading, refetch: fetch };
 }
 
-// Fetch products catalog
-export function useProducts() {
-  const { user } = useAuth();
-  const [products, setProducts] = useState<Product[]>([]);
+// Fetch item categories
+export function useItemCategories() {
+  const [categories, setCategories] = useState<ItemCategory[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetch = useCallback(async () => {
-    if (!user) return;
-    setLoading(true);
-    const { data } = await supabase
-      .from("products")
-      .select("id, name, unit, buy_price, sell_price, category, barcode, image_url")
-      .order("name");
-    setProducts((data as any) || []);
-    setLoading(false);
-  }, [user]);
+  useEffect(() => {
+    supabase
+      .from("item_categories")
+      .select("*")
+      .order("sort_order")
+      .then(({ data }) => {
+        setCategories((data as any) || []);
+        setLoading(false);
+      });
+  }, []);
 
-  useEffect(() => { fetch(); }, [fetch]);
-  return { products, loading };
+  return { categories, loading };
+}
+
+// Fetch procurement items catalog
+export function useProcurementItems() {
+  const [items, setItems] = useState<ProcurementItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    supabase
+      .from("procurement_items")
+      .select("*")
+      .eq("is_active", true)
+      .order("sort_order")
+      .then(({ data }) => {
+        setItems((data as any) || []);
+        setLoading(false);
+      });
+  }, []);
+
+  return { items, loading };
 }
 
 // Procurement Orders
@@ -114,7 +138,6 @@ export function useProcurementOrders() {
       .select("*, pos_suppliers(*), branches(id, name)")
       .order("created_at", { ascending: false });
     
-    // Also fetch linked invoices
     const orderIds = ((data as any) || []).map((o: any) => o.id);
     let linkedInvoices: Record<string, string> = {};
     if (orderIds.length > 0) {
@@ -199,7 +222,7 @@ export function useProcurementOrders() {
   return { orders, loading, refetch: fetch, createOrder, updateStatus, getOrderItems };
 }
 
-// Purchase invoices — use existing purchase_invoices table
+// Purchase invoices
 export function usePurchaseInvoices() {
   const { user } = useAuth();
   const [invoices, setInvoices] = useState<any[]>([]);
@@ -264,7 +287,6 @@ export function usePurchaseInvoices() {
     }));
     await supabase.from("purchase_invoice_items").insert(invItems as any);
 
-    // Update PO status if linked
     if (orderId) {
       const { data: orderItems } = await supabase
         .from("procurement_order_items" as any)
@@ -279,7 +301,6 @@ export function usePurchaseInvoices() {
         .eq("id", orderId);
     }
 
-    // Create journal entry: DR Inventory (1140) / CR Supplier Payable (2100)
     await supabase.from("transactions").insert({
       user_id: ownerId,
       transaction_date: invoice.invoice_date,
