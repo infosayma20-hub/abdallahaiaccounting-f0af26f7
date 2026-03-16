@@ -1644,20 +1644,15 @@ const AccountStatementPage = () => {
               </div>
             )}
 
-            {/* Mobile: Contact selector button */}
+            {/* Mobile: Contact selector */}
             {isMobile && (
               <div className="px-4 pt-3 no-print">
-                <Button
-                  variant="outline"
-                  className="w-full h-10 gap-2 text-xs justify-between"
-                  onClick={() => setShowMobileEntitySheet(true)}
-                >
-                  <span className="flex items-center gap-2">
-                    <User className="w-4 h-4" />
-                    {selectedEntityName || "اختر جهة لعرض كشفها"}
-                  </span>
-                  <ChevronDown className="w-4 h-4" />
-                </Button>
+                <EntitySearchCombobox
+                  entities={entityList}
+                  selectedId={selectedEntityId}
+                  onSelect={selectEntity}
+                  placeholder={isAccountsTab ? "ابحث بالاسم أو الكود..." : isEmployeesTab ? "ابحث عن موظف..." : activeTab === "suppliers" ? "ابحث عن مورد..." : "ابحث عن زبون..."}
+                />
               </div>
             )}
 
