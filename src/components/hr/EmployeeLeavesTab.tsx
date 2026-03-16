@@ -63,10 +63,10 @@ export default function EmployeeLeavesTab({ employeeId, userId, employee, leaves
   const annualEntitlement = calculateAnnualLeaveEntitlement(employee?.start_date || "2024-01-01");
   const sickEntitlement = employee?.sick_leave_days || 14;
   const usedAnnual = leaves
-    .filter(l => l.status === "موافق عليها" && l.leave_type === "سنوية" && new Date(l.start_date).getFullYear() === new Date().getFullYear())
+    .filter(l => (l.status === "موافق عليها" || l.status === "موافقة" || l.status === "معتمدة") && l.leave_type === "سنوية" && new Date(l.start_date).getFullYear() === new Date().getFullYear())
     .reduce((s: number, l: any) => s + Number(l.days_count || 0), 0);
   const usedSick = leaves
-    .filter(l => l.status === "موافق عليها" && l.leave_type === "مرضية" && new Date(l.start_date).getFullYear() === new Date().getFullYear())
+    .filter(l => (l.status === "موافق عليها" || l.status === "موافقة" || l.status === "معتمدة") && l.leave_type === "مرضية" && new Date(l.start_date).getFullYear() === new Date().getFullYear())
     .reduce((s: number, l: any) => s + Number(l.days_count || 0), 0);
 
   const leaveBalance = calculateLeaveBalance(
