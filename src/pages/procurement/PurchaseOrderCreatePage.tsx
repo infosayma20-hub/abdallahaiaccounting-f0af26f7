@@ -257,6 +257,8 @@ const PurchaseOrderCreatePage = () => {
 
   const handleEditItem = async () => {
     if (!editItem) return;
+    if (!editItem.unit?.trim()) { toast({ title: "أدخل الوحدة", variant: "destructive" }); return; }
+    if (!DEFAULT_UNITS.includes(editItem.unit)) { saveCustomUnit(editItem.unit); setUnitOptions(prev => [...new Set([...prev, editItem.unit])]); }
     setSavingDialog(true);
     const ok = await itemsCrud.update(editItem.id, {
       name: editItem.name, category_id: editItem.category_id,
