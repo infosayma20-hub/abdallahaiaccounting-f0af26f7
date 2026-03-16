@@ -646,7 +646,7 @@ function AddLoanDialog({ open, onOpenChange, userId, companyId, onSuccess }: {
                 <span className="font-mono font-bold">{fmtCurrency(amount)}</span>
               </div>
               <div className="flex justify-between">
-                <span>دائن: الصندوق (1110)</span>
+                <span>دائن: {cashBoxes.find(cb => cb.id === selectedCashBox)?.name || "الصندوق"} ({cashBoxes.find(cb => cb.id === selectedCashBox)?.gl_account_code || "1110"})</span>
                 <span className="font-mono font-bold">{fmtCurrency(amount)}</span>
               </div>
             </div>
