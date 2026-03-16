@@ -482,8 +482,8 @@ const AccountStatementPage = () => {
               .select("invoice_id, product_name, quantity, unit_price, total_amount, unit_of_measure, discount")
               .in("invoice_id", invoiceIds),
             supabase
-              .from("procurement_invoice_items" as any)
-              .select("invoice_id, item_name, received_quantity, unit_price, total_price, unit, notes")
+              .from("purchase_invoice_items")
+              .select("invoice_id, product_name, quantity, unit_price, total_amount, unit, discount_pct")
               .in("invoice_id", invoiceIds),
           ]);
 
