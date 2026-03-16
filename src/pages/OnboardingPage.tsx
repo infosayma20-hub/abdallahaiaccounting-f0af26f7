@@ -344,7 +344,7 @@ const OnboardingPage = () => {
                   ))}
                 </div>
 
-                <p className="text-sm font-bold text-[#0D1B2A] mb-3">من أين سمعت عن FINIX؟</p>
+                <p className="text-sm font-bold text-[#0D1B2A] mb-3">من أين سمعت عن QOYOD؟</p>
                 <div className="flex flex-wrap gap-2 mb-6">
                   {referralSources.map((r) => (
                     <button
