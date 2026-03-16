@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Plus, Minus, Trash2, Send, Save, Package, Search, PlusCircle, Wheat, Egg, Beef, Droplets, Sparkles, CupSoda, PackageIcon, UtensilsCrossed, SprayCan, Shirt, X, StickyNote, LayoutGrid, Grid3X3, Grid2X2, ArrowRight, Settings, UserPlus, MapPin, FolderPlus, GripVertical } from "lucide-react";
+import { Plus, Minus, Trash2, Send, Save, Package, Search, PlusCircle, Wheat, Egg, Beef, Droplets, Sparkles, CupSoda, PackageIcon, UtensilsCrossed, SprayCan, Shirt, X, StickyNote, LayoutGrid, Grid3X3, Grid2X2, ArrowRight, Settings, UserPlus, MapPin, FolderPlus, Pencil } from "lucide-react";
 import { useSuppliers, useItemCategories, useProcurementItems, useProcurementOrders, useBranches } from "@/hooks/useProcurement";
 import { useSuppliersCrud, useCategoriesCrud, useItemsCrud } from "@/hooks/useProcurementSettings";
 import { useNavigate } from "react-router-dom";
@@ -13,6 +13,7 @@ import { toast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
 const iconMap: Record<string, any> = {
   wheat: Wheat, egg: Egg, beef: Beef, droplets: Droplets, sparkles: Sparkles,
@@ -50,15 +51,13 @@ const PurchaseOrderCreatePage = () => {
   const navigate = useNavigate();
   const searchRef = useRef<HTMLInputElement>(null);
 
-  // CRUD hooks for inline management
   const suppliersCrud = useSuppliersCrud();
   const categoriesCrud = useCategoriesCrud();
   const itemsCrud = useItemsCrud();
 
-  // Use live data from CRUD hooks when available
   const categories = categoriesCrud.categories.length > 0 ? categoriesCrud.categories : rawCategories;
-  const allItems = itemsCrud.items.length > 0 
-    ? itemsCrud.items.filter((i: any) => i.is_active !== false) 
+  const allItems = itemsCrud.items.length > 0
+    ? itemsCrud.items.filter((i: any) => i.is_active !== false)
     : procurementItems;
   const allSuppliers = suppliersCrud.suppliers.length > 0 ? suppliersCrud.suppliers : suppliers;
 
@@ -79,7 +78,7 @@ const PurchaseOrderCreatePage = () => {
   const [manualOpen, setManualOpen] = useState(false);
   const [manualItem, setManualItem] = useState({ item_name: "", unit: "قطعة", unit_price: 0, quantity: 1, notes: "" });
   const [supplierOpen, setSupplierOpen] = useState(false);
-  const [newSupplier, setNewSupplier] = useState({ name: "", phone: "", address: "", payment_terms: 30, opening_balance: 0, notes: "" });
+  const [newSupplier, setNewSupplier] = useState({ name: "", phone: "" });
   const [branchOpen, setBranchOpen] = useState(false);
   const [newBranch, setNewBranch] = useState({ name: "", address: "", latitude: 31.9, longitude: 35.2 });
   const [itemOpen, setItemOpen] = useState(false);
@@ -88,8 +87,9 @@ const PurchaseOrderCreatePage = () => {
   const [newCategory, setNewCategory] = useState({ name: "", icon: "package", color: "#C9A84C" });
   const [savingDialog, setSavingDialog] = useState(false);
 
-  // Category drag state
-  const [draggedCat, setDraggedCat] = useState<string | null>(null);
+  // Edit item dialog
+  const [editItemOpen, setEditItemOpen] = useState(false);
+  const [editItem, setEditItem] = useState<any>(null);
 
   useEffect(() => {
     if (supplierId || branchId) savePrefs({ supplierId, branchId, cardSize });
@@ -164,20 +164,14 @@ const PurchaseOrderCreatePage = () => {
     if (result) navigate("/procurement/orders");
   };
 
-  // Inline supplier creation
   const handleAddSupplier = async () => {
     if (!newSupplier.name.trim()) { toast({ title: "أدخل اسم المورد", variant: "destructive" }); return; }
     setSavingDialog(true);
     const ok = await suppliersCrud.create({ name: newSupplier.name, phone: newSupplier.phone || null, is_active: true });
     setSavingDialog(false);
-    if (ok) {
-      setSupplierOpen(false);
-      setNewSupplier({ name: "", phone: "", address: "", payment_terms: 30, opening_balance: 0, notes: "" });
-      refetchSuppliers();
-    }
+    if (ok) { setSupplierOpen(false); setNewSupplier({ name: "", phone: "" }); refetchSuppliers(); }
   };
 
-  // Inline branch creation
   const handleAddBranch = async () => {
     if (!newBranch.name.trim()) { toast({ title: "أدخل اسم الفرع", variant: "destructive" }); return; }
     setSavingDialog(true);
@@ -189,13 +183,10 @@ const PurchaseOrderCreatePage = () => {
     setSavingDialog(false);
     if (error) { toast({ title: "❌ خطأ", description: error.message, variant: "destructive" }); return; }
     toast({ title: "✅ تم إضافة الفرع" });
-    setBranchOpen(false);
-    setNewBranch({ name: "", address: "", latitude: 31.9, longitude: 35.2 });
-    // Refresh branches - reload page data
+    setBranchOpen(false); setNewBranch({ name: "", address: "", latitude: 31.9, longitude: 35.2 });
     window.location.reload();
   };
 
-  // Inline item creation
   const handleAddItem = async () => {
     if (!newItem.name.trim()) { toast({ title: "أدخل اسم الصنف", variant: "destructive" }); return; }
     if (!newItem.category_id) { toast({ title: "اختر التصنيف", variant: "destructive" }); return; }
@@ -206,44 +197,37 @@ const PurchaseOrderCreatePage = () => {
       notes: newItem.notes || null, is_active: true, sort_order: 0,
     });
     setSavingDialog(false);
-    if (ok) {
-      setItemOpen(false);
-      setNewItem({ name: "", category_id: "", unit: "كيلو", default_price: 0, notes: "" });
-    }
+    if (ok) { setItemOpen(false); setNewItem({ name: "", category_id: "", unit: "كيلو", default_price: 0, notes: "" }); }
   };
 
-  // Inline category creation
   const handleAddCategory = async () => {
     if (!newCategory.name.trim()) { toast({ title: "أدخل اسم التصنيف", variant: "destructive" }); return; }
     setSavingDialog(true);
-    const ok = await categoriesCrud.create({
-      name: newCategory.name, icon: newCategory.icon, color: newCategory.color,
-    });
+    const ok = await categoriesCrud.create({ name: newCategory.name, icon: newCategory.icon, color: newCategory.color });
     setSavingDialog(false);
-    if (ok) {
-      setCategoryOpen(false);
-      setNewCategory({ name: "", icon: "package", color: "#C9A84C" });
-    }
+    if (ok) { setCategoryOpen(false); setNewCategory({ name: "", icon: "package", color: "#C9A84C" }); }
   };
 
-  // Category drag-and-drop reorder
-  const handleCatDragStart = (catId: string) => setDraggedCat(catId);
-  const handleCatDragOver = (e: React.DragEvent) => e.preventDefault();
-  const handleCatDrop = (targetCatId: string) => {
-    if (!draggedCat || draggedCat === targetCatId) return;
-    const ordered = [...categories];
-    const fromIdx = ordered.findIndex(c => c.id === draggedCat);
-    const toIdx = ordered.findIndex(c => c.id === targetCatId);
-    if (fromIdx < 0 || toIdx < 0) return;
-    const [moved] = ordered.splice(fromIdx, 1);
-    ordered.splice(toIdx, 0, moved);
-    categoriesCrud.reorder(ordered.map(c => c.id));
-    setDraggedCat(null);
+  // Edit existing item
+  const openEditItem = (item: any) => {
+    setEditItem({ id: item.id, name: item.name, category_id: item.category_id || "", unit: item.unit, default_price: Number(item.default_price) || 0 });
+    setEditItemOpen(true);
+  };
+
+  const handleEditItem = async () => {
+    if (!editItem) return;
+    setSavingDialog(true);
+    const ok = await itemsCrud.update(editItem.id, {
+      name: editItem.name, category_id: editItem.category_id,
+      unit: editItem.unit, default_price: editItem.default_price,
+    });
+    setSavingDialog(false);
+    if (ok) { setEditItemOpen(false); setEditItem(null); }
   };
 
   const getCategoryColor = (catId: string | null) => categories.find((c: any) => c.id === catId)?.color || "#6b7280";
 
-  const gridCols = cardSize === "small" ? "grid-cols-3 sm:grid-cols-4 xl:grid-cols-5" : cardSize === "medium" ? "grid-cols-2 sm:grid-cols-3 xl:grid-cols-4" : "grid-cols-2 xl:grid-cols-3";
+  const gridCols = cardSize === "small" ? "grid-cols-4 sm:grid-cols-5 xl:grid-cols-6" : cardSize === "medium" ? "grid-cols-3 sm:grid-cols-4 xl:grid-cols-5" : "grid-cols-2 xl:grid-cols-3";
 
   return (
     <TooltipProvider>
@@ -259,6 +243,7 @@ const PurchaseOrderCreatePage = () => {
               <Settings className="h-3.5 w-3.5" />
             </Button>
 
+            {/* Supplier */}
             <div className="flex items-center gap-1">
               <Select value={supplierId} onValueChange={setSupplierId}>
                 <SelectTrigger className="h-8 w-[150px] text-xs"><SelectValue placeholder="اختر المورد" /></SelectTrigger>
@@ -271,6 +256,7 @@ const PurchaseOrderCreatePage = () => {
               </TooltipTrigger><TooltipContent>إضافة مورد جديد</TooltipContent></Tooltip>
             </div>
 
+            {/* Branch */}
             <div className="flex items-center gap-1">
               <Select value={branchId} onValueChange={setBranchId}>
                 <SelectTrigger className="h-8 w-[130px] text-xs"><SelectValue placeholder="اختر الفرع" /></SelectTrigger>
@@ -283,8 +269,15 @@ const PurchaseOrderCreatePage = () => {
               </TooltipTrigger><TooltipContent>إضافة فرع جديد</TooltipContent></Tooltip>
             </div>
 
-            <Input type="date" value={orderDate} onChange={e => setOrderDate(e.target.value)} className="h-8 w-[130px] text-xs" />
-            <Input type="date" value={expectedDate} onChange={e => setExpectedDate(e.target.value)} className="h-8 w-[130px] text-xs" placeholder="تسليم متوقع" />
+            {/* Dates with labels */}
+            <div className="flex flex-col items-center gap-0.5">
+              <span className="text-[9px] text-muted-foreground leading-none">تاريخ الطلبية</span>
+              <Input type="date" value={orderDate} onChange={e => setOrderDate(e.target.value)} className="h-7 w-[120px] text-[11px]" />
+            </div>
+            <div className="flex flex-col items-center gap-0.5">
+              <span className="text-[9px] text-muted-foreground leading-none">التسليم المتوقع</span>
+              <Input type="date" value={expectedDate} onChange={e => setExpectedDate(e.target.value)} className="h-7 w-[120px] text-[11px]" />
+            </div>
 
             <div className="flex-1" />
 
@@ -303,67 +296,68 @@ const PurchaseOrderCreatePage = () => {
           </div>
         </div>
 
-        {/* MAIN 3-COLUMN AREA */}
+        {/* MAIN 2-COLUMN: Items + Order Lines */}
         <div className="flex-1 flex min-h-0">
-          {/* RIGHT: Categories Sidebar */}
-          <div className="w-[180px] shrink-0 border-l border-border bg-muted/30 overflow-y-auto flex flex-col">
-            <button
-              onClick={() => setActiveCategory(null)}
-              className={`w-full flex items-center gap-2 px-3 py-2.5 text-xs transition-colors ${
-                !activeCategory ? "bg-accent/10 text-accent font-bold border-l-2 border-accent" : "text-muted-foreground hover:bg-muted/50"
-              }`}
-            >
-              <Package className="h-3.5 w-3.5 shrink-0" />
-              <span>الكل</span>
-              <Badge variant="secondary" className="mr-auto text-[10px] h-5 px-1.5">{allItems.length}</Badge>
-            </button>
-            {categories.map((cat: any) => {
-              const isActive = activeCategory === cat.id;
-              const Icon = iconMap[cat.icon || ""] || PackageIcon;
-              return (
-                <button
-                  key={cat.id}
-                  draggable
-                  onDragStart={() => handleCatDragStart(cat.id)}
-                  onDragOver={handleCatDragOver}
-                  onDrop={() => handleCatDrop(cat.id)}
-                  onClick={() => setActiveCategory(isActive ? null : cat.id)}
-                  className={`w-full flex items-center gap-2 px-3 py-2.5 text-xs transition-colors group ${
-                    isActive ? "font-bold border-l-2" : "text-muted-foreground hover:bg-muted/50 border-l-2 border-transparent"
-                  } ${draggedCat === cat.id ? "opacity-50" : ""}`}
-                  style={isActive ? { borderLeftColor: cat.color || "#6b7280", color: cat.color || undefined, backgroundColor: `${cat.color}15` } : {}}
-                >
-                  <GripVertical className="h-3 w-3 shrink-0 opacity-0 group-hover:opacity-40 cursor-grab" />
-                  <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: cat.color || "#6b7280" }} />
-                  <span className="truncate flex-1 text-right">{cat.name}</span>
-                  <span className="text-[10px] opacity-60 shrink-0">{categoryCounts[cat.id] || 0}</span>
-                </button>
-              );
-            })}
-            {/* Add category button */}
-            <button
-              onClick={() => setCategoryOpen(true)}
-              className="w-full flex items-center gap-2 px-3 py-2.5 text-xs text-muted-foreground hover:bg-muted/50 hover:text-primary transition-colors mt-1 border-t border-border/50"
-            >
-              <FolderPlus className="h-3.5 w-3.5 shrink-0" />
-              <span>إضافة تصنيف</span>
-            </button>
-          </div>
-
-          {/* CENTER: Items Grid */}
+          {/* CENTER: Categories (horizontal) + Items Grid */}
           <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+            {/* Horizontal Category Tabs (POS-style) */}
+            <div className="shrink-0 border-b border-border bg-muted/20">
+              <ScrollArea className="w-full" dir="rtl">
+                <div className="flex items-center gap-1 px-3 py-2">
+                  {/* All tab */}
+                  <button
+                    onClick={() => setActiveCategory(null)}
+                    className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                      !activeCategory ? "bg-accent text-accent-foreground shadow-sm" : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+                    }`}
+                  >
+                    <Package className="h-3.5 w-3.5" />
+                    <span>الكل</span>
+                    <Badge variant="secondary" className="text-[9px] h-4 px-1 mr-0.5">{allItems.length}</Badge>
+                  </button>
+
+                  {categories.map((cat: any) => {
+                    const isActive = activeCategory === cat.id;
+                    const Icon = iconMap[cat.icon || ""] || PackageIcon;
+                    return (
+                      <button
+                        key={cat.id}
+                        onClick={() => setActiveCategory(isActive ? null : cat.id)}
+                        className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                          isActive ? "shadow-sm text-white" : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+                        }`}
+                        style={isActive ? { backgroundColor: cat.color || "#6b7280" } : {}}
+                      >
+                        <Icon className="h-3.5 w-3.5" />
+                        <span>{cat.name}</span>
+                        <span className="text-[9px] opacity-70">{categoryCounts[cat.id] || 0}</span>
+                      </button>
+                    );
+                  })}
+
+                  {/* Add category */}
+                  <button onClick={() => setCategoryOpen(true)}
+                    className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs text-muted-foreground hover:bg-muted/60 hover:text-primary transition-all border border-dashed border-border/60">
+                    <FolderPlus className="h-3.5 w-3.5" />
+                    <span>تصنيف</span>
+                  </button>
+                </div>
+                <ScrollBar orientation="horizontal" />
+              </ScrollArea>
+            </div>
+
             {/* Search + controls */}
-            <div className="shrink-0 px-3 py-2 border-b border-border flex items-center gap-2 bg-background">
-              <div className="relative flex-1 max-w-sm">
+            <div className="shrink-0 px-3 py-1.5 border-b border-border flex items-center gap-2 bg-background">
+              <div className="relative flex-1 max-w-xs">
                 <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                 <Input ref={searchRef} placeholder="ابحث عن صنف..." value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)} className="h-8 pr-8 text-xs" />
+                  onChange={e => setSearchQuery(e.target.value)} className="h-7 pr-8 text-xs" />
               </div>
-              <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => setManualOpen(true)}>
-                <PlusCircle className="h-3.5 w-3.5 ml-1" />صنف يدوي
+              <Button variant="outline" size="sm" className="h-7 text-[11px] px-2" onClick={() => setManualOpen(true)}>
+                <PlusCircle className="h-3 w-3 ml-1" />صنف يدوي
               </Button>
-              <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => setItemOpen(true)}>
-                <Plus className="h-3.5 w-3.5 ml-1" />إضافة صنف
+              <Button variant="outline" size="sm" className="h-7 text-[11px] px-2" onClick={() => setItemOpen(true)}>
+                <Plus className="h-3 w-3 ml-1" />إضافة صنف
               </Button>
               <div className="flex-1" />
               <div className="flex items-center gap-0.5 border rounded-md p-0.5">
@@ -382,96 +376,45 @@ const PurchaseOrderCreatePage = () => {
               </div>
             </div>
 
-            {/* Grid */}
+            {/* Grid — click = add 1, right-click = edit */}
             <div className={`flex-1 overflow-y-auto p-2 grid ${gridCols} gap-1.5 auto-rows-min content-start`}>
               {filteredItems.map((item: any) => {
                 const qty = getLineQuantity(item.id);
                 const catColor = getCategoryColor(item.category_id);
                 const isInOrder = qty > 0;
 
-                if (cardSize === "small") {
-                  return (
-                    <Tooltip key={item.id}>
-                      <TooltipTrigger asChild>
-                        <div
-                          className={`relative rounded-md border px-2.5 py-2 cursor-pointer transition-all select-none ${
-                            isInOrder ? "border-green-500/50 bg-green-500/5" : "border-border/50 hover:bg-muted/30"
-                          }`}
-                          style={{ borderRightWidth: "3px", borderRightColor: catColor }}
-                          onClick={() => addOrUpdateItem(item, 1)}
-                        >
-                          {isInOrder && (
-                            <div className="absolute -top-1.5 -left-1.5 bg-green-600 text-white text-[9px] font-bold rounded-full h-4 w-4 flex items-center justify-center">{qty}</div>
-                          )}
-                          <div className="flex items-center justify-between gap-1.5 mb-1.5">
-                            <span className="text-xs font-semibold leading-tight line-clamp-2">{item.name}</span>
-                            <span className="text-[10px] text-muted-foreground shrink-0 bg-muted/50 px-1 rounded">{item.unit}</span>
-                          </div>
-                          <div className="flex items-center justify-center gap-1" onClick={e => e.stopPropagation()}>
-                            <button className="h-6 w-6 rounded border border-border flex items-center justify-center hover:bg-muted" onClick={() => addOrUpdateItem(item, -1)} disabled={!isInOrder}>
-                              <Minus className="h-3 w-3" />
-                            </button>
-                            <Input type="number" value={qty || ""} placeholder="0"
-                              onChange={e => {
-                                const v = Number(e.target.value);
-                                const existing = lines.find(l => l.product_id === item.id);
-                                if (v <= 0) { if (existing) removeLine(existing.id); }
-                                else if (existing) updateLine(existing.id, "quantity", v);
-                                else addOrUpdateItem(item, v);
-                              }}
-                              className="h-6 w-12 text-center text-xs px-0 border-border"
-                            />
-                            <button className="h-6 w-6 rounded border border-border flex items-center justify-center hover:bg-muted" onClick={() => addOrUpdateItem(item, 1)}>
-                              <Plus className="h-3 w-3" />
-                            </button>
-                          </div>
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent side="top" className="text-xs">
-                        <p className="font-semibold">{item.name}</p>
-                        <p className="text-muted-foreground">{item.unit} • {Number(item.default_price) > 0 ? `${Number(item.default_price).toFixed(2)} ₪` : "بدون سعر"}</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  );
-                }
-
-                // Medium & Large cards
                 return (
-                  <div key={item.id}
-                    className={`relative rounded-lg border p-3 cursor-pointer transition-all select-none ${
-                      isInOrder ? "border-green-500/50 bg-green-500/5" : "border-border/50 hover:bg-muted/20"
+                  <div
+                    key={item.id}
+                    className={`relative rounded-lg border px-2.5 py-2 cursor-pointer transition-all select-none hover:shadow-sm active:scale-[0.97] ${
+                      isInOrder ? "border-green-500/50 bg-green-500/5 ring-1 ring-green-500/20" : "border-border/50 hover:bg-muted/30"
                     }`}
                     style={{ borderRightWidth: "3px", borderRightColor: catColor }}
                     onClick={() => addOrUpdateItem(item, 1)}
+                    onContextMenu={e => { e.preventDefault(); openEditItem(item); }}
                   >
+                    {/* Qty badge */}
                     {isInOrder && (
-                      <div className="absolute -top-1.5 -left-1.5 bg-green-600 text-white text-[9px] font-bold rounded-full h-4 w-4 flex items-center justify-center">{qty}</div>
+                      <div className="absolute -top-1.5 -left-1.5 bg-green-600 text-white text-[9px] font-bold rounded-full h-5 w-5 flex items-center justify-center shadow-sm">{qty}</div>
                     )}
-                    <p className="text-xs font-semibold mb-1 leading-tight">{item.name}</p>
-                    <p className="text-[11px] text-muted-foreground mb-1">الوحدة: {item.unit}</p>
+                    {/* Edit icon on hover */}
+                    <button
+                      className="absolute top-1 left-1 opacity-0 group-hover:opacity-100 hover:!opacity-100 p-0.5 rounded text-muted-foreground hover:text-primary transition-opacity"
+                      onClick={e => { e.stopPropagation(); openEditItem(item); }}
+                      style={{ opacity: undefined }}
+                      onMouseEnter={e => (e.currentTarget.style.opacity = "1")}
+                      onMouseLeave={e => (e.currentTarget.style.opacity = "0")}
+                    >
+                      <Pencil className="h-3 w-3" />
+                    </button>
+
+                    <p className="text-xs font-semibold leading-tight mb-0.5">{item.name}</p>
+                    <p className="text-[10px] text-muted-foreground">{item.unit}</p>
                     {cardSize === "large" && (
-                      <p className={`text-[11px] mb-1.5 ${Number(item.default_price) > 0 ? "text-muted-foreground" : "text-orange-400"}`}>
-                        السعر: {Number(item.default_price) > 0 ? `${Number(item.default_price).toFixed(2)} ₪` : "غير محدد"}
+                      <p className={`text-[10px] mt-0.5 ${Number(item.default_price) > 0 ? "text-muted-foreground" : "text-orange-400"}`}>
+                        {Number(item.default_price) > 0 ? `${Number(item.default_price).toFixed(2)} ₪` : "بدون سعر"}
                       </p>
                     )}
-                    <div className="flex items-center justify-center gap-1.5" onClick={e => e.stopPropagation()}>
-                      <button className="h-6 w-6 rounded border border-border flex items-center justify-center hover:bg-muted" onClick={() => addOrUpdateItem(item, -1)} disabled={!isInOrder}>
-                        <Minus className="h-3 w-3" />
-                      </button>
-                      <Input type="number" value={qty || ""} placeholder="0"
-                        onChange={e => {
-                          const v = Number(e.target.value);
-                          const existing = lines.find(l => l.product_id === item.id);
-                          if (v <= 0) { if (existing) removeLine(existing.id); }
-                          else if (existing) updateLine(existing.id, "quantity", v);
-                          else addOrUpdateItem(item, v);
-                        }}
-                        className="h-6 w-12 text-center text-xs px-0"
-                      />
-                      <button className="h-6 w-6 rounded border border-border flex items-center justify-center hover:bg-muted" onClick={() => addOrUpdateItem(item, 1)}>
-                        <Plus className="h-3 w-3" />
-                      </button>
-                    </div>
                   </div>
                 );
               })}
@@ -502,7 +445,7 @@ const PurchaseOrderCreatePage = () => {
               {lines.length === 0 ? (
                 <div className="py-12 text-center text-muted-foreground">
                   <Package className="h-6 w-6 mx-auto mb-1 opacity-20" />
-                  <p className="text-xs">اختر أصناف من القائمة</p>
+                  <p className="text-xs">اضغط على أي صنف لإضافته</p>
                 </div>
               ) : (
                 <div className="divide-y divide-border/50">
@@ -510,7 +453,7 @@ const PurchaseOrderCreatePage = () => {
                     <div key={line.id} className="px-3 py-2.5">
                       <div className="flex items-start justify-between mb-1">
                         <span className="text-xs font-semibold leading-tight">{line.item_name}</span>
-                        <button onClick={() => removeLine(line.id)} className="text-muted-foreground hover:text-destructive p-0.5">
+                        <button onClick={() => removeLine(line.id)} className="text-muted-foreground hover:text-destructive p-0.5 shrink-0">
                           <X className="h-3 w-3" />
                         </button>
                       </div>
@@ -523,16 +466,14 @@ const PurchaseOrderCreatePage = () => {
                         </button>
                         <Input type="number" value={line.quantity} min={0.001} step="any"
                           onChange={e => updateLine(line.id, "quantity", Number(e.target.value))}
-                          className="h-6 w-12 text-center text-xs px-0"
-                        />
+                          className="h-6 w-12 text-center text-xs px-0" />
                         <button className="h-6 w-6 rounded border border-border flex items-center justify-center hover:bg-muted" onClick={() => updateLine(line.id, "quantity", line.quantity + 1)}>
                           <Plus className="h-3 w-3" />
                         </button>
                         <Input type="number" value={line.unit_price} min={0} step="any"
                           onChange={e => updateLine(line.id, "unit_price", Number(e.target.value))}
                           className={`h-6 w-16 text-center text-xs px-0 ${line.unit_price === 0 ? "border-orange-400 bg-orange-500/10" : ""}`}
-                          placeholder="سعر"
-                        />
+                          placeholder="سعر" />
                         <button onClick={() => setEditingNoteId(editingNoteId === line.id ? null : line.id)}
                           className={`p-0.5 rounded ${line.notes ? "text-accent" : "text-muted-foreground"} hover:text-foreground`}>
                           <StickyNote className="h-3 w-3" />
@@ -590,9 +531,7 @@ const PurchaseOrderCreatePage = () => {
             <div className="space-y-3">
               <div><Label className="text-xs">اسم المورد *</Label><Input value={newSupplier.name} onChange={e => setNewSupplier({...newSupplier, name: e.target.value})} placeholder="اسم المورد" className="text-sm" /></div>
               <div><Label className="text-xs">رقم الهاتف</Label><Input value={newSupplier.phone} onChange={e => setNewSupplier({...newSupplier, phone: e.target.value})} placeholder="059-XXX-XXXX" className="text-sm" /></div>
-              <Button className="w-full" onClick={handleAddSupplier} disabled={savingDialog}>
-                {savingDialog ? "جاري الحفظ..." : "حفظ المورد"}
-              </Button>
+              <Button className="w-full" onClick={handleAddSupplier} disabled={savingDialog}>{savingDialog ? "جاري الحفظ..." : "حفظ المورد"}</Button>
             </div>
           </DialogContent>
         </Dialog>
@@ -604,9 +543,7 @@ const PurchaseOrderCreatePage = () => {
             <div className="space-y-3">
               <div><Label className="text-xs">اسم الفرع *</Label><Input value={newBranch.name} onChange={e => setNewBranch({...newBranch, name: e.target.value})} placeholder="اسم الفرع" className="text-sm" /></div>
               <div><Label className="text-xs">العنوان</Label><Input value={newBranch.address} onChange={e => setNewBranch({...newBranch, address: e.target.value})} placeholder="العنوان (اختياري)" className="text-sm" /></div>
-              <Button className="w-full" onClick={handleAddBranch} disabled={savingDialog}>
-                {savingDialog ? "جاري الحفظ..." : "حفظ الفرع"}
-              </Button>
+              <Button className="w-full" onClick={handleAddBranch} disabled={savingDialog}>{savingDialog ? "جاري الحفظ..." : "حفظ الفرع"}</Button>
             </div>
           </DialogContent>
         </Dialog>
@@ -623,8 +560,7 @@ const PurchaseOrderCreatePage = () => {
                   <SelectTrigger className="text-sm"><SelectValue placeholder="اختر التصنيف" /></SelectTrigger>
                   <SelectContent>{categories.map((c: any) => (
                     <SelectItem key={c.id} value={c.id} className="text-sm">
-                      <span className="inline-block h-2 w-2 rounded-full ml-1.5" style={{ backgroundColor: c.color || "#6b7280" }} />
-                      {c.name}
+                      <span className="inline-block h-2 w-2 rounded-full ml-1.5" style={{ backgroundColor: c.color || "#6b7280" }} />{c.name}
                     </SelectItem>
                   ))}</SelectContent>
                 </Select>
@@ -639,9 +575,7 @@ const PurchaseOrderCreatePage = () => {
                 </div>
                 <div><Label className="text-xs">السعر الافتراضي</Label><Input type="number" value={newItem.default_price || ""} onChange={e => setNewItem({...newItem, default_price: Number(e.target.value)})} placeholder="0.00" className="text-sm" /></div>
               </div>
-              <Button className="w-full" onClick={handleAddItem} disabled={savingDialog}>
-                {savingDialog ? "جاري الحفظ..." : "حفظ الصنف في الكتالوج"}
-              </Button>
+              <Button className="w-full" onClick={handleAddItem} disabled={savingDialog}>{savingDialog ? "جاري الحفظ..." : "حفظ الصنف في الكتالوج"}</Button>
             </div>
           </DialogContent>
         </Dialog>
@@ -661,9 +595,7 @@ const PurchaseOrderCreatePage = () => {
                       <button key={iconKey} onClick={() => setNewCategory({...newCategory, icon: iconKey})}
                         className={`h-8 w-8 rounded-md border flex items-center justify-center transition-colors ${
                           newCategory.icon === iconKey ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:text-foreground"
-                        }`}>
-                        <Ic className="h-4 w-4" />
-                      </button>
+                        }`}><Ic className="h-4 w-4" /></button>
                     );
                   })}
                 </div>
@@ -675,15 +607,46 @@ const PurchaseOrderCreatePage = () => {
                     <button key={color} onClick={() => setNewCategory({...newCategory, color})}
                       className={`h-7 w-7 rounded-full border-2 transition-transform ${
                         newCategory.color === color ? "border-foreground scale-110" : "border-transparent"
-                      }`}
-                      style={{ backgroundColor: color }} />
+                      }`} style={{ backgroundColor: color }} />
                   ))}
                 </div>
               </div>
-              <Button className="w-full" onClick={handleAddCategory} disabled={savingDialog}>
-                {savingDialog ? "جاري الحفظ..." : "حفظ التصنيف"}
-              </Button>
+              <Button className="w-full" onClick={handleAddCategory} disabled={savingDialog}>{savingDialog ? "جاري الحفظ..." : "حفظ التصنيف"}</Button>
             </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit Existing Item */}
+        <Dialog open={editItemOpen} onOpenChange={setEditItemOpen}>
+          <DialogContent className="sm:max-w-md" dir="rtl">
+            <DialogHeader><DialogTitle>تعديل الصنف</DialogTitle></DialogHeader>
+            {editItem && (
+              <div className="space-y-3">
+                <div><Label className="text-xs">اسم الصنف *</Label><Input value={editItem.name} onChange={e => setEditItem({...editItem, name: e.target.value})} className="text-sm" /></div>
+                <div>
+                  <Label className="text-xs">التصنيف</Label>
+                  <Select value={editItem.category_id} onValueChange={v => setEditItem({...editItem, category_id: v})}>
+                    <SelectTrigger className="text-sm"><SelectValue placeholder="اختر التصنيف" /></SelectTrigger>
+                    <SelectContent>{categories.map((c: any) => (
+                      <SelectItem key={c.id} value={c.id} className="text-sm">
+                        <span className="inline-block h-2 w-2 rounded-full ml-1.5" style={{ backgroundColor: c.color || "#6b7280" }} />{c.name}
+                      </SelectItem>
+                    ))}</SelectContent>
+                  </Select>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label className="text-xs">الوحدة</Label>
+                    <Select value={editItem.unit} onValueChange={v => setEditItem({...editItem, unit: v})}>
+                      <SelectTrigger className="text-sm"><SelectValue /></SelectTrigger>
+                      <SelectContent>{UNIT_OPTIONS.map(u => <SelectItem key={u} value={u} className="text-sm">{u}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                  <div><Label className="text-xs">السعر الافتراضي</Label><Input type="number" value={editItem.default_price || ""} onChange={e => setEditItem({...editItem, default_price: Number(e.target.value)})} className="text-sm" /></div>
+                </div>
+                <Button className="w-full" onClick={handleEditItem} disabled={savingDialog}>{savingDialog ? "جاري الحفظ..." : "حفظ التعديلات"}</Button>
+              </div>
+            )}
           </DialogContent>
         </Dialog>
       </div>
