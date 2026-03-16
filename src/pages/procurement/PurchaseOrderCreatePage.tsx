@@ -694,10 +694,16 @@ const PurchaseOrderCreatePage = () => {
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <Label className="text-xs">الوحدة</Label>
-                    <Select value={editItem.unit} onValueChange={v => setEditItem({...editItem, unit: v})}>
+                    <Select value={unitOptions.includes(editItem.unit) ? editItem.unit : "__custom"} onValueChange={v => { if (v === "__custom") { setEditItem({...editItem, unit: ""}); } else { setEditItem({...editItem, unit: v}); } }}>
                       <SelectTrigger className="text-sm"><SelectValue /></SelectTrigger>
-                      <SelectContent>{UNIT_OPTIONS.map(u => <SelectItem key={u} value={u} className="text-sm">{u}</SelectItem>)}</SelectContent>
+                      <SelectContent>
+                        {unitOptions.map(u => <SelectItem key={u} value={u} className="text-sm">{u}</SelectItem>)}
+                        <SelectItem value="__custom" className="text-sm text-primary">+ وحدة مخصصة</SelectItem>
+                      </SelectContent>
                     </Select>
+                    {(!unitOptions.includes(editItem.unit)) && (
+                      <Input value={editItem.unit} onChange={e => setEditItem({...editItem, unit: e.target.value})} placeholder="اكتب اسم الوحدة..." className="text-sm mt-1" autoFocus />
+                    )}
                   </div>
                   <div><Label className="text-xs">السعر الافتراضي</Label><Input type="number" value={editItem.default_price || ""} onChange={e => setEditItem({...editItem, default_price: Number(e.target.value)})} className="text-sm" /></div>
                 </div>
