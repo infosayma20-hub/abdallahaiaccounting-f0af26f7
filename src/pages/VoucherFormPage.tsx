@@ -189,6 +189,17 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       });
   }, [user]);
 
+  // Load employees (for payment vouchers)
+  useEffect(() => {
+    if (!user || isReceipt) return;
+    supabase.from("employees")
+      .select("id, full_name, department, job_title")
+      .eq("user_id", user.id)
+      .eq("is_active", true)
+      .order("full_name")
+      .then(({ data }) => setEmployeeList(data || []));
+  }, [user, isReceipt]);
+
   // ─── Compute real balance from transactions ───
   useEffect(() => {
     if (!selectedContact || !user) { setComputedBalance(null); return; }
