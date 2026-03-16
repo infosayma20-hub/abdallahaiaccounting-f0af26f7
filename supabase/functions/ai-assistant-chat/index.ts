@@ -1046,7 +1046,7 @@ serve(async (req) => {
       if (settings?.company_name) companyName = settings.company_name;
     } catch { /* ignore */ }
 
-    const systemPrompt = `أنت "المحاسب الذكي" — محاسب متخصص مدمج في نظام FINIX لإدارة الأعمال.
+    const systemPrompt = `أنت "المحاسب الذكي" — محاسب متخصص مدمج في نظام QOYOD لإدارة الأعمال.
 اسم الشركة: ${companyName}
 اليوم: ${new Date().toLocaleDateString('ar-EG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
 
