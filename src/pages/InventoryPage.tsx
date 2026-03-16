@@ -495,11 +495,19 @@ const InventoryPage = () => {
           </div>
 
           {/* Pagination */}
-          {sorted.length > PER_PAGE && (
+          {sorted.length > perPage && (
             <div className="flex items-center justify-between px-4 py-3 border-t border-border/50 bg-muted/20">
-              <p className="text-xs text-muted-foreground">
-                عرض {Math.min((page - 1) * PER_PAGE + 1, sorted.length)}–{Math.min(page * PER_PAGE, sorted.length)} من {sorted.length}
-              </p>
+              <div className="flex items-center gap-2">
+                <p className="text-xs text-muted-foreground">
+                  عرض {Math.min((page - 1) * perPage + 1, sorted.length)}–{Math.min(page * perPage, sorted.length)} من {sorted.length}
+                </p>
+                <Select value={String(perPage)} onValueChange={v => { setPerPage(Number(v)); setPage(1); }}>
+                  <SelectTrigger className="h-7 w-[70px] text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {PAGE_SIZE_OPTIONS.map(n => <SelectItem key={n} value={String(n)} className="text-xs">{n}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="flex items-center gap-1">
                 <Button variant="outline" size="sm" className="rounded-lg h-8 text-xs" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
                   <ChevronRight className="h-3.5 w-3.5 ml-1" /> السابق
