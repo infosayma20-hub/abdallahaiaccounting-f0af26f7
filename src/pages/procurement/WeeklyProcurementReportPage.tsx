@@ -69,7 +69,7 @@ const WeeklyProcurementReportPage = () => {
             <TableBody>
               {(() => {
                 const supplierMap: Record<string, { name: string; orders: number; invoices: number; total: number }> = {};
-                weekOrders.forEach((o: any) => {
+                weekOrders.filter((o: any) => o.status !== "cancelled").forEach((o: any) => {
                   const sid = o.supplier_id;
                   if (!supplierMap[sid]) supplierMap[sid] = { name: o.pos_suppliers?.name || "—", orders: 0, invoices: 0, total: 0 };
                   supplierMap[sid].orders++;
