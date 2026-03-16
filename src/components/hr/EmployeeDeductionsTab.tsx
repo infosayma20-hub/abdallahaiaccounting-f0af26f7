@@ -35,14 +35,13 @@ export default function EmployeeDeductionsTab({ employeeId, employeeName, userId
     deduction_month: "",
   });
 
-  // Active advances
   const [advances, setAdvances] = useState<any[]>([]);
   const [expandedAdvance, setExpandedAdvance] = useState<string | null>(null);
   const [installments, setInstallments] = useState<Record<string, any[]>>({});
 
-  useState(() => {
+  useEffect(() => {
     fetchAdvances();
-  });
+  }, [employeeId]);
 
   async function fetchAdvances() {
     const { data } = await supabase
