@@ -245,8 +245,8 @@ export default function MalakiImportPage() {
 
         // Determine salary type
         const salaryType = emp.fs > 0 && emp.ha > 0
-          ? "مختلط"
-          : emp.fs > 0 ? "شهري" : "ساعات";
+          ? "شهري"
+          : emp.fs > 0 ? "شهري" : "بالساعة";
 
         // Insert employee
         const { data: newEmp, error } = await supabase
