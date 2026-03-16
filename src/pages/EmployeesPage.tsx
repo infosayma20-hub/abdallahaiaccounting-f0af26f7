@@ -445,7 +445,7 @@ const EmployeesPage = () => {
             </div>
           </div>
         </td>
-        <td className="px-3 py-3 text-xs text-muted-foreground">{emp.department || "—"}</td>
+        <td className="px-3 py-3 text-xs text-muted-foreground">{getBranchName(emp)}</td>
         <td className="px-3 py-3 text-xs text-muted-foreground">{emp.job_title || emp.position || "—"}</td>
         <td className="px-3 py-3 text-xs text-muted-foreground tabular-nums">{emp.start_date || "—"}</td>
         <td className="px-3 py-3 text-sm font-bold tabular-nums text-foreground">{formatCurrency(Number(emp.base_salary || 0))}</td>
