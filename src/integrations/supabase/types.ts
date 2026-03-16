@@ -6192,139 +6192,6 @@ export type Database = {
           },
         ]
       }
-      procurement_invoice_items: {
-        Row: {
-          id: string
-          invoice_id: string
-          item_name: string
-          notes: string | null
-          ordered_quantity: number | null
-          received_quantity: number | null
-          total_price: number | null
-          unit: string | null
-          unit_price: number | null
-        }
-        Insert: {
-          id?: string
-          invoice_id: string
-          item_name: string
-          notes?: string | null
-          ordered_quantity?: number | null
-          received_quantity?: number | null
-          total_price?: number | null
-          unit?: string | null
-          unit_price?: number | null
-        }
-        Update: {
-          id?: string
-          invoice_id?: string
-          item_name?: string
-          notes?: string | null
-          ordered_quantity?: number | null
-          received_quantity?: number | null
-          total_price?: number | null
-          unit?: string | null
-          unit_price?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "procurement_invoice_items_invoice_id_fkey"
-            columns: ["invoice_id"]
-            isOneToOne: false
-            referencedRelation: "procurement_invoices"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      procurement_invoices: {
-        Row: {
-          branch_id: string | null
-          created_at: string | null
-          created_by: string | null
-          discount: number | null
-          id: string
-          invoice_date: string | null
-          invoice_number: string | null
-          notes: string | null
-          payment_status: string | null
-          purchase_order_id: string | null
-          subtotal: number | null
-          supplier_id: string
-          supplier_invoice_number: string | null
-          tax: number | null
-          total_amount: number | null
-          updated_at: string | null
-          user_id: string
-        }
-        Insert: {
-          branch_id?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          discount?: number | null
-          id?: string
-          invoice_date?: string | null
-          invoice_number?: string | null
-          notes?: string | null
-          payment_status?: string | null
-          purchase_order_id?: string | null
-          subtotal?: number | null
-          supplier_id: string
-          supplier_invoice_number?: string | null
-          tax?: number | null
-          total_amount?: number | null
-          updated_at?: string | null
-          user_id: string
-        }
-        Update: {
-          branch_id?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          discount?: number | null
-          id?: string
-          invoice_date?: string | null
-          invoice_number?: string | null
-          notes?: string | null
-          payment_status?: string | null
-          purchase_order_id?: string | null
-          subtotal?: number | null
-          supplier_id?: string
-          supplier_invoice_number?: string | null
-          tax?: number | null
-          total_amount?: number | null
-          updated_at?: string | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "procurement_invoices_branch_id_fkey"
-            columns: ["branch_id"]
-            isOneToOne: false
-            referencedRelation: "branches"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "procurement_invoices_branch_id_fkey"
-            columns: ["branch_id"]
-            isOneToOne: false
-            referencedRelation: "branches_safe"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "procurement_invoices_purchase_order_id_fkey"
-            columns: ["purchase_order_id"]
-            isOneToOne: false
-            referencedRelation: "procurement_orders"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "procurement_invoices_supplier_id_fkey"
-            columns: ["supplier_id"]
-            isOneToOne: false
-            referencedRelation: "procurement_suppliers"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       procurement_items: {
         Row: {
           category: string | null
@@ -6385,6 +6252,7 @@ export type Database = {
           item_name: string
           notes: string | null
           order_id: string
+          product_id: string | null
           quantity: number | null
           total_price: number | null
           unit: string | null
@@ -6395,6 +6263,7 @@ export type Database = {
           item_name: string
           notes?: string | null
           order_id: string
+          product_id?: string | null
           quantity?: number | null
           total_price?: number | null
           unit?: string | null
@@ -6405,6 +6274,7 @@ export type Database = {
           item_name?: string
           notes?: string | null
           order_id?: string
+          product_id?: string | null
           quantity?: number | null
           total_price?: number | null
           unit?: string | null
@@ -6416,6 +6286,13 @@ export type Database = {
             columns: ["order_id"]
             isOneToOne: false
             referencedRelation: "procurement_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "procurement_order_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
             referencedColumns: ["id"]
           },
         ]
@@ -6485,61 +6362,7 @@ export type Database = {
             foreignKeyName: "procurement_orders_supplier_id_fkey"
             columns: ["supplier_id"]
             isOneToOne: false
-            referencedRelation: "procurement_suppliers"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      procurement_payments: {
-        Row: {
-          amount: number
-          created_at: string | null
-          id: string
-          invoice_id: string | null
-          notes: string | null
-          payment_date: string | null
-          payment_method: string | null
-          reference_number: string | null
-          supplier_id: string
-          user_id: string
-        }
-        Insert: {
-          amount: number
-          created_at?: string | null
-          id?: string
-          invoice_id?: string | null
-          notes?: string | null
-          payment_date?: string | null
-          payment_method?: string | null
-          reference_number?: string | null
-          supplier_id: string
-          user_id: string
-        }
-        Update: {
-          amount?: number
-          created_at?: string | null
-          id?: string
-          invoice_id?: string | null
-          notes?: string | null
-          payment_date?: string | null
-          payment_method?: string | null
-          reference_number?: string | null
-          supplier_id?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "procurement_payments_invoice_id_fkey"
-            columns: ["invoice_id"]
-            isOneToOne: false
-            referencedRelation: "procurement_invoices"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "procurement_payments_supplier_id_fkey"
-            columns: ["supplier_id"]
-            isOneToOne: false
-            referencedRelation: "procurement_suppliers"
+            referencedRelation: "pos_suppliers"
             referencedColumns: ["id"]
           },
         ]
@@ -6620,95 +6443,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      procurement_supplier_items: {
-        Row: {
-          created_at: string | null
-          default_price: number | null
-          id: string
-          is_active: boolean | null
-          item_code: string | null
-          item_name: string
-          supplier_id: string
-          unit: string | null
-          user_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          default_price?: number | null
-          id?: string
-          is_active?: boolean | null
-          item_code?: string | null
-          item_name: string
-          supplier_id: string
-          unit?: string | null
-          user_id: string
-        }
-        Update: {
-          created_at?: string | null
-          default_price?: number | null
-          id?: string
-          is_active?: boolean | null
-          item_code?: string | null
-          item_name?: string
-          supplier_id?: string
-          unit?: string | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "procurement_supplier_items_supplier_id_fkey"
-            columns: ["supplier_id"]
-            isOneToOne: false
-            referencedRelation: "procurement_suppliers"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      procurement_suppliers: {
-        Row: {
-          address: string | null
-          created_at: string | null
-          id: string
-          is_active: boolean | null
-          name: string
-          notes: string | null
-          opening_balance: number | null
-          opening_balance_date: string | null
-          payment_terms: number | null
-          phone: string | null
-          updated_at: string | null
-          user_id: string
-        }
-        Insert: {
-          address?: string | null
-          created_at?: string | null
-          id?: string
-          is_active?: boolean | null
-          name: string
-          notes?: string | null
-          opening_balance?: number | null
-          opening_balance_date?: string | null
-          payment_terms?: number | null
-          phone?: string | null
-          updated_at?: string | null
-          user_id: string
-        }
-        Update: {
-          address?: string | null
-          created_at?: string | null
-          id?: string
-          is_active?: boolean | null
-          name?: string
-          notes?: string | null
-          opening_balance?: number | null
-          opening_balance_date?: string | null
-          payment_terms?: number | null
-          phone?: string | null
-          updated_at?: string | null
-          user_id?: string
-        }
-        Relationships: []
       }
       product_modifier_groups: {
         Row: {
@@ -7141,6 +6875,7 @@ export type Database = {
           notes: string | null
           paid_amount: number | null
           payment_method: string | null
+          procurement_order_id: string | null
           reference_no: string | null
           rejection_reason: string | null
           remaining_amount: number | null
@@ -7170,6 +6905,7 @@ export type Database = {
           notes?: string | null
           paid_amount?: number | null
           payment_method?: string | null
+          procurement_order_id?: string | null
           reference_no?: string | null
           rejection_reason?: string | null
           remaining_amount?: number | null
@@ -7199,6 +6935,7 @@ export type Database = {
           notes?: string | null
           paid_amount?: number | null
           payment_method?: string | null
+          procurement_order_id?: string | null
           reference_no?: string | null
           rejection_reason?: string | null
           remaining_amount?: number | null
@@ -7225,6 +6962,13 @@ export type Database = {
             columns: ["branch_id"]
             isOneToOne: false
             referencedRelation: "branches_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_invoices_procurement_order_id_fkey"
+            columns: ["procurement_order_id"]
+            isOneToOne: false
+            referencedRelation: "procurement_orders"
             referencedColumns: ["id"]
           },
           {
