@@ -134,7 +134,7 @@ const OnboardingPage = () => {
 
   const finishOnboarding = async () => {
     await saveProgress({ onboarding_completed: true }, 6);
-    toast.success("أهلاً بك في FINIX! 🎉");
+    toast.success("أهلاً بك في QOYOD قيود! 🎉");
     navigate("/apps");
   };
 
