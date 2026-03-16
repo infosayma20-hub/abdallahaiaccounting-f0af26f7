@@ -7057,7 +7057,7 @@ export type Database = {
             foreignKeyName: "purchase_invoices_supplier_id_fkey"
             columns: ["supplier_id"]
             isOneToOne: false
-            referencedRelation: "suppliers"
+            referencedRelation: "pos_suppliers"
             referencedColumns: ["id"]
           },
         ]
