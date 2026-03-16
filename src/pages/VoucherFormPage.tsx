@@ -770,40 +770,128 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       {/* Row 1: Basic Info */}
       <Card>
         <CardContent className="p-5 space-y-4">
+          {/* Party Type Toggle (Payment vouchers only) */}
+          {!isReceipt && (
+            <div>
+              <Label className="text-xs mb-1.5 block">نوع الجهة</Label>
+              <div className="flex gap-1.5">
+                <button onClick={() => { setPartyType("contact"); setSelectedEmployee(null); }}
+                  className={`flex-1 flex items-center justify-center gap-1.5 p-2 rounded-lg text-[11px] transition-all border ${partyType === "contact" ? "bg-primary/10 border-primary/40 text-primary font-bold" : "bg-secondary/50 border-border/30 text-muted-foreground hover:bg-secondary"}`}>
+                  <Users className="h-4 w-4" /> مورد / جهة
+                </button>
+                <button onClick={() => { setPartyType("employee"); setSelectedContact(null); }}
+                  className={`flex-1 flex items-center justify-center gap-1.5 p-2 rounded-lg text-[11px] transition-all border ${partyType === "employee" ? "bg-primary/10 border-primary/40 text-primary font-bold" : "bg-secondary/50 border-border/30 text-muted-foreground hover:bg-secondary"}`}>
+                  <UserCheck className="h-4 w-4" /> موظف
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <Label className="text-xs mb-1.5 block">التاريخ</Label>
               <Input type="date" value={paymentDate} onChange={e => setPaymentDate(e.target.value)} />
             </div>
-            <div className="md:col-span-2 relative">
-              <Label className="text-xs mb-1.5 block">{contactLabel}</Label>
-              <div className="relative">
-                <User className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                <Input
-                  value={selectedContact ? selectedContact.contact_name : contactSearch}
-                  onChange={e => { setContactSearch(e.target.value); setSelectedContact(null); setShowContactDropdown(true); }}
-                  onFocus={() => setShowContactDropdown(true)}
-                  placeholder={contactPlaceholder}
-                  className="pr-9"
-                />
+
+            {/* Contact Search (default) */}
+            {(isReceipt || partyType === "contact") && (
+              <div className="md:col-span-2 relative">
+                <Label className="text-xs mb-1.5 block">{contactLabel}</Label>
+                <div className="relative">
+                  <User className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                  <Input
+                    value={selectedContact ? selectedContact.contact_name : contactSearch}
+                    onChange={e => { setContactSearch(e.target.value); setSelectedContact(null); setShowContactDropdown(true); }}
+                    onFocus={() => setShowContactDropdown(true)}
+                    placeholder={contactPlaceholder}
+                    className="pr-9"
+                  />
+                </div>
+                {showContactDropdown && !selectedContact && (
+                  <div className="absolute z-50 top-full mt-1 w-full bg-card border border-border rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                    {filteredContacts.map(c => (
+                      <button key={c.id} onClick={() => { setSelectedContact(c); setContactSearch(""); setShowContactDropdown(false); }}
+                        className="w-full text-right px-4 py-2.5 hover:bg-secondary transition-colors flex items-center justify-between">
+                        <span className="text-sm">{c.contact_name}</span>
+                        <span className="text-xs text-muted-foreground">₪{formatAmount(c.current_balance || 0)}</span>
+                      </button>
+                    ))}
+                    {filteredContacts.length === 0 && <p className="text-center py-3 text-xs text-muted-foreground">لا توجد نتائج</p>}
+                  </div>
+                )}
               </div>
-              {showContactDropdown && !selectedContact && (
-                <div className="absolute z-50 top-full mt-1 w-full bg-card border border-border rounded-xl shadow-lg max-h-48 overflow-y-auto">
-                  {filteredContacts.map(c => (
-                    <button key={c.id} onClick={() => { setSelectedContact(c); setContactSearch(""); setShowContactDropdown(false); }}
-                      className="w-full text-right px-4 py-2.5 hover:bg-secondary transition-colors flex items-center justify-between">
-                      <span className="text-sm">{c.contact_name}</span>
-                      <span className="text-xs text-muted-foreground">₪{formatAmount(c.current_balance || 0)}</span>
+            )}
+
+            {/* Employee Search */}
+            {!isReceipt && partyType === "employee" && (
+              <div className="md:col-span-2 relative">
+                <Label className="text-xs mb-1.5 block">الموظف</Label>
+                <div className="relative">
+                  <UserCheck className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                  <Input
+                    value={selectedEmployee ? selectedEmployee.full_name : employeeSearch}
+                    onChange={e => { setEmployeeSearch(e.target.value); setSelectedEmployee(null); setShowEmployeeDropdown(true); }}
+                    onFocus={() => setShowEmployeeDropdown(true)}
+                    placeholder="ابحث عن موظف..."
+                    className="pr-9"
+                  />
+                </div>
+                {showEmployeeDropdown && !selectedEmployee && (
+                  <div className="absolute z-50 top-full mt-1 w-full bg-card border border-border rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                    {filteredEmployees.map(emp => (
+                      <button key={emp.id} onClick={() => { setSelectedEmployee(emp); setEmployeeSearch(""); setShowEmployeeDropdown(false); }}
+                        className="w-full text-right px-4 py-2.5 hover:bg-secondary transition-colors flex items-center justify-between">
+                        <span className="text-sm">{emp.full_name}</span>
+                        <span className="text-xs text-muted-foreground">{emp.department || emp.job_title || ""}</span>
+                      </button>
+                    ))}
+                    {filteredEmployees.length === 0 && <p className="text-center py-3 text-xs text-muted-foreground">لا توجد نتائج</p>}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Employee Transaction Category */}
+          {!isReceipt && partyType === "employee" && selectedEmployee && (
+            <div className="space-y-3">
+              <div className="bg-primary/5 border border-primary/20 rounded-xl p-3">
+                <span className="text-xs text-muted-foreground">الموظف: </span>
+                <span className="text-sm font-bold text-foreground">{selectedEmployee.full_name}</span>
+                {selectedEmployee.department && <span className="text-xs text-muted-foreground mr-2">({selectedEmployee.department})</span>}
+              </div>
+
+              <div>
+                <Label className="text-xs mb-1.5 block">نوع العملية</Label>
+                <div className="grid grid-cols-4 sm:grid-cols-7 gap-1.5">
+                  {EMP_TRANSACTION_CATEGORIES.map(cat => (
+                    <button key={cat.value} onClick={() => setEmpCategory(cat.value)}
+                      className={`flex flex-col items-center gap-0.5 p-2 rounded-lg text-[10px] transition-all border ${empCategory === cat.value ? "bg-primary/10 border-primary/40 text-primary font-bold" : "bg-secondary/50 border-border/30 text-muted-foreground hover:bg-secondary"}`}>
+                      <span className="text-base">{cat.emoji}</span>
+                      {cat.label}
                     </button>
                   ))}
-                  {filteredContacts.length === 0 && <p className="text-center py-3 text-xs text-muted-foreground">لا توجد نتائج</p>}
+                </div>
+              </div>
+
+              {empCategory === "أخرى" && (
+                <div>
+                  <Label className="text-xs mb-1.5 block">وصف العملية</Label>
+                  <Input value={empCategoryCustom} onChange={e => setEmpCategoryCustom(e.target.value)} placeholder="أدخل وصف العملية..." />
+                </div>
+              )}
+
+              {empCategory === "مخالفة" && (
+                <div>
+                  <Label className="text-xs mb-1.5 block">سبب المخالفة</Label>
+                  <Input value={violationReason} onChange={e => setViolationReason(e.target.value)} placeholder="أدخل سبب المخالفة..." />
                 </div>
               )}
             </div>
-          </div>
+          )}
 
           {/* Contact Info Badge */}
-          {selectedContact && (
+          {selectedContact && (isReceipt || partyType === "contact") && (
             <div className="bg-primary/5 border border-primary/20 rounded-xl p-3 flex flex-wrap items-center gap-4 text-xs">
               <span className="flex items-center gap-1.5">
                 💰 رصيد {isReceipt ? "الزبون" : "المورد"}: <span className={`font-bold ${(computedBalance ?? 0) > 0 ? "text-destructive" : "text-primary"}`}>₪{formatAmount(computedBalance ?? selectedContact.current_balance ?? 0)}</span>
