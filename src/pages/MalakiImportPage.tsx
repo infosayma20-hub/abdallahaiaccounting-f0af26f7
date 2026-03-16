@@ -435,9 +435,9 @@ export default function MalakiImportPage() {
           </div>
 
           <div className="space-y-2 text-sm">
-            <p className="text-emerald-600">✅ تم استيراد {results.success} موظف بنجاح</p>
+            <p className="text-accent-foreground font-medium">✅ تم استيراد {results.success} موظف بنجاح</p>
             {results.skipped > 0 && (
-              <p className="text-amber-600">⚠️ تم تخطي {results.skipped} موظف (موجود مسبقاً)</p>
+              <p className="text-muted-foreground">⚠️ تم تخطي {results.skipped} موظف (موجود مسبقاً)</p>
             )}
             {results.loans > 0 && (
               <p className="text-primary">🏦 {results.loans} موظفون مع قرض حسن — راجع صفحة السلف</p>
