@@ -465,7 +465,7 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
         }}
       >
         <span>طُبع بتاريخ: {fmtToday}</span>
-        <span style={{ color: "#C9A84C", fontWeight: 600 }}>FINIX AI Accounting</span>
+        <span style={{ color: "#C9A84C", fontWeight: 600 }}>QOYOD قيود</span>
         <span>صفحة 1 من 1</span>
       </div>
     </div>
