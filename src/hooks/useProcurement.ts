@@ -272,7 +272,7 @@ export function usePurchaseInvoices() {
         remaining_amount: isPaid ? 0 : total,
         paid_amount: isPaid ? total : 0,
         status: isPaid ? "approved" : "pending",
-        payment_method: paymentMethod,
+        payment_method: dbPaymentMethod,
         notes: invoice.notes || null,
         created_by: user?.id,
         procurement_order_id: orderId || null,
