@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,61 +6,128 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { Plus, Search, Send, X, FileText } from "lucide-react";
-import { useProcurementOrders, useSuppliers } from "@/hooks/useProcurement";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Plus, Search, Send, X, FileText, Printer, Eye, Download, Share2, Copy, ChevronDown } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { useProcurementOrders, useSuppliers, useBranches, type ProcurementOrderItem } from "@/hooks/useProcurement";
 import { useNavigate } from "react-router-dom";
 import BackButton from "@/components/BackButton";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ProcurementPrintView, generateWhatsAppText } from "@/components/procurement/ProcurementPrintView";
+import { toast } from "@/hooks/use-toast";
+import ReactDOM from "react-dom/client";
 
 const statusMap: Record<string, { label: string; color: string }> = {
-  draft: { label: "مسودة", color: "bg-gray-500/10 text-gray-500 border-gray-500/30" },
-  sent: { label: "مُرسلة", color: "bg-blue-500/10 text-blue-500 border-blue-500/30" },
-  partially_received: { label: "مستلمة جزئياً", color: "bg-orange-500/10 text-orange-500 border-orange-500/30" },
-  received: { label: "مستلمة", color: "bg-green-500/10 text-green-500 border-green-500/30" },
-  cancelled: { label: "ملغاة", color: "bg-red-500/10 text-red-500 border-red-500/30" },
+  draft: { label: "مسودة", color: "bg-[hsl(220,9%,46%)]/10 text-[hsl(220,9%,46%)] border-[hsl(220,9%,46%)]/30" },
+  sent: { label: "مُرسلة", color: "bg-[hsl(217,91%,60%)]/10 text-[hsl(217,91%,60%)] border-[hsl(217,91%,60%)]/30" },
+  partially_received: { label: "مستلمة جزئياً", color: "bg-[hsl(38,92%,50%)]/10 text-[hsl(38,92%,50%)] border-[hsl(38,92%,50%)]/30" },
+  received: { label: "مستلمة", color: "bg-[hsl(160,84%,39%)]/10 text-[hsl(160,84%,39%)] border-[hsl(160,84%,39%)]/30" },
+  cancelled: { label: "ملغاة", color: "bg-destructive/10 text-destructive border-destructive/30" },
 };
 
 const PurchaseOrdersPage = () => {
-  const { orders, loading, updateStatus } = useProcurementOrders();
+  const { orders, loading, updateStatus, getOrderItems } = useProcurementOrders();
+  const { suppliers } = useSuppliers();
+  const branches = useBranches();
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [supplierFilter, setSupplierFilter] = useState("all");
+  const [branchFilter, setBranchFilter] = useState("all");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
   const [cancelDialog, setCancelDialog] = useState<string | null>(null);
+  const [detailOrder, setDetailOrder] = useState<any>(null);
+  const [detailItems, setDetailItems] = useState<ProcurementOrderItem[]>([]);
+  const [loadingDetail, setLoadingDetail] = useState(false);
 
   const filtered = orders.filter(o => {
     if (statusFilter !== "all" && o.status !== statusFilter) return false;
+    if (supplierFilter !== "all" && o.supplier_id !== supplierFilter) return false;
+    if (branchFilter !== "all" && o.branch_id !== branchFilter) return false;
+    if (fromDate && o.order_date < fromDate) return false;
+    if (toDate && o.order_date > toDate) return false;
     if (search && !o.order_number?.includes(search) && !o.supplier?.name?.includes(search)) return false;
     return true;
   });
 
   const handleCancel = async () => {
-    if (cancelDialog) {
-      await updateStatus(cancelDialog, "cancelled");
-      setCancelDialog(null);
-    }
+    if (cancelDialog) { await updateStatus(cancelDialog, "cancelled"); setCancelDialog(null); }
+  };
+
+  const openDetail = async (order: any) => {
+    setDetailOrder(order);
+    setLoadingDetail(true);
+    const items = await getOrderItems(order.id);
+    setDetailItems(items);
+    setLoadingDetail(false);
+  };
+
+  const handlePrint = async (order: any) => {
+    const items = await getOrderItems(order.id);
+    const printWindow = window.open("", "_blank", "width=800,height=600");
+    if (!printWindow) return;
+    printWindow.document.write(`<!DOCTYPE html><html dir="rtl"><head><meta charset="utf-8"><title>طلبية ${order.order_number}</title><style>body{font-family:Arial,sans-serif;margin:0;padding:20px;direction:rtl}table{width:100%;border-collapse:collapse}th,td{border:1px solid #999;padding:4px 8px;text-align:right;font-size:12px}th{background:#f0f0f0}.header{display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #000;padding-bottom:10px;margin-bottom:15px}@media print{body{padding:10mm}}</style></head><body>`);
+    printWindow.document.write(`<div class="header"><div><h2>طلبية مشتريات</h2></div><div style="text-align:left"><strong>${order.order_number}</strong></div></div>`);
+    printWindow.document.write(`<p><strong>المورد:</strong> ${order.supplier?.name || "—"} | <strong>الفرع:</strong> ${order.branch?.name || "—"} | <strong>التاريخ:</strong> ${new Date(order.order_date).toLocaleDateString("en-GB")}</p>`);
+    printWindow.document.write(`<table><thead><tr><th>#</th><th>الصنف</th><th>الوحدة</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th></tr></thead><tbody>`);
+    items.forEach((item, idx) => {
+      printWindow.document.write(`<tr><td>${idx + 1}</td><td>${item.item_name}</td><td>${item.unit}</td><td>${item.quantity}</td><td>${Number(item.unit_price).toFixed(2)}</td><td>${Number(item.total_price).toFixed(2)}</td></tr>`);
+    });
+    const total = items.reduce((s, i) => s + Number(i.total_price), 0);
+    printWindow.document.write(`</tbody></table>`);
+    printWindow.document.write(`<p style="text-align:left;font-size:14px;font-weight:bold;margin-top:10px">الإجمالي: ${total.toFixed(2)} ₪</p>`);
+    if (order.notes) printWindow.document.write(`<p><strong>ملاحظات:</strong> ${order.notes}</p>`);
+    printWindow.document.write(`<div style="display:flex;justify-content:space-between;margin-top:60px"><div><div style="border-bottom:1px solid #000;width:150px;margin-bottom:5px"></div><p style="font-size:11px">توقيع مسؤول المشتريات</p></div><div><div style="border-bottom:1px solid #000;width:150px;margin-bottom:5px"></div><p style="font-size:11px">توقيع المورد</p></div></div>`);
+    printWindow.document.write(`</body></html>`);
+    printWindow.document.close();
+    setTimeout(() => printWindow.print(), 300);
+  };
+
+  const handleWhatsApp = async (order: any) => {
+    const items = await getOrderItems(order.id);
+    const text = generateWhatsAppText(order, items);
+    window.open(`https://wa.me/?text=${text}`, "_blank");
+  };
+
+  const copyOrderNumber = (num: string) => {
+    navigator.clipboard.writeText(num);
+    toast({ title: "✅ تم نسخ رقم الطلبية" });
   };
 
   return (
-    <div className="p-4 md:p-6 space-y-4">
+    <div className="p-4 md:p-6 space-y-4" dir="rtl">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <BackButton />
-          <h1 className="text-xl font-bold text-foreground">الطلبيات</h1>
+          <h1 className="text-xl font-bold text-foreground">سجل الطلبيات</h1>
           <Badge variant="secondary">{orders.length}</Badge>
         </div>
-        <Button variant="accent" onClick={() => navigate("/procurement/orders/new")}>
-          <Plus className="h-4 w-4 ml-1" />
-          طلب جديد
+        <Button className="bg-[hsl(43,50%,54%)] hover:bg-[hsl(43,50%,45%)] text-white" onClick={() => navigate("/procurement/orders/new")}>
+          <Plus className="h-4 w-4 ml-1" />طلب جديد
         </Button>
       </div>
 
-      <div className="flex gap-3 flex-wrap">
-        <div className="relative w-64">
-          <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="بحث..." value={search} onChange={e => setSearch(e.target.value)} className="pr-9" />
-        </div>
+      {/* Filters */}
+      <div className="flex gap-2 flex-wrap items-center">
+        <Input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} className="w-36 h-9" placeholder="من تاريخ" />
+        <Input type="date" value={toDate} onChange={e => setToDate(e.target.value)} className="w-36 h-9" placeholder="إلى تاريخ" />
+        <Select value={supplierFilter} onValueChange={setSupplierFilter}>
+          <SelectTrigger className="w-40 h-9"><SelectValue placeholder="المورد" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">كل الموردين</SelectItem>
+            {suppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={branchFilter} onValueChange={setBranchFilter}>
+          <SelectTrigger className="w-36 h-9"><SelectValue placeholder="الفرع" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">كل الفروع</SelectItem>
+            {branches.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
+          </SelectContent>
+        </Select>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-36 h-9"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">كل الحالات</SelectItem>
             <SelectItem value="draft">مسودة</SelectItem>
@@ -70,6 +137,10 @@ const PurchaseOrdersPage = () => {
             <SelectItem value="cancelled">ملغاة</SelectItem>
           </SelectContent>
         </Select>
+        <div className="relative flex-1 max-w-xs">
+          <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input placeholder="بحث برقم الطلبية..." value={search} onChange={e => setSearch(e.target.value)} className="pr-9 h-9" />
+        </div>
       </div>
 
       <Card>
@@ -86,13 +157,12 @@ const PurchaseOrdersPage = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead>رقم الطلبية</TableHead>
+                  <TableHead>التاريخ</TableHead>
                   <TableHead>المورد</TableHead>
                   <TableHead>الفرع</TableHead>
-                  <TableHead>التاريخ</TableHead>
-                  <TableHead>التسليم المتوقع</TableHead>
-                  <TableHead>الحالة</TableHead>
                   <TableHead>القيمة</TableHead>
-                  <TableHead>فاتورة مرتبطة</TableHead>
+                  <TableHead>الحالة</TableHead>
+                  <TableHead>الفاتورة</TableHead>
                   <TableHead>إجراءات</TableHead>
                 </TableRow>
               </TableHeader>
@@ -100,41 +170,55 @@ const PurchaseOrdersPage = () => {
                 {filtered.map(o => {
                   const st = statusMap[o.status] || statusMap.draft;
                   return (
-                    <TableRow key={o.id}>
+                    <TableRow key={o.id} className="cursor-pointer" onClick={() => openDetail(o)}>
                       <TableCell className="font-mono text-xs">{o.order_number}</TableCell>
-                      <TableCell>{o.supplier?.name || "—"}</TableCell>
-                      <TableCell>{o.branch?.name || "—"}</TableCell>
-                      <TableCell>{new Date(o.order_date).toLocaleDateString("en-GB")}</TableCell>
-                      <TableCell>{o.expected_delivery_date ? new Date(o.expected_delivery_date).toLocaleDateString("en-GB") : "—"}</TableCell>
+                      <TableCell className="text-xs">{new Date(o.order_date).toLocaleDateString("en-GB")}</TableCell>
+                      <TableCell className="text-sm">{o.supplier?.name || "—"}</TableCell>
+                      <TableCell className="text-xs">{o.branch?.name || "—"}</TableCell>
+                      <TableCell className="font-mono text-xs">{Number(o.total_amount).toLocaleString("en", { minimumFractionDigits: 2 })} ₪</TableCell>
                       <TableCell>
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium border ${st.color}`}>{st.label}</span>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium border ${st.color}`}>{st.label}</span>
                       </TableCell>
-                      <TableCell className="font-mono">{Number(o.total_amount).toLocaleString("en", { minimumFractionDigits: 2 })} ₪</TableCell>
-                      <TableCell>
+                      <TableCell onClick={e => e.stopPropagation()}>
                         {o.linked_invoice ? (
-                          <Badge variant="outline" className="font-mono text-xs cursor-pointer hover:bg-accent/10"
-                            onClick={() => navigate(`/procurement/invoices`)}>
+                          <Badge variant="outline" className="font-mono text-[10px] cursor-pointer hover:bg-accent/10"
+                            onClick={() => navigate("/procurement/invoices")}>
                             {o.linked_invoice.invoice_number}
                           </Badge>
+                        ) : (o.status === "sent" || o.status === "partially_received") ? (
+                          <Button size="sm" variant="outline" className="h-6 text-[10px] text-[hsl(43,50%,54%)] border-[hsl(43,50%,54%)]/50" onClick={() => navigate(`/procurement/invoices/new?orderId=${o.id}`)}>
+                            تحويل لفاتورة
+                          </Button>
                         ) : "—"}
                       </TableCell>
-                      <TableCell>
-                        <div className="flex gap-1">
-                          {(o.status === "sent" || o.status === "partially_received") && (
-                            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => navigate(`/procurement/invoices/new?orderId=${o.id}`)}>
-                              استلام وإنشاء فاتورة
-                            </Button>
-                          )}
+                      <TableCell onClick={e => e.stopPropagation()}>
+                        <div className="flex gap-0.5">
                           {o.status === "draft" && (
-                            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => updateStatus(o.id, "sent")}>
-                              <Send className="h-3 w-3 ml-1" />إرسال
-                            </Button>
+                            <>
+                              <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => navigate(`/procurement/orders/new?editId=${o.id}`)}>✏</Button>
+                              <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => updateStatus(o.id, "sent")}><Send className="h-3 w-3" /></Button>
+                              <Button size="sm" variant="ghost" className="h-7 text-xs text-destructive" onClick={() => setCancelDialog(o.id)}><X className="h-3 w-3" /></Button>
+                            </>
                           )}
-                          {o.status !== "cancelled" && o.status !== "received" && (
-                            <Button size="sm" variant="ghost" className="h-7 text-xs text-destructive" onClick={() => setCancelDialog(o.id)}>
-                              <X className="h-3 w-3" />
-                            </Button>
+                          {o.status === "sent" && (
+                            <>
+                              <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => navigate(`/procurement/invoices/new?orderId=${o.id}`)}>📥</Button>
+                              <Button size="sm" variant="ghost" className="h-7 text-xs text-destructive" onClick={() => setCancelDialog(o.id)}><X className="h-3 w-3" /></Button>
+                            </>
                           )}
+                          {o.status === "partially_received" && (
+                            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => navigate(`/procurement/invoices/new?orderId=${o.id}`)}>📥 استلام باقي</Button>
+                          )}
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button size="sm" variant="ghost" className="h-7 w-7 p-0"><ChevronDown className="h-3 w-3" /></Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handlePrint(o)}><Printer className="h-3.5 w-3.5 ml-2" />طباعة</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleWhatsApp(o)}><Share2 className="h-3.5 w-3.5 ml-2" />مشاركة WhatsApp</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => copyOrderNumber(o.order_number)}><Copy className="h-3.5 w-3.5 ml-2" />نسخ رقم الطلبية</DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -146,10 +230,11 @@ const PurchaseOrdersPage = () => {
         </CardContent>
       </Card>
 
+      {/* Cancel Dialog */}
       <Dialog open={!!cancelDialog} onOpenChange={() => setCancelDialog(null)}>
         <DialogContent dir="rtl">
           <DialogHeader>
-            <DialogTitle>إلغاء الطلبية</DialogTitle>
+            <DialogTitle>تأكيد الإلغاء</DialogTitle>
             <DialogDescription>هل أنت متأكد من إلغاء هذه الطلبية؟ لا يمكن التراجع عن هذا الإجراء.</DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -158,6 +243,71 @@ const PurchaseOrdersPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Order Detail Sheet */}
+      <Sheet open={!!detailOrder} onOpenChange={() => setDetailOrder(null)}>
+        <SheetContent side="right" className="w-[500px] sm:w-[550px]" dir="rtl">
+          <SheetHeader><SheetTitle>تفاصيل الطلبية</SheetTitle></SheetHeader>
+          {detailOrder && (
+            <div className="mt-4 space-y-4">
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div><span className="text-muted-foreground">رقم الطلبية:</span><p className="font-mono font-bold">{detailOrder.order_number}</p></div>
+                <div><span className="text-muted-foreground">الحالة:</span>
+                  <p><span className={`px-2 py-0.5 rounded-full text-[10px] font-medium border ${(statusMap[detailOrder.status] || statusMap.draft).color}`}>{(statusMap[detailOrder.status] || statusMap.draft).label}</span></p>
+                </div>
+                <div><span className="text-muted-foreground">المورد:</span><p className="font-medium">{detailOrder.supplier?.name || "—"}</p></div>
+                <div><span className="text-muted-foreground">الفرع:</span><p>{detailOrder.branch?.name || "—"}</p></div>
+                <div><span className="text-muted-foreground">التاريخ:</span><p>{new Date(detailOrder.order_date).toLocaleDateString("en-GB")}</p></div>
+                <div><span className="text-muted-foreground">التسليم المتوقع:</span><p>{detailOrder.expected_delivery_date ? new Date(detailOrder.expected_delivery_date).toLocaleDateString("en-GB") : "—"}</p></div>
+              </div>
+
+              {detailOrder.notes && <div className="p-2 rounded bg-muted/50 text-sm"><strong>ملاحظات:</strong> {detailOrder.notes}</div>}
+
+              {detailOrder.linked_invoice && (
+                <div className="p-2 rounded bg-accent/10 border border-accent/30">
+                  <p className="text-sm">فاتورة مرتبطة: <Badge variant="outline" className="font-mono cursor-pointer" onClick={() => { setDetailOrder(null); navigate("/procurement/invoices"); }}>{detailOrder.linked_invoice.invoice_number}</Badge></p>
+                </div>
+              )}
+
+              <Table>
+                <TableHeader><TableRow>
+                  <TableHead>#</TableHead><TableHead>الصنف</TableHead><TableHead>الوحدة</TableHead>
+                  <TableHead>الكمية</TableHead><TableHead>السعر</TableHead><TableHead>الإجمالي</TableHead>
+                </TableRow></TableHeader>
+                <TableBody>
+                  {loadingDetail ? (
+                    <TableRow><TableCell colSpan={6} className="text-center py-4"><Skeleton className="h-4 w-32 mx-auto" /></TableCell></TableRow>
+                  ) : detailItems.map((item, idx) => (
+                    <TableRow key={item.id}>
+                      <TableCell className="text-xs">{idx + 1}</TableCell>
+                      <TableCell className="text-xs font-medium">{item.item_name}</TableCell>
+                      <TableCell className="text-xs">{item.unit}</TableCell>
+                      <TableCell className="text-xs">{item.quantity}</TableCell>
+                      <TableCell className="text-xs">{Number(item.unit_price).toFixed(2)}</TableCell>
+                      <TableCell className="text-xs font-mono">{Number(item.total_price).toFixed(2)} ₪</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+
+              <div className="flex justify-between items-center pt-2 border-t">
+                <span className="text-muted-foreground text-sm">القيمة الإجمالية</span>
+                <span className="font-bold text-lg">{Number(detailOrder.total_amount).toFixed(2)} ₪</span>
+              </div>
+
+              <div className="flex gap-2 pt-4">
+                <Button variant="outline" className="flex-1" onClick={() => handlePrint(detailOrder)}><Printer className="h-4 w-4 ml-1" />طباعة</Button>
+                <Button variant="outline" className="flex-1" onClick={() => handleWhatsApp(detailOrder)}><Share2 className="h-4 w-4 ml-1" />WhatsApp</Button>
+                {(detailOrder.status === "sent" || detailOrder.status === "partially_received") && (
+                  <Button className="flex-1 bg-[hsl(43,50%,54%)] hover:bg-[hsl(43,50%,45%)] text-white" onClick={() => { setDetailOrder(null); navigate(`/procurement/invoices/new?orderId=${detailOrder.id}`); }}>
+                    تحويل لفاتورة
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 };
