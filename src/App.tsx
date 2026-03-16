@@ -73,7 +73,7 @@ import POSPage from "./pages/POSPage";
 import POSUserManagementPage from "./pages/POSUserManagementPage";
 import POSReportsPage from "./pages/POSReportsPage";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
-import PurchasePointPage from "./pages/PurchasePointPage";
+import { Navigate } from "react-router-dom";
 import FloorPlanPage from "./pages/FloorPlanPage";
 import FloorPlanEditorPage from "./pages/FloorPlanEditorPage";
 import DigitalReceiptPage from "./pages/DigitalReceiptPage";
