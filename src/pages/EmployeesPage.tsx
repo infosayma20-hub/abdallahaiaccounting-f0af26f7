@@ -1028,7 +1028,7 @@ const EmployeesPage = () => {
         onClose={() => setShowSalarySlip(false)}
         slip={salarySlip}
         employeeName={selectedEmployee?.full_name || ""}
-        department={selectedEmployee?.department || ""}
+        department={selectedEmployee ? getBranchName(selectedEmployee) : ""}
         startDate={selectedEmployee?.start_date || ""}
         month={new Date().getMonth() + 1}
         year={new Date().getFullYear()}
