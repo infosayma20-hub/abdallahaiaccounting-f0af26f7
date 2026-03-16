@@ -144,7 +144,6 @@ export const navigationSections: NavSection[] = [
               { label: "طلب مشتريات", path: "/procurement/orders/new" },
               { label: "الطلبيات", path: "/procurement/orders" },
               { label: "فواتير المشتريات", path: "/procurement/invoices" },
-              { label: "الموردون", path: "/procurement/suppliers" },
             ],
           },
           {

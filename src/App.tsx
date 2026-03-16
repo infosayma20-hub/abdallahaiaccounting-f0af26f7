@@ -356,8 +356,7 @@ const App = () => (
                       <Route path="/purchases/import/new" element={<ImportWizardPage />} />
                       <Route path="/purchases/import/:id" element={<ImportDetailPage />} />
                       {/* Procurement Module */}
-                      <Route path="/procurement/suppliers" element={<SuppliersPage />} />
-                      <Route path="/procurement/suppliers/:id" element={<SupplierDetailPage />} />
+                      {/* Suppliers managed via existing POS supplier pages */}
                       <Route path="/procurement/orders" element={<PurchaseOrdersPage />} />
                       <Route path="/procurement/orders/new" element={<PurchaseOrderCreatePage />} />
                       <Route path="/procurement/invoices" element={<ProcurementInvoicesPage />} />
