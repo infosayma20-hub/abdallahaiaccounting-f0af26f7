@@ -876,7 +876,35 @@ const EmployeesPage = () => {
             <div><label className="text-xs text-muted-foreground">الهاتف</label><Input value={form.phone || ""} onChange={e => setForm({ ...form, phone: e.target.value })} /></div>
             <div><label className="text-xs text-muted-foreground">البريد</label><Input value={form.email || ""} onChange={e => setForm({ ...form, email: e.target.value })} /></div>
             <div><label className="text-xs text-muted-foreground">المنصب</label><Input value={form.position || ""} onChange={e => setForm({ ...form, position: e.target.value })} /></div>
-            <div><label className="text-xs text-muted-foreground">القسم</label><Input value={form.department || ""} onChange={e => setForm({ ...form, department: e.target.value })} /></div>
+            <div>
+              <label className="text-xs text-muted-foreground">الفرع</label>
+              <Select value={form.branch_id || "_none"} onValueChange={v => setForm({ ...form, branch_id: v === "_none" ? undefined : v })}>
+                <SelectTrigger><SelectValue placeholder="اختر الفرع" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="_none">بدون فرع</SelectItem>
+                  {branchesList.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
+                  <div className="border-t border-border mt-1 pt-1 px-2 pb-1">
+                    {showAddBranch ? (
+                      <div className="flex gap-1">
+                        <Input
+                          value={newBranchName}
+                          onChange={e => setNewBranchName(e.target.value)}
+                          placeholder="اسم الفرع الجديد"
+                          className="h-7 text-xs"
+                          onClick={e => e.stopPropagation()}
+                          onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handleAddBranch(); } }}
+                        />
+                        <Button size="sm" className="h-7 text-xs px-2" onClick={e => { e.preventDefault(); handleAddBranch(); }}>إضافة</Button>
+                      </div>
+                    ) : (
+                      <button onClick={e => { e.preventDefault(); e.stopPropagation(); setShowAddBranch(true); }} className="text-xs text-primary hover:underline flex items-center gap-1 w-full py-1">
+                        <Plus className="h-3 w-3" /> إضافة فرع جديد
+                      </button>
+                    )}
+                  </div>
+                </SelectContent>
+              </Select>
+            </div>
             <div><label className="text-xs text-muted-foreground">المسمى الوظيفي</label><Input value={form.job_title || ""} onChange={e => setForm({ ...form, job_title: e.target.value })} /></div>
             <div><label className="text-xs text-muted-foreground">تاريخ البداية</label><Input type="date" value={form.start_date || ""} onChange={e => setForm({ ...form, start_date: e.target.value })} /></div>
             <div><label className="text-xs text-muted-foreground">نوع العقد</label>
