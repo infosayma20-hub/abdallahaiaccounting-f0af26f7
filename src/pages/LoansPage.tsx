@@ -332,15 +332,18 @@ function AddLoanDialog({ open, onOpenChange, userId, companyId, onSuccess }: {
 
   const lastPaymentDate = schedule.length > 0 ? schedule[schedule.length - 1].due_date : firstPaymentDate;
 
-  // Load employees
+  // Load employees & cash boxes
   useEffect(() => {
     if (!userId || !open) return;
-    supabase.from("employees")
-      .select("id, full_name, department")
-      .eq("user_id", userId)
-      .eq("is_active", true)
-      .order("full_name")
-      .then(({ data }) => setEmployees(data || []));
+    Promise.all([
+      supabase.from("employees").select("id, full_name, department").eq("user_id", userId).eq("is_active", true).order("full_name"),
+      supabase.from("cash_boxes").select("id, name, gl_account_code").eq("user_id", userId).eq("is_active", true),
+    ]).then(([empRes, cbRes]) => {
+      setEmployees(empRes.data || []);
+      const boxes = cbRes.data || [];
+      setCashBoxes(boxes);
+      if (boxes.length && !selectedCashBox) setSelectedCashBox(boxes[0].id);
+    });
   }, [userId, open]);
 
   const filteredEmps = useMemo(() => {
