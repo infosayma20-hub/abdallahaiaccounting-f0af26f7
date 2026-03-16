@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { ArrowRight, Camera, User, Mail, Building2, MapPin, Globe, Briefcase, Save, Loader2, LogOut, Trash2, Check } from "lucide-react";
+import { ArrowRight, Camera, User, Mail, Building2, MapPin, Globe, Briefcase, Save, Loader2, LogOut, Trash2, Check, Lock, Eye, EyeOff, ShieldCheck } from "lucide-react";
 import BrandIdentitySettings from "@/components/settings/BrandIdentitySettings";
 import { useCompanyTheme } from "@/hooks/useCompanyTheme";
 import { extractColorsFromLogo, assignColorRoles, ensureAccessibility } from "@/lib/color-utils";
@@ -40,6 +40,86 @@ const compressImage = (file: File, maxDim: number = 400): Promise<Blob> => {
     img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Image load failed")); };
     img.src = url;
   });
+};
+
+/** Section for Google-only users to add a password */
+const GoogleOnlyPasswordSection = () => {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [show, setShow] = useState(false);
+  const [newPwd, setNewPwd] = useState("");
+  const [confirmPwd, setConfirmPwd] = useState("");
+  const [showPwd, setShowPwd] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [done, setDone] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    const identities = user.identities || [];
+    const hasGoogle = identities.some(i => i.provider === "google");
+    const hasEmail = identities.some(i => i.provider === "email");
+    if (hasGoogle && !hasEmail) setShow(true);
+  }, [user]);
+
+  if (!show || done) return null;
+
+  const isValid = newPwd.length >= 8 && newPwd === confirmPwd;
+
+  const handleSave = async () => {
+    if (!isValid) return;
+    setSaving(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPwd });
+      if (error) throw error;
+      toast({ title: "✅ تم حفظ كلمة المرور", description: "يمكنك الآن تسجيل الدخول بالبريد وكلمة المرور" });
+      setDone(true);
+    } catch (err: any) {
+      toast({ title: "خطأ", description: err.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Card className="border-accent/30 shadow-sm">
+      <CardContent className="p-4 space-y-3">
+        <div className="flex items-center gap-2">
+          <ShieldCheck className="h-5 w-5 text-accent" />
+          <h3 className="text-sm font-bold text-foreground">إضافة كلمة مرور</h3>
+        </div>
+        <p className="text-xs text-muted-foreground">حسابك مُسجل بـ Google فقط. أضف كلمة مرور للدخول السريع بالبريد الإلكتروني.</p>
+        <div className="space-y-2">
+          <div className="relative">
+            <Input
+              type={showPwd ? "text" : "password"}
+              placeholder="كلمة مرور جديدة (8 أحرف+)"
+              value={newPwd}
+              onChange={e => setNewPwd(e.target.value)}
+              className="pr-3 pl-10"
+              dir="ltr"
+              style={{ textAlign: "left" }}
+            />
+            <button type="button" onClick={() => setShowPwd(!showPwd)} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+              {showPwd ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </button>
+          </div>
+          <Input
+            type={showPwd ? "text" : "password"}
+            placeholder="تأكيد كلمة المرور"
+            value={confirmPwd}
+            onChange={e => setConfirmPwd(e.target.value)}
+            dir="ltr"
+            style={{ textAlign: "left" }}
+          />
+          {confirmPwd && newPwd !== confirmPwd && <p className="text-xs text-destructive">كلمتا المرور غير متطابقتين</p>}
+        </div>
+        <Button onClick={handleSave} disabled={!isValid || saving} className="w-full gap-2" size="sm">
+          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
+          حفظ كلمة المرور
+        </Button>
+      </CardContent>
+    </Card>
+  );
 };
 
 const ProfilePage = () => {
@@ -377,6 +457,9 @@ const ProfilePage = () => {
           ))}
         </CardContent>
       </Card>
+
+      {/* Add Password Section (for Google-only users) */}
+      <GoogleOnlyPasswordSection />
 
       {/* Save Button */}
       <Button onClick={handleSave} disabled={saving} className="w-full h-12 rounded-2xl text-base font-bold gap-2">

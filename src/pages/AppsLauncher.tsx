@@ -1,10 +1,11 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, ChevronDown, ArrowLeft } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useOnboarding } from "@/hooks/useOnboarding";
 import WelcomeModal from "@/components/onboarding/WelcomeModal";
 import SpotlightTour from "@/components/onboarding/SpotlightTour";
+import GooglePasswordSetupModal from "@/components/GooglePasswordSetupModal";
 import { motion } from "framer-motion";
 import { Input } from "@/components/ui/input";
 
@@ -86,6 +87,37 @@ const AppCard = ({
   );
 };
 
+/** Detects Google-only users and shows password setup modal */
+const GooglePasswordPrompt = () => {
+  const { user } = useAuth();
+  const [show, setShow] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    // Check if user signed up with Google only (no email/password identity)
+    const identities = user.identities || [];
+    const hasGoogle = identities.some(i => i.provider === "google");
+    const hasEmail = identities.some(i => i.provider === "email");
+    const alreadyDismissed = localStorage.getItem(`pwd_setup_dismissed_${user.id}`);
+    if (hasGoogle && !hasEmail && !alreadyDismissed) {
+      setShow(true);
+    }
+  }, [user]);
+
+  const handleDone = () => {
+    if (user) localStorage.setItem(`pwd_setup_dismissed_${user.id}`, "true");
+    setShow(false);
+  };
+
+  return (
+    <GooglePasswordSetupModal
+      open={show}
+      onComplete={handleDone}
+      onSkip={handleDone}
+    />
+  );
+};
+
 const AppsLauncher = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -150,6 +182,9 @@ const AppsLauncher = () => {
           </div>
         )}
       </div>
+
+      {/* Google Password Setup Modal */}
+      <GooglePasswordPrompt />
 
       {!onboardingLoading && (
         <>
