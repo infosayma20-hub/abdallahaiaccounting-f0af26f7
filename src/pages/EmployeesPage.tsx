@@ -314,14 +314,19 @@ const EmployeesPage = () => {
   };
 
   // Derived data
-  const branches = useMemo(() => [...new Set(employees.map(e => e.department || "بدون فرع"))], [employees]);
+  const branchMap = useMemo(() => {
+    const m: Record<string, string> = {};
+    branchesList.forEach(b => { m[b.id] = b.name; });
+    return m;
+  }, [branchesList]);
+  const getBranchName = (emp: Employee) => emp.branch_id ? (branchMap[emp.branch_id] || emp.department || "—") : (emp.department || "—");
   const jobs = useMemo(() => [...new Set(employees.filter(e => e.job_title).map(e => e.job_title))], [employees]);
 
   const filtered = useMemo(() => {
     let list = employees.filter(e =>
       (e.full_name?.includes(search) || e.id_number?.includes(search) || e.job_title?.includes(search) || e.position?.includes(search))
     );
-    if (filterBranch !== "all") list = list.filter(e => (e.department || "بدون فرع") === filterBranch);
+    if (filterBranch !== "all") list = list.filter(e => (e.branch_id || "") === filterBranch);
     if (filterStatus === "active") list = list.filter(e => e.is_active);
     else if (filterStatus === "inactive") list = list.filter(e => !e.is_active);
     if (filterJob !== "all") list = list.filter(e => e.job_title === filterJob);
