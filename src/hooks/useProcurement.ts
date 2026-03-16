@@ -308,12 +308,25 @@ export function usePurchaseInvoices() {
         .eq("id", orderId);
     }
 
-    // Check if supplier_id exists in contacts table (pos_suppliers may not be there)
+    // Ensure supplier exists in contacts table for account statement linking
     let contactId: string | null = null;
     const { data: contactCheck } = await supabase.from("contacts").select("id").eq("id", invoice.supplier_id).maybeSingle();
-    if (contactCheck) contactId = invoice.supplier_id;
+    if (contactCheck) {
+      contactId = invoice.supplier_id;
+    } else {
+      // Auto-sync: create a contact record for this pos_supplier
+      const { data: newContact } = await supabase.from("contacts").insert({
+        user_id: ownerId,
+        contact_name: invoice.supplier_name || "مورد",
+        contact_type: "مورد",
+        phone: invoice.supplier_phone || null,
+        is_active: true,
+        linked_account_code: "2100",
+      } as any).select("id").single();
+      if (newContact) contactId = (newContact as any).id;
+    }
 
-    const { error: txError } = await supabase.from("transactions").insert({
+    const { data: txData, error: txError } = await supabase.from("transactions").insert({
       user_id: ownerId,
       transaction_date: invoice.invoice_date,
       description: `فاتورة مشتريات - ${(data as any).invoice_number} - ${invoice.supplier_name || ""}`,
@@ -326,8 +339,15 @@ export function usePurchaseInvoices() {
       payment_method: displayPaymentMethod,
       idempotency_key: `PROC-INV-${invoiceId}`,
       contact_id: contactId,
-    });
+    }).select("id").single();
     if (txError) { console.error("Transaction insert failed:", txError); }
+
+    // Link transaction back to purchase invoice
+    if (txData) {
+      await supabase.from("purchase_invoices")
+        .update({ linked_transaction_id: (txData as any).id } as any)
+        .eq("id", invoiceId);
+    }
 
     toast({ title: "✅ تم إنشاء فاتورة المشتريات وتحديث المخزون والقيد المحاسبي" });
     fetch();
