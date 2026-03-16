@@ -300,50 +300,44 @@ const PurchaseOrderCreatePage = () => {
         <div className="flex-1 flex min-h-0">
           {/* CENTER: Categories (horizontal) + Items Grid */}
           <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-            {/* Horizontal Category Tabs (POS-style) */}
-            <div className="shrink-0 border-b border-border bg-muted/20">
-              <ScrollArea className="w-full" dir="rtl">
-                <div className="flex items-center gap-1 px-3 py-2">
-                  {/* All tab */}
-                  <button
-                    onClick={() => setActiveCategory(null)}
-                    className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                      !activeCategory ? "bg-accent text-accent-foreground shadow-sm" : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
-                    }`}
-                  >
-                    <Package className="h-3.5 w-3.5" />
-                    <span>الكل</span>
-                    <Badge variant="secondary" className="text-[9px] h-4 px-1 mr-0.5">{allItems.length}</Badge>
-                  </button>
+            {/* Category Tabs - wrap style like POS */}
+            <div className="shrink-0 border-b border-border bg-muted/20 px-3 py-2">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <button
+                  onClick={() => setActiveCategory(null)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                    !activeCategory ? "bg-foreground text-background shadow-sm" : "border border-border text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+                  }`}
+                >
+                  <span>الكل</span>
+                  <span className="text-[9px] opacity-80">({allItems.length})</span>
+                </button>
 
-                  {categories.map((cat: any) => {
-                    const isActive = activeCategory === cat.id;
-                    const Icon = iconMap[cat.icon || ""] || PackageIcon;
-                    return (
-                      <button
-                        key={cat.id}
-                        onClick={() => setActiveCategory(isActive ? null : cat.id)}
-                        className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                          isActive ? "shadow-sm text-white" : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
-                        }`}
-                        style={isActive ? { backgroundColor: cat.color || "#6b7280" } : {}}
-                      >
-                        <Icon className="h-3.5 w-3.5" />
-                        <span>{cat.name}</span>
-                        <span className="text-[9px] opacity-70">{categoryCounts[cat.id] || 0}</span>
-                      </button>
-                    );
-                  })}
+                {categories.map((cat: any) => {
+                  const isActive = activeCategory === cat.id;
+                  const Icon = iconMap[cat.icon || ""] || PackageIcon;
+                  return (
+                    <button
+                      key={cat.id}
+                      onClick={() => setActiveCategory(isActive ? null : cat.id)}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                        isActive ? "shadow-sm text-white" : "border border-border text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+                      }`}
+                      style={isActive ? { backgroundColor: cat.color || "#6b7280" } : {}}
+                    >
+                      <Icon className="h-3.5 w-3.5" />
+                      <span>{cat.name}</span>
+                      <span className="text-[9px] opacity-70">({categoryCounts[cat.id] || 0})</span>
+                    </button>
+                  );
+                })}
 
-                  {/* Add category */}
-                  <button onClick={() => setCategoryOpen(true)}
-                    className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs text-muted-foreground hover:bg-muted/60 hover:text-primary transition-all border border-dashed border-border/60">
-                    <FolderPlus className="h-3.5 w-3.5" />
-                    <span>تصنيف</span>
-                  </button>
-                </div>
-                <ScrollBar orientation="horizontal" />
-              </ScrollArea>
+                <button onClick={() => setCategoryOpen(true)}
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs text-muted-foreground hover:bg-muted/60 hover:text-primary transition-all border border-dashed border-border/60">
+                  <Plus className="h-3 w-3" />
+                  <span>تصنيف</span>
+                </button>
+              </div>
             </div>
 
             {/* Search + controls */}
@@ -353,9 +347,6 @@ const PurchaseOrderCreatePage = () => {
                 <Input ref={searchRef} placeholder="ابحث عن صنف..." value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)} className="h-7 pr-8 text-xs" />
               </div>
-              <Button variant="outline" size="sm" className="h-7 text-[11px] px-2" onClick={() => setManualOpen(true)}>
-                <PlusCircle className="h-3 w-3 ml-1" />صنف يدوي
-              </Button>
               <Button variant="outline" size="sm" className="h-7 text-[11px] px-2" onClick={() => setItemOpen(true)}>
                 <Plus className="h-3 w-3 ml-1" />إضافة صنف
               </Button>
