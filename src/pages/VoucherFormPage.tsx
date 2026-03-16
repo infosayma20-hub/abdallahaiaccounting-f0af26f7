@@ -409,8 +409,17 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   };
 
   const handleSave = async (asDraft = false) => {
-    if (!user || !selectedContact || amountNum <= 0) {
+    const isEmployeePayment = !isReceipt && partyType === "employee";
+    if (!user || amountNum <= 0) {
       toast.error("الرجاء تعبئة جميع الحقول المطلوبة");
+      return;
+    }
+    if (isEmployeePayment && !selectedEmployee) {
+      toast.error("الرجاء اختيار الموظف");
+      return;
+    }
+    if (!isEmployeePayment && !selectedContact) {
+      toast.error("الرجاء اختيار الجهة");
       return;
     }
     setSaving(true);
