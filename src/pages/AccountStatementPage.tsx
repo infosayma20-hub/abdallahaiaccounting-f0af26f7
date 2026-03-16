@@ -1500,7 +1500,16 @@ const AccountStatementPage = () => {
             {/* Contact selector for collapsed sidebar (medium screens) */}
             {sidebarCollapsed && !isMobile && (
               <div className="px-4 pt-3 no-print">
-                <div className="flex items-center gap-2">
+                <div className="flex flex-col gap-2">
+                  <div className="relative">
+                    <Search className="absolute right-2.5 top-2.5 w-4 h-4 text-muted-foreground pointer-events-none" />
+                    <Input
+                      placeholder={isAccountsTab ? "ابحث بالاسم أو الكود..." : "ابحث بالاسم أو الرقم..."}
+                      value={entitySearch}
+                      onChange={e => setEntitySearch(e.target.value)}
+                      className="pr-9 h-9 text-xs bg-muted/50 border-border rounded-lg"
+                    />
+                  </div>
                   <Select value={selectedEntityId} onValueChange={selectEntity}>
                     <SelectTrigger className="h-9 text-xs bg-muted/50 border-border rounded-lg flex-1">
                       <SelectValue placeholder="اختر جهة ▼" />
