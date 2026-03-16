@@ -926,7 +926,14 @@ const AccountStatementPage = () => {
         resolveDebitCredit = (tx) => ({ isDebit: tx.debit_account_code === code, isCredit: tx.credit_account_code === code });
       } else if (isEmployeesTab && selectedEmployee?.account_code) {
         const code = selectedEmployee.account_code;
-        related = transactions.filter(tx => tx.debit_account_code === code || tx.credit_account_code === code);
+        const empName = selectedEmployee.full_name?.trim() || "";
+        const sameCodeCount = employeeEntities.filter(e => e.account_code === code).length;
+        related = transactions.filter(tx => {
+          const matchesCode = tx.debit_account_code === code || tx.credit_account_code === code;
+          if (!matchesCode) return false;
+          if (sameCodeCount <= 1) return true;
+          return empName && tx.description?.includes(empName);
+        });
         resolveDebitCredit = (tx) => ({ isDebit: tx.debit_account_code === code, isCredit: tx.credit_account_code === code });
       } else {
         const accountCode = activeTabConfig.accountCode;
