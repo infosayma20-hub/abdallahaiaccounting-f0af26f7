@@ -252,8 +252,9 @@ export function usePurchaseInvoices() {
     const total = subtotal - (invoice.discount || 0) + (invoice.tax || 0);
 
     const isPaid = invoice.payment_status === "paid";
-    const creditAccount = isPaid ? "1110" : "2100"; // نقدي = صندوق، آجل = ذمم موردين
-    const paymentMethod = isPaid ? "نقدي" : "آجل";
+    const creditAccount = isPaid ? "1110" : "2100";
+    const dbPaymentMethod = isPaid ? "cash" : "credit";
+    const displayPaymentMethod = isPaid ? "نقدي" : "آجل";
 
     const { data, error } = await supabase
       .from("purchase_invoices")
@@ -271,7 +272,7 @@ export function usePurchaseInvoices() {
         remaining_amount: isPaid ? 0 : total,
         paid_amount: isPaid ? total : 0,
         status: isPaid ? "approved" : "pending",
-        payment_method: paymentMethod,
+        payment_method: dbPaymentMethod,
         notes: invoice.notes || null,
         created_by: user?.id,
         procurement_order_id: orderId || null,
@@ -317,7 +318,7 @@ export function usePurchaseInvoices() {
       currency: "شيكل",
       transaction_type: "purchase_invoice",
       reference: (data as any).invoice_number,
-      payment_method: paymentMethod,
+      payment_method: displayPaymentMethod,
       idempotency_key: `PROC-INV-${invoiceId}`,
       contact_id: invoice.supplier_id,
     });
