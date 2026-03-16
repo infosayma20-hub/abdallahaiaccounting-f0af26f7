@@ -86,7 +86,14 @@ export default function HRAttendancePage() {
     setLoading(true);
     try {
       const { data: br } = await supabase.from("branches_safe").select("*").eq("user_id", user.id);
-      setBranches(br || []);
+      // Only show branches that have employees linked to them
+      const { data: empBranches } = await supabase
+        .from("employees")
+        .select("branch_id")
+        .eq("user_id", user.id)
+        .not("branch_id", "is", null);
+      const usedBranchIds = new Set((empBranches || []).map(e => e.branch_id));
+      setBranches((br || []).filter(b => usedBranchIds.has(b.id)));
 
       // Fetch attendance for date - join with employees
       let query = supabase
