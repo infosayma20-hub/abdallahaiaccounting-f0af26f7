@@ -121,6 +121,7 @@ export function useCategoriesCrud() {
 
 // ── Items CRUD ──
 export function useItemsCrud() {
+  const { user } = useAuth();
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
