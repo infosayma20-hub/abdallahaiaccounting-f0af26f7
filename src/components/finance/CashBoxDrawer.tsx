@@ -202,7 +202,7 @@ const CashBoxDrawer = ({ open, onClose, defaultType, editBox, hasMainBox, onSave
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
-                {boxType === "main" ? <Landmark className="h-5 w-5" /> : boxType === "branch" ? <Building2 className="h-5 w-5" /> : <Monitor className="h-5 w-5" />}
+                {boxType === "main" ? <Landmark className="h-5 w-5" /> : boxType === "branch" ? <Building2 className="h-5 w-5" /> : boxType === "petty" ? <Wallet className="h-5 w-5" /> : <Monitor className="h-5 w-5" />}
               </div>
               <div>
                 <h2 className="text-lg font-bold" style={{ fontFamily: "Tajawal, sans-serif" }}>{editBox ? `تعديل — ${editBox.name}` : titles[boxType]}</h2>
