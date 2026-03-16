@@ -25,7 +25,7 @@ const ShortcutsTip = ({ onShowShortcuts }: ShortcutsTipProps) => {
   if (!show) return null;
 
   return (
-    <div className="absolute top-12 left-0 z-50 animate-in fade-in slide-in-from-top-2 duration-300">
+    <div className="absolute top-12 right-0 z-50 animate-in fade-in slide-in-from-top-2 duration-300">
       <div className="bg-card border border-border rounded-xl shadow-lg p-3 w-[240px]" dir="rtl">
         <div className="flex items-start gap-2">
           <Keyboard className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
