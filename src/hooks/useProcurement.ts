@@ -252,8 +252,9 @@ export function usePurchaseInvoices() {
     const total = subtotal - (invoice.discount || 0) + (invoice.tax || 0);
 
     const isPaid = invoice.payment_status === "paid";
-    const creditAccount = isPaid ? "1110" : "2100"; // نقدي = صندوق، آجل = ذمم موردين
-    const paymentMethod = isPaid ? "نقدي" : "آجل";
+    const creditAccount = isPaid ? "1110" : "2100";
+    const dbPaymentMethod = isPaid ? "cash" : "credit";
+    const displayPaymentMethod = isPaid ? "نقدي" : "آجل";
 
     const { data, error } = await supabase
       .from("purchase_invoices")
