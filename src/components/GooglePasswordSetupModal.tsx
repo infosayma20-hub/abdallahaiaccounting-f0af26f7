@@ -19,7 +19,7 @@ export default function GooglePasswordSetupModal({ open, onComplete, onSkip }: G
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
-  const isValid = password.length >= 8 && password === confirmPassword;
+  const isValid = password.length >= 1 && password === confirmPassword;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
