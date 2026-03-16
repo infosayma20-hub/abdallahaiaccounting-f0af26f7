@@ -14,6 +14,11 @@ import { Plus, Search, Users, DollarSign, Calendar, FileText, Edit, Trash2, User
 import { useNavigate } from "react-router-dom";
 import BackButton from "@/components/BackButton";
 import EmployeeMovementsTab from "@/components/hr/EmployeeMovementsTab";
+import EmployeeFinancialMovementsTab from "@/components/hr/EmployeeFinancialMovementsTab";
+import EmployeeDeductionsTab from "@/components/hr/EmployeeDeductionsTab";
+import EmployeeLeavesTab from "@/components/hr/EmployeeLeavesTab";
+import EmployeeHRTab from "@/components/hr/EmployeeHRTab";
+import AdvanceRequestModal from "@/components/hr/AdvanceRequestModal";
 import EmployeeImportDialog from "@/components/hr/EmployeeImportDialog";
 import OfficialHolidaysDialog from "@/components/hr/OfficialHolidaysDialog";
 import TerminationDialog from "@/components/hr/TerminationDialog";
