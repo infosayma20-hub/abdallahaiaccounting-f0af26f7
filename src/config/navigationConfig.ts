@@ -280,6 +280,7 @@ export const navigationSections: NavSection[] = [
             children: [
               { label: "الرواتب", path: "/payroll" },
               { label: "الإجازات", path: "/leaves" },
+              { label: "السلف والقروض", path: "/advances" },
             ],
           },
         ],

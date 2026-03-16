@@ -565,36 +565,20 @@ const EmployeesPage = () => {
                   </TabsContent>
 
                   <TabsContent value="deductions">
-                    <div className="flex justify-between items-center mb-3">
-                      <h3 className="font-medium text-foreground">المسحوبات والخصومات</h3>
-                      <Button size="sm" onClick={() => setShowDeductionForm(true)} className="gap-1"><Plus className="h-3 w-3" /> إضافة</Button>
-                    </div>
-                    <Table>
-                      <TableHeader><TableRow>
-                        <TableHead className="text-right">النوع</TableHead>
-                        <TableHead className="text-right">المبلغ</TableHead>
-                        <TableHead className="text-right">التاريخ</TableHead>
-                        <TableHead className="text-right">الوصف</TableHead>
-                        <TableHead className="text-right">الحالة</TableHead>
-                      </TableRow></TableHeader>
-                      <TableBody>
-                        {deductions.map(d => (
-                          <TableRow key={d.id}>
-                            <TableCell><Badge variant="outline">{d.deduction_type}</Badge></TableCell>
-                            <TableCell className="font-medium">{Number(d.amount).toLocaleString()}</TableCell>
-                            <TableCell>{d.deduction_date}</TableCell>
-                            <TableCell className="truncate max-w-[150px]">{d.description || "—"}</TableCell>
-                            <TableCell><Badge variant={d.is_repaid ? "default" : "destructive"}>{d.is_repaid ? "مسدد" : "غير مسدد"}</Badge></TableCell>
-                          </TableRow>
-                        ))}
-                        {deductions.length === 0 && <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">لا توجد مسحوبات</TableCell></TableRow>}
-                      </TableBody>
-                    </Table>
+                    {user && selectedEmployee && (
+                      <EmployeeDeductionsTab
+                        employeeId={selectedEmployee.id}
+                        employeeName={selectedEmployee.full_name}
+                        userId={user.id}
+                        deductions={deductions}
+                        onRefresh={() => fetchEmployeeDetails(selectedEmployee.id)}
+                      />
+                    )}
                   </TabsContent>
 
                   <TabsContent value="movements">
                     {user && selectedEmployee && (
-                      <EmployeeMovementsTab
+                      <EmployeeFinancialMovementsTab
                         employeeId={selectedEmployee.id}
                         employeeName={selectedEmployee.full_name}
                         userId={user.id}
@@ -603,60 +587,25 @@ const EmployeesPage = () => {
                   </TabsContent>
 
                   <TabsContent value="leaves">
-                    <div className="flex justify-between items-center mb-3">
-                      <h3 className="font-medium text-foreground">الإجازات</h3>
-                      <Button size="sm" onClick={() => setShowLeaveForm(true)} className="gap-1"><Plus className="h-3 w-3" /> طلب إجازة</Button>
-                    </div>
-                    {leaveBalance && (
-                      <div className="bg-muted/30 rounded-xl p-3 mb-3 flex flex-wrap gap-4 text-xs">
-                        <span>الاستحقاق السنوي: <b>{leaveBalance.entitlement} يوم</b></span>
-                        <span>مرحّل: <b>{leaveBalance.carriedOver}</b></span>
-                        <span>مستخدم: <b>{leaveBalance.used}</b></span>
-                        <span className="text-primary font-bold">المتاح: {leaveBalance.available} يوم</span>
-                      </div>
+                    {user && selectedEmployee && (
+                      <EmployeeLeavesTab
+                        employeeId={selectedEmployee.id}
+                        userId={user.id}
+                        employee={selectedEmployee}
+                        leaves={leaves}
+                        onRefresh={() => fetchEmployeeDetails(selectedEmployee.id)}
+                      />
                     )}
-                    <Table>
-                      <TableHeader><TableRow>
-                        <TableHead className="text-right">النوع</TableHead>
-                        <TableHead className="text-right">من</TableHead>
-                        <TableHead className="text-right">إلى</TableHead>
-                        <TableHead className="text-right">الأيام</TableHead>
-                        <TableHead className="text-right">الحالة</TableHead>
-                      </TableRow></TableHeader>
-                      <TableBody>
-                        {leaves.map(l => (
-                          <TableRow key={l.id}>
-                            <TableCell>{l.leave_type}</TableCell>
-                            <TableCell>{l.start_date}</TableCell>
-                            <TableCell>{l.end_date}</TableCell>
-                            <TableCell>{l.days_count}</TableCell>
-                            <TableCell><Badge variant={l.status === "موافق عليها" ? "default" : l.status === "مرفوضة" ? "destructive" : "secondary"}>{l.status}</Badge></TableCell>
-                          </TableRow>
-                        ))}
-                        {leaves.length === 0 && <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">لا توجد إجازات</TableCell></TableRow>}
-                      </TableBody>
-                    </Table>
                   </TabsContent>
 
                   <TabsContent value="hr">
-                    <div className="space-y-4">
-                      <h3 className="font-medium text-foreground">معلومات HR إضافية</h3>
-                      <div className="grid grid-cols-2 gap-3 text-sm">
-                        {[
-                          ["الجنسية", (selectedEmployee as any).nationality],
-                          ["تاريخ الميلاد", (selectedEmployee as any).date_of_birth],
-                          ["رصيد الإجازة الحالي", `${Number((selectedEmployee as any).annual_leave_balance || 0)} يوم`],
-                          ["رصيد السنة السابقة", `${Number((selectedEmployee as any).previous_year_balance || 0)} يوم`],
-                          ["العنوان", selectedEmployee.address],
-                          ["ملاحظات", selectedEmployee.notes],
-                        ].map(([label, val]) => (
-                          <div key={label as string} className="flex justify-between border-b border-border/30 pb-1">
-                            <span className="text-muted-foreground">{label}</span>
-                            <span className="font-medium text-foreground">{val || "—"}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
+                    {user && selectedEmployee && (
+                      <EmployeeHRTab
+                        employeeId={selectedEmployee.id}
+                        userId={user.id}
+                        employee={selectedEmployee}
+                      />
+                    )}
                   </TabsContent>
                 </Tabs>
               </CardContent>

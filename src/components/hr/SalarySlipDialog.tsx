@@ -62,8 +62,11 @@ const monthNames = ["يناير","فبراير","مارس","أبريل","ماي�
 export default function SalarySlipDialog({ open, onClose, slip, employeeName, department, startDate, month, year, companyName, employee, userId }: Props) {
   const [movements, setMovements] = useState<Movement[]>([]);
 
+  const [installmentDeductions, setInstallmentDeductions] = useState<{label: string; amount: number}[]>([]);
+
   useEffect(() => {
     if (open && employee?.id && userId) {
+      // Fetch financial movements
       supabase
         .from("employee_financial_movements")
         .select("id, source_type, description, amount, movement_date, status")
@@ -75,6 +78,23 @@ export default function SalarySlipDialog({ open, onClose, slip, employeeName, de
         .eq("movement_type", "debit")
         .order("movement_date", { ascending: true })
         .then(({ data }) => setMovements((data as Movement[]) || []));
+
+      // Fetch advance installments for this month
+      const dueMonth = `${year}-${String(month).padStart(2, "0")}-01`;
+      supabase
+        .from("employee_advance_installments")
+        .select("*, employee_advances(advance_type, amount)")
+        .eq("employee_id", employee.id)
+        .eq("user_id", userId)
+        .eq("due_month", dueMonth)
+        .then(({ data }) => {
+          const items = ((data as any[]) || []).map((inst: any) => {
+            const adv = inst.employee_advances;
+            const typeLabel = adv?.advance_type === "قرض_حسن" ? "قسط قرض" : "قسط سلفة";
+            return { label: `${typeLabel} (${inst.installment_number})`, amount: Number(inst.amount) };
+          });
+          setInstallmentDeductions(items);
+        });
     }
   }, [open, employee?.id, userId, month, year]);
 
@@ -130,6 +150,11 @@ export default function SalarySlipDialog({ open, onClose, slip, employeeName, de
     deductionsList.unshift(["سلف ومسحوبات", slip.advanceDeduction]);
   }
   if (slip.otherDeductions > 0) deductionsList.push(["خصومات أخرى", slip.otherDeductions]);
+
+  // Add advance installments
+  installmentDeductions.forEach(inst => {
+    deductionsList.push([inst.label, inst.amount]);
+  });
 
   const totalDeductions = deductionsList.reduce((s, [, v]) => s + v, 0);
   const totalEarnings = earningsList.reduce((s, [, v]) => s + v, 0);
