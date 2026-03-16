@@ -80,7 +80,7 @@ export default function EmployeeFinancialMovementsTab({ employeeId, employeeName
       .from("employee_deductions")
       .select("*")
       .eq("employee_id", employeeId)
-      .eq("user_id", userId)
+      .eq("user_id", ownerId)
       .gte("deduction_date", startDate)
       .lte("deduction_date", endDate);
 
