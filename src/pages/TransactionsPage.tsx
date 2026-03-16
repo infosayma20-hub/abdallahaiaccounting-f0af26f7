@@ -350,13 +350,58 @@ const TransactionsPage = () => {
     } finally { setSaving(false); }
   };
 
+  const cancelLinkedVouchers = async (txIds: string[]) => {
+    if (!user || txIds.length === 0) return;
+    // Cancel linked receipt vouchers
+    await supabase.from('receipt_vouchers')
+      .update({ status: 'cancelled' } as any)
+      .eq('user_id', user.id)
+      .in('linked_transaction_id', txIds);
+    // Cancel linked payment vouchers
+    await supabase.from('vouchers')
+      .update({ status: 'cancelled' } as any)
+      .eq('user_id', user.id)
+      .in('linked_transaction_id', txIds);
+    // Cancel linked invoices
+    await supabase.from('invoices')
+      .update({ status: 'cancelled' } as any)
+      .eq('user_id', user.id)
+      .in('linked_transaction_id', txIds);
+    // Cancel linked purchase invoices
+    await supabase.from('purchase_invoices')
+      .update({ status: 'cancelled' } as any)
+      .eq('user_id', user.id)
+      .in('linked_transaction_id', txIds);
+  };
+
+  const restoreLinkedVouchers = async (txIds: string[]) => {
+    if (!user || txIds.length === 0) return;
+    await supabase.from('receipt_vouchers')
+      .update({ status: 'posted' } as any)
+      .eq('user_id', user.id)
+      .in('linked_transaction_id', txIds);
+    await supabase.from('vouchers')
+      .update({ status: 'posted' } as any)
+      .eq('user_id', user.id)
+      .in('linked_transaction_id', txIds);
+    await supabase.from('invoices')
+      .update({ status: 'posted' } as any)
+      .eq('user_id', user.id)
+      .in('linked_transaction_id', txIds);
+    await supabase.from('purchase_invoices')
+      .update({ status: 'posted' } as any)
+      .eq('user_id', user.id)
+      .in('linked_transaction_id', txIds);
+  };
+
   const handleDelete = async () => {
     if (!editingTx) return;
     setDeleting(true);
     try {
       const { error } = await supabase.from('transactions').update({ is_deleted: true }).eq('id', editingTx.id);
       if (error) throw error;
-      toast({ title: "تم نقل المعاملة إلى سلة المحذوفات" });
+      await cancelLinkedVouchers([editingTx.id]);
+      toast({ title: "تم نقل المعاملة والمستندات المرتبطة إلى سلة المحذوفات" });
       setEditingTx(null); setShowDeleteConfirm(false); fetchData();
     } catch (err: any) {
       toast({ title: "خطأ", description: err.message, variant: "destructive" });
