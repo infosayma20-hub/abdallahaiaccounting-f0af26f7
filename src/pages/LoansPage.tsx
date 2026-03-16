@@ -25,8 +25,7 @@ export default function LoansPage() {
       if (!user) return [];
       const { data, error } = await supabase
         .from("employee_loans")
-        .select("*, employees(full_name, department, employee_number), loan_installments(*)")
-        .eq("user_id", user.id)
+        .select("*, employees(full_name, department), loan_installments(*)")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data || [];
@@ -67,7 +66,6 @@ export default function LoansPage() {
   const exportExcel = () => {
     const rows = filtered.map((l: any) => ({
       "الموظف": l.employees?.full_name || "-",
-      "رقم الموظف": l.employees?.employee_number || "-",
       "المبلغ الإجمالي": Number(l.total_amount),
       "القسط الشهري": Number(l.monthly_installment),
       "الأقساط المدفوعة": l.paid_months,
@@ -170,7 +168,6 @@ export default function LoansPage() {
                         </Badge>
                       </div>
                       <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                        <span>رقم: {loan.employees?.employee_number || "-"}</span>
                         <span>{loan.employees?.department || "-"}</span>
                       </div>
                     </div>
