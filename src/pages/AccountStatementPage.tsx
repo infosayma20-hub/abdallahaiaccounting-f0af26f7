@@ -563,10 +563,14 @@ const AccountStatementPage = () => {
       }
 
       const allAccounts = (accData as Account[]) || [];
+      const normalizeArabicName = (value: string = "") => value.replace(/\s+/g, " ").replace(/عبدالله/g, "عبد الله").trim();
       const empList = ((empData as any[]) || []).map((emp: any) => {
-        const linkedAcc = allAccounts.find(
-          a => a.account_name === `ذمم موظف - ${emp.full_name}` && a.account_type === "أصول"
-        );
+        const normalizedEmployeeName = normalizeArabicName(emp.full_name);
+        const linkedAcc = allAccounts.find((a) => {
+          const isEmployeeReceivable = a.account_type === "أصول" || a.account_type === "asset";
+          const normalizedAccountName = normalizeArabicName(a.account_name?.replace(/^ذمم موظف\s*-\s*/, "") || "");
+          return isEmployeeReceivable && normalizedAccountName === normalizedEmployeeName;
+        });
         return { ...emp, account_code: linkedAcc?.account_code || null } as EmployeeEntity;
       });
       setEmployeeEntities(empList);
