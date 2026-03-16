@@ -378,6 +378,9 @@ const ProfilePage = () => {
         </CardContent>
       </Card>
 
+      {/* Add Password Section (for Google-only users) */}
+      <GoogleOnlyPasswordSection />
+
       {/* Save Button */}
       <Button onClick={handleSave} disabled={saving} className="w-full h-12 rounded-2xl text-base font-bold gap-2">
         {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}
