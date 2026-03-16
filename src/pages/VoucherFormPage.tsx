@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams, useParams } from "react-router-dom";
-import { ArrowRight, FileText, Search, CheckCircle, AlertTriangle, Info, Printer, Save, Landmark, CreditCard, Building2, Receipt as ReceiptIcon, Banknote, User } from "lucide-react";
+import { ArrowRight, FileText, Search, CheckCircle, AlertTriangle, Info, Printer, Save, Landmark, CreditCard, Building2, Receipt as ReceiptIcon, Banknote, User, Users, UserCheck } from "lucide-react";
 import DuplicateBanner from "@/components/DuplicateBanner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -45,6 +45,13 @@ interface BankAccount {
   gl_account_code: string | null;
 }
 
+interface Employee {
+  id: string;
+  full_name: string;
+  department: string | null;
+  job_title: string | null;
+}
+
 const PAYMENT_METHODS = [
   { value: "نقدي", label: "نقدي", icon: Banknote },
   { value: "شيك", label: "شيك", icon: ReceiptIcon },
@@ -52,7 +59,18 @@ const PAYMENT_METHODS = [
   { value: "بطاقة", label: "بطاقة", icon: CreditCard },
 ];
 
+const EMP_TRANSACTION_CATEGORIES = [
+  { value: "سلفة", label: "سلفة", emoji: "💰" },
+  { value: "أكل", label: "أكل / وجبات", emoji: "🍽️" },
+  { value: "عجز", label: "عجز صندوق", emoji: "📉" },
+  { value: "مشتريات", label: "مشتريات", emoji: "🛒" },
+  { value: "توصيل", label: "توصيل", emoji: "🚗" },
+  { value: "مخالفة", label: "مخالفة", emoji: "⚠️" },
+  { value: "أخرى", label: "أخرى", emoji: "📝" },
+];
+
 type VoucherType = "receipt" | "payment";
+type PartyType = "contact" | "employee";
 
 interface VoucherFormPageProps {
   voucherType?: VoucherType;
@@ -115,6 +133,16 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   const [saved, setSaved] = useState(false);
   const [savedReceiptNumber, setSavedReceiptNumber] = useState("");
 
+  // Employee party type (for payment vouchers)
+  const [partyType, setPartyType] = useState<PartyType>("contact");
+  const [employeeList, setEmployeeList] = useState<Employee[]>([]);
+  const [employeeSearch, setEmployeeSearch] = useState("");
+  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+  const [showEmployeeDropdown, setShowEmployeeDropdown] = useState(false);
+  const [empCategory, setEmpCategory] = useState("سلفة");
+  const [empCategoryCustom, setEmpCategoryCustom] = useState("");
+  const [violationReason, setViolationReason] = useState("");
+
   // ─── Load Duplicate Data ───
   useEffect(() => {
     if (!fromDuplicate) return;
@@ -160,6 +188,17 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         }
       });
   }, [user]);
+
+  // Load employees (for payment vouchers)
+  useEffect(() => {
+    if (!user || isReceipt) return;
+    supabase.from("employees")
+      .select("id, full_name, department, job_title")
+      .eq("user_id", user.id)
+      .eq("is_active", true)
+      .order("full_name")
+      .then(({ data }) => setEmployeeList(data || []));
+  }, [user, isReceipt]);
 
   // ─── Compute real balance from transactions ───
   useEffect(() => {
@@ -292,6 +331,12 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     return contacts.filter(c => c.contact_name.toLowerCase().includes(q)).slice(0, 10);
   }, [contacts, contactSearch]);
 
+  const filteredEmployees = useMemo(() => {
+    if (!employeeSearch.trim()) return employeeList.slice(0, 10);
+    const q = employeeSearch.toLowerCase();
+    return employeeList.filter(e => e.full_name.toLowerCase().includes(q)).slice(0, 10);
+  }, [employeeList, employeeSearch]);
+
   const filteredInvoices = useMemo(() => {
     if (!invoiceSearch.trim()) return invoices;
     const q = invoiceSearch.toLowerCase();
@@ -364,8 +409,17 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   };
 
   const handleSave = async (asDraft = false) => {
-    if (!user || !selectedContact || amountNum <= 0) {
+    const isEmployeePayment = !isReceipt && partyType === "employee";
+    if (!user || amountNum <= 0) {
       toast.error("الرجاء تعبئة جميع الحقول المطلوبة");
+      return;
+    }
+    if (isEmployeePayment && !selectedEmployee) {
+      toast.error("الرجاء اختيار الموظف");
+      return;
+    }
+    if (!isEmployeePayment && !selectedContact) {
+      toast.error("الرجاء اختيار الجهة");
       return;
     }
     setSaving(true);
@@ -454,16 +508,64 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
 
       if (!asDraft && !isReceipt) {
         const payMethodMap: Record<string, string> = { "نقدي": "نقدي", "شيك": "شيك", "تحويل": "بنك", "بطاقة": "بطاقة" };
+        
+        let debitAccountCode = "2100"; // Default: supplier payables
+        let txDescription = notes || `سند صرف إلى ${selectedContact?.contact_name || ""}`;
+        let txContactId = selectedContact?.id || null;
+
+        // Employee payment: find their account under 1180
+        if (isEmployeePayment && selectedEmployee) {
+          const categoryLabel = empCategory === "أخرى" ? empCategoryCustom : empCategory;
+          const violationNote = empCategory === "مخالفة" && violationReason ? ` - السبب: ${violationReason}` : "";
+          txDescription = `${categoryLabel} - ${selectedEmployee.full_name}${violationNote}`;
+          if (notes) txDescription += ` | ${notes}`;
+          txContactId = null;
+
+          // Find employee account under 1180
+          const { data: empAccount } = await supabase
+            .from("accounts")
+            .select("account_code")
+            .eq("user_id", user.id)
+            .like("parent_code", "1180")
+            .like("account_name", `%${selectedEmployee.full_name}%`)
+            .limit(1)
+            .single();
+
+          if (empAccount) {
+            debitAccountCode = empAccount.account_code;
+          } else {
+            // Auto-create employee account
+            const { data: maxCode } = await supabase
+              .from("accounts")
+              .select("account_code")
+              .eq("user_id", user.id)
+              .like("parent_code", "1180")
+              .order("account_code", { ascending: false })
+              .limit(1)
+              .single();
+            const nextCode = maxCode ? String(parseInt(maxCode.account_code) + 1) : "1181";
+            await supabase.from("accounts").insert({
+              user_id: user.id,
+              account_code: nextCode,
+              account_name: `ذمم موظف - ${selectedEmployee.full_name}`,
+              account_type: "asset",
+              parent_code: "1180",
+              is_system: false,
+            });
+            debitAccountCode = nextCode;
+          }
+        }
+
         const { data: txData } = await supabase.from("transactions").insert({
           user_id: user.id,
           transaction_date: paymentDate,
-          description: notes || `سند صرف إلى ${selectedContact.contact_name}`,
-          debit_account_code: "2100",
+          description: txDescription,
+          debit_account_code: debitAccountCode,
           credit_account_code: depositAccountCode,
           amount: amountNum,
           currency: "شيكل",
-          transaction_type: "payment",
-          contact_id: selectedContact.id,
+          transaction_type: isEmployeePayment ? "employee_payment" : "payment",
+          contact_id: txContactId,
           payment_method: payMethodMap[paymentMethod] || "نقدي",
           idempotency_key: `PAY-NEW-${Date.now()}`,
         }).select("id").single();
@@ -536,6 +638,11 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
         setSavedReceiptNumber(receipt?.receipt_number || "");
       } else {
         const payMethodMap: Record<string, string> = { "نقدي": "cash", "شيك": "cheque", "تحويل": "transfer", "بطاقة": "card" };
+        const isEmpPay = partyType === "employee" && selectedEmployee;
+        const categoryLabel = empCategory === "أخرى" ? empCategoryCustom : empCategory;
+        const violationNote = empCategory === "مخالفة" && violationReason ? ` - السبب: ${violationReason}` : "";
+        const empDesc = isEmpPay ? `${categoryLabel} - ${selectedEmployee.full_name}${violationNote}` : "";
+
         const { data: voucher, error: voucherError } = await supabase
           .from("vouchers")
           .insert({
@@ -543,13 +650,13 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             type: "payment" as const,
             ref_number: refNumber || `PV-${new Date().getFullYear()}-0001`,
             date: paymentDate,
-            contact_id: selectedContact.id,
+            contact_id: isEmpPay ? null : selectedContact?.id,
             payment_method: payMethodMap[paymentMethod] || "cash",
             amount: amountNum,
             amount_ils: amountNum,
             currency: "ILS",
             exchange_rate: 1,
-            description: notes || `سند صرف إلى ${selectedContact.contact_name}`,
+            description: isEmpPay ? (empDesc + (notes ? ` | ${notes}` : "")) : (notes || `سند صرف إلى ${selectedContact?.contact_name || ""}`),
             notes: notes || null,
             status: asDraft ? "draft" : "posted",
             bank_account_id: bankAccountId,
@@ -663,40 +770,128 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       {/* Row 1: Basic Info */}
       <Card>
         <CardContent className="p-5 space-y-4">
+          {/* Party Type Toggle (Payment vouchers only) */}
+          {!isReceipt && (
+            <div>
+              <Label className="text-xs mb-1.5 block">نوع الجهة</Label>
+              <div className="flex gap-1.5">
+                <button onClick={() => { setPartyType("contact"); setSelectedEmployee(null); }}
+                  className={`flex-1 flex items-center justify-center gap-1.5 p-2 rounded-lg text-[11px] transition-all border ${partyType === "contact" ? "bg-primary/10 border-primary/40 text-primary font-bold" : "bg-secondary/50 border-border/30 text-muted-foreground hover:bg-secondary"}`}>
+                  <Users className="h-4 w-4" /> مورد / جهة
+                </button>
+                <button onClick={() => { setPartyType("employee"); setSelectedContact(null); }}
+                  className={`flex-1 flex items-center justify-center gap-1.5 p-2 rounded-lg text-[11px] transition-all border ${partyType === "employee" ? "bg-primary/10 border-primary/40 text-primary font-bold" : "bg-secondary/50 border-border/30 text-muted-foreground hover:bg-secondary"}`}>
+                  <UserCheck className="h-4 w-4" /> موظف
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <Label className="text-xs mb-1.5 block">التاريخ</Label>
               <Input type="date" value={paymentDate} onChange={e => setPaymentDate(e.target.value)} />
             </div>
-            <div className="md:col-span-2 relative">
-              <Label className="text-xs mb-1.5 block">{contactLabel}</Label>
-              <div className="relative">
-                <User className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                <Input
-                  value={selectedContact ? selectedContact.contact_name : contactSearch}
-                  onChange={e => { setContactSearch(e.target.value); setSelectedContact(null); setShowContactDropdown(true); }}
-                  onFocus={() => setShowContactDropdown(true)}
-                  placeholder={contactPlaceholder}
-                  className="pr-9"
-                />
+
+            {/* Contact Search (default) */}
+            {(isReceipt || partyType === "contact") && (
+              <div className="md:col-span-2 relative">
+                <Label className="text-xs mb-1.5 block">{contactLabel}</Label>
+                <div className="relative">
+                  <User className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                  <Input
+                    value={selectedContact ? selectedContact.contact_name : contactSearch}
+                    onChange={e => { setContactSearch(e.target.value); setSelectedContact(null); setShowContactDropdown(true); }}
+                    onFocus={() => setShowContactDropdown(true)}
+                    placeholder={contactPlaceholder}
+                    className="pr-9"
+                  />
+                </div>
+                {showContactDropdown && !selectedContact && (
+                  <div className="absolute z-50 top-full mt-1 w-full bg-card border border-border rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                    {filteredContacts.map(c => (
+                      <button key={c.id} onClick={() => { setSelectedContact(c); setContactSearch(""); setShowContactDropdown(false); }}
+                        className="w-full text-right px-4 py-2.5 hover:bg-secondary transition-colors flex items-center justify-between">
+                        <span className="text-sm">{c.contact_name}</span>
+                        <span className="text-xs text-muted-foreground">₪{formatAmount(c.current_balance || 0)}</span>
+                      </button>
+                    ))}
+                    {filteredContacts.length === 0 && <p className="text-center py-3 text-xs text-muted-foreground">لا توجد نتائج</p>}
+                  </div>
+                )}
               </div>
-              {showContactDropdown && !selectedContact && (
-                <div className="absolute z-50 top-full mt-1 w-full bg-card border border-border rounded-xl shadow-lg max-h-48 overflow-y-auto">
-                  {filteredContacts.map(c => (
-                    <button key={c.id} onClick={() => { setSelectedContact(c); setContactSearch(""); setShowContactDropdown(false); }}
-                      className="w-full text-right px-4 py-2.5 hover:bg-secondary transition-colors flex items-center justify-between">
-                      <span className="text-sm">{c.contact_name}</span>
-                      <span className="text-xs text-muted-foreground">₪{formatAmount(c.current_balance || 0)}</span>
+            )}
+
+            {/* Employee Search */}
+            {!isReceipt && partyType === "employee" && (
+              <div className="md:col-span-2 relative">
+                <Label className="text-xs mb-1.5 block">الموظف</Label>
+                <div className="relative">
+                  <UserCheck className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                  <Input
+                    value={selectedEmployee ? selectedEmployee.full_name : employeeSearch}
+                    onChange={e => { setEmployeeSearch(e.target.value); setSelectedEmployee(null); setShowEmployeeDropdown(true); }}
+                    onFocus={() => setShowEmployeeDropdown(true)}
+                    placeholder="ابحث عن موظف..."
+                    className="pr-9"
+                  />
+                </div>
+                {showEmployeeDropdown && !selectedEmployee && (
+                  <div className="absolute z-50 top-full mt-1 w-full bg-card border border-border rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                    {filteredEmployees.map(emp => (
+                      <button key={emp.id} onClick={() => { setSelectedEmployee(emp); setEmployeeSearch(""); setShowEmployeeDropdown(false); }}
+                        className="w-full text-right px-4 py-2.5 hover:bg-secondary transition-colors flex items-center justify-between">
+                        <span className="text-sm">{emp.full_name}</span>
+                        <span className="text-xs text-muted-foreground">{emp.department || emp.job_title || ""}</span>
+                      </button>
+                    ))}
+                    {filteredEmployees.length === 0 && <p className="text-center py-3 text-xs text-muted-foreground">لا توجد نتائج</p>}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Employee Transaction Category */}
+          {!isReceipt && partyType === "employee" && selectedEmployee && (
+            <div className="space-y-3">
+              <div className="bg-primary/5 border border-primary/20 rounded-xl p-3">
+                <span className="text-xs text-muted-foreground">الموظف: </span>
+                <span className="text-sm font-bold text-foreground">{selectedEmployee.full_name}</span>
+                {selectedEmployee.department && <span className="text-xs text-muted-foreground mr-2">({selectedEmployee.department})</span>}
+              </div>
+
+              <div>
+                <Label className="text-xs mb-1.5 block">نوع العملية</Label>
+                <div className="grid grid-cols-4 sm:grid-cols-7 gap-1.5">
+                  {EMP_TRANSACTION_CATEGORIES.map(cat => (
+                    <button key={cat.value} onClick={() => setEmpCategory(cat.value)}
+                      className={`flex flex-col items-center gap-0.5 p-2 rounded-lg text-[10px] transition-all border ${empCategory === cat.value ? "bg-primary/10 border-primary/40 text-primary font-bold" : "bg-secondary/50 border-border/30 text-muted-foreground hover:bg-secondary"}`}>
+                      <span className="text-base">{cat.emoji}</span>
+                      {cat.label}
                     </button>
                   ))}
-                  {filteredContacts.length === 0 && <p className="text-center py-3 text-xs text-muted-foreground">لا توجد نتائج</p>}
+                </div>
+              </div>
+
+              {empCategory === "أخرى" && (
+                <div>
+                  <Label className="text-xs mb-1.5 block">وصف العملية</Label>
+                  <Input value={empCategoryCustom} onChange={e => setEmpCategoryCustom(e.target.value)} placeholder="أدخل وصف العملية..." />
+                </div>
+              )}
+
+              {empCategory === "مخالفة" && (
+                <div>
+                  <Label className="text-xs mb-1.5 block">سبب المخالفة</Label>
+                  <Input value={violationReason} onChange={e => setViolationReason(e.target.value)} placeholder="أدخل سبب المخالفة..." />
                 </div>
               )}
             </div>
-          </div>
+          )}
 
           {/* Contact Info Badge */}
-          {selectedContact && (
+          {selectedContact && (isReceipt || partyType === "contact") && (
             <div className="bg-primary/5 border border-primary/20 rounded-xl p-3 flex flex-wrap items-center gap-4 text-xs">
               <span className="flex items-center gap-1.5">
                 💰 رصيد {isReceipt ? "الزبون" : "المورد"}: <span className={`font-bold ${(computedBalance ?? 0) > 0 ? "text-destructive" : "text-primary"}`}>₪{formatAmount(computedBalance ?? selectedContact.current_balance ?? 0)}</span>
@@ -794,7 +989,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       </Card>
 
       {/* Invoice Linking Section */}
-      {selectedContact && (
+      {selectedContact && (isReceipt || partyType === "contact") && (
         <Card>
           <CardContent className="p-5 space-y-4">
             <div className="flex items-center justify-between">
@@ -922,7 +1117,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-all">
             <Printer className="h-4 w-4" /> طباعة
           </button>
-          <button onClick={() => handleSave(false)} disabled={saving || amountNum <= 0 || !selectedContact}
+          <button onClick={() => handleSave(false)} disabled={saving || amountNum <= 0 || (!selectedContact && !selectedEmployee)}
             className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-bold hover:opacity-90 transition-all disabled:opacity-50">
             <Save className="h-4 w-4" />
             {saving ? "جارٍ الحفظ..." : isEditMode ? "تحديث السند" : "حفظ وترحيل"}
