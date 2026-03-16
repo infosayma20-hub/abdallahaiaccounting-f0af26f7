@@ -427,7 +427,8 @@ const TransactionsPage = () => {
     try {
       const { error } = await supabase.from('transactions').update({ is_deleted: false }).eq('id', id);
       if (error) throw error;
-      toast({ title: "تم استرجاع المعاملة بنجاح ✅" });
+      await restoreLinkedVouchers([id]);
+      toast({ title: "تم استرجاع المعاملة والمستندات المرتبطة بنجاح ✅" });
       fetchDeletedTransactions(); fetchData();
     } catch (err: any) {
       toast({ title: "خطأ", description: err.message, variant: "destructive" });
