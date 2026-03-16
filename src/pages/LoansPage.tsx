@@ -169,7 +169,6 @@ export default function LoansPage() {
                         </Badge>
                       </div>
                       <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                        <span>رقم: {loan.employees?.employee_number || "-"}</span>
                         <span>{loan.employees?.department || "-"}</span>
                       </div>
                     </div>
