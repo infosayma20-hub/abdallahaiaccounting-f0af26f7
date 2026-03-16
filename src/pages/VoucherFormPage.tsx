@@ -713,7 +713,194 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     }
   };
 
-  const handlePrint = () => { window.print(); };
+  const handlePrint = () => {
+    const partyName = partyType === "employee" && selectedEmployee
+      ? selectedEmployee.full_name
+      : selectedContact?.contact_name || "";
+    const amt = amountNum;
+    const fmtAmt = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const dateFormatted = new Date(paymentDate).toLocaleDateString("ar-PS", { year: "numeric", month: "2-digit", day: "2-digit" });
+    const typeLabel = isReceipt ? "سند قبض" : "سند صرف";
+    const typeBadge = isReceipt ? "Receipt Voucher" : "Payment Voucher";
+
+    // Amount in words (simple Arabic)
+    const amountInWords = `${Math.floor(amt)} شيكل${amt % 1 > 0 ? ` و ${Math.round((amt % 1) * 100)} أغورة` : ""} فقط لا غير`;
+
+    // Cheque section
+    const chequeHtml = paymentMethod === "شيك" ? `
+      <div style="margin-top:16px;">
+        <div style="font-size:11px;font-weight:700;color:#1B3A5C;margin-bottom:8px;">بيانات الشيك</div>
+        <table style="width:100%;border-collapse:collapse;font-size:11px;">
+          <thead>
+            <tr style="background:#1B3A5C;">
+              <th style="padding:6px 10px;color:#C9A84C;text-align:right;font-weight:600;">رقم الشيك</th>
+              <th style="padding:6px 10px;color:#C9A84C;text-align:right;font-weight:600;">تاريخ الاستحقاق</th>
+              <th style="padding:6px 10px;color:#C9A84C;text-align:right;font-weight:600;">اسم البنك</th>
+              <th style="padding:6px 10px;color:#C9A84C;text-align:left;font-weight:600;">المبلغ</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="border-bottom:1px solid #edf0f4;">
+              <td style="padding:6px 10px;">${checkNumber || "—"}</td>
+              <td style="padding:6px 10px;">${checkDate ? new Date(checkDate).toLocaleDateString("ar-PS") : "—"}</td>
+              <td style="padding:6px 10px;">${checkBank || "—"}</td>
+              <td style="padding:6px 10px;text-align:left;font-weight:700;">₪${fmtAmt(amt)}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>` : "";
+
+    // Employee category
+    const categoryLabel = !isReceipt && partyType === "employee" && empCategory ? empCategory : "";
+
+    // Linked invoices
+    const linkedInvs = invoices.filter(i => i.selected && (i.allocatedAmount || 0) > 0);
+    const invoiceRows = linkedInvs.map(inv => `
+      <tr style="border-bottom:1px solid #edf0f4;">
+        <td style="padding:5px 10px;font-size:11px;">${inv.invoice_date}</td>
+        <td style="padding:5px 10px;font-size:11px;font-family:monospace;">${inv.invoice_number || "—"}</td>
+        <td style="padding:5px 10px;font-size:11px;">${notes || (isReceipt ? "سند قبض" : "سند صرف")}</td>
+        <td style="padding:5px 10px;font-size:11px;">${typeLabel}</td>
+        <td style="padding:5px 10px;font-size:11px;text-align:left;font-family:monospace;">${fmtAmt(inv.allocatedAmount || 0)}</td>
+        <td style="padding:5px 10px;font-size:11px;text-align:left;">—</td>
+      </tr>`).join("");
+
+    // If no linked invoices, show single row
+    const tableBody = linkedInvs.length > 0 ? invoiceRows : `
+      <tr style="border-bottom:1px solid #edf0f4;">
+        <td style="padding:5px 10px;font-size:11px;">${dateFormatted}</td>
+        <td style="padding:5px 10px;font-size:11px;font-family:monospace;">${savedReceiptNumber || refNumber || "—"}</td>
+        <td style="padding:5px 10px;font-size:11px;">${notes || (categoryLabel ? `${categoryLabel} - ${partyName}` : typeLabel)}</td>
+        <td style="padding:5px 10px;font-size:11px;">${typeLabel}</td>
+        <td style="padding:5px 10px;font-size:11px;text-align:left;font-family:monospace;">${isReceipt ? "" : fmtAmt(amt)}</td>
+        <td style="padding:5px 10px;font-size:11px;text-align:left;font-family:monospace;">${isReceipt ? fmtAmt(amt) : ""}</td>
+      </tr>`;
+
+    const depositLabel = depositType === "cash_box"
+      ? (cashBoxes.find(c => c.id === selectedCashBox)?.name || "صندوق")
+      : (bankAccounts.find(b => b.id === selectedBankAccount)?.name || "بنك");
+
+    const printHtml = `<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <title>${typeLabel} - ${savedReceiptNumber || refNumber}</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap');
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:'IBM Plex Sans Arabic',Arial,sans-serif; background:#fff; color:#222; }
+    .page { max-width:210mm; margin:0 auto; padding:0; }
+    @media print { 
+      body { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+      .page { padding:0; }
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+  <!-- HEADER -->
+  <div style="background:#1B3A5C;padding:20px 28px;display:flex;align-items:center;justify-content:space-between;">
+    <div style="display:flex;align-items:center;gap:14px;">
+      ${settings.logo_url ? `<img src="${settings.logo_url}" style="height:48px;object-fit:contain;border-radius:6px;" />` : ""}
+      <div>
+        <div style="color:#fff;font-size:18px;font-weight:700;">${settings.company_name || "الشركة"}</div>
+        ${settings.address ? `<div style="color:rgba(255,255,255,0.7);font-size:11px;margin-top:2px;">${settings.address}${settings.city ? ` - ${settings.city}` : ""}</div>` : ""}
+        ${settings.phone ? `<div style="color:rgba(255,255,255,0.7);font-size:11px;">${settings.phone}${settings.tax_number ? ` | ض.ق: ${settings.tax_number}` : ""}</div>` : ""}
+      </div>
+    </div>
+    <div style="text-align:left;">
+      <div style="color:#C9A84C;font-size:20px;font-weight:700;">${typeLabel}</div>
+      <div style="color:rgba(255,255,255,0.6);font-size:10px;margin-top:2px;">${typeBadge}</div>
+    </div>
+  </div>
+
+  <!-- Gold separator -->
+  <div style="height:3px;background:#C9A84C;"></div>
+
+  <!-- META SECTION -->
+  <div style="padding:18px 28px;display:flex;gap:40px;">
+    <div style="flex:1;">
+      <div style="font-size:10px;color:#888;margin-bottom:3px;">${isReceipt ? "المستلم من" : "المدفوع إلى"}</div>
+      <div style="font-size:14px;font-weight:700;color:#1B3A5C;">${partyName}</div>
+      ${categoryLabel ? `<div style="font-size:10px;color:#888;margin-top:4px;">التصنيف: <span style="font-weight:600;color:#222;">${categoryLabel}</span></div>` : ""}
+    </div>
+    <div style="flex:1;">
+      <table style="font-size:11px;width:100%;">
+        <tr><td style="color:#888;padding:2px 0;width:90px;">رقم السند</td><td style="font-weight:700;font-family:monospace;">${savedReceiptNumber || refNumber || "—"}</td></tr>
+        <tr><td style="color:#888;padding:2px 0;">التاريخ</td><td>${dateFormatted}</td></tr>
+        <tr><td style="color:#888;padding:2px 0;">طريقة الدفع</td><td>${paymentMethod}</td></tr>
+        <tr><td style="color:#888;padding:2px 0;">${isReceipt ? "إيداع في" : "الدفع من"}</td><td>${depositLabel}</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- TABLE -->
+  <div style="padding:0 28px;">
+    <table style="width:100%;border-collapse:collapse;">
+      <thead>
+        <tr style="background:#1B3A5C;">
+          <th style="padding:7px 10px;color:#C9A84C;text-align:right;font-size:11px;font-weight:600;">التاريخ</th>
+          <th style="padding:7px 10px;color:#C9A84C;text-align:right;font-size:11px;font-weight:600;">المرجع</th>
+          <th style="padding:7px 10px;color:#C9A84C;text-align:right;font-size:11px;font-weight:600;">البيان</th>
+          <th style="padding:7px 10px;color:#C9A84C;text-align:right;font-size:11px;font-weight:600;">النوع</th>
+          <th style="padding:7px 10px;color:#C9A84C;text-align:left;font-size:11px;font-weight:600;">مدين</th>
+          <th style="padding:7px 10px;color:#C9A84C;text-align:left;font-size:11px;font-weight:600;">دائن</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${tableBody}
+      </tbody>
+      <tfoot>
+        <tr style="background:#1B3A5C;">
+          <td colspan="4" style="padding:7px 10px;color:#fff;font-size:11px;font-weight:700;">رصيد ختامي</td>
+          <td style="padding:7px 10px;color:#fff;font-size:12px;font-weight:700;text-align:left;font-family:monospace;">${!isReceipt ? "₪" + fmtAmt(amt) : ""}</td>
+          <td style="padding:7px 10px;color:#fff;font-size:12px;font-weight:700;text-align:left;font-family:monospace;">${isReceipt ? "₪" + fmtAmt(amt) : ""}</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+
+  <!-- AMOUNT IN WORDS -->
+  <div style="margin:16px 28px;padding:10px 14px;background:#fff;border:1px solid #edf0f4;border-right:3px solid #C9A84C;border-radius:4px;">
+    <div style="font-size:10px;color:#888;margin-bottom:2px;">المبلغ كتابةً</div>
+    <div style="font-size:12px;font-weight:600;color:#1B3A5C;">${amountInWords}</div>
+  </div>
+
+  ${chequeHtml ? `<div style="padding:0 28px;">${chequeHtml}</div>` : ""}
+
+  ${notes ? `<div style="margin:12px 28px;padding:8px 14px;background:#fff;border:1px solid #edf0f4;border-radius:4px;font-size:11px;"><span style="color:#888;">ملاحظات: </span>${notes}</div>` : ""}
+
+  <!-- SIGNATURES -->
+  <div style="display:flex;justify-content:space-between;padding:30px 28px 16px;margin-top:20px;">
+    <div style="text-align:center;flex:1;">
+      <div style="border-bottom:1px solid #ccc;width:140px;margin:0 auto 6px;"></div>
+      <div style="font-size:10px;color:#888;">المحاسب</div>
+    </div>
+    <div style="text-align:center;flex:1;">
+      <div style="border-bottom:1px solid #ccc;width:140px;margin:0 auto 6px;"></div>
+      <div style="font-size:10px;color:#888;">المدير المالي</div>
+    </div>
+    <div style="text-align:center;flex:1;">
+      <div style="border-bottom:1px solid #ccc;width:140px;margin:0 auto 6px;"></div>
+      <div style="font-size:10px;color:#888;">${isReceipt ? "المستلم" : "المستفيد"}</div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div style="background:#f7f8fa;border-top:1px solid #edf0f4;padding:10px 28px;display:flex;justify-content:space-between;align-items:center;">
+    <div style="font-size:9px;color:#aaa;">${settings.company_name || ""} ${settings.phone ? "| " + settings.phone : ""} ${settings.email ? "| " + settings.email : ""}</div>
+    <div style="font-size:9px;color:#C9A84C;font-weight:600;">FINIX Accounting System</div>
+  </div>
+</div>
+</body>
+</html>`;
+
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) return;
+    printWindow.document.write(printHtml);
+    printWindow.document.close();
+    setTimeout(() => { printWindow.print(); }, 400);
+  };
 
   const formatAmount = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
