@@ -27,7 +27,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { format, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, differenceInDays, parseISO, subYears } from "date-fns";
+import { format, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, differenceInDays, parseISO, subYears, subMonths } from "date-fns";
 import { ar } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -132,6 +132,7 @@ const FISCAL_YEARS = Array.from({ length: 5 }, (_, i) => currentYear - i);
 
 const QUICK_PERIODS = [
   { label: "هذا الشهر", from: () => format(startOfMonth(new Date()), "yyyy-MM-dd"), to: () => format(endOfMonth(new Date()), "yyyy-MM-dd") },
+  { label: "الشهر الماضي", from: () => { const d = new Date(); d.setMonth(d.getMonth() - 1); return format(startOfMonth(d), "yyyy-MM-dd"); }, to: () => { const d = new Date(); d.setMonth(d.getMonth() - 1); return format(endOfMonth(d), "yyyy-MM-dd"); } },
   { label: "الربع الحالي", from: () => format(startOfQuarter(new Date()), "yyyy-MM-dd"), to: () => format(endOfQuarter(new Date()), "yyyy-MM-dd") },
   { label: "هذه السنة", from: () => format(startOfYear(new Date()), "yyyy-MM-dd"), to: () => format(endOfYear(new Date()), "yyyy-MM-dd") },
   { label: "كل الفترات", from: () => "2020-01-01", to: () => format(new Date(), "yyyy-MM-dd") },
@@ -1135,6 +1136,41 @@ const AccountStatementPage = () => {
     return rows[rows.length - 1].date;
   }, [rows]);
 
+  // Overdue alert
+  const overdueAlert = useMemo(() => {
+    if (isAccountsTab || !rows.length || closingBalance <= 0) return null;
+    const oldestDebitRow = rows.find(r => r.debit > 0);
+    if (!oldestDebitRow) return null;
+    const days = differenceInDays(new Date(), parseISO(oldestDebitRow.date));
+    if (days > 30) return { days, ref: oldestDebitRow.reference };
+    return null;
+  }, [rows, closingBalance, isAccountsTab]);
+
+  // Statement number
+  const statementNumber = useMemo(() => {
+    const now = new Date();
+    return `SOA-${now.getFullYear()}-${String(Date.now()).slice(-4).padStart(4, "0")}`;
+  }, [selectedEntityId]);
+
+  // Aging analysis data
+  const agingData = useMemo(() => {
+    if (!selectedEntityId || isAccountsTab) return null;
+    const today = new Date();
+    let current = 0, d1_30 = 0, d31_60 = 0, d60plus = 0;
+    for (const row of rows) {
+      if (row.debit <= 0) continue;
+      const days = differenceInDays(today, parseISO(row.date));
+      const net = row.debit; // outstanding debit
+      if (days <= 0) current += net;
+      else if (days <= 30) d1_30 += net;
+      else if (days <= 60) d31_60 += net;
+      else d60plus += net;
+    }
+    const total = current + d1_30 + d31_60 + d60plus;
+    if (total === 0) return null;
+    return { current, d1_30, d31_60, d60plus, total };
+  }, [rows, selectedEntityId, isAccountsTab]);
+
   // Oldest open invoice for contact
   const oldestOpenInvoice = useMemo(() => {
     if (!rows.length || isAccountsTab) return null;
@@ -1686,9 +1722,38 @@ const AccountStatementPage = () => {
                   </div>
                 )}
 
+                {/* ─── OVERDUE ALERT ─── */}
+                {overdueAlert && (
+                  <div className="mx-4 mt-3 rounded-lg border px-4 py-2.5 flex items-center gap-3 no-print bg-amber-500/10 border-amber-500/30 text-amber-700">
+                    <AlertTriangle className="w-4 h-4 shrink-0" />
+                    <div className="text-xs">
+                      <strong>⚠️ يوجد رصيد متأخر السداد</strong>
+                      <span className="mr-2">
+                        أقدم حركة مدينة منذ {overdueAlert.days} يوم {overdueAlert.ref && `(${overdueAlert.ref})`}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* ─── ZERO BALANCE NOTICE ─── */}
+                {selectedEntityId && !loading && closingBalance === 0 && rows.length > 0 && (
+                  <div className="mx-4 mt-3 rounded-lg border px-4 py-2.5 flex items-center gap-3 no-print bg-emerald-500/10 border-emerald-500/30 text-emerald-700">
+                    <span className="text-base">✅</span>
+                    <span className="text-xs font-semibold">لا توجد مديونية على هذا الحساب — الرصيد مسدَّد بالكامل</span>
+                  </div>
+                )}
+
                 {/* ─── ENTITY INFO CARD ─── */}
                 <div className="p-4 no-print">
                   <div className="bg-card rounded-xl border border-border p-5">
+                    <div className="flex items-start justify-between mb-5">
+                      <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                        <FileText className="w-3 h-3" />
+                        <span className="font-mono">{statementNumber}</span>
+                        <span className="mx-1">·</span>
+                        <span>من {fmtDate(dateFrom)} إلى {fmtDate(dateTo)}</span>
+                      </div>
+                    </div>
                     <div className="flex items-start justify-between mb-5">
                       <div className="space-y-2">
                         <div className="flex items-center gap-3 flex-wrap">
@@ -1962,6 +2027,61 @@ const AccountStatementPage = () => {
                                 ))}
                               </tbody>
                             </table>
+                          </div>
+                        </div>
+                      </CollapsibleContent>
+                    </Collapsible>
+                  </div>
+                )}
+
+                {/* ─── AGING ANALYSIS ─── */}
+                {agingData && (
+                  <div className="px-4 pb-3 no-print">
+                    <Collapsible>
+                      <CollapsibleTrigger className="w-full">
+                        <div className="bg-card rounded-xl border border-border p-3 flex items-center justify-between hover:bg-muted/30 transition-colors cursor-pointer">
+                          <div className="flex items-center gap-2">
+                            <Calendar className="w-4 h-4 text-muted-foreground" />
+                            <span className="text-xs font-semibold text-foreground">تحليل التقادم (Aging)</span>
+                          </div>
+                          <div className="flex items-center gap-3 text-[10px]">
+                            <span className="text-muted-foreground">الإجمالي:</span>
+                            <span className="font-bold text-red-600 tabular-nums">{fmtAmount(agingData.total)}</span>
+                          </div>
+                        </div>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <div className="mt-1 bg-card rounded-xl border border-border overflow-hidden">
+                          <div className={cn("grid gap-px bg-border", isMobile ? "grid-cols-2" : "grid-cols-5")}>
+                            {[
+                              { label: "جاري (حالي)", value: agingData.current, color: "text-emerald-600", bg: "bg-emerald-500/5" },
+                              { label: "1 - 30 يوم", value: agingData.d1_30, color: "text-amber-600", bg: "bg-amber-500/5" },
+                              { label: "31 - 60 يوم", value: agingData.d31_60, color: "text-orange-600", bg: "bg-orange-500/5" },
+                              { label: "+60 يوم", value: agingData.d60plus, color: "text-red-600", bg: "bg-red-500/5" },
+                              { label: "الإجمالي", value: agingData.total, color: "text-foreground font-bold", bg: "bg-muted/30" },
+                            ].map((col, i) => (
+                              <div key={i} className={cn("p-3 text-center", col.bg)}>
+                                <div className="text-[10px] text-muted-foreground font-semibold mb-1">{col.label}</div>
+                                <div className={cn("text-sm font-bold tabular-nums", col.color)}>
+                                  {col.value > 0 ? fmtAmount(col.value) : "—"}
+                                </div>
+                                {agingData.total > 0 && col.value > 0 && col.label !== "الإجمالي" && (
+                                  <div className="mt-1">
+                                    <div className="h-1 rounded-full bg-muted/50 overflow-hidden">
+                                      <div
+                                        className={cn("h-full rounded-full",
+                                          i === 0 ? "bg-emerald-500" : i === 1 ? "bg-amber-500" : i === 2 ? "bg-orange-500" : "bg-red-500"
+                                        )}
+                                        style={{ width: `${Math.round((col.value / agingData.total) * 100)}%` }}
+                                      />
+                                    </div>
+                                    <div className="text-[9px] text-muted-foreground mt-0.5">
+                                      {Math.round((col.value / agingData.total) * 100)}%
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
                           </div>
                         </div>
                       </CollapsibleContent>
