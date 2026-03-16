@@ -435,13 +435,13 @@ const EmployeesPage = () => {
         onClick={() => openEmployeeDrawer(emp)}
       >
         <td className="px-3 py-3">
-          <div className="flex items-center gap-2 justify-end">
-            <div className="min-w-0 text-right">
-              <p className="text-sm font-semibold text-foreground truncate">{emp.full_name}</p>
-              <p className="text-[10px] text-muted-foreground">{emp.id_number || "—"}</p>
-            </div>
+          <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs flex-shrink-0">
               {emp.full_name?.charAt(0)}
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-foreground truncate">{emp.full_name}</p>
+              <p className="text-[10px] text-muted-foreground">{emp.id_number || "—"}</p>
             </div>
           </div>
         </td>
