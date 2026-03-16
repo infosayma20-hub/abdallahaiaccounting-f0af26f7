@@ -135,7 +135,7 @@ export function useItemsCrud() {
   useEffect(() => { fetch(); }, [fetch]);
 
   const create = async (item: any) => {
-    const { error } = await supabase.from("procurement_items").insert(item as any);
+    const { error } = await supabase.from("procurement_items").insert({ ...item, user_id: user?.id } as any);
     if (error) { toast({ title: "❌ خطأ", description: error.message, variant: "destructive" }); return false; }
     toast({ title: "✅ تم حفظ الصنف" });
     fetch();
