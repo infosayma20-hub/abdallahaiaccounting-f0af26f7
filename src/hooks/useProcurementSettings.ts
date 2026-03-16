@@ -77,7 +77,7 @@ export function useCategoriesCrud() {
 
   const create = async (cat: any) => {
     const maxSort = categories.length > 0 ? Math.max(...categories.map(c => c.sort_order || 0)) + 1 : 1;
-    const { error } = await supabase.from("item_categories").insert({ ...cat, sort_order: cat.sort_order || maxSort } as any);
+    const { error } = await supabase.from("item_categories").insert({ ...cat, sort_order: cat.sort_order || maxSort, user_id: user?.id } as any);
     if (error) { toast({ title: "❌ خطأ", description: error.message, variant: "destructive" }); return false; }
     toast({ title: "✅ تم حفظ التصنيف" });
     fetch();
