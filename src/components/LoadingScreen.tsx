@@ -83,7 +83,7 @@ const LoadingScreen = ({ demo = false }: { demo?: boolean }) => {
             animationDelay: "200ms",
           }}
         >
-          <FinixLogo variant="white" size="lg" />
+          <img src="/logo-white.svg" alt="QOYOD قيود" width={180} />
         </div>
 
         {/* Arabic tagline */}
