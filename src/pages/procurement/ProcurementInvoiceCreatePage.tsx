@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,11 +8,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, Check } from "lucide-react";
+import { AlertTriangle, Check, Upload, Loader2, Image as ImageIcon, X, Eye } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { usePurchaseInvoices, useSuppliers } from "@/hooks/useProcurement";
+import { useAuth } from "@/hooks/useAuth";
 import BackButton from "@/components/BackButton";
 import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "sonner";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 interface InvoiceLine {
   product_id: string | null;
@@ -30,6 +33,8 @@ const ProcurementInvoiceCreatePage = () => {
   const navigate = useNavigate();
   const { createInvoice } = usePurchaseInvoices();
   const { suppliers } = useSuppliers();
+  const { user } = useAuth();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [loading, setLoading] = useState(!!orderId);
   const [supplierId, setSupplierId] = useState("");
@@ -44,6 +49,14 @@ const ProcurementInvoiceCreatePage = () => {
   const [notes, setNotes] = useState("");
   const [lines, setLines] = useState<InvoiceLine[]>([]);
   const [saving, setSaving] = useState(false);
+
+  // Image upload state
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [extracting, setExtracting] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
 
   useEffect(() => {
     if (!orderId) { setLoading(false); return; }
@@ -63,7 +76,8 @@ const ProcurementInvoiceCreatePage = () => {
           .from("procurement_order_items" as any)
           .select("*")
           .eq("order_id", orderId);
-        setLines(((items as any) || []).map((i: any) => ({
+        
+        const loadedLines = ((items as any) || []).map((i: any) => ({
           product_id: i.product_id || null,
           item_name: i.item_name,
           unit: i.unit,
@@ -71,7 +85,12 @@ const ProcurementInvoiceCreatePage = () => {
           received_quantity: Number(i.quantity),
           unit_price: Number(i.unit_price),
           notes: "",
-        })));
+        }));
+        setLines(loadedLines);
+        
+        if (loadedLines.length === 0) {
+          console.warn("No items found for order", orderId);
+        }
       }
       setLoading(false);
     })();
@@ -84,8 +103,95 @@ const ProcurementInvoiceCreatePage = () => {
     setLines(lines.map((l, i) => i === idx ? { ...l, [field]: value } : l));
   };
 
+  // Handle image selection
+  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("حجم الملف كبير جداً (الحد الأقصى 10 ميجا)");
+      return;
+    }
+
+    setImageFile(file);
+    const reader = new FileReader();
+    reader.onload = (ev) => setImagePreview(ev.target?.result as string);
+    reader.readAsDataURL(file);
+
+    // Upload to storage
+    setUploading(true);
+    const ext = file.name.split(".").pop() || "jpg";
+    const fileName = `${user?.id}/${Date.now()}.${ext}`;
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from("purchase-invoices")
+      .upload(fileName, file, { upsert: true });
+
+    if (uploadError) {
+      toast.error("فشل رفع الصورة: " + uploadError.message);
+      setUploading(false);
+      return;
+    }
+
+    const { data: urlData } = supabase.storage.from("purchase-invoices").getPublicUrl(fileName);
+    setUploadedImageUrl(urlData.publicUrl);
+    setUploading(false);
+    toast.success("تم رفع الصورة بنجاح");
+
+    // Try to extract invoice number using AI
+    extractInvoiceNumber(reader.result as string);
+  };
+
+  const extractInvoiceNumber = async (base64Image: string) => {
+    if (!base64Image) return;
+    setExtracting(true);
+    try {
+      const response = await supabase.functions.invoke("analyze-document", {
+        body: {
+          image: base64Image,
+          task: "extract_invoice_number",
+          prompt: "Extract the invoice number from this document image. Return ONLY the invoice number as plain text, nothing else. If no invoice number is found, return 'NOT_FOUND'."
+        },
+      });
+
+      if (response.data?.invoice_number && response.data.invoice_number !== "NOT_FOUND") {
+        setSupplierInvoiceNumber(response.data.invoice_number);
+        toast.success(`تم استخراج رقم الفاتورة: ${response.data.invoice_number}`);
+      } else if (response.data?.text) {
+        // Try to extract from raw text
+        const text = response.data.text;
+        const patterns = [
+          /(?:Invoice\s*(?:No\.?|Number|#)|فاتورة\s*(?:رقم|#))\s*[:\-]?\s*([A-Za-z0-9\-\/]+)/i,
+          /(?:INV|inv)[.\-#]?\s*([A-Za-z0-9\-]+)/i,
+          /(?:رقم|#)\s*[:\-]?\s*(\d[\d\-\/]+)/,
+        ];
+        for (const p of patterns) {
+          const match = text.match(p);
+          if (match?.[1]) {
+            setSupplierInvoiceNumber(match[1].trim());
+            toast.success(`تم استخراج رقم الفاتورة: ${match[1].trim()}`);
+            break;
+          }
+        }
+      }
+    } catch (err) {
+      console.error("AI extraction failed:", err);
+    } finally {
+      setExtracting(false);
+    }
+  };
+
+  const removeImage = () => {
+    setImageFile(null);
+    setImagePreview(null);
+    setUploadedImageUrl(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
   const handleSave = async () => {
-    if (!supplierId || lines.length === 0) return;
+    if (!supplierId || lines.length === 0) {
+      toast.error("اختر المورد وأضف بنوداً");
+      return;
+    }
     setSaving(true);
     const result = await createInvoice(
       {
@@ -98,6 +204,7 @@ const ProcurementInvoiceCreatePage = () => {
         discount,
         tax,
         notes,
+        image_url: uploadedImageUrl,
       },
       lines,
       orderId || undefined
@@ -109,7 +216,7 @@ const ProcurementInvoiceCreatePage = () => {
   if (loading) return <div className="p-6"><Skeleton className="h-64 w-full" /></div>;
 
   return (
-    <div className="p-4 md:p-6 space-y-4">
+    <div className="p-4 md:p-6 space-y-4" dir="rtl">
       <div className="flex items-center gap-3">
         <BackButton />
         <h1 className="text-xl font-bold text-foreground">استلام بضاعة وإنشاء فاتورة</h1>
@@ -132,7 +239,15 @@ const ProcurementInvoiceCreatePage = () => {
             </div>
             <div>
               <Label>رقم فاتورة المورد</Label>
-              <Input value={supplierInvoiceNumber} onChange={e => setSupplierInvoiceNumber(e.target.value)} placeholder="رقم الفاتورة من المورد" />
+              <div className="flex gap-2 items-center">
+                <Input 
+                  value={supplierInvoiceNumber} 
+                  onChange={e => setSupplierInvoiceNumber(e.target.value)} 
+                  placeholder="رقم الفاتورة من المورد" 
+                  className="flex-1"
+                />
+                {extracting && <Loader2 className="h-4 w-4 animate-spin text-primary" />}
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -147,19 +262,79 @@ const ProcurementInvoiceCreatePage = () => {
               <Select value={paymentStatus} onValueChange={setPaymentStatus}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="unpaid">غير مدفوعة</SelectItem>
-                  <SelectItem value="partial">مدفوعة جزئياً</SelectItem>
-                  <SelectItem value="paid">مدفوعة بالكامل</SelectItem>
+                  <SelectItem value="unpaid">غير مدفوعة (آجل)</SelectItem>
+                  <SelectItem value="paid">مدفوعة نقداً</SelectItem>
                 </SelectContent>
               </Select>
+              <p className="text-[10px] text-muted-foreground mt-1">
+                تحدد طريقة التسجيل المحاسبي: آجل = ذمم موردين، نقداً = خصم من الصندوق
+              </p>
             </div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4 space-y-3">
+            {/* Image upload */}
+            <div>
+              <Label>إرفاق صورة المستند</Label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*,.pdf"
+                className="hidden"
+                onChange={handleImageSelect}
+              />
+              {!imagePreview ? (
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full h-20 border-2 border-dashed rounded-xl flex flex-col items-center justify-center gap-1 text-muted-foreground hover:border-primary hover:text-primary transition-colors"
+                  disabled={uploading}
+                >
+                  {uploading ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <>
+                      <Upload className="h-5 w-5" />
+                      <span className="text-xs">اضغط لرفع صورة الفاتورة</span>
+                    </>
+                  )}
+                </button>
+              ) : (
+                <div className="relative group">
+                  <img
+                    src={imagePreview}
+                    alt="صورة الفاتورة"
+                    className="w-full h-20 object-cover rounded-xl border cursor-pointer"
+                    onClick={() => setShowPreview(true)}
+                  />
+                  <div className="absolute top-1 left-1 flex gap-1">
+                    <button
+                      onClick={() => setShowPreview(true)}
+                      className="bg-background/80 rounded-full p-1 hover:bg-background"
+                    >
+                      <Eye className="h-3 w-3" />
+                    </button>
+                    <button
+                      onClick={removeImage}
+                      className="bg-destructive/80 text-destructive-foreground rounded-full p-1 hover:bg-destructive"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                  {extracting && (
+                    <div className="absolute inset-0 bg-background/60 rounded-xl flex items-center justify-center">
+                      <div className="flex items-center gap-2 text-xs text-primary">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        جارٍ استخراج البيانات...
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
             <div>
               <Label>ملاحظات</Label>
-              <Textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3} />
+              <Textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2} />
             </div>
           </CardContent>
         </Card>
@@ -167,62 +342,76 @@ const ProcurementInvoiceCreatePage = () => {
 
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm">بنود الاستلام</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-sm">بنود الاستلام</CardTitle>
+            {lines.length === 0 && orderId && (
+              <Badge variant="destructive" className="text-xs">
+                <AlertTriangle className="h-3 w-3 ml-1" />
+                لم يتم العثور على بنود الطلبية
+              </Badge>
+            )}
+          </div>
         </CardHeader>
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>الصنف</TableHead>
-                <TableHead>الوحدة</TableHead>
-                <TableHead>الكمية المطلوبة</TableHead>
-                <TableHead>الكمية المستلمة</TableHead>
-                <TableHead>السعر الفعلي</TableHead>
-                <TableHead>الإجمالي</TableHead>
-                <TableHead>ملاحظة</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {lines.map((line, idx) => {
-                const variance = line.received_quantity < line.ordered_quantity;
-                return (
-                  <TableRow key={idx} className={variance ? "bg-orange-500/5" : ""}>
-                    <TableCell className="font-medium">{line.item_name}</TableCell>
-                    <TableCell>{line.unit}</TableCell>
-                    <TableCell>{line.ordered_quantity}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1">
+          {lines.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>الصنف</TableHead>
+                  <TableHead>الوحدة</TableHead>
+                  <TableHead>الكمية المطلوبة</TableHead>
+                  <TableHead>الكمية المستلمة</TableHead>
+                  <TableHead>السعر الفعلي</TableHead>
+                  <TableHead>الإجمالي</TableHead>
+                  <TableHead>ملاحظة</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {lines.map((line, idx) => {
+                  const variance = line.received_quantity < line.ordered_quantity;
+                  return (
+                    <TableRow key={idx} className={variance ? "bg-orange-500/5" : ""}>
+                      <TableCell className="font-medium">{line.item_name}</TableCell>
+                      <TableCell>{line.unit}</TableCell>
+                      <TableCell>{line.ordered_quantity}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          <Input
+                            type="number"
+                            value={line.received_quantity}
+                            onChange={e => updateLine(idx, "received_quantity", Number(e.target.value))}
+                            className="h-8 w-20 text-center"
+                          />
+                          {variance && <AlertTriangle className="h-4 w-4 text-orange-500" />}
+                        </div>
+                      </TableCell>
+                      <TableCell>
                         <Input
                           type="number"
-                          value={line.received_quantity}
-                          onChange={e => updateLine(idx, "received_quantity", Number(e.target.value))}
-                          className="h-8 w-20 text-center"
+                          value={line.unit_price}
+                          onChange={e => updateLine(idx, "unit_price", Number(e.target.value))}
+                          className="h-8 w-24 text-center"
                         />
-                        {variance && <AlertTriangle className="h-4 w-4 text-orange-500" />}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Input
-                        type="number"
-                        value={line.unit_price}
-                        onChange={e => updateLine(idx, "unit_price", Number(e.target.value))}
-                        className="h-8 w-24 text-center"
-                      />
-                    </TableCell>
-                    <TableCell className="font-mono">{(line.received_quantity * line.unit_price).toLocaleString("en", { minimumFractionDigits: 2 })}</TableCell>
-                    <TableCell>
-                      <Input
-                        value={line.notes}
-                        onChange={e => updateLine(idx, "notes", e.target.value)}
-                        className="h-8 w-28 text-xs"
-                        placeholder="ملاحظة"
-                      />
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+                      </TableCell>
+                      <TableCell className="font-mono">{(line.received_quantity * line.unit_price).toLocaleString("en", { minimumFractionDigits: 2 })}</TableCell>
+                      <TableCell>
+                        <Input
+                          value={line.notes}
+                          onChange={e => updateLine(idx, "notes", e.target.value)}
+                          className="h-8 w-28 text-xs"
+                          placeholder="ملاحظة"
+                        />
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          ) : (
+            <div className="p-8 text-center text-muted-foreground text-sm">
+              {orderId ? "لا توجد بنود محفوظة لهذه الطلبية" : "لم يتم إضافة بنود بعد"}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -247,13 +436,22 @@ const ProcurementInvoiceCreatePage = () => {
             </div>
           </div>
           <div className="flex justify-end mt-4">
-            <Button variant="accent" onClick={handleSave} disabled={saving} className="min-w-[200px]">
-              <Check className="h-4 w-4 ml-1" />
+            <Button variant="accent" onClick={handleSave} disabled={saving || lines.length === 0} className="min-w-[200px]">
+              {saving ? <Loader2 className="h-4 w-4 animate-spin ml-1" /> : <Check className="h-4 w-4 ml-1" />}
               تأكيد وتسجيل الفاتورة
             </Button>
           </div>
         </CardContent>
       </Card>
+
+      {/* Image preview dialog */}
+      <Dialog open={showPreview} onOpenChange={setShowPreview}>
+        <DialogContent className="max-w-3xl max-h-[90vh] p-2">
+          {imagePreview && (
+            <img src={imagePreview} alt="صورة الفاتورة" className="w-full h-auto rounded-lg" />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
