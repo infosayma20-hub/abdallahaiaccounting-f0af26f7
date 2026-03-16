@@ -364,6 +364,7 @@ const App = () => (
                       <Route path="/procurement/invoices/new" element={<ProcurementInvoiceCreatePage />} />
                       <Route path="/procurement/supplier-statement" element={<SupplierStatementPage />} />
                       <Route path="/procurement/weekly-report" element={<WeeklyProcurementReportPage />} />
+                      <Route path="/procurement/settings" element={<ProcurementSettingsPage />} />
                       <Route path="/reports/import-cost-analysis" element={<GenericReportPage reportKey="import-cost-analysis" />} />
                       <Route path="*" element={<NotFound />} />
                     </Routes>
