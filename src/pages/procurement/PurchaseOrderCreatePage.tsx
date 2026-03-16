@@ -66,8 +66,8 @@ const PurchaseOrderCreatePage = () => {
   const allSuppliers = suppliersCrud.suppliers.length > 0 ? suppliersCrud.suppliers : suppliers;
 
   const prefs = loadPrefs();
-  const [supplierId, setSupplierId] = useState(prefs.supplierId || "");
-  const [defaultBranchId, setDefaultBranchId] = useState(prefs.branchId || "");
+  const [supplierId, setSupplierId] = useState("");
+  const [defaultBranchId, setDefaultBranchId] = useState("");
   const UNIT_OPTIONS = useMemo(() => [...new Set([...DEFAULT_UNITS, ...loadCustomUnits()])], []);
   const [unitOptions, setUnitOptions] = useState(UNIT_OPTIONS);
   const [customUnitInput, setCustomUnitInput] = useState("");
