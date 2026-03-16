@@ -20,20 +20,20 @@ const ShortcutsTip = ({ visible, onClose, onShowShortcuts }: ShortcutsTipProps) 
             <p className="text-[11px] text-muted-foreground mt-0.5">وفّر وقتك بـ F1-F4 و Ctrl</p>
             <div className="flex items-center gap-2 mt-2">
               <button
-                onClick={dismiss}
+                onClick={onClose}
                 className="text-[10px] text-muted-foreground hover:text-foreground transition-colors"
               >
                 فهمت
               </button>
               <button
-                onClick={() => { dismiss(); onShowShortcuts(); }}
+                onClick={() => { onClose(); onShowShortcuts(); }}
                 className="text-[10px] text-primary font-bold hover:underline"
               >
                 شوف الاختصارات
               </button>
             </div>
           </div>
-          <button onClick={dismiss} className="text-muted-foreground hover:text-foreground">
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
             <X className="h-3 w-3" />
           </button>
         </div>
