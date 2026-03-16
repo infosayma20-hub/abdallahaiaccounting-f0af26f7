@@ -4310,6 +4310,7 @@ export type Database = {
           id: string
           name: string
           sort_order: number | null
+          user_id: string | null
         }
         Insert: {
           color?: string | null
@@ -4318,6 +4319,7 @@ export type Database = {
           id?: string
           name: string
           sort_order?: number | null
+          user_id?: string | null
         }
         Update: {
           color?: string | null
@@ -4326,6 +4328,7 @@ export type Database = {
           id?: string
           name?: string
           sort_order?: number | null
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -6902,6 +6905,7 @@ export type Database = {
           notes: string | null
           sort_order: number | null
           unit: string
+          user_id: string | null
         }
         Insert: {
           category_id?: string | null
@@ -6913,6 +6917,7 @@ export type Database = {
           notes?: string | null
           sort_order?: number | null
           unit?: string
+          user_id?: string | null
         }
         Update: {
           category_id?: string | null
@@ -6924,6 +6929,7 @@ export type Database = {
           notes?: string | null
           sort_order?: number | null
           unit?: string
+          user_id?: string | null
         }
         Relationships: [
           {
