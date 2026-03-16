@@ -114,11 +114,11 @@ export default function LoansPage() {
         <td style="text-align:center">${i + 1}</td>
         <td style="font-weight:600">${l.employees?.full_name || "-"}</td>
         <td>${l.employees?.branches?.name || "-"}</td>
-        <td style="font-family:monospace;text-align:left">${Number(l.total_amount).toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
-        <td style="font-family:monospace;text-align:left">${Number(l.monthly_installment).toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
+        <td style="text-align:left">${Number(l.total_amount).toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
+        <td style="text-align:left">${Number(l.monthly_installment).toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
         <td style="text-align:center">${l.total_months} شهر</td>
-        <td style="font-family:monospace;text-align:left">${paidAmt.toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
-        <td style="font-family:monospace;text-align:left">${Number(l.remaining_amount).toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
+        <td style="text-align:left">${paidAmt.toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
+        <td style="text-align:left">${Number(l.remaining_amount).toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
         <td style="text-align:center">${startDate}</td>
         <td style="text-align:center">${endDate}</td>
       </tr>`;
@@ -143,8 +143,8 @@ export default function LoansPage() {
         return `<tr>
           <td style="text-align:center">${x.month_number}</td>
           <td style="text-align:center">${x.due_date}</td>
-          <td style="font-family:monospace;text-align:left">${Number(x.installment_amount).toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
-          <td style="font-family:monospace;text-align:left">${Math.max(0, runningBalance).toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
+          <td style="text-align:left">${Number(x.installment_amount).toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
+          <td style="text-align:left">${Math.max(0, runningBalance).toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
           <td style="text-align:center">${statusLabel}</td>
         </tr>`;
       }).join("");
@@ -186,10 +186,11 @@ export default function LoansPage() {
 <head>
   <meta charset="utf-8" />
   <title>تقرير القروض الحسنة</title>
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
   <style>
     @page { size: A4; margin: 15mm; }
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Segoe UI', Tahoma, Arial, sans-serif; font-size: 12px; color: #1a1a1a; background: #fff; direction: rtl; }
+    body { font-family: 'Tajawal', 'Segoe UI', Tahoma, Arial, sans-serif; font-size: 12px; color: #1a1a1a; background: #fff; direction: rtl; }
     table { width: 100%; border-collapse: collapse; }
     th, td { padding: 7px 10px; border-bottom: 1px solid #e5e7eb; }
     thead th { font-weight: 600; }
@@ -243,11 +244,11 @@ export default function LoansPage() {
       <tfoot>
         <tr style="background:#1B3A5C;color:#fff;font-weight:700">
           <td colspan="3" style="padding:8px">الإجمالي</td>
-          <td style="font-family:monospace;text-align:left;padding:8px">${totalAmt.toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
+          <td style="text-align:left;padding:8px">${totalAmt.toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
           <td style="padding:8px"></td>
           <td style="padding:8px"></td>
-          <td style="font-family:monospace;text-align:left;padding:8px">${totalPaid.toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
-          <td style="font-family:monospace;text-align:left;padding:8px">${totalRemaining.toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
+          <td style="text-align:left;padding:8px">${totalPaid.toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
+          <td style="text-align:left;padding:8px">${totalRemaining.toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
           <td colspan="2" style="padding:8px"></td>
         </tr>
       </tfoot>
