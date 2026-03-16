@@ -5219,6 +5219,78 @@ export type Database = {
           },
         ]
       }
+      payroll_settings: {
+        Row: {
+          annual_increment_per_year: number | null
+          attendance_bonus_max_absent: number | null
+          attendance_bonus_rate: number | null
+          base_month_days: number | null
+          child_allowance: number | null
+          company_id: string
+          created_at: string | null
+          currency: string | null
+          currency_symbol: string | null
+          default_hourly_rate: number | null
+          family_allowance_start_months: number | null
+          food_group_percentage: number | null
+          food_individual_percentage: number | null
+          food_transport_base: number | null
+          food_transport_start_months: number | null
+          full_attendance_days: number | null
+          id: string
+          min_deduction_threshold: number | null
+          overtime_multiplier: number | null
+          updated_at: string | null
+          wife_allowance: number | null
+        }
+        Insert: {
+          annual_increment_per_year?: number | null
+          attendance_bonus_max_absent?: number | null
+          attendance_bonus_rate?: number | null
+          base_month_days?: number | null
+          child_allowance?: number | null
+          company_id: string
+          created_at?: string | null
+          currency?: string | null
+          currency_symbol?: string | null
+          default_hourly_rate?: number | null
+          family_allowance_start_months?: number | null
+          food_group_percentage?: number | null
+          food_individual_percentage?: number | null
+          food_transport_base?: number | null
+          food_transport_start_months?: number | null
+          full_attendance_days?: number | null
+          id?: string
+          min_deduction_threshold?: number | null
+          overtime_multiplier?: number | null
+          updated_at?: string | null
+          wife_allowance?: number | null
+        }
+        Update: {
+          annual_increment_per_year?: number | null
+          attendance_bonus_max_absent?: number | null
+          attendance_bonus_rate?: number | null
+          base_month_days?: number | null
+          child_allowance?: number | null
+          company_id?: string
+          created_at?: string | null
+          currency?: string | null
+          currency_symbol?: string | null
+          default_hourly_rate?: number | null
+          family_allowance_start_months?: number | null
+          food_group_percentage?: number | null
+          food_individual_percentage?: number | null
+          food_transport_base?: number | null
+          food_transport_start_months?: number | null
+          full_attendance_days?: number | null
+          id?: string
+          min_deduction_threshold?: number | null
+          overtime_multiplier?: number | null
+          updated_at?: string | null
+          wife_allowance?: number | null
+        }
+        Relationships: []
+      }
       plans: {
         Row: {
           annual_discount_pct: number
