@@ -326,7 +326,7 @@ export function usePurchaseInvoices() {
       if (newContact) contactId = (newContact as any).id;
     }
 
-    const { error: txError } = await supabase.from("transactions").insert({
+    const { data: txData, error: txError } = await supabase.from("transactions").insert({
       user_id: ownerId,
       transaction_date: invoice.invoice_date,
       description: `فاتورة مشتريات - ${(data as any).invoice_number} - ${invoice.supplier_name || ""}`,
@@ -339,8 +339,15 @@ export function usePurchaseInvoices() {
       payment_method: displayPaymentMethod,
       idempotency_key: `PROC-INV-${invoiceId}`,
       contact_id: contactId,
-    });
+    }).select("id").single();
     if (txError) { console.error("Transaction insert failed:", txError); }
+
+    // Link transaction back to purchase invoice
+    if (txData) {
+      await supabase.from("purchase_invoices")
+        .update({ linked_transaction_id: (txData as any).id } as any)
+        .eq("id", invoiceId);
+    }
 
     toast({ title: "✅ تم إنشاء فاتورة المشتريات وتحديث المخزون والقيد المحاسبي" });
     fetch();
