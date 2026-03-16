@@ -347,11 +347,11 @@ const PurchaseOrderCreatePage = () => {
                 <Input ref={searchRef} placeholder="ابحث عن صنف..." value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)} className="h-7 pr-8 text-xs" />
               </div>
-              <Button variant="outline" size="sm" className="h-7 text-[11px] px-2" onClick={() => setManualOpen(true)}>
-                <PlusCircle className="h-3 w-3 ml-1" />صنف يدوي
-              </Button>
               <Button variant="outline" size="sm" className="h-7 text-[11px] px-2" onClick={() => setItemOpen(true)}>
                 <Plus className="h-3 w-3 ml-1" />إضافة صنف
+              </Button>
+              <Button variant="outline" size="sm" className="h-7 text-[11px] px-2" onClick={() => setManualOpen(true)}>
+                <PlusCircle className="h-3 w-3 ml-1" />صنف يدوي
               </Button>
               <div className="flex-1" />
               <div className="flex items-center gap-0.5 border rounded-md p-0.5">
