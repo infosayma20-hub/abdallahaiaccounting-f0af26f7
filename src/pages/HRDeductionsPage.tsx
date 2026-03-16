@@ -35,7 +35,7 @@ export default function HRDeductionsPage() {
         .from("employees")
         .select("id, full_name, department, branch")
         .eq("user_id", user!.id)
-        .eq("status", "active");
+        .neq("is_active", false);
       return (data || []) as any[];
     },
     enabled: !!user,
