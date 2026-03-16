@@ -157,7 +157,7 @@ export default function LoansPage() {
           <div style="background:#f0f2f5;border-radius:8px;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
             <div>
               <span style="font-weight:700;font-size:14px">${l.employees?.full_name || "-"}</span>
-              <span style="color:#6B7280;font-size:11px;margin-right:12px">${l.employees?.department || ""}</span>
+              <span style="color:#6B7280;font-size:11px;margin-right:12px">${l.employees?.branches?.name || ""}</span>
             </div>
             <div style="font-size:11px;color:#6B7280">
               القرض: <strong>${Number(l.total_amount).toLocaleString("en-US", { minimumFractionDigits: 2 })} ₪</strong>
