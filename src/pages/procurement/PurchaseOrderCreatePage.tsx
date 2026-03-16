@@ -350,9 +350,6 @@ const PurchaseOrderCreatePage = () => {
               <Button variant="outline" size="sm" className="h-7 text-[11px] px-2" onClick={() => setItemOpen(true)}>
                 <Plus className="h-3 w-3 ml-1" />إضافة صنف
               </Button>
-              <Button variant="outline" size="sm" className="h-7 text-[11px] px-2" onClick={() => setManualOpen(true)}>
-                <PlusCircle className="h-3 w-3 ml-1" />صنف يدوي
-              </Button>
               <div className="flex-1" />
               <div className="flex items-center gap-0.5 border rounded-md p-0.5">
                 {(["small", "medium", "large"] as CardSize[]).map(size => {
