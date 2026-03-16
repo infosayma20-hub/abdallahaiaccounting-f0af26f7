@@ -1722,6 +1722,27 @@ const AccountStatementPage = () => {
                   </div>
                 )}
 
+                {/* ─── OVERDUE ALERT ─── */}
+                {overdueAlert && (
+                  <div className="mx-4 mt-3 rounded-lg border px-4 py-2.5 flex items-center gap-3 no-print bg-amber-500/10 border-amber-500/30 text-amber-700">
+                    <AlertTriangle className="w-4 h-4 shrink-0" />
+                    <div className="text-xs">
+                      <strong>⚠️ يوجد رصيد متأخر السداد</strong>
+                      <span className="mr-2">
+                        أقدم حركة مدينة منذ {overdueAlert.days} يوم {overdueAlert.ref && `(${overdueAlert.ref})`}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* ─── ZERO BALANCE NOTICE ─── */}
+                {selectedEntityId && !loading && closingBalance === 0 && rows.length > 0 && (
+                  <div className="mx-4 mt-3 rounded-lg border px-4 py-2.5 flex items-center gap-3 no-print bg-emerald-500/10 border-emerald-500/30 text-emerald-700">
+                    <span className="text-base">✅</span>
+                    <span className="text-xs font-semibold">لا توجد مديونية على هذا الحساب — الرصيد مسدَّد بالكامل</span>
+                  </div>
+                )}
+
                 {/* ─── ENTITY INFO CARD ─── */}
                 <div className="p-4 no-print">
                   <div className="bg-card rounded-xl border border-border p-5">
