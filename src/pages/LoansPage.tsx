@@ -577,6 +577,19 @@ function AddLoanDialog({ open, onOpenChange, userId, companyId, onSuccess }: {
             </div>
           </div>
 
+          {/* Cash Box Selection */}
+          <div>
+            <Label className="text-xs mb-1.5 block">الصرف من صندوق *</Label>
+            <Select value={selectedCashBox} onValueChange={setSelectedCashBox}>
+              <SelectTrigger><SelectValue placeholder="اختر الصندوق" /></SelectTrigger>
+              <SelectContent>
+                {cashBoxes.map(cb => (
+                  <SelectItem key={cb.id} value={cb.id}>{cb.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           {/* Derived Info */}
           {amount > 0 && installment > 0 && (
             <div className="grid grid-cols-3 gap-2 text-xs">
