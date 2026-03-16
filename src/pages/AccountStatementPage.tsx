@@ -384,30 +384,9 @@ const AccountStatementPage = () => {
           .select("id, name, logo_url, address, phone, email, tax_number")
           .eq("owner_id", user.id)
           .maybeSingle(),
-        supabase
-          .from("pos_suppliers" as any)
-          .select("id, name, phone, email")
-          .eq("user_id", user.id),
       ]);
 
-      // Merge pos_suppliers into contacts as virtual supplier entries (avoid duplicates by id)
-      const existingContactIds = new Set(((contactData as Contact[]) || []).map(c => c.id));
-      const posSupplierContacts: Contact[] = ((posSupplierData as any[]) || [])
-        .filter((ps: any) => !existingContactIds.has(ps.id))
-        .map((ps: any) => ({
-          id: ps.id,
-          contact_name: ps.name,
-          contact_type: "مورد",
-          phone: ps.phone || null,
-          email: ps.email || null,
-          address: null,
-          linked_account_code: "2100",
-          credit_limit: 0,
-          current_balance: 0,
-          contact_class: undefined,
-        }));
-
-      setContacts([...((contactData as Contact[]) || []), ...posSupplierContacts]);
+      setContacts((contactData as Contact[]) || []);
       setAccounts((accData as Account[]) || []);
       setTransactions((txData as Transaction[]) || []);
       setCheques((chequeData as Cheque[]) || []);
