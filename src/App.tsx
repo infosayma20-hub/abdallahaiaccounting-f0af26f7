@@ -94,6 +94,7 @@ import ProcurementInvoicesPage from "./pages/procurement/ProcurementInvoicesPage
 import ProcurementInvoiceCreatePage from "./pages/procurement/ProcurementInvoiceCreatePage";
 import SupplierStatementPage from "./pages/procurement/SupplierStatementPage";
 import WeeklyProcurementReportPage from "./pages/procurement/WeeklyProcurementReportPage";
+import ProcurementSettingsPage from "./pages/procurement/ProcurementSettingsPage";
 import ImportWizardPage from "./pages/ImportWizardPage";
 import ImportDetailPage from "./pages/ImportDetailPage";
 import BillingPage from "./pages/BillingPage";
