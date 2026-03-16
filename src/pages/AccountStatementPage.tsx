@@ -252,6 +252,113 @@ const DEFAULT_COLUMNS: ColumnConfig[] = [
   { key: "notes", label: "ملاحظات", visible: false },
 ];
 
+// ─── ENTITY SEARCH COMBOBOX ───
+interface EntitySearchComboboxProps {
+  entities: { id: string; name: string; subtitle?: string; balance: number; accountCode?: string }[];
+  selectedId: string;
+  onSelect: (id: string) => void;
+  placeholder?: string;
+}
+
+const EntitySearchCombobox = ({ entities, selectedId, onSelect, placeholder }: EntitySearchComboboxProps) => {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const selectedEntity = entities.find(e => e.id === selectedId);
+
+  const filtered = useMemo(() => {
+    if (!search.trim()) return entities;
+    const q = search.toLowerCase().trim();
+    return entities.filter(e =>
+      e.name.toLowerCase().includes(q) ||
+      (e.accountCode || "").includes(q) ||
+      (e.subtitle || "").toLowerCase().includes(q)
+    );
+  }, [entities, search]);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleSelect = (id: string) => {
+    onSelect(id);
+    setOpen(false);
+    setSearch("");
+  };
+
+  return (
+    <div ref={containerRef} className="relative">
+      <div
+        className={cn(
+          "flex items-center gap-2 bg-muted/50 border border-border rounded-xl px-3 h-10 cursor-pointer transition-colors hover:border-primary/50",
+          open && "border-primary ring-2 ring-primary/10"
+        )}
+        onClick={() => { setOpen(true); setTimeout(() => inputRef.current?.focus(), 50); }}
+      >
+        <Search className="w-4 h-4 text-muted-foreground shrink-0" />
+        {open ? (
+          <input
+            ref={inputRef}
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder={placeholder || "ابحث بالاسم..."}
+            className="flex-1 bg-transparent border-0 outline-none text-sm text-foreground placeholder:text-muted-foreground"
+            autoFocus
+          />
+        ) : (
+          <span className="flex-1 text-sm truncate">
+            {selectedEntity ? (
+              <span className="flex items-center gap-2">
+                <span className="text-foreground font-medium">✓ {selectedEntity.name}</span>
+              </span>
+            ) : (
+              <span className="text-muted-foreground">{placeholder || "ابحث بالاسم..."}</span>
+            )}
+          </span>
+        )}
+        <ChevronDown className={cn("w-4 h-4 text-muted-foreground transition-transform", open && "rotate-180")} />
+      </div>
+
+      {open && (
+        <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-popover border border-border rounded-xl shadow-lg max-h-72 overflow-y-auto">
+          {filtered.length === 0 ? (
+            <div className="p-4 text-center text-xs text-muted-foreground">لا توجد نتائج</div>
+          ) : (
+            filtered.map(e => (
+              <button
+                key={e.id}
+                onClick={() => handleSelect(e.id)}
+                className={cn(
+                  "w-full text-right px-3 py-2.5 flex items-center justify-between hover:bg-muted/50 transition-colors border-b border-border/30 last:border-0",
+                  e.id === selectedId && "bg-primary/5"
+                )}
+              >
+                <div className="flex flex-col items-start">
+                  <span className={cn("text-sm font-medium", e.id === selectedId ? "text-primary" : "text-foreground")}>{e.name}</span>
+                  {e.subtitle && <span className="text-[10px] text-muted-foreground">{e.subtitle}</span>}
+                </div>
+                <span className={cn("text-xs font-bold tabular-nums shrink-0 mr-2",
+                  e.balance > 0 ? "text-red-600" : e.balance < 0 ? "text-emerald-600" : "text-muted-foreground"
+                )}>
+                  {e.balance === 0 ? "✓" : fmtAmount(e.balance)}
+                </span>
+              </button>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ─── MAIN COMPONENT ───
 const AccountStatementPage = () => {
   const navigate = useNavigate();
@@ -1528,51 +1635,24 @@ const AccountStatementPage = () => {
             {/* Contact selector for collapsed sidebar (medium screens) */}
             {sidebarCollapsed && !isMobile && (
               <div className="px-4 pt-3 no-print">
-                <div className="flex flex-col gap-2">
-                  <div className="relative">
-                    <Search className="absolute right-2.5 top-2.5 w-4 h-4 text-muted-foreground pointer-events-none" />
-                    <Input
-                      placeholder={isAccountsTab ? "ابحث بالاسم أو الكود..." : "ابحث بالاسم أو الرقم..."}
-                      value={entitySearch}
-                      onChange={e => setEntitySearch(e.target.value)}
-                      className="pr-9 h-9 text-xs bg-muted/50 border-border rounded-lg"
-                    />
-                  </div>
-                  <Select value={selectedEntityId} onValueChange={selectEntity}>
-                    <SelectTrigger className="h-9 text-xs bg-muted/50 border-border rounded-lg flex-1">
-                      <SelectValue placeholder="اختر جهة ▼" />
-                    </SelectTrigger>
-                    <SelectContent className="max-h-72">
-                      {entityList.map(e => (
-                        <SelectItem key={e.id} value={e.id} className="text-xs">
-                          <span className="flex items-center gap-2">
-                            {e.name}
-                            <span className={cn("text-[10px] tabular-nums", e.balance > 0 ? "text-red-600" : e.balance < 0 ? "text-emerald-600" : "text-muted-foreground")}>
-                              {e.balance === 0 ? "✓" : fmtAmount(e.balance)}
-                            </span>
-                          </span>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                <EntitySearchCombobox
+                  entities={entityList}
+                  selectedId={selectedEntityId}
+                  onSelect={selectEntity}
+                  placeholder={isAccountsTab ? "ابحث بالاسم أو الكود..." : isEmployeesTab ? "ابحث عن موظف..." : activeTab === "suppliers" ? "ابحث عن مورد..." : "ابحث عن زبون..."}
+                />
               </div>
             )}
 
-            {/* Mobile: Contact selector button */}
+            {/* Mobile: Contact selector */}
             {isMobile && (
               <div className="px-4 pt-3 no-print">
-                <Button
-                  variant="outline"
-                  className="w-full h-10 gap-2 text-xs justify-between"
-                  onClick={() => setShowMobileEntitySheet(true)}
-                >
-                  <span className="flex items-center gap-2">
-                    <User className="w-4 h-4" />
-                    {selectedEntityName || "اختر جهة لعرض كشفها"}
-                  </span>
-                  <ChevronDown className="w-4 h-4" />
-                </Button>
+                <EntitySearchCombobox
+                  entities={entityList}
+                  selectedId={selectedEntityId}
+                  onSelect={selectEntity}
+                  placeholder={isAccountsTab ? "ابحث بالاسم أو الكود..." : isEmployeesTab ? "ابحث عن موظف..." : activeTab === "suppliers" ? "ابحث عن مورد..." : "ابحث عن زبون..."}
+                />
               </div>
             )}
 
