@@ -566,7 +566,187 @@ function LiveMonitor() {
   );
 }
 
-// ─── Subscriptions Manager Component ───
+// ─── Reset Transactions Tool ───
+function ResetTransactionsTool() {
+  const [users, setUsers] = useState<{ user_id: string; display_name: string; email?: string }[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedUser, setSelectedUser] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmText, setConfirmText] = useState("");
+  const [resetting, setResetting] = useState(false);
+  const [result, setResult] = useState<any>(null);
+  const [userSearch, setUserSearch] = useState("");
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await apiCall("users");
+        setUsers(res.users || []);
+      } catch { /* ignore */ }
+      setLoading(false);
+    })();
+  }, []);
+
+  const filteredUsers = users.filter(u =>
+    !userSearch || u.display_name?.toLowerCase().includes(userSearch.toLowerCase()) || u.email?.toLowerCase().includes(userSearch.toLowerCase())
+  );
+
+  const selectedUserInfo = users.find(u => u.user_id === selectedUser);
+
+  const handleReset = async () => {
+    if (!selectedUser || !password || confirmText !== "RESET") return;
+    setResetting(true);
+    setResult(null);
+    try {
+      const res = await apiCall("reset_user_transactions", undefined, {
+        target_user_id: selectedUser,
+        password,
+      });
+      setResult(res);
+      toast.success(`تم حذف ${res.total_deleted} سجل بنجاح`);
+      setPassword("");
+      setConfirmText("");
+    } catch (e: any) {
+      toast.error(e.message);
+    }
+    setResetting(false);
+  };
+
+  return (
+    <div className="space-y-6">
+      <h2 className="text-xl font-bold flex items-center gap-2" style={{ color: "var(--sa-text-primary)" }}>
+        <Zap className="h-5 w-5 text-amber-400" /> أدوات إدارية
+      </h2>
+
+      <div className="rounded-2xl p-6 space-y-5" style={{ background: "var(--sa-card-bg)", border: "1px solid var(--sa-card-border)" }}>
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-xl bg-red-500/10 flex items-center justify-center">
+            <Trash2 className="h-6 w-6 text-red-400" />
+          </div>
+          <div>
+            <h3 className="font-bold text-lg" style={{ color: "var(--sa-text-primary)" }}>إعادة تعيين حركات مستخدم</h3>
+            <p className="text-sm" style={{ color: "var(--sa-text-muted)" }}>
+              حذف جميع الحركات المالية والمعاملات مع الحفاظ على التعريفات (الحسابات، الأصناف، الموظفين، جهات الاتصال، POS)
+            </p>
+          </div>
+        </div>
+
+        <div className="p-4 rounded-xl bg-red-500/5 border border-red-500/10 space-y-2">
+          <p className="text-sm font-bold text-red-400 flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4" /> تحذير: هذا الإجراء لا يمكن التراجع عنه
+          </p>
+          <ul className="text-xs space-y-1 mr-6" style={{ color: "var(--sa-text-muted)" }}>
+            <li>• سيتم حذف جميع المعاملات المالية (transactions)</li>
+            <li>• سيتم حذف جميع طلبات ومدفوعات وورديات POS</li>
+            <li>• سيتم حذف جميع الفواتير والسندات والقيود</li>
+            <li>• سيتم حذف الشيكات والتحويلات والقروض والرواتب</li>
+            <li>• سيتم إعادة أرصدة جهات الاتصال إلى صفر</li>
+            <li className="text-emerald-400 font-medium">✓ ستبقى الحسابات والأصناف والموظفين وإعدادات POS كما هي</li>
+          </ul>
+        </div>
+
+        {/* User selector */}
+        <div className="space-y-2">
+          <label className="text-sm font-bold" style={{ color: "var(--sa-text-primary)" }}>اختر المستخدم</label>
+          <div className="relative">
+            <Search className="absolute right-3 top-2.5 h-4 w-4" style={{ color: "var(--sa-text-faint)" }} />
+            <Input
+              value={userSearch}
+              onChange={e => setUserSearch(e.target.value)}
+              placeholder="ابحث عن مستخدم..."
+              className="pr-9"
+              style={{ background: "var(--sa-input-bg)", borderColor: "var(--sa-input-border)", color: "var(--sa-text-primary)" }}
+            />
+          </div>
+          {loading ? (
+            <p className="text-sm" style={{ color: "var(--sa-text-muted)" }}>جاري التحميل...</p>
+          ) : (
+            <div className="max-h-48 overflow-y-auto space-y-1 rounded-lg p-1" style={{ background: "var(--sa-surface)" }}>
+              {filteredUsers.map(u => (
+                <button
+                  key={u.user_id}
+                  onClick={() => setSelectedUser(u.user_id)}
+                  className={`w-full text-right px-3 py-2 rounded-lg text-sm transition-colors flex items-center justify-between ${
+                    selectedUser === u.user_id ? "bg-amber-500/20 text-amber-400 font-medium" : ""
+                  }`}
+                  style={selectedUser !== u.user_id ? { color: "var(--sa-text-secondary)" } : undefined}
+                >
+                  <span>{u.display_name || u.email}</span>
+                  <span className="text-[10px] font-mono" style={{ color: "var(--sa-text-faint)" }}>
+                    {u.email}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {selectedUser && (
+          <div className="space-y-4 pt-2 border-t" style={{ borderColor: "var(--sa-divider)" }}>
+            <div className="p-3 rounded-lg" style={{ background: "var(--sa-surface)" }}>
+              <p className="text-sm" style={{ color: "var(--sa-text-muted)" }}>
+                المستخدم المحدد: <strong style={{ color: "var(--sa-text-primary)" }}>{selectedUserInfo?.display_name}</strong>
+                <span className="text-xs font-mono mr-2" style={{ color: "var(--sa-text-faint)" }}>{selectedUserInfo?.email}</span>
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-bold" style={{ color: "var(--sa-text-primary)" }}>كلمة مرور Super Admin</label>
+              <Input
+                type="password"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                placeholder="أدخل كلمة المرور الخاصة بك"
+                style={{ background: "var(--sa-input-bg)", borderColor: "var(--sa-input-border)", color: "var(--sa-text-primary)" }}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm" style={{ color: "var(--sa-text-muted)" }}>
+                اكتب <strong className="text-red-400 font-mono">RESET</strong> للتأكيد
+              </label>
+              <Input
+                value={confirmText}
+                onChange={e => setConfirmText(e.target.value)}
+                placeholder="RESET"
+                className="font-mono"
+                style={{ background: "var(--sa-input-bg)", borderColor: "var(--sa-input-border)", color: "var(--sa-text-primary)" }}
+              />
+            </div>
+
+            <Button
+              onClick={handleReset}
+              disabled={resetting || !password || confirmText !== "RESET"}
+              className="w-full bg-red-500 hover:bg-red-600 text-white h-11 text-base font-bold gap-2"
+            >
+              {resetting ? (
+                <><RefreshCw className="h-4 w-4 animate-spin" /> جاري الحذف...</>
+              ) : (
+                <><Trash2 className="h-4 w-4" /> حذف جميع الحركات</>
+              )}
+            </Button>
+          </div>
+        )}
+
+        {result && (
+          <div className="p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/10 space-y-2">
+            <p className="text-sm font-bold text-emerald-400">✅ تم بنجاح — حُذف {result.total_deleted} سجل</p>
+            <div className="grid grid-cols-2 gap-2">
+              {Object.entries(result.deleted || {}).map(([table, count]) => (
+                <div key={table} className="flex justify-between text-xs px-2 py-1 rounded" style={{ background: "var(--sa-surface)" }}>
+                  <span style={{ color: "var(--sa-text-muted)" }}>{table}</span>
+                  <span className="font-mono text-emerald-400">{String(count)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+
 function SubscriptionsManager() {
   const [subs, setSubs] = useState<any[]>([]);
   const [plans, setPlans] = useState<any[]>([]);
@@ -1630,6 +1810,7 @@ export default function SuperAdminDashboard() {
               { value: "live", icon: Wifi, label: "مراقبة حية" },
               { value: "audit", icon: FileText, label: "سجل التدقيق" },
               { value: "settings", icon: Settings, label: "إعدادات المنصة" },
+              { value: "tools", icon: Zap, label: "أدوات" },
               { value: "subscriptions", icon: CreditCard, label: "الاشتراكات" },
               { value: "revenue", icon: BarChart3, label: "الإيرادات" },
             ].map(tab => (
@@ -1817,6 +1998,10 @@ export default function SuperAdminDashboard() {
 
           <TabsContent value="settings">
             <PlatformSettings />
+          </TabsContent>
+
+          <TabsContent value="tools">
+            <ResetTransactionsTool />
           </TabsContent>
 
           <TabsContent value="revenue">
