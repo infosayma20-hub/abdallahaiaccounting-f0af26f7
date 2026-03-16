@@ -627,10 +627,20 @@ const AccountStatementPage = () => {
   const employeeBalances = useMemo(() => {
     if (!isEmployeesTab) return {};
     const map: Record<string, number> = {};
+    // Count how many employees share each account code
+    const codeCount: Record<string, number> = {};
+    for (const emp of employeeEntities) {
+      if (emp.account_code) codeCount[emp.account_code] = (codeCount[emp.account_code] || 0) + 1;
+    }
     for (const emp of employeeEntities) {
       if (!emp.account_code) { map[emp.id] = 0; continue; }
+      const shared = (codeCount[emp.account_code] || 1) > 1;
+      const empName = emp.full_name?.trim() || "";
       let bal = 0;
       for (const tx of transactions) {
+        const matchesCode = tx.debit_account_code === emp.account_code || tx.credit_account_code === emp.account_code;
+        if (!matchesCode) continue;
+        if (shared && empName && !tx.description?.includes(empName)) continue;
         if (tx.debit_account_code === emp.account_code) bal += tx.amount || 0;
         if (tx.credit_account_code === emp.account_code) bal -= tx.amount || 0;
       }
