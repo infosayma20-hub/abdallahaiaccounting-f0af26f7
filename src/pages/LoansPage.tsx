@@ -66,7 +66,6 @@ export default function LoansPage() {
   const exportExcel = () => {
     const rows = filtered.map((l: any) => ({
       "الموظف": l.employees?.full_name || "-",
-      "رقم الموظف": l.employees?.employee_number || "-",
       "المبلغ الإجمالي": Number(l.total_amount),
       "القسط الشهري": Number(l.monthly_installment),
       "الأقساط المدفوعة": l.paid_months,
