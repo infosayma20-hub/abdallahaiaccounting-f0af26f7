@@ -263,6 +263,7 @@ const TopBar = ({ onMenuClick, sidebarCollapsed, onOpenHelpGuide }: TopBarProps)
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [shortcutsTipOpen, setShortcutsTipOpen] = useState(false);
   const { unreadCount } = useNotifications();
 
   useGlobalShortcuts({
