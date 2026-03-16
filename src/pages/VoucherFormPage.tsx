@@ -83,6 +83,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   const { id: editId } = useParams<{ id: string }>();
   const { user } = useAuth();
   const { company } = useCompany();
+  const { settings } = useCompanySettings();
 
   const fromDuplicate = searchParams.get("from_duplicate") === "true";
   const [duplicateSourceRef, setDuplicateSourceRef] = useState<string | null>(null);
