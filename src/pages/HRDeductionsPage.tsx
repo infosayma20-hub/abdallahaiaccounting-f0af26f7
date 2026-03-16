@@ -55,21 +55,26 @@ export default function HRDeductionsPage() {
     enabled: !!user,
   });
 
-  // Fetch payment vouchers linked to employees (employee_id not null)
+  // Fetch payment vouchers from the vouchers table
   const { data: paymentVouchers = [] } = useQuery({
-    queryKey: ["hr-payment-vouchers", user?.id],
+    queryKey: ["hr-payment-vouchers", user?.id, employees],
     queryFn: async () => {
       const { data } = await (supabase as any)
-        .from("receipt_vouchers")
+        .from("vouchers")
         .select("*")
         .eq("user_id", user!.id)
-        .eq("voucher_type", "payment")
-        .not("employee_id", "is", null)
+        .eq("type", "payment")
         .neq("status", "cancelled")
-        .order("voucher_date", { ascending: false });
-      return (data || []) as any[];
+        .order("date", { ascending: false });
+      // Filter to only vouchers that mention an employee name in the description
+      const empNames = employees.map(e => e.full_name);
+      const filtered = (data || []).filter((v: any) => {
+        if (!v.description) return false;
+        return empNames.some(name => v.description.includes(name));
+      });
+      return filtered as any[];
     },
-    enabled: !!user,
+    enabled: !!user && employees.length > 0,
   });
 
   // Fetch advances
