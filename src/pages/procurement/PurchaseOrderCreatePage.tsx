@@ -167,7 +167,7 @@ const PurchaseOrderCreatePage = () => {
   const handleAddSupplier = async () => {
     if (!newSupplier.name.trim()) { toast({ title: "أدخل اسم المورد", variant: "destructive" }); return; }
     setSavingDialog(true);
-    const ok = await suppliersCrud.create({ name: newSupplier.name, phone: newSupplier.phone || null, is_active: true });
+    const ok = await suppliersCrud.create({ name: newSupplier.name, phone: newSupplier.phone || null });
     setSavingDialog(false);
     if (ok) { setSupplierOpen(false); setNewSupplier({ name: "", phone: "" }); refetchSuppliers(); }
   };
