@@ -222,8 +222,8 @@ const InventoryPage = () => {
     return arr;
   }, [filtered, sortKey, sortDir]);
 
-  const totalPages = Math.max(1, Math.ceil(sorted.length / PER_PAGE));
-  const paged = sorted.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+  const totalPages = Math.max(1, Math.ceil(sorted.length / perPage));
+  const paged = sorted.slice((page - 1) * perPage, page * perPage);
 
   useEffect(() => { setPage(1); }, [searchQuery, filterCategory, stockFilter]);
 
