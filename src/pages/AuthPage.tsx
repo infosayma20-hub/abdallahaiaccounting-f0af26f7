@@ -156,40 +156,10 @@ const AuthPage = () => {
         {/* Content overlay */}
         <div className="relative z-10 flex flex-col items-center justify-center w-full p-12">
           <div className="text-center space-y-8 max-w-sm">
-            {/* Logo — F wing icon stacked above FINIX text */}
-            <div className="flex flex-col items-center gap-2" dir="ltr">
-              <svg
-                width={56}
-                height={56}
-                viewBox="0 0 64 64"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <rect x="8" y="20" width="8" height="36" rx="2" fill="#FFFFFF" />
-                <rect x="8" y="20" width="28" height="8" rx="2" fill="#FFFFFF" />
-                <rect x="8" y="34" width="20" height="7" rx="2" fill="#FFFFFF" />
-                <path d="M36 20 C36 14, 40 6, 48 2 C44 10, 43 16, 36 20Z" fill="url(#auth-wing)" />
-                <path d="M36 18 C38 12, 44 4, 54 1 C48 10, 44 15, 36 18Z" fill="url(#auth-wing)" opacity="0.85" />
-                <path d="M36 16 C40 10, 48 3, 58 2 C52 10, 46 14, 36 16Z" fill="url(#auth-wing)" opacity="0.65" />
-                <defs>
-                  <linearGradient id="auth-wing" x1="0%" y1="100%" x2="100%" y2="0%">
-                    <stop offset="0%" stopColor="#E8A020" />
-                    <stop offset="100%" stopColor="#F45E0C" />
-                  </linearGradient>
-                </defs>
-              </svg>
-              <span
-                style={{
-                  fontFamily: "'Montserrat', sans-serif",
-                  fontWeight: 800,
-                  fontSize: 32,
-                  color: "#FFFFFF",
-                  letterSpacing: "0.05em",
-                  lineHeight: 1,
-                }}
-              >
-                FINIX
-              </span>
+            {/* Logo — ق icon stacked above QOYOD text */}
+            <div className="flex flex-col items-center gap-4" dir="ltr">
+              <img src="/logo-icon-white.svg" alt="قيود" width={56} height={56} />
+              <img src="/logo-white.svg" alt="QOYOD قيود" width={180} />
             </div>
 
             <div className="space-y-4 mt-10" dir="rtl">
