@@ -98,10 +98,9 @@ const EmployeesPage = () => {
   const [leaves, setLeaves] = useState<any[]>([]);
   const [showDeductionForm, setShowDeductionForm] = useState(false);
   const [showAllowanceForm, setShowAllowanceForm] = useState(false);
-  const [showLeaveForm, setShowLeaveForm] = useState(false);
   const [deductionForm, setDeductionForm] = useState({ deduction_type: "سلفة", amount: 0, deduction_date: new Date().toISOString().split("T")[0], description: "", notes: "" });
   const [allowanceForm, setAllowanceForm] = useState({ allowance_name: "", allowance_type: "ثابت", amount: 0, percentage: 0, notes: "" });
-  const [leaveForm, setLeaveForm] = useState({ leave_type: "سنوية", start_date: new Date().toISOString().split("T")[0], end_date: new Date().toISOString().split("T")[0], days_count: 1, notes: "" });
+  const [userRoles, setUserRoles] = useState<string[]>([]);
 
   // Create account
   const [showCreateAccount, setShowCreateAccount] = useState(false);
@@ -146,6 +145,16 @@ const EmployeesPage = () => {
   };
 
   useEffect(() => { fetchEmployees(); }, [user]);
+
+  // Fetch user roles for conditional UI
+  useEffect(() => {
+    if (!user) return;
+    supabase.from("user_roles").select("role").eq("user_id", user.id).then(({ data }) => {
+      setUserRoles((data || []).map((r: any) => r.role));
+    });
+  }, [user]);
+
+  const canSeeHR = userRoles.includes("admin") || userRoles.includes("hr_manager") || userRoles.includes("super_admin");
 
   const fetchEmployeeDetails = async (empId: string) => {
     if (!user) return;
@@ -305,12 +314,6 @@ const EmployeesPage = () => {
     if (error) toast.error("خطأ"); else { toast.success("تمت الإضافة"); setShowAllowanceForm(false); setAllowanceForm({ allowance_name: "", allowance_type: "ثابت", amount: 0, percentage: 0, notes: "" }); fetchEmployeeDetails(selectedEmployee.id); }
   };
 
-  const handleAddLeave = async () => {
-    if (!user || !selectedEmployee) return;
-    const { error } = await supabase.from("employee_leaves").insert({ ...leaveForm, employee_id: selectedEmployee.id, user_id: user.id, status: "معلقة" } as any);
-    if (error) toast.error("خطأ"); else { toast.success("تمت الإضافة"); setShowLeaveForm(false); setLeaveForm({ leave_type: "سنوية", start_date: new Date().toISOString().split("T")[0], end_date: new Date().toISOString().split("T")[0], days_count: 1, notes: "" }); fetchEmployeeDetails(selectedEmployee.id); }
-  };
-
   const generateSalarySlip = async () => {
     if (!selectedEmployee || !user) return;
     const now = new Date();
@@ -369,7 +372,7 @@ const EmployeesPage = () => {
   const leaveBalance = selectedEmployee ? calculateLeaveBalance(
     selectedEmployee.start_date,
     Number((selectedEmployee as any).previous_year_balance) || 0,
-    leaves.filter(l => l.status === "موافق عليها" && new Date(l.start_date).getFullYear() === new Date().getFullYear()).reduce((s: number, l: any) => s + Number(l.days_count || 0), 0)
+    leaves.filter(l => (l.status === "موافق عليها" || l.status === "موافقة" || l.status === "معتمدة") && new Date(l.start_date).getFullYear() === new Date().getFullYear()).reduce((s: number, l: any) => s + Number(l.days_count || 0), 0)
   ) : null;
 
   return (
@@ -491,13 +494,13 @@ const EmployeesPage = () => {
               </CardHeader>
               <CardContent>
                 <Tabs value={activeTab} onValueChange={setActiveTab}>
-                  <TabsList className="w-full grid grid-cols-6 mb-4">
+                  <TabsList className={`w-full grid mb-4 ${canSeeHR ? 'grid-cols-6' : 'grid-cols-5'}`}>
                     <TabsTrigger value="info">المعلومات</TabsTrigger>
                     <TabsTrigger value="allowances">البدلات</TabsTrigger>
                     <TabsTrigger value="deductions">المسحوبات</TabsTrigger>
                     <TabsTrigger value="movements">الحركات المالية</TabsTrigger>
                     <TabsTrigger value="leaves">الإجازات</TabsTrigger>
-                    <TabsTrigger value="hr">HR</TabsTrigger>
+                    {canSeeHR && <TabsTrigger value="hr">HR</TabsTrigger>}
                   </TabsList>
 
                   <TabsContent value="info">
@@ -598,15 +601,17 @@ const EmployeesPage = () => {
                     )}
                   </TabsContent>
 
-                  <TabsContent value="hr">
-                    {user && selectedEmployee && (
-                      <EmployeeHRTab
-                        employeeId={selectedEmployee.id}
-                        userId={user.id}
-                        employee={selectedEmployee}
-                      />
-                    )}
-                  </TabsContent>
+                  {canSeeHR && (
+                    <TabsContent value="hr">
+                      {user && selectedEmployee && (
+                        <EmployeeHRTab
+                          employeeId={selectedEmployee.id}
+                          userId={user.id}
+                          employee={selectedEmployee}
+                        />
+                      )}
+                    </TabsContent>
+                  )}
                 </Tabs>
               </CardContent>
             </Card>
@@ -725,35 +730,6 @@ const EmployeesPage = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Add Leave Dialog */}
-      <Dialog open={showLeaveForm} onOpenChange={setShowLeaveForm}>
-        <DialogContent dir="rtl">
-          <DialogHeader><DialogTitle>طلب إجازة</DialogTitle></DialogHeader>
-          <div className="space-y-3">
-            <div><label className="text-xs text-muted-foreground">النوع</label>
-              <Select value={leaveForm.leave_type} onValueChange={v => setLeaveForm({ ...leaveForm, leave_type: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {[
-                    { v: "سنوية", l: "🏖️ سنوية" },
-                    { v: "مرضية", l: "🤒 مرضية" },
-                    { v: "طارئة", l: "🚨 طارئة" },
-                    { v: "أمومة", l: "🤱 أمومة (70 يوم)" },
-                    { v: "أبوة", l: "👨‍🍼 أبوة" },
-                    { v: "بدون راتب", l: "⏸️ بدون راتب" },
-                    { v: "مغادرة مؤقتة", l: "🚪 مغادرة مؤقتة" },
-                  ].map(t => <SelectItem key={t.v} value={t.v}>{t.l}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div><label className="text-xs text-muted-foreground">من تاريخ</label><Input type="date" value={leaveForm.start_date} onChange={e => setLeaveForm({ ...leaveForm, start_date: e.target.value })} /></div>
-            <div><label className="text-xs text-muted-foreground">إلى تاريخ</label><Input type="date" value={leaveForm.end_date} onChange={e => setLeaveForm({ ...leaveForm, end_date: e.target.value })} /></div>
-            <div><label className="text-xs text-muted-foreground">عدد الأيام</label><Input type="number" value={leaveForm.days_count} onChange={e => setLeaveForm({ ...leaveForm, days_count: Number(e.target.value) })} /></div>
-            <div><label className="text-xs text-muted-foreground">ملاحظات</label><Input value={leaveForm.notes} onChange={e => setLeaveForm({ ...leaveForm, notes: e.target.value })} /></div>
-          </div>
-          <div className="flex justify-end gap-2 mt-4"><Button variant="outline" onClick={() => setShowLeaveForm(false)}>إلغاء</Button><Button onClick={handleAddLeave}>حفظ</Button></div>
-        </DialogContent>
-      </Dialog>
 
       {/* Create Account Dialog */}
       <Dialog open={showCreateAccount} onOpenChange={setShowCreateAccount}>

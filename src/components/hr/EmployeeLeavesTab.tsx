@@ -63,10 +63,10 @@ export default function EmployeeLeavesTab({ employeeId, userId, employee, leaves
   const annualEntitlement = calculateAnnualLeaveEntitlement(employee?.start_date || "2024-01-01");
   const sickEntitlement = employee?.sick_leave_days || 14;
   const usedAnnual = leaves
-    .filter(l => l.status === "موافق عليها" && l.leave_type === "سنوية" && new Date(l.start_date).getFullYear() === new Date().getFullYear())
+    .filter(l => (l.status === "موافق عليها" || l.status === "موافقة" || l.status === "معتمدة") && l.leave_type === "سنوية" && new Date(l.start_date).getFullYear() === new Date().getFullYear())
     .reduce((s: number, l: any) => s + Number(l.days_count || 0), 0);
   const usedSick = leaves
-    .filter(l => l.status === "موافق عليها" && l.leave_type === "مرضية" && new Date(l.start_date).getFullYear() === new Date().getFullYear())
+    .filter(l => (l.status === "موافق عليها" || l.status === "موافقة" || l.status === "معتمدة") && l.leave_type === "مرضية" && new Date(l.start_date).getFullYear() === new Date().getFullYear())
     .reduce((s: number, l: any) => s + Number(l.days_count || 0), 0);
 
   const leaveBalance = calculateLeaveBalance(
@@ -105,9 +105,9 @@ export default function EmployeeLeavesTab({ employeeId, userId, employee, leaves
   };
 
   const statusBadge = (status: string) => {
-    if (status === "موافق عليها" || status === "معتمدة") return <Badge className="text-[10px] bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">{status}</Badge>;
-    if (status === "معلقة") return <Badge className="text-[10px] bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">{status}</Badge>;
-    if (status === "مرفوضة") return <Badge variant="destructive" className="text-[10px]">{status}</Badge>;
+    if (status === "موافق عليها" || status === "موافقة" || status === "معتمدة") return <Badge className="text-[10px] bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">معتمدة</Badge>;
+    if (status === "معلقة" || status === "pending") return <Badge className="text-[10px] bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">{status}</Badge>;
+    if (status === "مرفوضة" || status === "rejected") return <Badge variant="destructive" className="text-[10px]">{status}</Badge>;
     return <Badge variant="secondary" className="text-[10px]">{status}</Badge>;
   };
 
