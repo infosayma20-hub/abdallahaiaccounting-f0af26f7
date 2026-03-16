@@ -13,7 +13,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import BackButton from "@/components/BackButton";
 import SalarySlipDialog from "@/components/hr/SalarySlipDialog";
-import { calculateSalarySlip, calculateLeaveBalance, formatCurrency, type SalarySlip } from "@/lib/hr-utils";
+import { calculateSalarySlip, calculateLeaveBalance, getWorkDaysInMonth, getWeeklyDaysOffInMonth, formatCurrency, type SalarySlip } from "@/lib/hr-utils";
 import * as XLSX from "xlsx";
 
 const months = [
