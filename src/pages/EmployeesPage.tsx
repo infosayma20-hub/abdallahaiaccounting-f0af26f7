@@ -363,7 +363,7 @@ const EmployeesPage = () => {
     if (!groupByBranch) return null;
     const groups: Record<string, Employee[]> = {};
     filtered.forEach(e => {
-      const key = e.department || "بدون فرع";
+      const key = getBranchName(e);
       if (!groups[key]) groups[key] = [];
       groups[key].push(e);
     });
