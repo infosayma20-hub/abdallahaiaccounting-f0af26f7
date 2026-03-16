@@ -1,0 +1,1 @@
+ALTER TABLE public.procurement_order_items ADD COLUMN IF NOT EXISTS branch_id UUID REFERENCES public.branches(id) ON DELETE SET NULL;

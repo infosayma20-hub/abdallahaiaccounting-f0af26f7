@@ -6280,6 +6280,7 @@ export type Database = {
       }
       procurement_order_items: {
         Row: {
+          branch_id: string | null
           id: string
           item_name: string
           notes: string | null
@@ -6291,6 +6292,7 @@ export type Database = {
           unit_price: number | null
         }
         Insert: {
+          branch_id?: string | null
           id?: string
           item_name: string
           notes?: string | null
@@ -6302,6 +6304,7 @@ export type Database = {
           unit_price?: number | null
         }
         Update: {
+          branch_id?: string | null
           id?: string
           item_name?: string
           notes?: string | null
@@ -6313,6 +6316,20 @@ export type Database = {
           unit_price?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "procurement_order_items_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "procurement_order_items_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches_safe"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "procurement_order_items_order_id_fkey"
             columns: ["order_id"]
