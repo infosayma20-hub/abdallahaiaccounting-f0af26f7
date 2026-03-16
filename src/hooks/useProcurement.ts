@@ -318,7 +318,7 @@ export function usePurchaseInvoices() {
       currency: "شيكل",
       transaction_type: "purchase_invoice",
       reference: (data as any).invoice_number,
-      payment_method: paymentMethod,
+      payment_method: displayPaymentMethod,
       idempotency_key: `PROC-INV-${invoiceId}`,
       contact_id: invoice.supplier_id,
     });
