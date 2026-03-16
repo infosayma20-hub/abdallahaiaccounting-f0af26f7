@@ -718,35 +718,6 @@ const EmployeesPage = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Add Leave Dialog */}
-      <Dialog open={showLeaveForm} onOpenChange={setShowLeaveForm}>
-        <DialogContent dir="rtl">
-          <DialogHeader><DialogTitle>طلب إجازة</DialogTitle></DialogHeader>
-          <div className="space-y-3">
-            <div><label className="text-xs text-muted-foreground">النوع</label>
-              <Select value={leaveForm.leave_type} onValueChange={v => setLeaveForm({ ...leaveForm, leave_type: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {[
-                    { v: "سنوية", l: "🏖️ سنوية" },
-                    { v: "مرضية", l: "🤒 مرضية" },
-                    { v: "طارئة", l: "🚨 طارئة" },
-                    { v: "أمومة", l: "🤱 أمومة (70 يوم)" },
-                    { v: "أبوة", l: "👨‍🍼 أبوة" },
-                    { v: "بدون راتب", l: "⏸️ بدون راتب" },
-                    { v: "مغادرة مؤقتة", l: "🚪 مغادرة مؤقتة" },
-                  ].map(t => <SelectItem key={t.v} value={t.v}>{t.l}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div><label className="text-xs text-muted-foreground">من تاريخ</label><Input type="date" value={leaveForm.start_date} onChange={e => setLeaveForm({ ...leaveForm, start_date: e.target.value })} /></div>
-            <div><label className="text-xs text-muted-foreground">إلى تاريخ</label><Input type="date" value={leaveForm.end_date} onChange={e => setLeaveForm({ ...leaveForm, end_date: e.target.value })} /></div>
-            <div><label className="text-xs text-muted-foreground">عدد الأيام</label><Input type="number" value={leaveForm.days_count} onChange={e => setLeaveForm({ ...leaveForm, days_count: Number(e.target.value) })} /></div>
-            <div><label className="text-xs text-muted-foreground">ملاحظات</label><Input value={leaveForm.notes} onChange={e => setLeaveForm({ ...leaveForm, notes: e.target.value })} /></div>
-          </div>
-          <div className="flex justify-end gap-2 mt-4"><Button variant="outline" onClick={() => setShowLeaveForm(false)}>إلغاء</Button><Button onClick={handleAddLeave}>حفظ</Button></div>
-        </DialogContent>
-      </Dialog>
 
       {/* Create Account Dialog */}
       <Dialog open={showCreateAccount} onOpenChange={setShowCreateAccount}>
