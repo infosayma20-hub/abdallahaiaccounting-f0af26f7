@@ -6399,6 +6399,53 @@ export type Database = {
           },
         ]
       }
+      procurement_request_items: {
+        Row: {
+          category: string | null
+          id: string
+          item_name: string
+          notes: string | null
+          product_id: string | null
+          quantity: number | null
+          request_id: string | null
+          total_price: number | null
+          unit: string | null
+          unit_price: number | null
+        }
+        Insert: {
+          category?: string | null
+          id?: string
+          item_name: string
+          notes?: string | null
+          product_id?: string | null
+          quantity?: number | null
+          request_id?: string | null
+          total_price?: number | null
+          unit?: string | null
+          unit_price?: number | null
+        }
+        Update: {
+          category?: string | null
+          id?: string
+          item_name?: string
+          notes?: string | null
+          product_id?: string | null
+          quantity?: number | null
+          request_id?: string | null
+          total_price?: number | null
+          unit?: string | null
+          unit_price?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "procurement_request_items_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "procurement_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       procurement_requests: {
         Row: {
           approved_at: string | null
