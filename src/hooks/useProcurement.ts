@@ -326,10 +326,11 @@ export function usePurchaseInvoices() {
 
 export function useBranches() {
   const [branches, setBranches] = useState<{ id: string; name: string }[]>([]);
-  useEffect(() => {
+  const fetchBranches = useCallback(() => {
     supabase.from("branches").select("id, name").eq("is_active", true).then(({ data }) => {
       setBranches((data as any) || []);
     });
   }, []);
-  return branches;
+  useEffect(() => { fetchBranches(); }, [fetchBranches]);
+  return { branches, refetchBranches: fetchBranches };
 }
