@@ -1358,7 +1358,7 @@ const AccountStatementPage = () => {
         {/* Row 1: Nav + Actions */}
         <div className="flex items-center justify-between px-4 py-2">
           <div className="flex items-center gap-3">
-            <button onClick={() => navigate(-1)} className="p-1.5 rounded-lg hover:bg-muted transition-colors">
+            <button onClick={() => { if (window.history.length > 1) navigate(-1); else navigate("/finance"); }} className="p-1.5 rounded-lg hover:bg-muted transition-colors">
               <ArrowRight className="w-5 h-5 text-foreground" />
             </button>
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
