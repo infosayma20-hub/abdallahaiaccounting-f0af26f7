@@ -17,7 +17,7 @@ const CashBoxesPage = () => {
   const [boxes, setBoxes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [drawerType, setDrawerType] = useState<"main" | "branch" | "pos">("branch");
+  const [drawerType, setDrawerType] = useState<"main" | "branch" | "pos" | "petty">("branch");
   const [editBox, setEditBox] = useState<any>(null);
 
   const fetchBoxes = useCallback(async () => {
