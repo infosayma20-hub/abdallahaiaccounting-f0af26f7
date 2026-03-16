@@ -3896,6 +3896,41 @@ export type Database = {
           },
         ]
       }
+      item_categories: {
+        Row: {
+          color: string | null
+          company_id: string | null
+          icon: string | null
+          id: string
+          name: string
+          sort_order: number | null
+        }
+        Insert: {
+          color?: string | null
+          company_id?: string | null
+          icon?: string | null
+          id?: string
+          name: string
+          sort_order?: number | null
+        }
+        Update: {
+          color?: string | null
+          company_id?: string | null
+          icon?: string | null
+          id?: string
+          name?: string
+          sort_order?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "item_categories_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       kitchen_stations: {
         Row: {
           color: string | null
@@ -6194,54 +6229,51 @@ export type Database = {
       }
       procurement_items: {
         Row: {
-          category: string | null
+          category_id: string | null
+          company_id: string | null
+          default_price: number | null
           id: string
-          item_name: string
+          is_active: boolean | null
+          name: string
           notes: string | null
-          product_id: string | null
-          quantity: number
-          request_id: string
-          total_price: number | null
-          unit: string | null
-          unit_price: number | null
+          sort_order: number | null
+          unit: string
         }
         Insert: {
-          category?: string | null
+          category_id?: string | null
+          company_id?: string | null
+          default_price?: number | null
           id?: string
-          item_name: string
+          is_active?: boolean | null
+          name: string
           notes?: string | null
-          product_id?: string | null
-          quantity?: number
-          request_id: string
-          total_price?: number | null
-          unit?: string | null
-          unit_price?: number | null
+          sort_order?: number | null
+          unit?: string
         }
         Update: {
-          category?: string | null
+          category_id?: string | null
+          company_id?: string | null
+          default_price?: number | null
           id?: string
-          item_name?: string
+          is_active?: boolean | null
+          name?: string
           notes?: string | null
-          product_id?: string | null
-          quantity?: number
-          request_id?: string
-          total_price?: number | null
-          unit?: string | null
-          unit_price?: number | null
+          sort_order?: number | null
+          unit?: string
         }
         Relationships: [
           {
-            foreignKeyName: "procurement_items_product_id_fkey"
-            columns: ["product_id"]
+            foreignKeyName: "procurement_items_category_id_fkey"
+            columns: ["category_id"]
             isOneToOne: false
-            referencedRelation: "products"
+            referencedRelation: "item_categories"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "procurement_items_request_id_fkey"
-            columns: ["request_id"]
+            foreignKeyName: "procurement_items_company_id_fkey"
+            columns: ["company_id"]
             isOneToOne: false
-            referencedRelation: "procurement_requests"
+            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
         ]
