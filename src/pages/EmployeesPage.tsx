@@ -98,10 +98,9 @@ const EmployeesPage = () => {
   const [leaves, setLeaves] = useState<any[]>([]);
   const [showDeductionForm, setShowDeductionForm] = useState(false);
   const [showAllowanceForm, setShowAllowanceForm] = useState(false);
-  const [showLeaveForm, setShowLeaveForm] = useState(false);
   const [deductionForm, setDeductionForm] = useState({ deduction_type: "سلفة", amount: 0, deduction_date: new Date().toISOString().split("T")[0], description: "", notes: "" });
   const [allowanceForm, setAllowanceForm] = useState({ allowance_name: "", allowance_type: "ثابت", amount: 0, percentage: 0, notes: "" });
-  const [leaveForm, setLeaveForm] = useState({ leave_type: "سنوية", start_date: new Date().toISOString().split("T")[0], end_date: new Date().toISOString().split("T")[0], days_count: 1, notes: "" });
+  const [userRoles, setUserRoles] = useState<string[]>([]);
 
   // Create account
   const [showCreateAccount, setShowCreateAccount] = useState(false);
