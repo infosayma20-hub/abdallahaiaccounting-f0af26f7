@@ -76,7 +76,7 @@ export default function HRDeductionsPage() {
   const { data: advances = [] } = useQuery({
     queryKey: ["hr-advances-deductions", user?.id],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from("employee_advances")
         .select("*, employees(full_name, department, branch)")
         .eq("user_id", user!.id)
