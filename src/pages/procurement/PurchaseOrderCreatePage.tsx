@@ -38,6 +38,7 @@ interface OrderLine {
   quantity: number;
   unit_price: number;
   notes: string;
+  branch_id: string;
 }
 
 const STORAGE_KEY = "po-prefs";
