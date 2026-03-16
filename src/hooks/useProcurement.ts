@@ -310,14 +310,32 @@ export function usePurchaseInvoices() {
 
     // Ensure supplier exists in contacts table for account statement linking
     let contactId: string | null = null;
-    const { data: contactCheck } = await supabase.from("contacts").select("id").eq("id", invoice.supplier_id).maybeSingle();
-    if (contactCheck) {
-      contactId = invoice.supplier_id;
-    } else {
-      // Auto-sync: create a contact record for this pos_supplier
+    // First try to find existing contact by name match (since pos_suppliers and contacts have different IDs)
+    const supplierName = invoice.supplier_name || "";
+    if (supplierName) {
+      const { data: contactByName } = await supabase
+        .from("contacts")
+        .select("id")
+        .eq("user_id", ownerId)
+        .eq("contact_type", "مورد")
+        .eq("contact_name", supplierName)
+        .eq("is_active", true)
+        .limit(1)
+        .maybeSingle();
+      if (contactByName) {
+        contactId = contactByName.id;
+      }
+    }
+    // Fallback: try by supplier_id directly (in case IDs match)
+    if (!contactId) {
+      const { data: contactById } = await supabase.from("contacts").select("id").eq("id", invoice.supplier_id).maybeSingle();
+      if (contactById) contactId = contactById.id;
+    }
+    // Last resort: create a new contact record
+    if (!contactId) {
       const { data: newContact } = await supabase.from("contacts").insert({
         user_id: ownerId,
-        contact_name: invoice.supplier_name || "مورد",
+        contact_name: supplierName || "مورد",
         contact_type: "مورد",
         phone: invoice.supplier_phone || null,
         is_active: true,
