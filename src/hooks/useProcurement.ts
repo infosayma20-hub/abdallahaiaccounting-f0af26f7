@@ -251,6 +251,10 @@ export function usePurchaseInvoices() {
     const subtotal = items.reduce((s: number, i: any) => s + (i.received_quantity * i.unit_price), 0);
     const total = subtotal - (invoice.discount || 0) + (invoice.tax || 0);
 
+    const isPaid = invoice.payment_status === "paid";
+    const creditAccount = isPaid ? "1110" : "2100"; // نقدي = صندوق، آجل = ذمم موردين
+    const paymentMethod = isPaid ? "نقدي" : "آجل";
+
     const { data, error } = await supabase
       .from("purchase_invoices")
       .insert({
@@ -264,13 +268,14 @@ export function usePurchaseInvoices() {
         discount_amount: invoice.discount || 0,
         tax_amount: invoice.tax || 0,
         total_amount: total,
-        remaining_amount: total,
-        paid_amount: 0,
-        status: invoice.payment_status === "paid" ? "approved" : "pending",
-        payment_method: "آجل",
+        remaining_amount: isPaid ? 0 : total,
+        paid_amount: isPaid ? total : 0,
+        status: isPaid ? "approved" : "pending",
+        payment_method: paymentMethod,
         notes: invoice.notes || null,
         created_by: user?.id,
         procurement_order_id: orderId || null,
+        image_url: invoice.image_url || null,
       } as any)
       .select()
       .single();
@@ -307,12 +312,12 @@ export function usePurchaseInvoices() {
       transaction_date: invoice.invoice_date,
       description: `فاتورة مشتريات - ${(data as any).invoice_number}`,
       debit_account_code: "1140",
-      credit_account_code: "2100",
+      credit_account_code: creditAccount,
       amount: total,
       currency: "شيكل",
       transaction_type: "purchase_invoice",
       reference: (data as any).invoice_number,
-      payment_method: "آجل",
+      payment_method: paymentMethod,
       idempotency_key: `PROC-INV-${invoiceId}`,
       contact_id: invoice.supplier_id,
     });
