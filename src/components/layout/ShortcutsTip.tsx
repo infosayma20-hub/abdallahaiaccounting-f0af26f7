@@ -1,28 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Keyboard, X } from "lucide-react";
 
-const TIP_KEY = "shortcuts_tip_shown";
-
 interface ShortcutsTipProps {
+  visible: boolean;
+  onClose: () => void;
   onShowShortcuts: () => void;
 }
 
-const ShortcutsTip = ({ onShowShortcuts }: ShortcutsTipProps) => {
-  const [show, setShow] = useState(false);
-
-  useEffect(() => {
-    if (!localStorage.getItem(TIP_KEY)) {
-      const timer = setTimeout(() => setShow(true), 2000);
-      return () => clearTimeout(timer);
-    }
-  }, []);
-
-  const dismiss = () => {
-    setShow(false);
-    localStorage.setItem(TIP_KEY, "true");
-  };
-
-  if (!show) return null;
+const ShortcutsTip = ({ visible, onClose, onShowShortcuts }: ShortcutsTipProps) => {
+  if (!visible) return null;
 
   return (
     <div className="absolute top-12 right-0 z-50 animate-in fade-in slide-in-from-top-2 duration-300">
