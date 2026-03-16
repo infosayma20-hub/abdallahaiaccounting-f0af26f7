@@ -489,7 +489,9 @@ const PurchaseOrderCreatePage = () => {
                 </div>
               ) : (
                 <div className="divide-y divide-border/50">
-                  {lines.map(line => (
+                  {lines.map(line => {
+                    const lineBranch = branches.find((b: any) => b.id === line.branch_id);
+                    return (
                     <div key={line.id} className="px-3 py-2.5">
                       <div className="flex items-start justify-between mb-1">
                         <span className="text-xs font-semibold leading-tight">{line.item_name}</span>
@@ -497,6 +499,14 @@ const PurchaseOrderCreatePage = () => {
                           <X className="h-3 w-3" />
                         </button>
                       </div>
+                      {/* Branch per line */}
+                      <Select value={line.branch_id || ""} onValueChange={v => updateLine(line.id, "branch_id", v)}>
+                        <SelectTrigger className={`h-5 text-[10px] mb-1 w-full ${!line.branch_id ? "border-orange-400 bg-orange-500/5" : ""}`}>
+                          <MapPin className="h-2.5 w-2.5 shrink-0 ml-0.5" />
+                          <SelectValue placeholder="حدد الفرع" />
+                        </SelectTrigger>
+                        <SelectContent>{branches.map((b: any) => <SelectItem key={b.id} value={b.id} className="text-xs">{b.name}</SelectItem>)}</SelectContent>
+                      </Select>
                       <p className="text-[11px] text-muted-foreground mb-1.5">
                         {line.quantity} {line.unit} × {line.unit_price.toFixed(2)} ₪ = <span className="text-foreground font-medium">{(line.quantity * line.unit_price).toFixed(2)} ₪</span>
                       </p>
@@ -525,7 +535,8 @@ const PurchaseOrderCreatePage = () => {
                           className="h-6 text-[11px] mt-1.5" autoFocus />
                       )}
                     </div>
-                  ))}
+                  );
+                  })}
                 </div>
               )}
             </div>
