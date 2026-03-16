@@ -146,6 +146,16 @@ const EmployeesPage = () => {
 
   useEffect(() => { fetchEmployees(); }, [user]);
 
+  // Fetch user roles for conditional UI
+  useEffect(() => {
+    if (!user) return;
+    supabase.from("user_roles").select("role").eq("user_id", user.id).then(({ data }) => {
+      setUserRoles((data || []).map((r: any) => r.role));
+    });
+  }, [user]);
+
+  const canSeeHR = userRoles.includes("admin") || userRoles.includes("hr_manager") || userRoles.includes("super_admin");
+
   const fetchEmployeeDetails = async (empId: string) => {
     if (!user) return;
     const [dedRes, allRes, levRes] = await Promise.all([
