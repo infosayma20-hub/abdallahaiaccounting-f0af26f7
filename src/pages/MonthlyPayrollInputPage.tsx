@@ -177,7 +177,7 @@ const MonthlyPayrollInputPage = () => {
         type="number"
         step="any"
         className="h-8 text-xs"
-        value={inputs[empId]?.[field] ?? 0}
+        value={String(inputs[empId]?.[field] ?? 0)}
         onChange={e => updateField(empId, field, Number(e.target.value) || 0)}
       />
     </div>
