@@ -427,14 +427,16 @@ const AccountStatementPage = () => {
             : Promise.resolve({ data: [] as any[] }),
           limitedTxIds.length
             ? supabase
-                .from("procurement_invoices" as any)
-                .select("id, invoice_number")
-                .in("id", limitedTxIds)
+                .from("purchase_invoices")
+                .select("id, linked_transaction_id, invoice_number")
+                .eq("user_id", user.id)
+                .in("linked_transaction_id", limitedTxIds)
             : Promise.resolve({ data: [] as any[] }),
           limitedRefs.length
             ? supabase
-                .from("procurement_invoices" as any)
-                .select("id, invoice_number")
+                .from("purchase_invoices")
+                .select("id, linked_transaction_id, invoice_number")
+                .eq("user_id", user.id)
                 .in("invoice_number", limitedRefs)
             : Promise.resolve({ data: [] as any[] }),
         ]);
