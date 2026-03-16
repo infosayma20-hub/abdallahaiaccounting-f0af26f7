@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Plus, Search, Users, DollarSign, Calendar, FileText, Trash2, UserPlus, Loader2, Upload, CalendarDays, LogOut as LogOutIcon, Download, FileBarChart, ArrowUpDown, Filter, Layers, Pencil, ChevronLeft, ChevronRight, X, Edit } from "lucide-react";
+import { Plus, Search, Users, DollarSign, Calendar, FileText, Trash2, UserPlus, Loader2, Upload, CalendarDays, LogOut as LogOutIcon, Download, FileBarChart, ArrowUpDown, Filter, Layers, Pencil, ChevronLeft, ChevronRight, X, Edit, Building2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import BackButton from "@/components/BackButton";
 import EmployeeMovementsTab from "@/components/hr/EmployeeMovementsTab";
@@ -27,6 +27,11 @@ import SalarySlipDialog from "@/components/hr/SalarySlipDialog";
 import DeductionsExportDialog from "@/components/hr/DeductionsExportDialog";
 import { calculateSalarySlip, calculateLeaveBalance, getWorkDaysInMonth, getWeeklyDaysOffInMonth, formatCurrency, type SalarySlip } from "@/lib/hr-utils";
 import { useIsMobile } from "@/hooks/use-mobile";
+
+interface Branch {
+  id: string;
+  name: string;
+}
 
 interface Employee {
   id: string;
@@ -54,6 +59,7 @@ interface Employee {
   emergency_phone: string;
   address: string;
   notes: string;
+  branch_id?: string;
   marital_status?: string;
   children_count?: number;
   spouse_allowance_amount?: number;
@@ -97,6 +103,9 @@ const EmployeesPage = () => {
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [activeTab, setActiveTab] = useState("info");
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [branchesList, setBranchesList] = useState<Branch[]>([]);
+  const [showAddBranch, setShowAddBranch] = useState(false);
+  const [newBranchName, setNewBranchName] = useState("");
 
   // Filters
   const [filterBranch, setFilterBranch] = useState<string>("all");
@@ -164,7 +173,26 @@ const EmployeesPage = () => {
     setLoading(false);
   };
 
-  useEffect(() => { fetchEmployees(); }, [user]);
+  const fetchBranches = async () => {
+    if (!user) return;
+    const { data } = await supabase.from("branches").select("id, name").eq("user_id", user.id).eq("is_active", true).order("name");
+    setBranchesList((data as Branch[]) || []);
+  };
+
+  const handleAddBranch = async () => {
+    if (!user || !newBranchName.trim()) return;
+    const { error } = await supabase.from("branches").insert({
+      user_id: user.id, name: newBranchName.trim(),
+      latitude: 0, longitude: 0, radius_meters: 100,
+    } as any);
+    if (error) { toast.error("خطأ في إضافة الفرع"); return; }
+    toast.success("تم إضافة الفرع");
+    setNewBranchName("");
+    setShowAddBranch(false);
+    fetchBranches();
+  };
+
+  useEffect(() => { fetchEmployees(); fetchBranches(); }, [user]);
 
   useEffect(() => {
     if (!user) return;
@@ -286,14 +314,19 @@ const EmployeesPage = () => {
   };
 
   // Derived data
-  const branches = useMemo(() => [...new Set(employees.map(e => e.department || "بدون فرع"))], [employees]);
+  const branchMap = useMemo(() => {
+    const m: Record<string, string> = {};
+    branchesList.forEach(b => { m[b.id] = b.name; });
+    return m;
+  }, [branchesList]);
+  const getBranchName = (emp: Employee) => emp.branch_id ? (branchMap[emp.branch_id] || emp.department || "—") : (emp.department || "—");
   const jobs = useMemo(() => [...new Set(employees.filter(e => e.job_title).map(e => e.job_title))], [employees]);
 
   const filtered = useMemo(() => {
     let list = employees.filter(e =>
       (e.full_name?.includes(search) || e.id_number?.includes(search) || e.job_title?.includes(search) || e.position?.includes(search))
     );
-    if (filterBranch !== "all") list = list.filter(e => (e.department || "بدون فرع") === filterBranch);
+    if (filterBranch !== "all") list = list.filter(e => (e.branch_id || "") === filterBranch);
     if (filterStatus === "active") list = list.filter(e => e.is_active);
     else if (filterStatus === "inactive") list = list.filter(e => !e.is_active);
     if (filterJob !== "all") list = list.filter(e => e.job_title === filterJob);
@@ -330,7 +363,7 @@ const EmployeesPage = () => {
     if (!groupByBranch) return null;
     const groups: Record<string, Employee[]> = {};
     filtered.forEach(e => {
-      const key = e.department || "بدون فرع";
+      const key = getBranchName(e);
       if (!groups[key]) groups[key] = [];
       groups[key].push(e);
     });
@@ -412,7 +445,7 @@ const EmployeesPage = () => {
             </div>
           </div>
         </td>
-        <td className="px-3 py-3 text-xs text-muted-foreground">{emp.department || "—"}</td>
+        <td className="px-3 py-3 text-xs text-muted-foreground">{getBranchName(emp)}</td>
         <td className="px-3 py-3 text-xs text-muted-foreground">{emp.job_title || emp.position || "—"}</td>
         <td className="px-3 py-3 text-xs text-muted-foreground tabular-nums">{emp.start_date || "—"}</td>
         <td className="px-3 py-3 text-sm font-bold tabular-nums text-foreground">{formatCurrency(Number(emp.base_salary || 0))}</td>
@@ -512,7 +545,7 @@ const EmployeesPage = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">كل الفروع</SelectItem>
-                {branches.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}
+                {branchesList.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
               </SelectContent>
             </Select>
 
@@ -720,7 +753,7 @@ const EmployeesPage = () => {
                       ["الحالة الاجتماعية", (selectedEmployee as any).marital_status === "married" ? "متزوج" : (selectedEmployee as any).marital_status === "divorced" ? "مطلق" : "أعزب"],
                       ["عدد الأبناء", (selectedEmployee as any).children_count || 0],
                       ["المنصب", selectedEmployee.position],
-                      ["القسم", selectedEmployee.department],
+                      ["الفرع", getBranchName(selectedEmployee)],
                       ["المسمى الوظيفي", selectedEmployee.job_title],
                       ["نوع العقد", (selectedEmployee as any).contract_type || "دائم"],
                       ["تاريخ البداية", selectedEmployee.start_date],
@@ -843,7 +876,35 @@ const EmployeesPage = () => {
             <div><label className="text-xs text-muted-foreground">الهاتف</label><Input value={form.phone || ""} onChange={e => setForm({ ...form, phone: e.target.value })} /></div>
             <div><label className="text-xs text-muted-foreground">البريد</label><Input value={form.email || ""} onChange={e => setForm({ ...form, email: e.target.value })} /></div>
             <div><label className="text-xs text-muted-foreground">المنصب</label><Input value={form.position || ""} onChange={e => setForm({ ...form, position: e.target.value })} /></div>
-            <div><label className="text-xs text-muted-foreground">القسم</label><Input value={form.department || ""} onChange={e => setForm({ ...form, department: e.target.value })} /></div>
+            <div>
+              <label className="text-xs text-muted-foreground">الفرع</label>
+              <Select value={form.branch_id || "_none"} onValueChange={v => setForm({ ...form, branch_id: v === "_none" ? undefined : v })}>
+                <SelectTrigger><SelectValue placeholder="اختر الفرع" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="_none">بدون فرع</SelectItem>
+                  {branchesList.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
+                  <div className="border-t border-border mt-1 pt-1 px-2 pb-1">
+                    {showAddBranch ? (
+                      <div className="flex gap-1">
+                        <Input
+                          value={newBranchName}
+                          onChange={e => setNewBranchName(e.target.value)}
+                          placeholder="اسم الفرع الجديد"
+                          className="h-7 text-xs"
+                          onClick={e => e.stopPropagation()}
+                          onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handleAddBranch(); } }}
+                        />
+                        <Button size="sm" className="h-7 text-xs px-2" onClick={e => { e.preventDefault(); handleAddBranch(); }}>إضافة</Button>
+                      </div>
+                    ) : (
+                      <button onClick={e => { e.preventDefault(); e.stopPropagation(); setShowAddBranch(true); }} className="text-xs text-primary hover:underline flex items-center gap-1 w-full py-1">
+                        <Plus className="h-3 w-3" /> إضافة فرع جديد
+                      </button>
+                    )}
+                  </div>
+                </SelectContent>
+              </Select>
+            </div>
             <div><label className="text-xs text-muted-foreground">المسمى الوظيفي</label><Input value={form.job_title || ""} onChange={e => setForm({ ...form, job_title: e.target.value })} /></div>
             <div><label className="text-xs text-muted-foreground">تاريخ البداية</label><Input type="date" value={form.start_date || ""} onChange={e => setForm({ ...form, start_date: e.target.value })} /></div>
             <div><label className="text-xs text-muted-foreground">نوع العقد</label>
@@ -967,7 +1028,7 @@ const EmployeesPage = () => {
         onClose={() => setShowSalarySlip(false)}
         slip={salarySlip}
         employeeName={selectedEmployee?.full_name || ""}
-        department={selectedEmployee?.department || ""}
+        department={selectedEmployee ? getBranchName(selectedEmployee) : ""}
         startDate={selectedEmployee?.start_date || ""}
         month={new Date().getMonth() + 1}
         year={new Date().getFullYear()}
