@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { Plus, Search, Send, X, FileText, Eye } from "lucide-react";
+import { Plus, Search, Send, X, FileText } from "lucide-react";
 import { useProcurementOrders, useSuppliers } from "@/hooks/useProcurement";
 import { useNavigate } from "react-router-dom";
 import BackButton from "@/components/BackButton";
@@ -22,7 +22,6 @@ const statusMap: Record<string, { label: string; color: string }> = {
 
 const PurchaseOrdersPage = () => {
   const { orders, loading, updateStatus } = useProcurementOrders();
-  const { suppliers } = useSuppliers();
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -93,6 +92,7 @@ const PurchaseOrdersPage = () => {
                   <TableHead>التسليم المتوقع</TableHead>
                   <TableHead>الحالة</TableHead>
                   <TableHead>القيمة</TableHead>
+                  <TableHead>فاتورة مرتبطة</TableHead>
                   <TableHead>إجراءات</TableHead>
                 </TableRow>
               </TableHeader>
@@ -111,10 +111,18 @@ const PurchaseOrdersPage = () => {
                       </TableCell>
                       <TableCell className="font-mono">{Number(o.total_amount).toLocaleString("en", { minimumFractionDigits: 2 })} ₪</TableCell>
                       <TableCell>
+                        {o.linked_invoice ? (
+                          <Badge variant="outline" className="font-mono text-xs cursor-pointer hover:bg-accent/10"
+                            onClick={() => navigate(`/procurement/invoices`)}>
+                            {o.linked_invoice.invoice_number}
+                          </Badge>
+                        ) : "—"}
+                      </TableCell>
+                      <TableCell>
                         <div className="flex gap-1">
                           {(o.status === "sent" || o.status === "partially_received") && (
                             <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => navigate(`/procurement/invoices/new?orderId=${o.id}`)}>
-                              تحويل لفاتورة
+                              استلام وإنشاء فاتورة
                             </Button>
                           )}
                           {o.status === "draft" && (

@@ -1,20 +1,19 @@
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Search, FileText } from "lucide-react";
-import { useProcurementInvoices } from "@/hooks/useProcurement";
+import { usePurchaseInvoices } from "@/hooks/useProcurement";
 import BackButton from "@/components/BackButton";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const ProcurementInvoicesPage = () => {
-  const { invoices, loading } = useProcurementInvoices();
+  const { invoices, loading } = usePurchaseInvoices();
   const [search, setSearch] = useState("");
 
-  const filtered = invoices.filter(i =>
-    i.invoice_number?.includes(search) || i.supplier?.name?.includes(search) || i.supplier_invoice_number?.includes(search)
+  const filtered = invoices.filter((i: any) =>
+    i.invoice_number?.includes(search) || i.supplier?.name?.includes(search) || i.supplier_name?.includes(search) || i.reference_no?.includes(search)
   );
 
   return (
@@ -54,15 +53,15 @@ const ProcurementInvoicesPage = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map(inv => (
+                {filtered.map((inv: any) => (
                   <TableRow key={inv.id}>
                     <TableCell className="font-mono text-xs">{inv.invoice_number}</TableCell>
-                    <TableCell>{inv.supplier?.name || "—"}</TableCell>
-                    <TableCell>{inv.supplier_invoice_number || "—"}</TableCell>
-                    <TableCell>{new Date(inv.invoice_date).toLocaleDateString("en-GB")}</TableCell>
+                    <TableCell>{inv.supplier?.name || inv.supplier_name || "—"}</TableCell>
+                    <TableCell>{inv.reference_no || "—"}</TableCell>
+                    <TableCell>{inv.invoice_date ? new Date(inv.invoice_date).toLocaleDateString("en-GB") : "—"}</TableCell>
                     <TableCell>
-                      <Badge variant={inv.payment_status === "paid" ? "default" : inv.payment_status === "partial" ? "secondary" : "destructive"}>
-                        {inv.payment_status === "paid" ? "مدفوعة" : inv.payment_status === "partial" ? "جزئية" : "غير مدفوعة"}
+                      <Badge variant={inv.status === "approved" ? "default" : "destructive"}>
+                        {inv.status === "approved" ? "مدفوعة" : inv.remaining_amount > 0 && inv.paid_amount > 0 ? "جزئية" : "غير مدفوعة"}
                       </Badge>
                     </TableCell>
                     <TableCell className="font-mono">{Number(inv.total_amount).toLocaleString("en", { minimumFractionDigits: 2 })} ₪</TableCell>

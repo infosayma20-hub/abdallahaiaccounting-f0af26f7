@@ -6,15 +6,16 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Send, Save, Package } from "lucide-react";
-import { useSuppliers, useSupplierItems, useProcurementOrders, useBranches } from "@/hooks/useProcurement";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Plus, Trash2, Send, Save, Package, Search } from "lucide-react";
+import { useSuppliers, useProducts, useProcurementOrders, useBranches } from "@/hooks/useProcurement";
 import { useNavigate } from "react-router-dom";
 import BackButton from "@/components/BackButton";
 import { toast } from "@/hooks/use-toast";
 
 interface OrderLine {
   id: string;
+  product_id: string | null;
   item_name: string;
   unit: string;
   quantity: number;
@@ -23,6 +24,7 @@ interface OrderLine {
 
 const PurchaseOrderCreatePage = () => {
   const { suppliers } = useSuppliers();
+  const { products } = useProducts();
   const { createOrder, updateStatus } = useProcurementOrders();
   const branches = useBranches();
   const navigate = useNavigate();
@@ -35,30 +37,36 @@ const PurchaseOrderCreatePage = () => {
   const [lines, setLines] = useState<OrderLine[]>([]);
   const [manualItem, setManualItem] = useState({ item_name: "", unit: "قطعة", unit_price: 0 });
   const [saving, setSaving] = useState(false);
+  const [productSearch, setProductSearch] = useState("");
 
-  const { items: supplierItems } = useSupplierItems(supplierId || null);
+  const filteredProducts = useMemo(() => {
+    if (!productSearch) return products;
+    const q = productSearch.toLowerCase();
+    return products.filter(p => p.name.toLowerCase().includes(q) || p.barcode?.includes(q));
+  }, [products, productSearch]);
 
   const totalQty = lines.reduce((s, l) => s + l.quantity, 0);
   const totalAmount = lines.reduce((s, l) => s + l.quantity * l.unit_price, 0);
 
-  const addFromCatalog = (item: any) => {
-    const existing = lines.find(l => l.item_name === item.item_name);
+  const addFromCatalog = (product: any) => {
+    const existing = lines.find(l => l.product_id === product.id);
     if (existing) {
       setLines(lines.map(l => l.id === existing.id ? { ...l, quantity: l.quantity + 1 } : l));
       return;
     }
     setLines([...lines, {
       id: crypto.randomUUID(),
-      item_name: item.item_name,
-      unit: item.unit,
+      product_id: product.id,
+      item_name: product.name,
+      unit: product.unit,
       quantity: 1,
-      unit_price: Number(item.default_price),
+      unit_price: Number(product.buy_price),
     }]);
   };
 
   const addManual = () => {
     if (!manualItem.item_name.trim()) return;
-    setLines([...lines, { id: crypto.randomUUID(), ...manualItem, quantity: 1 }]);
+    setLines([...lines, { id: crypto.randomUUID(), product_id: null, ...manualItem, quantity: 1 }]);
     setManualItem({ item_name: "", unit: "قطعة", unit_price: 0 });
   };
 
@@ -77,7 +85,7 @@ const PurchaseOrderCreatePage = () => {
     setSaving(true);
     const result = await createOrder(
       { supplier_id: supplierId, branch_id: branchId, order_date: orderDate, expected_delivery_date: expectedDate, notes },
-      lines.map(l => ({ item_name: l.item_name, unit: l.unit, quantity: l.quantity, unit_price: l.unit_price }))
+      lines.map(l => ({ product_id: l.product_id, item_name: l.item_name, unit: l.unit, quantity: l.quantity, unit_price: l.unit_price }))
     );
     if (result && send) {
       await updateStatus((result as any).id, "sent");
@@ -106,8 +114,8 @@ const PurchaseOrderCreatePage = () => {
                 <Select value={supplierId} onValueChange={setSupplierId}>
                   <SelectTrigger><SelectValue placeholder="اختر المورد" /></SelectTrigger>
                   <SelectContent>
-                    {suppliers.filter(s => s.is_active).map(s => (
-                      <SelectItem key={s.id} value={s.id}>{s.name} {s.phone ? `(${s.phone})` : ""}</SelectItem>
+                    {suppliers.map(s => (
+                      <SelectItem key={s.id} value={s.id}>{s.name} {s.phone ? `- ${s.phone}` : ""}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -171,58 +179,66 @@ const PurchaseOrderCreatePage = () => {
 
         {/* LEFT PANEL - Item Entry */}
         <div className="lg:w-[60%] space-y-4">
-          {supplierId && supplierItems.length > 0 && (
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm">أصناف المورد — اضغط للإضافة</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                  {supplierItems.map(item => (
-                    <button
-                      key={item.id}
-                      onClick={() => addFromCatalog(item)}
-                      className="p-3 rounded-lg border border-border/50 hover:border-accent/50 hover:bg-accent/5 text-right transition-all"
-                    >
-                      <p className="text-sm font-medium truncate">{item.item_name}</p>
-                      <p className="text-xs text-muted-foreground">{item.unit} • {Number(item.default_price).toLocaleString("en", { minimumFractionDigits: 2 })} ₪</p>
-                    </button>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
           <Card>
             <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-sm">بنود الطلبية</CardTitle>
-                <div className="flex gap-2 items-end">
-                  <Input
-                    placeholder="صنف يدوي"
-                    value={manualItem.item_name}
-                    onChange={e => setManualItem({...manualItem, item_name: e.target.value})}
-                    className="w-40 h-8 text-xs"
-                  />
-                  <Input
-                    placeholder="وحدة"
-                    value={manualItem.unit}
-                    onChange={e => setManualItem({...manualItem, unit: e.target.value})}
-                    className="w-20 h-8 text-xs"
-                  />
-                  <Input
-                    type="number"
-                    placeholder="سعر"
-                    value={manualItem.unit_price || ""}
-                    onChange={e => setManualItem({...manualItem, unit_price: Number(e.target.value)})}
-                    className="w-20 h-8 text-xs"
-                  />
-                  <Button size="sm" variant="outline" onClick={addManual} className="h-8">
-                    <Plus className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
-              </div>
+              <CardTitle className="text-sm">بنود الطلبية</CardTitle>
             </CardHeader>
+            <CardContent>
+              <Tabs defaultValue="catalog" dir="rtl">
+                <TabsList className="mb-3">
+                  <TabsTrigger value="catalog">من كتالوج المنتجات</TabsTrigger>
+                  <TabsTrigger value="manual">صنف يدوي</TabsTrigger>
+                </TabsList>
+                <TabsContent value="catalog">
+                  <div className="relative mb-3">
+                    <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="بحث في المنتجات..."
+                      value={productSearch}
+                      onChange={e => setProductSearch(e.target.value)}
+                      className="pr-9"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-[250px] overflow-y-auto">
+                    {filteredProducts.slice(0, 50).map(product => (
+                      <button
+                        key={product.id}
+                        onClick={() => addFromCatalog(product)}
+                        className="p-3 rounded-lg border border-border/50 hover:border-accent/50 hover:bg-accent/5 text-right transition-all"
+                      >
+                        <p className="text-sm font-medium truncate">{product.name}</p>
+                        <p className="text-xs text-muted-foreground">{product.unit} • {Number(product.buy_price).toLocaleString("en", { minimumFractionDigits: 2 })} ₪</p>
+                      </button>
+                    ))}
+                    {filteredProducts.length === 0 && (
+                      <p className="col-span-full text-center text-sm text-muted-foreground py-6">لا توجد منتجات</p>
+                    )}
+                  </div>
+                </TabsContent>
+                <TabsContent value="manual">
+                  <div className="flex gap-2 items-end">
+                    <div className="flex-1">
+                      <Label className="text-xs">اسم الصنف</Label>
+                      <Input value={manualItem.item_name} onChange={e => setManualItem({...manualItem, item_name: e.target.value})} placeholder="اسم الصنف" />
+                    </div>
+                    <div className="w-24">
+                      <Label className="text-xs">الوحدة</Label>
+                      <Input value={manualItem.unit} onChange={e => setManualItem({...manualItem, unit: e.target.value})} />
+                    </div>
+                    <div className="w-28">
+                      <Label className="text-xs">السعر</Label>
+                      <Input type="number" value={manualItem.unit_price || ""} onChange={e => setManualItem({...manualItem, unit_price: Number(e.target.value)})} />
+                    </div>
+                    <Button onClick={addManual} className="shrink-0">
+                      <Plus className="h-4 w-4 ml-1" /> إضافة
+                    </Button>
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
+
+          <Card>
             <CardContent className="p-0">
               {lines.length === 0 ? (
                 <div className="p-12 text-center text-muted-foreground">
@@ -248,9 +264,7 @@ const PurchaseOrderCreatePage = () => {
                         <TableCell>{line.unit}</TableCell>
                         <TableCell>
                           <Input
-                            type="number"
-                            min={0.001}
-                            step="any"
+                            type="number" min={0.001} step="any"
                             value={line.quantity}
                             onChange={e => updateLine(line.id, "quantity", Number(e.target.value))}
                             className="h-8 w-20 text-center"
@@ -258,9 +272,7 @@ const PurchaseOrderCreatePage = () => {
                         </TableCell>
                         <TableCell>
                           <Input
-                            type="number"
-                            min={0}
-                            step="any"
+                            type="number" min={0} step="any"
                             value={line.unit_price}
                             onChange={e => updateLine(line.id, "unit_price", Number(e.target.value))}
                             className="h-8 w-24 text-center"

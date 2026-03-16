@@ -87,8 +87,7 @@ import ContractFormPage from "./pages/ContractFormPage";
 import ContractPreviewPage from "./pages/ContractPreviewPage";
 import LoadingDemoPage from "./pages/LoadingDemoPage";
 import ImportShipmentsPage from "./pages/ImportShipmentsPage";
-import SuppliersPage from "./pages/procurement/SuppliersPage";
-import SupplierDetailPage from "./pages/procurement/SupplierDetailPage";
+// Supplier pages removed — use existing pos_suppliers management
 import PurchaseOrderCreatePage from "./pages/procurement/PurchaseOrderCreatePage";
 import PurchaseOrdersPage from "./pages/procurement/PurchaseOrdersPage";
 import ProcurementInvoicesPage from "./pages/procurement/ProcurementInvoicesPage";
@@ -357,8 +356,7 @@ const App = () => (
                       <Route path="/purchases/import/new" element={<ImportWizardPage />} />
                       <Route path="/purchases/import/:id" element={<ImportDetailPage />} />
                       {/* Procurement Module */}
-                      <Route path="/procurement/suppliers" element={<SuppliersPage />} />
-                      <Route path="/procurement/suppliers/:id" element={<SupplierDetailPage />} />
+                      {/* Suppliers managed via existing POS supplier pages */}
                       <Route path="/procurement/orders" element={<PurchaseOrdersPage />} />
                       <Route path="/procurement/orders/new" element={<PurchaseOrderCreatePage />} />
                       <Route path="/procurement/invoices" element={<ProcurementInvoicesPage />} />
