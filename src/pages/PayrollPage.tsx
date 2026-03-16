@@ -120,18 +120,42 @@ const PayrollPage = () => {
     if (!user || !pendingEmployees.length) return;
     setRunningPayroll(true);
     try {
+      const workDays = getWorkDaysInMonth(selectedYear, selectedMonth);
+      const weeklyOff = getWeeklyDaysOffInMonth(selectedYear, selectedMonth);
       const records = pendingEmployees.map((emp: any) => {
         const att = attendanceMap.get(emp.id) || { present: 0, absent: 0, late: 0, overtime: 0 };
-        const slip = calculateSalarySlip(emp, att.present, att.absent, att.overtime, selectedMonth, selectedYear);
+        const slip = calculateSalarySlip({
+          baseSalary: Number(emp.base_salary) || 0,
+          hourlyRate: Number(emp.hourly_rate) || 0,
+          workDaysPerWeek: emp.work_days_per_week || 6,
+          workHoursPerDay: emp.work_hours_per_day || 8,
+          presentDays: att.present || workDays,
+          annualLeaveDays: 0,
+          sickLeaveDays: 0,
+          officialHolidayDays: 0,
+          weeklyDaysOff: weeklyOff,
+          totalWorkDays: workDays,
+          transportationPerDay: Number(emp.transportation_allowance_per_day) || 0,
+          mealPerDay: Number(emp.meal_allowance_per_day) || 0,
+          spouseAllowance: Number(emp.spouse_allowance_amount) || 0,
+          childrenCount: Number(emp.children_count) || 0,
+          childAllowancePerChild: Number(emp.child_allowance_per_child) || 0,
+          overtimeHours: att.overtime,
+          overtimeAmount: 0,
+          advanceDeductions: 0,
+          otherDeductions: 0,
+          customAllowances: 0,
+          socialInsuranceRate: 0.075,
+        });
         return {
           user_id: user.id,
           employee_id: emp.id,
           period_month: selectedMonth,
           period_year: selectedYear,
-          base_salary: slip.baseSalary,
-          total_allowances: slip.totalAllowances,
+          base_salary: slip.basicSalary,
+          total_allowances: slip.transportationAllowance + slip.mealAllowance + slip.spouseAllowance + slip.childrenAllowance + slip.customAllowances,
           total_deductions: slip.totalDeductions,
-          total_overtime: slip.overtimePay,
+          total_overtime: slip.overtimeAmount,
           net_salary: slip.netSalary,
           working_days: slip.workDays,
           absent_days: att.absent,
