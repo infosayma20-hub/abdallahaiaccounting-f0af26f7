@@ -753,7 +753,7 @@ const EmployeesPage = () => {
                       ["الحالة الاجتماعية", (selectedEmployee as any).marital_status === "married" ? "متزوج" : (selectedEmployee as any).marital_status === "divorced" ? "مطلق" : "أعزب"],
                       ["عدد الأبناء", (selectedEmployee as any).children_count || 0],
                       ["المنصب", selectedEmployee.position],
-                      ["القسم", selectedEmployee.department],
+                      ["الفرع", getBranchName(selectedEmployee)],
                       ["المسمى الوظيفي", selectedEmployee.job_title],
                       ["نوع العقد", (selectedEmployee as any).contract_type || "دائم"],
                       ["تاريخ البداية", selectedEmployee.start_date],
