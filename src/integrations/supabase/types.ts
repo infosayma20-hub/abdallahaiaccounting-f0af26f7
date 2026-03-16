@@ -6947,6 +6947,7 @@ export type Database = {
           discount_amount: number | null
           due_date: string | null
           id: string
+          image_url: string | null
           invoice_date: string | null
           invoice_image_url: string | null
           invoice_number: string | null
@@ -6977,6 +6978,7 @@ export type Database = {
           discount_amount?: number | null
           due_date?: string | null
           id?: string
+          image_url?: string | null
           invoice_date?: string | null
           invoice_image_url?: string | null
           invoice_number?: string | null
@@ -7007,6 +7009,7 @@ export type Database = {
           discount_amount?: number | null
           due_date?: string | null
           id?: string
+          image_url?: string | null
           invoice_date?: string | null
           invoice_image_url?: string | null
           invoice_number?: string | null
