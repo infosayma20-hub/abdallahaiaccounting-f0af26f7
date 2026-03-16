@@ -244,11 +244,11 @@ export default function LoansPage() {
       <tfoot>
         <tr style="background:#1B3A5C;color:#fff;font-weight:700">
           <td colspan="3" style="padding:8px">الإجمالي</td>
-          <td style="font-family:monospace;text-align:left;padding:8px">${totalAmt.toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
+          <td style="text-align:left;padding:8px">${totalAmt.toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
           <td style="padding:8px"></td>
           <td style="padding:8px"></td>
-          <td style="font-family:monospace;text-align:left;padding:8px">${totalPaid.toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
-          <td style="font-family:monospace;text-align:left;padding:8px">${totalRemaining.toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
+          <td style="text-align:left;padding:8px">${totalPaid.toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
+          <td style="text-align:left;padding:8px">${totalRemaining.toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
           <td colspan="2" style="padding:8px"></td>
         </tr>
       </tfoot>
