@@ -69,10 +69,9 @@ export default function GooglePasswordSetupModal({ open, onComplete, onSkip }: G
                 <Lock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                 <Input
                   type={showPassword ? "text" : "password"}
-                  placeholder="8 أحرف على الأقل"
+                  placeholder="أدخل كلمة المرور"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  minLength={8}
                   className="pr-10 pl-10"
                   dir="ltr"
                   style={{ textAlign: "left" }}
