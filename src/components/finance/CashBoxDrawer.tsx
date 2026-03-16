@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { X, Loader2, Check, Landmark, Building2, Monitor, Plus } from "lucide-react";
+import { X, Loader2, Check, Landmark, Building2, Monitor, Plus, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
