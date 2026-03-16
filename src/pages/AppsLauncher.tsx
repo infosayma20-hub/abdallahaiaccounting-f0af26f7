@@ -152,6 +152,9 @@ const AppsLauncher = () => {
         )}
       </div>
 
+      {/* Google Password Setup Modal */}
+      <GooglePasswordPrompt />
+
       {!onboardingLoading && (
         <>
           <WelcomeModal open={shouldShowWelcome} onStartTour={handleStartTour} onSkip={handleSkipWelcome} />
