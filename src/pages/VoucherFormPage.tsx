@@ -5,6 +5,7 @@ import DuplicateBanner from "@/components/DuplicateBanner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompany } from "@/hooks/useCompanyContext";
+import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
