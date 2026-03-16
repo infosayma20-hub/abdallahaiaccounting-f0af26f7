@@ -4,29 +4,24 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 
 // Types
-export interface Supplier {
+export interface PosSupplier {
   id: string;
   user_id: string;
   name: string;
   phone: string | null;
-  address: string | null;
-  payment_terms: number;
-  opening_balance: number;
-  opening_balance_date: string | null;
-  notes: string | null;
-  is_active: boolean;
-  created_at: string;
+  email: string | null;
+  account_name: string | null;
 }
 
-export interface SupplierItem {
+export interface Product {
   id: string;
-  supplier_id: string;
-  user_id: string;
-  item_name: string;
+  name: string;
   unit: string;
-  default_price: number;
-  item_code: string | null;
-  is_active: boolean;
+  buy_price: number;
+  sell_price: number;
+  category: string;
+  barcode: string | null;
+  image_url: string | null;
 }
 
 export interface ProcurementOrder {
@@ -42,14 +37,15 @@ export interface ProcurementOrder {
   notes: string | null;
   created_by: string | null;
   created_at: string;
-  supplier?: Supplier;
+  supplier?: PosSupplier;
   branch?: { id: string; name: string };
-  items?: ProcurementOrderItem[];
+  linked_invoice?: { invoice_number: string } | null;
 }
 
 export interface ProcurementOrderItem {
   id: string;
   order_id: string;
+  product_id: string | null;
   item_name: string;
   unit: string;
   quantity: number;
@@ -58,149 +54,53 @@ export interface ProcurementOrderItem {
   notes: string | null;
 }
 
-export interface ProcurementInvoice {
-  id: string;
-  user_id: string;
-  branch_id: string | null;
-  invoice_number: string;
-  supplier_id: string;
-  purchase_order_id: string | null;
-  invoice_date: string;
-  supplier_invoice_number: string | null;
-  payment_status: string;
-  subtotal: number;
-  discount: number;
-  tax: number;
-  total_amount: number;
-  notes: string | null;
-  created_at: string;
-  supplier?: Supplier;
-}
-
-export interface ProcurementInvoiceItem {
-  id: string;
-  invoice_id: string;
-  item_name: string;
-  unit: string;
-  ordered_quantity: number | null;
-  received_quantity: number;
-  unit_price: number;
-  total_price: number;
-  notes: string | null;
-}
-
-export interface ProcurementPayment {
-  id: string;
-  user_id: string;
-  supplier_id: string;
-  invoice_id: string | null;
-  payment_date: string;
-  amount: number;
-  payment_method: string;
-  reference_number: string | null;
-  notes: string | null;
-  created_at: string;
-}
-
 function getOwnerId(user: any) {
   return user?.id;
 }
 
+// Fetch suppliers from pos_suppliers
 export function useSuppliers() {
   const { user } = useAuth();
-  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [suppliers, setSuppliers] = useState<PosSupplier[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetch = useCallback(async () => {
     if (!user) return;
     setLoading(true);
-    const { data, error } = await supabase
-      .from("procurement_suppliers" as any)
+    const { data } = await supabase
+      .from("pos_suppliers")
       .select("*")
       .order("name");
-    if (!error) setSuppliers((data as any) || []);
+    setSuppliers((data as any) || []);
     setLoading(false);
   }, [user]);
 
   useEffect(() => { fetch(); }, [fetch]);
-
-  const create = async (s: Partial<Supplier>) => {
-    const ownerId = getOwnerId(user);
-    const { error } = await supabase
-      .from("procurement_suppliers" as any)
-      .insert({ ...s, user_id: ownerId } as any);
-    if (error) { toast({ title: "خطأ", description: error.message, variant: "destructive" }); return false; }
-    toast({ title: "تم إضافة المورد بنجاح" });
-    fetch();
-    return true;
-  };
-
-  const update = async (id: string, s: Partial<Supplier>) => {
-    const { error } = await supabase
-      .from("procurement_suppliers" as any)
-      .update({ ...s, updated_at: new Date().toISOString() } as any)
-      .eq("id", id);
-    if (error) { toast({ title: "خطأ", description: error.message, variant: "destructive" }); return false; }
-    toast({ title: "تم تحديث المورد" });
-    fetch();
-    return true;
-  };
-
-  return { suppliers, loading, refetch: fetch, create, update };
+  return { suppliers, loading, refetch: fetch };
 }
 
-export function useSupplierItems(supplierId: string | null) {
+// Fetch products catalog
+export function useProducts() {
   const { user } = useAuth();
-  const [items, setItems] = useState<SupplierItem[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const fetch = useCallback(async () => {
-    if (!supplierId || !user) { setItems([]); return; }
+    if (!user) return;
     setLoading(true);
     const { data } = await supabase
-      .from("procurement_supplier_items" as any)
-      .select("*")
-      .eq("supplier_id", supplierId)
-      .eq("is_active", true)
-      .order("item_name");
-    setItems((data as any) || []);
+      .from("products")
+      .select("id, name, unit, buy_price, sell_price, category, barcode, image_url")
+      .order("name");
+    setProducts((data as any) || []);
     setLoading(false);
-  }, [supplierId, user]);
+  }, [user]);
 
   useEffect(() => { fetch(); }, [fetch]);
-
-  const create = async (item: Partial<SupplierItem>) => {
-    const ownerId = getOwnerId(user);
-    const { error } = await supabase
-      .from("procurement_supplier_items" as any)
-      .insert({ ...item, supplier_id: supplierId, user_id: ownerId } as any);
-    if (error) { toast({ title: "خطأ", description: error.message, variant: "destructive" }); return false; }
-    toast({ title: "تم إضافة الصنف" });
-    fetch();
-    return true;
-  };
-
-  const update = async (id: string, item: Partial<SupplierItem>) => {
-    const { error } = await supabase
-      .from("procurement_supplier_items" as any)
-      .update(item as any)
-      .eq("id", id);
-    if (error) { toast({ title: "خطأ", description: error.message, variant: "destructive" }); return false; }
-    fetch();
-    return true;
-  };
-
-  const remove = async (id: string) => {
-    const { error } = await supabase
-      .from("procurement_supplier_items" as any)
-      .update({ is_active: false } as any)
-      .eq("id", id);
-    if (!error) fetch();
-  };
-
-  return { items, loading, refetch: fetch, create, update, remove };
+  return { products, loading };
 }
 
+// Procurement Orders
 export function useProcurementOrders() {
   const { user } = useAuth();
   const [orders, setOrders] = useState<ProcurementOrder[]>([]);
@@ -211,12 +111,29 @@ export function useProcurementOrders() {
     setLoading(true);
     const { data } = await supabase
       .from("procurement_orders" as any)
-      .select("*, procurement_suppliers(*), branches(id, name)")
+      .select("*, pos_suppliers(*), branches(id, name)")
       .order("created_at", { ascending: false });
+    
+    // Also fetch linked invoices
+    const orderIds = ((data as any) || []).map((o: any) => o.id);
+    let linkedInvoices: Record<string, string> = {};
+    if (orderIds.length > 0) {
+      const { data: invData } = await supabase
+        .from("purchase_invoices")
+        .select("id, invoice_number, procurement_order_id")
+        .in("procurement_order_id", orderIds);
+      ((invData as any) || []).forEach((inv: any) => {
+        if (inv.procurement_order_id) {
+          linkedInvoices[inv.procurement_order_id] = inv.invoice_number;
+        }
+      });
+    }
+
     const mapped = ((data as any) || []).map((o: any) => ({
       ...o,
-      supplier: o.procurement_suppliers,
+      supplier: o.pos_suppliers,
       branch: o.branches,
+      linked_invoice: linkedInvoices[o.id] ? { invoice_number: linkedInvoices[o.id] } : null,
     }));
     setOrders(mapped);
     setLoading(false);
@@ -226,7 +143,7 @@ export function useProcurementOrders() {
 
   const createOrder = async (order: any, items: any[]) => {
     const ownerId = getOwnerId(user);
-    const totalAmount = items.reduce((s, i) => s + (i.quantity * i.unit_price), 0);
+    const totalAmount = items.reduce((s: number, i: any) => s + (i.quantity * i.unit_price), 0);
     const { data, error } = await supabase
       .from("procurement_orders" as any)
       .insert({
@@ -244,8 +161,9 @@ export function useProcurementOrders() {
       .single();
     if (error) { toast({ title: "خطأ", description: error.message, variant: "destructive" }); return null; }
     const orderId = (data as any).id;
-    const orderItems = items.map(i => ({
+    const orderItems = items.map((i: any) => ({
       order_id: orderId,
+      product_id: i.product_id || null,
       item_name: i.item_name,
       unit: i.unit,
       quantity: i.quantity,
@@ -264,12 +182,13 @@ export function useProcurementOrders() {
       .update({ status, updated_at: new Date().toISOString() } as any)
       .eq("id", id);
     if (error) { toast({ title: "خطأ", description: error.message, variant: "destructive" }); return false; }
-    toast({ title: `تم تحديث حالة الطلبية إلى ${status === 'sent' ? 'مُرسلة' : status === 'cancelled' ? 'ملغاة' : status}` });
+    const labels: Record<string, string> = { sent: "مُرسلة", cancelled: "ملغاة", received: "مستلمة", draft: "مسودة" };
+    toast({ title: `تم تحديث حالة الطلبية إلى ${labels[status] || status}` });
     fetch();
     return true;
   };
 
-  const getOrderItems = async (orderId: string) => {
+  const getOrderItems = async (orderId: string): Promise<ProcurementOrderItem[]> => {
     const { data } = await supabase
       .from("procurement_order_items" as any)
       .select("*")
@@ -280,21 +199,22 @@ export function useProcurementOrders() {
   return { orders, loading, refetch: fetch, createOrder, updateStatus, getOrderItems };
 }
 
-export function useProcurementInvoices() {
+// Purchase invoices — use existing purchase_invoices table
+export function usePurchaseInvoices() {
   const { user } = useAuth();
-  const [invoices, setInvoices] = useState<ProcurementInvoice[]>([]);
+  const [invoices, setInvoices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetch = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     const { data } = await supabase
-      .from("procurement_invoices" as any)
-      .select("*, procurement_suppliers(*)")
+      .from("purchase_invoices")
+      .select("*, pos_suppliers(*)")
       .order("created_at", { ascending: false });
     const mapped = ((data as any) || []).map((i: any) => ({
       ...i,
-      supplier: i.procurement_suppliers,
+      supplier: i.pos_suppliers,
     }));
     setInvoices(mapped);
     setLoading(false);
@@ -304,47 +224,53 @@ export function useProcurementInvoices() {
 
   const createInvoice = async (invoice: any, items: any[], orderId?: string) => {
     const ownerId = getOwnerId(user);
-    const subtotal = items.reduce((s, i) => s + (i.received_quantity * i.unit_price), 0);
+    const subtotal = items.reduce((s: number, i: any) => s + (i.received_quantity * i.unit_price), 0);
     const total = subtotal - (invoice.discount || 0) + (invoice.tax || 0);
+
     const { data, error } = await supabase
-      .from("procurement_invoices" as any)
+      .from("purchase_invoices")
       .insert({
         user_id: ownerId,
-        branch_id: invoice.branch_id,
+        branch_id: invoice.branch_id || null,
         supplier_id: invoice.supplier_id,
-        purchase_order_id: orderId || null,
+        supplier_name: invoice.supplier_name || null,
         invoice_date: invoice.invoice_date,
-        supplier_invoice_number: invoice.supplier_invoice_number || null,
-        payment_status: invoice.payment_status || "unpaid",
+        reference_no: invoice.supplier_invoice_number || null,
         subtotal,
-        discount: invoice.discount || 0,
-        tax: invoice.tax || 0,
+        discount_amount: invoice.discount || 0,
+        tax_amount: invoice.tax || 0,
         total_amount: total,
+        remaining_amount: total,
+        paid_amount: 0,
+        status: invoice.payment_status === "paid" ? "approved" : "pending",
+        payment_method: "آجل",
         notes: invoice.notes || null,
         created_by: user?.id,
+        procurement_order_id: orderId || null,
       } as any)
       .select()
       .single();
     if (error) { toast({ title: "خطأ", description: error.message, variant: "destructive" }); return null; }
     const invoiceId = (data as any).id;
-    const invItems = items.map(i => ({
+
+    const invItems = items.map((i: any) => ({
       invoice_id: invoiceId,
-      item_name: i.item_name,
+      product_id: i.product_id || null,
+      product_name: i.item_name,
       unit: i.unit,
-      ordered_quantity: i.ordered_quantity || null,
-      received_quantity: i.received_quantity,
+      quantity: i.received_quantity,
       unit_price: i.unit_price,
-      total_price: i.received_quantity * i.unit_price,
+      total_amount: i.received_quantity * i.unit_price,
     }));
-    await supabase.from("procurement_invoice_items" as any).insert(invItems as any);
+    await supabase.from("purchase_invoice_items").insert(invItems as any);
 
     // Update PO status if linked
     if (orderId) {
-      const orderItems = await supabase
+      const { data: orderItems } = await supabase
         .from("procurement_order_items" as any)
         .select("quantity")
         .eq("order_id", orderId);
-      const totalOrdered = ((orderItems.data as any) || []).reduce((s: number, i: any) => s + Number(i.quantity), 0);
+      const totalOrdered = ((orderItems as any) || []).reduce((s: number, i: any) => s + Number(i.quantity), 0);
       const totalReceived = items.reduce((s: number, i: any) => s + Number(i.received_quantity), 0);
       const newStatus = totalReceived >= totalOrdered ? "received" : "partially_received";
       await supabase
@@ -366,45 +292,15 @@ export function useProcurementInvoices() {
       reference: (data as any).invoice_number,
       payment_method: "آجل",
       idempotency_key: `PROC-INV-${invoiceId}`,
+      contact_id: invoice.supplier_id,
     });
 
-    toast({ title: "تم تسجيل فاتورة المشتريات وتحديث المخزون" });
+    toast({ title: "✅ تم إنشاء فاتورة المشتريات وتحديث المخزون والقيد المحاسبي" });
     fetch();
     return data;
   };
 
   return { invoices, loading, refetch: fetch, createInvoice };
-}
-
-export function useProcurementPayments(supplierId?: string) {
-  const { user } = useAuth();
-  const [payments, setPayments] = useState<ProcurementPayment[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const fetch = useCallback(async () => {
-    if (!user) return;
-    setLoading(true);
-    let q = supabase.from("procurement_payments" as any).select("*").order("payment_date", { ascending: false });
-    if (supplierId) q = q.eq("supplier_id", supplierId);
-    const { data } = await q;
-    setPayments((data as any) || []);
-    setLoading(false);
-  }, [user, supplierId]);
-
-  useEffect(() => { fetch(); }, [fetch]);
-
-  const create = async (payment: Partial<ProcurementPayment>) => {
-    const ownerId = getOwnerId(user);
-    const { error } = await supabase
-      .from("procurement_payments" as any)
-      .insert({ ...payment, user_id: ownerId } as any);
-    if (error) { toast({ title: "خطأ", description: error.message, variant: "destructive" }); return false; }
-    toast({ title: "تم تسجيل الدفعة بنجاح" });
-    fetch();
-    return true;
-  };
-
-  return { payments, loading, refetch: fetch, create };
 }
 
 export function useBranches() {

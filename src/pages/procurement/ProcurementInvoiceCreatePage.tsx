@@ -10,11 +10,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { AlertTriangle, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useProcurementInvoices, useSuppliers, ProcurementOrderItem } from "@/hooks/useProcurement";
+import { usePurchaseInvoices, useSuppliers } from "@/hooks/useProcurement";
 import BackButton from "@/components/BackButton";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface InvoiceLine {
+  product_id: string | null;
   item_name: string;
   unit: string;
   ordered_quantity: number;
@@ -27,7 +28,7 @@ const ProcurementInvoiceCreatePage = () => {
   const [searchParams] = useSearchParams();
   const orderId = searchParams.get("orderId");
   const navigate = useNavigate();
-  const { createInvoice } = useProcurementInvoices();
+  const { createInvoice } = usePurchaseInvoices();
   const { suppliers } = useSuppliers();
 
   const [loading, setLoading] = useState(!!orderId);
@@ -47,15 +48,23 @@ const ProcurementInvoiceCreatePage = () => {
   useEffect(() => {
     if (!orderId) { setLoading(false); return; }
     (async () => {
-      const { data: order } = await supabase.from("procurement_orders" as any).select("*, procurement_suppliers(*)").eq("id", orderId).single();
+      const { data: order } = await supabase
+        .from("procurement_orders" as any)
+        .select("*, pos_suppliers(*)")
+        .eq("id", orderId)
+        .single();
       if (order) {
         const o = order as any;
         setSupplierId(o.supplier_id);
-        setSupplierName(o.procurement_suppliers?.name || "");
+        setSupplierName(o.pos_suppliers?.name || "");
         setBranchId(o.branch_id || "");
         setOrderNumber(o.order_number || "");
-        const { data: items } = await supabase.from("procurement_order_items" as any).select("*").eq("order_id", orderId);
+        const { data: items } = await supabase
+          .from("procurement_order_items" as any)
+          .select("*")
+          .eq("order_id", orderId);
         setLines(((items as any) || []).map((i: any) => ({
+          product_id: i.product_id || null,
           item_name: i.item_name,
           unit: i.unit,
           ordered_quantity: Number(i.quantity),
@@ -79,7 +88,17 @@ const ProcurementInvoiceCreatePage = () => {
     if (!supplierId || lines.length === 0) return;
     setSaving(true);
     const result = await createInvoice(
-      { supplier_id: supplierId, branch_id: branchId, invoice_date: invoiceDate, supplier_invoice_number: supplierInvoiceNumber, payment_status: paymentStatus, discount, tax, notes },
+      {
+        supplier_id: supplierId,
+        supplier_name: supplierName,
+        branch_id: branchId,
+        invoice_date: invoiceDate,
+        supplier_invoice_number: supplierInvoiceNumber,
+        payment_status: paymentStatus,
+        discount,
+        tax,
+        notes,
+      },
       lines,
       orderId || undefined
     );
@@ -167,7 +186,7 @@ const ProcurementInvoiceCreatePage = () => {
               {lines.map((line, idx) => {
                 const variance = line.received_quantity < line.ordered_quantity;
                 return (
-                  <TableRow key={idx}>
+                  <TableRow key={idx} className={variance ? "bg-orange-500/5" : ""}>
                     <TableCell className="font-medium">{line.item_name}</TableCell>
                     <TableCell>{line.unit}</TableCell>
                     <TableCell>{line.ordered_quantity}</TableCell>
