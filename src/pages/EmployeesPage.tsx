@@ -304,12 +304,6 @@ const EmployeesPage = () => {
     if (error) toast.error("خطأ"); else { toast.success("تمت الإضافة"); setShowAllowanceForm(false); setAllowanceForm({ allowance_name: "", allowance_type: "ثابت", amount: 0, percentage: 0, notes: "" }); fetchEmployeeDetails(selectedEmployee.id); }
   };
 
-  const handleAddLeave = async () => {
-    if (!user || !selectedEmployee) return;
-    const { error } = await supabase.from("employee_leaves").insert({ ...leaveForm, employee_id: selectedEmployee.id, user_id: user.id, status: "معلقة" } as any);
-    if (error) toast.error("خطأ"); else { toast.success("تمت الإضافة"); setShowLeaveForm(false); setLeaveForm({ leave_type: "سنوية", start_date: new Date().toISOString().split("T")[0], end_date: new Date().toISOString().split("T")[0], days_count: 1, notes: "" }); fetchEmployeeDetails(selectedEmployee.id); }
-  };
-
   const generateSalarySlip = async () => {
     if (!selectedEmployee || !user) return;
     const now = new Date();
