@@ -168,7 +168,7 @@ const OnboardingPage = () => {
             {step === 1 && (
               <div className="text-center">
                 <div className="text-5xl mb-4">👋</div>
-                <h2 className="text-[28px] font-extrabold text-[#0D1B2A] mb-3">أهلاً وسهلاً في FINIX!</h2>
+                <h2 className="text-[28px] font-extrabold text-[#0D1B2A] mb-3">أهلاً وسهلاً في QOYOD!</h2>
                 <p className="text-sm text-gray-500 max-w-md mx-auto mb-8 leading-relaxed">
                   لنبدأ بالتعرف على عملك لكي يقدم لك المحاسب الذكي تحليلات مخصصة لك تماماً
                 </p>

@@ -163,7 +163,7 @@ const SubscriptionPage = () => {
           <div className="bg-card border border-border rounded-2xl p-8 text-center mb-8">
             <AlertTriangle className="h-12 w-12 text-warning mx-auto mb-3" />
             <h3 className="text-lg font-bold text-foreground mb-2">لا يوجد اشتراك نشط</h3>
-            <p className="text-sm text-muted-foreground mb-4">اشترك الآن للوصول إلى جميع ميزات FINIX</p>
+            <p className="text-sm text-muted-foreground mb-4">اشترك الآن للوصول إلى جميع ميزات QOYOD قيود</p>
             <button
               onClick={() => navigate("/pricing")}
               className="bg-gradient-to-r from-[#C9A84C] to-[#B8972E] text-white px-8 py-3 rounded-xl font-bold"

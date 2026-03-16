@@ -50,7 +50,7 @@ Deno.serve(async (req) => {
         return respond({
           success: true,
           needsSetup: true,
-          message: "يجب ربط البوابة بحساب FINIX أولاً",
+          message: "يجب ربط البوابة بحساب QOYOD أولاً",
           sales: null,
           liquidity: null,
         });
