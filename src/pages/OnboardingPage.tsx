@@ -344,7 +344,7 @@ const OnboardingPage = () => {
                   ))}
                 </div>
 
-                <p className="text-sm font-bold text-[#0D1B2A] mb-3">من أين سمعت عن FINIX؟</p>
+                <p className="text-sm font-bold text-[#0D1B2A] mb-3">من أين سمعت عن QOYOD؟</p>
                 <div className="flex flex-wrap gap-2 mb-6">
                   {referralSources.map((r) => (
                     <button
@@ -359,7 +359,7 @@ const OnboardingPage = () => {
                   ))}
                 </div>
 
-                <p className="text-sm font-bold text-[#0D1B2A] mb-3">ما أهم شيء تريد إنجازه بـ FINIX؟</p>
+                <p className="text-sm font-bold text-[#0D1B2A] mb-3">ما أهم شيء تريد إنجازه بـ QOYOD؟</p>
                 <div className="flex flex-wrap gap-2">
                   {goalChips.map((g) => {
                     const selected = goals.includes(g);
@@ -416,7 +416,7 @@ const OnboardingPage = () => {
                           onClick={finishOnboarding}
                           className="bg-white text-[#0A2342] px-8 py-3 rounded-xl font-bold text-sm hover:scale-105 transition-transform"
                         >
-                          ادخل إلى FINIX ←
+                          ادخل إلى QOYOD ←
                         </button>
                       </motion.div>
                     )}
