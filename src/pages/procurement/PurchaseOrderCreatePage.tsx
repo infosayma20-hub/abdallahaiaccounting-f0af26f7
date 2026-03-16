@@ -301,10 +301,10 @@ const PurchaseOrderCreatePage = () => {
               </TooltipTrigger><TooltipContent>إضافة مورد جديد</TooltipContent></Tooltip>
             </div>
 
-            {/* Branch */}
+            {/* Default Branch */}
             <div className="flex items-center gap-1">
-              <Select value={branchId} onValueChange={setBranchId}>
-                <SelectTrigger className="h-8 w-[130px] text-xs"><SelectValue placeholder="اختر الفرع" /></SelectTrigger>
+              <Select value={defaultBranchId} onValueChange={setDefaultBranchId}>
+                <SelectTrigger className="h-8 w-[130px] text-xs"><SelectValue placeholder="الفرع الافتراضي" /></SelectTrigger>
                 <SelectContent>{branches.map((b: any) => <SelectItem key={b.id} value={b.id} className="text-xs">{b.name}</SelectItem>)}</SelectContent>
               </Select>
               <Tooltip><TooltipTrigger asChild>
