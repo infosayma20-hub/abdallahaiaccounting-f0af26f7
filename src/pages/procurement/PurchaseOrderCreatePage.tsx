@@ -23,7 +23,10 @@ const iconMap: Record<string, any> = {
 
 const ICON_OPTIONS = ["wheat", "egg", "beef", "droplets", "sparkles", "cup-soda", "package", "utensils", "spray-can", "shirt"];
 const COLOR_OPTIONS = ["#C9A84C", "#FFFFFF", "#E74C3C", "#E67E22", "#9B59B6", "#3498DB", "#27AE60", "#1ABC9C", "#2ECC71", "#95A5A6"];
-const UNIT_OPTIONS = ["كيلو", "كرتون", "علبة", "رول", "لتر", "قطعة", "شوال", "رزمة", "عدد", "جالون", "سطل", "عبوة", "ألف حبة", "دفتر", "كرتون 30", "عدد 30", "عدد 100"];
+const DEFAULT_UNITS = ["كيلو", "كرتون", "علبة", "رول", "لتر", "قطعة", "شوال", "رزمة", "عدد", "جالون", "سطل", "عبوة", "ألف حبة", "دفتر", "كرتون 30", "عدد 30", "عدد 100"];
+const CUSTOM_UNITS_KEY = "po-custom-units";
+function loadCustomUnits(): string[] { try { return JSON.parse(localStorage.getItem(CUSTOM_UNITS_KEY) || "[]"); } catch { return []; } }
+function saveCustomUnit(u: string) { const arr = loadCustomUnits(); if (!arr.includes(u)) { arr.push(u); localStorage.setItem(CUSTOM_UNITS_KEY, JSON.stringify(arr)); } }
 
 type CardSize = "small" | "medium" | "large";
 
