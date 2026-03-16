@@ -87,8 +87,7 @@ import ContractFormPage from "./pages/ContractFormPage";
 import ContractPreviewPage from "./pages/ContractPreviewPage";
 import LoadingDemoPage from "./pages/LoadingDemoPage";
 import ImportShipmentsPage from "./pages/ImportShipmentsPage";
-import SuppliersPage from "./pages/procurement/SuppliersPage";
-import SupplierDetailPage from "./pages/procurement/SupplierDetailPage";
+// Supplier pages removed — use existing pos_suppliers management
 import PurchaseOrderCreatePage from "./pages/procurement/PurchaseOrderCreatePage";
 import PurchaseOrdersPage from "./pages/procurement/PurchaseOrdersPage";
 import ProcurementInvoicesPage from "./pages/procurement/ProcurementInvoicesPage";
