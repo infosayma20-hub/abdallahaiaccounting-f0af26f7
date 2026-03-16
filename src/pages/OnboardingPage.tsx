@@ -359,7 +359,7 @@ const OnboardingPage = () => {
                   ))}
                 </div>
 
-                <p className="text-sm font-bold text-[#0D1B2A] mb-3">ما أهم شيء تريد إنجازه بـ FINIX؟</p>
+                <p className="text-sm font-bold text-[#0D1B2A] mb-3">ما أهم شيء تريد إنجازه بـ QOYOD؟</p>
                 <div className="flex flex-wrap gap-2">
                   {goalChips.map((g) => {
                     const selected = goals.includes(g);
