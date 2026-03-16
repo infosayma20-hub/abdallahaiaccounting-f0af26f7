@@ -167,7 +167,18 @@ const PurchaseOrderCreatePage = () => {
   const handleAddSupplier = async () => {
     if (!newSupplier.name.trim()) { toast({ title: "أدخل اسم المورد", variant: "destructive" }); return; }
     setSavingDialog(true);
+    // Save to pos_suppliers for procurement
     const ok = await suppliersCrud.create({ name: newSupplier.name, phone: newSupplier.phone || null });
+    // Also save to contacts table so it appears in account statements & reports
+    if (ok && user) {
+      await supabase.from("contacts").insert({
+        user_id: user.id,
+        contact_name: newSupplier.name,
+        contact_type: "مورد",
+        phone: newSupplier.phone || null,
+        is_active: true,
+      } as any);
+    }
     setSavingDialog(false);
     if (ok) { setSupplierOpen(false); setNewSupplier({ name: "", phone: "" }); refetchSuppliers(); }
   };
