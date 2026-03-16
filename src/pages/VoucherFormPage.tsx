@@ -45,6 +45,13 @@ interface BankAccount {
   gl_account_code: string | null;
 }
 
+interface Employee {
+  id: string;
+  full_name: string;
+  department: string | null;
+  job_title: string | null;
+}
+
 const PAYMENT_METHODS = [
   { value: "نقدي", label: "نقدي", icon: Banknote },
   { value: "شيك", label: "شيك", icon: ReceiptIcon },
@@ -52,7 +59,18 @@ const PAYMENT_METHODS = [
   { value: "بطاقة", label: "بطاقة", icon: CreditCard },
 ];
 
+const EMP_TRANSACTION_CATEGORIES = [
+  { value: "سلفة", label: "سلفة", emoji: "💰" },
+  { value: "أكل", label: "أكل / وجبات", emoji: "🍽️" },
+  { value: "عجز", label: "عجز صندوق", emoji: "📉" },
+  { value: "مشتريات", label: "مشتريات", emoji: "🛒" },
+  { value: "توصيل", label: "توصيل", emoji: "🚗" },
+  { value: "مخالفة", label: "مخالفة", emoji: "⚠️" },
+  { value: "أخرى", label: "أخرى", emoji: "📝" },
+];
+
 type VoucherType = "receipt" | "payment";
+type PartyType = "contact" | "employee";
 
 interface VoucherFormPageProps {
   voucherType?: VoucherType;
