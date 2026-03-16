@@ -172,7 +172,7 @@ export const navigationSections: NavSection[] = [
     items: [
       {
         id: "pos", label: "نقطة البيع", description: "نظام POS متكامل للمبيعات المباشرة", module: "pos", icon: Monitor,
-        color: "text-emerald-400", bgColor: "bg-emerald-500/10", path: "/pos", isNew: true,
+        color: "text-emerald-400", bgColor: "bg-emerald-500/10", path: "/pos",
         keywords: ["نقطة", "بيع", "كاشير", "pos", "مطعم"],
         groups: [
           {
@@ -214,12 +214,12 @@ export const navigationSections: NavSection[] = [
       },
       {
         id: "fixed-assets", label: "الأصول الثابتة", description: "سجل الأصول، الاستهلاك، والصيانة", module: "accounting", icon: Landmark,
-        color: "text-stone-600", bgColor: "bg-stone-500/10", path: "/fixed-assets", isDirect: true, isNew: true,
+        color: "text-stone-600", bgColor: "bg-stone-500/10", path: "/fixed-assets", isDirect: true,
         keywords: ["أصول", "استهلاك", "ثابتة"],
       },
       {
         id: "contractor", label: "محاسب المشاريع والمقاولات", description: "إدارة مشاريع المقاولات والحركات المالية", module: "accounting", icon: Building2,
-        color: "text-amber-600", bgColor: "bg-amber-500/10", path: "/contractor", isDirect: true, isNew: true,
+        color: "text-amber-600", bgColor: "bg-amber-500/10", path: "/contractor", isDirect: true,
         keywords: ["مقاولات", "مشاريع", "مقاول"],
       },
       {
