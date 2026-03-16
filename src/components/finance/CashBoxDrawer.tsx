@@ -339,7 +339,7 @@ const CashBoxDrawer = ({ open, onClose, defaultType, editBox, hasMainBox, onSave
           </div>
 
           {/* Branch transfer settings */}
-          {boxType === "branch" && (
+          {(boxType === "branch" || boxType === "petty") && (
             <div className="space-y-3">
               <h3 className="text-xs font-bold">ترحيل للرئيسي</h3>
               <div className="flex items-center gap-3">
