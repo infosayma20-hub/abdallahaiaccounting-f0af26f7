@@ -470,8 +470,11 @@ const InventoryPage = () => {
                           <button onClick={() => openEdit(p)} className="p-1.5 rounded-lg hover:bg-primary/10 transition-colors" title="تعديل">
                             <Pencil className="h-3.5 w-3.5 text-primary" />
                           </button>
-                          <button onClick={() => openMovements(p)} className="p-1.5 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors" title="حركات">
-                            <ClipboardList className="h-3.5 w-3.5 text-green-600" />
+                          <button onClick={() => openMovements(p)} className="p-1.5 rounded-lg hover:bg-accent/50 transition-colors" title="حركات المخزون">
+                            <ClipboardList className="h-3.5 w-3.5 text-accent-foreground" />
+                          </button>
+                          <button onClick={() => navigate(`/stock-movements?product=${p.id}`)} className="p-1.5 rounded-lg hover:bg-accent/50 transition-colors" title="تفاصيل الحركات">
+                            <History className="h-3.5 w-3.5 text-accent-foreground" />
                           </button>
                           <button onClick={() => handleDelete(p)} className="p-1.5 rounded-lg hover:bg-destructive/10 transition-colors" title="حذف">
                             <Trash2 className="h-3.5 w-3.5 text-destructive" />
