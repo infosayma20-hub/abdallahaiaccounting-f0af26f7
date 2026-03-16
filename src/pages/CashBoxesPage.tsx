@@ -280,6 +280,29 @@ const CashBoxesPage = () => {
               </Card>
             )}
           </section>
+
+          {/* Petty Cash Boxes */}
+          <section>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">🗃️</span>
+                <h2 className="text-sm font-bold">صناديق النثرية</h2>
+                <Badge variant="secondary" className="text-[10px]">{pettyBoxes.length}</Badge>
+              </div>
+              <Button variant="outline" size="sm" className="text-xs gap-1" onClick={() => openAdd("petty")}>
+                <Plus className="h-3 w-3" /> إضافة صندوق نثرية
+              </Button>
+            </div>
+            {pettyBoxes.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {pettyBoxes.map(b => <BoxCard key={b.id} box={b} />)}
+              </div>
+            ) : (
+              <Card className="p-6 text-center border-dashed">
+                <p className="text-sm text-muted-foreground">لا توجد صناديق نثرية</p>
+              </Card>
+            )}
+          </section>
         </div>
       )}
 
