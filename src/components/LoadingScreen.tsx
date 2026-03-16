@@ -125,7 +125,7 @@ const LoadingScreen = ({ demo = false }: { demo?: boolean }) => {
                 : undefined,
           }}
         >
-          YOUR BUSINESS, REBORN
+          YOUR BUSINESS AT ITS BEST
         </p>
 
         {/* Progress bar */}
