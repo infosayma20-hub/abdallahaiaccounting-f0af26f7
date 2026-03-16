@@ -661,6 +661,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
             description: isEmpPay ? (empDesc + (notes ? ` | ${notes}` : "")) : (notes || `سند صرف إلى ${selectedContact?.contact_name || ""}`),
             notes: notes || null,
             status: asDraft ? "draft" : "posted",
+            linked_transaction_id: txId,
             bank_account_id: bankAccountId,
             cheque_number: paymentMethod === "شيك" ? checkNumber : null,
             cheque_due_date: paymentMethod === "شيك" && checkDate ? checkDate : null,
