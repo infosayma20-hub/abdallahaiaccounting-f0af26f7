@@ -3078,6 +3078,85 @@ export type Database = {
           },
         ]
       }
+      employee_loans: {
+        Row: {
+          approval_date: string | null
+          approved_by: string | null
+          company_id: string | null
+          created_at: string | null
+          employee_id: string
+          first_payment_date: string
+          id: string
+          last_payment_date: string
+          monthly_installment: number
+          notes: string | null
+          paid_months: number | null
+          remaining_amount: number
+          status: string | null
+          total_amount: number
+          total_months: number
+          user_id: string
+        }
+        Insert: {
+          approval_date?: string | null
+          approved_by?: string | null
+          company_id?: string | null
+          created_at?: string | null
+          employee_id: string
+          first_payment_date: string
+          id?: string
+          last_payment_date: string
+          monthly_installment: number
+          notes?: string | null
+          paid_months?: number | null
+          remaining_amount: number
+          status?: string | null
+          total_amount: number
+          total_months: number
+          user_id: string
+        }
+        Update: {
+          approval_date?: string | null
+          approved_by?: string | null
+          company_id?: string | null
+          created_at?: string | null
+          employee_id?: string
+          first_payment_date?: string
+          id?: string
+          last_payment_date?: string
+          monthly_installment?: number
+          notes?: string | null
+          paid_months?: number | null
+          remaining_amount?: number
+          status?: string | null
+          total_amount?: number
+          total_months?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_loans_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_loans_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_loans_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employee_payroll: {
         Row: {
           admin_allowance: number | null
@@ -4419,6 +4498,68 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "employees_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      loan_installments: {
+        Row: {
+          balance_after: number
+          company_id: string | null
+          created_at: string | null
+          due_date: string
+          employee_id: string
+          id: string
+          installment_amount: number
+          loan_id: string
+          month_number: number
+          notes: string | null
+          paid_date: string | null
+          payroll_month: number | null
+          payroll_year: number | null
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          balance_after: number
+          company_id?: string | null
+          created_at?: string | null
+          due_date: string
+          employee_id: string
+          id?: string
+          installment_amount: number
+          loan_id: string
+          month_number: number
+          notes?: string | null
+          paid_date?: string | null
+          payroll_month?: number | null
+          payroll_year?: number | null
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          balance_after?: number
+          company_id?: string | null
+          created_at?: string | null
+          due_date?: string
+          employee_id?: string
+          id?: string
+          installment_amount?: number
+          loan_id?: string
+          month_number?: number
+          notes?: string | null
+          paid_date?: string | null
+          payroll_month?: number | null
+          payroll_year?: number | null
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loan_installments_loan_id_fkey"
+            columns: ["loan_id"]
+            isOneToOne: false
+            referencedRelation: "employee_loans"
             referencedColumns: ["id"]
           },
         ]
