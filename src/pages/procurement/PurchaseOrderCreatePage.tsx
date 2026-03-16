@@ -195,7 +195,7 @@ const PurchaseOrderCreatePage = () => {
     if (error) { toast({ title: "❌ خطأ", description: error.message, variant: "destructive" }); return; }
     toast({ title: "✅ تم إضافة الفرع" });
     setBranchOpen(false); setNewBranch({ name: "", address: "", latitude: 31.9, longitude: 35.2 });
-    window.location.reload();
+    refetchBranches();
   };
 
   const handleAddItem = async () => {
