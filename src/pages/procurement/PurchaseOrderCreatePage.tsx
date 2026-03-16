@@ -135,7 +135,7 @@ const PurchaseOrderCreatePage = () => {
       } else if (delta > 0) {
         return [...prev, {
           id: crypto.randomUUID(), product_id: item.id, item_name: item.name,
-          unit: item.unit, quantity: delta, unit_price: Number(item.default_price) || 0, notes: "",
+          unit: item.unit, quantity: delta, unit_price: Number(item.default_price) || 0, notes: "", branch_id: defaultBranchId,
         }];
       }
       return prev;
