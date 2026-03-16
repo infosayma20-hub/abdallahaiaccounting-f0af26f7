@@ -73,7 +73,7 @@ import POSPage from "./pages/POSPage";
 import POSUserManagementPage from "./pages/POSUserManagementPage";
 import POSReportsPage from "./pages/POSReportsPage";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
-import { Navigate } from "react-router-dom";
+// PurchasePointPage removed — replaced by procurement module
 import FloorPlanPage from "./pages/FloorPlanPage";
 import FloorPlanEditorPage from "./pages/FloorPlanEditorPage";
 import DigitalReceiptPage from "./pages/DigitalReceiptPage";
