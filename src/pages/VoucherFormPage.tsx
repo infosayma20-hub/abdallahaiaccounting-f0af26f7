@@ -331,6 +331,12 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     return contacts.filter(c => c.contact_name.toLowerCase().includes(q)).slice(0, 10);
   }, [contacts, contactSearch]);
 
+  const filteredEmployees = useMemo(() => {
+    if (!employeeSearch.trim()) return employeeList.slice(0, 10);
+    const q = employeeSearch.toLowerCase();
+    return employeeList.filter(e => e.full_name.toLowerCase().includes(q)).slice(0, 10);
+  }, [employeeList, employeeSearch]);
+
   const filteredInvoices = useMemo(() => {
     if (!invoiceSearch.trim()) return invoices;
     const q = invoiceSearch.toLowerCase();
