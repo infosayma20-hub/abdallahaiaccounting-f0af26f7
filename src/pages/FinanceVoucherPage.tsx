@@ -113,6 +113,13 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
 
       if (error) throw error;
 
+      // Also soft-delete the linked transaction in journal
+      if (deleteTarget.linked_transaction_id) {
+        await supabase.from("transactions")
+          .update({ is_deleted: true })
+          .eq("id", deleteTarget.linked_transaction_id);
+      }
+
       // Log deletion
       await supabase.from("document_edit_history" as any).insert({
         document_id: deleteTarget.id,
@@ -124,7 +131,7 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
         changes: { action: "delete", reason },
       } as any);
 
-      toast({ title: "تم حذف المستند بنجاح ✅" });
+      toast({ title: "تم حذف المستند والقيد المرتبط بنجاح ✅" });
       setDeleteDialog(false);
       fetchData();
     } catch (err: any) {

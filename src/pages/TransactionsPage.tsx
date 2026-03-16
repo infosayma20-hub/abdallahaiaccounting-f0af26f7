@@ -350,13 +350,58 @@ const TransactionsPage = () => {
     } finally { setSaving(false); }
   };
 
+  const cancelLinkedVouchers = async (txIds: string[]) => {
+    if (!user || txIds.length === 0) return;
+    // Cancel linked receipt vouchers
+    await supabase.from('receipt_vouchers')
+      .update({ status: 'cancelled' } as any)
+      .eq('user_id', user.id)
+      .in('linked_transaction_id', txIds);
+    // Cancel linked payment vouchers
+    await supabase.from('vouchers')
+      .update({ status: 'cancelled' } as any)
+      .eq('user_id', user.id)
+      .in('linked_transaction_id', txIds);
+    // Cancel linked invoices
+    await supabase.from('invoices')
+      .update({ status: 'cancelled' } as any)
+      .eq('user_id', user.id)
+      .in('linked_transaction_id', txIds);
+    // Cancel linked purchase invoices
+    await supabase.from('purchase_invoices')
+      .update({ status: 'cancelled' } as any)
+      .eq('user_id', user.id)
+      .in('linked_transaction_id', txIds);
+  };
+
+  const restoreLinkedVouchers = async (txIds: string[]) => {
+    if (!user || txIds.length === 0) return;
+    await supabase.from('receipt_vouchers')
+      .update({ status: 'posted' } as any)
+      .eq('user_id', user.id)
+      .in('linked_transaction_id', txIds);
+    await supabase.from('vouchers')
+      .update({ status: 'posted' } as any)
+      .eq('user_id', user.id)
+      .in('linked_transaction_id', txIds);
+    await supabase.from('invoices')
+      .update({ status: 'posted' } as any)
+      .eq('user_id', user.id)
+      .in('linked_transaction_id', txIds);
+    await supabase.from('purchase_invoices')
+      .update({ status: 'posted' } as any)
+      .eq('user_id', user.id)
+      .in('linked_transaction_id', txIds);
+  };
+
   const handleDelete = async () => {
     if (!editingTx) return;
     setDeleting(true);
     try {
       const { error } = await supabase.from('transactions').update({ is_deleted: true }).eq('id', editingTx.id);
       if (error) throw error;
-      toast({ title: "تم نقل المعاملة إلى سلة المحذوفات" });
+      await cancelLinkedVouchers([editingTx.id]);
+      toast({ title: "تم نقل المعاملة والمستندات المرتبطة إلى سلة المحذوفات" });
       setEditingTx(null); setShowDeleteConfirm(false); fetchData();
     } catch (err: any) {
       toast({ title: "خطأ", description: err.message, variant: "destructive" });
@@ -369,7 +414,8 @@ const TransactionsPage = () => {
       const ids = Array.from(selectedIds);
       const { error } = await supabase.from('transactions').update({ is_deleted: true }).in('id', ids);
       if (error) throw error;
-      toast({ title: `تم نقل ${ids.length} معاملة إلى سلة المحذوفات` });
+      await cancelLinkedVouchers(ids);
+      toast({ title: `تم نقل ${ids.length} معاملة والمستندات المرتبطة إلى سلة المحذوفات` });
       setShowBulkDeleteConfirm(false); setSelectedIds(new Set()); fetchData();
     } catch (err: any) {
       toast({ title: "خطأ", description: err.message, variant: "destructive" });
@@ -381,7 +427,8 @@ const TransactionsPage = () => {
     try {
       const { error } = await supabase.from('transactions').update({ is_deleted: false }).eq('id', id);
       if (error) throw error;
-      toast({ title: "تم استرجاع المعاملة بنجاح ✅" });
+      await restoreLinkedVouchers([id]);
+      toast({ title: "تم استرجاع المعاملة والمستندات المرتبطة بنجاح ✅" });
       fetchDeletedTransactions(); fetchData();
     } catch (err: any) {
       toast({ title: "خطأ", description: err.message, variant: "destructive" });
@@ -394,7 +441,8 @@ const TransactionsPage = () => {
       const ids = deletedTransactions.map(tx => tx.id);
       const { error } = await supabase.from('transactions').update({ is_deleted: false }).in('id', ids);
       if (error) throw error;
-      toast({ title: `تم استرجاع ${ids.length} معاملة بنجاح ✅` });
+      await restoreLinkedVouchers(ids);
+      toast({ title: `تم استرجاع ${ids.length} معاملة والمستندات المرتبطة بنجاح ✅` });
       fetchDeletedTransactions(); fetchData();
     } catch (err: any) {
       toast({ title: "خطأ", description: err.message, variant: "destructive" });
