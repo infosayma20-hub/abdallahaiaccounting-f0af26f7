@@ -57,7 +57,7 @@ export default function EmployeeFinancialMovementsTab({ employeeId, employeeName
       .from("employee_payroll")
       .select("*")
       .eq("employee_id", employeeId)
-      .eq("user_id", userId)
+      .eq("user_id", ownerId)
       .eq("period_month", month)
       .eq("period_year", year);
 
