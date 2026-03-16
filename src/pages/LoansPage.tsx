@@ -143,8 +143,8 @@ export default function LoansPage() {
         return `<tr>
           <td style="text-align:center">${x.month_number}</td>
           <td style="text-align:center">${x.due_date}</td>
-          <td style="font-family:monospace;text-align:left">${Number(x.installment_amount).toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
-          <td style="font-family:monospace;text-align:left">${Math.max(0, runningBalance).toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
+          <td style="text-align:left">${Number(x.installment_amount).toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
+          <td style="text-align:left">${Math.max(0, runningBalance).toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
           <td style="text-align:center">${statusLabel}</td>
         </tr>`;
       }).join("");
