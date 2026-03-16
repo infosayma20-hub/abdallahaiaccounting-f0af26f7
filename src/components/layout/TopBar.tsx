@@ -263,6 +263,7 @@ const TopBar = ({ onMenuClick, sidebarCollapsed, onOpenHelpGuide }: TopBarProps)
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [shortcutsTipOpen, setShortcutsTipOpen] = useState(false);
   const { unreadCount } = useNotifications();
 
   useGlobalShortcuts({
@@ -303,7 +304,7 @@ const TopBar = ({ onMenuClick, sidebarCollapsed, onOpenHelpGuide }: TopBarProps)
           <QuickCalculator />
           <div className="relative">
             <IconButton icon={Keyboard} onClick={() => setShortcutsOpen(true)} title="اختصارات لوحة المفاتيح (Ctrl+/)" />
-            <ShortcutsTip onShowShortcuts={() => setShortcutsOpen(true)} />
+            <ShortcutsTip visible={shortcutsTipOpen} onClose={() => setShortcutsTipOpen(false)} onShowShortcuts={() => { setShortcutsTipOpen(false); setShortcutsOpen(true); }} />
           </div>
           <IconButton icon={theme === "dark" ? Moon : Sun} onClick={toggleTheme} title={theme === "dark" ? "وضع فاتح" : "وضع داكن"} />
           <div className="relative">

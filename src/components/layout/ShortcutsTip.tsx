@@ -1,28 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Keyboard, X } from "lucide-react";
 
-const TIP_KEY = "shortcuts_tip_shown";
-
 interface ShortcutsTipProps {
+  visible: boolean;
+  onClose: () => void;
   onShowShortcuts: () => void;
 }
 
-const ShortcutsTip = ({ onShowShortcuts }: ShortcutsTipProps) => {
-  const [show, setShow] = useState(false);
-
-  useEffect(() => {
-    if (!localStorage.getItem(TIP_KEY)) {
-      const timer = setTimeout(() => setShow(true), 2000);
-      return () => clearTimeout(timer);
-    }
-  }, []);
-
-  const dismiss = () => {
-    setShow(false);
-    localStorage.setItem(TIP_KEY, "true");
-  };
-
-  if (!show) return null;
+const ShortcutsTip = ({ visible, onClose, onShowShortcuts }: ShortcutsTipProps) => {
+  if (!visible) return null;
 
   return (
     <div className="absolute top-12 right-0 z-50 animate-in fade-in slide-in-from-top-2 duration-300">
@@ -34,20 +20,20 @@ const ShortcutsTip = ({ onShowShortcuts }: ShortcutsTipProps) => {
             <p className="text-[11px] text-muted-foreground mt-0.5">وفّر وقتك بـ F1-F4 و Ctrl</p>
             <div className="flex items-center gap-2 mt-2">
               <button
-                onClick={dismiss}
+                onClick={onClose}
                 className="text-[10px] text-muted-foreground hover:text-foreground transition-colors"
               >
                 فهمت
               </button>
               <button
-                onClick={() => { dismiss(); onShowShortcuts(); }}
+                onClick={() => { onClose(); onShowShortcuts(); }}
                 className="text-[10px] text-primary font-bold hover:underline"
               >
                 شوف الاختصارات
               </button>
             </div>
           </div>
-          <button onClick={dismiss} className="text-muted-foreground hover:text-foreground">
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
             <X className="h-3 w-3" />
           </button>
         </div>
