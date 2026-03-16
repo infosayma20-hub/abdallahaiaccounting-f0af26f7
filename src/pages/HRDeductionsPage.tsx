@@ -91,8 +91,8 @@ export default function HRDeductionsPage() {
   const { data: posTransactions = [] } = useQuery({
     queryKey: ["hr-pos-employee-txns", user?.id],
     queryFn: async () => {
-      const { data } = await supabase
-        .from("pos_invoices")
+      const { data } = await (supabase as any)
+        .from("pos_orders")
         .select("*")
         .eq("user_id", user!.id)
         .eq("payment_method", "حساب موظف")
