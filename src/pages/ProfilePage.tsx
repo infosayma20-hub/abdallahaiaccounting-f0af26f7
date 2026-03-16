@@ -63,7 +63,7 @@ const GoogleOnlyPasswordSection = () => {
 
   if (!show || done) return null;
 
-  const isValid = newPwd.length >= 8 && newPwd === confirmPwd;
+  const isValid = newPwd.length >= 1 && newPwd === confirmPwd;
 
   const handleSave = async () => {
     if (!isValid) return;
@@ -92,7 +92,7 @@ const GoogleOnlyPasswordSection = () => {
           <div className="relative">
             <Input
               type={showPwd ? "text" : "password"}
-              placeholder="كلمة مرور جديدة (8 أحرف+)"
+              placeholder="كلمة مرور جديدة"
               value={newPwd}
               onChange={e => setNewPwd(e.target.value)}
               className="pr-3 pl-10"
