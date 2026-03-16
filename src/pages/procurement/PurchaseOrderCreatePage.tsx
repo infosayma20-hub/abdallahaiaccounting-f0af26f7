@@ -158,7 +158,9 @@ const PurchaseOrderCreatePage = () => {
             <ArrowRight className="h-4 w-4" />
           </Button>
           <span className="font-bold text-sm text-foreground shrink-0">طلب مشتريات</span>
-          <div className="h-4 w-px bg-border mx-1" />
+          <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => navigate("/procurement/settings")}>
+            <Settings className="h-3.5 w-3.5" />
+          </Button>
 
           <Select value={supplierId} onValueChange={setSupplierId}>
             <SelectTrigger className="h-8 w-[160px] text-xs"><SelectValue placeholder="المورد" /></SelectTrigger>
