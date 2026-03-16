@@ -286,7 +286,7 @@ const WorkerProcurementPage = () => {
       }));
 
       const { error: itemsError } = await supabase
-        .from("procurement_items")
+        .from("procurement_request_items" as any)
         .insert(items);
 
       if (itemsError) throw itemsError;
