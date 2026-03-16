@@ -2026,6 +2026,61 @@ const AccountStatementPage = () => {
                   </div>
                 )}
 
+                {/* ─── AGING ANALYSIS ─── */}
+                {agingData && (
+                  <div className="px-4 pb-3 no-print">
+                    <Collapsible>
+                      <CollapsibleTrigger className="w-full">
+                        <div className="bg-card rounded-xl border border-border p-3 flex items-center justify-between hover:bg-muted/30 transition-colors cursor-pointer">
+                          <div className="flex items-center gap-2">
+                            <Calendar className="w-4 h-4 text-muted-foreground" />
+                            <span className="text-xs font-semibold text-foreground">تحليل التقادم (Aging)</span>
+                          </div>
+                          <div className="flex items-center gap-3 text-[10px]">
+                            <span className="text-muted-foreground">الإجمالي:</span>
+                            <span className="font-bold text-red-600 tabular-nums">{fmtAmount(agingData.total)}</span>
+                          </div>
+                        </div>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <div className="mt-1 bg-card rounded-xl border border-border overflow-hidden">
+                          <div className={cn("grid gap-px bg-border", isMobile ? "grid-cols-2" : "grid-cols-5")}>
+                            {[
+                              { label: "جاري (حالي)", value: agingData.current, color: "text-emerald-600", bg: "bg-emerald-500/5" },
+                              { label: "1 - 30 يوم", value: agingData.d1_30, color: "text-amber-600", bg: "bg-amber-500/5" },
+                              { label: "31 - 60 يوم", value: agingData.d31_60, color: "text-orange-600", bg: "bg-orange-500/5" },
+                              { label: "+60 يوم", value: agingData.d60plus, color: "text-red-600", bg: "bg-red-500/5" },
+                              { label: "الإجمالي", value: agingData.total, color: "text-foreground font-bold", bg: "bg-muted/30" },
+                            ].map((col, i) => (
+                              <div key={i} className={cn("p-3 text-center", col.bg)}>
+                                <div className="text-[10px] text-muted-foreground font-semibold mb-1">{col.label}</div>
+                                <div className={cn("text-sm font-bold tabular-nums", col.color)}>
+                                  {col.value > 0 ? fmtAmount(col.value) : "—"}
+                                </div>
+                                {agingData.total > 0 && col.value > 0 && col.label !== "الإجمالي" && (
+                                  <div className="mt-1">
+                                    <div className="h-1 rounded-full bg-muted/50 overflow-hidden">
+                                      <div
+                                        className={cn("h-full rounded-full",
+                                          i === 0 ? "bg-emerald-500" : i === 1 ? "bg-amber-500" : i === 2 ? "bg-orange-500" : "bg-red-500"
+                                        )}
+                                        style={{ width: `${Math.round((col.value / agingData.total) * 100)}%` }}
+                                      />
+                                    </div>
+                                    <div className="text-[9px] text-muted-foreground mt-0.5">
+                                      {Math.round((col.value / agingData.total) * 100)}%
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </CollapsibleContent>
+                    </Collapsible>
+                  </div>
+                )}
+
                 {/* ─── TABLE ─── */}
                 <div className="px-4 pb-4 flex-1 no-print">
                   {loading ? (
