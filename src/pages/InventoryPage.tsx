@@ -735,18 +735,26 @@ const InventoryPage = () => {
             <div className="text-center py-8">
               <History className="h-10 w-10 text-muted-foreground/30 mx-auto mb-2" />
               <p className="text-sm text-muted-foreground">لا توجد حركات مسجلة بعد</p>
+              {selectedProduct && selectedProduct.quantity > 0 && (
+                <p className="text-xs text-yellow-600 mt-2">
+                  ⚠️ الكمية الحالية ({selectedProduct.quantity}) تم إدخالها يدوياً عند إنشاء/تعديل المنتج ولم تُسجل كحركة مخزون
+                </p>
+              )}
             </div>
           ) : (
             <div className="space-y-2 mt-2">
               {movements.map(m => {
                 const config = movementTypeLabel[m.movement_type] || { label: m.movement_type, color: "text-muted-foreground", icon: History };
                 const Icon = config.icon;
+                const isOutgoing = ['بيع POS', 'صادر'].includes(m.movement_type);
                 return (
                   <div key={m.id} className="flex items-center justify-between p-3 rounded-xl bg-muted/30">
                     <div className="flex items-center gap-3">
                       <Icon className={`h-4 w-4 ${config.color}`} />
                       <div>
-                        <p className={`text-sm font-semibold ${config.color}`}>{config.label}: {m.quantity}</p>
+                        <p className={`text-sm font-semibold ${config.color}`}>
+                          {config.label}: {isOutgoing ? '-' : '+'}{m.quantity}
+                        </p>
                         {m.reference_note && <p className="text-[10px] text-muted-foreground">{m.reference_note}</p>}
                       </div>
                     </div>
