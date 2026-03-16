@@ -1747,6 +1747,14 @@ const AccountStatementPage = () => {
                 <div className="p-4 no-print">
                   <div className="bg-card rounded-xl border border-border p-5">
                     <div className="flex items-start justify-between mb-5">
+                      <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                        <FileText className="w-3 h-3" />
+                        <span className="font-mono">{statementNumber}</span>
+                        <span className="mx-1">·</span>
+                        <span>من {fmtDate(dateFrom)} إلى {fmtDate(dateTo)}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-start justify-between mb-5">
                       <div className="space-y-2">
                         <div className="flex items-center gap-3 flex-wrap">
                           <h2 className="text-lg font-bold text-foreground">{selectedEntityName}</h2>
