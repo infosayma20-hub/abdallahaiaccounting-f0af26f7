@@ -369,7 +369,7 @@ const EmployeesPage = () => {
   const leaveBalance = selectedEmployee ? calculateLeaveBalance(
     selectedEmployee.start_date,
     Number((selectedEmployee as any).previous_year_balance) || 0,
-    leaves.filter(l => l.status === "موافق عليها" && new Date(l.start_date).getFullYear() === new Date().getFullYear()).reduce((s: number, l: any) => s + Number(l.days_count || 0), 0)
+    leaves.filter(l => (l.status === "موافق عليها" || l.status === "موافقة" || l.status === "معتمدة") && new Date(l.start_date).getFullYear() === new Date().getFullYear()).reduce((s: number, l: any) => s + Number(l.days_count || 0), 0)
   ) : null;
 
   return (
