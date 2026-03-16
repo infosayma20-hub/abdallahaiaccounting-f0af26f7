@@ -3080,57 +3080,145 @@ export type Database = {
       }
       employee_payroll: {
         Row: {
+          admin_allowance: number | null
+          annual_allowance: number | null
+          attendance_bonus: number | null
+          attendance_salary: number | null
           base_salary: number
+          carry_over_balance: number | null
+          company_id: string | null
           created_at: string
+          deduction_cash_advance: number | null
+          deduction_cash_shortage: number | null
+          deduction_delivery: number | null
+          deduction_fixed_component: number | null
+          deduction_food_group: number | null
+          deduction_food_individual: number | null
+          deduction_loan: number | null
+          deduction_new_advance: number | null
+          deduction_opening_balance: number | null
+          deduction_other: number | null
+          deduction_purchases: number | null
+          deduction_violations: number | null
           employee_id: string
+          entitlements: number | null
+          extra_work_allowance: number | null
+          family_allowance: number | null
+          food_transport_net: number | null
           id: string
           is_paid: boolean
           linked_transaction_id: string | null
           net_salary: number
           notes: string | null
+          other_allowances_val: number | null
+          overtime_hours_val: number | null
           paid_date: string | null
           period_month: number
           period_year: number
+          regular_hours: number | null
+          special_allowance: number | null
           total_allowances: number
           total_deductions: number
           total_overtime: number
           user_id: string
+          vacation_hours_paid: number | null
         }
         Insert: {
+          admin_allowance?: number | null
+          annual_allowance?: number | null
+          attendance_bonus?: number | null
+          attendance_salary?: number | null
           base_salary?: number
+          carry_over_balance?: number | null
+          company_id?: string | null
           created_at?: string
+          deduction_cash_advance?: number | null
+          deduction_cash_shortage?: number | null
+          deduction_delivery?: number | null
+          deduction_fixed_component?: number | null
+          deduction_food_group?: number | null
+          deduction_food_individual?: number | null
+          deduction_loan?: number | null
+          deduction_new_advance?: number | null
+          deduction_opening_balance?: number | null
+          deduction_other?: number | null
+          deduction_purchases?: number | null
+          deduction_violations?: number | null
           employee_id: string
+          entitlements?: number | null
+          extra_work_allowance?: number | null
+          family_allowance?: number | null
+          food_transport_net?: number | null
           id?: string
           is_paid?: boolean
           linked_transaction_id?: string | null
           net_salary?: number
           notes?: string | null
+          other_allowances_val?: number | null
+          overtime_hours_val?: number | null
           paid_date?: string | null
           period_month: number
           period_year: number
+          regular_hours?: number | null
+          special_allowance?: number | null
           total_allowances?: number
           total_deductions?: number
           total_overtime?: number
           user_id: string
+          vacation_hours_paid?: number | null
         }
         Update: {
+          admin_allowance?: number | null
+          annual_allowance?: number | null
+          attendance_bonus?: number | null
+          attendance_salary?: number | null
           base_salary?: number
+          carry_over_balance?: number | null
+          company_id?: string | null
           created_at?: string
+          deduction_cash_advance?: number | null
+          deduction_cash_shortage?: number | null
+          deduction_delivery?: number | null
+          deduction_fixed_component?: number | null
+          deduction_food_group?: number | null
+          deduction_food_individual?: number | null
+          deduction_loan?: number | null
+          deduction_new_advance?: number | null
+          deduction_opening_balance?: number | null
+          deduction_other?: number | null
+          deduction_purchases?: number | null
+          deduction_violations?: number | null
           employee_id?: string
+          entitlements?: number | null
+          extra_work_allowance?: number | null
+          family_allowance?: number | null
+          food_transport_net?: number | null
           id?: string
           is_paid?: boolean
           linked_transaction_id?: string | null
           net_salary?: number
           notes?: string | null
+          other_allowances_val?: number | null
+          overtime_hours_val?: number | null
           paid_date?: string | null
           period_month?: number
           period_year?: number
+          regular_hours?: number | null
+          special_allowance?: number | null
           total_allowances?: number
           total_deductions?: number
           total_overtime?: number
           user_id?: string
+          vacation_hours_paid?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "employee_payroll_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "employee_payroll_employee_id_fkey"
             columns: ["employee_id"]
@@ -3150,6 +3238,7 @@ export type Database = {
       employees: {
         Row: {
           address: string | null
+          admin_allowance: number | null
           annual_leave_balance: number | null
           annual_leave_days: number
           auth_user_id: string | null
@@ -3159,6 +3248,7 @@ export type Database = {
           branch_id: string | null
           child_allowance_per_child: number | null
           children_count: number | null
+          company_id: string | null
           contract_type: string | null
           created_at: string
           date_of_birth: string | null
@@ -3167,6 +3257,7 @@ export type Database = {
           emergency_contact: string | null
           emergency_phone: string | null
           end_date: string | null
+          food_transport_override: number | null
           full_name: string
           gender: string | null
           hourly_rate: number
@@ -3179,6 +3270,7 @@ export type Database = {
           meal_allowance_per_day: number | null
           nationality: string | null
           notes: string | null
+          other_allowances: number | null
           phone: string | null
           photo_url: string | null
           position: string | null
@@ -3186,18 +3278,22 @@ export type Database = {
           salary_type: string
           shift_id: string | null
           sick_leave_days: number
+          special_work_allowance: number | null
           spouse_allowance_amount: number | null
           start_date: string
           terminated_at: string | null
           termination_reason: string | null
+          transfer_allowance: number | null
           transportation_allowance_per_day: number | null
           updated_at: string
           user_id: string
+          wives_count: number | null
           work_days_per_week: number
           work_hours_per_day: number
         }
         Insert: {
           address?: string | null
+          admin_allowance?: number | null
           annual_leave_balance?: number | null
           annual_leave_days?: number
           auth_user_id?: string | null
@@ -3207,6 +3303,7 @@ export type Database = {
           branch_id?: string | null
           child_allowance_per_child?: number | null
           children_count?: number | null
+          company_id?: string | null
           contract_type?: string | null
           created_at?: string
           date_of_birth?: string | null
@@ -3215,6 +3312,7 @@ export type Database = {
           emergency_contact?: string | null
           emergency_phone?: string | null
           end_date?: string | null
+          food_transport_override?: number | null
           full_name: string
           gender?: string | null
           hourly_rate?: number
@@ -3227,6 +3325,7 @@ export type Database = {
           meal_allowance_per_day?: number | null
           nationality?: string | null
           notes?: string | null
+          other_allowances?: number | null
           phone?: string | null
           photo_url?: string | null
           position?: string | null
@@ -3234,18 +3333,22 @@ export type Database = {
           salary_type?: string
           shift_id?: string | null
           sick_leave_days?: number
+          special_work_allowance?: number | null
           spouse_allowance_amount?: number | null
           start_date?: string
           terminated_at?: string | null
           termination_reason?: string | null
+          transfer_allowance?: number | null
           transportation_allowance_per_day?: number | null
           updated_at?: string
           user_id: string
+          wives_count?: number | null
           work_days_per_week?: number
           work_hours_per_day?: number
         }
         Update: {
           address?: string | null
+          admin_allowance?: number | null
           annual_leave_balance?: number | null
           annual_leave_days?: number
           auth_user_id?: string | null
@@ -3255,6 +3358,7 @@ export type Database = {
           branch_id?: string | null
           child_allowance_per_child?: number | null
           children_count?: number | null
+          company_id?: string | null
           contract_type?: string | null
           created_at?: string
           date_of_birth?: string | null
@@ -3263,6 +3367,7 @@ export type Database = {
           emergency_contact?: string | null
           emergency_phone?: string | null
           end_date?: string | null
+          food_transport_override?: number | null
           full_name?: string
           gender?: string | null
           hourly_rate?: number
@@ -3275,6 +3380,7 @@ export type Database = {
           meal_allowance_per_day?: number | null
           nationality?: string | null
           notes?: string | null
+          other_allowances?: number | null
           phone?: string | null
           photo_url?: string | null
           position?: string | null
@@ -3282,13 +3388,16 @@ export type Database = {
           salary_type?: string
           shift_id?: string | null
           sick_leave_days?: number
+          special_work_allowance?: number | null
           spouse_allowance_amount?: number | null
           start_date?: string
           terminated_at?: string | null
           termination_reason?: string | null
+          transfer_allowance?: number | null
           transportation_allowance_per_day?: number | null
           updated_at?: string
           user_id?: string
+          wives_count?: number | null
           work_days_per_week?: number
           work_hours_per_day?: number
         }
@@ -3305,6 +3414,13 @@ export type Database = {
             columns: ["branch_id"]
             isOneToOne: false
             referencedRelation: "branches_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
           {
@@ -4476,6 +4592,130 @@ export type Database = {
             columns: ["group_id"]
             isOneToOne: false
             referencedRelation: "modifier_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      monthly_payroll_inputs: {
+        Row: {
+          annual_leave_days: number | null
+          cash_advances: number | null
+          cash_shortage: number | null
+          cash_surplus: number | null
+          company_id: string | null
+          created_at: string | null
+          created_by: string | null
+          deduction_notes: string | null
+          delivery: number | null
+          employee_id: string
+          extra_work_allowance: number | null
+          food_individual: number | null
+          food_total: number | null
+          has_termination_pay: boolean | null
+          holiday_overtime_hours: number | null
+          id: string
+          loan_installment: number | null
+          month: number
+          new_advance: number | null
+          opening_advance_balance: number | null
+          other_deduction: number | null
+          overtime_hours: number | null
+          purchases: number | null
+          sick_leave_days: number | null
+          special_allowance: number | null
+          updated_at: string | null
+          vacation_hours: number | null
+          violations: number | null
+          working_days: number | null
+          working_hours: number | null
+          year: number
+        }
+        Insert: {
+          annual_leave_days?: number | null
+          cash_advances?: number | null
+          cash_shortage?: number | null
+          cash_surplus?: number | null
+          company_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          deduction_notes?: string | null
+          delivery?: number | null
+          employee_id: string
+          extra_work_allowance?: number | null
+          food_individual?: number | null
+          food_total?: number | null
+          has_termination_pay?: boolean | null
+          holiday_overtime_hours?: number | null
+          id?: string
+          loan_installment?: number | null
+          month: number
+          new_advance?: number | null
+          opening_advance_balance?: number | null
+          other_deduction?: number | null
+          overtime_hours?: number | null
+          purchases?: number | null
+          sick_leave_days?: number | null
+          special_allowance?: number | null
+          updated_at?: string | null
+          vacation_hours?: number | null
+          violations?: number | null
+          working_days?: number | null
+          working_hours?: number | null
+          year: number
+        }
+        Update: {
+          annual_leave_days?: number | null
+          cash_advances?: number | null
+          cash_shortage?: number | null
+          cash_surplus?: number | null
+          company_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          deduction_notes?: string | null
+          delivery?: number | null
+          employee_id?: string
+          extra_work_allowance?: number | null
+          food_individual?: number | null
+          food_total?: number | null
+          has_termination_pay?: boolean | null
+          holiday_overtime_hours?: number | null
+          id?: string
+          loan_installment?: number | null
+          month?: number
+          new_advance?: number | null
+          opening_advance_balance?: number | null
+          other_deduction?: number | null
+          overtime_hours?: number | null
+          purchases?: number | null
+          sick_leave_days?: number | null
+          special_allowance?: number | null
+          updated_at?: string | null
+          vacation_hours?: number | null
+          violations?: number | null
+          working_days?: number | null
+          working_hours?: number | null
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "monthly_payroll_inputs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "monthly_payroll_inputs_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "monthly_payroll_inputs_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_safe"
             referencedColumns: ["id"]
           },
         ]
