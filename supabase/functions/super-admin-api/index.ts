@@ -524,6 +524,99 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ─── RESET USER TRANSACTIONS ───
+    if (action === "reset_user_transactions") {
+      const body = await req.json();
+      const { target_user_id, password } = body;
+
+      if (!target_user_id || !password) {
+        return new Response(JSON.stringify({ error: "بيانات ناقصة" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Verify super admin password
+      const { error: signInError } = await anonClient.auth.signInWithPassword({
+        email: user.email!,
+        password,
+      });
+      if (signInError) {
+        return new Response(JSON.stringify({ error: "كلمة المرور غير صحيحة" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Get target user display name for audit
+      const { data: targetProfile } = await admin.from("profiles").select("display_name").eq("user_id", target_user_id).maybeSingle();
+      const targetName = targetProfile?.display_name || target_user_id;
+
+      await logAction("reset_user_transactions", "user", target_user_id, { target_name: targetName });
+
+      // Tables to delete (transactional data only) - order matters for FK constraints
+      const transactionalTables = [
+        "pos_payments",
+        "pos_order_lines",
+        "pos_orders",
+        "pos_sessions",
+        "cheque_status_history",
+        "cheques",
+        "invoice_lines",
+        "invoices",
+        "voucher_lines",
+        "vouchers",
+        "receipt_vouchers",
+        "cash_transfers",
+        "loan_installments",
+        "employee_loans",
+        "employee_payroll",
+        "attendance_events",
+        "attendance_days",
+        "commissions",
+        "contact_alerts",
+        "document_edit_history",
+        "ai_messages",
+        "ai_conversations",
+        "activity_log",
+        "transactions",
+      ];
+
+      const results: Record<string, number> = {};
+
+      for (const table of transactionalTables) {
+        try {
+          const { count } = await admin.from(table).select("id", { count: "exact", head: true }).eq("user_id", target_user_id);
+          if (count && count > 0) {
+            await admin.from(table).delete().eq("user_id", target_user_id);
+            results[table] = count;
+          }
+        } catch (e: any) {
+          // Some tables may use different column names or not exist
+          try {
+            // Try with auth_user_id for attendance tables
+            const { count } = await admin.from(table).select("id", { count: "exact", head: true }).eq("auth_user_id", target_user_id);
+            if (count && count > 0) {
+              await admin.from(table).delete().eq("auth_user_id", target_user_id);
+              results[table] = count;
+            }
+          } catch {
+            // Skip tables that don't match
+          }
+        }
+      }
+
+      // Also reset contact balances to 0
+      await admin.from("contacts").update({ current_balance: 0 }).eq("user_id", target_user_id);
+
+      return new Response(JSON.stringify({
+        success: true,
+        target_user: targetName,
+        deleted: results,
+        total_deleted: Object.values(results).reduce((a, b) => a + b, 0),
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     return new Response(JSON.stringify({ error: "إجراء غير معروف" }), {
       status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
