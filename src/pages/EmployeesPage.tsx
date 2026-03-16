@@ -28,6 +28,11 @@ import DeductionsExportDialog from "@/components/hr/DeductionsExportDialog";
 import { calculateSalarySlip, calculateLeaveBalance, getWorkDaysInMonth, getWeeklyDaysOffInMonth, formatCurrency, type SalarySlip } from "@/lib/hr-utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 
+interface Branch {
+  id: string;
+  name: string;
+}
+
 interface Employee {
   id: string;
   full_name: string;
@@ -54,6 +59,7 @@ interface Employee {
   emergency_phone: string;
   address: string;
   notes: string;
+  branch_id?: string;
   marital_status?: string;
   children_count?: number;
   spouse_allowance_amount?: number;
