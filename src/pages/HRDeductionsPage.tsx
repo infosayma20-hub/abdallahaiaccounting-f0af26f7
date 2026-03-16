@@ -45,7 +45,7 @@ export default function HRDeductionsPage() {
   const { data: manualDeductions = [], refetch: refetchDeductions } = useQuery({
     queryKey: ["hr-all-deductions", user?.id],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from("employee_deductions")
         .select("*, employees(full_name, department, branch)")
         .eq("user_id", user!.id)
