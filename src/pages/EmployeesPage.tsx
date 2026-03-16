@@ -734,13 +734,14 @@ const EmployeesPage = () => {
 
               {/* Tabs */}
               <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className={`w-full grid mb-4 ${canSeeHR ? 'grid-cols-6' : 'grid-cols-5'}`}>
-                  <TabsTrigger value="info">المعلومات</TabsTrigger>
-                  <TabsTrigger value="allowances">البدلات</TabsTrigger>
-                  <TabsTrigger value="deductions">المسحوبات</TabsTrigger>
-                  <TabsTrigger value="movements">الحركات المالية</TabsTrigger>
-                  <TabsTrigger value="leaves">الإجازات</TabsTrigger>
-                  {canSeeHR && <TabsTrigger value="hr">HR</TabsTrigger>}
+                <TabsList className={`w-full grid mb-4 ${canSeeHR ? 'grid-cols-7' : 'grid-cols-6'}`}>
+                  <TabsTrigger value="info" className="text-[11px] px-1">المعلومات</TabsTrigger>
+                  <TabsTrigger value="allowances" className="text-[11px] px-1">البدلات</TabsTrigger>
+                  <TabsTrigger value="vouchers" className="text-[11px] px-1">سندات الصرف</TabsTrigger>
+                  <TabsTrigger value="deductions" className="text-[11px] px-1">المسحوبات</TabsTrigger>
+                  <TabsTrigger value="movements" className="text-[11px] px-1">الحركات المالية</TabsTrigger>
+                  <TabsTrigger value="leaves" className="text-[11px] px-1">الإجازات</TabsTrigger>
+                  {canSeeHR && <TabsTrigger value="hr" className="text-[11px] px-1">HR</TabsTrigger>}
                 </TabsList>
 
                 <TabsContent value="info">
