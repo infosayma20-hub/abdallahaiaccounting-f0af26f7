@@ -508,16 +508,64 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
 
       if (!asDraft && !isReceipt) {
         const payMethodMap: Record<string, string> = { "نقدي": "نقدي", "شيك": "شيك", "تحويل": "بنك", "بطاقة": "بطاقة" };
+        
+        let debitAccountCode = "2100"; // Default: supplier payables
+        let txDescription = notes || `سند صرف إلى ${selectedContact?.contact_name || ""}`;
+        let txContactId = selectedContact?.id || null;
+
+        // Employee payment: find their account under 1180
+        if (isEmployeePayment && selectedEmployee) {
+          const categoryLabel = empCategory === "أخرى" ? empCategoryCustom : empCategory;
+          const violationNote = empCategory === "مخالفة" && violationReason ? ` - السبب: ${violationReason}` : "";
+          txDescription = `${categoryLabel} - ${selectedEmployee.full_name}${violationNote}`;
+          if (notes) txDescription += ` | ${notes}`;
+          txContactId = null;
+
+          // Find employee account under 1180
+          const { data: empAccount } = await supabase
+            .from("accounts")
+            .select("account_code")
+            .eq("user_id", user.id)
+            .like("parent_code", "1180")
+            .like("account_name", `%${selectedEmployee.full_name}%`)
+            .limit(1)
+            .single();
+
+          if (empAccount) {
+            debitAccountCode = empAccount.account_code;
+          } else {
+            // Auto-create employee account
+            const { data: maxCode } = await supabase
+              .from("accounts")
+              .select("account_code")
+              .eq("user_id", user.id)
+              .like("parent_code", "1180")
+              .order("account_code", { ascending: false })
+              .limit(1)
+              .single();
+            const nextCode = maxCode ? String(parseInt(maxCode.account_code) + 1) : "1181";
+            await supabase.from("accounts").insert({
+              user_id: user.id,
+              account_code: nextCode,
+              account_name: `ذمم موظف - ${selectedEmployee.full_name}`,
+              account_type: "asset",
+              parent_code: "1180",
+              is_system: false,
+            });
+            debitAccountCode = nextCode;
+          }
+        }
+
         const { data: txData } = await supabase.from("transactions").insert({
           user_id: user.id,
           transaction_date: paymentDate,
-          description: notes || `سند صرف إلى ${selectedContact.contact_name}`,
-          debit_account_code: "2100",
+          description: txDescription,
+          debit_account_code: debitAccountCode,
           credit_account_code: depositAccountCode,
           amount: amountNum,
           currency: "شيكل",
-          transaction_type: "payment",
-          contact_id: selectedContact.id,
+          transaction_type: isEmployeePayment ? "employee_payment" : "payment",
+          contact_id: txContactId,
           payment_method: payMethodMap[paymentMethod] || "نقدي",
           idempotency_key: `PAY-NEW-${Date.now()}`,
         }).select("id").single();
