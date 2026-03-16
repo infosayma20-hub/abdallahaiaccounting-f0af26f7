@@ -81,6 +81,7 @@ const InventoryPage = () => {
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(15);
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
   const CATEGORIES = useMemo(() =>
