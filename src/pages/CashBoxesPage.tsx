@@ -80,6 +80,7 @@ const CashBoxesPage = () => {
   const mainBalance = useMemo(() => mainBoxes.reduce((s, b) => s + (balances[b.gl_account_code]?.balance || 0), 0), [mainBoxes, balances]);
   const branchBalance = useMemo(() => branchBoxes.reduce((s, b) => s + (balances[b.gl_account_code]?.balance || 0), 0), [branchBoxes, balances]);
   const posBalance = useMemo(() => posBoxes.reduce((s, b) => s + (balances[b.gl_account_code]?.balance || 0), 0), [posBoxes, balances]);
+  const pettyBalance = useMemo(() => pettyBoxes.reduce((s, b) => s + (balances[b.gl_account_code]?.balance || 0), 0), [pettyBoxes, balances]);
 
   const fmt = (n: number) => new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
 
