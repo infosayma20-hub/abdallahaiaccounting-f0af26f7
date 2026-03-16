@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Save, ArrowRight, Loader2, Calculator } from "lucide-react";
+import { Save, ArrowRight, Loader2, Calculator, Fingerprint, DollarSign, Download, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -9,9 +9,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { fmtCurrency, calculateMalakiPayslip, type MalakiEmployee, type MalakiMonthInput } from "@/lib/malaki-payroll";
+import * as XLSX from "xlsx";
 
 const months = [
   "يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو",
@@ -33,15 +34,42 @@ const defaultInput: MalakiMonthInput = {
   has_termination_pay: false,
 };
 
+const PAYROLL_FIELDS: { key: keyof MalakiMonthInput; label: string }[] = [
+  { key: "working_days", label: "أيام العمل" },
+  { key: "working_hours", label: "ساعات العمل" },
+  { key: "overtime_hours", label: "ساعات إضافية" },
+  { key: "holiday_overtime_hours", label: "إضافي أعياد" },
+  { key: "vacation_hours", label: "ساعات إجازة" },
+  { key: "annual_leave_days", label: "إجازة سنوية" },
+  { key: "sick_leave_days", label: "إجازة مرضية" },
+  { key: "opening_advance_balance", label: "رصيد أول الشهر" },
+  { key: "loan_installment", label: "قرض حسن" },
+  { key: "new_advance", label: "سلف جديدة" },
+  { key: "cash_advances", label: "مسحوبات سلف" },
+  { key: "food_total", label: "أكل جماعي" },
+  { key: "food_individual", label: "أكل فردي" },
+  { key: "cash_shortage", label: "عجز صندوق" },
+  { key: "cash_surplus", label: "فائض صندوق" },
+  { key: "delivery", label: "توصيل" },
+  { key: "purchases", label: "مشتريات" },
+  { key: "other_deduction", label: "أخرى" },
+  { key: "violations", label: "مخالفات" },
+  { key: "special_allowance", label: "بدل أعمال أخرى" },
+  { key: "extra_work_allowance", label: "بدل دوام إضافي" },
+];
+
 const MonthlyPayrollInputPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const fileRef = useRef<HTMLInputElement>(null);
   const now = new Date();
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
   const [inputs, setInputs] = useState<Record<string, MalakiMonthInput>>({});
   const [saving, setSaving] = useState(false);
+  const [fillingAttendance, setFillingAttendance] = useState(false);
+  const [fillingDeductions, setFillingDeductions] = useState(false);
 
   const { data: employees, isLoading: loadingEmp } = useQuery({
     queryKey: ["payroll-input-employees"],
@@ -69,7 +97,6 @@ const MonthlyPayrollInputPage = () => {
     },
   });
 
-  // Load existing inputs into state
   useEffect(() => {
     if (!existingInputs || !employees) return;
     const map: Record<string, MalakiMonthInput> = {};
@@ -115,6 +142,216 @@ const MonthlyPayrollInputPage = () => {
     }));
   };
 
+  // ━━━ Auto-fill from Attendance ━━━
+  const fillFromAttendance = async () => {
+    if (!employees || !user) return;
+    setFillingAttendance(true);
+    try {
+      const startDate = `${selectedYear}-${String(selectedMonth).padStart(2, "0")}-01`;
+      const endDate = new Date(selectedYear, selectedMonth, 0).toISOString().split("T")[0];
+
+      const { data: attendanceData, error } = await supabase
+        .from("attendance_days")
+        .select("employee_id, total_hours, overtime_hours, status")
+        .gte("attendance_date", startDate)
+        .lte("attendance_date", endDate);
+
+      if (error) throw error;
+
+      if (!attendanceData || attendanceData.length === 0) {
+        toast.info("لا توجد بيانات بصمة لهذا الشهر");
+        setFillingAttendance(false);
+        return;
+      }
+
+      // Aggregate per employee
+      const empAgg: Record<string, { days: number; hours: number; overtime: number; vacationHours: number; annualLeave: number; sickLeave: number }> = {};
+      for (const rec of attendanceData) {
+        if (!empAgg[rec.employee_id]) {
+          empAgg[rec.employee_id] = { days: 0, hours: 0, overtime: 0, vacationHours: 0, annualLeave: 0, sickLeave: 0 };
+        }
+        const agg = empAgg[rec.employee_id];
+        if (rec.status === "present" || rec.status === "حاضر") {
+          agg.days++;
+          agg.hours += Number(rec.total_hours) || 0;
+          agg.overtime += Number(rec.overtime_hours) || 0;
+        } else if (rec.status === "annual_leave" || rec.status === "إجازة سنوية") {
+          agg.annualLeave++;
+        } else if (rec.status === "sick_leave" || rec.status === "إجازة مرضية") {
+          agg.sickLeave++;
+        } else if (rec.status === "vacation" || rec.status === "إجازة") {
+          agg.vacationHours += Number(rec.total_hours) || 0;
+        }
+      }
+
+      let filled = 0;
+      setInputs(prev => {
+        const next = { ...prev };
+        for (const emp of employees) {
+          const agg = empAgg[emp.id];
+          if (agg) {
+            next[emp.id] = {
+              ...(next[emp.id] || defaultInput),
+              working_days: agg.days,
+              working_hours: Math.round(agg.hours * 100) / 100,
+              overtime_hours: Math.round(agg.overtime * 100) / 100,
+              vacation_hours: Math.round(agg.vacationHours * 100) / 100,
+              annual_leave_days: agg.annualLeave,
+              sick_leave_days: agg.sickLeave,
+            };
+            filled++;
+          }
+        }
+        return next;
+      });
+
+      toast.success(`تم تعبئة بيانات الدوام لـ ${filled} موظف من البصمة ✅`);
+    } catch (e: any) {
+      toast.error(e.message || "خطأ في جلب بيانات البصمة");
+    }
+    setFillingAttendance(false);
+  };
+
+  // ━━━ Auto-fill Deductions from Financial Transactions ━━━
+  const fillFromTransactions = async () => {
+    if (!employees || !user) return;
+    setFillingDeductions(true);
+    try {
+      const startDate = `${selectedYear}-${String(selectedMonth).padStart(2, "0")}-01`;
+      const endDate = new Date(selectedYear, selectedMonth, 0).toISOString().split("T")[0];
+
+      // Get employee accounts (1180+) to map account_code -> employee
+      const { data: empAccounts } = await supabase
+        .from("accounts")
+        .select("account_code, account_name")
+        .like("parent_code", "1180")
+        .eq("is_active", true);
+
+      // Get transactions on employee accounts during the period
+      const { data: txData, error } = await supabase
+        .from("transactions")
+        .select("debit_account_code, credit_account_code, amount, description, transaction_type")
+        .gte("transaction_date", startDate)
+        .lte("transaction_date", endDate)
+        .or("debit_account_code.like.118%,credit_account_code.like.118%")
+        .eq("is_deleted", false);
+
+      if (error) throw error;
+
+      if (!txData || txData.length === 0) {
+        toast.info("لا توجد حركات مالية مرتبطة بالموظفين هذا الشهر");
+        setFillingDeductions(false);
+        return;
+      }
+
+      // Map account codes to employee names
+      const codeToName: Record<string, string> = {};
+      if (empAccounts) {
+        for (const acc of empAccounts) {
+          // Extract employee name from account name like "ذمم موظف - محمد"
+          const match = acc.account_name.match(/ذمم موظف\s*[-–]\s*(.+)/);
+          if (match) codeToName[acc.account_code] = match[1].trim();
+        }
+      }
+
+      // Match transactions to employees by name
+      let filled = 0;
+      setInputs(prev => {
+        const next = { ...prev };
+        for (const emp of employees) {
+          let totalDeductions = 0;
+          const notes: string[] = [];
+          
+          for (const tx of txData) {
+            const empAccountCode = tx.debit_account_code?.startsWith("118") ? tx.debit_account_code : tx.credit_account_code;
+            const empName = codeToName[empAccountCode || ""];
+            
+            if (empName && emp.full_name.includes(empName)) {
+              totalDeductions += Number(tx.amount) || 0;
+              notes.push(`${tx.description || tx.transaction_type}: ₪${tx.amount}`);
+            }
+          }
+
+          if (totalDeductions > 0) {
+            next[emp.id] = {
+              ...(next[emp.id] || defaultInput),
+              cash_advances: (next[emp.id]?.cash_advances || 0) + totalDeductions,
+              deduction_notes: [next[emp.id]?.deduction_notes, ...notes].filter(Boolean).join("\n"),
+            };
+            filled++;
+          }
+        }
+        return next;
+      });
+
+      toast.success(`تم جلب خصومات ${filled} موظف من الحركات المالية ✅`);
+    } catch (e: any) {
+      toast.error(e.message || "خطأ في جلب الحركات المالية");
+    }
+    setFillingDeductions(false);
+  };
+
+  // ━━━ Export Excel Template ━━━
+  const exportTemplate = () => {
+    if (!employees) return;
+    const headers = ["اسم الموظف", ...PAYROLL_FIELDS.map(f => f.label)];
+    const rows = employees.map((emp: any) => {
+      const inp = inputs[emp.id] || defaultInput;
+      return [emp.full_name, ...PAYROLL_FIELDS.map(f => inp[f.key] ?? 0)];
+    });
+
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+    ws["!cols"] = headers.map(() => ({ wch: 16 }));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "بيانات الرواتب");
+    XLSX.writeFile(wb, `رواتب_${months[selectedMonth - 1]}_${selectedYear}.xlsx`);
+    toast.success("تم تحميل القالب ✅");
+  };
+
+  // ━━━ Import Excel ━━━
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !employees) return;
+
+    try {
+      const ab = await file.arrayBuffer();
+      const wb = XLSX.read(ab);
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const data = XLSX.utils.sheet_to_json(ws) as Record<string, any>[];
+
+      if (data.length === 0) {
+        toast.error("الملف فارغ");
+        return;
+      }
+
+      let matched = 0;
+      setInputs(prev => {
+        const next = { ...prev };
+        for (const row of data) {
+          const name = row["اسم الموظف"]?.toString().trim();
+          if (!name) continue;
+          const emp = employees.find((e: any) => e.full_name === name);
+          if (!emp) continue;
+
+          const updated = { ...(next[emp.id] || defaultInput) };
+          for (const field of PAYROLL_FIELDS) {
+            if (row[field.label] !== undefined && row[field.label] !== "") {
+              (updated as any)[field.key] = Number(row[field.label]) || 0;
+            }
+          }
+          next[emp.id] = updated;
+          matched++;
+        }
+        return next;
+      });
+
+      toast.success(`تم استيراد بيانات ${matched} موظف من الملف ✅`);
+    } catch (err: any) {
+      toast.error(err.message || "خطأ في قراءة الملف");
+    }
+    if (fileRef.current) fileRef.current.value = "";
+  };
+
   const handleSave = async () => {
     if (!user || !employees) return;
     setSaving(true);
@@ -144,7 +381,6 @@ const MonthlyPayrollInputPage = () => {
     }
   };
 
-  // Quick preview of net salary
   const getPreview = (emp: any) => {
     const inp = inputs[emp.id];
     if (!inp || inp.working_days === 0) return null;
@@ -204,8 +440,8 @@ const MonthlyPayrollInputPage = () => {
         </Button>
       </div>
 
-      {/* Period selector */}
-      <div className="flex gap-3">
+      {/* Period selector + Action buttons */}
+      <div className="flex flex-wrap items-center gap-3">
         <Select value={String(selectedMonth)} onValueChange={v => setSelectedMonth(Number(v))}>
           <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
           <SelectContent>{months.map((m, i) => <SelectItem key={i} value={String(i + 1)}>{m}</SelectItem>)}</SelectContent>
@@ -214,6 +450,31 @@ const MonthlyPayrollInputPage = () => {
           <SelectTrigger className="w-[100px]"><SelectValue /></SelectTrigger>
           <SelectContent>{[2024, 2025, 2026].map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
         </Select>
+
+        <div className="border-r border-border h-6 mx-1 hidden sm:block" />
+
+        <Button variant="outline" size="sm" onClick={fillFromAttendance} disabled={fillingAttendance || isLoading}>
+          {fillingAttendance ? <Loader2 className="h-3.5 w-3.5 animate-spin ml-1" /> : <Fingerprint className="h-3.5 w-3.5 ml-1" />}
+          تعبئة من البصمة
+        </Button>
+        <Button variant="outline" size="sm" onClick={fillFromTransactions} disabled={fillingDeductions || isLoading}>
+          {fillingDeductions ? <Loader2 className="h-3.5 w-3.5 animate-spin ml-1" /> : <DollarSign className="h-3.5 w-3.5 ml-1" />}
+          جلب الخصومات المالية
+        </Button>
+
+        <div className="border-r border-border h-6 mx-1 hidden sm:block" />
+
+        <Button variant="outline" size="sm" onClick={exportTemplate} disabled={isLoading}>
+          <Download className="h-3.5 w-3.5 ml-1" />
+          تصدير قالب Excel
+        </Button>
+        <div>
+          <input ref={fileRef} type="file" accept=".xlsx,.xls" onChange={handleImport} className="hidden" />
+          <Button variant="outline" size="sm" onClick={() => fileRef.current?.click()} disabled={isLoading}>
+            <Upload className="h-3.5 w-3.5 ml-1" />
+            استيراد من Excel
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (
@@ -225,13 +486,13 @@ const MonthlyPayrollInputPage = () => {
             return (
               <Card key={emp.id} className="p-4">
                 <div className="flex items-center justify-between mb-3">
-                  <div>
-                    <span className="font-bold text-sm text-foreground">{emp.full_name}</span>
-                    <span className="text-xs text-muted-foreground mr-2">{emp.department || ""}</span>
-                    <span className="text-[10px] text-muted-foreground mr-2">₪{emp.hourly_rate || 9.6}/ساعة</span>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="font-bold text-foreground whitespace-nowrap">{emp.full_name}</span>
+                    <span className="text-xs text-muted-foreground whitespace-nowrap">{emp.department || ""}</span>
+                    <span className="text-[10px] text-muted-foreground whitespace-nowrap">₪{emp.hourly_rate || 9.6}/ساعة</span>
                   </div>
                   {preview !== null && (
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1 flex-shrink-0">
                       <Calculator className="h-3.5 w-3.5 text-muted-foreground" />
                       <span className={`text-sm font-bold ${preview >= 0 ? "text-emerald-600" : "text-red-500"}`}>
                         {fmtCurrency(preview)}
