@@ -28,7 +28,7 @@ const statusMap: Record<string, { label: string; color: string }> = {
 const PurchaseOrdersPage = () => {
   const { orders, loading, updateStatus, getOrderItems } = useProcurementOrders();
   const { suppliers } = useSuppliers();
-  const branches = useBranches();
+  const { branches } = useBranches();
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
