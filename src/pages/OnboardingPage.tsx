@@ -416,7 +416,7 @@ const OnboardingPage = () => {
                           onClick={finishOnboarding}
                           className="bg-white text-[#0A2342] px-8 py-3 rounded-xl font-bold text-sm hover:scale-105 transition-transform"
                         >
-                          ادخل إلى FINIX ←
+                          ادخل إلى QOYOD ←
                         </button>
                       </motion.div>
                     )}

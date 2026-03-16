@@ -889,7 +889,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   <!-- FOOTER -->
   <div style="background:#f7f8fa;border-top:1px solid #edf0f4;padding:10px 28px;display:flex;justify-content:space-between;align-items:center;">
     <div style="font-size:9px;color:#aaa;">${settings.company_name || ""} ${settings.phone ? "| " + settings.phone : ""} ${settings.email ? "| " + settings.email : ""}</div>
-    <div style="font-size:9px;color:#C9A84C;font-weight:600;">FINIX Accounting System</div>
+    <div style="font-size:9px;color:#C9A84C;font-weight:600;">QOYOD ERP Software</div>
   </div>
 </div>
 </body>
