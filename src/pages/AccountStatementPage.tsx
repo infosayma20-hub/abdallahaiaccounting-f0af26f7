@@ -499,12 +499,12 @@ const AccountStatementPage = () => {
             })),
             ...((purchaseItems || []) as any[]).map((item: any) => ({
               invoice_id: item.invoice_id,
-              product_name: item.item_name,
-              quantity: item.received_quantity,
+              product_name: item.product_name,
+              quantity: item.quantity,
               unit_price: item.unit_price,
-              total_amount: item.total_price,
+              total_amount: item.total_amount,
               unit_of_measure: item.unit || null,
-              discount: null,
+              discount: item.discount_pct ?? null,
             })),
           ];
 
