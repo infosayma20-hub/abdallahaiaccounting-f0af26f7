@@ -39,7 +39,7 @@ export default function LoansPage() {
       if (!user) return [];
       const { data, error } = await supabase
         .from("employee_loans")
-        .select("*, employees(full_name, department), loan_installments(*)")
+        .select("*, employees(full_name, department, branches(name)), loan_installments(*)")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data || [];
@@ -113,7 +113,7 @@ export default function LoansPage() {
       return `<tr>
         <td style="text-align:center">${i + 1}</td>
         <td style="font-weight:600">${l.employees?.full_name || "-"}</td>
-        <td>${l.employees?.department || "-"}</td>
+        <td>${l.employees?.branches?.name || "-"}</td>
         <td style="font-family:monospace;text-align:left">${Number(l.total_amount).toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
         <td style="font-family:monospace;text-align:left">${Number(l.monthly_installment).toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
         <td style="text-align:center">${l.total_months} شهر</td>
@@ -157,7 +157,7 @@ export default function LoansPage() {
           <div style="background:#f0f2f5;border-radius:8px;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
             <div>
               <span style="font-weight:700;font-size:14px">${l.employees?.full_name || "-"}</span>
-              <span style="color:#6B7280;font-size:11px;margin-right:12px">${l.employees?.department || ""}</span>
+              <span style="color:#6B7280;font-size:11px;margin-right:12px">${l.employees?.branches?.name || ""}</span>
             </div>
             <div style="font-size:11px;color:#6B7280">
               القرض: <strong>${Number(l.total_amount).toLocaleString("en-US", { minimumFractionDigits: 2 })} ₪</strong>
@@ -381,7 +381,7 @@ export default function LoansPage() {
                         </Badge>
                       </div>
                       <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                        <span>{loan.employees?.department || "-"}</span>
+                        <span>{loan.employees?.branches?.name || "-"}</span>
                       </div>
                     </div>
                     <div className="text-left flex items-center gap-2">
