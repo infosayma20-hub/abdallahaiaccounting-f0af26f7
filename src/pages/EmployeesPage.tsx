@@ -808,6 +808,15 @@ const EmployeesPage = () => {
                   </Table>
                 </TabsContent>
 
+                <TabsContent value="vouchers">
+                  {user && selectedEmployee && (
+                    <EmployeeVouchersTab
+                      employeeName={selectedEmployee.full_name}
+                      userId={user.id}
+                    />
+                  )}
+                </TabsContent>
+
                 <TabsContent value="deductions">
                   {user && selectedEmployee && (
                     <EmployeeDeductionsTab
