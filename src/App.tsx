@@ -73,7 +73,7 @@ import POSPage from "./pages/POSPage";
 import POSUserManagementPage from "./pages/POSUserManagementPage";
 import POSReportsPage from "./pages/POSReportsPage";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
-import PurchasePointPage from "./pages/PurchasePointPage";
+// PurchasePointPage removed — replaced by procurement module
 import FloorPlanPage from "./pages/FloorPlanPage";
 import FloorPlanEditorPage from "./pages/FloorPlanEditorPage";
 import DigitalReceiptPage from "./pages/DigitalReceiptPage";
@@ -189,7 +189,7 @@ const App = () => (
               <Route path="/pos/floor-plan/edit" element={<ProtectedRoute><FloorPlanEditorPage /></ProtectedRoute>} />
               <Route path="/pos/modifiers" element={<ProtectedRoute><ModifierManagerPage /></ProtectedRoute>} />
               <Route path="/pos/kitchen" element={<ProtectedRoute><KitchenDisplayPage /></ProtectedRoute>} />
-              <Route path="/purchase-point" element={<ProtectedRoute><PurchasePointPage /></ProtectedRoute>} />
+              <Route path="/purchase-point" element={<Navigate to="/procurement/orders/new" replace />} />
               <Route path="/worker/procurement" element={<ProtectedRoute><WorkerProcurementPage /></ProtectedRoute>} />
               <Route path="/*" element={
                 <ProtectedRoute blockCashier>

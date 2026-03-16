@@ -157,7 +157,7 @@ export const navigationSections: NavSection[] = [
           {
             groupLabel: "عمليات أخرى",
             children: [
-              { label: "نقطة المشتريات", path: "/purchase-point" },
+              { label: "طلب مشتريات", path: "/procurement/orders/new" },
               { label: "سندات الصرف", path: "/finance/payments" },
               { label: "ملفات الاستيراد", path: "/purchases/import" },
             ],

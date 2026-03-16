@@ -427,16 +427,14 @@ const AccountStatementPage = () => {
             : Promise.resolve({ data: [] as any[] }),
           limitedTxIds.length
             ? supabase
-                .from("purchase_invoices")
-                .select("id, linked_transaction_id, invoice_number")
-                .eq("user_id", user.id)
-                .in("linked_transaction_id", limitedTxIds)
+                .from("procurement_invoices" as any)
+                .select("id, invoice_number")
+                .in("id", limitedTxIds)
             : Promise.resolve({ data: [] as any[] }),
           limitedRefs.length
             ? supabase
-                .from("purchase_invoices")
-                .select("id, linked_transaction_id, invoice_number")
-                .eq("user_id", user.id)
+                .from("procurement_invoices" as any)
+                .select("id, invoice_number")
                 .in("invoice_number", limitedRefs)
             : Promise.resolve({ data: [] as any[] }),
         ]);
@@ -482,8 +480,8 @@ const AccountStatementPage = () => {
               .select("invoice_id, product_name, quantity, unit_price, total_amount, unit_of_measure, discount")
               .in("invoice_id", invoiceIds),
             supabase
-              .from("purchase_invoice_items")
-              .select("invoice_id, product_name, quantity, unit_price, total_amount, unit, discount_pct")
+              .from("procurement_invoice_items" as any)
+              .select("invoice_id, item_name, received_quantity, unit_price, total_price, unit, notes")
               .in("invoice_id", invoiceIds),
           ]);
 
@@ -499,12 +497,12 @@ const AccountStatementPage = () => {
             })),
             ...((purchaseItems || []) as any[]).map((item: any) => ({
               invoice_id: item.invoice_id,
-              product_name: item.product_name,
-              quantity: item.quantity,
+              product_name: item.item_name,
+              quantity: item.received_quantity,
               unit_price: item.unit_price,
-              total_amount: item.total_amount,
+              total_amount: item.total_price,
               unit_of_measure: item.unit || null,
-              discount: item.discount_pct ?? null,
+              discount: null,
             })),
           ];
 
