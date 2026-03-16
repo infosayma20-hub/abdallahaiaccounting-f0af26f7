@@ -93,7 +93,7 @@ export const generateReceiptPDF = (receipt: ReceiptPDFData, company: CompanyPDFD
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(16);
   doc.setFont('helvetica', 'bold');
-  doc.text(company.company_name || 'FINIX ERP', W / 2, 15, { align: 'center' });
+  doc.text(company.company_name || 'QOYOD قيود', W / 2, 15, { align: 'center' });
 
   // Company info
   doc.setTextColor(200, 210, 220);
