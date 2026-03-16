@@ -101,7 +101,7 @@ export default function EmployeeFinancialMovementsTab({ employeeId, employeeName
       .from("employee_financial_movements")
       .select("*")
       .eq("employee_id", employeeId)
-      .eq("user_id", userId)
+      .eq("user_id", ownerId)
       .eq("salary_month", month)
       .eq("salary_year", year);
 
