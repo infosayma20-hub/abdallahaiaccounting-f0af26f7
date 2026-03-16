@@ -47,7 +47,7 @@ const PurchaseOrderCreatePage = () => {
   const { categories: rawCategories } = useItemCategories();
   const { items: procurementItems } = useProcurementItems();
   const { createOrder, updateStatus } = useProcurementOrders();
-  const branches = useBranches();
+  const { branches, refetchBranches } = useBranches();
   const navigate = useNavigate();
   const searchRef = useRef<HTMLInputElement>(null);
 
