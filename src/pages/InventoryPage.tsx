@@ -185,10 +185,65 @@ const InventoryPage = () => {
     setSelectedProduct(product);
     setShowMovementsDialog(true);
     setMovementsLoading(true);
-    const { data } = await supabase
-      .from("stock_movements").select("*").eq("product_id", product.id)
-      .order("created_at", { ascending: false });
-    setMovements(data || []);
+    
+    // Query all movement sources in parallel
+    const [stockRes, posInvRes, posLinesRes] = await Promise.all([
+      supabase.from("stock_movements").select("*").eq("product_id", product.id),
+      supabase.from("pos_inventory_movements").select("*").eq("product_id", product.id),
+      supabase.from("pos_order_lines").select("id, qty, created_at, order_id, pos_orders!inner(state, order_number)").eq("product_id", product.id),
+    ]);
+
+    const allMovements: StockMovement[] = [];
+
+    // stock_movements
+    (stockRes.data || []).forEach((m: any) => {
+      allMovements.push({
+        id: m.id,
+        product_id: m.product_id,
+        movement_type: m.movement_type,
+        quantity: m.quantity,
+        reference_note: m.reference_note,
+        created_at: m.created_at,
+      });
+    });
+
+    // pos_inventory_movements (manual input / purchases)
+    (posInvRes.data || []).forEach((m: any) => {
+      const typeMap: Record<string, string> = {
+        production_in: "إدخال بضاعة",
+        purchase_in: "مشتريات",
+        adjustment: "تعديل يدوي",
+      };
+      allMovements.push({
+        id: m.id,
+        product_id: m.product_id,
+        movement_type: typeMap[m.type] || m.type,
+        quantity: m.quantity,
+        reference_note: m.notes || null,
+        created_at: m.created_at,
+      });
+    });
+
+    // POS sales (completed orders)
+    (posLinesRes.data || []).forEach((line: any) => {
+      const order = line.pos_orders;
+      if (!order) return;
+      const stateLabel = order.state === 'completed' ? 'مبيعات POS' : 
+                         order.state === 'cancelled' ? 'طلب ملغي' : order.state;
+      allMovements.push({
+        id: line.id,
+        product_id: product.id,
+        movement_type: order.state === 'completed' ? 'بيع POS' : 
+                       order.state === 'cancelled' ? 'طلب ملغي' : 'طلب POS',
+        quantity: line.qty,
+        reference_note: `${stateLabel} - طلب #${order.order_number}`,
+        created_at: line.created_at,
+      });
+    });
+
+    // Sort by date descending
+    allMovements.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    setMovements(allMovements);
     setMovementsLoading(false);
   };
 
@@ -259,6 +314,11 @@ const InventoryPage = () => {
     "وارد": { label: "وارد", color: "text-primary", icon: TrendingUp },
     "صادر": { label: "صادر", color: "text-destructive", icon: TrendingDown },
     "تعديل يدوي": { label: "تعديل", color: "text-yellow-600", icon: Pencil },
+    "إدخال بضاعة": { label: "إدخال بضاعة", color: "text-primary", icon: TrendingUp },
+    "مشتريات": { label: "مشتريات", color: "text-primary", icon: TrendingUp },
+    "بيع POS": { label: "بيع POS", color: "text-destructive", icon: TrendingDown },
+    "طلب ملغي": { label: "طلب ملغي", color: "text-muted-foreground", icon: History },
+    "طلب POS": { label: "طلب POS", color: "text-yellow-600", icon: History },
   };
 
   const SortHeader = ({ label, field }: { label: string; field: SortKey }) => (
@@ -675,18 +735,26 @@ const InventoryPage = () => {
             <div className="text-center py-8">
               <History className="h-10 w-10 text-muted-foreground/30 mx-auto mb-2" />
               <p className="text-sm text-muted-foreground">لا توجد حركات مسجلة بعد</p>
+              {selectedProduct && selectedProduct.quantity > 0 && (
+                <p className="text-xs text-yellow-600 mt-2">
+                  ⚠️ الكمية الحالية ({selectedProduct.quantity}) تم إدخالها يدوياً عند إنشاء/تعديل المنتج ولم تُسجل كحركة مخزون
+                </p>
+              )}
             </div>
           ) : (
             <div className="space-y-2 mt-2">
               {movements.map(m => {
                 const config = movementTypeLabel[m.movement_type] || { label: m.movement_type, color: "text-muted-foreground", icon: History };
                 const Icon = config.icon;
+                const isOutgoing = ['بيع POS', 'صادر'].includes(m.movement_type);
                 return (
                   <div key={m.id} className="flex items-center justify-between p-3 rounded-xl bg-muted/30">
                     <div className="flex items-center gap-3">
                       <Icon className={`h-4 w-4 ${config.color}`} />
                       <div>
-                        <p className={`text-sm font-semibold ${config.color}`}>{config.label}: {m.quantity}</p>
+                        <p className={`text-sm font-semibold ${config.color}`}>
+                          {config.label}: {isOutgoing ? '-' : '+'}{m.quantity}
+                        </p>
                         {m.reference_note && <p className="text-[10px] text-muted-foreground">{m.reference_note}</p>}
                       </div>
                     </div>
