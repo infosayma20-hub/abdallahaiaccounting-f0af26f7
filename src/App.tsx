@@ -87,7 +87,7 @@ import ContractFormPage from "./pages/ContractFormPage";
 import ContractPreviewPage from "./pages/ContractPreviewPage";
 import LoadingDemoPage from "./pages/LoadingDemoPage";
 import AdvancesPage from "./pages/AdvancesPage";
-import MalakiImportPage from "./pages/MalakiImportPage";
+import PayrollSettingsPage from "./pages/PayrollSettingsPage";
 import PayrollPage from "./pages/PayrollPage";
 import MonthlyPayrollInputPage from "./pages/MonthlyPayrollInputPage";
 import LeavesPage from "./pages/LeavesPage";
