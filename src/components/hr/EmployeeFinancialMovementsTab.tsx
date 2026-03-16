@@ -123,7 +123,7 @@ export default function EmployeeFinancialMovementsTab({ employeeId, employeeName
       .from("employee_advance_installments")
       .select("*, employee_advances(advance_type, amount)")
       .eq("employee_id", employeeId)
-      .eq("user_id", userId)
+      .eq("user_id", ownerId)
       .eq("due_month", dueMonth);
 
     (installments || []).forEach((inst: any) => {
