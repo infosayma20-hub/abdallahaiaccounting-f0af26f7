@@ -35,7 +35,7 @@ interface StockMovement {
 
 const DEFAULT_CATEGORIES = ["بضاعة عامة", "مواد خام", "مواد تعبئة", "قطع غيار", "أخرى"];
 const DEFAULT_UNITS = ["قطعة", "كيلو", "لتر", "متر", "علبة", "كرتونة", "طن"];
-const PER_PAGE = 15;
+const PAGE_SIZE_OPTIONS = [15, 30, 100];
 
 const CATEGORY_PREFIXES: Record<string, string> = {
   "بضاعة عامة": "GEN",
