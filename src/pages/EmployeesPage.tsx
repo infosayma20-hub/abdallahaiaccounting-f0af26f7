@@ -103,6 +103,9 @@ const EmployeesPage = () => {
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [activeTab, setActiveTab] = useState("info");
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [branchesList, setBranchesList] = useState<Branch[]>([]);
+  const [showAddBranch, setShowAddBranch] = useState(false);
+  const [newBranchName, setNewBranchName] = useState("");
 
   // Filters
   const [filterBranch, setFilterBranch] = useState<string>("all");
