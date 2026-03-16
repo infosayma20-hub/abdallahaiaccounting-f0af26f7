@@ -453,17 +453,20 @@ function AddLoanDialog({ open, onOpenChange, userId, companyId, onSuccess }: {
 
       if (instErr) throw instErr;
 
-      // 4. Create accounting entry: Debit employee account (1180.x), Credit cash (1110)
-      //    This records the loan disbursement
+      // 4. Create accounting entry: Debit employee account (1180.x), Credit selected cash box
+      const selectedBox = cashBoxes.find(cb => cb.id === selectedCashBox);
+      const creditAccountCode = selectedBox?.gl_account_code || "1110";
+      const creditLabel = selectedBox?.name || "الصندوق";
+
       const idempotencyKey = `LOAN-${loanRecord.id}`;
       const { error: txErr } = await supabase
         .from("transactions")
         .insert({
           user_id: userId,
           transaction_date: firstPaymentDate,
-          description: `قرض حسن - ${selectedEmp.full_name} - مبلغ ${fmtCurrency(amount)}`,
+          description: `قرض حسن - ${selectedEmp.full_name} - مبلغ ${fmtCurrency(amount)} - من ${creditLabel}`,
           debit_account_code: empAccountCode,
-          credit_account_code: "1110", // Cash
+          credit_account_code: creditAccountCode,
           amount: amount,
           currency: "شيكل",
           transaction_type: "loan_disbursement",
