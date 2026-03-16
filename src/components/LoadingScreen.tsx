@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { FinixLogo } from "@/components/ui/FinixLogo";
 
 type Phase = "logo" | "tagline" | "bar" | "done";
 
@@ -84,7 +83,7 @@ const LoadingScreen = ({ demo = false }: { demo?: boolean }) => {
             animationDelay: "200ms",
           }}
         >
-          <FinixLogo variant="white" size="lg" />
+          <img src="/logo-white.svg" alt="QOYOD قيود" width={180} />
         </div>
 
         {/* Arabic tagline */}
@@ -126,7 +125,7 @@ const LoadingScreen = ({ demo = false }: { demo?: boolean }) => {
                 : undefined,
           }}
         >
-          YOUR BUSINESS, REBORN
+          YOUR BUSINESS AT ITS BEST
         </p>
 
         {/* Progress bar */}
@@ -174,13 +173,13 @@ const LoadingScreen = ({ demo = false }: { demo?: boolean }) => {
           bottom: 28,
           left: "50%",
           transform: "translateX(-50%)",
-          fontFamily: "JetBrains Mono, monospace",
-          fontSize: 10,
-          color: "rgba(255,255,255,0.08)",
-          letterSpacing: 2,
+          fontFamily: "Tajawal, sans-serif",
+          fontSize: 13,
+          color: "#C9A84C",
+          letterSpacing: 1,
         }}
       >
-        v3.0.0
+        قيود | ERP Software
       </p>
     </div>
   );

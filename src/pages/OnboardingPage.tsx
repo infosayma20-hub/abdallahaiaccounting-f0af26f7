@@ -134,7 +134,7 @@ const OnboardingPage = () => {
 
   const finishOnboarding = async () => {
     await saveProgress({ onboarding_completed: true }, 6);
-    toast.success("أهلاً بك في FINIX! 🎉");
+    toast.success("أهلاً بك في QOYOD قيود! 🎉");
     navigate("/apps");
   };
 
@@ -168,7 +168,7 @@ const OnboardingPage = () => {
             {step === 1 && (
               <div className="text-center">
                 <div className="text-5xl mb-4">👋</div>
-                <h2 className="text-[28px] font-extrabold text-[#0D1B2A] mb-3">أهلاً وسهلاً في FINIX!</h2>
+                <h2 className="text-[28px] font-extrabold text-[#0D1B2A] mb-3">أهلاً وسهلاً في QOYOD!</h2>
                 <p className="text-sm text-gray-500 max-w-md mx-auto mb-8 leading-relaxed">
                   لنبدأ بالتعرف على عملك لكي يقدم لك المحاسب الذكي تحليلات مخصصة لك تماماً
                 </p>
@@ -382,7 +382,7 @@ const OnboardingPage = () => {
             {/* Step 6: App Tour */}
             {step === 6 && (
               <div className="text-center">
-                <h2 className="text-xl font-bold text-[#0D1B2A] mb-6">إليك ما ينتظرك في FINIX!</h2>
+                <h2 className="text-xl font-bold text-[#0D1B2A] mb-6">إليك ما ينتظرك في QOYOD!</h2>
 
                 <div className="relative overflow-hidden rounded-2xl mb-6">
                   <AnimatePresence mode="wait">

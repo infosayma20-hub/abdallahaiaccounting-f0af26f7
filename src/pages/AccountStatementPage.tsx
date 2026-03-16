@@ -1241,7 +1241,7 @@ const AccountStatementPage = () => {
 
       // Build header rows
       const rows: any[][] = [];
-      rows.push([companyInfo.name || companyName || "FINIX ERP"]);
+      rows.push([companyInfo.name || companyName || "QOYOD قيود"]);
       rows.push(["كشف الحساب — Statement of Account"]);
       rows.push(["العميل:", selectedEntityName, "", "", "من:", fmtDate(dateFrom)]);
       rows.push(["الهاتف:", selectedEntityInfo.phone || "—", "", "", "إلى:", fmtDate(dateTo)]);

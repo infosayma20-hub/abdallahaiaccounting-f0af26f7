@@ -183,7 +183,7 @@ export default function PortalLogin() {
         position: 'fixed', bottom: 16, width: '100%', textAlign: 'center',
         fontSize: 11, color: 'rgba(255,255,255,0.2)',
       }}>
-        بوابة الإدارة • مدعوم بـ FINIX
+        بوابة الإدارة • مدعوم بـ QOYOD قيود
       </div>
 
       <style>{`

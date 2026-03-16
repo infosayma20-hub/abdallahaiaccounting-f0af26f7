@@ -159,17 +159,17 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
             {company.logo_url ? (
               <img src={company.logo_url} alt={company.name} className="w-[44px] h-[44px] rounded-[10px] object-contain bg-white p-1 flex-shrink-0" style={{ boxShadow: "0 2px 8px rgba(13,27,42,0.10)" }} />
             ) : (
-              <FinixLogo variant="icon" size="sm" />
+              <img src="/logo-icon-white.svg" alt="قيود" width={32} height={32} className="flex-shrink-0" />
             )}
             <div className="min-w-0">
-              <h1 className="text-[13px] leading-tight font-bold text-white line-clamp-2" style={{ fontFamily: "Tajawal, sans-serif" }}>{company.name || "FINIX"}</h1>
+              <h1 className="text-[13px] leading-tight font-bold text-white line-clamp-2" style={{ fontFamily: "Tajawal, sans-serif" }}>{company.name || "QOYOD"}</h1>
               <p className="text-[10px] text-sidebar-foreground leading-none truncate">{company.industry || "نظام إدارة الأعمال"}</p>
             </div>
           </div>
         ) : company.logo_url ? (
           <img src={company.logo_url} alt={company.name} className="w-9 h-9 rounded-lg object-contain bg-white p-0.5" style={{ boxShadow: "0 2px 8px rgba(13,27,42,0.10)" }} />
         ) : (
-          <FinixLogo variant="icon" size="sm" />
+          <img src="/logo-icon-white.svg" alt="قيود" width={32} height={32} />
         )}
       </div>
 

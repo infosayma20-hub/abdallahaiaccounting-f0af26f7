@@ -2207,7 +2207,7 @@ const POSPage = () => {
 
         {/* Company Name */}
         <div className="flex items-center gap-2 px-2.5 py-1 rounded-lg" style={{ background: "rgba(232,160,32,0.15)" }}>
-          <span className="text-xs font-semibold">{company?.name || "FINIX"}</span>
+          <span className="text-xs font-semibold">{company?.name || "QOYOD"}</span>
         </div>
 
         {terminal && (

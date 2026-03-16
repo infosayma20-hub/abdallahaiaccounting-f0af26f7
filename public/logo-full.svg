@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 200" fill="none">
+  <!-- Qaf letter ق with decorative swirl - navy and gold -->
+  <g transform="translate(120, 10)">
+    <!-- Main Qaf body - navy -->
+    <path d="M80 100 C80 60, 50 30, 20 40 C-10 50, -15 80, 10 110 C30 135, 70 140, 100 125 C120 115, 125 95, 115 80 C108 70, 95 65, 85 72" 
+          stroke="#1B3A5C" stroke-width="12" fill="none" stroke-linecap="round"/>
+    <!-- Swirl tail - gold gradient -->
+    <path d="M100 125 C130 110, 150 85, 155 55 C158 35, 148 20, 135 25 C125 28, 122 40, 130 50" 
+          stroke="#C9A84C" stroke-width="10" fill="none" stroke-linecap="round"/>
+    <!-- Two dots below ق -->
+    <circle cx="40" cy="155" r="7" fill="#1B3A5C"/>
+    <circle cx="65" cy="155" r="7" fill="#1B3A5C"/>
+  </g>
+  <!-- QOYOD text -->
+  <text x="200" y="195" text-anchor="middle" font-family="Montserrat, Arial, sans-serif" font-weight="700" font-size="36" fill="#1B3A5C" letter-spacing="8">QOYOD</text>
+</svg>
