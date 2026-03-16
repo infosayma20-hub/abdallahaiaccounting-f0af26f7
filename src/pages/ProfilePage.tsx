@@ -63,7 +63,7 @@ const GoogleOnlyPasswordSection = () => {
 
   if (!show || done) return null;
 
-  const isValid = newPwd.length >= 8 && newPwd === confirmPwd;
+  const isValid = newPwd.length >= 1 && newPwd === confirmPwd;
 
   const handleSave = async () => {
     if (!isValid) return;
