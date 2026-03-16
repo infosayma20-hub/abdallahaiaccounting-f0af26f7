@@ -254,6 +254,7 @@ const App = () => (
                       <Route path="/hr-attendance" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><HRAttendancePage /></RoleGuard>} />
                       <Route path="/advances" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><AdvancesPage /></RoleGuard>} />
                       <Route path="/loans" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><LoansPage /></RoleGuard>} />
+                      <Route path="/hr-deductions" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><HRDeductionsPage /></RoleGuard>} />
                       <Route path="/payroll" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><PayrollPage /></RoleGuard>} />
                       <Route path="/payroll/inputs" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><MonthlyPayrollInputPage /></RoleGuard>} />
                       <Route path="/leaves" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><LeavesPage /></RoleGuard>} />
