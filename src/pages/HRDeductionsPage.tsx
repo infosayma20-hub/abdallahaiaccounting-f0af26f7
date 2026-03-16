@@ -59,7 +59,7 @@ export default function HRDeductionsPage() {
   const { data: paymentVouchers = [] } = useQuery({
     queryKey: ["hr-payment-vouchers", user?.id],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from("receipt_vouchers")
         .select("*")
         .eq("user_id", user!.id)
