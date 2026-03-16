@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useCompany } from "@/hooks/useCompanyContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Download, Wallet, Users, Calendar, CheckCircle2, Clock, ChevronDown, ChevronUp, Plus, Search, UserCheck } from "lucide-react";
+import { Download, Wallet, Users, Calendar, CheckCircle2, Clock, ChevronDown, ChevronUp, Plus, Search, UserCheck, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
