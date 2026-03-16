@@ -1136,6 +1136,41 @@ const AccountStatementPage = () => {
     return rows[rows.length - 1].date;
   }, [rows]);
 
+  // Overdue alert
+  const overdueAlert = useMemo(() => {
+    if (isAccountsTab || !rows.length || closingBalance <= 0) return null;
+    const oldestDebitRow = rows.find(r => r.debit > 0);
+    if (!oldestDebitRow) return null;
+    const days = differenceInDays(new Date(), parseISO(oldestDebitRow.date));
+    if (days > 30) return { days, ref: oldestDebitRow.reference };
+    return null;
+  }, [rows, closingBalance, isAccountsTab]);
+
+  // Statement number
+  const statementNumber = useMemo(() => {
+    const now = new Date();
+    return `SOA-${now.getFullYear()}-${String(Date.now()).slice(-4).padStart(4, "0")}`;
+  }, [selectedEntityId]);
+
+  // Aging analysis data
+  const agingData = useMemo(() => {
+    if (!selectedEntityId || isAccountsTab) return null;
+    const today = new Date();
+    let current = 0, d1_30 = 0, d31_60 = 0, d60plus = 0;
+    for (const row of rows) {
+      if (row.debit <= 0) continue;
+      const days = differenceInDays(today, parseISO(row.date));
+      const net = row.debit; // outstanding debit
+      if (days <= 0) current += net;
+      else if (days <= 30) d1_30 += net;
+      else if (days <= 60) d31_60 += net;
+      else d60plus += net;
+    }
+    const total = current + d1_30 + d31_60 + d60plus;
+    if (total === 0) return null;
+    return { current, d1_30, d31_60, d60plus, total };
+  }, [rows, selectedEntityId, isAccountsTab]);
+
   // Oldest open invoice for contact
   const oldestOpenInvoice = useMemo(() => {
     if (!rows.length || isAccountsTab) return null;
