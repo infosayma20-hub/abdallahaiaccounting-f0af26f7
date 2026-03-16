@@ -186,10 +186,11 @@ export default function LoansPage() {
 <head>
   <meta charset="utf-8" />
   <title>تقرير القروض الحسنة</title>
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
   <style>
     @page { size: A4; margin: 15mm; }
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Segoe UI', Tahoma, Arial, sans-serif; font-size: 12px; color: #1a1a1a; background: #fff; direction: rtl; }
+    body { font-family: 'Tajawal', 'Segoe UI', Tahoma, Arial, sans-serif; font-size: 12px; color: #1a1a1a; background: #fff; direction: rtl; }
     table { width: 100%; border-collapse: collapse; }
     th, td { padding: 7px 10px; border-bottom: 1px solid #e5e7eb; }
     thead th { font-weight: 600; }
