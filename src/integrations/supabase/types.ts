@@ -2552,6 +2552,148 @@ export type Database = {
         }
         Relationships: []
       }
+      employee_advance_installments: {
+        Row: {
+          advance_id: string
+          amount: number
+          created_at: string
+          deducted_at: string | null
+          due_month: string
+          employee_id: string
+          id: string
+          installment_number: number
+          payslip_id: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          advance_id: string
+          amount: number
+          created_at?: string
+          deducted_at?: string | null
+          due_month: string
+          employee_id: string
+          id?: string
+          installment_number: number
+          payslip_id?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          advance_id?: string
+          amount?: number
+          created_at?: string
+          deducted_at?: string | null
+          due_month?: string
+          employee_id?: string
+          id?: string
+          installment_number?: number
+          payslip_id?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_advance_installments_advance_id_fkey"
+            columns: ["advance_id"]
+            isOneToOne: false
+            referencedRelation: "employee_advances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_advance_installments_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_advance_installments_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_advances: {
+        Row: {
+          advance_type: string
+          amount: number
+          approved_by: string | null
+          approved_date: string | null
+          created_at: string
+          created_by: string | null
+          employee_id: string
+          id: string
+          installment_amount: number | null
+          installments_count: number
+          notes: string | null
+          payment_date: string | null
+          payment_method: string | null
+          request_date: string
+          start_deduction_month: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          advance_type?: string
+          amount: number
+          approved_by?: string | null
+          approved_date?: string | null
+          created_at?: string
+          created_by?: string | null
+          employee_id: string
+          id?: string
+          installment_amount?: number | null
+          installments_count?: number
+          notes?: string | null
+          payment_date?: string | null
+          payment_method?: string | null
+          request_date?: string
+          start_deduction_month?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          advance_type?: string
+          amount?: number
+          approved_by?: string | null
+          approved_date?: string | null
+          created_at?: string
+          created_by?: string | null
+          employee_id?: string
+          id?: string
+          installment_amount?: number | null
+          installments_count?: number
+          notes?: string | null
+          payment_date?: string | null
+          payment_method?: string | null
+          request_date?: string
+          start_deduction_month?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_advances_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_advances_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employee_allowances: {
         Row: {
           activation_date: string | null
@@ -2680,36 +2822,42 @@ export type Database = {
           amount: number
           created_at: string
           deduction_date: string
+          deduction_month: string | null
           deduction_type: string
           description: string | null
           employee_id: string
           id: string
           is_repaid: boolean
           notes: string | null
+          status: string | null
           user_id: string
         }
         Insert: {
           amount?: number
           created_at?: string
           deduction_date?: string
+          deduction_month?: string | null
           deduction_type: string
           description?: string | null
           employee_id: string
           id?: string
           is_repaid?: boolean
           notes?: string | null
+          status?: string | null
           user_id: string
         }
         Update: {
           amount?: number
           created_at?: string
           deduction_date?: string
+          deduction_month?: string | null
           deduction_type?: string
           description?: string | null
           employee_id?: string
           id?: string
           is_repaid?: boolean
           notes?: string | null
+          status?: string | null
           user_id?: string
         }
         Relationships: [
@@ -2806,6 +2954,69 @@ export type Database = {
           },
           {
             foreignKeyName: "employee_financial_movements_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_hr_records: {
+        Row: {
+          action_taken: string | null
+          amount: number | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          employee_id: string
+          id: string
+          period: string | null
+          rating: number | null
+          record_date: string
+          record_type: string
+          title: string | null
+          user_id: string
+        }
+        Insert: {
+          action_taken?: string | null
+          amount?: number | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          employee_id: string
+          id?: string
+          period?: string | null
+          rating?: number | null
+          record_date?: string
+          record_type: string
+          title?: string | null
+          user_id: string
+        }
+        Update: {
+          action_taken?: string | null
+          amount?: number | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          employee_id?: string
+          id?: string
+          period?: string | null
+          rating?: number | null
+          record_date?: string
+          record_type?: string
+          title?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_hr_records_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_hr_records_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "employees_safe"
