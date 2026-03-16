@@ -84,9 +84,6 @@ export default function GooglePasswordSetupModal({ open, onComplete, onSkip }: G
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
-              {password.length > 0 && password.length < 8 && (
-                <p className="text-xs text-destructive">كلمة المرور يجب أن تكون 8 أحرف على الأقل</p>
-              )}
             </div>
 
             <div className="space-y-2">
