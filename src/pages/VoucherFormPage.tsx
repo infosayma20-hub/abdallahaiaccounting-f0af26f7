@@ -989,7 +989,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       </Card>
 
       {/* Invoice Linking Section */}
-      {selectedContact && (
+      {selectedContact && (isReceipt || partyType === "contact") && (
         <Card>
           <CardContent className="p-5 space-y-4">
             <div className="flex items-center justify-between">
