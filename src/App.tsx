@@ -87,6 +87,7 @@ import ContractFormPage from "./pages/ContractFormPage";
 import ContractPreviewPage from "./pages/ContractPreviewPage";
 import LoadingDemoPage from "./pages/LoadingDemoPage";
 import AdvancesPage from "./pages/AdvancesPage";
+import MalakiImportPage from "./pages/MalakiImportPage";
 import PayrollPage from "./pages/PayrollPage";
 import LeavesPage from "./pages/LeavesPage";
 import ImportShipmentsPage from "./pages/ImportShipmentsPage";
@@ -251,6 +252,7 @@ const App = () => (
                       <Route path="/advances" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><AdvancesPage /></RoleGuard>} />
                       <Route path="/payroll" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><PayrollPage /></RoleGuard>} />
                       <Route path="/leaves" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><LeavesPage /></RoleGuard>} />
+                      <Route path="/hr/import-employees" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><MalakiImportPage /></RoleGuard>} />
                       <Route path="/opening-balances-import" element={<OpeningBalancesImportPage />} />
                       <Route path="/currency-management" element={<CurrencyManagementPage />} />
                       <Route path="/fixed-assets" element={<FixedAssetsPage />} />
