@@ -281,6 +281,7 @@ export const navigationSections: NavSection[] = [
               { label: "الرواتب", path: "/payroll" },
               { label: "الإجازات", path: "/leaves" },
               { label: "السلف والقروض", path: "/advances" },
+              { label: "إعدادات الرواتب", path: "/payroll-settings" },
             ],
           },
         ],

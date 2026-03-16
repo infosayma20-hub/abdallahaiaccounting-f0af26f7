@@ -421,9 +421,6 @@ const EmployeesPage = () => {
           <Button variant="outline" size="sm" onClick={() => setShowImport(true)} className="gap-1">
             <Upload className="h-4 w-4" /> استيراد Excel
           </Button>
-          <Button variant="outline" size="sm" onClick={() => navigate("/hr/import-employees")} className="gap-1">
-            <Users className="h-4 w-4" /> استيراد الملكي
-          </Button>
           <Button variant="outline" size="sm" onClick={() => setShowDeductionsExport(true)} className="gap-1">
             <Download className="h-4 w-4" /> تصدير المسحوبات
           </Button>
