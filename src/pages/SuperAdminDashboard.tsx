@@ -1630,6 +1630,7 @@ export default function SuperAdminDashboard() {
               { value: "live", icon: Wifi, label: "مراقبة حية" },
               { value: "audit", icon: FileText, label: "سجل التدقيق" },
               { value: "settings", icon: Settings, label: "إعدادات المنصة" },
+              { value: "tools", icon: Zap, label: "أدوات" },
               { value: "subscriptions", icon: CreditCard, label: "الاشتراكات" },
               { value: "revenue", icon: BarChart3, label: "الإيرادات" },
             ].map(tab => (
