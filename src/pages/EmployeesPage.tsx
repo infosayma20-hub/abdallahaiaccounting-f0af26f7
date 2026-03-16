@@ -11,7 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Plus, Search, Users, DollarSign, Calendar, FileText, Edit, Trash2, UserPlus, Loader2, Upload, CalendarDays, LogOut as LogOutIcon, Download, FileBarChart, ArrowUpDown, ArrowUp, ArrowDown, Filter, Layers } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Plus, Search, Users, DollarSign, Calendar, FileText, Edit, Trash2, UserPlus, Loader2, Upload, CalendarDays, LogOut as LogOutIcon, Download, FileBarChart, ArrowUpDown, ArrowUp, ArrowDown, Filter, Layers, Pencil, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import BackButton from "@/components/BackButton";
 import EmployeeMovementsTab from "@/components/hr/EmployeeMovementsTab";
