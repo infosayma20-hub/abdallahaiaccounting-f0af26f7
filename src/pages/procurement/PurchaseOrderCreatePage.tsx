@@ -160,12 +160,14 @@ const PurchaseOrderCreatePage = () => {
 
   const handleSave = async (send: boolean) => {
     if (!supplierId) { toast({ title: "اختر المورد", variant: "destructive" }); return; }
-    if (!branchId) { toast({ title: "اختر الفرع", variant: "destructive" }); return; }
     if (lines.length === 0) { toast({ title: "أضف صنفاً واحداً على الأقل", variant: "destructive" }); return; }
+    const linesWithoutBranch = lines.filter(l => !l.branch_id);
+    if (linesWithoutBranch.length > 0) { toast({ title: "حدد الفرع لجميع الأصناف", variant: "destructive" }); return; }
     setSaving(true);
+    const firstBranch = lines[0]?.branch_id || defaultBranchId || null;
     const result = await createOrder(
-      { supplier_id: supplierId, branch_id: branchId, order_date: orderDate, expected_delivery_date: expectedDate, notes },
-      lines.map(l => ({ product_id: l.product_id, item_name: l.item_name, unit: l.unit, quantity: l.quantity, unit_price: l.unit_price }))
+      { supplier_id: supplierId, branch_id: firstBranch, order_date: orderDate, expected_delivery_date: expectedDate, notes },
+      lines.map(l => ({ product_id: l.product_id, item_name: l.item_name, unit: l.unit, quantity: l.quantity, unit_price: l.unit_price, branch_id: l.branch_id }))
     );
     if (result && send) await updateStatus((result as any).id, "sent");
     setSaving(false);
