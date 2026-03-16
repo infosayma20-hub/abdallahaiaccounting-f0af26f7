@@ -246,6 +246,7 @@ const App = () => (
                       <Route path="/orders" element={<OrdersPage />} />
                       <Route path="/my-attendance" element={<EmployeeAttendancePage />} />
                       <Route path="/hr-attendance" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><HRAttendancePage /></RoleGuard>} />
+                      <Route path="/advances" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><AdvancesPage /></RoleGuard>} />
                       <Route path="/opening-balances-import" element={<OpeningBalancesImportPage />} />
                       <Route path="/currency-management" element={<CurrencyManagementPage />} />
                       <Route path="/fixed-assets" element={<FixedAssetsPage />} />

@@ -151,6 +151,11 @@ export default function SalarySlipDialog({ open, onClose, slip, employeeName, de
   }
   if (slip.otherDeductions > 0) deductionsList.push(["خصومات أخرى", slip.otherDeductions]);
 
+  // Add advance installments
+  installmentDeductions.forEach(inst => {
+    deductionsList.push([inst.label, inst.amount]);
+  });
+
   const totalDeductions = deductionsList.reduce((s, [, v]) => s + v, 0);
   const totalEarnings = earningsList.reduce((s, [, v]) => s + v, 0);
   const netSalary = totalEarnings - totalDeductions;
