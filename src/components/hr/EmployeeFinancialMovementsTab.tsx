@@ -33,10 +33,20 @@ export default function EmployeeFinancialMovementsTab({ employeeId, employeeName
   const [filter, setFilter] = useState("الكل");
   const [rows, setRows] = useState<FinancialRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [ownerId, setOwnerId] = useState(userId);
+
+  // Resolve team owner id so employee accounts can also see their data
+  useEffect(() => {
+    const resolveOwner = async () => {
+      const { data } = await supabase.rpc("get_team_owner_id", { _user_id: userId });
+      if (data) setOwnerId(data as string);
+    };
+    resolveOwner();
+  }, [userId]);
 
   useEffect(() => {
     fetchAll();
-  }, [employeeId, month, year]);
+  }, [employeeId, month, year, ownerId]);
 
   const fetchAll = async () => {
     setLoading(true);
