@@ -87,6 +87,7 @@ import ContractFormPage from "./pages/ContractFormPage";
 import ContractPreviewPage from "./pages/ContractPreviewPage";
 import LoadingDemoPage from "./pages/LoadingDemoPage";
 import AdvancesPage from "./pages/AdvancesPage";
+import MalakiImportPage from "./pages/MalakiImportPage";
 import PayrollPage from "./pages/PayrollPage";
 import LeavesPage from "./pages/LeavesPage";
 import ImportShipmentsPage from "./pages/ImportShipmentsPage";
