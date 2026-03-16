@@ -430,7 +430,7 @@ export default function MalakiImportPage() {
       {done && results && (
         <Card className="p-5 space-y-3">
           <div className="flex items-center gap-2 text-lg font-bold text-foreground">
-            <CheckCircle2 className="h-6 w-6 text-emerald-500" />
+            <CheckCircle2 className="h-6 w-6 text-primary" />
             تمت عملية الاستيراد
           </div>
 
