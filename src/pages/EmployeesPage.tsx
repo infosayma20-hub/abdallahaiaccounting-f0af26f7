@@ -494,13 +494,13 @@ const EmployeesPage = () => {
               </CardHeader>
               <CardContent>
                 <Tabs value={activeTab} onValueChange={setActiveTab}>
-                  <TabsList className="w-full grid grid-cols-6 mb-4">
+                  <TabsList className={`w-full grid mb-4 ${canSeeHR ? 'grid-cols-6' : 'grid-cols-5'}`}>
                     <TabsTrigger value="info">المعلومات</TabsTrigger>
                     <TabsTrigger value="allowances">البدلات</TabsTrigger>
                     <TabsTrigger value="deductions">المسحوبات</TabsTrigger>
                     <TabsTrigger value="movements">الحركات المالية</TabsTrigger>
                     <TabsTrigger value="leaves">الإجازات</TabsTrigger>
-                    <TabsTrigger value="hr">HR</TabsTrigger>
+                    {canSeeHR && <TabsTrigger value="hr">HR</TabsTrigger>}
                   </TabsList>
 
                   <TabsContent value="info">
