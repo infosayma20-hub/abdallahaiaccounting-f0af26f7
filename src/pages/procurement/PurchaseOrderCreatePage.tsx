@@ -23,7 +23,10 @@ const iconMap: Record<string, any> = {
 
 const ICON_OPTIONS = ["wheat", "egg", "beef", "droplets", "sparkles", "cup-soda", "package", "utensils", "spray-can", "shirt"];
 const COLOR_OPTIONS = ["#C9A84C", "#FFFFFF", "#E74C3C", "#E67E22", "#9B59B6", "#3498DB", "#27AE60", "#1ABC9C", "#2ECC71", "#95A5A6"];
-const UNIT_OPTIONS = ["كيلو", "كرتون", "علبة", "رول", "لتر", "قطعة", "شوال", "رزمة", "عدد", "جالون", "سطل", "عبوة", "ألف حبة", "دفتر", "كرتون 30", "عدد 30", "عدد 100"];
+const DEFAULT_UNITS = ["كيلو", "كرتون", "علبة", "رول", "لتر", "قطعة", "شوال", "رزمة", "عدد", "جالون", "سطل", "عبوة", "ألف حبة", "دفتر", "كرتون 30", "عدد 30", "عدد 100"];
+const CUSTOM_UNITS_KEY = "po-custom-units";
+function loadCustomUnits(): string[] { try { return JSON.parse(localStorage.getItem(CUSTOM_UNITS_KEY) || "[]"); } catch { return []; } }
+function saveCustomUnit(u: string) { const arr = loadCustomUnits(); if (!arr.includes(u)) { arr.push(u); localStorage.setItem(CUSTOM_UNITS_KEY, JSON.stringify(arr)); } }
 
 type CardSize = "small" | "medium" | "large";
 
@@ -35,6 +38,7 @@ interface OrderLine {
   quantity: number;
   unit_price: number;
   notes: string;
+  branch_id: string;
 }
 
 const STORAGE_KEY = "po-prefs";
@@ -63,6 +67,10 @@ const PurchaseOrderCreatePage = () => {
 
   const prefs = loadPrefs();
   const [supplierId, setSupplierId] = useState(prefs.supplierId || "");
+  const [defaultBranchId, setDefaultBranchId] = useState(prefs.branchId || "");
+  const UNIT_OPTIONS = useMemo(() => [...new Set([...DEFAULT_UNITS, ...loadCustomUnits()])], []);
+  const [unitOptions, setUnitOptions] = useState(UNIT_OPTIONS);
+  const [customUnitInput, setCustomUnitInput] = useState("");
   const [branchId, setBranchId] = useState(prefs.branchId || "");
   const [orderDate, setOrderDate] = useState(new Date().toISOString().split("T")[0]);
   const [expectedDate, setExpectedDate] = useState("");
@@ -92,8 +100,8 @@ const PurchaseOrderCreatePage = () => {
   const [editItem, setEditItem] = useState<any>(null);
 
   useEffect(() => {
-    if (supplierId || branchId) savePrefs({ supplierId, branchId, cardSize });
-  }, [supplierId, branchId, cardSize]);
+    if (supplierId || defaultBranchId) savePrefs({ supplierId, branchId: defaultBranchId, cardSize });
+  }, [supplierId, defaultBranchId, cardSize]);
 
   useEffect(() => { searchRef.current?.focus(); }, [activeCategory]);
 
@@ -127,7 +135,7 @@ const PurchaseOrderCreatePage = () => {
       } else if (delta > 0) {
         return [...prev, {
           id: crypto.randomUUID(), product_id: item.id, item_name: item.name,
-          unit: item.unit, quantity: delta, unit_price: Number(item.default_price) || 0, notes: "",
+          unit: item.unit, quantity: delta, unit_price: Number(item.default_price) || 0, notes: "", branch_id: defaultBranchId,
         }];
       }
       return prev;
@@ -138,7 +146,7 @@ const PurchaseOrderCreatePage = () => {
     if (!manualItem.item_name.trim()) return;
     setLines(prev => [...prev, {
       id: crypto.randomUUID(), product_id: null, item_name: manualItem.item_name,
-      unit: manualItem.unit, quantity: manualItem.quantity, unit_price: manualItem.unit_price, notes: manualItem.notes,
+      unit: manualItem.unit, quantity: manualItem.quantity, unit_price: manualItem.unit_price, notes: manualItem.notes, branch_id: defaultBranchId,
     }]);
     setManualItem({ item_name: "", unit: "قطعة", unit_price: 0, quantity: 1, notes: "" });
     setManualOpen(false);
@@ -152,12 +160,14 @@ const PurchaseOrderCreatePage = () => {
 
   const handleSave = async (send: boolean) => {
     if (!supplierId) { toast({ title: "اختر المورد", variant: "destructive" }); return; }
-    if (!branchId) { toast({ title: "اختر الفرع", variant: "destructive" }); return; }
     if (lines.length === 0) { toast({ title: "أضف صنفاً واحداً على الأقل", variant: "destructive" }); return; }
+    const linesWithoutBranch = lines.filter(l => !l.branch_id);
+    if (linesWithoutBranch.length > 0) { toast({ title: "حدد الفرع لجميع الأصناف", variant: "destructive" }); return; }
     setSaving(true);
+    const firstBranch = lines[0]?.branch_id || defaultBranchId || null;
     const result = await createOrder(
-      { supplier_id: supplierId, branch_id: branchId, order_date: orderDate, expected_delivery_date: expectedDate, notes },
-      lines.map(l => ({ product_id: l.product_id, item_name: l.item_name, unit: l.unit, quantity: l.quantity, unit_price: l.unit_price }))
+      { supplier_id: supplierId, branch_id: firstBranch, order_date: orderDate, expected_delivery_date: expectedDate, notes },
+      lines.map(l => ({ product_id: l.product_id, item_name: l.item_name, unit: l.unit, quantity: l.quantity, unit_price: l.unit_price, branch_id: l.branch_id }))
     );
     if (result && send) await updateStatus((result as any).id, "sent");
     setSaving(false);
@@ -210,25 +220,21 @@ const PurchaseOrderCreatePage = () => {
 
   const handleAddItem = async () => {
     if (!newItem.name.trim()) { toast({ title: "أدخل اسم الصنف", variant: "destructive" }); return; }
+    if (!newItem.unit.trim()) { toast({ title: "أدخل الوحدة", variant: "destructive" }); return; }
     if (!newItem.category_id) { toast({ title: "اختر التصنيف", variant: "destructive" }); return; }
+    // Save custom unit
+    if (!DEFAULT_UNITS.includes(newItem.unit)) { saveCustomUnit(newItem.unit); setUnitOptions(prev => [...new Set([...prev, newItem.unit])]); }
     setSavingDialog(true);
     const ok = await itemsCrud.create({
       name: newItem.name, category_id: newItem.category_id,
       unit: newItem.unit, default_price: newItem.default_price || 0,
       notes: newItem.notes || null, is_active: true, sort_order: 0,
     });
-    // Also add to products (inventory) table
     if (ok && user) {
       const catName = categories.find((c: any) => c.id === newItem.category_id)?.name || "بضاعة عامة";
       await supabase.from("products").insert({
-        user_id: user.id,
-        name: newItem.name,
-        unit: newItem.unit,
-        buy_price: newItem.default_price || 0,
-        sell_price: 0,
-        quantity: 0,
-        min_quantity: 0,
-        category: catName,
+        user_id: user.id, name: newItem.name, unit: newItem.unit,
+        buy_price: newItem.default_price || 0, sell_price: 0, quantity: 0, min_quantity: 0, category: catName,
       } as any);
     }
     setSavingDialog(false);
@@ -251,6 +257,8 @@ const PurchaseOrderCreatePage = () => {
 
   const handleEditItem = async () => {
     if (!editItem) return;
+    if (!editItem.unit?.trim()) { toast({ title: "أدخل الوحدة", variant: "destructive" }); return; }
+    if (!DEFAULT_UNITS.includes(editItem.unit)) { saveCustomUnit(editItem.unit); setUnitOptions(prev => [...new Set([...prev, editItem.unit])]); }
     setSavingDialog(true);
     const ok = await itemsCrud.update(editItem.id, {
       name: editItem.name, category_id: editItem.category_id,
@@ -291,10 +299,10 @@ const PurchaseOrderCreatePage = () => {
               </TooltipTrigger><TooltipContent>إضافة مورد جديد</TooltipContent></Tooltip>
             </div>
 
-            {/* Branch */}
+            {/* Default Branch */}
             <div className="flex items-center gap-1">
-              <Select value={branchId} onValueChange={setBranchId}>
-                <SelectTrigger className="h-8 w-[130px] text-xs"><SelectValue placeholder="اختر الفرع" /></SelectTrigger>
+              <Select value={defaultBranchId} onValueChange={setDefaultBranchId}>
+                <SelectTrigger className="h-8 w-[130px] text-xs"><SelectValue placeholder="الفرع الافتراضي" /></SelectTrigger>
                 <SelectContent>{branches.map((b: any) => <SelectItem key={b.id} value={b.id} className="text-xs">{b.name}</SelectItem>)}</SelectContent>
               </Select>
               <Tooltip><TooltipTrigger asChild>
@@ -479,7 +487,9 @@ const PurchaseOrderCreatePage = () => {
                 </div>
               ) : (
                 <div className="divide-y divide-border/50">
-                  {lines.map(line => (
+                  {lines.map(line => {
+                    const lineBranch = branches.find((b: any) => b.id === line.branch_id);
+                    return (
                     <div key={line.id} className="px-3 py-2.5">
                       <div className="flex items-start justify-between mb-1">
                         <span className="text-xs font-semibold leading-tight">{line.item_name}</span>
@@ -487,6 +497,14 @@ const PurchaseOrderCreatePage = () => {
                           <X className="h-3 w-3" />
                         </button>
                       </div>
+                      {/* Branch per line */}
+                      <Select value={line.branch_id || ""} onValueChange={v => updateLine(line.id, "branch_id", v)}>
+                        <SelectTrigger className={`h-5 text-[10px] mb-1 w-full ${!line.branch_id ? "border-orange-400 bg-orange-500/5" : ""}`}>
+                          <MapPin className="h-2.5 w-2.5 shrink-0 ml-0.5" />
+                          <SelectValue placeholder="حدد الفرع" />
+                        </SelectTrigger>
+                        <SelectContent>{branches.map((b: any) => <SelectItem key={b.id} value={b.id} className="text-xs">{b.name}</SelectItem>)}</SelectContent>
+                      </Select>
                       <p className="text-[11px] text-muted-foreground mb-1.5">
                         {line.quantity} {line.unit} × {line.unit_price.toFixed(2)} ₪ = <span className="text-foreground font-medium">{(line.quantity * line.unit_price).toFixed(2)} ₪</span>
                       </p>
@@ -515,7 +533,8 @@ const PurchaseOrderCreatePage = () => {
                           className="h-6 text-[11px] mt-1.5" autoFocus />
                       )}
                     </div>
-                  ))}
+                  );
+                  })}
                 </div>
               )}
             </div>
@@ -598,10 +617,16 @@ const PurchaseOrderCreatePage = () => {
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <Label className="text-xs">الوحدة *</Label>
-                  <Select value={newItem.unit} onValueChange={v => setNewItem({...newItem, unit: v})}>
+                  <Select value={unitOptions.includes(newItem.unit) ? newItem.unit : "__custom"} onValueChange={v => { if (v === "__custom") { setCustomUnitInput(""); setNewItem({...newItem, unit: ""}); } else { setNewItem({...newItem, unit: v}); } }}>
                     <SelectTrigger className="text-sm"><SelectValue /></SelectTrigger>
-                    <SelectContent>{UNIT_OPTIONS.map(u => <SelectItem key={u} value={u} className="text-sm">{u}</SelectItem>)}</SelectContent>
+                    <SelectContent>
+                      {unitOptions.map(u => <SelectItem key={u} value={u} className="text-sm">{u}</SelectItem>)}
+                      <SelectItem value="__custom" className="text-sm text-primary">+ وحدة مخصصة</SelectItem>
+                    </SelectContent>
                   </Select>
+                  {(!unitOptions.includes(newItem.unit)) && (
+                    <Input value={newItem.unit} onChange={e => setNewItem({...newItem, unit: e.target.value})} placeholder="اكتب اسم الوحدة..." className="text-sm mt-1" autoFocus />
+                  )}
                 </div>
                 <div><Label className="text-xs">السعر الافتراضي</Label><Input type="number" value={newItem.default_price || ""} onChange={e => setNewItem({...newItem, default_price: Number(e.target.value)})} placeholder="0.00" className="text-sm" /></div>
               </div>
@@ -667,10 +692,16 @@ const PurchaseOrderCreatePage = () => {
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <Label className="text-xs">الوحدة</Label>
-                    <Select value={editItem.unit} onValueChange={v => setEditItem({...editItem, unit: v})}>
+                    <Select value={unitOptions.includes(editItem.unit) ? editItem.unit : "__custom"} onValueChange={v => { if (v === "__custom") { setEditItem({...editItem, unit: ""}); } else { setEditItem({...editItem, unit: v}); } }}>
                       <SelectTrigger className="text-sm"><SelectValue /></SelectTrigger>
-                      <SelectContent>{UNIT_OPTIONS.map(u => <SelectItem key={u} value={u} className="text-sm">{u}</SelectItem>)}</SelectContent>
+                      <SelectContent>
+                        {unitOptions.map(u => <SelectItem key={u} value={u} className="text-sm">{u}</SelectItem>)}
+                        <SelectItem value="__custom" className="text-sm text-primary">+ وحدة مخصصة</SelectItem>
+                      </SelectContent>
                     </Select>
+                    {(!unitOptions.includes(editItem.unit)) && (
+                      <Input value={editItem.unit} onChange={e => setEditItem({...editItem, unit: e.target.value})} placeholder="اكتب اسم الوحدة..." className="text-sm mt-1" autoFocus />
+                    )}
                   </div>
                   <div><Label className="text-xs">السعر الافتراضي</Label><Input type="number" value={editItem.default_price || ""} onChange={e => setEditItem({...editItem, default_price: Number(e.target.value)})} className="text-sm" /></div>
                 </div>
