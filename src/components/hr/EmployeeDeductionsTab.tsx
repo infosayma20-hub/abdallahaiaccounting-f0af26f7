@@ -9,12 +9,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Card } from "@/components/ui/card";
-import { Plus, Banknote, ChevronDown, ChevronUp } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Plus, Banknote, ChevronDown, ChevronUp, ExternalLink, Trash2, FileText } from "lucide-react";
 import { formatCurrency } from "@/lib/hr-utils";
 import AdvanceRequestModal from "./AdvanceRequestModal";
+import { useNavigate } from "react-router-dom";
 
 const monthNames = ["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
 const DEDUCTION_TYPES = ["أكل", "مشتريات", "مخالفات", "توصيل", "عجز", "فائض", "غياب", "أخرى"];
+
+const PAYMENT_LABELS: Record<string, string> = { cash: "نقدي", bank: "بنك", cheque: "شيك", transfer: "تحويل", "نقدي": "نقدي", "شيك": "شيك", "تحويل": "تحويل", "بطاقة": "بطاقة" };
+const STATUS_LABELS: Record<string, string> = { posted: "مرحّل", draft: "مسودة", cancelled: "ملغي" };
 
 interface Props {
   employeeId: string;
@@ -25,6 +30,7 @@ interface Props {
 }
 
 export default function EmployeeDeductionsTab({ employeeId, employeeName, userId, deductions, onRefresh }: Props) {
+  const navigate = useNavigate();
   const [showForm, setShowForm] = useState(false);
   const [showAdvanceModal, setShowAdvanceModal] = useState(false);
   const [form, setForm] = useState({
@@ -39,9 +45,88 @@ export default function EmployeeDeductionsTab({ employeeId, employeeName, userId
   const [expandedAdvance, setExpandedAdvance] = useState<string | null>(null);
   const [installments, setInstallments] = useState<Record<string, any[]>>({});
 
+  // Payment vouchers for employee
+  const [paymentVouchers, setPaymentVouchers] = useState<any[]>([]);
+  const [loadingVouchers, setLoadingVouchers] = useState(false);
+  const [deleteVoucherId, setDeleteVoucherId] = useState<string | null>(null);
+  const [deletingVoucher, setDeletingVoucher] = useState(false);
+
   useEffect(() => {
     fetchAdvances();
-  }, [employeeId]);
+    fetchPaymentVouchers();
+  }, [employeeId, employeeName]);
+
+  async function fetchPaymentVouchers() {
+    setLoadingVouchers(true);
+    try {
+      // Normalize name for search
+      const nameVariants = [employeeName];
+      const normalized = employeeName.replace(/\s+/g, " ").trim();
+      if (!nameVariants.includes(normalized)) nameVariants.push(normalized);
+      // Also handle عبدالله vs عبد الله
+      const altName = normalized.replace(/عبدالله/g, "عبد الله");
+      if (!nameVariants.includes(altName)) nameVariants.push(altName);
+      const altName2 = normalized.replace(/عبد الله/g, "عبدالله");
+      if (!nameVariants.includes(altName2)) nameVariants.push(altName2);
+
+      // Fetch vouchers where description contains employee name
+      let allVouchers: any[] = [];
+      for (const name of nameVariants) {
+        const { data } = await supabase
+          .from("vouchers")
+          .select("*")
+          .eq("user_id", userId)
+          .eq("type", "payment")
+          .neq("status", "cancelled")
+          .ilike("description", `%${name}%`)
+          .order("date", { ascending: false });
+        if (data) allVouchers.push(...data);
+      }
+
+      // Deduplicate by id
+      const seen = new Set<string>();
+      const unique = allVouchers.filter(v => {
+        if (seen.has(v.id)) return false;
+        seen.add(v.id);
+        return true;
+      });
+
+      setPaymentVouchers(unique);
+    } catch (err) {
+      console.error("Error fetching payment vouchers:", err);
+    } finally {
+      setLoadingVouchers(false);
+    }
+  }
+
+  async function handleDeleteVoucher() {
+    if (!deleteVoucherId) return;
+    setDeletingVoucher(true);
+    try {
+      const voucher = paymentVouchers.find(v => v.id === deleteVoucherId);
+      
+      // Soft-delete linked transaction
+      if (voucher?.linked_transaction_id) {
+        await supabase.from("transactions")
+          .update({ is_deleted: true })
+          .eq("id", voucher.linked_transaction_id);
+      }
+
+      // Cancel the voucher
+      await supabase.from("vouchers")
+        .update({ status: "cancelled" })
+        .eq("id", deleteVoucherId);
+
+      toast.success("تم إلغاء السند بنجاح");
+      setDeleteVoucherId(null);
+      fetchPaymentVouchers();
+      onRefresh();
+    } catch (err) {
+      toast.error("حدث خطأ أثناء الإلغاء");
+    } finally {
+      setDeletingVoucher(false);
+    }
+  }
 
   async function fetchAdvances() {
     const { data } = await supabase
@@ -96,10 +181,116 @@ export default function EmployeeDeductionsTab({ employeeId, employeeName, userId
     return <Badge variant="secondary" className="text-[10px]">{st}</Badge>;
   };
 
+  const voucherStatusBadge = (status: string) => {
+    const label = STATUS_LABELS[status] || status;
+    if (status === "posted") return <Badge className="text-[10px] bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">{label}</Badge>;
+    if (status === "draft") return <Badge className="text-[10px] bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">{label}</Badge>;
+    if (status === "cancelled") return <Badge variant="destructive" className="text-[10px]">{label}</Badge>;
+    return <Badge variant="secondary" className="text-[10px]">{label}</Badge>;
+  };
+
+  // Extract category from description like "سلفة - عبد الله صايمة" → "سلفة"
+  const extractCategory = (desc: string) => {
+    const parts = desc.split(" - ");
+    return parts.length > 1 ? parts[0].trim() : "—";
+  };
+
   const activeAdvances = advances.filter(a => a.status !== "fully_paid" && a.status !== "rejected");
+
+  const totalVoucherAmount = paymentVouchers.reduce((sum, v) => sum + Number(v.amount || 0), 0);
 
   return (
     <div className="space-y-4">
+      {/* Payment Vouchers Section */}
+      <div className="space-y-2">
+        <div className="flex justify-between items-center">
+          <h4 className="font-medium text-sm text-foreground flex items-center gap-2">
+            <FileText className="h-4 w-4 text-primary" />
+            سندات الصرف ({paymentVouchers.length})
+          </h4>
+          <Badge variant="outline" className="text-xs">
+            الإجمالي: {formatCurrency(totalVoucherAmount)}
+          </Badge>
+        </div>
+
+        {loadingVouchers ? (
+          <div className="text-center py-4 text-muted-foreground text-xs">جاري التحميل...</div>
+        ) : paymentVouchers.length === 0 ? (
+          <Card className="p-4 text-center text-muted-foreground text-xs">
+            لا توجد سندات صرف مسجلة لهذا الموظف
+          </Card>
+        ) : (
+          <div className="border rounded-lg overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/50">
+                  <TableHead className="text-right text-xs font-semibold">رقم السند</TableHead>
+                  <TableHead className="text-right text-xs font-semibold">التاريخ</TableHead>
+                  <TableHead className="text-right text-xs font-semibold">التصنيف</TableHead>
+                  <TableHead className="text-right text-xs font-semibold">البيان</TableHead>
+                  <TableHead className="text-right text-xs font-semibold">طريقة الدفع</TableHead>
+                  <TableHead className="text-right text-xs font-semibold">المبلغ</TableHead>
+                  <TableHead className="text-right text-xs font-semibold">الحالة</TableHead>
+                  <TableHead className="text-right text-xs font-semibold">إجراءات</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {paymentVouchers.map(v => (
+                  <TableRow key={v.id} className="hover:bg-muted/30">
+                    <TableCell>
+                      <button
+                        onClick={() => navigate(`/finance/voucher/payment?edit=${v.id}`)}
+                        className="text-xs text-primary hover:underline font-medium"
+                      >
+                        {v.ref_number}
+                      </button>
+                    </TableCell>
+                    <TableCell className="text-xs">{v.date}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="text-[10px]">
+                        {extractCategory(v.description || "")}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-xs truncate max-w-[180px]" title={v.description}>
+                      {v.description || "—"}
+                    </TableCell>
+                    <TableCell className="text-xs">
+                      {PAYMENT_LABELS[v.payment_method] || v.payment_method || "—"}
+                    </TableCell>
+                    <TableCell className="text-xs font-semibold text-destructive">
+                      {formatCurrency(Number(v.amount || 0))}
+                    </TableCell>
+                    <TableCell>{voucherStatusBadge(v.status || "posted")}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7"
+                          title="تعديل السند"
+                          onClick={() => navigate(`/finance/voucher/payment?edit=${v.id}`)}
+                        >
+                          <ExternalLink className="h-3.5 w-3.5 text-primary" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7 text-destructive hover:text-destructive"
+                          title="إلغاء السند"
+                          onClick={() => setDeleteVoucherId(v.id)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </div>
+
       {/* Active Advances Section */}
       {activeAdvances.length > 0 && (
         <div className="space-y-2">
@@ -250,6 +441,28 @@ export default function EmployeeDeductionsTab({ employeeId, employeeName, userId
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Voucher Confirmation */}
+      <AlertDialog open={!!deleteVoucherId} onOpenChange={(open) => !open && setDeleteVoucherId(null)}>
+        <AlertDialogContent dir="rtl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>إلغاء سند الصرف</AlertDialogTitle>
+            <AlertDialogDescription>
+              هل أنت متأكد من إلغاء هذا السند؟ سيتم أيضاً إلغاء القيد المحاسبي المرتبط به.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-row-reverse gap-2">
+            <AlertDialogCancel>تراجع</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteVoucher}
+              disabled={deletingVoucher}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deletingVoucher ? "جاري الإلغاء..." : "إلغاء السند"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Advance Request Modal */}
       <AdvanceRequestModal
