@@ -976,12 +976,20 @@ const POSPage = () => {
 
    const loadEmployees = async () => {
     if (!dataOwnerId) return;
+    // Load HR employees
     const { data: empData } = await supabase
       .from("employees")
       .select("id, full_name, base_salary")
       .eq("user_id", dataOwnerId)
       .eq("is_active", true)
       .order("full_name");
+    // Load POS users (cashiers) and merge with employees
+    const { data: posUsersData } = await supabase
+      .from("pos_users")
+      .select("id, name, employee_id")
+      .eq("user_id", dataOwnerId)
+      .eq("is_active", true)
+      .order("name");
     // Resolve each employee's linked account code
     const { data: accData } = await supabase
       .from("accounts")
@@ -989,10 +997,26 @@ const POSPage = () => {
       .eq("user_id", dataOwnerId)
       .like("account_code", "118%")
       .eq("is_active", true);
-    const emps = (empData || []).map(emp => {
+    
+    const empMap = new Map<string, boolean>();
+    const emps: { id: string; full_name: string; base_salary: number; account_code?: string }[] = [];
+    
+    // Add HR employees first
+    (empData || []).forEach(emp => {
+      empMap.set(emp.id, true);
+      empMap.set(emp.full_name.toLowerCase(), true);
       const linked = (accData || []).find(a => a.account_name === `ذمم موظف - ${emp.full_name}`);
-      return { ...emp, account_code: linked?.account_code || undefined };
+      emps.push({ ...emp, account_code: linked?.account_code || undefined });
     });
+    
+    // Add POS users that aren't already in the employees list
+    (posUsersData || []).forEach(pu => {
+      if (pu.employee_id && empMap.has(pu.employee_id)) return;
+      if (empMap.has(pu.name.toLowerCase())) return;
+      const linked = (accData || []).find(a => a.account_name === `ذمم موظف - ${pu.name}`);
+      emps.push({ id: pu.id, full_name: pu.name, base_salary: 0, account_code: linked?.account_code || undefined });
+    });
+    
     setEmployees(emps);
   };
 
