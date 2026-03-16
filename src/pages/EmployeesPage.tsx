@@ -601,15 +601,17 @@ const EmployeesPage = () => {
                     )}
                   </TabsContent>
 
-                  <TabsContent value="hr">
-                    {user && selectedEmployee && (
-                      <EmployeeHRTab
-                        employeeId={selectedEmployee.id}
-                        userId={user.id}
-                        employee={selectedEmployee}
-                      />
-                    )}
-                  </TabsContent>
+                  {canSeeHR && (
+                    <TabsContent value="hr">
+                      {user && selectedEmployee && (
+                        <EmployeeHRTab
+                          employeeId={selectedEmployee.id}
+                          userId={user.id}
+                          employee={selectedEmployee}
+                        />
+                      )}
+                    </TabsContent>
+                  )}
                 </Tabs>
               </CardContent>
             </Card>
