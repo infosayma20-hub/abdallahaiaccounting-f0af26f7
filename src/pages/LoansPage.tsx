@@ -298,6 +298,10 @@ function AddLoanDialog({ open, onOpenChange, userId, companyId, onSuccess }: {
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
 
+  // Cash boxes
+  const [cashBoxes, setCashBoxes] = useState<{ id: string; name: string; gl_account_code: string | null }[]>([]);
+  const [selectedCashBox, setSelectedCashBox] = useState("");
+
   // Derived
   const amount = parseFloat(totalAmount) || 0;
   const installment = parseFloat(monthlyInstallment) || 0;
@@ -328,15 +332,18 @@ function AddLoanDialog({ open, onOpenChange, userId, companyId, onSuccess }: {
 
   const lastPaymentDate = schedule.length > 0 ? schedule[schedule.length - 1].due_date : firstPaymentDate;
 
-  // Load employees
+  // Load employees & cash boxes
   useEffect(() => {
     if (!userId || !open) return;
-    supabase.from("employees")
-      .select("id, full_name, department")
-      .eq("user_id", userId)
-      .eq("is_active", true)
-      .order("full_name")
-      .then(({ data }) => setEmployees(data || []));
+    Promise.all([
+      supabase.from("employees").select("id, full_name, department").eq("user_id", userId).eq("is_active", true).order("full_name"),
+      supabase.from("cash_boxes").select("id, name, gl_account_code").eq("user_id", userId).eq("is_active", true),
+    ]).then(([empRes, cbRes]) => {
+      setEmployees(empRes.data || []);
+      const boxes = cbRes.data || [];
+      setCashBoxes(boxes);
+      if (boxes.length && !selectedCashBox) setSelectedCashBox(boxes[0].id);
+    });
   }, [userId, open]);
 
   const filteredEmps = useMemo(() => {
@@ -352,6 +359,7 @@ function AddLoanDialog({ open, onOpenChange, userId, companyId, onSuccess }: {
     setMonthlyInstallment("");
     setFirstPaymentDate(new Date().toISOString().split("T")[0]);
     setNotes("");
+    if (cashBoxes.length) setSelectedCashBox(cashBoxes[0].id);
   };
 
   const handleSave = async () => {
@@ -445,17 +453,20 @@ function AddLoanDialog({ open, onOpenChange, userId, companyId, onSuccess }: {
 
       if (instErr) throw instErr;
 
-      // 4. Create accounting entry: Debit employee account (1180.x), Credit cash (1110)
-      //    This records the loan disbursement
+      // 4. Create accounting entry: Debit employee account (1180.x), Credit selected cash box
+      const selectedBox = cashBoxes.find(cb => cb.id === selectedCashBox);
+      const creditAccountCode = selectedBox?.gl_account_code || "1110";
+      const creditLabel = selectedBox?.name || "الصندوق";
+
       const idempotencyKey = `LOAN-${loanRecord.id}`;
       const { error: txErr } = await supabase
         .from("transactions")
         .insert({
           user_id: userId,
           transaction_date: firstPaymentDate,
-          description: `قرض حسن - ${selectedEmp.full_name} - مبلغ ${fmtCurrency(amount)}`,
+          description: `قرض حسن - ${selectedEmp.full_name} - مبلغ ${fmtCurrency(amount)} - من ${creditLabel}`,
           debit_account_code: empAccountCode,
-          credit_account_code: "1110", // Cash
+          credit_account_code: creditAccountCode,
           amount: amount,
           currency: "شيكل",
           transaction_type: "loan_disbursement",
@@ -566,6 +577,19 @@ function AddLoanDialog({ open, onOpenChange, userId, companyId, onSuccess }: {
             </div>
           </div>
 
+          {/* Cash Box Selection */}
+          <div>
+            <Label className="text-xs mb-1.5 block">الصرف من صندوق *</Label>
+            <Select value={selectedCashBox} onValueChange={setSelectedCashBox}>
+              <SelectTrigger><SelectValue placeholder="اختر الصندوق" /></SelectTrigger>
+              <SelectContent>
+                {cashBoxes.map(cb => (
+                  <SelectItem key={cb.id} value={cb.id}>{cb.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           {/* Derived Info */}
           {amount > 0 && installment > 0 && (
             <div className="grid grid-cols-3 gap-2 text-xs">
@@ -622,7 +646,7 @@ function AddLoanDialog({ open, onOpenChange, userId, companyId, onSuccess }: {
                 <span className="font-mono font-bold">{fmtCurrency(amount)}</span>
               </div>
               <div className="flex justify-between">
-                <span>دائن: الصندوق (1110)</span>
+                <span>دائن: {cashBoxes.find(cb => cb.id === selectedCashBox)?.name || "الصندوق"} ({cashBoxes.find(cb => cb.id === selectedCashBox)?.gl_account_code || "1110"})</span>
                 <span className="font-mono font-bold">{fmtCurrency(amount)}</span>
               </div>
             </div>
