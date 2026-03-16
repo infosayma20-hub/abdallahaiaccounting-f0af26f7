@@ -133,6 +133,16 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   const [saved, setSaved] = useState(false);
   const [savedReceiptNumber, setSavedReceiptNumber] = useState("");
 
+  // Employee party type (for payment vouchers)
+  const [partyType, setPartyType] = useState<PartyType>("contact");
+  const [employeeList, setEmployeeList] = useState<Employee[]>([]);
+  const [employeeSearch, setEmployeeSearch] = useState("");
+  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+  const [showEmployeeDropdown, setShowEmployeeDropdown] = useState(false);
+  const [empCategory, setEmpCategory] = useState("سلفة");
+  const [empCategoryCustom, setEmpCategoryCustom] = useState("");
+  const [violationReason, setViolationReason] = useState("");
+
   // ─── Load Duplicate Data ───
   useEffect(() => {
     if (!fromDuplicate) return;
