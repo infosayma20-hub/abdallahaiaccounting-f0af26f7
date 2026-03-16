@@ -146,7 +146,7 @@ const PurchaseOrderCreatePage = () => {
     if (!manualItem.item_name.trim()) return;
     setLines(prev => [...prev, {
       id: crypto.randomUUID(), product_id: null, item_name: manualItem.item_name,
-      unit: manualItem.unit, quantity: manualItem.quantity, unit_price: manualItem.unit_price, notes: manualItem.notes,
+      unit: manualItem.unit, quantity: manualItem.quantity, unit_price: manualItem.unit_price, notes: manualItem.notes, branch_id: defaultBranchId,
     }]);
     setManualItem({ item_name: "", unit: "قطعة", unit_price: 0, quantity: 1, notes: "" });
     setManualOpen(false);
