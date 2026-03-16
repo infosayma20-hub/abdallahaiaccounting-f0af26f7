@@ -356,6 +356,15 @@ const App = () => (
                       <Route path="/purchases/import" element={<ImportShipmentsPage />} />
                       <Route path="/purchases/import/new" element={<ImportWizardPage />} />
                       <Route path="/purchases/import/:id" element={<ImportDetailPage />} />
+                      {/* Procurement Module */}
+                      <Route path="/procurement/suppliers" element={<SuppliersPage />} />
+                      <Route path="/procurement/suppliers/:id" element={<SupplierDetailPage />} />
+                      <Route path="/procurement/orders" element={<PurchaseOrdersPage />} />
+                      <Route path="/procurement/orders/new" element={<PurchaseOrderCreatePage />} />
+                      <Route path="/procurement/invoices" element={<ProcurementInvoicesPage />} />
+                      <Route path="/procurement/invoices/new" element={<ProcurementInvoiceCreatePage />} />
+                      <Route path="/procurement/supplier-statement" element={<SupplierStatementPage />} />
+                      <Route path="/procurement/weekly-report" element={<WeeklyProcurementReportPage />} />
                       <Route path="/reports/import-cost-analysis" element={<GenericReportPage reportKey="import-cost-analysis" />} />
                       <Route path="*" element={<NotFound />} />
                     </Routes>
