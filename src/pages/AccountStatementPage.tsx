@@ -808,9 +808,16 @@ const AccountStatementPage = () => {
       });
     } else if (isEmployeesTab && selectedEmployee?.account_code) {
       const code = selectedEmployee.account_code;
-      related = transactions.filter(tx =>
-        tx.debit_account_code === code || tx.credit_account_code === code
-      );
+      const empName = selectedEmployee.full_name?.trim() || "";
+      // If multiple employees share the same account code, also filter by name
+      const sameCodeCount = employeeEntities.filter(e => e.account_code === code).length;
+      related = transactions.filter(tx => {
+        const matchesCode = tx.debit_account_code === code || tx.credit_account_code === code;
+        if (!matchesCode) return false;
+        if (sameCodeCount <= 1) return true;
+        // Multiple employees on same code: match by name in description
+        return empName && tx.description?.includes(empName);
+      });
       resolveDebitCredit = (tx) => ({
         isDebit: tx.debit_account_code === code,
         isCredit: tx.credit_account_code === code,
