@@ -172,17 +172,19 @@ const AppsLauncher = () => {
   const handleTourSkip = () => { setTourActive(false); update({ full_tour_skipped: true }); };
 
   return (
-    <div className="min-h-full bg-background" dir="rtl">
+    <div className="min-h-full" dir="rtl" style={{ background: "#F8F7F4" }}>
       <div className="max-w-5xl mx-auto px-6 py-8">
         {/* Title + Search */}
         <div className="flex items-center justify-between mb-6 gap-4 flex-wrap">
           <div>
-            <h2 className="text-2xl font-bold text-foreground" style={{ fontFamily: "Tajawal, sans-serif" }}>التطبيقات</h2>
-            <p className="text-sm text-muted-foreground">كل احتياج، تطبيق واحد.</p>
+            <h2 className="text-2xl font-bold" style={{ fontFamily: "Tajawal, sans-serif", color: "#1B3A5C" }}>التطبيقات</h2>
+            <p className="text-sm" style={{ color: "rgba(27,58,92,0.5)" }}>كل احتياج، تطبيق واحد.</p>
           </div>
           <div className="relative w-full sm:w-72">
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="ابحث عن تطبيق..." className="pr-9 rounded-xl bg-muted/50 border-border/50 h-10" />
+            <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4" style={{ color: "rgba(27,58,92,0.4)" }} />
+            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="ابحث عن تطبيق..."
+              className="pr-9 rounded-xl h-10 auth-input"
+              style={{ background: "#FFFFFF", border: "1.5px solid rgba(27,58,92,0.15)" }} />
           </div>
         </div>
 
