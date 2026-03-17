@@ -60,10 +60,12 @@ export default function NetworkPrintersManager() {
   const { user } = useAuth();
   const [printers, setPrinters] = useState<PrinterConfig[]>([]);
   const [stations, setStations] = useState<Station[]>([]);
+  const [branches, setBranches] = useState<Branch[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingPrinter, setEditingPrinter] = useState<PrinterConfig | null>(null);
   const [testing, setTesting] = useState<string | null>(null);
+  const [filterBranch, setFilterBranch] = useState<string>("all");
 
   // Form state
   const [formName, setFormName] = useState("");
@@ -74,18 +76,21 @@ export default function NetworkPrintersManager() {
   const [formIsDefault, setFormIsDefault] = useState(false);
   const [formStationIds, setFormStationIds] = useState<string[]>([]);
   const [formCategories, setFormCategories] = useState<string[]>(["receipt"]);
+  const [formBranchId, setFormBranchId] = useState<string>("");
 
   useEffect(() => {
     if (user) loadData();
   }, [user]);
 
   const loadData = async () => {
-    const [printersRes, stationsRes] = await Promise.all([
+    const [printersRes, stationsRes, branchesRes] = await Promise.all([
       supabase.from("pos_printers").select("*").order("created_at"),
-      supabase.from("kitchen_stations" as any).select("id, name, station_type, color").order("display_order"),
+      supabase.from("kitchen_stations" as any).select("id, name, station_type, color, branch_id").order("display_order"),
+      supabase.from("branches").select("id, name").eq("is_active", true).order("name"),
     ]);
     setPrinters((printersRes.data as any[]) || []);
     setStations((stationsRes.data as any[]) || []);
+    setBranches((branchesRes.data as Branch[]) || []);
     setLoading(false);
   };
 
