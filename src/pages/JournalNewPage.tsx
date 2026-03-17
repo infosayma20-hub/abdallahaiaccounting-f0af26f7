@@ -162,7 +162,33 @@ const JournalNewPage = () => {
     }));
   };
 
-  const formatAmount = (n: number) => new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+  const handleQuickAddContact = async () => {
+    if (!user || !quickAddName.trim()) return;
+    setQuickAddSaving(true);
+    try {
+      const contactType = quickAddType === "customer" ? "عميل" : "مورد";
+      const { data, error } = await supabase.from("contacts").insert({
+        user_id: user.id,
+        contact_name: quickAddName.trim(),
+        contact_type: contactType,
+        current_balance: 0,
+      }).select("id, contact_name, contact_type, current_balance").single();
+      if (error) throw error;
+      setContacts(prev => [...prev, data]);
+      if (quickAddForLineId) {
+        updateLine(quickAddForLineId, "contact_id", data.id);
+      }
+      toast.success(`تم إضافة ${contactType}: ${data.contact_name}`);
+      setShowQuickAdd(false);
+      setQuickAddName("");
+      setQuickAddForLineId(null);
+    } catch (err: any) {
+      toast.error(err.message || "خطأ في الإضافة");
+    } finally {
+      setQuickAddSaving(false);
+    }
+  };
+
 
   const handleSave = async (asDraft = false) => {
     if (!user) return;
