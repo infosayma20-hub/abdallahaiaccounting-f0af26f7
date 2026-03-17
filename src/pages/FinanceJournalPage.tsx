@@ -560,13 +560,26 @@ const FinanceJournalPage = () => {
                         </span>
                       </td>
                       <td className="px-3 py-2">
-                        <button
-                          onClick={e => { e.stopPropagation(); handleDuplicate(v); }}
-                          className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-primary transition-colors"
-                          title="جديد مشابه"
-                        >
-                          <Copy className="h-3.5 w-3.5" />
-                        </button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
+                              <MoreVertical className="h-3.5 w-3.5" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="start" className="min-w-[140px]">
+                            <DropdownMenuItem onClick={() => openVoucherForEdit(v.id)} className="gap-2 text-xs">
+                              <Pencil className="h-3.5 w-3.5" /> تعديل
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={e => { e.stopPropagation(); handleDuplicate(v); }} className="gap-2 text-xs">
+                              <Copy className="h-3.5 w-3.5" /> نسخ مشابه
+                            </DropdownMenuItem>
+                            {v.status !== "cancelled" && (
+                              <DropdownMenuItem onClick={() => setCancelConfirmId(v.id)} className="gap-2 text-xs text-destructive focus:text-destructive">
+                                <Ban className="h-3.5 w-3.5" /> إلغاء السند
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </td>
                     </tr>
                   );
