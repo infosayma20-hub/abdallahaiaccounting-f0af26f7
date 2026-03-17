@@ -11,6 +11,11 @@ import { toast } from "sonner";
 import { Plus, Trash2, Printer, Wifi, WifiOff, TestTube, Settings2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
+interface Branch {
+  id: string;
+  name: string;
+}
+
 interface PrinterConfig {
   id: string;
   name: string;
@@ -22,6 +27,7 @@ interface PrinterConfig {
   is_active: boolean;
   station_ids: string[];
   print_categories: string[];
+  branch_id: string | null;
 }
 
 interface Station {
@@ -29,6 +35,7 @@ interface Station {
   name: string;
   station_type: string;
   color: string;
+  branch_id: string | null;
 }
 
 const PRINTER_TYPES = [
