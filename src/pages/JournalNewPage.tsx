@@ -92,6 +92,8 @@ const JournalNewPage = () => {
           account_name: l.account_name || "",
           debit: l.debit || 0,
           credit: l.credit || 0,
+          contact_id: l.contact_id || "",
+          contact_name: l.contact_name || "",
         })));
       }
       // Date is today (default), ref number auto-generated
@@ -240,6 +242,8 @@ const JournalNewPage = () => {
           debit: Number(l.debit) || 0,
           credit: Number(l.credit) || 0,
           line_order: i + 1,
+          contact_id: l.contact_id && l.contact_id !== "__none__" ? l.contact_id : null,
+          contact_name: l.contact_name || null,
         }))
       );
 
