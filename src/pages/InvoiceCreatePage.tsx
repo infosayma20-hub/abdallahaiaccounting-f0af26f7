@@ -158,6 +158,7 @@ const InvoiceCreatePage = () => {
   const [salesReps, setSalesReps] = useState<SalesRep[]>([]);
   const [bankAccounts, setBankAccounts] = useState<{ id: string; name: string; bank_name: string; currency: string; gl_account_code: string | null }[]>([]);
   const [creating, setCreating] = useState(false);
+  const [nextInvoiceNumber, setNextInvoiceNumber] = useState<string>("...");
 
   // Contact search
   const [contactSearch, setContactSearch] = useState("");
@@ -238,17 +239,25 @@ const InvoiceCreatePage = () => {
   useEffect(() => {
     if (!user) return;
     const fetchAll = async () => {
-      const [cRes, pRes, sRes, bRes] = await Promise.all([
+      const [cRes, pRes, sRes, bRes, invCountRes] = await Promise.all([
         supabase.from("contacts").select("id, contact_name, contact_type, phone, email, address, payment_terms_days, current_balance, credit_limit, tax_number, sales_rep_id").eq("user_id", user.id).neq("is_archived", true).order("contact_name"),
         supabase.from("products").select("*").eq("user_id", user.id).order("name"),
         supabase.from("sales_representatives").select("id, full_name").eq("user_id", user.id).eq("is_active", true),
         supabase.from("bank_accounts").select("id, name, bank_name, currency, gl_account_code").eq("user_id", user.id).eq("is_active", true),
+        supabase.from("invoices").select("id", { count: "exact", head: true }).eq("user_id", user.id),
       ]);
       const contactsList = (cRes.data || []) as Contact[];
       setContacts(contactsList);
       setProducts((pRes.data as any[]) || []);
       setSalesReps(((sRes.data || []) as any[]).map(s => ({ id: s.id, name: s.full_name })));
       setBankAccounts((bRes.data || []) as any[]);
+
+      // Generate next invoice number based on current type
+      const prefix = form.type === "sales" ? "INV" : "PO";
+      const totalCount = invCountRes.count || 0;
+      const year = new Date().getFullYear();
+      const nextNum = String(totalCount + 1).padStart(4, "0");
+      setNextInvoiceNumber(`${prefix}-${year}-${nextNum}`);
 
       // Resolve duplicate contact after contacts load
       if (fromDuplicate) {
@@ -265,7 +274,16 @@ const InvoiceCreatePage = () => {
     fetchAll();
   }, [user]);
 
-  // Auto-calc due date when payment terms or date changes
+  // Update invoice number prefix when type changes
+  useEffect(() => {
+    setNextInvoiceNumber(prev => {
+      const prefix = form.type === "sales" ? "INV" : "PO";
+      const parts = prev.split("-");
+      if (parts.length === 3) return `${prefix}-${parts[1]}-${parts[2]}`;
+      return prev;
+    });
+  }, [form.type]);
+
   useEffect(() => {
     const terms = PAYMENT_TERMS.find(t => t.value === form.paymentTerms);
     if (terms && terms.days >= 0) {
@@ -818,7 +836,7 @@ const InvoiceCreatePage = () => {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             <div>
               <label className="text-[11px] text-muted-foreground mb-1 block font-medium">رقم الفاتورة</label>
-              <Input value="تلقائي" readOnly className="rounded-xl text-sm bg-muted/50 cursor-not-allowed" dir="ltr" />
+              <Input value={nextInvoiceNumber} readOnly className="rounded-xl text-sm bg-muted/50 cursor-not-allowed font-mono" dir="ltr" />
             </div>
             <div>
               <label className="text-[11px] text-muted-foreground mb-1 block font-medium">تاريخ الإصدار</label>
