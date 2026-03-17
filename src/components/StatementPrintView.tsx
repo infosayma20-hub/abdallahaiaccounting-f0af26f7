@@ -144,8 +144,8 @@ const getSmartColumns = (detailMode: boolean, userColumns?: ColumnConfig[]): Sma
   // Fixed columns
   const fixed: SmartColumn[] = [
     { key: "type", label: "النوع", width: detailMode ? "10%" : "9%" },
-    { key: "debit", label: "مدين ₪", width: detailMode ? "12%" : "10%" },
-    { key: "credit", label: "دائن ₪", width: detailMode ? "12%" : "10%" },
+    { key: "debit", label: "مدين (عليه) ₪", width: detailMode ? "12%" : "10%" },
+    { key: "credit", label: "دائن (له) ₪", width: detailMode ? "12%" : "10%" },
     { key: "balance", label: "الرصيد ₪", width: detailMode ? "12%" : "10%" },
   ];
 
@@ -434,7 +434,7 @@ const StatementPrintView = ({
           { label: "رصيد افتتاحي", value: openingBalance, bg: "#F8FAFC", border: "#E2E8F0", color: "#334155" },
           { label: "إجمالي المدين", value: totalDebit, bg: "#FEF2F2", border: "#FECACA", color: "#DC2626" },
           { label: "إجمالي الدائن", value: totalCredit, bg: "#F0FDF4", border: "#BBF7D0", color: "#16A34A" },
-          { label: "الرصيد المستحق", value: Math.abs(closingBalance), bg: isDebit ? "#FEF2F2" : "#F0FDF4", border: isDebit ? "#FECACA" : "#BBF7D0", color: isDebit ? "#DC2626" : "#16A34A", suffix: isDebit ? "(مدين)" : "(دائن)" },
+          { label: "الرصيد المستحق", value: Math.abs(closingBalance), bg: isDebit ? "#FEF2F2" : "#F0FDF4", border: isDebit ? "#FECACA" : "#BBF7D0", color: isDebit ? "#DC2626" : "#16A34A", suffix: isDebit ? "(مدين - عليه)" : "(دائن - له)" },
           ...(includeBounced && bouncedTotal > 0 ? [{
             label: "شيكات مرتجعة", value: bouncedTotal, bg: "#FFF7ED", border: "#FED7AA", color: "#EA580C", suffix: `${bouncedCheques.length} شيك`
           }] : []),
@@ -545,7 +545,7 @@ const StatementPrintView = ({
                       {fmtAmount(closingBalance)}
                     </span>
                     <span style={{ fontSize: "8px", marginRight: "3px", color: "#C9A84C" }}>
-                      {isDebit ? "مدين" : "دائن"}
+                      {isDebit ? "مدين (عليه)" : "دائن (له)"}
                     </span>
                   </td>
                 );
