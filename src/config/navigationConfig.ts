@@ -172,7 +172,7 @@ export const navigationSections: NavSection[] = [
     items: [
       {
         id: "pos", label: "نقطة البيع", description: "نظام POS متكامل للمبيعات المباشرة", module: "pos", icon: Monitor,
-        color: "text-emerald-400", bgColor: "bg-emerald-500/10", path: "/pos",
+        color: "text-[#1B3A5C]", bgColor: "bg-[#1B3A5C]/8", path: "/pos",
         keywords: ["نقطة", "بيع", "كاشير", "pos", "مطعم"],
         groups: [
           {
