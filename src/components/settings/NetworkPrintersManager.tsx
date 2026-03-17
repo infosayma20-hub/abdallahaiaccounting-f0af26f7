@@ -254,9 +254,26 @@ export default function NetworkPrintersManager() {
         </p>
       </div>
 
+      {/* Branch Filter */}
+      {branches.length > 0 && (
+        <div className="flex items-center gap-2">
+          <Building2 className="h-4 w-4 text-muted-foreground" />
+          <Select value={filterBranch} onValueChange={setFilterBranch}>
+            <SelectTrigger className="h-8 w-[180px] text-xs">
+              <SelectValue placeholder="فلترة حسب الفرع" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">جميع الأفرع</SelectItem>
+              <SelectItem value="none">بدون فرع</SelectItem>
+              {branches.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
       {/* Printers List */}
       <div className="space-y-2">
-        {printers.map(p => (
+        {(filterBranch === "all" ? printers : filterBranch === "none" ? printers.filter(p => !p.branch_id) : printers.filter(p => p.branch_id === filterBranch)).map(p => (
           <div key={p.id} className="flex items-center gap-3 p-3 bg-background rounded-lg border border-border">
             <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${p.is_active ? "bg-primary/10" : "bg-muted"}`}>
               {p.is_active ? <Wifi className="h-4 w-4 text-primary" /> : <WifiOff className="h-4 w-4 text-muted-foreground" />}
