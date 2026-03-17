@@ -545,7 +545,7 @@ const StatementPrintView = ({
                       {fmtAmount(closingBalance)}
                     </span>
                     <span style={{ fontSize: "8px", marginRight: "3px", color: "#C9A84C" }}>
-                      {isDebit ? "مدين" : "دائن"}
+                      {isDebit ? "مدين (عليه)" : "دائن (له)"}
                     </span>
                   </td>
                 );
