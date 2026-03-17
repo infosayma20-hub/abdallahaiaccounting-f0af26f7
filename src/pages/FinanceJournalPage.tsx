@@ -3,8 +3,10 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   ArrowRight, Loader2, Plus, Search, X, Trash2,
   FileText, BookOpen, Save, User, Building2, Users, Check, DollarSign,
-  ArrowUpDown, ChevronLeft, ChevronRight, Copy
+  ArrowUpDown, ChevronLeft, ChevronRight, Copy, Pencil, MoreVertical, Ban
 } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import DuplicateConfirmModal from "@/components/DuplicateConfirmModal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -96,6 +98,29 @@ const FinanceJournalPage = () => {
   const [quickPhone, setQuickPhone] = useState("");
   const [quickSaving, setQuickSaving] = useState(false);
   const [accountSearches, setAccountSearches] = useState<Record<string, string>>({});
+  const [cancelConfirmId, setCancelConfirmId] = useState<string | null>(null);
+  const [cancelling, setCancelling] = useState(false);
+
+  const handleCancelVoucher = async (voucherId: string) => {
+    if (!user) return;
+    setCancelling(true);
+    try {
+      // Cancel voucher
+      await supabase.from("vouchers").update({ status: "cancelled" }).eq("id", voucherId);
+      // Also mark linked transactions as deleted
+      const { data: voucherData } = await supabase.from("vouchers").select("ref_number").eq("id", voucherId).single();
+      if (voucherData?.ref_number) {
+        await supabase.from("transactions").update({ is_deleted: true }).eq("user_id", user.id).eq("reference", voucherData.ref_number);
+      }
+      toast({ title: "تم إلغاء السند بنجاح" });
+      setCancelConfirmId(null);
+      fetchData();
+    } catch (err: any) {
+      toast({ title: "خطأ", description: err.message, variant: "destructive" });
+    } finally {
+      setCancelling(false);
+    }
+  };
 
   const fetchData = useCallback(async () => {
     if (!user) return;
@@ -535,13 +560,26 @@ const FinanceJournalPage = () => {
                         </span>
                       </td>
                       <td className="px-3 py-2">
-                        <button
-                          onClick={e => { e.stopPropagation(); handleDuplicate(v); }}
-                          className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-primary transition-colors"
-                          title="جديد مشابه"
-                        >
-                          <Copy className="h-3.5 w-3.5" />
-                        </button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
+                              <MoreVertical className="h-3.5 w-3.5" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="start" className="min-w-[140px]">
+                            <DropdownMenuItem onClick={() => openVoucherForEdit(v.id)} className="gap-2 text-xs">
+                              <Pencil className="h-3.5 w-3.5" /> تعديل
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={e => { e.stopPropagation(); handleDuplicate(v); }} className="gap-2 text-xs">
+                              <Copy className="h-3.5 w-3.5" /> نسخ مشابه
+                            </DropdownMenuItem>
+                            {v.status !== "cancelled" && (
+                              <DropdownMenuItem onClick={() => setCancelConfirmId(v.id)} className="gap-2 text-xs text-destructive focus:text-destructive">
+                                <Ban className="h-3.5 w-3.5" /> إلغاء السند
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </td>
                     </tr>
                   );
@@ -858,6 +896,28 @@ const FinanceJournalPage = () => {
           sourceRef: duplicateTarget?.ref_number,
         }}
       />
+
+      {/* Cancel Confirmation */}
+      <AlertDialog open={!!cancelConfirmId} onOpenChange={() => setCancelConfirmId(null)}>
+        <AlertDialogContent dir="rtl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>إلغاء السند</AlertDialogTitle>
+            <AlertDialogDescription>
+              هل أنت متأكد من إلغاء هذا السند؟ سيتم إلغاء القيود المحاسبية المرتبطة أيضاً.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-row-reverse gap-2">
+            <AlertDialogCancel>تراجع</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => cancelConfirmId && handleCancelVoucher(cancelConfirmId)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={cancelling}
+            >
+              {cancelling ? "جاري الإلغاء..." : "إلغاء السند"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
