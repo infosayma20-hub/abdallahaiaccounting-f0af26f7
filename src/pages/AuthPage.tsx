@@ -156,10 +156,9 @@ const AuthPage = () => {
         {/* Content overlay */}
         <div className="relative z-10 flex flex-col items-center justify-center w-full p-12">
           <div className="text-center space-y-8 max-w-sm">
-            {/* Logo — ق icon stacked above QOYOD text */}
+            {/* Logo */}
             <div className="flex flex-col items-center gap-4" dir="ltr">
-              <img src="/logo-icon-white.svg" alt="قيود" width={56} height={56} />
-              <img src="/logo-white.svg" alt="QOYOD قيود" width={180} />
+              <img src="/logo-white.png" alt="QOYOD قيود" width={220} />
             </div>
 
             <div className="space-y-4 mt-10" dir="rtl">
