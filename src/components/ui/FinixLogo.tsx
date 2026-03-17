@@ -1,30 +1,54 @@
+import { BRAND } from '@/constants/brand';
+
 interface QoyodLogoProps {
-  variant?: 'full' | 'icon' | 'white';
-  size?: 'sm' | 'md' | 'lg';
+  variant?: 'primary' | 'white' | 'dark' | 'icon-color' | 'icon-white' | 'icon-dark' | 'full' | 'icon';
+  size?: 'sm' | 'md' | 'lg' | 'xl' | number;
   className?: string;
+  alt?: string;
 }
 
-export function FinixLogo({ variant = 'full', size = 'md', className = '' }: QoyodLogoProps) {
-  const sizes = {
-    sm: { width: 28, fullWidth: 120 },
-    md: { width: 36, fullWidth: 150 },
-    lg: { width: 48, fullWidth: 180 },
-  };
+const sizeMap = { sm: 32, md: 80, lg: 140, xl: 200 };
 
-  const s = sizes[size];
+// Map legacy variant names
+const variantMap: Record<string, keyof typeof BRAND.logo> = {
+  'primary': 'primary',
+  'white': 'white',
+  'dark': 'dark',
+  'icon-color': 'iconColor',
+  'icon-white': 'iconWhite',
+  'icon-dark': 'iconDark',
+  'full': 'primary',
+  'icon': 'iconColor',
+};
 
-  if (variant === 'icon') {
-    const src = '/logo-icon.svg';
-    return <img src={src} alt="قيود" width={s.width} height={s.width} className={className} style={{ display: 'inline-block' }} />;
-  }
+export const QoyodLogo = ({
+  variant = 'primary',
+  size = 'md',
+  className = '',
+  alt = 'QOYOD قيود ERP Software',
+}: QoyodLogoProps) => {
+  const logoKey = variantMap[variant] || 'primary';
+  const src = BRAND.logo[logoKey];
+  const width = typeof size === 'number' ? size : sizeMap[size];
 
-  if (variant === 'white') {
-    return <img src="/logo-white.svg" alt="QOYOD قيود" width={s.fullWidth} className={className} style={{ display: 'inline-block' }} />;
-  }
+  return (
+    <img
+      src={src}
+      alt={alt}
+      width={width}
+      className={`qoyod-logo ${className}`}
+      style={{ display: 'inline-block', height: 'auto', objectFit: 'contain' }}
+      onError={(e) => {
+        const t = e.target as HTMLImageElement;
+        if (!t.src.endsWith('.png')) {
+          t.src = BRAND.logo.fallbackPng;
+        }
+      }}
+    />
+  );
+};
 
-  // full
-  return <img src="/logo-full.svg" alt="QOYOD قيود" width={s.fullWidth} className={className} style={{ display: 'inline-block' }} />;
-}
+// Legacy export name for backward compatibility
+export const FinixLogo = QoyodLogo;
 
-// Also export as QoyodLogo for new code
-export const QoyodLogo = FinixLogo;
+export default QoyodLogo;

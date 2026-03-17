@@ -7,7 +7,7 @@
 @layer base {
   /* ─── LIGHT THEME (DEFAULT) ─── */
   :root {
-    /* FINIX Brand - HSL */
+    /* QOYOD Brand - HSL */
     --background: 210 14% 97%;        /* #F4F6F8 */
     --foreground: 213 50% 11%;        /* #0D1B2A */
 
@@ -47,7 +47,7 @@
 
     --radius: 0.625rem;
 
-    /* Sidebar - FINIX dark navy */
+    /* Sidebar - QOYOD dark navy */
     --sidebar-background: 213 50% 11%;   /* #0D1B2A */
     --sidebar-foreground: 210 12% 59%;   /* #8A96A3 */
     --sidebar-primary: 37 81% 52%;       /* gold */
@@ -57,7 +57,7 @@
     --sidebar-border: 213 48% 17%;       /* #1E3A5F */
     --sidebar-ring: 37 81% 52%;
 
-    /* FINIX brand tokens */
+    /* QOYOD brand tokens */
     --finix-gold: 37 81% 52%;            /* #E8A020 */
     --finix-gold-light: 42 86% 70%;      /* #F4D170 */
     --finix-gold-dark: 37 90% 41%;       /* #C9870A */
