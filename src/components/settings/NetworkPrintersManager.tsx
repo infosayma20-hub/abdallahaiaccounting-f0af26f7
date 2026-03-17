@@ -142,7 +142,7 @@ export default function NetworkPrintersManager() {
       is_default: formIsDefault,
       station_ids: formStationIds,
       print_categories: formCategories,
-      branch_id: formBranchId || null,
+      branch_id: formBranchId && formBranchId !== "__none__" ? formBranchId : null,
     };
 
     if (editingPrinter) {

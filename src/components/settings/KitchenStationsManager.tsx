@@ -68,7 +68,7 @@ export default function KitchenStationsManager() {
       station_type: newType,
       color: newColor,
       display_order: stations.length,
-      branch_id: newBranchId || null,
+      branch_id: newBranchId && newBranchId !== "__none__" ? newBranchId : null,
     } as any);
     if (error) return toast.error("خطأ في الإضافة");
     toast.success("تمت إضافة المحطة");
