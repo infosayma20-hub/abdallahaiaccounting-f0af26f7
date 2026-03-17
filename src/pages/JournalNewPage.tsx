@@ -383,9 +383,10 @@ const JournalNewPage = () => {
               <thead>
                 <tr className="text-right" style={{ background: "#0D1B2A" }}>
                   <th className="p-2.5 text-white font-medium w-10">#</th>
-                  <th className="p-2.5 text-white font-medium">الحساب</th>
-                  <th className="p-2.5 text-white font-medium w-32">مدين ₪</th>
-                  <th className="p-2.5 text-white font-medium w-32">دائن ₪</th>
+                  <th className="p-2.5 text-white font-medium" style={{ width: "30%" }}>الحساب</th>
+                  <th className="p-2.5 text-white font-medium" style={{ width: "25%" }}>الجهة (اختياري)</th>
+                  <th className="p-2.5 text-white font-medium w-28">مدين ₪</th>
+                  <th className="p-2.5 text-white font-medium w-28">دائن ₪</th>
                   <th className="p-2.5 w-10"></th>
                 </tr>
               </thead>
@@ -417,10 +418,48 @@ const JournalNewPage = () => {
                             })
                             .map(a => (
                             <SelectItem key={a.account_code} value={a.account_code}>
-                              <span className="font-mono text-muted-foreground ml-2">{a.account_code}</span>
-                              {a.account_name}
+                              <span className="flex items-center gap-3">
+                                <span className="font-mono text-muted-foreground text-[10px] bg-muted px-1.5 py-0.5 rounded">{a.account_code}</span>
+                                <span>{a.account_name}</span>
+                              </span>
                             </SelectItem>
                           ))}
+                        </SelectContent>
+                      </Select>
+                    </td>
+                    <td className="p-2.5">
+                      <Select value={line.contact_id || ""} onValueChange={v => updateLine(line.id, "contact_id", v)}>
+                        <SelectTrigger className="h-9 text-xs">
+                          <SelectValue placeholder="اختر جهة..." />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-[200px]">
+                          <SelectItem value="__none__">
+                            <span className="text-muted-foreground">— بدون جهة —</span>
+                          </SelectItem>
+                          {contacts.filter(isCustomer).length > 0 && (
+                            <SelectGroup>
+                              <SelectLabel className="flex items-center gap-1 text-[10px]"><User className="h-3 w-3" /> زبائن</SelectLabel>
+                              {contacts.filter(isCustomer).map(c => (
+                                <SelectItem key={c.id} value={c.id}>{c.contact_name}</SelectItem>
+                              ))}
+                            </SelectGroup>
+                          )}
+                          {contacts.filter(isSupplier).length > 0 && (
+                            <SelectGroup>
+                              <SelectLabel className="flex items-center gap-1 text-[10px]"><Building2 className="h-3 w-3" /> موردين</SelectLabel>
+                              {contacts.filter(isSupplier).map(c => (
+                                <SelectItem key={c.id} value={c.id}>{c.contact_name}</SelectItem>
+                              ))}
+                            </SelectGroup>
+                          )}
+                          {contacts.filter(isEmployee).length > 0 && (
+                            <SelectGroup>
+                              <SelectLabel className="flex items-center gap-1 text-[10px]"><Users className="h-3 w-3" /> موظفون</SelectLabel>
+                              {contacts.filter(isEmployee).map(c => (
+                                <SelectItem key={c.id} value={c.id}>{c.contact_name}</SelectItem>
+                              ))}
+                            </SelectGroup>
+                          )}
                         </SelectContent>
                       </Select>
                     </td>
@@ -440,7 +479,7 @@ const JournalNewPage = () => {
               </tbody>
               <tfoot>
                 <tr className="border-t font-bold bg-primary/5">
-                  <td colSpan={2} className="p-2.5 text-xs">الإجمالي</td>
+                  <td colSpan={3} className="p-2.5 text-xs">الإجمالي</td>
                   <td className="p-2.5 font-mono text-xs">₪{formatAmount(totalDebit)}</td>
                   <td className="p-2.5 font-mono text-xs text-destructive">₪{formatAmount(totalCredit)}</td>
                   <td></td>
