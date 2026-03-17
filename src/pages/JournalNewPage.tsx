@@ -581,10 +581,41 @@ const JournalNewPage = () => {
                       </Select>
                     </td>
                     <td className="p-2.5">
-                      <Input type="number" value={line.debit || ""} onChange={e => updateLine(line.id, "debit", Number(e.target.value) || 0)} className="h-9 font-mono text-xs" placeholder="0" />
+                      <Input
+                        type="text" inputMode="decimal"
+                        value={line.debit || ""}
+                        onChange={e => {
+                          const val = e.target.value;
+                          if (val === "=" || val === "=") {
+                            // Auto-balance: remaining = totalCredit(others) - totalDebit(others)
+                            const otherDebit = lines.filter(l => l.id !== line.id).reduce((s, l) => s + (Number(l.debit) || 0), 0);
+                            const currentTotalCredit = lines.reduce((s, l) => s + (Number(l.credit) || 0), 0);
+                            const remaining = Math.max(0, currentTotalCredit - otherDebit);
+                            updateLine(line.id, "debit", remaining);
+                          } else {
+                            updateLine(line.id, "debit", Number(val) || 0);
+                          }
+                        }}
+                        className="h-9 font-mono text-xs" placeholder="0"
+                      />
                     </td>
                     <td className="p-2.5">
-                      <Input type="number" value={line.credit || ""} onChange={e => updateLine(line.id, "credit", Number(e.target.value) || 0)} className="h-9 font-mono text-xs" placeholder="0" />
+                      <Input
+                        type="text" inputMode="decimal"
+                        value={line.credit || ""}
+                        onChange={e => {
+                          const val = e.target.value;
+                          if (val === "=" || val === "=") {
+                            const otherCredit = lines.filter(l => l.id !== line.id).reduce((s, l) => s + (Number(l.credit) || 0), 0);
+                            const currentTotalDebit = lines.reduce((s, l) => s + (Number(l.debit) || 0), 0);
+                            const remaining = Math.max(0, currentTotalDebit - otherCredit);
+                            updateLine(line.id, "credit", remaining);
+                          } else {
+                            updateLine(line.id, "credit", Number(val) || 0);
+                          }
+                        }}
+                        className="h-9 font-mono text-xs" placeholder="0"
+                      />
                     </td>
                     <td className="p-2.5">
                       <button onClick={() => removeLine(line.id)} className="p-1 hover:text-destructive text-muted-foreground" disabled={lines.length <= 2}>
