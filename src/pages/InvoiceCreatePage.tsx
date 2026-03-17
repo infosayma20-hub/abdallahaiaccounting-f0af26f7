@@ -169,7 +169,9 @@ const InvoiceCreatePage = () => {
   // Dialogs
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [showPDFPreview, setShowPDFPreview] = useState(false);
+  const [showQuickAddRep, setShowQuickAddRep] = useState(false);
   const [quickAddForm, setQuickAddForm] = useState({ name: "", sell_price: 0, buy_price: 0, unit: "قطعة", quantity: 0 });
+  const [quickRepForm, setQuickRepForm] = useState({ full_name: "", phone: "", region: "", sales_commission_rate: 0 });
 
   // Form state
   const [form, setForm] = useState({
