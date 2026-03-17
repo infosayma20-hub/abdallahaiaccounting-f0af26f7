@@ -22,7 +22,7 @@ serve(async (req) => {
     const systemPrompt = `أنت محاسب ذكي ومساعد مالي احترافي. المستخدم سيعطيك جملة تصف عملية مالية بالعربية.
 
 ## الخطوة 0: كشف نية إضافة كيان جديد
-إذا احتوى النص على: أضف زبون، أضف عميل، أضف مورد، أضف موظف، أضف منتج، أضف حساب، عميل جديد، مورد جديد، موظف جديد، سجل زبون، سجل مورد
+إذا احتوى النص على: أضف زبون، أضف عميل، أضف مورد، أضف موظف، أضف منتج، أضف حساب، عميل جديد، مورد جديد، موظف جديد، سجل زبون، سجل مورد، منتج جديد، حساب جديد
 فإن intent = "add_entity"
 
 استخرج:
@@ -33,16 +33,40 @@ serve(async (req) => {
 - email: البريد إن ذُكر
 - address: العنوان إن ذُكر
 
+### إذا entityType = "employee":
+- jobTitle: المسمى الوظيفي إن ذُكر
+- department: القسم إن ذُكر
+- basicSalary: الراتب إن ذُكر (رقم فقط)
+
+### إذا entityType = "product":
+- buyPrice: سعر الشراء إن ذُكر (رقم فقط)
+- sellPrice: سعر البيع إن ذُكر (رقم فقط)
+- quantity: الكمية الأولية إن ذُكرت (رقم فقط)
+- sku: الرمز أو الباركود إن ذُكر
+
+### إذا entityType = "account":
+- accountCode: رمز الحساب إن ذُكر
+- accountType: نوع الحساب (أصول/خصوم/مصروفات/إيرادات/حقوق ملكية)
+
 أرجع JSON:
 {
   "intent": "add_entity",
   "type": "add_entity",
-  "entityType": "contact",
-  "contactType": "عميل" أو "مورد",
+  "entityType": "",
+  "contactType": "",
   "name": "",
   "phone": "",
   "email": "",
   "address": "",
+  "jobTitle": "",
+  "department": "",
+  "basicSalary": 0,
+  "buyPrice": 0,
+  "sellPrice": 0,
+  "quantity": 0,
+  "sku": "",
+  "accountCode": "",
+  "accountType": "",
   "status": "complete"
 }
 
@@ -303,6 +327,15 @@ status = "incomplete" مع missingFields
         phone: parsed.phone || '',
         email: parsed.email || '',
         address: parsed.address || '',
+        jobTitle: parsed.jobTitle || '',
+        department: parsed.department || '',
+        basicSalary: parsed.basicSalary || 0,
+        buyPrice: parsed.buyPrice || 0,
+        sellPrice: parsed.sellPrice || 0,
+        quantity: parsed.quantity || 0,
+        sku: parsed.sku || '',
+        accountCode: parsed.accountCode || '',
+        accountType: parsed.accountType || '',
         status: parsed.status || 'complete',
       }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
