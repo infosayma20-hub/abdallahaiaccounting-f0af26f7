@@ -1009,7 +1009,17 @@ const InvoiceCreatePage = () => {
               <p className="text-xs font-semibold text-primary flex items-center gap-1.5"><CreditCard className="h-3.5 w-3.5" /> بيانات الشيك</p>
               <div className="grid grid-cols-3 gap-3">
                 <div><label className="text-[10px] text-muted-foreground mb-0.5 block">رقم الشيك *</label><Input value={form.chequeNumber} onChange={e => setForm(p => ({ ...p, chequeNumber: e.target.value }))} className="rounded-lg text-sm" /></div>
-                <div><label className="text-[10px] text-muted-foreground mb-0.5 block">البنك *</label><Input value={form.chequeBank} onChange={e => setForm(p => ({ ...p, chequeBank: e.target.value }))} className="rounded-lg text-sm" /></div>
+                <div><label className="text-[10px] text-muted-foreground mb-0.5 block">البنك *</label>
+                  <Select value={form.chequeBank || "__empty__"} onValueChange={v => setForm(p => ({ ...p, chequeBank: v === "__empty__" ? "" : v }))}>
+                    <SelectTrigger className="rounded-lg text-sm"><SelectValue placeholder="اختر البنك" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__empty__" disabled>اختر البنك</SelectItem>
+                      {[...new Set(bankAccounts.map(b => b.bank_name).filter(Boolean))].map(name => (
+                        <SelectItem key={name} value={name}>{name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div><label className="text-[10px] text-muted-foreground mb-0.5 block">تاريخ الشيك *</label><Input type="date" value={form.chequeDueDate} onChange={e => setForm(p => ({ ...p, chequeDueDate: e.target.value }))} className="rounded-lg text-sm" dir="ltr" /></div>
               </div>
               <div>
