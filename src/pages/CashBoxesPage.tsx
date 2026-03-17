@@ -290,7 +290,7 @@ const CashBoxesPage = () => {
                 <h2 className="text-sm font-bold">صناديق النثرية</h2>
                 <Badge variant="secondary" className="text-[10px]">{pettyBoxes.length}</Badge>
               </div>
-              <Button variant="outline" size="sm" className="text-xs gap-1" onClick={() => openAdd("petty")}>
+              <Button variant="outline" size="sm" className="text-xs gap-1" onClick={() => openAdd("petty_cash")}>
                 <Plus className="h-3 w-3" /> إضافة صندوق نثرية
               </Button>
             </div>
