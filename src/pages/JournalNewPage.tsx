@@ -197,7 +197,18 @@ const JournalNewPage = () => {
     if (!formDescription.trim()) { toast.error("الوصف مطلوب"); return; }
     if (!asDraft && !isBalanced) { toast.error("القيد غير متوازن"); return; }
 
-    const validLines = lines.filter(l => l.account_code && (Number(l.debit) > 0 || Number(l.credit) > 0));
+    // Auto-assign account codes for contact-only lines before validation
+    const preparedLines = lines.map(l => {
+      if (!l.account_code && l.contact_id && l.contact_id !== "__none__") {
+        const c = contacts.find(ct => ct.id === l.contact_id);
+        const autoCode = c && isCustomer(c) ? "1130" : c && isSupplier(c) ? "2100" : c && isEmployee(c) ? "1180" : "";
+        const acct = accounts.find(a => a.account_code === autoCode);
+        return { ...l, account_code: autoCode, account_name: acct?.account_name || "" };
+      }
+      return l;
+    });
+
+    const validLines = preparedLines.filter(l => l.account_code && (Number(l.debit) > 0 || Number(l.credit) > 0));
     if (validLines.length < 2) { toast.error("أدخل سطرين على الأقل"); return; }
 
     setSaving(true);
