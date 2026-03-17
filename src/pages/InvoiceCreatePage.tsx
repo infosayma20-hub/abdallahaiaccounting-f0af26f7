@@ -274,7 +274,16 @@ const InvoiceCreatePage = () => {
     fetchAll();
   }, [user]);
 
-  // Auto-calc due date when payment terms or date changes
+  // Update invoice number prefix when type changes
+  useEffect(() => {
+    setNextInvoiceNumber(prev => {
+      const prefix = form.type === "sales" ? "INV" : "PO";
+      const parts = prev.split("-");
+      if (parts.length === 3) return `${prefix}-${parts[1]}-${parts[2]}`;
+      return prev;
+    });
+  }, [form.type]);
+
   useEffect(() => {
     const terms = PAYMENT_TERMS.find(t => t.value === form.paymentTerms);
     if (terms && terms.days >= 0) {
