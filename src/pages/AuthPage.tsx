@@ -279,8 +279,8 @@ const AuthPage = () => {
                   disabled={loading || (mode === "signup" && !agreedToTerms)}
                   className="w-full h-12 rounded-lg text-base font-bold text-white transition-all hover:brightness-110 hover:-translate-y-0.5 disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2"
                   style={{
-                    background: "linear-gradient(135deg, #E8A020, #F45E0C)",
-                    boxShadow: "0 4px 14px rgba(232,160,32,0.3)",
+                    background: "linear-gradient(135deg, #C9A84C, #A8892E)",
+                    boxShadow: "0 4px 14px rgba(201,168,76,0.35)",
                   }}
                 >
                   {loading && <Loader2 className="h-4 w-4 animate-spin" />}
