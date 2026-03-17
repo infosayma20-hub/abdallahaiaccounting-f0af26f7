@@ -20,19 +20,19 @@ import IntegrationsSettingsSection from "@/components/settings/IntegrationsSetti
 import AISettingsSection from "@/components/settings/AISettingsSection";
 
 const sections = [
-  { id: "company", label: "الشركة", icon: Building2, ready: true },
-  { id: "user", label: "المستخدمون", icon: User, ready: true },
-  { id: "finance", label: "المالية", icon: Wallet, ready: true },
-  { id: "invoices", label: "الفواتير", icon: FileText, ready: true },
-  { id: "pos", label: "نقطة البيع", icon: ShoppingCart, ready: true },
-  { id: "inventory", label: "المخزون", icon: Package, ready: true },
-  { id: "hr", label: "الموارد البشرية", icon: Users, ready: true },
-  { id: "notifications", label: "الإشعارات", icon: Bell, ready: true },
-  { id: "security", label: "الأمان", icon: Shield, ready: true },
-  { id: "integrations", label: "التكاملات", icon: Link2, ready: true },
-  { id: "print", label: "الطباعة", icon: Printer, ready: true },
-  { id: "portal", label: "بوابة الإدارة", icon: Monitor, ready: true },
-  { id: "ai", label: "الذكاء الاصطناعي", icon: Brain, ready: true },
+  { id: "company", label: "الشركة", icon: Building2, ready: true, keywords: "شركة اسم عنوان هاتف بريد ضريبة عملة تقويم سنة مالية لوغو" },
+  { id: "user", label: "المستخدمون", icon: User, ready: true, keywords: "مستخدم صلاحيات دور موظف فريق" },
+  { id: "finance", label: "المالية", icon: Wallet, ready: true, keywords: "مالية حسابات قيود محاسبة ميزان" },
+  { id: "invoices", label: "الفواتير", icon: FileText, ready: true, keywords: "فاتورة فواتير قالب ضريبة خصم" },
+  { id: "pos", label: "نقطة البيع", icon: ShoppingCart, ready: true, keywords: "كاشير نقطة بيع طاولات محطات مطبخ طابعة طابعات شبكة" },
+  { id: "inventory", label: "المخزون", icon: Package, ready: true, keywords: "مخزون منتج صنف كمية مستودع" },
+  { id: "hr", label: "الموارد البشرية", icon: Users, ready: true, keywords: "موظفين رواتب حضور إجازات فروع" },
+  { id: "notifications", label: "الإشعارات", icon: Bell, ready: true, keywords: "إشعار تنبيه رسالة" },
+  { id: "security", label: "الأمان", icon: Shield, ready: true, keywords: "أمان كلمة مرور مصادقة حماية" },
+  { id: "integrations", label: "التكاملات", icon: Link2, ready: true, keywords: "تكامل ربط API واتساب" },
+  { id: "print", label: "الطباعة", icon: Printer, ready: true, keywords: "طباعة طابعة ورق إيصال فاتورة" },
+  { id: "portal", label: "بوابة الإدارة", icon: Monitor, ready: true, keywords: "بوابة إدارة تقارير مراقبة" },
+  { id: "ai", label: "الذكاء الاصطناعي", icon: Brain, ready: true, keywords: "ذكاء اصطناعي مساعد حسيب" },
 ];
 
 const SettingsPage = () => {
@@ -42,7 +42,8 @@ const SettingsPage = () => {
 
   const filteredSections = useMemo(() => {
     if (!search) return sections;
-    return sections.filter(s => s.label.includes(search));
+    const q = search.trim().toLowerCase();
+    return sections.filter(s => s.label.includes(q) || s.keywords.includes(q));
   }, [search]);
 
   const renderContent = () => {
