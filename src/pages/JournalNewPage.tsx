@@ -644,6 +644,54 @@ const JournalNewPage = () => {
           </button>
         </div>
       </div>
+
+      {/* Quick Add Contact Dialog */}
+      <Dialog open={showQuickAdd} onOpenChange={setShowQuickAdd}>
+        <DialogContent className="max-w-sm" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <UserPlus className="h-5 w-5 text-primary" />
+              إضافة جهة جديدة
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div>
+              <Label className="text-xs mb-1.5 block">نوع الجهة</Label>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setQuickAddType("customer")}
+                  className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all ${quickAddType === "customer" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}
+                >
+                  <User className="h-3.5 w-3.5" /> زبون
+                </button>
+                <button
+                  onClick={() => setQuickAddType("supplier")}
+                  className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all ${quickAddType === "supplier" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}
+                >
+                  <Building2 className="h-3.5 w-3.5" /> مورد
+                </button>
+              </div>
+            </div>
+            <div>
+              <Label className="text-xs mb-1.5 block">اسم الجهة *</Label>
+              <Input
+                value={quickAddName}
+                onChange={e => setQuickAddName(e.target.value)}
+                placeholder={quickAddType === "customer" ? "مثال: أحمد محمد" : "مثال: شركة التوريدات"}
+                autoFocus
+                onKeyDown={e => { if (e.key === "Enter" && quickAddName.trim()) handleQuickAddContact(); }}
+              />
+            </div>
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <Button variant="outline" size="sm" onClick={() => setShowQuickAdd(false)}>إلغاء</Button>
+              <Button size="sm" onClick={handleQuickAddContact} disabled={!quickAddName.trim() || quickAddSaving} className="gap-1">
+                {quickAddSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+                حفظ وربط
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
