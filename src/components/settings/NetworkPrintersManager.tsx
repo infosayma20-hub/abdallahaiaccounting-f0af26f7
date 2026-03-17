@@ -448,7 +448,7 @@ export default function NetworkPrintersManager() {
               <div className="space-y-1.5">
                 <Label className="text-xs">ربط بمحطات المطبخ (اختياري)</Label>
                 <div className="flex flex-wrap gap-1.5">
-                  {stations.filter(s => !formBranchId || !s.branch_id || s.branch_id === formBranchId).map(s => (
+                  {stations.filter(s => !formBranchId || formBranchId === "__none__" || !s.branch_id || s.branch_id === formBranchId).map(s => (
                     <button
                       key={s.id}
                       onClick={() => toggleStationId(s.id)}
