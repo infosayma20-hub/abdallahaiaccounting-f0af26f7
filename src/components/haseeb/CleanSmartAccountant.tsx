@@ -175,7 +175,41 @@ const CleanSmartAccountant = ({ user, userName, data, cfoMode, onToggleCfo, onCh
         return;
       }
 
-      if (parseData?.type && !['question', 'unknown'].includes(parseData.type)) {
+      // Handle add entity (contact/customer/supplier)
+      if (parseData?.type === 'add_entity' && parseData?.entityType === 'contact') {
+        try {
+          const contactData: any = {
+            contact_name: parseData.name || '',
+            contact_type: parseData.contactType === 'مورد' ? 'مورد' : 'عميل',
+            user_id: user?.id,
+            is_active: true,
+            current_balance: 0,
+          };
+          if (parseData.phone) contactData.phone = parseData.phone;
+          if (parseData.email) contactData.email = parseData.email;
+          if (parseData.address) contactData.address = parseData.address;
+
+          const { error: insertError } = await supabase.from('contacts').insert(contactData);
+          if (insertError) throw insertError;
+
+          if (navigator.vibrate) navigator.vibrate(100);
+          const typeLabel = parseData.contactType === 'مورد' ? 'المورد' : 'الزبون';
+          const successMsg = `✅ تمت إضافة ${typeLabel} "${parseData.name}" بنجاح${parseData.phone ? '\n📞 الهاتف: ' + parseData.phone : ''}`;
+          const convId = await ensureConversation(text.trim());
+          setMessages(prev => [...prev, { id: uid(), role: "assistant", type: "success", content: successMsg, timestamp: new Date() }]);
+          if (convId) saveMessage(convId, "assistant", successMsg);
+          if (user?.id) buildAIContext(user.id).then(setAiContext);
+          setSending(false);
+          return;
+        } catch (err: any) {
+          const errorMsg = `❌ فشل في إضافة ${parseData.contactType || 'الجهة'}: ${err.message || 'خطأ غير معروف'}`;
+          setMessages(prev => [...prev, { id: uid(), role: "assistant", content: errorMsg, timestamp: new Date() }]);
+          setSending(false);
+          return;
+        }
+      }
+
+      if (parseData?.type && !['question', 'unknown', 'add_entity'].includes(parseData.type)) {
         const body: any = { text: text.trim(), userId: user?.id, email: user?.email };
         const { data: txResult, error } = await supabase.functions.invoke("process-transaction", { body });
         if (error) throw error;

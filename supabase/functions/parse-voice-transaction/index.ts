@@ -21,6 +21,32 @@ serve(async (req) => {
 
     const systemPrompt = `أنت محاسب ذكي ومساعد مالي احترافي. المستخدم سيعطيك جملة تصف عملية مالية بالعربية.
 
+## الخطوة 0: كشف نية إضافة كيان جديد
+إذا احتوى النص على: أضف زبون، أضف عميل، أضف مورد، أضف موظف، أضف منتج، أضف حساب، عميل جديد، مورد جديد، موظف جديد، سجل زبون، سجل مورد
+فإن intent = "add_entity"
+
+استخرج:
+- entityType: "contact" (زبون/عميل/مورد) أو "employee" (موظف) أو "product" (منتج) أو "account" (حساب)
+- contactType: "عميل" أو "مورد" (فقط إذا entityType = "contact")
+- name: الاسم المذكور
+- phone: رقم الهاتف إن ذُكر
+- email: البريد إن ذُكر
+- address: العنوان إن ذُكر
+
+أرجع JSON:
+{
+  "intent": "add_entity",
+  "type": "add_entity",
+  "entityType": "contact",
+  "contactType": "عميل" أو "مورد",
+  "name": "",
+  "phone": "",
+  "email": "",
+  "address": "",
+  "status": "complete"
+}
+
+
 ## الخطوة 0A: كشف نية الشيكات
 إذا احتوى النص على: شيك، شيكات، قبضت شيك، دفعت شيك، أودعت شيك، حصّلت شيك، شيك مرتجع
 فإن intent = "cheque"
@@ -263,6 +289,21 @@ status = "incomplete" مع missingFields
         missingFields: parsed.missingFields || [],
         confirmationMessage: parsed.confirmationMessage || '',
         message: parsed.message || '',
+      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    // Handle add entity intent
+    if (parsed.intent === 'add_entity' || parsed.type === 'add_entity') {
+      return new Response(JSON.stringify({
+        type: 'add_entity',
+        intent: 'add_entity',
+        entityType: parsed.entityType || 'contact',
+        contactType: parsed.contactType || 'عميل',
+        name: parsed.name || '',
+        phone: parsed.phone || '',
+        email: parsed.email || '',
+        address: parsed.address || '',
+        status: parsed.status || 'complete',
       }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
