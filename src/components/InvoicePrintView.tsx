@@ -167,7 +167,7 @@ const InvoicePrintView = ({ invoice, settings, copyLabel = "أصلية" }: Invoi
                 color: "#C9A84C",
               }}
             >
-              {settings.company_name?.charAt(0) || "F"}
+              {(settings.company_name || "Q").charAt(0)}
             </div>
           )}
           <div>
