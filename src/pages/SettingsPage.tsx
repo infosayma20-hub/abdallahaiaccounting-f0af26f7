@@ -62,6 +62,8 @@ const SettingsPage = () => {
         return <UsersSettingsSection />;
       case "company":
         return <CompanySettingsSection settings={settings} onChange={updateSettings} />;
+      case "branches":
+        return <BranchesSettingsSection />;
       case "finance":
         return <FinanceSettingsSection settings={settings} onChange={updateSettings} />;
       case "invoices":
