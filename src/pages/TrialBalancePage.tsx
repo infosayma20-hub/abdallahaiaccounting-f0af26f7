@@ -518,7 +518,7 @@ const TrialBalancePage = () => {
                   <>
                     {/* Group Header */}
                     <tr key={`group-${group.label}`} className="bg-muted/20">
-                      <td colSpan={showComparison ? 9 : 6} className="px-4 py-2.5">
+                      <td colSpan={showComparison ? (dateFrom ? 11 : 9) : (dateFrom ? 8 : 6)} className="px-4 py-2.5">
                         <div className="flex items-center justify-between">
                           <span className={`text-xs font-bold px-2.5 py-1 rounded-lg ${ACCOUNT_TYPE_COLORS[group.label] || "bg-muted text-muted-foreground"}`}>
                             {group.label}
