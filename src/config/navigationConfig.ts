@@ -236,7 +236,7 @@ export const navigationSections: NavSection[] = [
     items: [
       {
         id: "reports", label: "التقارير", description: "أرباح وخسائر، ميزانية عمومية، وتحليلات مالية", module: "reports", icon: BarChart3,
-        color: "text-rose-500", bgColor: "bg-rose-500/10", path: "/reports",
+        color: "text-[#1B3A5C]", bgColor: "bg-[#1B3A5C]/8", path: "/reports",
         keywords: ["تقارير", "تحليل"],
         groups: [
           {
