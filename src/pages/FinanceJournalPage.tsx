@@ -37,7 +37,7 @@ const FinanceJournalPage = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingVoucherId, setEditingVoucherId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [filterStatus, setFilterStatus] = useState("all");
+  const [filterStatus, setFilterStatus] = useState("active");
   const [saving, setSaving] = useState(false);
 
   // Duplicate
@@ -325,7 +325,8 @@ const FinanceJournalPage = () => {
         const q = searchQuery.toLowerCase();
         if (!v.ref_number?.toLowerCase().includes(q) && !v.description?.toLowerCase().includes(q)) return false;
       }
-      if (filterStatus !== "all" && v.status !== filterStatus) return false;
+      if (filterStatus === "active" && v.status === "cancelled") return false;
+      if (filterStatus !== "all" && filterStatus !== "active" && v.status !== filterStatus) return false;
       return true;
     });
   }, [vouchers, searchQuery, filterStatus]);
@@ -437,10 +438,11 @@ const FinanceJournalPage = () => {
               <SelectValue placeholder="حالة السند" />
             </SelectTrigger>
             <SelectContent className="bg-background z-50">
+              <SelectItem value="active">بدون الملغية</SelectItem>
               <SelectItem value="all">جميع الحالات</SelectItem>
               <SelectItem value="posted">✅ مرحّل</SelectItem>
               <SelectItem value="draft">📝 مسودة</SelectItem>
-              <SelectItem value="cancelled">🔴 ملغي</SelectItem>
+              <SelectItem value="cancelled">🔴 ملغي فقط</SelectItem>
             </SelectContent>
           </Select>
         </div>

@@ -45,7 +45,7 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
   const [loading, setLoading] = useState(true);
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("active");
   const [paymentFilter, setPaymentFilter] = useState("all");
   const [sortKey, setSortKey] = useState<SortKey>("date");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
@@ -226,7 +226,8 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
   // Filtering
   const filtered = useMemo(() => {
     let data = [...tableData];
-    if (statusFilter !== "all") data = data.filter(v => v.status_label === statusFilter);
+    if (statusFilter === "active") data = data.filter(v => v.status_label !== "ملغي");
+    else if (statusFilter !== "all") data = data.filter(v => v.status_label === statusFilter);
     if (paymentFilter !== "all") data = data.filter(v => v.payment_label === paymentFilter);
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
@@ -360,10 +361,11 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
               <SelectValue placeholder="حالة السند" />
             </SelectTrigger>
             <SelectContent className="bg-background z-50">
+              <SelectItem value="active">بدون الملغية</SelectItem>
               <SelectItem value="all">كل الحالات</SelectItem>
               <SelectItem value="مرحّل">✅ مرحّل</SelectItem>
               <SelectItem value="مسودة">📝 مسودة</SelectItem>
-              <SelectItem value="ملغي">🔴 ملغي</SelectItem>
+              <SelectItem value="ملغي">🔴 ملغي فقط</SelectItem>
             </SelectContent>
           </Select>
         </div>
