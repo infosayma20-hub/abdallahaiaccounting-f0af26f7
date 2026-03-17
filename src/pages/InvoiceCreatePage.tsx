@@ -1214,7 +1214,9 @@ const InvoiceCreatePage = () => {
           </div>
 
           <div className="flex justify-between items-center">
-            <span className="text-xs text-muted-foreground">الإجمالي الفرعي</span>
+            <span className="text-xs text-muted-foreground">
+              {form.taxInclusive ? "الإجمالي الفرعي (بدون ضريبة)" : "الإجمالي الفرعي"}
+            </span>
             <span className="text-sm font-semibold text-foreground tabular-nums">{fmtCurrency(summary.subtotal)}</span>
           </div>
           {summary.totalDiscount > 0 && (
@@ -1225,7 +1227,9 @@ const InvoiceCreatePage = () => {
           )}
           {summary.totalTax > 0 && (
             <div className="flex justify-between items-center">
-              <span className="text-xs text-muted-foreground">(+) ضريبة القيمة المضافة</span>
+              <span className="text-xs text-muted-foreground">
+                {form.taxInclusive ? "ضريبة القيمة المضافة (مستخرجة)" : "(+) ضريبة القيمة المضافة"}
+              </span>
               <span className="text-sm font-semibold text-foreground tabular-nums">{fmtCurrency(summary.totalTax)}</span>
             </div>
           )}
