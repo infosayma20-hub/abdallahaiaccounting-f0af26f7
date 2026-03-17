@@ -501,7 +501,14 @@ const TrialBalancePage = () => {
                           {row.accountCode || "—"}
                         </td>
                         <td className="px-4 py-3 text-xs text-foreground font-medium">
-                          {row.accountName}
+                          {(row.totalDebit > 0 || row.totalCredit > 0) ? (
+                            <button
+                              onClick={() => navigate(`/account-statement?code=${row.accountCode}`)}
+                              className="text-primary hover:underline cursor-pointer bg-transparent border-none p-0 text-xs font-medium"
+                            >
+                              {row.accountName}
+                            </button>
+                          ) : row.accountName}
                         </td>
                         <td className="px-4 py-3">
                           <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-md ${ACCOUNT_TYPE_COLORS[ACCOUNT_TYPE_LABELS[row.accountType] || ""] || "bg-muted text-muted-foreground"}`}>
