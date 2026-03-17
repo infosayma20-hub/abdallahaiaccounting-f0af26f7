@@ -10,13 +10,14 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/hr-utils";
 import BackButton from "@/components/BackButton";
 import * as XLSX from "xlsx";
 
 const DEDUCTION_SOURCES = ["الكل", "سند صرف", "نقطة البيع", "خصم يدوي", "سلفة", "قرض حسن"] as const;
+
+const normalizeArabicName = (value: string = "") => value.replace(/عبدالله/g, "عبد الله").replace(/\s+/g, " ").trim();
 
 export default function HRDeductionsPage() {
   const { user } = useAuth();
@@ -31,11 +32,59 @@ export default function HRDeductionsPage() {
   const { data: employees = [] } = useQuery({
     queryKey: ["hr-employees", user?.id],
     queryFn: async () => {
-      const { data } = await (supabase as any)
+      const { data, error } = await (supabase as any)
         .from("employees")
-        .select("id, full_name, department, branch")
+        .select("id, full_name, department, branch_id")
         .eq("user_id", user!.id)
-        .neq("is_active", false);
+        .neq("is_active", false)
+        .order("full_name");
+
+      if (error) {
+        console.error("Failed to load employees", error);
+        return [];
+      }
+
+      return (data || []) as any[];
+    },
+    enabled: !!user,
+  });
+
+  // Fetch branches for branch names
+  const { data: branches = [] } = useQuery({
+    queryKey: ["hr-branches", user?.id],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("branches")
+        .select("id, name")
+        .eq("user_id", user!.id);
+
+      if (error) {
+        console.error("Failed to load branches", error);
+        return [];
+      }
+
+      return (data || []) as any[];
+    },
+    enabled: !!user,
+  });
+
+  // Fetch employee receivable accounts to mirror employee account statement matching
+  const { data: employeeAccounts = [] } = useQuery({
+    queryKey: ["hr-employee-accounts", user?.id],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("accounts")
+        .select("account_code, account_name")
+        .eq("user_id", user!.id)
+        .eq("parent_code", "1180")
+        .neq("is_active", false)
+        .order("account_code");
+
+      if (error) {
+        console.error("Failed to load employee accounts", error);
+        return [];
+      }
+
       return (data || []) as any[];
     },
     enabled: !!user,
@@ -45,11 +94,17 @@ export default function HRDeductionsPage() {
   const { data: manualDeductions = [], refetch: refetchDeductions } = useQuery({
     queryKey: ["hr-all-deductions", user?.id],
     queryFn: async () => {
-      const { data } = await (supabase as any)
+      const { data, error } = await (supabase as any)
         .from("employee_deductions")
-        .select("*, employees(full_name, department, branch)")
+        .select("*, employees(full_name, department, branch_id)")
         .eq("user_id", user!.id)
         .order("deduction_date", { ascending: false });
+
+      if (error) {
+        console.error("Failed to load manual deductions", error);
+        return [];
+      }
+
       return (data || []) as any[];
     },
     enabled: !!user,
@@ -57,36 +112,64 @@ export default function HRDeductionsPage() {
 
   // Fetch payment vouchers from the vouchers table
   const { data: paymentVouchers = [] } = useQuery({
-    queryKey: ["hr-payment-vouchers", user?.id, employees],
+    queryKey: ["hr-payment-vouchers", user?.id],
     queryFn: async () => {
-      const { data } = await (supabase as any)
+      const { data, error } = await (supabase as any)
         .from("vouchers")
-        .select("*")
+        .select("id, ref_number, description, notes, amount, date, status, linked_transaction_id, created_at")
         .eq("user_id", user!.id)
         .eq("type", "payment")
         .neq("status", "cancelled")
-        .order("date", { ascending: false });
-      // Filter to only vouchers that mention an employee name in the description
-      const empNames = employees.map(e => e.full_name);
-      const filtered = (data || []).filter((v: any) => {
-        if (!v.description) return false;
-        return empNames.some(name => v.description.includes(name));
-      });
-      return filtered as any[];
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error("Failed to load payment vouchers", error);
+        return [];
+      }
+
+      return (data || []) as any[];
     },
-    enabled: !!user && employees.length > 0,
+    enabled: !!user,
+  });
+
+  // Fetch employee-related transactions to match account statement and dedupe duplicate vouchers
+  const { data: employeeTransactions = [] } = useQuery({
+    queryKey: ["hr-employee-payment-transactions", user?.id],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("transactions")
+        .select("id, description, amount, transaction_date, transaction_type, payment_method, debit_account_code, credit_account_code, is_deleted, created_at")
+        .eq("user_id", user!.id)
+        .eq("is_deleted", false)
+        .in("transaction_type", ["employee_payment", "payment"])
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error("Failed to load employee payment transactions", error);
+        return [];
+      }
+
+      return (data || []) as any[];
+    },
+    enabled: !!user,
   });
 
   // Fetch advances
   const { data: advances = [] } = useQuery({
     queryKey: ["hr-advances-deductions", user?.id],
     queryFn: async () => {
-      const { data } = await (supabase as any)
+      const { data, error } = await (supabase as any)
         .from("employee_advances")
-        .select("*, employees(full_name, department, branch)")
+        .select("*, employees(full_name, department, branch_id)")
         .eq("user_id", user!.id)
         .in("status", ["approved", "partially_paid"])
         .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error("Failed to load advances", error);
+        return [];
+      }
+
       return (data || []) as any[];
     },
     enabled: !!user,
@@ -96,24 +179,101 @@ export default function HRDeductionsPage() {
   const { data: posTransactions = [] } = useQuery({
     queryKey: ["hr-pos-employee-txns", user?.id],
     queryFn: async () => {
-      const { data } = await (supabase as any)
+      const { data, error } = await (supabase as any)
         .from("pos_orders")
         .select("*")
         .eq("user_id", user!.id)
         .eq("payment_method", "حساب موظف")
         .neq("status", "cancelled")
         .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error("Failed to load POS employee transactions", error);
+        return [];
+      }
+
       return (data || []) as any[];
     },
     enabled: !!user,
   });
 
-  // Build employee name map
-  const empMap = useMemo(() => {
-    const m: Record<string, { name: string; dept: string; branch: string }> = {};
-    employees.forEach(e => { m[e.id] = { name: e.full_name, dept: e.department || "", branch: e.branch || "" }; });
-    return m;
-  }, [employees]);
+  const branchMap = useMemo(() => {
+    return branches.reduce((acc: Record<string, string>, branch: any) => {
+      acc[branch.id] = branch.name || "";
+      return acc;
+    }, {});
+  }, [branches]);
+
+  const employeeDirectory = useMemo(() => {
+    const byId: Record<string, { id: string; name: string; dept: string; branchId: string; branch: string }> = {};
+    const byNormalizedName = new Map<string, { id: string; name: string; dept: string; branchId: string; branch: string }>();
+    const byAccountCode = new Map<string, { id: string; name: string; dept: string; branchId: string; branch: string }[]>();
+
+    const employeeList = employees.map((employee: any) => {
+      const info = {
+        id: employee.id,
+        name: employee.full_name || "—",
+        dept: employee.department || "",
+        branchId: employee.branch_id || "",
+        branch: branchMap[employee.branch_id] || "",
+      };
+
+      byId[info.id] = info;
+      byNormalizedName.set(normalizeArabicName(info.name), info);
+      return info;
+    });
+
+    employeeAccounts.forEach((account: any) => {
+      const normalizedAccountEmployeeName = normalizeArabicName(
+        String(account.account_name || "").replace(/^ذمم موظف\s*-\s*/, "")
+      );
+
+      const matchedEmployees = employeeList.filter(
+        (employee) => normalizeArabicName(employee.name) === normalizedAccountEmployeeName
+      );
+
+      if (matchedEmployees.length > 0) {
+        byAccountCode.set(account.account_code, matchedEmployees);
+      }
+    });
+
+    return { byId, byNormalizedName, byAccountCode };
+  }, [employees, employeeAccounts, branchMap]);
+
+  const resolveEmployeeByDescription = (description: string) => {
+    const normalizedDescription = normalizeArabicName(description || "");
+
+    for (const [normalizedName, employee] of employeeDirectory.byNormalizedName.entries()) {
+      if (normalizedName && normalizedDescription.includes(normalizedName)) {
+        return employee;
+      }
+    }
+
+    return null;
+  };
+
+  const resolveEmployeeByTransaction = (transaction: any) => {
+    const accountMatches = employeeDirectory.byAccountCode.get(transaction.debit_account_code) || [];
+
+    if (accountMatches.length === 1) return accountMatches[0];
+    if (accountMatches.length > 1) {
+      return resolveEmployeeByDescription(transaction.description || "") || accountMatches[0];
+    }
+
+    return resolveEmployeeByDescription(transaction.description || "");
+  };
+
+  const latestVoucherByTransactionId = useMemo(() => {
+    const map = new Map<string, any>();
+
+    paymentVouchers.forEach((voucher: any) => {
+      if (voucher.linked_transaction_id && !map.has(voucher.linked_transaction_id)) {
+        map.set(voucher.linked_transaction_id, voucher);
+      }
+    });
+
+    return map;
+  }, [paymentVouchers]);
 
   // Unify all deduction rows
   const allRows = useMemo(() => {
@@ -132,82 +292,111 @@ export default function HRDeductionsPage() {
     }[] = [];
 
     // Manual deductions
-    manualDeductions.forEach(d => {
+    manualDeductions.forEach((deduction: any) => {
+      const employee = employeeDirectory.byId[deduction.employee_id] || resolveEmployeeByDescription(deduction.description || "");
       rows.push({
-        id: d.id,
-        employeeName: d.employees?.full_name || "—",
-        employeeDept: d.employees?.department || "",
-        employeeBranch: d.employees?.branch || "",
-        type: d.deduction_type || "أخرى",
-        description: d.description || "",
-        amount: Number(d.amount),
-        date: d.deduction_date || d.created_at?.split("T")[0] || "",
+        id: deduction.id,
+        employeeName: deduction.employees?.full_name || employee?.name || "—",
+        employeeDept: deduction.employees?.department || employee?.dept || "",
+        employeeBranch: branchMap[deduction.employees?.branch_id] || employee?.branch || "",
+        type: deduction.deduction_type || "أخرى",
+        description: deduction.description || deduction.notes || "",
+        amount: Number(deduction.amount || 0),
+        date: deduction.deduction_date || deduction.created_at?.split("T")[0] || "",
         source: "خصم يدوي",
         sourceId: null,
-        status: d.status || "معتمد للخصم",
+        status: deduction.status || "معتمد للخصم",
       });
     });
 
-    // Payment vouchers from vouchers table
-    paymentVouchers.forEach(v => {
-      // Extract employee name from description (format: "type - employee name")
-      const descParts = (v.description || "").split(" - ");
-      const empName = descParts.length > 1 ? descParts.slice(1).join(" - ").split(" | ")[0].trim() : v.description || "—";
-      const deductionType = descParts[0]?.trim() || "سند صرف";
-      const matchedEmp = employees.find(e => v.description?.includes(e.full_name));
+    // Employee payment transactions + linked vouchers
+    employeeTransactions.forEach((transaction: any) => {
+      const employee = resolveEmployeeByTransaction(transaction);
+      if (!employee) return;
+
+      const linkedVoucher = latestVoucherByTransactionId.get(transaction.id);
+      const description = linkedVoucher?.description || transaction.description || linkedVoucher?.notes || "";
+      const deductionType = description.split(" - ")[0]?.split("|")[0]?.trim() || "سند صرف";
+
       rows.push({
-        id: `pv-${v.id}`,
-        employeeName: matchedEmp?.full_name || empName,
-        employeeDept: matchedEmp?.department || "",
-        employeeBranch: matchedEmp?.branch || "",
+        id: `tx-${transaction.id}`,
+        employeeName: employee.name,
+        employeeDept: employee.dept,
+        employeeBranch: employee.branch,
         type: deductionType,
-        description: v.description || v.notes || "",
-        amount: Number(v.amount),
-        date: v.date || v.created_at?.split("T")[0] || "",
+        description,
+        amount: Number(linkedVoucher?.amount ?? transaction.amount ?? 0),
+        date: linkedVoucher?.date || transaction.transaction_date || linkedVoucher?.created_at?.split("T")[0] || "",
         source: "سند صرف",
-        sourceId: v.id,
-        status: v.status === "posted" ? "مرحّل" : "مسودة",
+        sourceId: linkedVoucher?.id || null,
+        status: linkedVoucher?.status === "draft" ? "مسودة" : "مرحّل",
+      });
+    });
+
+    // Legacy employee vouchers without linked_transaction_id
+    paymentVouchers.forEach((voucher: any) => {
+      if (voucher.linked_transaction_id) return;
+
+      const employee = resolveEmployeeByDescription(voucher.description || voucher.notes || "");
+      if (!employee) return;
+
+      const deductionType = (voucher.description || voucher.notes || "").split(" - ")[0]?.split("|")[0]?.trim() || "سند صرف";
+
+      rows.push({
+        id: `pv-${voucher.id}`,
+        employeeName: employee.name,
+        employeeDept: employee.dept,
+        employeeBranch: employee.branch,
+        type: deductionType,
+        description: voucher.description || voucher.notes || "",
+        amount: Number(voucher.amount || 0),
+        date: voucher.date || voucher.created_at?.split("T")[0] || "",
+        source: "سند صرف",
+        sourceId: voucher.id,
+        status: voucher.status === "draft" ? "مسودة" : "مرحّل",
       });
     });
 
     // POS employee-account
-    posTransactions.forEach(p => {
-      const empName = p.employee_name || p.customer_name || "—";
+    posTransactions.forEach((posTransaction: any) => {
+      const employee = resolveEmployeeByDescription(posTransaction.employee_name || posTransaction.customer_name || "");
+      const employeeName = employee?.name || posTransaction.employee_name || posTransaction.customer_name || "—";
+
       rows.push({
-        id: `pos-${p.id}`,
-        employeeName: empName,
-        employeeDept: "",
-        employeeBranch: "",
+        id: `pos-${posTransaction.id}`,
+        employeeName,
+        employeeDept: employee?.dept || "",
+        employeeBranch: employee?.branch || "",
         type: "أكل / POS",
-        description: `فاتورة POS #${p.invoice_number || ""}`,
-        amount: Number(p.total || p.grand_total || 0),
-        date: p.created_at?.split("T")[0] || "",
+        description: `فاتورة POS #${posTransaction.invoice_number || ""}`,
+        amount: Number(posTransaction.total || posTransaction.grand_total || 0),
+        date: posTransaction.created_at?.split("T")[0] || "",
         source: "نقطة البيع",
-        sourceId: p.id,
+        sourceId: posTransaction.id,
         status: "مرحّل",
       });
     });
 
     // Advances
-    advances.forEach(a => {
-      const emp = a.employees || {};
+    advances.forEach((advance: any) => {
+      const employee = employeeDirectory.byId[advance.employee_id] || resolveEmployeeByDescription(advance.notes || "");
       rows.push({
-        id: `adv-${a.id}`,
-        employeeName: emp.full_name || "—",
-        employeeDept: emp.department || "",
-        employeeBranch: emp.branch || "",
-        type: a.advance_type === "قرض_حسن" ? "قرض حسن" : "سلفة",
-        description: a.reason || "",
-        amount: Number(a.amount),
-        date: a.created_at?.split("T")[0] || "",
-        source: a.advance_type === "قرض_حسن" ? "قرض حسن" : "سلفة",
-        sourceId: a.id,
-        status: a.status === "approved" ? "نشط" : a.status,
+        id: `adv-${advance.id}`,
+        employeeName: advance.employees?.full_name || employee?.name || "—",
+        employeeDept: advance.employees?.department || employee?.dept || "",
+        employeeBranch: branchMap[advance.employees?.branch_id] || employee?.branch || "",
+        type: advance.advance_type === "قرض_حسن" ? "قرض حسن" : "سلفة",
+        description: advance.notes || "",
+        amount: Number(advance.amount || 0),
+        date: advance.payment_date || advance.approved_date || advance.created_at?.split("T")[0] || "",
+        source: advance.advance_type === "قرض_حسن" ? "قرض حسن" : "سلفة",
+        sourceId: advance.id,
+        status: advance.status === "approved" ? "نشط" : advance.status,
       });
     });
 
-    return rows;
-  }, [manualDeductions, paymentVouchers, posTransactions, advances, empMap]);
+    return rows.sort((a, b) => (b.date || "").localeCompare(a.date || "") || b.id.localeCompare(a.id));
+  }, [manualDeductions, employeeTransactions, latestVoucherByTransactionId, paymentVouchers, posTransactions, advances, employeeDirectory, branchMap]);
 
   // Unique types for filter
   const uniqueTypes = useMemo(() => {
