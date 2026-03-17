@@ -22,6 +22,7 @@ import BranchesSettingsSection from "@/components/settings/BranchesSettingsSecti
 
 const sections = [
   { id: "company", label: "الشركة", icon: Building2, ready: true, keywords: "شركة اسم عنوان هاتف بريد ضريبة عملة تقويم سنة مالية لوغو" },
+  { id: "branches", label: "الأفرع", icon: GitBranch, ready: true, keywords: "فرع أفرع موقع فروع سفيان فيصل رام الله" },
   { id: "user", label: "المستخدمون", icon: User, ready: true, keywords: "مستخدم صلاحيات دور موظف فريق" },
   { id: "finance", label: "المالية", icon: Wallet, ready: true, keywords: "مالية حسابات قيود محاسبة ميزان" },
   { id: "invoices", label: "الفواتير", icon: FileText, ready: true, keywords: "فاتورة فواتير قالب ضريبة خصم" },
