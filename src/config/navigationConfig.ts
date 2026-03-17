@@ -224,7 +224,7 @@ export const navigationSections: NavSection[] = [
       },
       {
         id: "ecommerce", label: "إدارة المتاجر الإلكترونية", description: "إدارة مالية للمتاجر والصفحات الإلكترونية", module: "sales", icon: Store,
-        color: "text-amber-500", bgColor: "bg-amber-500/10", path: "/orders", isDirect: true,
+        color: "text-[#1B3A5C]", bgColor: "bg-[#1B3A5C]/8", path: "/orders", isDirect: true,
         keywords: ["متجر", "طلبات", "إلكتروني"],
       },
     ],
