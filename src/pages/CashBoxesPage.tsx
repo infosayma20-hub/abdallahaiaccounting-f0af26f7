@@ -100,7 +100,7 @@ const CashBoxesPage = () => {
       petty_cash: "linear-gradient(135deg, #92400E, #D97706)",
     };
     const typeLabels: Record<string, string> = { main: "رئيسي", branch: "فرع", pos: "نقطة بيع", petty: "نثرية", petty_cash: "نثرية" };
-    const TypeIcon = box.type === "main" ? Landmark : box.type === "branch" ? Building2 : box.type === "petty" ? Wallet : Monitor;
+    const TypeIcon = box.type === "main" ? Landmark : box.type === "branch" ? Building2 : (box.type === "petty" || box.type === "petty_cash") ? Wallet : Monitor;
 
     return (
       <Card className="overflow-hidden min-w-[280px]">
