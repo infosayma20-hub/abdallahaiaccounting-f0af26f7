@@ -1313,6 +1313,22 @@ const InvoiceCreatePage = () => {
           <div className="flex justify-end gap-2 mt-3"><Button variant="outline" onClick={() => setShowQuickAdd(false)}>إلغاء</Button><Button onClick={handleQuickAddProduct}>إضافة المنتج</Button></div>
         </DialogContent>
       </Dialog>
+
+      {/* Quick Add Sales Rep Dialog */}
+      <Dialog open={showQuickAddRep} onOpenChange={setShowQuickAddRep}>
+        <DialogContent dir="rtl" className="max-w-sm">
+          <DialogHeader><DialogTitle>تعريف مندوب جديد</DialogTitle><DialogDescription>أضف مندوب مبيعات واربطه بالفاتورة مباشرة</DialogDescription></DialogHeader>
+          <div className="space-y-3">
+            <div><label className="text-xs text-muted-foreground">اسم المندوب *</label><Input value={quickRepForm.full_name} onChange={e => setQuickRepForm({ ...quickRepForm, full_name: e.target.value })} className="rounded-xl" placeholder="الاسم الكامل" /></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><label className="text-xs text-muted-foreground">الهاتف</label><Input value={quickRepForm.phone} onChange={e => setQuickRepForm({ ...quickRepForm, phone: e.target.value })} className="rounded-xl" dir="ltr" placeholder="05xxxxxxxx" /></div>
+              <div><label className="text-xs text-muted-foreground">المنطقة</label><Input value={quickRepForm.region} onChange={e => setQuickRepForm({ ...quickRepForm, region: e.target.value })} className="rounded-xl" placeholder="مثال: رام الله" /></div>
+            </div>
+            <div><label className="text-xs text-muted-foreground">نسبة العمولة %</label><Input type="number" value={quickRepForm.sales_commission_rate} onChange={e => setQuickRepForm({ ...quickRepForm, sales_commission_rate: Number(e.target.value) })} className="rounded-xl w-32" dir="ltr" min={0} max={100} /></div>
+          </div>
+          <div className="flex justify-end gap-2 mt-3"><Button variant="outline" onClick={() => setShowQuickAddRep(false)}>إلغاء</Button><Button onClick={handleQuickAddRep}>إضافة المندوب</Button></div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
