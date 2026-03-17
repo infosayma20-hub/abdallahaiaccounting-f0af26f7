@@ -37,7 +37,7 @@ const FinanceJournalPage = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingVoucherId, setEditingVoucherId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [filterStatus, setFilterStatus] = useState("all");
+  const [filterStatus, setFilterStatus] = useState("active");
   const [saving, setSaving] = useState(false);
 
   // Duplicate
