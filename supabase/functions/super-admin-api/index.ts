@@ -240,6 +240,9 @@ Deno.serve(async (req) => {
         });
       }
 
+      // Clear auth_user_id from employees table so it shows "create account" again
+      await admin.from("employees").update({ auth_user_id: null }).eq("auth_user_id", targetUserId);
+
       const { error } = await admin.auth.admin.deleteUser(targetUserId);
       if (error) {
         return new Response(JSON.stringify({ error: error.message }), {
