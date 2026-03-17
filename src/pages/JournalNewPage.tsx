@@ -146,8 +146,9 @@ const JournalNewPage = () => {
         return { ...l, account_code: value, account_name: acct?.account_name || "" };
       }
       if (field === "contact_id") {
-        const c = contacts.find(c => c.id === value);
-        return { ...l, contact_id: value, contact_name: c?.contact_name || "" };
+        const cleanVal = value === "__none__" ? "" : value;
+        const c = contacts.find(c => c.id === cleanVal);
+        return { ...l, contact_id: cleanVal, contact_name: c?.contact_name || "" };
       }
       return { ...l, [field]: value };
     }));
