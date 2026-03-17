@@ -451,10 +451,10 @@ const PayrollPage = () => {
           <Button variant="outline" size="sm" onClick={() => navigate("/payroll/inputs")}>
             <ClipboardEdit className="h-4 w-4 ml-1" /> إدخال البيانات
           </Button>
-          {pendingEmployees.length > 0 && hasInputs && (
-            <Button onClick={handleRunPayroll} disabled={runningPayroll} size="sm">
-              {runningPayroll ? <Loader2 className="h-4 w-4 animate-spin ml-1" /> : <Play className="h-4 w-4 ml-1" />}
-              تشغيل المسير ({pendingEmployees.length})
+          {unprocessedEmployees.length > 0 && (
+            <Button onClick={handleAutoRunPayroll} disabled={runningPayroll} size="sm" className="bg-primary">
+              {runningPayroll ? <Loader2 className="h-4 w-4 animate-spin ml-1" /> : <Zap className="h-4 w-4 ml-1" />}
+              احتساب الرواتب تلقائياً ({unprocessedEmployees.length})
             </Button>
           )}
           <Button variant="outline" size="sm" onClick={exportExcel} disabled={!payrollRecords?.length}>
