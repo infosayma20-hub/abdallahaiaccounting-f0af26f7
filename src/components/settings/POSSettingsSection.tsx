@@ -6,6 +6,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import type { CompanySettings } from "@/hooks/useCompanySettings";
 import KitchenStationsManager from "./KitchenStationsManager";
+import NetworkPrintersManager from "./NetworkPrintersManager";
 
 interface Props {
   settings: CompanySettings;
