@@ -630,6 +630,11 @@ const TrialBalancePage = () => {
                   <td colSpan={3} className="px-4 py-4 text-sm font-bold text-foreground text-right">
                     الإجمالي الكلي
                   </td>
+                  {dateFrom && (
+                    <td className="px-3 py-4 text-sm font-bold text-amber-600 dark:text-amber-400 tabular-nums text-left">
+                      ₪{(grandOpeningDebit - grandOpeningCredit) !== 0 ? Math.abs(grandOpeningDebit - grandOpeningCredit).toLocaleString() : "0"}
+                    </td>
+                  )}
                   <td className="px-4 py-4 text-sm font-bold text-primary tabular-nums text-left">
                     ₪{grandTotalDebit.toLocaleString()}
                   </td>
@@ -639,6 +644,11 @@ const TrialBalancePage = () => {
                   <td className={`px-4 py-4 text-sm font-bold tabular-nums text-left ${isBalanced ? "text-primary" : "text-destructive"}`}>
                     {isBalanced ? "✅ 0" : `₪${Math.abs(grandTotalDebit - grandTotalCredit).toLocaleString()}`}
                   </td>
+                  {dateFrom && (
+                    <td className="px-3 py-4 text-sm font-bold text-emerald-600 dark:text-emerald-400 tabular-nums text-left">
+                      ₪{(grandClosingDebit - grandClosingCredit) !== 0 ? Math.abs(grandClosingDebit - grandClosingCredit).toLocaleString() : "0"}
+                    </td>
+                  )}
                   {showComparison && (
                     <>
                       <td className="px-3 py-4 text-[10px] font-bold text-muted-foreground tabular-nums text-left">
