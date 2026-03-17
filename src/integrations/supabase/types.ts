@@ -6293,6 +6293,54 @@ export type Database = {
           },
         ]
       }
+      pos_printers: {
+        Row: {
+          created_at: string | null
+          id: string
+          ip_address: string
+          is_active: boolean | null
+          is_default: boolean | null
+          name: string
+          paper_width: number
+          port: number
+          print_categories: string[] | null
+          printer_type: string
+          station_ids: string[] | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          ip_address: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          name: string
+          paper_width?: number
+          port?: number
+          print_categories?: string[] | null
+          printer_type?: string
+          station_ids?: string[] | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          ip_address?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          name?: string
+          paper_width?: number
+          port?: number
+          print_categories?: string[] | null
+          printer_type?: string
+          station_ids?: string[] | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       pos_purchases: {
         Row: {
           created_at: string
