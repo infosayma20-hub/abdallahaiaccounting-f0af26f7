@@ -145,6 +145,10 @@ const JournalNewPage = () => {
         const acct = accounts.find(a => a.account_code === value);
         return { ...l, account_code: value, account_name: acct?.account_name || "" };
       }
+      if (field === "contact_id") {
+        const c = contacts.find(c => c.id === value);
+        return { ...l, contact_id: value, contact_name: c?.contact_name || "" };
+      }
       return { ...l, [field]: value };
     }));
   };
