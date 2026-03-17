@@ -493,11 +493,17 @@ const TrialBalancePage = () => {
               <thead>
                 <tr className="border-b-2 border-primary/20 bg-muted/40">
                   <th className="text-right px-4 py-3.5 text-[11px] font-bold text-muted-foreground uppercase tracking-wider w-[80px]">الكود</th>
-                  <th className="text-right px-4 py-3.5 text-[11px] font-bold text-muted-foreground uppercase tracking-wider min-w-[200px]">اسم الحساب</th>
-                  <th className="text-right px-4 py-3.5 text-[11px] font-bold text-muted-foreground uppercase tracking-wider w-[120px]">النوع</th>
-                  <th className="text-left px-4 py-3.5 text-[11px] font-bold text-primary uppercase tracking-wider w-[130px]">مدين (₪)</th>
-                  <th className="text-left px-4 py-3.5 text-[11px] font-bold text-destructive uppercase tracking-wider w-[130px]">دائن (₪)</th>
-                  <th className="text-left px-4 py-3.5 text-[11px] font-bold text-foreground uppercase tracking-wider w-[130px]">الرصيد (₪)</th>
+                  <th className="text-right px-4 py-3.5 text-[11px] font-bold text-muted-foreground uppercase tracking-wider min-w-[180px]">اسم الحساب</th>
+                  <th className="text-right px-4 py-3.5 text-[11px] font-bold text-muted-foreground uppercase tracking-wider w-[100px]">النوع</th>
+                  {dateFrom && (
+                    <th className="text-left px-3 py-3.5 text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider w-[110px]">رصيد افتتاحي</th>
+                  )}
+                  <th className="text-left px-4 py-3.5 text-[11px] font-bold text-primary uppercase tracking-wider w-[110px]">مدين (₪)</th>
+                  <th className="text-left px-4 py-3.5 text-[11px] font-bold text-destructive uppercase tracking-wider w-[110px]">دائن (₪)</th>
+                  <th className="text-left px-4 py-3.5 text-[11px] font-bold text-foreground uppercase tracking-wider w-[110px]">الرصيد (₪)</th>
+                  {dateFrom && (
+                    <th className="text-left px-3 py-3.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider w-[110px]">رصيد ختامي</th>
+                  )}
                   {showComparison && (
                     <>
                       <th className="text-left px-3 py-3.5 text-[10px] font-bold text-muted-foreground uppercase tracking-wider w-[100px]">مدين سابق</th>
