@@ -74,7 +74,7 @@ const CashBoxesPage = () => {
   const mainBoxes = useMemo(() => boxes.filter(b => b.type === "main"), [boxes]);
   const branchBoxes = useMemo(() => boxes.filter(b => b.type === "branch"), [boxes]);
   const posBoxes = useMemo(() => boxes.filter(b => b.type === "pos"), [boxes]);
-  const pettyBoxes = useMemo(() => boxes.filter(b => b.type === "petty"), [boxes]);
+  const pettyBoxes = useMemo(() => boxes.filter(b => b.type === "petty" || b.type === "petty_cash"), [boxes]);
 
   const totalBalance = useMemo(() => Object.values(balances).reduce((s, b) => s + b.balance, 0), [balances]);
   const mainBalance = useMemo(() => mainBoxes.reduce((s, b) => s + (balances[b.gl_account_code]?.balance || 0), 0), [mainBoxes, balances]);
