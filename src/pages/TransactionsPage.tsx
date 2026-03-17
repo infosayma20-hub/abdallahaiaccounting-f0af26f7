@@ -599,362 +599,353 @@ const TransactionsPage = () => {
   }
 
   return (
-    <div className="flex flex-col h-full bg-white" dir="rtl">
-      {/* ━━━ HEADER ━━━ */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-[#E2E8F0]">
+    <div className="p-4 md:p-6 pb-24 space-y-5" dir="rtl">
+      {/* Header */}
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <button onClick={() => window.history.length > 2 ? navigate(-1) : navigate("/apps")} className="p-2 rounded-lg hover:bg-[#F1F5F9] transition-colors">
-            <ArrowRight className="h-5 w-5 text-[#1A2332]" />
+          <button onClick={() => window.history.length > 2 ? navigate(-1) : navigate("/apps")} className="w-9 h-9 rounded-full bg-muted/60 flex items-center justify-center hover:bg-muted transition-all shadow-sm">
+            <ArrowRight className="h-4 w-4 text-muted-foreground" />
           </button>
-          <div>
-            <h1 className="text-xl font-semibold text-[#1A2332] tracking-tight">تقرير الحركات المحاسبية</h1>
-            <p className="text-sm text-[#637381] mt-0.5">
-              {filteredTransactions.length} قيد
-              {" • "}
-              <span className="text-[#1A56DB] font-medium">مدين: ₪{totalDebit.toFixed(2)}</span>
-              {" • "}
-              <span className="text-[#0E9F6E] font-medium">دائن: ₪{totalCredit.toFixed(2)}</span>
-            </p>
+          <div className="flex items-center gap-2">
+            <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
+              <CalendarDays className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-foreground">تقرير الحركات المحاسبية</h1>
+              <p className="text-xs text-muted-foreground">
+                {filteredTransactions.length} قيد • <span className="text-primary font-medium">مدين: ₪{totalDebit.toFixed(2)}</span> • <span className="text-emerald-500 font-medium">دائن: ₪{totalCredit.toFixed(2)}</span>
+              </p>
+            </div>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" className="gap-1.5 text-sm text-[#374151] border-[#D1D5DB]" onClick={() => setShowTrash(true)}>
-            <Archive className="w-4 h-4" />
-            المحذوفات
+          <Button variant="outline" size="sm" className="gap-1.5 rounded-xl text-xs" onClick={() => setShowTrash(true)}>
+            <Archive className="w-3.5 h-3.5" /> المحذوفات
           </Button>
-          <Button variant="outline" size="sm" className="gap-1.5 text-sm text-[#374151] border-[#D1D5DB]" onClick={handleExportExcel}>
-            <Download className="w-4 h-4" />
-            Excel
+          <Button variant="outline" size="sm" className="gap-1.5 rounded-xl text-xs" onClick={handleExportExcel}>
+            <Download className="w-3.5 h-3.5" /> Excel
           </Button>
-          <Button variant="outline" size="sm" className="gap-1.5 text-sm text-[#374151] border-[#D1D5DB]" onClick={handlePrint}>
-            <Printer className="w-4 h-4" />
-            طباعة
+          <Button variant="outline" size="sm" className="gap-1.5 rounded-xl text-xs" onClick={handlePrint}>
+            <Printer className="w-3.5 h-3.5" /> طباعة
           </Button>
         </div>
       </div>
 
-      {/* ━━━ FILTERS BAR ━━━ */}
-      <div className="flex items-center gap-3 px-6 py-3 bg-[#F8F9FA] border-b border-[#E2E8F0] flex-wrap">
-        <div className="flex items-center gap-1.5">
-          <CalendarDays className="w-4 h-4 text-[#94A3B8]" />
-          <select
-            value={dateFilter}
-            onChange={e => setDateFilter(e.target.value)}
-            className="text-sm border border-[#D1D5DB] rounded-lg px-3 py-1.5 bg-white text-[#374151] focus:border-[#1A56DB] focus:ring-1 focus:ring-[#1A56DB] outline-none"
-          >
-            <option value="all">كل الفترات</option>
-            <option value="today">اليوم</option>
-            <option value="this_week">هذا الأسبوع</option>
-            <option value="this_month">هذا الشهر</option>
-            <option value="last_month">الشهر السابق</option>
-          </select>
-        </div>
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {[
+          { label: "إجمالي القيود", value: filteredTransactions.length, icon: CalendarDays, color: "text-primary", bg: "bg-primary/5 border-primary/10" },
+          { label: "المدين", value: `₪${totalDebit.toFixed(2)}`, icon: ArrowRight, color: "text-primary", bg: "bg-primary/5 border-primary/10" },
+          { label: "الدائن", value: `₪${totalCredit.toFixed(2)}`, icon: ArrowRight, color: "text-emerald-500", bg: "bg-emerald-50 border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800" },
+          { label: "التوازن", value: isBalanced ? "✅ متطابق" : `⚠️ فرق: ₪${Math.abs(totalDebit - totalCredit).toFixed(2)}`, icon: CheckSquare, color: isBalanced ? "text-emerald-500" : "text-destructive", bg: isBalanced ? "bg-emerald-50 border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800" : "bg-destructive/5 border-destructive/10" },
+        ].map((k, i) => (
+          <div key={i} className={`rounded-2xl border p-4 ${k.bg}`}>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-[10px] text-muted-foreground font-medium mb-1">{k.label}</p>
+                <p className={`text-lg font-bold ${k.color}`}>{k.value}</p>
+              </div>
+              <k.icon className={`h-5 w-5 ${k.color} opacity-50`} />
+            </div>
+          </div>
+        ))}
+      </div>
 
-        <select
-          value={typeFilter}
-          onChange={e => setTypeFilter(e.target.value)}
-          className="text-sm border border-[#D1D5DB] rounded-lg px-3 py-1.5 bg-white text-[#374151] focus:border-[#1A56DB] focus:ring-1 focus:ring-[#1A56DB] outline-none"
-        >
-          <option value="all">كل الأنواع</option>
-          {uniqueTypes.map(t => (
-            <option key={t} value={t}>{typeBadgeConfig[t]?.label || t}</option>
-          ))}
-        </select>
-
-        <select
-          value={accountFilter}
-          onChange={e => setAccountFilter(e.target.value)}
-          className="text-sm border border-[#D1D5DB] rounded-lg px-3 py-1.5 bg-white text-[#374151] focus:border-[#1A56DB] focus:ring-1 focus:ring-[#1A56DB] outline-none max-w-[200px]"
-        >
-          <option value="all">كل الحسابات</option>
-          {usedAccounts.map(a => (
-            <option key={a.account_code} value={a.account_code}>{a.account_code} - {a.account_name}</option>
-          ))}
-        </select>
-
-        <div className="flex-1 relative min-w-[180px]">
-          <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#94A3B8]" />
-          <input
+      {/* Toolbar */}
+      <div className="space-y-3">
+        {/* Search */}
+        <div className="relative">
+          <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 pointer-events-none" />
+          <Input
+            placeholder="ابحث بالمرجع، الوصف، الحساب..."
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            placeholder="ابحث بالمرجع، الوصف، الحساب..."
-            className="w-full pr-9 pl-3 py-1.5 text-sm border border-[#D1D5DB] rounded-lg bg-white focus:border-[#1A56DB] focus:ring-1 focus:ring-[#1A56DB] outline-none"
+            className="pr-10 rounded-xl bg-muted/30"
           />
+          {searchQuery && (
+            <button onClick={() => setSearchQuery("")} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
 
-        <span className="text-xs text-[#637381] whitespace-nowrap">{filteredTransactions.length} نتيجة</span>
-
-        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={fetchData} disabled={loading}>
-          <RefreshCw className={`h-4 w-4 text-[#637381] ${loading ? "animate-spin" : ""}`} />
-        </Button>
+        {/* Type pills + date/account filters */}
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex gap-2 overflow-x-auto pb-1 flex-1">
+            <button onClick={() => setTypeFilter("all")} className={`px-4 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${typeFilter === "all" ? "bg-primary text-primary-foreground shadow-sm" : "bg-muted/50 text-muted-foreground hover:bg-muted"}`}>
+              الكل
+            </button>
+            {uniqueTypes.slice(0, 8).map(t => (
+              <button key={t} onClick={() => setTypeFilter(t)} className={`px-4 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${typeFilter === t ? "bg-primary text-primary-foreground shadow-sm" : "bg-muted/50 text-muted-foreground hover:bg-muted"}`}>
+                {typeBadgeConfig[t]?.label || t}
+              </button>
+            ))}
+          </div>
+          <Select value={dateFilter} onValueChange={setDateFilter}>
+            <SelectTrigger className="w-[140px] rounded-xl text-xs">
+              <SelectValue placeholder="الفترة" />
+            </SelectTrigger>
+            <SelectContent className="bg-background z-50">
+              <SelectItem value="all">كل الفترات</SelectItem>
+              <SelectItem value="today">اليوم</SelectItem>
+              <SelectItem value="this_week">هذا الأسبوع</SelectItem>
+              <SelectItem value="this_month">هذا الشهر</SelectItem>
+              <SelectItem value="last_month">الشهر السابق</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={accountFilter} onValueChange={setAccountFilter}>
+            <SelectTrigger className="w-[180px] rounded-xl text-xs">
+              <SelectValue placeholder="كل الحسابات" />
+            </SelectTrigger>
+            <SelectContent className="bg-background z-50 max-h-48">
+              <SelectItem value="all">كل الحسابات</SelectItem>
+              {usedAccounts.map(a => (
+                <SelectItem key={a.account_code} value={a.account_code}>{a.account_code} - {a.account_name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
-      {/* ━━ Bulk selection bar ━━ */}
+      {/* Bulk selection bar */}
       {selectedIds.size > 0 && (
-        <div className="flex items-center justify-between px-6 py-2 bg-[#EFF6FF] border-b border-[#BFDBFE]">
-          <span className="text-sm text-[#1E40AF] font-medium">تم تحديد {selectedIds.size} قيد</span>
+        <div className="flex items-center justify-between px-4 py-2 bg-primary/5 border border-primary/20 rounded-xl">
+          <span className="text-sm text-primary font-medium">تم تحديد {selectedIds.size} قيد</span>
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" className="text-[#1E40AF]" onClick={() => setSelectedIds(new Set())}>إلغاء التحديد</Button>
-            <Button variant="destructive" size="sm" className="gap-1.5" onClick={() => setShowBulkDeleteConfirm(true)}>
-              <Trash2 className="h-3.5 w-3.5" />
-              حذف ({selectedIds.size})
+            <Button variant="ghost" size="sm" className="text-primary" onClick={() => setSelectedIds(new Set())}>إلغاء التحديد</Button>
+            <Button variant="destructive" size="sm" className="gap-1.5 rounded-xl" onClick={() => setShowBulkDeleteConfirm(true)}>
+              <Trash2 className="h-3.5 w-3.5" /> حذف ({selectedIds.size})
             </Button>
           </div>
         </div>
       )}
 
-      {/* ━━━ TABLE ━━━ */}
-      <div className="flex-1 overflow-x-hidden overflow-y-auto">
-        {loading && (
-          <div className="flex items-center justify-center py-20">
-            <Loader2 className="h-8 w-8 animate-spin text-[#1A56DB]" />
+      {/* Loading */}
+      {loading && (
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        </div>
+      )}
+
+      {/* Error */}
+      {error && (
+        <div className="text-center py-16">
+          <AlertTriangle className="h-10 w-10 text-destructive mx-auto mb-2" />
+          <p className="text-sm text-destructive">{error}</p>
+          <Button variant="outline" size="sm" className="mt-3 rounded-xl" onClick={fetchData}>إعادة المحاولة</Button>
+        </div>
+      )}
+
+      {/* Empty */}
+      {!loading && !error && filteredTransactions.length === 0 && (
+        <div className="text-center py-16">
+          <div className="w-20 h-20 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-4">
+            <Search className="h-10 w-10 text-muted-foreground/40" />
           </div>
-        )}
+          <p className="text-sm text-muted-foreground mb-3">لا توجد قيود مطابقة</p>
+          <Button variant="ghost" size="sm" onClick={() => { setSearchQuery(""); setTypeFilter("all"); setAccountFilter("all"); setDateFilter("all"); }}>مسح الفلاتر</Button>
+        </div>
+      )}
 
-        {error && (
-          <div className="text-center py-16">
-            <p className="text-sm text-[#DC2626]">{error}</p>
-            <Button variant="outline" size="sm" className="mt-3" onClick={fetchData}>إعادة المحاولة</Button>
-          </div>
-        )}
+      {/* TABLE */}
+      {!loading && !error && paginatedTransactions.length > 0 && (
+        <div className="rounded-2xl border border-border/50 overflow-hidden shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <colgroup>
+                <col className="w-[3%]" />
+                <col className="w-[10%]" />
+                <col className="w-[12%]" />
+                <col style={{ width: 'auto' }} />
+                <col className="w-[10%]" />
+                <col className="w-[11%]" />
+                <col className="w-[11%]" />
+                <col className="w-[4%]" />
+              </colgroup>
+              <thead>
+                <tr className="bg-primary text-primary-foreground">
+                  <th className="px-2 py-3 text-center">
+                    <Checkbox
+                      checked={selectedIds.size === paginatedTransactions.length && paginatedTransactions.length > 0}
+                      onCheckedChange={toggleSelectAll}
+                    />
+                  </th>
+                  <th className="px-3 py-3 text-right text-xs font-semibold cursor-pointer" onClick={() => toggleSort("date")}>
+                    <div className="flex items-center gap-1">التاريخ <SortIcon field="date" /></div>
+                  </th>
+                  <th className="px-3 py-3 text-right text-xs font-semibold">المرجع</th>
+                  <th className="px-3 py-3 text-right text-xs font-semibold">الوصف / الحسابات</th>
+                  <th className="px-3 py-3 text-right text-xs font-semibold">النوع</th>
+                  <th className="px-3 py-3 text-right text-xs font-semibold cursor-pointer" onClick={() => toggleSort("debit")}>
+                    <div className="flex items-center justify-end gap-1"><SortIcon field="debit" /> مدين ₪</div>
+                  </th>
+                  <th className="px-3 py-3 text-right text-xs font-semibold cursor-pointer" onClick={() => toggleSort("credit")}>
+                    <div className="flex items-center justify-end gap-1"><SortIcon field="credit" /> دائن ₪</div>
+                  </th>
+                  <th className="px-3 py-3 w-10"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {paginatedTransactions.map((tx, i) => {
+                  const isExpanded = expandedIds.has(tx.id);
+                  const isSelected = selectedIds.has(tx.id);
+                  return (
+                    <tr key={tx.id} className="contents">
+                      <tr
+                        className={`group border-b border-border/50 transition-colors cursor-pointer ${i % 2 === 0 ? "bg-background" : "bg-muted/20"} ${isSelected ? "bg-primary/5" : ""} hover:bg-primary/5`}
+                        onClick={() => toggleExpand(tx.id)}
+                      >
+                        <td className="px-2 py-3 text-center" onClick={e => e.stopPropagation()}>
+                          <Checkbox checked={isSelected} onCheckedChange={() => toggleSelect(tx.id)} />
+                        </td>
+                        <td className="px-3 py-3">
+                          <span className="text-xs text-foreground tabular-nums">{formatDate(tx.transaction_date)}</span>
+                        </td>
+                        <td className="px-3 py-3 overflow-hidden">
+                          <button
+                            onClick={e => { e.stopPropagation(); openEdit(tx); }}
+                            title={tx.reference || ""}
+                            className="text-primary hover:underline font-mono text-xs cursor-pointer bg-transparent border-none p-0 truncate block max-w-full text-right"
+                          >
+                            {tx.reference || "—"}
+                          </button>
+                        </td>
+                        <td className="px-3 py-3 overflow-hidden">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <ChevronRightIcon className={`w-3.5 h-3.5 text-muted-foreground transition-transform flex-shrink-0 ${isExpanded ? "rotate-90" : ""}`} />
+                            <span title={tx.description || ""} className="text-sm text-foreground font-medium truncate">{tx.description || "بدون وصف"}</span>
+                          </div>
+                        </td>
+                        <td className="px-3 py-3">
+                          <TypeBadge type={tx.transaction_type} />
+                        </td>
+                        <td className="px-3 py-3 text-left">
+                          <span className="font-mono font-semibold text-sm text-primary">₪{tx.amount?.toFixed(2)}</span>
+                        </td>
+                        <td className="px-3 py-3 text-left">
+                          <span className="font-mono font-semibold text-sm text-emerald-500">₪{tx.amount?.toFixed(2)}</span>
+                        </td>
+                        <td className="px-3 py-3 text-center" onClick={e => e.stopPropagation()}>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <button className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
+                                <MoreVertical className="w-4 h-4" />
+                              </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => openEdit(tx)}>
+                                <Pencil className="h-4 w-4 ml-2" /> تعديل
+                              </DropdownMenuItem>
+                              <DropdownMenuItem className="text-destructive" onClick={() => { setEditingTx(tx); setShowDeleteConfirm(true); }}>
+                                <Trash2 className="h-4 w-4 ml-2" /> حذف
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </td>
+                      </tr>
 
-        {!loading && !error && filteredTransactions.length === 0 && (
-          <div className="text-center py-20 space-y-2">
-            <p className="text-sm text-[#637381]">لا توجد قيود مطابقة</p>
-          </div>
-        )}
-
-        {!loading && !error && filteredTransactions.length > 0 && (
-          <table className="w-full border-collapse table-fixed">
-            <colgroup>
-              <col className="w-[3%]" />
-              <col className="w-[9%]" />
-              <col className="w-[12%]" />
-              <col style={{ width: 'auto' }} />
-              <col className="w-[10%]" />
-              <col className="w-[11%]" />
-              <col className="w-[11%]" />
-              <col className="w-[4%]" />
-            </colgroup>
-            {/* ━━ Header ━━ */}
-            <thead className="sticky top-0 z-10">
-              <tr className="bg-[#F8F9FA] border-b-2 border-[#E2E8F0]">
-                <th className="px-2 py-2.5 text-center">
-                  <Checkbox
-                    checked={selectedIds.size === paginatedTransactions.length && paginatedTransactions.length > 0}
-                    onCheckedChange={toggleSelectAll}
-                  />
-                </th>
-                <th
-                  className="text-right px-2 py-2.5 text-xs font-semibold text-[#637381] uppercase tracking-wider cursor-pointer hover:bg-[#EFF6FF] select-none"
-                  onClick={() => toggleSort("date")}
-                >
-                  <div className="flex items-center gap-1">التاريخ <SortIcon field="date" /></div>
-                </th>
-                <th className="text-right px-2 py-2.5 text-xs font-semibold text-[#637381] uppercase tracking-wider">المرجع</th>
-                <th className="text-right px-2 py-2.5 text-xs font-semibold text-[#637381] uppercase tracking-wider">الوصف / الحسابات</th>
-                <th className="text-right px-2 py-2.5 text-xs font-semibold text-[#637381] uppercase tracking-wider">النوع</th>
-                <th
-                  className="text-left px-2 py-2.5 text-xs font-semibold text-[#1A56DB] uppercase tracking-wider cursor-pointer hover:bg-[#EFF6FF] select-none"
-                  onClick={() => toggleSort("debit")}
-                >
-                  <div className="flex items-center justify-end gap-1"><SortIcon field="debit" /> مدين ₪</div>
-                </th>
-                <th
-                  className="text-left px-2 py-2.5 text-xs font-semibold text-[#0E9F6E] uppercase tracking-wider cursor-pointer hover:bg-[#EFF6FF] select-none"
-                  onClick={() => toggleSort("credit")}
-                >
-                  <div className="flex items-center justify-end gap-1"><SortIcon field="credit" /> دائن ₪</div>
-                </th>
-                <th className="px-1" />
-              </tr>
-            </thead>
-
-            {/* ━━ Body ━━ */}
-            <tbody>
-              {paginatedTransactions.map((tx) => {
-                const isExpanded = expandedIds.has(tx.id);
-                const isSelected = selectedIds.has(tx.id);
-                return (
-                  <tr key={tx.id} className="contents">
-                    {/* Main Row */}
-                    <tr
-                      className={`group border-b border-[#F1F5F9] hover:bg-[#F0F4FF] transition-colors cursor-pointer ${isSelected ? "bg-[#EFF6FF]" : "bg-white"}`}
-                      onClick={() => toggleExpand(tx.id)}
-                    >
-                      <td className="px-2 py-2.5 text-center" onClick={e => e.stopPropagation()}>
-                        <Checkbox checked={isSelected} onCheckedChange={() => toggleSelect(tx.id)} />
-                      </td>
-                      <td className="px-2 py-2.5">
-                        <span className="text-sm font-mono text-[#637381]">{formatDate(tx.transaction_date)}</span>
-                      </td>
-                      <td className="px-2 py-2.5 overflow-hidden">
-                        <button
-                          onClick={e => { e.stopPropagation(); openEdit(tx); }}
-                          title={tx.reference || ""}
-                          className="text-sm font-medium text-[#1A56DB] hover:text-[#1648B8] hover:underline font-mono truncate block max-w-full text-right"
-                        >
-                          {tx.reference || "—"}
-                        </button>
-                      </td>
-                      <td className="px-2 py-2.5 overflow-hidden">
-                        <div className="flex items-center gap-1.5 min-w-0">
-                          <ChevronRightIcon className={`w-3.5 h-3.5 text-[#94A3B8] transition-transform flex-shrink-0 ${isExpanded ? "rotate-90" : ""}`} />
-                          <span title={tx.description || ""} className="text-sm text-[#1A2332] font-medium truncate">{tx.description || "بدون وصف"}</span>
-                        </div>
-                      </td>
-                      <td className="px-2 py-2.5">
-                        <TypeBadge type={tx.transaction_type} />
-                      </td>
-                      <td className="px-2 py-2.5 text-left">
-                        <span className="font-mono font-semibold text-sm text-[#1A56DB]">₪{tx.amount?.toFixed(2)}</span>
-                      </td>
-                      <td className="px-2 py-2.5 text-left">
-                        <span className="font-mono font-semibold text-sm text-[#0E9F6E]">₪{tx.amount?.toFixed(2)}</span>
-                      </td>
-                      <td className="px-1 py-2.5 text-center" onClick={e => e.stopPropagation()}>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <button className="p-1 rounded hover:bg-[#E2E8F0] opacity-0 group-hover:opacity-100 transition-opacity">
-                              <MoreVertical className="w-4 h-4 text-[#637381]" />
-                            </button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => openEdit(tx)}>
-                              <Pencil className="h-4 w-4 ml-2" /> تعديل
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="text-[#DC2626]" onClick={() => { setEditingTx(tx); setShowDeleteConfirm(true); }}>
-                              <Trash2 className="h-4 w-4 ml-2" /> حذف
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </td>
+                      {/* Expanded detail lines */}
+                      {isExpanded && (
+                        <>
+                          <tr className="bg-muted/30 border-b border-border/30">
+                            <td />
+                            <td />
+                            <td />
+                            <td className="px-3 py-2">
+                              <div className="flex items-center gap-2 pr-8">
+                                <span className="text-muted-foreground text-lg leading-none">├</span>
+                                <span className="font-mono text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{tx.debit_account_code}</span>
+                                <span className="text-foreground text-xs">{getAccountName(tx.debit_account_code)}</span>
+                              </div>
+                            </td>
+                            <td />
+                            <td className="px-3 py-2 text-left">
+                              <span className="font-mono text-xs font-semibold text-primary">₪{tx.amount?.toFixed(2)}</span>
+                            </td>
+                            <td />
+                            <td />
+                          </tr>
+                          <tr className="bg-muted/30 border-b border-border/50">
+                            <td />
+                            <td />
+                            <td />
+                            <td className="px-3 py-2">
+                              <div className="flex items-center gap-2 pr-8">
+                                <span className="text-muted-foreground text-lg leading-none">└</span>
+                                <span className="font-mono text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{tx.credit_account_code}</span>
+                                <span className="text-foreground text-xs">{getAccountName(tx.credit_account_code)}</span>
+                              </div>
+                            </td>
+                            <td />
+                            <td />
+                            <td className="px-3 py-2 text-left">
+                              <span className="font-mono text-xs font-semibold text-emerald-500">₪{tx.amount?.toFixed(2)}</span>
+                            </td>
+                            <td />
+                          </tr>
+                        </>
+                      )}
                     </tr>
-
-                    {/* ━━ Expanded detail lines ━━ */}
-                    {isExpanded && (
-                      <>
-                        <tr className="bg-[#FAFAFA] border-b border-[#F1F5F9]">
-                          <td />
-                          <td />
-                          <td />
-                          <td className="px-3 py-2">
-                            <div className="flex items-center gap-2 pr-8">
-                              <span className="text-[#CBD5E1] text-lg leading-none">├</span>
-                              <span className="font-mono text-[10px] text-[#637381] bg-[#F1F5F9] px-1.5 py-0.5 rounded">{tx.debit_account_code}</span>
-                              <span className="text-[#374151] text-xs">{getAccountName(tx.debit_account_code)}</span>
-                            </div>
-                          </td>
-                          <td />
-                          <td className="px-3 py-2 text-left">
-                            <span className="font-mono text-xs font-semibold text-[#1A56DB]">₪{tx.amount?.toFixed(2)}</span>
-                          </td>
-                          <td className="px-3 py-2 text-left" />
-                          <td />
-                        </tr>
-                        <tr className="bg-[#FAFAFA] border-b border-[#E2E8F0]">
-                          <td />
-                          <td />
-                          <td />
-                          <td className="px-3 py-2">
-                            <div className="flex items-center gap-2 pr-8">
-                              <span className="text-[#CBD5E1] text-lg leading-none">└</span>
-                              <span className="font-mono text-[10px] text-[#637381] bg-[#F1F5F9] px-1.5 py-0.5 rounded">{tx.credit_account_code}</span>
-                              <span className="text-[#374151] text-xs">{getAccountName(tx.credit_account_code)}</span>
-                            </div>
-                          </td>
-                          <td />
-                          <td className="px-3 py-2 text-left" />
-                          <td className="px-3 py-2 text-left">
-                            <span className="font-mono text-xs font-semibold text-[#0E9F6E]">₪{tx.amount?.toFixed(2)}</span>
-                          </td>
-                          <td />
-                        </tr>
-                      </>
-                    )}
-                  </tr>
-                );
-              })}
-            </tbody>
-
-            {/* ━━ Footer Totals ━━ */}
-            <tfoot className="sticky bottom-0 bg-white border-t-2 border-[#D1D5DB] shadow-[0_-2px_8px_rgba(0,0,0,0.06)]">
-              <tr>
-                <td colSpan={3} className="px-3 py-3">
-                  <span className="text-sm font-bold text-[#374151]">الإجمالي — {filteredTransactions.length} قيد</span>
-                </td>
-                <td colSpan={2} className="px-3 py-3">
-                  {isBalanced
-                    ? <span className="text-xs font-bold text-[#059669] bg-[#ECFDF5] px-2 py-1 rounded-full">✅ متطابق</span>
-                    : <span className="text-xs font-bold text-[#DC2626] bg-[#FEF2F2] px-2 py-1 rounded-full">⚠️ فرق: ₪{Math.abs(totalDebit - totalCredit).toFixed(2)}</span>
-                  }
-                </td>
-                <td className="px-3 py-3 text-left">
-                  <span className="font-mono font-bold text-base text-[#1A56DB]">₪{totalDebit.toFixed(2)}</span>
-                </td>
-                <td className="px-3 py-3 text-left">
-                  <span className="font-mono font-bold text-base text-[#0E9F6E]">₪{totalCredit.toFixed(2)}</span>
-                </td>
-                <td />
-              </tr>
-            </tfoot>
-          </table>
-        )}
-      </div>
-
-      {/* ━━━ Pagination ━━━ */}
-      {!loading && !error && filteredTransactions.length > 0 && (
-        <div className="flex items-center justify-between px-6 py-3 bg-white border-t border-[#E2E8F0]">
-          <div className="flex items-center gap-2 text-sm text-[#637381]">
-            <span>عرض</span>
-            <select
-              value={pageSize}
-              onChange={e => setPageSize(Number(e.target.value))}
-              className="border border-[#D1D5DB] rounded px-2 py-1 text-sm bg-white"
-            >
-              {PAGE_SIZE_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
-            <span>من {filteredTransactions.length} قيد</span>
+                  );
+                })}
+              </tbody>
+              <tfoot>
+                <tr className="bg-primary/5 border-t-2 border-primary/20 font-bold text-sm">
+                  <td colSpan={3} className="px-3 py-3 text-right text-foreground">المجموع ({filteredTransactions.length} قيد)</td>
+                  <td colSpan={2} className="px-3 py-3">
+                    {isBalanced
+                      ? <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full dark:bg-emerald-900/30">✅ متطابق</span>
+                      : <span className="text-xs font-bold text-destructive bg-destructive/10 px-2 py-1 rounded-full">⚠️ فرق: ₪{Math.abs(totalDebit - totalCredit).toFixed(2)}</span>
+                    }
+                  </td>
+                  <td className="px-3 py-3 text-left">
+                    <span className="font-mono font-bold text-base text-primary">₪{totalDebit.toFixed(2)}</span>
+                  </td>
+                  <td className="px-3 py-3 text-left">
+                    <span className="font-mono font-bold text-base text-emerald-500">₪{totalCredit.toFixed(2)}</span>
+                  </td>
+                  <td />
+                </tr>
+              </tfoot>
+            </table>
           </div>
-          <div className="flex items-center gap-1">
-            <button
-              disabled={currentPage === 1}
-              onClick={() => setCurrentPage(p => p - 1)}
-              className="px-3 py-1.5 text-sm border border-[#D1D5DB] rounded-lg hover:bg-[#F1F5F9] disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              ← السابق
-            </button>
-            {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
-              let page: number;
-              if (totalPages <= 5) page = i + 1;
-              else if (currentPage <= 3) page = i + 1;
-              else if (currentPage >= totalPages - 2) page = totalPages - 4 + i;
-              else page = currentPage - 2 + i;
-              return (
-                <button
-                  key={page}
-                  onClick={() => setCurrentPage(page)}
-                  className={`w-8 h-8 text-sm rounded-lg ${currentPage === page ? "bg-[#1A56DB] text-white" : "hover:bg-[#F1F5F9] text-[#374151]"}`}
-                >
-                  {page}
-                </button>
-              );
-            })}
-            <button
-              disabled={currentPage === totalPages}
-              onClick={() => setCurrentPage(p => p + 1)}
-              className="px-3 py-1.5 text-sm border border-[#D1D5DB] rounded-lg hover:bg-[#F1F5F9] disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              التالي →
-            </button>
-          </div>
+
+          {/* Pagination */}
+          {filteredTransactions.length > pageSize && (
+            <div className="flex items-center justify-between px-4 py-3 border-t border-border/50 bg-muted/20">
+              <p className="text-xs text-muted-foreground">
+                عرض {Math.min((currentPage - 1) * pageSize + 1, filteredTransactions.length)}–{Math.min(currentPage * pageSize, filteredTransactions.length)} من {filteredTransactions.length}
+              </p>
+              <div className="flex items-center gap-1">
+                <Button variant="outline" size="sm" className="rounded-lg h-8 text-xs" disabled={currentPage <= 1} onClick={() => setCurrentPage(p => p - 1)}>
+                  <ChevronRightIcon className="h-3.5 w-3.5 ml-1" /> السابق
+                </Button>
+                {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                  let pg: number;
+                  if (totalPages <= 5) pg = i + 1;
+                  else if (currentPage <= 3) pg = i + 1;
+                  else if (currentPage >= totalPages - 2) pg = totalPages - 4 + i;
+                  else pg = currentPage - 2 + i;
+                  return (
+                    <Button key={pg} variant={currentPage === pg ? "default" : "outline"} size="sm" className="rounded-lg h-8 w-8 text-xs p-0" onClick={() => setCurrentPage(pg)}>
+                      {pg}
+                    </Button>
+                  );
+                })}
+                <Button variant="outline" size="sm" className="rounded-lg h-8 text-xs" disabled={currentPage >= totalPages} onClick={() => setCurrentPage(p => p + 1)}>
+                  التالي <ChevronLeft className="h-3.5 w-3.5 mr-1" />
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">صفحة {currentPage} من {totalPages}</p>
+            </div>
+          )}
         </div>
       )}
 
       {/* ━━━ Edit Dialog ━━━ */}
       <Dialog open={!!editingTx && !showDeleteConfirm} onOpenChange={(o) => !o && setEditingTx(null)}>
         <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto" dir="rtl">
-          <DialogHeader><DialogTitle className="text-[#1A2332]">تعديل القيد</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle className="text-foreground">تعديل القيد</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <Input value={editFields.description} onChange={e => setEditFields(p => ({ ...p, description: e.target.value }))} placeholder="الوصف" dir="rtl" />
             <div className="flex gap-2">
@@ -982,7 +973,7 @@ const TransactionsPage = () => {
               </SelectContent>
             </Select>
             <div className="flex gap-2 pt-2">
-              <Button onClick={handleSave} disabled={saving} className="flex-1 bg-[#1A56DB] hover:bg-[#1648B8] text-white">
+              <Button onClick={handleSave} disabled={saving} className="flex-1">
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "حفظ"}
               </Button>
               <Button variant="destructive" size="icon" onClick={() => setShowDeleteConfirm(true)}>
@@ -1001,7 +992,7 @@ const TransactionsPage = () => {
             <AlertDialogDescription>سيتم نقل القيد إلى سلة المحذوفات</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-row-reverse gap-2">
-            <AlertDialogAction onClick={handleDelete} disabled={deleting} className="bg-[#DC2626] text-white hover:bg-[#B91C1C]">
+            <AlertDialogAction onClick={handleDelete} disabled={deleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : "حذف"}
             </AlertDialogAction>
             <AlertDialogCancel>إلغاء</AlertDialogCancel>
@@ -1016,13 +1007,14 @@ const TransactionsPage = () => {
             <AlertDialogDescription>سيتم نقل القيود المحددة إلى سلة المحذوفات</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-row-reverse gap-2">
-            <AlertDialogAction onClick={handleBulkDelete} disabled={bulkDeleting} className="bg-[#DC2626] text-white hover:bg-[#B91C1C]">
+            <AlertDialogAction onClick={handleBulkDelete} disabled={bulkDeleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               {bulkDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : `حذف ${selectedIds.size}`}
             </AlertDialogAction>
             <AlertDialogCancel>إلغاء</AlertDialogCancel>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
       {/* ━━ Journal Entry Modal ━━ */}
       <JournalEntryPopup
         open={showJournalEntry}
