@@ -46,7 +46,6 @@ const CashBoxesPage = () => {
       const { data: txs } = await supabase
         .from("transactions")
         .select("amount, debit_account_code, credit_account_code, transaction_date")
-        .eq("user_id", user.id)
         .eq("is_deleted", false);
 
       const now = new Date();
