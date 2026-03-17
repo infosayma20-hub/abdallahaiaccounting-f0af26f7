@@ -27,9 +27,11 @@ export function CompanyThemeProvider({ children }: { children: ReactNode }) {
   const [logoPalette, setLogoPalette] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const userId = user?.id;
+
   // Load theme on mount
   useEffect(() => {
-    if (!user) {
+    if (!userId) {
       clearThemeFromDOM();
       setTheme(DEFAULT_THEME);
       setLoading(false);
@@ -41,7 +43,7 @@ export function CompanyThemeProvider({ children }: { children: ReactNode }) {
         const { data } = await supabase
           .from("company_themes" as any)
           .select("theme_colors, logo_extracted_palette")
-          .eq("user_id", user.id)
+          .eq("user_id", userId)
           .maybeSingle();
 
         if (data) {
@@ -59,7 +61,7 @@ export function CompanyThemeProvider({ children }: { children: ReactNode }) {
     };
 
     loadTheme();
-  }, [user]);
+  }, [userId]);
 
   const updateTheme = useCallback(async (colors: ThemeColors) => {
     if (!user) return;
