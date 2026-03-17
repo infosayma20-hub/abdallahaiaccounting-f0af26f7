@@ -68,7 +68,7 @@ export default function AlertsTab({ incompleteDays, corrections, employeeId, use
   };
 
   return (
-    <div className="space-y-4 px-4 pt-2 pb-24" dir="rtl">
+    <div className="space-y-4 px-4 pt-3" dir="rtl" style={{ paddingBottom: "calc(72px + env(safe-area-inset-bottom, 0px))" }}>
       {/* Incomplete days */}
       <div className="flex items-center justify-between">
         <h2 className="font-semibold text-sm flex items-center gap-2">

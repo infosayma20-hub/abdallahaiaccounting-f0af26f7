@@ -70,7 +70,7 @@ export default function AttendanceCalendarTab({ history }: Props) {
   }, [history, currentMonth]);
 
   return (
-    <div className="space-y-4 px-4 pt-2 pb-24" dir="rtl">
+    <div className="space-y-4 px-4 pt-3" dir="rtl" style={{ paddingBottom: "calc(72px + env(safe-area-inset-bottom, 0px))" }}>
       {/* Month navigator */}
       <div className="flex items-center justify-between">
         <Button variant="ghost" size="icon" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}>
