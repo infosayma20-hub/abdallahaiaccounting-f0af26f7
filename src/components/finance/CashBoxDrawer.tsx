@@ -24,7 +24,7 @@ const CashBoxDrawer = ({ open, onClose, defaultType, editBox, hasMainBox, onSave
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const [boxType, setBoxType] = useState<"main" | "branch" | "pos" | "petty">(defaultType);
+  const [boxType, setBoxType] = useState<"main" | "branch" | "pos" | "petty" | "petty_cash">(defaultType);
   const [name, setName] = useState("");
   const [location, setLocation] = useState("");
   const [currency, setCurrency] = useState("ILS");

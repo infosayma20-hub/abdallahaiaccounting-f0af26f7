@@ -84,7 +84,7 @@ const CashBoxesPage = () => {
 
   const fmt = (n: number) => new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
 
-  const openAdd = (type: "main" | "branch" | "pos" | "petty") => {
+  const openAdd = (type: "main" | "branch" | "pos" | "petty" | "petty_cash") => {
     setEditBox(null);
     setDrawerType(type);
     setDrawerOpen(true);
