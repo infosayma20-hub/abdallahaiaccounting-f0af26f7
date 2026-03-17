@@ -135,14 +135,14 @@ export default function BranchesSettingsSection() {
       <div className="space-y-3">
         {branches.map(b => (
           <div key={b.id} className="flex items-center gap-4 p-4 bg-background rounded-xl border border-border">
-            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${b.is_active ? "bg-primary/10" : "bg-muted"}`}>
+            <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${b.is_active ? "bg-primary/10" : "bg-muted"}`}>
               <Building2 className={`h-5 w-5 ${b.is_active ? "text-primary" : "text-muted-foreground"}`} />
             </div>
             <div className="flex-1 min-w-0">
               <p className="font-semibold text-sm">{b.name}</p>
               {b.address && (
                 <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                  <MapPin className="h-3 w-3" />
+                  <MapPin className="h-3 w-3 shrink-0" />
                   {b.address}
                 </p>
               )}
@@ -150,7 +150,7 @@ export default function BranchesSettingsSection() {
                 📍 {b.latitude.toFixed(4)}, {b.longitude.toFixed(4)} • نطاق {b.radius_meters}م
               </p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 shrink-0">
               <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(b)}>
                 <Pencil className="h-3.5 w-3.5" />
               </Button>
@@ -172,7 +172,7 @@ export default function BranchesSettingsSection() {
 
       {/* Add/Edit Dialog */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent className="max-w-md" dir="rtl">
+        <DialogContent className="max-w-lg" dir="rtl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Building2 className="h-5 w-5 text-primary" />
@@ -180,67 +180,76 @@ export default function BranchesSettingsSection() {
             </DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-4 pt-2">
-            <div className="space-y-1.5">
-              <Label className="text-xs">اسم الفرع *</Label>
-              <Input
-                value={name}
-                onChange={e => setName(e.target.value)}
-                placeholder="مثال: فرع سفيان"
-                className="h-9"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="text-xs">العنوان (اختياري)</Label>
-              <Input
-                value={address}
-                onChange={e => setAddress(e.target.value)}
-                placeholder="مثال: شارع الرئيسي، نابلس"
-                className="h-9"
-              />
-            </div>
-
+          <div className="space-y-5 pt-3">
+            {/* Branch Name & Address */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label className="text-xs">خط العرض</Label>
+                <Label className="text-xs font-medium">اسم الفرع <span className="text-destructive">*</span></Label>
                 <Input
-                  type="number"
-                  step="0.0001"
-                  value={latitude}
-                  onChange={e => setLatitude(Number(e.target.value))}
-                  className="h-9 font-mono text-sm"
-                  dir="ltr"
+                  value={name}
+                  onChange={e => setName(e.target.value)}
+                  placeholder="مثال: فرع سفيان"
+                  className="h-10"
                 />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs">خط الطول</Label>
+                <Label className="text-xs font-medium">العنوان <span className="text-muted-foreground">(اختياري)</span></Label>
                 <Input
-                  type="number"
-                  step="0.0001"
-                  value={longitude}
-                  onChange={e => setLongitude(Number(e.target.value))}
-                  className="h-9 font-mono text-sm"
-                  dir="ltr"
+                  value={address}
+                  onChange={e => setAddress(e.target.value)}
+                  placeholder="مثال: شارع الرئيسي، نابلس"
+                  className="h-10"
                 />
               </div>
             </div>
 
-            <div className="space-y-1.5">
-              <Label className="text-xs">نطاق الحضور (بالأمتار)</Label>
-              <Input
-                type="number"
-                value={radius}
-                onChange={e => setRadius(Number(e.target.value))}
-                className="h-9"
-                dir="ltr"
-              />
+            {/* Location Section */}
+            <div className="p-3 rounded-lg border border-border bg-muted/30 space-y-3">
+              <div className="flex items-center gap-2 text-xs font-medium text-foreground">
+                <MapPin className="h-3.5 w-3.5 text-primary" />
+                الموقع الجغرافي
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-[11px] text-muted-foreground">خط العرض (Lat)</Label>
+                  <Input
+                    type="number"
+                    step="0.0001"
+                    value={latitude}
+                    onChange={e => setLatitude(Number(e.target.value))}
+                    className="h-9 font-mono text-sm"
+                    dir="ltr"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-[11px] text-muted-foreground">خط الطول (Lng)</Label>
+                  <Input
+                    type="number"
+                    step="0.0001"
+                    value={longitude}
+                    onChange={e => setLongitude(Number(e.target.value))}
+                    className="h-9 font-mono text-sm"
+                    dir="ltr"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-[11px] text-muted-foreground">نطاق الحضور (م)</Label>
+                  <Input
+                    type="number"
+                    value={radius}
+                    onChange={e => setRadius(Number(e.target.value))}
+                    className="h-9 font-mono text-sm"
+                    dir="ltr"
+                  />
+                </div>
+              </div>
               <p className="text-[10px] text-muted-foreground">
                 المسافة المسموحة لتسجيل حضور الموظفين من موقع الفرع
               </p>
             </div>
 
-            <div className="flex gap-2 pt-2">
+            {/* Actions */}
+            <div className="flex gap-2 pt-1">
               <Button onClick={saveBranch} className="flex-1 gap-1.5">
                 <Check className="h-3.5 w-3.5" />
                 {editing ? "حفظ التعديلات" : "إضافة الفرع"}
