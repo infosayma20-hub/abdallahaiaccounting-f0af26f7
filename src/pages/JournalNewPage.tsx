@@ -162,6 +162,8 @@ const JournalNewPage = () => {
     }));
   };
 
+  const formatAmount = (n: number) => new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+
   const handleQuickAddContact = async () => {
     if (!user || !quickAddName.trim()) return;
     setQuickAddSaving(true);
