@@ -122,6 +122,7 @@ const FinanceJournalPage = () => {
     }
   };
 
+  const fetchData = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     const [vRes, aRes, cRes] = await Promise.all([
