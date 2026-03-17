@@ -409,19 +409,36 @@ const InvoiceCreatePage = () => {
   }, []);
 
   const summary = useMemo(() => {
-    const subtotal = form.items.reduce((s, i) => s + i.quantity * i.unitPrice, 0);
+    const grossTotal = form.items.reduce((s, i) => s + i.quantity * i.unitPrice, 0);
     const totalDiscount = form.items.reduce((s, i) => s + getItemDiscountAmount(i), 0);
-    const afterDiscount = subtotal - totalDiscount;
-    const totalTax = form.items.reduce((s, i) => {
-      const base = i.quantity * i.unitPrice;
-      const disc = i.discountType === "percent" ? base * (i.discount / 100) : i.discount;
-      return s + (base - disc) * (i.taxRate / 100);
-    }, 0);
-    const total = afterDiscount + totalTax;
-    const paidAmount = form.paymentMethod === "credit" ? 0 : total;
-    const remainingAmount = total - paidAmount;
-    return { subtotal, totalDiscount, totalTax, total, paidAmount, remainingAmount };
-  }, [form.items, form.paymentMethod, getItemDiscountAmount]);
+
+    if (form.taxInclusive) {
+      // Tax-inclusive: prices already contain tax, extract it
+      let totalTax = 0;
+      form.items.forEach(i => {
+        const base = i.quantity * i.unitPrice;
+        const disc = i.discountType === "percent" ? base * (i.discount / 100) : i.discount;
+        const afterDiscount = base - disc;
+        const net = afterDiscount / (1 + i.taxRate / 100);
+        totalTax += afterDiscount - net;
+      });
+      const total = grossTotal - totalDiscount; // Same as entered prices (tax included)
+      const subtotalExTax = total - totalTax;
+      const paidAmount = form.paymentMethod === "credit" ? 0 : total;
+      return { subtotal: subtotalExTax, totalDiscount, totalTax, total, paidAmount, remainingAmount: total - paidAmount };
+    } else {
+      // Tax-exclusive: tax added on top
+      const afterDiscount = grossTotal - totalDiscount;
+      const totalTax = form.items.reduce((s, i) => {
+        const base = i.quantity * i.unitPrice;
+        const disc = i.discountType === "percent" ? base * (i.discount / 100) : i.discount;
+        return s + (base - disc) * (i.taxRate / 100);
+      }, 0);
+      const total = afterDiscount + totalTax;
+      const paidAmount = form.paymentMethod === "credit" ? 0 : total;
+      return { subtotal: grossTotal, totalDiscount, totalTax, total, paidAmount, remainingAmount: total - paidAmount };
+    }
+  }, [form.items, form.paymentMethod, form.taxInclusive, getItemDiscountAmount]);
 
   const amountInWords = useMemo(() => numberToArabicWords(Math.round(summary.total)), [summary.total]);
 
@@ -1197,7 +1214,9 @@ const InvoiceCreatePage = () => {
           </div>
 
           <div className="flex justify-between items-center">
-            <span className="text-xs text-muted-foreground">الإجمالي الفرعي</span>
+            <span className="text-xs text-muted-foreground">
+              {form.taxInclusive ? "الإجمالي الفرعي (بدون ضريبة)" : "الإجمالي الفرعي"}
+            </span>
             <span className="text-sm font-semibold text-foreground tabular-nums">{fmtCurrency(summary.subtotal)}</span>
           </div>
           {summary.totalDiscount > 0 && (
@@ -1208,7 +1227,9 @@ const InvoiceCreatePage = () => {
           )}
           {summary.totalTax > 0 && (
             <div className="flex justify-between items-center">
-              <span className="text-xs text-muted-foreground">(+) ضريبة القيمة المضافة</span>
+              <span className="text-xs text-muted-foreground">
+                {form.taxInclusive ? "ضريبة القيمة المضافة (مستخرجة)" : "(+) ضريبة القيمة المضافة"}
+              </span>
               <span className="text-sm font-semibold text-foreground tabular-nums">{fmtCurrency(summary.totalTax)}</span>
             </div>
           )}
