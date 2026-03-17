@@ -264,7 +264,7 @@ export const navigationSections: NavSection[] = [
     items: [
       {
         id: "hr", label: "الموارد البشرية", description: "موظفون، حضور، ورواتب", module: "hr", icon: Users,
-        color: "text-violet-500", bgColor: "bg-violet-500/10", path: "/employees",
+        color: "text-[#1B3A5C]", bgColor: "bg-[#1B3A5C]/8", path: "/employees",
         keywords: ["موظف", "حضور", "رواتب", "موارد"],
         groups: [
           {
