@@ -226,7 +226,8 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
   // Filtering
   const filtered = useMemo(() => {
     let data = [...tableData];
-    if (statusFilter !== "all") data = data.filter(v => v.status_label === statusFilter);
+    if (statusFilter === "active") data = data.filter(v => v.status_label !== "ملغي");
+    else if (statusFilter !== "all") data = data.filter(v => v.status_label === statusFilter);
     if (paymentFilter !== "all") data = data.filter(v => v.payment_label === paymentFilter);
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
