@@ -169,7 +169,9 @@ const InvoiceCreatePage = () => {
   // Dialogs
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [showPDFPreview, setShowPDFPreview] = useState(false);
+  const [showQuickAddRep, setShowQuickAddRep] = useState(false);
   const [quickAddForm, setQuickAddForm] = useState({ name: "", sell_price: 0, buy_price: 0, unit: "قطعة", quantity: 0 });
+  const [quickRepForm, setQuickRepForm] = useState({ full_name: "", phone: "", region: "", sales_commission_rate: 0 });
 
   // Form state
   const [form, setForm] = useState({
@@ -508,7 +510,26 @@ const InvoiceCreatePage = () => {
     setProducts((data as any[]) || []);
   };
 
-  // ─── Validation ───
+  // ─── Quick Add Sales Rep ───
+  const handleQuickAddRep = async () => {
+    if (!user || !quickRepForm.full_name.trim()) { toast({ title: "اسم المندوب مطلوب", variant: "destructive" }); return; }
+    const { data: newRep, error } = await supabase.from("sales_representatives").insert({
+      full_name: quickRepForm.full_name,
+      phone: quickRepForm.phone || null,
+      region: quickRepForm.region || null,
+      sales_commission_rate: quickRepForm.sales_commission_rate || 0,
+      user_id: user.id,
+    } as any).select("id, full_name").single();
+    if (error) { toast({ title: "خطأ في الإضافة", variant: "destructive" }); return; }
+    toast({ title: `تمت إضافة المندوب "${quickRepForm.full_name}" ✅` });
+    setShowQuickAddRep(false);
+    setQuickRepForm({ full_name: "", phone: "", region: "", sales_commission_rate: 0 });
+    if (newRep) {
+      setSalesReps(prev => [...prev, { id: (newRep as any).id, name: (newRep as any).full_name }]);
+      setForm(p => ({ ...p, salespersonId: (newRep as any).id }));
+    }
+  };
+
   const validate = (): boolean => {
     if (!form.contactName.trim()) { toast({ title: "يرجى اختيار جهة الاتصال", variant: "destructive" }); return false; }
     if (form.items.some(i => !i.description.trim())) { toast({ title: "يرجى تعبئة وصف جميع البنود", variant: "destructive" }); return false; }
@@ -921,9 +942,13 @@ const InvoiceCreatePage = () => {
             </div>
             <div>
               <label className="text-[11px] text-muted-foreground mb-1 block font-medium">المندوب (اختياري)</label>
-              <Select value={form.salespersonId || "__none__"} onValueChange={v => setForm(p => ({ ...p, salespersonId: v === "__none__" ? null : v }))}>
+              <Select value={form.salespersonId || "__none__"} onValueChange={v => {
+                if (v === "__new_rep__") { setShowQuickAddRep(true); return; }
+                setForm(p => ({ ...p, salespersonId: v === "__none__" ? null : v }));
+              }}>
                 <SelectTrigger className="rounded-xl text-sm"><SelectValue placeholder="اختر مندوب المبيعات..." /></SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="__new_rep__" className="text-primary font-semibold">+ تعريف مندوب جديد</SelectItem>
                   <SelectItem value="__none__">بدون مندوب</SelectItem>
                   {salesReps.map(sr => <SelectItem key={sr.id} value={sr.id}>{sr.name}</SelectItem>)}
                 </SelectContent>
@@ -1286,6 +1311,22 @@ const InvoiceCreatePage = () => {
             </div>
           </div>
           <div className="flex justify-end gap-2 mt-3"><Button variant="outline" onClick={() => setShowQuickAdd(false)}>إلغاء</Button><Button onClick={handleQuickAddProduct}>إضافة المنتج</Button></div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Quick Add Sales Rep Dialog */}
+      <Dialog open={showQuickAddRep} onOpenChange={setShowQuickAddRep}>
+        <DialogContent dir="rtl" className="max-w-sm">
+          <DialogHeader><DialogTitle>تعريف مندوب جديد</DialogTitle><DialogDescription>أضف مندوب مبيعات واربطه بالفاتورة مباشرة</DialogDescription></DialogHeader>
+          <div className="space-y-3">
+            <div><label className="text-xs text-muted-foreground">اسم المندوب *</label><Input value={quickRepForm.full_name} onChange={e => setQuickRepForm({ ...quickRepForm, full_name: e.target.value })} className="rounded-xl" placeholder="الاسم الكامل" /></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><label className="text-xs text-muted-foreground">الهاتف</label><Input value={quickRepForm.phone} onChange={e => setQuickRepForm({ ...quickRepForm, phone: e.target.value })} className="rounded-xl" dir="ltr" placeholder="05xxxxxxxx" /></div>
+              <div><label className="text-xs text-muted-foreground">المنطقة</label><Input value={quickRepForm.region} onChange={e => setQuickRepForm({ ...quickRepForm, region: e.target.value })} className="rounded-xl" placeholder="مثال: رام الله" /></div>
+            </div>
+            <div><label className="text-xs text-muted-foreground">نسبة العمولة %</label><Input type="number" value={quickRepForm.sales_commission_rate} onChange={e => setQuickRepForm({ ...quickRepForm, sales_commission_rate: Number(e.target.value) })} className="rounded-xl w-32" dir="ltr" min={0} max={100} /></div>
+          </div>
+          <div className="flex justify-end gap-2 mt-3"><Button variant="outline" onClick={() => setShowQuickAddRep(false)}>إلغاء</Button><Button onClick={handleQuickAddRep}>إضافة المندوب</Button></div>
         </DialogContent>
       </Dialog>
     </div>
