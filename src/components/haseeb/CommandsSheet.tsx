@@ -13,10 +13,10 @@ const CommandsSheet = ({ open, onClose, onSelect }: Props) => {
   if (!open) return null;
 
   const financialCommands = [
-    { icon: "💰", label: "قبضت من @...", hint: "تسجيل قبض" },
-    { icon: "💸", label: "دفعت لـ@...", hint: "تسجيل صرف" },
-    { icon: "📦", label: "بعت لـ@...", hint: "فاتورة بيع" },
-    { icon: "🛒", label: "اشتريت من @...", hint: "فاتورة شراء" },
+    { icon: "💰", label: "قبضت من ...", hint: "تسجيل قبض" },
+    { icon: "💸", label: "دفعت لـ ...", hint: "تسجيل صرف" },
+    { icon: "📦", label: "بعت لـ ...", hint: "فاتورة بيع" },
+    { icon: "🛒", label: "اشتريت من ...", hint: "فاتورة شراء" },
     { icon: "🏦", label: "سحبت من البنك", hint: "سحب نقدي" },
     { icon: "💳", label: "أودعت في البنك", hint: "إيداع نقدي" },
     { icon: "📋", label: "سند قبض", hint: "إيصال رسمي" },
@@ -27,7 +27,7 @@ const CommandsSheet = ({ open, onClose, onSelect }: Props) => {
     { icon: "📈", label: "أرباح وخسائر الشهر" },
     { icon: "💳", label: "الذمم المتأخرة" },
     { icon: "🏦", label: "كشف حساب البنك" },
-    { icon: "👥", label: "كشف حساب عميل @..." },
+    { icon: "👥", label: "كشف حساب عميل ..." },
     { icon: "📋", label: "آخر 10 معاملات" },
     { icon: "💰", label: "ملخصي المالي اليوم" },
     { icon: "⚖️", label: "ميزان المراجعة" },
