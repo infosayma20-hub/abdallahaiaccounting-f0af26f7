@@ -941,3 +941,103 @@ const TransactionsPage = () => {
           )}
         </div>
       )}
+
+      {/* ━━━ Edit Dialog ━━━ */}
+      <Dialog open={!!editingTx && !showDeleteConfirm} onOpenChange={(o) => !o && setEditingTx(null)}>
+        <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto" dir="rtl">
+          <DialogHeader><DialogTitle className="text-foreground">تعديل القيد</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <Input value={editFields.description} onChange={e => setEditFields(p => ({ ...p, description: e.target.value }))} placeholder="الوصف" dir="rtl" />
+            <div className="flex gap-2">
+              <Input type="number" value={editFields.amount} onChange={e => setEditFields(p => ({ ...p, amount: e.target.value }))} placeholder="المبلغ" className="flex-1" />
+              <Select value={editFields.currency} onValueChange={v => setEditFields(p => ({ ...p, currency: v }))} dir="rtl">
+                <SelectTrigger className="w-24"><SelectValue /></SelectTrigger>
+                <SelectContent className="bg-background z-50">
+                  <SelectItem value="شيكل">شيكل</SelectItem>
+                  <SelectItem value="دينار">دينار</SelectItem>
+                  <SelectItem value="دولار">دولار</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <Input type="date" value={editFields.transaction_date} onChange={e => setEditFields(p => ({ ...p, transaction_date: e.target.value }))} />
+            <Select value={editFields.debit_account_code} onValueChange={v => setEditFields(p => ({ ...p, debit_account_code: v }))} dir="rtl">
+              <SelectTrigger><SelectValue placeholder="الحساب المدين" /></SelectTrigger>
+              <SelectContent className="bg-background z-50 max-h-48">
+                {accounts.map(a => <SelectItem key={a.account_code} value={a.account_code}>{a.account_code} - {a.account_name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={editFields.credit_account_code} onValueChange={v => setEditFields(p => ({ ...p, credit_account_code: v }))} dir="rtl">
+              <SelectTrigger><SelectValue placeholder="الحساب الدائن" /></SelectTrigger>
+              <SelectContent className="bg-background z-50 max-h-48">
+                {accounts.map(a => <SelectItem key={a.account_code} value={a.account_code}>{a.account_code} - {a.account_name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <div className="flex gap-2 pt-2">
+              <Button onClick={handleSave} disabled={saving} className="flex-1">
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "حفظ"}
+              </Button>
+              <Button variant="destructive" size="icon" onClick={() => setShowDeleteConfirm(true)}>
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ━━━ Delete Confirmations ━━━ */}
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent dir="rtl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>حذف القيد</AlertDialogTitle>
+            <AlertDialogDescription>سيتم نقل القيد إلى سلة المحذوفات</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-row-reverse gap-2">
+            <AlertDialogAction onClick={handleDelete} disabled={deleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : "حذف"}
+            </AlertDialogAction>
+            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={showBulkDeleteConfirm} onOpenChange={setShowBulkDeleteConfirm}>
+        <AlertDialogContent dir="rtl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>حذف {selectedIds.size} قيد</AlertDialogTitle>
+            <AlertDialogDescription>سيتم نقل القيود المحددة إلى سلة المحذوفات</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-row-reverse gap-2">
+            <AlertDialogAction onClick={handleBulkDelete} disabled={bulkDeleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {bulkDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : `حذف ${selectedIds.size}`}
+            </AlertDialogAction>
+            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* ━━ Journal Entry Modal ━━ */}
+      <JournalEntryPopup
+        open={showJournalEntry}
+        onClose={() => setShowJournalEntry(false)}
+        onSuccess={() => { setShowJournalEntry(false); fetchData(); }}
+      />
+
+      {/* ━━ Print View (portal to body) ━━ */}
+      {showPrintView && createPortal(
+        <div id="print-portal">
+          <TransactionsPrintView
+            company={companyInfo}
+            transactions={printTransactions}
+            totalDebit={totalDebit}
+            totalCredit={totalCredit}
+            isBalanced={isBalanced}
+            filterLabel={filterLabel}
+          />
+        </div>,
+        document.body
+      )}
+    </div>
+  );
+};
+
+export default TransactionsPage;
