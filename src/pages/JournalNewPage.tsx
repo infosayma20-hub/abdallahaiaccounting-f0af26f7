@@ -3,8 +3,9 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import DuplicateBanner from "@/components/DuplicateBanner";
 import {
   CheckCircle, Printer, Save, Search, Plus, Trash2, Loader2,
-  BookOpen, User, Building2, Users, X
+  BookOpen, User, Building2, Users, X, UserPlus
 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent } from "@/components/ui/card";
@@ -57,7 +58,14 @@ const JournalNewPage = () => {
   const [accounts, setAccounts] = useState<any[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [accountSearches, setAccountSearches] = useState<Record<string, string>>({});
+  const [lineContactSearches, setLineContactSearches] = useState<Record<string, string>>({});
 
+  // Quick-add contact state
+  const [showQuickAdd, setShowQuickAdd] = useState(false);
+  const [quickAddForLineId, setQuickAddForLineId] = useState<string | null>(null);
+  const [quickAddName, setQuickAddName] = useState("");
+  const [quickAddType, setQuickAddType] = useState<"customer" | "supplier">("customer");
+  const [quickAddSaving, setQuickAddSaving] = useState(false);
   const [lines, setLines] = useState<JournalLine[]>([
     { id: "1", account_code: "", account_name: "", debit: 0, credit: 0, contact_id: "", contact_name: "" },
     { id: "2", account_code: "", account_name: "", debit: 0, credit: 0, contact_id: "", contact_name: "" },
@@ -155,6 +163,34 @@ const JournalNewPage = () => {
   };
 
   const formatAmount = (n: number) => new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+
+  const handleQuickAddContact = async () => {
+    if (!user || !quickAddName.trim()) return;
+    setQuickAddSaving(true);
+    try {
+      const contactType = quickAddType === "customer" ? "عميل" : "مورد";
+      const { data, error } = await supabase.from("contacts").insert({
+        user_id: user.id,
+        contact_name: quickAddName.trim(),
+        contact_type: contactType,
+        current_balance: 0,
+      }).select("id, contact_name, contact_type, current_balance").single();
+      if (error) throw error;
+      setContacts(prev => [...prev, data]);
+      if (quickAddForLineId) {
+        updateLine(quickAddForLineId, "contact_id", data.id);
+      }
+      toast.success(`تم إضافة ${contactType}: ${data.contact_name}`);
+      setShowQuickAdd(false);
+      setQuickAddName("");
+      setQuickAddForLineId(null);
+    } catch (err: any) {
+      toast.error(err.message || "خطأ في الإضافة");
+    } finally {
+      setQuickAddSaving(false);
+    }
+  };
+
 
   const handleSave = async (asDraft = false) => {
     if (!user) return;
@@ -462,38 +498,85 @@ const JournalNewPage = () => {
                       </Select>
                     </td>
                     <td className="p-2.5">
-                      <Select value={line.contact_id || ""} onValueChange={v => updateLine(line.id, "contact_id", v)}>
+                      <Select value={line.contact_id || ""} onValueChange={v => {
+                        if (v === "__quick_add__") {
+                          setQuickAddForLineId(line.id);
+                          setQuickAddName("");
+                          setShowQuickAdd(true);
+                          return;
+                        }
+                        updateLine(line.id, "contact_id", v);
+                      }}>
                         <SelectTrigger className="h-9 text-xs">
                           <SelectValue placeholder="اختر جهة..." />
                         </SelectTrigger>
-                        <SelectContent className="max-h-[200px]">
+                        <SelectContent className="max-h-[280px]">
+                          <div className="px-2 py-1.5 sticky top-0 bg-background z-10 space-y-1">
+                            <div className="relative">
+                              <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                              <input
+                                className="w-full h-8 pr-8 pl-2 text-sm border rounded-md bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+                                placeholder="بحث بالاسم..."
+                                value={lineContactSearches[line.id] || ""}
+                                onChange={e => setLineContactSearches(prev => ({ ...prev, [line.id]: e.target.value }))}
+                                onClick={e => e.stopPropagation()}
+                              />
+                            </div>
+                            <SelectItem value="__quick_add__">
+                              <span className="flex items-center gap-1.5 text-primary font-medium">
+                                <UserPlus className="h-3.5 w-3.5" /> إضافة زبون / مورد جديد
+                              </span>
+                            </SelectItem>
+                          </div>
                           <SelectItem value="__none__">
                             <span className="text-muted-foreground">— بدون جهة —</span>
                           </SelectItem>
-                          {contacts.filter(isCustomer).length > 0 && (
-                            <SelectGroup>
-                              <SelectLabel className="flex items-center gap-1 text-[10px]"><User className="h-3 w-3" /> زبائن</SelectLabel>
-                              {contacts.filter(isCustomer).map(c => (
-                                <SelectItem key={c.id} value={c.id}>{c.contact_name}</SelectItem>
-                              ))}
-                            </SelectGroup>
-                          )}
-                          {contacts.filter(isSupplier).length > 0 && (
-                            <SelectGroup>
-                              <SelectLabel className="flex items-center gap-1 text-[10px]"><Building2 className="h-3 w-3" /> موردين</SelectLabel>
-                              {contacts.filter(isSupplier).map(c => (
-                                <SelectItem key={c.id} value={c.id}>{c.contact_name}</SelectItem>
-                              ))}
-                            </SelectGroup>
-                          )}
-                          {contacts.filter(isEmployee).length > 0 && (
-                            <SelectGroup>
-                              <SelectLabel className="flex items-center gap-1 text-[10px]"><Users className="h-3 w-3" /> موظفون</SelectLabel>
-                              {contacts.filter(isEmployee).map(c => (
-                                <SelectItem key={c.id} value={c.id}>{c.contact_name}</SelectItem>
-                              ))}
-                            </SelectGroup>
-                          )}
+                          {(() => {
+                            const q = (lineContactSearches[line.id] || "").toLowerCase();
+                            const filtered = q ? contacts.filter(c => c.contact_name?.toLowerCase().includes(q)) : contacts;
+                            return (
+                              <>
+                                {filtered.filter(isCustomer).length > 0 && (
+                                  <SelectGroup>
+                                    <SelectLabel className="flex items-center gap-1 text-[10px]"><User className="h-3 w-3" /> زبائن</SelectLabel>
+                                    {filtered.filter(isCustomer).map(c => (
+                                      <SelectItem key={c.id} value={c.id}>
+                                        <span className="flex items-center gap-2">
+                                          <span>{c.contact_name}</span>
+                                          <span className={`text-[10px] font-mono ${c.current_balance > 0 ? "text-emerald-600" : c.current_balance < 0 ? "text-red-600" : "text-muted-foreground"}`}>
+                                            ₪{formatAmount(Math.abs(c.current_balance || 0))}
+                                          </span>
+                                        </span>
+                                      </SelectItem>
+                                    ))}
+                                  </SelectGroup>
+                                )}
+                                {filtered.filter(isSupplier).length > 0 && (
+                                  <SelectGroup>
+                                    <SelectLabel className="flex items-center gap-1 text-[10px]"><Building2 className="h-3 w-3" /> موردين</SelectLabel>
+                                    {filtered.filter(isSupplier).map(c => (
+                                      <SelectItem key={c.id} value={c.id}>
+                                        <span className="flex items-center gap-2">
+                                          <span>{c.contact_name}</span>
+                                          <span className={`text-[10px] font-mono ${c.current_balance > 0 ? "text-emerald-600" : c.current_balance < 0 ? "text-red-600" : "text-muted-foreground"}`}>
+                                            ₪{formatAmount(Math.abs(c.current_balance || 0))}
+                                          </span>
+                                        </span>
+                                      </SelectItem>
+                                    ))}
+                                  </SelectGroup>
+                                )}
+                                {filtered.filter(isEmployee).length > 0 && (
+                                  <SelectGroup>
+                                    <SelectLabel className="flex items-center gap-1 text-[10px]"><Users className="h-3 w-3" /> موظفون</SelectLabel>
+                                    {filtered.filter(isEmployee).map(c => (
+                                      <SelectItem key={c.id} value={c.id}>{c.contact_name}</SelectItem>
+                                    ))}
+                                  </SelectGroup>
+                                )}
+                              </>
+                            );
+                          })()}
                         </SelectContent>
                       </Select>
                     </td>
@@ -561,6 +644,54 @@ const JournalNewPage = () => {
           </button>
         </div>
       </div>
+
+      {/* Quick Add Contact Dialog */}
+      <Dialog open={showQuickAdd} onOpenChange={setShowQuickAdd}>
+        <DialogContent className="max-w-sm" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <UserPlus className="h-5 w-5 text-primary" />
+              إضافة جهة جديدة
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div>
+              <Label className="text-xs mb-1.5 block">نوع الجهة</Label>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setQuickAddType("customer")}
+                  className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all ${quickAddType === "customer" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}
+                >
+                  <User className="h-3.5 w-3.5" /> زبون
+                </button>
+                <button
+                  onClick={() => setQuickAddType("supplier")}
+                  className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all ${quickAddType === "supplier" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}
+                >
+                  <Building2 className="h-3.5 w-3.5" /> مورد
+                </button>
+              </div>
+            </div>
+            <div>
+              <Label className="text-xs mb-1.5 block">اسم الجهة *</Label>
+              <Input
+                value={quickAddName}
+                onChange={e => setQuickAddName(e.target.value)}
+                placeholder={quickAddType === "customer" ? "مثال: أحمد محمد" : "مثال: شركة التوريدات"}
+                autoFocus
+                onKeyDown={e => { if (e.key === "Enter" && quickAddName.trim()) handleQuickAddContact(); }}
+              />
+            </div>
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <Button variant="outline" size="sm" onClick={() => setShowQuickAdd(false)}>إلغاء</Button>
+              <Button size="sm" onClick={handleQuickAddContact} disabled={!quickAddName.trim() || quickAddSaving} className="gap-1">
+                {quickAddSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+                حفظ وربط
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
