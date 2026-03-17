@@ -24,9 +24,13 @@ interface TrialBalanceRow {
   accountName: string;
   accountCode: string;
   accountType: string;
+  openingDebit: number;
+  openingCredit: number;
+  openingBalance: number;
   totalDebit: number;
   totalCredit: number;
   balance: number;
+  closingBalance: number;
   prevDebit?: number;
   prevCredit?: number;
   prevBalance?: number;
