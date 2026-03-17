@@ -498,38 +498,85 @@ const JournalNewPage = () => {
                       </Select>
                     </td>
                     <td className="p-2.5">
-                      <Select value={line.contact_id || ""} onValueChange={v => updateLine(line.id, "contact_id", v)}>
+                      <Select value={line.contact_id || ""} onValueChange={v => {
+                        if (v === "__quick_add__") {
+                          setQuickAddForLineId(line.id);
+                          setQuickAddName("");
+                          setShowQuickAdd(true);
+                          return;
+                        }
+                        updateLine(line.id, "contact_id", v);
+                      }}>
                         <SelectTrigger className="h-9 text-xs">
                           <SelectValue placeholder="اختر جهة..." />
                         </SelectTrigger>
-                        <SelectContent className="max-h-[200px]">
+                        <SelectContent className="max-h-[280px]">
+                          <div className="px-2 py-1.5 sticky top-0 bg-background z-10 space-y-1">
+                            <div className="relative">
+                              <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                              <input
+                                className="w-full h-8 pr-8 pl-2 text-sm border rounded-md bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+                                placeholder="بحث بالاسم..."
+                                value={lineContactSearches[line.id] || ""}
+                                onChange={e => setLineContactSearches(prev => ({ ...prev, [line.id]: e.target.value }))}
+                                onClick={e => e.stopPropagation()}
+                              />
+                            </div>
+                            <SelectItem value="__quick_add__">
+                              <span className="flex items-center gap-1.5 text-primary font-medium">
+                                <UserPlus className="h-3.5 w-3.5" /> إضافة زبون / مورد جديد
+                              </span>
+                            </SelectItem>
+                          </div>
                           <SelectItem value="__none__">
                             <span className="text-muted-foreground">— بدون جهة —</span>
                           </SelectItem>
-                          {contacts.filter(isCustomer).length > 0 && (
-                            <SelectGroup>
-                              <SelectLabel className="flex items-center gap-1 text-[10px]"><User className="h-3 w-3" /> زبائن</SelectLabel>
-                              {contacts.filter(isCustomer).map(c => (
-                                <SelectItem key={c.id} value={c.id}>{c.contact_name}</SelectItem>
-                              ))}
-                            </SelectGroup>
-                          )}
-                          {contacts.filter(isSupplier).length > 0 && (
-                            <SelectGroup>
-                              <SelectLabel className="flex items-center gap-1 text-[10px]"><Building2 className="h-3 w-3" /> موردين</SelectLabel>
-                              {contacts.filter(isSupplier).map(c => (
-                                <SelectItem key={c.id} value={c.id}>{c.contact_name}</SelectItem>
-                              ))}
-                            </SelectGroup>
-                          )}
-                          {contacts.filter(isEmployee).length > 0 && (
-                            <SelectGroup>
-                              <SelectLabel className="flex items-center gap-1 text-[10px]"><Users className="h-3 w-3" /> موظفون</SelectLabel>
-                              {contacts.filter(isEmployee).map(c => (
-                                <SelectItem key={c.id} value={c.id}>{c.contact_name}</SelectItem>
-                              ))}
-                            </SelectGroup>
-                          )}
+                          {(() => {
+                            const q = (lineContactSearches[line.id] || "").toLowerCase();
+                            const filtered = q ? contacts.filter(c => c.contact_name?.toLowerCase().includes(q)) : contacts;
+                            return (
+                              <>
+                                {filtered.filter(isCustomer).length > 0 && (
+                                  <SelectGroup>
+                                    <SelectLabel className="flex items-center gap-1 text-[10px]"><User className="h-3 w-3" /> زبائن</SelectLabel>
+                                    {filtered.filter(isCustomer).map(c => (
+                                      <SelectItem key={c.id} value={c.id}>
+                                        <span className="flex items-center gap-2">
+                                          <span>{c.contact_name}</span>
+                                          <span className={`text-[10px] font-mono ${c.current_balance > 0 ? "text-emerald-600" : c.current_balance < 0 ? "text-red-600" : "text-muted-foreground"}`}>
+                                            ₪{formatAmount(Math.abs(c.current_balance || 0))}
+                                          </span>
+                                        </span>
+                                      </SelectItem>
+                                    ))}
+                                  </SelectGroup>
+                                )}
+                                {filtered.filter(isSupplier).length > 0 && (
+                                  <SelectGroup>
+                                    <SelectLabel className="flex items-center gap-1 text-[10px]"><Building2 className="h-3 w-3" /> موردين</SelectLabel>
+                                    {filtered.filter(isSupplier).map(c => (
+                                      <SelectItem key={c.id} value={c.id}>
+                                        <span className="flex items-center gap-2">
+                                          <span>{c.contact_name}</span>
+                                          <span className={`text-[10px] font-mono ${c.current_balance > 0 ? "text-emerald-600" : c.current_balance < 0 ? "text-red-600" : "text-muted-foreground"}`}>
+                                            ₪{formatAmount(Math.abs(c.current_balance || 0))}
+                                          </span>
+                                        </span>
+                                      </SelectItem>
+                                    ))}
+                                  </SelectGroup>
+                                )}
+                                {filtered.filter(isEmployee).length > 0 && (
+                                  <SelectGroup>
+                                    <SelectLabel className="flex items-center gap-1 text-[10px]"><Users className="h-3 w-3" /> موظفون</SelectLabel>
+                                    {filtered.filter(isEmployee).map(c => (
+                                      <SelectItem key={c.id} value={c.id}>{c.contact_name}</SelectItem>
+                                    ))}
+                                  </SelectGroup>
+                                )}
+                              </>
+                            );
+                          })()}
                         </SelectContent>
                       </Select>
                     </td>
