@@ -147,7 +147,11 @@ const JournalEntriesPage = () => {
   };
 
   const filtered = useMemo(() => {
-    let result = transactions.filter(tx => !tx.is_deleted);
+    let result = transactions.filter(tx => {
+      if (statusFilter === "active") return !tx.is_deleted;
+      if (statusFilter === "deleted") return tx.is_deleted;
+      return true; // "all"
+    });
 
     if (dateFrom) result = result.filter(tx => (tx.transaction_date || "") >= dateFrom);
     if (dateTo) result = result.filter(tx => (tx.transaction_date || "") <= dateTo);
