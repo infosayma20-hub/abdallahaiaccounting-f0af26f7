@@ -46,7 +46,8 @@ export const CompanyProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   const fetchCompany = useCallback(async () => {
-    if (!user) {
+    const userId = user?.id;
+    if (!userId) {
       setCompany(defaultCompany);
       setLoading(false);
       return;
@@ -57,14 +58,14 @@ export const CompanyProvider = ({ children }: { children: ReactNode }) => {
       const { data: companyData } = await supabase
         .from("companies")
         .select("id, name, logo_url, address, phone, email, tax_number")
-        .eq("owner_id", user.id)
+        .eq("owner_id", userId)
         .maybeSingle();
 
       // Also fetch from profiles for extra info
       const { data: profileData } = await supabase
         .from("profiles")
         .select("company_name, work_field, company_id")
-        .eq("user_id", user.id)
+        .eq("user_id", userId)
         .maybeSingle();
 
       // If not owner, try via company_id from profile
@@ -82,7 +83,7 @@ export const CompanyProvider = ({ children }: { children: ReactNode }) => {
       const { data: settingsData } = await supabase
         .from("company_settings" as any)
         .select("company_name, logo_url, address, phone, email, tax_number")
-        .eq("user_id", user.id)
+        .eq("user_id", userId)
         .maybeSingle() as any;
 
       const name = resolvedCompany?.name || (settingsData as any)?.company_name || profileData?.company_name || "";
@@ -103,7 +104,7 @@ export const CompanyProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user?.id]);
 
   useEffect(() => {
     fetchCompany();
