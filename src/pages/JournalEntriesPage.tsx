@@ -83,6 +83,7 @@ const JournalEntriesPage = () => {
   const [dateTo, setDateTo] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("active");
   const [currentPage, setCurrentPage] = useState(1);
 
   const [editingTx, setEditingTx] = useState<TransactionRow | null>(null);
@@ -146,7 +147,11 @@ const JournalEntriesPage = () => {
   };
 
   const filtered = useMemo(() => {
-    let result = transactions.filter(tx => !tx.is_deleted);
+    let result = transactions.filter(tx => {
+      if (statusFilter === "active") return !tx.is_deleted;
+      if (statusFilter === "deleted") return tx.is_deleted;
+      return true; // "all"
+    });
 
     if (dateFrom) result = result.filter(tx => (tx.transaction_date || "") >= dateFrom);
     if (dateTo) result = result.filter(tx => (tx.transaction_date || "") <= dateTo);
@@ -166,12 +171,12 @@ const JournalEntriesPage = () => {
     }
 
     return result.sort((a, b) => (b.transaction_date || "").localeCompare(a.transaction_date || ""));
-  }, [transactions, dateFrom, dateTo, searchQuery, typeFilter, accountMap]);
+  }, [transactions, dateFrom, dateTo, searchQuery, typeFilter, statusFilter, accountMap]);
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paginated = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
-  useEffect(() => { setCurrentPage(1); }, [dateFrom, dateTo, searchQuery, typeFilter]);
+  useEffect(() => { setCurrentPage(1); }, [dateFrom, dateTo, searchQuery, typeFilter, statusFilter]);
 
   const totalDebit = filtered.reduce((s, tx) => s + (tx.amount || 0), 0);
   const totalCredit = totalDebit;
@@ -315,7 +320,7 @@ const JournalEntriesPage = () => {
           <Filter className="h-4 w-4 text-muted-foreground" />
           <span className="text-sm font-semibold text-foreground">فلاتر البحث</span>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
           <div className="space-y-1">
             <label className="text-[11px] text-muted-foreground">من تاريخ</label>
             <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)}
@@ -336,6 +341,19 @@ const JournalEntriesPage = () => {
                 {transactionTypes.map(t => (
                   <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
                 ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <label className="text-[11px] text-muted-foreground">الحالة</label>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="h-9 rounded-lg bg-secondary/50 border-0 text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="active">بدون الملغية</SelectItem>
+                <SelectItem value="all">جميع الحالات</SelectItem>
+                <SelectItem value="deleted">ملغي فقط</SelectItem>
               </SelectContent>
             </Select>
           </div>
