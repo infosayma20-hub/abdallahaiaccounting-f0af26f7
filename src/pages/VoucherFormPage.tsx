@@ -169,6 +169,19 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     } catch (e) { /* ignore */ }
   }, [fromDuplicate, voucherType]);
 
+  // ─── Auto-switch to bank when card payment is selected ───
+  useEffect(() => {
+    if (paymentMethod !== "بطاقة") return;
+    const cardBankId = settings?.card_bank_account_id;
+    if (cardBankId && bankAccounts.some(b => b.id === cardBankId)) {
+      setDepositType("bank");
+      setSelectedBankAccount(cardBankId);
+    } else if (bankAccounts.length > 0) {
+      setDepositType("bank");
+      toast.warning("⚠️ لم يتم تعريف حساب بنكي للبطاقة — يرجى تحديده من الإعدادات → المالية");
+    }
+  }, [paymentMethod, bankAccounts, settings?.card_bank_account_id]);
+
   // Load contacts
   useEffect(() => {
     if (!user) return;
