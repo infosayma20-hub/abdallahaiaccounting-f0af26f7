@@ -187,10 +187,7 @@ const AuthPage = () => {
           {/* Mobile logo */}
           <div className="text-center space-y-2 lg:hidden">
             <div className="flex flex-col items-center gap-2" dir="ltr">
-              <img src="/logo-icon.svg" alt="قيود" width={40} height={40} />
-              <span style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 800, fontSize: 22, color: "hsl(var(--foreground))", letterSpacing: "0.03em", lineHeight: 1 }}>
-                QOYOD
-              </span>
+              <img src="/logo-full.svg" alt="QOYOD قيود" width={140} />
             </div>
           </div>
 
