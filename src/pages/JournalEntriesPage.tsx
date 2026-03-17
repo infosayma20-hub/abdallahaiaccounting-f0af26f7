@@ -176,7 +176,7 @@ const JournalEntriesPage = () => {
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paginated = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
-  useEffect(() => { setCurrentPage(1); }, [dateFrom, dateTo, searchQuery, typeFilter]);
+  useEffect(() => { setCurrentPage(1); }, [dateFrom, dateTo, searchQuery, typeFilter, statusFilter]);
 
   const totalDebit = filtered.reduce((s, tx) => s + (tx.amount || 0), 0);
   const totalCredit = totalDebit;
