@@ -409,33 +409,26 @@ const InvoiceCreatePage = () => {
   }, []);
 
   const summary = useMemo(() => {
+    const grossTotal = form.items.reduce((s, i) => s + i.quantity * i.unitPrice, 0);
+    const totalDiscount = form.items.reduce((s, i) => s + getItemDiscountAmount(i), 0);
+
     if (form.taxInclusive) {
-      // Tax-inclusive: entered prices already contain tax
-      // We need to extract tax from the total
-      let subtotalExTax = 0;
+      // Tax-inclusive: prices already contain tax, extract it
       let totalTax = 0;
-      let totalDiscount = 0;
       form.items.forEach(i => {
         const base = i.quantity * i.unitPrice;
         const disc = i.discountType === "percent" ? base * (i.discount / 100) : i.discount;
-        totalDiscount += disc;
         const afterDiscount = base - disc;
-        // Reverse-calculate: afterDiscount = net + tax = net * (1 + taxRate/100)
         const net = afterDiscount / (1 + i.taxRate / 100);
-        const tax = afterDiscount - net;
-        subtotalExTax += net;
-        totalTax += tax;
+        totalTax += afterDiscount - net;
       });
-      const subtotal = form.items.reduce((s, i) => s + i.quantity * i.unitPrice, 0);
-      const total = subtotal - totalDiscount; // Total stays the same (prices include tax)
+      const total = grossTotal - totalDiscount; // Same as entered prices (tax included)
+      const subtotalExTax = total - totalTax;
       const paidAmount = form.paymentMethod === "credit" ? 0 : total;
-      const remainingAmount = total - paidAmount;
-      return { subtotal: subtotalExTax + totalTax - totalTax, totalDiscount, totalTax, total, paidAmount, remainingAmount, subtotalExTax };
+      return { subtotal: subtotalExTax, totalDiscount, totalTax, total, paidAmount, remainingAmount: total - paidAmount };
     } else {
-      // Tax-exclusive: tax is added on top
-      const subtotal = form.items.reduce((s, i) => s + i.quantity * i.unitPrice, 0);
-      const totalDiscount = form.items.reduce((s, i) => s + getItemDiscountAmount(i), 0);
-      const afterDiscount = subtotal - totalDiscount;
+      // Tax-exclusive: tax added on top
+      const afterDiscount = grossTotal - totalDiscount;
       const totalTax = form.items.reduce((s, i) => {
         const base = i.quantity * i.unitPrice;
         const disc = i.discountType === "percent" ? base * (i.discount / 100) : i.discount;
@@ -443,8 +436,7 @@ const InvoiceCreatePage = () => {
       }, 0);
       const total = afterDiscount + totalTax;
       const paidAmount = form.paymentMethod === "credit" ? 0 : total;
-      const remainingAmount = total - paidAmount;
-      return { subtotal, totalDiscount, totalTax, total, paidAmount, remainingAmount, subtotalExTax: afterDiscount };
+      return { subtotal: grossTotal, totalDiscount, totalTax, total, paidAmount, remainingAmount: total - paidAmount };
     }
   }, [form.items, form.paymentMethod, form.taxInclusive, getItemDiscountAmount]);
 
