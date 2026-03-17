@@ -8,8 +8,13 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Plus, Trash2, Printer, Wifi, WifiOff, TestTube, Settings2 } from "lucide-react";
+import { Plus, Trash2, Printer, Wifi, WifiOff, TestTube, Settings2, Building2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+
+interface Branch {
+  id: string;
+  name: string;
+}
 
 interface PrinterConfig {
   id: string;
@@ -22,6 +27,7 @@ interface PrinterConfig {
   is_active: boolean;
   station_ids: string[];
   print_categories: string[];
+  branch_id: string | null;
 }
 
 interface Station {
@@ -29,6 +35,7 @@ interface Station {
   name: string;
   station_type: string;
   color: string;
+  branch_id: string | null;
 }
 
 const PRINTER_TYPES = [
@@ -53,10 +60,12 @@ export default function NetworkPrintersManager() {
   const { user } = useAuth();
   const [printers, setPrinters] = useState<PrinterConfig[]>([]);
   const [stations, setStations] = useState<Station[]>([]);
+  const [branches, setBranches] = useState<Branch[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [editingPrinter, setEditingPrinter] = useState<PrinterConfig | null>(null);
   const [testing, setTesting] = useState<string | null>(null);
+  const [filterBranch, setFilterBranch] = useState<string>("all");
 
   // Form state
   const [formName, setFormName] = useState("");
@@ -67,18 +76,21 @@ export default function NetworkPrintersManager() {
   const [formIsDefault, setFormIsDefault] = useState(false);
   const [formStationIds, setFormStationIds] = useState<string[]>([]);
   const [formCategories, setFormCategories] = useState<string[]>(["receipt"]);
+  const [formBranchId, setFormBranchId] = useState<string>("");
 
   useEffect(() => {
     if (user) loadData();
   }, [user]);
 
   const loadData = async () => {
-    const [printersRes, stationsRes] = await Promise.all([
+    const [printersRes, stationsRes, branchesRes] = await Promise.all([
       supabase.from("pos_printers").select("*").order("created_at"),
-      supabase.from("kitchen_stations" as any).select("id, name, station_type, color").order("display_order"),
+      supabase.from("kitchen_stations" as any).select("id, name, station_type, color, branch_id").order("display_order"),
+      supabase.from("branches").select("id, name").eq("is_active", true).order("name"),
     ]);
     setPrinters((printersRes.data as any[]) || []);
     setStations((stationsRes.data as any[]) || []);
+    setBranches((branchesRes.data as Branch[]) || []);
     setLoading(false);
   };
 
@@ -91,6 +103,7 @@ export default function NetworkPrintersManager() {
     setFormIsDefault(false);
     setFormStationIds([]);
     setFormCategories(["receipt"]);
+    setFormBranchId("");
     setEditingPrinter(null);
   };
 
@@ -109,6 +122,7 @@ export default function NetworkPrintersManager() {
     setFormIsDefault(p.is_default);
     setFormStationIds(p.station_ids || []);
     setFormCategories(p.print_categories || ["receipt"]);
+    setFormBranchId(p.branch_id || "");
     setShowAddDialog(true);
   };
 
@@ -128,6 +142,7 @@ export default function NetworkPrintersManager() {
       is_default: formIsDefault,
       station_ids: formStationIds,
       print_categories: formCategories,
+      branch_id: formBranchId || null,
     };
 
     if (editingPrinter) {
@@ -239,9 +254,26 @@ export default function NetworkPrintersManager() {
         </p>
       </div>
 
+      {/* Branch Filter */}
+      {branches.length > 0 && (
+        <div className="flex items-center gap-2">
+          <Building2 className="h-4 w-4 text-muted-foreground" />
+          <Select value={filterBranch} onValueChange={setFilterBranch}>
+            <SelectTrigger className="h-8 w-[180px] text-xs">
+              <SelectValue placeholder="فلترة حسب الفرع" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">جميع الأفرع</SelectItem>
+              <SelectItem value="none">بدون فرع</SelectItem>
+              {branches.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
       {/* Printers List */}
       <div className="space-y-2">
-        {printers.map(p => (
+        {(filterBranch === "all" ? printers : filterBranch === "none" ? printers.filter(p => !p.branch_id) : printers.filter(p => p.branch_id === filterBranch)).map(p => (
           <div key={p.id} className="flex items-center gap-3 p-3 bg-background rounded-lg border border-border">
             <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${p.is_active ? "bg-primary/10" : "bg-muted"}`}>
               {p.is_active ? <Wifi className="h-4 w-4 text-primary" /> : <WifiOff className="h-4 w-4 text-muted-foreground" />}
@@ -261,6 +293,12 @@ export default function NetworkPrintersManager() {
                 {(p.station_ids || []).length > 0 && (
                   <Badge variant="outline" className="text-[9px] px-1 py-0 border-primary/30 text-primary">
                     {p.station_ids.length} محطة
+                  </Badge>
+                )}
+                {p.branch_id && (
+                  <Badge variant="outline" className="text-[9px] px-1 py-0 border-amber-500/30 text-amber-600">
+                    <Building2 className="h-2.5 w-2.5 mr-0.5" />
+                    {branches.find(b => b.id === p.branch_id)?.name || "فرع"}
                   </Badge>
                 )}
               </div>
@@ -369,6 +407,22 @@ export default function NetworkPrintersManager() {
               </div>
             </div>
 
+            {/* Branch */}
+            {branches.length > 0 && (
+              <div className="space-y-1.5">
+                <Label className="text-xs">الفرع</Label>
+                <Select value={formBranchId} onValueChange={setFormBranchId}>
+                  <SelectTrigger className="h-9 text-xs">
+                    <SelectValue placeholder="اختر فرع (اختياري)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">بدون فرع محدد</SelectItem>
+                    {branches.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             {/* Print Categories */}
             <div className="space-y-1.5">
               <Label className="text-xs">نوع المطبوعات</Label>
@@ -389,12 +443,12 @@ export default function NetworkPrintersManager() {
               </div>
             </div>
 
-            {/* Station Binding */}
+            {/* Station Binding - filtered by selected branch */}
             {stations.length > 0 && (
               <div className="space-y-1.5">
                 <Label className="text-xs">ربط بمحطات المطبخ (اختياري)</Label>
                 <div className="flex flex-wrap gap-1.5">
-                  {stations.map(s => (
+                  {stations.filter(s => !formBranchId || !s.branch_id || s.branch_id === formBranchId).map(s => (
                     <button
                       key={s.id}
                       onClick={() => toggleStationId(s.id)}

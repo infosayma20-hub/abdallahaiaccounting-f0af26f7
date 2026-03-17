@@ -4353,6 +4353,7 @@ export type Database = {
       }
       kitchen_stations: {
         Row: {
+          branch_id: string | null
           color: string | null
           created_at: string | null
           display_order: number | null
@@ -4364,6 +4365,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          branch_id?: string | null
           color?: string | null
           created_at?: string | null
           display_order?: number | null
@@ -4375,6 +4377,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          branch_id?: string | null
           color?: string | null
           created_at?: string | null
           display_order?: number | null
@@ -4385,7 +4388,22 @@ export type Database = {
           updated_at?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "kitchen_stations_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kitchen_stations_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches_safe"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       kitchen_tickets: {
         Row: {
@@ -6295,6 +6313,7 @@ export type Database = {
       }
       pos_printers: {
         Row: {
+          branch_id: string | null
           created_at: string | null
           id: string
           ip_address: string
@@ -6310,6 +6329,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          branch_id?: string | null
           created_at?: string | null
           id?: string
           ip_address: string
@@ -6325,6 +6345,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          branch_id?: string | null
           created_at?: string | null
           id?: string
           ip_address?: string
@@ -6339,7 +6360,22 @@ export type Database = {
           updated_at?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "pos_printers_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_printers_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches_safe"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       pos_purchases: {
         Row: {
