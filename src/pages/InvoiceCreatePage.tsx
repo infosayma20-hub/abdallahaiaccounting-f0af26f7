@@ -252,11 +252,12 @@ const InvoiceCreatePage = () => {
       setSalesReps(((sRes.data || []) as any[]).map(s => ({ id: s.id, name: s.full_name })));
       setBankAccounts((bRes.data || []) as any[]);
 
-      // Generate next invoice number
+      // Generate next invoice number based on current type
+      const prefix = form.type === "sales" ? "INV" : "PO";
       const totalCount = invCountRes.count || 0;
       const year = new Date().getFullYear();
       const nextNum = String(totalCount + 1).padStart(4, "0");
-      setNextInvoiceNumber(`INV-${year}-${nextNum}`);
+      setNextInvoiceNumber(`${prefix}-${year}-${nextNum}`);
 
       // Resolve duplicate contact after contacts load
       if (fromDuplicate) {
