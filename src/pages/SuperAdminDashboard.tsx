@@ -784,6 +784,7 @@ function SubscriptionsManager() {
     setEditPlanId(sub.plan_id);
     setEditStatus(sub.status);
     setEditBilling(sub.billing_cycle);
+    setEditPeriodEnd(sub.current_period_end ? sub.current_period_end.split("T")[0] : "");
   };
 
   const saveEdit = async () => {
