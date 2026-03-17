@@ -397,8 +397,8 @@ const CashBoxDrawer = ({ open, onClose, defaultType, editBox, hasMainBox, onSave
           <Button variant="ghost" onClick={onClose} className="h-11 px-6">إلغاء</Button>
           <Button
             className="flex-1 h-11 text-base font-bold gap-2 text-white"
-            style={{ background: boxType === "main" ? "#0A2342" : boxType === "branch" ? "#059669" : boxType === "petty" ? "#D97706" : "#7C3AED" }}
-            disabled={saving || !name.trim() || (boxType === "main" && hasMainBox && !editBox)}
+            style={{ background: normalizedType === "main" ? "#0A2342" : normalizedType === "branch" ? "#059669" : normalizedType === "petty" ? "#D97706" : "#7C3AED" }}
+            disabled={saving || !name.trim() || (normalizedType === "main" && hasMainBox && !editBox)}
             onClick={handleSave}
           >
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
