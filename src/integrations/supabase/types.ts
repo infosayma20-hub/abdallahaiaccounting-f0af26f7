@@ -8911,6 +8911,8 @@ export type Database = {
         Row: {
           account_code: string
           account_name: string | null
+          contact_id: string | null
+          contact_name: string | null
           created_at: string | null
           credit: number | null
           debit: number | null
@@ -8922,6 +8924,8 @@ export type Database = {
         Insert: {
           account_code: string
           account_name?: string | null
+          contact_id?: string | null
+          contact_name?: string | null
           created_at?: string | null
           credit?: number | null
           debit?: number | null
@@ -8933,6 +8937,8 @@ export type Database = {
         Update: {
           account_code?: string
           account_name?: string | null
+          contact_id?: string | null
+          contact_name?: string | null
           created_at?: string | null
           credit?: number | null
           debit?: number | null
