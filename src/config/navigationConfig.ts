@@ -44,15 +44,15 @@ export const navigationSections: NavSection[] = [
     items: [
       {
         id: "apps", label: "التطبيقات", description: "جميع التطبيقات", module: "home", icon: BarChart3,
-        color: "text-primary", bgColor: "bg-primary/10", path: "/apps", isDirect: true, keywords: ["تطبيقات"],
+        color: "text-[#1B3A5C]", bgColor: "bg-[#1B3A5C]/8", path: "/apps", isDirect: true, keywords: ["تطبيقات"],
       },
       {
         id: "dashboard", label: "لوحة المعلومات", description: "ملخص مالي شامل وتحليلات الأداء", module: "dashboard", icon: BarChart3,
-        color: "text-primary", bgColor: "bg-primary/10", path: "/dashboard", isDirect: true, keywords: ["لوحة", "معلومات", "داشبورد"],
+        color: "text-[#1B3A5C]", bgColor: "bg-[#1B3A5C]/8", path: "/dashboard", isDirect: true, keywords: ["لوحة", "معلومات", "داشبورد"],
       },
       {
         id: "ai-accountant", label: "المحاسب الذكي", description: "محاسبة تحليلية بالذكاء الاصطناعي", module: "ai", icon: Calculator,
-        color: "text-primary", bgColor: "bg-primary/10", path: "/smart-accountant", isDirect: true,
+        color: "text-[#1B3A5C]", bgColor: "bg-[#1B3A5C]/8", path: "/smart-accountant", isDirect: true,
         keywords: ["محاسب", "ذكاء", "تحليل", "ai"],
       },
     ],
