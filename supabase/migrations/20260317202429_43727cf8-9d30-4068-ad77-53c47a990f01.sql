@@ -1,0 +1,1 @@
+ALTER TABLE public.company_settings ADD COLUMN IF NOT EXISTS card_bank_account_id uuid REFERENCES public.bank_accounts(id) DEFAULT NULL;

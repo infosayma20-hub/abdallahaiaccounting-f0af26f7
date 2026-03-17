@@ -1504,6 +1504,7 @@ export type Database = {
           calendar_type: string | null
           can_delete_posted: boolean | null
           can_edit_posted: boolean | null
+          card_bank_account_id: string | null
           city: string | null
           commercial_register: string | null
           company_name: string | null
@@ -1631,6 +1632,7 @@ export type Database = {
           calendar_type?: string | null
           can_delete_posted?: boolean | null
           can_edit_posted?: boolean | null
+          card_bank_account_id?: string | null
           city?: string | null
           commercial_register?: string | null
           company_name?: string | null
@@ -1758,6 +1760,7 @@ export type Database = {
           calendar_type?: string | null
           can_delete_posted?: boolean | null
           can_edit_posted?: boolean | null
+          card_bank_account_id?: string | null
           city?: string | null
           commercial_register?: string | null
           company_name?: string | null
@@ -1876,7 +1879,15 @@ export type Database = {
           vat_sales_account?: string | null
           website?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "company_settings_card_bank_account_id_fkey"
+            columns: ["card_bank_account_id"]
+            isOneToOne: false
+            referencedRelation: "bank_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       company_themes: {
         Row: {
