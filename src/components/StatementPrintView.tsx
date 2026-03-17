@@ -144,8 +144,8 @@ const getSmartColumns = (detailMode: boolean, userColumns?: ColumnConfig[]): Sma
   // Fixed columns
   const fixed: SmartColumn[] = [
     { key: "type", label: "النوع", width: detailMode ? "10%" : "9%" },
-    { key: "debit", label: "مدين ₪", width: detailMode ? "12%" : "10%" },
-    { key: "credit", label: "دائن ₪", width: detailMode ? "12%" : "10%" },
+    { key: "debit", label: "مدين (عليه) ₪", width: detailMode ? "12%" : "10%" },
+    { key: "credit", label: "دائن (له) ₪", width: detailMode ? "12%" : "10%" },
     { key: "balance", label: "الرصيد ₪", width: detailMode ? "12%" : "10%" },
   ];
 
