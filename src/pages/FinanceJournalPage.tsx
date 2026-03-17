@@ -438,10 +438,11 @@ const FinanceJournalPage = () => {
               <SelectValue placeholder="حالة السند" />
             </SelectTrigger>
             <SelectContent className="bg-background z-50">
+              <SelectItem value="active">بدون الملغية</SelectItem>
               <SelectItem value="all">جميع الحالات</SelectItem>
               <SelectItem value="posted">✅ مرحّل</SelectItem>
               <SelectItem value="draft">📝 مسودة</SelectItem>
-              <SelectItem value="cancelled">🔴 ملغي</SelectItem>
+              <SelectItem value="cancelled">🔴 ملغي فقط</SelectItem>
             </SelectContent>
           </Select>
         </div>
