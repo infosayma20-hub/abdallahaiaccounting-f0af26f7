@@ -407,6 +407,22 @@ export default function NetworkPrintersManager() {
               </div>
             </div>
 
+            {/* Branch */}
+            {branches.length > 0 && (
+              <div className="space-y-1.5">
+                <Label className="text-xs">الفرع</Label>
+                <Select value={formBranchId} onValueChange={setFormBranchId}>
+                  <SelectTrigger className="h-9 text-xs">
+                    <SelectValue placeholder="اختر فرع (اختياري)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">بدون فرع محدد</SelectItem>
+                    {branches.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             {/* Print Categories */}
             <div className="space-y-1.5">
               <Label className="text-xs">نوع المطبوعات</Label>
