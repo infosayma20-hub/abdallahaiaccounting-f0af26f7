@@ -604,6 +604,8 @@ const JournalNewPage = () => {
                         </SelectContent>
                       </Select>
                     </td>
+                      );
+                    })()}
                     <td className="p-2.5">
                       <Input
                         type="text" inputMode="decimal"
