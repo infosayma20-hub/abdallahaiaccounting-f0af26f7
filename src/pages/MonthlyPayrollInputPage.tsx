@@ -431,7 +431,7 @@ const MonthlyPayrollInputPage = () => {
           </button>
           <div>
             <h1 className="text-xl font-bold text-foreground">إدخال بيانات الرواتب الشهرية</h1>
-            <p className="text-xs text-muted-foreground">{months[selectedMonth - 1]} {selectedYear} — نظام الملكي</p>
+            <p className="text-xs text-muted-foreground">{months[selectedMonth - 1]} {selectedYear}</p>
           </div>
         </div>
         <Button onClick={handleSave} disabled={saving || isLoading} size="sm">

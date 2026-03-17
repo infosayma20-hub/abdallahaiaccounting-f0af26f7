@@ -443,7 +443,7 @@ const PayrollPage = () => {
         <div className="flex items-center gap-3">
           <BackButton />
           <div>
-            <h1 className="text-xl font-bold text-foreground">إدارة الرواتب — نظام الملكي</h1>
+            <h1 className="text-xl font-bold text-foreground">إدارة الرواتب</h1>
             <p className="text-xs text-muted-foreground">{months[selectedMonth - 1]} {selectedYear}</p>
           </div>
         </div>
