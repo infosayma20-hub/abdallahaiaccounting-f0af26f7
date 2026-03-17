@@ -942,9 +942,13 @@ const InvoiceCreatePage = () => {
             </div>
             <div>
               <label className="text-[11px] text-muted-foreground mb-1 block font-medium">المندوب (اختياري)</label>
-              <Select value={form.salespersonId || "__none__"} onValueChange={v => setForm(p => ({ ...p, salespersonId: v === "__none__" ? null : v }))}>
+              <Select value={form.salespersonId || "__none__"} onValueChange={v => {
+                if (v === "__new_rep__") { setShowQuickAddRep(true); return; }
+                setForm(p => ({ ...p, salespersonId: v === "__none__" ? null : v }));
+              }}>
                 <SelectTrigger className="rounded-xl text-sm"><SelectValue placeholder="اختر مندوب المبيعات..." /></SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="__new_rep__" className="text-primary font-semibold">+ تعريف مندوب جديد</SelectItem>
                   <SelectItem value="__none__">بدون مندوب</SelectItem>
                   {salesReps.map(sr => <SelectItem key={sr.id} value={sr.id}>{sr.name}</SelectItem>)}
                 </SelectContent>
