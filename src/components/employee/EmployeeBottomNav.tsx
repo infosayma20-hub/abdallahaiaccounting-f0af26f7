@@ -1,5 +1,4 @@
 import { Home, Calendar, Send, User, Bell } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 type Tab = "home" | "history" | "requests" | "alerts" | "profile" | "scan";
 
@@ -20,39 +19,36 @@ const tabs: { id: Tab; label: string; icon: React.ElementType }[] = [
 export default function EmployeeBottomNav({ active, onNavigate, alertCount = 0 }: Props) {
   return (
     <nav
-      className="fixed bottom-0 inset-x-0 z-50 border-t safe-area-bottom"
+      className="fixed bottom-0 inset-x-0 z-50 border-t border-border bg-card/95 backdrop-blur-xl"
       style={{
-        background: "#FFFFFF",
-        borderColor: "#E2E8F0",
-        height: 60,
+        paddingBottom: "env(safe-area-inset-bottom, 0px)",
       }}
     >
-      <div className="flex items-center justify-around h-full max-w-lg mx-auto px-2">
+      <div className="flex items-center justify-around h-[56px] max-w-lg mx-auto px-1">
         {tabs.map((tab) => {
           const isActive = active === tab.id;
           return (
             <button
               key={tab.id}
               onClick={() => onNavigate(tab.id)}
-              className="flex flex-col items-center justify-center gap-0.5 flex-1 py-2 transition-all duration-150"
+              className={`flex flex-col items-center justify-center gap-0.5 flex-1 py-1.5 rounded-xl transition-all duration-200 active:scale-95 ${
+                isActive ? "bg-primary/10" : ""
+              }`}
             >
               <div className="relative">
                 <tab.icon
-                  className="h-5 w-5"
-                  style={{ color: isActive ? "#00B4D8" : "#8B9BB4" }}
+                  className={`h-5 w-5 transition-colors ${isActive ? "text-primary" : "text-muted-foreground"}`}
+                  strokeWidth={isActive ? 2.5 : 1.8}
                 />
                 {tab.id === "alerts" && alertCount > 0 && (
-                  <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-destructive text-white text-[8px] flex items-center justify-center font-bold">
+                  <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-1 rounded-full bg-destructive text-destructive-foreground text-[9px] flex items-center justify-center font-bold">
                     {alertCount > 9 ? "9+" : alertCount}
                   </span>
                 )}
               </div>
               <span
-                className="text-[10px] font-medium"
-                style={{
-                  color: isActive ? "#00B4D8" : "#8B9BB4",
-                  fontFamily: "Tajawal, sans-serif",
-                }}
+                className={`text-[10px] font-medium transition-colors ${isActive ? "text-primary" : "text-muted-foreground"}`}
+                style={{ fontFamily: "Tajawal, sans-serif" }}
               >
                 {tab.label}
               </span>

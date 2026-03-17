@@ -111,7 +111,7 @@ export default function EmployeeRequestsTab({ corrections, employeeId, userId, o
   };
 
   return (
-    <div className="space-y-4 px-4 pt-2 pb-24" dir="rtl">
+    <div className="space-y-4 px-4 pt-3" dir="rtl" style={{ paddingBottom: "calc(72px + env(safe-area-inset-bottom, 0px))" }}>
       <h2 className="text-lg font-bold pt-2">📨 الطلبات والتواصل</h2>
 
       {/* Quick request buttons */}
