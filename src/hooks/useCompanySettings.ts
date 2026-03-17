@@ -264,25 +264,32 @@ export function useCompanySettings() {
     if (!user) return;
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from("company_settings" as any)
-        .select("*")
-        .eq("user_id", user.id)
-        .maybeSingle();
+      const [settingsRes, profileRes, companyRes] = await Promise.all([
+        supabase.from("company_settings" as any).select("*").eq("user_id", user.id).maybeSingle(),
+        supabase.from("profiles" as any).select("display_name, company_name, company_id").eq("user_id", user.id).maybeSingle(),
+        supabase.from("companies" as any).select("name, logo_url, email, phone, address").eq("owner_id", user.id).maybeSingle(),
+      ]);
 
-      if (error) throw error;
+      if (settingsRes.error) throw settingsRes.error;
 
-      if (data) {
-        const d = data as any;
-        const loaded: CompanySettings = {
-          ...defaultSettings,
-          ...d,
-          extra_currencies: Array.isArray(d.extra_currencies) ? d.extra_currencies : defaultSettings.extra_currencies,
-          pos_payment_methods: Array.isArray(d.pos_payment_methods) ? d.pos_payment_methods : defaultSettings.pos_payment_methods,
-        };
-        setSettings(loaded);
-        setOriginalSettings(loaded);
-      }
+      const d = (settingsRes.data as any) || {};
+      const profile = profileRes.data as any;
+      const company = companyRes.data as any;
+
+      // Fallback: use company/profile data if settings fields are empty
+      const loaded: CompanySettings = {
+        ...defaultSettings,
+        ...d,
+        company_name: d.company_name || company?.name || profile?.company_name || profile?.display_name || "",
+        logo_url: d.logo_url || company?.logo_url || "",
+        email: d.email || company?.email || user.email || "",
+        phone: d.phone || company?.phone || "",
+        address: d.address || company?.address || "",
+        extra_currencies: Array.isArray(d.extra_currencies) ? d.extra_currencies : defaultSettings.extra_currencies,
+        pos_payment_methods: Array.isArray(d.pos_payment_methods) ? d.pos_payment_methods : defaultSettings.pos_payment_methods,
+      };
+      setSettings(loaded);
+      setOriginalSettings(loaded);
     } catch (err) {
       console.error("Failed to load settings:", err);
     } finally {
