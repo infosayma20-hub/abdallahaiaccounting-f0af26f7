@@ -142,7 +142,7 @@ export default function NetworkPrintersManager() {
       is_default: formIsDefault,
       station_ids: formStationIds,
       print_categories: formCategories,
-      branch_id: formBranchId || null,
+      branch_id: formBranchId && formBranchId !== "__none__" ? formBranchId : null,
     };
 
     if (editingPrinter) {
@@ -416,7 +416,7 @@ export default function NetworkPrintersManager() {
                     <SelectValue placeholder="اختر فرع (اختياري)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">بدون فرع محدد</SelectItem>
+                    <SelectItem value="__none__">بدون فرع محدد</SelectItem>
                     {branches.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
@@ -448,7 +448,7 @@ export default function NetworkPrintersManager() {
               <div className="space-y-1.5">
                 <Label className="text-xs">ربط بمحطات المطبخ (اختياري)</Label>
                 <div className="flex flex-wrap gap-1.5">
-                  {stations.filter(s => !formBranchId || !s.branch_id || s.branch_id === formBranchId).map(s => (
+                  {stations.filter(s => !formBranchId || formBranchId === "__none__" || !s.branch_id || s.branch_id === formBranchId).map(s => (
                     <button
                       key={s.id}
                       onClick={() => toggleStationId(s.id)}

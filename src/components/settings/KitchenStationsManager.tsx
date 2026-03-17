@@ -68,7 +68,7 @@ export default function KitchenStationsManager() {
       station_type: newType,
       color: newColor,
       display_order: stations.length,
-      branch_id: newBranchId || null,
+      branch_id: newBranchId && newBranchId !== "__none__" ? newBranchId : null,
     } as any);
     if (error) return toast.error("خطأ في الإضافة");
     toast.success("تمت إضافة المحطة");
@@ -148,7 +148,7 @@ export default function KitchenStationsManager() {
             <Select value={newBranchId} onValueChange={setNewBranchId}>
               <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="اختر فرع" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="">بدون فرع</SelectItem>
+                <SelectItem value="__none__">بدون فرع</SelectItem>
                 {branches.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
               </SelectContent>
             </Select>
