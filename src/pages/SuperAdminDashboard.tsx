@@ -897,51 +897,47 @@ function SubscriptionsManager() {
 
       {editSub && (
         <Dialog open={!!editSub} onOpenChange={() => setEditSub(null)}>
-          <DialogContent style={{ background: "var(--sa-dialog-bg)", borderColor: "var(--sa-dialog-border)", color: "var(--sa-text-primary)" }} dir="rtl">
+          <DialogContent className="bg-white border-gray-200 text-gray-900 max-w-md" dir="rtl">
             <DialogHeader>
-              <DialogTitle style={{ color: "var(--sa-text-primary)" }}>تعديل اشتراك {editSub.display_name}</DialogTitle>
+              <DialogTitle className="text-gray-900">تعديل اشتراك {editSub.display_name}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div>
-                <label className="text-xs block mb-1" style={{ color: "var(--sa-text-muted)" }}>الباقة</label>
+                <label className="text-xs block mb-1 text-gray-500">الباقة</label>
                 <select value={editPlanId} onChange={e => setEditPlanId(e.target.value)}
-                  className="w-full h-10 rounded-md px-3 text-sm"
-                  style={{ background: "var(--sa-input-bg)", border: "1px solid var(--sa-input-border)", color: "var(--sa-text-primary)" }}>
+                  className="w-full h-10 rounded-md px-3 text-sm bg-gray-50 border border-gray-300 text-gray-900">
                   {plans.map(p => (
-                    <option key={p.id} value={p.id} style={{ background: "var(--sa-dialog-bg)" }}>{p.name} (₪{p.monthly_price}/شهر)</option>
+                    <option key={p.id} value={p.id}>{p.name} (₪{p.monthly_price}/شهر)</option>
                   ))}
                 </select>
               </div>
               <div>
-                <label className="text-xs block mb-1" style={{ color: "var(--sa-text-muted)" }}>الحالة</label>
+                <label className="text-xs block mb-1 text-gray-500">الحالة</label>
                 <select value={editStatus} onChange={e => setEditStatus(e.target.value)}
-                  className="w-full h-10 rounded-md px-3 text-sm"
-                  style={{ background: "var(--sa-input-bg)", border: "1px solid var(--sa-input-border)", color: "var(--sa-text-primary)" }}>
-                  <option value="trial" style={{ background: "var(--sa-dialog-bg)" }}>تجريبي</option>
-                  <option value="active" style={{ background: "var(--sa-dialog-bg)" }}>نشط</option>
-                  <option value="expired" style={{ background: "var(--sa-dialog-bg)" }}>منتهي</option>
-                  <option value="cancelled" style={{ background: "var(--sa-dialog-bg)" }}>ملغي</option>
-                  <option value="suspended" style={{ background: "var(--sa-dialog-bg)" }}>موقوف</option>
+                  className="w-full h-10 rounded-md px-3 text-sm bg-gray-50 border border-gray-300 text-gray-900">
+                  <option value="trial">تجريبي</option>
+                  <option value="active">نشط</option>
+                  <option value="expired">منتهي</option>
+                  <option value="cancelled">ملغي</option>
+                  <option value="suspended">موقوف</option>
                 </select>
               </div>
               <div>
-                <label className="text-xs block mb-1" style={{ color: "var(--sa-text-muted)" }}>دورة الفوترة</label>
+                <label className="text-xs block mb-1 text-gray-500">دورة الفوترة</label>
                 <select value={editBilling} onChange={e => setEditBilling(e.target.value)}
-                  className="w-full h-10 rounded-md px-3 text-sm"
-                  style={{ background: "var(--sa-input-bg)", border: "1px solid var(--sa-input-border)", color: "var(--sa-text-primary)" }}>
-                  <option value="monthly" style={{ background: "var(--sa-dialog-bg)" }}>شهري</option>
-                  <option value="annual" style={{ background: "var(--sa-dialog-bg)" }}>سنوي</option>
+                  className="w-full h-10 rounded-md px-3 text-sm bg-gray-50 border border-gray-300 text-gray-900">
+                  <option value="monthly">شهري</option>
+                  <option value="annual">سنوي</option>
                 </select>
               </div>
               <div>
-                <label className="text-xs block mb-1" style={{ color: "var(--sa-text-muted)" }}>تاريخ انتهاء الفترة</label>
+                <label className="text-xs block mb-1 text-gray-500">تاريخ انتهاء الفترة</label>
                 <input type="date" value={editPeriodEnd} onChange={e => setEditPeriodEnd(e.target.value)}
-                  className="w-full h-10 rounded-md px-3 text-sm"
-                  style={{ background: "var(--sa-input-bg)", border: "1px solid var(--sa-input-border)", color: "var(--sa-text-primary)" }} />
+                  className="w-full h-10 rounded-md px-3 text-sm bg-gray-50 border border-gray-300 text-gray-900" />
               </div>
             </div>
             <DialogFooter>
-              <Button variant="ghost" onClick={() => setEditSub(null)} style={{ color: "var(--sa-text-muted)" }}>إلغاء</Button>
+              <Button variant="ghost" onClick={() => setEditSub(null)} className="text-gray-500">إلغاء</Button>
               <Button onClick={saveEdit} className="bg-amber-500 hover:bg-amber-600 text-black">حفظ</Button>
             </DialogFooter>
           </DialogContent>
