@@ -242,6 +242,8 @@ const JournalNewPage = () => {
           debit: Number(l.debit) || 0,
           credit: Number(l.credit) || 0,
           line_order: i + 1,
+          contact_id: l.contact_id && l.contact_id !== "__none__" ? l.contact_id : null,
+          contact_name: l.contact_name || null,
         }))
       );
 
