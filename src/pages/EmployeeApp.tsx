@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, AlertTriangle } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import EmployeeBottomNav from "@/components/employee/EmployeeBottomNav";
 import EmployeeHomeTab from "@/components/employee/EmployeeHomeTab";
 import QRScannerDialog from "@/components/employee/QRScannerDialog";
@@ -63,7 +64,6 @@ export default function EmployeeApp() {
     if (!user) return;
     setLoading(true);
     try {
-      // Check if user has cashier role
       const { data: roles } = await supabase
         .from("user_roles")
         .select("role")
@@ -116,19 +116,27 @@ export default function EmployeeApp() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background" style={{ fontFamily: "Tajawal, sans-serif" }}>
-        <div className="h-6 w-6 rounded-full border-2 border-transparent animate-spin" style={{ borderTopColor: "#00B4D8" }} />
+      <div className="min-h-[100dvh] flex items-center justify-center bg-background" style={{ fontFamily: "Tajawal, sans-serif" }}>
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-8 w-8 rounded-full border-[3px] border-muted animate-spin" style={{ borderTopColor: "hsl(var(--primary))" }} />
+          <p className="text-xs text-muted-foreground">جاري التحميل...</p>
+        </div>
       </div>
     );
   }
 
   if (!employee) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-6" dir="rtl" style={{ fontFamily: "Tajawal, sans-serif" }}>
+      <div className="min-h-[100dvh] flex items-center justify-center bg-background p-6" dir="rtl" style={{ fontFamily: "Tajawal, sans-serif" }}>
         <div className="text-center space-y-4 max-w-xs">
-          <AlertTriangle className="h-16 w-16 mx-auto" style={{ color: "#D97706" }} />
-          <h2 className="text-lg font-bold" style={{ color: "#0A2342" }}>لم يتم ربط حسابك بسجل موظف</h2>
-          <p className="text-sm" style={{ color: "#8B9BB4" }}>تواصل مع مسؤول الموارد البشرية لربط حسابك.</p>
+          <div className="w-16 h-16 rounded-2xl bg-warning/10 flex items-center justify-center mx-auto">
+            <AlertTriangle className="h-8 w-8 text-warning" />
+          </div>
+          <h2 className="text-lg font-bold text-foreground">لم يتم ربط حسابك بسجل موظف</h2>
+          <p className="text-sm text-muted-foreground leading-relaxed">تواصل مع مسؤول الموارد البشرية لربط حسابك بسجل الموظف الخاص بك.</p>
+          <Button variant="outline" onClick={() => navigate("/auth")} className="rounded-xl">
+            العودة لتسجيل الدخول
+          </Button>
         </div>
       </div>
     );
@@ -137,47 +145,50 @@ export default function EmployeeApp() {
   const incompleteDays = history.filter((d) => d.status === "incomplete");
 
   return (
-    <div className="min-h-screen bg-background" style={{ fontFamily: "Tajawal, sans-serif" }}>
-      <div className="h-[env(safe-area-inset-top,0px)]" />
+    <div
+      className="min-h-[100dvh] bg-background overscroll-none"
+      style={{ fontFamily: "Tajawal, sans-serif", paddingTop: "env(safe-area-inset-top, 0px)" }}
+    >
+      <div className="max-w-lg mx-auto">
+        {activeTab === "home" && (
+          <EmployeeHomeTab
+            employeeName={employee.full_name}
+            todayRecord={todayRecord}
+            history={history}
+            onScanTap={() => handleNavigate("scan")}
+            onNavigate={(tab) => setActiveTab(tab as Tab)}
+            isCashier={isCashier}
+            onOpenPOS={() => navigate("/pos")}
+          />
+        )}
 
-      {activeTab === "home" && (
-        <EmployeeHomeTab
-          employeeName={employee.full_name}
-          todayRecord={todayRecord}
-          history={history}
-          onScanTap={() => handleNavigate("scan")}
-          onNavigate={(tab) => setActiveTab(tab as Tab)}
-          isCashier={isCashier}
-          onOpenPOS={() => navigate("/pos")}
-        />
-      )}
+        {activeTab === "history" && (
+          <AttendanceCalendarTab history={history} />
+        )}
 
-      {activeTab === "history" && (
-        <AttendanceCalendarTab history={history} />
-      )}
+        {activeTab === "requests" && (
+          <EmployeeRequestsTab
+            corrections={corrections}
+            employeeId={employee.id}
+            userId={user!.id}
+            onRefresh={fetchData}
+          />
+        )}
 
-      {activeTab === "requests" && (
-        <EmployeeRequestsTab
-          corrections={corrections}
-          employeeId={employee.id}
-          userId={user!.id}
-          onRefresh={fetchData}
-        />
-      )}
+        {activeTab === "alerts" && (
+          <AlertsTab
+            incompleteDays={incompleteDays}
+            corrections={corrections}
+            employeeId={employee.id}
+            userId={user!.id}
+            onRefresh={fetchData}
+          />
+        )}
 
-      {activeTab === "alerts" && (
-        <AlertsTab
-          incompleteDays={incompleteDays}
-          corrections={corrections}
-          employeeId={employee.id}
-          userId={user!.id}
-          onRefresh={fetchData}
-        />
-      )}
-
-      {activeTab === "profile" && (
-        <EmployeeProfileTab employee={employee} branchName={branchName} />
-      )}
+        {activeTab === "profile" && (
+          <EmployeeProfileTab employee={employee} branchName={branchName} />
+        )}
+      </div>
 
       <EmployeeBottomNav
         active={activeTab}

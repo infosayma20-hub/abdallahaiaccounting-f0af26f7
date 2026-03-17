@@ -53,7 +53,6 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, history, on
   const dayComplete = todayRecord?.first_check_in && todayRecord?.last_check_out;
   const status = todayRecord ? statusMap[todayRecord.status] || null : null;
 
-  // Elapsed time since check-in
   const elapsed = useMemo(() => {
     if (!todayRecord?.first_check_in || todayRecord?.last_check_out) return null;
     const mins = differenceInMinutes(currentTime, new Date(todayRecord.first_check_in));
@@ -62,7 +61,6 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, history, on
     return `${h} ساعة و ${m} دقيقة`;
   }, [todayRecord, currentTime]);
 
-  // Completed day summary
   const completedSummary = useMemo(() => {
     if (!dayComplete || !todayRecord) return null;
     const totalMins = differenceInMinutes(new Date(todayRecord.last_check_out!), new Date(todayRecord.first_check_in!));
@@ -71,7 +69,6 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, history, on
     return `${h} ساعة و ${m} دقيقة`;
   }, [dayComplete, todayRecord]);
 
-  // Monthly stats
   const stats = useMemo(() => {
     const now = new Date();
     const monthDays = history.filter(d => {
@@ -86,7 +83,6 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, history, on
     };
   }, [history]);
 
-  // Last 5 days
   const last5 = useMemo(() => history.slice(0, 5), [history]);
 
   const statusIcon = (s: string) => {
@@ -99,50 +95,54 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, history, on
     }
   };
 
+  // Safe area bottom padding for bottom nav + extra
+  const bottomPad = "calc(72px + env(safe-area-inset-bottom, 0px))";
+
   return (
-    <div className="space-y-4 px-4 pt-2 pb-24" dir="rtl">
+    <div className="space-y-3 px-4 pt-3" dir="rtl" style={{ paddingBottom: bottomPad }}>
       {/* Welcome Banner */}
       <div
         className="rounded-2xl p-5 relative overflow-hidden"
-        style={{ background: "linear-gradient(135deg, #0A2342 0%, #0D3158 100%)" }}
+        style={{ background: "linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary) / 0.8) 100%)" }}
       >
         <div className="relative z-10">
-          <p className="text-sm" style={{ color: "rgba(255,255,255,0.6)", fontFamily: "Tajawal, sans-serif" }}>مرحباً 👋</p>
-          <h1 className="text-xl font-bold text-white" style={{ fontFamily: "Tajawal, sans-serif" }}>{employeeName}</h1>
-          <p className="text-xs mt-1" style={{ color: "rgba(255,255,255,0.5)", fontFamily: "Tajawal, sans-serif" }}>
+          <p className="text-sm text-primary-foreground/60">مرحباً 👋</p>
+          <h1 className="text-xl font-bold text-primary-foreground">{employeeName}</h1>
+          <p className="text-xs mt-1 text-primary-foreground/50">
             {format(currentTime, "EEEE، d MMMM yyyy", { locale: ar })}
           </p>
         </div>
+        {/* Decorative circle */}
+        <div className="absolute -left-6 -bottom-6 w-24 h-24 rounded-full bg-white/5" />
+        <div className="absolute -right-4 -top-4 w-16 h-16 rounded-full bg-white/5" />
       </div>
 
       {/* POS Quick Access for Cashiers */}
       {isCashier && onOpenPOS && (
         <Button
           onClick={onOpenPOS}
-          className="w-full h-14 text-lg gap-3"
-          style={{ background: "#0A2342", color: "white" }}
+          className="w-full h-14 text-base gap-3 rounded-2xl active:scale-[0.98] transition-transform"
+          style={{ background: "hsl(var(--primary))", color: "hsl(var(--primary-foreground))" }}
         >
-          <ShoppingCart className="w-6 h-6" />
+          <ShoppingCart className="w-5 h-5" />
           فتح نقطة البيع
         </Button>
       )}
 
-      {/* Clock Card */}
+      {/* Live Clock */}
       <Card className="border-border bg-card overflow-hidden">
-        <CardContent className="p-5 text-center">
-          <div className="text-4xl font-bold tabular-nums text-primary" style={{ fontFeatureSettings: "'tnum' 1" }}>
-            {format(currentTime, "HH:mm:ss")}
+        <CardContent className="p-4 text-center">
+          <div className="text-5xl font-bold tabular-nums text-primary tracking-tight" style={{ fontFeatureSettings: "'tnum' 1", fontFamily: "JetBrains Mono, monospace" }}>
+            {format(currentTime, "HH:mm")}
+            <span className="text-2xl text-primary/50">:{format(currentTime, "ss")}</span>
           </div>
-          <p className="text-xs text-muted-foreground mt-1">
-            {format(currentTime, "EEEE، d MMMM yyyy", { locale: ar })}
-          </p>
         </CardContent>
       </Card>
 
       {/* Today Status & Action */}
       <Card className="border-border bg-card">
-        <CardContent className="p-5">
-          <div className="flex items-center justify-between mb-4">
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2.5">
               <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
                 <Timer className="h-5 w-5 text-primary" />
@@ -168,11 +168,11 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, history, on
           </div>
 
           {/* Check-in / Check-out times */}
-          <div className="grid grid-cols-2 gap-3 mb-4">
+          <div className="grid grid-cols-2 gap-2 mb-3">
             <div className="bg-secondary/50 rounded-xl p-3 text-center">
               <LogIn className="h-4 w-4 mx-auto mb-1 text-emerald-500" />
               <div className="text-[10px] text-muted-foreground">دخول</div>
-              <div className="font-semibold text-sm">
+              <div className="font-semibold text-sm tabular-nums">
                 {todayRecord?.first_check_in
                   ? format(new Date(todayRecord.first_check_in), "hh:mm a")
                   : "—"}
@@ -181,7 +181,7 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, history, on
             <div className="bg-secondary/50 rounded-xl p-3 text-center">
               <LogOut className="h-4 w-4 mx-auto mb-1 text-destructive" />
               <div className="text-[10px] text-muted-foreground">خروج</div>
-              <div className="font-semibold text-sm">
+              <div className="font-semibold text-sm tabular-nums">
                 {todayRecord?.last_check_out
                   ? format(new Date(todayRecord.last_check_out), "hh:mm a")
                   : "—"}
@@ -201,7 +201,7 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, history, on
             <div className="flex gap-2">
               <Button
                 size="lg"
-                className="flex-1 h-14 text-base rounded-2xl gap-2 font-semibold bg-emerald-600 hover:bg-emerald-700 text-white"
+                className="flex-1 h-14 text-base rounded-2xl gap-2 font-semibold bg-emerald-600 hover:bg-emerald-700 text-white active:scale-[0.97] transition-transform"
                 onClick={onScanTap}
               >
                 <LogIn className="h-5 w-5" />
@@ -210,7 +210,7 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, history, on
               <Button
                 size="lg"
                 variant="outline"
-                className="h-14 w-14 rounded-2xl"
+                className="h-14 w-14 rounded-2xl active:scale-95 transition-transform"
                 onClick={onScanTap}
               >
                 <QrCode className="h-5 w-5" />
@@ -222,7 +222,7 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, history, on
             <div className="flex gap-2">
               <Button
                 size="lg"
-                className="flex-1 h-14 text-base rounded-2xl gap-2 font-semibold bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+                className="flex-1 h-14 text-base rounded-2xl gap-2 font-semibold bg-destructive hover:bg-destructive/90 text-destructive-foreground active:scale-[0.97] transition-transform"
                 onClick={onScanTap}
               >
                 <LogOut className="h-5 w-5" />
@@ -231,7 +231,7 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, history, on
               <Button
                 size="lg"
                 variant="outline"
-                className="h-14 w-14 rounded-2xl"
+                className="h-14 w-14 rounded-2xl active:scale-95 transition-transform"
                 onClick={onScanTap}
               >
                 <QrCode className="h-5 w-5" />
@@ -258,22 +258,17 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, history, on
         <CardContent className="p-4">
           <h3 className="text-sm font-semibold mb-3">📊 إحصائيات الشهر</h3>
           <div className="grid grid-cols-4 gap-2">
-            <div className="text-center">
-              <div className="text-lg font-bold tabular-nums text-emerald-500">{stats.present}</div>
-              <div className="text-[10px] text-muted-foreground">✅ حاضر</div>
-            </div>
-            <div className="text-center">
-              <div className="text-lg font-bold tabular-nums text-warning">{stats.late}</div>
-              <div className="text-[10px] text-muted-foreground">⚠️ متأخر</div>
-            </div>
-            <div className="text-center">
-              <div className="text-lg font-bold tabular-nums text-destructive">{stats.absent}</div>
-              <div className="text-[10px] text-muted-foreground">❌ غياب</div>
-            </div>
-            <div className="text-center">
-              <div className="text-lg font-bold tabular-nums text-foreground">{stats.totalHours.toFixed(0)}</div>
-              <div className="text-[10px] text-muted-foreground">⏱️ ساعة</div>
-            </div>
+            {[
+              { label: "حاضر", value: stats.present, emoji: "✅", color: "text-emerald-500" },
+              { label: "متأخر", value: stats.late, emoji: "⚠️", color: "text-warning" },
+              { label: "غياب", value: stats.absent, emoji: "❌", color: "text-destructive" },
+              { label: "ساعة", value: stats.totalHours.toFixed(0), emoji: "⏱️", color: "text-foreground" },
+            ].map(s => (
+              <div key={s.label} className="text-center bg-secondary/30 rounded-xl p-2.5">
+                <div className={`text-lg font-bold tabular-nums ${s.color}`}>{s.value}</div>
+                <div className="text-[10px] text-muted-foreground">{s.emoji} {s.label}</div>
+              </div>
+            ))}
           </div>
         </CardContent>
       </Card>
@@ -283,7 +278,7 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, history, on
         <Card className="border-border bg-card">
           <CardContent className="p-4">
             <h3 className="text-sm font-semibold mb-3">📅 آخر 5 أيام</h3>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               {last5.map(day => (
                 <div key={day.id} className="flex items-center justify-between bg-secondary/30 rounded-xl p-2.5">
                   <div className="flex items-center gap-2">
@@ -292,9 +287,9 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, history, on
                       {format(new Date(day.attendance_date), "dd/MM EEEE", { locale: ar }).slice(0, 12)}
                     </span>
                   </div>
-                  <div className="flex items-center gap-3 text-[11px] tabular-nums text-muted-foreground">
+                  <div className="flex items-center gap-2.5 text-[11px] tabular-nums text-muted-foreground">
                     {day.status === "absent" ? (
-                      <span className="text-destructive">غياب</span>
+                      <span className="text-destructive text-xs">غياب</span>
                     ) : (
                       <>
                         <span>{day.first_check_in ? format(new Date(day.first_check_in), "HH:mm") : "—"}</span>
@@ -314,43 +309,27 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, history, on
       )}
 
       {/* Quick Links */}
-      <div className="grid grid-cols-2 gap-3">
-        <Button
-          variant="outline"
-          className="h-14 rounded-2xl gap-2 text-sm border-border"
-          onClick={() => onNavigate("history")}
-        >
-          <ClipboardList className="h-4 w-4" />
-          سجلي الكامل
-        </Button>
-        <Button
-          variant="outline"
-          className="h-14 rounded-2xl gap-2 text-sm border-border"
-          onClick={() => onNavigate("requests")}
-        >
-          <Send className="h-4 w-4" />
-          طلب إجازة / سلفة
-        </Button>
-        <Button
-          variant="outline"
-          className="h-14 rounded-2xl gap-2 text-sm border-border"
-          onClick={() => onNavigate("alerts")}
-        >
-          <AlertTriangle className="h-4 w-4" />
-          تنبيهات وتصحيحات
-        </Button>
-        <Button
-          variant="outline"
-          className="h-14 rounded-2xl gap-2 text-sm border-border"
-          onClick={() => onNavigate("profile")}
-        >
-          <User className="h-4 w-4" />
-          ملفي الشخصي
-        </Button>
+      <div className="grid grid-cols-2 gap-2">
+        {[
+          { icon: ClipboardList, label: "سجلي الكامل", tab: "history" },
+          { icon: Send, label: "طلب إجازة / سلفة", tab: "requests" },
+          { icon: AlertTriangle, label: "تنبيهات وتصحيحات", tab: "alerts" },
+          { icon: User, label: "ملفي الشخصي", tab: "profile" },
+        ].map(link => (
+          <Button
+            key={link.tab}
+            variant="outline"
+            className="h-14 rounded-2xl gap-2 text-xs border-border active:scale-[0.97] transition-transform"
+            onClick={() => onNavigate(link.tab)}
+          >
+            <link.icon className="h-4 w-4 text-muted-foreground" />
+            {link.label}
+          </Button>
+        ))}
       </div>
 
       {/* Geofence note */}
-      <div className="flex items-center gap-2 text-[11px] text-muted-foreground px-1">
+      <div className="flex items-center gap-2 text-[11px] text-muted-foreground px-1 pb-2">
         <MapPin className="h-3 w-3 shrink-0" />
         <span>يتم التحقق من موقعك الجغرافي تلقائياً عند التسجيل</span>
       </div>

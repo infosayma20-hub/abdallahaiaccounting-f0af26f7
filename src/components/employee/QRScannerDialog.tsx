@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Camera, Keyboard, Loader2, MapPin, CheckCircle2, XCircle } from "lucide-react";
+import { Camera, Keyboard, Loader2, MapPin, CheckCircle2, XCircle, X } from "lucide-react";
 import { Html5Qrcode } from "html5-qrcode";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -26,7 +25,7 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess 
     if (scannerRef.current) {
       try {
         const state = scannerRef.current.getState();
-        if (state === 2) { // SCANNING
+        if (state === 2) {
           await scannerRef.current.stop();
         }
       } catch {}
@@ -82,7 +81,6 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess 
     setResult(null);
 
     try {
-      // Parse: BRANCH_ID:TOKEN
       const colonIdx = qrPayload.indexOf(":");
       if (colonIdx === -1) {
         setResult({ success: false, message: "صيغة QR غير صحيحة" });
@@ -92,7 +90,6 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess 
       const branchId = qrPayload.substring(0, colonIdx);
       const token = qrPayload.substring(colonIdx + 1);
 
-      // Get location
       let lat = 0, lng = 0;
       try {
         const pos = await new Promise<GeolocationPosition>((resolve, reject) =>
@@ -104,7 +101,6 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess 
         lng = pos.coords.longitude;
       } catch (geoErr) {
         console.warn("Geolocation failed, proceeding without location:", geoErr);
-        // Continue without location - server will decide if location is required
       }
 
       const session = await supabase.auth.getSession();
@@ -147,97 +143,111 @@ export default function QRScannerDialog({ open, onOpenChange, action, onSuccess 
     setProcessing(false);
   };
 
+  if (!open) return null;
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-sm mx-auto p-0 overflow-hidden bg-card border-border" dir="rtl">
-        <DialogHeader className="p-4 pb-2">
-          <DialogTitle className="text-base font-semibold">
-            {action === "checkin" ? "تسجيل دخول" : "تسجيل خروج"}
-          </DialogTitle>
-        </DialogHeader>
+    <div className="fixed inset-0 z-[100] bg-background flex flex-col" dir="rtl"
+      style={{ paddingTop: "env(safe-area-inset-top, 0px)", paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+        <h2 className="text-base font-bold text-foreground">
+          {action === "checkin" ? "📥 تسجيل دخول" : "📤 تسجيل خروج"}
+        </h2>
+        <button
+          onClick={() => onOpenChange(false)}
+          className="w-9 h-9 rounded-xl bg-secondary flex items-center justify-center active:scale-90 transition-transform"
+        >
+          <X className="h-5 w-5 text-muted-foreground" />
+        </button>
+      </div>
 
-        <div className="px-4 pb-4 space-y-4">
-          {/* Result overlay */}
-          {result && (
-            <div className={`rounded-2xl p-6 text-center space-y-3 ${
-              result.success ? "bg-primary/10" : "bg-destructive/10"
-            }`}>
-              {result.success ? (
-                <CheckCircle2 className="h-12 w-12 text-primary mx-auto" />
-              ) : (
-                <XCircle className="h-12 w-12 text-destructive mx-auto" />
-              )}
-              <p className="font-semibold text-sm">{result.message}</p>
-              {!result.success && (
-                <Button size="sm" variant="outline" onClick={() => { setResult(null); if (mode === "camera") startScanner(); }}>
-                  إعادة المحاولة
-                </Button>
-              )}
+      {/* Content */}
+      <div className="flex-1 flex flex-col items-center justify-center px-4 gap-4">
+        {/* Result */}
+        {result && (
+          <div className={`rounded-3xl p-8 text-center space-y-4 w-full max-w-xs ${
+            result.success ? "bg-emerald-500/10" : "bg-destructive/10"
+          }`}>
+            {result.success ? (
+              <CheckCircle2 className="h-16 w-16 text-emerald-500 mx-auto" />
+            ) : (
+              <XCircle className="h-16 w-16 text-destructive mx-auto" />
+            )}
+            <p className="font-bold text-lg text-foreground">{result.message}</p>
+            {!result.success && (
+              <Button
+                variant="outline"
+                className="rounded-xl active:scale-95 transition-transform"
+                onClick={() => { setResult(null); if (mode === "camera") startScanner(); }}
+              >
+                إعادة المحاولة
+              </Button>
+            )}
+          </div>
+        )}
+
+        {/* Camera/Manual toggle */}
+        {!result && !processing && (
+          <>
+            <div className="flex gap-2 w-full max-w-xs">
+              <Button
+                size="lg"
+                variant={mode === "camera" ? "default" : "outline"}
+                className="flex-1 gap-2 rounded-xl h-12 active:scale-95 transition-transform"
+                onClick={() => setMode("camera")}
+              >
+                <Camera className="h-4 w-4" /> كاميرا
+              </Button>
+              <Button
+                size="lg"
+                variant={mode === "manual" ? "default" : "outline"}
+                className="flex-1 gap-2 rounded-xl h-12 active:scale-95 transition-transform"
+                onClick={() => setMode("manual")}
+              >
+                <Keyboard className="h-4 w-4" /> يدوي
+              </Button>
             </div>
-          )}
 
-          {/* Camera/Manual toggle */}
-          {!result && !processing && (
-            <>
-              <div className="flex gap-2">
+            {mode === "camera" && (
+              <div className="rounded-3xl overflow-hidden bg-black w-full max-w-xs aspect-square">
+                <div id={scannerDivId} className="w-full h-full" />
+              </div>
+            )}
+
+            {mode === "manual" && (
+              <div className="space-y-3 w-full max-w-xs">
+                <Input
+                  placeholder="أدخل رمز QR..."
+                  value={manualInput}
+                  onChange={(e) => setManualInput(e.target.value)}
+                  dir="ltr"
+                  className="text-center font-mono rounded-xl h-14 text-lg"
+                />
                 <Button
-                  size="sm"
-                  variant={mode === "camera" ? "default" : "outline"}
-                  className="flex-1 gap-1.5 rounded-xl"
-                  onClick={() => setMode("camera")}
+                  className="w-full h-14 rounded-xl text-base active:scale-[0.97] transition-transform"
+                  disabled={!manualInput.trim()}
+                  onClick={() => processQR(manualInput.trim())}
                 >
-                  <Camera className="h-4 w-4" /> كاميرا
-                </Button>
-                <Button
-                  size="sm"
-                  variant={mode === "manual" ? "default" : "outline"}
-                  className="flex-1 gap-1.5 rounded-xl"
-                  onClick={() => setMode("manual")}
-                >
-                  <Keyboard className="h-4 w-4" /> يدوي
+                  تأكيد
                 </Button>
               </div>
+            )}
+          </>
+        )}
 
-              {mode === "camera" && (
-                <div className="rounded-2xl overflow-hidden bg-black aspect-square">
-                  <div id={scannerDivId} className="w-full h-full" />
-                </div>
-              )}
-
-              {mode === "manual" && (
-                <div className="space-y-3">
-                  <Input
-                    placeholder="أدخل رمز QR..."
-                    value={manualInput}
-                    onChange={(e) => setManualInput(e.target.value)}
-                    dir="ltr"
-                    className="text-center font-mono rounded-xl h-12"
-                  />
-                  <Button
-                    className="w-full h-12 rounded-xl"
-                    disabled={!manualInput.trim()}
-                    onClick={() => processQR(manualInput.trim())}
-                  >
-                    تأكيد
-                  </Button>
-                </div>
-              )}
-            </>
-          )}
-
-          {processing && (
-            <div className="flex flex-col items-center justify-center py-8 gap-3">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <p className="text-sm text-muted-foreground">جاري التحقق...</p>
-            </div>
-          )}
-
-          <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-            <MapPin className="h-3 w-3 shrink-0" />
-            <span>سيتم التحقق من موقعك الجغرافي تلقائياً</span>
+        {processing && (
+          <div className="flex flex-col items-center justify-center py-8 gap-4">
+            <Loader2 className="h-10 w-10 animate-spin text-primary" />
+            <p className="text-sm text-muted-foreground">جاري التحقق من البصمة...</p>
           </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+        )}
+      </div>
+
+      {/* Footer */}
+      <div className="flex items-center justify-center gap-2 text-[11px] text-muted-foreground px-4 py-3">
+        <MapPin className="h-3 w-3 shrink-0" />
+        <span>سيتم التحقق من موقعك الجغرافي تلقائياً</span>
+      </div>
+    </div>
   );
 }
