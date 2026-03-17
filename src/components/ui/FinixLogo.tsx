@@ -14,12 +14,11 @@ export function FinixLogo({ variant = 'full', size = 'md', className = '' }: Qoy
   const s = sizes[size];
 
   if (variant === 'icon') {
-    const src = '/logo-icon.svg';
-    return <img src={src} alt="قيود" width={s.width} height={s.width} className={className} style={{ display: 'inline-block' }} />;
+    return <img src="/logo-full.svg" alt="قيود" width={s.width} height={s.width} className={className} style={{ display: 'inline-block' }} />;
   }
 
   if (variant === 'white') {
-    return <img src="/logo-white.svg" alt="QOYOD قيود" width={s.fullWidth} className={className} style={{ display: 'inline-block' }} />;
+    return <img src="/logo-white.png" alt="QOYOD قيود" width={s.fullWidth} className={className} style={{ display: 'inline-block' }} />;
   }
 
   // full

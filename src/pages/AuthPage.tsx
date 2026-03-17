@@ -156,10 +156,9 @@ const AuthPage = () => {
         {/* Content overlay */}
         <div className="relative z-10 flex flex-col items-center justify-center w-full p-12">
           <div className="text-center space-y-8 max-w-sm">
-            {/* Logo — ق icon stacked above QOYOD text */}
+            {/* Logo */}
             <div className="flex flex-col items-center gap-4" dir="ltr">
-              <img src="/logo-icon-white.svg" alt="قيود" width={56} height={56} />
-              <img src="/logo-white.svg" alt="QOYOD قيود" width={180} />
+              <img src="/logo-white.png" alt="QOYOD قيود" width={220} />
             </div>
 
             <div className="space-y-4 mt-10" dir="rtl">
@@ -188,21 +187,12 @@ const AuthPage = () => {
           {/* Mobile logo */}
           <div className="text-center space-y-2 lg:hidden">
             <div className="flex flex-col items-center gap-2" dir="ltr">
-              <img src="/logo-icon.svg" alt="قيود" width={40} height={40} />
-              <span style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 800, fontSize: 22, color: "hsl(var(--foreground))", letterSpacing: "0.03em", lineHeight: 1 }}>
-                QOYOD
-              </span>
+              <img src="/logo-full.svg" alt="QOYOD قيود" width={140} />
             </div>
           </div>
 
           {/* Desktop header with stacked logo */}
           <div className="lg:flex hidden flex-col items-center gap-3 mb-4">
-            <div className="flex flex-col items-center gap-2" dir="ltr">
-              <img src="/logo-icon.svg" alt="قيود" width={64} height={64} />
-              <span style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 700, fontSize: 28, color: "#1B3A5C", letterSpacing: "0.04em", lineHeight: 1 }}>
-                QOYOD
-              </span>
-            </div>
             <h2 className="text-2xl font-bold text-foreground" style={{ fontFamily: "Tajawal" }}>
               مرحباً بك
             </h2>
