@@ -22,6 +22,8 @@ interface JournalLine {
   account_name: string;
   debit: number;
   credit: number;
+  contact_id?: string;
+  contact_name?: string;
 }
 
 interface Contact {
@@ -57,8 +59,8 @@ const JournalNewPage = () => {
   const [accountSearches, setAccountSearches] = useState<Record<string, string>>({});
 
   const [lines, setLines] = useState<JournalLine[]>([
-    { id: "1", account_code: "", account_name: "", debit: 0, credit: 0 },
-    { id: "2", account_code: "", account_name: "", debit: 0, credit: 0 },
+    { id: "1", account_code: "", account_name: "", debit: 0, credit: 0, contact_id: "", contact_name: "" },
+    { id: "2", account_code: "", account_name: "", debit: 0, credit: 0, contact_id: "", contact_name: "" },
   ]);
 
   // ─── Load Duplicate Data ───
@@ -128,7 +130,7 @@ const JournalNewPage = () => {
   const diff = Math.abs(totalDebit - totalCredit);
 
   const addLine = () => {
-    setLines(prev => [...prev, { id: String(Date.now()), account_code: "", account_name: "", debit: 0, credit: 0 }]);
+    setLines(prev => [...prev, { id: String(Date.now()), account_code: "", account_name: "", debit: 0, credit: 0, contact_id: "", contact_name: "" }]);
   };
 
   const removeLine = (id: string) => {
@@ -142,6 +144,11 @@ const JournalNewPage = () => {
       if (field === "account_code") {
         const acct = accounts.find(a => a.account_code === value);
         return { ...l, account_code: value, account_name: acct?.account_name || "" };
+      }
+      if (field === "contact_id") {
+        const cleanVal = value === "__none__" ? "" : value;
+        const c = contacts.find(c => c.id === cleanVal);
+        return { ...l, contact_id: cleanVal, contact_name: c?.contact_name || "" };
       }
       return { ...l, [field]: value };
     }));
@@ -189,12 +196,40 @@ const JournalNewPage = () => {
         }))
       );
 
-      // If posted, create transaction
+      // If posted, create transactions (one per debit-credit pair, with contact_id)
       if (!asDraft) {
         const debitLines = validLines.filter(l => Number(l.debit) > 0);
         const creditLines = validLines.filter(l => Number(l.credit) > 0);
-        if (debitLines.length > 0 && creditLines.length > 0) {
-          await supabase.from("transactions").insert({
+        
+        // Create individual transactions for each debit line paired with credit lines
+        const txns: any[] = [];
+        for (const dl of debitLines) {
+          for (const cl of creditLines) {
+            const amount = Math.min(Number(dl.debit), Number(cl.credit));
+            if (amount <= 0) continue;
+            const lineContactId = dl.contact_id && dl.contact_id !== "__none__" ? dl.contact_id : 
+                                  cl.contact_id && cl.contact_id !== "__none__" ? cl.contact_id : 
+                                  formContactId || null;
+            const contactName = lineContactId ? contacts.find(c => c.id === lineContactId)?.contact_name || "" : "";
+            txns.push({
+              user_id: user.id,
+              transaction_date: formDate,
+              description: contactName ? `${formDescription} - ${contactName}` : formDescription,
+              debit_account_code: dl.account_code,
+              credit_account_code: cl.account_code,
+              amount,
+              currency: "شيكل",
+              transaction_type: formSubtype === "opening" ? "opening_balance" : "journal",
+              reference: voucher.ref_number,
+              contact_id: lineContactId,
+              idempotency_key: `VOUCHER-${voucher.id}-${dl.account_code}-${cl.account_code}`,
+            });
+          }
+        }
+        
+        // Fallback: if no pairs created, use simple approach
+        if (txns.length === 0 && debitLines.length > 0 && creditLines.length > 0) {
+          txns.push({
             user_id: user.id,
             transaction_date: formDate,
             description: formDescription,
@@ -204,8 +239,13 @@ const JournalNewPage = () => {
             currency: "شيكل",
             transaction_type: formSubtype === "opening" ? "opening_balance" : "journal",
             reference: voucher.ref_number,
+            contact_id: formContactId || null,
             idempotency_key: `VOUCHER-${voucher.id}`,
           });
+        }
+        
+        if (txns.length > 0) {
+          await supabase.from("transactions").insert(txns);
         }
       }
 
@@ -243,8 +283,8 @@ const JournalNewPage = () => {
               setFormNotes("");
               setFormContactId("");
               setLines([
-                { id: "1", account_code: "", account_name: "", debit: 0, credit: 0 },
-                { id: "2", account_code: "", account_name: "", debit: 0, credit: 0 },
+                { id: "1", account_code: "", account_name: "", debit: 0, credit: 0, contact_id: "", contact_name: "" },
+                { id: "2", account_code: "", account_name: "", debit: 0, credit: 0, contact_id: "", contact_name: "" },
               ]);
             }} className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-border text-foreground text-sm hover:bg-secondary/50 transition-all">
               سند قيد جديد
@@ -377,9 +417,10 @@ const JournalNewPage = () => {
               <thead>
                 <tr className="text-right" style={{ background: "#0D1B2A" }}>
                   <th className="p-2.5 text-white font-medium w-10">#</th>
-                  <th className="p-2.5 text-white font-medium">الحساب</th>
-                  <th className="p-2.5 text-white font-medium w-32">مدين ₪</th>
-                  <th className="p-2.5 text-white font-medium w-32">دائن ₪</th>
+                  <th className="p-2.5 text-white font-medium" style={{ width: "30%" }}>الحساب</th>
+                  <th className="p-2.5 text-white font-medium" style={{ width: "25%" }}>الجهة (اختياري)</th>
+                  <th className="p-2.5 text-white font-medium w-28">مدين ₪</th>
+                  <th className="p-2.5 text-white font-medium w-28">دائن ₪</th>
                   <th className="p-2.5 w-10"></th>
                 </tr>
               </thead>
@@ -411,10 +452,48 @@ const JournalNewPage = () => {
                             })
                             .map(a => (
                             <SelectItem key={a.account_code} value={a.account_code}>
-                              <span className="font-mono text-muted-foreground ml-2">{a.account_code}</span>
-                              {a.account_name}
+                              <span className="flex items-center gap-3">
+                                <span className="font-mono text-muted-foreground text-[10px] bg-muted px-1.5 py-0.5 rounded">{a.account_code}</span>
+                                <span>{a.account_name}</span>
+                              </span>
                             </SelectItem>
                           ))}
+                        </SelectContent>
+                      </Select>
+                    </td>
+                    <td className="p-2.5">
+                      <Select value={line.contact_id || ""} onValueChange={v => updateLine(line.id, "contact_id", v)}>
+                        <SelectTrigger className="h-9 text-xs">
+                          <SelectValue placeholder="اختر جهة..." />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-[200px]">
+                          <SelectItem value="__none__">
+                            <span className="text-muted-foreground">— بدون جهة —</span>
+                          </SelectItem>
+                          {contacts.filter(isCustomer).length > 0 && (
+                            <SelectGroup>
+                              <SelectLabel className="flex items-center gap-1 text-[10px]"><User className="h-3 w-3" /> زبائن</SelectLabel>
+                              {contacts.filter(isCustomer).map(c => (
+                                <SelectItem key={c.id} value={c.id}>{c.contact_name}</SelectItem>
+                              ))}
+                            </SelectGroup>
+                          )}
+                          {contacts.filter(isSupplier).length > 0 && (
+                            <SelectGroup>
+                              <SelectLabel className="flex items-center gap-1 text-[10px]"><Building2 className="h-3 w-3" /> موردين</SelectLabel>
+                              {contacts.filter(isSupplier).map(c => (
+                                <SelectItem key={c.id} value={c.id}>{c.contact_name}</SelectItem>
+                              ))}
+                            </SelectGroup>
+                          )}
+                          {contacts.filter(isEmployee).length > 0 && (
+                            <SelectGroup>
+                              <SelectLabel className="flex items-center gap-1 text-[10px]"><Users className="h-3 w-3" /> موظفون</SelectLabel>
+                              {contacts.filter(isEmployee).map(c => (
+                                <SelectItem key={c.id} value={c.id}>{c.contact_name}</SelectItem>
+                              ))}
+                            </SelectGroup>
+                          )}
                         </SelectContent>
                       </Select>
                     </td>
@@ -434,7 +513,7 @@ const JournalNewPage = () => {
               </tbody>
               <tfoot>
                 <tr className="border-t font-bold bg-primary/5">
-                  <td colSpan={2} className="p-2.5 text-xs">الإجمالي</td>
+                  <td colSpan={3} className="p-2.5 text-xs">الإجمالي</td>
                   <td className="p-2.5 font-mono text-xs">₪{formatAmount(totalDebit)}</td>
                   <td className="p-2.5 font-mono text-xs text-destructive">₪{formatAmount(totalCredit)}</td>
                   <td></td>
