@@ -214,7 +214,7 @@ export const navigationSections: NavSection[] = [
       },
       {
         id: "fixed-assets", label: "الأصول الثابتة", description: "سجل الأصول، الاستهلاك، والصيانة", module: "accounting", icon: Landmark,
-        color: "text-stone-600", bgColor: "bg-stone-500/10", path: "/fixed-assets", isDirect: true,
+        color: "text-[#1B3A5C]", bgColor: "bg-[#1B3A5C]/8", path: "/fixed-assets", isDirect: true,
         keywords: ["أصول", "استهلاك", "ثابتة"],
       },
       {
