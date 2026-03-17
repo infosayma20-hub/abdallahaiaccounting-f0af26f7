@@ -510,7 +510,26 @@ const InvoiceCreatePage = () => {
     setProducts((data as any[]) || []);
   };
 
-  // ─── Validation ───
+  // ─── Quick Add Sales Rep ───
+  const handleQuickAddRep = async () => {
+    if (!user || !quickRepForm.full_name.trim()) { toast({ title: "اسم المندوب مطلوب", variant: "destructive" }); return; }
+    const { data: newRep, error } = await supabase.from("sales_representatives").insert({
+      full_name: quickRepForm.full_name,
+      phone: quickRepForm.phone || null,
+      region: quickRepForm.region || null,
+      sales_commission_rate: quickRepForm.sales_commission_rate || 0,
+      user_id: user.id,
+    } as any).select("id, full_name").single();
+    if (error) { toast({ title: "خطأ في الإضافة", variant: "destructive" }); return; }
+    toast({ title: `تمت إضافة المندوب "${quickRepForm.full_name}" ✅` });
+    setShowQuickAddRep(false);
+    setQuickRepForm({ full_name: "", phone: "", region: "", sales_commission_rate: 0 });
+    if (newRep) {
+      setSalesReps(prev => [...prev, { id: (newRep as any).id, name: (newRep as any).full_name }]);
+      setForm(p => ({ ...p, salespersonId: (newRep as any).id }));
+    }
+  };
+
   const validate = (): boolean => {
     if (!form.contactName.trim()) { toast({ title: "يرجى اختيار جهة الاتصال", variant: "destructive" }); return false; }
     if (form.items.some(i => !i.description.trim())) { toast({ title: "يرجى تعبئة وصف جميع البنود", variant: "destructive" }); return false; }
