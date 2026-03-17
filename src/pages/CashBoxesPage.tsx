@@ -26,7 +26,6 @@ const CashBoxesPage = () => {
     const { data } = await supabase
       .from("cash_boxes")
       .select("*")
-      .eq("user_id", user.id)
       .eq("is_active", true)
       .order("type", { ascending: true });
     setBoxes(data || []);
