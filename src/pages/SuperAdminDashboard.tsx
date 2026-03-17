@@ -933,6 +933,12 @@ function SubscriptionsManager() {
                   <option value="annual" style={{ background: "var(--sa-dialog-bg)" }}>سنوي</option>
                 </select>
               </div>
+              <div>
+                <label className="text-xs block mb-1" style={{ color: "var(--sa-text-muted)" }}>تاريخ انتهاء الفترة</label>
+                <input type="date" value={editPeriodEnd} onChange={e => setEditPeriodEnd(e.target.value)}
+                  className="w-full h-10 rounded-md px-3 text-sm"
+                  style={{ background: "var(--sa-input-bg)", border: "1px solid var(--sa-input-border)", color: "var(--sa-text-primary)" }} />
+              </div>
             </div>
             <DialogFooter>
               <Button variant="ghost" onClick={() => setEditSub(null)} style={{ color: "var(--sa-text-muted)" }}>إلغاء</Button>
