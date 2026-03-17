@@ -435,7 +435,7 @@ const PayrollPage = () => {
   };
 
   const isLoading = loadingEmp || loadingPayroll;
-  const hasInputs = (monthInputs?.length || 0) > 0;
+  
 
   return (
     <div className="space-y-5 max-w-[1200px] mx-auto pb-10" dir="rtl">
