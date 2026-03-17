@@ -195,12 +195,40 @@ const JournalNewPage = () => {
         }))
       );
 
-      // If posted, create transaction
+      // If posted, create transactions (one per debit-credit pair, with contact_id)
       if (!asDraft) {
         const debitLines = validLines.filter(l => Number(l.debit) > 0);
         const creditLines = validLines.filter(l => Number(l.credit) > 0);
-        if (debitLines.length > 0 && creditLines.length > 0) {
-          await supabase.from("transactions").insert({
+        
+        // Create individual transactions for each debit line paired with credit lines
+        const txns: any[] = [];
+        for (const dl of debitLines) {
+          for (const cl of creditLines) {
+            const amount = Math.min(Number(dl.debit), Number(cl.credit));
+            if (amount <= 0) continue;
+            const lineContactId = dl.contact_id && dl.contact_id !== "__none__" ? dl.contact_id : 
+                                  cl.contact_id && cl.contact_id !== "__none__" ? cl.contact_id : 
+                                  formContactId || null;
+            const contactName = lineContactId ? contacts.find(c => c.id === lineContactId)?.contact_name || "" : "";
+            txns.push({
+              user_id: user.id,
+              transaction_date: formDate,
+              description: contactName ? `${formDescription} - ${contactName}` : formDescription,
+              debit_account_code: dl.account_code,
+              credit_account_code: cl.account_code,
+              amount,
+              currency: "شيكل",
+              transaction_type: formSubtype === "opening" ? "opening_balance" : "journal",
+              reference: voucher.ref_number,
+              contact_id: lineContactId,
+              idempotency_key: `VOUCHER-${voucher.id}-${dl.account_code}-${cl.account_code}`,
+            });
+          }
+        }
+        
+        // Fallback: if no pairs created, use simple approach
+        if (txns.length === 0 && debitLines.length > 0 && creditLines.length > 0) {
+          txns.push({
             user_id: user.id,
             transaction_date: formDate,
             description: formDescription,
@@ -210,8 +238,13 @@ const JournalNewPage = () => {
             currency: "شيكل",
             transaction_type: formSubtype === "opening" ? "opening_balance" : "journal",
             reference: voucher.ref_number,
+            contact_id: formContactId || null,
             idempotency_key: `VOUCHER-${voucher.id}`,
           });
+        }
+        
+        if (txns.length > 0) {
+          await supabase.from("transactions").insert(txns);
         }
       }
 
