@@ -98,8 +98,30 @@ const FinanceJournalPage = () => {
   const [quickPhone, setQuickPhone] = useState("");
   const [quickSaving, setQuickSaving] = useState(false);
   const [accountSearches, setAccountSearches] = useState<Record<string, string>>({});
+  const [cancelConfirmId, setCancelConfirmId] = useState<string | null>(null);
+  const [cancelling, setCancelling] = useState(false);
 
-  const fetchData = useCallback(async () => {
+  const handleCancelVoucher = async (voucherId: string) => {
+    if (!user) return;
+    setCancelling(true);
+    try {
+      // Cancel voucher
+      await supabase.from("vouchers").update({ status: "cancelled" }).eq("id", voucherId);
+      // Also mark linked transactions as deleted
+      const { data: voucherData } = await supabase.from("vouchers").select("ref_number").eq("id", voucherId).single();
+      if (voucherData?.ref_number) {
+        await supabase.from("transactions").update({ is_deleted: true }).eq("user_id", user.id).eq("reference", voucherData.ref_number);
+      }
+      toast({ title: "تم إلغاء السند بنجاح" });
+      setCancelConfirmId(null);
+      fetchData();
+    } catch (err: any) {
+      toast({ title: "خطأ", description: err.message, variant: "destructive" });
+    } finally {
+      setCancelling(false);
+    }
+  };
+
     if (!user) return;
     setLoading(true);
     const [vRes, aRes, cRes] = await Promise.all([
