@@ -171,7 +171,7 @@ const JournalEntriesPage = () => {
     }
 
     return result.sort((a, b) => (b.transaction_date || "").localeCompare(a.transaction_date || ""));
-  }, [transactions, dateFrom, dateTo, searchQuery, typeFilter, accountMap]);
+  }, [transactions, dateFrom, dateTo, searchQuery, typeFilter, statusFilter, accountMap]);
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paginated = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
