@@ -114,7 +114,7 @@ export const navigationSections: NavSection[] = [
     items: [
       {
         id: "sales", label: "المبيعات", description: "فواتير، نقاط بيع، وزبائن", module: "sales", icon: ShoppingCart,
-        color: "text-orange-500", bgColor: "bg-orange-500/10", path: "/invoices",
+        color: "text-[#1B3A5C]", bgColor: "bg-[#1B3A5C]/8", path: "/invoices",
         keywords: ["فواتير", "بيع", "زبائن", "عملاء"],
         groups: [
           {
