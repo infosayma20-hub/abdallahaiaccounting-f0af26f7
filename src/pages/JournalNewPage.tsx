@@ -465,7 +465,13 @@ const JournalNewPage = () => {
                   <tr key={line.id} className={`border-t border-border/30 ${i % 2 === 0 ? "bg-background" : "bg-secondary/20"}`}>
                     <td className="p-2.5 text-muted-foreground">{i + 1}</td>
                     <td className="p-2.5">
-                      <Select value={line.account_code} onValueChange={v => updateLine(line.id, "account_code", v)}>
+                      <Select value={line.account_code || ""} onValueChange={v => {
+                        if (v === "__clear__") {
+                          updateLine(line.id, "account_code", "");
+                          return;
+                        }
+                        updateLine(line.id, "account_code", v);
+                      }}>
                         <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="ابحث بالرقم أو الاسم..." /></SelectTrigger>
                         <SelectContent className="max-h-[250px]">
                           <div className="px-2 py-1.5 sticky top-0 bg-background z-10">
@@ -480,6 +486,11 @@ const JournalNewPage = () => {
                               />
                             </div>
                           </div>
+                          {line.account_code && (
+                            <SelectItem value="__clear__">
+                              <span className="text-muted-foreground flex items-center gap-1.5"><X className="h-3 w-3" /> تفريغ الحساب</span>
+                            </SelectItem>
+                          )}
                           {accounts
                             .filter(a => {
                               const q = (accountSearches[line.id] || "").toLowerCase();
