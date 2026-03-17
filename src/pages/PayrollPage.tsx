@@ -493,25 +493,13 @@ const PayrollPage = () => {
         ))}
       </div>
 
-      {!hasInputs && !isLoading && (
-        <Card className="p-4 border-amber-300 bg-amber-50 dark:bg-amber-900/10 dark:border-amber-800">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400 text-sm">
-              <ClipboardEdit className="h-4 w-4" />
-              <span>يجب إدخال بيانات الدوام والخصومات أولاً قبل تشغيل المسير</span>
-            </div>
-            <Button variant="outline" size="sm" onClick={() => navigate("/payroll/inputs")}>
-              إدخال البيانات
-            </Button>
-          </div>
-        </Card>
-      )}
-
-      {pendingEmployees.length > 0 && hasInputs && !isLoading && (
+      {unprocessedEmployees.length > 0 && !isLoading && (
         <Card className="p-3 border-blue-300 bg-blue-50 dark:bg-blue-900/10 dark:border-blue-800">
-          <div className="flex items-center gap-2 text-blue-700 dark:text-blue-400 text-sm">
-            <Users className="h-4 w-4" />
-            <span>{pendingEmployees.length} موظف جاهز لتشغيل المسير</span>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-blue-700 dark:text-blue-400 text-sm">
+              <Zap className="h-4 w-4" />
+              <span>{unprocessedEmployees.length} موظف جاهز — اضغط "احتساب الرواتب تلقائياً" لحساب البصمة والخصومات والقروض دفعة واحدة</span>
+            </div>
           </div>
         </Card>
       )}
