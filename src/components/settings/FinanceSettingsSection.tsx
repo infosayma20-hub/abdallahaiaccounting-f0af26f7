@@ -43,6 +43,16 @@ const AccountSelect = ({ value, onValueChange, label }: { value: string; onValue
 );
 
 const FinanceSettingsSection = ({ settings, onChange }: Props) => {
+  const { user } = useAuth();
+  const [bankAccounts, setBankAccounts] = useState<{ id: string; name: string; bank_name: string }[]>([]);
+
+  useEffect(() => {
+    if (!user) return;
+    supabase.from("bank_accounts").select("id, name, bank_name")
+      .eq("user_id", user.id).eq("is_active", true)
+      .then(({ data }) => setBankAccounts(data || []));
+  }, [user]);
+
   return (
     <div className="p-6 space-y-8">
       {/* Default Accounts */}
@@ -58,6 +68,19 @@ const FinanceSettingsSection = ({ settings, onChange }: Props) => {
           <AccountSelect label="حساب البنك الرئيسي" value={settings.default_bank_account} onValueChange={v => onChange({ default_bank_account: v })} />
           <AccountSelect label="حساب الذمم المدينة" value={settings.default_receivable_account} onValueChange={v => onChange({ default_receivable_account: v })} />
           <AccountSelect label="حساب الذمم الدائنة" value={settings.default_payable_account} onValueChange={v => onChange({ default_payable_account: v })} />
+          {/* Card/Visa Bank Account */}
+          <div className="space-y-2">
+            <Label>حساب بنكي لجهاز البطاقة (Visa)</Label>
+            <Select value={settings.card_bank_account_id || ""} onValueChange={v => onChange({ card_bank_account_id: v })}>
+              <SelectTrigger><SelectValue placeholder="اختر الحساب البنكي المرتبط بالفيزا" /></SelectTrigger>
+              <SelectContent>
+                {bankAccounts.map(ba => (
+                  <SelectItem key={ba.id} value={ba.id}>{ba.name} - {ba.bank_name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-[10px] text-muted-foreground">يتم اختياره تلقائياً عند اختيار "بطاقة" في سندات القبض/الصرف ونقطة البيع</p>
+          </div>
         </div>
       </div>
 
