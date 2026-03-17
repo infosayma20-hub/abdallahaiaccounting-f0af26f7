@@ -320,7 +320,7 @@ const JournalEntriesPage = () => {
           <Filter className="h-4 w-4 text-muted-foreground" />
           <span className="text-sm font-semibold text-foreground">فلاتر البحث</span>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
           <div className="space-y-1">
             <label className="text-[11px] text-muted-foreground">من تاريخ</label>
             <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)}
@@ -341,6 +341,19 @@ const JournalEntriesPage = () => {
                 {transactionTypes.map(t => (
                   <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
                 ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <label className="text-[11px] text-muted-foreground">الحالة</label>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="h-9 rounded-lg bg-secondary/50 border-0 text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="active">بدون الملغية</SelectItem>
+                <SelectItem value="all">جميع الحالات</SelectItem>
+                <SelectItem value="deleted">ملغي فقط</SelectItem>
               </SelectContent>
             </Select>
           </div>
