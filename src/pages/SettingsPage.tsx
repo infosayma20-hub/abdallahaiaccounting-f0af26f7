@@ -18,6 +18,7 @@ import NotificationsSettingsSection from "@/components/settings/NotificationsSet
 import SecuritySettingsSection from "@/components/settings/SecuritySettingsSection";
 import IntegrationsSettingsSection from "@/components/settings/IntegrationsSettingsSection";
 import AISettingsSection from "@/components/settings/AISettingsSection";
+import BranchesSettingsSection from "@/components/settings/BranchesSettingsSection";
 
 const sections = [
   { id: "company", label: "الشركة", icon: Building2, ready: true, keywords: "شركة اسم عنوان هاتف بريد ضريبة عملة تقويم سنة مالية لوغو" },
