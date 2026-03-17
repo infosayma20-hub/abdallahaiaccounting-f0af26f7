@@ -325,7 +325,8 @@ const FinanceJournalPage = () => {
         const q = searchQuery.toLowerCase();
         if (!v.ref_number?.toLowerCase().includes(q) && !v.description?.toLowerCase().includes(q)) return false;
       }
-      if (filterStatus !== "all" && v.status !== filterStatus) return false;
+      if (filterStatus === "active" && v.status === "cancelled") return false;
+      if (filterStatus !== "all" && filterStatus !== "active" && v.status !== filterStatus) return false;
       return true;
     });
   }, [vouchers, searchQuery, filterStatus]);
