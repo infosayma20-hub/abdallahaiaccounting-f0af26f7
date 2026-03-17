@@ -97,69 +97,55 @@ const CashBoxesPage = () => {
       petty: "linear-gradient(135deg, #92400E, #D97706)",
       petty_cash: "linear-gradient(135deg, #92400E, #D97706)",
     };
-    const typeLabels: Record<string, string> = { main: "رئيسي", branch: "فرع", pos: "نقطة بيع", petty: "نثرية", petty_cash: "نثرية" };
+    const currencyLabel = box.currency === "ILS" ? "₪" : box.currency === "USD" ? "$" : box.currency === "JOD" ? "JOD" : box.currency || "₪";
     const TypeIcon = box.type === "main" ? Landmark : box.type === "branch" ? Building2 : (box.type === "petty" || box.type === "petty_cash") ? Wallet : Monitor;
 
     return (
-      <Card className="overflow-hidden min-w-[280px]">
-        <div className="p-4 text-white" style={{ background: gradients[box.type] || gradients.branch }}>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <TypeIcon className="h-5 w-5" />
-              <div>
-                <p className="text-sm font-bold">{box.name}</p>
-                <p className="text-[11px] opacity-60">{box.gl_account_code}</p>
-              </div>
+      <Card className="overflow-hidden group/card">
+        <div className="px-3 py-2 text-white flex items-center justify-between" style={{ background: gradients[box.type] || gradients.branch }}>
+          <div className="flex items-center gap-2 min-w-0">
+            <TypeIcon className="h-4 w-4 shrink-0" />
+            <div className="min-w-0">
+              <p className="text-xs font-bold truncate">{box.name}</p>
+              <p className="text-[10px] opacity-60">{box.gl_account_code}</p>
             </div>
-            <Badge variant="outline" className="text-white border-white/40 text-[10px]">
-              {box.is_active ? "نشط" : "مغلق"}
-            </Badge>
           </div>
+          <Badge variant="outline" className="text-white border-white/40 text-[9px] h-5 px-1.5 shrink-0">
+            {box.is_active ? "نشط" : "مغلق"}
+          </Badge>
         </div>
-        <CardContent className="p-4 space-y-3">
-          <div>
-            <p className="text-[10px] text-muted-foreground">الرصيد الحالي</p>
-            <p className={`text-xl font-bold font-mono ${bal.balance > 0 ? "text-emerald-600" : bal.balance < 0 ? "text-red-600" : "text-muted-foreground"}`}>
-              ₪{fmt(bal.balance)}
-            </p>
+        <CardContent className="p-2.5 space-y-1.5">
+          <div className="flex items-baseline justify-between">
+            <span className="text-[9px] text-muted-foreground">الرصيد</span>
+            <span className={`text-sm font-bold font-mono ${bal.balance > 0 ? "text-emerald-600" : bal.balance < 0 ? "text-red-600" : "text-muted-foreground"}`}>
+              {currencyLabel}{fmt(bal.balance)}
+            </span>
           </div>
-          <div className="grid grid-cols-2 gap-2 text-[11px]">
-            <div>
-              <span className="text-muted-foreground">النوع</span>
-              <p className="font-medium">{typeLabels[box.type]}</p>
-            </div>
-            <div>
-              <span className="text-muted-foreground">العملة</span>
-              <p className="font-medium">{box.currency === "ILS" ? "₪ شيكل" : box.currency === "USD" ? "$ دولار" : box.currency}</p>
-            </div>
-            {box.branch_location && (
-              <div className="col-span-2">
-                <span className="text-muted-foreground">الموقع</span>
-                <p className="font-medium">{box.branch_location}</p>
-              </div>
-            )}
+          <div className="flex items-center justify-between text-[9px] text-muted-foreground">
+            {box.branch_location && <span>{box.branch_location}</span>}
+            <span>{currencyLabel}</span>
           </div>
-          <div className="text-[11px] space-y-1 pt-1 border-t">
+          <div className="text-[9px] space-y-0.5 pt-1 border-t border-border/50">
             <div className="flex justify-between">
-              <span className="text-muted-foreground">↑ وارد هذا الشهر</span>
-              <span className="text-emerald-600 font-mono font-medium">₪{fmt(bal.inflow)}</span>
+              <span className="text-muted-foreground">↑ وارد</span>
+              <span className="text-emerald-600 font-mono">{currencyLabel}{fmt(bal.inflow)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">↓ صادر هذا الشهر</span>
-              <span className="text-red-600 font-mono font-medium">₪{fmt(bal.outflow)}</span>
+              <span className="text-muted-foreground">↓ صادر</span>
+              <span className="text-red-600 font-mono">{currencyLabel}{fmt(bal.outflow)}</span>
             </div>
           </div>
         </CardContent>
-        <div className="border-t px-4 py-2.5 flex gap-2 flex-wrap">
-          <Button variant="ghost" size="sm" className="text-xs gap-1 h-7" onClick={() => navigate(`/account-statement?code=${box.gl_account_code}`)}>
-            <FileText className="h-3 w-3" /> كشف الصندوق
+        <div className="border-t border-border/50 px-2 py-1.5 flex gap-1 justify-end">
+          <Button variant="ghost" size="sm" className="text-[10px] gap-0.5 h-6 px-1.5" onClick={() => navigate(`/account-statement?code=${box.gl_account_code}`)}>
+            <FileText className="h-3 w-3" /> كشف
           </Button>
           {box.type !== "main" && (
-            <Button variant="ghost" size="sm" className="text-xs gap-1 h-7" onClick={() => navigate(`/finance/cash-boxes/transfer?from=${box.id}`)}>
-              <ArrowUpRight className="h-3 w-3" /> ترحيل ↑
+            <Button variant="ghost" size="sm" className="text-[10px] gap-0.5 h-6 px-1.5" onClick={() => navigate(`/finance/cash-boxes/transfer?from=${box.id}`)}>
+              <ArrowUpRight className="h-3 w-3" /> ترحيل
             </Button>
           )}
-          <Button variant="ghost" size="sm" className="text-xs gap-1 h-7" onClick={() => { setEditBox(box); setDrawerType(box.type); setDrawerOpen(true); }}>
+          <Button variant="ghost" size="sm" className="text-[10px] h-6 px-1.5" onClick={() => { setEditBox(box); setDrawerType(box.type); setDrawerOpen(true); }}>
             <Settings className="h-3 w-3" />
           </Button>
         </div>
@@ -219,7 +205,7 @@ const CashBoxesPage = () => {
               <Badge variant="secondary" className="text-[10px]">الصندوق الأم — تُرحَّل إليه كل الصناديق</Badge>
             </div>
             {mainBoxes.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
                 {mainBoxes.map(b => <BoxCard key={b.id} box={b} />)}
               </div>
             ) : (
@@ -247,7 +233,7 @@ const CashBoxesPage = () => {
               </Button>
             </div>
             {branchBoxes.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
                 {branchBoxes.map(b => <BoxCard key={b.id} box={b} />)}
               </div>
             ) : (
@@ -270,7 +256,7 @@ const CashBoxesPage = () => {
               </Button>
             </div>
             {posBoxes.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
                 {posBoxes.map(b => <BoxCard key={b.id} box={b} />)}
               </div>
             ) : (
@@ -293,7 +279,7 @@ const CashBoxesPage = () => {
               </Button>
             </div>
             {pettyBoxes.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
                 {pettyBoxes.map(b => <BoxCard key={b.id} box={b} />)}
               </div>
             ) : (
