@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Building2, User, Wallet, FileText, ShoppingCart, Package, Users, Bell, Shield, Link2, Printer, Brain, Search, RotateCcw, Monitor } from "lucide-react";
+import { Building2, User, Wallet, FileText, ShoppingCart, Package, Users, Bell, Shield, Link2, Printer, Brain, Search, RotateCcw, Monitor, GitBranch } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -18,9 +18,11 @@ import NotificationsSettingsSection from "@/components/settings/NotificationsSet
 import SecuritySettingsSection from "@/components/settings/SecuritySettingsSection";
 import IntegrationsSettingsSection from "@/components/settings/IntegrationsSettingsSection";
 import AISettingsSection from "@/components/settings/AISettingsSection";
+import BranchesSettingsSection from "@/components/settings/BranchesSettingsSection";
 
 const sections = [
   { id: "company", label: "الشركة", icon: Building2, ready: true, keywords: "شركة اسم عنوان هاتف بريد ضريبة عملة تقويم سنة مالية لوغو" },
+  { id: "branches", label: "الأفرع", icon: GitBranch, ready: true, keywords: "فرع أفرع موقع فروع سفيان فيصل رام الله" },
   { id: "user", label: "المستخدمون", icon: User, ready: true, keywords: "مستخدم صلاحيات دور موظف فريق" },
   { id: "finance", label: "المالية", icon: Wallet, ready: true, keywords: "مالية حسابات قيود محاسبة ميزان" },
   { id: "invoices", label: "الفواتير", icon: FileText, ready: true, keywords: "فاتورة فواتير قالب ضريبة خصم" },
@@ -60,6 +62,8 @@ const SettingsPage = () => {
         return <UsersSettingsSection />;
       case "company":
         return <CompanySettingsSection settings={settings} onChange={updateSettings} />;
+      case "branches":
+        return <BranchesSettingsSection />;
       case "finance":
         return <FinanceSettingsSection settings={settings} onChange={updateSettings} />;
       case "invoices":
