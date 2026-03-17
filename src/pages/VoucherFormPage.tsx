@@ -1184,7 +1184,16 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
               </div>
               <div>
                 <Label className="text-xs mb-1.5 block">اسم البنك</Label>
-                <Input value={checkBank} onChange={e => setCheckBank(e.target.value)} placeholder="اسم البنك" />
+                <Select value={checkBank} onValueChange={setCheckBank}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="اختر البنك" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[...new Set(bankAccounts.map((ba: any) => ba.bank_name).filter(Boolean))].map((name: string) => (
+                      <SelectItem key={name} value={name}>{name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           )}
