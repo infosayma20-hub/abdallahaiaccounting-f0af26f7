@@ -416,7 +416,7 @@ export default function NetworkPrintersManager() {
                     <SelectValue placeholder="اختر فرع (اختياري)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">بدون فرع محدد</SelectItem>
+                    <SelectItem value="__none__">بدون فرع محدد</SelectItem>
                     {branches.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
