@@ -22,6 +22,8 @@ interface JournalLine {
   account_name: string;
   debit: number;
   credit: number;
+  contact_id?: string;
+  contact_name?: string;
 }
 
 interface Contact {
