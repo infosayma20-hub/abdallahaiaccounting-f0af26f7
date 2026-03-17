@@ -303,6 +303,15 @@ status = "incomplete" مع missingFields
         phone: parsed.phone || '',
         email: parsed.email || '',
         address: parsed.address || '',
+        jobTitle: parsed.jobTitle || '',
+        department: parsed.department || '',
+        basicSalary: parsed.basicSalary || 0,
+        buyPrice: parsed.buyPrice || 0,
+        sellPrice: parsed.sellPrice || 0,
+        quantity: parsed.quantity || 0,
+        sku: parsed.sku || '',
+        accountCode: parsed.accountCode || '',
+        accountType: parsed.accountType || '',
         status: parsed.status || 'complete',
       }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
