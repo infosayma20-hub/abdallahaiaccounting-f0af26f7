@@ -178,11 +178,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       setSelectedBankAccount(cardBankId);
     } else if (bankAccounts.length > 0) {
       setDepositType("bank");
-      toast({
-        title: "⚠️ لم يتم تعريف حساب بنكي للبطاقة",
-        description: "يرجى تحديد الحساب البنكي المرتبط بجهاز الفيزا من الإعدادات → المالية",
-        variant: "destructive",
-      });
+      toast.warning("⚠️ لم يتم تعريف حساب بنكي للبطاقة — يرجى تحديده من الإعدادات → المالية");
     }
   }, [paymentMethod, bankAccounts, settings?.card_bank_account_id]);
 
