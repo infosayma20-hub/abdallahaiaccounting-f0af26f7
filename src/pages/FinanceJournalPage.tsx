@@ -896,6 +896,28 @@ const FinanceJournalPage = () => {
           sourceRef: duplicateTarget?.ref_number,
         }}
       />
+
+      {/* Cancel Confirmation */}
+      <AlertDialog open={!!cancelConfirmId} onOpenChange={() => setCancelConfirmId(null)}>
+        <AlertDialogContent dir="rtl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>إلغاء السند</AlertDialogTitle>
+            <AlertDialogDescription>
+              هل أنت متأكد من إلغاء هذا السند؟ سيتم إلغاء القيود المحاسبية المرتبطة أيضاً.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-row-reverse gap-2">
+            <AlertDialogCancel>تراجع</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => cancelConfirmId && handleCancelVoucher(cancelConfirmId)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={cancelling}
+            >
+              {cancelling ? "جاري الإلغاء..." : "إلغاء السند"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
