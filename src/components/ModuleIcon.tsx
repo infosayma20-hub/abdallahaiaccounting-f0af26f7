@@ -74,10 +74,8 @@ const DashboardIcon = ({ size, color }: { size: number; color?: string }) => (
   </svg>
 );
 
-const activeGradient = "linear-gradient(135deg, #E8A020, #F45E0C)";
-
 const ModuleIcon = ({ module, size = "md", active = false, className }: ModuleIconProps) => {
-  const colors = moduleColors[module] || moduleColors.accounting;
+  const colors = moduleColors[module] || defaultColor;
   const sizeConfig = sizes[size];
   const isDashboard = module === "dashboard";
 
@@ -86,18 +84,14 @@ const ModuleIcon = ({ module, size = "md", active = false, className }: ModuleIc
       <div
         className={cn(
           sizeConfig.container,
-          "rounded-lg flex items-center justify-center flex-shrink-0 transition-all duration-200",
+          "rounded-xl flex items-center justify-center flex-shrink-0 transition-all duration-200",
           className
         )}
         style={{
-          background: active ? activeGradient : colors.gradient,
-          boxShadow: active
-            ? "0 2px 10px rgba(232,160,32,0.45)"
-            : `0 2px 8px rgba(29,78,216,0.35)`,
-          transform: active ? "scale(1.05)" : "scale(1)",
+          background: active ? brandNavy : colors.bg,
         }}
       >
-        <DashboardIcon size={sizeConfig.icon} />
+        <DashboardIcon size={sizeConfig.icon} color={active ? brandGold : brandNavy} />
       </div>
     );
   }
@@ -108,21 +102,17 @@ const ModuleIcon = ({ module, size = "md", active = false, className }: ModuleIc
     <div
       className={cn(
         sizeConfig.container,
-        "rounded-lg flex items-center justify-center flex-shrink-0 transition-all duration-200",
+        "rounded-xl flex items-center justify-center flex-shrink-0 transition-all duration-200",
         className
       )}
       style={{
-        background: active ? activeGradient : (colors.gradient || colors.bg),
-        boxShadow: active
-          ? "0 2px 10px rgba(232,160,32,0.45)"
-          : `0 2px 8px ${colors.accent}30`,
-        transform: active ? "scale(1.05)" : "scale(1)",
+        background: active ? brandNavy : colors.bg,
       }}
     >
       <IconComponent
         size={sizeConfig.icon}
         className="flex-shrink-0"
-        style={{ color: "#FFFFFF" }}
+        style={{ color: active ? brandGold : brandNavy }}
         strokeWidth={2}
       />
     </div>
