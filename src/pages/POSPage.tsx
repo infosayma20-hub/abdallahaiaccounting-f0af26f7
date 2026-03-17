@@ -3471,7 +3471,24 @@ const POSPage = () => {
                   <motion.button
                     key={m.key}
                     whileTap={{ scale: 0.96 }}
-                    onClick={() => setPaymentMethod(m.key)}
+                    onClick={() => {
+                      setPaymentMethod(m.key);
+                      if (m.key === "card") {
+                        // Check if card bank account is configured
+                        (async () => {
+                          const uid = dataOwnerId || user?.id;
+                          if (!uid) return;
+                          const { data: cs } = await supabase
+                            .from("company_settings" as any)
+                            .select("card_bank_account_id")
+                            .eq("user_id", uid)
+                            .maybeSingle();
+                          if (!(cs as any)?.card_bank_account_id) {
+                            toast.error("⚠️ لم يتم تعريف حساب بنكي للبطاقة — يرجى تحديده من الإعدادات → المالية");
+                          }
+                        })();
+                      }
+                    }}
                     className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all duration-200 ${
                       isActive
                         ? "border-primary bg-primary/5 shadow-sm"
