@@ -135,7 +135,7 @@ export const navigationSections: NavSection[] = [
       },
       {
         id: "purchases", label: "المشتريات", description: "موردين، طلبيات، فواتير مشتريات، وتقارير", module: "purchases", icon: ShoppingBag,
-        color: "text-sky-500", bgColor: "bg-sky-500/10", path: "/procurement/orders/new",
+        color: "text-[#1B3A5C]", bgColor: "bg-[#1B3A5C]/8", path: "/procurement/orders/new",
         keywords: ["مشتريات", "مورد", "استلام", "طلبية"],
         groups: [
           {
