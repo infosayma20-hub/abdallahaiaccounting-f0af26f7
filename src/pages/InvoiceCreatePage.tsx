@@ -158,6 +158,7 @@ const InvoiceCreatePage = () => {
   const [salesReps, setSalesReps] = useState<SalesRep[]>([]);
   const [bankAccounts, setBankAccounts] = useState<{ id: string; name: string; bank_name: string; currency: string; gl_account_code: string | null }[]>([]);
   const [creating, setCreating] = useState(false);
+  const [nextInvoiceNumber, setNextInvoiceNumber] = useState<string>("...");
 
   // Contact search
   const [contactSearch, setContactSearch] = useState("");
