@@ -103,6 +103,7 @@ export default function NetworkPrintersManager() {
     setFormIsDefault(false);
     setFormStationIds([]);
     setFormCategories(["receipt"]);
+    setFormBranchId("");
     setEditingPrinter(null);
   };
 
@@ -121,6 +122,7 @@ export default function NetworkPrintersManager() {
     setFormIsDefault(p.is_default);
     setFormStationIds(p.station_ids || []);
     setFormCategories(p.print_categories || ["receipt"]);
+    setFormBranchId(p.branch_id || "");
     setShowAddDialog(true);
   };
 
@@ -140,6 +142,7 @@ export default function NetworkPrintersManager() {
       is_default: formIsDefault,
       station_ids: formStationIds,
       print_categories: formCategories,
+      branch_id: formBranchId || null,
     };
 
     if (editingPrinter) {
