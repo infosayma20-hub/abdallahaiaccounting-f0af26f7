@@ -27,7 +27,7 @@ const CommandsSheet = ({ open, onClose, onSelect }: Props) => {
     { icon: "📈", label: "أرباح وخسائر الشهر" },
     { icon: "💳", label: "الذمم المتأخرة" },
     { icon: "🏦", label: "كشف حساب البنك" },
-    { icon: "👥", label: "كشف حساب عميل @..." },
+    { icon: "👥", label: "كشف حساب عميل ..." },
     { icon: "📋", label: "آخر 10 معاملات" },
     { icon: "💰", label: "ملخصي المالي اليوم" },
     { icon: "⚖️", label: "ميزان المراجعة" },
