@@ -175,34 +175,89 @@ const CleanSmartAccountant = ({ user, userName, data, cfoMode, onToggleCfo, onCh
         return;
       }
 
-      // Handle add entity (contact/customer/supplier)
-      if (parseData?.type === 'add_entity' && parseData?.entityType === 'contact') {
+      // Handle add entity (contact/employee/product/account)
+      if (parseData?.type === 'add_entity') {
         try {
-          const contactData: any = {
-            contact_name: parseData.name || '',
-            contact_type: parseData.contactType === 'مورد' ? 'مورد' : 'عميل',
-            user_id: user?.id,
-            is_active: true,
-            current_balance: 0,
-          };
-          if (parseData.phone) contactData.phone = parseData.phone;
-          if (parseData.email) contactData.email = parseData.email;
-          if (parseData.address) contactData.address = parseData.address;
+          let successMsg = '';
 
-          const { error: insertError } = await supabase.from('contacts').insert(contactData);
-          if (insertError) throw insertError;
+          if (parseData.entityType === 'contact') {
+            const contactData: any = {
+              contact_name: parseData.name || '',
+              contact_type: parseData.contactType === 'مورد' ? 'مورد' : 'عميل',
+              user_id: user?.id,
+              is_active: true,
+              current_balance: 0,
+            };
+            if (parseData.phone) contactData.phone = parseData.phone;
+            if (parseData.email) contactData.email = parseData.email;
+            if (parseData.address) contactData.address = parseData.address;
 
-          if (navigator.vibrate) navigator.vibrate(100);
-          const typeLabel = parseData.contactType === 'مورد' ? 'المورد' : 'الزبون';
-          const successMsg = `✅ تمت إضافة ${typeLabel} "${parseData.name}" بنجاح${parseData.phone ? '\n📞 الهاتف: ' + parseData.phone : ''}`;
-          const convId = await ensureConversation(text.trim());
-          setMessages(prev => [...prev, { id: uid(), role: "assistant", type: "success", content: successMsg, timestamp: new Date() }]);
-          if (convId) saveMessage(convId, "assistant", successMsg);
-          if (user?.id) buildAIContext(user.id).then(setAiContext);
-          setSending(false);
-          return;
+            const { error: insertError } = await supabase.from('contacts').insert(contactData);
+            if (insertError) throw insertError;
+
+            const typeLabel = parseData.contactType === 'مورد' ? 'المورد' : 'الزبون';
+            successMsg = `✅ تمت إضافة ${typeLabel} "${parseData.name}" بنجاح${parseData.phone ? '\n📞 الهاتف: ' + parseData.phone : ''}`;
+
+          } else if (parseData.entityType === 'employee') {
+            const empData: any = {
+              full_name: parseData.name || '',
+              user_id: user?.id,
+              status: 'active',
+              hire_date: new Date().toISOString().split('T')[0],
+            };
+            if (parseData.jobTitle) empData.job_title = parseData.jobTitle;
+            if (parseData.department) empData.department = parseData.department;
+            if (parseData.basicSalary) empData.basic_salary = parseData.basicSalary;
+            if (parseData.phone) empData.phone = parseData.phone;
+
+            const { error: insertError } = await supabase.from('employees').insert(empData);
+            if (insertError) throw insertError;
+
+            successMsg = `✅ تمت إضافة الموظف "${parseData.name}" بنجاح${parseData.jobTitle ? '\n💼 المسمى: ' + parseData.jobTitle : ''}${parseData.basicSalary ? '\n💰 الراتب: ₪' + parseData.basicSalary : ''}`;
+
+          } else if (parseData.entityType === 'product') {
+            const prodData: any = {
+              name: parseData.name || '',
+              user_id: user?.id,
+              is_active: true,
+              quantity: parseData.quantity || 0,
+            };
+            if (parseData.buyPrice) prodData.buy_price = parseData.buyPrice;
+            if (parseData.sellPrice) prodData.sell_price = parseData.sellPrice;
+            if (parseData.sku) prodData.sku = parseData.sku;
+
+            const { error: insertError } = await supabase.from('products').insert(prodData);
+            if (insertError) throw insertError;
+
+            successMsg = `✅ تمت إضافة المنتج "${parseData.name}" بنجاح${parseData.sellPrice ? '\n💲 سعر البيع: ₪' + parseData.sellPrice : ''}${parseData.quantity ? '\n📦 الكمية: ' + parseData.quantity : ''}`;
+
+          } else if (parseData.entityType === 'account') {
+            const accData: any = {
+              account_name: parseData.name || '',
+              account_code: parseData.accountCode || '',
+              account_type: parseData.accountType || 'أصول',
+              user_id: user?.id,
+              is_active: true,
+            };
+
+            const { error: insertError } = await supabase.from('accounts').insert(accData);
+            if (insertError) throw insertError;
+
+            successMsg = `✅ تمت إضافة الحساب "${parseData.name}" بنجاح${parseData.accountCode ? '\n🔢 الرمز: ' + parseData.accountCode : ''}${parseData.accountType ? '\n📂 النوع: ' + parseData.accountType : ''}`;
+          }
+
+          if (successMsg) {
+            if (navigator.vibrate) navigator.vibrate(100);
+            const convId2 = await ensureConversation(text.trim());
+            setMessages(prev => [...prev, { id: uid(), role: "assistant", type: "success", content: successMsg, timestamp: new Date() }]);
+            if (convId2) saveMessage(convId2, "assistant", successMsg);
+            if (user?.id) buildAIContext(user.id).then(setAiContext);
+            setSending(false);
+            return;
+          }
         } catch (err: any) {
-          const errorMsg = `❌ فشل في إضافة ${parseData.contactType || 'الجهة'}: ${err.message || 'خطأ غير معروف'}`;
+          const entityLabel = parseData.entityType === 'employee' ? 'الموظف' : parseData.entityType === 'product' ? 'المنتج' : parseData.entityType === 'account' ? 'الحساب' : 'الجهة';
+          const errorMsg = `❌ فشل في إضافة ${entityLabel}: ${err.message || 'خطأ غير معروف'}`;
           setMessages(prev => [...prev, { id: uid(), role: "assistant", content: errorMsg, timestamp: new Date() }]);
           setSending(false);
           return;
