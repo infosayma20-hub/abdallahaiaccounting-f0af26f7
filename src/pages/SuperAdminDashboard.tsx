@@ -791,7 +791,7 @@ function SubscriptionsManager() {
     if (!editSub) return;
     try {
       await apiCall("update_subscription", undefined, {
-        subscription_id: editSub.id, plan_id: editPlanId, status: editStatus, billing_cycle: editBilling,
+        subscription_id: editSub.id, plan_id: editPlanId, status: editStatus, billing_cycle: editBilling, period_end: editPeriodEnd || undefined,
       });
       toast.success("تم تحديث الاشتراك");
       setEditSub(null);
