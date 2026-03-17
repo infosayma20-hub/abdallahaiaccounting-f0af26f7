@@ -409,19 +409,44 @@ const InvoiceCreatePage = () => {
   }, []);
 
   const summary = useMemo(() => {
-    const subtotal = form.items.reduce((s, i) => s + i.quantity * i.unitPrice, 0);
-    const totalDiscount = form.items.reduce((s, i) => s + getItemDiscountAmount(i), 0);
-    const afterDiscount = subtotal - totalDiscount;
-    const totalTax = form.items.reduce((s, i) => {
-      const base = i.quantity * i.unitPrice;
-      const disc = i.discountType === "percent" ? base * (i.discount / 100) : i.discount;
-      return s + (base - disc) * (i.taxRate / 100);
-    }, 0);
-    const total = afterDiscount + totalTax;
-    const paidAmount = form.paymentMethod === "credit" ? 0 : total;
-    const remainingAmount = total - paidAmount;
-    return { subtotal, totalDiscount, totalTax, total, paidAmount, remainingAmount };
-  }, [form.items, form.paymentMethod, getItemDiscountAmount]);
+    if (form.taxInclusive) {
+      // Tax-inclusive: entered prices already contain tax
+      // We need to extract tax from the total
+      let subtotalExTax = 0;
+      let totalTax = 0;
+      let totalDiscount = 0;
+      form.items.forEach(i => {
+        const base = i.quantity * i.unitPrice;
+        const disc = i.discountType === "percent" ? base * (i.discount / 100) : i.discount;
+        totalDiscount += disc;
+        const afterDiscount = base - disc;
+        // Reverse-calculate: afterDiscount = net + tax = net * (1 + taxRate/100)
+        const net = afterDiscount / (1 + i.taxRate / 100);
+        const tax = afterDiscount - net;
+        subtotalExTax += net;
+        totalTax += tax;
+      });
+      const subtotal = form.items.reduce((s, i) => s + i.quantity * i.unitPrice, 0);
+      const total = subtotal - totalDiscount; // Total stays the same (prices include tax)
+      const paidAmount = form.paymentMethod === "credit" ? 0 : total;
+      const remainingAmount = total - paidAmount;
+      return { subtotal: subtotalExTax + totalTax - totalTax, totalDiscount, totalTax, total, paidAmount, remainingAmount, subtotalExTax };
+    } else {
+      // Tax-exclusive: tax is added on top
+      const subtotal = form.items.reduce((s, i) => s + i.quantity * i.unitPrice, 0);
+      const totalDiscount = form.items.reduce((s, i) => s + getItemDiscountAmount(i), 0);
+      const afterDiscount = subtotal - totalDiscount;
+      const totalTax = form.items.reduce((s, i) => {
+        const base = i.quantity * i.unitPrice;
+        const disc = i.discountType === "percent" ? base * (i.discount / 100) : i.discount;
+        return s + (base - disc) * (i.taxRate / 100);
+      }, 0);
+      const total = afterDiscount + totalTax;
+      const paidAmount = form.paymentMethod === "credit" ? 0 : total;
+      const remainingAmount = total - paidAmount;
+      return { subtotal, totalDiscount, totalTax, total, paidAmount, remainingAmount, subtotalExTax: afterDiscount };
+    }
+  }, [form.items, form.paymentMethod, form.taxInclusive, getItemDiscountAmount]);
 
   const amountInWords = useMemo(() => numberToArabicWords(Math.round(summary.total)), [summary.total]);
 
