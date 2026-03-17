@@ -2024,20 +2024,20 @@ export default function SuperAdminDashboard() {
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialog.open} onOpenChange={() => { setDeleteDialog({ open: false, userId: "", name: "" }); setDeleteConfirmText(""); }}>
-        <DialogContent style={{ background: "var(--sa-dialog-bg)", borderColor: "var(--sa-dialog-border)", color: "var(--sa-text-primary)" }} dir="rtl">
+        <DialogContent className="bg-white border-gray-200 text-gray-900 max-w-md" dir="rtl">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-red-400">
+            <DialogTitle className="flex items-center gap-2 text-red-500">
               <AlertTriangle className="h-5 w-5" /> حذف مستخدم نهائياً
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-3 py-2">
-            <p className="text-sm" style={{ color: "var(--sa-text-muted)" }}>أنت على وشك حذف <strong style={{ color: "var(--sa-text-primary)" }}>{deleteDialog.name}</strong> نهائياً. هذا الإجراء لا يمكن التراجع عنه.</p>
-            <p className="text-sm" style={{ color: "var(--sa-text-muted)" }}>اكتب <strong className="text-red-400 font-mono">DELETE</strong> للتأكيد:</p>
+            <p className="text-sm text-gray-600">أنت على وشك حذف <strong className="text-gray-900">{deleteDialog.name}</strong> نهائياً. هذا الإجراء لا يمكن التراجع عنه.</p>
+            <p className="text-sm text-gray-600">اكتب <strong className="text-red-500 font-mono">DELETE</strong> للتأكيد:</p>
             <Input value={deleteConfirmText} onChange={(e) => setDeleteConfirmText(e.target.value)} placeholder="DELETE"
-              className="font-mono" style={{ background: "var(--sa-input-bg)", borderColor: "var(--sa-input-border)", color: "var(--sa-text-primary)" }} />
+              className="font-mono text-center bg-gray-50 border-gray-300 text-gray-900" />
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => { setDeleteDialog({ open: false, userId: "", name: "" }); setDeleteConfirmText(""); }} style={{ color: "var(--sa-text-muted)" }}>إلغاء</Button>
+            <Button variant="ghost" onClick={() => { setDeleteDialog({ open: false, userId: "", name: "" }); setDeleteConfirmText(""); }} className="text-gray-500">إلغاء</Button>
             <Button onClick={handleDeleteUser} disabled={deleteConfirmText !== "DELETE"} className="bg-red-500 hover:bg-red-600 text-white">
               حذف نهائي
             </Button>
