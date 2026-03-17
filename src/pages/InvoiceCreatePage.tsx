@@ -826,7 +826,7 @@ const InvoiceCreatePage = () => {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             <div>
               <label className="text-[11px] text-muted-foreground mb-1 block font-medium">رقم الفاتورة</label>
-              <Input value="تلقائي" readOnly className="rounded-xl text-sm bg-muted/50 cursor-not-allowed" dir="ltr" />
+              <Input value={nextInvoiceNumber} readOnly className="rounded-xl text-sm bg-muted/50 cursor-not-allowed font-mono" dir="ltr" />
             </div>
             <div>
               <label className="text-[11px] text-muted-foreground mb-1 block font-medium">تاريخ الإصدار</label>
