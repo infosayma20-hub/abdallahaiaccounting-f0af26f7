@@ -58,19 +58,19 @@ const moduleIcons: Record<string, React.ElementType> = {
   customization: Puzzle,
 };
 
-const DashboardIcon = ({ size }: { size: number }) => (
+const DashboardIcon = ({ size, color }: { size: number; color?: string }) => (
   <svg
     width={size}
     height={size}
     viewBox="0 0 24 24"
     fill="none"
   >
-    <rect x="3" y="3" width="8" height="9" rx="1.5" fill="white" />
-    <rect x="13" y="3" width="8" height="4" rx="1.5" fill="white" />
-    <rect x="13" y="10" width="8" height="9" rx="1.5" fill="white" />
-    <rect x="3" y="15" width="8" height="4" rx="1.5" fill="white" />
-    <rect x="3" y="3" width="8" height="9" rx="1.5" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="0.5" />
-    <rect x="13" y="3" width="8" height="4" rx="1.5" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="0.5" />
+    <rect x="3" y="3" width="8" height="9" rx="1.5" fill={color || brandNavy} />
+    <rect x="13" y="3" width="8" height="4" rx="1.5" fill={color || brandNavy} />
+    <rect x="13" y="10" width="8" height="9" rx="1.5" fill={color || brandNavy} />
+    <rect x="3" y="15" width="8" height="4" rx="1.5" fill={color || brandNavy} />
+    <rect x="3" y="3" width="8" height="9" rx="1.5" fill="none" stroke={`${color || brandNavy}30`} strokeWidth="0.5" />
+    <rect x="13" y="3" width="8" height="4" rx="1.5" fill="none" stroke={`${color || brandNavy}30`} strokeWidth="0.5" />
   </svg>
 );
 
