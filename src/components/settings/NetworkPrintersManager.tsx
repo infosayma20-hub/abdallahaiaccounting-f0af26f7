@@ -295,6 +295,12 @@ export default function NetworkPrintersManager() {
                     {p.station_ids.length} محطة
                   </Badge>
                 )}
+                {p.branch_id && (
+                  <Badge variant="outline" className="text-[9px] px-1 py-0 border-amber-500/30 text-amber-600">
+                    <Building2 className="h-2.5 w-2.5 mr-0.5" />
+                    {branches.find(b => b.id === p.branch_id)?.name || "فرع"}
+                  </Badge>
+                )}
               </div>
             </div>
             <div className="flex items-center gap-1">
