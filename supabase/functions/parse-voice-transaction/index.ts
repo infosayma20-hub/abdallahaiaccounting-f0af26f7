@@ -292,6 +292,21 @@ status = "incomplete" مع missingFields
       }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
+    // Handle add entity intent
+    if (parsed.intent === 'add_entity' || parsed.type === 'add_entity') {
+      return new Response(JSON.stringify({
+        type: 'add_entity',
+        intent: 'add_entity',
+        entityType: parsed.entityType || 'contact',
+        contactType: parsed.contactType || 'عميل',
+        name: parsed.name || '',
+        phone: parsed.phone || '',
+        email: parsed.email || '',
+        address: parsed.address || '',
+        status: parsed.status || 'complete',
+      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
     // Handle inventory report intent
     if (parsed.intent === 'inventory_report') {
       return new Response(JSON.stringify({
