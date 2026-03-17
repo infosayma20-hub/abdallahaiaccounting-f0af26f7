@@ -132,7 +132,7 @@ const CashBoxDrawer = ({ open, onClose, defaultType, editBox, hasMainBox, onSave
     const boxData: any = {
       user_id: user.id,
       name: name.trim(),
-      type: boxType,
+      type: normalizedType === "petty" ? "petty_cash" : boxType,
       branch_location: location || null,
       currency,
       gl_account_code: glCode || null,
