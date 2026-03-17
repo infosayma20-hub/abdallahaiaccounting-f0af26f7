@@ -312,7 +312,6 @@ const PayrollPage = () => {
           deduction_fixed_component: slip.fixed_deduction,
           carry_over_balance: slip.carry_over_balance,
           working_days: slip.working_days,
-          absent_days: 28 - slip.working_days,
         });
 
         // Also save the auto-generated input for reference
