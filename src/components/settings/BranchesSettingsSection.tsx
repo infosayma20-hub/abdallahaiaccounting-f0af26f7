@@ -121,12 +121,15 @@ export default function BranchesSettingsSection() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-bold text-foreground">إدارة الأفرع</h2>
-          <p className="text-sm text-muted-foreground">أضف وأدر أفرع شركتك - يتم ربط الموظفين والمحطات والطابعات بالأفرع</p>
+      <div className="flex items-start justify-between gap-4">
+        <div className="space-y-1">
+          <h3 className="text-base font-semibold text-foreground flex items-center gap-2">
+            <span className="w-1 h-5 bg-primary rounded-full" />
+            إدارة الأفرع
+          </h3>
+          <p className="text-xs text-muted-foreground pr-3">أضف وأدر أفرع شركتك - يتم ربط الموظفين والمحطات والطابعات بالأفرع</p>
         </div>
-        <Button onClick={openAdd} size="sm" className="gap-1.5">
+        <Button onClick={openAdd} size="sm" className="gap-1.5 shrink-0">
           <Plus className="h-3.5 w-3.5" /> إضافة فرع
         </Button>
       </div>
