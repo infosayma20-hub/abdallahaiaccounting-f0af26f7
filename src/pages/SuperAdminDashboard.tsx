@@ -756,6 +756,7 @@ function SubscriptionsManager() {
   const [editPlanId, setEditPlanId] = useState("");
   const [editStatus, setEditStatus] = useState("");
   const [editBilling, setEditBilling] = useState("");
+  const [editPeriodEnd, setEditPeriodEnd] = useState("");
 
   useEffect(() => { loadData(); }, []);
 
