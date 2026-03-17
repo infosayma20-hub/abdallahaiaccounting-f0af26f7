@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Download, DollarSign, TrendingDown, Wallet, Users, Loader2, Eye, CheckCircle2, ClipboardEdit, Play } from "lucide-react";
+import { Download, DollarSign, TrendingDown, Wallet, Users, Loader2, Eye, CheckCircle2, ClipboardEdit, Play, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +19,8 @@ const months = [
   "يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو",
   "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"
 ];
+
+const normalizeArabic = (s: string) => s.replace(/\s+/g, "").replace(/ة/g, "ه").replace(/أ|إ|آ/g, "ا");
 
 const PayrollPage = () => {
   const navigate = useNavigate();
@@ -80,12 +82,12 @@ const PayrollPage = () => {
     }), { totalBase: 0, totalAllowances: 0, totalDeductions: 0, totalNet: 0, count: 0, paidCount: 0 });
   }, [payrollRecords]);
 
-  const pendingEmployees = useMemo(() => {
-    if (!employees || !monthInputs) return [];
+  // Employees not yet processed this month
+  const unprocessedEmployees = useMemo(() => {
+    if (!employees) return [];
     const processedIds = new Set((payrollRecords || []).map((p: any) => p.employee_id));
-    const inputIds = new Set(monthInputs.map((i: any) => i.employee_id));
-    return employees.filter((e: any) => !processedIds.has(e.id) && inputIds.has(e.id));
-  }, [employees, payrollRecords, monthInputs]);
+    return employees.filter((e: any) => !processedIds.has(e.id));
+  }, [employees, payrollRecords]);
 
   const toMalakiEmp = (emp: any): MalakiEmployee => ({
     id: emp.id,
@@ -106,57 +108,184 @@ const PayrollPage = () => {
     terminated_at: emp.terminated_at,
   });
 
-  const toMalakiInput = (inp: any): MalakiMonthInput => ({
-    working_days: inp.working_days || 0,
-    working_hours: inp.working_hours || 0,
-    overtime_hours: inp.overtime_hours || 0,
-    holiday_overtime_hours: inp.holiday_overtime_hours || 0,
-    vacation_hours: inp.vacation_hours || 0,
-    annual_leave_days: inp.annual_leave_days || 0,
-    sick_leave_days: inp.sick_leave_days || 0,
-    opening_advance_balance: inp.opening_advance_balance || 0,
-    loan_installment: inp.loan_installment || 0,
-    new_advance: inp.new_advance || 0,
-    cash_advances: inp.cash_advances || 0,
-    food_total: inp.food_total || 0,
-    food_individual: inp.food_individual || 0,
-    cash_shortage: inp.cash_shortage || 0,
-    cash_surplus: inp.cash_surplus || 0,
-    delivery: inp.delivery || 0,
-    purchases: inp.purchases || 0,
-    other_deduction: inp.other_deduction || 0,
-    violations: inp.violations || 0,
-    deduction_notes: inp.deduction_notes || "",
-    special_allowance: inp.special_allowance || 0,
-    extra_work_allowance: inp.extra_work_allowance || 0,
-    has_termination_pay: inp.has_termination_pay || false,
-  });
-
-  const handleRunPayroll = async () => {
-    if (!user || !pendingEmployees.length || !monthInputs?.length) return;
+  // ━━━ ONE-CLICK FULL PAYROLL RUN ━━━
+  const handleAutoRunPayroll = async () => {
+    if (!user || !employees?.length) return;
     setRunningPayroll(true);
+    
     try {
-      const records = pendingEmployees.map((emp: any) => {
-        const monthInput = monthInputs.find((i: any) => i.employee_id === emp.id);
-        if (!monthInput) return null;
+      const targetEmployees = unprocessedEmployees;
+      if (!targetEmployees.length) {
+        toast.info("جميع الموظفين تم احتساب رواتبهم لهذا الشهر");
+        setRunningPayroll(false);
+        return;
+      }
+
+      const startDate = `${selectedYear}-${String(selectedMonth).padStart(2, "0")}-01`;
+      const endDate = new Date(selectedYear, selectedMonth, 0).toISOString().split("T")[0];
+
+      // Fetch all data in parallel
+      const [attendanceRes, prevPayrollRes, loanInstRes, txRes, empAccountsRes, vouchersRes, existingInputsRes] = await Promise.all([
+        // 1. Attendance data
+        supabase.from("attendance_days")
+          .select("employee_id, total_hours, overtime_hours, status")
+          .gte("attendance_date", startDate)
+          .lte("attendance_date", endDate),
+        // 2. Previous month carry-over
+        (() => {
+          const pm = selectedMonth === 1 ? 12 : selectedMonth - 1;
+          const py = selectedMonth === 1 ? selectedYear - 1 : selectedYear;
+          return supabase.from("employee_payroll")
+            .select("employee_id, carry_over_balance, net_salary")
+            .eq("period_month", pm)
+            .eq("period_year", py);
+        })(),
+        // 3. Loan installments for this month
+        supabase.from("loan_installments" as any)
+          .select("employee_id, installment_amount, status")
+          .eq("payroll_month", selectedMonth)
+          .eq("payroll_year", selectedYear)
+          .eq("status", "pending"),
+        // 4. Transactions on employee accounts (1180+)
+        supabase.from("transactions")
+          .select("debit_account_code, credit_account_code, amount, description")
+          .gte("transaction_date", startDate)
+          .lte("transaction_date", endDate)
+          .or("debit_account_code.like.118%,credit_account_code.like.118%")
+          .eq("is_deleted", false),
+        // 5. Employee account mappings
+        supabase.from("accounts")
+          .select("account_code, account_name")
+          .like("parent_code", "1180")
+          .eq("is_active", true),
+        // 6. Payment vouchers to employees
+        supabase.from("vouchers")
+          .select("amount, description, date")
+          .eq("type", "payment")
+          .gte("date", startDate)
+          .lte("date", endDate),
+        // 7. Existing manual inputs (if any)
+        supabase.from("monthly_payroll_inputs")
+          .select("*")
+          .eq("year", selectedYear)
+          .eq("month", selectedMonth),
+      ]);
+
+      // ━━━ 1. Aggregate Attendance ━━━
+      const attData = attendanceRes.data || [];
+      const empAtt: Record<string, { days: number; hours: number; overtime: number; vacHours: number; annual: number; sick: number }> = {};
+      for (const rec of attData) {
+        if (!empAtt[rec.employee_id]) empAtt[rec.employee_id] = { days: 0, hours: 0, overtime: 0, vacHours: 0, annual: 0, sick: 0 };
+        const a = empAtt[rec.employee_id];
+        if (rec.status === "present" || rec.status === "حاضر") {
+          a.days++;
+          a.hours += Number(rec.total_hours) || 0;
+          a.overtime += Number(rec.overtime_hours) || 0;
+        } else if (rec.status === "annual_leave" || rec.status === "إجازة سنوية") {
+          a.annual++;
+        } else if (rec.status === "sick_leave" || rec.status === "إجازة مرضية") {
+          a.sick++;
+        } else if (rec.status === "vacation" || rec.status === "إجازة") {
+          a.vacHours += Number(rec.total_hours) || 0;
+        }
+      }
+
+      // ━━━ 2. Previous month carry-over ━━━
+      const prevPayroll = prevPayrollRes.data || [];
+      const carryOver: Record<string, number> = {};
+      for (const p of prevPayroll) {
+        const co = Number(p.carry_over_balance) || 0;
+        if (co > 0) carryOver[p.employee_id] = co;
+      }
+
+      // ━━━ 3. Loan installments ━━━
+      const loanInst = loanInstRes.data || [];
+      const loanByEmp: Record<string, number> = {};
+      for (const li of loanInst as any[]) {
+        loanByEmp[li.employee_id] = (loanByEmp[li.employee_id] || 0) + Number(li.installment_amount);
+      }
+
+      // ━━━ 4. Deductions from transactions/vouchers ━━━
+      const accountCodeToEmpId: Record<string, string> = {};
+      const empAccounts = empAccountsRes.data || [];
+      for (const acc of empAccounts) {
+        const match = acc.account_name.match(/ذمم موظف\s*[-–]\s*(.+)/);
+        if (match) {
+          const accName = normalizeArabic(match[1].trim());
+          for (const emp of targetEmployees) {
+            if (normalizeArabic(emp.full_name).includes(accName) || accName.includes(normalizeArabic(emp.full_name))) {
+              accountCodeToEmpId[acc.account_code] = emp.id;
+              break;
+            }
+          }
+        }
+      }
+
+      const txDeductions: Record<string, number> = {};
+      for (const tx of (txRes.data || [])) {
+        const code = tx.debit_account_code?.startsWith("118") ? tx.debit_account_code : tx.credit_account_code;
+        const empId = accountCodeToEmpId[code || ""];
+        if (empId) {
+          txDeductions[empId] = (txDeductions[empId] || 0) + Number(tx.amount);
+        }
+      }
+
+      // ━━━ 5. Existing manual inputs (merge) ━━━
+      const manualInputs: Record<string, any> = {};
+      for (const inp of (existingInputsRes.data || [])) {
+        manualInputs[inp.employee_id] = inp;
+      }
+
+      // ━━━ Build payroll records ━━━
+      const records: any[] = [];
+      const inputRecords: any[] = [];
+
+      for (const emp of targetEmployees) {
         const malakiEmp = toMalakiEmp(emp);
-        const malakiInput = toMalakiInput(monthInput);
+        const att = empAtt[emp.id] || { days: 0, hours: 0, overtime: 0, vacHours: 0, annual: 0, sick: 0 };
+        const manual = manualInputs[emp.id];
+
+        const malakiInput: MalakiMonthInput = {
+          working_days: att.days || (manual?.working_days || 0),
+          working_hours: Math.round((att.hours || (manual?.working_hours || 0)) * 100) / 100,
+          overtime_hours: Math.round((att.overtime || (manual?.overtime_hours || 0)) * 100) / 100,
+          holiday_overtime_hours: manual?.holiday_overtime_hours || 0,
+          vacation_hours: Math.round((att.vacHours || (manual?.vacation_hours || 0)) * 100) / 100,
+          annual_leave_days: att.annual || (manual?.annual_leave_days || 0),
+          sick_leave_days: att.sick || (manual?.sick_leave_days || 0),
+          opening_advance_balance: carryOver[emp.id] || (manual?.opening_advance_balance || 0),
+          loan_installment: loanByEmp[emp.id] || (manual?.loan_installment || 0),
+          new_advance: manual?.new_advance || 0,
+          cash_advances: txDeductions[emp.id] || (manual?.cash_advances || 0),
+          food_total: manual?.food_total || 0,
+          food_individual: manual?.food_individual || 0,
+          cash_shortage: manual?.cash_shortage || 0,
+          cash_surplus: manual?.cash_surplus || 0,
+          delivery: manual?.delivery || 0,
+          purchases: manual?.purchases || 0,
+          other_deduction: manual?.other_deduction || 0,
+          violations: manual?.violations || 0,
+          deduction_notes: manual?.deduction_notes || "",
+          special_allowance: manual?.special_allowance || 0,
+          extra_work_allowance: manual?.extra_work_allowance || 0,
+          has_termination_pay: manual?.has_termination_pay || false,
+        };
+
         const slip = calculateMalakiPayslip(malakiEmp, malakiInput, selectedYear, selectedMonth);
 
-        return {
+        records.push({
           user_id: user.id,
           employee_id: emp.id,
           company_id: emp.company_id || null,
           period_month: selectedMonth,
           period_year: selectedYear,
           base_salary: slip.attendance_salary,
+          attendance_salary: slip.attendance_salary,
           total_allowances: slip.net_fixed + slip.attendance_bonus + slip.special_allowance + slip.extra_work_allowance + slip.entitlements,
           total_deductions: slip.total_deductions,
           total_overtime: slip.overtime_hours * (malakiEmp.hourly_rate || 9.6) * 0.5,
           net_salary: slip.net_salary,
           is_paid: false,
-          // Detailed fields
-          attendance_salary: slip.attendance_salary,
           regular_hours: slip.regular_hours,
           overtime_hours_val: slip.overtime_hours,
           vacation_hours_paid: slip.vacation_hours,
@@ -184,20 +313,46 @@ const PayrollPage = () => {
           carry_over_balance: slip.carry_over_balance,
           working_days: slip.working_days,
           absent_days: 28 - slip.working_days,
-        };
-      }).filter(Boolean);
+        });
 
-      const { error } = await supabase.from("employee_payroll").insert(records as any);
-      if (error) throw error;
-      toast.success(`تم إنشاء مسير الرواتب لـ ${records.length} موظف`);
+        // Also save the auto-generated input for reference
+        inputRecords.push({
+          employee_id: emp.id,
+          company_id: emp.company_id || null,
+          year: selectedYear,
+          month: selectedMonth,
+          created_by: user.id,
+          ...malakiInput,
+        });
+      }
+
+      // Save inputs + payroll in parallel
+      const [payrollErr, inputErr] = await Promise.all([
+        supabase.from("employee_payroll").insert(records).then(r => r.error),
+        supabase.from("monthly_payroll_inputs").upsert(inputRecords, { onConflict: "employee_id,year,month" }).then(r => r.error),
+      ]);
+
+      if (payrollErr) throw payrollErr;
+      if (inputErr) console.warn("Input save warning:", inputErr.message);
+
+      // Mark loan installments as deducted
+      if (loanInst.length > 0) {
+        const loanInstIds = (loanInst as any[]).map((l: any) => l.id);
+        await supabase.from("loan_installments" as any)
+          .update({ status: "paid", paid_date: new Date().toISOString().split("T")[0] } as any)
+          .in("id", loanInstIds);
+      }
+
+      toast.success(`✅ تم احتساب رواتب ${records.length} موظف تلقائياً`);
       queryClient.invalidateQueries({ queryKey: ["payroll-records"] });
+      queryClient.invalidateQueries({ queryKey: ["payroll-inputs"] });
     } catch (e: any) {
       toast.error(e.message || "حدث خطأ أثناء تشغيل المسير");
+      console.error("Payroll run error:", e);
     } finally {
       setRunningPayroll(false);
     }
   };
-
   const handleMarkPaid = async (id: string) => {
     const { error } = await supabase.from("employee_payroll").update({ is_paid: true, paid_date: new Date().toISOString().split("T")[0] }).eq("id", id);
     if (error) { toast.error("خطأ في التحديث"); return; }
