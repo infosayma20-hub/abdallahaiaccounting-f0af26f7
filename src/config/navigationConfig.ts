@@ -296,7 +296,7 @@ export const navigationSections: NavSection[] = [
     items: [
       {
         id: "settings", label: "الإعدادات", description: "إعدادات النظام والملف الشخصي", module: "settings", icon: Settings,
-        color: "text-muted-foreground", bgColor: "bg-muted", path: "/settings",
+        color: "text-[#1B3A5C]", bgColor: "bg-[#1B3A5C]/8", path: "/settings",
         keywords: ["إعدادات", "ملف", "شخصي"],
         groups: [
           {
