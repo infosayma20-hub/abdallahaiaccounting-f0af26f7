@@ -264,7 +264,7 @@ const CleanSmartAccountant = ({ user, userName, data, cfoMode, onToggleCfo, onCh
         }
       }
 
-      if (parseData?.type && !['question', 'unknown', 'add_entity'].includes(parseData.type)) {
+      if (parseData?.type && !['question', 'unknown', 'add_entity', 'inventory_report'].includes(parseData.type)) {
         const body: any = { text: text.trim(), userId: user?.id, email: user?.email };
         const { data: txResult, error } = await supabase.functions.invoke("process-transaction", { body });
         if (error) throw error;
