@@ -164,15 +164,31 @@ const TrialBalancePage = () => {
   }, [dateFrom, dateTo]);
 
   // Build trial balance
-  const { rows, grandTotalDebit, grandTotalCredit, isBalanced, prevGrandDebit, prevGrandCredit } = useMemo(() => {
-    let filteredTx = transactions.filter(tx => !tx.is_deleted);
+  const { rows, grandTotalDebit, grandTotalCredit, isBalanced, prevGrandDebit, prevGrandCredit, grandOpeningDebit, grandOpeningCredit, grandClosingDebit, grandClosingCredit } = useMemo(() => {
+    const allTx = transactions.filter(tx => !tx.is_deleted);
+
+    // Opening balance: all transactions BEFORE dateFrom
+    const openingDebitMap: Record<string, number> = {};
+    const openingCreditMap: Record<string, number> = {};
+    if (dateFrom) {
+      for (const tx of allTx) {
+        if ((tx.transaction_date || "") < dateFrom) {
+          const amount = tx.amount || 0;
+          if (tx.debit_account_code) openingDebitMap[tx.debit_account_code] = (openingDebitMap[tx.debit_account_code] || 0) + amount;
+          if (tx.credit_account_code) openingCreditMap[tx.credit_account_code] = (openingCreditMap[tx.credit_account_code] || 0) + amount;
+        }
+      }
+    }
+
+    // Period transactions
+    let filteredTx = allTx;
     if (dateFrom) filteredTx = filteredTx.filter(tx => (tx.transaction_date || "") >= dateFrom);
     if (dateTo) filteredTx = filteredTx.filter(tx => (tx.transaction_date || "") <= dateTo);
 
     // Previous period transactions
     let prevFilteredTx: SupabaseTransaction[] = [];
     if (showComparison && prevPeriod.from && prevPeriod.to) {
-      prevFilteredTx = transactions.filter(tx => !tx.is_deleted && (tx.transaction_date || "") >= prevPeriod.from && (tx.transaction_date || "") <= prevPeriod.to);
+      prevFilteredTx = allTx.filter(tx => (tx.transaction_date || "") >= prevPeriod.from && (tx.transaction_date || "") <= prevPeriod.to);
     }
 
     const debitMap: Record<string, number> = {};
@@ -192,7 +208,11 @@ const TrialBalancePage = () => {
       if (tx.credit_account_code) prevCreditMap[tx.credit_account_code] = (prevCreditMap[tx.credit_account_code] || 0) + amount;
     }
 
-    const allCodes = new Set([...Object.keys(debitMap), ...Object.keys(creditMap), ...Object.keys(prevDebitMap), ...Object.keys(prevCreditMap)]);
+    const allCodes = new Set([
+      ...Object.keys(debitMap), ...Object.keys(creditMap),
+      ...Object.keys(prevDebitMap), ...Object.keys(prevCreditMap),
+      ...Object.keys(openingDebitMap), ...Object.keys(openingCreditMap),
+    ]);
     if (showZeroAccounts) accounts.forEach(acc => allCodes.add(acc.account_code));
 
     const rows: TrialBalanceRow[] = [];
@@ -200,11 +220,17 @@ const TrialBalancePage = () => {
       const acc = accountMap[code];
       const totalDebit = debitMap[code] || 0;
       const totalCredit = creditMap[code] || 0;
+      const openingDebit = openingDebitMap[code] || 0;
+      const openingCredit = openingCreditMap[code] || 0;
+      const openingBalance = openingDebit - openingCredit;
+      const balance = totalDebit - totalCredit;
       rows.push({
         accountName: acc ? acc.account_name : code,
         accountCode: acc ? acc.account_code : code,
         accountType: acc ? acc.account_type : "",
-        totalDebit, totalCredit, balance: totalDebit - totalCredit,
+        openingDebit, openingCredit, openingBalance,
+        totalDebit, totalCredit, balance,
+        closingBalance: openingBalance + balance,
         prevDebit: prevDebitMap[code] || 0,
         prevCredit: prevCreditMap[code] || 0,
         prevBalance: (prevDebitMap[code] || 0) - (prevCreditMap[code] || 0),
@@ -222,8 +248,12 @@ const TrialBalancePage = () => {
     const grandTotalCredit = rows.reduce((s, r) => s + r.totalCredit, 0);
     const prevGrandDebit = rows.reduce((s, r) => s + (r.prevDebit || 0), 0);
     const prevGrandCredit = rows.reduce((s, r) => s + (r.prevCredit || 0), 0);
+    const grandOpeningDebit = rows.reduce((s, r) => s + r.openingDebit, 0);
+    const grandOpeningCredit = rows.reduce((s, r) => s + r.openingCredit, 0);
+    const grandClosingDebit = rows.reduce((s, r) => s + (r.closingBalance > 0 ? r.closingBalance : 0), 0);
+    const grandClosingCredit = rows.reduce((s, r) => s + (r.closingBalance < 0 ? Math.abs(r.closingBalance) : 0), 0);
 
-    return { rows, grandTotalDebit, grandTotalCredit, isBalanced: Math.abs(grandTotalDebit - grandTotalCredit) < 0.01, prevGrandDebit, prevGrandCredit };
+    return { rows, grandTotalDebit, grandTotalCredit, isBalanced: Math.abs(grandTotalDebit - grandTotalCredit) < 0.01, prevGrandDebit, prevGrandCredit, grandOpeningDebit, grandOpeningCredit, grandClosingDebit, grandClosingCredit };
   }, [transactions, accounts, accountMap, dateFrom, dateTo, showZeroAccounts, showComparison, prevPeriod]);
 
   // Search filter
