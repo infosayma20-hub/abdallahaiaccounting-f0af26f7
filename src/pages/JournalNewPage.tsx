@@ -497,6 +497,30 @@ const JournalNewPage = () => {
                         </SelectContent>
                       </Select>
                     </td>
+                    {(() => {
+                      // Only enable contact selection for receivable/payable accounts
+                      const contactAccountCodes = ["1130", "1131", "1132", "2100", "2101", "2102", "1180"];
+                      const isContactable = contactAccountCodes.some(c => line.account_code?.startsWith(c.substring(0, 3))) 
+                        || ["ذمم", "عملاء", "موردين", "موظفين"].some(kw => {
+                          const acct = accounts.find(a => a.account_code === line.account_code);
+                          return acct?.account_name?.includes(kw) || acct?.account_type?.includes(kw);
+                        })
+                        || ["1130", "1131", "2100", "2101", "1180"].includes(line.account_code);
+                      
+                      if (!isContactable) {
+                        // Clear contact if account changed to non-contactable
+                        if (line.contact_id) {
+                          setTimeout(() => updateLine(line.id, "contact_id", "__none__"), 0);
+                        }
+                        return (
+                          <td className="p-2.5">
+                            <div className="h-9 flex items-center px-3 text-xs text-muted-foreground bg-muted/40 rounded-md border border-border/50 cursor-not-allowed">
+                              — غير متاح لهذا الحساب —
+                            </div>
+                          </td>
+                        );
+                      }
+                      return (
                     <td className="p-2.5">
                       <Select value={line.contact_id || ""} onValueChange={v => {
                         if (v === "__quick_add__") {
