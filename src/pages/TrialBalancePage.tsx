@@ -599,6 +599,11 @@ const TrialBalancePage = () => {
                       <td colSpan={3} className="px-4 py-2.5 text-xs font-bold text-muted-foreground text-right">
                         إجمالي {group.label}
                       </td>
+                      {dateFrom && (
+                        <td className="px-3 py-2.5 text-xs font-bold text-amber-600 dark:text-amber-400 tabular-nums text-left">
+                          {(() => { const ob = group.rows.reduce((s, r) => s + r.openingBalance, 0); return ob !== 0 ? `${ob > 0 ? "" : "-"}${Math.abs(ob).toLocaleString()}` : "—"; })()}
+                        </td>
+                      )}
                       <td className="px-4 py-2.5 text-xs font-bold text-primary tabular-nums text-left">
                         {group.totalDebit.toLocaleString()}
                       </td>
@@ -610,6 +615,11 @@ const TrialBalancePage = () => {
                           ? `${(group.totalDebit - group.totalCredit) > 0 ? "" : "-"}${Math.abs(group.totalDebit - group.totalCredit).toLocaleString()}`
                           : "—"}
                       </td>
+                      {dateFrom && (
+                        <td className="px-3 py-2.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 tabular-nums text-left">
+                          {(() => { const cb = group.rows.reduce((s, r) => s + r.closingBalance, 0); return cb !== 0 ? `${cb > 0 ? "" : "-"}${Math.abs(cb).toLocaleString()}` : "—"; })()}
+                        </td>
+                      )}
                       {showComparison && <td colSpan={3}></td>}
                     </tr>
                   </>
