@@ -1,0 +1,13 @@
+{
+  "name": "zkteco-middleware",
+  "version": "1.0.0",
+  "description": "ZKTeco K40 attendance sync middleware",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "node-zklib": "^1.0.1",
+    "dotenv": "^16.4.5"
+  }
+}
