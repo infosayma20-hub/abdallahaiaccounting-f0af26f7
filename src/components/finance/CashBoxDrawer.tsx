@@ -71,6 +71,7 @@ const CashBoxDrawer = ({ open, onClose, defaultType, editBox, hasMainBox, onSave
 
   const cashAccounts = useMemo(() => accounts.filter(a => a.account_code?.startsWith("111")), [accounts]);
 
+  const normalizedType = boxType === "petty_cash" ? "petty" : boxType;
   const gradients: Record<string, string> = {
     main: "linear-gradient(135deg, #0A2342, #006D8F)",
     branch: "linear-gradient(135deg, #065F46, #059669)",
