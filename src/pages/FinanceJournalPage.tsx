@@ -67,6 +67,8 @@ const FinanceJournalPage = () => {
         account_name: l.account_name,
         debit: l.debit || 0,
         credit: l.credit || 0,
+        contact_id: l.contact_id || "",
+        contact_name: l.contact_name || "",
       })),
     };
     localStorage.setItem("draft_journal_new", JSON.stringify(draftData));
