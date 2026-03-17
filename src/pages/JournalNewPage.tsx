@@ -59,8 +59,8 @@ const JournalNewPage = () => {
   const [accountSearches, setAccountSearches] = useState<Record<string, string>>({});
 
   const [lines, setLines] = useState<JournalLine[]>([
-    { id: "1", account_code: "", account_name: "", debit: 0, credit: 0 },
-    { id: "2", account_code: "", account_name: "", debit: 0, credit: 0 },
+    { id: "1", account_code: "", account_name: "", debit: 0, credit: 0, contact_id: "", contact_name: "" },
+    { id: "2", account_code: "", account_name: "", debit: 0, credit: 0, contact_id: "", contact_name: "" },
   ]);
 
   // ─── Load Duplicate Data ───
