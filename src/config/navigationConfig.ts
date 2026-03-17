@@ -194,7 +194,7 @@ export const navigationSections: NavSection[] = [
       },
       {
         id: "inventory", label: "المخزون", description: "منتجات، حركات، وتقييم", module: "inventory", icon: Package,
-        color: "text-teal-500", bgColor: "bg-teal-500/10", path: "/inventory",
+        color: "text-[#1B3A5C]", bgColor: "bg-[#1B3A5C]/8", path: "/inventory",
         keywords: ["مخزون", "منتج", "بضاعة"],
         groups: [
           {
