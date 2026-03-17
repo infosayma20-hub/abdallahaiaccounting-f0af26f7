@@ -555,6 +555,11 @@ const TrialBalancePage = () => {
                             {ACCOUNT_TYPE_LABELS[row.accountType] || row.accountType || "—"}
                           </span>
                         </td>
+                        {dateFrom && (
+                          <td className={`px-3 py-3 text-xs font-bold tabular-nums text-left ${row.openingBalance > 0 ? "text-amber-600 dark:text-amber-400" : row.openingBalance < 0 ? "text-destructive" : "text-muted-foreground"}`}>
+                            {row.openingBalance !== 0 ? `${row.openingBalance > 0 ? "" : "-"}${Math.abs(row.openingBalance).toLocaleString()}` : "—"}
+                          </td>
+                        )}
                         <td className="px-4 py-3 text-xs font-bold text-primary tabular-nums text-left">
                           {row.totalDebit > 0 ? row.totalDebit.toLocaleString() : "—"}
                         </td>
@@ -564,6 +569,11 @@ const TrialBalancePage = () => {
                         <td className={`px-4 py-3 text-xs font-bold tabular-nums text-left ${row.balance > 0 ? "text-primary" : row.balance < 0 ? "text-destructive" : "text-muted-foreground"}`}>
                           {row.balance !== 0 ? `${row.balance > 0 ? "" : "-"}${Math.abs(row.balance).toLocaleString()}` : "—"}
                         </td>
+                        {dateFrom && (
+                          <td className={`px-3 py-3 text-xs font-bold tabular-nums text-left ${row.closingBalance > 0 ? "text-emerald-600 dark:text-emerald-400" : row.closingBalance < 0 ? "text-destructive" : "text-muted-foreground"}`}>
+                            {row.closingBalance !== 0 ? `${row.closingBalance > 0 ? "" : "-"}${Math.abs(row.closingBalance).toLocaleString()}` : "—"}
+                          </td>
+                        )}
                         {showComparison && (
                           <>
                             <td className="px-3 py-3 text-[10px] text-muted-foreground tabular-nums text-left">
