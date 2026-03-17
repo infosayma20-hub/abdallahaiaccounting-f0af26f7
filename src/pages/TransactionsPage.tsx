@@ -61,6 +61,7 @@ const typeBadgeConfig: Record<string, { label: string; bg: string; text: string 
   sale_cheque:        { label: "بيع شيك",        bg: "bg-[#DBEAFE]", text: "text-[#1E40AF]" },
   // مشتريات
   purchase:           { label: "فاتورة مشتريات", bg: "bg-[#EDE9FE]", text: "text-[#5B21B6]" },
+  purchase_invoice:   { label: "فاتورة مشتريات", bg: "bg-[#EDE9FE]", text: "text-[#5B21B6]" },
   purchase_cash:      { label: "شراء نقدي",      bg: "bg-[#EDE9FE]", text: "text-[#5B21B6]" },
   purchase_credit:    { label: "شراء آجل",       bg: "bg-[#EDE9FE]", text: "text-[#5B21B6]" },
   purchase_bank:      { label: "شراء بنكي",      bg: "bg-[#EDE9FE]", text: "text-[#5B21B6]" },
@@ -71,10 +72,20 @@ const typeBadgeConfig: Record<string, { label: string; bg: string; text: string 
   // مصروفات ورواتب
   expense:            { label: "مصروفات",        bg: "bg-[#FEE2E2]", text: "text-[#991B1B]" },
   salary:             { label: "رواتب",          bg: "bg-[#FFEDD5]", text: "text-[#9A3412]" },
+  // موظفين
+  employee_payment:   { label: "دفعة موظف",      bg: "bg-[#FFEDD5]", text: "text-[#9A3412]" },
+  employee_advance:   { label: "سلفة موظف",      bg: "bg-[#FEF3C7]", text: "text-[#92400E]" },
+  employee_salary:    { label: "راتب موظف",      bg: "bg-[#FFEDD5]", text: "text-[#9A3412]" },
+  employee_deduction: { label: "خصم موظف",       bg: "bg-[#FEE2E2]", text: "text-[#991B1B]" },
+  loan_payment:       { label: "قسط قرض",        bg: "bg-[#FEF3C7]", text: "text-[#92400E]" },
+  loan_disbursement:  { label: "صرف قرض",        bg: "bg-[#FFEDD5]", text: "text-[#9A3412]" },
   // مخزون
   inventory_in:       { label: "إدخال مخزون",    bg: "bg-[#D1FAE5]", text: "text-[#065F46]" },
+  inventory_out:      { label: "إخراج مخزون",    bg: "bg-[#FEE2E2]", text: "text-[#991B1B]" },
   import_cost:        { label: "تكلفة استيراد",   bg: "bg-[#EDE9FE]", text: "text-[#5B21B6]" },
   return:             { label: "مرتجع",          bg: "bg-[#FFEDD5]", text: "text-[#9A3412]" },
+  purchase_return:    { label: "مرتجع مشتريات",  bg: "bg-[#FFEDD5]", text: "text-[#9A3412]" },
+  sale_return:        { label: "مرتجع مبيعات",   bg: "bg-[#FFEDD5]", text: "text-[#9A3412]" },
   // شيكات
   cheque_register:    { label: "تسجيل شيك",      bg: "bg-[#E0E7FF]", text: "text-[#3730A3]" },
   cheque_deposit:     { label: "إيداع شيك",      bg: "bg-[#DBEAFE]", text: "text-[#1E40AF]" },
@@ -86,10 +97,18 @@ const typeBadgeConfig: Record<string, { label: string; bg: string; text: string 
   bank_fee:           { label: "عمولة بنكية",    bg: "bg-[#FEF9C3]", text: "text-[#854D0E]" },
   // تحويلات وأخرى
   cash_transfer:      { label: "تحويل صندوق",    bg: "bg-[#FEF3C7]", text: "text-[#92400E]" },
+  bank_transfer:      { label: "تحويل بنكي",     bg: "bg-[#DBEAFE]", text: "text-[#1E40AF]" },
   exchange_diff:      { label: "فروق عملة",      bg: "bg-[#FEF9C3]", text: "text-[#854D0E]" },
   opening_balance:    { label: "رصيد افتتاحي",   bg: "bg-[#F3F4F6]", text: "text-[#374151]" },
   manual:             { label: "قيد يدوي",       bg: "bg-[#F3F4F6]", text: "text-[#374151]" },
   journal:            { label: "قيد يومية",      bg: "bg-[#F3F4F6]", text: "text-[#374151]" },
+  // عقود ومقاولات
+  contract:           { label: "عقد مقاولة",     bg: "bg-[#FCE7F3]", text: "text-[#9D174D]" },
+  contract_payment:   { label: "دفعة عقد",       bg: "bg-[#FCE7F3]", text: "text-[#9D174D]" },
+  // أصول ثابتة
+  asset_purchase:     { label: "شراء أصل",       bg: "bg-[#CCFBF1]", text: "text-[#115E59]" },
+  depreciation:       { label: "إهلاك",          bg: "bg-[#F3F4F6]", text: "text-[#374151]" },
+  asset_disposal:     { label: "استبعاد أصل",    bg: "bg-[#FEE2E2]", text: "text-[#991B1B]" },
 };
 
 function TypeBadge({ type }: { type: string }) {
