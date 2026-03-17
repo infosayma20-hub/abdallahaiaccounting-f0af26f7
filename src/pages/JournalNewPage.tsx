@@ -643,7 +643,8 @@ const JournalNewPage = () => {
                       </button>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
               <tfoot>
                 <tr className="border-t font-bold bg-primary/5">
