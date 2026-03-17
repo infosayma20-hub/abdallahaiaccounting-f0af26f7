@@ -465,7 +465,13 @@ const JournalNewPage = () => {
                   <tr key={line.id} className={`border-t border-border/30 ${i % 2 === 0 ? "bg-background" : "bg-secondary/20"}`}>
                     <td className="p-2.5 text-muted-foreground">{i + 1}</td>
                     <td className="p-2.5">
-                      <Select value={line.account_code} onValueChange={v => updateLine(line.id, "account_code", v)}>
+                      <Select value={line.account_code || ""} onValueChange={v => {
+                        if (v === "__clear__") {
+                          updateLine(line.id, "account_code", "");
+                          return;
+                        }
+                        updateLine(line.id, "account_code", v);
+                      }}>
                         <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="ابحث بالرقم أو الاسم..." /></SelectTrigger>
                         <SelectContent className="max-h-[250px]">
                           <div className="px-2 py-1.5 sticky top-0 bg-background z-10">
@@ -480,6 +486,11 @@ const JournalNewPage = () => {
                               />
                             </div>
                           </div>
+                          {line.account_code && (
+                            <SelectItem value="__clear__">
+                              <span className="text-muted-foreground flex items-center gap-1.5"><X className="h-3 w-3" /> تفريغ الحساب</span>
+                            </SelectItem>
+                          )}
                           {accounts
                             .filter(a => {
                               const q = (accountSearches[line.id] || "").toLowerCase();
@@ -500,7 +511,8 @@ const JournalNewPage = () => {
                     {(() => {
                       // Only enable contact selection for receivable/payable accounts
                       const contactAccountCodes = ["1130", "1131", "1132", "2100", "2101", "2102", "1180"];
-                      const isContactable = contactAccountCodes.some(c => line.account_code?.startsWith(c.substring(0, 3))) 
+                      const isContactable = !line.account_code
+                        || contactAccountCodes.some(c => line.account_code?.startsWith(c.substring(0, 3))) 
                         || ["ذمم", "عملاء", "موردين", "موظفين"].some(kw => {
                           const acct = accounts.find(a => a.account_code === line.account_code);
                           return acct?.account_name?.includes(kw) || acct?.account_type?.includes(kw);
@@ -508,7 +520,6 @@ const JournalNewPage = () => {
                         || ["1130", "1131", "2100", "2101", "1180"].includes(line.account_code);
                       
                       if (!isContactable) {
-                        // Clear contact if account changed to non-contactable
                         if (line.contact_id) {
                           setTimeout(() => updateLine(line.id, "contact_id", "__none__"), 0);
                         }
