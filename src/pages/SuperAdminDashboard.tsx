@@ -756,6 +756,7 @@ function SubscriptionsManager() {
   const [editPlanId, setEditPlanId] = useState("");
   const [editStatus, setEditStatus] = useState("");
   const [editBilling, setEditBilling] = useState("");
+  const [editPeriodEnd, setEditPeriodEnd] = useState("");
 
   useEffect(() => { loadData(); }, []);
 
@@ -783,13 +784,14 @@ function SubscriptionsManager() {
     setEditPlanId(sub.plan_id);
     setEditStatus(sub.status);
     setEditBilling(sub.billing_cycle);
+    setEditPeriodEnd(sub.current_period_end ? sub.current_period_end.split("T")[0] : "");
   };
 
   const saveEdit = async () => {
     if (!editSub) return;
     try {
       await apiCall("update_subscription", undefined, {
-        subscription_id: editSub.id, plan_id: editPlanId, status: editStatus, billing_cycle: editBilling,
+        subscription_id: editSub.id, plan_id: editPlanId, status: editStatus, billing_cycle: editBilling, period_end: editPeriodEnd || undefined,
       });
       toast.success("تم تحديث الاشتراك");
       setEditSub(null);
@@ -930,6 +932,12 @@ function SubscriptionsManager() {
                   <option value="monthly" style={{ background: "var(--sa-dialog-bg)" }}>شهري</option>
                   <option value="annual" style={{ background: "var(--sa-dialog-bg)" }}>سنوي</option>
                 </select>
+              </div>
+              <div>
+                <label className="text-xs block mb-1" style={{ color: "var(--sa-text-muted)" }}>تاريخ انتهاء الفترة</label>
+                <input type="date" value={editPeriodEnd} onChange={e => setEditPeriodEnd(e.target.value)}
+                  className="w-full h-10 rounded-md px-3 text-sm"
+                  style={{ background: "var(--sa-input-bg)", border: "1px solid var(--sa-input-border)", color: "var(--sa-text-primary)" }} />
               </div>
             </div>
             <DialogFooter>

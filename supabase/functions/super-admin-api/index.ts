@@ -348,7 +348,7 @@ Deno.serve(async (req) => {
 
     if (action === "update_subscription") {
       const body = await req.json();
-      const { subscription_id, plan_id, status, billing_cycle } = body;
+      const { subscription_id, plan_id, status, billing_cycle, period_end } = body;
 
       if (!subscription_id) {
         return new Response(JSON.stringify({ error: "subscription_id مطلوب" }), {
@@ -361,8 +361,15 @@ Deno.serve(async (req) => {
       if (status) updateData.status = status;
       if (billing_cycle) updateData.billing_cycle = billing_cycle;
 
-      // If activating, set period
-      if (status === "active") {
+      // If a custom period_end is provided, use it
+      if (period_end) {
+        updateData.current_period_end = new Date(period_end + "T23:59:59Z").toISOString();
+        if (status === "active" || status === "trial") {
+          updateData.current_period_start = updateData.current_period_start || new Date().toISOString();
+          updateData.trial_ends_at = updateData.current_period_end;
+        }
+      } else if (status === "active") {
+        // Default: set period from now
         updateData.current_period_start = new Date().toISOString();
         const end = new Date();
         end.setMonth(end.getMonth() + (billing_cycle === "annual" ? 12 : 1));
