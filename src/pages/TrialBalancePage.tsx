@@ -24,9 +24,13 @@ interface TrialBalanceRow {
   accountName: string;
   accountCode: string;
   accountType: string;
+  openingDebit: number;
+  openingCredit: number;
+  openingBalance: number;
   totalDebit: number;
   totalCredit: number;
   balance: number;
+  closingBalance: number;
   prevDebit?: number;
   prevCredit?: number;
   prevBalance?: number;
@@ -160,15 +164,31 @@ const TrialBalancePage = () => {
   }, [dateFrom, dateTo]);
 
   // Build trial balance
-  const { rows, grandTotalDebit, grandTotalCredit, isBalanced, prevGrandDebit, prevGrandCredit } = useMemo(() => {
-    let filteredTx = transactions.filter(tx => !tx.is_deleted);
+  const { rows, grandTotalDebit, grandTotalCredit, isBalanced, prevGrandDebit, prevGrandCredit, grandOpeningDebit, grandOpeningCredit, grandClosingDebit, grandClosingCredit } = useMemo(() => {
+    const allTx = transactions.filter(tx => !tx.is_deleted);
+
+    // Opening balance: all transactions BEFORE dateFrom
+    const openingDebitMap: Record<string, number> = {};
+    const openingCreditMap: Record<string, number> = {};
+    if (dateFrom) {
+      for (const tx of allTx) {
+        if ((tx.transaction_date || "") < dateFrom) {
+          const amount = tx.amount || 0;
+          if (tx.debit_account_code) openingDebitMap[tx.debit_account_code] = (openingDebitMap[tx.debit_account_code] || 0) + amount;
+          if (tx.credit_account_code) openingCreditMap[tx.credit_account_code] = (openingCreditMap[tx.credit_account_code] || 0) + amount;
+        }
+      }
+    }
+
+    // Period transactions
+    let filteredTx = allTx;
     if (dateFrom) filteredTx = filteredTx.filter(tx => (tx.transaction_date || "") >= dateFrom);
     if (dateTo) filteredTx = filteredTx.filter(tx => (tx.transaction_date || "") <= dateTo);
 
     // Previous period transactions
     let prevFilteredTx: SupabaseTransaction[] = [];
     if (showComparison && prevPeriod.from && prevPeriod.to) {
-      prevFilteredTx = transactions.filter(tx => !tx.is_deleted && (tx.transaction_date || "") >= prevPeriod.from && (tx.transaction_date || "") <= prevPeriod.to);
+      prevFilteredTx = allTx.filter(tx => (tx.transaction_date || "") >= prevPeriod.from && (tx.transaction_date || "") <= prevPeriod.to);
     }
 
     const debitMap: Record<string, number> = {};
@@ -188,7 +208,11 @@ const TrialBalancePage = () => {
       if (tx.credit_account_code) prevCreditMap[tx.credit_account_code] = (prevCreditMap[tx.credit_account_code] || 0) + amount;
     }
 
-    const allCodes = new Set([...Object.keys(debitMap), ...Object.keys(creditMap), ...Object.keys(prevDebitMap), ...Object.keys(prevCreditMap)]);
+    const allCodes = new Set([
+      ...Object.keys(debitMap), ...Object.keys(creditMap),
+      ...Object.keys(prevDebitMap), ...Object.keys(prevCreditMap),
+      ...Object.keys(openingDebitMap), ...Object.keys(openingCreditMap),
+    ]);
     if (showZeroAccounts) accounts.forEach(acc => allCodes.add(acc.account_code));
 
     const rows: TrialBalanceRow[] = [];
@@ -196,11 +220,17 @@ const TrialBalancePage = () => {
       const acc = accountMap[code];
       const totalDebit = debitMap[code] || 0;
       const totalCredit = creditMap[code] || 0;
+      const openingDebit = openingDebitMap[code] || 0;
+      const openingCredit = openingCreditMap[code] || 0;
+      const openingBalance = openingDebit - openingCredit;
+      const balance = totalDebit - totalCredit;
       rows.push({
         accountName: acc ? acc.account_name : code,
         accountCode: acc ? acc.account_code : code,
         accountType: acc ? acc.account_type : "",
-        totalDebit, totalCredit, balance: totalDebit - totalCredit,
+        openingDebit, openingCredit, openingBalance,
+        totalDebit, totalCredit, balance,
+        closingBalance: openingBalance + balance,
         prevDebit: prevDebitMap[code] || 0,
         prevCredit: prevCreditMap[code] || 0,
         prevBalance: (prevDebitMap[code] || 0) - (prevCreditMap[code] || 0),
@@ -218,8 +248,12 @@ const TrialBalancePage = () => {
     const grandTotalCredit = rows.reduce((s, r) => s + r.totalCredit, 0);
     const prevGrandDebit = rows.reduce((s, r) => s + (r.prevDebit || 0), 0);
     const prevGrandCredit = rows.reduce((s, r) => s + (r.prevCredit || 0), 0);
+    const grandOpeningDebit = rows.reduce((s, r) => s + r.openingDebit, 0);
+    const grandOpeningCredit = rows.reduce((s, r) => s + r.openingCredit, 0);
+    const grandClosingDebit = rows.reduce((s, r) => s + (r.closingBalance > 0 ? r.closingBalance : 0), 0);
+    const grandClosingCredit = rows.reduce((s, r) => s + (r.closingBalance < 0 ? Math.abs(r.closingBalance) : 0), 0);
 
-    return { rows, grandTotalDebit, grandTotalCredit, isBalanced: Math.abs(grandTotalDebit - grandTotalCredit) < 0.01, prevGrandDebit, prevGrandCredit };
+    return { rows, grandTotalDebit, grandTotalCredit, isBalanced: Math.abs(grandTotalDebit - grandTotalCredit) < 0.01, prevGrandDebit, prevGrandCredit, grandOpeningDebit, grandOpeningCredit, grandClosingDebit, grandClosingCredit };
   }, [transactions, accounts, accountMap, dateFrom, dateTo, showZeroAccounts, showComparison, prevPeriod]);
 
   // Search filter
@@ -459,11 +493,17 @@ const TrialBalancePage = () => {
               <thead>
                 <tr className="border-b-2 border-primary/20 bg-muted/40">
                   <th className="text-right px-4 py-3.5 text-[11px] font-bold text-muted-foreground uppercase tracking-wider w-[80px]">الكود</th>
-                  <th className="text-right px-4 py-3.5 text-[11px] font-bold text-muted-foreground uppercase tracking-wider min-w-[200px]">اسم الحساب</th>
-                  <th className="text-right px-4 py-3.5 text-[11px] font-bold text-muted-foreground uppercase tracking-wider w-[120px]">النوع</th>
-                  <th className="text-left px-4 py-3.5 text-[11px] font-bold text-primary uppercase tracking-wider w-[130px]">مدين (₪)</th>
-                  <th className="text-left px-4 py-3.5 text-[11px] font-bold text-destructive uppercase tracking-wider w-[130px]">دائن (₪)</th>
-                  <th className="text-left px-4 py-3.5 text-[11px] font-bold text-foreground uppercase tracking-wider w-[130px]">الرصيد (₪)</th>
+                  <th className="text-right px-4 py-3.5 text-[11px] font-bold text-muted-foreground uppercase tracking-wider min-w-[180px]">اسم الحساب</th>
+                  <th className="text-right px-4 py-3.5 text-[11px] font-bold text-muted-foreground uppercase tracking-wider w-[100px]">النوع</th>
+                  {dateFrom && (
+                    <th className="text-left px-3 py-3.5 text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider w-[110px]">رصيد افتتاحي</th>
+                  )}
+                  <th className="text-left px-4 py-3.5 text-[11px] font-bold text-primary uppercase tracking-wider w-[110px]">مدين (₪)</th>
+                  <th className="text-left px-4 py-3.5 text-[11px] font-bold text-destructive uppercase tracking-wider w-[110px]">دائن (₪)</th>
+                  <th className="text-left px-4 py-3.5 text-[11px] font-bold text-foreground uppercase tracking-wider w-[110px]">الرصيد (₪)</th>
+                  {dateFrom && (
+                    <th className="text-left px-3 py-3.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider w-[110px]">رصيد ختامي</th>
+                  )}
                   {showComparison && (
                     <>
                       <th className="text-left px-3 py-3.5 text-[10px] font-bold text-muted-foreground uppercase tracking-wider w-[100px]">مدين سابق</th>
@@ -478,7 +518,7 @@ const TrialBalancePage = () => {
                   <>
                     {/* Group Header */}
                     <tr key={`group-${group.label}`} className="bg-muted/20">
-                      <td colSpan={showComparison ? 9 : 6} className="px-4 py-2.5">
+                      <td colSpan={showComparison ? (dateFrom ? 11 : 9) : (dateFrom ? 8 : 6)} className="px-4 py-2.5">
                         <div className="flex items-center justify-between">
                           <span className={`text-xs font-bold px-2.5 py-1 rounded-lg ${ACCOUNT_TYPE_COLORS[group.label] || "bg-muted text-muted-foreground"}`}>
                             {group.label}
@@ -515,6 +555,11 @@ const TrialBalancePage = () => {
                             {ACCOUNT_TYPE_LABELS[row.accountType] || row.accountType || "—"}
                           </span>
                         </td>
+                        {dateFrom && (
+                          <td className={`px-3 py-3 text-xs font-bold tabular-nums text-left ${row.openingBalance > 0 ? "text-amber-600 dark:text-amber-400" : row.openingBalance < 0 ? "text-destructive" : "text-muted-foreground"}`}>
+                            {row.openingBalance !== 0 ? `${row.openingBalance > 0 ? "" : "-"}${Math.abs(row.openingBalance).toLocaleString()}` : "—"}
+                          </td>
+                        )}
                         <td className="px-4 py-3 text-xs font-bold text-primary tabular-nums text-left">
                           {row.totalDebit > 0 ? row.totalDebit.toLocaleString() : "—"}
                         </td>
@@ -524,6 +569,11 @@ const TrialBalancePage = () => {
                         <td className={`px-4 py-3 text-xs font-bold tabular-nums text-left ${row.balance > 0 ? "text-primary" : row.balance < 0 ? "text-destructive" : "text-muted-foreground"}`}>
                           {row.balance !== 0 ? `${row.balance > 0 ? "" : "-"}${Math.abs(row.balance).toLocaleString()}` : "—"}
                         </td>
+                        {dateFrom && (
+                          <td className={`px-3 py-3 text-xs font-bold tabular-nums text-left ${row.closingBalance > 0 ? "text-emerald-600 dark:text-emerald-400" : row.closingBalance < 0 ? "text-destructive" : "text-muted-foreground"}`}>
+                            {row.closingBalance !== 0 ? `${row.closingBalance > 0 ? "" : "-"}${Math.abs(row.closingBalance).toLocaleString()}` : "—"}
+                          </td>
+                        )}
                         {showComparison && (
                           <>
                             <td className="px-3 py-3 text-[10px] text-muted-foreground tabular-nums text-left">
@@ -549,6 +599,11 @@ const TrialBalancePage = () => {
                       <td colSpan={3} className="px-4 py-2.5 text-xs font-bold text-muted-foreground text-right">
                         إجمالي {group.label}
                       </td>
+                      {dateFrom && (
+                        <td className="px-3 py-2.5 text-xs font-bold text-amber-600 dark:text-amber-400 tabular-nums text-left">
+                          {(() => { const ob = group.rows.reduce((s, r) => s + r.openingBalance, 0); return ob !== 0 ? `${ob > 0 ? "" : "-"}${Math.abs(ob).toLocaleString()}` : "—"; })()}
+                        </td>
+                      )}
                       <td className="px-4 py-2.5 text-xs font-bold text-primary tabular-nums text-left">
                         {group.totalDebit.toLocaleString()}
                       </td>
@@ -560,6 +615,11 @@ const TrialBalancePage = () => {
                           ? `${(group.totalDebit - group.totalCredit) > 0 ? "" : "-"}${Math.abs(group.totalDebit - group.totalCredit).toLocaleString()}`
                           : "—"}
                       </td>
+                      {dateFrom && (
+                        <td className="px-3 py-2.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 tabular-nums text-left">
+                          {(() => { const cb = group.rows.reduce((s, r) => s + r.closingBalance, 0); return cb !== 0 ? `${cb > 0 ? "" : "-"}${Math.abs(cb).toLocaleString()}` : "—"; })()}
+                        </td>
+                      )}
                       {showComparison && <td colSpan={3}></td>}
                     </tr>
                   </>
@@ -570,6 +630,11 @@ const TrialBalancePage = () => {
                   <td colSpan={3} className="px-4 py-4 text-sm font-bold text-foreground text-right">
                     الإجمالي الكلي
                   </td>
+                  {dateFrom && (
+                    <td className="px-3 py-4 text-sm font-bold text-amber-600 dark:text-amber-400 tabular-nums text-left">
+                      ₪{(grandOpeningDebit - grandOpeningCredit) !== 0 ? Math.abs(grandOpeningDebit - grandOpeningCredit).toLocaleString() : "0"}
+                    </td>
+                  )}
                   <td className="px-4 py-4 text-sm font-bold text-primary tabular-nums text-left">
                     ₪{grandTotalDebit.toLocaleString()}
                   </td>
@@ -579,6 +644,11 @@ const TrialBalancePage = () => {
                   <td className={`px-4 py-4 text-sm font-bold tabular-nums text-left ${isBalanced ? "text-primary" : "text-destructive"}`}>
                     {isBalanced ? "✅ 0" : `₪${Math.abs(grandTotalDebit - grandTotalCredit).toLocaleString()}`}
                   </td>
+                  {dateFrom && (
+                    <td className="px-3 py-4 text-sm font-bold text-emerald-600 dark:text-emerald-400 tabular-nums text-left">
+                      ₪{(grandClosingDebit - grandClosingCredit) !== 0 ? Math.abs(grandClosingDebit - grandClosingCredit).toLocaleString() : "0"}
+                    </td>
+                  )}
                   {showComparison && (
                     <>
                       <td className="px-3 py-4 text-[10px] font-bold text-muted-foreground tabular-nums text-left">
