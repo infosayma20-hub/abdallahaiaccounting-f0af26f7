@@ -44,15 +44,15 @@ export const navigationSections: NavSection[] = [
     items: [
       {
         id: "apps", label: "التطبيقات", description: "جميع التطبيقات", module: "home", icon: BarChart3,
-        color: "text-[#1B3A5C]", bgColor: "bg-[#1B3A5C]/8", path: "/apps", isDirect: true, keywords: ["تطبيقات"],
+        color: "text-primary", bgColor: "bg-primary/10", path: "/apps", isDirect: true, keywords: ["تطبيقات"],
       },
       {
         id: "dashboard", label: "لوحة المعلومات", description: "ملخص مالي شامل وتحليلات الأداء", module: "dashboard", icon: BarChart3,
-        color: "text-[#1B3A5C]", bgColor: "bg-[#1B3A5C]/8", path: "/dashboard", isDirect: true, keywords: ["لوحة", "معلومات", "داشبورد"],
+        color: "text-primary", bgColor: "bg-primary/10", path: "/dashboard", isDirect: true, keywords: ["لوحة", "معلومات", "داشبورد"],
       },
       {
         id: "ai-accountant", label: "المحاسب الذكي", description: "محاسبة تحليلية بالذكاء الاصطناعي", module: "ai", icon: Calculator,
-        color: "text-[#1B3A5C]", bgColor: "bg-[#1B3A5C]/8", path: "/smart-accountant", isDirect: true,
+        color: "text-primary", bgColor: "bg-primary/10", path: "/smart-accountant", isDirect: true,
         keywords: ["محاسب", "ذكاء", "تحليل", "ai"],
       },
     ],
@@ -64,7 +64,7 @@ export const navigationSections: NavSection[] = [
     items: [
       {
         id: "finance", label: "المالية", description: "حسابات، قيود، وميزان مراجعة", module: "accounting", icon: DollarSign,
-        color: "text-[#1B3A5C]", bgColor: "bg-[#1B3A5C]/8", path: "/finance/receipts",
+        color: "text-emerald-500", bgColor: "bg-emerald-500/10", path: "/finance/receipts",
         keywords: ["مالية", "حسابات", "قيود", "ميزان"],
         groups: [
           {
@@ -114,7 +114,7 @@ export const navigationSections: NavSection[] = [
     items: [
       {
         id: "sales", label: "المبيعات", description: "فواتير، نقاط بيع، وزبائن", module: "sales", icon: ShoppingCart,
-        color: "text-[#1B3A5C]", bgColor: "bg-[#1B3A5C]/8", path: "/invoices",
+        color: "text-orange-500", bgColor: "bg-orange-500/10", path: "/invoices",
         keywords: ["فواتير", "بيع", "زبائن", "عملاء"],
         groups: [
           {
@@ -135,7 +135,7 @@ export const navigationSections: NavSection[] = [
       },
       {
         id: "purchases", label: "المشتريات", description: "موردين، طلبيات، فواتير مشتريات، وتقارير", module: "purchases", icon: ShoppingBag,
-        color: "text-[#1B3A5C]", bgColor: "bg-[#1B3A5C]/8", path: "/procurement/orders/new",
+        color: "text-sky-500", bgColor: "bg-sky-500/10", path: "/procurement/orders/new",
         keywords: ["مشتريات", "مورد", "استلام", "طلبية"],
         groups: [
           {
@@ -172,7 +172,7 @@ export const navigationSections: NavSection[] = [
     items: [
       {
         id: "pos", label: "نقطة البيع", description: "نظام POS متكامل للمبيعات المباشرة", module: "pos", icon: Monitor,
-        color: "text-[#1B3A5C]", bgColor: "bg-[#1B3A5C]/8", path: "/pos",
+        color: "text-emerald-400", bgColor: "bg-emerald-500/10", path: "/pos",
         keywords: ["نقطة", "بيع", "كاشير", "pos", "مطعم"],
         groups: [
           {
@@ -194,7 +194,7 @@ export const navigationSections: NavSection[] = [
       },
       {
         id: "inventory", label: "المخزون", description: "منتجات، حركات، وتقييم", module: "inventory", icon: Package,
-        color: "text-[#1B3A5C]", bgColor: "bg-[#1B3A5C]/8", path: "/inventory",
+        color: "text-teal-500", bgColor: "bg-teal-500/10", path: "/inventory",
         keywords: ["مخزون", "منتج", "بضاعة"],
         groups: [
           {
@@ -214,17 +214,17 @@ export const navigationSections: NavSection[] = [
       },
       {
         id: "fixed-assets", label: "الأصول الثابتة", description: "سجل الأصول، الاستهلاك، والصيانة", module: "accounting", icon: Landmark,
-        color: "text-[#1B3A5C]", bgColor: "bg-[#1B3A5C]/8", path: "/fixed-assets", isDirect: true,
+        color: "text-stone-600", bgColor: "bg-stone-500/10", path: "/fixed-assets", isDirect: true,
         keywords: ["أصول", "استهلاك", "ثابتة"],
       },
       {
         id: "contractor", label: "محاسب المشاريع والمقاولات", description: "إدارة مشاريع المقاولات والحركات المالية", module: "accounting", icon: Building2,
-        color: "text-[#1B3A5C]", bgColor: "bg-[#1B3A5C]/8", path: "/contractor", isDirect: true,
+        color: "text-amber-600", bgColor: "bg-amber-500/10", path: "/contractor", isDirect: true,
         keywords: ["مقاولات", "مشاريع", "مقاول"],
       },
       {
         id: "ecommerce", label: "إدارة المتاجر الإلكترونية", description: "إدارة مالية للمتاجر والصفحات الإلكترونية", module: "sales", icon: Store,
-        color: "text-[#1B3A5C]", bgColor: "bg-[#1B3A5C]/8", path: "/orders", isDirect: true,
+        color: "text-amber-500", bgColor: "bg-amber-500/10", path: "/orders", isDirect: true,
         keywords: ["متجر", "طلبات", "إلكتروني"],
       },
     ],
@@ -236,7 +236,7 @@ export const navigationSections: NavSection[] = [
     items: [
       {
         id: "reports", label: "التقارير", description: "أرباح وخسائر، ميزانية عمومية، وتحليلات مالية", module: "reports", icon: BarChart3,
-        color: "text-[#1B3A5C]", bgColor: "bg-[#1B3A5C]/8", path: "/reports",
+        color: "text-rose-500", bgColor: "bg-rose-500/10", path: "/reports",
         keywords: ["تقارير", "تحليل"],
         groups: [
           {
@@ -264,7 +264,7 @@ export const navigationSections: NavSection[] = [
     items: [
       {
         id: "hr", label: "الموارد البشرية", description: "موظفون، حضور، ورواتب", module: "hr", icon: Users,
-        color: "text-[#1B3A5C]", bgColor: "bg-[#1B3A5C]/8", path: "/employees",
+        color: "text-violet-500", bgColor: "bg-violet-500/10", path: "/employees",
         keywords: ["موظف", "حضور", "رواتب", "موارد"],
         groups: [
           {
@@ -296,7 +296,7 @@ export const navigationSections: NavSection[] = [
     items: [
       {
         id: "settings", label: "الإعدادات", description: "إعدادات النظام والملف الشخصي", module: "settings", icon: Settings,
-        color: "text-[#1B3A5C]", bgColor: "bg-[#1B3A5C]/8", path: "/settings",
+        color: "text-muted-foreground", bgColor: "bg-muted", path: "/settings",
         keywords: ["إعدادات", "ملف", "شخصي"],
         groups: [
           {
