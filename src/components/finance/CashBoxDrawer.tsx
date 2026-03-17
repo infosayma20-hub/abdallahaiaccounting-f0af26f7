@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 interface CashBoxDrawerProps {
   open: boolean;
   onClose: () => void;
-  defaultType: "main" | "branch" | "pos" | "petty";
+  defaultType: "main" | "branch" | "pos" | "petty" | "petty_cash";
   editBox?: any;
   hasMainBox: boolean;
   onSaved: () => void;
@@ -24,7 +24,7 @@ const CashBoxDrawer = ({ open, onClose, defaultType, editBox, hasMainBox, onSave
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const [boxType, setBoxType] = useState<"main" | "branch" | "pos" | "petty">(defaultType);
+  const [boxType, setBoxType] = useState<"main" | "branch" | "pos" | "petty" | "petty_cash">(defaultType);
   const [name, setName] = useState("");
   const [location, setLocation] = useState("");
   const [currency, setCurrency] = useState("ILS");
@@ -71,6 +71,7 @@ const CashBoxDrawer = ({ open, onClose, defaultType, editBox, hasMainBox, onSave
 
   const cashAccounts = useMemo(() => accounts.filter(a => a.account_code?.startsWith("111")), [accounts]);
 
+  const normalizedType = boxType === "petty_cash" ? "petty" : boxType;
   const gradients: Record<string, string> = {
     main: "linear-gradient(135deg, #0A2342, #006D8F)",
     branch: "linear-gradient(135deg, #065F46, #059669)",
@@ -131,7 +132,7 @@ const CashBoxDrawer = ({ open, onClose, defaultType, editBox, hasMainBox, onSave
     const boxData: any = {
       user_id: user.id,
       name: name.trim(),
-      type: boxType,
+      type: normalizedType === "petty" ? "petty_cash" : boxType,
       branch_location: location || null,
       currency,
       gl_account_code: glCode || null,
@@ -198,14 +199,14 @@ const CashBoxDrawer = ({ open, onClose, defaultType, editBox, hasMainBox, onSave
         dir="rtl"
       >
         {/* Header */}
-        <div className="p-5 text-white shrink-0 rounded-t-2xl" style={{ background: gradients[boxType] }}>
+        <div className="p-5 text-white shrink-0 rounded-t-2xl" style={{ background: gradients[normalizedType] }}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center">
-                {boxType === "main" ? <Landmark className="h-5 w-5" /> : boxType === "branch" ? <Building2 className="h-5 w-5" /> : boxType === "petty" ? <Wallet className="h-5 w-5" /> : <Monitor className="h-5 w-5" />}
+                {normalizedType === "main" ? <Landmark className="h-5 w-5" /> : normalizedType === "branch" ? <Building2 className="h-5 w-5" /> : normalizedType === "petty" ? <Wallet className="h-5 w-5" /> : <Monitor className="h-5 w-5" />}
               </div>
               <div>
-                <h2 className="text-lg font-bold" style={{ fontFamily: "Tajawal, sans-serif" }}>{editBox ? `تعديل — ${editBox.name}` : titles[boxType]}</h2>
+                <h2 className="text-lg font-bold" style={{ fontFamily: "Tajawal, sans-serif" }}>{editBox ? `تعديل — ${editBox.name}` : titles[normalizedType]}</h2>
                 <p className="text-xs text-white/60">تعريف صندوق جديد وربطه بشجرة الحسابات</p>
               </div>
             </div>
@@ -339,7 +340,7 @@ const CashBoxDrawer = ({ open, onClose, defaultType, editBox, hasMainBox, onSave
           </div>
 
           {/* Branch transfer settings */}
-          {(boxType === "branch" || boxType === "petty") && (
+          {(normalizedType === "branch" || normalizedType === "petty") && (
             <div className="space-y-3">
               <h3 className="text-xs font-bold">ترحيل للرئيسي</h3>
               <div className="flex items-center gap-3">
@@ -396,8 +397,8 @@ const CashBoxDrawer = ({ open, onClose, defaultType, editBox, hasMainBox, onSave
           <Button variant="ghost" onClick={onClose} className="h-11 px-6">إلغاء</Button>
           <Button
             className="flex-1 h-11 text-base font-bold gap-2 text-white"
-            style={{ background: boxType === "main" ? "#0A2342" : boxType === "branch" ? "#059669" : boxType === "petty" ? "#D97706" : "#7C3AED" }}
-            disabled={saving || !name.trim() || (boxType === "main" && hasMainBox && !editBox)}
+            style={{ background: normalizedType === "main" ? "#0A2342" : normalizedType === "branch" ? "#059669" : normalizedType === "petty" ? "#D97706" : "#7C3AED" }}
+            disabled={saving || !name.trim() || (normalizedType === "main" && hasMainBox && !editBox)}
             onClick={handleSave}
           >
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}

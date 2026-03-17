@@ -17,7 +17,7 @@ const CashBoxesPage = () => {
   const [boxes, setBoxes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [drawerType, setDrawerType] = useState<"main" | "branch" | "pos" | "petty">("branch");
+  const [drawerType, setDrawerType] = useState<"main" | "branch" | "pos" | "petty" | "petty_cash">("branch");
   const [editBox, setEditBox] = useState<any>(null);
 
   const fetchBoxes = useCallback(async () => {
@@ -74,7 +74,7 @@ const CashBoxesPage = () => {
   const mainBoxes = useMemo(() => boxes.filter(b => b.type === "main"), [boxes]);
   const branchBoxes = useMemo(() => boxes.filter(b => b.type === "branch"), [boxes]);
   const posBoxes = useMemo(() => boxes.filter(b => b.type === "pos"), [boxes]);
-  const pettyBoxes = useMemo(() => boxes.filter(b => b.type === "petty"), [boxes]);
+  const pettyBoxes = useMemo(() => boxes.filter(b => b.type === "petty" || b.type === "petty_cash"), [boxes]);
 
   const totalBalance = useMemo(() => Object.values(balances).reduce((s, b) => s + b.balance, 0), [balances]);
   const mainBalance = useMemo(() => mainBoxes.reduce((s, b) => s + (balances[b.gl_account_code]?.balance || 0), 0), [mainBoxes, balances]);
@@ -84,7 +84,7 @@ const CashBoxesPage = () => {
 
   const fmt = (n: number) => new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
 
-  const openAdd = (type: "main" | "branch" | "pos" | "petty") => {
+  const openAdd = (type: "main" | "branch" | "pos" | "petty" | "petty_cash") => {
     setEditBox(null);
     setDrawerType(type);
     setDrawerOpen(true);
@@ -97,9 +97,10 @@ const CashBoxesPage = () => {
       branch: "linear-gradient(135deg, #065F46, #059669)",
       pos: "linear-gradient(135deg, #4C1D95, #7C3AED)",
       petty: "linear-gradient(135deg, #92400E, #D97706)",
+      petty_cash: "linear-gradient(135deg, #92400E, #D97706)",
     };
-    const typeLabels: Record<string, string> = { main: "رئيسي", branch: "فرع", pos: "نقطة بيع", petty: "نثرية" };
-    const TypeIcon = box.type === "main" ? Landmark : box.type === "branch" ? Building2 : box.type === "petty" ? Wallet : Monitor;
+    const typeLabels: Record<string, string> = { main: "رئيسي", branch: "فرع", pos: "نقطة بيع", petty: "نثرية", petty_cash: "نثرية" };
+    const TypeIcon = box.type === "main" ? Landmark : box.type === "branch" ? Building2 : (box.type === "petty" || box.type === "petty_cash") ? Wallet : Monitor;
 
     return (
       <Card className="overflow-hidden min-w-[280px]">
@@ -289,7 +290,7 @@ const CashBoxesPage = () => {
                 <h2 className="text-sm font-bold">صناديق النثرية</h2>
                 <Badge variant="secondary" className="text-[10px]">{pettyBoxes.length}</Badge>
               </div>
-              <Button variant="outline" size="sm" className="text-xs gap-1" onClick={() => openAdd("petty")}>
+              <Button variant="outline" size="sm" className="text-xs gap-1" onClick={() => openAdd("petty_cash")}>
                 <Plus className="h-3 w-3" /> إضافة صندوق نثرية
               </Button>
             </div>
