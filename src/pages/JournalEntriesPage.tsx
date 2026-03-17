@@ -83,6 +83,7 @@ const JournalEntriesPage = () => {
   const [dateTo, setDateTo] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("active");
   const [currentPage, setCurrentPage] = useState(1);
 
   const [editingTx, setEditingTx] = useState<TransactionRow | null>(null);
