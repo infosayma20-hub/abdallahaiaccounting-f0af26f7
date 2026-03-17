@@ -234,6 +234,11 @@ const POSSettingsSection = ({ settings, onChange }: Props) => {
 
       {/* Kitchen Stations */}
       <KitchenStationsManager />
+
+      <Separator />
+
+      {/* Network Printers */}
+      <NetworkPrintersManager />
     </div>
   );
 };
