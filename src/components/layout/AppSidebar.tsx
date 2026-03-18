@@ -183,20 +183,26 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
       <div className={cn("h-16 flex items-center px-4 flex-shrink-0 border-b", collapsed && "justify-center px-2")} style={{ borderColor: "#1E3A5F" }}>
         {!collapsed ? (
           <div className="flex items-center gap-3 flex-1">
-            {company.logo_url ? (
-              <img src={company.logo_url} alt={company.name} className="w-[44px] h-[44px] rounded-[10px] object-contain bg-white p-1 flex-shrink-0" style={{ boxShadow: "0 2px 8px rgba(13,27,42,0.10)" }} />
-            ) : (
-              <img src="/logo-white.png" alt="قيود" width={32} height={32} className="flex-shrink-0" />
-            )}
+            <button onClick={() => navigate("/settings")} className="flex-shrink-0 rounded-[10px] hover:ring-2 hover:ring-white/30 transition-all cursor-pointer" title="تعديل اللوجو">
+              {company.logo_url ? (
+                <img src={company.logo_url} alt={company.name} className="w-[44px] h-[44px] rounded-[10px] object-contain bg-white p-1" style={{ boxShadow: "0 2px 8px rgba(13,27,42,0.10)" }} />
+              ) : (
+                <img src="/logo-white.png" alt="قيود" width={32} height={32} />
+              )}
+            </button>
             <div className="min-w-0">
               <h1 className="text-[13px] leading-tight font-bold text-white line-clamp-2" style={{ fontFamily: "Tajawal, sans-serif" }}>{company.name || "QOYOD"}</h1>
               <p className="text-[10px] text-sidebar-foreground leading-none truncate">{company.industry || "نظام إدارة الأعمال"}</p>
             </div>
           </div>
-        ) : company.logo_url ? (
-          <img src={company.logo_url} alt={company.name} className="w-9 h-9 rounded-lg object-contain bg-white p-0.5" style={{ boxShadow: "0 2px 8px rgba(13,27,42,0.10)" }} />
         ) : (
-          <img src="/logo-white.png" alt="قيود" width={32} height={32} />
+          <button onClick={() => navigate("/settings")} className="rounded-lg hover:ring-2 hover:ring-white/30 transition-all cursor-pointer" title="تعديل اللوجو">
+            {company.logo_url ? (
+              <img src={company.logo_url} alt={company.name} className="w-9 h-9 rounded-lg object-contain bg-white p-0.5" style={{ boxShadow: "0 2px 8px rgba(13,27,42,0.10)" }} />
+            ) : (
+              <img src="/logo-white.png" alt="قيود" width={32} height={32} />
+            )}
+          </button>
         )}
       </div>
 
