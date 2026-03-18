@@ -368,6 +368,11 @@ const App = () => (
                       <Route path="/pos-reports" element={<POSReportsPage />} />
                       <Route path="/customer-reports" element={<CustomerReportsPage />} />
                       <Route path="/contractor" element={<ContractorApp />} />
+                      {/* Task Manager */}
+                      <Route path="/tasks" element={<TaskLoginPage />} />
+                      <Route path="/tasks/board" element={<TaskBoardPage />} />
+                      <Route path="/tasks/admin" element={<TaskAdminPage />} />
+                      <Route path="/tasks/display" element={<TaskDisplayPage />} />
                       <Route path="/contracts" element={<ContractsListPage />} />
                       <Route path="/contracts/new" element={<ContractFormPage />} />
                       <Route path="/contracts/:id/edit" element={<ContractFormPage />} />
