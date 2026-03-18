@@ -204,6 +204,7 @@ const AppsLauncher = () => {
               isExpanded={expandedApp === app.id}
               onToggle={() => setExpandedApp(prev => prev === app.id ? null : app.id)}
               onNavigate={navigate}
+              disabled={isAppDisabled(app)}
             />
           ))}
         </div>
