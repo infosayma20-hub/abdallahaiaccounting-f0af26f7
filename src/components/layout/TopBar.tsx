@@ -251,9 +251,6 @@ const AppLogo = () => {
       ) : (
         <img src="/q-icon-navy.png" alt="قيود" className="w-8 h-8 object-contain" />
       )}
-      {company.name && (
-        <span className="text-sm font-bold text-foreground hidden sm:block max-w-[160px] truncate">{company.name}</span>
-      )}
     </button>
   );
 };
