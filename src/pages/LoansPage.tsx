@@ -287,6 +287,161 @@ export default function LoansPage() {
     setTimeout(() => { w.print(); }, 500);
   };
 
+  const handlePrintSingle = (loan: any) => {
+    const companyName = company?.name || "الشركة";
+    const companyLogo = company?.logo_url || "";
+    const now = new Date();
+    const dateStr = now.toLocaleDateString("en-GB");
+    const inst = loan.loan_installments || [];
+    const sorted = [...inst].sort((a: any, b: any) => a.month_number - b.month_number);
+    const paidCount = inst.filter((x: any) => x.status === "paid").length;
+    const paidAmt = inst.filter((x: any) => x.status === "paid").reduce((s: number, x: any) => s + Number(x.installment_amount), 0);
+    const pct = loan.total_months > 0 ? Math.round((paidCount / loan.total_months) * 100) : 0;
+    let runningBalance = Number(loan.total_amount);
+
+    const instRows = sorted.map((x: any) => {
+      if (x.status === "paid") runningBalance -= Number(x.installment_amount);
+      const statusLabel = x.status === "paid"
+        ? '<span style="color:#059669;font-weight:600">✓ مدفوع</span>'
+        : '<span style="color:#D97706">معلق</span>';
+      return `<tr>
+        <td style="text-align:center">${x.month_number}</td>
+        <td style="text-align:center">${x.due_date}</td>
+        <td style="text-align:left">${Number(x.installment_amount).toLocaleString("en-US", { minimumFractionDigits: 2 })} ₪</td>
+        <td style="text-align:left">${Math.max(0, runningBalance).toLocaleString("en-US", { minimumFractionDigits: 2 })} ₪</td>
+        <td style="text-align:center">${statusLabel}</td>
+      </tr>`;
+    }).join("");
+
+    const startDate = loan.first_payment_date || loan.start_date || sorted[0]?.due_date || "-";
+    const endDate = loan.last_payment_date || (sorted.length ? sorted[sorted.length - 1]?.due_date : "-");
+
+    const html = `<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+  <meta charset="utf-8" />
+  <title>قرض حسن - ${loan.employees?.full_name || ""}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    @page { size: A4; margin: 15mm; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Tajawal', 'Segoe UI', Tahoma, Arial, sans-serif; font-size: 12px; color: #1a1a1a; background: #fff; direction: rtl; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 8px 10px; border-bottom: 1px solid #e5e7eb; }
+    thead th { font-weight: 600; }
+    tbody tr:nth-child(even) { background: #fafbfc; }
+    @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+  </style>
+</head>
+<body>
+  <!-- HEADER -->
+  <div style="background:#1B3A5C;color:#fff;padding:20px 28px;display:flex;justify-content:space-between;align-items:center;border-radius:8px 8px 0 0">
+    <div>
+      <div style="font-size:20px;font-weight:700">كشف قرض حسن</div>
+      <div style="font-size:11px;opacity:.6;margin-top:2px">INTEREST-FREE LOAN STATEMENT</div>
+    </div>
+    <div style="text-align:left;display:flex;align-items:center;gap:12px">
+      ${companyLogo ? `<img src="${companyLogo}" style="height:40px;border-radius:6px" />` : ""}
+      <div><div style="font-size:15px;font-weight:700">${companyName}</div></div>
+    </div>
+  </div>
+  <div style="height:3px;background:#C9A84C"></div>
+
+  <!-- META -->
+  <div style="display:flex;justify-content:space-between;padding:14px 28px;font-size:11px;color:#6B7280;border-bottom:1px solid #eee">
+    <span>تاريخ الطباعة: <strong style="color:#1a1a1a">${dateStr}</strong></span>
+    <span>الحالة: <strong style="color:${loan.status === "active" ? "#059669" : "#6B7280"}">${loan.status === "active" ? "نشط" : "مكتمل"}</strong></span>
+  </div>
+
+  <!-- EMPLOYEE INFO -->
+  <div style="padding:20px 28px">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;background:#f8f9fa;border-radius:8px;padding:16px;margin-bottom:20px">
+      <div>
+        <div style="font-size:10px;color:#6B7280;margin-bottom:2px">اسم الموظف</div>
+        <div style="font-size:14px;font-weight:700">${loan.employees?.full_name || "-"}</div>
+      </div>
+      <div>
+        <div style="font-size:10px;color:#6B7280;margin-bottom:2px">القسم / الفرع</div>
+        <div style="font-size:14px;font-weight:600">${loan.employees?.department || ""} ${loan.employees?.branches?.name ? `- ${loan.employees.branches.name}` : ""}</div>
+      </div>
+    </div>
+
+    <!-- LOAN SUMMARY -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px">
+      <div style="background:#f0f2f5;border-radius:8px;padding:12px;text-align:center">
+        <div style="font-size:10px;color:#6B7280">مبلغ القرض</div>
+        <div style="font-size:15px;font-weight:700;color:#1B3A5C">${Number(loan.total_amount).toLocaleString("en-US", { minimumFractionDigits: 2 })} ₪</div>
+      </div>
+      <div style="background:#f0f2f5;border-radius:8px;padding:12px;text-align:center">
+        <div style="font-size:10px;color:#6B7280">القسط الشهري</div>
+        <div style="font-size:15px;font-weight:700;color:#1B3A5C">${Number(loan.monthly_installment).toLocaleString("en-US", { minimumFractionDigits: 2 })} ₪</div>
+      </div>
+      <div style="background:#f0f2f5;border-radius:8px;padding:12px;text-align:center">
+        <div style="font-size:10px;color:#6B7280">المدفوع</div>
+        <div style="font-size:15px;font-weight:700;color:#059669">${paidAmt.toLocaleString("en-US", { minimumFractionDigits: 2 })} ₪</div>
+      </div>
+      <div style="background:#f0f2f5;border-radius:8px;padding:12px;text-align:center">
+        <div style="font-size:10px;color:#6B7280">المتبقي</div>
+        <div style="font-size:15px;font-weight:700;color:#DC2626">${Number(loan.remaining_amount).toLocaleString("en-US", { minimumFractionDigits: 2 })} ₪</div>
+      </div>
+    </div>
+
+    <!-- PROGRESS -->
+    <div style="margin-bottom:20px">
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:#6B7280;margin-bottom:4px">
+        <span>${paidCount} من ${loan.total_months} قسط</span>
+        <span>بداية: ${startDate} — نهاية: ${endDate}</span>
+        <span>${pct}%</span>
+      </div>
+      <div style="background:#e5e7eb;border-radius:4px;height:8px;overflow:hidden">
+        <div style="background:#059669;height:100%;width:${pct}%;border-radius:4px"></div>
+      </div>
+    </div>
+
+    <!-- INSTALLMENTS TABLE -->
+    <h3 style="font-size:14px;font-weight:700;margin-bottom:10px;color:#1B3A5C">📋 جدول الأقساط</h3>
+    <table style="font-size:11px">
+      <thead>
+        <tr style="background:#1B3A5C;color:#fff">
+          <th style="padding:8px;text-align:center">القسط</th>
+          <th style="padding:8px;text-align:center">تاريخ الاستحقاق</th>
+          <th style="padding:8px;text-align:left">المبلغ</th>
+          <th style="padding:8px;text-align:left">الرصيد المتبقي</th>
+          <th style="padding:8px;text-align:center">الحالة</th>
+        </tr>
+      </thead>
+      <tbody>${instRows}</tbody>
+    </table>
+
+    ${loan.notes ? `<div style="margin-top:16px;padding:10px;background:#fffbeb;border-radius:6px;font-size:11px;color:#92400e">📝 ملاحظات: ${loan.notes}</div>` : ""}
+  </div>
+
+  <!-- SIGNATURES -->
+  <div style="display:flex;justify-content:space-between;padding:40px 28px 20px;margin-top:30px;border-top:1px solid #e5e7eb;page-break-inside:avoid">
+    ${["الموظف", "مدير الموارد البشرية", "المدير المالي"].map(t => `
+      <div style="text-align:center;width:30%">
+        <div style="border-bottom:1px solid #ccc;height:50px"></div>
+        <div style="font-size:11px;color:#6B7280;margin-top:6px">${t}</div>
+      </div>
+    `).join("")}
+  </div>
+
+  <!-- FOOTER -->
+  <div style="background:#f7f8fa;padding:10px 28px;display:flex;justify-content:space-between;font-size:10px;color:#6B7280;border-top:1px solid #eee;margin-top:20px">
+    <span>طُبع بتاريخ ${dateStr}</span>
+    <span style="color:#C9A84C;font-weight:600">${companyName}</span>
+    <span>قرض حسن - ${loan.employees?.full_name || ""}</span>
+  </div>
+</body>
+</html>`;
+
+    const w = window.open("", "_blank");
+    if (!w) return;
+    w.document.write(html);
+    w.document.close();
+    setTimeout(() => { w.print(); }, 500);
+  };
+
   return (
     <div className="p-4 md:p-6 space-y-5 max-w-[1200px] mx-auto pb-10" dir="rtl">
       {/* Header */}
@@ -421,7 +576,12 @@ export default function LoansPage() {
                 {isExpanded && installments.length > 0 && (
                   <div className="border-t border-border">
                     <div className="p-3 bg-muted/20">
-                      <h4 className="text-xs font-semibold text-muted-foreground mb-2">جدول الأقساط</h4>
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="text-xs font-semibold text-muted-foreground">جدول الأقساط</h4>
+                        <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={(e) => { e.stopPropagation(); handlePrintSingle(loan); }}>
+                          <Printer className="h-3.5 w-3.5" /> طباعة القرض
+                        </Button>
+                      </div>
                       <div className="space-y-1.5">
                         {installments.map((inst: any) => (
                           <div key={inst.id} className={`flex items-center justify-between p-2 rounded text-xs ${inst.status === "paid" ? "bg-emerald-50 dark:bg-emerald-900/10" : "bg-background"}`}>
