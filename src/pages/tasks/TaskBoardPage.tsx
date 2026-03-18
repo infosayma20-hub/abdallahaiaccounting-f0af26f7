@@ -14,10 +14,10 @@ import TaskDetailDrawer from "@/components/tasks/TaskDetailDrawer";
 import CompleteTaskModal from "@/components/tasks/CompleteTaskModal";
 
 const PRIORITY_COLS = [
-  { key: "urgent_important", label: "مهم ومستعجل", color: "#E24B4A", icon: "🔴" },
-  { key: "important", label: "مهم", color: "#378ADD", icon: "🔵" },
-  { key: "urgent", label: "مستعجل", color: "#EF9F27", icon: "🟡" },
-  { key: "normal", label: "عادي", color: "#888780", icon: "⚪" },
+  { key: "urgent_important", label: "مهم ومستعجل", color: "#E24B4A" },
+  { key: "important", label: "مهم", color: "#378ADD" },
+  { key: "urgent", label: "مستعجل", color: "#EF9F27" },
+  { key: "normal", label: "عادي", color: "#888780" },
 ];
 
 export default function TaskBoardPage() {
