@@ -9,12 +9,22 @@ const TrialBanner = () => {
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
+    // During trial with >7 days, allow dismiss for 24h
+    // During trial with <=7 days or expired, never dismiss (always show)
+    if (subscription && subscription.isTrial && subscription.daysLeft <= 7) {
+      setDismissed(false);
+      return;
+    }
     const dismissedAt = localStorage.getItem("trial_banner_dismissed");
     if (dismissedAt) {
       const diff = Date.now() - parseInt(dismissedAt);
       if (diff < 24 * 60 * 60 * 1000) setDismissed(true);
+      else {
+        localStorage.removeItem("trial_banner_dismissed");
+        setDismissed(false);
+      }
     }
-  }, []);
+  }, [subscription]);
 
   if (loading || !subscription || dismissed) return null;
   const { isTrial, daysLeft, isExpired, status } = subscription;
