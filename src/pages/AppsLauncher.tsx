@@ -118,15 +118,15 @@ const AppsLauncher = () => {
       has_contractor: settings.business_type === "مقاولات",
       has_ecommerce: settings.business_type === "متجر إلكتروني",
       has_travel: settings.business_type === "سياحة",
-      has_tasks: false, // Tasks always disabled until explicitly enabled
+      has_tasks: false,
     };
     return s;
   }, [settings]);
 
   const isAppDisabled = (app: NavItem) => {
     if (!app.enableSetting) return false;
-    // During trial, only truly disabled items (has_tasks) stay disabled
-    if (isTrial && app.enableSetting !== "has_tasks") return false;
+    // During trial, all apps are available
+    if (isTrial) return false;
     return !enabledSettings[app.enableSetting];
   };
 
