@@ -1,9 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ChevronDown, X, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { ChevronDown, X, PanelLeftClose, PanelLeftOpen, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ModuleIcon from "@/components/ModuleIcon";
 import { useCompany } from "@/hooks/useCompanyContext";
+import { useCompanySettings } from "@/hooks/useCompanySettings";
+import { useSubscription } from "@/hooks/useSubscription";
 
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { FinixLogo } from "@/components/ui/FinixLogo";
