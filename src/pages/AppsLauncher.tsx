@@ -1,8 +1,9 @@
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, ChevronDown, ArrowLeft } from "lucide-react";
+import { Search, ChevronDown, ArrowLeft, Lock } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useOnboarding } from "@/hooks/useOnboarding";
+import { useCompanySettings } from "@/hooks/useCompanySettings";
 import WelcomeModal from "@/components/onboarding/WelcomeModal";
 import SpotlightTour from "@/components/onboarding/SpotlightTour";
 import GooglePasswordSetupModal from "@/components/GooglePasswordSetupModal";
