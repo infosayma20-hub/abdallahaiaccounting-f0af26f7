@@ -224,6 +224,7 @@ export const navigationSections: NavSection[] = [
       {
         id: "contractor", label: "محاسب المشاريع والمقاولات", description: "إدارة مشاريع المقاولات والحركات المالية", module: "accounting", icon: Building2,
         color: "text-amber-600", bgColor: "bg-amber-500/10", path: "/contractor", isDirect: true,
+        enableSetting: "has_contractor",
         keywords: ["مقاولات", "مشاريع", "مقاول"],
       },
       {
