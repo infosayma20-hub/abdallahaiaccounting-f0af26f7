@@ -88,6 +88,7 @@ const AuthPage = () => {
     setLoading(true);
     try {
       await supabase.auth.signOut();
+      localStorage.removeItem("trial_banner_dismissed");
       const { error } = await lovable.auth.signInWithOAuth("google", {
         redirect_uri: window.location.origin,
         extraParams: { prompt: "select_account" },
