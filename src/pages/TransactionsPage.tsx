@@ -338,6 +338,9 @@ const TransactionsPage = () => {
     if (selectedIds.size === paginatedTransactions.length) setSelectedIds(new Set());
     else setSelectedIds(new Set(paginatedTransactions.map(t => t.id)));
   };
+  const selectAllFiltered = () => {
+    setSelectedIds(new Set(filteredTransactions.map(t => t.id)));
+  };
 
   // ━━ CRUD operations ━━
   const openEdit = (tx: Transaction) => {
@@ -710,7 +713,14 @@ const TransactionsPage = () => {
       {/* Bulk selection bar */}
       {selectedIds.size > 0 && (
         <div className="flex items-center justify-between px-4 py-2 bg-primary/5 border border-primary/20 rounded-xl">
-          <span className="text-sm text-primary font-medium">تم تحديد {selectedIds.size} قيد</span>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-primary font-medium">تم تحديد {selectedIds.size} قيد</span>
+            {selectedIds.size < filteredTransactions.length && (
+              <Button variant="ghost" size="sm" className="text-primary underline underline-offset-2 px-1 h-auto py-0" onClick={selectAllFiltered}>
+                تحديد الكل ({filteredTransactions.length})
+              </Button>
+            )}
+          </div>
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm" className="text-primary" onClick={() => setSelectedIds(new Set())}>إلغاء التحديد</Button>
             <Button variant="destructive" size="sm" className="gap-1.5 rounded-xl" onClick={() => setShowBulkDeleteConfirm(true)}>
