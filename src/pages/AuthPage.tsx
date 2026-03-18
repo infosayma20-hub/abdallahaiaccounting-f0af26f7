@@ -69,6 +69,7 @@ const AuthPage = () => {
       } else {
         const { error, data } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
+        localStorage.removeItem("trial_banner_dismissed");
         if (data.user) {
           const dest = await resolveRedirect(data.user.id);
           navigate(dest);
@@ -87,6 +88,7 @@ const AuthPage = () => {
     setLoading(true);
     try {
       await supabase.auth.signOut();
+      localStorage.removeItem("trial_banner_dismissed");
       const { error } = await lovable.auth.signInWithOAuth("google", {
         redirect_uri: window.location.origin,
         extraParams: { prompt: "select_account" },
@@ -122,6 +124,7 @@ const AuthPage = () => {
         if (verifyErr) throw verifyErr;
       }
       toast({ title: "تم تسجيل الدخول بنجاح ✅" });
+      localStorage.removeItem("trial_banner_dismissed");
       const { data: { user: currentUser } } = await supabase.auth.getUser();
       if (currentUser) {
         const dest = await resolveRedirect(currentUser.id);
