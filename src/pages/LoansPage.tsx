@@ -576,7 +576,12 @@ export default function LoansPage() {
                 {isExpanded && installments.length > 0 && (
                   <div className="border-t border-border">
                     <div className="p-3 bg-muted/20">
-                      <h4 className="text-xs font-semibold text-muted-foreground mb-2">جدول الأقساط</h4>
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="text-xs font-semibold text-muted-foreground">جدول الأقساط</h4>
+                        <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={(e) => { e.stopPropagation(); handlePrintSingle(loan); }}>
+                          <Printer className="h-3.5 w-3.5" /> طباعة القرض
+                        </Button>
+                      </div>
                       <div className="space-y-1.5">
                         {installments.map((inst: any) => (
                           <div key={inst.id} className={`flex items-center justify-between p-2 rounded text-xs ${inst.status === "paid" ? "bg-emerald-50 dark:bg-emerald-900/10" : "bg-background"}`}>
