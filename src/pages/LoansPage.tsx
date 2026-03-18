@@ -22,7 +22,7 @@ const fmtCurrency = (v: number) => `${v.toLocaleString("en-US", { minimumFractio
 interface Employee {
   id: string;
   full_name: string;
-  department: string | null;
+  job_title: string | null;
 }
 
 export default function LoansPage() {
