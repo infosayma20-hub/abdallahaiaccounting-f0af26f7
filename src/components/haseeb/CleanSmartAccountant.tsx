@@ -192,11 +192,33 @@ const CleanSmartAccountant = ({ user, userName, data, cfoMode, onToggleCfo, onCh
             if (parseData.email) contactData.email = parseData.email;
             if (parseData.address) contactData.address = parseData.address;
 
-            const { error: insertError } = await supabase.from('contacts').insert(contactData);
-            if (insertError) throw insertError;
+            // Check if contact already exists
+            const { data: existing } = await supabase.from('contacts')
+              .select('id, contact_name')
+              .eq('user_id', user?.id)
+              .eq('contact_name', contactData.contact_name)
+              .maybeSingle();
 
-            const typeLabel = parseData.contactType === 'مورد' ? 'المورد' : 'الزبون';
-            successMsg = `✅ تمت إضافة ${typeLabel} "${parseData.name}" بنجاح${parseData.phone ? '\n📞 الهاتف: ' + parseData.phone : ''}`;
+            if (existing) {
+              // Update existing contact with any new info
+              const updateFields: any = {};
+              if (parseData.phone) updateFields.phone = parseData.phone;
+              if (parseData.email) updateFields.email = parseData.email;
+              if (parseData.address) updateFields.address = parseData.address;
+              if (Object.keys(updateFields).length > 0) {
+                await supabase.from('contacts').update(updateFields).eq('id', existing.id);
+              }
+              const typeLabel = parseData.contactType === 'مورد' ? 'المورد' : 'الزبون';
+              successMsg = `⚠️ ${typeLabel} "${parseData.name}" موجود مسبقاً${Object.keys(updateFields).length > 0 ? ' — تم تحديث بياناته' : ''}`;
+            } else {
+              const { error: insertError } = await supabase.from('contacts').insert(contactData);
+              if (insertError) throw insertError;
+            }
+
+            if (!successMsg) {
+              const typeLabel = parseData.contactType === 'مورد' ? 'المورد' : 'الزبون';
+              successMsg = `✅ تمت إضافة ${typeLabel} "${parseData.name}" بنجاح${parseData.phone ? '\n📞 الهاتف: ' + parseData.phone : ''}`;
+            }
 
           } else if (parseData.entityType === 'employee') {
             const empData: any = {
