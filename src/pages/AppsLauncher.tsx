@@ -100,10 +100,14 @@ const AppsLauncher = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { settings } = useCompanySettings();
+  const { subscription } = useSubscription();
   const { shouldShowWelcome, shouldShowTour, update, loading: onboardingLoading, businessType } = useOnboarding();
   const [tourActive, setTourActive] = useState(false);
   const [search, setSearch] = useState("");
   const [expandedApp, setExpandedApp] = useState<string | null>(null);
+
+  // During trial, all apps are enabled. After subscription, restrict based on settings.
+  const isTrial = subscription?.isTrial ?? true;
 
   // Determine which settings are enabled based on business type and company settings
   const enabledSettings = useMemo(() => {
@@ -114,12 +118,15 @@ const AppsLauncher = () => {
       has_contractor: settings.business_type === "مقاولات",
       has_ecommerce: settings.business_type === "متجر إلكتروني",
       has_travel: settings.business_type === "سياحة",
+      has_tasks: false, // Tasks always disabled until explicitly enabled
     };
     return s;
   }, [settings]);
 
   const isAppDisabled = (app: NavItem) => {
     if (!app.enableSetting) return false;
+    // During trial, only truly disabled items (has_tasks) stay disabled
+    if (isTrial && app.enableSetting !== "has_tasks") return false;
     return !enabledSettings[app.enableSetting];
   };
 
