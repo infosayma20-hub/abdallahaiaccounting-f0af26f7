@@ -230,6 +230,7 @@ export const navigationSections: NavSection[] = [
       {
         id: "ecommerce", label: "إدارة المتاجر الإلكترونية", description: "إدارة مالية للمتاجر والصفحات الإلكترونية", module: "sales", icon: Store,
         color: "text-amber-500", bgColor: "bg-amber-500/10", path: "/orders", isDirect: true,
+        enableSetting: "has_ecommerce",
         keywords: ["متجر", "طلبات", "إلكتروني"],
       },
       {
