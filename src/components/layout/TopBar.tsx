@@ -169,7 +169,9 @@ const ProfileDropdown = ({
         {avatarUrl ? (
           <img src={avatarUrl} alt={displayName} className="w-7 h-7 rounded-full object-cover flex-shrink-0 border-2 border-accent/30" />
         ) : (
-          <img src="/q-logo-default.png" alt={displayName} className="w-7 h-7 rounded-full object-cover flex-shrink-0 border-2 border-accent/30" />
+          <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
+            <span className="text-[11px] font-bold text-primary-foreground leading-none">{initials}</span>
+          </div>
         )}
       </button>
     </DropdownMenuTrigger>
