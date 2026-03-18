@@ -241,6 +241,7 @@ export const navigationSections: NavSection[] = [
       {
         id: "travel", label: "إدارة مالية السياحة والسفر", description: "حجوزات، موردون، عمولات، وأرباح", module: "travel", icon: Plane,
         color: "text-cyan-600", bgColor: "bg-cyan-500/10", path: "/travel",
+        enableSetting: "has_travel",
         keywords: ["سياحة", "سفر", "حجز", "طيران", "فندق", "عمرة", "حج", "travel"],
         groups: [
           {
