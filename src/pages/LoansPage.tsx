@@ -22,7 +22,7 @@ const fmtCurrency = (v: number) => `${v.toLocaleString("en-US", { minimumFractio
 interface Employee {
   id: string;
   full_name: string;
-  department: string | null;
+  job_title: string | null;
 }
 
 export default function LoansPage() {
@@ -39,7 +39,7 @@ export default function LoansPage() {
       if (!user) return [];
       const { data, error } = await supabase
         .from("employee_loans")
-        .select("*, employees(full_name, department, branches(name)), loan_installments(*)")
+        .select("*, employees(full_name, job_title, branches(name)), loan_installments(*)")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data || [];
@@ -381,8 +381,8 @@ export default function LoansPage() {
         <div style="font-size:14px;font-weight:700">${loan.employees?.full_name || "-"}</div>
       </div>
       <div>
-        <div style="font-size:10px;color:#6B7280;margin-bottom:2px">القسم / الفرع</div>
-        <div style="font-size:14px;font-weight:600">${loan.employees?.department || ""} ${loan.employees?.branches?.name ? `- ${loan.employees.branches.name}` : ""}</div>
+        <div style="font-size:10px;color:#6B7280;margin-bottom:2px">الوظيفة / الفرع</div>
+        <div style="font-size:14px;font-weight:600">${loan.employees?.job_title || ""} ${loan.employees?.branches?.name ? `- ${loan.employees.branches.name}` : ""}</div>
       </div>
     </div>
 
@@ -712,7 +712,7 @@ function AddLoanDialog({ open, onOpenChange, userId, companyId, onSuccess }: {
   useEffect(() => {
     if (!userId || !open) return;
     Promise.all([
-      supabase.from("employees").select("id, full_name, department").eq("user_id", userId).eq("is_active", true).order("full_name"),
+      supabase.from("employees").select("id, full_name, job_title").eq("user_id", userId).eq("is_active", true).order("full_name"),
       supabase.from("cash_boxes").select("id, name, gl_account_code").eq("user_id", userId).eq("is_active", true),
     ]).then(([empRes, cbRes]) => {
       setEmployees(empRes.data || []);
@@ -894,7 +894,7 @@ function AddLoanDialog({ open, onOpenChange, userId, companyId, onSuccess }: {
                   <button key={emp.id} onClick={() => { setSelectedEmp(emp); setEmpSearch(""); setShowEmpDrop(false); }}
                     className="w-full text-right px-4 py-2.5 hover:bg-secondary transition-colors flex items-center justify-between">
                     <span className="text-sm">{emp.full_name}</span>
-                    <span className="text-xs text-muted-foreground">{emp.department || ""}</span>
+                    <span className="text-xs text-muted-foreground">{emp.job_title || ""}</span>
                   </button>
                 ))}
                 {filteredEmps.length === 0 && <p className="text-center py-3 text-xs text-muted-foreground">لا توجد نتائج</p>}
@@ -906,7 +906,7 @@ function AddLoanDialog({ open, onOpenChange, userId, companyId, onSuccess }: {
             <div className="bg-primary/5 border border-primary/20 rounded-xl p-3 text-xs">
               <span className="text-muted-foreground">الموظف: </span>
               <span className="font-bold text-foreground">{selectedEmp.full_name}</span>
-              {selectedEmp.department && <span className="text-muted-foreground mr-2">({selectedEmp.department})</span>}
+              {selectedEmp.job_title && <span className="text-muted-foreground mr-2">({selectedEmp.job_title})</span>}
             </div>
           )}
 
