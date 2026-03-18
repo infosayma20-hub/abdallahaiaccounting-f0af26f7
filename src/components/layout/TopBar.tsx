@@ -217,7 +217,8 @@ const QuickAccessButton = () => {
       </PopoverTrigger>
       <PopoverContent align="start" sideOffset={8} className="w-[340px] p-2 rounded-xl" dir="rtl">
         <p className="text-[11px] font-bold text-muted-foreground px-2 pb-1.5 flex items-center gap-1.5">
-          <Zap className="h-3 w-3 text-accent" />وصول سريع
+          <img src="/q-icon-navy.png" alt="قيود" className="h-3.5 w-3.5 object-contain" />
+          وصول سريع
         </p>
         <div className="grid grid-cols-2 gap-1">
           {QUICK_ITEMS.map((item) => (
