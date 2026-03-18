@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Loader2, ChevronLeft, Building2, MapPin, Zap, SkipForward } from "lucide-react";
+import { Loader2, ChevronLeft, Building2, MapPin, Zap, SkipForward, Lock, Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { FinixLogo } from "@/components/ui/FinixLogo";
@@ -36,6 +36,8 @@ interface SetupData {
   bankAccountType: string;
   bankBalance: number;
   leaveForAccountant: boolean;
+  password: string;
+  confirmPassword: string;
 }
 
 const BUSINESS_TYPES: { value: BusinessType; label: string; sublabel: string; emoji: string; modules: string }[] = [
@@ -96,20 +98,33 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
     bankAccountType: "جاري",
     bankBalance: 0,
     leaveForAccountant: false,
+    password: "",
+    confirmPassword: "",
   });
   const [completedItems, setCompletedItems] = useState<string[]>([]);
+  const [isGoogleUser, setIsGoogleUser] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     const fetchUser = async () => {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("display_name, company_name")
-        .eq("user_id", userId)
-        .maybeSingle();
-      if (profile) {
-        setUserName(profile.display_name || "");
-        if (profile.company_name && profile.company_name !== "شركتي") {
-          setData(d => ({ ...d, companyName: profile.company_name || "" }));
+      const [profileRes, sessionRes] = await Promise.all([
+        supabase.from("profiles").select("display_name, company_name").eq("user_id", userId).maybeSingle(),
+        supabase.auth.getSession(),
+      ]);
+      if (profileRes.data) {
+        setUserName(profileRes.data.display_name || "");
+        if (profileRes.data.company_name && profileRes.data.company_name !== "شركتي") {
+          setData(d => ({ ...d, companyName: profileRes.data.company_name || "" }));
+        }
+      }
+      // Check if Google-only user
+      const user = sessionRes.data?.session?.user;
+      if (user) {
+        const identities = user.identities || [];
+        const hasGoogle = identities.some(i => i.provider === "google");
+        const hasEmail = identities.some(i => i.provider === "email");
+        if (hasGoogle && !hasEmail) {
+          setIsGoogleUser(true);
         }
       }
     };
@@ -144,6 +159,12 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
   const handleFinish = async () => {
     setSaving(true);
     try {
+      // Save password for Google-only users if provided
+      if (isGoogleUser && data.password && data.password === data.confirmPassword && data.password.length >= 1) {
+        await supabase.auth.updateUser({ password: data.password });
+        localStorage.setItem(`pwd_setup_dismissed_${userId}`, "true");
+      }
+
       const hasInv = needsInventory(data.businessType);
       
       // 1. Setup accounts
@@ -394,6 +415,55 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
                     className="w-full h-12 px-4 rounded-xl border border-border bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
                   />
                 </div>
+                {/* Google-only user: password setup */}
+                {isGoogleUser && (
+                  <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="space-y-3 pt-2 border-t border-border">
+                    <div className="flex items-center gap-2 text-sm font-bold text-foreground pt-2">
+                      <Lock className="h-4 w-4" />
+                      <span>كلمة مرور للدخول السريع</span>
+                      <span className="text-[10px] text-muted-foreground font-normal">(اختياري)</span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">
+                      يمكنك تسجيل الدخول بالبريد وكلمة المرور بدون الحاجة لجوجل
+                    </p>
+                    <div className="space-y-2">
+                      <div className="relative">
+                        <Lock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                        <input
+                          type={showPassword ? "text" : "password"}
+                          placeholder="كلمة المرور"
+                          value={data.password}
+                          onChange={e => update({ password: e.target.value })}
+                          className="w-full h-12 px-4 pr-10 pl-10 rounded-xl border border-border bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                          dir="ltr"
+                          style={{ textAlign: "left" }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        >
+                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
+                      <div className="relative">
+                        <Lock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                        <input
+                          type={showPassword ? "text" : "password"}
+                          placeholder="تأكيد كلمة المرور"
+                          value={data.confirmPassword}
+                          onChange={e => update({ confirmPassword: e.target.value })}
+                          className="w-full h-12 px-4 pr-10 rounded-xl border border-border bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                          dir="ltr"
+                          style={{ textAlign: "left" }}
+                        />
+                      </div>
+                      {data.confirmPassword.length > 0 && data.password !== data.confirmPassword && (
+                        <p className="text-xs text-destructive">كلمتا المرور غير متطابقتين</p>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
                 <p className="text-[11px] text-muted-foreground text-center pt-2">
                   يمكنك إضافة الشعار والعنوان الكامل لاحقاً من الإعدادات
                 </p>
