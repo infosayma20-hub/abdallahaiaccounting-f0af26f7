@@ -328,7 +328,7 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
                 animate={{ scale: [1, 1.05, 1] }}
                 transition={{ repeat: Infinity, duration: 2.5, ease: "easeInOut" }}
               >
-                <img src="/q-icon.svg" alt="QOYOD" className="mx-auto h-24 w-24" />
+                <img src="/logo-inverted.svg" alt="QOYOD" className="mx-auto h-40 w-auto" />
               </motion.div>
               <div className="space-y-3">
                 <h1 className="text-2xl md:text-3xl font-extrabold text-foreground">
@@ -886,7 +886,7 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
                     animate={{ scale: 1 }}
                     transition={{ delay: 0.3, duration: 0.5 }}
                   >
-                    <FinixLogo variant="icon" size="lg" />
+                    <img src="/q-icon.svg" alt="QOYOD" className="h-12 w-12" />
                   </motion.div>
                 </motion.div>
                 {/* Decorative circles */}
