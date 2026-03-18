@@ -128,20 +128,46 @@ const GooglePasswordPrompt = () => {
 const AppsLauncher = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { settings } = useCompanySettings();
   const { shouldShowWelcome, shouldShowTour, update, loading: onboardingLoading, businessType } = useOnboarding();
   const [tourActive, setTourActive] = useState(false);
   const [search, setSearch] = useState("");
   const [expandedApp, setExpandedApp] = useState<string | null>(null);
 
+  // Determine which settings are enabled based on business type and company settings
+  const enabledSettings = useMemo(() => {
+    const s: Record<string, boolean> = {
+      has_pos: !!settings.has_pos,
+      has_employees: !!settings.has_employees,
+      has_inventory: ["تجارة", "مطعم", "متجر إلكتروني"].includes(settings.business_type || ""),
+      has_contractor: settings.business_type === "مقاولات",
+      has_ecommerce: settings.business_type === "متجر إلكتروني",
+      has_travel: settings.business_type === "سياحة",
+    };
+    return s;
+  }, [settings]);
+
+  const isAppDisabled = (app: NavItem) => {
+    if (!app.enableSetting) return false;
+    return !enabledSettings[app.enableSetting];
+  };
+
   const allFilteredApps = useMemo(() => {
     const allApps = appSections.flatMap(s => s.items);
     const q = search.trim();
-    if (!q) return allApps;
-    return allApps.filter(app =>
-      app.label.includes(q) || app.description.includes(q) || app.keywords?.some(k => k.includes(q))
-      || getAllChildren(app).some(c => c.label.includes(q))
-    );
-  }, [search]);
+    const filtered = q
+      ? allApps.filter(app =>
+          app.label.includes(q) || app.description.includes(q) || app.keywords?.some(k => k.includes(q))
+          || getAllChildren(app).some(c => c.label.includes(q))
+        )
+      : allApps;
+    // Sort: enabled first, disabled last
+    return filtered.sort((a, b) => {
+      const aDisabled = isAppDisabled(a) ? 1 : 0;
+      const bDisabled = isAppDisabled(b) ? 1 : 0;
+      return aDisabled - bDisabled;
+    });
+  }, [search, enabledSettings]);
 
   const totalResults = allFilteredApps.length;
 
