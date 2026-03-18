@@ -120,6 +120,10 @@ import JournalNewPage from "./pages/JournalNewPage";
 import PortalLogin from "./pages/portal/PortalLogin";
 import PortalDashboard from "./pages/portal/PortalDashboard";
 import PortalSettings from "./pages/portal/PortalSettings";
+import TaskLoginPage from "./pages/tasks/TaskLoginPage";
+import TaskBoardPage from "./pages/tasks/TaskBoardPage";
+import TaskAdminPage from "./pages/tasks/TaskAdminPage";
+import TaskDisplayPage from "./pages/tasks/TaskDisplayPage";
 
 const queryClient = new QueryClient();
 
