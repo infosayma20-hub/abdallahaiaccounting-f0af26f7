@@ -232,6 +232,29 @@ export const navigationSections: NavSection[] = [
         color: "text-[#1B3A5C]", bgColor: "bg-[#1B3A5C]/10", path: "/tasks", isDirect: true,
         keywords: ["مهام", "تكليف", "متابعة", "tasks"],
       },
+      {
+        id: "travel", label: "إدارة مالية السياحة والسفر", description: "حجوزات، موردون، عمولات، وأرباح", module: "travel", icon: Plane,
+        color: "text-cyan-600", bgColor: "bg-cyan-500/10", path: "/travel",
+        keywords: ["سياحة", "سفر", "حجز", "طيران", "فندق", "عمرة", "حج", "travel"],
+        groups: [
+          {
+            groupLabel: "الحجوزات",
+            children: [
+              { label: "لوحة التحكم", path: "/travel" },
+              { label: "الحجوزات", path: "/travel/bookings" },
+              { label: "حجز جديد", path: "/travel/bookings/new" },
+            ],
+          },
+          {
+            groupLabel: "الإدارة",
+            children: [
+              { label: "الموردون", path: "/travel/suppliers" },
+              { label: "الباقات والعروض", path: "/travel/packages" },
+              { label: "التقارير", path: "/travel/reports" },
+            ],
+          },
+        ],
+      },
     ],
   },
 
