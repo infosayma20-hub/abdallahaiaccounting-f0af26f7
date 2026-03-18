@@ -248,7 +248,10 @@ const AppLogo = () => {
       {company.logo_url ? (
         <img src={company.logo_url} alt={company.name} className="w-9 h-9 rounded-lg object-contain bg-white p-0.5" style={{ border: "1px solid hsl(var(--border))" }} />
       ) : (
-        <FinixLogo variant="icon" size="sm" />
+        <img src="/q-icon-navy.png" alt="قيود" className="w-8 h-8 object-contain" />
+      )}
+      {company.name && (
+        <span className="text-sm font-bold text-foreground hidden sm:block max-w-[160px] truncate">{company.name}</span>
       )}
     </button>
   );
