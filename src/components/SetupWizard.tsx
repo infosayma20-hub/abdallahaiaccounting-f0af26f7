@@ -98,8 +98,12 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
     bankAccountType: "جاري",
     bankBalance: 0,
     leaveForAccountant: false,
+    password: "",
+    confirmPassword: "",
   });
   const [completedItems, setCompletedItems] = useState<string[]>([]);
+  const [isGoogleUser, setIsGoogleUser] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     const fetchUser = async () => {
