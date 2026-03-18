@@ -215,8 +215,10 @@ const CleanSmartAccountant = ({ user, userName, data, cfoMode, onToggleCfo, onCh
               if (insertError) throw insertError;
             }
 
-            const typeLabel = parseData.contactType === 'مورد' ? 'المورد' : 'الزبون';
-            successMsg = `✅ تمت إضافة ${typeLabel} "${parseData.name}" بنجاح${parseData.phone ? '\n📞 الهاتف: ' + parseData.phone : ''}`;
+            if (!successMsg) {
+              const typeLabel = parseData.contactType === 'مورد' ? 'المورد' : 'الزبون';
+              successMsg = `✅ تمت إضافة ${typeLabel} "${parseData.name}" بنجاح${parseData.phone ? '\n📞 الهاتف: ' + parseData.phone : ''}`;
+            }
 
           } else if (parseData.entityType === 'employee') {
             const empData: any = {
