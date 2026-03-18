@@ -6,7 +6,7 @@ import { useOnboarding } from "@/hooks/useOnboarding";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import WelcomeModal from "@/components/onboarding/WelcomeModal";
 import SpotlightTour from "@/components/onboarding/SpotlightTour";
-import GooglePasswordSetupModal from "@/components/GooglePasswordSetupModal";
+
 import { motion } from "framer-motion";
 import { Input } from "@/components/ui/input";
 
