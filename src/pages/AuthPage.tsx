@@ -193,7 +193,7 @@ const AuthPage = () => {
 
           {/* Desktop header with stacked logo */}
           <div className="lg:flex hidden flex-col items-center gap-3 mb-4">
-            <img src="/logo-inverted.svg" alt="QOYOD قيود" width={120} />
+            <img src="/q-logo-navy.png" alt="QOYOD قيود" width={100} />
             <h2 className="text-2xl font-bold text-foreground" style={{ fontFamily: "Tajawal" }}>
               مرحباً بك
             </h2>
