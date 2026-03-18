@@ -196,7 +196,7 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
         ) : company.logo_url ? (
           <img src={company.logo_url} alt={company.name} className="w-9 h-9 rounded-lg object-contain bg-white p-0.5" style={{ boxShadow: "0 2px 8px rgba(13,27,42,0.10)" }} />
         ) : (
-          <img src="/logo-icon-white.svg" alt="قيود" width={32} height={32} />
+          <img src="/logo-white.png" alt="قيود" width={32} height={32} />
         )}
       </div>
 
