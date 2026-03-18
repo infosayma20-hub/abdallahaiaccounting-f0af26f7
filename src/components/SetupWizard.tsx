@@ -328,7 +328,7 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
                 animate={{ scale: [1, 1.05, 1] }}
                 transition={{ repeat: Infinity, duration: 2.5, ease: "easeInOut" }}
               >
-                <FinixLogo variant="full" size="lg" className="mx-auto" />
+                <img src="/logo-inverted.svg" alt="QOYOD" className="mx-auto h-28 w-auto" />
               </motion.div>
               <div className="space-y-3">
                 <h1 className="text-2xl md:text-3xl font-extrabold text-foreground">
