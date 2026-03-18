@@ -183,7 +183,7 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
       <div className={cn("h-16 flex items-center px-4 flex-shrink-0 border-b", collapsed && "justify-center px-2")} style={{ borderColor: "#1E3A5F" }}>
         {!collapsed ? (
           <div className="flex items-center gap-3 flex-1">
-            <button onClick={() => navigate("/settings")} className="flex-shrink-0 rounded-[10px] hover:ring-2 hover:ring-white/30 transition-all cursor-pointer" title="تعديل اللوجو">
+            <button onClick={() => navigate("/profile")} className="flex-shrink-0 rounded-[10px] hover:ring-2 hover:ring-white/30 transition-all cursor-pointer" title="الملف الشخصي">
               {company.logo_url ? (
                 <img src={company.logo_url} alt={company.name} className="w-[44px] h-[44px] rounded-[10px] object-contain bg-white p-1" style={{ boxShadow: "0 2px 8px rgba(13,27,42,0.10)" }} />
               ) : (
