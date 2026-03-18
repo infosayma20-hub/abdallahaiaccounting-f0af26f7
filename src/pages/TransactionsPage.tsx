@@ -338,6 +338,9 @@ const TransactionsPage = () => {
     if (selectedIds.size === paginatedTransactions.length) setSelectedIds(new Set());
     else setSelectedIds(new Set(paginatedTransactions.map(t => t.id)));
   };
+  const selectAllFiltered = () => {
+    setSelectedIds(new Set(filteredTransactions.map(t => t.id)));
+  };
 
   // ━━ CRUD operations ━━
   const openEdit = (tx: Transaction) => {
