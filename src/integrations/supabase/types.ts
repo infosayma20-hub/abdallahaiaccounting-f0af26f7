@@ -8750,6 +8750,178 @@ export type Database = {
           },
         ]
       }
+      task_history: {
+        Row: {
+          action: string
+          created_at: string | null
+          id: string
+          new_value: string | null
+          note: string | null
+          old_value: string | null
+          task_id: string | null
+          task_user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          id?: string
+          new_value?: string | null
+          note?: string | null
+          old_value?: string | null
+          task_id?: string | null
+          task_user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          id?: string
+          new_value?: string | null
+          note?: string | null
+          old_value?: string | null
+          task_id?: string | null
+          task_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_history_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_history_task_user_id_fkey"
+            columns: ["task_user_id"]
+            isOneToOne: false
+            referencedRelation: "task_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      task_users: {
+        Row: {
+          avatar_color: string | null
+          created_at: string | null
+          full_name: string
+          id: string
+          is_active: boolean | null
+          last_login_at: string | null
+          password_hash: string
+          role: string | null
+          user_id: string
+          username: string
+        }
+        Insert: {
+          avatar_color?: string | null
+          created_at?: string | null
+          full_name: string
+          id?: string
+          is_active?: boolean | null
+          last_login_at?: string | null
+          password_hash: string
+          role?: string | null
+          user_id: string
+          username: string
+        }
+        Update: {
+          avatar_color?: string | null
+          created_at?: string | null
+          full_name?: string
+          id?: string
+          is_active?: boolean | null
+          last_login_at?: string | null
+          password_hash?: string
+          role?: string | null
+          user_id?: string
+          username?: string
+        }
+        Relationships: []
+      }
+      tasks: {
+        Row: {
+          assigned_at: string | null
+          assigned_to: string | null
+          category: string | null
+          completed_at: string | null
+          completed_by: string | null
+          completion_note: string | null
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          due_date: string | null
+          due_time: string | null
+          id: string
+          is_visible_to_all: boolean | null
+          priority: string
+          status: string
+          title: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          assigned_at?: string | null
+          assigned_to?: string | null
+          category?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
+          completion_note?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          due_date?: string | null
+          due_time?: string | null
+          id?: string
+          is_visible_to_all?: boolean | null
+          priority?: string
+          status?: string
+          title: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          assigned_at?: string | null
+          assigned_to?: string | null
+          category?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
+          completion_note?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          due_date?: string | null
+          due_time?: string | null
+          id?: string
+          is_visible_to_all?: boolean | null
+          priority?: string
+          status?: string
+          title?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "task_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_completed_by_fkey"
+            columns: ["completed_by"]
+            isOneToOne: false
+            referencedRelation: "task_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "task_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       termination_records: {
         Row: {
           advance_balance: number | null
