@@ -55,6 +55,9 @@ const GoogleOnlyPasswordSection = () => {
 
   useEffect(() => {
     if (!user) return;
+    // Check if password was already set during onboarding
+    const pwdDismissed = localStorage.getItem(`pwd_setup_dismissed_${user.id}`);
+    if (pwdDismissed) return;
     const identities = user.identities || [];
     const hasGoogle = identities.some(i => i.provider === "google");
     const hasEmail = identities.some(i => i.provider === "email");
