@@ -71,6 +71,7 @@ const moduleIcons: Record<string, React.ElementType> = {
   currency: ArrowLeftRight,
   assets: Landmark,
   customization: Puzzle,
+  tasks: ClipboardList,
 };
 
 const DashboardIcon = ({ size }: { size: number }) => (
