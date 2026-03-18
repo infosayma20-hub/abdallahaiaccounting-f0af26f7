@@ -125,8 +125,8 @@ const AppsLauncher = () => {
 
   const isAppDisabled = (app: NavItem) => {
     if (!app.enableSetting) return false;
-    // During trial, only truly disabled items (has_tasks) stay disabled
-    if (isTrial && app.enableSetting !== "has_tasks") return false;
+    // During trial, all apps are available
+    if (isTrial) return false;
     return !enabledSettings[app.enableSetting];
   };
 

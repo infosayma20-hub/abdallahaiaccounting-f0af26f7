@@ -40,7 +40,7 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
 
   const isItemDisabled = (item: NavItem) => {
     if (!item.enableSetting) return false;
-    if (isTrial && item.enableSetting !== "has_tasks") return false;
+    if (isTrial) return false;
     return !enabledSettings[item.enableSetting as keyof typeof enabledSettings];
   };
 
