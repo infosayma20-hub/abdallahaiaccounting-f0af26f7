@@ -146,7 +146,7 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
           </Tooltip>
         ) : navButton}
 
-        {hasChildren && expanded && !collapsed && (
+        {!disabled && hasChildren && expanded && !collapsed && (
           <div className="mr-5 mt-0.5 space-y-1 pr-3" style={{ borderRight: "1px solid #1E3A5F" }}>
             {item.groups!.map((group) => (
               <div key={group.groupLabel || "default"}>
