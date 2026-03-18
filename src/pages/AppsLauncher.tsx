@@ -187,8 +187,6 @@ const AppsLauncher = () => {
         )}
       </div>
 
-      {/* Google Password Setup Modal */}
-      <GooglePasswordPrompt />
 
       {!onboardingLoading && (
         <>
