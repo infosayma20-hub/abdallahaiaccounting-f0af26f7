@@ -906,7 +906,7 @@ function AddLoanDialog({ open, onOpenChange, userId, companyId, onSuccess }: {
             <div className="bg-primary/5 border border-primary/20 rounded-xl p-3 text-xs">
               <span className="text-muted-foreground">الموظف: </span>
               <span className="font-bold text-foreground">{selectedEmp.full_name}</span>
-              {selectedEmp.department && <span className="text-muted-foreground mr-2">({selectedEmp.department})</span>}
+              {selectedEmp.job_title && <span className="text-muted-foreground mr-2">({selectedEmp.job_title})</span>}
             </div>
           )}
 
