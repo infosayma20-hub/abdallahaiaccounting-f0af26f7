@@ -22,7 +22,27 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
   const location = useLocation();
   const navigate = useNavigate();
   const { company } = useCompany();
+  const { settings } = useCompanySettings();
+  const { subscription } = useSubscription();
   const [openItem, setOpenItem] = useState<string | null>(null);
+
+  const isTrial = subscription?.isTrial ?? true;
+
+  const enabledSettings = useMemo(() => ({
+    has_pos: !!settings.has_pos,
+    has_employees: !!settings.has_employees,
+    has_inventory: ["تجارة", "مطعم", "متجر إلكتروني"].includes(settings.business_type || ""),
+    has_contractor: settings.business_type === "مقاولات",
+    has_ecommerce: settings.business_type === "متجر إلكتروني",
+    has_travel: settings.business_type === "سياحة",
+    has_tasks: false,
+  }), [settings]);
+
+  const isItemDisabled = (item: NavItem) => {
+    if (!item.enableSetting) return false;
+    if (isTrial && item.enableSetting !== "has_tasks") return false;
+    return !enabledSettings[item.enableSetting as keyof typeof enabledSettings];
+  };
 
   const isActive = (path?: string) => {
     if (!path) return false;
