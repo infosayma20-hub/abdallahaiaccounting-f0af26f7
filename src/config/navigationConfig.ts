@@ -1,7 +1,7 @@
 import {
   BarChart3, DollarSign, ShoppingCart, ShoppingBag, Monitor, Package,
   Landmark, Building2, Store, Users, Calculator, Settings, FileSpreadsheet,
-  Puzzle, ArrowLeftRight, ClipboardList,
+  Puzzle, ArrowLeftRight, ClipboardList, Plane,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
