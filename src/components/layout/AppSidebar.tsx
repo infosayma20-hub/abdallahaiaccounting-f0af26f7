@@ -77,8 +77,9 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
   };
 
   const renderNavItem = (item: NavItem) => {
-    const active = isActive(item.path);
-    const groupActive = isGroupActive(item);
+    const disabled = isItemDisabled(item);
+    const active = !disabled && isActive(item.path);
+    const groupActive = !disabled && isGroupActive(item);
     const expanded = openItem === item.label;
     const hasChildren = !item.isDirect && item.groups && item.groups.length > 0;
 
@@ -86,6 +87,7 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
       <button
         onClick={(e) => {
           e.stopPropagation();
+          if (disabled) return;
           if (hasChildren) {
             if (collapsed) {
               onToggle();
@@ -99,21 +101,24 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
         }}
         className={cn(
           "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-all group relative",
-          active || groupActive
-            ? "text-sidebar-primary font-bold"
-            : "text-sidebar-foreground hover:text-sidebar-accent-foreground",
+          disabled
+            ? "opacity-40 cursor-not-allowed"
+            : active || groupActive
+              ? "text-sidebar-primary font-bold"
+              : "text-sidebar-foreground hover:text-sidebar-accent-foreground",
           collapsed && "justify-center px-2"
         )}
         style={
-          active || groupActive
+          !disabled && (active || groupActive)
             ? { background: "rgba(232,160,32,0.12)", borderRight: "3px solid #E8A020" }
             : undefined
         }
       >
-        <ModuleIcon module={item.module} size="sm" active={active || !!groupActive} />
+        <ModuleIcon module={item.module} size="sm" active={!disabled && (active || !!groupActive)} />
         {!collapsed && (
           <>
             <span className="flex-1 text-right truncate">{item.label}</span>
+            {disabled && <Lock className="h-3 w-3 opacity-60" />}
             {hasChildren && (
               <ChevronDown className={cn("h-3.5 w-3.5 opacity-40 transition-transform duration-200", expanded && "rotate-180")} />
             )}
