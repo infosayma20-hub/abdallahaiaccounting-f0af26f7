@@ -123,6 +123,7 @@ const AuthPage = () => {
         if (verifyErr) throw verifyErr;
       }
       toast({ title: "تم تسجيل الدخول بنجاح ✅" });
+      localStorage.removeItem("trial_banner_dismissed");
       const { data: { user: currentUser } } = await supabase.auth.getUser();
       if (currentUser) {
         const dest = await resolveRedirect(currentUser.id);
