@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface TaskUser {
   id: string;
@@ -12,6 +13,7 @@ interface TaskSession {
   user: TaskUser;
   owner_id: string;
   expires_at: number;
+  is_owner: boolean;
 }
 
 const SESSION_KEY = "task_session";
@@ -20,6 +22,7 @@ const SESSION_DURATION = 8 * 60 * 60 * 1000; // 8 hours
 export function useTaskAuth() {
   const [taskUser, setTaskUser] = useState<TaskUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isOwnerSession, setIsOwnerSession] = useState(false);
 
   useEffect(() => {
     const raw = localStorage.getItem(SESSION_KEY);
@@ -28,6 +31,7 @@ export function useTaskAuth() {
         const session: TaskSession = JSON.parse(raw);
         if (Date.now() < session.expires_at) {
           setTaskUser(session.user);
+          setIsOwnerSession(!!session.is_owner);
         } else {
           localStorage.removeItem(SESSION_KEY);
         }
@@ -38,6 +42,65 @@ export function useTaskAuth() {
     setLoading(false);
   }, []);
 
+  // Auto-login for the owner (main auth user) — no password needed
+  const loginAsOwner = useCallback(async (authUserId: string, displayName: string): Promise<{ success: boolean }> => {
+    // Check if owner already has a task_user record
+    const { data: existing } = await supabase
+      .from("task_users")
+      .select("*")
+      .eq("user_id", authUserId)
+      .eq("role", "admin")
+      .maybeSingle();
+
+    let ownerTaskUser: TaskUser;
+
+    if (existing) {
+      ownerTaskUser = {
+        id: existing.id,
+        full_name: existing.full_name,
+        username: existing.username,
+        role: existing.role,
+        avatar_color: existing.avatar_color,
+      };
+    } else {
+      // Auto-create an admin task_user for the owner
+      const { data: created, error } = await supabase
+        .from("task_users")
+        .insert({
+          user_id: authUserId,
+          full_name: displayName || "المالك",
+          username: "owner",
+          password_hash: "OWNER_AUTH", // not used for owner login
+          role: "admin",
+          avatar_color: "#1B3A5C",
+        })
+        .select()
+        .single();
+
+      if (error || !created) return { success: false };
+
+      ownerTaskUser = {
+        id: created.id,
+        full_name: created.full_name,
+        username: created.username,
+        role: created.role,
+        avatar_color: created.avatar_color,
+      };
+    }
+
+    const session: TaskSession = {
+      user: ownerTaskUser,
+      owner_id: authUserId,
+      expires_at: Date.now() + SESSION_DURATION,
+      is_owner: true,
+    };
+    localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+    setTaskUser(ownerTaskUser);
+    setIsOwnerSession(true);
+    return { success: true };
+  }, []);
+
+  // Login for employees (separate credentials)
   const login = useCallback(async (username: string, password: string, ownerId: string): Promise<{ success: boolean; error?: string }> => {
     try {
       const res = await fetch(
@@ -55,9 +118,11 @@ export function useTaskAuth() {
         user: data.user,
         owner_id: ownerId,
         expires_at: Date.now() + SESSION_DURATION,
+        is_owner: false,
       };
       localStorage.setItem(SESSION_KEY, JSON.stringify(session));
       setTaskUser(data.user);
+      setIsOwnerSession(false);
       return { success: true };
     } catch {
       return { success: false, error: "خطأ في الاتصال" };
@@ -67,6 +132,7 @@ export function useTaskAuth() {
   const logout = useCallback(() => {
     localStorage.removeItem(SESSION_KEY);
     setTaskUser(null);
+    setIsOwnerSession(false);
   }, []);
 
   const getOwnerId = useCallback((): string | null => {
@@ -79,5 +145,5 @@ export function useTaskAuth() {
     }
   }, []);
 
-  return { taskUser, loading, login, logout, getOwnerId, isAdmin: taskUser?.role === "admin" };
+  return { taskUser, loading, login, loginAsOwner, logout, getOwnerId, isAdmin: taskUser?.role === "admin", isOwnerSession };
 }

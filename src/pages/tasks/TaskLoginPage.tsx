@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useTaskAuth } from "@/hooks/useTaskAuth";
@@ -11,18 +11,48 @@ import { toast } from "@/hooks/use-toast";
 
 export default function TaskLoginPage() {
   const { user } = useAuth();
-  const { login } = useTaskAuth();
+  const { taskUser, login, loginAsOwner, loading: taskLoading } = useTaskAuth();
   const navigate = useNavigate();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [autoLoginAttempted, setAutoLoginAttempted] = useState(false);
+
+  // Owner auto-login: if user is the main auth owner, skip login screen
+  useEffect(() => {
+    if (!user || taskLoading || autoLoginAttempted) return;
+    if (taskUser) {
+      navigate("/tasks/board", { replace: true });
+      return;
+    }
+
+    // Check if this user is an owner (not an invited employee)
+    const isOwner = !user.user_metadata?.role || user.user_metadata?.role === "admin";
+    if (isOwner) {
+      setAutoLoginAttempted(true);
+      const displayName = user.user_metadata?.full_name || user.email || "المالك";
+      loginAsOwner(user.id, displayName).then(result => {
+        if (result.success) {
+          navigate("/tasks/board", { replace: true });
+        }
+      });
+    } else {
+      setAutoLoginAttempted(true);
+    }
+  }, [user, taskUser, taskLoading, autoLoginAttempted, navigate, loginAsOwner]);
+
+  // If already logged in to tasks, redirect
+  useEffect(() => {
+    if (taskUser && !taskLoading) {
+      navigate("/tasks/board", { replace: true });
+    }
+  }, [taskUser, taskLoading, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
     setLoading(true);
-    const ownerId = user.id;
-    const result = await login(username, password, ownerId);
+    const result = await login(username, password, user.id);
     setLoading(false);
     if (result.success) {
       navigate("/tasks/board");
@@ -30,6 +60,15 @@ export default function TaskLoginPage() {
       toast({ title: "خطأ", description: result.error, variant: "destructive" });
     }
   };
+
+  // Show loading while auto-login is in progress
+  if (!autoLoginAttempted && user) {
+    return (
+      <div className="min-h-[80vh] flex items-center justify-center">
+        <div className="w-8 h-8 rounded-full border-2 border-transparent animate-spin" style={{ borderTopColor: "#1B3A5C" }} />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center p-4" dir="rtl">
