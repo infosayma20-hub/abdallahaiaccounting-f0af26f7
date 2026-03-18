@@ -144,8 +144,8 @@ const HomeDashboard = () => {
           </div>
         )}
 
-        <div className={`${privacyMode ? "select-none pointer-events-none" : ""} grid grid-cols-12 gap-4`}>
-          {/* W1: Header */}
+        <div className="grid grid-cols-12 gap-4">
+          {/* W1: Header - always interactive */}
           <DashboardHeader
             companyName={displayName}
             companyLogo={dashboard.companyLogo}
@@ -162,34 +162,35 @@ const HomeDashboard = () => {
               localStorage.setItem("dashboard_privacy", String(next));
             }}
           />
+          <div className={privacyMode ? "select-none pointer-events-none col-span-12 grid grid-cols-12 gap-4" : "col-span-12 grid grid-cols-12 gap-4"}>
+            {/* W2: KPI Row */}
+            <KPIMegaRow kpis={dashboard.kpis} sparklines={dashboard.sparklines} loading={dashboard.loading} />
 
-          {/* W2: KPI Row */}
-          <KPIMegaRow kpis={dashboard.kpis} sparklines={dashboard.sparklines} loading={dashboard.loading} />
+            {/* W3: Revenue vs Expenses Chart */}
+            <RevenueExpenseChart
+              data={dashboard.chartData}
+              grouping={dashboard.chartGrouping}
+              onGroupingChange={dashboard.setChartGrouping}
+              loading={dashboard.loading}
+            />
 
-          {/* W3: Revenue vs Expenses Chart */}
-          <RevenueExpenseChart
-            data={dashboard.chartData}
-            grouping={dashboard.chartGrouping}
-            onGroupingChange={dashboard.setChartGrouping}
-            loading={dashboard.loading}
-          />
+            {/* Recent Activity - beside revenue chart */}
+            <RecentActivityWidget activities={dashboard.recentActivity} loading={dashboard.loading} />
 
-          {/* Recent Activity - beside revenue chart */}
-          <RecentActivityWidget activities={dashboard.recentActivity} loading={dashboard.loading} />
+            {/* Top Selling Items */}
+            <TopSellingWidget items={dashboard.topSellingItems} loading={dashboard.loading} />
 
-          {/* Top Selling Items */}
-          <TopSellingWidget items={dashboard.topSellingItems} loading={dashboard.loading} />
+            {/* W5: Cash Flow */}
+            <CashFlowWidget data={dashboard.cashFlowData} cashBalance={dashboard.kpis.cashBalance} loading={dashboard.loading} />
 
-          {/* W5: Cash Flow */}
-          <CashFlowWidget data={dashboard.cashFlowData} cashBalance={dashboard.kpis.cashBalance} loading={dashboard.loading} />
+            {/* Row: Aging + Inventory + Cheques (4+4+4) */}
+            <AgingWidget receivables={dashboard.agingData.receivables} payables={dashboard.agingData.payables} loading={dashboard.loading} />
+            <InventoryPulseWidget alerts={dashboard.inventoryAlerts} summary={dashboard.inventorySummary} loading={dashboard.loading} />
+            <ChequesCalendarWidget cheques={dashboard.upcomingCheques} loading={dashboard.loading} />
 
-          {/* Row: Aging + Inventory + Cheques (4+4+4) */}
-          <AgingWidget receivables={dashboard.agingData.receivables} payables={dashboard.agingData.payables} loading={dashboard.loading} />
-          <InventoryPulseWidget alerts={dashboard.inventoryAlerts} summary={dashboard.inventorySummary} loading={dashboard.loading} />
-          <ChequesCalendarWidget cheques={dashboard.upcomingCheques} loading={dashboard.loading} />
-
-          {/* Exchange Rates */}
-          <ExchangeRatesWidget />
+            {/* Exchange Rates */}
+            <ExchangeRatesWidget />
+          </div>
         </div>
       </div>
 
