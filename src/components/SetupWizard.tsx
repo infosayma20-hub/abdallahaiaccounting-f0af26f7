@@ -160,7 +160,7 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
     setSaving(true);
     try {
       // Save password for Google-only users if provided
-      if (isGoogleUser && data.password && data.password === data.confirmPassword && data.password.length >= 1) {
+      if (isGoogleUser && data.password && data.password === data.confirmPassword && data.password.length >= 6) {
         await supabase.auth.updateUser({ password: data.password });
         localStorage.setItem(`pwd_setup_dismissed_${userId}`, "true");
       }
