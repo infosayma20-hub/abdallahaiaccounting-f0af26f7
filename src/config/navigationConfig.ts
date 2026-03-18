@@ -300,6 +300,7 @@ export const navigationSections: NavSection[] = [
       {
         id: "hr", label: "الموارد البشرية", description: "موظفون، حضور، ورواتب", module: "hr", icon: Users,
         color: "text-violet-500", bgColor: "bg-violet-500/10", path: "/employees",
+        enableSetting: "has_employees",
         keywords: ["موظف", "حضور", "رواتب", "موارد"],
         groups: [
           {
