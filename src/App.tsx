@@ -379,6 +379,13 @@ const App = () => (
                       <Route path="/tasks/board" element={<TaskBoardPage />} />
                       <Route path="/tasks/admin" element={<TaskAdminPage />} />
                       <Route path="/tasks/display" element={<TaskDisplayPage />} />
+                      {/* Travel Finance Module */}
+                      <Route path="/travel" element={<TravelDashboard />} />
+                      <Route path="/travel/bookings" element={<TravelBookingsPage />} />
+                      <Route path="/travel/bookings/new" element={<TravelBookingFormPage />} />
+                      <Route path="/travel/suppliers" element={<TravelSuppliersPage />} />
+                      <Route path="/travel/packages" element={<TravelPackagesPage />} />
+                      <Route path="/travel/reports" element={<TravelReportsPage />} />
                       <Route path="/contracts" element={<ContractsListPage />} />
                       <Route path="/contracts/new" element={<ContractFormPage />} />
                       <Route path="/contracts/:id/edit" element={<ContractFormPage />} />
