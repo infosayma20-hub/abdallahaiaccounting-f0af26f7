@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils";
 import {
   Calculator, ShoppingCart, Users, Package, ShoppingBag, DollarSign,
   BarChart3, Store, Settings, FileSpreadsheet, ArrowLeftRight, Landmark,
-  Monitor, Puzzle, LayoutGrid, Sparkles, FileCheck, UserCog,
+  Monitor, Puzzle, LayoutGrid, Sparkles, FileCheck, UserCog, ClipboardList,
 } from "lucide-react";
 
 interface ModuleIconProps {
@@ -38,6 +38,7 @@ const moduleColors: Record<string, { accent: string; bg: string; gradient?: stri
   assets:      { accent: "#C9A84C", bg: "rgba(201,168,76,0.12)", gradient: "linear-gradient(135deg, #C9A84C, #E8C860)" },
   customization: { accent: "#006D8F", bg: "rgba(0,109,143,0.12)", gradient: "linear-gradient(135deg, #006D8F, #0891B2)" },
   reps:        { accent: "#EA580C", bg: "rgba(234,88,12,0.12)", gradient: "linear-gradient(135deg, #EA580C, #F97316)" },
+  tasks:       { accent: "#1B3A5C", bg: "rgba(27,58,92,0.12)", gradient: "linear-gradient(135deg, #1B3A5C, #2D5A8E)" },
 };
 
 const sizes = {
@@ -70,6 +71,7 @@ const moduleIcons: Record<string, React.ElementType> = {
   currency: ArrowLeftRight,
   assets: Landmark,
   customization: Puzzle,
+  tasks: ClipboardList,
 };
 
 const DashboardIcon = ({ size }: { size: number }) => (

@@ -1,7 +1,7 @@
 import {
   BarChart3, DollarSign, ShoppingCart, ShoppingBag, Monitor, Package,
   Landmark, Building2, Store, Users, Calculator, Settings, FileSpreadsheet,
-  Puzzle, ArrowLeftRight,
+  Puzzle, ArrowLeftRight, ClipboardList,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -226,6 +226,11 @@ export const navigationSections: NavSection[] = [
         id: "ecommerce", label: "إدارة المتاجر الإلكترونية", description: "إدارة مالية للمتاجر والصفحات الإلكترونية", module: "sales", icon: Store,
         color: "text-amber-500", bgColor: "bg-amber-500/10", path: "/orders", isDirect: true,
         keywords: ["متجر", "طلبات", "إلكتروني"],
+      },
+      {
+        id: "tasks", label: "إدارة المهام", description: "تنظيم المهام، التكليفات، والمتابعة", module: "tasks", icon: ClipboardList,
+        color: "text-[#1B3A5C]", bgColor: "bg-[#1B3A5C]/10", path: "/tasks", isDirect: true,
+        keywords: ["مهام", "تكليف", "متابعة", "tasks"],
       },
     ],
   },

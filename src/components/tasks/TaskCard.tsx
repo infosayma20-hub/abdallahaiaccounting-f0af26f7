@@ -1,0 +1,71 @@
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { CheckCircle2, Hand } from "lucide-react";
+
+const PRIORITY_LABELS: Record<string, string> = {
+  urgent_important: "مهم ومستعجل",
+  important: "مهم",
+  urgent: "مستعجل",
+  normal: "عادي",
+};
+
+interface TaskCardProps {
+  task: any;
+  priorityColor: string;
+  currentUserId: string;
+  onAssign: () => void;
+  onClick: () => void;
+  onComplete: () => void;
+}
+
+export default function TaskCard({ task, priorityColor, currentUserId, onAssign, onClick, onComplete }: TaskCardProps) {
+  const today = new Date().toISOString().split("T")[0];
+  const isOverdue = task.due_date && task.due_date < today && task.status !== "done";
+  const isToday = task.due_date === today;
+  const isMine = task.assigned_to === currentUserId;
+
+  return (
+    <div
+      className="rounded-lg border bg-card p-3 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+      style={{ borderRight: `4px solid ${priorityColor}` }}
+      onClick={onClick}
+    >
+      {/* Badges */}
+      <div className="flex items-center gap-1.5 mb-2 flex-wrap">
+        {task.category && <Badge variant="outline" className="text-[10px] h-5">{task.category}</Badge>}
+        {task.status === "in_progress" && <Badge className="text-[10px] h-5" style={{ background: "#378ADD" }}>قيد الإنجاز</Badge>}
+      </div>
+
+      {/* Title */}
+      <h3 className="font-semibold text-sm mb-1 line-clamp-2">{task.title}</h3>
+      {task.description && <p className="text-xs text-muted-foreground line-clamp-2 mb-2">{task.description}</p>}
+
+      {/* Due date */}
+      {task.due_date && (
+        <p className="text-[11px] mb-2" style={{ color: isOverdue ? "#E24B4A" : isToday ? "#EF9F27" : "hsl(var(--muted-foreground))" }}>
+          📅 {task.due_date}{task.due_time ? ` ⏰ ${task.due_time.slice(0, 5)}` : ""}{isOverdue ? " — متأخرة!" : isToday ? " — اليوم" : ""}
+        </p>
+      )}
+
+      <div className="border-t pt-2 mt-1">
+        {task.assigned_to ? (
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px] font-bold" style={{ background: task.assignee?.avatar_color || "#1B3A5C" }}>
+              {task.assignee?.full_name?.charAt(0) || "?"}
+            </div>
+            <span className="text-xs">{task.assignee?.full_name}</span>
+            {isMine && task.status === "in_progress" && (
+              <Button size="sm" variant="ghost" className="mr-auto h-6 text-[10px] px-2 text-green-600" onClick={e => { e.stopPropagation(); onComplete(); }}>
+                <CheckCircle2 className="w-3 h-3 ml-1" /> إنهاء
+              </Button>
+            )}
+          </div>
+        ) : (
+          <Button size="sm" variant="outline" className="w-full h-7 text-xs" onClick={e => { e.stopPropagation(); onAssign(); }} style={{ borderColor: priorityColor, color: priorityColor }}>
+            <Hand className="w-3 h-3 ml-1" /> تكفّل بهذه المهمة
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+}
