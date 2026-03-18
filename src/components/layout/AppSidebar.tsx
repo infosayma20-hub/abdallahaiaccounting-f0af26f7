@@ -210,7 +210,11 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
             )}
             {collapsed && section.sectionTitle && <div className="h-px mx-1 mb-2" style={{ background: "#1E3A5F" }} />}
             <div className="space-y-0.5">
-              {section.items.map(renderNavItem)}
+              {[...section.items].sort((a, b) => {
+                const aD = isItemDisabled(a) ? 1 : 0;
+                const bD = isItemDisabled(b) ? 1 : 0;
+                return aD - bD;
+              }).map(renderNavItem)}
             </div>
           </div>
         ))}
