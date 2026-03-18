@@ -354,14 +354,6 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
                   <Zap className="h-5 w-5" />
                   هيّا نبدأ
                 </button>
-                <button
-                  onClick={handleSkipAll}
-                  disabled={saving}
-                  className="w-full py-2 text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center justify-center gap-1"
-                >
-                  {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <SkipForward className="h-3 w-3" />}
-                  تخطّي كل شيء — ادخل مباشرة
-                </button>
               </div>
             </motion.div>
           )}
