@@ -192,6 +192,7 @@ const HomeDashboard = () => {
             <ExchangeRatesWidget />
           </div>
         </div>
+      </div>
 
       {/* Dialogs */}
       {showJournalEntry && (
