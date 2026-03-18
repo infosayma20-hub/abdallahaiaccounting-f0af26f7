@@ -159,7 +159,7 @@ const AppsLauncher = () => {
 
   return (
     <div className="min-h-full bg-background" dir="rtl">
-      <TrialBanner />
+      
       <div className="max-w-5xl mx-auto px-6 py-8">
         {/* Title + Search */}
         <div className="flex items-center justify-between mb-6 gap-4 flex-wrap">
