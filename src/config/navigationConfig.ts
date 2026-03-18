@@ -29,6 +29,8 @@ export interface NavItem {
   keywords?: string[];
   groups?: NavGroup[];      // sub-groups (sidebar accordion + app card expansion)
   isDirect?: boolean;       // no expansion, just a link
+  /** Setting key that must be truthy to consider this app "enabled". If undefined → always enabled */
+  enableSetting?: string;
 }
 
 export interface NavSection {
@@ -173,6 +175,7 @@ export const navigationSections: NavSection[] = [
       {
         id: "pos", label: "نقطة البيع", description: "نظام POS متكامل للمبيعات المباشرة", module: "pos", icon: Monitor,
         color: "text-emerald-400", bgColor: "bg-emerald-500/10", path: "/pos",
+        enableSetting: "has_pos",
         keywords: ["نقطة", "بيع", "كاشير", "pos", "مطعم"],
         groups: [
           {
@@ -195,6 +198,7 @@ export const navigationSections: NavSection[] = [
       {
         id: "inventory", label: "المخزون", description: "منتجات، حركات، وتقييم", module: "inventory", icon: Package,
         color: "text-teal-500", bgColor: "bg-teal-500/10", path: "/inventory",
+        enableSetting: "has_inventory",
         keywords: ["مخزون", "منتج", "بضاعة"],
         groups: [
           {
@@ -220,11 +224,13 @@ export const navigationSections: NavSection[] = [
       {
         id: "contractor", label: "محاسب المشاريع والمقاولات", description: "إدارة مشاريع المقاولات والحركات المالية", module: "accounting", icon: Building2,
         color: "text-amber-600", bgColor: "bg-amber-500/10", path: "/contractor", isDirect: true,
+        enableSetting: "has_contractor",
         keywords: ["مقاولات", "مشاريع", "مقاول"],
       },
       {
         id: "ecommerce", label: "إدارة المتاجر الإلكترونية", description: "إدارة مالية للمتاجر والصفحات الإلكترونية", module: "sales", icon: Store,
         color: "text-amber-500", bgColor: "bg-amber-500/10", path: "/orders", isDirect: true,
+        enableSetting: "has_ecommerce",
         keywords: ["متجر", "طلبات", "إلكتروني"],
       },
       {
@@ -235,6 +241,7 @@ export const navigationSections: NavSection[] = [
       {
         id: "travel", label: "إدارة مالية السياحة والسفر", description: "حجوزات، موردون، عمولات، وأرباح", module: "travel", icon: Plane,
         color: "text-cyan-600", bgColor: "bg-cyan-500/10", path: "/travel",
+        enableSetting: "has_travel",
         keywords: ["سياحة", "سفر", "حجز", "طيران", "فندق", "عمرة", "حج", "travel"],
         groups: [
           {
@@ -293,6 +300,7 @@ export const navigationSections: NavSection[] = [
       {
         id: "hr", label: "الموارد البشرية", description: "موظفون، حضور، ورواتب", module: "hr", icon: Users,
         color: "text-violet-500", bgColor: "bg-violet-500/10", path: "/employees",
+        enableSetting: "has_employees",
         keywords: ["موظف", "حضور", "رواتب", "موارد"],
         groups: [
           {

@@ -1,8 +1,9 @@
 import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, ChevronDown, ArrowLeft } from "lucide-react";
+import { Search, ChevronDown, ArrowLeft, Lock } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useOnboarding } from "@/hooks/useOnboarding";
+import { useCompanySettings } from "@/hooks/useCompanySettings";
 import WelcomeModal from "@/components/onboarding/WelcomeModal";
 import SpotlightTour from "@/components/onboarding/SpotlightTour";
 import GooglePasswordSetupModal from "@/components/GooglePasswordSetupModal";
@@ -15,16 +16,17 @@ const appSections = getAppSections();
 
 /* ── App Card ── */
 const AppCard = ({
-  app, index, isExpanded, onToggle, onNavigate,
+  app, index, isExpanded, onToggle, onNavigate, disabled,
 }: {
   app: NavItem; index: number; isExpanded: boolean;
-  onToggle: () => void; onNavigate: (path: string) => void;
+  onToggle: () => void; onNavigate: (path: string) => void; disabled?: boolean;
 }) => {
   const [clicking, setClicking] = useState(false);
   const [ripple, setRipple] = useState<{ x: number; y: number } | null>(null);
   const hasChildren = !app.isDirect && app.groups && app.groups.length > 0;
 
   const handleClick = (e: React.MouseEvent) => {
+    if (disabled) return;
     if (hasChildren) { onToggle(); return; }
     const rect = e.currentTarget.getBoundingClientRect();
     setRipple({ x: e.clientX - rect.left, y: e.clientY - rect.top });
@@ -39,34 +41,39 @@ const AppCard = ({
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.04, duration: 0.3 }}
       className={`relative rounded-2xl border overflow-hidden transition-all duration-200 ${
-        isExpanded ? "border-accent/40 bg-card shadow-lg" : "border-border/60 bg-card hover:shadow-lg hover:border-border hover:-translate-y-0.5"
+        disabled
+          ? "border-border/30 bg-muted/40 opacity-50 grayscale cursor-not-allowed"
+          : isExpanded ? "border-accent/40 bg-card shadow-lg" : "border-border/60 bg-card hover:shadow-lg hover:border-border hover:-translate-y-0.5"
       }`}
       style={{ transform: clicking ? "scale(0.97)" : undefined, transition: "transform 0.15s ease" }}
     >
-      {ripple && (
+      {ripple && !disabled && (
         <span className="absolute rounded-full pointer-events-none" style={{
           left: ripple.x, top: ripple.y, transform: "translate(-50%, -50%)",
           background: "radial-gradient(circle, rgba(232,160,32,0.35), transparent 70%)",
           animation: "finixRippleExpand 0.5s ease-out forwards",
         }} />
       )}
-      <button onClick={handleClick} className="w-full flex items-center gap-4 p-5 text-right group relative z-10">
-        <div className={`p-3 rounded-xl ${app.bgColor} transition-transform group-hover:scale-110`}>
+      <button onClick={handleClick} className={`w-full flex items-center gap-4 p-5 text-right group relative z-10 ${disabled ? "cursor-not-allowed" : ""}`}>
+        <div className={`p-3 rounded-xl ${app.bgColor} transition-transform ${disabled ? "" : "group-hover:scale-110"}`}>
           <app.icon className={`h-6 w-6 ${app.color}`} />
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <p className="text-sm font-bold text-foreground">{app.label}</p>
-            {app.isNew && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary">جديد</span>}
+            <p className={`text-sm font-bold ${disabled ? "text-muted-foreground" : "text-foreground"}`}>{app.label}</p>
+            {disabled && <Lock className="h-3 w-3 text-muted-foreground/60" />}
+            {!disabled && app.isNew && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary">جديد</span>}
           </div>
-          <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{app.description}</p>
+          <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+            {disabled ? "غير مفعّل — يمكن تفعيله من الإعدادات" : app.description}
+          </p>
         </div>
-        {hasChildren && (
+        {!disabled && hasChildren && (
           <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`} />
         )}
       </button>
 
-      {isExpanded && hasChildren && (
+      {!disabled && isExpanded && hasChildren && (
         <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="border-t border-border/40 px-5 pb-4 pt-2 space-y-2">
           {app.groups!.map((group) => (
             <div key={group.groupLabel || "default"}>
@@ -121,20 +128,46 @@ const GooglePasswordPrompt = () => {
 const AppsLauncher = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { settings } = useCompanySettings();
   const { shouldShowWelcome, shouldShowTour, update, loading: onboardingLoading, businessType } = useOnboarding();
   const [tourActive, setTourActive] = useState(false);
   const [search, setSearch] = useState("");
   const [expandedApp, setExpandedApp] = useState<string | null>(null);
 
+  // Determine which settings are enabled based on business type and company settings
+  const enabledSettings = useMemo(() => {
+    const s: Record<string, boolean> = {
+      has_pos: !!settings.has_pos,
+      has_employees: !!settings.has_employees,
+      has_inventory: ["تجارة", "مطعم", "متجر إلكتروني"].includes(settings.business_type || ""),
+      has_contractor: settings.business_type === "مقاولات",
+      has_ecommerce: settings.business_type === "متجر إلكتروني",
+      has_travel: settings.business_type === "سياحة",
+    };
+    return s;
+  }, [settings]);
+
+  const isAppDisabled = (app: NavItem) => {
+    if (!app.enableSetting) return false;
+    return !enabledSettings[app.enableSetting];
+  };
+
   const allFilteredApps = useMemo(() => {
     const allApps = appSections.flatMap(s => s.items);
     const q = search.trim();
-    if (!q) return allApps;
-    return allApps.filter(app =>
-      app.label.includes(q) || app.description.includes(q) || app.keywords?.some(k => k.includes(q))
-      || getAllChildren(app).some(c => c.label.includes(q))
-    );
-  }, [search]);
+    const filtered = q
+      ? allApps.filter(app =>
+          app.label.includes(q) || app.description.includes(q) || app.keywords?.some(k => k.includes(q))
+          || getAllChildren(app).some(c => c.label.includes(q))
+        )
+      : allApps;
+    // Sort: enabled first, disabled last
+    return filtered.sort((a, b) => {
+      const aDisabled = isAppDisabled(a) ? 1 : 0;
+      const bDisabled = isAppDisabled(b) ? 1 : 0;
+      return aDisabled - bDisabled;
+    });
+  }, [search, enabledSettings]);
 
   const totalResults = allFilteredApps.length;
 
@@ -171,6 +204,7 @@ const AppsLauncher = () => {
               isExpanded={expandedApp === app.id}
               onToggle={() => setExpandedApp(prev => prev === app.id ? null : app.id)}
               onNavigate={navigate}
+              disabled={isAppDisabled(app)}
             />
           ))}
         </div>
