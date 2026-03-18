@@ -74,6 +74,7 @@ const GoogleOnlyPasswordSection = () => {
     try {
       const { error } = await supabase.auth.updateUser({ password: newPwd });
       if (error) throw error;
+      if (user) localStorage.setItem(`pwd_setup_dismissed_${user.id}`, "true");
       toast({ title: "✅ تم حفظ كلمة المرور", description: "يمكنك الآن تسجيل الدخول بالبريد وكلمة المرور" });
       setDone(true);
     } catch (err: any) {
