@@ -712,7 +712,7 @@ function AddLoanDialog({ open, onOpenChange, userId, companyId, onSuccess }: {
   useEffect(() => {
     if (!userId || !open) return;
     Promise.all([
-      supabase.from("employees").select("id, full_name, department").eq("user_id", userId).eq("is_active", true).order("full_name"),
+      supabase.from("employees").select("id, full_name, job_title").eq("user_id", userId).eq("is_active", true).order("full_name"),
       supabase.from("cash_boxes").select("id, name, gl_account_code").eq("user_id", userId).eq("is_active", true),
     ]).then(([empRes, cbRes]) => {
       setEmployees(empRes.data || []);
