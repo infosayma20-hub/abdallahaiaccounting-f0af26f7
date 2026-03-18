@@ -217,7 +217,8 @@ const QuickAccessButton = () => {
       </PopoverTrigger>
       <PopoverContent align="start" sideOffset={8} className="w-[340px] p-2 rounded-xl" dir="rtl">
         <p className="text-[11px] font-bold text-muted-foreground px-2 pb-1.5 flex items-center gap-1.5">
-          <Zap className="h-3 w-3 text-accent" />وصول سريع
+          <img src="/q-icon-navy.png" alt="قيود" className="h-3.5 w-3.5 object-contain" />
+          وصول سريع
         </p>
         <div className="grid grid-cols-2 gap-1">
           {QUICK_ITEMS.map((item) => (
@@ -248,7 +249,10 @@ const AppLogo = () => {
       {company.logo_url ? (
         <img src={company.logo_url} alt={company.name} className="w-9 h-9 rounded-lg object-contain bg-white p-0.5" style={{ border: "1px solid hsl(var(--border))" }} />
       ) : (
-        <FinixLogo variant="icon" size="sm" />
+        <img src="/q-icon-navy.png" alt="قيود" className="w-8 h-8 object-contain" />
+      )}
+      {company.name && (
+        <span className="text-sm font-bold text-foreground hidden sm:block max-w-[160px] truncate">{company.name}</span>
       )}
     </button>
   );

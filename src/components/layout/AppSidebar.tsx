@@ -1,9 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ChevronDown, X, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { ChevronDown, X, PanelLeftClose, PanelLeftOpen, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ModuleIcon from "@/components/ModuleIcon";
 import { useCompany } from "@/hooks/useCompanyContext";
+import { useCompanySettings } from "@/hooks/useCompanySettings";
+import { useSubscription } from "@/hooks/useSubscription";
 
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { FinixLogo } from "@/components/ui/FinixLogo";
@@ -20,7 +22,27 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
   const location = useLocation();
   const navigate = useNavigate();
   const { company } = useCompany();
+  const { settings } = useCompanySettings();
+  const { subscription } = useSubscription();
   const [openItem, setOpenItem] = useState<string | null>(null);
+
+  const isTrial = subscription?.isTrial ?? true;
+
+  const enabledSettings = useMemo(() => ({
+    has_pos: !!settings.has_pos,
+    has_employees: !!settings.has_employees,
+    has_inventory: ["تجارة", "مطعم", "متجر إلكتروني"].includes(settings.business_type || ""),
+    has_contractor: settings.business_type === "مقاولات",
+    has_ecommerce: settings.business_type === "متجر إلكتروني",
+    has_travel: settings.business_type === "سياحة",
+    has_tasks: false,
+  }), [settings]);
+
+  const isItemDisabled = (item: NavItem) => {
+    if (!item.enableSetting) return false;
+    if (isTrial && item.enableSetting !== "has_tasks") return false;
+    return !enabledSettings[item.enableSetting as keyof typeof enabledSettings];
+  };
 
   const isActive = (path?: string) => {
     if (!path) return false;
@@ -55,8 +77,9 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
   };
 
   const renderNavItem = (item: NavItem) => {
-    const active = isActive(item.path);
-    const groupActive = isGroupActive(item);
+    const disabled = isItemDisabled(item);
+    const active = !disabled && isActive(item.path);
+    const groupActive = !disabled && isGroupActive(item);
     const expanded = openItem === item.label;
     const hasChildren = !item.isDirect && item.groups && item.groups.length > 0;
 
@@ -64,6 +87,7 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
       <button
         onClick={(e) => {
           e.stopPropagation();
+          if (disabled) return;
           if (hasChildren) {
             if (collapsed) {
               onToggle();
@@ -77,21 +101,24 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
         }}
         className={cn(
           "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-all group relative",
-          active || groupActive
-            ? "text-sidebar-primary font-bold"
-            : "text-sidebar-foreground hover:text-sidebar-accent-foreground",
+          disabled
+            ? "opacity-40 cursor-not-allowed"
+            : active || groupActive
+              ? "text-sidebar-primary font-bold"
+              : "text-sidebar-foreground hover:text-sidebar-accent-foreground",
           collapsed && "justify-center px-2"
         )}
         style={
-          active || groupActive
+          !disabled && (active || groupActive)
             ? { background: "rgba(232,160,32,0.12)", borderRight: "3px solid #E8A020" }
             : undefined
         }
       >
-        <ModuleIcon module={item.module} size="sm" active={active || !!groupActive} />
+        <ModuleIcon module={item.module} size="sm" active={!disabled && (active || !!groupActive)} />
         {!collapsed && (
           <>
             <span className="flex-1 text-right truncate">{item.label}</span>
+            {disabled && <Lock className="h-3 w-3 opacity-60" />}
             {hasChildren && (
               <ChevronDown className={cn("h-3.5 w-3.5 opacity-40 transition-transform duration-200", expanded && "rotate-180")} />
             )}
@@ -119,7 +146,7 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
           </Tooltip>
         ) : navButton}
 
-        {hasChildren && expanded && !collapsed && (
+        {!disabled && hasChildren && expanded && !collapsed && (
           <div className="mr-5 mt-0.5 space-y-1 pr-3" style={{ borderRight: "1px solid #1E3A5F" }}>
             {item.groups!.map((group) => (
               <div key={group.groupLabel || "default"}>
@@ -183,7 +210,11 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
             )}
             {collapsed && section.sectionTitle && <div className="h-px mx-1 mb-2" style={{ background: "#1E3A5F" }} />}
             <div className="space-y-0.5">
-              {section.items.map(renderNavItem)}
+              {[...section.items].sort((a, b) => {
+                const aD = isItemDisabled(a) ? 1 : 0;
+                const bD = isItemDisabled(b) ? 1 : 0;
+                return aD - bD;
+              }).map(renderNavItem)}
             </div>
           </div>
         ))}
