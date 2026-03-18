@@ -124,6 +124,12 @@ import TaskLoginPage from "./pages/tasks/TaskLoginPage";
 import TaskBoardPage from "./pages/tasks/TaskBoardPage";
 import TaskAdminPage from "./pages/tasks/TaskAdminPage";
 import TaskDisplayPage from "./pages/tasks/TaskDisplayPage";
+import TravelDashboard from "./pages/travel/TravelDashboard";
+import TravelBookingsPage from "./pages/travel/TravelBookingsPage";
+import TravelBookingFormPage from "./pages/travel/TravelBookingFormPage";
+import TravelSuppliersPage from "./pages/travel/TravelSuppliersPage";
+import TravelPackagesPage from "./pages/travel/TravelPackagesPage";
+import TravelReportsPage from "./pages/travel/TravelReportsPage";
 
 const queryClient = new QueryClient();
 
@@ -373,6 +379,13 @@ const App = () => (
                       <Route path="/tasks/board" element={<TaskBoardPage />} />
                       <Route path="/tasks/admin" element={<TaskAdminPage />} />
                       <Route path="/tasks/display" element={<TaskDisplayPage />} />
+                      {/* Travel Finance Module */}
+                      <Route path="/travel" element={<TravelDashboard />} />
+                      <Route path="/travel/bookings" element={<TravelBookingsPage />} />
+                      <Route path="/travel/bookings/new" element={<TravelBookingFormPage />} />
+                      <Route path="/travel/suppliers" element={<TravelSuppliersPage />} />
+                      <Route path="/travel/packages" element={<TravelPackagesPage />} />
+                      <Route path="/travel/reports" element={<TravelReportsPage />} />
                       <Route path="/contracts" element={<ContractsListPage />} />
                       <Route path="/contracts/new" element={<ContractFormPage />} />
                       <Route path="/contracts/:id/edit" element={<ContractFormPage />} />
