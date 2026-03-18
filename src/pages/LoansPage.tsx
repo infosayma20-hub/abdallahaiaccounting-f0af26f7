@@ -295,34 +295,26 @@ export default function LoansPage() {
     const inst = loan.loan_installments || [];
     const sorted = [...inst].sort((a: any, b: any) => a.month_number - b.month_number);
     const paidCount = inst.filter((x: any) => x.status === "paid").length;
+    const paidAmt = inst.filter((x: any) => x.status === "paid").reduce((s: number, x: any) => s + Number(x.installment_amount), 0);
     const pct = loan.total_months > 0 ? Math.round((paidCount / loan.total_months) * 100) : 0;
     let runningBalance = Number(loan.total_amount);
 
-    const startDate = loan.first_payment_date || loan.start_date || sorted[0]?.due_date || "-";
-    const endDate = loan.last_payment_date || (sorted.length ? sorted[sorted.length - 1]?.due_date : "-");
-
     const instRows = sorted.map((x: any) => {
       if (x.status === "paid") runningBalance -= Number(x.installment_amount);
-      const isPaid = x.status === "paid";
-      const iconSvg = isPaid
-        ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`
-        : `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`;
-      const statusBadge = isPaid
-        ? `<span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:10px;font-weight:600;background:#ecfdf5;color:#059669;border:1px solid #a7f3d0">مدفوع</span>`
-        : `<span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:10px;font-weight:600;background:#fff;color:#6B7280;border:1px solid #e5e7eb">معلق</span>`;
-      return `<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:8px;margin-bottom:6px;${isPaid ? "background:#f0fdf4" : "background:#fafbfc"}">
-        <div style="display:flex;align-items:center;gap:10px">
-          ${iconSvg}
-          <span style="color:#6B7280;font-size:12px">قسط ${x.month_number}</span>
-          <span style="color:#9CA3AF;font-size:12px">${x.due_date}</span>
-        </div>
-        <div style="display:flex;align-items:center;gap:14px">
-          <span style="font-weight:700;font-size:13px">${Number(x.installment_amount).toLocaleString("en-US", { minimumFractionDigits: 2 })} ₪</span>
-          <span style="color:#9CA3AF;font-size:11px">رصيد: ${Math.max(0, runningBalance).toLocaleString("en-US", { minimumFractionDigits: 2 })} ₪</span>
-          ${statusBadge}
-        </div>
-      </div>`;
+      const statusLabel = x.status === "paid"
+        ? '<span style="color:#059669;font-weight:600">✓ مدفوع</span>'
+        : '<span style="color:#D97706">معلق</span>';
+      return `<tr>
+        <td style="text-align:center">${x.month_number}</td>
+        <td style="text-align:center">${x.due_date}</td>
+        <td style="text-align:left">${Number(x.installment_amount).toLocaleString("en-US", { minimumFractionDigits: 2 })} ₪</td>
+        <td style="text-align:left">${Math.max(0, runningBalance).toLocaleString("en-US", { minimumFractionDigits: 2 })} ₪</td>
+        <td style="text-align:center">${statusLabel}</td>
+      </tr>`;
     }).join("");
+
+    const startDate = loan.first_payment_date || loan.start_date || sorted[0]?.due_date || "-";
+    const endDate = loan.last_payment_date || (sorted.length ? sorted[sorted.length - 1]?.due_date : "-");
 
     const html = `<!DOCTYPE html>
 <html dir="rtl" lang="ar">
@@ -334,6 +326,10 @@ export default function LoansPage() {
     @page { size: A4; margin: 15mm; }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: 'Tajawal', 'Segoe UI', Tahoma, Arial, sans-serif; font-size: 12px; color: #1a1a1a; background: #fff; direction: rtl; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 8px 10px; border-bottom: 1px solid #e5e7eb; }
+    thead th { font-weight: 600; }
+    tbody tr:nth-child(even) { background: #fafbfc; }
     @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
   </style>
 </head>
@@ -352,69 +348,76 @@ export default function LoansPage() {
   <div style="height:3px;background:#C9A84C"></div>
 
   <!-- META -->
-  <div style="display:flex;justify-content:space-between;padding:12px 28px;font-size:11px;color:#6B7280;border-bottom:1px solid #eee">
+  <div style="display:flex;justify-content:space-between;padding:14px 28px;font-size:11px;color:#6B7280;border-bottom:1px solid #eee">
     <span>تاريخ الطباعة: <strong style="color:#1a1a1a">${dateStr}</strong></span>
+    <span>الحالة: <strong style="color:${loan.status === "active" ? "#059669" : "#6B7280"}">${loan.status === "active" ? "نشط" : "مكتمل"}</strong></span>
   </div>
 
+  <!-- EMPLOYEE INFO -->
   <div style="padding:20px 28px">
-    <!-- LOAN CARD (matching UI) -->
-    <div style="border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;margin-bottom:20px">
-      <!-- Card Header -->
-      <div style="padding:16px 20px">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start">
-          <div style="text-align:right">
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
-              <span style="font-size:16px;font-weight:700">${loan.employees?.full_name || "-"}</span>
-              <span style="display:inline-block;padding:3px 12px;border-radius:12px;font-size:10px;font-weight:600;${loan.status === "active" ? "background:#ecfdf5;color:#059669" : "background:#f3f4f6;color:#6B7280"}">${loan.status === "active" ? "نشط" : "مكتمل"}</span>
-            </div>
-            <div style="font-size:12px;color:#9CA3AF">${loan.employees?.department || ""} ${loan.employees?.branches?.name ? `- ${loan.employees.branches.name}` : ""}</div>
-          </div>
-          <div style="text-align:left">
-            <div style="font-size:16px;font-weight:700">${Number(loan.total_amount).toLocaleString("en-US", { minimumFractionDigits: 2 })} ₪</div>
-            <div style="font-size:10px;color:#9CA3AF">متبقي من ${Number(loan.remaining_amount).toLocaleString("en-US", { minimumFractionDigits: 2 })} ₪</div>
-          </div>
-        </div>
-
-        <!-- Progress -->
-        <div style="margin-top:14px">
-          <div style="display:flex;justify-content:space-between;font-size:10px;color:#9CA3AF;margin-bottom:4px">
-            <span>${paidCount} من ${loan.total_months} قسط</span>
-            <span>${pct}%</span>
-          </div>
-          <div style="background:#e5e7eb;border-radius:4px;height:6px;overflow:hidden">
-            <div style="background:#3d9970;height:100%;width:${pct}%;border-radius:4px"></div>
-          </div>
-        </div>
-
-        <!-- 3 Info Boxes -->
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px">
-          <div style="background:#f8f9fa;border-radius:8px;padding:10px;text-align:center">
-            <div style="font-size:10px;color:#9CA3AF">القسط الشهري</div>
-            <div style="font-size:14px;font-weight:700;margin-top:2px">${Number(loan.monthly_installment).toLocaleString("en-US", { minimumFractionDigits: 2 })} ₪</div>
-          </div>
-          <div style="background:#f8f9fa;border-radius:8px;padding:10px;text-align:center">
-            <div style="font-size:10px;color:#9CA3AF">بداية السداد</div>
-            <div style="font-size:14px;font-weight:700;margin-top:2px">${startDate}</div>
-          </div>
-          <div style="background:#f8f9fa;border-radius:8px;padding:10px;text-align:center">
-            <div style="font-size:10px;color:#9CA3AF">نهاية السداد</div>
-            <div style="font-size:14px;font-weight:700;margin-top:2px">${endDate}</div>
-          </div>
-        </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;background:#f8f9fa;border-radius:8px;padding:16px;margin-bottom:20px">
+      <div>
+        <div style="font-size:10px;color:#6B7280;margin-bottom:2px">اسم الموظف</div>
+        <div style="font-size:14px;font-weight:700">${loan.employees?.full_name || "-"}</div>
       </div>
-
-      <!-- Installments Section -->
-      <div style="border-top:1px solid #e5e7eb;padding:16px 20px;background:#fafbfc">
-        <div style="font-size:13px;font-weight:700;color:#6B7280;margin-bottom:10px">جدول الأقساط</div>
-        ${instRows}
+      <div>
+        <div style="font-size:10px;color:#6B7280;margin-bottom:2px">القسم / الفرع</div>
+        <div style="font-size:14px;font-weight:600">${loan.employees?.department || ""} ${loan.employees?.branches?.name ? `- ${loan.employees.branches.name}` : ""}</div>
       </div>
-
-      ${loan.notes ? `<div style="border-top:1px solid #e5e7eb;padding:12px 20px;font-size:11px;color:#92400e;background:#fffbeb">📝 ${loan.notes}</div>` : ""}
     </div>
+
+    <!-- LOAN SUMMARY -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px">
+      <div style="background:#f0f2f5;border-radius:8px;padding:12px;text-align:center">
+        <div style="font-size:10px;color:#6B7280">مبلغ القرض</div>
+        <div style="font-size:15px;font-weight:700;color:#1B3A5C">${Number(loan.total_amount).toLocaleString("en-US", { minimumFractionDigits: 2 })} ₪</div>
+      </div>
+      <div style="background:#f0f2f5;border-radius:8px;padding:12px;text-align:center">
+        <div style="font-size:10px;color:#6B7280">القسط الشهري</div>
+        <div style="font-size:15px;font-weight:700;color:#1B3A5C">${Number(loan.monthly_installment).toLocaleString("en-US", { minimumFractionDigits: 2 })} ₪</div>
+      </div>
+      <div style="background:#f0f2f5;border-radius:8px;padding:12px;text-align:center">
+        <div style="font-size:10px;color:#6B7280">المدفوع</div>
+        <div style="font-size:15px;font-weight:700;color:#059669">${paidAmt.toLocaleString("en-US", { minimumFractionDigits: 2 })} ₪</div>
+      </div>
+      <div style="background:#f0f2f5;border-radius:8px;padding:12px;text-align:center">
+        <div style="font-size:10px;color:#6B7280">المتبقي</div>
+        <div style="font-size:15px;font-weight:700;color:#DC2626">${Number(loan.remaining_amount).toLocaleString("en-US", { minimumFractionDigits: 2 })} ₪</div>
+      </div>
+    </div>
+
+    <!-- PROGRESS -->
+    <div style="margin-bottom:20px">
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:#6B7280;margin-bottom:4px">
+        <span>${paidCount} من ${loan.total_months} قسط</span>
+        <span>بداية: ${startDate} — نهاية: ${endDate}</span>
+        <span>${pct}%</span>
+      </div>
+      <div style="background:#e5e7eb;border-radius:4px;height:8px;overflow:hidden">
+        <div style="background:#059669;height:100%;width:${pct}%;border-radius:4px"></div>
+      </div>
+    </div>
+
+    <!-- INSTALLMENTS TABLE -->
+    <h3 style="font-size:14px;font-weight:700;margin-bottom:10px;color:#1B3A5C">📋 جدول الأقساط</h3>
+    <table style="font-size:11px">
+      <thead>
+        <tr style="background:#1B3A5C;color:#fff">
+          <th style="padding:8px;text-align:center">القسط</th>
+          <th style="padding:8px;text-align:center">تاريخ الاستحقاق</th>
+          <th style="padding:8px;text-align:left">المبلغ</th>
+          <th style="padding:8px;text-align:left">الرصيد المتبقي</th>
+          <th style="padding:8px;text-align:center">الحالة</th>
+        </tr>
+      </thead>
+      <tbody>${instRows}</tbody>
+    </table>
+
+    ${loan.notes ? `<div style="margin-top:16px;padding:10px;background:#fffbeb;border-radius:6px;font-size:11px;color:#92400e">📝 ملاحظات: ${loan.notes}</div>` : ""}
   </div>
 
   <!-- SIGNATURES -->
-  <div style="display:flex;justify-content:space-between;padding:40px 28px 20px;margin-top:20px;border-top:1px solid #e5e7eb;page-break-inside:avoid">
+  <div style="display:flex;justify-content:space-between;padding:40px 28px 20px;margin-top:30px;border-top:1px solid #e5e7eb;page-break-inside:avoid">
     ${["الموظف", "مدير الموارد البشرية", "المدير المالي"].map(t => `
       <div style="text-align:center;width:30%">
         <div style="border-bottom:1px solid #ccc;height:50px"></div>
