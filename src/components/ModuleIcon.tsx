@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils";
 import {
   Calculator, ShoppingCart, Users, Package, ShoppingBag, DollarSign,
   BarChart3, Store, Settings, FileSpreadsheet, ArrowLeftRight, Landmark,
-  Monitor, Puzzle, LayoutGrid, Sparkles, FileCheck, UserCog, ClipboardList,
+  Monitor, Puzzle, LayoutGrid, Sparkles, FileCheck, UserCog, ClipboardList, Plane,
 } from "lucide-react";
 
 interface ModuleIconProps {
