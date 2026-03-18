@@ -886,7 +886,7 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
                     animate={{ scale: 1 }}
                     transition={{ delay: 0.3, duration: 0.5 }}
                   >
-                    <FinixLogo variant="icon" size="lg" />
+                    <img src="/q-icon.svg" alt="QOYOD" className="h-12 w-12" />
                   </motion.div>
                 </motion.div>
                 {/* Decorative circles */}
