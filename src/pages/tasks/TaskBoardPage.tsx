@@ -166,9 +166,9 @@ export default function TaskBoardPage() {
           return (
             <div key={col.key} className="space-y-3">
               <div className="flex items-center gap-2 pb-2 border-b-2" style={{ borderColor: col.color }}>
-                <span>{col.icon}</span>
+                <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: col.color }} />
                 <span className="font-semibold text-sm">{col.label}</span>
-                <Badge variant="secondary" className="text-xs mr-auto">{colTasks.length}</Badge>
+                <span className="text-xs text-muted-foreground mr-auto tabular-nums">{colTasks.length}</span>
               </div>
               {colTasks.map(task => (
                 <TaskCard
