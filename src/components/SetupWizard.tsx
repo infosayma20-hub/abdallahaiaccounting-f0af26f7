@@ -409,6 +409,55 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
                     className="w-full h-12 px-4 rounded-xl border border-border bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
                   />
                 </div>
+                {/* Google-only user: password setup */}
+                {isGoogleUser && (
+                  <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="space-y-3 pt-2 border-t border-border">
+                    <div className="flex items-center gap-2 text-sm font-bold text-foreground pt-2">
+                      <Lock className="h-4 w-4" />
+                      <span>كلمة مرور للدخول السريع</span>
+                      <span className="text-[10px] text-muted-foreground font-normal">(اختياري)</span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">
+                      يمكنك تسجيل الدخول بالبريد وكلمة المرور بدون الحاجة لجوجل
+                    </p>
+                    <div className="space-y-2">
+                      <div className="relative">
+                        <Lock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                        <input
+                          type={showPassword ? "text" : "password"}
+                          placeholder="كلمة المرور"
+                          value={data.password}
+                          onChange={e => update({ password: e.target.value })}
+                          className="w-full h-12 px-4 pr-10 pl-10 rounded-xl border border-border bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                          dir="ltr"
+                          style={{ textAlign: "left" }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        >
+                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
+                      <div className="relative">
+                        <Lock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                        <input
+                          type={showPassword ? "text" : "password"}
+                          placeholder="تأكيد كلمة المرور"
+                          value={data.confirmPassword}
+                          onChange={e => update({ confirmPassword: e.target.value })}
+                          className="w-full h-12 px-4 pr-10 rounded-xl border border-border bg-card text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                          dir="ltr"
+                          style={{ textAlign: "left" }}
+                        />
+                      </div>
+                      {data.confirmPassword.length > 0 && data.password !== data.confirmPassword && (
+                        <p className="text-xs text-destructive">كلمتا المرور غير متطابقتين</p>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
                 <p className="text-[11px] text-muted-foreground text-center pt-2">
                   يمكنك إضافة الشعار والعنوان الكامل لاحقاً من الإعدادات
                 </p>
