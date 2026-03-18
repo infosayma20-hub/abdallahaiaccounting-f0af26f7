@@ -159,6 +159,12 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
   const handleFinish = async () => {
     setSaving(true);
     try {
+      // Save password for Google-only users if provided
+      if (isGoogleUser && data.password && data.password === data.confirmPassword && data.password.length >= 1) {
+        await supabase.auth.updateUser({ password: data.password });
+        localStorage.setItem(`pwd_setup_dismissed_${userId}`, "true");
+      }
+
       const hasInv = needsInventory(data.businessType);
       
       // 1. Setup accounts
