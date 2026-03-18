@@ -9640,6 +9640,17 @@ export type Database = {
         }
         Returns: Json
       }
+      create_task_user: {
+        Args: {
+          p_avatar_color?: string
+          p_full_name: string
+          p_password: string
+          p_role?: string
+          p_user_id: string
+          p_username: string
+        }
+        Returns: Json
+      }
       get_cash_box_balance: { Args: { p_box_id: string }; Returns: number }
       get_exchange_rate: {
         Args: { p_currency_code: string; p_date?: string; p_rate_type?: string }
@@ -9688,6 +9699,10 @@ export type Database = {
         Args: { p_reason?: string; p_rejected_by: string; p_request_id: string }
         Returns: Json
       }
+      set_task_user_password: {
+        Args: { p_new_password: string; p_task_user_id: string }
+        Returns: boolean
+      }
       update_last_seen: { Args: never; Returns: undefined }
       user_can_access: {
         Args: { _module: string; _user_id: string }
@@ -9696,6 +9711,10 @@ export type Database = {
       verify_malaki_login: {
         Args: { p_password: string; p_username: string }
         Returns: Json
+      }
+      verify_task_password: {
+        Args: { p_password: string; p_user_id: string }
+        Returns: boolean
       }
     }
     Enums: {
