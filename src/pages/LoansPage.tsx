@@ -16,6 +16,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import BackButton from "@/components/BackButton";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
+import LoanAttachments from "@/components/hr/LoanAttachments";
 
 const fmtCurrency = (v: number) => `${v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₪`;
 
