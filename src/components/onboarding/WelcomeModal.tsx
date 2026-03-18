@@ -54,7 +54,7 @@ const WelcomeModal = ({ open, onStartTour, onSkip }: WelcomeModalProps) => {
 
             {/* Content */}
             <h2 className="text-2xl font-bold text-foreground text-center mb-2">
-              🎉 أهلاً بك في عبدالله AI
+              🎉 أهلاً بك في قيود
             </h2>
             <p className="text-muted-foreground text-center text-sm mb-6 leading-relaxed">
               نظامك المحاسبي الذكي جاهز!
