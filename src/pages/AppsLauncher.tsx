@@ -7,6 +7,7 @@ import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { useSubscription } from "@/hooks/useSubscription";
 import WelcomeModal from "@/components/onboarding/WelcomeModal";
 import SpotlightTour from "@/components/onboarding/SpotlightTour";
+import TrialBanner from "@/components/billing/TrialBanner";
 
 import { motion } from "framer-motion";
 import { Input } from "@/components/ui/input";
