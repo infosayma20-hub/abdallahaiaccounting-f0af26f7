@@ -421,7 +421,7 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
                     <div className="flex items-center gap-2 text-sm font-bold text-foreground pt-2">
                       <Lock className="h-4 w-4" />
                       <span>كلمة مرور للدخول السريع</span>
-                      <span className="text-[10px] text-muted-foreground font-normal">(اختياري)</span>
+                      
                     </div>
                     <p className="text-[11px] text-muted-foreground">
                       يمكنك تسجيل الدخول بالبريد وكلمة المرور بدون الحاجة لجوجل
