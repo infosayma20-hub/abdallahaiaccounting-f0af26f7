@@ -16,16 +16,17 @@ const appSections = getAppSections();
 
 /* ── App Card ── */
 const AppCard = ({
-  app, index, isExpanded, onToggle, onNavigate,
+  app, index, isExpanded, onToggle, onNavigate, disabled,
 }: {
   app: NavItem; index: number; isExpanded: boolean;
-  onToggle: () => void; onNavigate: (path: string) => void;
+  onToggle: () => void; onNavigate: (path: string) => void; disabled?: boolean;
 }) => {
   const [clicking, setClicking] = useState(false);
   const [ripple, setRipple] = useState<{ x: number; y: number } | null>(null);
   const hasChildren = !app.isDirect && app.groups && app.groups.length > 0;
 
   const handleClick = (e: React.MouseEvent) => {
+    if (disabled) return;
     if (hasChildren) { onToggle(); return; }
     const rect = e.currentTarget.getBoundingClientRect();
     setRipple({ x: e.clientX - rect.left, y: e.clientY - rect.top });
@@ -40,34 +41,39 @@ const AppCard = ({
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.04, duration: 0.3 }}
       className={`relative rounded-2xl border overflow-hidden transition-all duration-200 ${
-        isExpanded ? "border-accent/40 bg-card shadow-lg" : "border-border/60 bg-card hover:shadow-lg hover:border-border hover:-translate-y-0.5"
+        disabled
+          ? "border-border/30 bg-muted/40 opacity-50 grayscale cursor-not-allowed"
+          : isExpanded ? "border-accent/40 bg-card shadow-lg" : "border-border/60 bg-card hover:shadow-lg hover:border-border hover:-translate-y-0.5"
       }`}
       style={{ transform: clicking ? "scale(0.97)" : undefined, transition: "transform 0.15s ease" }}
     >
-      {ripple && (
+      {ripple && !disabled && (
         <span className="absolute rounded-full pointer-events-none" style={{
           left: ripple.x, top: ripple.y, transform: "translate(-50%, -50%)",
           background: "radial-gradient(circle, rgba(232,160,32,0.35), transparent 70%)",
           animation: "finixRippleExpand 0.5s ease-out forwards",
         }} />
       )}
-      <button onClick={handleClick} className="w-full flex items-center gap-4 p-5 text-right group relative z-10">
-        <div className={`p-3 rounded-xl ${app.bgColor} transition-transform group-hover:scale-110`}>
+      <button onClick={handleClick} className={`w-full flex items-center gap-4 p-5 text-right group relative z-10 ${disabled ? "cursor-not-allowed" : ""}`}>
+        <div className={`p-3 rounded-xl ${app.bgColor} transition-transform ${disabled ? "" : "group-hover:scale-110"}`}>
           <app.icon className={`h-6 w-6 ${app.color}`} />
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <p className="text-sm font-bold text-foreground">{app.label}</p>
-            {app.isNew && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary">جديد</span>}
+            <p className={`text-sm font-bold ${disabled ? "text-muted-foreground" : "text-foreground"}`}>{app.label}</p>
+            {disabled && <Lock className="h-3 w-3 text-muted-foreground/60" />}
+            {!disabled && app.isNew && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary">جديد</span>}
           </div>
-          <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{app.description}</p>
+          <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+            {disabled ? "غير مفعّل — يمكن تفعيله من الإعدادات" : app.description}
+          </p>
         </div>
-        {hasChildren && (
+        {!disabled && hasChildren && (
           <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`} />
         )}
       </button>
 
-      {isExpanded && hasChildren && (
+      {!disabled && isExpanded && hasChildren && (
         <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="border-t border-border/40 px-5 pb-4 pt-2 space-y-2">
           {app.groups!.map((group) => (
             <div key={group.groupLabel || "default"}>
