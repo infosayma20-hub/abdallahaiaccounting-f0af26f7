@@ -107,15 +107,24 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
 
   useEffect(() => {
     const fetchUser = async () => {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("display_name, company_name")
-        .eq("user_id", userId)
-        .maybeSingle();
-      if (profile) {
-        setUserName(profile.display_name || "");
-        if (profile.company_name && profile.company_name !== "شركتي") {
-          setData(d => ({ ...d, companyName: profile.company_name || "" }));
+      const [profileRes, sessionRes] = await Promise.all([
+        supabase.from("profiles").select("display_name, company_name").eq("user_id", userId).maybeSingle(),
+        supabase.auth.getSession(),
+      ]);
+      if (profileRes.data) {
+        setUserName(profileRes.data.display_name || "");
+        if (profileRes.data.company_name && profileRes.data.company_name !== "شركتي") {
+          setData(d => ({ ...d, companyName: profileRes.data.company_name || "" }));
+        }
+      }
+      // Check if Google-only user
+      const user = sessionRes.data?.session?.user;
+      if (user) {
+        const identities = user.identities || [];
+        const hasGoogle = identities.some(i => i.provider === "google");
+        const hasEmail = identities.some(i => i.provider === "email");
+        if (hasGoogle && !hasEmail) {
+          setIsGoogleUser(true);
         }
       }
     };
