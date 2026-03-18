@@ -36,6 +36,8 @@ interface SetupData {
   bankAccountType: string;
   bankBalance: number;
   leaveForAccountant: boolean;
+  password: string;
+  confirmPassword: string;
 }
 
 const BUSINESS_TYPES: { value: BusinessType; label: string; sublabel: string; emoji: string; modules: string }[] = [
