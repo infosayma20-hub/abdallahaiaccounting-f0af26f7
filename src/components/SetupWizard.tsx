@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Loader2, ChevronLeft, Building2, MapPin, Zap, SkipForward } from "lucide-react";
+import { Loader2, ChevronLeft, Building2, MapPin, Zap, SkipForward, Lock, Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { FinixLogo } from "@/components/ui/FinixLogo";
