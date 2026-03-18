@@ -196,7 +196,7 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
             </div>
           </div>
         ) : (
-          <button onClick={() => navigate("/settings")} className="rounded-lg hover:ring-2 hover:ring-white/30 transition-all cursor-pointer" title="تعديل اللوجو">
+          <button onClick={() => navigate("/profile")} className="rounded-lg hover:ring-2 hover:ring-white/30 transition-all cursor-pointer" title="الملف الشخصي">
             {company.logo_url ? (
               <img src={company.logo_url} alt={company.name} className="w-9 h-9 rounded-lg object-contain bg-white p-0.5" style={{ boxShadow: "0 2px 8px rgba(13,27,42,0.10)" }} />
             ) : (
