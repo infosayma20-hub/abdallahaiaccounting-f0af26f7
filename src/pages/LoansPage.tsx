@@ -631,6 +631,7 @@ export default function LoansPage() {
                         📝 {loan.notes}
                       </div>
                     )}
+                    <LoanAttachments loanId={loan.id} userId={user?.id || ""} />
                   </div>
                 )}
               </Card>
