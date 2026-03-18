@@ -144,8 +144,8 @@ const HomeDashboard = () => {
           </div>
         )}
 
-        <div className={`${privacyMode ? "select-none pointer-events-none" : ""} grid grid-cols-12 gap-4`}>
-          {/* W1: Header */}
+        <div className="grid grid-cols-12 gap-4">
+          {/* W1: Header - always interactive */}
           <DashboardHeader
             companyName={displayName}
             companyLogo={dashboard.companyLogo}
