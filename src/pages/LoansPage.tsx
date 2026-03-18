@@ -381,8 +381,8 @@ export default function LoansPage() {
         <div style="font-size:14px;font-weight:700">${loan.employees?.full_name || "-"}</div>
       </div>
       <div>
-        <div style="font-size:10px;color:#6B7280;margin-bottom:2px">القسم / الفرع</div>
-        <div style="font-size:14px;font-weight:600">${loan.employees?.department || ""} ${loan.employees?.branches?.name ? `- ${loan.employees.branches.name}` : ""}</div>
+        <div style="font-size:10px;color:#6B7280;margin-bottom:2px">الوظيفة / الفرع</div>
+        <div style="font-size:14px;font-weight:600">${loan.employees?.job_title || ""} ${loan.employees?.branches?.name ? `- ${loan.employees.branches.name}` : ""}</div>
       </div>
     </div>
 
