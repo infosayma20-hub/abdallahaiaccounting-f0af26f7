@@ -894,7 +894,7 @@ function AddLoanDialog({ open, onOpenChange, userId, companyId, onSuccess }: {
                   <button key={emp.id} onClick={() => { setSelectedEmp(emp); setEmpSearch(""); setShowEmpDrop(false); }}
                     className="w-full text-right px-4 py-2.5 hover:bg-secondary transition-colors flex items-center justify-between">
                     <span className="text-sm">{emp.full_name}</span>
-                    <span className="text-xs text-muted-foreground">{emp.department || ""}</span>
+                    <span className="text-xs text-muted-foreground">{emp.job_title || ""}</span>
                   </button>
                 ))}
                 {filteredEmps.length === 0 && <p className="text-center py-3 text-xs text-muted-foreground">لا توجد نتائج</p>}
