@@ -4,6 +4,7 @@ import { Search, ChevronDown, ArrowLeft, Lock } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useOnboarding } from "@/hooks/useOnboarding";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
+import { useSubscription } from "@/hooks/useSubscription";
 import WelcomeModal from "@/components/onboarding/WelcomeModal";
 import SpotlightTour from "@/components/onboarding/SpotlightTour";
 
