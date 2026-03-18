@@ -222,8 +222,28 @@ export default function LoansPage() {
     <span>أعده: <strong style="color:#1a1a1a">${user?.email || "—"}</strong></span>
   </div>
 
-  <!-- SUMMARY TABLE -->
-  <div style="padding:20px 28px">
+  <!-- KPI CARDS -->
+  <div style="padding:20px 28px 0;display:flex;gap:12px;flex-wrap:wrap">
+    <div style="flex:1;min-width:140px;border:1px solid #e5e7eb;border-radius:10px;padding:14px 18px;text-align:center">
+      <div style="font-size:10px;color:#6B7280;margin-bottom:4px">إجمالي القروض النشطة</div>
+      <div style="font-size:16px;font-weight:700;color:#1B3A5C">₪ ${totalAmt.toLocaleString("en-US", { minimumFractionDigits: 2 })}</div>
+    </div>
+    <div style="flex:1;min-width:140px;border:1px solid #e5e7eb;border-radius:10px;padding:14px 18px;text-align:center">
+      <div style="font-size:10px;color:#6B7280;margin-bottom:4px">المتبقي للسداد</div>
+      <div style="font-size:16px;font-weight:700;color:#D97706">₪ ${totalRemaining.toLocaleString("en-US", { minimumFractionDigits: 2 })}</div>
+    </div>
+    <div style="flex:1;min-width:140px;border:1px solid #e5e7eb;border-radius:10px;padding:14px 18px;text-align:center">
+      <div style="font-size:10px;color:#6B7280;margin-bottom:4px">المدفوع</div>
+      <div style="font-size:16px;font-weight:700;color:#059669">₪ ${totalPaid.toLocaleString("en-US", { minimumFractionDigits: 2 })}</div>
+    </div>
+    <div style="flex:1;min-width:140px;border:1px solid #e5e7eb;border-radius:10px;padding:14px 18px;text-align:center">
+      <div style="font-size:10px;color:#6B7280;margin-bottom:4px">عدد القروض النشطة</div>
+      <div style="font-size:16px;font-weight:700;color:#1B3A5C">${activeLoans.length}</div>
+    </div>
+  </div>
+
+   <!-- SUMMARY TABLE -->
+   <div style="padding:20px 28px">
     <h3 style="font-size:14px;font-weight:700;margin-bottom:10px;color:#1B3A5C">📋 ملخص القروض النشطة</h3>
     <table style="font-size:11px">
       <thead>
