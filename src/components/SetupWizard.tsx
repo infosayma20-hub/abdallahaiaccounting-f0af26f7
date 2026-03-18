@@ -458,6 +458,9 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
                           style={{ textAlign: "left" }}
                         />
                       </div>
+                      {data.password.length > 0 && data.password.length < 6 && (
+                        <p className="text-xs text-destructive">كلمة المرور يجب أن تكون 6 أحرف على الأقل</p>
+                      )}
                       {data.confirmPassword.length > 0 && data.password !== data.confirmPassword && (
                         <p className="text-xs text-destructive">كلمتا المرور غير متطابقتين</p>
                       )}
