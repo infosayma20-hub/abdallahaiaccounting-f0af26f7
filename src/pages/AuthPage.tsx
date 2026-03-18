@@ -69,6 +69,7 @@ const AuthPage = () => {
       } else {
         const { error, data } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
+        localStorage.removeItem("trial_banner_dismissed");
         if (data.user) {
           const dest = await resolveRedirect(data.user.id);
           navigate(dest);
