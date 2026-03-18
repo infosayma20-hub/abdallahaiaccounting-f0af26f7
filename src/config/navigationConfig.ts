@@ -29,6 +29,8 @@ export interface NavItem {
   keywords?: string[];
   groups?: NavGroup[];      // sub-groups (sidebar accordion + app card expansion)
   isDirect?: boolean;       // no expansion, just a link
+  /** Setting key that must be truthy to consider this app "enabled". If undefined → always enabled */
+  enableSetting?: string;
 }
 
 export interface NavSection {
