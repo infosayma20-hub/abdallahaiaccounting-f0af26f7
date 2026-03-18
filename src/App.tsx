@@ -124,6 +124,12 @@ import TaskLoginPage from "./pages/tasks/TaskLoginPage";
 import TaskBoardPage from "./pages/tasks/TaskBoardPage";
 import TaskAdminPage from "./pages/tasks/TaskAdminPage";
 import TaskDisplayPage from "./pages/tasks/TaskDisplayPage";
+import TravelDashboard from "./pages/travel/TravelDashboard";
+import TravelBookingsPage from "./pages/travel/TravelBookingsPage";
+import TravelBookingFormPage from "./pages/travel/TravelBookingFormPage";
+import TravelSuppliersPage from "./pages/travel/TravelSuppliersPage";
+import TravelPackagesPage from "./pages/travel/TravelPackagesPage";
+import TravelReportsPage from "./pages/travel/TravelReportsPage";
 
 const queryClient = new QueryClient();
 
