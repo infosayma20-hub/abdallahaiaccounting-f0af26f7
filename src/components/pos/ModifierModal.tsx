@@ -220,10 +220,11 @@ export default function ModifierModal({
 
   return (
     <div
-      className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60]"
+      className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60] p-4"
       dir="rtl"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="bg-card w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl border border-border">
+      <div className="bg-card w-full max-w-md rounded-2xl max-h-[85vh] overflow-hidden flex flex-col shadow-2xl border border-border">
         {/* Header */}
         <div className="flex items-start justify-between p-4 border-b border-border">
           <div>
