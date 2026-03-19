@@ -72,6 +72,7 @@ import SupportAdminPage from "./pages/SupportAdminPage";
 import POSPage from "./pages/POSPage";
 import POSUserManagementPage from "./pages/POSUserManagementPage";
 import POSReportsPage from "./pages/POSReportsPage";
+import POSCustomerDatabasePage from "./pages/POSCustomerDatabasePage";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 // PurchasePointPage removed — replaced by procurement module
 import FloorPlanPage from "./pages/FloorPlanPage";
@@ -371,6 +372,7 @@ const App = () => (
                       <Route path="/support/tickets/:id" element={<TicketDetailPage />} />
                       <Route path="/support/admin" element={<RoleGuard allowedRoles={["admin"]}><SupportAdminPage /></RoleGuard>} />
                       <Route path="/pos-users" element={<POSUserManagementPage />} />
+                      <Route path="/pos-customers" element={<POSCustomerDatabasePage />} />
                       <Route path="/pos-reports" element={<POSReportsPage />} />
                       <Route path="/customer-reports" element={<CustomerReportsPage />} />
                       <Route path="/contractor" element={<ContractorApp />} />

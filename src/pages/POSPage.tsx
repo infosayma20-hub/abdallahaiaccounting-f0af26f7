@@ -16,7 +16,7 @@ import {
   UtensilsCrossed, Gamepad2, Shirt, Monitor, ShoppingBag, Printer,
   Apple, Zap, Coffee, Box, BarChart3, TrendingUp, PlusCircle, Tag,
   Eye, EyeOff, UserCheck, LayoutGrid, Grid3X3, Grid2X2, GripVertical,
-  FileText, Keyboard, MoreHorizontal, RefreshCw, ChefHat, Sun, Moon,
+  FileText, Keyboard, MoreHorizontal, RefreshCw, ChefHat, Sun, Moon, Phone, MapPin,
 } from "lucide-react";
 import { useTheme } from "@/hooks/useTheme";
 import TableSelectorBar, { type TableBarItem } from "@/components/pos/TableSelectorBar";
@@ -79,6 +79,8 @@ interface OrderTab {
   cart: CartItem[];
   customerName: string;
   customerId: string | null;
+  customerPhone: string;
+  posCustomerId: string | null;
   orderDiscount: number;
   orderDiscountType: "fixed" | "percent";
   orderNote: string;
@@ -87,6 +89,17 @@ interface OrderTab {
   tableName: string | null;
   guestCount: number;
   guestName: string;
+  orderType: "dine_in" | "takeaway" | "delivery";
+  deliveryAddress: string;
+}
+
+interface POSCustomer {
+  id: string;
+  name: string | null;
+  whatsapp: string | null;
+  address: string | null;
+  total_visits: number | null;
+  total_spent: number | null;
 }
 
 const POSThemeToggle = () => {
@@ -111,6 +124,8 @@ const createNewOrder = (index: number, tableId?: string | null, tableName?: stri
   cart: [],
   customerName: guestName || "",
   customerId: null,
+  customerPhone: "",
+  posCustomerId: null,
   orderDiscount: 0,
   orderDiscountType: "fixed",
   orderNote: "",
@@ -119,6 +134,8 @@ const createNewOrder = (index: number, tableId?: string | null, tableName?: stri
   tableName: tableName || null,
   guestCount: guestCount || 1,
   guestName: guestName || "",
+  orderType: tableId ? "dine_in" : "takeaway",
+  deliveryAddress: "",
 });
 
 interface Product {
@@ -321,8 +338,15 @@ const POSPage = () => {
     }));
   }, [updateActiveOrder]);
 
-  const setCustomerName = useCallback((name: string, contactId?: string | null) => {
-    updateActiveOrder(o => ({ ...o, customerName: name, customerId: contactId !== undefined ? contactId : o.customerId }));
+  const setCustomerName = useCallback((name: string, contactId?: string | null, phone?: string, posCustomerId?: string | null) => {
+    updateActiveOrder(o => ({
+      ...o,
+      customerName: name,
+      customerId: contactId !== undefined ? contactId : o.customerId,
+      customerPhone: phone !== undefined ? phone : o.customerPhone,
+      posCustomerId: posCustomerId !== undefined ? posCustomerId : o.posCustomerId,
+      name: name && !o.tableId ? name : o.name,
+    }));
   }, [updateActiveOrder]);
 
   const setOrderDiscount = useCallback((d: number) => {
@@ -362,6 +386,7 @@ const POSPage = () => {
   const [showOrderNoteInput, setShowOrderNoteInput] = useState(false);
   const [showTablePicker, setShowTablePicker] = useState(false);
   const [availableTables, setAvailableTables] = useState<{ id: string; name: string; seats: number; status: string; section_name: string }[]>([]);
+  const [posCustomerResults, setPosCustomerResults] = useState<POSCustomer[]>([]);
 
   // Dialogs
   const [showOpenShift, setShowOpenShift] = useState(false);
@@ -385,6 +410,7 @@ const POSPage = () => {
   const [showQuickAddCustomer, setShowQuickAddCustomer] = useState(false);
   const [newCustomerName, setNewCustomerName] = useState("");
   const [newCustomerPhone, setNewCustomerPhone] = useState("");
+  const [newCustomerAddress, setNewCustomerAddress] = useState("");
   const [savingCustomer, setSavingCustomer] = useState(false);
   const [openingCash, setOpeningCash] = useState("");
   const [closingCash, setClosingCash] = useState("");
@@ -1099,10 +1125,24 @@ const POSPage = () => {
     return contacts.filter(c => c.contact_name.toLowerCase().includes(q));
   }, [contacts, customerSearch]);
 
+  // Search POS customers by name or phone
+  const searchPosCustomers = useCallback(async (query: string) => {
+    if (!query || query.length < 2 || !dataOwnerId) { setPosCustomerResults([]); return; }
+    const q = `%${query}%`;
+    const { data } = await supabase
+      .from("pos_customers")
+      .select("id, name, whatsapp, address, total_visits, total_spent")
+      .eq("user_id", dataOwnerId)
+      .or(`name.ilike.${q},whatsapp.ilike.${q}`)
+      .limit(10);
+    setPosCustomerResults((data as POSCustomer[]) || []);
+  }, [dataOwnerId]);
+
   const handleQuickAddCustomer = async () => {
     if (!newCustomerName.trim() || !dataOwnerId) return;
     setSavingCustomer(true);
     try {
+      // Save to contacts
       const { data, error } = await supabase
         .from("contacts")
         .insert({
@@ -1115,9 +1155,26 @@ const POSPage = () => {
         .select("id, contact_name")
         .single();
       if (error) throw error;
+
+      // Also save to pos_customers
+      const { data: posCustomer } = await supabase
+        .from("pos_customers")
+        .insert({
+          user_id: dataOwnerId,
+          name: newCustomerName.trim(),
+          whatsapp: newCustomerPhone.trim() || null,
+          address: newCustomerAddress.trim() || null,
+          total_visits: 0,
+          total_spent: 0,
+          marketing_consent: true,
+          consent_date: new Date().toISOString(),
+        } as any)
+        .select("id")
+        .single();
+
       if (data) {
         setContacts(prev => [...prev, data]);
-        setCustomerName(data.contact_name, data.id);
+        setCustomerName(data.contact_name, data.id, newCustomerPhone.trim(), posCustomer?.id || null);
         setCustomerSearch("");
         setShowContactDropdown(false);
         toast.success(`تمت إضافة الزبون "${data.contact_name}" بنجاح`);
@@ -1129,6 +1186,7 @@ const POSPage = () => {
     setShowQuickAddCustomer(false);
     setNewCustomerName("");
     setNewCustomerPhone("");
+    setNewCustomerAddress("");
   };
 
   const categoriesWithCounts = useMemo(() => {
@@ -1505,6 +1563,9 @@ const POSPage = () => {
           customer_id: activeOrder.customerId || null,
           guest_count: activeOrder.guestCount,
           guest_name: activeOrder.guestName || null,
+          order_type: activeOrder.orderType,
+          delivery_address: activeOrder.orderType === "delivery" ? activeOrder.deliveryAddress : null,
+          pos_customer_id: activeOrder.posCustomerId || null,
         } as any).eq("id", existingOrder.id);
       } else {
         // Create new draft order
@@ -1524,7 +1585,9 @@ const POSPage = () => {
             table_id: activeOrder.tableId,
             guest_count: activeOrder.guestCount,
             guest_name: activeOrder.guestName || null,
-            order_type: "dine_in",
+            order_type: activeOrder.orderType,
+            delivery_address: activeOrder.orderType === "delivery" ? activeOrder.deliveryAddress : null,
+            pos_customer_id: activeOrder.posCustomerId || null,
           } as any)
           .select()
           .single();
@@ -1628,10 +1691,12 @@ const POSPage = () => {
     } else {
       const newOrder: OrderTab = {
         id: crypto.randomUUID(),
-        name: tableName,
+        name: order.customer_name || tableName,
         cart: cartItems,
         customerName: order.customer_name || "",
         customerId: (order as any).customer_id || null,
+        customerPhone: "",
+        posCustomerId: (order as any).pos_customer_id || null,
         orderDiscount: Number(order.discount_amount) || 0,
         orderDiscountType: "fixed",
         orderNote: "",
@@ -1640,6 +1705,8 @@ const POSPage = () => {
         tableName,
         guestCount: (order as any).guest_count || 1,
         guestName: (order as any).guest_name || "",
+        orderType: (order as any).order_type || "dine_in",
+        deliveryAddress: (order as any).delivery_address || "",
       };
       setOrders(prev => [...prev, newOrder]);
       setActiveOrderIndex(orders.length);
@@ -1685,6 +1752,9 @@ const POSPage = () => {
             discount_amount: effectiveDiscount,
             tax_amount: cartTotals.tax,
             total: effectiveTotal,
+            order_type: activeOrder.orderType,
+            delivery_address: activeOrder.orderType === "delivery" ? activeOrder.deliveryAddress : null,
+            pos_customer_id: activeOrder.posCustomerId || null,
             ...(customerDataDiscount ? { pos_customer_id: customerDataDiscount.customerId, customer_discount_pct: customerDataDiscount.discountPct } as any : {}),
             session_id: session.id,
           } as any).eq("id", existingOrder.id);
@@ -1708,7 +1778,9 @@ const POSPage = () => {
               table_id: activeOrder.tableId,
               guest_count: activeOrder.guestCount,
               guest_name: activeOrder.guestName || null,
-              order_type: "dine_in",
+              order_type: activeOrder.orderType,
+              delivery_address: activeOrder.orderType === "delivery" ? activeOrder.deliveryAddress : null,
+              pos_customer_id: activeOrder.posCustomerId || null,
               ...(customerDataDiscount ? { pos_customer_id: customerDataDiscount.customerId, customer_discount_pct: customerDataDiscount.discountPct } as any : {}),
             } as any)
             .select()
@@ -1731,6 +1803,9 @@ const POSPage = () => {
             tax_amount: cartTotals.tax,
             total: effectiveTotal,
             state: "draft",
+            order_type: activeOrder.orderType,
+            delivery_address: activeOrder.orderType === "delivery" ? activeOrder.deliveryAddress : null,
+            pos_customer_id: activeOrder.posCustomerId || null,
             ...(customerDataDiscount ? { pos_customer_id: customerDataDiscount.customerId, customer_discount_pct: customerDataDiscount.discountPct } as any : {}),
           } as any)
           .select()
@@ -2885,7 +2960,9 @@ const POSPage = () => {
                   }`}
                 >
                   <ShoppingCart className="h-3 w-3" />
-                  <span>{order.name}</span>
+                  <span>{order.customerName || order.name}</span>
+                  {order.orderType === "delivery" && <span className="text-[10px]">🚚</span>}
+                  {order.orderType === "takeaway" && <span className="text-[10px]">🛍️</span>}
                   {itemCount > 0 && (
                     <span className={`text-[10px] font-bold rounded-full px-1.5 py-0 ${
                       isActive ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"
@@ -2941,16 +3018,25 @@ const POSPage = () => {
               {activeOrder.tableName && (
                 <span className="text-xs font-semibold text-primary flex items-center gap-1 bg-primary/10 px-2 py-0.5 rounded-md">
                   <UtensilsCrossed className="h-3 w-3" />
-                  {activeOrder.tableName}
+                  {activeOrder.tableName}{activeOrder.customerName ? ` - ${activeOrder.customerName}` : ""}
                 </span>
               )}
-              {activeOrder.customerName ? (
+              {!activeOrder.tableName && activeOrder.customerName ? (
                 <span className="text-xs font-medium text-foreground flex items-center gap-1">
                   <User className="h-3 w-3" />
                   {activeOrder.customerName}
                 </span>
-              ) : (
-                <span className="text-xs text-muted-foreground/60">{activeOrder.tableName ? "" : "بدون زبون"}</span>
+              ) : !activeOrder.tableName ? (
+                <span className="text-xs text-muted-foreground/60">بدون زبون</span>
+              ) : null}
+              {activeOrder.orderType !== "dine_in" && (
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold ${
+                  activeOrder.orderType === "delivery" 
+                    ? "bg-amber-100 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400" 
+                    : "bg-sky-100 text-sky-700 dark:bg-sky-950/30 dark:text-sky-400"
+                }`}>
+                  {activeOrder.orderType === "delivery" ? "🚚 توصيل" : "🛍️ استلام"}
+                </span>
               )}
             </div>
             {cart.length > 0 && (
@@ -3187,6 +3273,32 @@ const POSPage = () => {
                   </button>
                 </div>
 
+                {/* Order Type Toggle (Delivery / Takeaway / Dine-in) */}
+                <div className="flex items-center gap-1 text-[11px]">
+                  {(["dine_in", "takeaway", "delivery"] as const).map(type => {
+                    const isActive = activeOrder.orderType === type;
+                    const labels: Record<string, { label: string; icon: string }> = {
+                      dine_in: { label: "محلي", icon: "🍽️" },
+                      takeaway: { label: "استلام", icon: "🛍️" },
+                      delivery: { label: "توصيل", icon: "🚚" },
+                    };
+                    return (
+                      <button
+                        key={type}
+                        onClick={() => updateActiveOrder(o => ({ ...o, orderType: type }))}
+                        className={`flex items-center gap-1 px-2 py-1 rounded-md transition-all ${
+                          isActive
+                            ? "bg-primary/15 text-primary border border-primary/30 font-bold"
+                            : "bg-muted/40 text-muted-foreground hover:bg-muted/60"
+                        }`}
+                      >
+                        <span>{labels[type].icon}</span>
+                        {labels[type].label}
+                      </button>
+                    );
+                  })}
+                </div>
+
                 {/* Table picker */}
                 {showTablePicker && (
                   <div className="relative">
@@ -3246,51 +3358,105 @@ const POSPage = () => {
 
                 {/* Customer input */}
                 {showCustomerInput && (
-                  <div className="relative">
-                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">@</span>
-                    <Input
-                      value={customerSearch || customerName}
-                      onChange={(e) => {
-                        setCustomerSearch(e.target.value);
-                        setCustomerName(e.target.value, null);
-                        setShowContactDropdown(true);
-                      }}
-                      onFocus={() => setShowContactDropdown(true)}
-                      placeholder="ابحث عن زبون..."
-                      className="h-8 text-xs pr-7"
-                      autoFocus
-                    />
-                    {showContactDropdown && (
-                      <div className="absolute z-50 w-full bottom-full mb-1 bg-popover border border-border rounded-lg shadow-lg max-h-32 overflow-y-auto">
-                        {filteredContacts.map((contact) => (
+                  <div className="space-y-1.5">
+                    <div className="relative">
+                      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">@</span>
+                      <Input
+                        value={customerSearch || customerName}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setCustomerSearch(val);
+                          setCustomerName(val, null);
+                          setShowContactDropdown(true);
+                          searchPosCustomers(val);
+                        }}
+                        onFocus={() => setShowContactDropdown(true)}
+                        placeholder="ابحث بالاسم أو رقم الجوال..."
+                        className="h-8 text-xs pr-7"
+                        autoFocus
+                      />
+                      {showContactDropdown && (
+                        <div className="absolute z-50 w-full bottom-full mb-1 bg-popover border border-border rounded-lg shadow-lg max-h-44 overflow-y-auto">
+                          {/* POS Customers (priority) */}
+                          {posCustomerResults.length > 0 && (
+                            <>
+                              <p className="px-3 py-1 text-[10px] text-muted-foreground font-semibold border-b border-border bg-muted/30">زبائن نقطة البيع</p>
+                              {posCustomerResults.map((pc) => (
+                                <button
+                                  key={pc.id}
+                                  onClick={() => {
+                                    setCustomerName(pc.name || "", null, pc.whatsapp || "", pc.id);
+                                    if (pc.address) updateActiveOrder(o => ({ ...o, deliveryAddress: pc.address || "" }));
+                                    setCustomerSearch("");
+                                    setShowContactDropdown(false);
+                                    setShowCustomerInput(false);
+                                  }}
+                                  className="w-full px-3 py-1.5 text-xs text-right hover:bg-muted/50 transition flex items-center justify-between gap-2"
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <UserCheck className="h-3 w-3 text-emerald-600 shrink-0" />
+                                    <span className="font-medium">{pc.name || pc.whatsapp}</span>
+                                    {pc.whatsapp && <span className="text-[10px] text-muted-foreground font-mono">{pc.whatsapp}</span>}
+                                  </div>
+                                  <span className="text-[10px] text-muted-foreground">{pc.total_visits || 0} زيارة</span>
+                                </button>
+                              ))}
+                            </>
+                          )}
+                          {/* System contacts */}
+                          {filteredContacts.length > 0 && (
+                            <>
+                              <p className="px-3 py-1 text-[10px] text-muted-foreground font-semibold border-b border-border bg-muted/30">جهات الاتصال</p>
+                              {filteredContacts.map((contact) => (
+                                <button
+                                  key={contact.id}
+                                  onClick={() => {
+                                    setCustomerName(contact.contact_name, contact.id);
+                                    setCustomerSearch("");
+                                    setShowContactDropdown(false);
+                                    setShowCustomerInput(false);
+                                  }}
+                                  className="w-full px-3 py-1.5 text-xs text-right hover:bg-muted/50 transition flex items-center gap-2"
+                                >
+                                  <User className="h-3 w-3 text-muted-foreground shrink-0" />
+                                  <span>{contact.contact_name}</span>
+                                </button>
+                              ))}
+                            </>
+                          )}
                           <button
-                            key={contact.id}
                             onClick={() => {
-                              setCustomerName(contact.contact_name, contact.id);
-                              setCustomerSearch("");
+                              setNewCustomerName(customerSearch || "");
+                              setShowQuickAddCustomer(true);
                               setShowContactDropdown(false);
-                              setShowCustomerInput(false);
                             }}
-                            className="w-full px-3 py-1.5 text-xs text-right hover:bg-muted/50 transition flex items-center gap-2"
+                            className="w-full px-3 py-1.5 text-xs text-right hover:bg-primary/10 transition flex items-center gap-2 border-t border-border text-primary font-medium"
                           >
-                            <User className="h-3 w-3 text-muted-foreground shrink-0" />
-                            <span>{contact.contact_name}</span>
+                            <PlusCircle className="h-3 w-3 shrink-0" />
+                            <span>إضافة زبون جديد</span>
                           </button>
-                        ))}
-                        <button
-                          onClick={() => {
-                            setNewCustomerName(customerSearch || "");
-                            setShowQuickAddCustomer(true);
-                            setShowContactDropdown(false);
-                          }}
-                          className="w-full px-3 py-1.5 text-xs text-right hover:bg-primary/10 transition flex items-center gap-2 border-t border-border text-primary font-medium"
-                        >
-                          <PlusCircle className="h-3 w-3 shrink-0" />
-                          <span>إضافة زبون جديد</span>
-                        </button>
+                        </div>
+                      )}
+                    </div>
+                    {/* Phone input */}
+                    {activeOrder.customerPhone && (
+                      <div className="flex items-center gap-2 text-[11px] text-muted-foreground bg-muted/30 rounded-md px-2 py-1">
+                        <Phone className="h-3 w-3 shrink-0" />
+                        <span className="font-mono">{activeOrder.customerPhone}</span>
                       </div>
                     )}
                   </div>
+                )}
+
+                {/* Delivery address input */}
+                {activeOrder.orderType === "delivery" && (
+                  <Input
+                    value={activeOrder.deliveryAddress}
+                    onChange={(e) => updateActiveOrder(o => ({ ...o, deliveryAddress: e.target.value }))}
+                    placeholder="📍 عنوان التوصيل..."
+                    className="h-8 text-xs bg-amber-50 dark:bg-amber-950/20 border-amber-300/50"
+                    autoFocus={!activeOrder.deliveryAddress}
+                  />
                 )}
 
                 {/* Order note input */}
@@ -4428,6 +4594,15 @@ const POSPage = () => {
                 className="h-10"
                 dir="ltr"
                 type="tel"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">العنوان (اختياري)</label>
+              <Input
+                value={newCustomerAddress}
+                onChange={(e) => setNewCustomerAddress(e.target.value)}
+                placeholder="المدينة، الشارع..."
+                className="h-10"
               />
             </div>
           </div>

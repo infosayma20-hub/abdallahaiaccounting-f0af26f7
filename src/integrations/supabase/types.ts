@@ -5787,6 +5787,7 @@ export type Database = {
       }
       pos_customers: {
         Row: {
+          address: string | null
           age_group: string | null
           consent_date: string | null
           created_at: string | null
@@ -5804,6 +5805,7 @@ export type Database = {
           whatsapp: string | null
         }
         Insert: {
+          address?: string | null
           age_group?: string | null
           consent_date?: string | null
           created_at?: string | null
@@ -5821,6 +5823,7 @@ export type Database = {
           whatsapp?: string | null
         }
         Update: {
+          address?: string | null
           age_group?: string | null
           consent_date?: string | null
           created_at?: string | null
@@ -6112,6 +6115,7 @@ export type Database = {
           customer_discount_pct: number | null
           customer_id: string | null
           customer_name: string | null
+          delivery_address: string | null
           digital_receipt_sent: boolean | null
           discount_amount: number
           discount_type: string | null
@@ -6164,6 +6168,7 @@ export type Database = {
           customer_discount_pct?: number | null
           customer_id?: string | null
           customer_name?: string | null
+          delivery_address?: string | null
           digital_receipt_sent?: boolean | null
           discount_amount?: number
           discount_type?: string | null
@@ -6216,6 +6221,7 @@ export type Database = {
           customer_discount_pct?: number | null
           customer_id?: string | null
           customer_name?: string | null
+          delivery_address?: string | null
           digital_receipt_sent?: boolean | null
           discount_amount?: number
           discount_type?: string | null
