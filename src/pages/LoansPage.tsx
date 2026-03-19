@@ -842,7 +842,7 @@ function AddLoanDialog({ open, onOpenChange, userId, companyId, onSuccess }: {
         .from("transactions")
         .insert({
           user_id: userId,
-          transaction_date: firstPaymentDate,
+          transaction_date: new Date().toISOString().split("T")[0],
           description: `قرض حسن - ${selectedEmp.full_name} - مبلغ ${fmtCurrency(amount)} - من ${creditLabel}`,
           debit_account_code: empAccountCode,
           credit_account_code: creditAccountCode,
