@@ -1986,13 +1986,14 @@ const POSPage = () => {
       if (paymentMethod === "employee_account" && selectedEmployee) {
         const now = new Date();
         const itemsSummary = cart.map(i => `${i.name} x${i.qty}`).join(", ");
+        const noteStr = employeeNote.trim() ? ` | ${employeeNote.trim()}` : "";
         await supabase.from("employee_financial_movements").insert({
           user_id: dataOwnerId,
           employee_id: selectedEmployee.id,
           source_type: "pos_meal",
           source_id: orderId,
           source_reference: res.order_number,
-          description: `مسحوبات POS - ${itemsSummary}`.slice(0, 200),
+          description: `مسحوبات POS - ${itemsSummary}${noteStr}`.slice(0, 250),
           amount: cartTotals.total,
           movement_type: "debit",
           status: "approved",
