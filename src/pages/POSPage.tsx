@@ -410,6 +410,7 @@ const POSPage = () => {
   const [showQuickAddCustomer, setShowQuickAddCustomer] = useState(false);
   const [newCustomerName, setNewCustomerName] = useState("");
   const [newCustomerPhone, setNewCustomerPhone] = useState("");
+  const [newCustomerAddress, setNewCustomerAddress] = useState("");
   const [savingCustomer, setSavingCustomer] = useState(false);
   const [openingCash, setOpeningCash] = useState("");
   const [closingCash, setClosingCash] = useState("");
