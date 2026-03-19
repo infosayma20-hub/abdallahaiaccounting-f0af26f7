@@ -38,7 +38,7 @@ export default function AddTaskModal({ open, onClose, taskUsers, onSaved, editTa
   const [category, setCategory] = useState(editTask?.category || "");
   const [dueDate, setDueDate] = useState(editTask?.due_date || "");
   const [dueTime, setDueTime] = useState(editTask?.due_time?.slice(0, 5) || "");
-  const [assignTo, setAssignTo] = useState(editTask?.assigned_to || "");
+  const [assignTo, setAssignTo] = useState(editTask?.assigned_to || "none");
   const [visibleToAll, setVisibleToAll] = useState(editTask?.is_visible_to_all ?? true);
   const [saving, setSaving] = useState(false);
 
@@ -63,7 +63,7 @@ export default function AddTaskModal({ open, onClose, taskUsers, onSaved, editTa
     } else {
       payload.user_id = user.id;
       payload.created_by = taskUser.id;
-      if (assignTo) {
+      if (assignTo && assignTo !== "none") {
         payload.assigned_to = assignTo;
         payload.assigned_at = new Date().toISOString();
         payload.status = "in_progress";
@@ -120,7 +120,7 @@ export default function AddTaskModal({ open, onClose, taskUsers, onSaved, editTa
               <Select value={assignTo} onValueChange={setAssignTo}>
                 <SelectTrigger><SelectValue placeholder="بدون تكليف" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">بدون تكليف</SelectItem>
+                  <SelectItem value="none">بدون تكليف</SelectItem>
                   {taskUsers.map(u => <SelectItem key={u.id} value={u.id}>{u.full_name}</SelectItem>)}
                 </SelectContent>
               </Select>
