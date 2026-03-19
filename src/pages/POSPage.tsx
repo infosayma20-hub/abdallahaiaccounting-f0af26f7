@@ -4250,7 +4250,7 @@ const POSPage = () => {
                     return (
                       <button
                         key={amt}
-                        onClick={() => setTenderedAmount(String(amt))}
+                        onClick={() => { setTenderedAmount(String(amt)); setManualChangeAmount(null); }}
                         className="flex-1 py-2 text-xs rounded-lg bg-muted/60 hover:bg-primary/10 hover:text-primary transition-all font-medium tabular-nums"
                       >
                         {cur?.symbol}{amt}
