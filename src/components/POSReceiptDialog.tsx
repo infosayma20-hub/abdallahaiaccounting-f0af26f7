@@ -34,6 +34,7 @@ interface ReceiptData {
   tableName?: string;
   guestCount?: number;
   orderType?: "dine_in" | "takeaway" | "delivery";
+  customerPhone?: string;
   deliveryAddress?: string;
   items: ReceiptItem[];
   subtotal: number;
