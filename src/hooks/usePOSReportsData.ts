@@ -165,7 +165,7 @@ export function usePOSReportsData() {
 
   // Computed KPIs
   const paidOrders = useMemo(() => orders.filter(o => o.state === "paid" && !o.is_return), [orders]);
-  const returnOrders = useMemo(() => orders.filter(o => o.is_return), [orders]);
+  const returnOrders = useMemo(() => orders.filter(o => o.is_return && o.state !== "cancelled"), [orders]);
 
   const totalSales = useMemo(() => paidOrders.reduce((s, o) => s + o.total, 0), [paidOrders]);
   const totalReturns = useMemo(() => returnOrders.reduce((s, o) => s + o.total, 0), [returnOrders]);
