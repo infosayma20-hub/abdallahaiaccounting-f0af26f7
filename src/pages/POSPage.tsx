@@ -2070,6 +2070,7 @@ const POSPage = () => {
         companyName: company?.name || "شركتي",
         terminalName: terminal?.name || "نقطة بيع",
         customerName: customerName,
+        customerPhone: activeOrder.customerPhone || "",
         tableName: tableName || undefined,
         guestCount: activeOrder.tableId ? activeOrder.guestCount : undefined,
         items: cart.map(item => ({

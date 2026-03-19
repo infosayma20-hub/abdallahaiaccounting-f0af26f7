@@ -274,6 +274,12 @@ export default function POSReceiptDialog({ open, onOpenChange, data, showReturnP
                   <span style={{ fontWeight: 500, color: "#334155" }}>{data.customerName}</span>
                 </div>
               )}
+              {data.customerPhone && (
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "2px 0", fontSize: "11px" }}>
+                  <span style={{ color: "#64748b" }}>الجوال</span>
+                  <span style={{ fontWeight: 500, color: "#334155", direction: "ltr" }}>{data.customerPhone}</span>
+                </div>
+              )}
               {data.orderType === "delivery" && data.deliveryAddress && (
                 <div style={{ display: "flex", justifyContent: "space-between", padding: "2px 0", fontSize: "11px" }}>
                   <span style={{ color: "#64748b" }}>عنوان التوصيل</span>
