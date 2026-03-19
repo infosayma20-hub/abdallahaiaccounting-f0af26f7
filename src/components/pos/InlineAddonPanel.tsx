@@ -1,4 +1,5 @@
-import { useState, useMemo, useEffect, useRef, useCallback } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback, useLayoutEffect } from "react";
+import { createPortal } from "react-dom";
 import { X, Check, Minus, Plus } from "lucide-react";
 import { motion } from "framer-motion";
 import type { SelectedModifier } from "@/components/pos/ModifierModal";
@@ -43,6 +44,7 @@ interface Props {
 
 export default function InlineAddonPanel({ product, groups, onConfirm, onClose, flipUp = false }: Props) {
   const panelRef = useRef<HTMLDivElement>(null);
+  const [portalPos, setPortalPos] = useState<{ top: number; left: number; width: number; flipUp: boolean } | null>(null);
 
   const [selected, setSelected] = useState<Record<string, string[]>>(() => {
     const defaults: Record<string, string[]> = {};
@@ -53,6 +55,25 @@ export default function InlineAddonPanel({ product, groups, onConfirm, onClose, 
   });
   const [note, setNote] = useState("");
   const [quantity, setQuantity] = useState(1);
+
+  // Position the portal panel relative to the parent card
+  useLayoutEffect(() => {
+    // Find the parent card element
+    const panel = panelRef.current;
+    if (!panel) return;
+    const card = panel.closest("[data-addon-card]") as HTMLElement;
+    if (!card) return;
+    const rect = card.getBoundingClientRect();
+    const panelHeight = 400;
+    const viewH = window.innerHeight;
+    const shouldFlip = rect.bottom + panelHeight > viewH && rect.top > panelHeight;
+    setPortalPos({
+      top: shouldFlip ? rect.top : rect.bottom + 6,
+      left: rect.left,
+      width: Math.max(rect.width, 280),
+      flipUp: shouldFlip,
+    });
+  }, []);
 
   // Close on Escape
   useEffect(() => {
@@ -65,12 +86,10 @@ export default function InlineAddonPanel({ product, groups, onConfirm, onClose, 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
-      // Check if click is inside the panel or parent card
       if (panelRef.current && !panelRef.current.contains(target) && !target.closest("[data-addon-card]")) {
         onClose();
       }
     };
-    // Delay to avoid immediate close from the opening click
     const timer = setTimeout(() => document.addEventListener("mousedown", handler), 50);
     return () => { clearTimeout(timer); document.removeEventListener("mousedown", handler); };
   }, [onClose]);
@@ -133,20 +152,23 @@ export default function InlineAddonPanel({ product, groups, onConfirm, onClose, 
     return "grid-cols-3";
   };
 
-  const positionStyles: React.CSSProperties = flipUp
-    ? { bottom: "calc(100% + 6px)", top: "auto", left: 0, right: 0 }
-    : { top: "calc(100% + 6px)", left: 0, right: 0 };
+  const positionStyles: React.CSSProperties = portalPos
+    ? { position: "fixed", top: portalPos.flipUp ? portalPos.top - 6 : portalPos.top, left: portalPos.left, width: portalPos.width, transform: portalPos.flipUp ? "translateY(-100%)" : undefined }
+    : flipUp
+      ? { position: "absolute", bottom: "calc(100% + 6px)", top: "auto", left: 0, right: 0 }
+      : { position: "absolute", top: "calc(100% + 6px)", left: 0, right: 0 };
 
-  return (
+  const panel = (
     <motion.div
       ref={panelRef}
       initial={{ opacity: 0, y: flipUp ? 8 : -8, scale: 0.97 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: flipUp ? 6 : -6 }}
       transition={{ duration: 0.2, ease: [0.34, 1.56, 0.64, 1] }}
-      className="absolute z-50 min-w-[260px] overflow-hidden rounded-[14px] border border-border bg-card"
+      className="min-w-[260px] overflow-hidden rounded-[14px] border border-border bg-card"
       style={{
         ...positionStyles,
+        zIndex: 9999,
         boxShadow: "0 8px 32px rgba(10,35,66,0.18), 0 2px 8px rgba(10,35,66,0.08)",
       }}
       dir="rtl"
@@ -320,4 +342,9 @@ export default function InlineAddonPanel({ product, groups, onConfirm, onClose, 
       </div>
     </motion.div>
   );
+
+  if (portalPos) {
+    return createPortal(panel, document.body);
+  }
+  return panel;
 }
