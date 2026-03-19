@@ -140,11 +140,24 @@ const QUICK_PERIODS = [
 
 const CURRENCIES = [
   { value: "all", label: "كل العملات" },
-  { value: "شيكل", label: "₪ شيكل" },
-  { value: "دولار", label: "$ دولار" },
-  { value: "دينار", label: "د.أ دينار" },
-  { value: "يورو", label: "€ يورو" },
+  { value: "شيكل", label: "₪ شيكل", aliases: ["ILS", "شيكل"] },
+  { value: "دولار", label: "$ دولار", aliases: ["USD", "دولار"] },
+  { value: "دينار", label: "د.أ دينار", aliases: ["JOD", "دينار"] },
+  { value: "يورو", label: "€ يورو", aliases: ["EUR", "يورو"] },
+  { value: "جنيه", label: "£ جنيه", aliases: ["EGP", "جنيه"] },
 ];
+
+const normalizeCurrency = (c: string): string => {
+  if (!c) return "شيكل";
+  const map: Record<string, string> = {
+    "ILS": "شيكل", "شيكل": "شيكل",
+    "USD": "دولار", "دولار": "دولار",
+    "JOD": "دينار", "دينار": "دينار",
+    "EUR": "يورو", "يورو": "يورو",
+    "EGP": "جنيه", "جنيه": "جنيه",
+  };
+  return map[c] || c;
+};
 
 const TX_TYPE_FILTERS = [
   { value: "all", label: "الكل" },
@@ -156,9 +169,18 @@ const TX_TYPE_FILTERS = [
 ];
 
 // ─── FORMAT HELPERS ───
+const getCurrencySymbol = (c: string): string => {
+  const norm = normalizeCurrency(c);
+  if (norm === "دولار") return "$";
+  if (norm === "دينار") return "د.أ";
+  if (norm === "يورو") return "€";
+  if (norm === "جنيه") return "£";
+  return "₪";
+};
+
 const fmtAmount = (n: number, currency?: string) => {
   if (n === 0) return "—";
-  const symbol = currency === "دولار" ? "$" : currency === "دينار" ? "د.أ" : currency === "يورو" ? "€" : "₪";
+  const symbol = getCurrencySymbol(currency || "شيكل");
   return `${symbol}${Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 };
 
@@ -964,7 +986,7 @@ const AccountStatementPage = () => {
 
     // Currency filter
     if (selectedCurrency !== "all") {
-      related = related.filter(tx => tx.currency === selectedCurrency);
+      related = related.filter(tx => normalizeCurrency(tx.currency) === selectedCurrency);
     }
 
     let openBal = 0;
@@ -1012,7 +1034,7 @@ const AccountStatementPage = () => {
         debit, credit,
         balance: runningBalance,
         transaction_id: tx.id,
-        currency: tx.currency || "شيكل",
+        currency: normalizeCurrency(tx.currency),
         payment_method: tx.payment_method || null,
         dueDate,
       };
@@ -1072,7 +1094,26 @@ const AccountStatementPage = () => {
     } catch { return null; }
   }, [showYearComparison, selectedEntityId, dateFrom, dateTo, transactions, closingBalance]);
 
-  // Filter rows by type and search
+  // Determine the dominant currency for this statement
+  const statementCurrency = useMemo(() => {
+    if (rows.length > 0) {
+      // Use the most common currency in the rows
+      const freq: Record<string, number> = {};
+      rows.forEach(r => { freq[r.currency] = (freq[r.currency] || 0) + 1; });
+      const sorted = Object.entries(freq).sort((a, b) => b[1] - a[1]);
+      return sorted[0]?.[0] || "شيكل";
+    }
+    // For account tab, infer from account name
+    if (isAccountsTab && selectedAccount) {
+      const name = selectedAccount.account_name;
+      if (name.includes("دولار") || name.includes("USD")) return "دولار";
+      if (name.includes("دينار") || name.includes("JOD")) return "دينار";
+      if (name.includes("يورو") || name.includes("EUR")) return "يورو";
+      if (name.includes("جنيه") || name.includes("EGP")) return "جنيه";
+    }
+    return "شيكل";
+  }, [rows, isAccountsTab, selectedAccount]);
+
   const filteredRows = useMemo(() => {
     let result = rows;
     if (txTypeFilter !== "all") {
@@ -1439,7 +1480,7 @@ const AccountStatementPage = () => {
     if (!selectedContact?.phone) return;
     const phone = selectedContact.phone.replace(/\D/g, "");
     const balType = closingBalance >= 0 ? "مدين" : "دائن";
-    const msg = `السلام عليكم ${selectedEntityName}،\nنرفق كشف حسابكم للفترة من ${fmtDate(dateFrom)} إلى ${fmtDate(dateTo)}\nالرصيد الحالي: ${fmtAmount(closingBalance)} (${balType})\n${companyInfo.name}`;
+    const msg = `السلام عليكم ${selectedEntityName}،\nنرفق كشف حسابكم للفترة من ${fmtDate(dateFrom)} إلى ${fmtDate(dateTo)}\nالرصيد الحالي: ${fmtAmount(closingBalance, statementCurrency)} (${balType})\n${companyInfo.name}`;
     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, "_blank");
   };
 
@@ -1802,7 +1843,7 @@ const AccountStatementPage = () => {
                           <BookOpen className="w-3.5 h-3.5 text-muted-foreground" />
                           <span className="text-[10px] text-muted-foreground font-semibold">رصيد افتتاحي</span>
                         </div>
-                        <p className="text-lg font-bold tabular-nums text-foreground">{fmtAmount(openingBalance)}</p>
+                         <p className="text-lg font-bold tabular-nums text-foreground">{fmtAmount(openingBalance, statementCurrency)}</p>
                         <p className="text-[10px] text-muted-foreground mt-0.5">{openingBalance >= 0 ? "مدين" : "دائن"}</p>
                       </div>
                       <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-3.5 text-center">
@@ -1810,14 +1851,14 @@ const AccountStatementPage = () => {
                           <TrendingUp className="w-3.5 h-3.5 text-red-500" />
                           <span className="text-[10px] text-red-600 font-semibold">إجمالي مدين</span>
                         </div>
-                        <p className="text-lg font-bold tabular-nums text-red-600">{fmtAmount(totalDebit)}</p>
+                        <p className="text-lg font-bold tabular-nums text-red-600">{fmtAmount(totalDebit, statementCurrency)}</p>
                       </div>
                       <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3.5 text-center">
                         <div className="flex items-center justify-center gap-1.5 mb-1.5">
                           <TrendingDown className="w-3.5 h-3.5 text-emerald-500" />
                           <span className="text-[10px] text-emerald-600 font-semibold">إجمالي دائن</span>
                         </div>
-                        <p className="text-lg font-bold tabular-nums text-emerald-600">{fmtAmount(totalCredit)}</p>
+                        <p className="text-lg font-bold tabular-nums text-emerald-600">{fmtAmount(totalCredit, statementCurrency)}</p>
                       </div>
                       <div className={cn("rounded-xl border p-3.5 text-center",
                         closingBalance > 0 ? "border-red-500/20 bg-red-50 dark:bg-red-500/5" :
@@ -1831,7 +1872,7 @@ const AccountStatementPage = () => {
                         <p className={cn("text-lg font-bold tabular-nums",
                           closingBalance > 0 ? "text-red-600" : closingBalance < 0 ? "text-emerald-600" : "text-muted-foreground"
                         )}>
-                          {fmtAmount(closingBalance)}
+                          {fmtAmount(closingBalance, statementCurrency)}
                         </p>
                         <p className="text-[10px] text-muted-foreground mt-0.5">
                           {closingBalance > 0 ? "🔴 مدين (عليه)" : closingBalance < 0 ? "🟢 دائن (له)" : "مسدَّد"}
@@ -1942,18 +1983,18 @@ const AccountStatementPage = () => {
                             <tbody>
                               <tr className="border-b border-border/30">
                                 <td className="py-1.5 text-muted-foreground">إجمالي مدين</td>
-                                <td className="py-1.5 text-left tabular-nums font-semibold text-red-600">{fmtAmount(totalDebit)}</td>
-                                <td className="py-1.5 text-left tabular-nums font-semibold text-red-400">{fmtAmount(comparisonData.prevDebit)}</td>
+                                <td className="py-1.5 text-left tabular-nums font-semibold text-red-600">{fmtAmount(totalDebit, statementCurrency)}</td>
+                                <td className="py-1.5 text-left tabular-nums font-semibold text-red-400">{fmtAmount(comparisonData.prevDebit, statementCurrency)}</td>
                               </tr>
                               <tr className="border-b border-border/30">
                                 <td className="py-1.5 text-muted-foreground">إجمالي دائن</td>
-                                <td className="py-1.5 text-left tabular-nums font-semibold text-emerald-600">{fmtAmount(totalCredit)}</td>
-                                <td className="py-1.5 text-left tabular-nums font-semibold text-emerald-400">{fmtAmount(comparisonData.prevCredit)}</td>
+                                <td className="py-1.5 text-left tabular-nums font-semibold text-emerald-600">{fmtAmount(totalCredit, statementCurrency)}</td>
+                                <td className="py-1.5 text-left tabular-nums font-semibold text-emerald-400">{fmtAmount(comparisonData.prevCredit, statementCurrency)}</td>
                               </tr>
                               <tr>
                                 <td className="py-1.5 font-bold text-foreground">رصيد ختامي</td>
-                                <td className="py-1.5 text-left tabular-nums font-bold">{fmtAmount(closingBalance)}</td>
-                                <td className="py-1.5 text-left tabular-nums font-bold">{fmtAmount(comparisonData.prevBalance)}</td>
+                                <td className="py-1.5 text-left tabular-nums font-bold">{fmtAmount(closingBalance, statementCurrency)}</td>
+                                <td className="py-1.5 text-left tabular-nums font-bold">{fmtAmount(comparisonData.prevBalance, statementCurrency)}</td>
                               </tr>
                             </tbody>
                           </table>
@@ -1965,7 +2006,7 @@ const AccountStatementPage = () => {
                           )}>
                             <p className="text-[10px] text-muted-foreground mb-1">التغيير</p>
                             <p className={cn("text-lg font-bold tabular-nums", comparisonData.change > 0 ? "text-red-600" : "text-emerald-600")}>
-                              {comparisonData.change > 0 ? "+" : ""}{fmtAmount(comparisonData.change)}
+                              {comparisonData.change > 0 ? "+" : ""}{fmtAmount(comparisonData.change, statementCurrency)}
                             </p>
                             {comparisonData.changePct !== 0 && (
                               <p className={cn("text-xs font-semibold", comparisonData.change > 0 ? "text-red-500" : "text-emerald-500")}>
@@ -2147,9 +2188,9 @@ const AccountStatementPage = () => {
                               {isColVisible("paymentMethod") && <td className="px-3 py-2.5"></td>}
                               {isColVisible("currency") && <td className="px-3 py-2.5"></td>}
                               {isColVisible("contactCode") && <td className="px-3 py-2.5"></td>}
-                              {isColVisible("debit") && <td className="px-3 py-2.5 text-xs text-left tabular-nums text-muted-foreground">{openingBalance > 0 ? fmtAmount(openingBalance) : "—"}</td>}
-                              {isColVisible("credit") && <td className="px-3 py-2.5 text-xs text-left tabular-nums text-muted-foreground">{openingBalance < 0 ? fmtAmount(openingBalance) : "—"}</td>}
-                              {isColVisible("balance") && <td className="px-3 py-2.5 text-left"><BalanceCell value={openingBalance} /></td>}
+                              {isColVisible("debit") && <td className="px-3 py-2.5 text-xs text-left tabular-nums text-muted-foreground">{openingBalance > 0 ? fmtAmount(openingBalance, statementCurrency) : "—"}</td>}
+                              {isColVisible("credit") && <td className="px-3 py-2.5 text-xs text-left tabular-nums text-muted-foreground">{openingBalance < 0 ? fmtAmount(openingBalance, statementCurrency) : "—"}</td>}
+                              {isColVisible("balance") && <td className="px-3 py-2.5 text-left"><BalanceCell value={openingBalance} currency={statementCurrency} /></td>}
                             </tr>
 
                             {/* Transaction rows */}
@@ -2214,17 +2255,17 @@ const AccountStatementPage = () => {
                                   {isColVisible("contactCode") && <td className="px-3 py-2 text-center text-[10px] text-muted-foreground font-mono">{!isSubRow ? (selectedEntityInfo.code || "—") : ""}</td>}
                                   {isColVisible("debit") && (
                                     <td className={cn("px-3 py-2 text-left tabular-nums", isSubRow ? "text-[10px] text-red-500/70" : "font-semibold text-red-600")}>
-                                      {row.debit > 0 ? fmtAmount(row.debit) : "—"}
+                                      {row.debit > 0 ? fmtAmount(row.debit, row.currency) : "—"}
                                     </td>
                                   )}
                                   {isColVisible("credit") && (
                                     <td className={cn("px-3 py-2 text-left tabular-nums", isSubRow ? "text-[10px] text-emerald-500/70" : "font-semibold text-emerald-600")}>
-                                      {row.credit > 0 ? fmtAmount(row.credit) : "—"}
+                                      {row.credit > 0 ? fmtAmount(row.credit, row.currency) : "—"}
                                     </td>
                                   )}
                                   {isColVisible("balance") && (
                                     <td className="px-3 py-2 text-left">
-                                      {!isSubRow ? <BalanceCell value={row.balance} /> : <span className="text-muted-foreground/30">—</span>}
+                                      {!isSubRow ? <BalanceCell value={row.balance} currency={row.currency} /> : <span className="text-muted-foreground/30">—</span>}
                                     </td>
                                   )}
                                 </tr>
@@ -2241,8 +2282,8 @@ const AccountStatementPage = () => {
                               {isColVisible("paymentMethod") && <td className="px-3 py-3.5"></td>}
                               {isColVisible("currency") && <td className="px-3 py-3.5"></td>}
                               {isColVisible("contactCode") && <td className="px-3 py-3.5"></td>}
-                              {isColVisible("debit") && <td className="px-3 py-3.5 text-left tabular-nums font-bold text-red-300 text-sm">{fmtAmount(totalDebit)}</td>}
-                              {isColVisible("credit") && <td className="px-3 py-3.5 text-left tabular-nums font-bold text-emerald-300 text-sm">{fmtAmount(totalCredit)}</td>}
+                              {isColVisible("debit") && <td className="px-3 py-3.5 text-left tabular-nums font-bold text-red-300 text-sm">{fmtAmount(totalDebit, statementCurrency)}</td>}
+                              {isColVisible("credit") && <td className="px-3 py-3.5 text-left tabular-nums font-bold text-emerald-300 text-sm">{fmtAmount(totalCredit, statementCurrency)}</td>}
                               {isColVisible("balance") && (
                                 <td className="px-3 py-3.5 text-left">
                                   <span className={cn("text-sm font-bold tabular-nums px-2 py-1 rounded",
@@ -2250,7 +2291,7 @@ const AccountStatementPage = () => {
                                     closingBalance < 0 ? "text-emerald-300 bg-emerald-500/20" :
                                     "text-white/70"
                                   )}>
-                                    {fmtAmount(closingBalance)}
+                                    {fmtAmount(closingBalance, statementCurrency)}
                                   </span>
                                 </td>
                               )}
@@ -2266,14 +2307,14 @@ const AccountStatementPage = () => {
                             إجمالي الحركات: <strong className="text-foreground">{filteredRows.length} قيد</strong>
                           </span>
                           <div className="flex items-center gap-4 flex-wrap">
-                            <span>إجمالي مدين: <strong className="text-red-600 tabular-nums">{fmtAmount(totalDebit)}</strong></span>
-                            <span>إجمالي دائن: <strong className="text-emerald-600 tabular-nums">{fmtAmount(totalCredit)}</strong></span>
+                            <span>إجمالي مدين: <strong className="text-red-600 tabular-nums">{fmtAmount(totalDebit, statementCurrency)}</strong></span>
+                            <span>إجمالي دائن: <strong className="text-emerald-600 tabular-nums">{fmtAmount(totalCredit, statementCurrency)}</strong></span>
                             <Separator orientation="vertical" className="h-4" />
-                            <span>رصيد الفترة: <strong className="text-foreground tabular-nums">{fmtAmount(totalDebit - totalCredit)}</strong></span>
+                            <span>رصيد الفترة: <strong className="text-foreground tabular-nums">{fmtAmount(totalDebit - totalCredit, statementCurrency)}</strong></span>
                             <Separator orientation="vertical" className="h-4" />
                             <span>
                               الرصيد الختامي: <strong className={cn("tabular-nums", closingBalance > 0 ? "text-red-600" : closingBalance < 0 ? "text-emerald-600" : "text-foreground")}>
-                                {fmtAmount(closingBalance)}
+                                {fmtAmount(closingBalance, statementCurrency)}
                               </strong> ({closingBalance >= 0 ? "مدين" : "دائن"})
                             </span>
                           </div>
@@ -2651,7 +2692,7 @@ const AccountStatementPage = () => {
 
 // ─── SUB-COMPONENTS ───
 
-function BalanceCell({ value, bold }: { value: number; bold?: boolean }) {
+function BalanceCell({ value, bold, currency }: { value: number; bold?: boolean; currency?: string }) {
   return (
     <span className={cn(
       "inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs tabular-nums",
@@ -2660,7 +2701,7 @@ function BalanceCell({ value, bold }: { value: number; bold?: boolean }) {
       value < 0 ? "text-emerald-600 bg-emerald-500/10" :
       "text-muted-foreground"
     )}>
-      {fmtAmount(value)}
+      {fmtAmount(value, currency)}
       <span className="text-[9px] font-normal opacity-70">{value > 0 ? "م" : value < 0 ? "د" : ""}</span>
     </span>
   );
