@@ -6945,6 +6945,33 @@ export type Database = {
           },
         ]
       }
+      pos_user_preferences: {
+        Row: {
+          auth_user_id: string
+          created_at: string
+          id: string
+          preference_key: string
+          preference_value: Json
+          updated_at: string
+        }
+        Insert: {
+          auth_user_id: string
+          created_at?: string
+          id?: string
+          preference_key: string
+          preference_value?: Json
+          updated_at?: string
+        }
+        Update: {
+          auth_user_id?: string
+          created_at?: string
+          id?: string
+          preference_key?: string
+          preference_value?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       pos_users: {
         Row: {
           account_status: string | null
@@ -6959,6 +6986,7 @@ export type Database = {
           id: string
           is_active: boolean
           last_login_at: string | null
+          must_change_password: boolean | null
           name: string
           phone: string | null
           pin_failed_attempts: number
@@ -6981,6 +7009,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           last_login_at?: string | null
+          must_change_password?: boolean | null
           name: string
           phone?: string | null
           pin_failed_attempts?: number
@@ -7003,6 +7032,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           last_login_at?: string | null
+          must_change_password?: boolean | null
           name?: string
           phone?: string | null
           pin_failed_attempts?: number

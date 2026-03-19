@@ -365,6 +365,10 @@ const POSPage = () => {
 
   // Dialogs
   const [showOpenShift, setShowOpenShift] = useState(false);
+  const [showChangePassword, setShowChangePassword] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
+  const [changingPassword, setChangingPassword] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
   const [showCloseShift, setShowCloseShift] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -1395,6 +1399,65 @@ const POSPage = () => {
     });
     setShowOpenShift(false);
     toast.success("تم فتح الوردية بنجاح");
+
+    // Check if cashier must change password on first login
+    if (userId) {
+      const { data: posUser } = await supabase
+        .from("pos_users")
+        .select("must_change_password")
+        .eq("auth_user_id", userId)
+        .maybeSingle();
+      if ((posUser as any)?.must_change_password) {
+        setShowChangePassword(true);
+      }
+    }
+
+    // Load per-user UI preferences
+    if (userId) {
+      const { data: prefs } = await supabase
+        .from("pos_user_preferences")
+        .select("preference_key, preference_value")
+        .eq("auth_user_id", userId);
+      if (prefs) {
+        for (const p of prefs) {
+          if (p.preference_key === "card_size") {
+            const sz = (p.preference_value as any)?.size;
+            if (sz && ["S", "M", "L"].includes(sz)) setCardSize(sz);
+          }
+        }
+      }
+    }
+  };
+
+  // Handle password change for first-login cashiers
+  const handleChangePassword = async () => {
+    if (newPassword.length < 6) {
+      toast.error("كلمة المرور يجب أن تكون 6 أحرف على الأقل");
+      return;
+    }
+    if (newPassword !== confirmNewPassword) {
+      toast.error("كلمات المرور غير متطابقة");
+      return;
+    }
+    setChangingPassword(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+      // Mark as changed
+      if (userId) {
+        await supabase
+          .from("pos_users")
+          .update({ must_change_password: false } as any)
+          .eq("auth_user_id", userId);
+      }
+      setShowChangePassword(false);
+      setNewPassword("");
+      setConfirmNewPassword("");
+      toast.success("تم تغيير كلمة المرور بنجاح ✅");
+    } catch (err: any) {
+      toast.error(err.message || "فشل تغيير كلمة المرور");
+    }
+    setChangingPassword(false);
   };
 
   // Save order to table (draft - no payment)
@@ -2419,6 +2482,15 @@ const POSPage = () => {
               onClick={() => {
                 setCardSize(size);
                 localStorage.setItem("pos-card-size", size);
+                // Save per-user preference to DB
+                if (userId) {
+                  supabase.from("pos_user_preferences").upsert({
+                    auth_user_id: userId,
+                    preference_key: "card_size",
+                    preference_value: { size },
+                    updated_at: new Date().toISOString(),
+                  } as any, { onConflict: "auth_user_id,preference_key" });
+                }
               }}
               className={`px-2 py-1 rounded-md text-[10px] font-bold transition-all ${
                 cardSize === size
@@ -3403,7 +3475,43 @@ const POSPage = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Device Blocked Dialog */}
+      {/* Change Password Dialog (first login) */}
+      <Dialog open={showChangePassword} onOpenChange={() => {}}>
+        <DialogContent className="sm:max-w-md" dir="rtl" onPointerDownOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
+          <DialogHeader>
+            <DialogTitle className="text-xl">🔐 تغيير كلمة المرور</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">يرجى تغيير كلمة المرور الافتراضية قبل المتابعة.</p>
+          <div className="space-y-3 py-3">
+            <div>
+              <label className="text-sm font-medium text-foreground mb-1.5 block">كلمة المرور الجديدة *</label>
+              <Input
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="6 أحرف على الأقل"
+                className="h-11"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-foreground mb-1.5 block">تأكيد كلمة المرور *</label>
+              <Input
+                type="password"
+                value={confirmNewPassword}
+                onChange={(e) => setConfirmNewPassword(e.target.value)}
+                placeholder="أعد إدخال كلمة المرور"
+                className="h-11"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={handleChangePassword} disabled={changingPassword || newPassword.length < 6} className="w-full h-11 font-bold">
+              {changingPassword ? "جاري التغيير..." : "تغيير كلمة المرور"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={showDeviceBlocked} onOpenChange={async (v) => { if (!v) { await supabase.auth.signOut(); navigate("/auth", { replace: true }); } setShowDeviceBlocked(v); }}>
         <DialogContent className="sm:max-w-md" dir="rtl" onPointerDownOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
           <DialogHeader>
