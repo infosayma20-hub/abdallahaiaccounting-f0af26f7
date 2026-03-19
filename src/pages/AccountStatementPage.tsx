@@ -2265,7 +2265,7 @@ const AccountStatementPage = () => {
                                   )}
                                   {isColVisible("balance") && (
                                     <td className="px-3 py-2 text-left">
-                                      {!isSubRow ? <BalanceCell value={row.balance} /> : <span className="text-muted-foreground/30">—</span>}
+                                      {!isSubRow ? <BalanceCell value={row.balance} currency={row.currency} /> : <span className="text-muted-foreground/30">—</span>}
                                     </td>
                                   )}
                                 </tr>
