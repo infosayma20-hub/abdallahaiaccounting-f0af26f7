@@ -1,0 +1,1 @@
+ALTER TABLE public.pos_sessions ADD COLUMN IF NOT EXISTS cashier_auth_user_id UUID REFERENCES auth.users(id);
