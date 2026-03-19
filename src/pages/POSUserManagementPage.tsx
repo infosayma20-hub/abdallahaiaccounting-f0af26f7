@@ -627,6 +627,10 @@ export default function POSUserManagementPage() {
               <Input placeholder="بحث..." value={search} onChange={e => setSearch(e.target.value)} className="pr-9" />
             </div>
             <Button onClick={openAddUser} className="gap-2"><Plus className="w-4 h-4" /> إضافة موظف</Button>
+            <Button onClick={handleBulkCreateCashiers} disabled={bulkCreating} variant="outline" className="gap-2">
+              {bulkCreating ? <Loader2 className="w-4 h-4 animate-spin" /> : <UsersRound className="w-4 h-4" />}
+              {bulkCreating ? "جاري الإنشاء..." : "إنشاء 50 كاشير"}
+            </Button>
           </div>
 
           {loading ? (
