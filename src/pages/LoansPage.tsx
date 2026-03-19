@@ -754,12 +754,13 @@ function AddLoanDialog({ open, onOpenChange, userId, companyId, onSuccess }: {
     try {
       // 1. Find or create employee account under 1180
       let empAccountCode = "";
+      const empAccName = `ذمم موظف - ${selectedEmp.full_name}`;
       const { data: existingAcc } = await supabase
         .from("accounts")
         .select("account_code")
         .eq("user_id", userId)
         .eq("parent_code", "1180")
-        .ilike("account_name", `%${selectedEmp.full_name}%`)
+        .or(`account_name.eq.${empAccName},account_name.ilike.%${selectedEmp.full_name}%`)
         .limit(1)
         .maybeSingle();
 
@@ -782,8 +783,8 @@ function AddLoanDialog({ open, onOpenChange, userId, companyId, onSuccess }: {
         await supabase.from("accounts").insert({
           user_id: userId,
           account_code: empAccountCode,
-          account_name: `ذمم ${selectedEmp.full_name}`,
-          account_type: "asset",
+          account_name: empAccName,
+          account_type: "أصول",
           parent_code: "1180",
           is_active: true,
           is_system: false,
