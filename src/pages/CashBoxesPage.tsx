@@ -189,12 +189,12 @@ const CashBoxesPage = () => {
           { label: "صناديق نقاط البيع", value: `₪${fmt(posBalance)}`, sub: `${posBoxes.length} صندوق POS نشط`, icon: "🖥️", color: "#7C3AED" },
           { label: "صناديق النثرية", value: `₪${fmt(pettyBalance)}`, sub: `${pettyBoxes.length} صندوق نثرية نشط`, icon: "🗃️", color: "#D97706" },
         ].map((kpi, i) => (
-          <Card key={i} className="p-4 overflow-hidden">
-            <div className="flex items-start gap-2">
+          <Card key={i} className="p-3">
+            <div className="flex items-center gap-2">
               <span className="text-2xl shrink-0">{kpi.icon}</span>
               <div className="flex-1 min-w-0">
                 <p className="text-[11px] text-muted-foreground truncate">{kpi.label}</p>
-                <p className="text-base font-bold font-mono mt-0.5 truncate" style={{ color: kpi.color }}>{kpi.value}</p>
+                <p className="text-sm font-bold font-mono mt-0.5 whitespace-nowrap" style={{ color: kpi.color }}>{kpi.value}</p>
                 <p className="text-[10px] text-muted-foreground mt-0.5 truncate">{kpi.sub}</p>
               </div>
             </div>
