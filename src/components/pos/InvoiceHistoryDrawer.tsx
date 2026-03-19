@@ -622,6 +622,7 @@ export default function InvoiceHistoryDrawer({
               { key: "draft", label: "معلقة" },
               { key: "cancelled", label: "ملغية" },
               { key: "recalled", label: "معدّلة" },
+              { key: "transferred", label: "منقولة" },
             ] as { key: StatusFilter; label: string }[]).map(f => (
               <button
                 key={f.key}
