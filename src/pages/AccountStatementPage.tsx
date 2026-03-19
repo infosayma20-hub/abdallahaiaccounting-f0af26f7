@@ -2006,7 +2006,7 @@ const AccountStatementPage = () => {
                           )}>
                             <p className="text-[10px] text-muted-foreground mb-1">التغيير</p>
                             <p className={cn("text-lg font-bold tabular-nums", comparisonData.change > 0 ? "text-red-600" : "text-emerald-600")}>
-                              {comparisonData.change > 0 ? "+" : ""}{fmtAmount(comparisonData.change)}
+                              {comparisonData.change > 0 ? "+" : ""}{fmtAmount(comparisonData.change, statementCurrency)}
                             </p>
                             {comparisonData.changePct !== 0 && (
                               <p className={cn("text-xs font-semibold", comparisonData.change > 0 ? "text-red-500" : "text-emerald-500")}>
