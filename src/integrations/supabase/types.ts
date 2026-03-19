@@ -3221,6 +3221,7 @@ export type Database = {
           total_overtime: number
           user_id: string
           vacation_hours_paid: number | null
+          working_days: number | null
         }
         Insert: {
           admin_allowance?: number | null
@@ -3265,6 +3266,7 @@ export type Database = {
           total_overtime?: number
           user_id: string
           vacation_hours_paid?: number | null
+          working_days?: number | null
         }
         Update: {
           admin_allowance?: number | null
@@ -3309,6 +3311,7 @@ export type Database = {
           total_overtime?: number
           user_id?: string
           vacation_hours_paid?: number | null
+          working_days?: number | null
         }
         Relationships: [
           {
