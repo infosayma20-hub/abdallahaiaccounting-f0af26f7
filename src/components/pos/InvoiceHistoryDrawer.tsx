@@ -36,6 +36,8 @@ interface InvoiceOrder {
   cancelled_at: string | null;
   cancel_reason: string | null;
   paid_at: string | null;
+  transferred_from_session_id: string | null;
+  transferred_to_name: string | null;
 }
 
 interface InvoiceLine {
