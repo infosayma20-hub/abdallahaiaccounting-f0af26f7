@@ -2482,6 +2482,15 @@ const POSPage = () => {
               onClick={() => {
                 setCardSize(size);
                 localStorage.setItem("pos-card-size", size);
+                // Save per-user preference to DB
+                if (userId) {
+                  supabase.from("pos_user_preferences").upsert({
+                    auth_user_id: userId,
+                    preference_key: "card_size",
+                    preference_value: { size },
+                    updated_at: new Date().toISOString(),
+                  } as any, { onConflict: "auth_user_id,preference_key" });
+                }
               }}
               className={`px-2 py-1 rounded-md text-[10px] font-bold transition-all ${
                 cardSize === size
