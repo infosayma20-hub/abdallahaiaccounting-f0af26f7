@@ -489,7 +489,7 @@ const AccountStatementPage = () => {
           .order("account_code"),
         supabase
           .from("transactions")
-          .select("id, description, transaction_type, amount, currency, transaction_date, debit_account_code, credit_account_code, reference, is_deleted, contact_id, payment_method")
+          .select("id, description, transaction_type, amount, currency, transaction_date, debit_account_code, credit_account_code, reference, is_deleted, contact_id, payment_method, foreign_amount, exchange_rate")
           .eq("user_id", user.id)
           .eq("is_deleted", false)
           .order("transaction_date", { ascending: true })
