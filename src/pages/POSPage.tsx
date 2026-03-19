@@ -338,8 +338,15 @@ const POSPage = () => {
     }));
   }, [updateActiveOrder]);
 
-  const setCustomerName = useCallback((name: string, contactId?: string | null) => {
-    updateActiveOrder(o => ({ ...o, customerName: name, customerId: contactId !== undefined ? contactId : o.customerId }));
+  const setCustomerName = useCallback((name: string, contactId?: string | null, phone?: string, posCustomerId?: string | null) => {
+    updateActiveOrder(o => ({
+      ...o,
+      customerName: name,
+      customerId: contactId !== undefined ? contactId : o.customerId,
+      customerPhone: phone !== undefined ? phone : o.customerPhone,
+      posCustomerId: posCustomerId !== undefined ? posCustomerId : o.posCustomerId,
+      name: name && !o.tableId ? name : o.name,
+    }));
   }, [updateActiveOrder]);
 
   const setOrderDiscount = useCallback((d: number) => {
