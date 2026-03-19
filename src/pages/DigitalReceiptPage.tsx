@@ -54,6 +54,10 @@ const DigitalReceiptPage = () => {
       }
       setCompany(companyData);
       setCashierName((sessionRes.data as any)?.cashier_name || "");
+      
+      // Store payment method
+      const pm = (paymentsRes.data as any)?.[0]?.payment_method || "";
+      setPaymentMethod(pm);
     } catch { setError("خطأ في تحميل الفاتورة"); }
     setLoading(false);
   };
