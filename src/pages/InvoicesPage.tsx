@@ -86,6 +86,7 @@ const InvoicesPage = () => {
   const printRef = useRef<HTMLDivElement>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showEditWarning, setShowEditWarning] = useState(false);
+  const [deleteTargetInvoice, setDeleteTargetInvoice] = useState<Invoice | null>(null);
 
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
