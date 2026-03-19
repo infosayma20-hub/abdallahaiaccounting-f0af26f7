@@ -16,28 +16,25 @@ export async function authenticateRequest(req: Request): Promise<{ userId: strin
 
   const token = authHeader.replace('Bearer ', '');
 
-  // Use service role client to validate the JWT
-  const supabaseAdmin = createClient(
+  const supabase = createClient(
     Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+    Deno.env.get('SUPABASE_ANON_KEY')!,
     {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
+      global: { headers: { Authorization: authHeader } },
     }
   );
 
-  const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
+  const { data, error } = await supabase.auth.getClaims(token);
 
-  if (error || !user) {
+  if (error || !data?.claims?.sub) {
+    console.error('Auth error:', error);
     return new Response(JSON.stringify({ error: 'Invalid token' }), {
       status: 401,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
 
-  return { userId: user.id };
+  return { userId: data.claims.sub as string };
 }
 
 export function isValidUUID(str: string): boolean {
