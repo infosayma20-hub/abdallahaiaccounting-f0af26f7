@@ -3673,7 +3673,7 @@ const POSPage = () => {
                 type="password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="6 أحرف على الأقل"
+                placeholder="3 أحرف على الأقل"
                 className="h-11"
               />
             </div>
