@@ -6315,6 +6315,7 @@ export type Database = {
         Row: {
           amount: number
           change_amount: number
+          change_currency: string | null
           cheque_date: string | null
           cheque_number: string | null
           created_at: string
@@ -6330,6 +6331,7 @@ export type Database = {
         Insert: {
           amount?: number
           change_amount?: number
+          change_currency?: string | null
           cheque_date?: string | null
           cheque_number?: string | null
           created_at?: string
@@ -6345,6 +6347,7 @@ export type Database = {
         Update: {
           amount?: number
           change_amount?: number
+          change_currency?: string | null
           cheque_date?: string | null
           cheque_number?: string | null
           created_at?: string

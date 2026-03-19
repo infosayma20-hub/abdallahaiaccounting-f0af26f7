@@ -449,6 +449,7 @@ const POSPage = () => {
   // Payment
   const [paymentMethod, setPaymentMethod] = useState<string>("cash");
   const [paymentCurrency, setPaymentCurrency] = useState<string>("ILS");
+  const [changeCurrency, setChangeCurrency] = useState<string>("ILS");
   const [tenderedAmount, setTenderedAmount] = useState("");
   const [processing, setProcessing] = useState(false);
   const [exchangeRates, setExchangeRates] = useState<Record<string, number>>({});
@@ -1961,7 +1962,13 @@ const POSPage = () => {
       const foreignTotal = paymentCurrency === "ILS" ? effectiveTotal : effectiveTotal / rate;
       const tendered = parseFloat(tenderedAmount) || foreignTotal;
       const changeInForeign = Math.max(0, tendered - foreignTotal);
-      const change = paymentCurrency === "ILS" ? changeInForeign : changeInForeign * rate;
+      const changeILS = paymentCurrency === "ILS" ? changeInForeign : changeInForeign * rate;
+
+      // Determine actual change amounts based on changeCurrency selection
+      // If change is given in foreign currency, the ILS change is 0 and foreign change is deducted from foreign pile
+      const actualChangeCurrency = paymentCurrency === "ILS" ? "ILS" : changeCurrency;
+      const actualChangeILS = actualChangeCurrency === "ILS" ? changeILS : 0;
+      const actualChangeForeign = actualChangeCurrency !== "ILS" ? changeILS / (exchangeRates[actualChangeCurrency] || rate) : 0;
 
       // Generate survey token if customer data was collected
       const surveyToken = customerDataDiscount ? crypto.randomUUID() : null;
@@ -1973,7 +1980,9 @@ const POSPage = () => {
           method: paymentMethod,
           amount: cartTotals.total,
           tendered: paymentCurrency === "ILS" ? tendered : tendered * rate,
-          change: change,
+          change: actualChangeILS,
+          change_currency: actualChangeCurrency,
+          change_foreign_amount: actualChangeForeign,
           currency: paymentCurrency,
           exchange_rate: rate,
           foreign_amount: foreignTotal,
@@ -2090,7 +2099,7 @@ const POSPage = () => {
         total: effectiveTotal,
         paymentMethod,
         tenderedAmount: tendered,
-        change,
+        change: changeILS,
         currency: paymentCurrency,
         exchangeRate: rate,
         foreignAmount: foreignTotal,
@@ -2214,6 +2223,7 @@ const POSPage = () => {
       setTenderedAmount("");
       setPaymentMethod("cash");
       setPaymentCurrency("ILS");
+      setChangeCurrency("ILS");
       setEditedRate(null);
       setRateEdited(false);
       setCustomerDataDiscount(null);
@@ -2271,19 +2281,32 @@ const POSPage = () => {
     const orderIds = (ordersData || []).map((o: any) => o.id);
     const paymentMethodBreakdown: Record<string, Record<string, number>> = {};
     let foreignChangeILS = 0; // Total ILS change given for foreign currency payments
+    let foreignChangeUSD = 0; // Total USD change given back
+    let foreignChangeJOD = 0; // Total JOD change given back
     if (orderIds.length > 0) {
       const { data: paymentsData } = await supabase
         .from("pos_payments")
-        .select("payment_method, amount, currency, change_amount")
+        .select("payment_method, amount, currency, change_amount, change_currency")
         .in("order_id", orderIds);
       (paymentsData || []).forEach((p: any) => {
         const method = p.payment_method || "cash";
         const cur = p.currency || "ILS";
         if (!paymentMethodBreakdown[method]) paymentMethodBreakdown[method] = {};
         paymentMethodBreakdown[method][cur] = (paymentMethodBreakdown[method][cur] || 0) + Number(p.amount || 0);
-        // Track ILS change given out for foreign cash payments
+        // Track change given out based on change_currency
         if (method === "cash" && cur !== "ILS") {
-          foreignChangeILS += Number(p.change_amount || 0);
+          const chgCur = (p as any).change_currency || "ILS";
+          const chgAmount = Number(p.change_amount || 0);
+          if (chgCur === "ILS") {
+            foreignChangeILS += chgAmount;
+          } else if (chgCur === "USD") {
+            // change_amount is stored as ILS, convert to foreign
+            const chgRate = exchangeRates?.["USD"] || 3.6;
+            foreignChangeUSD += chgAmount / chgRate;
+          } else if (chgCur === "JOD") {
+            const chgRate = exchangeRates?.["JOD"] || 5.0;
+            foreignChangeJOD += chgAmount / chgRate;
+          }
         }
       });
     }
@@ -2292,9 +2315,9 @@ const POSPage = () => {
     // ILS expected = opening + ILS cash sales - ILS change given for foreign payments - expenses
     const ilsCashSales = paymentMethodBreakdown["cash"]?.["ILS"] || 0;
     const expectedILS = session.opening_cash + ilsCashSales - foreignChangeILS - totalExpenses;
-    // Foreign expected = actual foreign amounts received (from currencyBreakdown)
-    const expectedUSD = currencyBreakdown["USD"]?.sales || 0;
-    const expectedJOD = currencyBreakdown["JOD"]?.sales || 0;
+    // Foreign expected = actual foreign amounts received minus foreign change given back
+    const expectedUSD = (currencyBreakdown["USD"]?.sales || 0) - foreignChangeUSD;
+    const expectedJOD = (currencyBreakdown["JOD"]?.sales || 0) - foreignChangeJOD;
 
     // Per-currency variance
     const varianceILS = cash - expectedILS;
@@ -3946,7 +3969,7 @@ const POSPage = () => {
                         <motion.button
                           key={cur.code}
                           whileTap={{ scale: 0.96 }}
-                          onClick={() => { setPaymentCurrency(cur.code); setEditedRate(null); setRateEdited(false); setTenderedAmount(""); }}
+                          onClick={() => { setPaymentCurrency(cur.code); setChangeCurrency("ILS"); setEditedRate(null); setRateEdited(false); setTenderedAmount(""); }}
                           className={`flex flex-col items-center gap-1 p-2.5 rounded-xl border-2 transition-all ${
                             isActive
                               ? "border-primary bg-primary/5"
@@ -4067,8 +4090,14 @@ const POSPage = () => {
                    const rate = exchangeRates[paymentCurrency] || 1;
                    const tenderedInILS = paymentCurrency === "ILS" ? tendered : tendered * rate;
                    const effectiveT = customerDataDiscount ? cartTotals.total - customerDataDiscount.discountAmount : cartTotals.total;
-                   const change = tenderedInILS - effectiveT;
+                   const changeILS = tenderedInILS - effectiveT;
                   const curSymbol = currencies.find(c => c.code === paymentCurrency)?.symbol || "";
+                  const changeInForeign = paymentCurrency !== "ILS" ? changeILS / rate : 0;
+
+                  // Determine displayed change based on changeCurrency
+                  const displayChangeAmount = changeCurrency === "ILS" ? changeILS : changeILS / (exchangeRates[changeCurrency] || rate);
+                  const displaySymbol = changeCurrency === "ILS" ? "₪" : changeCurrency === "USD" ? "$" : changeCurrency === "JOD" ? "د.أ " : "₪";
+                  const displaySuffix = changeCurrency === "JOD" ? "" : "";
 
                   return (
                     <div className="p-3 rounded-xl border border-border space-y-2">
@@ -4078,21 +4107,62 @@ const POSPage = () => {
                           <span className="font-bold tabular-nums">₪{tenderedInILS.toFixed(2)}</span>
                         </div>
                       )}
-                      {change >= 0 ? (
-                        <div className="flex justify-between items-center p-2.5 bg-primary/5 rounded-lg">
-                          <span className="text-xs text-muted-foreground">الباقي للزبون</span>
-                          <span className="text-xl font-bold text-primary tabular-nums">₪{change.toFixed(2)}</span>
-                        </div>
+                      {changeILS >= 0 ? (
+                        <>
+                          {/* Change currency selector - only for foreign payments */}
+                          {paymentCurrency !== "ILS" && changeILS > 0 && (
+                            <div className="flex gap-1.5 justify-center py-1">
+                              {["ILS", paymentCurrency].filter((v, i, a) => a.indexOf(v) === i).map(cur => {
+                                const isActive = changeCurrency === cur;
+                                const label = cur === "ILS" ? "شيكل ₪" : cur === "USD" ? "دولار $" : cur === "JOD" ? "دينار د.أ" : cur;
+                                return (
+                                  <button
+                                    key={cur}
+                                    onClick={() => setChangeCurrency(cur)}
+                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                                      isActive
+                                        ? "bg-primary text-primary-foreground shadow-md"
+                                        : "bg-muted text-muted-foreground hover:bg-muted/80"
+                                    }`}
+                                  >
+                                    الباقي {label}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
+
+                          {/* Main change display */}
+                          <div className="flex justify-between items-center p-3 bg-accent/20 rounded-xl border-2 border-accent">
+                            <span className="text-sm font-bold text-foreground">الباقي للزبون</span>
+                            <span className="text-2xl font-black tabular-nums text-accent-foreground" style={{ color: "#16a34a" }}>
+                              {changeCurrency === "JOD"
+                                ? `${displayChangeAmount.toFixed(2)} د.أ`
+                                : `${displaySymbol}${displayChangeAmount.toFixed(2)}`}
+                            </span>
+                          </div>
+
+                          {/* Show other currency equivalent as secondary info */}
+                          {paymentCurrency !== "ILS" && changeILS > 0 && (
+                            <div className="flex justify-between text-[11px] text-muted-foreground border-t border-border pt-1.5">
+                              {changeCurrency === "ILS" ? (
+                                <>
+                                  <span>أو بال{currencies.find(c => c.code === paymentCurrency)?.name}</span>
+                                  <span className="font-medium tabular-nums">{curSymbol}{changeInForeign.toFixed(2)}</span>
+                                </>
+                              ) : (
+                                <>
+                                  <span>أو بالشيكل</span>
+                                  <span className="font-medium tabular-nums">₪{changeILS.toFixed(2)}</span>
+                                </>
+                              )}
+                            </div>
+                          )}
+                        </>
                       ) : (
                         <div className="flex justify-between items-center p-2.5 bg-destructive/5 rounded-lg">
                           <span className="text-xs text-destructive">المبلغ غير كافٍ</span>
-                          <span className="text-lg font-bold text-destructive tabular-nums">-₪{Math.abs(change).toFixed(2)}</span>
-                        </div>
-                      )}
-                      {paymentCurrency !== "ILS" && change > 0 && (
-                        <div className="flex justify-between text-[11px] text-muted-foreground border-t border-border pt-1.5">
-                          <span>أو الباقي بال{currencies.find(c => c.code === paymentCurrency)?.name}</span>
-                          <span className="font-medium tabular-nums">{curSymbol}{(change / rate).toFixed(2)}</span>
+                          <span className="text-lg font-bold text-destructive tabular-nums">-₪{Math.abs(changeILS).toFixed(2)}</span>
                         </div>
                       )}
                     </div>
