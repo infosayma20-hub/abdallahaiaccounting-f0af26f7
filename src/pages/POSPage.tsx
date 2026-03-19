@@ -3777,7 +3777,7 @@ const POSPage = () => {
             </div>
           </div>
           <DialogFooter>
-            <Button onClick={handleChangePassword} disabled={changingPassword || newPassword.length < 3} className="w-full h-11 font-bold">
+            <Button onClick={handleChangePassword} disabled={changingPassword || newPassword.length < 6} className="w-full h-11 font-bold">
               {changingPassword ? "جاري التغيير..." : "تغيير كلمة المرور"}
             </Button>
           </DialogFooter>
