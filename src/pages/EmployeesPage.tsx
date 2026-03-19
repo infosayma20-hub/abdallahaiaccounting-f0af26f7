@@ -149,8 +149,8 @@ const EmployeesPage = () => {
       toast.error("الإيميل وكلمة المرور مطلوبين");
       return;
     }
-    if (accountForm.password.length < 6) {
-      toast.error("كلمة المرور يجب أن تكون 6 أحرف على الأقل");
+    if (accountForm.password.length < 3) {
+      toast.error("كلمة المرور يجب أن تكون 3 أحرف على الأقل");
       return;
     }
     setCreatingAccount(true);
