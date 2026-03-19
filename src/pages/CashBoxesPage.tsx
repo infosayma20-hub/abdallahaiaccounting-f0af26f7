@@ -114,7 +114,9 @@ const CashBoxesPage = () => {
   };
 
   const BoxCard = ({ box }: { box: any }) => {
-    const bal = balances[box.gl_account_code] || { balance: 0, inflow: 0, outflow: 0 };
+    const bal = balances[box.gl_account_code] || { balance: 0, inflow: 0, outflow: 0, foreignBalances: {} };
+    const foreignBals = bal.foreignBalances || {};
+    const hasForeign = Object.keys(foreignBals).some(k => Math.abs(foreignBals[k]) > 0.01);
     const gradients: Record<string, string> = {
       main: "linear-gradient(135deg, #0A2342, #006D8F)",
       branch: "linear-gradient(135deg, #065F46, #059669)",
@@ -124,6 +126,7 @@ const CashBoxesPage = () => {
     };
     const currencyLabel = box.currency === "ILS" ? "₪" : box.currency === "USD" ? "$" : box.currency === "JOD" ? "JOD" : box.currency || "₪";
     const TypeIcon = box.type === "main" ? Landmark : box.type === "branch" ? Building2 : (box.type === "petty" || box.type === "petty_cash") ? Wallet : Monitor;
+    const fxSymbols: Record<string, string> = { USD: "$", JOD: "JOD ", EUR: "€", EGP: "E£" };
 
     return (
       <Card className="overflow-hidden group/card">
@@ -141,11 +144,24 @@ const CashBoxesPage = () => {
         </div>
         <CardContent className="p-2.5 space-y-1.5">
           <div className="flex items-baseline justify-between gap-1">
-            <span className="text-[10px] text-muted-foreground shrink-0">الرصيد</span>
+            <span className="text-[10px] text-muted-foreground shrink-0">رصيد ₪</span>
             <span className={`text-sm font-bold font-mono whitespace-nowrap ${bal.balance > 0 ? "text-emerald-600" : bal.balance < 0 ? "text-red-600" : "text-muted-foreground"}`}>
-              {currencyLabel}{fmt(bal.balance)}
+              ₪{fmt(bal.balance)}
             </span>
           </div>
+          {/* Foreign currency balances */}
+          {hasForeign && (
+            <div className="space-y-0.5">
+              {Object.entries(foreignBals).filter(([, v]) => Math.abs(v) > 0.01).map(([cur, val]) => (
+                <div key={cur} className="flex items-baseline justify-between gap-1">
+                  <span className="text-[10px] text-muted-foreground shrink-0">رصيد {cur}</span>
+                  <span className={`text-xs font-bold font-mono whitespace-nowrap ${val > 0 ? "text-blue-600" : val < 0 ? "text-red-600" : "text-muted-foreground"}`}>
+                    {fxSymbols[cur] || cur}{fmt(val)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
           {box.branch_location && (
             <div className="text-[10px] text-muted-foreground truncate">{box.branch_location}</div>
           )}
