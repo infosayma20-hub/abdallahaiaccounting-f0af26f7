@@ -3213,7 +3213,7 @@ const POSPage = () => {
           {/* Bottom area - Customer + Note + Totals + Actions */}
           <div className="border-t border-border bg-card shrink-0">
             {/* Customer & Note row */}
-            {cart.length > 0 && (
+            {(
               <div className="px-3 pt-2 pb-1 space-y-1.5">
                 <div className="flex items-center gap-2 text-xs">
                   <button
