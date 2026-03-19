@@ -157,7 +157,7 @@ export default function ShiftSummaryReceipt({ open, onOpenChange, data }: ShiftS
           </DialogHeader>
         </div>
 
-        <div className="p-4 space-y-3">
+        <div className="flex-1 overflow-y-auto p-4">
           <div
             ref={receiptRef}
             className="bg-white text-black rounded-xl border p-5 text-sm"
@@ -309,18 +309,18 @@ export default function ShiftSummaryReceipt({ open, onOpenChange, data }: ShiftS
               Powered by QOYOD
             </div>
           </div>
+        </div>
 
-          {/* Actions */}
-          <div className="flex gap-2">
-            <Button onClick={handlePrint} className="flex-1 gap-2" variant="outline">
-              <Printer className="h-4 w-4" />
-              طباعة
-            </Button>
-            <Button onClick={() => onOpenChange(false)} className="flex-1 gap-2">
-              <CheckCircle className="h-4 w-4" />
-              تم
-            </Button>
-          </div>
+        {/* Actions - always visible */}
+        <div className="flex gap-2 p-4 border-t bg-background shrink-0">
+          <Button onClick={handlePrint} className="flex-1 gap-2" variant="outline">
+            <Printer className="h-4 w-4" />
+            طباعة
+          </Button>
+          <Button onClick={() => onOpenChange(false)} className="flex-1 gap-2">
+            <CheckCircle className="h-4 w-4" />
+            تم
+          </Button>
         </div>
       </DialogContent>
     </Dialog>
