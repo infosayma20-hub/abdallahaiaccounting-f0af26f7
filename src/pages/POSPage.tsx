@@ -1477,8 +1477,8 @@ const POSPage = () => {
 
   // Handle password change for first-login cashiers
   const handleChangePassword = async () => {
-    if (newPassword.length < 6) {
-      toast.error("كلمة المرور يجب أن تكون 6 أحرف على الأقل");
+    if (newPassword.length < 3) {
+      toast.error("كلمة المرور يجب أن تكون 3 أحرف على الأقل");
       return;
     }
     if (newPassword !== confirmNewPassword) {
