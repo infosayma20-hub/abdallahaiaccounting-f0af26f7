@@ -207,6 +207,7 @@ const defaultSettings: CompanySettings = {
   pos_disable_stock_deduction: false,
   pos_require_device_fingerprint: false,
   pos_allow_order_transfer: false,
+  pos_require_cash_box: false,
   pos_show_return_policy: true,
   pos_return_policy_days: 7,
   primary_color: "#22C55E",
