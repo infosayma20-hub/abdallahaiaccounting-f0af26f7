@@ -2409,6 +2409,11 @@ const POSPage = () => {
         e.preventDefault();
         return;
       }
+      // F4 = Invoice history
+      if (e.key === "F4") {
+        setShowInvoiceHistory(true);
+        e.preventDefault();
+      }
       // F12 = Pay
       if (e.key === "F12" && cart.length > 0) {
         setShowPayment(true);
