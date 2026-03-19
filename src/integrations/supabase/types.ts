@@ -1590,6 +1590,7 @@ export type Database = {
           pos_prevent_zero_stock: boolean | null
           pos_receipt_copies: number | null
           pos_receipt_size: string | null
+          pos_require_device_fingerprint: boolean | null
           pos_require_shift: boolean | null
           pos_return_policy_days: number | null
           pos_show_return_policy: boolean | null
@@ -1719,6 +1720,7 @@ export type Database = {
           pos_prevent_zero_stock?: boolean | null
           pos_receipt_copies?: number | null
           pos_receipt_size?: string | null
+          pos_require_device_fingerprint?: boolean | null
           pos_require_shift?: boolean | null
           pos_return_policy_days?: number | null
           pos_show_return_policy?: boolean | null
@@ -1848,6 +1850,7 @@ export type Database = {
           pos_prevent_zero_stock?: boolean | null
           pos_receipt_copies?: number | null
           pos_receipt_size?: string | null
+          pos_require_device_fingerprint?: boolean | null
           pos_require_shift?: boolean | null
           pos_return_policy_days?: number | null
           pos_show_return_policy?: boolean | null
