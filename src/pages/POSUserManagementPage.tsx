@@ -638,12 +638,12 @@ export default function POSUserManagementPage() {
           ) : (
             <div className="rounded-2xl border border-border/50 overflow-hidden shadow-sm">
               <div className="overflow-x-auto" dir="rtl">
-                <table className="w-full text-sm" style={{ minWidth: 900 }}>
+                <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-primary text-primary-foreground">
                       <th className="px-3 py-3 text-right text-xs font-semibold w-10">#</th>
                       <th className="px-3 py-3 text-right text-xs font-semibold">الاسم</th>
-                      <th className="px-3 py-3 text-right text-xs font-semibold">البريد الإلكتروني</th>
+                      
                       
                       <th className="px-3 py-3 text-right text-xs font-semibold">الدور</th>
                       <th className="px-3 py-3 text-center text-xs font-semibold">الحالة</th>
@@ -669,7 +669,7 @@ export default function POSUserManagementPage() {
                             <span className="font-semibold text-sm truncate max-w-[180px]">{u.name}</span>
                           </div>
                         </td>
-                        <td className="px-3 py-3 text-xs text-muted-foreground">{u.email || "—"}</td>
+                        
                         
                         <td className="px-3 py-3">
                           <Badge className={`text-[10px] ${ROLE_COLORS[u.role] || "bg-muted"}`}>{ROLE_LABELS[u.role] || u.role}</Badge>
@@ -729,7 +729,7 @@ export default function POSUserManagementPage() {
                   </tbody>
                   <tfoot>
                     <tr className="bg-primary/5 border-t-2 border-primary/20 font-bold text-sm">
-                      <td colSpan={4} className="px-3 py-3 text-right text-foreground">المجموع: {filteredUsers.length} موظف</td>
+                      <td colSpan={3} className="px-3 py-3 text-right text-foreground">المجموع: {filteredUsers.length} موظف</td>
                       <td className="px-3 py-3 text-xs text-center text-foreground">{filteredUsers.filter(u => u.is_active).length} نشط</td>
                       <td className="px-3 py-3 text-xs text-center text-foreground">{filteredUsers.filter(u => u.has_account).length} حساب</td>
                       <td colSpan={2} />
