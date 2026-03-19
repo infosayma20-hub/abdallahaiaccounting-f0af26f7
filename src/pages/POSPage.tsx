@@ -154,6 +154,7 @@ interface Product {
   color: string;
   image_url: string | null;
   min_quantity: number;
+  kitchen_station_id: string | null;
 }
 
 interface POSCategory {
