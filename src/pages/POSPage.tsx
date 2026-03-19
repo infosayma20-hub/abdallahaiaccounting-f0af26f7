@@ -2267,12 +2267,26 @@ const POSPage = () => {
       .eq("shift_id", session.id);
     const totalExpenses = (expensesData || []).reduce((sum: number, e: any) => sum + (Number(e.amount) || 0), 0);
 
-    // Fetch sales breakdown by payment currency
+    // Fetch total POS purchases (cash out) for this session
+    const { data: purchasesData } = await supabase
+      .from("pos_purchases")
+      .select("total_amount, payment_type")
+      .eq("shift_id", session.id);
+    const totalPurchasesCash = (purchasesData || [])
+      .filter((p: any) => p.payment_type === "نقدي" || p.payment_type === "cash" || !p.payment_type)
+      .reduce((sum: number, p: any) => sum + (Number(p.total_amount) || 0), 0);
+
+    // Fetch sales breakdown by payment currency (paid orders only, excluding returns)
     const { data: ordersData } = await supabase
       .from("pos_orders")
-      .select("id, payment_currency, payment_currency_amount, total")
+      .select("id, payment_currency, payment_currency_amount, total, is_return")
       .eq("session_id", session.id)
       .eq("state", "paid");
+
+    // Separate sales and returns
+    const salesOrders = (ordersData || []).filter((o: any) => !o.is_return);
+    const returnOrders = (ordersData || []).filter((o: any) => o.is_return);
+    const totalReturnsCash = returnOrders.reduce((s: number, o: any) => s + (Number(o.total) || 0), 0);
 
     const currencyBreakdown: Record<string, { sales: number; count: number }> = {};
     (ordersData || []).forEach((o: any) => {
