@@ -63,7 +63,7 @@ export default function AddTaskModal({ open, onClose, taskUsers, onSaved, editTa
     } else {
       payload.user_id = user.id;
       payload.created_by = taskUser.id;
-      if (assignTo) {
+      if (assignTo && assignTo !== "none") {
         payload.assigned_to = assignTo;
         payload.assigned_at = new Date().toISOString();
         payload.status = "in_progress";
