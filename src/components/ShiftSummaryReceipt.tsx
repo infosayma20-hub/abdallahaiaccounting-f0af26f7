@@ -244,47 +244,67 @@ export default function ShiftSummaryReceipt({ open, onOpenChange, data }: ShiftS
             {/* Expected Cash (3 currencies) */}
             <div style={sectionTitle}>تسليم النقدية</div>
 
-            {/* Expected per currency - show ILS always, others only if > 0 */}
+            {/* ILS row: expected / delivered / variance */}
             <div style={{ ...rowStyle, fontSize: 13, fontWeight: 700, color: "#0f172a" }}>
               <span>المتوقع (شيكل)</span>
               <span style={{ fontVariantNumeric: "tabular-nums" }}>₪{data.expectedCash.toFixed(2)}</span>
             </div>
-            {(cashMethodAmounts["USD"] || cb.USD?.sales || 0) > 0 && (
-              <div style={{ ...rowStyle, fontSize: 12, fontWeight: 600, color: "#0f172a" }}>
-                <span>المتوقع (دولار)</span>
-                <span style={{ fontVariantNumeric: "tabular-nums" }}>${(cashMethodAmounts["USD"] || cb.USD?.sales || 0).toFixed(2)}</span>
-              </div>
-            )}
-            {(cashMethodAmounts["JOD"] || cb.JOD?.sales || 0) > 0 && (
-              <div style={{ ...rowStyle, fontSize: 12, fontWeight: 600, color: "#0f172a" }}>
-                <span>المتوقع (دينار)</span>
-                <span style={{ fontVariantNumeric: "tabular-nums" }}>{(cashMethodAmounts["JOD"] || cb.JOD?.sales || 0).toFixed(2)} د.أ</span>
-              </div>
-            )}
-
-            <hr style={{ border: "none", borderTop: "1px dashed #ccc", margin: "4px 0" }} />
-
-            {/* Delivered */}
             <div style={{ ...rowStyle, fontSize: 13, fontWeight: 700, color: "#0f172a" }}>
               <span>المسلّم (شيكل)</span>
               <span style={{ fontVariantNumeric: "tabular-nums" }}>₪{data.closingCash.toFixed(2)}</span>
             </div>
-            {(data.closingCashUSD || 0) > 0 && (
-              <div style={rowStyle}>
-                <span>المسلّم (دولار)</span>
-                <span style={amountStyle}>${(data.closingCashUSD || 0).toFixed(2)}</span>
+            {(data.varianceILS !== undefined && data.varianceILS !== 0) && (
+              <div style={{ ...rowStyle, fontSize: 12, fontWeight: 700, color: (data.varianceILS || 0) > 0 ? "#16a34a" : "#dc2626" }}>
+                <span>{(data.varianceILS || 0) > 0 ? "فائض" : "عجز"} (شيكل)</span>
+                <span style={{ fontVariantNumeric: "tabular-nums" }}>₪{Math.abs(data.varianceILS || 0).toFixed(2)}</span>
               </div>
             )}
-            {(data.closingCashJOD || 0) > 0 && (
-              <div style={rowStyle}>
-                <span>المسلّم (دينار)</span>
-                <span style={amountStyle}>{(data.closingCashJOD || 0).toFixed(2)} د.أ</span>
-              </div>
+
+            {/* USD row: expected / delivered / variance */}
+            {((data.expectedCashUSD || 0) > 0 || (data.closingCashUSD || 0) > 0) && (
+              <>
+                <hr style={{ border: "none", borderTop: "1px dashed #ccc", margin: "4px 0" }} />
+                <div style={{ ...rowStyle, fontSize: 12, fontWeight: 600, color: "#0f172a" }}>
+                  <span>المتوقع (دولار)</span>
+                  <span style={{ fontVariantNumeric: "tabular-nums" }}>${(data.expectedCashUSD || 0).toFixed(2)}</span>
+                </div>
+                <div style={rowStyle}>
+                  <span>المسلّم (دولار)</span>
+                  <span style={amountStyle}>${(data.closingCashUSD || 0).toFixed(2)}</span>
+                </div>
+                {(data.varianceUSD !== undefined && data.varianceUSD !== 0) && (
+                  <div style={{ ...rowStyle, fontSize: 11, fontWeight: 700, color: (data.varianceUSD || 0) > 0 ? "#16a34a" : "#dc2626" }}>
+                    <span>{(data.varianceUSD || 0) > 0 ? "فائض" : "عجز"} (دولار)</span>
+                    <span style={{ fontVariantNumeric: "tabular-nums" }}>${Math.abs(data.varianceUSD || 0).toFixed(2)}</span>
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* JOD row: expected / delivered / variance */}
+            {((data.expectedCashJOD || 0) > 0 || (data.closingCashJOD || 0) > 0) && (
+              <>
+                <hr style={{ border: "none", borderTop: "1px dashed #ccc", margin: "4px 0" }} />
+                <div style={{ ...rowStyle, fontSize: 12, fontWeight: 600, color: "#0f172a" }}>
+                  <span>المتوقع (دينار)</span>
+                  <span style={{ fontVariantNumeric: "tabular-nums" }}>{(data.expectedCashJOD || 0).toFixed(2)} د.أ</span>
+                </div>
+                <div style={rowStyle}>
+                  <span>المسلّم (دينار)</span>
+                  <span style={amountStyle}>{(data.closingCashJOD || 0).toFixed(2)} د.أ</span>
+                </div>
+                {(data.varianceJOD !== undefined && data.varianceJOD !== 0) && (
+                  <div style={{ ...rowStyle, fontSize: 11, fontWeight: 700, color: (data.varianceJOD || 0) > 0 ? "#16a34a" : "#dc2626" }}>
+                    <span>{(data.varianceJOD || 0) > 0 ? "فائض" : "عجز"} (دينار)</span>
+                    <span style={{ fontVariantNumeric: "tabular-nums" }}>{Math.abs(data.varianceJOD || 0).toFixed(2)} د.أ</span>
+                  </div>
+                )}
+              </>
             )}
 
             <hr style={{ border: "none", borderTop: "2px solid #1a1a1a", margin: "8px 0" }} />
 
-            {/* Variance */}
+            {/* Total Variance */}
             <div style={{
               textAlign: "center",
               padding: 10,
