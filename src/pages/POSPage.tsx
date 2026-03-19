@@ -822,6 +822,7 @@ const POSPage = () => {
         buy_price: Number(p.buy_price),
         quantity: Number(p.quantity),
         min_quantity: Number(p.min_quantity) || 0,
+        kitchen_station_id: (p as any).kitchen_station_id || null,
       }))
     );
   };
