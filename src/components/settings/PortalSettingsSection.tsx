@@ -165,7 +165,7 @@ export default function PortalSettingsSection() {
                 type="password"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
-                placeholder="كلمة مرور قوية (6 أحرف على الأقل)"
+                placeholder="كلمة مرور (3 أحرف على الأقل)"
                 dir="ltr"
               />
             </div>

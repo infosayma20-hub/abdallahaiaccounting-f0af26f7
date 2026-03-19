@@ -32,8 +32,8 @@ Deno.serve(async (req) => {
       return json({ error: "بيانات ناقصة" }, 400);
     }
 
-    if (password.length < 6) {
-      return json({ error: "كلمة المرور يجب أن تكون 6 أحرف على الأقل" }, 400);
+    if (password.length < 3) {
+      return json({ error: "كلمة المرور يجب أن تكون 3 أحرف على الأقل" }, 400);
     }
 
     // Get POS user

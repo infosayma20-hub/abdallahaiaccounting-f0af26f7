@@ -841,7 +841,7 @@ export default function POSUserManagementPage() {
                       type="password"
                       value={accountPassword}
                       onChange={e => setAccountPassword(e.target.value)}
-                      placeholder="6 أحرف على الأقل"
+                      placeholder="3 أحرف على الأقل"
                     />
                   </div>
                   <div>

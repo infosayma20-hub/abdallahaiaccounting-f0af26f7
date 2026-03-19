@@ -1568,8 +1568,8 @@ export default function SuperAdminDashboard() {
   };
 
   const handleResetPassword = (userId: string, name: string) => {
-    const newPw = prompt(`أدخل كلمة المرور الجديدة لـ ${name} (6 أحرف على الأقل):`);
-    if (!newPw || newPw.length < 6) { toast.error("كلمة مرور قصيرة جداً"); return; }
+    const newPw = prompt(`أدخل كلمة المرور الجديدة لـ ${name} (3 أحرف على الأقل):`);
+    if (!newPw || newPw.length < 3) { toast.error("كلمة مرور قصيرة جداً"); return; }
     setPwDialog({
       open: true, title: `إعادة تعيين كلمة مرور ${name}`,
       onConfirmed: async () => {

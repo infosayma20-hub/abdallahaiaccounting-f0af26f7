@@ -31,8 +31,8 @@ Deno.serve(async (req) => {
     const totalCount = count || 50;
     const userPassword = password || "123456";
 
-    if (userPassword.length < 6) {
-      return json({ error: "كلمة المرور يجب أن تكون 6 أحرف على الأقل" }, 400);
+    if (userPassword.length < 3) {
+      return json({ error: "كلمة المرور يجب أن تكون 3 أحرف على الأقل" }, 400);
     }
 
     // Get admin's company info

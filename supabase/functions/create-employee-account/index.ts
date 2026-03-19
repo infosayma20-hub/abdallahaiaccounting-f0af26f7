@@ -64,9 +64,9 @@ Deno.serve(async (req) => {
       );
     }
 
-    if (password.length < 6) {
+    if (password.length < 3) {
       return new Response(
-        JSON.stringify({ error: "كلمة المرور يجب أن تكون 6 أحرف على الأقل" }),
+        JSON.stringify({ error: "كلمة المرور يجب أن تكون 3 أحرف على الأقل" }),
         {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
