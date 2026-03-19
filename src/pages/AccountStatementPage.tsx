@@ -2307,14 +2307,14 @@ const AccountStatementPage = () => {
                             إجمالي الحركات: <strong className="text-foreground">{filteredRows.length} قيد</strong>
                           </span>
                           <div className="flex items-center gap-4 flex-wrap">
-                            <span>إجمالي مدين: <strong className="text-red-600 tabular-nums">{fmtAmount(totalDebit)}</strong></span>
-                            <span>إجمالي دائن: <strong className="text-emerald-600 tabular-nums">{fmtAmount(totalCredit)}</strong></span>
+                            <span>إجمالي مدين: <strong className="text-red-600 tabular-nums">{fmtAmount(totalDebit, statementCurrency)}</strong></span>
+                            <span>إجمالي دائن: <strong className="text-emerald-600 tabular-nums">{fmtAmount(totalCredit, statementCurrency)}</strong></span>
                             <Separator orientation="vertical" className="h-4" />
-                            <span>رصيد الفترة: <strong className="text-foreground tabular-nums">{fmtAmount(totalDebit - totalCredit)}</strong></span>
+                            <span>رصيد الفترة: <strong className="text-foreground tabular-nums">{fmtAmount(totalDebit - totalCredit, statementCurrency)}</strong></span>
                             <Separator orientation="vertical" className="h-4" />
                             <span>
                               الرصيد الختامي: <strong className={cn("tabular-nums", closingBalance > 0 ? "text-red-600" : closingBalance < 0 ? "text-emerald-600" : "text-foreground")}>
-                                {fmtAmount(closingBalance)}
+                                {fmtAmount(closingBalance, statementCurrency)}
                               </strong> ({closingBalance >= 0 ? "مدين" : "دائن"})
                             </span>
                           </div>
