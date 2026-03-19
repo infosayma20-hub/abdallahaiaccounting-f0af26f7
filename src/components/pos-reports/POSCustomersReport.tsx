@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Download, Users, Search } from "lucide-react";
+import { Download, Users, Search, ExternalLink } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { useNavigate } from "react-router-dom";
 import * as XLSX from "xlsx";
 
 interface Customer {
@@ -24,6 +25,7 @@ const POSCustomersReport = ({ dataOwnerId }: Props) => {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetch = async () => {
@@ -66,19 +68,28 @@ const POSCustomersReport = ({ dataOwnerId }: Props) => {
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2">
           <Users className="w-4 h-4 text-muted-foreground" />
           <span className="text-sm font-semibold text-foreground">{customers.length} عميل مسجل</span>
         </div>
-        <button
-          onClick={handleExport}
-          disabled={filtered.length === 0}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-muted-foreground border border-border rounded-md hover:bg-secondary transition-colors disabled:opacity-40"
-        >
-          <Download className="w-4 h-4" />
-          تصدير Excel
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => navigate("/pos-customers")}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-primary border border-primary/30 rounded-md hover:bg-primary/10 transition-colors font-medium"
+          >
+            <ExternalLink className="w-3.5 h-3.5" />
+            إدارة الزبائن
+          </button>
+          <button
+            onClick={handleExport}
+            disabled={filtered.length === 0}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-muted-foreground border border-border rounded-md hover:bg-secondary transition-colors disabled:opacity-40"
+          >
+            <Download className="w-4 h-4" />
+            تصدير Excel
+          </button>
+        </div>
       </div>
 
       {/* Search */}

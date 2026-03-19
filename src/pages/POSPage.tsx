@@ -2608,6 +2608,9 @@ const POSPage = () => {
                   </button>
                 )}
                 <div className="border-t border-gray-200 my-1" />
+                <button className="w-full text-right px-4 py-2.5 text-sm flex items-center gap-2.5 hover:bg-gray-100 transition-colors" style={{ color: "#1B3A5C" }} onClick={() => { navigate("/pos-customers"); setShowOpsDropdown(false); }}>
+                  <UserCheck className="h-4 w-4" style={{ color: "#C9A84C" }} /> قاعدة بيانات الزبائن
+                </button>
                 <button className="w-full text-right px-4 py-2.5 text-sm flex items-center gap-2.5 hover:bg-gray-100 transition-colors" style={{ color: "#1B3A5C" }} onClick={() => { setShowSyncLog(true); setShowOpsDropdown(false); }}>
                   <RefreshCw className="h-4 w-4" style={{ color: "#C9A84C" }} /> سجل المزامنة
                   {offlineMode.pendingCount > 0 && (
