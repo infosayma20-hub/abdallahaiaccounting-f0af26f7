@@ -616,9 +616,12 @@ const AccountsPage = () => {
                     </div>
 
                     {/* Type */}
-                    <span className="hidden sm:block text-[11px] text-[hsl(210,10%,42%)] dark:text-muted-foreground font-medium">
-                      {isVirtualTypeHeader ? '' : (typeLabels[nType] || nType)}
-                    </span>
+                    {!isVirtualTypeHeader && (
+                      <span className={cn("hidden sm:inline-block text-[10px] font-semibold px-2 py-0.5 rounded-md", typeColors[nType] || "bg-muted text-muted-foreground")}>
+                        {typeLabels[nType] || nType}
+                      </span>
+                    )}
+                    {isVirtualTypeHeader && <span className="hidden sm:block" />}
 
                     {/* Natural Balance */}
                     <span className={cn(
