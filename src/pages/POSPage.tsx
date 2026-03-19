@@ -471,6 +471,7 @@ const POSPage = () => {
   const [receiptData, setReceiptData] = useState<any>(null);
   const [posReturnPolicy, setPosReturnPolicy] = useState({ show: true, days: 7 });
   const [posAllowOrderTransfer, setPosAllowOrderTransfer] = useState(false);
+  const [posRequireCashBox, setPosRequireCashBox] = useState(false);
 
   // Kitchen
   const [showKitchenTicket, setShowKitchenTicket] = useState(false);
