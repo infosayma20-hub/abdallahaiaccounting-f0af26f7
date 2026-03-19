@@ -77,6 +77,8 @@ interface Transaction {
   is_deleted: boolean;
   contact_id: string | null;
   payment_method: string | null;
+  foreign_amount: number | null;
+  exchange_rate: number | null;
 }
 
 interface Cheque {
@@ -487,7 +489,7 @@ const AccountStatementPage = () => {
           .order("account_code"),
         supabase
           .from("transactions")
-          .select("id, description, transaction_type, amount, currency, transaction_date, debit_account_code, credit_account_code, reference, is_deleted, contact_id, payment_method")
+          .select("id, description, transaction_type, amount, currency, transaction_date, debit_account_code, credit_account_code, reference, is_deleted, contact_id, payment_method, foreign_amount, exchange_rate")
           .eq("user_id", user.id)
           .eq("is_deleted", false)
           .order("transaction_date", { ascending: true })
@@ -989,13 +991,26 @@ const AccountStatementPage = () => {
       related = related.filter(tx => normalizeCurrency(tx.currency) === selectedCurrency);
     }
 
+    // Detect if this is a foreign currency cash account
+    const foreignCashAccounts = ['1111', '1112', '1113', '1114'];
+    const isForeignCashAccount = isAccountsTab && selectedAccount && foreignCashAccounts.includes(selectedAccount.account_code);
+
+    // Helper to get the effective amount for a transaction on this account
+    const getEffectiveAmount = (tx: Transaction): number => {
+      // For foreign cash accounts, prefer foreign_amount when available
+      if (isForeignCashAccount && tx.foreign_amount != null && tx.foreign_amount > 0) {
+        return tx.foreign_amount;
+      }
+      return tx.amount || 0;
+    };
+
     let openBal = 0;
     const periodTx: Transaction[] = [];
 
     for (const tx of related) {
       const { isDebit, isCredit } = resolveDebitCredit(tx);
       if (!isDebit && !isCredit) continue;
-      const amount = tx.amount || 0;
+      const amount = getEffectiveAmount(tx);
 
       if (dateFrom && tx.transaction_date < dateFrom) {
         if (isDebit) openBal += amount;
@@ -1011,7 +1026,7 @@ const AccountStatementPage = () => {
 
     const rows: StatementRow[] = periodTx.map(tx => {
       const { isDebit } = resolveDebitCredit(tx);
-      const amount = tx.amount || 0;
+      const amount = getEffectiveAmount(tx);
       const debit = isDebit ? amount : 0;
       const credit = !isDebit ? amount : 0;
       runningBalance += debit - credit;

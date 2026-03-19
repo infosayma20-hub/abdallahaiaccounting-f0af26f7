@@ -9078,6 +9078,8 @@ export type Database = {
           currency: string
           debit_account_code: string
           description: string
+          exchange_rate: number | null
+          foreign_amount: number | null
           id: string
           idempotency_key: string | null
           is_deleted: boolean | null
@@ -9100,6 +9102,8 @@ export type Database = {
           currency?: string
           debit_account_code: string
           description: string
+          exchange_rate?: number | null
+          foreign_amount?: number | null
           id?: string
           idempotency_key?: string | null
           is_deleted?: boolean | null
@@ -9122,6 +9126,8 @@ export type Database = {
           currency?: string
           debit_account_code?: string
           description?: string
+          exchange_rate?: number | null
+          foreign_amount?: number | null
           id?: string
           idempotency_key?: string | null
           is_deleted?: boolean | null

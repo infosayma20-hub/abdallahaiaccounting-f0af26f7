@@ -15,6 +15,8 @@ export interface SupabaseTransaction {
   is_deleted: boolean | null;
   is_opening_balance: boolean | null;
   contact_id: string | null;
+  foreign_amount: number | null;
+  exchange_rate: number | null;
 }
 
 export interface SupabaseAccount {
@@ -30,7 +32,7 @@ export interface SupabaseAccount {
 export async function fetchTransactions(userId: string) {
   const { data, error } = await supabase
     .from("transactions")
-    .select("id, transaction_date, description, transaction_type, debit_account_code, credit_account_code, amount, currency, reference, payment_method, is_deleted, is_opening_balance, contact_id")
+    .select("id, transaction_date, description, transaction_type, debit_account_code, credit_account_code, amount, currency, reference, payment_method, is_deleted, is_opening_balance, contact_id, foreign_amount, exchange_rate")
     .eq("user_id", userId)
     .order("transaction_date", { ascending: false })
     .limit(5000);
