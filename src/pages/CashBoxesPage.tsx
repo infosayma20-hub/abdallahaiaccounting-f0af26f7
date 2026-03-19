@@ -168,9 +168,16 @@ const CashBoxesPage = () => {
             <p className="text-xs text-muted-foreground">تعريف وإدارة جميع صناديق الشركة</p>
           </div>
         </div>
-        <Button size="sm" className="gap-2" style={{ background: "#0A2342" }} onClick={() => openAdd("branch")}>
-          <Plus className="h-4 w-4" /> صندوق جديد
-        </Button>
+        <div className="flex items-center gap-2">
+          {pettyBoxes.length > 0 && (
+            <Button variant="outline" size="sm" className="gap-1.5 text-xs border-amber-300 text-amber-700 hover:bg-amber-50" onClick={() => setReplenishOpen(true)}>
+              <ArrowDownToLine className="h-3.5 w-3.5" /> تغذية النثرية
+            </Button>
+          )}
+          <Button size="sm" className="gap-2" style={{ background: "#0A2342" }} onClick={() => openAdd("branch")}>
+            <Plus className="h-4 w-4" /> صندوق جديد
+          </Button>
+        </div>
       </div>
 
       {/* KPI Strip */}
