@@ -2423,6 +2423,7 @@ const POSPage = () => {
       variance,
       sessionId: session.id,
       currencyBreakdown,
+      paymentMethodBreakdown,
       exchangeRates,
     });
 
