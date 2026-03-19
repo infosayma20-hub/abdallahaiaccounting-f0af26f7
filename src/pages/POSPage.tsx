@@ -2326,7 +2326,9 @@ const POSPage = () => {
     // Multi-currency expected cash calculation
     // ILS expected = opening + ILS cash sales - ILS change given for foreign payments - expenses
     const ilsCashSales = paymentMethodBreakdown["cash"]?.["ILS"] || 0;
-    const expectedILS = session.opening_cash + ilsCashSales - foreignChangeILS - totalExpenses;
+    // Fallback: if no payment records found but session has sales, use session total_sales
+    const effectiveILSCashSales = ilsCashSales > 0 ? ilsCashSales : (orderIds.length === 0 ? (session.total_sales || 0) : ilsCashSales);
+    const expectedILS = session.opening_cash + effectiveILSCashSales - foreignChangeILS - totalExpenses;
     // Foreign expected = actual foreign tendered minus foreign change given back
     const expectedUSD = foreignTenderedUSD - foreignChangeUSD;
     const expectedJOD = foreignTenderedJOD - foreignChangeJOD;
