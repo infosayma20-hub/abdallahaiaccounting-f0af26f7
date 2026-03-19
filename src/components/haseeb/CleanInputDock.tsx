@@ -425,8 +425,8 @@ const CleanInputDock = ({ onSend, sending, centered }: Props) => {
           </div>
         )}
 
-        {/* Smart Command Bar */}
-        <SmartCommandBar onInsert={handleCommandInsert} onAction={handleCommandAction} />
+        {/* Smart Command Bar - hide in centered/welcome mode */}
+        {!centered && <SmartCommandBar onInsert={handleCommandInsert} onAction={handleCommandAction} />}
 
         {/* Input row */}
         <div className={`flex items-end gap-2 ${centered ? "px-0" : "px-3.5"}`}>
