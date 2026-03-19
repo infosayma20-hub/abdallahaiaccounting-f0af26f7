@@ -169,9 +169,18 @@ const TX_TYPE_FILTERS = [
 ];
 
 // ─── FORMAT HELPERS ───
+const getCurrencySymbol = (c: string): string => {
+  const norm = normalizeCurrency(c);
+  if (norm === "دولار") return "$";
+  if (norm === "دينار") return "د.أ";
+  if (norm === "يورو") return "€";
+  if (norm === "جنيه") return "£";
+  return "₪";
+};
+
 const fmtAmount = (n: number, currency?: string) => {
   if (n === 0) return "—";
-  const symbol = currency === "دولار" ? "$" : currency === "دينار" ? "د.أ" : currency === "يورو" ? "€" : "₪";
+  const symbol = getCurrencySymbol(currency || "شيكل");
   return `${symbol}${Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 };
 
