@@ -85,6 +85,7 @@ export interface CompanySettings {
   pos_disable_cogs: boolean;
   pos_disable_stock_deduction: boolean;
   pos_require_device_fingerprint: boolean;
+  pos_allow_order_transfer: boolean;
   pos_show_return_policy: boolean;
   pos_return_policy_days: number;
   // Print
