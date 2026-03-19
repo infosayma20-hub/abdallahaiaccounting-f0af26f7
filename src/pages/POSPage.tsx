@@ -2764,7 +2764,7 @@ const POSPage = () => {
           />
 
           {/* ── Odoo-Style Category Chips ── */}
-          <div className="px-4 py-2 border-b border-border">
+          <div className="px-4 py-2 border-b border-border/70 shadow-[0_1px_2px_rgba(0,0,0,0.04)] bg-muted/20">
             {/* Sort mode banner */}
             {isSortMode && isAdmin && (
               <div className="mb-2 flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400 text-xs">
