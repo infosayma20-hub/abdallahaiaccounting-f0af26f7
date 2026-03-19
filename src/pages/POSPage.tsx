@@ -2720,7 +2720,7 @@ const POSPage = () => {
         {/* ── LEFT: Products ── */}
         <div className="flex-1 flex flex-col min-w-0 bg-[hsl(var(--background))]">
           {/* Search Bar */}
-          <div className="px-4 py-2.5 border-b border-border">
+          <div className="px-4 py-2.5 border-b border-border/70 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
             <div className="relative max-w-xl">
               <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
               <Input
