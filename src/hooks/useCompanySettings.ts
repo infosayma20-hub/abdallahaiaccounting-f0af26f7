@@ -84,6 +84,7 @@ export interface CompanySettings {
   pos_day_cutoff_hour: number;
   pos_disable_cogs: boolean;
   pos_disable_stock_deduction: boolean;
+  pos_require_device_fingerprint: boolean;
   pos_show_return_policy: boolean;
   pos_return_policy_days: number;
   // Print
@@ -202,6 +203,7 @@ const defaultSettings: CompanySettings = {
   pos_day_cutoff_hour: 6,
   pos_disable_cogs: false,
   pos_disable_stock_deduction: false,
+  pos_require_device_fingerprint: false,
   pos_show_return_policy: true,
   pos_return_policy_days: 7,
   primary_color: "#22C55E",
@@ -323,6 +325,7 @@ export function useCompanySettings() {
     "pos_warn_out_of_stock","pos_prevent_zero_stock","primary_color","invoice_font","paper_size",
     "show_logo_on_invoice","show_address_on_invoice","invoice_footer","pos_day_cutoff_hour",
     "licensed_dealer_number","pos_disable_cogs","pos_disable_stock_deduction",
+    "pos_require_device_fingerprint",
     "pos_show_return_policy","pos_return_policy_days",
     "hr_annual_leave_days","hr_sick_leave_days","hr_carry_over_leave","hr_salary_day",
     "hr_salary_currency","hr_social_security","hr_require_qr","hr_require_gps",

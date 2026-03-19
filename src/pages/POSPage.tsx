@@ -758,23 +758,31 @@ const POSPage = () => {
             cash_box_id: (sessions[0] as any).cash_box_id || null,
           });
         } else {
-          // ── Device verification TEMPORARILY DISABLED ──
-          // Allow any admin/cashier to enter POS without device check
-          // const fingerprint = await getDeviceFingerprint();
-          // const { data: deviceRecord } = await supabase
-          //   .from("pos_devices")
-          //   .select("id, is_active, device_name")
-          //   .eq("device_fingerprint", fingerprint)
-          //   .eq("company_id", comp.id)
-          //   .maybeSingle();
-          //
-          // if (!deviceRecord || !deviceRecord.is_active) {
-          //   setShowDeviceBlocked(true);
-          //   setLoading(false);
-          //   return;
-          // }
-          //
-          // await supabase.from("pos_devices").update({ last_seen_at: new Date().toISOString() }).eq("id", deviceRecord.id);
+          // ── Device fingerprint check (only if enabled in settings) ──
+          const { data: csSettings } = await supabase
+            .from("company_settings" as any)
+            .select("pos_require_device_fingerprint")
+            .eq("user_id", comp.user_id || userId)
+            .maybeSingle();
+          
+          if ((csSettings as any)?.pos_require_device_fingerprint) {
+            const { getDeviceFingerprint } = await import("@/lib/device-fingerprint");
+            const fingerprint = await getDeviceFingerprint();
+            const { data: deviceRecord } = await supabase
+              .from("pos_devices")
+              .select("id, is_active, device_name")
+              .eq("device_fingerprint", fingerprint)
+              .eq("company_id", comp.id)
+              .maybeSingle();
+
+            if (!deviceRecord || !deviceRecord.is_active) {
+              setShowDeviceBlocked(true);
+              setLoading(false);
+              return;
+            }
+
+            await supabase.from("pos_devices").update({ last_seen_at: new Date().toISOString() }).eq("id", deviceRecord.id);
+          }
 
           // Load POS cash boxes for shift opening
           const { data: boxes } = await supabase
