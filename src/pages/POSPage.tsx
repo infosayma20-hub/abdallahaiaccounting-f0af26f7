@@ -1769,6 +1769,9 @@ const POSPage = () => {
             tax_amount: cartTotals.tax,
             total: effectiveTotal,
             state: "draft",
+            order_type: activeOrder.orderType,
+            delivery_address: activeOrder.orderType === "delivery" ? activeOrder.deliveryAddress : null,
+            pos_customer_id: activeOrder.posCustomerId || null,
             ...(customerDataDiscount ? { pos_customer_id: customerDataDiscount.customerId, customer_discount_pct: customerDataDiscount.discountPct } as any : {}),
           } as any)
           .select()
