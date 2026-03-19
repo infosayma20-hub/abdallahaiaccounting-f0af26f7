@@ -2280,19 +2280,32 @@ const POSPage = () => {
     const orderIds = (ordersData || []).map((o: any) => o.id);
     const paymentMethodBreakdown: Record<string, Record<string, number>> = {};
     let foreignChangeILS = 0; // Total ILS change given for foreign currency payments
+    let foreignChangeUSD = 0; // Total USD change given back
+    let foreignChangeJOD = 0; // Total JOD change given back
     if (orderIds.length > 0) {
       const { data: paymentsData } = await supabase
         .from("pos_payments")
-        .select("payment_method, amount, currency, change_amount")
+        .select("payment_method, amount, currency, change_amount, change_currency")
         .in("order_id", orderIds);
       (paymentsData || []).forEach((p: any) => {
         const method = p.payment_method || "cash";
         const cur = p.currency || "ILS";
         if (!paymentMethodBreakdown[method]) paymentMethodBreakdown[method] = {};
         paymentMethodBreakdown[method][cur] = (paymentMethodBreakdown[method][cur] || 0) + Number(p.amount || 0);
-        // Track ILS change given out for foreign cash payments
+        // Track change given out based on change_currency
         if (method === "cash" && cur !== "ILS") {
-          foreignChangeILS += Number(p.change_amount || 0);
+          const chgCur = (p as any).change_currency || "ILS";
+          const chgAmount = Number(p.change_amount || 0);
+          if (chgCur === "ILS") {
+            foreignChangeILS += chgAmount;
+          } else if (chgCur === "USD") {
+            // change_amount is stored as ILS, convert to foreign
+            const chgRate = exchangeRates?.["USD"] || 3.6;
+            foreignChangeUSD += chgAmount / chgRate;
+          } else if (chgCur === "JOD") {
+            const chgRate = exchangeRates?.["JOD"] || 5.0;
+            foreignChangeJOD += chgAmount / chgRate;
+          }
         }
       });
     }
@@ -2301,9 +2314,9 @@ const POSPage = () => {
     // ILS expected = opening + ILS cash sales - ILS change given for foreign payments - expenses
     const ilsCashSales = paymentMethodBreakdown["cash"]?.["ILS"] || 0;
     const expectedILS = session.opening_cash + ilsCashSales - foreignChangeILS - totalExpenses;
-    // Foreign expected = actual foreign amounts received (from currencyBreakdown)
-    const expectedUSD = currencyBreakdown["USD"]?.sales || 0;
-    const expectedJOD = currencyBreakdown["JOD"]?.sales || 0;
+    // Foreign expected = actual foreign amounts received minus foreign change given back
+    const expectedUSD = (currencyBreakdown["USD"]?.sales || 0) - foreignChangeUSD;
+    const expectedJOD = (currencyBreakdown["JOD"]?.sales || 0) - foreignChangeJOD;
 
     // Per-currency variance
     const varianceILS = cash - expectedILS;
