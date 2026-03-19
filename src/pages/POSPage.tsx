@@ -3475,7 +3475,43 @@ const POSPage = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Device Blocked Dialog */}
+      {/* Change Password Dialog (first login) */}
+      <Dialog open={showChangePassword} onOpenChange={() => {}}>
+        <DialogContent className="sm:max-w-md" dir="rtl" onPointerDownOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
+          <DialogHeader>
+            <DialogTitle className="text-xl">🔐 تغيير كلمة المرور</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">يرجى تغيير كلمة المرور الافتراضية قبل المتابعة.</p>
+          <div className="space-y-3 py-3">
+            <div>
+              <label className="text-sm font-medium text-foreground mb-1.5 block">كلمة المرور الجديدة *</label>
+              <Input
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="6 أحرف على الأقل"
+                className="h-11"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-foreground mb-1.5 block">تأكيد كلمة المرور *</label>
+              <Input
+                type="password"
+                value={confirmNewPassword}
+                onChange={(e) => setConfirmNewPassword(e.target.value)}
+                placeholder="أعد إدخال كلمة المرور"
+                className="h-11"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={handleChangePassword} disabled={changingPassword || newPassword.length < 6} className="w-full h-11 font-bold">
+              {changingPassword ? "جاري التغيير..." : "تغيير كلمة المرور"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={showDeviceBlocked} onOpenChange={async (v) => { if (!v) { await supabase.auth.signOut(); navigate("/auth", { replace: true }); } setShowDeviceBlocked(v); }}>
         <DialogContent className="sm:max-w-md" dir="rtl" onPointerDownOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
           <DialogHeader>
