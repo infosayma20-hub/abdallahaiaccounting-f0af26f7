@@ -2690,20 +2690,18 @@ const POSPage = () => {
           ))}
         </div>
 
-        {/* Sort mode toggle - admin only */}
-        {isAdmin && (
-          <button
-            onClick={() => setIsSortMode(!isSortMode)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-              isSortMode
-                ? "bg-amber-500 text-white shadow-md"
-                : "bg-white/10 text-white/60 hover:text-white/90 hover:bg-white/15"
-            }`}
-          >
-            <GripVertical className="h-3 w-3" />
-            {isSortMode ? "✅ تم" : "ترتيب"}
-          </button>
-        )}
+        {/* Sort mode toggle - per user */}
+        <button
+          onClick={() => setIsSortMode(!isSortMode)}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+            isSortMode
+              ? "bg-amber-500 text-white shadow-md"
+              : "bg-white/10 text-white/60 hover:text-white/90 hover:bg-white/15"
+          }`}
+        >
+          <GripVertical className="h-3 w-3" />
+          {isSortMode ? "✅ تم" : "ترتيب"}
+        </button>
 
         <div className="w-px h-5" style={{ background: "rgba(255,255,255,0.1)" }} />
 
