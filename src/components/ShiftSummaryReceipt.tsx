@@ -24,7 +24,12 @@ interface ShiftSummaryData {
   closingCashUSD?: number;
   closingCashJOD?: number;
   expectedCash: number;
+  expectedCashUSD?: number;
+  expectedCashJOD?: number;
   variance: number;
+  varianceILS?: number;
+  varianceUSD?: number;
+  varianceJOD?: number;
   sessionId: string;
   currencyBreakdown?: CurrencyBreakdown;
   paymentMethodBreakdown?: PaymentMethodBreakdown;
