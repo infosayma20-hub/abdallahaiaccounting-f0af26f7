@@ -2267,40 +2267,54 @@ const POSPage = () => {
       .eq("shift_id", session.id);
     const totalExpenses = (expensesData || []).reduce((sum: number, e: any) => sum + (Number(e.amount) || 0), 0);
 
-    // Fetch sales breakdown by payment currency
+    // Fetch total POS purchases (cash out) for this session
+    const { data: purchasesData } = await supabase
+      .from("pos_purchases")
+      .select("total_amount, payment_type")
+      .eq("shift_id", session.id);
+    const totalPurchasesCash = (purchasesData || [])
+      .filter((p: any) => p.payment_type === "نقدي" || p.payment_type === "cash" || !p.payment_type)
+      .reduce((sum: number, p: any) => sum + (Number(p.total_amount) || 0), 0);
+
+    // Fetch sales breakdown by payment currency (paid orders only, excluding returns)
     const { data: ordersData } = await supabase
       .from("pos_orders")
-      .select("id, payment_currency, payment_currency_amount, total")
+      .select("id, payment_currency, payment_currency_amount, total, is_return")
       .eq("session_id", session.id)
       .eq("state", "paid");
 
+    // Separate sales and returns
+    const salesOrders = (ordersData || []).filter((o: any) => !o.is_return);
+    const returnOrders = (ordersData || []).filter((o: any) => o.is_return);
+    const totalReturnsCash = returnOrders.reduce((s: number, o: any) => s + (Number(o.total) || 0), 0);
+
     const currencyBreakdown: Record<string, { sales: number; count: number }> = {};
-    (ordersData || []).forEach((o: any) => {
+    salesOrders.forEach((o: any) => {
       const cur = o.payment_currency || "ILS";
       if (!currencyBreakdown[cur]) currencyBreakdown[cur] = { sales: 0, count: 0 };
       currencyBreakdown[cur].sales += Number(o.payment_currency_amount) || Number(o.total) || 0;
       currencyBreakdown[cur].count += 1;
     });
 
-    // Fetch payment method breakdown by currency
+    // Fetch payment method breakdown by currency (sales only, not returns)
+    const salesOrderIds = salesOrders.map((o: any) => o.id);
     const orderIds = (ordersData || []).map((o: any) => o.id);
     const paymentMethodBreakdown: Record<string, Record<string, number>> = {};
-    let foreignChangeILS = 0; // Total ILS change given for foreign currency payments
-    let foreignChangeUSD = 0; // Total USD change given back
-    let foreignChangeJOD = 0; // Total JOD change given back
-    let foreignTenderedUSD = 0; // Actual USD tendered by customers
-    let foreignTenderedJOD = 0; // Actual JOD tendered by customers
-    if (orderIds.length > 0) {
+    let foreignChangeILS = 0;
+    let foreignChangeUSD = 0;
+    let foreignChangeJOD = 0;
+    let foreignTenderedUSD = 0;
+    let foreignTenderedJOD = 0;
+    if (salesOrderIds.length > 0) {
       const { data: paymentsData } = await supabase
         .from("pos_payments")
         .select("payment_method, amount, currency, change_amount, change_currency, tendered, exchange_rate")
-        .in("order_id", orderIds);
+        .in("order_id", salesOrderIds);
       (paymentsData || []).forEach((p: any) => {
         const method = p.payment_method || "cash";
         const cur = p.currency || "ILS";
         if (!paymentMethodBreakdown[method]) paymentMethodBreakdown[method] = {};
         paymentMethodBreakdown[method][cur] = (paymentMethodBreakdown[method][cur] || 0) + Number(p.amount || 0);
-        // Track actual foreign tendered and change
         if (method === "cash" && cur !== "ILS") {
           const tenderedILS = Number(p.tendered || 0);
           const rate = Number(p.exchange_rate || 1);
@@ -2323,18 +2337,13 @@ const POSPage = () => {
       });
     }
 
-    // Multi-currency expected cash calculation
-    // ILS expected = opening + ILS cash sales - ILS change given for foreign payments - expenses
+    // Complete expected cash formula:
+    // المتوقع = الافتتاحي + مبيعات نقدية - باقي عملات أجنبية - مصاريف - مشتريات نقدية - مرتجعات نقدية
     const ilsCashSales = paymentMethodBreakdown["cash"]?.["ILS"] || 0;
-    // If no payment records found (e.g. data integrity issue) but session tracked sales, 
-    // use session.total_sales as fallback for cash (conservative: assumes all sales were cash)
-    const totalCashFromPayments = Object.values(paymentMethodBreakdown).reduce((s, currencies) => 
-      s + Object.values(currencies).reduce((s2, v) => s2 + v, 0), 0);
-    const hasCreditOrCard = (paymentMethodBreakdown["credit"] || paymentMethodBreakdown["card"]);
-    const effectiveILSCashSales = orderIds.length === 0 && (session.total_sales || 0) > 0
-      ? (session.total_sales || 0) // fallback when orders were deleted
+    const effectiveILSCashSales = salesOrderIds.length === 0 && (session.total_sales || 0) > 0
+      ? (session.total_sales || 0)
       : ilsCashSales;
-    const expectedILS = session.opening_cash + effectiveILSCashSales - foreignChangeILS - totalExpenses;
+    const expectedILS = session.opening_cash + effectiveILSCashSales - foreignChangeILS - totalExpenses - totalPurchasesCash - totalReturnsCash;
     // Foreign expected = actual foreign tendered minus foreign change given back
     const expectedUSD = foreignTenderedUSD - foreignChangeUSD;
     const expectedJOD = foreignTenderedJOD - foreignChangeJOD;
