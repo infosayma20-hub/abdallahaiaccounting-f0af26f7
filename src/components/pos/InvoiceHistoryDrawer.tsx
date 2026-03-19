@@ -176,11 +176,12 @@ export default function InvoiceHistoryDrawer({
         return;
       }
 
-      const { data: sessions } = await supabase
+      let sessQuery = supabase
         .from("pos_sessions")
         .select("id")
-        .eq("cashier_auth_user_id", targetAuthId)
-        .eq("status", "open");
+        .eq("cashier_auth_user_id", targetAuthId);
+      sessQuery = sessQuery.eq("status", "open") as any;
+      const { data: sessions } = await sessQuery;
       const targetSession = sessions?.[0];
 
       if (!targetSession) {
