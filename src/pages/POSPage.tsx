@@ -4102,7 +4102,6 @@ const POSPage = () => {
               </motion.div>
             )}
 
-            {/* Employee selector for employee_account */}
             {paymentMethod === "employee_account" && (
               <div className="relative space-y-2">
                 <label className="text-sm font-medium mb-1.5 block">اختر الموظف</label>
@@ -4121,7 +4120,7 @@ const POSPage = () => {
                   />
                 </div>
                 {showEmployeeDropdown && filteredEmployees.length > 0 && !selectedEmployee && (
-                  <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-lg shadow-lg max-h-40 overflow-y-auto">
+                  <div className="z-50 w-full bg-popover border border-border rounded-lg shadow-lg max-h-40 overflow-y-auto">
                     {filteredEmployees.map((emp) => (
                       <button
                         key={emp.id}
@@ -4140,14 +4139,24 @@ const POSPage = () => {
                   </div>
                 )}
                 {selectedEmployee && (
-                  <div className="p-3 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <UserCheck className="h-4 w-4 text-purple-500" />
-                      <span className="text-sm font-medium">{selectedEmployee.full_name}</span>
+                  <div className="p-3 rounded-xl bg-purple-500/10 border border-purple-500/20">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <UserCheck className="h-4 w-4 text-purple-500" />
+                        <span className="text-sm font-medium">{selectedEmployee.full_name}</span>
+                      </div>
+                      <div className="text-left">
+                        <p className="text-[10px] text-muted-foreground">رصيد مسحوبات الشهر</p>
+                        <p className="text-sm font-bold text-destructive tabular-nums">₪{employeeBalance.toFixed(0)}</p>
+                      </div>
                     </div>
-                    <div className="text-left">
-                      <p className="text-[10px] text-muted-foreground">رصيد مسحوبات الشهر</p>
-                      <p className="text-sm font-bold text-destructive tabular-nums">₪{employeeBalance.toFixed(0)}</p>
+                    <div className="mt-2">
+                      <Input
+                        value={employeeNote}
+                        onChange={(e) => setEmployeeNote(e.target.value)}
+                        placeholder="ملاحظة (مثال: غداء، أكل، سلفة...)"
+                        className="h-8 text-xs bg-background/50"
+                      />
                     </div>
                   </div>
                 )}
