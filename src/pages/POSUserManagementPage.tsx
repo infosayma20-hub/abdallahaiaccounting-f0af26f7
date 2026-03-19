@@ -616,19 +616,19 @@ export default function POSUserManagementPage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-2 w-full max-w-md">
+        <TabsList className="grid grid-cols-2 w-full max-w-md mr-auto">
           <TabsTrigger value="users" className="flex items-center gap-2"><Users className="w-4 h-4" /> المستخدمون</TabsTrigger>
           <TabsTrigger value="devices" className="flex items-center gap-2"><Monitor className="w-4 h-4" /> الأجهزة</TabsTrigger>
         </TabsList>
 
         {/* ═══ USERS TAB ═══ */}
         <TabsContent value="users" className="space-y-4 mt-4">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-row-reverse justify-end">
+            <Button onClick={openAddUser} className="gap-2"><Plus className="w-4 h-4" /> إضافة موظف</Button>
             <div className="relative flex-1 max-w-sm">
               <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input placeholder="بحث..." value={search} onChange={e => setSearch(e.target.value)} className="pr-9" />
             </div>
-            <Button onClick={openAddUser} className="gap-2"><Plus className="w-4 h-4" /> إضافة موظف</Button>
           </div>
 
           {loading ? (
