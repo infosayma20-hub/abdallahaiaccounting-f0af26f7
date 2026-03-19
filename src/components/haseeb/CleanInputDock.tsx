@@ -23,7 +23,7 @@ interface Props {
 
 
 
-const CleanInputDock = ({ onSend, sending }: Props) => {
+const CleanInputDock = ({ onSend, sending, centered }: Props) => {
   const { toast } = useToast();
   const { user } = useAuth();
   const [state, setState] = useState<DockState>("idle");
