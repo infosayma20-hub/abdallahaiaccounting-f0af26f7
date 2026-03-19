@@ -974,18 +974,18 @@ const TransactionsPage = () => {
               </Select>
             </div>
             <Input type="date" value={editFields.transaction_date} onChange={e => setEditFields(p => ({ ...p, transaction_date: e.target.value }))} />
-            <Select value={editFields.debit_account_code} onValueChange={v => setEditFields(p => ({ ...p, debit_account_code: v }))} dir="rtl">
-              <SelectTrigger><SelectValue placeholder="الحساب المدين" /></SelectTrigger>
-              <SelectContent className="bg-background z-50 max-h-48">
-                {accounts.map(a => <SelectItem key={a.account_code} value={a.account_code}>{a.account_code} - {a.account_name}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            <Select value={editFields.credit_account_code} onValueChange={v => setEditFields(p => ({ ...p, credit_account_code: v }))} dir="rtl">
-              <SelectTrigger><SelectValue placeholder="الحساب الدائن" /></SelectTrigger>
-              <SelectContent className="bg-background z-50 max-h-48">
-                {accounts.map(a => <SelectItem key={a.account_code} value={a.account_code}>{a.account_code} - {a.account_name}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <AccountSearchSelect
+              accounts={accounts}
+              value={editFields.debit_account_code}
+              onChange={v => setEditFields(p => ({ ...p, debit_account_code: v }))}
+              placeholder="الحساب المدين"
+            />
+            <AccountSearchSelect
+              accounts={accounts}
+              value={editFields.credit_account_code}
+              onChange={v => setEditFields(p => ({ ...p, credit_account_code: v }))}
+              placeholder="الحساب الدائن"
+            />
             <div className="flex gap-2 pt-2">
               <Button onClick={handleSave} disabled={saving} className="flex-1">
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "حفظ"}
