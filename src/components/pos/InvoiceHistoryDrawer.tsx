@@ -148,6 +148,67 @@ export default function InvoiceHistoryDrawer({
   const [cancelReason, setCancelReason] = useState("");
   const [cancellingOrder, setCancellingOrder] = useState<InvoiceOrder | null>(null);
 
+  // Transfer flow
+  const [showTransferDialog, setShowTransferDialog] = useState(false);
+  const [transferringOrder, setTransferringOrder] = useState<InvoiceOrder | null>(null);
+  const [posUsers, setPosUsers] = useState<{ id: string; name: string; auth_user_id: string | null }[]>([]);
+  const [selectedTransferUser, setSelectedTransferUser] = useState<string | null>(null);
+  const [transferring, setTransferring] = useState(false);
+
+  // Fetch POS users for transfer
+  useEffect(() => {
+    if (!allowOrderTransfer || !dataOwnerId || !open) return;
+    supabase.from("pos_users").select("id, name, auth_user_id").eq("user_id", dataOwnerId).eq("is_active", true)
+      .then(({ data }) => { if (data) setPosUsers(data); });
+  }, [allowOrderTransfer, dataOwnerId, open]);
+
+  const handleTransferOrder = async () => {
+    if (!transferringOrder || !selectedTransferUser || transferring) return;
+    setTransferring(true);
+    try {
+      const targetUser = posUsers.find(u => u.id === selectedTransferUser);
+      if (!targetUser) throw new Error("المستخدم غير موجود");
+
+      // Find target user's active session
+      const targetAuthId = targetUser.auth_user_id;
+      if (!targetAuthId) {
+        toast.error("هذا المستخدم لا يملك حساب دخول نشط");
+        return;
+      }
+
+      const { data: targetSession } = await supabase
+        .from("pos_sessions")
+        .select("id")
+        .eq("cashier_auth_user_id", targetAuthId)
+        .eq("status", "open")
+        .order("opened_at", { ascending: false })
+        .limit(1)
+        .single();
+
+      if (!targetSession) {
+        toast.error("لا توجد وردية مفتوحة لهذا الموظف");
+        return;
+      }
+
+      const { error } = await supabase
+        .from("pos_orders")
+        .update({ session_id: targetSession.id })
+        .eq("id", transferringOrder.id);
+
+      if (error) throw error;
+      toast.success(`تم نقل الفاتورة #${transferringOrder.order_number} إلى ${targetUser.name}`);
+      setShowTransferDialog(false);
+      setTransferringOrder(null);
+      setSelectedTransferUser(null);
+      setSelectedOrder(null);
+      fetchOrders();
+    } catch (err: any) {
+      toast.error(err.message || "فشل في نقل الفاتورة");
+    } finally {
+      setTransferring(false);
+    }
+  };
+
   // ── Fetch orders ──
   const fetchOrders = useCallback(async () => {
     if (!dataOwnerId || !open) return;
