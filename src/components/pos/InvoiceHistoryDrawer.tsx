@@ -279,8 +279,61 @@ export default function InvoiceHistoryDrawer({
           if (tgtTerm?.cash_account_code) tgtGLCode = tgtTerm.cash_account_code;
         }
 
+        // Fetch payment info to determine currency
+        const { data: paymentData } = await supabase
+          .from("pos_payments")
+          .select("currency, exchange_rate, amount")
+          .eq("order_id", transferringOrder.id)
+          .limit(1)
+          .maybeSingle();
+
+        const payCurrency = paymentData?.currency || "ILS";
+        const payRate = paymentData?.exchange_rate || 1;
+        const isForeign = payCurrency !== "ILS";
+
+        // Map currency code to Arabic label
+        const currencyLabel = ({ USD: "دولار", JOD: "دينار", EUR: "يورو", EGP: "جنيه", ILS: "شيكل" } as Record<string, string>)[payCurrency] || "شيكل";
+
+        // For foreign currency, the original GL entry targeted the foreign cash account (e.g. 1111/1112)
+        // We need to fetch the actual debit account from the original transaction
+        let actualSrcGL = srcGLCode;
+        let actualTgtGL = tgtGLCode;
+        if (isForeign) {
+          const { data: origTx } = await supabase
+            .from("transactions")
+            .select("debit_account_code")
+            .eq("idempotency_key", `POS-ORDER-${transferringOrder.id}`)
+            .maybeSingle();
+          if (origTx?.debit_account_code) {
+            actualSrcGL = origTx.debit_account_code;
+            // Target gets the same foreign currency account type
+            actualTgtGL = origTx.debit_account_code;
+          }
+        }
+
         // Only create transfer entry if GL codes differ
-        if (srcGLCode !== tgtGLCode) {
+        if (actualSrcGL !== actualTgtGL || (!isForeign && srcGLCode !== tgtGLCode)) {
+          const debitCode = isForeign ? actualTgtGL : tgtGLCode;
+          const creditCode = isForeign ? actualSrcGL : srcGLCode;
+          
+          if (debitCode !== creditCode) {
+            await supabase.from("transactions").insert({
+              user_id: dataOwnerId,
+              transaction_date: new Date().toISOString().split("T")[0],
+              description: `نقل فاتورة POS #${transferringOrder.order_number || ""} من ${sessionId.slice(0, 6)} إلى ${targetUser.name}`,
+              debit_account_code: debitCode,
+              credit_account_code: creditCode,
+              amount: transferringOrder.total,
+              currency: currencyLabel,
+              transaction_type: "pos_transfer",
+              reference: transferringOrder.order_number || "",
+              idempotency_key: `POS-TRANSFER-${transferringOrder.id}`,
+              foreign_amount: isForeign ? (paymentData?.amount || transferringOrder.total) : null,
+              exchange_rate: isForeign ? payRate : null,
+            });
+          }
+        } else if (!isForeign && srcGLCode !== tgtGLCode) {
+          // ILS transfer between different cash boxes
           await supabase.from("transactions").insert({
             user_id: dataOwnerId,
             transaction_date: new Date().toISOString().split("T")[0],
