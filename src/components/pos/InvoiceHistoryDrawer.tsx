@@ -176,15 +176,12 @@ export default function InvoiceHistoryDrawer({
         return;
       }
 
-      const sessQuery = supabase
+      const { data: sessions } = await supabase
         .from("pos_sessions")
         .select("id")
         .eq("cashier_auth_user_id", targetAuthId)
         .eq("status", "open");
-      const { data: targetSession } = await (sessQuery as any)
-        .order("opened_at", { ascending: false })
-        .limit(1)
-        .single();
+      const targetSession = sessions?.[0];
 
       if (!targetSession) {
         toast.error("لا توجد وردية مفتوحة لهذا الموظف");
