@@ -1526,16 +1526,17 @@ const InvoicesPage = () => {
       />
 
       {/* Delete Dialog */}
-      {selectedInvoice && (
+      {deleteTargetInvoice && (
         <DeleteDocumentDialog
           open={showDeleteDialog}
-          onClose={() => setShowDeleteDialog(false)}
+          onClose={() => { setShowDeleteDialog(false); setDeleteTargetInvoice(null); }}
           onConfirm={(reason) => {
-            handleDeleteInvoice(selectedInvoice.id, reason);
+            handleDeleteInvoice(deleteTargetInvoice.id, reason);
             setShowDeleteDialog(false);
+            setDeleteTargetInvoice(null);
           }}
-          docNumber={selectedInvoice.invoiceNumber}
-          docAmount={selectedInvoice.total}
+          docNumber={deleteTargetInvoice.invoiceNumber}
+          docAmount={deleteTargetInvoice.total}
         />
       )}
 
