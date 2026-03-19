@@ -2061,6 +2061,8 @@ const POSPage = () => {
         exchangeRate: rate,
         foreignAmount: foreignTotal,
         orderNote,
+        orderType: activeOrder.orderType,
+        deliveryAddress: activeOrder.orderType === "delivery" ? activeOrder.deliveryAddress : "",
       };
 
       setReceiptData(receiptInfo);

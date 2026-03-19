@@ -253,6 +253,13 @@ export default function POSReceiptDialog({ open, onOpenChange, data, showReturnP
                 <span style={{ color: "#64748b" }}>الكاشير</span>
                 <span style={{ fontWeight: 500, color: "#334155" }}>{data.cashierName}</span>
               </div>
+              {/* Order Type */}
+              <div style={{ display: "flex", justifyContent: "space-between", padding: "2px 0", fontSize: "11px" }}>
+                <span style={{ color: "#64748b" }}>نوع الطلب</span>
+                <span style={{ fontWeight: 600, color: "#0f172a", background: "#f1f5f9", borderRadius: "4px", padding: "1px 8px", fontSize: "10px" }}>
+                  {data.orderType === "delivery" ? "🚚 توصيل" : data.orderType === "takeaway" ? "🛍️ استلام" : "🍽️ محلي"}
+                </span>
+              </div>
               {data.tableName && (
                 <div style={{ display: "flex", justifyContent: "space-between", padding: "2px 0", fontSize: "11px" }}>
                   <span style={{ color: "#64748b" }}>الطاولة</span>
@@ -263,6 +270,12 @@ export default function POSReceiptDialog({ open, onOpenChange, data, showReturnP
                 <div style={{ display: "flex", justifyContent: "space-between", padding: "2px 0", fontSize: "11px" }}>
                   <span style={{ color: "#64748b" }}>الزبون</span>
                   <span style={{ fontWeight: 500, color: "#334155" }}>{data.customerName}</span>
+                </div>
+              )}
+              {data.orderType === "delivery" && data.deliveryAddress && (
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "2px 0", fontSize: "11px" }}>
+                  <span style={{ color: "#64748b" }}>عنوان التوصيل</span>
+                  <span style={{ fontWeight: 500, color: "#334155", maxWidth: "60%", textAlign: "left" }}>{data.deliveryAddress}</span>
                 </div>
               )}
 
