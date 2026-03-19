@@ -3572,7 +3572,7 @@ const POSPage = () => {
             )}
 
             {/* Totals */}
-            <div className="px-3 py-2 space-y-1">
+            <div className="px-3 py-2 space-y-1 border-t border-border/60 shadow-[0_-1px_3px_rgba(0,0,0,0.04)]">
               {cartTotals.tax > 0 && (
                 <div className="flex justify-between text-[11px] text-muted-foreground">
                   <span>الضريبة</span>
