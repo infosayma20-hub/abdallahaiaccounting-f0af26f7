@@ -1998,6 +1998,46 @@ const POSPage = () => {
       // Generate survey token if customer data was collected
       const surveyToken = customerDataDiscount ? crypto.randomUUID() : null;
 
+      // Auto-create employee sub-account if missing
+      let employeeAccountCode = selectedEmployee?.account_code;
+      if (paymentMethod === "employee_account" && selectedEmployee && !employeeAccountCode) {
+        const empAccName = `ذمم موظف - ${selectedEmployee.full_name}`;
+        // Check if account already exists
+        const { data: existingAcc } = await supabase
+          .from("accounts")
+          .select("account_code")
+          .eq("user_id", dataOwnerId)
+          .eq("account_name", empAccName)
+          .maybeSingle();
+        if (existingAcc) {
+          employeeAccountCode = existingAcc.account_code;
+        } else {
+          // Find next available code under 1180
+          const { data: siblingAccs } = await supabase
+            .from("accounts")
+            .select("account_code")
+            .eq("user_id", dataOwnerId)
+            .like("account_code", "118%")
+            .order("account_code", { ascending: false })
+            .limit(1);
+          const lastCode = siblingAccs?.[0]?.account_code;
+          const nextCode = lastCode ? String(Number(lastCode) + 1) : "1181";
+          const { error: createErr } = await supabase.from("accounts").insert({
+            user_id: dataOwnerId,
+            account_code: nextCode,
+            account_name: empAccName,
+            account_type: "أصول",
+            parent_code: "1180",
+            is_system: false,
+          });
+          if (!createErr) {
+            employeeAccountCode = nextCode;
+            // Update local state
+            setEmployees(prev => prev.map(e => e.id === selectedEmployee.id ? { ...e, account_code: nextCode } : e));
+          }
+        }
+      }
+
       const { data: result, error: completeError } = await supabase.rpc("complete_pos_order", {
         p_order_id: orderId,
         p_user_id: dataOwnerId,
@@ -2012,8 +2052,8 @@ const POSPage = () => {
           exchange_rate: rate,
           foreign_amount: foreignTotal,
           rate_source: rateEdited ? "cashier" : "system",
-          ...(paymentMethod === "employee_account" && selectedEmployee?.account_code
-            ? { employee_account_code: selectedEmployee.account_code }
+          ...(paymentMethod === "employee_account" && employeeAccountCode
+            ? { employee_account_code: employeeAccountCode }
             : {}),
         }],
       });
