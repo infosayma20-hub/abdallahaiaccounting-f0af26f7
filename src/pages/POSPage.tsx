@@ -300,8 +300,8 @@ const POSPage = () => {
   });
 
   // Employee account payment
-  const [employees, setEmployees] = useState<{ id: string; full_name: string; base_salary: number; account_code?: string }[]>([]);
-  const [selectedEmployee, setSelectedEmployee] = useState<{ id: string; full_name: string; account_code?: string } | null>(null);
+  const [employees, setEmployees] = useState<{ id: string; full_name: string; base_salary: number; account_code?: string; job_title?: string }[]>([]);
+  const [selectedEmployee, setSelectedEmployee] = useState<{ id: string; full_name: string; account_code?: string; job_title?: string } | null>(null);
   const [employeeSearch, setEmployeeSearch] = useState("");
   const [showEmployeeDropdown, setShowEmployeeDropdown] = useState(false);
   const [employeeBalance, setEmployeeBalance] = useState(0);
