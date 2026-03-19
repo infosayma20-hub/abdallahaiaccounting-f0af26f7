@@ -2270,21 +2270,44 @@ const POSPage = () => {
     // Fetch payment method breakdown by currency
     const orderIds = (ordersData || []).map((o: any) => o.id);
     const paymentMethodBreakdown: Record<string, Record<string, number>> = {};
+    let foreignChangeILS = 0; // Total ILS change given for foreign currency payments
     if (orderIds.length > 0) {
       const { data: paymentsData } = await supabase
         .from("pos_payments")
-        .select("payment_method, amount, currency")
+        .select("payment_method, amount, currency, change_amount")
         .in("order_id", orderIds);
       (paymentsData || []).forEach((p: any) => {
         const method = p.payment_method || "cash";
         const cur = p.currency || "ILS";
         if (!paymentMethodBreakdown[method]) paymentMethodBreakdown[method] = {};
         paymentMethodBreakdown[method][cur] = (paymentMethodBreakdown[method][cur] || 0) + Number(p.amount || 0);
+        // Track ILS change given out for foreign cash payments
+        if (method === "cash" && cur !== "ILS") {
+          foreignChangeILS += Number(p.change_amount || 0);
+        }
       });
     }
 
-    const expected = session.opening_cash + session.total_sales - totalExpenses;
-    const variance = cash - expected;
+    // Multi-currency expected cash calculation
+    // ILS expected = opening + ILS cash sales - ILS change given for foreign payments - expenses
+    const ilsCashSales = paymentMethodBreakdown["cash"]?.["ILS"] || 0;
+    const expectedILS = session.opening_cash + ilsCashSales - foreignChangeILS - totalExpenses;
+    // Foreign expected = actual foreign amounts received (from currencyBreakdown)
+    const expectedUSD = currencyBreakdown["USD"]?.sales || 0;
+    const expectedJOD = currencyBreakdown["JOD"]?.sales || 0;
+
+    // Per-currency variance
+    const varianceILS = cash - expectedILS;
+    const varianceUSD = cashUSD - expectedUSD;
+    const varianceJOD = cashJOD - expectedJOD;
+
+    // Total variance in ILS equivalent
+    const usdRate = exchangeRates?.["USD"] || 3.6;
+    const jodRate = exchangeRates?.["JOD"] || 5.0;
+    const totalVariance = varianceILS + (varianceUSD * usdRate) + (varianceJOD * jodRate);
+
+    const expected = expectedILS; // keep for DB backward compat
+    const variance = totalVariance;
     const closedAt = new Date().toISOString();
 
     // Load cutoff hour from settings
@@ -2419,8 +2442,13 @@ const POSPage = () => {
       closingCash: cash,
       closingCashUSD: cashUSD,
       closingCashJOD: cashJOD,
-      expectedCash: expected,
-      variance,
+      expectedCash: expectedILS,
+      expectedCashUSD: expectedUSD,
+      expectedCashJOD: expectedJOD,
+      variance: totalVariance,
+      varianceILS,
+      varianceUSD,
+      varianceJOD,
       sessionId: session.id,
       currencyBreakdown,
       paymentMethodBreakdown,
