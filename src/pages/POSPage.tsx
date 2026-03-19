@@ -1072,7 +1072,7 @@ const POSPage = () => {
     // Load HR employees
     const { data: empData } = await supabase
       .from("employees")
-      .select("id, full_name, base_salary")
+      .select("id, full_name, base_salary, job_title")
       .eq("user_id", dataOwnerId)
       .eq("is_active", true)
       .order("full_name");
