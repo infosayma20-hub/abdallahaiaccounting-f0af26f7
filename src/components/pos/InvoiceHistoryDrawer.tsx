@@ -61,7 +61,7 @@ interface InvoicePayment {
   currency: string | null;
 }
 
-type StatusFilter = "all" | "paid" | "draft" | "cancelled" | "recalled";
+type StatusFilter = "all" | "paid" | "draft" | "cancelled" | "recalled" | "transferred";
 
 interface CartItem {
   id: string;
