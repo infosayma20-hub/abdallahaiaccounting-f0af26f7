@@ -232,6 +232,23 @@ const POSSettingsSection = ({ settings, onChange }: Props) => {
 
       <Separator />
 
+      {/* Device Fingerprint */}
+      <div>
+        <h3 className="text-base font-semibold text-foreground mb-4 flex items-center gap-2">
+          <span className="w-1 h-5 bg-primary rounded-full" />
+          بصمة الجهاز
+        </h3>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between p-3 bg-muted/40 rounded-lg">
+            <div>
+              <span className="text-sm font-medium">تفعيل بصمة الجهاز</span>
+              <p className="text-[10px] text-muted-foreground mt-0.5">عند التفعيل، يُسمح بالدخول فقط من الأجهزة المسجلة في إدارة المستخدمين</p>
+            </div>
+            <Switch checked={settings.pos_require_device_fingerprint} onCheckedChange={v => onChange({ pos_require_device_fingerprint: v })} />
+          </div>
+        </div>
+      </div>
+
       {/* Kitchen Stations */}
       <KitchenStationsManager />
 
