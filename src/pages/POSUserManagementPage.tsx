@@ -638,7 +638,7 @@ export default function POSUserManagementPage() {
           ) : (
             <div className="rounded-2xl border border-border/50 overflow-hidden shadow-sm">
               <div className="overflow-x-auto" dir="rtl">
-                <table className="w-full text-sm" style={{ minWidth: 900 }}>
+                <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-primary text-primary-foreground">
                       <th className="px-3 py-3 text-right text-xs font-semibold w-10">#</th>
