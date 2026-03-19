@@ -1634,22 +1634,113 @@ const POSPage = () => {
   };
 
   // Send to kitchen (print kitchen ticket)
-  const handleSendToKitchen = () => {
+  const handleSendToKitchen = async () => {
     if (cart.length === 0) return;
+
+    const time = new Date().toLocaleTimeString("ar-PS", { hour: "2-digit", minute: "2-digit" });
+    const tableName = activeOrder.tableName || activeOrder.customerName || "بدون طاولة";
+    const cashierName = session?.cashier_name || "";
+
+    // Build product→station map from loaded products
+    const productStationMap = new Map<string, string | null>();
+    products.forEach(p => productStationMap.set(p.id, p.kitchen_station_id));
+
+    // Load station names
+    const { data: stationsData } = await supabase
+      .from("kitchen_stations")
+      .select("id, name, color")
+      .eq("is_active", true);
+    const stationNames = new Map((stationsData || []).map((s: any) => [s.id, { name: s.name, color: s.color }]));
+
+    // Group items by station
+    const stationGroups: Record<string, { stationName: string; stationColor: string; items: any[] }> = {};
+    const noStationItems: any[] = [];
+
+    cart.forEach(item => {
+      const stationId = item.product_id ? productStationMap.get(item.product_id) : null;
+      const itemData = { name: item.name, qty: item.qty, note: item.note, modifiers: item.modifiers || [] };
+      if (stationId && stationNames.has(stationId)) {
+        if (!stationGroups[stationId]) {
+          const info = stationNames.get(stationId)!;
+          stationGroups[stationId] = { stationName: info.name, stationColor: info.color, items: [] };
+        }
+        stationGroups[stationId].items.push(itemData);
+      } else {
+        noStationItems.push(itemData);
+      }
+    });
+
+    // If no stations defined, put all in one group
+    if (Object.keys(stationGroups).length === 0) {
+      stationGroups["_default"] = { stationName: "المطبخ", stationColor: "#ef4444", items: noStationItems.length ? noStationItems : cart.map(item => ({ name: item.name, qty: item.qty, note: item.note, modifiers: item.modifiers || [] })) };
+    } else if (noStationItems.length > 0) {
+      // Attach unassigned items to first station
+      const firstKey = Object.keys(stationGroups)[0];
+      stationGroups[firstKey].items.push(...noStationItems);
+    }
+
+    // Build kitchen ticket data for dialog display
+    const tickets = Object.entries(stationGroups).map(([stationId, group]) => ({
+      stationId,
+      stationName: group.stationName,
+      stationColor: group.stationColor,
+      items: group.items,
+    }));
+
     setKitchenTicketData({
-      tableName: activeOrder.tableName || "بدون طاولة",
+      tableName,
       guestCount: activeOrder.guestCount,
-      cashierName: session?.cashier_name || "",
-      time: new Date().toLocaleTimeString("ar-PS", { hour: "2-digit", minute: "2-digit" }),
-      items: cart.map(item => ({
-        name: item.name,
-        qty: item.qty,
-        note: item.note,
-        modifiers: item.modifiers || [],
-      })),
+      cashierName,
+      time,
+      tickets,
       orderNote: activeOrder.orderNote,
     });
     setShowKitchenTicket(true);
+
+    // Dispatch print jobs per station
+    let printedCount = 0;
+    let failedCount = 0;
+    for (const [stationId, group] of Object.entries(stationGroups)) {
+      const lines: PrintLine[] = [
+        { text: `🍳 طلب مطبخ — ${group.stationName}`, align: "center", bold: true, size: 2 },
+        { text: "", separator: true },
+        { text: `طاولة: ${tableName}    ${time}`, align: "right", bold: true },
+      ];
+      if (activeOrder.guestCount > 0) {
+        lines.push({ text: `عدد الضيوف: ${activeOrder.guestCount}`, align: "right" });
+      }
+      lines.push({ text: "", separator: true });
+      group.items.forEach(item => {
+        lines.push({ text: `${item.qty}× ${item.name}`, align: "right", bold: true });
+        (item.modifiers || []).forEach((m: any) => {
+          lines.push({ text: `  ← ${m.option_name}${m.extra_price > 0 ? ` +₪${m.extra_price}` : ""}`, align: "right" });
+        });
+        if (item.note) lines.push({ text: `  📝 ${item.note}`, align: "right" });
+      });
+      if (activeOrder.orderNote) {
+        lines.push({ text: "", separator: true });
+        lines.push({ text: `📝 ${activeOrder.orderNote}`, align: "right" });
+      }
+      lines.push({ text: "", separator: true });
+      lines.push({ text: `كاشير: ${cashierName}`, align: "center" });
+
+      const htmlContent = lines.map(l => l.separator ? "<hr>" : `<p style="text-align:${l.align || "right"};${l.bold ? "font-weight:bold;" : ""}${l.size === 2 ? "font-size:18px;" : ""}">${l.text}</p>`).join("");
+
+      const result = await dispatchPrintJob({
+        category: "kitchen",
+        stationId: stationId === "_default" ? undefined : stationId,
+        content: htmlContent,
+        lines,
+      });
+      if (result.printed.length > 0) printedCount++;
+      if (result.failed.length > 0) failedCount++;
+    }
+
+    if (printedCount > 0 && failedCount === 0) {
+      toast.success(`✅ تم إرسال ${tickets.length} تذكرة مطبخ`);
+    } else if (failedCount > 0) {
+      toast.warning(`⚠️ تم إرسال ${printedCount} تذكرة، فشل ${failedCount}`);
+    }
   };
 
   // Load existing table order into cart
