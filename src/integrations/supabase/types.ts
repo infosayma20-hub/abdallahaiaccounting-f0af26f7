@@ -10084,6 +10084,7 @@ export type Database = {
         Returns: Json
       }
       cleanup_expired_webauthn_challenges: { Args: never; Returns: undefined }
+      clear_must_change_password: { Args: never; Returns: boolean }
       complete_pos_order: {
         Args: { p_order_id: string; p_payments: Json; p_user_id: string }
         Returns: Json
