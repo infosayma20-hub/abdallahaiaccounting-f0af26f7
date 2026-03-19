@@ -735,6 +735,7 @@ const POSPage = () => {
             days: (posSettings as any).pos_return_policy_days ?? 7,
           });
           setPosAllowOrderTransfer((posSettings as any).pos_allow_order_transfer ?? false);
+          setPosRequireCashBox((posSettings as any).pos_require_cash_box ?? false);
         }
 
         const rawDefaultOpeningCash = (posSettings as any)?.pos_default_opening_balance;
