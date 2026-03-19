@@ -6320,6 +6320,7 @@ export type Database = {
           cheque_number: string | null
           created_at: string
           currency: string
+          exchange_rate: number | null
           id: string
           notes: string | null
           order_id: string
@@ -6336,6 +6337,7 @@ export type Database = {
           cheque_number?: string | null
           created_at?: string
           currency?: string
+          exchange_rate?: number | null
           id?: string
           notes?: string | null
           order_id: string
@@ -6352,6 +6354,7 @@ export type Database = {
           cheque_number?: string | null
           created_at?: string
           currency?: string
+          exchange_rate?: number | null
           id?: string
           notes?: string | null
           order_id?: string
