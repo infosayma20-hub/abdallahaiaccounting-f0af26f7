@@ -1533,12 +1533,21 @@ const POSPage = () => {
     try {
       const { error } = await supabase.auth.updateUser({ password: newPassword });
       if (error) throw error;
-      // Mark as changed
-      if (userId) {
-        await supabase
+      // Mark as changed - use both auth_user_id and user_id for RLS compatibility
+      if (userId && dataOwnerId) {
+        const { error: updateErr } = await supabase
           .from("pos_users")
           .update({ must_change_password: false } as any)
           .eq("auth_user_id", userId);
+        if (updateErr) {
+          console.error("Failed to update must_change_password:", updateErr);
+          // Fallback: try with user_id filter
+          await supabase
+            .from("pos_users")
+            .update({ must_change_password: false } as any)
+            .eq("auth_user_id", userId)
+            .eq("user_id", dataOwnerId);
+        }
       }
       setShowChangePassword(false);
       setNewPassword("");
