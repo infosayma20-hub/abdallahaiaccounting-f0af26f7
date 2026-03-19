@@ -700,7 +700,10 @@ const AccountStatementPage = () => {
         const normalizedEmployeeName = normalizeArabicName(emp.full_name);
         const linkedAcc = allAccounts.find((a) => {
           const isEmployeeReceivable = a.account_type === "أصول" || a.account_type === "asset";
-          const normalizedAccountName = normalizeArabicName(a.account_name?.replace(/^ذمم موظف\s*-\s*/, "") || "");
+          // Strip common prefixes: "ذمم موظف - ", "ذمم موظف ", "ذمم "
+          const normalizedAccountName = normalizeArabicName(
+            (a.account_name || "").replace(/^ذمم\s*موظف\s*[-–]\s*/, "").replace(/^ذمم\s+/, "")
+          );
           return isEmployeeReceivable && normalizedAccountName === normalizedEmployeeName;
         });
         return { ...emp, account_code: linkedAcc?.account_code || null } as EmployeeEntity;
