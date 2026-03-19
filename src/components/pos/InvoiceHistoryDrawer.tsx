@@ -243,7 +243,7 @@ export default function InvoiceHistoryDrawer({
 
       const { error } = await supabase
         .from("pos_orders")
-        .update({ session_id: targetSession.id })
+        .update({ session_id: targetSessionId })
         .eq("id", transferringOrder.id);
 
       if (error) throw error;
