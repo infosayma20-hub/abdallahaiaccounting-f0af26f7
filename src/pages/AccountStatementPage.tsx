@@ -1094,7 +1094,26 @@ const AccountStatementPage = () => {
     } catch { return null; }
   }, [showYearComparison, selectedEntityId, dateFrom, dateTo, transactions, closingBalance]);
 
-  // Filter rows by type and search
+  // Determine the dominant currency for this statement
+  const statementCurrency = useMemo(() => {
+    if (rows.length > 0) {
+      // Use the most common currency in the rows
+      const freq: Record<string, number> = {};
+      rows.forEach(r => { freq[r.currency] = (freq[r.currency] || 0) + 1; });
+      const sorted = Object.entries(freq).sort((a, b) => b[1] - a[1]);
+      return sorted[0]?.[0] || "شيكل";
+    }
+    // For account tab, infer from account name
+    if (isAccountsTab && selectedAccount) {
+      const name = selectedAccount.account_name;
+      if (name.includes("دولار") || name.includes("USD")) return "دولار";
+      if (name.includes("دينار") || name.includes("JOD")) return "دينار";
+      if (name.includes("يورو") || name.includes("EUR")) return "يورو";
+      if (name.includes("جنيه") || name.includes("EGP")) return "جنيه";
+    }
+    return "شيكل";
+  }, [rows, isAccountsTab, selectedAccount]);
+
   const filteredRows = useMemo(() => {
     let result = rows;
     if (txTypeFilter !== "all") {
