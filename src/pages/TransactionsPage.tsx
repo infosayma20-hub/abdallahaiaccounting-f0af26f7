@@ -766,7 +766,7 @@ const TransactionsPage = () => {
                 <col className="w-[3%]" />
                 <col className="w-[10%]" />
                 <col className="w-[12%]" />
-                <col style={{ width: 'auto' }} />
+                <col className="w-[30%]" />
                 <col className="w-[10%]" />
                 <col className="w-[11%]" />
                 <col className="w-[11%]" />
