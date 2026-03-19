@@ -2463,11 +2463,23 @@ const POSPage = () => {
       }
     }
 
+    // Get cash box name for receipt
+    let cashBoxName = "";
+    if (session.cash_box_id) {
+      const { data: cbData } = await supabase
+        .from("cash_boxes")
+        .select("name")
+        .eq("id", session.cash_box_id)
+        .maybeSingle();
+      cashBoxName = cbData?.name || "";
+    }
+
     // Prepare shift summary data
     setShiftSummaryData({
       companyName: company?.name || "شركتي",
       terminalName: terminal?.name || "نقطة بيع",
       cashierName: session.cashier_name,
+      cashBoxName,
       openedAt: session.opened_at,
       closedAt,
       openingCash: session.opening_cash,
