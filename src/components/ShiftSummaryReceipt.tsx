@@ -149,7 +149,7 @@ export default function ShiftSummaryReceipt({ open, onOpenChange, data }: ShiftS
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md p-0 overflow-hidden" dir="rtl">
+      <DialogContent className="sm:max-w-md p-0 overflow-hidden flex flex-col max-h-[90vh]" dir="rtl">
         <div className="bg-primary p-4 text-center">
           <CheckCircle className="h-8 w-8 text-primary-foreground mx-auto mb-1" />
           <DialogHeader>
