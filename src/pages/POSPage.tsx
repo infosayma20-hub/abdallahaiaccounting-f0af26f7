@@ -2734,7 +2734,7 @@ const POSPage = () => {
                   onChange={(e) => {
                     const val = e.target.value;
                     setCustomerSearch(val);
-                    setCustomerName(val, null);
+                    setCustomerName(val, null, "", null);
                     setShowContactDropdown(true);
                     searchPosCustomers(val);
                   }}
