@@ -413,40 +413,40 @@ const CleanSmartAccountant = ({ user, userName, data, cfoMode, onToggleCfo, onCh
       <div
         ref={scrollRef}
         onScroll={handleScroll}
-        className="flex-1 overflow-y-auto overflow-x-hidden"
+        className={`flex-1 overflow-y-auto overflow-x-hidden ${isWelcome ? "flex flex-col" : ""}`}
         style={{ background: "#F8FAFC", WebkitOverflowScrolling: "touch", overscrollBehaviorY: "contain" }}
       >
-        <div className="px-4 py-4 max-w-2xl mx-auto">
+        <div className={`px-4 max-w-2xl mx-auto w-full ${isWelcome ? "flex-1 flex flex-col justify-center py-8" : "py-4"}`}>
           {isWelcome ? (
-            <div className="flex flex-col items-center justify-center min-h-[50vh]">
-              <div className="w-full bg-white rounded-[20px] p-6 shadow-[0_2px_10px_rgba(10,35,66,0.06)]">
-                <div className="text-center">
-                  <span className="text-[32px]">👋</span>
-                  <h2 className="text-xl font-extrabold mt-2" style={{ color: "#0A2342", fontFamily: "Tajawal, sans-serif" }}>
-                    مرحباً {userName}!
-                  </h2>
-                  <p className="text-sm mt-2 leading-[1.8]" style={{ color: "#8B9BB4", fontFamily: "Tajawal, sans-serif" }}>
-                    سجّل عملياتك المالية بصوتك أو كتابةً — أنا أتولى الباقي
-                  </p>
-                </div>
+            <div className="flex flex-col items-center">
+              {/* Greeting */}
+              <span className="text-[40px] mb-3">👋</span>
+              <h2 className="text-2xl font-extrabold mb-2" style={{ color: "#0A2342", fontFamily: "Tajawal, sans-serif" }}>
+                مرحباً {userName}!
+              </h2>
+              <p className="text-sm mb-8" style={{ color: "#8B9BB4", fontFamily: "Tajawal, sans-serif" }}>
+                سجّل عملياتك المالية بصوتك أو كتابةً — أنا أتولى الباقي
+              </p>
 
-                <div className="h-px bg-[#F1F5F9] my-5" />
+              {/* Centered Input */}
+              <div className="w-full max-w-xl">
+                <CleanInputDock onSend={handleSend} sending={sending} centered />
+              </div>
 
-                {/* 3 key numbers with color coding */}
-                <div className="flex justify-around">
-                  {[
-                    { label: "الصندوق", value: fmt(data.cash), color: cashColor },
-                    { label: "الربح", value: fmt(data.netProfit), color: profitColor },
-                    { label: "الذمم", value: fmt(data.receivables), color: receivablesColor },
-                  ].map(m => (
-                    <div key={m.label} className="text-center">
-                      <p className="text-base font-bold" style={{ fontFamily: "JetBrains Mono, monospace", color: m.color }}>
-                        {m.value}
-                      </p>
-                      <p className="text-[11px] mt-1" style={{ color: "#8B9BB4" }}>{m.label}</p>
-                    </div>
-                  ))}
-                </div>
+              {/* 3 key numbers */}
+              <div className="flex justify-center gap-10 mt-8">
+                {[
+                  { label: "الصندوق", value: fmt(data.cash), color: cashColor },
+                  { label: "الربح", value: fmt(data.netProfit), color: profitColor },
+                  { label: "الذمم", value: fmt(data.receivables), color: receivablesColor },
+                ].map(m => (
+                  <div key={m.label} className="text-center">
+                    <p className="text-lg font-bold" style={{ fontFamily: "JetBrains Mono, monospace", color: m.color }}>
+                      {m.value}
+                    </p>
+                    <p className="text-[11px] mt-1" style={{ color: "#8B9BB4" }}>{m.label}</p>
+                  </div>
+                ))}
               </div>
             </div>
           ) : (
@@ -471,7 +471,6 @@ const CleanSmartAccountant = ({ user, userName, data, cfoMode, onToggleCfo, onCh
                     }}
                   >
                     <AIMessageRenderer content={msg.content} />
-                    {/* Blinking cursor while streaming */}
                     {sending && msg.id === messages[messages.length - 1]?.id && msg.role === "assistant" && (
                       <span className="inline-block w-[2px] h-4 ml-0.5 align-middle" style={{ background: "#0A2342", animation: "blink 1s infinite" }} />
                     )}
@@ -519,8 +518,8 @@ const CleanSmartAccountant = ({ user, userName, data, cfoMode, onToggleCfo, onCh
       {/* Blink keyframe */}
       <style>{`@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }`}</style>
 
-      {/* Bottom Input Dock */}
-      <CleanInputDock onSend={handleSend} sending={sending} />
+      {/* Bottom Input Dock - only when there are messages */}
+      {!isWelcome && <CleanInputDock onSend={handleSend} sending={sending} />}
 
       {/* Sheets */}
       <FinancialSummarySheet open={showFinancial} onClose={() => setShowFinancial(false)} data={data} />
