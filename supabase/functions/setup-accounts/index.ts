@@ -14,6 +14,10 @@ interface SetupRequest {
 const DEFAULT_ACCOUNTS: { code: string; name: string; type: string; parent: string | null }[] = [
   // ═══════════ الأصول المتداولة (11xx) ═══════════
   { code: "1110", name: "الصندوق", type: "أصول", parent: null },
+  { code: "1111", name: "صندوق الدولار", type: "أصول", parent: "1110" },
+  { code: "1112", name: "صندوق الدينار", type: "أصول", parent: "1110" },
+  { code: "1113", name: "صندوق اليورو", type: "أصول", parent: "1110" },
+  { code: "1114", name: "صندوق الجنيه المصري", type: "أصول", parent: "1110" },
   { code: "1120", name: "البنك", type: "أصول", parent: null },
   { code: "1121", name: "بنك 1", type: "أصول", parent: "1120" },
   { code: "1122", name: "بنك 2 - حساب التوفير", type: "أصول", parent: "1120" },
