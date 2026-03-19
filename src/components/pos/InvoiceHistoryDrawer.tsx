@@ -155,12 +155,36 @@ export default function InvoiceHistoryDrawer({
   const [selectedTransferUser, setSelectedTransferUser] = useState<string | null>(null);
   const [transferring, setTransferring] = useState(false);
 
-  // Fetch POS users for transfer
+  // Fetch only POS users who have an active open session
   useEffect(() => {
     if (!allowOrderTransfer || !dataOwnerId || !open) return;
-    supabase.from("pos_users").select("id, name, auth_user_id").eq("user_id", dataOwnerId).eq("is_active", true)
-      .then(({ data }) => { if (data) setPosUsers(data); });
-  }, [allowOrderTransfer, dataOwnerId, open]);
+    (async () => {
+      // Get all open sessions' auth user IDs
+      const { data: openSessions } = await (supabase
+        .from("pos_sessions")
+        .select("cashier_auth_user_id") as any)
+        .eq("user_id", dataOwnerId)
+        .eq("state", "open");
+
+      const activeAuthIds = (openSessions || [])
+        .map((s: any) => s.cashier_auth_user_id)
+        .filter((id: string | null) => id && id !== sessionId);
+
+      if (activeAuthIds.length === 0) {
+        setPosUsers([]);
+        return;
+      }
+
+      const { data: users } = await supabase
+        .from("pos_users")
+        .select("id, name, auth_user_id")
+        .eq("user_id", dataOwnerId)
+        .eq("is_active", true)
+        .in("auth_user_id", activeAuthIds);
+
+      setPosUsers(users || []);
+    })();
+  }, [allowOrderTransfer, dataOwnerId, open, sessionId]);
 
   const handleTransferOrder = async () => {
     if (!transferringOrder || !selectedTransferUser || transferring) return;
