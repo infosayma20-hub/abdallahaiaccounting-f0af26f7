@@ -1256,18 +1256,21 @@ const POSPage = () => {
   const handleCategoryDragEnd = useCallback(async (event: DragEndEvent) => {
     const { active, over } = event;
     setDragActiveId(null);
-    if (!isAdmin || !over || active.id === over.id || !userId) return;
+    if (!over || active.id === over.id || !userId) return;
     const oldIndex = posCategories.findIndex(c => c.id === active.id);
     const newIndex = posCategories.findIndex(c => c.id === over.id);
     if (oldIndex === -1 || newIndex === -1) return;
     const reordered = arrayMove(posCategories, oldIndex, newIndex);
     setPosCategories(reordered);
-    // Save to DB
-    for (let i = 0; i < reordered.length; i++) {
-      await supabase.from("pos_categories" as any).update({ display_order: i, sort_order: i } as any).eq("id", reordered[i].id);
-    }
+    // Save per-user category order preference
+    const orderIds = reordered.map(c => c.id);
+    await supabase.from("pos_user_preferences").upsert({
+      auth_user_id: userId,
+      preference_key: "category_order",
+      preference_value: { order: orderIds },
+    } as any, { onConflict: "auth_user_id,preference_key" });
     toast.success("تم حفظ ترتيب التصنيفات");
-  }, [posCategories, userId, isAdmin]);
+  }, [posCategories, userId]);
 
   const handleProductDragEnd = useCallback(async (event: DragEndEvent) => {
     const { active, over } = event;
@@ -1469,6 +1472,23 @@ const POSPage = () => {
           if (p.preference_key === "card_size") {
             const sz = (p.preference_value as any)?.size;
             if (sz && ["S", "M", "L"].includes(sz)) setCardSize(sz);
+          }
+          if (p.preference_key === "category_order") {
+            const orderIds = (p.preference_value as any)?.order;
+            if (Array.isArray(orderIds) && orderIds.length > 0) {
+              setPosCategories(prev => {
+                const ordered: POSCategory[] = [];
+                for (const id of orderIds) {
+                  const cat = prev.find(c => c.id === id);
+                  if (cat) ordered.push(cat);
+                }
+                // Add any new categories not in the saved order
+                for (const cat of prev) {
+                  if (!ordered.find(c => c.id === cat.id)) ordered.push(cat);
+                }
+                return ordered;
+              });
+            }
           }
         }
       }
@@ -2670,20 +2690,18 @@ const POSPage = () => {
           ))}
         </div>
 
-        {/* Sort mode toggle - admin only */}
-        {isAdmin && (
-          <button
-            onClick={() => setIsSortMode(!isSortMode)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-              isSortMode
-                ? "bg-amber-500 text-white shadow-md"
-                : "bg-white/10 text-white/60 hover:text-white/90 hover:bg-white/15"
-            }`}
-          >
-            <GripVertical className="h-3 w-3" />
-            {isSortMode ? "✅ تم" : "ترتيب"}
-          </button>
-        )}
+        {/* Sort mode toggle - per user */}
+        <button
+          onClick={() => setIsSortMode(!isSortMode)}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+            isSortMode
+              ? "bg-amber-500 text-white shadow-md"
+              : "bg-white/10 text-white/60 hover:text-white/90 hover:bg-white/15"
+          }`}
+        >
+          <GripVertical className="h-3 w-3" />
+          {isSortMode ? "✅ تم" : "ترتيب"}
+        </button>
 
         <div className="w-px h-5" style={{ background: "rgba(255,255,255,0.1)" }} />
 
@@ -2856,7 +2874,7 @@ const POSPage = () => {
           {/* ── Odoo-Style Category Chips ── */}
           <div className="px-4 py-2 border-b border-border/70 shadow-[0_1px_2px_rgba(0,0,0,0.04)] bg-muted/20">
             {/* Sort mode banner */}
-            {isSortMode && isAdmin && (
+            {isSortMode && (
               <div className="mb-2 flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400 text-xs">
                 <GripVertical className="h-3.5 w-3.5" />
                 <span className="font-medium">وضع الترتيب — اسحب التصنيفات أو المنتجات لإعادة ترتيبها</span>
