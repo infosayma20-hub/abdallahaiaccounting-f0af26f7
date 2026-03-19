@@ -1,5 +1,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandInput, CommandList, CommandEmpty, CommandItem } from "@/components/ui/command";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import JournalEntryPopup from "@/components/JournalEntryPopup";
 import TransactionsPrintView from "@/components/TransactionsPrintView";
