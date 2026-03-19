@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, Plus, Loader2, Settings, ArrowUpRight, FileText, Wallet, Building2, Monitor, Landmark } from "lucide-react";
+import { ArrowRight, Plus, Loader2, Settings, ArrowUpRight, FileText, Wallet, Building2, Monitor, Landmark, ArrowDownToLine } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
