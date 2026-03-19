@@ -2719,18 +2719,104 @@ const POSPage = () => {
       <div className="flex-1 flex overflow-hidden">
         {/* ── LEFT: Products ── */}
         <div className="flex-1 flex flex-col min-w-0 bg-[hsl(var(--background))]">
-          {/* Search Bar */}
+          {/* Search Bar + Customer */}
           <div className="px-4 py-2.5 border-b border-border/70 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-            <div className="relative max-w-xl">
-              <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-              <Input
-                ref={searchRef}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="البحث عن المنتجات... (F2)"
-                className="pr-10 pl-10 h-10 bg-card border-border rounded-xl text-sm shadow-none focus-visible:ring-1 focus-visible:ring-primary/30"
-              />
-              <Barcode className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 cursor-pointer hover:text-primary transition-colors" />
+            <div className="flex items-center gap-3">
+              {/* Product search */}
+              <div className="relative flex-1 max-w-xl">
+                <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                <Input
+                  ref={searchRef}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="البحث عن المنتجات... (F2)"
+                  className="pr-10 pl-10 h-10 bg-card border-border rounded-xl text-sm shadow-none focus-visible:ring-1 focus-visible:ring-primary/30"
+                />
+                <Barcode className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 cursor-pointer hover:text-primary transition-colors" />
+              </div>
+              {/* Customer search inline */}
+              <div className="relative w-[220px] shrink-0">
+                <User className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+                <Input
+                  value={customerSearch || customerName}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setCustomerSearch(val);
+                    setCustomerName(val, null);
+                    setShowContactDropdown(true);
+                    searchPosCustomers(val);
+                  }}
+                  onFocus={() => setShowContactDropdown(true)}
+                  placeholder="👤 الزبون..."
+                  className="h-10 text-xs pr-8 bg-card border-border rounded-xl focus-visible:ring-1 focus-visible:ring-primary/30"
+                />
+                {(customerSearch || customerName) && (
+                  <button
+                    onClick={() => { setCustomerSearch(""); setCustomerName("", null, "", null); }}
+                    className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
+                {showContactDropdown && (customerSearch || "").length > 0 && (
+                  <div className="absolute z-50 w-full top-full mt-1 bg-popover border border-border rounded-lg shadow-lg max-h-44 overflow-y-auto">
+                    {posCustomerResults.length > 0 && (
+                      <>
+                        <p className="px-3 py-1 text-[10px] text-muted-foreground font-semibold border-b border-border bg-muted/30">زبائن نقطة البيع</p>
+                        {posCustomerResults.map((pc) => (
+                          <button
+                            key={pc.id}
+                            onClick={() => {
+                              setCustomerName(pc.name || "", null, pc.whatsapp || "", pc.id);
+                              if (pc.address) updateActiveOrder(o => ({ ...o, deliveryAddress: pc.address || "" }));
+                              setCustomerSearch("");
+                              setShowContactDropdown(false);
+                            }}
+                            className="w-full px-3 py-1.5 text-xs text-right hover:bg-muted/50 transition flex items-center justify-between gap-2"
+                          >
+                            <div className="flex items-center gap-2">
+                              <UserCheck className="h-3 w-3 text-emerald-600 shrink-0" />
+                              <span className="font-medium">{pc.name || pc.whatsapp}</span>
+                              {pc.whatsapp && <span className="text-[10px] text-muted-foreground font-mono">{pc.whatsapp}</span>}
+                            </div>
+                            <span className="text-[10px] text-muted-foreground">{pc.total_visits || 0} زيارة</span>
+                          </button>
+                        ))}
+                      </>
+                    )}
+                    {filteredContacts.length > 0 && (
+                      <>
+                        <p className="px-3 py-1 text-[10px] text-muted-foreground font-semibold border-b border-border bg-muted/30">جهات الاتصال</p>
+                        {filteredContacts.map((contact) => (
+                          <button
+                            key={contact.id}
+                            onClick={() => {
+                              setCustomerName(contact.contact_name, contact.id);
+                              setCustomerSearch("");
+                              setShowContactDropdown(false);
+                            }}
+                            className="w-full px-3 py-1.5 text-xs text-right hover:bg-muted/50 transition flex items-center gap-2"
+                          >
+                            <User className="h-3 w-3 text-muted-foreground shrink-0" />
+                            <span>{contact.contact_name}</span>
+                          </button>
+                        ))}
+                      </>
+                    )}
+                    <button
+                      onClick={() => {
+                        setNewCustomerName(customerSearch || "");
+                        setShowQuickAddCustomer(true);
+                        setShowContactDropdown(false);
+                      }}
+                      className="w-full px-3 py-1.5 text-xs text-right hover:bg-primary/10 transition flex items-center gap-2 border-t border-border text-primary font-medium"
+                    >
+                      <PlusCircle className="h-3 w-3 shrink-0" />
+                      <span>إضافة زبون جديد</span>
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -3322,69 +3408,11 @@ const POSPage = () => {
 
           {/* Bottom area - Customer + Note + Totals + Actions */}
           <div className="border-t border-border bg-card shrink-0">
-            {/* Customer & Note row */}
+            {/* Order Type + Notes row */}
             {(
               <div className="px-3 pt-2 pb-1 space-y-1.5">
                 <div className="flex items-center gap-2 text-xs">
-                  <button
-                    onClick={() => setShowCustomerInput(!showCustomerInput)}
-                    className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg transition-colors ${
-                      showCustomerInput || customerName
-                        ? "bg-primary/10 text-primary border border-primary/20"
-                        : "bg-muted/50 hover:bg-muted text-muted-foreground"
-                    }`}
-                  >
-                    <User className="h-3 w-3" />
-                    {customerName || "الزبون"}
-                  </button>
-                  <button
-                    onClick={() => setShowOrderNoteInput(!showOrderNoteInput)}
-                    className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg transition-colors ${
-                      showOrderNoteInput || orderNote
-                        ? "bg-primary/10 text-primary border border-primary/20"
-                        : "bg-muted/50 hover:bg-muted text-muted-foreground"
-                    }`}
-                  >
-                    <StickyNote className="h-3 w-3" />
-                    {orderNote ? "📝 ملاحظة" : "الملاحظات"}
-                  </button>
-                  <button
-                    onClick={async () => {
-                      setShowTablePicker(!showTablePicker);
-                      if (availableTables.length === 0) {
-                        const ownerId = dataOwnerId;
-                        const { data } = await supabase
-                          .from("restaurant_tables")
-                          .select("id, name, seats, status, section_id")
-                          .eq("user_id", ownerId)
-                          .eq("is_active", true)
-                          .order("name");
-                        if (data) {
-                          const { data: secs } = await supabase
-                            .from("restaurant_sections")
-                            .select("id, name")
-                            .eq("user_id", ownerId);
-                          const secMap = Object.fromEntries((secs || []).map(s => [s.id, s.name]));
-                          setAvailableTables(data.map(t => ({
-                            ...t,
-                            section_name: secMap[t.section_id] || "",
-                          })));
-                        }
-                      }
-                    }}
-                    className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg transition-colors ${
-                      activeOrder.tableId
-                        ? "bg-primary/10 text-primary border border-primary/20"
-                        : "bg-muted/50 hover:bg-muted text-muted-foreground"
-                    }`}
-                  >
-                    <UtensilsCrossed className="h-3 w-3" />
-                    {activeOrder.tableName || "الطاولة"}
-                  </button>
-                </div>
-
-                {/* Order Type Toggle (Delivery / Takeaway / Dine-in) */}
-                <div className="flex items-center gap-1 text-[11px]">
+                  {/* Order Type Toggle (Delivery / Takeaway / Dine-in) */}
                   {(["dine_in", "takeaway", "delivery"] as const).map(type => {
                     const isActive = activeOrder.orderType === type;
                     const labels: Record<string, { label: string; icon: string }> = {
@@ -3396,7 +3424,7 @@ const POSPage = () => {
                       <button
                         key={type}
                         onClick={() => updateActiveOrder(o => ({ ...o, orderType: type }))}
-                        className={`flex items-center gap-1 px-2 py-1 rounded-md transition-all ${
+                        className={`flex items-center gap-1 px-2.5 py-1.5 rounded-md transition-all ${
                           isActive
                             ? "bg-primary/15 text-primary border border-primary/30 font-bold"
                             : "bg-muted/40 text-muted-foreground hover:bg-muted/60"
@@ -3407,154 +3435,29 @@ const POSPage = () => {
                       </button>
                     );
                   })}
+
+                  {/* Spacer */}
+                  <div className="flex-1" />
+
+                  {/* Notes button */}
+                  <button
+                    onClick={() => setShowOrderNoteInput(!showOrderNoteInput)}
+                    className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg transition-colors ${
+                      showOrderNoteInput || orderNote
+                        ? "bg-primary/10 text-primary border border-primary/20"
+                        : "bg-muted/50 hover:bg-muted text-muted-foreground"
+                    }`}
+                  >
+                    <StickyNote className="h-3 w-3" />
+                    {orderNote ? "📝 ملاحظة" : "الملاحظات"}
+                  </button>
                 </div>
 
-                {/* Table picker */}
-                {showTablePicker && (
-                  <div className="relative">
-                    <div className="absolute z-50 w-full bottom-full mb-1 bg-popover border border-border rounded-lg shadow-lg max-h-40 overflow-y-auto p-1">
-                      {availableTables.length === 0 ? (
-                        <p className="text-xs text-muted-foreground p-2 text-center">لا توجد طاولات. <button onClick={() => navigate("/pos/floor-plan/edit")} className="text-primary underline">أنشئ طاولات</button></p>
-                      ) : (
-                        <>
-                          {activeOrder.tableId && (
-                            <button
-                              onClick={() => {
-                                updateActiveOrder(o => ({ ...o, tableId: null, tableName: null, name: `طلب ${activeOrderIndex + 1}` }));
-                                setShowTablePicker(false);
-                              }}
-                              className="w-full px-3 py-1.5 text-xs text-right hover:bg-muted/50 transition flex items-center gap-2 text-destructive"
-                            >
-                              <X className="h-3 w-3 shrink-0" />
-                              <span>إزالة الطاولة</span>
-                            </button>
-                          )}
-                          {availableTables.map(t => (
-                            <button
-                              key={t.id}
-                              onClick={async () => {
-                                if (t.status === "occupied" && t.id !== activeOrder.tableId) {
-                                  // Load existing order from occupied table
-                                  await loadTableOrder(t.id, t.name);
-                                  setShowTablePicker(false);
-                                  return;
-                                }
-                                updateActiveOrder(o => ({ ...o, tableId: t.id, tableName: t.name, name: t.name }));
-                                setShowTablePicker(false);
-                              }}
-                              className={`w-full px-3 py-1.5 text-xs text-right hover:bg-muted/50 transition flex items-center justify-between gap-2 ${
-                                t.id === activeOrder.tableId ? "bg-primary/10" : ""
-                              }`}
-                            >
-                              <div className="flex items-center gap-2">
-                                <UtensilsCrossed className="h-3 w-3 text-muted-foreground shrink-0" />
-                                <span className="font-medium">{t.name}</span>
-                                <span className="text-muted-foreground">({t.seats} كرسي)</span>
-                              </div>
-                              <span className={`text-[10px] ${
-                                t.status === "available" ? "text-emerald-600" :
-                                t.status === "occupied" ? "text-red-500" :
-                                t.status === "reserved" ? "text-amber-500" : "text-sky-500"
-                              }`}>
-                                {t.status === "available" ? "فارغة" : t.status === "occupied" ? "📋 عرض الطلب" : t.status === "reserved" ? "محجوزة" : "تنظيف"}
-                              </span>
-                            </button>
-                          ))}
-                        </>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* Customer input */}
-                {showCustomerInput && (
-                  <div className="space-y-1.5">
-                    <div className="relative">
-                      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">@</span>
-                      <Input
-                        value={customerSearch || customerName}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setCustomerSearch(val);
-                          setCustomerName(val, null);
-                          setShowContactDropdown(true);
-                          searchPosCustomers(val);
-                        }}
-                        onFocus={() => setShowContactDropdown(true)}
-                        placeholder="ابحث بالاسم أو رقم الجوال..."
-                        className="h-8 text-xs pr-7"
-                        autoFocus
-                      />
-                      {showContactDropdown && (
-                        <div className="absolute z-50 w-full bottom-full mb-1 bg-popover border border-border rounded-lg shadow-lg max-h-44 overflow-y-auto">
-                          {/* POS Customers (priority) */}
-                          {posCustomerResults.length > 0 && (
-                            <>
-                              <p className="px-3 py-1 text-[10px] text-muted-foreground font-semibold border-b border-border bg-muted/30">زبائن نقطة البيع</p>
-                              {posCustomerResults.map((pc) => (
-                                <button
-                                  key={pc.id}
-                                  onClick={() => {
-                                    setCustomerName(pc.name || "", null, pc.whatsapp || "", pc.id);
-                                    if (pc.address) updateActiveOrder(o => ({ ...o, deliveryAddress: pc.address || "" }));
-                                    setCustomerSearch("");
-                                    setShowContactDropdown(false);
-                                    setShowCustomerInput(false);
-                                  }}
-                                  className="w-full px-3 py-1.5 text-xs text-right hover:bg-muted/50 transition flex items-center justify-between gap-2"
-                                >
-                                  <div className="flex items-center gap-2">
-                                    <UserCheck className="h-3 w-3 text-emerald-600 shrink-0" />
-                                    <span className="font-medium">{pc.name || pc.whatsapp}</span>
-                                    {pc.whatsapp && <span className="text-[10px] text-muted-foreground font-mono">{pc.whatsapp}</span>}
-                                  </div>
-                                  <span className="text-[10px] text-muted-foreground">{pc.total_visits || 0} زيارة</span>
-                                </button>
-                              ))}
-                            </>
-                          )}
-                          {/* System contacts */}
-                          {filteredContacts.length > 0 && (
-                            <>
-                              <p className="px-3 py-1 text-[10px] text-muted-foreground font-semibold border-b border-border bg-muted/30">جهات الاتصال</p>
-                              {filteredContacts.map((contact) => (
-                                <button
-                                  key={contact.id}
-                                  onClick={() => {
-                                    setCustomerName(contact.contact_name, contact.id);
-                                    setCustomerSearch("");
-                                    setShowContactDropdown(false);
-                                    setShowCustomerInput(false);
-                                  }}
-                                  className="w-full px-3 py-1.5 text-xs text-right hover:bg-muted/50 transition flex items-center gap-2"
-                                >
-                                  <User className="h-3 w-3 text-muted-foreground shrink-0" />
-                                  <span>{contact.contact_name}</span>
-                                </button>
-                              ))}
-                            </>
-                          )}
-                          <button
-                            onClick={() => {
-                              setNewCustomerName(customerSearch || "");
-                              setShowQuickAddCustomer(true);
-                              setShowContactDropdown(false);
-                            }}
-                            className="w-full px-3 py-1.5 text-xs text-right hover:bg-primary/10 transition flex items-center gap-2 border-t border-border text-primary font-medium"
-                          >
-                            <PlusCircle className="h-3 w-3 shrink-0" />
-                            <span>إضافة زبون جديد</span>
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                    {/* Phone input */}
-                    {activeOrder.customerPhone && (
-                      <div className="flex items-center gap-2 text-[11px] text-muted-foreground bg-muted/30 rounded-md px-2 py-1">
-                        <Phone className="h-3 w-3 shrink-0" />
-                        <span className="font-mono">{activeOrder.customerPhone}</span>
-                      </div>
-                    )}
+                {/* Customer phone display */}
+                {activeOrder.customerPhone && (
+                  <div className="flex items-center gap-2 text-[11px] text-muted-foreground bg-muted/30 rounded-md px-2 py-1">
+                    <Phone className="h-3 w-3 shrink-0" />
+                    <span className="font-mono">{activeOrder.customerPhone}</span>
                   </div>
                 )}
 
