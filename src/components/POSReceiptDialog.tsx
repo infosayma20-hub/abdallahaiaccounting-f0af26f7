@@ -56,10 +56,11 @@ interface POSReceiptDialogProps {
   autoPrint?: boolean;
 }
 
-const paymentMethodLabel: Record<string, string> = {
-  cash: "نقد",
-  card: "بطاقة",
-  credit: "آجل",
+const paymentMethodLabel: Record<string, { label: string; color: string }> = {
+  cash: { label: "نقد", color: "#16a34a" },
+  card: { label: "بطاقة", color: "#3b82f6" },
+  credit: { label: "آجل", color: "#f59e0b" },
+  employee_account: { label: "حساب موظف", color: "#8b5cf6" },
 };
 
 export default function POSReceiptDialog({ open, onOpenChange, data, showReturnPolicy = true, returnPolicyDays = 7, autoPrint = false }: POSReceiptDialogProps) {
