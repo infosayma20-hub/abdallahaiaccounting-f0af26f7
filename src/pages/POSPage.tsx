@@ -4594,34 +4594,46 @@ const POSPage = () => {
 
       {/* ── Kitchen Ticket Dialog ── */}
       <Dialog open={showKitchenTicket} onOpenChange={setShowKitchenTicket}>
-        <DialogContent className="max-w-xs" dir="rtl">
+        <DialogContent className="max-w-sm max-h-[80vh] overflow-y-auto" dir="rtl">
           <div className="text-center space-y-1 pb-2 border-b border-dashed border-border">
-            <p className="text-lg font-bold">🍳 طلب مطبخ</p>
+            <p className="text-lg font-bold">🍳 تذاكر المطبخ</p>
             <p className="text-xs text-muted-foreground">{new Date().toLocaleDateString("ar-PS")}</p>
           </div>
           {kitchenTicketData && (
-            <div className="space-y-3 py-2">
+            <div className="space-y-4 py-2">
               <div className="flex justify-between text-sm">
-                <span className="font-bold text-foreground">طاولة: {kitchenTicketData.tableName}</span>
+                <span className="font-bold text-foreground">{kitchenTicketData.tableName}</span>
                 <span className="text-muted-foreground">{kitchenTicketData.time}</span>
               </div>
               {kitchenTicketData.guestCount > 0 && (
                 <p className="text-xs text-muted-foreground">عدد الضيوف: {kitchenTicketData.guestCount}</p>
               )}
-              <div className="border-t border-dashed border-border pt-2 space-y-2">
-                {kitchenTicketData.items.map((item: any, idx: number) => (
-                  <div key={idx} className="flex items-start gap-2">
-                    <span className="text-lg font-bold text-primary min-w-[28px]">{item.qty}×</span>
-                    <div className="flex-1">
-                      <p className="text-sm font-semibold text-foreground">{item.name}</p>
-                      {item.modifiers?.map((m: any, mi: number) => (
-                        <p key={mi} className="text-xs text-muted-foreground">← {m.option_name}{m.extra_price > 0 ? ` +₪${m.extra_price}` : ''}</p>
-                      ))}
-                      {item.note && <p className="text-xs text-amber-600 mt-0.5">📝 {item.note}</p>}
-                    </div>
+
+              {/* Station-grouped tickets */}
+              {(kitchenTicketData.tickets || []).map((ticket: any, ti: number) => (
+                <div key={ti} className="border border-border rounded-xl overflow-hidden">
+                  <div className="px-3 py-2 flex items-center gap-2" style={{ backgroundColor: ticket.stationColor + "18" }}>
+                    <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: ticket.stationColor }} />
+                    <span className="text-xs font-bold" style={{ color: ticket.stationColor }}>{ticket.stationName}</span>
+                    <span className="text-[10px] text-muted-foreground mr-auto">{ticket.items.length} صنف</span>
                   </div>
-                ))}
-              </div>
+                  <div className="px-3 py-2 space-y-2">
+                    {ticket.items.map((item: any, idx: number) => (
+                      <div key={idx} className="flex items-start gap-2">
+                        <span className="text-base font-bold text-primary min-w-[28px]">{item.qty}×</span>
+                        <div className="flex-1">
+                          <p className="text-sm font-semibold text-foreground">{item.name}</p>
+                          {item.modifiers?.map((m: any, mi: number) => (
+                            <p key={mi} className="text-xs text-muted-foreground">← {m.option_name}{m.extra_price > 0 ? ` +₪${m.extra_price}` : ''}</p>
+                          ))}
+                          {item.note && <p className="text-xs text-amber-600 mt-0.5">📝 {item.note}</p>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+
               {kitchenTicketData.orderNote && (
                 <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-2 text-xs text-amber-800 dark:text-amber-300">
                   📝 {kitchenTicketData.orderNote}
