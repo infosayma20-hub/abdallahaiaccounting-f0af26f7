@@ -244,6 +244,73 @@ export default function InvoiceHistoryDrawer({
         return;
       }
 
+      // If the order is already paid, create a GL transfer entry between cash boxes
+      if (transferringOrder.state === "paid") {
+        // Get source session's cash_box GL code
+        const { data: srcSession } = await (supabase
+          .from("pos_sessions")
+          .select("cash_box_id, terminal_id") as any)
+          .eq("id", sessionId)
+          .maybeSingle();
+        
+        // Get target session's cash_box GL code
+        const { data: tgtSession } = await (supabase
+          .from("pos_sessions")
+          .select("cash_box_id, terminal_id") as any)
+          .eq("id", targetSessionId)
+          .maybeSingle();
+
+        let srcGLCode = "1110";
+        let tgtGLCode = "1110";
+
+        if (srcSession?.cash_box_id) {
+          const { data: srcBox } = await supabase.from("cash_boxes").select("gl_account_code").eq("id", srcSession.cash_box_id).maybeSingle();
+          if (srcBox?.gl_account_code) srcGLCode = srcBox.gl_account_code;
+        } else if (srcSession?.terminal_id) {
+          const { data: srcTerm } = await (supabase.from("pos_terminals").select("cash_account_code") as any).eq("id", srcSession.terminal_id).maybeSingle();
+          if (srcTerm?.cash_account_code) srcGLCode = srcTerm.cash_account_code;
+        }
+
+        if (tgtSession?.cash_box_id) {
+          const { data: tgtBox } = await supabase.from("cash_boxes").select("gl_account_code").eq("id", tgtSession.cash_box_id).maybeSingle();
+          if (tgtBox?.gl_account_code) tgtGLCode = tgtBox.gl_account_code;
+        } else if (tgtSession?.terminal_id) {
+          const { data: tgtTerm } = await (supabase.from("pos_terminals").select("cash_account_code") as any).eq("id", tgtSession.terminal_id).maybeSingle();
+          if (tgtTerm?.cash_account_code) tgtGLCode = tgtTerm.cash_account_code;
+        }
+
+        // Only create transfer entry if GL codes differ
+        if (srcGLCode !== tgtGLCode) {
+          await supabase.from("transactions").insert({
+            user_id: dataOwnerId,
+            transaction_date: new Date().toISOString().split("T")[0],
+            description: `نقل فاتورة POS #${transferringOrder.order_number || ""} من ${sessionId.slice(0, 6)} إلى ${targetUser.name}`,
+            debit_account_code: tgtGLCode,
+            credit_account_code: srcGLCode,
+            amount: transferringOrder.total,
+            currency: "شيكل",
+            transaction_type: "pos_transfer",
+            reference: transferringOrder.order_number || "",
+            idempotency_key: `POS-TRANSFER-${transferringOrder.id}`,
+          });
+        }
+
+        // Also update the original sale transaction to point to the new cash box
+        if (srcGLCode !== tgtGLCode) {
+          const { data: origTx } = await supabase
+            .from("transactions")
+            .select("id")
+            .eq("idempotency_key", `POS-ORDER-${transferringOrder.id}`)
+            .maybeSingle();
+          if (origTx) {
+            await supabase
+              .from("transactions")
+              .update({ debit_account_code: tgtGLCode } as any)
+              .eq("id", origTx.id);
+          }
+        }
+      }
+
       const { error } = await supabase
         .from("pos_orders")
         .update({
