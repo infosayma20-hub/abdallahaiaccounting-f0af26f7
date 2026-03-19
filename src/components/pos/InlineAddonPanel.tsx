@@ -40,7 +40,6 @@ interface Props {
   }) => void;
   onClose: () => void;
   flipUp?: boolean;
-  anchorRef?: React.RefObject<HTMLElement>;
 }
 
 export default function InlineAddonPanel({ product, groups, onConfirm, onClose, flipUp = false, anchorRef }: Props) {
