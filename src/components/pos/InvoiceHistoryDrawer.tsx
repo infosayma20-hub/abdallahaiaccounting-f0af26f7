@@ -159,16 +159,22 @@ export default function InvoiceHistoryDrawer({
   useEffect(() => {
     if (!allowOrderTransfer || !dataOwnerId || !open) return;
     (async () => {
-      // Get all open sessions' auth user IDs
+      // Get all open sessions (exclude current session)
       const { data: openSessions } = await (supabase
         .from("pos_sessions")
-        .select("cashier_auth_user_id") as any)
+        .select("id, cashier_auth_user_id, cashier_name") as any)
         .eq("user_id", dataOwnerId)
-        .eq("state", "open");
+        .eq("state", "open")
+        .neq("id", sessionId || "");
 
-      const activeAuthIds = (openSessions || [])
+      if (!openSessions || openSessions.length === 0) {
+        setPosUsers([]);
+        return;
+      }
+
+      const activeAuthIds = openSessions
         .map((s: any) => s.cashier_auth_user_id)
-        .filter((id: string | null) => id && id !== sessionId);
+        .filter(Boolean);
 
       if (activeAuthIds.length === 0) {
         setPosUsers([]);
