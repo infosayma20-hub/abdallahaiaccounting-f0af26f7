@@ -2099,7 +2099,7 @@ const POSPage = () => {
         total: effectiveTotal,
         paymentMethod,
         tenderedAmount: tendered,
-        change,
+        change: changeILS,
         currency: paymentCurrency,
         exchangeRate: rate,
         foreignAmount: foreignTotal,
