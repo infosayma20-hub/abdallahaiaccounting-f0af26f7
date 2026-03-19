@@ -155,7 +155,7 @@ export default function InvoiceHistoryDrawer({
   const [selectedTransferUser, setSelectedTransferUser] = useState<string | null>(null);
   const [transferring, setTransferring] = useState(false);
 
-  // Fetch only POS users who have an active open session
+  // Fetch only POS users/sessions who have an active open session
   useEffect(() => {
     if (!allowOrderTransfer || !dataOwnerId || !open) return;
     (async () => {
@@ -172,23 +172,45 @@ export default function InvoiceHistoryDrawer({
         return;
       }
 
+      // Try to match with pos_users for those with auth_user_id
       const activeAuthIds = openSessions
         .map((s: any) => s.cashier_auth_user_id)
         .filter(Boolean);
 
-      if (activeAuthIds.length === 0) {
-        setPosUsers([]);
-        return;
+      let matchedUsers: { id: string; name: string; auth_user_id: string | null }[] = [];
+
+      if (activeAuthIds.length > 0) {
+        const { data: users } = await supabase
+          .from("pos_users")
+          .select("id, name, auth_user_id")
+          .eq("user_id", dataOwnerId)
+          .eq("is_active", true)
+          .in("auth_user_id", activeAuthIds);
+        matchedUsers = users || [];
       }
 
-      const { data: users } = await supabase
-        .from("pos_users")
-        .select("id, name, auth_user_id")
-        .eq("user_id", dataOwnerId)
-        .eq("is_active", true)
-        .in("auth_user_id", activeAuthIds);
+      // For sessions without matching pos_users, create entries from session data
+      const matchedAuthIds = new Set(matchedUsers.map(u => u.auth_user_id));
+      const unmatchedSessions = openSessions.filter(
+        (s: any) => !s.cashier_auth_user_id || !matchedAuthIds.has(s.cashier_auth_user_id)
+      );
 
-      setPosUsers(users || []);
+      const sessionEntries = unmatchedSessions.map((s: any) => ({
+        id: s.id,
+        name: s.cashier_name || "موظف",
+        auth_user_id: s.cashier_auth_user_id || null,
+      }));
+
+      // Deduplicate by auth_user_id where possible
+      const seen = new Set<string>();
+      const combined = [...matchedUsers, ...sessionEntries].filter(u => {
+        const key = u.auth_user_id || u.id;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+
+      setPosUsers(combined);
     })();
   }, [allowOrderTransfer, dataOwnerId, open, sessionId]);
 
