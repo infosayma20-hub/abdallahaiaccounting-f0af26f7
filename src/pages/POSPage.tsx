@@ -3004,7 +3004,6 @@ const POSPage = () => {
                               }`}>
                                 ₪{product.sell_price.toFixed(2)}
                               </p>
-                              </p>
                             </div>
 
                             {/* Inline Addon Panel */}
