@@ -1962,7 +1962,13 @@ const POSPage = () => {
       const foreignTotal = paymentCurrency === "ILS" ? effectiveTotal : effectiveTotal / rate;
       const tendered = parseFloat(tenderedAmount) || foreignTotal;
       const changeInForeign = Math.max(0, tendered - foreignTotal);
-      const change = paymentCurrency === "ILS" ? changeInForeign : changeInForeign * rate;
+      const changeILS = paymentCurrency === "ILS" ? changeInForeign : changeInForeign * rate;
+
+      // Determine actual change amounts based on changeCurrency selection
+      // If change is given in foreign currency, the ILS change is 0 and foreign change is deducted from foreign pile
+      const actualChangeCurrency = paymentCurrency === "ILS" ? "ILS" : changeCurrency;
+      const actualChangeILS = actualChangeCurrency === "ILS" ? changeILS : 0;
+      const actualChangeForeign = actualChangeCurrency !== "ILS" ? changeILS / (exchangeRates[actualChangeCurrency] || rate) : 0;
 
       // Generate survey token if customer data was collected
       const surveyToken = customerDataDiscount ? crypto.randomUUID() : null;
@@ -1974,7 +1980,9 @@ const POSPage = () => {
           method: paymentMethod,
           amount: cartTotals.total,
           tendered: paymentCurrency === "ILS" ? tendered : tendered * rate,
-          change: change,
+          change: actualChangeILS,
+          change_currency: actualChangeCurrency,
+          change_foreign_amount: actualChangeForeign,
           currency: paymentCurrency,
           exchange_rate: rate,
           foreign_amount: foreignTotal,
