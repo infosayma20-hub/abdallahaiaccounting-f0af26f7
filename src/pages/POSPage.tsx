@@ -3031,9 +3031,9 @@ const POSPage = () => {
         </div>
 
         {/* ── RIGHT: Order Panel ── */}
-        <div className="w-[340px] lg:w-[380px] flex flex-col bg-card border-r border-border shrink-0">
+        <div className="w-[340px] lg:w-[380px] flex flex-col bg-card border-r-2 border-border/60 shrink-0 shadow-[2px_0_8px_rgba(0,0,0,0.04)]">
           {/* Order Tabs */}
-          <div className="flex items-center border-b border-border shrink-0 overflow-x-auto">
+          <div className="flex items-center border-b border-border/70 shrink-0 overflow-x-auto shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
             {/* View all orders button */}
             <button
               onClick={() => setShowAllOrders(true)}
