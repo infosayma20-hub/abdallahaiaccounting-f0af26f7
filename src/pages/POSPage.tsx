@@ -1532,15 +1532,20 @@ const POSPage = () => {
     }
     setChangingPassword(true);
     try {
-      const { error } = await supabase.auth.updateUser({ password: newPassword });
-      if (error) throw error;
-      // Mark as changed using SECURITY DEFINER RPC to bypass RLS
+      // Clear the flag FIRST (before updateUser which may refresh session/tokens)
       if (userId) {
         const { error: rpcErr } = await supabase.rpc("clear_must_change_password" as any);
         if (rpcErr) {
-          console.error("Failed to clear must_change_password:", rpcErr);
+          console.error("Failed to clear must_change_password via RPC, trying direct update:", rpcErr);
+          // Fallback: direct update
+          await supabase
+            .from("pos_users")
+            .update({ must_change_password: false } as any)
+            .eq("auth_user_id", userId);
         }
       }
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
       setShowChangePassword(false);
       setNewPassword("");
       setConfirmNewPassword("");
