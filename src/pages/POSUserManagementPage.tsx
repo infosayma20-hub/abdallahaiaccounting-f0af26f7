@@ -635,19 +635,19 @@ export default function POSUserManagementPage() {
             <Card><CardContent className="py-12 text-center text-muted-foreground">لا يوجد مستخدمون. أضف أول موظف POS.</CardContent></Card>
           ) : (
             <div className="rounded-2xl border border-border/50 overflow-hidden shadow-sm">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+              <div className="overflow-x-auto" dir="rtl">
+                <table className="w-full text-sm" style={{ minWidth: 900 }}>
                   <thead>
                     <tr className="bg-primary text-primary-foreground">
-                      <th className="px-3 py-3 text-right text-xs font-semibold">#</th>
+                      <th className="px-3 py-3 text-right text-xs font-semibold w-10">#</th>
                       <th className="px-3 py-3 text-right text-xs font-semibold">الاسم</th>
                       <th className="px-3 py-3 text-right text-xs font-semibold">البريد الإلكتروني</th>
                       <th className="px-3 py-3 text-right text-xs font-semibold">الهاتف</th>
                       <th className="px-3 py-3 text-right text-xs font-semibold">الدور</th>
-                      <th className="px-3 py-3 text-right text-xs font-semibold">الحالة</th>
-                      <th className="px-3 py-3 text-right text-xs font-semibold">الحساب</th>
+                      <th className="px-3 py-3 text-center text-xs font-semibold">الحالة</th>
+                      <th className="px-3 py-3 text-center text-xs font-semibold">الحساب</th>
                       <th className="px-3 py-3 text-right text-xs font-semibold">آخر دخول</th>
-                      <th className="px-3 py-3 text-right text-xs font-semibold">إجراءات</th>
+                      <th className="px-4 py-3 text-center text-xs font-semibold w-36">إجراءات</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -658,7 +658,7 @@ export default function POSUserManagementPage() {
                           !u.is_active ? "opacity-60" : ""
                         } ${i % 2 === 0 ? "bg-background" : "bg-muted/20"} hover:bg-primary/5`}
                       >
-                        <td className="px-3 py-3 text-xs text-muted-foreground">{i + 1}</td>
+                        <td className="px-3 py-3 text-xs text-muted-foreground text-right">{i + 1}</td>
                         <td className="px-3 py-3">
                           <div className="flex items-center gap-2">
                             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center text-white font-bold text-xs shrink-0">
@@ -672,7 +672,7 @@ export default function POSUserManagementPage() {
                         <td className="px-3 py-3">
                           <Badge className={`text-[10px] ${ROLE_COLORS[u.role] || "bg-muted"}`}>{ROLE_LABELS[u.role] || u.role}</Badge>
                         </td>
-                        <td className="px-3 py-3">
+                        <td className="px-3 py-3 text-center">
                           {u.is_active ? (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
                               <span className="w-1.5 h-1.5 rounded-full bg-green-500" />نشط
@@ -683,7 +683,7 @@ export default function POSUserManagementPage() {
                             </span>
                           )}
                         </td>
-                        <td className="px-3 py-3">
+                        <td className="px-3 py-3 text-center">
                           {u.has_account && u.account_status === "active" && (
                             <Badge className="text-[10px] bg-emerald-500/20 text-emerald-600 gap-1"><CheckCircle2 className="w-3 h-3" />مفعّل</Badge>
                           )}
@@ -697,21 +697,21 @@ export default function POSUserManagementPage() {
                         <td className="px-3 py-3 text-xs text-muted-foreground">
                           {u.last_login_at ? new Date(u.last_login_at).toLocaleDateString("en-GB") : "—"}
                         </td>
-                        <td className="px-3 py-3">
-                          <div className="flex items-center gap-0.5">
+                        <td className="px-4 py-3">
+                          <div className="flex items-center justify-center gap-1">
                             {!u.has_account && u.email && (
                               <button onClick={() => handleCreateAccountForUser(u)} className="p-1.5 rounded-lg hover:bg-primary/10 transition-colors" title="إنشاء حساب" disabled={creatingAccount}>
-                                <UserPlus className="w-3.5 h-3.5 text-primary" />
+                                <UserPlus className="w-4 h-4 text-primary" />
                               </button>
                             )}
                             <button onClick={() => openEditUser(u)} className="p-1.5 rounded-lg hover:bg-primary/10 transition-colors" title="تعديل">
-                              <Pencil className="w-3.5 h-3.5 text-primary" />
+                              <Pencil className="w-4 h-4 text-primary" />
                             </button>
                             <button onClick={() => toggleUserActive(u)} className="p-1.5 rounded-lg hover:bg-accent/50 transition-colors" title={u.is_active ? "تعطيل" : "تفعيل"}>
-                              {u.is_active ? <LockKeyhole className="w-3.5 h-3.5 text-muted-foreground" /> : <UnlockKeyhole className="w-3.5 h-3.5 text-emerald-500" />}
+                              {u.is_active ? <LockKeyhole className="w-4 h-4 text-muted-foreground" /> : <UnlockKeyhole className="w-4 h-4 text-emerald-500" />}
                             </button>
                             <button onClick={() => confirmDeleteUser(u)} className="p-1.5 rounded-lg hover:bg-destructive/10 transition-colors" title="حذف">
-                              <Trash2 className="w-3.5 h-3.5 text-destructive" />
+                              <Trash2 className="w-4 h-4 text-destructive" />
                             </button>
                           </div>
                         </td>
@@ -721,8 +721,8 @@ export default function POSUserManagementPage() {
                   <tfoot>
                     <tr className="bg-primary/5 border-t-2 border-primary/20 font-bold text-sm">
                       <td colSpan={5} className="px-3 py-3 text-right text-foreground">المجموع: {filteredUsers.length} موظف</td>
-                      <td className="px-3 py-3 text-xs text-foreground">{filteredUsers.filter(u => u.is_active).length} نشط</td>
-                      <td className="px-3 py-3 text-xs text-foreground">{filteredUsers.filter(u => u.has_account).length} حساب</td>
+                      <td className="px-3 py-3 text-xs text-center text-foreground">{filteredUsers.filter(u => u.is_active).length} نشط</td>
+                      <td className="px-3 py-3 text-xs text-center text-foreground">{filteredUsers.filter(u => u.has_account).length} حساب</td>
                       <td colSpan={2} />
                     </tr>
                   </tfoot>
