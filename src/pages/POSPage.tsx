@@ -2720,7 +2720,7 @@ const POSPage = () => {
         {/* ── LEFT: Products ── */}
         <div className="flex-1 flex flex-col min-w-0 bg-[hsl(var(--background))]">
           {/* Search Bar */}
-          <div className="px-4 py-2.5 border-b border-border">
+          <div className="px-4 py-2.5 border-b border-border/70 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
             <div className="relative max-w-xl">
               <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
               <Input
@@ -2764,7 +2764,7 @@ const POSPage = () => {
           />
 
           {/* ── Odoo-Style Category Chips ── */}
-          <div className="px-4 py-2 border-b border-border">
+          <div className="px-4 py-2 border-b border-border/70 shadow-[0_1px_2px_rgba(0,0,0,0.04)] bg-muted/20">
             {/* Sort mode banner */}
             {isSortMode && isAdmin && (
               <div className="mb-2 flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400 text-xs">
@@ -3031,9 +3031,9 @@ const POSPage = () => {
         </div>
 
         {/* ── RIGHT: Order Panel ── */}
-        <div className="w-[340px] lg:w-[380px] flex flex-col bg-card border-r border-border shrink-0">
+        <div className="w-[340px] lg:w-[380px] flex flex-col bg-card border-r-2 border-border/60 shrink-0 shadow-[2px_0_8px_rgba(0,0,0,0.04)]">
           {/* Order Tabs */}
-          <div className="flex items-center border-b border-border shrink-0 overflow-x-auto">
+          <div className="flex items-center border-b border-border/70 shrink-0 overflow-x-auto shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
             {/* View all orders button */}
             <button
               onClick={() => setShowAllOrders(true)}
@@ -3572,7 +3572,7 @@ const POSPage = () => {
             )}
 
             {/* Totals */}
-            <div className="px-3 py-2 space-y-1">
+            <div className="px-3 py-2 space-y-1 border-t border-border/60 shadow-[0_-1px_3px_rgba(0,0,0,0.04)]">
               {cartTotals.tax > 0 && (
                 <div className="flex justify-between text-[11px] text-muted-foreground">
                   <span>الضريبة</span>
