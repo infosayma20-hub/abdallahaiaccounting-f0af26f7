@@ -295,20 +295,6 @@ export default function InvoiceHistoryDrawer({
           });
         }
 
-        // Also update the original sale transaction to point to the new cash box
-        if (srcGLCode !== tgtGLCode) {
-          const { data: origTx } = await supabase
-            .from("transactions")
-            .select("id")
-            .eq("idempotency_key", `POS-ORDER-${transferringOrder.id}`)
-            .maybeSingle();
-          if (origTx) {
-            await supabase
-              .from("transactions")
-              .update({ debit_account_code: tgtGLCode } as any)
-              .eq("id", origTx.id);
-          }
-        }
       }
 
       const { error } = await supabase
