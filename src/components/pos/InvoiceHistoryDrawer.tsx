@@ -36,6 +36,8 @@ interface InvoiceOrder {
   cancelled_at: string | null;
   cancel_reason: string | null;
   paid_at: string | null;
+  transferred_from_session_id: string | null;
+  transferred_to_name: string | null;
 }
 
 interface InvoiceLine {
@@ -59,7 +61,7 @@ interface InvoicePayment {
   currency: string | null;
 }
 
-type StatusFilter = "all" | "paid" | "draft" | "cancelled" | "recalled";
+type StatusFilter = "all" | "paid" | "draft" | "cancelled" | "recalled" | "transferred";
 
 interface CartItem {
   id: string;
@@ -100,6 +102,7 @@ const STATUS_CONFIG: Record<string, { label: string; bg: string; text: string }>
   draft: { label: "معلقة", bg: "#FEF9C3", text: "#CA8A04" },
   cancelled: { label: "ملغية", bg: "#FEE2E2", text: "#DC2626" },
   recalled: { label: "معدّلة", bg: "#EFF6FF", text: "#0A2342" },
+  transferred: { label: "منقولة", bg: "#F3E8FF", text: "#7C3AED" },
 };
 
 const RECALL_REASONS = [
@@ -243,7 +246,11 @@ export default function InvoiceHistoryDrawer({
 
       const { error } = await supabase
         .from("pos_orders")
-        .update({ session_id: targetSessionId })
+        .update({
+          session_id: targetSessionId,
+          transferred_from_session_id: sessionId,
+          transferred_to_name: targetUser.name,
+        } as any)
         .eq("id", transferringOrder.id);
 
       if (error) throw error;
@@ -265,19 +272,21 @@ export default function InvoiceHistoryDrawer({
     if (!dataOwnerId || !open) return;
     setLoading(true);
     try {
+      const selectFields = "id, order_number, created_at, total, subtotal, discount_amount, tax_amount, state, customer_name, customer_id, session_id, is_return, recall_status, recall_reason, recalled_by, recalled_approved_by, recalled_at, cancelled_at, cancel_reason, paid_at, transferred_from_session_id, transferred_to_name";
+
+      // Main query: orders belonging to this session
       let query = supabase
         .from("pos_orders")
-        .select("id, order_number, created_at, total, subtotal, discount_amount, tax_amount, state, customer_name, customer_id, session_id, is_return, recall_status, recall_reason, recalled_by, recalled_approved_by, recalled_at, cancelled_at, cancel_reason, paid_at")
+        .select(selectFields)
         .eq("user_id", dataOwnerId);
 
       if (sessionId) {
         query = query.eq("session_id", sessionId);
       }
-      // When no sessionId, show all orders (not limited to session)
 
       query = query.order("created_at", { ascending: false }).limit(200) as any;
 
-      if (statusFilter !== "all") {
+      if (statusFilter !== "all" && statusFilter !== "transferred") {
         if (statusFilter === "recalled") {
           query = query.not("recall_status", "is", null);
         } else {
@@ -287,7 +296,35 @@ export default function InvoiceHistoryDrawer({
 
       const { data, error } = await query;
       if (error) throw error;
-      setOrders((data || []) as InvoiceOrder[]);
+      let allOrders = (data || []) as InvoiceOrder[];
+
+      // Also fetch transferred-out orders (orders that were in this session but moved)
+      if (sessionId) {
+        let transferQuery = supabase
+          .from("pos_orders")
+          .select(selectFields)
+          .eq("user_id", dataOwnerId)
+          .eq("transferred_from_session_id", sessionId)
+          .order("created_at", { ascending: false })
+          .limit(50);
+
+        const { data: transferredData } = await transferQuery;
+        if (transferredData && transferredData.length > 0) {
+          // Avoid duplicates
+          const existingIds = new Set(allOrders.map(o => o.id));
+          const newTransferred = (transferredData as InvoiceOrder[]).filter(o => !existingIds.has(o.id));
+          allOrders = [...allOrders, ...newTransferred].sort((a, b) => 
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+          );
+        }
+      }
+
+      // If filtering by "transferred" status, only show transferred-out orders
+      if (statusFilter === "transferred") {
+        allOrders = allOrders.filter(o => o.transferred_from_session_id === sessionId && o.session_id !== sessionId);
+      }
+
+      setOrders(allOrders);
     } catch (err) {
       console.error("Error fetching orders:", err);
     } finally {
@@ -306,14 +343,19 @@ export default function InvoiceHistoryDrawer({
     );
   }, [orders, searchQuery]);
 
+  const isTransferredOut = (order: InvoiceOrder) => 
+    order.transferred_from_session_id === sessionId && order.session_id !== sessionId;
+
   const summary = useMemo(() => {
-    const paid = orders.filter(o => o.state === "paid" && !o.is_return);
+    // Exclude transferred-out orders from summary
+    const sessionOrders = orders.filter(o => !isTransferredOut(o));
+    const paid = sessionOrders.filter(o => o.state === "paid" && !o.is_return);
     return {
       totalToday: paid.reduce((s, o) => s + o.total, 0),
       count: paid.length,
-      cancelled: orders.filter(o => o.state === "cancelled").length,
+      cancelled: sessionOrders.filter(o => o.state === "cancelled").length,
     };
-  }, [orders]);
+  }, [orders, sessionId]);
 
   const loadDetail = async (order: InvoiceOrder) => {
     setSelectedOrder(order);
@@ -521,6 +563,7 @@ export default function InvoiceHistoryDrawer({
   };
 
   const getStatusDisplay = (order: InvoiceOrder) => {
+    if (isTransferredOut(order)) return STATUS_CONFIG.transferred;
     if (order.recall_status === "recalled") return STATUS_CONFIG.recalled;
     return STATUS_CONFIG[order.state] || STATUS_CONFIG.paid;
   };
@@ -579,6 +622,7 @@ export default function InvoiceHistoryDrawer({
               { key: "draft", label: "معلقة" },
               { key: "cancelled", label: "ملغية" },
               { key: "recalled", label: "معدّلة" },
+              { key: "transferred", label: "منقولة" },
             ] as { key: StatusFilter; label: string }[]).map(f => (
               <button
                 key={f.key}
@@ -658,6 +702,12 @@ export default function InvoiceHistoryDrawer({
                       <div className="text-[11px] mt-0.5" style={{ color: "#64748B" }}>
                         {order.customer_name || "زبون نقدي"}
                       </div>
+                      {isTransferredOut(order) && order.transferred_to_name && (
+                        <div className="text-[10px] mt-0.5 flex items-center gap-1" style={{ color: "#7C3AED" }}>
+                          <ArrowRightLeft className="h-3 w-3" />
+                          <span>نُقلت إلى: {order.transferred_to_name}</span>
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex flex-col items-end gap-1">
@@ -672,7 +722,7 @@ export default function InvoiceHistoryDrawer({
                         >
                           <Eye className="h-3 w-3" /> عرض
                         </button>
-                        {canEditInvoices && order.state === "paid" && !order.recall_status && (
+                        {canEditInvoices && order.state === "paid" && !order.recall_status && !isTransferredOut(order) && (
                           <button
                             onClick={e => { e.stopPropagation(); initiateRecall(order); }}
                             className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium transition-colors"

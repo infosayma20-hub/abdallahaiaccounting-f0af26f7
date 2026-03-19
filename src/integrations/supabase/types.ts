@@ -6162,6 +6162,8 @@ export type Database = {
           tax_amount: number
           total: number
           transaction_id: string | null
+          transferred_from_session_id: string | null
+          transferred_to_name: string | null
           updated_at: string
           user_id: string
           was_offline: boolean | null
@@ -6215,6 +6217,8 @@ export type Database = {
           tax_amount?: number
           total?: number
           transaction_id?: string | null
+          transferred_from_session_id?: string | null
+          transferred_to_name?: string | null
           updated_at?: string
           user_id: string
           was_offline?: boolean | null
@@ -6268,6 +6272,8 @@ export type Database = {
           tax_amount?: number
           total?: number
           transaction_id?: string | null
+          transferred_from_session_id?: string | null
+          transferred_to_name?: string | null
           updated_at?: string
           user_id?: string
           was_offline?: boolean | null
@@ -6313,6 +6319,13 @@ export type Database = {
             columns: ["table_id"]
             isOneToOne: false
             referencedRelation: "restaurant_tables"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pos_orders_transferred_from_session_id_fkey"
+            columns: ["transferred_from_session_id"]
+            isOneToOne: false
+            referencedRelation: "pos_sessions"
             referencedColumns: ["id"]
           },
         ]
