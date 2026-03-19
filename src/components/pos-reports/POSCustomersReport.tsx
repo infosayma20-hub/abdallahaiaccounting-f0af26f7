@@ -25,6 +25,7 @@ const POSCustomersReport = ({ dataOwnerId }: Props) => {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetch = async () => {
