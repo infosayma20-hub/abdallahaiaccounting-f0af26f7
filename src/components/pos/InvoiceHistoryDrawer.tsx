@@ -563,6 +563,7 @@ export default function InvoiceHistoryDrawer({
   };
 
   const getStatusDisplay = (order: InvoiceOrder) => {
+    if (isTransferredOut(order)) return STATUS_CONFIG.transferred;
     if (order.recall_status === "recalled") return STATUS_CONFIG.recalled;
     return STATUS_CONFIG[order.state] || STATUS_CONFIG.paid;
   };
