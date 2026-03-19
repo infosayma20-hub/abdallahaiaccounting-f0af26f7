@@ -4180,14 +4180,23 @@ const POSPage = () => {
                             </div>
                           )}
 
-                          {/* Main change display */}
+                          {/* Main change display - editable */}
                           <div className="flex justify-between items-center p-3 bg-accent/20 rounded-xl border-2 border-accent">
                             <span className="text-sm font-bold text-foreground">الباقي للزبون</span>
-                            <span className="text-2xl font-black tabular-nums text-accent-foreground" style={{ color: "#16a34a" }}>
-                              {changeCurrency === "JOD"
-                                ? `${displayChangeAmount.toFixed(2)} د.أ`
-                                : `${displaySymbol}${displayChangeAmount.toFixed(2)}`}
-                            </span>
+                            <div className="flex items-center gap-1">
+                              <span className="text-lg font-bold" style={{ color: "#16a34a" }}>{displaySymbol}</span>
+                              <input
+                                type="number"
+                                inputMode="decimal"
+                                step="0.01"
+                                value={manualChangeAmount !== null ? manualChangeAmount : displayChangeAmount.toFixed(2)}
+                                onChange={(e) => setManualChangeAmount(e.target.value)}
+                                onFocus={(e) => { if (manualChangeAmount === null) setManualChangeAmount(displayChangeAmount.toFixed(2)); e.target.select(); }}
+                                className="w-24 text-left text-2xl font-black tabular-nums bg-transparent border-none outline-none focus:ring-1 focus:ring-primary rounded px-1"
+                                style={{ color: "#16a34a" }}
+                                dir="ltr"
+                              />
+                            </div>
                           </div>
 
                           {/* Show other currency equivalent as secondary info */}
