@@ -33,6 +33,8 @@ interface ReceiptData {
   customerName: string;
   tableName?: string;
   guestCount?: number;
+  orderType?: "dine_in" | "takeaway" | "delivery";
+  deliveryAddress?: string;
   items: ReceiptItem[];
   subtotal: number;
   tax: number;
