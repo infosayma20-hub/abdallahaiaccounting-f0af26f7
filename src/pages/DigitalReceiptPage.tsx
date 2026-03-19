@@ -11,6 +11,14 @@ const DigitalReceiptPage = () => {
   const [cashierName, setCashierName] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("");
+
+  const PAYMENT_LABELS: Record<string, { label: string; color: string }> = {
+    cash: { label: "نقد", color: "#16a34a" },
+    card: { label: "بطاقة", color: "#3b82f6" },
+    credit: { label: "آجل", color: "#f59e0b" },
+    employee_account: { label: "حساب موظف", color: "#8b5cf6" },
+  };
 
   useEffect(() => {
     if (!orderId) return;
