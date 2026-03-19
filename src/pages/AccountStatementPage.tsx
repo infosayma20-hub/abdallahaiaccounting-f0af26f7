@@ -1983,18 +1983,18 @@ const AccountStatementPage = () => {
                             <tbody>
                               <tr className="border-b border-border/30">
                                 <td className="py-1.5 text-muted-foreground">إجمالي مدين</td>
-                                <td className="py-1.5 text-left tabular-nums font-semibold text-red-600">{fmtAmount(totalDebit)}</td>
-                                <td className="py-1.5 text-left tabular-nums font-semibold text-red-400">{fmtAmount(comparisonData.prevDebit)}</td>
+                                <td className="py-1.5 text-left tabular-nums font-semibold text-red-600">{fmtAmount(totalDebit, statementCurrency)}</td>
+                                <td className="py-1.5 text-left tabular-nums font-semibold text-red-400">{fmtAmount(comparisonData.prevDebit, statementCurrency)}</td>
                               </tr>
                               <tr className="border-b border-border/30">
                                 <td className="py-1.5 text-muted-foreground">إجمالي دائن</td>
-                                <td className="py-1.5 text-left tabular-nums font-semibold text-emerald-600">{fmtAmount(totalCredit)}</td>
-                                <td className="py-1.5 text-left tabular-nums font-semibold text-emerald-400">{fmtAmount(comparisonData.prevCredit)}</td>
+                                <td className="py-1.5 text-left tabular-nums font-semibold text-emerald-600">{fmtAmount(totalCredit, statementCurrency)}</td>
+                                <td className="py-1.5 text-left tabular-nums font-semibold text-emerald-400">{fmtAmount(comparisonData.prevCredit, statementCurrency)}</td>
                               </tr>
                               <tr>
                                 <td className="py-1.5 font-bold text-foreground">رصيد ختامي</td>
-                                <td className="py-1.5 text-left tabular-nums font-bold">{fmtAmount(closingBalance)}</td>
-                                <td className="py-1.5 text-left tabular-nums font-bold">{fmtAmount(comparisonData.prevBalance)}</td>
+                                <td className="py-1.5 text-left tabular-nums font-bold">{fmtAmount(closingBalance, statementCurrency)}</td>
+                                <td className="py-1.5 text-left tabular-nums font-bold">{fmtAmount(comparisonData.prevBalance, statementCurrency)}</td>
                               </tr>
                             </tbody>
                           </table>
