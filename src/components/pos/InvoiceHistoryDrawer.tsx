@@ -272,19 +272,21 @@ export default function InvoiceHistoryDrawer({
     if (!dataOwnerId || !open) return;
     setLoading(true);
     try {
+      const selectFields = "id, order_number, created_at, total, subtotal, discount_amount, tax_amount, state, customer_name, customer_id, session_id, is_return, recall_status, recall_reason, recalled_by, recalled_approved_by, recalled_at, cancelled_at, cancel_reason, paid_at, transferred_from_session_id, transferred_to_name";
+
+      // Main query: orders belonging to this session
       let query = supabase
         .from("pos_orders")
-        .select("id, order_number, created_at, total, subtotal, discount_amount, tax_amount, state, customer_name, customer_id, session_id, is_return, recall_status, recall_reason, recalled_by, recalled_approved_by, recalled_at, cancelled_at, cancel_reason, paid_at")
+        .select(selectFields)
         .eq("user_id", dataOwnerId);
 
       if (sessionId) {
         query = query.eq("session_id", sessionId);
       }
-      // When no sessionId, show all orders (not limited to session)
 
       query = query.order("created_at", { ascending: false }).limit(200) as any;
 
-      if (statusFilter !== "all") {
+      if (statusFilter !== "all" && statusFilter !== "transferred") {
         if (statusFilter === "recalled") {
           query = query.not("recall_status", "is", null);
         } else {
@@ -294,7 +296,35 @@ export default function InvoiceHistoryDrawer({
 
       const { data, error } = await query;
       if (error) throw error;
-      setOrders((data || []) as InvoiceOrder[]);
+      let allOrders = (data || []) as InvoiceOrder[];
+
+      // Also fetch transferred-out orders (orders that were in this session but moved)
+      if (sessionId) {
+        let transferQuery = supabase
+          .from("pos_orders")
+          .select(selectFields)
+          .eq("user_id", dataOwnerId)
+          .eq("transferred_from_session_id", sessionId)
+          .order("created_at", { ascending: false })
+          .limit(50);
+
+        const { data: transferredData } = await transferQuery;
+        if (transferredData && transferredData.length > 0) {
+          // Avoid duplicates
+          const existingIds = new Set(allOrders.map(o => o.id));
+          const newTransferred = (transferredData as InvoiceOrder[]).filter(o => !existingIds.has(o.id));
+          allOrders = [...allOrders, ...newTransferred].sort((a, b) => 
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+          );
+        }
+      }
+
+      // If filtering by "transferred" status, only show transferred-out orders
+      if (statusFilter === "transferred") {
+        allOrders = allOrders.filter(o => o.transferred_from_session_id === sessionId && o.session_id !== sessionId);
+      }
+
+      setOrders(allOrders);
     } catch (err) {
       console.error("Error fetching orders:", err);
     } finally {
