@@ -294,7 +294,7 @@ const CleanInputDock = ({ onSend, sending, centered }: Props) => {
   // IDLE STATE
   return (
     <>
-      <div className="flex-shrink-0 bg-white border-t border-[#F1F5F9] relative" style={{ paddingBottom: "max(14px, env(safe-area-inset-bottom, 14px))" }}>
+      <div className={`flex-shrink-0 relative ${centered ? "bg-transparent border-none" : "bg-white border-t border-[#F1F5F9]"}`} style={centered ? {} : { paddingBottom: "max(14px, env(safe-area-inset-bottom, 14px))" }}>
         {/* Mention dropdown */}
         {showMentions && (
           <div
