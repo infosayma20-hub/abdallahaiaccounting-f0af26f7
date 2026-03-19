@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import CashBoxDrawer from "@/components/finance/CashBoxDrawer";
+import PettyCashReplenishDialog from "@/components/finance/PettyCashReplenishDialog";
 
 const CashBoxesPage = () => {
   const navigate = useNavigate();
