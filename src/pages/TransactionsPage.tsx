@@ -95,6 +95,10 @@ const typeBadgeConfig: Record<string, { label: string; bg: string; text: string 
   cheque_return:      { label: "إرجاع شيك",      bg: "bg-[#FFEDD5]", text: "text-[#9A3412]" },
   cheque_cancel:      { label: "إلغاء شيك",      bg: "bg-[#F3F4F6]", text: "text-[#374151]" },
   bank_fee:           { label: "عمولة بنكية",    bg: "bg-[#FEF9C3]", text: "text-[#854D0E]" },
+  pos_currency_exchange: { label: "صرف عملة POS", bg: "bg-[#FEF9C3]", text: "text-[#854D0E]" },
+  pos_expense:          { label: "مصروف POS",     bg: "bg-[#FEE2E2]", text: "text-[#991B1B]" },
+  pos_meal:             { label: "وجبة موظف",     bg: "bg-[#FFEDD5]", text: "text-[#9A3412]" },
+  pos_purchase:         { label: "مشتريات POS",   bg: "bg-[#EDE9FE]", text: "text-[#5B21B6]" },
   // تحويلات وأخرى
   cash_transfer:      { label: "تحويل صندوق",    bg: "bg-[#FEF3C7]", text: "text-[#92400E]" },
   bank_transfer:      { label: "تحويل بنكي",     bg: "bg-[#DBEAFE]", text: "text-[#1E40AF]" },
