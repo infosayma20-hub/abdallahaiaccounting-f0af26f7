@@ -2926,7 +2926,9 @@ const POSPage = () => {
                   }`}
                 >
                   <ShoppingCart className="h-3 w-3" />
-                  <span>{order.name}</span>
+                  <span>{order.customerName || order.name}</span>
+                  {order.orderType === "delivery" && <span className="text-[10px]">🚚</span>}
+                  {order.orderType === "takeaway" && <span className="text-[10px]">🛍️</span>}
                   {itemCount > 0 && (
                     <span className={`text-[10px] font-bold rounded-full px-1.5 py-0 ${
                       isActive ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"
