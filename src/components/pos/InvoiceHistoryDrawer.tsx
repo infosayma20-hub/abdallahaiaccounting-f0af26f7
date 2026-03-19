@@ -640,7 +640,7 @@ export default function InvoiceHistoryDrawer({
 
       {/* ══════ DETAIL MODAL ══════ */}
       <Dialog open={!!selectedOrder} onOpenChange={() => setSelectedOrder(null)}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto z-[1100]" style={{ fontFamily: "Tajawal, sans-serif" }}>
+        <DialogContent className="max-w-2xl w-[95vw] max-h-[90vh] overflow-y-auto z-[1100]" style={{ fontFamily: "Tajawal, sans-serif" }}>
           {selectedOrder && (
             <>
               <DialogHeader>
