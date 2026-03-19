@@ -806,7 +806,7 @@ const POSPage = () => {
     if (!dataOwnerId) return;
     const { data } = await supabase
       .from("products")
-      .select("id, name, sell_price, buy_price, quantity, category, pos_category_id, unit, sku, barcode, tax_rate, is_pos_available, color, image_url, min_quantity, sort_order")
+      .select("id, name, sell_price, buy_price, quantity, category, pos_category_id, unit, sku, barcode, tax_rate, is_pos_available, color, image_url, min_quantity, sort_order, kitchen_station_id")
       .eq("user_id", dataOwnerId)
       .order("sort_order")
       .order("name");
