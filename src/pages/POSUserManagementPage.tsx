@@ -669,7 +669,7 @@ export default function POSUserManagementPage() {
                             <span className="font-semibold text-sm truncate max-w-[180px]">{u.name}</span>
                           </div>
                         </td>
-                        <td className="px-3 py-3 text-xs text-muted-foreground">{u.email || "—"}</td>
+                        
                         
                         <td className="px-3 py-3">
                           <Badge className={`text-[10px] ${ROLE_COLORS[u.role] || "bg-muted"}`}>{ROLE_LABELS[u.role] || u.role}</Badge>
