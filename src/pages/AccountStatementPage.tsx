@@ -1034,7 +1034,7 @@ const AccountStatementPage = () => {
         debit, credit,
         balance: runningBalance,
         transaction_id: tx.id,
-        currency: tx.currency || "شيكل",
+        currency: normalizeCurrency(tx.currency),
         payment_method: tx.payment_method || null,
         dueDate,
       };
