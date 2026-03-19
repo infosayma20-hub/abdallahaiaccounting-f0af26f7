@@ -102,6 +102,7 @@ const STATUS_CONFIG: Record<string, { label: string; bg: string; text: string }>
   draft: { label: "معلقة", bg: "#FEF9C3", text: "#CA8A04" },
   cancelled: { label: "ملغية", bg: "#FEE2E2", text: "#DC2626" },
   recalled: { label: "معدّلة", bg: "#EFF6FF", text: "#0A2342" },
+  transferred: { label: "منقولة", bg: "#F3E8FF", text: "#7C3AED" },
 };
 
 const RECALL_REASONS = [
