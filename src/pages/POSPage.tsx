@@ -3816,6 +3816,7 @@ const POSPage = () => {
               <div className="space-y-1.5">
                 {[
                   { key: "F2", desc: "البحث عن منتج" },
+                  { key: "F4", desc: "سجل الفواتير" },
                   { key: "F8", desc: "طباعة" },
                   { key: "F9", desc: "إرسال إلى الطابعة" },
                   { key: "F10", desc: "حفظ الطلب" },
