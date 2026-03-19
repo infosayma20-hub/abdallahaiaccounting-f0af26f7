@@ -4714,6 +4714,7 @@ const POSPage = () => {
             terminalName={terminal?.name || ""}
             canEditInvoices={isAdmin || posPerms.can_edit_invoices || posPerms.edit_cancel_invoices}
             requireManagerForInvoices={!isAdmin && posPerms.require_manager_for_invoices}
+            allowOrderTransfer={posAllowOrderTransfer}
             onRecallToCart={(items, invoiceId, orderNumber, reason, approvedBy) => {
               setCart(items);
               setRecallBanner({ invoiceId, orderNumber, reason, approvedBy });
