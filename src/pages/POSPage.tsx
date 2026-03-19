@@ -2408,8 +2408,8 @@ const POSPage = () => {
         expected_cash: expected,
         cash_variance: variance,
         closed_at: closedAt,
-        total_sales: recalcTotalSales || session.total_sales,
-        total_orders: recalcTotalOrders || session.total_orders,
+        total_sales: recalcTotalSales,
+        total_orders: recalcTotalOrders,
       })
       .eq("id", session.id);
 
