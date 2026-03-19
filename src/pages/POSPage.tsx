@@ -449,6 +449,7 @@ const POSPage = () => {
   // Payment
   const [paymentMethod, setPaymentMethod] = useState<string>("cash");
   const [paymentCurrency, setPaymentCurrency] = useState<string>("ILS");
+  const [changeCurrency, setChangeCurrency] = useState<string>("ILS");
   const [tenderedAmount, setTenderedAmount] = useState("");
   const [processing, setProcessing] = useState(false);
   const [exchangeRates, setExchangeRates] = useState<Record<string, number>>({});
