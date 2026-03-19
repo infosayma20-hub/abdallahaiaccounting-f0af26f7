@@ -616,12 +616,13 @@ const AccountsPage = () => {
                     </div>
 
                     {/* Type */}
-                    {!isVirtualTypeHeader && (
-                      <span className={cn("hidden sm:inline-block text-[10px] font-semibold px-2 py-0.5 rounded-md", typeColors[nType] || "bg-muted text-muted-foreground")}>
-                        {typeLabels[nType] || nType}
-                      </span>
-                    )}
-                    {isVirtualTypeHeader && <span className="hidden sm:block" />}
+                    <div className="hidden sm:flex items-center">
+                      {!isVirtualTypeHeader && (
+                        <span className={cn("inline-flex text-[10px] font-semibold px-2 py-0.5 rounded-md whitespace-nowrap w-auto", typeColors[nType] || "bg-muted text-muted-foreground")}>
+                          {typeLabels[nType] || nType}
+                        </span>
+                      )}
+                    </div>
 
                     {/* Natural Balance */}
                     <span className={cn(
