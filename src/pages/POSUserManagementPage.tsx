@@ -278,7 +278,7 @@ export default function POSUserManagementPage() {
 
     // Validate account creation fields for new users
     if (!editingUser) {
-      if (!accountPassword || accountPassword.length < 6) { toast.error("كلمة المرور يجب أن تكون 6 أحرف على الأقل"); return; }
+      if (!accountPassword || accountPassword.length < 3) { toast.error("كلمة المرور يجب أن تكون 3 أحرف على الأقل"); return; }
       if (accountPassword !== accountConfirmPassword) { toast.error("كلمة المرور غير متطابقة"); return; }
     }
 
