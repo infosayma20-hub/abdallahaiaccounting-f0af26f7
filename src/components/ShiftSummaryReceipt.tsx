@@ -14,6 +14,7 @@ interface ShiftSummaryData {
   companyName: string;
   terminalName: string;
   cashierName: string;
+  cashBoxName?: string;
   openedAt: string;
   closedAt: string;
   openingCash: number;
@@ -179,6 +180,7 @@ export default function ShiftSummaryReceipt({ open, onOpenChange, data }: ShiftS
             {/* Meta */}
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "#94a3b8", marginBottom: 4 }}>
               <span>الكاشير: {data.cashierName}</span>
+              {data.cashBoxName && <span>الصندوق: {data.cashBoxName}</span>}
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "#94a3b8", marginBottom: 8 }}>
               <span>الفتح: {formatDate(data.openedAt)} {formatTime(data.openedAt)}</span>
