@@ -2260,7 +2260,7 @@ const AccountStatementPage = () => {
                                   )}
                                   {isColVisible("credit") && (
                                     <td className={cn("px-3 py-2 text-left tabular-nums", isSubRow ? "text-[10px] text-emerald-500/70" : "font-semibold text-emerald-600")}>
-                                      {row.credit > 0 ? fmtAmount(row.credit) : "—"}
+                                      {row.credit > 0 ? fmtAmount(row.credit, row.currency) : "—"}
                                     </td>
                                   )}
                                   {isColVisible("balance") && (
