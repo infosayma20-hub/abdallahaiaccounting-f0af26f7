@@ -120,7 +120,7 @@ export default function AddTaskModal({ open, onClose, taskUsers, onSaved, editTa
               <Select value={assignTo} onValueChange={setAssignTo}>
                 <SelectTrigger><SelectValue placeholder="بدون تكليف" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">بدون تكليف</SelectItem>
+                  <SelectItem value="none">بدون تكليف</SelectItem>
                   {taskUsers.map(u => <SelectItem key={u.id} value={u.id}>{u.full_name}</SelectItem>)}
                 </SelectContent>
               </Select>
