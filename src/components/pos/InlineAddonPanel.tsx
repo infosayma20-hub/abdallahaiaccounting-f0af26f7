@@ -130,7 +130,8 @@ export default function InlineAddonPanel({ product, groups, onConfirm, onClose }
     <div
       className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 p-4"
       dir="rtl"
-      onClick={onClose}
+      onMouseDown={onClose}
+      onClick={(e) => e.stopPropagation()}
     >
       <motion.div
         initial={{ opacity: 0, y: 12, scale: 0.97 }}
