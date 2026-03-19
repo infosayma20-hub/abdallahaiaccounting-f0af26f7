@@ -3041,7 +3041,7 @@ const POSPage = () => {
             </div>
             {cart.length > 0 && (
               <button
-                onClick={() => { setCart([]); setSelectedCartIndex(null); setOrderDiscount(0); setOrderNote(""); }}
+                onClick={() => { setCart([]); setSelectedCartIndex(null); setOrderDiscount(0); setOrderNote(""); setCustomerName("", null, "", null); updateActiveOrder(o => ({ ...o, orderType: "dine_in", deliveryAddress: "", name: `طلب ${o.name.match(/\d+/)?.[0] || "1"}` })); setCustomerSearch(""); }}
                 className="text-[11px] text-destructive/70 hover:text-destructive transition-colors flex items-center gap-1"
               >
                 <Trash2 className="h-3 w-3" />
@@ -3542,6 +3542,7 @@ const POSPage = () => {
                     const tableId = activeOrder.tableId;
                     setCart([]); setSelectedCartIndex(null); setOrderDiscount(0); setOrderNote("");
                     setCustomerDataDiscount(null);
+                    setCustomerName("", null, "", null); updateActiveOrder(o => ({ ...o, orderType: "dine_in", deliveryAddress: "", name: o.tableName ? o.tableName : `طلب ${o.name.match(/\d+/)?.[0] || "1"}` })); setCustomerSearch("");
                     if (tableId) {
                       const { data: existingOrder } = await supabase
                         .from("pos_orders")
