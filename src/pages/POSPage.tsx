@@ -2477,29 +2477,10 @@ const POSPage = () => {
       }
     }
 
-    // Batch transfer: move total sales from default account to specific cash box GL account
-    if (session.cash_box_id) {
-      const { data: cashBox } = await supabase
-        .from("cash_boxes")
-        .select("gl_account_code, name")
-        .eq("id", session.cash_box_id)
-        .maybeSingle();
-
-      if (cashBox?.gl_account_code && cashBox.gl_account_code !== "1110") {
-        await supabase.from("transactions").insert({
-          user_id: dataOwnerId,
-          transaction_date: accountingDate,
-          description: `ترحيل مبيعات POS إلى ${cashBox.name || "الصندوق"} - ${session.cashier_name}`,
-          debit_account_code: cashBox.gl_account_code,
-          credit_account_code: "1110",
-          amount: session.total_sales,
-          currency: "شيكل",
-          transaction_type: "pos_transfer",
-          reference: `SHIFT-${session.id.slice(0, 8)}`,
-          idempotency_key: `SHIFT-TRANSFER-${session.id}`,
-        });
-      }
-    }
+    // Batch transfer: move sales per currency from box GL to main accounts
+    // Since complete_pos_order now routes ALL cash to box GL, 
+    // we DON'T need a batch transfer from 1110 to box GL anymore.
+    // The per-currency transfer to main accounts happens at manual transfer time (CashTransferPage).
 
     // Get cash box name for receipt
     let cashBoxName = "";

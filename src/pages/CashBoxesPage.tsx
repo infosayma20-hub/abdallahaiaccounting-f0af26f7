@@ -36,8 +36,8 @@ const CashBoxesPage = () => {
 
   useEffect(() => { fetchBoxes(); }, [fetchBoxes]);
 
-  // Compute balances from transactions
-  const [balances, setBalances] = useState<Record<string, { balance: number; inflow: number; outflow: number }>>({});
+  // Compute balances from transactions (multi-currency aware)
+  const [balances, setBalances] = useState<Record<string, { balance: number; inflow: number; outflow: number; foreignBalances: Record<string, number> }>>({});
 
   useEffect(() => {
     if (!user || boxes.length === 0) return;
@@ -47,25 +47,48 @@ const CashBoxesPage = () => {
     (async () => {
       const { data: txs } = await supabase
         .from("transactions")
-        .select("amount, debit_account_code, credit_account_code, transaction_date")
+        .select("amount, debit_account_code, credit_account_code, transaction_date, foreign_amount, exchange_rate, currency")
         .eq("is_deleted", false);
 
       const now = new Date();
       const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
-      const result: Record<string, { balance: number; inflow: number; outflow: number }> = {};
+      const result: Record<string, { balance: number; inflow: number; outflow: number; foreignBalances: Record<string, number> }> = {};
 
       for (const code of codes) {
         let balance = 0, inflow = 0, outflow = 0;
+        const foreignBalances: Record<string, number> = {};
         (txs || []).forEach(tx => {
           const amt = Number(tx.amount) || 0;
-          if (tx.debit_account_code === code) balance += amt;
-          if (tx.credit_account_code === code) balance -= amt;
+          const foreignAmt = Number(tx.foreign_amount) || 0;
+          const rate = Number(tx.exchange_rate) || 1;
+          // Detect currency from foreign_amount presence
+          let txCurrency = "ILS";
+          if (foreignAmt > 0 && rate > 1) {
+            // Determine currency from exchange rate or currency field
+            const cur = tx.currency;
+            if (cur === "دولار" || cur === "USD") txCurrency = "USD";
+            else if (cur === "دينار" || cur === "JOD") txCurrency = "JOD";
+            else if (cur === "يورو" || cur === "EUR") txCurrency = "EUR";
+          }
+
+          if (tx.debit_account_code === code) {
+            balance += amt;
+            if (txCurrency !== "ILS" && foreignAmt > 0) {
+              foreignBalances[txCurrency] = (foreignBalances[txCurrency] || 0) + foreignAmt;
+            }
+          }
+          if (tx.credit_account_code === code) {
+            balance -= amt;
+            if (txCurrency !== "ILS" && foreignAmt > 0) {
+              foreignBalances[txCurrency] = (foreignBalances[txCurrency] || 0) - foreignAmt;
+            }
+          }
           if (tx.transaction_date >= monthStart) {
             if (tx.debit_account_code === code) inflow += amt;
             if (tx.credit_account_code === code) outflow += amt;
           }
         });
-        result[code] = { balance, inflow, outflow };
+        result[code] = { balance, inflow, outflow, foreignBalances };
       }
       setBalances(result);
     })();
@@ -91,7 +114,9 @@ const CashBoxesPage = () => {
   };
 
   const BoxCard = ({ box }: { box: any }) => {
-    const bal = balances[box.gl_account_code] || { balance: 0, inflow: 0, outflow: 0 };
+    const bal = balances[box.gl_account_code] || { balance: 0, inflow: 0, outflow: 0, foreignBalances: {} };
+    const foreignBals = bal.foreignBalances || {};
+    const hasForeign = Object.keys(foreignBals).some(k => Math.abs(foreignBals[k]) > 0.01);
     const gradients: Record<string, string> = {
       main: "linear-gradient(135deg, #0A2342, #006D8F)",
       branch: "linear-gradient(135deg, #065F46, #059669)",
@@ -101,6 +126,7 @@ const CashBoxesPage = () => {
     };
     const currencyLabel = box.currency === "ILS" ? "₪" : box.currency === "USD" ? "$" : box.currency === "JOD" ? "JOD" : box.currency || "₪";
     const TypeIcon = box.type === "main" ? Landmark : box.type === "branch" ? Building2 : (box.type === "petty" || box.type === "petty_cash") ? Wallet : Monitor;
+    const fxSymbols: Record<string, string> = { USD: "$", JOD: "JOD ", EUR: "€", EGP: "E£" };
 
     return (
       <Card className="overflow-hidden group/card">
@@ -118,11 +144,24 @@ const CashBoxesPage = () => {
         </div>
         <CardContent className="p-2.5 space-y-1.5">
           <div className="flex items-baseline justify-between gap-1">
-            <span className="text-[10px] text-muted-foreground shrink-0">الرصيد</span>
+            <span className="text-[10px] text-muted-foreground shrink-0">رصيد ₪</span>
             <span className={`text-sm font-bold font-mono whitespace-nowrap ${bal.balance > 0 ? "text-emerald-600" : bal.balance < 0 ? "text-red-600" : "text-muted-foreground"}`}>
-              {currencyLabel}{fmt(bal.balance)}
+              ₪{fmt(bal.balance)}
             </span>
           </div>
+          {/* Foreign currency balances */}
+          {hasForeign && (
+            <div className="space-y-0.5">
+              {Object.entries(foreignBals).filter(([, v]) => Math.abs(v) > 0.01).map(([cur, val]) => (
+                <div key={cur} className="flex items-baseline justify-between gap-1">
+                  <span className="text-[10px] text-muted-foreground shrink-0">رصيد {cur}</span>
+                  <span className={`text-xs font-bold font-mono whitespace-nowrap ${val > 0 ? "text-blue-600" : val < 0 ? "text-red-600" : "text-muted-foreground"}`}>
+                    {fxSymbols[cur] || cur}{fmt(val)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
           {box.branch_location && (
             <div className="text-[10px] text-muted-foreground truncate">{box.branch_location}</div>
           )}
