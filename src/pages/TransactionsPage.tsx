@@ -126,6 +126,47 @@ function TypeBadge({ type }: { type: string }) {
   );
 }
 
+function AccountSearchSelect({ accounts, value, onChange, placeholder }: {
+  accounts: Account[];
+  value: string;
+  onChange: (v: string) => void;
+  placeholder: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const selected = accounts.find(a => a.account_code === value);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button variant="outline" role="combobox" aria-expanded={open} className="w-full justify-between font-normal text-right" dir="rtl">
+          {selected ? `${selected.account_code} - ${selected.account_name}` : <span className="text-muted-foreground">{placeholder}</span>}
+          <ChevronRightIcon className="mr-auto h-4 w-4 shrink-0 opacity-50 rotate-90" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 z-[60]" align="start" dir="rtl">
+        <Command dir="rtl">
+          <CommandInput placeholder="ابحث عن حساب..." className="text-right" />
+          <CommandList className="max-h-52">
+            <CommandEmpty>لا توجد نتائج</CommandEmpty>
+            {accounts.map(a => (
+              <CommandItem
+                key={a.account_code}
+                value={`${a.account_code} ${a.account_name}`}
+                onSelect={() => { onChange(a.account_code); setOpen(false); }}
+                className="text-right"
+              >
+                <span className="font-mono text-[10px] text-muted-foreground ml-2">{a.account_code}</span>
+                {a.account_name}
+                {a.account_code === value && <Check className="mr-auto h-3.5 w-3.5 text-primary" />}
+              </CommandItem>
+            ))}
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 const PAGE_SIZE_OPTIONS = [25, 50, 100];
 
 const TransactionsPage = () => {
