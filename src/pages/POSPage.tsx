@@ -1433,6 +1433,10 @@ const POSPage = () => {
   // Open session
   const handleOpenShift = async () => {
     if (!userId || !company || !terminal) return;
+    if (posRequireCashBox && !selectedCashBoxId) {
+      toast.error("يجب اختيار الصندوق قبل فتح الوردية");
+      return;
+    }
     const cash = parseFloat(openingCash) || 0;
     const displayName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "";
 
