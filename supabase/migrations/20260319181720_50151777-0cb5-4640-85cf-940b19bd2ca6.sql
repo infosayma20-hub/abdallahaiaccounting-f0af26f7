@@ -1,0 +1,1 @@
+ALTER TABLE public.company_settings ADD COLUMN IF NOT EXISTS pos_allow_order_transfer BOOLEAN DEFAULT false;
