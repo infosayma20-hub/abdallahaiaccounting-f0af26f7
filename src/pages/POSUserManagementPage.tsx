@@ -365,6 +365,40 @@ export default function POSUserManagementPage() {
     toast.success(u.is_active ? "تم تعطيل المستخدم" : "تم تفعيل المستخدم");
     loadData();
   };
+  const handleBulkCreateCashiers = async () => {
+    if (!user) return;
+    setBulkCreating(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error("غير مسجل الدخول");
+
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/bulk-create-cashiers`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            prefix: "malakybroast",
+            count: 50,
+            password: "123456",
+          }),
+        }
+      );
+      const result = await res.json();
+      if (result.success) {
+        toast.success(result.message);
+        loadData();
+      } else {
+        toast.error(result.error || "فشل الإنشاء");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "خطأ غير متوقع");
+    }
+    setBulkCreating(false);
+  };
 
 
   const handleCreateAccountForUser = async (u: POSUserRow) => {
