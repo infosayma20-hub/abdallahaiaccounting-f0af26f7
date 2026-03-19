@@ -429,7 +429,7 @@ const CleanInputDock = ({ onSend, sending, centered }: Props) => {
         <SmartCommandBar onInsert={handleCommandInsert} onAction={handleCommandAction} />
 
         {/* Input row */}
-        <div className="flex items-end gap-2 px-3.5">
+        <div className={`flex items-end gap-2 ${centered ? "px-0" : "px-3.5"}`}>
           <textarea
             ref={inputRef}
             value={inputValue}
@@ -437,20 +437,31 @@ const CleanInputDock = ({ onSend, sending, centered }: Props) => {
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleTextSend(); }
             }}
-            placeholder="اكتب أو تكلم..."
+            placeholder={centered ? "كيف أقدر أساعدك اليوم؟" : "اكتب أو تكلم..."}
             rows={1}
-            className="flex-1 rounded-[25px] px-4 py-3 text-sm outline-none transition-all resize-none overflow-y-auto"
+            className={`flex-1 outline-none transition-all resize-none overflow-y-auto ${centered ? "rounded-2xl px-5 py-4 text-base" : "rounded-[25px] px-4 py-3 text-sm"}`}
             style={{
-              background: "#F1F5F9", border: "none", fontFamily: "Tajawal, sans-serif", color: "#0A2342",
-              minHeight: 50, maxHeight: 120,
+              background: centered ? "white" : "#F1F5F9",
+              border: centered ? "1px solid #E2E8F0" : "none",
+              fontFamily: "Tajawal, sans-serif",
+              color: "#0A2342",
+              minHeight: centered ? 56 : 50,
+              maxHeight: 120,
+              boxShadow: centered ? "0 4px 20px rgba(10,35,66,0.08)" : "none",
             }}
             onInput={(e) => {
               const t = e.currentTarget;
               t.style.height = 'auto';
               t.style.height = Math.min(t.scrollHeight, 120) + 'px';
             }}
-            onFocus={(e) => { e.currentTarget.style.background = "white"; e.currentTarget.style.boxShadow = "0 0 0 2px #0A2342"; }}
-            onBlur={(e) => { e.currentTarget.style.background = "#F1F5F9"; e.currentTarget.style.boxShadow = "none"; }}
+            onFocus={(e) => {
+              e.currentTarget.style.background = "white";
+              e.currentTarget.style.boxShadow = centered ? "0 4px 24px rgba(10,35,66,0.12), 0 0 0 2px #0A2342" : "0 0 0 2px #0A2342";
+            }}
+            onBlur={(e) => {
+              e.currentTarget.style.background = centered ? "white" : "#F1F5F9";
+              e.currentTarget.style.boxShadow = centered ? "0 4px 20px rgba(10,35,66,0.08)" : "none";
+            }}
           />
 
           {hasText ? (
