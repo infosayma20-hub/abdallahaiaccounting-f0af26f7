@@ -4068,8 +4068,14 @@ const POSPage = () => {
                    const rate = exchangeRates[paymentCurrency] || 1;
                    const tenderedInILS = paymentCurrency === "ILS" ? tendered : tendered * rate;
                    const effectiveT = customerDataDiscount ? cartTotals.total - customerDataDiscount.discountAmount : cartTotals.total;
-                   const change = tenderedInILS - effectiveT;
+                   const changeILS = tenderedInILS - effectiveT;
                   const curSymbol = currencies.find(c => c.code === paymentCurrency)?.symbol || "";
+                  const changeInForeign = paymentCurrency !== "ILS" ? changeILS / rate : 0;
+
+                  // Determine displayed change based on changeCurrency
+                  const displayChangeAmount = changeCurrency === "ILS" ? changeILS : changeILS / (exchangeRates[changeCurrency] || rate);
+                  const displaySymbol = changeCurrency === "ILS" ? "₪" : changeCurrency === "USD" ? "$" : changeCurrency === "JOD" ? "د.أ " : "₪";
+                  const displaySuffix = changeCurrency === "JOD" ? "" : "";
 
                   return (
                     <div className="p-3 rounded-xl border border-border space-y-2">
@@ -4079,21 +4085,62 @@ const POSPage = () => {
                           <span className="font-bold tabular-nums">₪{tenderedInILS.toFixed(2)}</span>
                         </div>
                       )}
-                      {change >= 0 ? (
-                        <div className="flex justify-between items-center p-2.5 bg-primary/5 rounded-lg">
-                          <span className="text-xs text-muted-foreground">الباقي للزبون</span>
-                          <span className="text-xl font-bold text-primary tabular-nums">₪{change.toFixed(2)}</span>
-                        </div>
+                      {changeILS >= 0 ? (
+                        <>
+                          {/* Change currency selector - only for foreign payments */}
+                          {paymentCurrency !== "ILS" && changeILS > 0 && (
+                            <div className="flex gap-1.5 justify-center py-1">
+                              {["ILS", paymentCurrency].filter((v, i, a) => a.indexOf(v) === i).map(cur => {
+                                const isActive = changeCurrency === cur;
+                                const label = cur === "ILS" ? "شيكل ₪" : cur === "USD" ? "دولار $" : cur === "JOD" ? "دينار د.أ" : cur;
+                                return (
+                                  <button
+                                    key={cur}
+                                    onClick={() => setChangeCurrency(cur)}
+                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                                      isActive
+                                        ? "bg-primary text-primary-foreground shadow-md"
+                                        : "bg-muted text-muted-foreground hover:bg-muted/80"
+                                    }`}
+                                  >
+                                    الباقي {label}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
+
+                          {/* Main change display */}
+                          <div className="flex justify-between items-center p-3 bg-accent/20 rounded-xl border-2 border-accent">
+                            <span className="text-sm font-bold text-foreground">الباقي للزبون</span>
+                            <span className="text-2xl font-black tabular-nums text-accent-foreground" style={{ color: "#16a34a" }}>
+                              {changeCurrency === "JOD"
+                                ? `${displayChangeAmount.toFixed(2)} د.أ`
+                                : `${displaySymbol}${displayChangeAmount.toFixed(2)}`}
+                            </span>
+                          </div>
+
+                          {/* Show other currency equivalent as secondary info */}
+                          {paymentCurrency !== "ILS" && changeILS > 0 && (
+                            <div className="flex justify-between text-[11px] text-muted-foreground border-t border-border pt-1.5">
+                              {changeCurrency === "ILS" ? (
+                                <>
+                                  <span>أو بال{currencies.find(c => c.code === paymentCurrency)?.name}</span>
+                                  <span className="font-medium tabular-nums">{curSymbol}{changeInForeign.toFixed(2)}</span>
+                                </>
+                              ) : (
+                                <>
+                                  <span>أو بالشيكل</span>
+                                  <span className="font-medium tabular-nums">₪{changeILS.toFixed(2)}</span>
+                                </>
+                              )}
+                            </div>
+                          )}
+                        </>
                       ) : (
                         <div className="flex justify-between items-center p-2.5 bg-destructive/5 rounded-lg">
                           <span className="text-xs text-destructive">المبلغ غير كافٍ</span>
-                          <span className="text-lg font-bold text-destructive tabular-nums">-₪{Math.abs(change).toFixed(2)}</span>
-                        </div>
-                      )}
-                      {paymentCurrency !== "ILS" && change > 0 && (
-                        <div className="flex justify-between text-[11px] text-muted-foreground border-t border-border pt-1.5">
-                          <span>أو الباقي بال{currencies.find(c => c.code === paymentCurrency)?.name}</span>
-                          <span className="font-medium tabular-nums">{curSymbol}{(change / rate).toFixed(2)}</span>
+                          <span className="text-lg font-bold text-destructive tabular-nums">-₪{Math.abs(changeILS).toFixed(2)}</span>
                         </div>
                       )}
                     </div>
