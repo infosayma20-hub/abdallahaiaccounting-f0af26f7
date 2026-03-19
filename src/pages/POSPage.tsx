@@ -451,6 +451,7 @@ const POSPage = () => {
   const [paymentCurrency, setPaymentCurrency] = useState<string>("ILS");
   const [changeCurrency, setChangeCurrency] = useState<string>("ILS");
   const [tenderedAmount, setTenderedAmount] = useState("");
+  const [manualChangeAmount, setManualChangeAmount] = useState<string | null>(null);
   const [processing, setProcessing] = useState(false);
   const [exchangeRates, setExchangeRates] = useState<Record<string, number>>({});
   const [exchangeRateDetails, setExchangeRateDetails] = useState<Record<string, { rate: number; date: string; source: string; posOverride: number | null }>>({});
@@ -1970,10 +1971,23 @@ const POSPage = () => {
       const changeILS = paymentCurrency === "ILS" ? changeInForeign : changeInForeign * rate;
 
       // Determine actual change amounts based on changeCurrency selection
-      // If change is given in foreign currency, the ILS change is 0 and foreign change is deducted from foreign pile
+      // If cashier manually overrode the change amount, use that value
       const actualChangeCurrency = paymentCurrency === "ILS" ? "ILS" : changeCurrency;
-      const actualChangeILS = actualChangeCurrency === "ILS" ? changeILS : 0;
-      const actualChangeForeign = actualChangeCurrency !== "ILS" ? changeILS / (exchangeRates[actualChangeCurrency] || rate) : 0;
+      let actualChangeILS: number;
+      let actualChangeForeign: number;
+      if (manualChangeAmount !== null) {
+        const manualVal = parseFloat(manualChangeAmount) || 0;
+        if (actualChangeCurrency === "ILS") {
+          actualChangeILS = manualVal;
+          actualChangeForeign = 0;
+        } else {
+          actualChangeILS = 0;
+          actualChangeForeign = manualVal;
+        }
+      } else {
+        actualChangeILS = actualChangeCurrency === "ILS" ? changeILS : 0;
+        actualChangeForeign = actualChangeCurrency !== "ILS" ? changeILS / (exchangeRates[actualChangeCurrency] || rate) : 0;
+      }
 
       // Generate survey token if customer data was collected
       const surveyToken = customerDataDiscount ? crypto.randomUUID() : null;
@@ -2229,6 +2243,7 @@ const POSPage = () => {
       setPaymentMethod("cash");
       setPaymentCurrency("ILS");
       setChangeCurrency("ILS");
+      setManualChangeAmount(null);
       setEditedRate(null);
       setRateEdited(false);
       setCustomerDataDiscount(null);
@@ -4016,7 +4031,7 @@ const POSPage = () => {
                         <motion.button
                           key={cur.code}
                           whileTap={{ scale: 0.96 }}
-                          onClick={() => { setPaymentCurrency(cur.code); setChangeCurrency("ILS"); setEditedRate(null); setRateEdited(false); setTenderedAmount(""); }}
+                          onClick={() => { setPaymentCurrency(cur.code); setChangeCurrency("ILS"); setEditedRate(null); setRateEdited(false); setTenderedAmount(""); setManualChangeAmount(null); }}
                           className={`flex flex-col items-center gap-1 p-2.5 rounded-xl border-2 transition-all ${
                             isActive
                               ? "border-primary bg-primary/5"
@@ -4123,7 +4138,7 @@ const POSPage = () => {
                   <Input
                     type="number"
                     value={tenderedAmount}
-                    onChange={(e) => setTenderedAmount(e.target.value)}
+                    onChange={(e) => { setTenderedAmount(e.target.value); setManualChangeAmount(null); }}
                     placeholder={(cartTotals.total / (exchangeRates[paymentCurrency] || 1)).toFixed(2)}
                     className="text-xl h-14 text-center font-bold tabular-nums"
                     autoFocus
@@ -4165,7 +4180,7 @@ const POSPage = () => {
                                 return (
                                   <button
                                     key={cur}
-                                    onClick={() => setChangeCurrency(cur)}
+                                    onClick={() => { setChangeCurrency(cur); setManualChangeAmount(null); }}
                                     className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                                       isActive
                                         ? "bg-primary text-primary-foreground shadow-md"
@@ -4179,14 +4194,23 @@ const POSPage = () => {
                             </div>
                           )}
 
-                          {/* Main change display */}
+                          {/* Main change display - editable */}
                           <div className="flex justify-between items-center p-3 bg-accent/20 rounded-xl border-2 border-accent">
                             <span className="text-sm font-bold text-foreground">الباقي للزبون</span>
-                            <span className="text-2xl font-black tabular-nums text-accent-foreground" style={{ color: "#16a34a" }}>
-                              {changeCurrency === "JOD"
-                                ? `${displayChangeAmount.toFixed(2)} د.أ`
-                                : `${displaySymbol}${displayChangeAmount.toFixed(2)}`}
-                            </span>
+                            <div className="flex items-center gap-1">
+                              <span className="text-lg font-bold" style={{ color: "#16a34a" }}>{displaySymbol}</span>
+                              <input
+                                type="number"
+                                inputMode="decimal"
+                                step="0.01"
+                                value={manualChangeAmount !== null ? manualChangeAmount : displayChangeAmount.toFixed(2)}
+                                onChange={(e) => setManualChangeAmount(e.target.value)}
+                                onFocus={(e) => { if (manualChangeAmount === null) setManualChangeAmount(displayChangeAmount.toFixed(2)); e.target.select(); }}
+                                className="w-24 text-left text-2xl font-black tabular-nums bg-transparent border-none outline-none focus:ring-1 focus:ring-primary rounded px-1"
+                                style={{ color: "#16a34a" }}
+                                dir="ltr"
+                              />
+                            </div>
                           </div>
 
                           {/* Show other currency equivalent as secondary info */}
@@ -4226,7 +4250,7 @@ const POSPage = () => {
                     return (
                       <button
                         key={amt}
-                        onClick={() => setTenderedAmount(String(amt))}
+                        onClick={() => { setTenderedAmount(String(amt)); setManualChangeAmount(null); }}
                         className="flex-1 py-2 text-xs rounded-lg bg-muted/60 hover:bg-primary/10 hover:text-primary transition-all font-medium tabular-nums"
                       >
                         {cur?.symbol}{amt}
