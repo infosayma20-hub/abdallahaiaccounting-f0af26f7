@@ -702,6 +702,12 @@ export default function InvoiceHistoryDrawer({
                       <div className="text-[11px] mt-0.5" style={{ color: "#64748B" }}>
                         {order.customer_name || "زبون نقدي"}
                       </div>
+                      {isTransferredOut(order) && order.transferred_to_name && (
+                        <div className="text-[10px] mt-0.5 flex items-center gap-1" style={{ color: "#7C3AED" }}>
+                          <ArrowRightLeft className="h-3 w-3" />
+                          <span>نُقلت إلى: {order.transferred_to_name}</span>
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex flex-col items-end gap-1">
