@@ -124,6 +124,8 @@ const createNewOrder = (index: number, tableId?: string | null, tableName?: stri
   cart: [],
   customerName: guestName || "",
   customerId: null,
+  customerPhone: "",
+  posCustomerId: null,
   orderDiscount: 0,
   orderDiscountType: "fixed",
   orderNote: "",
@@ -132,6 +134,8 @@ const createNewOrder = (index: number, tableId?: string | null, tableName?: stri
   tableName: tableName || null,
   guestCount: guestCount || 1,
   guestName: guestName || "",
+  orderType: tableId ? "dine_in" : "takeaway",
+  deliveryAddress: "",
 });
 
 interface Product {
