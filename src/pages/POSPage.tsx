@@ -4138,7 +4138,7 @@ const POSPage = () => {
                   <Input
                     type="number"
                     value={tenderedAmount}
-                    onChange={(e) => setTenderedAmount(e.target.value)}
+                    onChange={(e) => { setTenderedAmount(e.target.value); setManualChangeAmount(null); }}
                     placeholder={(cartTotals.total / (exchangeRates[paymentCurrency] || 1)).toFixed(2)}
                     className="text-xl h-14 text-center font-bold tabular-nums"
                     autoFocus
