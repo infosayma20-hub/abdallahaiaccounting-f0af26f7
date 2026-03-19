@@ -761,7 +761,7 @@ const TransactionsPage = () => {
       {!loading && !error && paginatedTransactions.length > 0 && (
         <div className="rounded-2xl border border-border/50 overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-sm table-fixed">
               <colgroup>
                 <col className="w-[3%]" />
                 <col className="w-[10%]" />
