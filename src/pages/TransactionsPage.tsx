@@ -1,5 +1,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandInput, CommandList, CommandEmpty, CommandItem } from "@/components/ui/command";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import JournalEntryPopup from "@/components/JournalEntryPopup";
 import TransactionsPrintView from "@/components/TransactionsPrintView";
@@ -121,6 +123,47 @@ function TypeBadge({ type }: { type: string }) {
     <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium whitespace-nowrap ${c.bg} ${c.text}`}>
       {c.label}
     </span>
+  );
+}
+
+function AccountSearchSelect({ accounts, value, onChange, placeholder }: {
+  accounts: Account[];
+  value: string;
+  onChange: (v: string) => void;
+  placeholder: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const selected = accounts.find(a => a.account_code === value);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button variant="outline" role="combobox" aria-expanded={open} className="w-full justify-between font-normal text-right" dir="rtl">
+          {selected ? `${selected.account_code} - ${selected.account_name}` : <span className="text-muted-foreground">{placeholder}</span>}
+          <ChevronRightIcon className="mr-auto h-4 w-4 shrink-0 opacity-50 rotate-90" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 z-[60]" align="start" dir="rtl">
+        <Command dir="rtl">
+          <CommandInput placeholder="ابحث عن حساب..." className="text-right" />
+          <CommandList className="max-h-52">
+            <CommandEmpty>لا توجد نتائج</CommandEmpty>
+            {accounts.map(a => (
+              <CommandItem
+                key={a.account_code}
+                value={`${a.account_code} ${a.account_name}`}
+                onSelect={() => { onChange(a.account_code); setOpen(false); }}
+                className="text-right"
+              >
+                <span className="font-mono text-[10px] text-muted-foreground ml-2">{a.account_code}</span>
+                {a.account_name}
+                {a.account_code === value && <Check className="mr-auto h-3.5 w-3.5 text-primary" />}
+              </CommandItem>
+            ))}
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -974,18 +1017,18 @@ const TransactionsPage = () => {
               </Select>
             </div>
             <Input type="date" value={editFields.transaction_date} onChange={e => setEditFields(p => ({ ...p, transaction_date: e.target.value }))} />
-            <Select value={editFields.debit_account_code} onValueChange={v => setEditFields(p => ({ ...p, debit_account_code: v }))} dir="rtl">
-              <SelectTrigger><SelectValue placeholder="الحساب المدين" /></SelectTrigger>
-              <SelectContent className="bg-background z-50 max-h-48">
-                {accounts.map(a => <SelectItem key={a.account_code} value={a.account_code}>{a.account_code} - {a.account_name}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            <Select value={editFields.credit_account_code} onValueChange={v => setEditFields(p => ({ ...p, credit_account_code: v }))} dir="rtl">
-              <SelectTrigger><SelectValue placeholder="الحساب الدائن" /></SelectTrigger>
-              <SelectContent className="bg-background z-50 max-h-48">
-                {accounts.map(a => <SelectItem key={a.account_code} value={a.account_code}>{a.account_code} - {a.account_name}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <AccountSearchSelect
+              accounts={accounts}
+              value={editFields.debit_account_code}
+              onChange={v => setEditFields(p => ({ ...p, debit_account_code: v }))}
+              placeholder="الحساب المدين"
+            />
+            <AccountSearchSelect
+              accounts={accounts}
+              value={editFields.credit_account_code}
+              onChange={v => setEditFields(p => ({ ...p, credit_account_code: v }))}
+              placeholder="الحساب الدائن"
+            />
             <div className="flex gap-2 pt-2">
               <Button onClick={handleSave} disabled={saving} className="flex-1">
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "حفظ"}
