@@ -84,6 +84,7 @@ interface InvoiceHistoryDrawerProps {
   terminalName: string;
   canEditInvoices?: boolean;
   requireManagerForInvoices?: boolean;
+  allowOrderTransfer?: boolean;
   onRecallToCart: (items: CartItem[], invoiceId: string, orderNumber: string, reason: string, approvedBy: string | null) => void;
 }
 
