@@ -1,0 +1,1 @@
+ALTER TABLE public.employee_payroll ADD COLUMN IF NOT EXISTS working_days numeric DEFAULT 0;
