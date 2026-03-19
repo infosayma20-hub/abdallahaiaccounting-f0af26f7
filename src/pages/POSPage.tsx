@@ -2326,7 +2326,15 @@ const POSPage = () => {
     // Multi-currency expected cash calculation
     // ILS expected = opening + ILS cash sales - ILS change given for foreign payments - expenses
     const ilsCashSales = paymentMethodBreakdown["cash"]?.["ILS"] || 0;
-    const expectedILS = session.opening_cash + ilsCashSales - foreignChangeILS - totalExpenses;
+    // If no payment records found (e.g. data integrity issue) but session tracked sales, 
+    // use session.total_sales as fallback for cash (conservative: assumes all sales were cash)
+    const totalCashFromPayments = Object.values(paymentMethodBreakdown).reduce((s, currencies) => 
+      s + Object.values(currencies).reduce((s2, v) => s2 + v, 0), 0);
+    const hasCreditOrCard = (paymentMethodBreakdown["credit"] || paymentMethodBreakdown["card"]);
+    const effectiveILSCashSales = orderIds.length === 0 && (session.total_sales || 0) > 0
+      ? (session.total_sales || 0) // fallback when orders were deleted
+      : ilsCashSales;
+    const expectedILS = session.opening_cash + effectiveILSCashSales - foreignChangeILS - totalExpenses;
     // Foreign expected = actual foreign tendered minus foreign change given back
     const expectedUSD = foreignTenderedUSD - foreignChangeUSD;
     const expectedJOD = foreignTenderedJOD - foreignChangeJOD;
@@ -2358,6 +2366,10 @@ const POSPage = () => {
 
     const accountingDate = getPosAccountingDate(session.opened_at, cutoffHour);
 
+    // Recalculate session totals from actual paid orders for accuracy
+    const recalcTotalSales = (ordersData || []).reduce((s: number, o: any) => s + (Number(o.total) || 0), 0);
+    const recalcTotalOrders = (ordersData || []).length;
+
     await supabase
       .from("pos_sessions")
       .update({
@@ -2366,6 +2378,8 @@ const POSPage = () => {
         expected_cash: expected,
         cash_variance: variance,
         closed_at: closedAt,
+        total_sales: recalcTotalSales || session.total_sales,
+        total_orders: recalcTotalOrders || session.total_orders,
       })
       .eq("id", session.id);
 
@@ -2483,9 +2497,9 @@ const POSPage = () => {
       openedAt: session.opened_at,
       closedAt,
       openingCash: session.opening_cash,
-      totalSales: session.total_sales,
+      totalSales: recalcTotalSales || session.total_sales,
       totalExpenses,
-      totalOrders: session.total_orders,
+      totalOrders: recalcTotalOrders || session.total_orders,
       closingCash: cash,
       closingCashUSD: cashUSD,
       closingCashJOD: cashJOD,
