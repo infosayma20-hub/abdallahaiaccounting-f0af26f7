@@ -1399,6 +1399,65 @@ const POSPage = () => {
     });
     setShowOpenShift(false);
     toast.success("تم فتح الوردية بنجاح");
+
+    // Check if cashier must change password on first login
+    if (userId) {
+      const { data: posUser } = await supabase
+        .from("pos_users")
+        .select("must_change_password")
+        .eq("auth_user_id", userId)
+        .maybeSingle();
+      if ((posUser as any)?.must_change_password) {
+        setShowChangePassword(true);
+      }
+    }
+
+    // Load per-user UI preferences
+    if (userId) {
+      const { data: prefs } = await supabase
+        .from("pos_user_preferences")
+        .select("preference_key, preference_value")
+        .eq("auth_user_id", userId);
+      if (prefs) {
+        for (const p of prefs) {
+          if (p.preference_key === "card_size") {
+            const sz = (p.preference_value as any)?.size;
+            if (sz && ["S", "M", "L"].includes(sz)) setCardSize(sz);
+          }
+        }
+      }
+    }
+  };
+
+  // Handle password change for first-login cashiers
+  const handleChangePassword = async () => {
+    if (newPassword.length < 6) {
+      toast.error("كلمة المرور يجب أن تكون 6 أحرف على الأقل");
+      return;
+    }
+    if (newPassword !== confirmNewPassword) {
+      toast.error("كلمات المرور غير متطابقة");
+      return;
+    }
+    setChangingPassword(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+      // Mark as changed
+      if (userId) {
+        await supabase
+          .from("pos_users")
+          .update({ must_change_password: false } as any)
+          .eq("auth_user_id", userId);
+      }
+      setShowChangePassword(false);
+      setNewPassword("");
+      setConfirmNewPassword("");
+      toast.success("تم تغيير كلمة المرور بنجاح ✅");
+    } catch (err: any) {
+      toast.error(err.message || "فشل تغيير كلمة المرور");
+    }
+    setChangingPassword(false);
   };
 
   // Save order to table (draft - no payment)
