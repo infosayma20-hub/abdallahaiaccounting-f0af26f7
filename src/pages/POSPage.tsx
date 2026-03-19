@@ -762,7 +762,7 @@ const POSPage = () => {
           const { data: csSettings } = await supabase
             .from("company_settings" as any)
             .select("pos_require_device_fingerprint")
-            .eq("user_id", comp.owner_id || userId)
+            .eq("user_id", comp.user_id || userId)
             .maybeSingle();
           
           if ((csSettings as any)?.pos_require_device_fingerprint) {
