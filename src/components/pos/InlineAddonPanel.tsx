@@ -343,7 +343,7 @@ export default function InlineAddonPanel({ product, groups, onConfirm, onClose, 
     </motion.div>
   );
 
-  if (usePortal) {
+  if (portalPos) {
     return createPortal(panel, document.body);
   }
   return panel;
