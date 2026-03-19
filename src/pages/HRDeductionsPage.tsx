@@ -175,16 +175,15 @@ export default function HRDeductionsPage() {
     enabled: !!user,
   });
 
-  // Fetch POS employee-account transactions
+  // Fetch POS employee-account transactions via employee_financial_movements (pos_meal)
   const { data: posTransactions = [] } = useQuery({
     queryKey: ["hr-pos-employee-txns", user?.id],
     queryFn: async () => {
       const { data, error } = await (supabase as any)
-        .from("pos_orders")
-        .select("*")
+        .from("employee_financial_movements")
+        .select("*, employees(full_name, department, branch_id)")
         .eq("user_id", user!.id)
-        .eq("payment_method", "حساب موظف")
-        .neq("status", "cancelled")
+        .eq("source_type", "pos_meal")
         .order("created_at", { ascending: false });
 
       if (error) {
