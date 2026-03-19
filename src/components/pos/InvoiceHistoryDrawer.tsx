@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
@@ -112,8 +112,16 @@ const RECALL_REASONS = [
 export default function InvoiceHistoryDrawer({
   open, onClose, dataOwnerId, sessionId, cashierName, terminalName, canEditInvoices = true, requireManagerForInvoices = true, onRecallToCart,
 }: InvoiceHistoryDrawerProps) {
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Auto-focus search input when drawer opens
+  useEffect(() => {
+    if (open) {
+      setTimeout(() => searchInputRef.current?.focus(), 150);
+    }
+  }, [open]);
   const [orders, setOrders] = useState<InvoiceOrder[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -479,6 +487,7 @@ export default function InvoiceHistoryDrawer({
           <div className="relative">
             <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400 pointer-events-none" />
             <input
+              ref={searchInputRef}
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder="بحث برقم الفاتورة أو اسم الزبون..."
