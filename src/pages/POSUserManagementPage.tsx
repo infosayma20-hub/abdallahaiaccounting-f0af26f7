@@ -643,7 +643,7 @@ export default function POSUserManagementPage() {
                     <tr className="bg-primary text-primary-foreground">
                       <th className="px-3 py-3 text-right text-xs font-semibold w-10">#</th>
                       <th className="px-3 py-3 text-right text-xs font-semibold">الاسم</th>
-                      <th className="px-3 py-3 text-right text-xs font-semibold">البريد الإلكتروني</th>
+                      
                       
                       <th className="px-3 py-3 text-right text-xs font-semibold">الدور</th>
                       <th className="px-3 py-3 text-center text-xs font-semibold">الحالة</th>
