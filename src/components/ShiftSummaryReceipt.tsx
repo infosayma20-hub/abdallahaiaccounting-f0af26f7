@@ -14,6 +14,7 @@ interface ShiftSummaryData {
   companyName: string;
   terminalName: string;
   cashierName: string;
+  cashBoxName?: string;
   openedAt: string;
   closedAt: string;
   openingCash: number;
