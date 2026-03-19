@@ -938,6 +938,59 @@ export default function InvoiceHistoryDrawer({
         description={managerOverrideDesc}
         variant={managerOverrideVariant}
       />
+
+      {/* ══════ TRANSFER DIALOG ══════ */}
+      <Dialog open={showTransferDialog} onOpenChange={setShowTransferDialog}>
+        <DialogContent className="max-w-sm z-[1200]" style={{ fontFamily: "Tajawal, sans-serif" }}>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ArrowRightLeft className="h-5 w-5" style={{ color: "#6366F1" }} />
+              نقل الفاتورة لموظف آخر
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-3 space-y-3">
+            <p className="text-xs" style={{ color: "#64748B" }}>
+              اختر الموظف الذي تريد نقل الفاتورة #{transferringOrder?.order_number} إليه.
+              يجب أن يكون لديه وردية مفتوحة.
+            </p>
+            <div className="space-y-2 max-h-60 overflow-y-auto">
+              {posUsers.map(u => (
+                <label
+                  key={u.id}
+                  className="flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors hover:bg-gray-50"
+                  style={{ border: selectedTransferUser === u.id ? "2px solid #6366F1" : "1px solid #E2E8F0" }}
+                >
+                  <input
+                    type="radio"
+                    name="transferUser"
+                    checked={selectedTransferUser === u.id}
+                    onChange={() => setSelectedTransferUser(u.id)}
+                    className="accent-[#6366F1]"
+                  />
+                  <div className="flex items-center gap-2">
+                    <User className="h-4 w-4" style={{ color: "#64748B" }} />
+                    <span className="text-sm font-medium">{u.name}</span>
+                  </div>
+                </label>
+              ))}
+              {posUsers.length === 0 && (
+                <p className="text-center text-sm text-muted-foreground py-4">لا يوجد موظفين آخرين</p>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => { setShowTransferDialog(false); setTransferringOrder(null); }}>إلغاء</Button>
+            <Button
+              size="sm"
+              disabled={!selectedTransferUser || transferring}
+              style={{ background: "#6366F1", color: "white" }}
+              onClick={handleTransferOrder}
+            >
+              {transferring ? "جارِ النقل..." : "نقل الفاتورة"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
