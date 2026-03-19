@@ -2165,6 +2165,7 @@ const POSPage = () => {
       setSelectedEmployee(null);
       setEmployeeSearch("");
       setEmployeeBalance(0);
+      setEmployeeNote("");
       setTenderedAmount("");
       setPaymentMethod("cash");
       setPaymentCurrency("ILS");
