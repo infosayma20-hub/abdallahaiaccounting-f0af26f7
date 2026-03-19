@@ -1529,6 +1529,9 @@ const POSPage = () => {
           customer_id: activeOrder.customerId || null,
           guest_count: activeOrder.guestCount,
           guest_name: activeOrder.guestName || null,
+          order_type: activeOrder.orderType,
+          delivery_address: activeOrder.orderType === "delivery" ? activeOrder.deliveryAddress : null,
+          pos_customer_id: activeOrder.posCustomerId || null,
         } as any).eq("id", existingOrder.id);
       } else {
         // Create new draft order
