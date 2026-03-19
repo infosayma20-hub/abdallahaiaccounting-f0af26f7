@@ -354,8 +354,6 @@ export default function POSReceiptDialog({ open, onOpenChange, data, showReturnP
                     {(() => {
                       const currencySymbols: Record<string, string> = { ILS: "₪", USD: "$", EUR: "€", JOD: "د.ا", EGP: "ج.م", GBP: "£", TRY: "₺" };
                       const sym = currencySymbols[data.currency] || data.currency;
-                      const rate = (data as any).exchangeRate || 1;
-                      const changeInForeign = data.currency !== "ILS" && rate > 0 ? data.change / rate : data.change;
                       return (
                         <>
                           <div style={{ display: "flex", justifyContent: "space-between", padding: "2px 0", fontSize: "11px" }}>
@@ -365,7 +363,7 @@ export default function POSReceiptDialog({ open, onOpenChange, data, showReturnP
                           {data.change > 0 && (
                             <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", fontSize: "12px", fontWeight: 700 }}>
                               <span style={{ color: "#16a34a" }}>الباقي</span>
-                              <span style={{ color: "#16a34a", fontVariantNumeric: "tabular-nums" }}>{sym}{changeInForeign.toFixed(2)}</span>
+                              <span style={{ color: "#16a34a", fontVariantNumeric: "tabular-nums" }}>₪{data.change.toFixed(2)}</span>
                             </div>
                           )}
                         </>
