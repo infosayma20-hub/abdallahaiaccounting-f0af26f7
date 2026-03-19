@@ -141,13 +141,23 @@ const subCategories: Record<string, SubCategory[]> = {
 };
 
 const typeLabels: Record<string, string> = {
-  "Asset": "أصول",
-  "Liability": "التزامات",
-  "Owner's Equity": "حقوق ملكية",
-  "Equity": "حقوق ملكية",
-  "Revenue": "إيرادات",
-  "Purchases": "مشتريات",
-  "Expenses": "مصروفات",
+  "Asset": "الأصول",
+  "Liability": "الالتزامات",
+  "Owner's Equity": "حقوق الملكية",
+  "Equity": "حقوق الملكية",
+  "Revenue": "الإيرادات",
+  "Purchases": "المشتريات",
+  "Expenses": "المصروفات",
+};
+
+const typeColors: Record<string, string> = {
+  "Asset": "bg-blue-500/10 text-blue-600 dark:text-blue-400",
+  "Liability": "bg-orange-500/10 text-orange-600 dark:text-orange-400",
+  "Owner's Equity": "bg-purple-500/10 text-purple-600 dark:text-purple-400",
+  "Equity": "bg-purple-500/10 text-purple-600 dark:text-purple-400",
+  "Revenue": "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+  "Purchases": "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+  "Expenses": "bg-red-500/10 text-red-600 dark:text-red-400",
 };
 
 const naturalBalance: Record<string, string> = {
