@@ -1146,22 +1146,8 @@ const POSPage = () => {
     if (!newCustomerName.trim() || !dataOwnerId) return;
     setSavingCustomer(true);
     try {
-      // Save to contacts
-      const { data, error } = await supabase
-        .from("contacts")
-        .insert({
-          user_id: dataOwnerId,
-          contact_name: newCustomerName.trim(),
-          phone: newCustomerPhone.trim() || null,
-          contact_type: "عميل",
-          is_active: true,
-        })
-        .select("id, contact_name")
-        .single();
-      if (error) throw error;
-
-      // Also save to pos_customers
-      const { data: posCustomer } = await supabase
+      // Save only to pos_customers (separate from main contacts)
+      const { data: posCustomer, error } = await supabase
         .from("pos_customers")
         .insert({
           user_id: dataOwnerId,
@@ -1173,15 +1159,15 @@ const POSPage = () => {
           marketing_consent: true,
           consent_date: new Date().toISOString(),
         } as any)
-        .select("id")
+        .select("id, name, whatsapp")
         .single();
+      if (error) throw error;
 
-      if (data) {
-        setContacts(prev => [...prev, data]);
-        setCustomerName(data.contact_name, data.id, newCustomerPhone.trim(), posCustomer?.id || null);
+      if (posCustomer) {
+        setCustomerName(posCustomer.name || "", null, posCustomer.whatsapp || "", posCustomer.id);
         setCustomerSearch("");
         setShowContactDropdown(false);
-        toast.success(`تمت إضافة الزبون "${data.contact_name}" بنجاح`);
+        toast.success(`تمت إضافة الزبون "${posCustomer.name}" بنجاح`);
       }
     } catch (err: any) {
       toast.error("فشل في إضافة الزبون: " + (err.message || "خطأ غير معروف"));
