@@ -46,9 +46,10 @@ export default function TaskBoardPage() {
   }, [user]);
 
   useEffect(() => {
+    if (taskAuthLoading) return;
     if (!taskUser) { navigate("/tasks"); return; }
     fetchData();
-  }, [taskUser, navigate, fetchData]);
+  }, [taskUser, taskAuthLoading, navigate, fetchData]);
 
   const handleAssign = async (taskId: string) => {
     if (!taskUser) return;
