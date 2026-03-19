@@ -356,23 +356,23 @@ export default function HRDeductionsPage() {
       });
     });
 
-    // POS employee-account
-    posTransactions.forEach((posTransaction: any) => {
-      const employee = resolveEmployeeByDescription(posTransaction.employee_name || posTransaction.customer_name || "");
-      const employeeName = employee?.name || posTransaction.employee_name || posTransaction.customer_name || "—";
+    // POS employee-account (from employee_financial_movements)
+    posTransactions.forEach((mov: any) => {
+      const employee = employeeDirectory.byId[mov.employee_id] || resolveEmployeeByDescription(mov.description || "");
+      const employeeName = mov.employees?.full_name || employee?.name || "—";
 
       rows.push({
-        id: `pos-${posTransaction.id}`,
+        id: `pos-${mov.id}`,
         employeeName,
-        employeeDept: employee?.dept || "",
-        employeeBranch: employee?.branch || "",
+        employeeDept: mov.employees?.department || employee?.dept || "",
+        employeeBranch: branchMap[mov.employees?.branch_id] || employee?.branch || "",
         type: "أكل / POS",
-        description: `فاتورة POS #${posTransaction.invoice_number || ""}`,
-        amount: Number(posTransaction.total || posTransaction.grand_total || 0),
-        date: posTransaction.created_at?.split("T")[0] || "",
+        description: mov.description || `فاتورة POS #${mov.source_reference || ""}`,
+        amount: Number(mov.amount || 0),
+        date: mov.movement_date || mov.created_at?.split("T")[0] || "",
         source: "نقطة البيع",
-        sourceId: posTransaction.id,
-        status: "مرحّل",
+        sourceId: mov.source_id || mov.id,
+        status: mov.status === "approved" ? "نشط" : (mov.status || "مرحّل"),
       });
     });
 
