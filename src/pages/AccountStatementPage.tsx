@@ -1843,7 +1843,7 @@ const AccountStatementPage = () => {
                           <BookOpen className="w-3.5 h-3.5 text-muted-foreground" />
                           <span className="text-[10px] text-muted-foreground font-semibold">رصيد افتتاحي</span>
                         </div>
-                        <p className="text-lg font-bold tabular-nums text-foreground">{fmtAmount(openingBalance)}</p>
+                         <p className="text-lg font-bold tabular-nums text-foreground">{fmtAmount(openingBalance, statementCurrency)}</p>
                         <p className="text-[10px] text-muted-foreground mt-0.5">{openingBalance >= 0 ? "مدين" : "دائن"}</p>
                       </div>
                       <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-3.5 text-center">
@@ -1851,14 +1851,14 @@ const AccountStatementPage = () => {
                           <TrendingUp className="w-3.5 h-3.5 text-red-500" />
                           <span className="text-[10px] text-red-600 font-semibold">إجمالي مدين</span>
                         </div>
-                        <p className="text-lg font-bold tabular-nums text-red-600">{fmtAmount(totalDebit)}</p>
+                        <p className="text-lg font-bold tabular-nums text-red-600">{fmtAmount(totalDebit, statementCurrency)}</p>
                       </div>
                       <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3.5 text-center">
                         <div className="flex items-center justify-center gap-1.5 mb-1.5">
                           <TrendingDown className="w-3.5 h-3.5 text-emerald-500" />
                           <span className="text-[10px] text-emerald-600 font-semibold">إجمالي دائن</span>
                         </div>
-                        <p className="text-lg font-bold tabular-nums text-emerald-600">{fmtAmount(totalCredit)}</p>
+                        <p className="text-lg font-bold tabular-nums text-emerald-600">{fmtAmount(totalCredit, statementCurrency)}</p>
                       </div>
                       <div className={cn("rounded-xl border p-3.5 text-center",
                         closingBalance > 0 ? "border-red-500/20 bg-red-50 dark:bg-red-500/5" :
@@ -1872,7 +1872,7 @@ const AccountStatementPage = () => {
                         <p className={cn("text-lg font-bold tabular-nums",
                           closingBalance > 0 ? "text-red-600" : closingBalance < 0 ? "text-emerald-600" : "text-muted-foreground"
                         )}>
-                          {fmtAmount(closingBalance)}
+                          {fmtAmount(closingBalance, statementCurrency)}
                         </p>
                         <p className="text-[10px] text-muted-foreground mt-0.5">
                           {closingBalance > 0 ? "🔴 مدين (عليه)" : closingBalance < 0 ? "🟢 دائن (له)" : "مسدَّد"}
