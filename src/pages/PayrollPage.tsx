@@ -223,6 +223,10 @@ const PayrollPage = () => {
 
       const txDeductions: Record<string, number> = {};
       for (const tx of (txRes.data || [])) {
+        // Skip loan disbursement transactions — loans are handled via loan_installments table
+        const desc = (tx.description || "").toLowerCase();
+        if (desc.includes("قرض حسن") || desc.includes("قرض ") || desc.includes("loan")) continue;
+
         const code = tx.debit_account_code?.startsWith("118") ? tx.debit_account_code : tx.credit_account_code;
         const empId = accountCodeToEmpId[code || ""];
         if (empId) {
