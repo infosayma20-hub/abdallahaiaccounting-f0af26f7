@@ -1186,6 +1186,7 @@ const POSPage = () => {
     setShowQuickAddCustomer(false);
     setNewCustomerName("");
     setNewCustomerPhone("");
+    setNewCustomerAddress("");
   };
 
   const categoriesWithCounts = useMemo(() => {
