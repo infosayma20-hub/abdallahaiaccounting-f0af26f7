@@ -1652,10 +1652,12 @@ const POSPage = () => {
     } else {
       const newOrder: OrderTab = {
         id: crypto.randomUUID(),
-        name: tableName,
+        name: order.customer_name || tableName,
         cart: cartItems,
         customerName: order.customer_name || "",
         customerId: (order as any).customer_id || null,
+        customerPhone: "",
+        posCustomerId: (order as any).pos_customer_id || null,
         orderDiscount: Number(order.discount_amount) || 0,
         orderDiscountType: "fixed",
         orderNote: "",
@@ -1664,6 +1666,8 @@ const POSPage = () => {
         tableName,
         guestCount: (order as any).guest_count || 1,
         guestName: (order as any).guest_name || "",
+        orderType: (order as any).order_type || "dine_in",
+        deliveryAddress: (order as any).delivery_address || "",
       };
       setOrders(prev => [...prev, newOrder]);
       setActiveOrderIndex(orders.length);
