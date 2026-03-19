@@ -152,9 +152,8 @@ export default function InlineAddonPanel({ product, groups, onConfirm, onClose, 
     return "grid-cols-3";
   };
 
-  const usePortal = !!anchorRef?.current;
-  const positionStyles: React.CSSProperties = usePortal && portalPos
-    ? { position: "fixed", top: portalPos.top, left: portalPos.left, width: portalPos.width }
+  const positionStyles: React.CSSProperties = portalPos
+    ? { position: "fixed", top: portalPos.flipUp ? portalPos.top - 6 : portalPos.top, left: portalPos.left, width: portalPos.width, transform: portalPos.flipUp ? "translateY(-100%)" : undefined }
     : flipUp
       ? { position: "absolute", bottom: "calc(100% + 6px)", top: "auto", left: 0, right: 0 }
       : { position: "absolute", top: "calc(100% + 6px)", left: 0, right: 0 };
