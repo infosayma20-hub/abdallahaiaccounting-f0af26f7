@@ -405,8 +405,8 @@ export default function POSUserManagementPage() {
 
   const handleCreateAccountForUser = async (u: POSUserRow) => {
     if (!u.email) { toast.error("يجب إدخال بريد إلكتروني أولاً"); return; }
-    const password = prompt("أدخل كلمة مرور للموظف (6 أحرف على الأقل):");
-    if (!password || password.length < 6) { toast.error("كلمة المرور يجب أن تكون 6 أحرف على الأقل"); return; }
+    const password = prompt("أدخل كلمة مرور للموظف (3 أحرف على الأقل):");
+    if (!password || password.length < 3) { toast.error("كلمة المرور يجب أن تكون 3 أحرف على الأقل"); return; }
     
     setCreatingAccount(true);
     try {
