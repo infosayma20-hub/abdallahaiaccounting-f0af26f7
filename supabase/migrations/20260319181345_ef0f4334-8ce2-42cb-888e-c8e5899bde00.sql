@@ -1,0 +1,1 @@
+CREATE POLICY "Public can view payments for receipt" ON public.pos_payments FOR SELECT USING (true);

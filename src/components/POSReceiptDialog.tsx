@@ -34,6 +34,7 @@ interface ReceiptData {
   tableName?: string;
   guestCount?: number;
   orderType?: "dine_in" | "takeaway" | "delivery";
+  customerPhone?: string;
   deliveryAddress?: string;
   items: ReceiptItem[];
   subtotal: number;
@@ -56,10 +57,11 @@ interface POSReceiptDialogProps {
   autoPrint?: boolean;
 }
 
-const paymentMethodLabel: Record<string, string> = {
-  cash: "نقد",
-  card: "بطاقة",
-  credit: "آجل",
+const paymentMethodLabel: Record<string, { label: string; color: string }> = {
+  cash: { label: "نقد", color: "#16a34a" },
+  card: { label: "بطاقة", color: "#3b82f6" },
+  credit: { label: "آجل", color: "#f59e0b" },
+  employee_account: { label: "حساب موظف", color: "#8b5cf6" },
 };
 
 export default function POSReceiptDialog({ open, onOpenChange, data, showReturnPolicy = true, returnPolicyDays = 7, autoPrint = false }: POSReceiptDialogProps) {
@@ -272,6 +274,12 @@ export default function POSReceiptDialog({ open, onOpenChange, data, showReturnP
                   <span style={{ fontWeight: 500, color: "#334155" }}>{data.customerName}</span>
                 </div>
               )}
+              {data.customerPhone && (
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "2px 0", fontSize: "11px" }}>
+                  <span style={{ color: "#64748b" }}>الجوال</span>
+                  <span style={{ fontWeight: 500, color: "#334155", direction: "ltr" }}>{data.customerPhone}</span>
+                </div>
+              )}
               {data.orderType === "delivery" && data.deliveryAddress && (
                 <div style={{ display: "flex", justifyContent: "space-between", padding: "2px 0", fontSize: "11px" }}>
                   <span style={{ color: "#64748b" }}>عنوان التوصيل</span>
@@ -360,9 +368,17 @@ export default function POSReceiptDialog({ open, onOpenChange, data, showReturnP
               <div style={{ background: "#f8fafc", borderRadius: "8px", padding: "8px 10px", margin: "4px 0" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", padding: "2px 0", fontSize: "11px" }}>
                   <span style={{ color: "#64748b" }}>طريقة الدفع</span>
-                  <span style={{ background: "#e2e8f0", borderRadius: "4px", padding: "1px 8px", fontSize: "10px", fontWeight: 600, color: "#475569" }}>
-                    {paymentMethodLabel[data.paymentMethod] || data.paymentMethod}
-                  </span>
+                  {(() => {
+                    const pm = paymentMethodLabel[data.paymentMethod];
+                    const label = pm ? pm.label : data.paymentMethod;
+                    const bgColor = pm ? pm.color + "1a" : "#e2e8f0";
+                    const txtColor = pm ? pm.color : "#475569";
+                    return (
+                      <span style={{ background: bgColor, borderRadius: "4px", padding: "1px 8px", fontSize: "10px", fontWeight: 600, color: txtColor }}>
+                        {label}
+                      </span>
+                    );
+                  })()}
                 </div>
                 {data.paymentMethod === "cash" && (
                   <>

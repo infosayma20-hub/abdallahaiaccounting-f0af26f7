@@ -11,6 +11,14 @@ const DigitalReceiptPage = () => {
   const [cashierName, setCashierName] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("");
+
+  const PAYMENT_LABELS: Record<string, { label: string; color: string }> = {
+    cash: { label: "نقد", color: "#16a34a" },
+    card: { label: "بطاقة", color: "#3b82f6" },
+    credit: { label: "آجل", color: "#f59e0b" },
+    employee_account: { label: "حساب موظف", color: "#8b5cf6" },
+  };
 
   useEffect(() => {
     if (!orderId) return;
@@ -31,7 +39,7 @@ const DigitalReceiptPage = () => {
       const companyId = (orderData as any).company_id;
       const userId = (orderData as any).user_id;
 
-      const [linesRes, companyRes, companyByOwnerRes, sessionRes, settingsRes] = await Promise.all([
+      const [linesRes, companyRes, companyByOwnerRes, sessionRes, settingsRes, paymentsRes] = await Promise.all([
         supabase.from("pos_order_lines").select("*").eq("order_id", orderId),
         companyId
           ? supabase.from("companies").select("name, logo_url, phone, address").eq("id", companyId).single()
@@ -39,6 +47,7 @@ const DigitalReceiptPage = () => {
         supabase.from("companies").select("name, logo_url, phone, address").eq("owner_id", userId).single(),
         supabase.from("pos_sessions").select("cashier_name").eq("id", (orderData as any).session_id).single(),
         supabase.from("company_settings").select("company_name, address, email").eq("id", userId).single(),
+        supabase.from("pos_payments").select("payment_method").eq("order_id", orderId).limit(1),
       ]);
 
       setLines(linesRes.data || []);
@@ -53,6 +62,10 @@ const DigitalReceiptPage = () => {
       }
       setCompany(companyData);
       setCashierName((sessionRes.data as any)?.cashier_name || "");
+      
+      // Store payment method
+      const pm = (paymentsRes.data as any)?.[0]?.payment_method || "";
+      setPaymentMethod(pm);
     } catch { setError("خطأ في تحميل الفاتورة"); }
     setLoading(false);
   };
