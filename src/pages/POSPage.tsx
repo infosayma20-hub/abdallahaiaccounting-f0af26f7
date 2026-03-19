@@ -924,6 +924,56 @@ const POSPage = () => {
         }
       }
     }
+
+    // Fallback: if no rates found for foreign currencies, fetch from free API
+    const foreignCodes = ['USD', 'EUR', 'JOD', 'GBP', 'EGP', 'TRY'];
+    const missingCodes = foreignCodes.filter(c => !rates[c] || rates[c] === 1);
+    if (missingCodes.length > 0) {
+      try {
+        // Try fawazahmed0 first (supports JOD and EGP accurately)
+        const res = await fetch('https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/ils.json');
+        if (res.ok) {
+          const json = await res.json();
+          const ilsRates = json?.ils;
+          if (ilsRates) {
+            for (const code of missingCodes) {
+              const lc = code.toLowerCase();
+              if (ilsRates[lc] && ilsRates[lc] > 0) {
+                const rateVal = parseFloat((1 / ilsRates[lc]).toFixed(6));
+                if (!rates[code] || rates[code] === 1) {
+                  rates[code] = rateVal;
+                  details[code] = { rate: rateVal, date: new Date().toISOString().split('T')[0], source: 'api_fallback', posOverride: null };
+                }
+              }
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('Fallback exchange rate fetch failed:', e);
+        // Try frankfurter as second fallback
+        try {
+          const stillMissing = foreignCodes.filter(c => !rates[c] || rates[c] === 1);
+          if (stillMissing.length > 0) {
+            const res2 = await fetch(`https://api.frankfurter.app/latest?from=ILS&to=${stillMissing.join(',')}`);
+            if (res2.ok) {
+              const json2 = await res2.json();
+              if (json2?.rates) {
+                for (const code of stillMissing) {
+                  if (json2.rates[code] && json2.rates[code] > 0) {
+                    const rateVal = parseFloat((1 / json2.rates[code]).toFixed(6));
+                    rates[code] = rateVal;
+                    details[code] = { rate: rateVal, date: new Date().toISOString().split('T')[0], source: 'api_fallback', posOverride: null };
+                  }
+                }
+              }
+            }
+          }
+        } catch (e2) {
+          console.warn('Secondary fallback exchange rate fetch failed:', e2);
+        }
+      }
+    }
+
     setExchangeRates(rates);
     setExchangeRateDetails(details);
   };
