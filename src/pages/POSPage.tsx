@@ -468,6 +468,7 @@ const POSPage = () => {
   const [showReceipt, setShowReceipt] = useState(false);
   const [receiptData, setReceiptData] = useState<any>(null);
   const [posReturnPolicy, setPosReturnPolicy] = useState({ show: true, days: 7 });
+  const [posAllowOrderTransfer, setPosAllowOrderTransfer] = useState(false);
 
   // Kitchen
   const [showKitchenTicket, setShowKitchenTicket] = useState(false);
@@ -721,7 +722,7 @@ const POSPage = () => {
         // Load POS settings needed at startup (receipt policy + default opening cash)
         const { data: posSettings } = await supabase
           .from("company_settings" as any)
-          .select("pos_show_return_policy, pos_return_policy_days, pos_default_opening_balance")
+          .select("pos_show_return_policy, pos_return_policy_days, pos_default_opening_balance, pos_allow_order_transfer")
           .eq("user_id", dataOwnerId)
           .maybeSingle();
 
@@ -730,6 +731,7 @@ const POSPage = () => {
             show: (posSettings as any).pos_show_return_policy ?? true,
             days: (posSettings as any).pos_return_policy_days ?? 7,
           });
+          setPosAllowOrderTransfer((posSettings as any).pos_allow_order_transfer ?? false);
         }
 
         const rawDefaultOpeningCash = (posSettings as any)?.pos_default_opening_balance;
@@ -4712,6 +4714,7 @@ const POSPage = () => {
             terminalName={terminal?.name || ""}
             canEditInvoices={isAdmin || posPerms.can_edit_invoices || posPerms.edit_cancel_invoices}
             requireManagerForInvoices={!isAdmin && posPerms.require_manager_for_invoices}
+            allowOrderTransfer={posAllowOrderTransfer}
             onRecallToCart={(items, invoiceId, orderNumber, reason, approvedBy) => {
               setCart(items);
               setRecallBanner({ invoiceId, orderNumber, reason, approvedBy });

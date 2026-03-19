@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   X, Search, Printer, RotateCcw, Ban, Clock, User, Eye,
-  ChevronLeft, AlertTriangle, Lock, FileText, ShoppingCart,
+  ChevronLeft, AlertTriangle, Lock, FileText, ShoppingCart, ArrowRightLeft,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -84,6 +84,7 @@ interface InvoiceHistoryDrawerProps {
   terminalName: string;
   canEditInvoices?: boolean;
   requireManagerForInvoices?: boolean;
+  allowOrderTransfer?: boolean;
   onRecallToCart: (items: CartItem[], invoiceId: string, orderNumber: string, reason: string, approvedBy: string | null) => void;
 }
 
@@ -110,7 +111,7 @@ const RECALL_REASONS = [
 ];
 
 export default function InvoiceHistoryDrawer({
-  open, onClose, dataOwnerId, sessionId, cashierName, terminalName, canEditInvoices = true, requireManagerForInvoices = true, onRecallToCart,
+  open, onClose, dataOwnerId, sessionId, cashierName, terminalName, canEditInvoices = true, requireManagerForInvoices = true, allowOrderTransfer = false, onRecallToCart,
 }: InvoiceHistoryDrawerProps) {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -146,6 +147,65 @@ export default function InvoiceHistoryDrawer({
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [cancellingOrder, setCancellingOrder] = useState<InvoiceOrder | null>(null);
+
+  // Transfer flow
+  const [showTransferDialog, setShowTransferDialog] = useState(false);
+  const [transferringOrder, setTransferringOrder] = useState<InvoiceOrder | null>(null);
+  const [posUsers, setPosUsers] = useState<{ id: string; name: string; auth_user_id: string | null }[]>([]);
+  const [selectedTransferUser, setSelectedTransferUser] = useState<string | null>(null);
+  const [transferring, setTransferring] = useState(false);
+
+  // Fetch POS users for transfer
+  useEffect(() => {
+    if (!allowOrderTransfer || !dataOwnerId || !open) return;
+    supabase.from("pos_users").select("id, name, auth_user_id").eq("user_id", dataOwnerId).eq("is_active", true)
+      .then(({ data }) => { if (data) setPosUsers(data); });
+  }, [allowOrderTransfer, dataOwnerId, open]);
+
+  const handleTransferOrder = async () => {
+    if (!transferringOrder || !selectedTransferUser || transferring) return;
+    setTransferring(true);
+    try {
+      const targetUser = posUsers.find(u => u.id === selectedTransferUser);
+      if (!targetUser) throw new Error("المستخدم غير موجود");
+
+      // Find target user's active session
+      const targetAuthId = targetUser.auth_user_id;
+      if (!targetAuthId) {
+        toast.error("هذا المستخدم لا يملك حساب دخول نشط");
+        return;
+      }
+
+      const { data: sessions } = await (supabase
+        .from("pos_sessions")
+        .select("id") as any)
+        .eq("cashier_auth_user_id", targetAuthId)
+        .eq("status", "open");
+      const targetSession = sessions?.[0];
+
+      if (!targetSession) {
+        toast.error("لا توجد وردية مفتوحة لهذا الموظف");
+        return;
+      }
+
+      const { error } = await supabase
+        .from("pos_orders")
+        .update({ session_id: targetSession.id })
+        .eq("id", transferringOrder.id);
+
+      if (error) throw error;
+      toast.success(`تم نقل الفاتورة #${transferringOrder.order_number} إلى ${targetUser.name}`);
+      setShowTransferDialog(false);
+      setTransferringOrder(null);
+      setSelectedTransferUser(null);
+      setSelectedOrder(null);
+      fetchOrders();
+    } catch (err: any) {
+      toast.error(err.message || "فشل في نقل الفاتورة");
+    } finally {
+      setTransferring(false);
+    }
+  };
 
   // ── Fetch orders ──
   const fetchOrders = useCallback(async () => {
@@ -752,6 +812,21 @@ export default function InvoiceHistoryDrawer({
                     </Button>
                   </>
                 )}
+                {allowOrderTransfer && selectedOrder.state === "paid" && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 text-xs"
+                    style={{ borderColor: "#6366F1", color: "#6366F1" }}
+                    onClick={() => {
+                      setTransferringOrder(selectedOrder);
+                      setSelectedTransferUser(null);
+                      setShowTransferDialog(true);
+                    }}
+                  >
+                    <ArrowRightLeft className="h-3.5 w-3.5" /> نقل لموظف آخر
+                  </Button>
+                )}
               </div>
 
               {/* Manager approval note */}
@@ -863,6 +938,59 @@ export default function InvoiceHistoryDrawer({
         description={managerOverrideDesc}
         variant={managerOverrideVariant}
       />
+
+      {/* ══════ TRANSFER DIALOG ══════ */}
+      <Dialog open={showTransferDialog} onOpenChange={setShowTransferDialog}>
+        <DialogContent className="max-w-sm z-[1200]" style={{ fontFamily: "Tajawal, sans-serif" }}>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ArrowRightLeft className="h-5 w-5" style={{ color: "#6366F1" }} />
+              نقل الفاتورة لموظف آخر
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-3 space-y-3">
+            <p className="text-xs" style={{ color: "#64748B" }}>
+              اختر الموظف الذي تريد نقل الفاتورة #{transferringOrder?.order_number} إليه.
+              يجب أن يكون لديه وردية مفتوحة.
+            </p>
+            <div className="space-y-2 max-h-60 overflow-y-auto">
+              {posUsers.map(u => (
+                <label
+                  key={u.id}
+                  className="flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors hover:bg-gray-50"
+                  style={{ border: selectedTransferUser === u.id ? "2px solid #6366F1" : "1px solid #E2E8F0" }}
+                >
+                  <input
+                    type="radio"
+                    name="transferUser"
+                    checked={selectedTransferUser === u.id}
+                    onChange={() => setSelectedTransferUser(u.id)}
+                    className="accent-[#6366F1]"
+                  />
+                  <div className="flex items-center gap-2">
+                    <User className="h-4 w-4" style={{ color: "#64748B" }} />
+                    <span className="text-sm font-medium">{u.name}</span>
+                  </div>
+                </label>
+              ))}
+              {posUsers.length === 0 && (
+                <p className="text-center text-sm text-muted-foreground py-4">لا يوجد موظفين آخرين</p>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => { setShowTransferDialog(false); setTransferringOrder(null); }}>إلغاء</Button>
+            <Button
+              size="sm"
+              disabled={!selectedTransferUser || transferring}
+              style={{ background: "#6366F1", color: "white" }}
+              onClick={handleTransferOrder}
+            >
+              {transferring ? "جارِ النقل..." : "نقل الفاتورة"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

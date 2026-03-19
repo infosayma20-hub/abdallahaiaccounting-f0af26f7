@@ -110,6 +110,13 @@ const POSSettingsSection = ({ settings, onChange }: Props) => {
             </p>
           </div>
         </div>
+        <div className="mt-4 flex items-center justify-between p-3 bg-muted/40 rounded-lg">
+          <div>
+            <span className="text-sm font-medium">السماح بنقل الطلب بين الموظفين</span>
+            <p className="text-[10px] text-muted-foreground mt-0.5">يتيح نقل فاتورة من كاشير لآخر في أوقات الذروة</p>
+          </div>
+          <Switch checked={settings.pos_allow_order_transfer} onCheckedChange={v => onChange({ pos_allow_order_transfer: v })} />
+        </div>
       </div>
 
       <Separator />
