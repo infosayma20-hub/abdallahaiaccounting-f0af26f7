@@ -731,6 +731,12 @@ const POSPage = () => {
             show: (posSettings as any).pos_show_return_policy ?? true,
             days: (posSettings as any).pos_return_policy_days ?? 7,
           });
+          setPosAllowOrderTransfer((posSettings as any).pos_allow_order_transfer ?? false);
+        }
+          setPosReturnPolicy({
+            show: (posSettings as any).pos_show_return_policy ?? true,
+            days: (posSettings as any).pos_return_policy_days ?? 7,
+          });
         }
 
         const rawDefaultOpeningCash = (posSettings as any)?.pos_default_opening_balance;
