@@ -729,7 +729,7 @@ export default function POSUserManagementPage() {
                   </tbody>
                   <tfoot>
                     <tr className="bg-primary/5 border-t-2 border-primary/20 font-bold text-sm">
-                      <td colSpan={4} className="px-3 py-3 text-right text-foreground">المجموع: {filteredUsers.length} موظف</td>
+                      <td colSpan={3} className="px-3 py-3 text-right text-foreground">المجموع: {filteredUsers.length} موظف</td>
                       <td className="px-3 py-3 text-xs text-center text-foreground">{filteredUsers.filter(u => u.is_active).length} نشط</td>
                       <td className="px-3 py-3 text-xs text-center text-foreground">{filteredUsers.filter(u => u.has_account).length} حساب</td>
                       <td colSpan={2} />
