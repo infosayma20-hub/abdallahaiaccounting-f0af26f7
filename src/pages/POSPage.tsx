@@ -4594,6 +4594,15 @@ const POSPage = () => {
                 type="tel"
               />
             </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">العنوان (اختياري)</label>
+              <Input
+                value={newCustomerAddress}
+                onChange={(e) => setNewCustomerAddress(e.target.value)}
+                placeholder="المدينة، الشارع..."
+                className="h-10"
+              />
+            </div>
           </div>
           <DialogFooter className="flex gap-2 sm:gap-2">
             <Button variant="outline" onClick={() => setShowQuickAddCustomer(false)}>إلغاء</Button>
