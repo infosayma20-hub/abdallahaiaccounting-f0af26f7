@@ -365,6 +365,10 @@ const POSPage = () => {
 
   // Dialogs
   const [showOpenShift, setShowOpenShift] = useState(false);
+  const [showChangePassword, setShowChangePassword] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
+  const [changingPassword, setChangingPassword] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
   const [showCloseShift, setShowCloseShift] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
