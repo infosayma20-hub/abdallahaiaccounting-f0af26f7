@@ -1004,7 +1004,7 @@ export default function InvoiceHistoryDrawer({
                 </label>
               ))}
               {posUsers.length === 0 && (
-                <p className="text-center text-sm text-muted-foreground py-4">لا يوجد موظفين آخرين</p>
+                <p className="text-center text-sm text-muted-foreground py-4">لا يوجد موظفين آخرين لديهم وردية مفتوحة</p>
               )}
             </div>
           </div>
