@@ -1340,6 +1340,7 @@ const InvoicesPage = () => {
                   <TableHead className="text-right">الدفع</TableHead>
                   <TableHead className="text-right"><SortHeader label="الإجمالي" field="total" /></TableHead>
                   <TableHead className="text-right">المتبقي</TableHead>
+                  <TableHead className="text-right">أفعال</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
