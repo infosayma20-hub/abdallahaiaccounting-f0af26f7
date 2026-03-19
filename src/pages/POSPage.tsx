@@ -2366,6 +2366,10 @@ const POSPage = () => {
 
     const accountingDate = getPosAccountingDate(session.opened_at, cutoffHour);
 
+    // Recalculate session totals from actual paid orders for accuracy
+    const recalcTotalSales = (ordersData || []).reduce((s: number, o: any) => s + (Number(o.total) || 0), 0);
+    const recalcTotalOrders = (ordersData || []).length;
+
     await supabase
       .from("pos_sessions")
       .update({
@@ -2374,6 +2378,8 @@ const POSPage = () => {
         expected_cash: expected,
         cash_variance: variance,
         closed_at: closedAt,
+        total_sales: recalcTotalSales || session.total_sales,
+        total_orders: recalcTotalOrders || session.total_orders,
       })
       .eq("id", session.id);
 
