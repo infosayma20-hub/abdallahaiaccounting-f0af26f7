@@ -167,6 +167,7 @@ export default function POSUserManagementPage() {
   const [userPerms, setUserPerms] = useState<Permission>(DEFAULT_PERMS);
   const [assignedDevices, setAssignedDevices] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+  const [bulkCreating, setBulkCreating] = useState(false);
 
   // Delete confirmation
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
