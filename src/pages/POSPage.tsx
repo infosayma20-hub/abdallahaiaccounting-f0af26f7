@@ -3947,7 +3947,7 @@ const POSPage = () => {
                         <motion.button
                           key={cur.code}
                           whileTap={{ scale: 0.96 }}
-                          onClick={() => { setPaymentCurrency(cur.code); setEditedRate(null); setRateEdited(false); setTenderedAmount(""); }}
+                          onClick={() => { setPaymentCurrency(cur.code); setChangeCurrency("ILS"); setEditedRate(null); setRateEdited(false); setTenderedAmount(""); }}
                           className={`flex flex-col items-center gap-1 p-2.5 rounded-xl border-2 transition-all ${
                             isActive
                               ? "border-primary bg-primary/5"
