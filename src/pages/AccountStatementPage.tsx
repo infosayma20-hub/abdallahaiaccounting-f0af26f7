@@ -2692,7 +2692,7 @@ const AccountStatementPage = () => {
 
 // ─── SUB-COMPONENTS ───
 
-function BalanceCell({ value, bold }: { value: number; bold?: boolean }) {
+function BalanceCell({ value, bold, currency }: { value: number; bold?: boolean; currency?: string }) {
   return (
     <span className={cn(
       "inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs tabular-nums",
@@ -2701,7 +2701,7 @@ function BalanceCell({ value, bold }: { value: number; bold?: boolean }) {
       value < 0 ? "text-emerald-600 bg-emerald-500/10" :
       "text-muted-foreground"
     )}>
-      {fmtAmount(value)}
+      {fmtAmount(value, currency)}
       <span className="text-[9px] font-normal opacity-70">{value > 0 ? "م" : value < 0 ? "د" : ""}</span>
     </span>
   );
