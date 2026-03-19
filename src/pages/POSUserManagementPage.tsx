@@ -623,7 +623,7 @@ export default function POSUserManagementPage() {
 
         {/* ═══ USERS TAB ═══ */}
         <TabsContent value="users" className="space-y-4 mt-4">
-          <div className="flex items-center gap-3 flex-row-reverse justify-end">
+          <div className="flex items-center gap-3">
             <Button onClick={openAddUser} className="gap-2"><Plus className="w-4 h-4" /> إضافة موظف</Button>
             <div className="relative flex-1 max-w-sm">
               <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
