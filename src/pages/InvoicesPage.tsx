@@ -1489,7 +1489,7 @@ const InvoicesPage = () => {
                   </Button>
                 )}
                 {canDelete({ status: selectedInvoice.status }) && (
-                  <Button size="sm" variant="destructive" className="gap-1.5 rounded-xl" onClick={() => setShowDeleteDialog(true)}>
+                  <Button size="sm" variant="destructive" className="gap-1.5 rounded-xl" onClick={() => { setDeleteTargetInvoice(selectedInvoice); setShowDeleteDialog(true); }}>
                     <Trash2 className="h-4 w-4" /> حذف
                   </Button>
                 )}
