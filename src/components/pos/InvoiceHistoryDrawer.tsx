@@ -221,21 +221,22 @@ export default function InvoiceHistoryDrawer({
       const targetUser = posUsers.find(u => u.id === selectedTransferUser);
       if (!targetUser) throw new Error("المستخدم غير موجود");
 
-      // Find target user's active session
-      const targetAuthId = targetUser.auth_user_id;
-      if (!targetAuthId) {
-        toast.error("هذا المستخدم لا يملك حساب دخول نشط");
-        return;
+      let targetSessionId: string | null = null;
+
+      if (targetUser.auth_user_id) {
+        // Find target user's active session by auth_user_id
+        const { data: sessions } = await (supabase
+          .from("pos_sessions")
+          .select("id") as any)
+          .eq("cashier_auth_user_id", targetUser.auth_user_id)
+          .eq("state", "open");
+        targetSessionId = sessions?.[0]?.id || null;
+      } else {
+        // The id is already a session id (from session-based entry)
+        targetSessionId = targetUser.id;
       }
 
-      const { data: sessions } = await (supabase
-        .from("pos_sessions")
-        .select("id") as any)
-        .eq("cashier_auth_user_id", targetAuthId)
-        .eq("status", "open");
-      const targetSession = sessions?.[0];
-
-      if (!targetSession) {
+      if (!targetSessionId) {
         toast.error("لا توجد وردية مفتوحة لهذا الموظف");
         return;
       }
