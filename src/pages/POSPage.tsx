@@ -79,6 +79,8 @@ interface OrderTab {
   cart: CartItem[];
   customerName: string;
   customerId: string | null;
+  customerPhone: string;
+  posCustomerId: string | null;
   orderDiscount: number;
   orderDiscountType: "fixed" | "percent";
   orderNote: string;
@@ -87,6 +89,17 @@ interface OrderTab {
   tableName: string | null;
   guestCount: number;
   guestName: string;
+  orderType: "dine_in" | "takeaway" | "delivery";
+  deliveryAddress: string;
+}
+
+interface POSCustomer {
+  id: string;
+  name: string | null;
+  whatsapp: string | null;
+  address: string | null;
+  total_visits: number | null;
+  total_spent: number | null;
 }
 
 const POSThemeToggle = () => {
