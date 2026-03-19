@@ -38,7 +38,7 @@ export default function AddTaskModal({ open, onClose, taskUsers, onSaved, editTa
   const [category, setCategory] = useState(editTask?.category || "");
   const [dueDate, setDueDate] = useState(editTask?.due_date || "");
   const [dueTime, setDueTime] = useState(editTask?.due_time?.slice(0, 5) || "");
-  const [assignTo, setAssignTo] = useState(editTask?.assigned_to || "");
+  const [assignTo, setAssignTo] = useState(editTask?.assigned_to || "none");
   const [visibleToAll, setVisibleToAll] = useState(editTask?.is_visible_to_all ?? true);
   const [saving, setSaving] = useState(false);
 
