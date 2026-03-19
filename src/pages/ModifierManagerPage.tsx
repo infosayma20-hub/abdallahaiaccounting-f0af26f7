@@ -368,7 +368,36 @@ export default function ModifierManagerPage() {
               placeholder="ابحث عن منتج..."
               className="h-9 text-sm"
             />
-            <ScrollArea className="h-60">
+            {/* Select All */}
+            <button
+              onClick={() => {
+                const allFilteredIds = filteredProducts.map(p => p.id);
+                const allSelected = allFilteredIds.every(id => linkedProductIds.includes(id));
+                if (allSelected) {
+                  // Deselect all filtered
+                  allFilteredIds.forEach(id => {
+                    if (linkedProductIds.includes(id)) toggleProductLink(id);
+                  });
+                } else {
+                  // Select all filtered
+                  allFilteredIds.forEach(id => {
+                    if (!linkedProductIds.includes(id)) toggleProductLink(id);
+                  });
+                }
+              }}
+              className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium hover:bg-muted transition-colors text-right border border-border"
+            >
+              <div className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 ${
+                filteredProducts.length > 0 && filteredProducts.every(p => linkedProductIds.includes(p.id))
+                  ? "border-primary bg-primary" : "border-border"
+              }`}>
+                {filteredProducts.length > 0 && filteredProducts.every(p => linkedProductIds.includes(p.id)) && (
+                  <Check className="h-2.5 w-2.5 text-primary-foreground" />
+                )}
+              </div>
+              <span>تحديد الكل ({filteredProducts.length})</span>
+            </button>
+            <ScrollArea className="h-56">
               <div className="space-y-1">
                 {filteredProducts.map(p => {
                   const isLinked = linkedProductIds.includes(p.id);
@@ -394,6 +423,15 @@ export default function ModifierManagerPage() {
             <p className="text-xs text-muted-foreground text-center">
               {linkedProductIds.length} منتج مرتبط
             </p>
+            <div className="flex gap-2 pt-1">
+              <Button onClick={() => { setShowLinkDialog(false); toast.success("تم تثبيت الربط"); }} className="flex-1 gap-1.5">
+                <Save className="h-4 w-4" />
+                تثبيت
+              </Button>
+              <Button variant="outline" onClick={() => setShowLinkDialog(false)} className="flex-1">
+                خروج
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
