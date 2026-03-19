@@ -15,6 +15,8 @@ export interface SupabaseTransaction {
   is_deleted: boolean | null;
   is_opening_balance: boolean | null;
   contact_id: string | null;
+  foreign_amount: number | null;
+  exchange_rate: number | null;
 }
 
 export interface SupabaseAccount {
