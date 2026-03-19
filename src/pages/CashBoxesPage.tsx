@@ -308,6 +308,14 @@ const CashBoxesPage = () => {
         hasMainBox={mainBoxes.length > 0}
         onSaved={() => { setDrawerOpen(false); setEditBox(null); fetchBoxes(); }}
       />
+
+      <PettyCashReplenishDialog
+        open={replenishOpen}
+        onOpenChange={setReplenishOpen}
+        boxes={boxes}
+        userId={user?.id || ""}
+        onSuccess={fetchBoxes}
+      />
     </div>
   );
 };
