@@ -2282,8 +2282,8 @@ const AccountStatementPage = () => {
                               {isColVisible("paymentMethod") && <td className="px-3 py-3.5"></td>}
                               {isColVisible("currency") && <td className="px-3 py-3.5"></td>}
                               {isColVisible("contactCode") && <td className="px-3 py-3.5"></td>}
-                              {isColVisible("debit") && <td className="px-3 py-3.5 text-left tabular-nums font-bold text-red-300 text-sm">{fmtAmount(totalDebit)}</td>}
-                              {isColVisible("credit") && <td className="px-3 py-3.5 text-left tabular-nums font-bold text-emerald-300 text-sm">{fmtAmount(totalCredit)}</td>}
+                              {isColVisible("debit") && <td className="px-3 py-3.5 text-left tabular-nums font-bold text-red-300 text-sm">{fmtAmount(totalDebit, statementCurrency)}</td>}
+                              {isColVisible("credit") && <td className="px-3 py-3.5 text-left tabular-nums font-bold text-emerald-300 text-sm">{fmtAmount(totalCredit, statementCurrency)}</td>}
                               {isColVisible("balance") && (
                                 <td className="px-3 py-3.5 text-left">
                                   <span className={cn("text-sm font-bold tabular-nums px-2 py-1 rounded",
@@ -2291,7 +2291,8 @@ const AccountStatementPage = () => {
                                     closingBalance < 0 ? "text-emerald-300 bg-emerald-500/20" :
                                     "text-white/70"
                                   )}>
-                                    {fmtAmount(closingBalance)}
+                                    {fmtAmount(closingBalance, statementCurrency)}
+                                  </span>
                                   </span>
                                 </td>
                               )}
