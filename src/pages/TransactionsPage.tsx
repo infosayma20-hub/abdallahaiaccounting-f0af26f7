@@ -761,12 +761,12 @@ const TransactionsPage = () => {
       {!loading && !error && paginatedTransactions.length > 0 && (
         <div className="rounded-2xl border border-border/50 overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-sm table-fixed">
               <colgroup>
                 <col className="w-[3%]" />
                 <col className="w-[10%]" />
                 <col className="w-[12%]" />
-                <col style={{ width: 'auto' }} />
+                <col className="w-[30%]" />
                 <col className="w-[10%]" />
                 <col className="w-[11%]" />
                 <col className="w-[11%]" />
@@ -820,10 +820,10 @@ const TransactionsPage = () => {
                             {tx.reference || "—"}
                           </button>
                         </td>
-                        <td className="px-3 py-3 overflow-hidden">
-                          <div className="flex items-center gap-1.5 min-w-0">
+                        <td className="px-3 py-3 overflow-hidden max-w-0">
+                          <div className="flex items-center gap-1.5 min-w-0" title={tx.description || ""}>
                             <ChevronRightIcon className={`w-3.5 h-3.5 text-muted-foreground transition-transform flex-shrink-0 ${isExpanded ? "rotate-90" : ""}`} />
-                            <span title={tx.description || ""} className="text-sm text-foreground font-medium truncate">{tx.description || "بدون وصف"}</span>
+                            <span className="text-sm text-foreground font-medium truncate">{tx.description || "بدون وصف"}</span>
                           </div>
                         </td>
                         <td className="px-3 py-3">
