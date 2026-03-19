@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Download, Users, Search } from "lucide-react";
+import { Download, Users, Search, ExternalLink } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { useNavigate } from "react-router-dom";
 import * as XLSX from "xlsx";
 
 interface Customer {
