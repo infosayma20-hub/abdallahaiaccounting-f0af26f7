@@ -1099,7 +1099,7 @@ const POSPage = () => {
       empMap.set(emp.id, true);
       empMap.set(emp.full_name.toLowerCase(), true);
       const linked = (accData || []).find(a => a.account_name === `ذمم موظف - ${emp.full_name}`);
-      emps.push({ ...emp, account_code: linked?.account_code || undefined });
+      emps.push({ ...emp, job_title: emp.job_title || undefined, account_code: linked?.account_code || undefined });
     });
     
     // Add POS users that aren't already in the employees list
