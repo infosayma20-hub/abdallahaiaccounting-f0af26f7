@@ -362,9 +362,17 @@ export default function POSReceiptDialog({ open, onOpenChange, data, showReturnP
               <div style={{ background: "#f8fafc", borderRadius: "8px", padding: "8px 10px", margin: "4px 0" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", padding: "2px 0", fontSize: "11px" }}>
                   <span style={{ color: "#64748b" }}>طريقة الدفع</span>
-                  <span style={{ background: "#e2e8f0", borderRadius: "4px", padding: "1px 8px", fontSize: "10px", fontWeight: 600, color: "#475569" }}>
-                    {paymentMethodLabel[data.paymentMethod] || data.paymentMethod}
-                  </span>
+                  {(() => {
+                    const pm = paymentMethodLabel[data.paymentMethod];
+                    const label = pm ? pm.label : data.paymentMethod;
+                    const bgColor = pm ? pm.color + "1a" : "#e2e8f0";
+                    const txtColor = pm ? pm.color : "#475569";
+                    return (
+                      <span style={{ background: bgColor, borderRadius: "4px", padding: "1px 8px", fontSize: "10px", fontWeight: 600, color: txtColor }}>
+                        {label}
+                      </span>
+                    );
+                  })()}
                 </div>
                 {data.paymentMethod === "cash" && (
                   <>
