@@ -2188,9 +2188,9 @@ const AccountStatementPage = () => {
                               {isColVisible("paymentMethod") && <td className="px-3 py-2.5"></td>}
                               {isColVisible("currency") && <td className="px-3 py-2.5"></td>}
                               {isColVisible("contactCode") && <td className="px-3 py-2.5"></td>}
-                              {isColVisible("debit") && <td className="px-3 py-2.5 text-xs text-left tabular-nums text-muted-foreground">{openingBalance > 0 ? fmtAmount(openingBalance) : "—"}</td>}
-                              {isColVisible("credit") && <td className="px-3 py-2.5 text-xs text-left tabular-nums text-muted-foreground">{openingBalance < 0 ? fmtAmount(openingBalance) : "—"}</td>}
-                              {isColVisible("balance") && <td className="px-3 py-2.5 text-left"><BalanceCell value={openingBalance} /></td>}
+                              {isColVisible("debit") && <td className="px-3 py-2.5 text-xs text-left tabular-nums text-muted-foreground">{openingBalance > 0 ? fmtAmount(openingBalance, statementCurrency) : "—"}</td>}
+                              {isColVisible("credit") && <td className="px-3 py-2.5 text-xs text-left tabular-nums text-muted-foreground">{openingBalance < 0 ? fmtAmount(openingBalance, statementCurrency) : "—"}</td>}
+                              {isColVisible("balance") && <td className="px-3 py-2.5 text-left"><BalanceCell value={openingBalance} currency={statementCurrency} /></td>}
                             </tr>
 
                             {/* Transaction rows */}
