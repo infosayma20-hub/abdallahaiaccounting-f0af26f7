@@ -2396,9 +2396,9 @@ const POSPage = () => {
 
     const accountingDate = getPosAccountingDate(session.opened_at, cutoffHour);
 
-    // Recalculate session totals from actual paid orders for accuracy
-    const recalcTotalSales = (ordersData || []).reduce((s: number, o: any) => s + (Number(o.total) || 0), 0);
-    const recalcTotalOrders = (ordersData || []).length;
+    // Recalculate session totals from actual paid orders (excludes transferred-out orders since their session_id changed)
+    const recalcTotalSales = (ordersData || []).filter((o: any) => !o.is_return).reduce((s: number, o: any) => s + (Number(o.total) || 0), 0);
+    const recalcTotalOrders = (ordersData || []).filter((o: any) => !o.is_return).length;
 
     await supabase
       .from("pos_sessions")
@@ -2408,8 +2408,8 @@ const POSPage = () => {
         expected_cash: expected,
         cash_variance: variance,
         closed_at: closedAt,
-        total_sales: recalcTotalSales || session.total_sales,
-        total_orders: recalcTotalOrders || session.total_orders,
+        total_sales: recalcTotalSales,
+        total_orders: recalcTotalOrders,
       })
       .eq("id", session.id);
 
@@ -2508,9 +2508,9 @@ const POSPage = () => {
       openedAt: session.opened_at,
       closedAt,
       openingCash: session.opening_cash,
-      totalSales: recalcTotalSales || session.total_sales,
+      totalSales: recalcTotalSales,
       totalExpenses,
-      totalOrders: recalcTotalOrders || session.total_orders,
+      totalOrders: recalcTotalOrders,
       closingCash: cash,
       closingCashUSD: cashUSD,
       closingCashJOD: cashJOD,
