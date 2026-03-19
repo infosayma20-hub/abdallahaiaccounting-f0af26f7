@@ -2255,7 +2255,7 @@ const AccountStatementPage = () => {
                                   {isColVisible("contactCode") && <td className="px-3 py-2 text-center text-[10px] text-muted-foreground font-mono">{!isSubRow ? (selectedEntityInfo.code || "—") : ""}</td>}
                                   {isColVisible("debit") && (
                                     <td className={cn("px-3 py-2 text-left tabular-nums", isSubRow ? "text-[10px] text-red-500/70" : "font-semibold text-red-600")}>
-                                      {row.debit > 0 ? fmtAmount(row.debit) : "—"}
+                                      {row.debit > 0 ? fmtAmount(row.debit, row.currency) : "—"}
                                     </td>
                                   )}
                                   {isColVisible("credit") && (
