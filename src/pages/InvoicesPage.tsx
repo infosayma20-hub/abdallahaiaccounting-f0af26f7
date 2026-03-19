@@ -86,6 +86,7 @@ const InvoicesPage = () => {
   const printRef = useRef<HTMLDivElement>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showEditWarning, setShowEditWarning] = useState(false);
+  const [deleteTargetInvoice, setDeleteTargetInvoice] = useState<Invoice | null>(null);
 
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -1339,6 +1340,7 @@ const InvoicesPage = () => {
                   <TableHead className="text-right">الدفع</TableHead>
                   <TableHead className="text-right"><SortHeader label="الإجمالي" field="total" /></TableHead>
                   <TableHead className="text-right">المتبقي</TableHead>
+                  <TableHead className="text-right">أفعال</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1363,6 +1365,20 @@ const InvoicesPage = () => {
                       <TableCell className="font-bold tabular-nums text-sm">₪{inv.total.toLocaleString()}</TableCell>
                       <TableCell className={`tabular-nums text-sm font-semibold ${inv.remainingAmount > 0 ? "text-destructive" : "text-muted-foreground"}`}>
                         {inv.remainingAmount > 0 ? `₪${inv.remainingAmount.toLocaleString()}` : "—"}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-1">
+                          {canEdit({ status: inv.status }) && (
+                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={e => { e.stopPropagation(); navigate(`/invoices/new?edit=${inv.id}`); }}>
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
+                          {canDelete({ status: inv.status }) && (
+                            <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={e => { e.stopPropagation(); setDeleteTargetInvoice(inv); setShowDeleteDialog(true); }}>
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   );
@@ -1400,6 +1416,18 @@ const InvoicesPage = () => {
                       {inv.remainingAmount > 0 && (
                         <p className="text-[10px] text-destructive font-medium mt-0.5">متبقي: ₪{inv.remainingAmount.toLocaleString()}</p>
                       )}
+                      <div className="flex gap-1 mt-1.5">
+                        {canEdit({ status: inv.status }) && (
+                          <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px] gap-1" onClick={e => { e.stopPropagation(); navigate(`/invoices/new?edit=${inv.id}`); }}>
+                            <Pencil className="h-3 w-3" /> تعديل
+                          </Button>
+                        )}
+                        {canDelete({ status: inv.status }) && (
+                          <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px] gap-1 text-destructive" onClick={e => { e.stopPropagation(); setDeleteTargetInvoice(inv); setShowDeleteDialog(true); }}>
+                            <Trash2 className="h-3 w-3" /> حذف
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </CardContent>
@@ -1461,7 +1489,7 @@ const InvoicesPage = () => {
                   </Button>
                 )}
                 {canDelete({ status: selectedInvoice.status }) && (
-                  <Button size="sm" variant="destructive" className="gap-1.5 rounded-xl" onClick={() => setShowDeleteDialog(true)}>
+                  <Button size="sm" variant="destructive" className="gap-1.5 rounded-xl" onClick={() => { setDeleteTargetInvoice(selectedInvoice); setShowDeleteDialog(true); }}>
                     <Trash2 className="h-4 w-4" /> حذف
                   </Button>
                 )}
@@ -1498,16 +1526,17 @@ const InvoicesPage = () => {
       />
 
       {/* Delete Dialog */}
-      {selectedInvoice && (
+      {deleteTargetInvoice && (
         <DeleteDocumentDialog
           open={showDeleteDialog}
-          onClose={() => setShowDeleteDialog(false)}
+          onClose={() => { setShowDeleteDialog(false); setDeleteTargetInvoice(null); }}
           onConfirm={(reason) => {
-            handleDeleteInvoice(selectedInvoice.id, reason);
+            handleDeleteInvoice(deleteTargetInvoice.id, reason);
             setShowDeleteDialog(false);
+            setDeleteTargetInvoice(null);
           }}
-          docNumber={selectedInvoice.invoiceNumber}
-          docAmount={selectedInvoice.total}
+          docNumber={deleteTargetInvoice.invoiceNumber}
+          docAmount={deleteTargetInvoice.total}
         />
       )}
 
