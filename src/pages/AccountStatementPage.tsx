@@ -1480,7 +1480,7 @@ const AccountStatementPage = () => {
     if (!selectedContact?.phone) return;
     const phone = selectedContact.phone.replace(/\D/g, "");
     const balType = closingBalance >= 0 ? "مدين" : "دائن";
-    const msg = `السلام عليكم ${selectedEntityName}،\nنرفق كشف حسابكم للفترة من ${fmtDate(dateFrom)} إلى ${fmtDate(dateTo)}\nالرصيد الحالي: ${fmtAmount(closingBalance)} (${balType})\n${companyInfo.name}`;
+    const msg = `السلام عليكم ${selectedEntityName}،\nنرفق كشف حسابكم للفترة من ${fmtDate(dateFrom)} إلى ${fmtDate(dateTo)}\nالرصيد الحالي: ${fmtAmount(closingBalance, statementCurrency)} (${balType})\n${companyInfo.name}`;
     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, "_blank");
   };
 
