@@ -2293,7 +2293,6 @@ const AccountStatementPage = () => {
                                   )}>
                                     {fmtAmount(closingBalance, statementCurrency)}
                                   </span>
-                                  </span>
                                 </td>
                               )}
                             </tr>
