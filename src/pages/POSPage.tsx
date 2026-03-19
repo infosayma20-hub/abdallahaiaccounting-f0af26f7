@@ -2283,28 +2283,35 @@ const POSPage = () => {
     let foreignChangeILS = 0; // Total ILS change given for foreign currency payments
     let foreignChangeUSD = 0; // Total USD change given back
     let foreignChangeJOD = 0; // Total JOD change given back
+    let foreignTenderedUSD = 0; // Actual USD tendered by customers
+    let foreignTenderedJOD = 0; // Actual JOD tendered by customers
     if (orderIds.length > 0) {
       const { data: paymentsData } = await supabase
         .from("pos_payments")
-        .select("payment_method, amount, currency, change_amount, change_currency")
+        .select("payment_method, amount, currency, change_amount, change_currency, tendered, exchange_rate")
         .in("order_id", orderIds);
       (paymentsData || []).forEach((p: any) => {
         const method = p.payment_method || "cash";
         const cur = p.currency || "ILS";
         if (!paymentMethodBreakdown[method]) paymentMethodBreakdown[method] = {};
         paymentMethodBreakdown[method][cur] = (paymentMethodBreakdown[method][cur] || 0) + Number(p.amount || 0);
-        // Track change given out based on change_currency
+        // Track actual foreign tendered and change
         if (method === "cash" && cur !== "ILS") {
+          const tenderedILS = Number(p.tendered || 0);
+          const rate = Number(p.exchange_rate || 1);
+          const tenderedForeign = rate > 0 ? tenderedILS / rate : 0;
+          if (cur === "USD") foreignTenderedUSD += tenderedForeign;
+          if (cur === "JOD") foreignTenderedJOD += tenderedForeign;
+
           const chgCur = (p as any).change_currency || "ILS";
           const chgAmount = Number(p.change_amount || 0);
           if (chgCur === "ILS") {
             foreignChangeILS += chgAmount;
           } else if (chgCur === "USD") {
-            // change_amount is stored as ILS, convert to foreign
-            const chgRate = exchangeRates?.["USD"] || 3.6;
+            const chgRate = exchangeRates?.["USD"] || rate;
             foreignChangeUSD += chgAmount / chgRate;
           } else if (chgCur === "JOD") {
-            const chgRate = exchangeRates?.["JOD"] || 5.0;
+            const chgRate = exchangeRates?.["JOD"] || rate;
             foreignChangeJOD += chgAmount / chgRate;
           }
         }
@@ -2315,9 +2322,9 @@ const POSPage = () => {
     // ILS expected = opening + ILS cash sales - ILS change given for foreign payments - expenses
     const ilsCashSales = paymentMethodBreakdown["cash"]?.["ILS"] || 0;
     const expectedILS = session.opening_cash + ilsCashSales - foreignChangeILS - totalExpenses;
-    // Foreign expected = actual foreign amounts received minus foreign change given back
-    const expectedUSD = (currencyBreakdown["USD"]?.sales || 0) - foreignChangeUSD;
-    const expectedJOD = (currencyBreakdown["JOD"]?.sales || 0) - foreignChangeJOD;
+    // Foreign expected = actual foreign tendered minus foreign change given back
+    const expectedUSD = foreignTenderedUSD - foreignChangeUSD;
+    const expectedJOD = foreignTenderedJOD - foreignChangeJOD;
 
     // Per-currency variance
     const varianceILS = cash - expectedILS;
