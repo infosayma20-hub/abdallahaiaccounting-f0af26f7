@@ -1,9 +1,10 @@
 import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
-import { TrendingUp, TrendingDown, MoreVertical, Trash2, Eraser } from "lucide-react";
+import { TrendingUp, TrendingDown, MoreVertical, Trash2, Eraser, X } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
@@ -32,23 +33,64 @@ interface Props {
 }
 
 export default function POSShiftsReport({ sessions, onRefresh }: Props) {
-  const [confirmAction, setConfirmAction] = useState<{ type: "clear" | "delete"; session: Session } | null>(null);
+  const [confirmAction, setConfirmAction] = useState<{ type: "clear" | "delete" | "bulk_delete" | "bulk_clear"; session?: Session } | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  const sorted = useMemo(
+    () => [...sessions].sort((a, b) => new Date(b.opened_at).getTime() - new Date(a.opened_at).getTime()),
+    [sessions]
+  );
+
+  const allSelected = sorted.length > 0 && selectedIds.size === sorted.length;
+  const someSelected = selectedIds.size > 0 && !allSelected;
+
+  const toggleAll = () => {
+    if (allSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(sorted.map(s => s.id)));
+    }
+  };
+
+  const toggleOne = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
 
   const handleAction = async () => {
     if (!confirmAction) return;
     setActionLoading(true);
     try {
-      const { session, type } = confirmAction;
-      if (type === "clear") {
+      const { type } = confirmAction;
+
+      if (type === "bulk_delete") {
+        const ids = Array.from(selectedIds);
+        const { error } = await supabase.from("pos_sessions").update({ is_deleted: true }).in("id", ids);
+        if (error) throw error;
+        toast.success(`تم حذف ${ids.length} وردية بنجاح`);
+        setSelectedIds(new Set());
+      } else if (type === "bulk_clear") {
+        const ids = Array.from(selectedIds);
         const { error } = await supabase.from("pos_sessions").update({
           total_sales: 0, total_orders: 0, total_returns: 0,
           closing_cash: null, expected_cash: null, cash_variance: null,
-        }).eq("id", session.id);
+        }).in("id", ids);
+        if (error) throw error;
+        toast.success(`تم إفراغ بيانات ${ids.length} وردية بنجاح`);
+        setSelectedIds(new Set());
+      } else if (type === "clear" && confirmAction.session) {
+        const { error } = await supabase.from("pos_sessions").update({
+          total_sales: 0, total_orders: 0, total_returns: 0,
+          closing_cash: null, expected_cash: null, cash_variance: null,
+        }).eq("id", confirmAction.session.id);
         if (error) throw error;
         toast.success("تم إفراغ بيانات الوردية بنجاح");
-      } else {
-        const { error } = await supabase.from("pos_sessions").update({ is_deleted: true }).eq("id", session.id);
+      } else if (type === "delete" && confirmAction.session) {
+        const { error } = await supabase.from("pos_sessions").update({ is_deleted: true }).eq("id", confirmAction.session.id);
         if (error) throw error;
         toast.success("تم حذف الوردية بنجاح");
       }
@@ -60,11 +102,6 @@ export default function POSShiftsReport({ sessions, onRefresh }: Props) {
       setConfirmAction(null);
     }
   };
-
-  const sorted = useMemo(
-    () => [...sessions].sort((a, b) => new Date(b.opened_at).getTime() - new Date(a.opened_at).getTime()),
-    [sessions]
-  );
 
   const stats = useMemo(() => {
     const closed = sorted.filter(s => s.state === "closed");
@@ -94,6 +131,24 @@ export default function POSShiftsReport({ sessions, onRefresh }: Props) {
       </div>
     );
   }
+
+  const confirmTitle = confirmAction?.type === "bulk_delete"
+    ? `حذف ${selectedIds.size} وردية`
+    : confirmAction?.type === "bulk_clear"
+    ? `إفراغ بيانات ${selectedIds.size} وردية`
+    : confirmAction?.type === "clear"
+    ? "إفراغ بيانات الوردية"
+    : "حذف الوردية";
+
+  const confirmDesc = confirmAction?.type === "bulk_delete"
+    ? `سيتم إخفاء ${selectedIds.size} وردية من التقارير. البيانات المالية المرتبطة ستبقى محفوظة. هل أنت متأكد؟`
+    : confirmAction?.type === "bulk_clear"
+    ? `سيتم إعادة تعيين بيانات المبيعات والأرصدة لـ ${selectedIds.size} وردية. هل أنت متأكد؟`
+    : confirmAction?.type === "clear"
+    ? `سيتم إعادة تعيين بيانات المبيعات والأرصدة للوردية الخاصة بـ "${confirmAction?.session?.cashier_name || "غير محدد"}". هل أنت متأكد؟`
+    : `سيتم إخفاء الوردية الخاصة بـ "${confirmAction?.session?.cashier_name || "غير محدد"}" من التقارير. البيانات المالية المرتبطة ستبقى محفوظة.`;
+
+  const isDestructive = confirmAction?.type === "delete" || confirmAction?.type === "bulk_delete";
 
   return (
     <div className="space-y-4">
@@ -126,6 +181,26 @@ export default function POSShiftsReport({ sessions, onRefresh }: Props) {
         </div>
       </div>
 
+      {/* Bulk Actions Bar */}
+      {selectedIds.size > 0 && (
+        <div className="bg-primary/10 border border-primary/20 rounded-lg px-4 py-3 flex items-center justify-between gap-3 animate-in slide-in-from-top-2">
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-semibold text-primary">{selectedIds.size} وردية محددة</span>
+            <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setSelectedIds(new Set())}>
+              <X className="h-3 w-3 ml-1" /> إلغاء التحديد
+            </Button>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={() => setConfirmAction({ type: "bulk_clear" })}>
+              <Eraser className="h-3.5 w-3.5" /> إفراغ البيانات
+            </Button>
+            <Button variant="destructive" size="sm" className="h-8 text-xs gap-1.5" onClick={() => setConfirmAction({ type: "bulk_delete" })}>
+              <Trash2 className="h-3.5 w-3.5" /> حذف المحدد
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Shifts Table */}
       <div className="bg-card border border-border rounded-lg overflow-hidden">
         <div className="px-4 py-3 border-b border-border">
@@ -135,6 +210,15 @@ export default function POSShiftsReport({ sessions, onRefresh }: Props) {
           <table className="w-full">
             <thead>
               <tr className="bg-secondary border-b border-border">
+                <th className="px-3 py-2.5 w-10">
+                  <Checkbox
+                    checked={allSelected}
+                    onCheckedChange={toggleAll}
+                    aria-label="تحديد الكل"
+                    className={someSelected ? "data-[state=unchecked]:bg-primary/20" : ""}
+                    {...(someSelected ? { "data-state": "indeterminate" as any } : {})}
+                  />
+                </th>
                 <th className="text-right px-3 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">الكاشير</th>
                 <th className="text-right px-3 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">تاريخ الفتح</th>
                 <th className="text-right px-3 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">وقت الفتح</th>
@@ -152,8 +236,12 @@ export default function POSShiftsReport({ sessions, onRefresh }: Props) {
             <tbody className="divide-y divide-secondary">
               {sorted.map((s) => {
                 const variance = s.cash_variance ?? 0;
+                const isSelected = selectedIds.has(s.id);
                 return (
-                  <tr key={s.id} className="hover:bg-secondary transition-colors">
+                  <tr key={s.id} className={`hover:bg-secondary transition-colors ${isSelected ? "bg-primary/5" : ""}`}>
+                    <td className="px-3 py-3">
+                      <Checkbox checked={isSelected} onCheckedChange={() => toggleOne(s.id)} aria-label={`تحديد وردية ${s.cashier_name}`} />
+                    </td>
                     <td className="px-3 py-3 text-sm text-foreground font-medium">{s.cashier_name || "—"}</td>
                     <td className="px-3 py-3 text-sm text-muted-foreground font-mono">{format(new Date(s.opened_at), "dd/MM/yyyy")}</td>
                     <td className="px-3 py-3 text-sm font-mono text-muted-foreground">{format(new Date(s.opened_at), "hh:mm a", { locale: ar })}</td>
@@ -208,23 +296,16 @@ export default function POSShiftsReport({ sessions, onRefresh }: Props) {
       <AlertDialog open={!!confirmAction} onOpenChange={(open) => !open && setConfirmAction(null)}>
         <AlertDialogContent dir="rtl">
           <AlertDialogHeader>
-            <AlertDialogTitle>
-              {confirmAction?.type === "clear" ? "إفراغ بيانات الوردية" : "حذف الوردية"}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {confirmAction?.type === "clear"
-                ? `سيتم إعادة تعيين بيانات المبيعات والأرصدة للوردية الخاصة بـ "${confirmAction?.session.cashier_name || "غير محدد"}". هل أنت متأكد؟`
-                : `سيتم إخفاء الوردية الخاصة بـ "${confirmAction?.session.cashier_name || "غير محدد"}" من التقارير. البيانات المالية المرتبطة ستبقى محفوظة.`
-              }
-            </AlertDialogDescription>
+            <AlertDialogTitle>{confirmTitle}</AlertDialogTitle>
+            <AlertDialogDescription>{confirmDesc}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-row-reverse gap-2">
             <AlertDialogCancel disabled={actionLoading}>إلغاء</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleAction} disabled={actionLoading}
-              className={confirmAction?.type === "delete" ? "bg-destructive text-destructive-foreground hover:bg-destructive/90" : ""}
+              className={isDestructive ? "bg-destructive text-destructive-foreground hover:bg-destructive/90" : ""}
             >
-              {actionLoading ? "جارٍ التنفيذ..." : confirmAction?.type === "clear" ? "إفراغ" : "حذف"}
+              {actionLoading ? "جارٍ التنفيذ..." : isDestructive ? "حذف" : "إفراغ"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
