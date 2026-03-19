@@ -20,6 +20,7 @@ const CashBoxesPage = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerType, setDrawerType] = useState<"main" | "branch" | "pos" | "petty" | "petty_cash">("branch");
   const [editBox, setEditBox] = useState<any>(null);
+  const [replenishOpen, setReplenishOpen] = useState(false);
 
   const fetchBoxes = useCallback(async () => {
     if (!user) return;
