@@ -649,7 +649,7 @@ export default function POSUserManagementPage() {
                       <th className="px-3 py-3 text-center text-xs font-semibold">الحالة</th>
                       <th className="px-3 py-3 text-center text-xs font-semibold">الحساب</th>
                       <th className="px-3 py-3 text-right text-xs font-semibold">آخر دخول</th>
-                      <th className="px-4 py-3 text-center text-xs font-semibold w-36">إجراءات</th>
+                      <th className="px-3 py-3 text-center text-xs font-semibold w-16">إجراءات</th>
                     </tr>
                   </thead>
                   <tbody>
