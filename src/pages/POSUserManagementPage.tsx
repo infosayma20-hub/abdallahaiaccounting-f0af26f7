@@ -706,7 +706,7 @@ export default function POSUserManagementPage() {
                                 <MoreVertical className="w-4 h-4 text-muted-foreground" />
                               </button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="start" dir="rtl">
+                            <DropdownMenuContent align="start">
                               {!u.has_account && u.email && (
                                 <DropdownMenuItem onClick={() => handleCreateAccountForUser(u)} disabled={creatingAccount} className="gap-2">
                                   <UserPlus className="w-4 h-4 text-primary" /> إنشاء حساب
