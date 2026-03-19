@@ -1,0 +1,1 @@
+ALTER TABLE public.pos_payments ADD COLUMN IF NOT EXISTS change_currency TEXT DEFAULT 'ILS';
