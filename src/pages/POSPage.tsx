@@ -3244,6 +3244,32 @@ const POSPage = () => {
                   </button>
                 </div>
 
+                {/* Order Type Toggle (Delivery / Takeaway / Dine-in) */}
+                <div className="flex items-center gap-1 text-[11px]">
+                  {(["dine_in", "takeaway", "delivery"] as const).map(type => {
+                    const isActive = activeOrder.orderType === type;
+                    const labels: Record<string, { label: string; icon: string }> = {
+                      dine_in: { label: "محلي", icon: "🍽️" },
+                      takeaway: { label: "استلام", icon: "🛍️" },
+                      delivery: { label: "توصيل", icon: "🚚" },
+                    };
+                    return (
+                      <button
+                        key={type}
+                        onClick={() => updateActiveOrder(o => ({ ...o, orderType: type }))}
+                        className={`flex items-center gap-1 px-2 py-1 rounded-md transition-all ${
+                          isActive
+                            ? "bg-primary/15 text-primary border border-primary/30 font-bold"
+                            : "bg-muted/40 text-muted-foreground hover:bg-muted/60"
+                        }`}
+                      >
+                        <span>{labels[type].icon}</span>
+                        {labels[type].label}
+                      </button>
+                    );
+                  })}
+                </div>
+
                 {/* Table picker */}
                 {showTablePicker && (
                   <div className="relative">
