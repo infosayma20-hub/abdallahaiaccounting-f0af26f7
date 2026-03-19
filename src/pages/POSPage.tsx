@@ -1971,10 +1971,23 @@ const POSPage = () => {
       const changeILS = paymentCurrency === "ILS" ? changeInForeign : changeInForeign * rate;
 
       // Determine actual change amounts based on changeCurrency selection
-      // If change is given in foreign currency, the ILS change is 0 and foreign change is deducted from foreign pile
+      // If cashier manually overrode the change amount, use that value
       const actualChangeCurrency = paymentCurrency === "ILS" ? "ILS" : changeCurrency;
-      const actualChangeILS = actualChangeCurrency === "ILS" ? changeILS : 0;
-      const actualChangeForeign = actualChangeCurrency !== "ILS" ? changeILS / (exchangeRates[actualChangeCurrency] || rate) : 0;
+      let actualChangeILS: number;
+      let actualChangeForeign: number;
+      if (manualChangeAmount !== null) {
+        const manualVal = parseFloat(manualChangeAmount) || 0;
+        if (actualChangeCurrency === "ILS") {
+          actualChangeILS = manualVal;
+          actualChangeForeign = 0;
+        } else {
+          actualChangeILS = 0;
+          actualChangeForeign = manualVal;
+        }
+      } else {
+        actualChangeILS = actualChangeCurrency === "ILS" ? changeILS : 0;
+        actualChangeForeign = actualChangeCurrency !== "ILS" ? changeILS / (exchangeRates[actualChangeCurrency] || rate) : 0;
+      }
 
       // Generate survey token if customer data was collected
       const surveyToken = customerDataDiscount ? crypto.randomUUID() : null;
