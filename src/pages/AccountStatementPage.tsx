@@ -140,11 +140,24 @@ const QUICK_PERIODS = [
 
 const CURRENCIES = [
   { value: "all", label: "كل العملات" },
-  { value: "شيكل", label: "₪ شيكل" },
-  { value: "دولار", label: "$ دولار" },
-  { value: "دينار", label: "د.أ دينار" },
-  { value: "يورو", label: "€ يورو" },
+  { value: "شيكل", label: "₪ شيكل", aliases: ["ILS", "شيكل"] },
+  { value: "دولار", label: "$ دولار", aliases: ["USD", "دولار"] },
+  { value: "دينار", label: "د.أ دينار", aliases: ["JOD", "دينار"] },
+  { value: "يورو", label: "€ يورو", aliases: ["EUR", "يورو"] },
+  { value: "جنيه", label: "£ جنيه", aliases: ["EGP", "جنيه"] },
 ];
+
+const normalizeCurrency = (c: string): string => {
+  if (!c) return "شيكل";
+  const map: Record<string, string> = {
+    "ILS": "شيكل", "شيكل": "شيكل",
+    "USD": "دولار", "دولار": "دولار",
+    "JOD": "دينار", "دينار": "دينار",
+    "EUR": "يورو", "يورو": "يورو",
+    "EGP": "جنيه", "جنيه": "جنيه",
+  };
+  return map[c] || c;
+};
 
 const TX_TYPE_FILTERS = [
   { value: "all", label: "الكل" },
