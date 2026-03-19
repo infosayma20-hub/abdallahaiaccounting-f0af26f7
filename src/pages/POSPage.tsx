@@ -1163,6 +1163,7 @@ const POSPage = () => {
           user_id: dataOwnerId,
           name: newCustomerName.trim(),
           whatsapp: newCustomerPhone.trim() || null,
+          address: newCustomerAddress.trim() || null,
           total_visits: 0,
           total_spent: 0,
           marketing_consent: true,
