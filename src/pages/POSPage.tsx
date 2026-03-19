@@ -3542,6 +3542,7 @@ const POSPage = () => {
                     const tableId = activeOrder.tableId;
                     setCart([]); setSelectedCartIndex(null); setOrderDiscount(0); setOrderNote("");
                     setCustomerDataDiscount(null);
+                    setCustomerName("", null, "", null); updateActiveOrder(o => ({ ...o, orderType: "dine_in", deliveryAddress: "", name: o.tableName ? o.tableName : `طلب ${o.name.match(/\d+/)?.[0] || "1"}` })); setCustomerSearch("");
                     if (tableId) {
                       const { data: existingOrder } = await supabase
                         .from("pos_orders")
