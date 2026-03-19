@@ -1473,6 +1473,23 @@ const POSPage = () => {
             const sz = (p.preference_value as any)?.size;
             if (sz && ["S", "M", "L"].includes(sz)) setCardSize(sz);
           }
+          if (p.preference_key === "category_order") {
+            const orderIds = (p.preference_value as any)?.order;
+            if (Array.isArray(orderIds) && orderIds.length > 0) {
+              setPosCategories(prev => {
+                const ordered: POSCategory[] = [];
+                for (const id of orderIds) {
+                  const cat = prev.find(c => c.id === id);
+                  if (cat) ordered.push(cat);
+                }
+                // Add any new categories not in the saved order
+                for (const cat of prev) {
+                  if (!ordered.find(c => c.id === cat.id)) ordered.push(cat);
+                }
+                return ordered;
+              });
+            }
+          }
         }
       }
     }
