@@ -2255,7 +2255,7 @@ const POSPage = () => {
     // Fetch sales breakdown by payment currency
     const { data: ordersData } = await supabase
       .from("pos_orders")
-      .select("payment_currency, payment_currency_amount, total")
+      .select("id, payment_currency, payment_currency_amount, total")
       .eq("session_id", session.id)
       .eq("state", "paid");
 
@@ -2266,6 +2266,22 @@ const POSPage = () => {
       currencyBreakdown[cur].sales += Number(o.payment_currency_amount) || Number(o.total) || 0;
       currencyBreakdown[cur].count += 1;
     });
+
+    // Fetch payment method breakdown by currency
+    const orderIds = (ordersData || []).map((o: any) => o.id);
+    const paymentMethodBreakdown: Record<string, Record<string, number>> = {};
+    if (orderIds.length > 0) {
+      const { data: paymentsData } = await supabase
+        .from("pos_payments")
+        .select("payment_method, amount, currency")
+        .in("order_id", orderIds);
+      (paymentsData || []).forEach((p: any) => {
+        const method = p.payment_method || "cash";
+        const cur = p.currency || "ILS";
+        if (!paymentMethodBreakdown[method]) paymentMethodBreakdown[method] = {};
+        paymentMethodBreakdown[method][cur] = (paymentMethodBreakdown[method][cur] || 0) + Number(p.amount || 0);
+      });
+    }
 
     const expected = session.opening_cash + session.total_sales - totalExpenses;
     const variance = cash - expected;
@@ -2407,6 +2423,7 @@ const POSPage = () => {
       variance,
       sessionId: session.id,
       currencyBreakdown,
+      paymentMethodBreakdown,
       exchangeRates,
     });
 

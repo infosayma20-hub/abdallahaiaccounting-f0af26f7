@@ -7,6 +7,9 @@ interface CurrencyBreakdown {
   [key: string]: { sales: number; count: number };
 }
 
+// payment method -> currency -> amount
+type PaymentMethodBreakdown = Record<string, Record<string, number>>;
+
 interface ShiftSummaryData {
   companyName: string;
   terminalName: string;
@@ -24,6 +27,7 @@ interface ShiftSummaryData {
   variance: number;
   sessionId: string;
   currencyBreakdown?: CurrencyBreakdown;
+  paymentMethodBreakdown?: PaymentMethodBreakdown;
   exchangeRates?: Record<string, number>;
 }
 
@@ -33,11 +37,61 @@ interface ShiftSummaryReceiptProps {
   data: ShiftSummaryData | null;
 }
 
+const CURRENCIES = ["ILS", "USD", "JOD"] as const;
+
+function currencySymbol(cur: string) {
+  if (cur === "ILS") return "₪";
+  if (cur === "USD") return "$";
+  if (cur === "JOD") return "د.أ";
+  if (cur === "EUR") return "€";
+  return cur;
+}
+
+function formatCur(amount: number, cur: string) {
+  if (cur === "JOD") return `${amount.toFixed(2)} د.أ`;
+  return `${currencySymbol(cur)}${amount.toFixed(2)}`;
+}
+
+function currencyLabel(cur: string) {
+  if (cur === "ILS") return "شيكل";
+  if (cur === "USD") return "دولار";
+  if (cur === "JOD") return "دينار";
+  if (cur === "EUR") return "يورو";
+  return cur;
+}
+
+const METHOD_LABELS: Record<string, string> = {
+  cash: "نقدي",
+  card: "بطاقة / فيزا",
+  credit: "آجل",
+  employee_account: "حساب موظف",
+};
+
+const printStyles = `
+  @page { margin: 0; size: 80mm auto; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', 'Arial', sans-serif; font-size: 12px; width: 80mm; padding: 3mm; color: #1a1a1a; direction: rtl; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .center { text-align: center; } .bold { font-weight: 700; }
+  .divider { border: none; border-top: 1px solid #e0e0e0; margin: 6px 0; }
+  .divider-bold { border: none; border-top: 2px solid #1a1a1a; margin: 8px 0; }
+  .divider-dashed { border: none; border-top: 1px dashed #ccc; margin: 6px 0; }
+  .row { display: flex; justify-content: space-between; align-items: center; padding: 3px 0; }
+  .company-name { font-size: 20px; font-weight: 800; color: #0f172a; margin-bottom: 2px; }
+  .terminal-name { font-size: 11px; color: #64748b; font-weight: 500; }
+  .meta-text { font-size: 10px; color: #94a3b8; }
+  .section-title { font-size: 10px; font-weight: 700; letter-spacing: 1px; color: #94a3b8; text-align: center; margin: 6px 0 4px; }
+  .total-label { font-size: 14px; font-weight: 700; color: #0f172a; }
+  .total-amount { font-size: 22px; font-weight: 800; color: #0f172a; font-variant-numeric: tabular-nums; }
+  .summary-row { display: flex; justify-content: space-between; padding: 3px 0; font-size: 12px; color: #475569; }
+  .summary-row .amount { font-variant-numeric: tabular-nums; font-weight: 600; }
+  .variance-box { text-align: center; padding: 8px; border-radius: 6px; margin: 8px 0; font-weight: 700; font-size: 14px; }
+  .footer-text { font-size: 10px; color: #94a3b8; text-align: center; line-height: 1.6; }
+`;
+
 export default function ShiftSummaryReceipt({ open, onOpenChange, data }: ShiftSummaryReceiptProps) {
   const receiptRef = useRef<HTMLDivElement>(null);
   const autoPrintDone = useRef(false);
 
-  // Auto-print when dialog opens
   useEffect(() => {
     if (open && data && !autoPrintDone.current) {
       autoPrintDone.current = true;
@@ -46,111 +100,52 @@ export default function ShiftSummaryReceipt({ open, onOpenChange, data }: ShiftS
         if (!content) return;
         const printWindow = window.open("", "_blank", "width=320,height=600");
         if (!printWindow) return;
-        printWindow.document.write(`
-          <!DOCTYPE html>
-          <html dir="rtl" lang="ar">
-          <head>
-            <meta charset="UTF-8">
-            <title>ملخص الوردية</title>
-            <style>
-              @page { margin: 0; size: 80mm auto; }
-              * { margin: 0; padding: 0; box-sizing: border-box; }
-              body { font-family: 'Segoe UI', 'Arial', sans-serif; font-size: 12px; width: 80mm; padding: 3mm; color: #1a1a1a; direction: rtl; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-              .center { text-align: center; } .bold { font-weight: 700; }
-              .divider { border: none; border-top: 1px solid #e0e0e0; margin: 6px 0; }
-              .divider-bold { border: none; border-top: 2px solid #1a1a1a; margin: 8px 0; }
-              .divider-dashed { border: none; border-top: 1px dashed #ccc; margin: 6px 0; }
-              .row { display: flex; justify-content: space-between; align-items: center; padding: 3px 0; }
-              .company-name { font-size: 20px; font-weight: 800; color: #0f172a; margin-bottom: 2px; }
-              .terminal-name { font-size: 11px; color: #64748b; font-weight: 500; }
-              .meta-text { font-size: 10px; color: #94a3b8; }
-              .section-title { font-size: 10px; font-weight: 700; letter-spacing: 1px; color: #94a3b8; text-align: center; margin: 6px 0 4px; }
-              .total-label { font-size: 14px; font-weight: 700; color: #0f172a; }
-              .total-amount { font-size: 22px; font-weight: 800; color: #0f172a; font-variant-numeric: tabular-nums; }
-              .summary-row { display: flex; justify-content: space-between; padding: 3px 0; font-size: 12px; color: #475569; }
-              .summary-row .amount { font-variant-numeric: tabular-nums; font-weight: 600; }
-              .variance-box { text-align: center; padding: 8px; border-radius: 6px; margin: 8px 0; font-weight: 700; font-size: 14px; }
-              .footer-text { font-size: 10px; color: #94a3b8; text-align: center; line-height: 1.6; }
-            </style>
-          </head>
-          <body>${content.innerHTML}<script>window.onload=function(){window.print();window.close();}<\/script></body>
-          </html>
-        `);
+        printWindow.document.write(`<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="UTF-8"><title>ملخص الوردية</title><style>${printStyles}</style></head><body>${content.innerHTML}<script>window.onload=function(){window.print();window.close();}<\/script></body></html>`);
         printWindow.document.close();
       }, 600);
       return () => clearTimeout(timer);
     }
-    if (!open) {
-      autoPrintDone.current = false;
-    }
+    if (!open) autoPrintDone.current = false;
   }, [open, data]);
 
   if (!data) return null;
 
   const varianceType = data.variance > 0 ? "فائض" : data.variance < 0 ? "عجز" : "مطابق";
   const varianceColor = data.variance > 0 ? "#16a34a" : data.variance < 0 ? "#dc2626" : "#475569";
+  const pmb = data.paymentMethodBreakdown || {};
+  const cb = data.currencyBreakdown || {};
+
+  // Helper: get amounts for a payment method across currencies, only show if > 0
+  const getMethodCurrencies = (method: string) => {
+    const amounts = pmb[method] || {};
+    return CURRENCIES.filter(c => (amounts[c] || 0) > 0).map(c => ({ cur: c, amount: amounts[c] }));
+  };
+
+  // Expected per currency: cash sales per currency
+  const cashMethodAmounts = pmb["cash"] || {};
 
   const handlePrint = () => {
     const content = receiptRef.current;
     if (!content) return;
-
     const printWindow = window.open("", "_blank", "width=320,height=600");
     if (!printWindow) return;
-
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html dir="rtl" lang="ar">
-      <head>
-        <meta charset="UTF-8">
-        <title>ملخص الوردية</title>
-        <style>
-          @page { margin: 0; size: 80mm auto; }
-          * { margin: 0; padding: 0; box-sizing: border-box; }
-          body {
-            font-family: 'Segoe UI', 'Arial', sans-serif;
-            font-size: 12px;
-            width: 80mm;
-            padding: 3mm;
-            color: #1a1a1a;
-            direction: rtl;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
-          }
-          .center { text-align: center; }
-          .bold { font-weight: 700; }
-          .divider { border: none; border-top: 1px solid #e0e0e0; margin: 6px 0; }
-          .divider-bold { border: none; border-top: 2px solid #1a1a1a; margin: 8px 0; }
-          .divider-dashed { border: none; border-top: 1px dashed #ccc; margin: 6px 0; }
-          .row { display: flex; justify-content: space-between; align-items: center; padding: 3px 0; }
-          .company-name { font-size: 20px; font-weight: 800; color: #0f172a; margin-bottom: 2px; }
-          .terminal-name { font-size: 11px; color: #64748b; font-weight: 500; }
-          .meta-text { font-size: 10px; color: #94a3b8; }
-          .section-title { font-size: 10px; font-weight: 700; letter-spacing: 1px; color: #94a3b8; text-align: center; margin: 6px 0 4px; }
-          .total-label { font-size: 14px; font-weight: 700; color: #0f172a; }
-          .total-amount { font-size: 22px; font-weight: 800; color: #0f172a; font-variant-numeric: tabular-nums; }
-          .summary-row { display: flex; justify-content: space-between; padding: 3px 0; font-size: 12px; color: #475569; }
-          .summary-row .amount { font-variant-numeric: tabular-nums; font-weight: 600; }
-          .variance-box { text-align: center; padding: 8px; border-radius: 6px; margin: 8px 0; font-weight: 700; font-size: 14px; }
-          .footer-text { font-size: 10px; color: #94a3b8; text-align: center; line-height: 1.6; }
-        </style>
-      </head>
-      <body>
-        ${content.innerHTML}
-        <script>window.onload=function(){window.print();window.close();}<\/script>
-      </body>
-      </html>
-    `);
+    printWindow.document.write(`<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="UTF-8"><title>ملخص الوردية</title><style>${printStyles}</style></head><body>${content.innerHTML}<script>window.onload=function(){window.print();window.close();}<\/script></body></html>`);
     printWindow.document.close();
   };
 
-  const formatDate = (iso: string) => {
-    const d = new Date(iso);
-    return d.toLocaleDateString("ar-PS", { year: "numeric", month: "2-digit", day: "2-digit" });
-  };
-  const formatTime = (iso: string) => {
-    const d = new Date(iso);
-    return d.toLocaleTimeString("ar-PS", { hour: "2-digit", minute: "2-digit" });
-  };
+  const formatDate = (iso: string) => new Date(iso).toLocaleDateString("ar-PS", { year: "numeric", month: "2-digit", day: "2-digit" });
+  const formatTime = (iso: string) => new Date(iso).toLocaleTimeString("ar-PS", { hour: "2-digit", minute: "2-digit" });
+
+  const rowStyle = { display: "flex", justifyContent: "space-between", padding: "3px 0", fontSize: 12, color: "#475569" } as const;
+  const amountStyle = { fontWeight: 600, fontVariantNumeric: "tabular-nums" as const };
+  const sectionTitle = { fontSize: 10, fontWeight: 700, letterSpacing: 1, color: "#94a3b8", textAlign: "center" as const, margin: "6px 0 4px" };
+  const dashed = { border: "none", borderTop: "1px dashed #ccc", margin: "6px 0" };
+
+  // Non-cash methods to display
+  const nonCashMethods = ["card", "credit", "employee_account"].filter(m => {
+    const amounts = pmb[m] || {};
+    return Object.values(amounts).some(v => v > 0);
+  });
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -163,7 +158,6 @@ export default function ShiftSummaryReceipt({ open, onOpenChange, data }: ShiftS
         </div>
 
         <div className="p-4 space-y-3">
-          {/* Receipt Preview */}
           <div
             ref={receiptRef}
             className="bg-white text-black rounded-xl border p-5 text-sm"
@@ -177,7 +171,7 @@ export default function ShiftSummaryReceipt({ open, onOpenChange, data }: ShiftS
               <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>📋 ملخص تسليم العهدة</div>
             </div>
 
-            {/* Meta Info */}
+            {/* Meta */}
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "#94a3b8", marginBottom: 4 }}>
               <span>الكاشير: {data.cashierName}</span>
             </div>
@@ -186,93 +180,100 @@ export default function ShiftSummaryReceipt({ open, onOpenChange, data }: ShiftS
               <span>الإغلاق: {formatDate(data.closedAt)} {formatTime(data.closedAt)}</span>
             </div>
 
-            <hr style={{ border: "none", borderTop: "1px dashed #ccc", margin: "6px 0" }} />
+            <hr style={dashed} />
 
             {/* Session Details */}
-            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1, color: "#94a3b8", textAlign: "center", margin: "6px 0 4px" }}>
-              تفاصيل الوردية
-            </div>
-
-            <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", fontSize: 12, color: "#475569" }}>
+            <div style={sectionTitle}>تفاصيل الوردية</div>
+            <div style={rowStyle}>
               <span>النقدية الافتتاحية</span>
-              <span style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>₪{data.openingCash.toFixed(2)}</span>
+              <span style={amountStyle}>₪{data.openingCash.toFixed(2)}</span>
             </div>
-            <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", fontSize: 12, color: "#475569" }}>
+            <div style={rowStyle}>
               <span>إجمالي المبيعات</span>
-              <span style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums", color: "#16a34a" }}>₪{data.totalSales.toFixed(2)}</span>
+              <span style={{ ...amountStyle, color: "#16a34a" }}>₪{data.totalSales.toFixed(2)}</span>
             </div>
             {(data.totalExpenses || 0) > 0 && (
-              <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", fontSize: 12, color: "#475569" }}>
+              <div style={rowStyle}>
                 <span>مصروفات من الصندوق</span>
-                <span style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums", color: "#dc2626" }}>-₪{(data.totalExpenses || 0).toFixed(2)}</span>
+                <span style={{ ...amountStyle, color: "#dc2626" }}>-₪{(data.totalExpenses || 0).toFixed(2)}</span>
               </div>
             )}
-            <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", fontSize: 12, color: "#475569" }}>
+            <div style={rowStyle}>
               <span>عدد الطلبات</span>
               <span style={{ fontWeight: 600 }}>{data.totalOrders}</span>
             </div>
 
             {/* Currency Breakdown */}
-            {data.currencyBreakdown && Object.keys(data.currencyBreakdown).length > 0 && (
+            {Object.keys(cb).length > 0 && (
               <>
-                <hr style={{ border: "none", borderTop: "1px dashed #ccc", margin: "6px 0" }} />
-                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1, color: "#94a3b8", textAlign: "center", margin: "6px 0 4px" }}>
-                  تفاصيل العملات المقبوضة
-                </div>
-                {Object.entries(data.currencyBreakdown).map(([cur, info]) => {
-                  const symbol = cur === "ILS" ? "₪" : cur === "USD" ? "$" : cur === "JOD" ? "د.أ " : cur === "EUR" ? "€" : cur;
-                  const label = cur === "ILS" ? "شيكل" : cur === "USD" ? "دولار" : cur === "JOD" ? "دينار" : cur === "EUR" ? "يورو" : cur;
-                  const prefix = cur === "JOD" ? "" : symbol;
-                  const suffix = cur === "JOD" ? " د.أ" : "";
-                  return (
-                    <div key={cur} style={{ display: "flex", justifyContent: "space-between", padding: "2px 0", fontSize: 12, color: "#475569" }}>
-                      <span>{label} ({info.count} طلب)</span>
-                      <span style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{prefix}{info.sales.toFixed(2)}{suffix}</span>
+                <hr style={dashed} />
+                <div style={sectionTitle}>تفاصيل العملات المقبوضة</div>
+                {Object.entries(cb).map(([cur, info]) => (
+                  <div key={cur} style={{ ...rowStyle, fontSize: 12 }}>
+                    <span>{currencyLabel(cur)} ({info.count} طلب)</span>
+                    <span style={amountStyle}>{formatCur(info.sales, cur)}</span>
+                  </div>
+                ))}
+              </>
+            )}
+
+            {/* Non-cash payment methods */}
+            {nonCashMethods.length > 0 && (
+              <>
+                <hr style={dashed} />
+                <div style={sectionTitle}>مبيعات غير نقدية</div>
+                {nonCashMethods.map(method => {
+                  const currencies = getMethodCurrencies(method);
+                  return currencies.map(({ cur, amount }) => (
+                    <div key={`${method}-${cur}`} style={{ ...rowStyle, fontSize: 12 }}>
+                      <span>{METHOD_LABELS[method] || method} ({currencyLabel(cur)})</span>
+                      <span style={amountStyle}>{formatCur(amount, cur)}</span>
                     </div>
-                  );
+                  ));
                 })}
               </>
             )}
 
             <hr style={{ border: "none", borderTop: "1px solid #e0e0e0", margin: "6px 0" }} />
 
-            {/* ILS Summary */}
-            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1, color: "#94a3b8", textAlign: "center", margin: "6px 0 4px" }}>
-              تسليم النقدية
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", fontSize: 13, fontWeight: 700, color: "#0f172a" }}>
+            {/* Expected Cash (3 currencies) */}
+            <div style={sectionTitle}>تسليم النقدية</div>
+
+            {/* Expected per currency - show ILS always, others only if > 0 */}
+            <div style={{ ...rowStyle, fontSize: 13, fontWeight: 700, color: "#0f172a" }}>
               <span>المتوقع (شيكل)</span>
               <span style={{ fontVariantNumeric: "tabular-nums" }}>₪{data.expectedCash.toFixed(2)}</span>
             </div>
-            {data.currencyBreakdown?.USD && (
-              <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", fontSize: 12, fontWeight: 600, color: "#0f172a" }}>
+            {(cashMethodAmounts["USD"] || cb.USD?.sales || 0) > 0 && (
+              <div style={{ ...rowStyle, fontSize: 12, fontWeight: 600, color: "#0f172a" }}>
                 <span>المتوقع (دولار)</span>
-                <span style={{ fontVariantNumeric: "tabular-nums" }}>${data.currencyBreakdown.USD.sales.toFixed(2)}</span>
+                <span style={{ fontVariantNumeric: "tabular-nums" }}>${(cashMethodAmounts["USD"] || cb.USD?.sales || 0).toFixed(2)}</span>
               </div>
             )}
-            {data.currencyBreakdown?.JOD && (
-              <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", fontSize: 12, fontWeight: 600, color: "#0f172a" }}>
+            {(cashMethodAmounts["JOD"] || cb.JOD?.sales || 0) > 0 && (
+              <div style={{ ...rowStyle, fontSize: 12, fontWeight: 600, color: "#0f172a" }}>
                 <span>المتوقع (دينار)</span>
-                <span style={{ fontVariantNumeric: "tabular-nums" }}>{data.currencyBreakdown.JOD.sales.toFixed(2)} د.أ</span>
+                <span style={{ fontVariantNumeric: "tabular-nums" }}>{(cashMethodAmounts["JOD"] || cb.JOD?.sales || 0).toFixed(2)} د.أ</span>
               </div>
             )}
 
             <hr style={{ border: "none", borderTop: "1px dashed #ccc", margin: "4px 0" }} />
 
-            <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", fontSize: 13, fontWeight: 700, color: "#0f172a" }}>
+            {/* Delivered */}
+            <div style={{ ...rowStyle, fontSize: 13, fontWeight: 700, color: "#0f172a" }}>
               <span>المسلّم (شيكل)</span>
               <span style={{ fontVariantNumeric: "tabular-nums" }}>₪{data.closingCash.toFixed(2)}</span>
             </div>
             {(data.closingCashUSD || 0) > 0 && (
-              <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", fontSize: 12, color: "#475569" }}>
+              <div style={rowStyle}>
                 <span>المسلّم (دولار)</span>
-                <span style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>${(data.closingCashUSD || 0).toFixed(2)}</span>
+                <span style={amountStyle}>${(data.closingCashUSD || 0).toFixed(2)}</span>
               </div>
             )}
             {(data.closingCashJOD || 0) > 0 && (
-              <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", fontSize: 12, color: "#475569" }}>
+              <div style={rowStyle}>
                 <span>المسلّم (دينار)</span>
-                <span style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{(data.closingCashJOD || 0).toFixed(2)} د.أ</span>
+                <span style={amountStyle}>{(data.closingCashJOD || 0).toFixed(2)} د.أ</span>
               </div>
             )}
 
@@ -292,9 +293,9 @@ export default function ShiftSummaryReceipt({ open, onOpenChange, data }: ShiftS
               {varianceType}: ₪{Math.abs(data.variance).toFixed(2)}
             </div>
 
-            <hr style={{ border: "none", borderTop: "1px dashed #ccc", margin: "6px 0" }} />
+            <hr style={dashed} />
 
-            {/* Signature area */}
+            {/* Signature */}
             <div style={{ marginTop: 12, fontSize: 10, color: "#94a3b8" }}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
                 <span>توقيع الكاشير: _____________</span>
