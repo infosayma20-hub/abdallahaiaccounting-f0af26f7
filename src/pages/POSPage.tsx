@@ -1744,7 +1744,9 @@ const POSPage = () => {
               table_id: activeOrder.tableId,
               guest_count: activeOrder.guestCount,
               guest_name: activeOrder.guestName || null,
-              order_type: "dine_in",
+              order_type: activeOrder.orderType,
+              delivery_address: activeOrder.orderType === "delivery" ? activeOrder.deliveryAddress : null,
+              pos_customer_id: activeOrder.posCustomerId || null,
               ...(customerDataDiscount ? { pos_customer_id: customerDataDiscount.customerId, customer_discount_pct: customerDataDiscount.discountPct } as any : {}),
             } as any)
             .select()
