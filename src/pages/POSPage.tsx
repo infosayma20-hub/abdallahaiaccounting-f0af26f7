@@ -1256,18 +1256,21 @@ const POSPage = () => {
   const handleCategoryDragEnd = useCallback(async (event: DragEndEvent) => {
     const { active, over } = event;
     setDragActiveId(null);
-    if (!isAdmin || !over || active.id === over.id || !userId) return;
+    if (!over || active.id === over.id || !userId) return;
     const oldIndex = posCategories.findIndex(c => c.id === active.id);
     const newIndex = posCategories.findIndex(c => c.id === over.id);
     if (oldIndex === -1 || newIndex === -1) return;
     const reordered = arrayMove(posCategories, oldIndex, newIndex);
     setPosCategories(reordered);
-    // Save to DB
-    for (let i = 0; i < reordered.length; i++) {
-      await supabase.from("pos_categories" as any).update({ display_order: i, sort_order: i } as any).eq("id", reordered[i].id);
-    }
+    // Save per-user category order preference
+    const orderIds = reordered.map(c => c.id);
+    await supabase.from("pos_user_preferences").upsert({
+      auth_user_id: userId,
+      preference_key: "category_order",
+      preference_value: { order: orderIds },
+    } as any, { onConflict: "auth_user_id,preference_key" });
     toast.success("تم حفظ ترتيب التصنيفات");
-  }, [posCategories, userId, isAdmin]);
+  }, [posCategories, userId]);
 
   const handleProductDragEnd = useCallback(async (event: DragEndEvent) => {
     const { active, over } = event;
