@@ -186,7 +186,7 @@ export async function loadPOSPaymentMethods(uid: string, dateFrom: string, dateT
     if (payments) allPayments.push(...payments);
   }
   const methodMap: Record<string, { method: string; count: number; total: number; max: number; min: number }> = {};
-  (payments || []).forEach(p => {
+  allPayments.forEach(p => {
     const m = p.payment_method === "cash" ? "نقدي" : p.payment_method === "card" ? "بطاقة" : p.payment_method === "credit" ? "آجل" : p.payment_method || "نقدي";
     if (!methodMap[m]) methodMap[m] = { method: m, count: 0, total: 0, max: 0, min: Infinity };
     methodMap[m].count++;
