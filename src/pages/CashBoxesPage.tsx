@@ -116,25 +116,25 @@ const CashBoxesPage = () => {
             {box.is_active ? "نشط" : "مغلق"}
           </Badge>
         </div>
-        <CardContent className="p-2.5 space-y-1.5">
-          <div className="flex items-baseline justify-between">
-            <span className="text-[9px] text-muted-foreground">الرصيد</span>
-            <span className={`text-sm font-bold font-mono ${bal.balance > 0 ? "text-emerald-600" : bal.balance < 0 ? "text-red-600" : "text-muted-foreground"}`}>
+        <CardContent className="p-2.5 space-y-1.5 overflow-hidden">
+          <div className="flex items-baseline justify-between gap-1">
+            <span className="text-[9px] text-muted-foreground shrink-0">الرصيد</span>
+            <span className={`text-xs font-bold font-mono truncate ${bal.balance > 0 ? "text-emerald-600" : bal.balance < 0 ? "text-red-600" : "text-muted-foreground"}`}>
               {currencyLabel}{fmt(bal.balance)}
             </span>
           </div>
           <div className="flex items-center justify-between text-[9px] text-muted-foreground">
-            {box.branch_location && <span>{box.branch_location}</span>}
+            {box.branch_location && <span className="truncate">{box.branch_location}</span>}
             <span>{currencyLabel}</span>
           </div>
           <div className="text-[9px] space-y-0.5 pt-1 border-t border-border/50">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">↑ وارد</span>
-              <span className="text-emerald-600 font-mono">{currencyLabel}{fmt(bal.inflow)}</span>
+            <div className="flex justify-between gap-1">
+              <span className="text-muted-foreground shrink-0">↑ وارد</span>
+              <span className="text-emerald-600 font-mono truncate">{currencyLabel}{fmt(bal.inflow)}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">↓ صادر</span>
-              <span className="text-red-600 font-mono">{currencyLabel}{fmt(bal.outflow)}</span>
+            <div className="flex justify-between gap-1">
+              <span className="text-muted-foreground shrink-0">↓ صادر</span>
+              <span className="text-red-600 font-mono truncate">{currencyLabel}{fmt(bal.outflow)}</span>
             </div>
           </div>
         </CardContent>
@@ -189,12 +189,12 @@ const CashBoxesPage = () => {
           { label: "صناديق نقاط البيع", value: `₪${fmt(posBalance)}`, sub: `${posBoxes.length} صندوق POS نشط`, icon: "🖥️", color: "#7C3AED" },
           { label: "صناديق النثرية", value: `₪${fmt(pettyBalance)}`, sub: `${pettyBoxes.length} صندوق نثرية نشط`, icon: "🗃️", color: "#D97706" },
         ].map((kpi, i) => (
-          <Card key={i} className="p-4">
-            <div className="flex items-start gap-3">
-              <span className="text-2xl">{kpi.icon}</span>
+          <Card key={i} className="p-4 overflow-hidden">
+            <div className="flex items-start gap-2">
+              <span className="text-2xl shrink-0">{kpi.icon}</span>
               <div className="flex-1 min-w-0">
-                <p className="text-[11px] text-muted-foreground">{kpi.label}</p>
-                <p className="text-lg font-bold font-mono mt-0.5" style={{ color: kpi.color }}>{kpi.value}</p>
+                <p className="text-[11px] text-muted-foreground truncate">{kpi.label}</p>
+                <p className="text-base font-bold font-mono mt-0.5 truncate" style={{ color: kpi.color }}>{kpi.value}</p>
                 <p className="text-[10px] text-muted-foreground mt-0.5 truncate">{kpi.sub}</p>
               </div>
             </div>
