@@ -300,8 +300,8 @@ const POSPage = () => {
   });
 
   // Employee account payment
-  const [employees, setEmployees] = useState<{ id: string; full_name: string; base_salary: number; account_code?: string }[]>([]);
-  const [selectedEmployee, setSelectedEmployee] = useState<{ id: string; full_name: string; account_code?: string } | null>(null);
+  const [employees, setEmployees] = useState<{ id: string; full_name: string; base_salary: number; account_code?: string; job_title?: string }[]>([]);
+  const [selectedEmployee, setSelectedEmployee] = useState<{ id: string; full_name: string; account_code?: string; job_title?: string } | null>(null);
   const [employeeSearch, setEmployeeSearch] = useState("");
   const [showEmployeeDropdown, setShowEmployeeDropdown] = useState(false);
   const [employeeBalance, setEmployeeBalance] = useState(0);
@@ -1072,7 +1072,7 @@ const POSPage = () => {
     // Load HR employees
     const { data: empData } = await supabase
       .from("employees")
-      .select("id, full_name, base_salary")
+      .select("id, full_name, base_salary, job_title")
       .eq("user_id", dataOwnerId)
       .eq("is_active", true)
       .order("full_name");
@@ -1092,14 +1092,14 @@ const POSPage = () => {
       .eq("is_active", true);
     
     const empMap = new Map<string, boolean>();
-    const emps: { id: string; full_name: string; base_salary: number; account_code?: string }[] = [];
+    const emps: { id: string; full_name: string; base_salary: number; account_code?: string; job_title?: string }[] = [];
     
     // Add HR employees first
     (empData || []).forEach(emp => {
       empMap.set(emp.id, true);
       empMap.set(emp.full_name.toLowerCase(), true);
       const linked = (accData || []).find(a => a.account_name === `ذمم موظف - ${emp.full_name}`);
-      emps.push({ ...emp, account_code: linked?.account_code || undefined });
+      emps.push({ ...emp, job_title: emp.job_title || undefined, account_code: linked?.account_code || undefined });
     });
     
     // Add POS users that aren't already in the employees list
@@ -4167,7 +4167,7 @@ const POSPage = () => {
                       <button
                         key={emp.id}
                         onClick={() => {
-                          setSelectedEmployee({ id: emp.id, full_name: emp.full_name, account_code: emp.account_code });
+                          setSelectedEmployee({ id: emp.id, full_name: emp.full_name, account_code: emp.account_code, job_title: emp.job_title });
                           setEmployeeSearch("");
                           setShowEmployeeDropdown(false);
                           loadEmployeeBalance(emp.id);
@@ -4187,10 +4187,9 @@ const POSPage = () => {
                         <UserCheck className="h-4 w-4 text-purple-500" />
                         <span className="text-sm font-medium">{selectedEmployee.full_name}</span>
                       </div>
-                      <div className="text-left">
-                        <p className="text-[10px] text-muted-foreground">رصيد مسحوبات الشهر</p>
-                        <p className="text-sm font-bold text-destructive tabular-nums">₪{employeeBalance.toFixed(0)}</p>
-                      </div>
+                      {selectedEmployee.job_title && (
+                        <span className="text-xs text-muted-foreground">{selectedEmployee.job_title}</span>
+                      )}
                     </div>
                     <div className="mt-2">
                       <Input
