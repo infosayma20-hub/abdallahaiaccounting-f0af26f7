@@ -2895,8 +2895,8 @@ const POSPage = () => {
                               ? "border-dashed border-amber-400/60 cursor-grab ring-1 ring-amber-400/20" 
                               : isAddonOpen
                                 ? "border-primary bg-accent shadow-lg"
-                                : "border-border hover:border-opacity-60 cursor-pointer"
-                            } ${isDragging ? "shadow-2xl scale-105 rotate-1" : "hover:shadow-md"}`}
+                                : "border-border/80 hover:border-opacity-60 cursor-pointer shadow-[0_1px_4px_rgba(0,0,0,0.06),0_0_0_1px_rgba(0,0,0,0.04)] hover:shadow-[0_3px_10px_rgba(0,0,0,0.1)]"
+                            } ${isDragging ? "shadow-2xl scale-105 rotate-1" : ""}`}
                             style={{
                               ...style,
                               borderBottomWidth: cardSize === "S" ? "2px" : "3px",
