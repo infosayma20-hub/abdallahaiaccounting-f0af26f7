@@ -2396,9 +2396,9 @@ const POSPage = () => {
 
     const accountingDate = getPosAccountingDate(session.opened_at, cutoffHour);
 
-    // Recalculate session totals from actual paid orders for accuracy
-    const recalcTotalSales = (ordersData || []).reduce((s: number, o: any) => s + (Number(o.total) || 0), 0);
-    const recalcTotalOrders = (ordersData || []).length;
+    // Recalculate session totals from actual paid orders (excludes transferred-out orders since their session_id changed)
+    const recalcTotalSales = (ordersData || []).filter((o: any) => !o.is_return).reduce((s: number, o: any) => s + (Number(o.total) || 0), 0);
+    const recalcTotalOrders = (ordersData || []).filter((o: any) => !o.is_return).length;
 
     await supabase
       .from("pos_sessions")
