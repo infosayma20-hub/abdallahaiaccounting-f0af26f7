@@ -22,7 +22,7 @@ const PRIORITY_COLS = [
 
 export default function TaskBoardPage() {
   const { user } = useAuth();
-  const { taskUser, logout, isAdmin } = useTaskAuth();
+  const { taskUser, logout, isAdmin, loading: taskAuthLoading } = useTaskAuth();
   const navigate = useNavigate();
   const [tasks, setTasks] = useState<any[]>([]);
   const [taskUsers, setTaskUsers] = useState<any[]>([]);
