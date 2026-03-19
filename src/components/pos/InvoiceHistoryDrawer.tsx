@@ -279,19 +279,34 @@ export default function InvoiceHistoryDrawer({
           if (tgtTerm?.cash_account_code) tgtGLCode = tgtTerm.cash_account_code;
         }
 
+        // Fetch payment info to carry currency data in the transfer entry
+        const { data: paymentData } = await supabase
+          .from("pos_payments")
+          .select("currency, exchange_rate, amount")
+          .eq("order_id", transferringOrder.id)
+          .limit(1)
+          .maybeSingle();
+
+        const payCurrency = paymentData?.currency || "ILS";
+        const payRate = paymentData?.exchange_rate || 1;
+        const isForeign = payCurrency !== "ILS";
+        const currencyLabel = ({ USD: "دولار", JOD: "دينار", EUR: "يورو", EGP: "جنيه", ILS: "شيكل" } as Record<string, string>)[payCurrency] || "شيكل";
+
         // Only create transfer entry if GL codes differ
         if (srcGLCode !== tgtGLCode) {
           await supabase.from("transactions").insert({
             user_id: dataOwnerId,
             transaction_date: new Date().toISOString().split("T")[0],
-            description: `نقل فاتورة POS #${transferringOrder.order_number || ""} من ${sessionId.slice(0, 6)} إلى ${targetUser.name}`,
+            description: `نقل فاتورة POS #${transferringOrder.order_number || ""} إلى ${targetUser.name}`,
             debit_account_code: tgtGLCode,
             credit_account_code: srcGLCode,
             amount: transferringOrder.total,
-            currency: "شيكل",
+            currency: currencyLabel,
             transaction_type: "pos_transfer",
             reference: transferringOrder.order_number || "",
             idempotency_key: `POS-TRANSFER-${transferringOrder.id}`,
+            foreign_amount: isForeign ? (paymentData?.amount || null) : null,
+            exchange_rate: isForeign ? payRate : null,
           });
         }
 
