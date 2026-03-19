@@ -1146,22 +1146,8 @@ const POSPage = () => {
     if (!newCustomerName.trim() || !dataOwnerId) return;
     setSavingCustomer(true);
     try {
-      // Save to contacts
-      const { data, error } = await supabase
-        .from("contacts")
-        .insert({
-          user_id: dataOwnerId,
-          contact_name: newCustomerName.trim(),
-          phone: newCustomerPhone.trim() || null,
-          contact_type: "عميل",
-          is_active: true,
-        })
-        .select("id, contact_name")
-        .single();
-      if (error) throw error;
-
-      // Also save to pos_customers
-      const { data: posCustomer } = await supabase
+      // Save only to pos_customers (separate from main contacts)
+      const { data: posCustomer, error } = await supabase
         .from("pos_customers")
         .insert({
           user_id: dataOwnerId,
@@ -1173,15 +1159,15 @@ const POSPage = () => {
           marketing_consent: true,
           consent_date: new Date().toISOString(),
         } as any)
-        .select("id")
+        .select("id, name, whatsapp")
         .single();
+      if (error) throw error;
 
-      if (data) {
-        setContacts(prev => [...prev, data]);
-        setCustomerName(data.contact_name, data.id, newCustomerPhone.trim(), posCustomer?.id || null);
+      if (posCustomer) {
+        setCustomerName(posCustomer.name || "", null, posCustomer.whatsapp || "", posCustomer.id);
         setCustomerSearch("");
         setShowContactDropdown(false);
-        toast.success(`تمت إضافة الزبون "${data.contact_name}" بنجاح`);
+        toast.success(`تمت إضافة الزبون "${posCustomer.name}" بنجاح`);
       }
     } catch (err: any) {
       toast.error("فشل في إضافة الزبون: " + (err.message || "خطأ غير معروف"));
@@ -2759,7 +2745,7 @@ const POSPage = () => {
                   </button>
                 )}
                 {showContactDropdown && (customerSearch || "").length > 0 && (
-                  <div className="absolute z-50 w-full top-full mt-1 bg-popover border border-border rounded-lg shadow-lg max-h-44 overflow-y-auto">
+                  <div className="absolute z-50 w-[320px] right-0 top-full mt-1 bg-popover border border-border rounded-lg shadow-lg max-h-56 overflow-y-auto">
                     {posCustomerResults.length > 0 && (
                       <>
                         <p className="px-3 py-1 text-[10px] text-muted-foreground font-semibold border-b border-border bg-muted/30">زبائن نقطة البيع</p>
@@ -2772,14 +2758,26 @@ const POSPage = () => {
                               setCustomerSearch("");
                               setShowContactDropdown(false);
                             }}
-                            className="w-full px-3 py-1.5 text-xs text-right hover:bg-muted/50 transition flex items-center justify-between gap-2"
+                            className="w-full px-3 py-2 text-xs text-right hover:bg-muted/50 transition"
                           >
-                            <div className="flex items-center gap-2">
-                              <UserCheck className="h-3 w-3 text-emerald-600 shrink-0" />
-                              <span className="font-medium">{pc.name || pc.whatsapp}</span>
-                              {pc.whatsapp && <span className="text-[10px] text-muted-foreground font-mono">{pc.whatsapp}</span>}
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <UserCheck className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                                <span className="font-semibold truncate">{pc.name || "بدون اسم"}</span>
+                              </div>
+                              <span className="text-[10px] text-muted-foreground shrink-0">{pc.total_visits || 0} زيارة</span>
                             </div>
-                            <span className="text-[10px] text-muted-foreground">{pc.total_visits || 0} زيارة</span>
+                            <div className="flex items-center gap-3 mt-0.5 mr-5">
+                              {pc.whatsapp && (
+                                <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                                  <Phone className="h-2.5 w-2.5" />
+                                  {pc.whatsapp}
+                                </span>
+                              )}
+                              {(pc.total_spent || 0) > 0 && (
+                                <span className="text-[10px] text-emerald-600 font-medium">₪{(pc.total_spent || 0).toLocaleString()}</span>
+                              )}
+                            </div>
                           </button>
                         ))}
                       </>
