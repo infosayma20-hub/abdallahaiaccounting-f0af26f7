@@ -77,6 +77,8 @@ interface Transaction {
   is_deleted: boolean;
   contact_id: string | null;
   payment_method: string | null;
+  foreign_amount: number | null;
+  exchange_rate: number | null;
 }
 
 interface Cheque {
