@@ -742,7 +742,7 @@ const POSPage = () => {
           .select("*")
           .eq("user_id", dataOwnerId)
           .eq("state", "open")
-          .eq("cashier_name", displayName)
+          .eq("cashier_auth_user_id", uid)
           .order("opened_at", { ascending: false })
           .limit(1);
 
