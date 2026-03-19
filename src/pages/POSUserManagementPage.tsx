@@ -699,23 +699,30 @@ export default function POSUserManagementPage() {
                         <td className="px-3 py-3 text-xs text-muted-foreground">
                           {u.last_login_at ? new Date(u.last_login_at).toLocaleDateString("en-GB") : "—"}
                         </td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center justify-center gap-1">
-                            {!u.has_account && u.email && (
-                              <button onClick={() => handleCreateAccountForUser(u)} className="p-1.5 rounded-lg hover:bg-primary/10 transition-colors" title="إنشاء حساب" disabled={creatingAccount}>
-                                <UserPlus className="w-4 h-4 text-primary" />
+                        <td className="px-3 py-3 text-center">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <button className="p-1.5 rounded-lg hover:bg-muted transition-colors mx-auto block">
+                                <MoreVertical className="w-4 h-4 text-muted-foreground" />
                               </button>
-                            )}
-                            <button onClick={() => openEditUser(u)} className="p-1.5 rounded-lg hover:bg-primary/10 transition-colors" title="تعديل">
-                              <Pencil className="w-4 h-4 text-primary" />
-                            </button>
-                            <button onClick={() => toggleUserActive(u)} className="p-1.5 rounded-lg hover:bg-accent/50 transition-colors" title={u.is_active ? "تعطيل" : "تفعيل"}>
-                              {u.is_active ? <LockKeyhole className="w-4 h-4 text-muted-foreground" /> : <UnlockKeyhole className="w-4 h-4 text-emerald-500" />}
-                            </button>
-                            <button onClick={() => confirmDeleteUser(u)} className="p-1.5 rounded-lg hover:bg-destructive/10 transition-colors" title="حذف">
-                              <Trash2 className="w-4 h-4 text-destructive" />
-                            </button>
-                          </div>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="start" dir="rtl">
+                              {!u.has_account && u.email && (
+                                <DropdownMenuItem onClick={() => handleCreateAccountForUser(u)} disabled={creatingAccount} className="gap-2">
+                                  <UserPlus className="w-4 h-4 text-primary" /> إنشاء حساب
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuItem onClick={() => openEditUser(u)} className="gap-2">
+                                <Pencil className="w-4 h-4 text-primary" /> تعديل
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => toggleUserActive(u)} className="gap-2">
+                                {u.is_active ? <><LockKeyhole className="w-4 h-4 text-muted-foreground" /> تعطيل</> : <><UnlockKeyhole className="w-4 h-4 text-emerald-500" /> تفعيل</>}
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => confirmDeleteUser(u)} className="gap-2 text-destructive focus:text-destructive">
+                                <Trash2 className="w-4 h-4" /> حذف
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </td>
                       </tr>
                     ))}
