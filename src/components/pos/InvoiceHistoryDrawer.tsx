@@ -112,8 +112,16 @@ const RECALL_REASONS = [
 export default function InvoiceHistoryDrawer({
   open, onClose, dataOwnerId, sessionId, cashierName, terminalName, canEditInvoices = true, requireManagerForInvoices = true, onRecallToCart,
 }: InvoiceHistoryDrawerProps) {
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Auto-focus search input when drawer opens
+  useEffect(() => {
+    if (open) {
+      setTimeout(() => searchInputRef.current?.focus(), 150);
+    }
+  }, [open]);
   const [orders, setOrders] = useState<InvoiceOrder[]>([]);
   const [loading, setLoading] = useState(false);
 
