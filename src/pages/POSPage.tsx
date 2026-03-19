@@ -222,11 +222,12 @@ const SortableCategoryChip = ({ cat, isActive, isSortMode, isDragging, onClick }
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.4 : 1,
-    backgroundColor: isActive ? cat.color : cat.color + "20",
-    borderColor: isSortMode ? "hsl(var(--primary))" : isActive ? cat.color : cat.color + "50",
+    backgroundColor: isActive ? cat.color : cat.color + "18",
+    borderColor: isSortMode ? "hsl(var(--primary))" : isActive ? cat.color : cat.color + "60",
     color: isActive ? "#fff" : undefined,
-    boxShadow: isDragging ? "0 8px 25px rgba(0,0,0,0.2)" : isActive ? `0 2px 8px ${cat.color}40` : "none",
+    boxShadow: isDragging ? "0 8px 25px rgba(0,0,0,0.2)" : isActive ? `0 2px 8px ${cat.color}40` : `0 1px 3px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.6)`,
     borderStyle: isSortMode ? "dashed" as const : "solid" as const,
+    borderWidth: "1.5px",
     cursor: isSortMode ? "grab" as const : "pointer" as const,
   };
   return (
@@ -2894,8 +2895,8 @@ const POSPage = () => {
                               ? "border-dashed border-amber-400/60 cursor-grab ring-1 ring-amber-400/20" 
                               : isAddonOpen
                                 ? "border-primary bg-accent shadow-lg"
-                                : "border-border hover:border-opacity-60 cursor-pointer"
-                            } ${isDragging ? "shadow-2xl scale-105 rotate-1" : "hover:shadow-md"}`}
+                                : "border-border/80 hover:border-opacity-60 cursor-pointer shadow-[0_1px_4px_rgba(0,0,0,0.06),0_0_0_1px_rgba(0,0,0,0.04)] hover:shadow-[0_3px_10px_rgba(0,0,0,0.1)]"
+                            } ${isDragging ? "shadow-2xl scale-105 rotate-1" : ""}`}
                             style={{
                               ...style,
                               borderBottomWidth: cardSize === "S" ? "2px" : "3px",
