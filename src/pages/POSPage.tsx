@@ -2861,12 +2861,18 @@ const POSPage = () => {
                 strategy={rectSortingStrategy}
                 disabled={!isSortMode}
               >
-                <div dir="rtl" className={`p-3 grid gap-2 ${
-                  cardSize === "S" 
-                    ? "grid-cols-5 sm:grid-cols-6 lg:grid-cols-7 xl:grid-cols-8 2xl:grid-cols-10 gap-1.5" 
-                    : cardSize === "M" 
-                      ? "grid-cols-4 sm:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8 gap-2" 
-                      : "grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-3"
+                <div dir="rtl" className={`p-3 grid ${
+                  filteredProducts.length <= 10 && filteredProducts.length > 0
+                    ? filteredProducts.length <= 3
+                      ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
+                      : filteredProducts.length <= 6
+                        ? "grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-4"
+                        : "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3"
+                    : cardSize === "S" 
+                      ? "grid-cols-5 sm:grid-cols-6 lg:grid-cols-7 xl:grid-cols-8 2xl:grid-cols-10 gap-1.5" 
+                      : cardSize === "M" 
+                        ? "grid-cols-4 sm:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8 gap-2" 
+                        : "grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-3"
                 }`}>
                   {filteredProducts.map((product) => {
                     const productColor = getProductCatColor(product);
