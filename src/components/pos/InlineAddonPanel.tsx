@@ -1,4 +1,5 @@
-import { useState, useMemo, useEffect, useRef, useCallback } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback, useLayoutEffect } from "react";
+import { createPortal } from "react-dom";
 import { X, Check, Minus, Plus } from "lucide-react";
 import { motion } from "framer-motion";
 import type { SelectedModifier } from "@/components/pos/ModifierModal";
