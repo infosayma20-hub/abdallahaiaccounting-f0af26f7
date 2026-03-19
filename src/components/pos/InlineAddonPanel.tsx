@@ -144,7 +144,7 @@ export default function InlineAddonPanel({ product, groups, onConfirm, onClose, 
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: flipUp ? 6 : -6 }}
       transition={{ duration: 0.2, ease: [0.34, 1.56, 0.64, 1] }}
-      className="absolute z-50 min-w-[260px] overflow-hidden rounded-[14px] border border-border bg-card"
+      className="fixed z-[200] min-w-[260px] max-w-[340px] overflow-hidden rounded-[14px] border border-border bg-card"
       style={{
         ...positionStyles,
         boxShadow: "0 8px 32px rgba(10,35,66,0.18), 0 2px 8px rgba(10,35,66,0.08)",
