@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef, useCallback, useLayoutEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { X, Check, Minus, Plus } from "lucide-react";
 import { motion } from "framer-motion";
@@ -42,10 +42,7 @@ interface Props {
   flipUp?: boolean;
 }
 
-export default function InlineAddonPanel({ product, groups, onConfirm, onClose, flipUp = false }: Props) {
-  const panelRef = useRef<HTMLDivElement>(null);
-  const [portalPos, setPortalPos] = useState<{ top: number; left: number; width: number; flipUp: boolean } | null>(null);
-
+export default function InlineAddonPanel({ product, groups, onConfirm, onClose }: Props) {
   const [selected, setSelected] = useState<Record<string, string[]>>(() => {
     const defaults: Record<string, string[]> = {};
     groups.forEach((g) => {
@@ -56,42 +53,19 @@ export default function InlineAddonPanel({ product, groups, onConfirm, onClose, 
   const [note, setNote] = useState("");
   const [quantity, setQuantity] = useState(1);
 
-  // Position the portal panel relative to the parent card
-  useLayoutEffect(() => {
-    // Find the parent card element
-    const panel = panelRef.current;
-    if (!panel) return;
-    const card = panel.closest("[data-addon-card]") as HTMLElement;
-    if (!card) return;
-    const rect = card.getBoundingClientRect();
-    const panelHeight = 400;
-    const viewH = window.innerHeight;
-    const shouldFlip = rect.bottom + panelHeight > viewH && rect.top > panelHeight;
-    setPortalPos({
-      top: shouldFlip ? rect.top : rect.bottom + 6,
-      left: rect.left,
-      width: Math.max(rect.width, 280),
-      flipUp: shouldFlip,
-    });
-  }, []);
-
-  // Close on Escape
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [onClose]);
-
-  // Close on click outside
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      if (panelRef.current && !panelRef.current.contains(target) && !target.closest("[data-addon-card]")) {
-        onClose();
-      }
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
     };
-    const timer = setTimeout(() => document.addEventListener("mousedown", handler), 50);
-    return () => { clearTimeout(timer); document.removeEventListener("mousedown", handler); };
+
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", handler);
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      window.removeEventListener("keydown", handler);
+    };
   }, [onClose]);
 
   const toggleOption = useCallback((group: ModifierGroup, optId: string) => {
@@ -152,199 +126,167 @@ export default function InlineAddonPanel({ product, groups, onConfirm, onClose, 
     return "grid-cols-3";
   };
 
-  const positionStyles: React.CSSProperties = portalPos
-    ? { position: "fixed", top: portalPos.flipUp ? portalPos.top - 6 : portalPos.top, left: portalPos.left, width: portalPos.width, transform: portalPos.flipUp ? "translateY(-100%)" : undefined }
-    : flipUp
-      ? { position: "absolute", bottom: "calc(100% + 6px)", top: "auto", left: 0, right: 0 }
-      : { position: "absolute", top: "calc(100% + 6px)", left: 0, right: 0 };
-
   const panel = (
-    <motion.div
-      ref={panelRef}
-      initial={{ opacity: 0, y: flipUp ? 8 : -8, scale: 0.97 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: flipUp ? 6 : -6 }}
-      transition={{ duration: 0.2, ease: [0.34, 1.56, 0.64, 1] }}
-      className="min-w-[260px] overflow-hidden rounded-[14px] border border-border bg-card"
-      style={{
-        ...positionStyles,
-        zIndex: 9999,
-        boxShadow: "0 8px 32px rgba(10,35,66,0.18), 0 2px 8px rgba(10,35,66,0.08)",
-      }}
+    <div
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 p-4"
       dir="rtl"
-      onClick={(e) => e.stopPropagation()}
-      onMouseDown={(e) => e.stopPropagation()}
+      onClick={onClose}
     >
-      {/* Header */}
-      <div
-        className="flex items-center justify-between px-3.5 py-2.5"
-        style={{ background: "linear-gradient(135deg, hsl(var(--primary)), hsl(210,80%,30%))" }}
+      <motion.div
+        initial={{ opacity: 0, y: 12, scale: 0.97 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 8, scale: 0.98 }}
+        transition={{ duration: 0.2, ease: [0.34, 1.56, 0.64, 1] }}
+        className="flex max-h-[85vh] w-full max-w-[420px] flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center gap-2 min-w-0">
-          <span className="text-[13px] font-bold text-white truncate">{product.name}</span>
-          <span className="text-[10px] text-white/60">اختر الإضافات</span>
-        </div>
-        <button
-          onClick={onClose}
-          className="flex-shrink-0 w-[26px] h-[26px] rounded-full flex items-center justify-center bg-white/15 hover:bg-white/25 transition-colors"
-        >
-          <X className="w-3.5 h-3.5 text-white" />
-        </button>
-      </div>
-
-      {/* Body */}
-      <div className="overflow-y-auto p-3 space-y-2.5" style={{ maxHeight: 280 }}>
-        {groups.map((group, gi) => {
-          const currentSelected = selected[group.id] || [];
-          const maxReached = group.selection_type === "multiple" && currentSelected.length >= group.max_select;
-
-          return (
-            <div key={group.id}>
-              {gi > 0 && <div className="border-t border-dashed border-border my-2.5" />}
-              {/* Group header */}
-              <div className="flex items-center justify-between mb-1.5">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[11px] font-bold text-foreground">{group.name}</span>
-                  {group.is_required && (
-                    <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-destructive/10 text-destructive font-semibold">مطلوب</span>
-                  )}
-                </div>
-                <span className="text-[9px] text-muted-foreground">
-                  {group.selection_type === "single" ? "اختر واحداً" : `اختر حتى ${group.max_select}`}
-                </span>
-              </div>
-
-              {/* Options grid */}
-              <div className={`grid ${getGridCols(group.options.length)} gap-[5px]`}>
-                {group.options
-                  .sort((a, b) => a.sort_order - b.sort_order)
-                  .map((opt) => {
-                    const isSelected = currentSelected.includes(opt.id);
-                    const isDisabled = !isSelected && maxReached;
-                    const optColor = opt.color || "hsl(var(--primary))";
-
-                    return (
-                      <button
-                        key={opt.id}
-                        onClick={() => !isDisabled && toggleOption(group, opt.id)}
-                        disabled={isDisabled}
-                        className="flex items-center justify-between px-2.5 py-[7px] rounded-[9px] border-2 text-right transition-all min-h-[44px]"
-                        style={{
-                          borderColor: isSelected ? optColor : "hsl(var(--border))",
-                          background: isSelected ? optColor + "12" : "hsl(var(--card))",
-                          opacity: isDisabled ? 0.4 : 1,
-                          cursor: isDisabled ? "not-allowed" : "pointer",
-                          transform: isSelected ? "scale(1.02)" : "scale(1)",
-                        }}
-                      >
-                        <div className="flex items-center gap-1.5 min-w-0">
-                          <div
-                            className="w-2 h-2 rounded-full flex-shrink-0"
-                            style={{
-                              backgroundColor: optColor,
-                              boxShadow: isSelected ? `0 0 6px ${optColor}88` : "none",
-                            }}
-                          />
-                          <span
-                            className="text-[11px] truncate"
-                            style={{
-                              fontWeight: isSelected ? 700 : 400,
-                              color: isSelected ? optColor : "hsl(var(--foreground))",
-                            }}
-                          >
-                            {opt.name}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-1 flex-shrink-0">
-                          {opt.extra_price > 0 && (
-                            <span
-                              className="text-[9px] font-mono"
-                              style={{ color: isSelected ? optColor : "hsl(var(--muted-foreground))" }}
-                            >
-                              +₪{opt.extra_price.toFixed(0)}
-                            </span>
-                          )}
-                          {isSelected && (
-                            <div
-                              className="w-3.5 h-3.5 rounded-full flex items-center justify-center"
-                              style={{ backgroundColor: optColor }}
-                            >
-                              <Check className="w-2 h-2 text-white" strokeWidth={3} />
-                            </div>
-                          )}
-                        </div>
-                      </button>
-                    );
-                  })}
-              </div>
-              {maxReached && (
-                <p className="text-[9px] text-muted-foreground mt-1 text-center">وصلت للحد الأقصى</p>
-              )}
+        <div className="flex items-center justify-between bg-primary px-4 py-3 text-primary-foreground">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="truncate text-sm font-bold">{product.name}</span>
+              <span className="text-[11px] text-primary-foreground/70">اختر الإضافات</span>
             </div>
-          );
-        })}
-
-        {/* Note */}
-        <div className="border-t border-dashed border-border pt-2">
-          <input
-            type="text"
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            placeholder="💬 ملاحظة خاصة (اختياري)..."
-            className="w-full h-8 px-2.5 border border-border rounded-lg text-[11px] bg-muted/30 focus:border-primary focus:outline-none"
-          />
-        </div>
-      </div>
-
-      {/* Footer */}
-      <div className="flex items-center gap-2 px-3 py-2.5 border-t border-border bg-muted/20">
-        {/* Quantity */}
-        <div className="flex items-center border-[1.5px] border-border rounded-[9px] overflow-hidden">
+          </div>
           <button
-            onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-            disabled={quantity <= 1}
-            className="w-7 h-7 flex items-center justify-center bg-muted/50 text-foreground disabled:opacity-30"
+            onClick={onClose}
+            className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-primary-foreground/15 transition-colors hover:bg-primary-foreground/25"
           >
-            <Minus className="w-3 h-3" />
-          </button>
-          <span className="w-7 text-center text-xs font-bold tabular-nums">{quantity}</span>
-          <button
-            onClick={() => setQuantity((q) => q + 1)}
-            className="w-7 h-7 flex items-center justify-center bg-muted/50 text-foreground"
-          >
-            <Plus className="w-3 h-3" />
+            <X className="h-4 w-4" />
           </button>
         </div>
 
-        {/* Add button */}
-        <button
-          onClick={handleConfirm}
-          disabled={!isValid}
-          className="flex-1 flex items-center justify-center gap-2 py-2 rounded-[9px] text-[12px] font-bold transition-all"
-          style={{
-            background: isValid
-              ? "linear-gradient(135deg, hsl(142,71%,38%), hsl(142,71%,30%))"
-              : "hsl(var(--muted))",
-            color: isValid ? "white" : "hsl(var(--muted-foreground))",
-            cursor: isValid ? "pointer" : "not-allowed",
-          }}
-        >
-          <span>إضافة للطلب</span>
-          <span
-            className="text-[11px] font-mono px-1.5 py-0.5 rounded-md"
-            style={{
-              background: isValid ? "rgba(255,255,255,0.25)" : "rgba(0,0,0,0.08)",
-            }}
+        <div className="max-h-[56vh] overflow-y-auto p-4 space-y-3">
+          {groups.map((group, gi) => {
+            const currentSelected = selected[group.id] || [];
+            const maxReached = group.selection_type === "multiple" && currentSelected.length >= group.max_select;
+
+            return (
+              <div key={group.id}>
+                {gi > 0 && <div className="my-3 border-t border-dashed border-border" />}
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-bold text-foreground">{group.name}</span>
+                    {group.is_required && (
+                      <span className="rounded-full bg-destructive/10 px-1.5 py-0.5 text-[9px] font-semibold text-destructive">
+                        مطلوب
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-[10px] text-muted-foreground">
+                    {group.selection_type === "single" ? "اختر واحداً" : `اختر حتى ${group.max_select}`}
+                  </span>
+                </div>
+
+                <div className={`grid ${getGridCols(group.options.length)} gap-2`}>
+                  {group.options
+                    .sort((a, b) => a.sort_order - b.sort_order)
+                    .map((opt) => {
+                      const isSelected = currentSelected.includes(opt.id);
+                      const isDisabled = !isSelected && maxReached;
+                      const optColor = opt.color || "hsl(var(--primary))";
+
+                      return (
+                        <button
+                          key={opt.id}
+                          onClick={() => !isDisabled && toggleOption(group, opt.id)}
+                          disabled={isDisabled}
+                          className="flex min-h-[48px] items-center justify-between rounded-xl border-2 px-3 py-2 text-right transition-all disabled:cursor-not-allowed"
+                          style={{
+                            borderColor: isSelected ? optColor : "hsl(var(--border))",
+                            background: isSelected ? `${optColor}12` : "hsl(var(--card))",
+                            opacity: isDisabled ? 0.45 : 1,
+                          }}
+                        >
+                          <div className="flex min-w-0 items-center gap-2">
+                            <div
+                              className="h-2.5 w-2.5 flex-shrink-0 rounded-full"
+                              style={{
+                                backgroundColor: optColor,
+                                boxShadow: isSelected ? `0 0 8px ${optColor}66` : "none",
+                              }}
+                            />
+                            <span
+                              className="truncate text-xs"
+                              style={{
+                                fontWeight: isSelected ? 700 : 500,
+                                color: isSelected ? optColor : "hsl(var(--foreground))",
+                              }}
+                            >
+                              {opt.name}
+                            </span>
+                          </div>
+
+                          <div className="flex flex-shrink-0 items-center gap-1.5">
+                            {opt.extra_price > 0 && (
+                              <span className="text-[10px] font-mono text-muted-foreground">
+                                +₪{opt.extra_price.toFixed(0)}
+                              </span>
+                            )}
+                            {isSelected && (
+                              <div
+                                className="flex h-4 w-4 items-center justify-center rounded-full"
+                                style={{ backgroundColor: optColor }}
+                              >
+                                <Check className="h-2.5 w-2.5 text-white" strokeWidth={3} />
+                              </div>
+                            )}
+                          </div>
+                        </button>
+                      );
+                    })}
+                </div>
+
+                {maxReached && (
+                  <p className="mt-1 text-center text-[10px] text-muted-foreground">وصلت للحد الأقصى</p>
+                )}
+              </div>
+            );
+          })}
+
+          <div className="border-t border-dashed border-border pt-3">
+            <input
+              type="text"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="ملاحظة خاصة (اختياري)..."
+              className="h-10 w-full rounded-xl border border-border bg-background px-3 text-sm focus:border-primary focus:outline-none"
+            />
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 border-t border-border bg-muted/20 p-4">
+          <div className="flex items-center overflow-hidden rounded-xl border border-border bg-background">
+            <button
+              onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+              disabled={quantity <= 1}
+              className="flex h-9 w-9 items-center justify-center text-foreground transition-colors hover:bg-muted disabled:opacity-30"
+            >
+              <Minus className="h-3.5 w-3.5" />
+            </button>
+            <span className="w-9 text-center text-sm font-bold tabular-nums">{quantity}</span>
+            <button
+              onClick={() => setQuantity((q) => q + 1)}
+              className="flex h-9 w-9 items-center justify-center text-foreground transition-colors hover:bg-muted"
+            >
+              <Plus className="h-3.5 w-3.5" />
+            </button>
+          </div>
+
+          <button
+            onClick={handleConfirm}
+            disabled={!isValid}
+            className="flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-bold transition-all disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground bg-primary text-primary-foreground hover:opacity-90"
           >
-            ₪{totalPrice.toFixed(2)}
-          </span>
-        </button>
-      </div>
-    </motion.div>
+            <span>إضافة للطلب</span>
+            <span className="rounded-md bg-primary-foreground/15 px-2 py-0.5 font-mono text-xs">
+              ₪{totalPrice.toFixed(2)}
+            </span>
+          </button>
+        </div>
+      </motion.div>
+    </div>
   );
 
-  if (portalPos) {
-    return createPortal(panel, document.body);
-  }
-  return panel;
+  return createPortal(panel, document.body);
 }
