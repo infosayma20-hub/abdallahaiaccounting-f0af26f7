@@ -386,6 +386,7 @@ const POSPage = () => {
   const [showOrderNoteInput, setShowOrderNoteInput] = useState(false);
   const [showTablePicker, setShowTablePicker] = useState(false);
   const [availableTables, setAvailableTables] = useState<{ id: string; name: string; seats: number; status: string; section_name: string }[]>([]);
+  const [posCustomerResults, setPosCustomerResults] = useState<POSCustomer[]>([]);
 
   // Dialogs
   const [showOpenShift, setShowOpenShift] = useState(false);
