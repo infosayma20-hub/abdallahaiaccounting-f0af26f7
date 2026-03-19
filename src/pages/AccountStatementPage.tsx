@@ -986,7 +986,7 @@ const AccountStatementPage = () => {
 
     // Currency filter
     if (selectedCurrency !== "all") {
-      related = related.filter(tx => tx.currency === selectedCurrency);
+      related = related.filter(tx => normalizeCurrency(tx.currency) === selectedCurrency);
     }
 
     let openBal = 0;
