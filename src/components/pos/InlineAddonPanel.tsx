@@ -42,9 +42,9 @@ interface Props {
   flipUp?: boolean;
 }
 
-export default function InlineAddonPanel({ product, groups, onConfirm, onClose, flipUp = false, anchorRef }: Props) {
+export default function InlineAddonPanel({ product, groups, onConfirm, onClose, flipUp = false }: Props) {
   const panelRef = useRef<HTMLDivElement>(null);
-  const [portalPos, setPortalPos] = useState<{ top: number; left: number; width: number } | null>(null);
+  const [portalPos, setPortalPos] = useState<{ top: number; left: number; width: number; flipUp: boolean } | null>(null);
 
   const [selected, setSelected] = useState<Record<string, string[]>>(() => {
     const defaults: Record<string, string[]> = {};
@@ -56,21 +56,24 @@ export default function InlineAddonPanel({ product, groups, onConfirm, onClose, 
   const [note, setNote] = useState("");
   const [quantity, setQuantity] = useState(1);
 
-  // Position the portal panel relative to the anchor element
+  // Position the portal panel relative to the parent card
   useLayoutEffect(() => {
-    const anchor = anchorRef?.current;
-    if (!anchor) return;
-    const rect = anchor.getBoundingClientRect();
-    const panelHeight = 400; // estimated max height
+    // Find the parent card element
+    const panel = panelRef.current;
+    if (!panel) return;
+    const card = panel.closest("[data-addon-card]") as HTMLElement;
+    if (!card) return;
+    const rect = card.getBoundingClientRect();
+    const panelHeight = 400;
     const viewH = window.innerHeight;
-    const shouldFlipUp = rect.bottom + panelHeight > viewH && rect.top > panelHeight;
-    const top = shouldFlipUp ? rect.top - 6 : rect.bottom + 6;
+    const shouldFlip = rect.bottom + panelHeight > viewH && rect.top > panelHeight;
     setPortalPos({
-      top,
+      top: shouldFlip ? rect.top : rect.bottom + 6,
       left: rect.left,
       width: Math.max(rect.width, 280),
+      flipUp: shouldFlip,
     });
-  }, [anchorRef]);
+  }, []);
 
   // Close on Escape
   useEffect(() => {
