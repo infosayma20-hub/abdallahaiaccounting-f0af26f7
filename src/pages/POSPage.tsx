@@ -451,6 +451,7 @@ const POSPage = () => {
   const [paymentCurrency, setPaymentCurrency] = useState<string>("ILS");
   const [changeCurrency, setChangeCurrency] = useState<string>("ILS");
   const [tenderedAmount, setTenderedAmount] = useState("");
+  const [manualChangeAmount, setManualChangeAmount] = useState<string | null>(null);
   const [processing, setProcessing] = useState(false);
   const [exchangeRates, setExchangeRates] = useState<Record<string, number>>({});
   const [exchangeRateDetails, setExchangeRateDetails] = useState<Record<string, { rate: number; date: string; source: string; posOverride: number | null }>>({});
