@@ -116,25 +116,25 @@ const CashBoxesPage = () => {
             {box.is_active ? "نشط" : "مغلق"}
           </Badge>
         </div>
-        <CardContent className="p-2.5 space-y-1.5">
-          <div className="flex items-baseline justify-between">
-            <span className="text-[9px] text-muted-foreground">الرصيد</span>
-            <span className={`text-sm font-bold font-mono ${bal.balance > 0 ? "text-emerald-600" : bal.balance < 0 ? "text-red-600" : "text-muted-foreground"}`}>
+        <CardContent className="p-2.5 space-y-1.5 overflow-hidden">
+          <div className="flex items-baseline justify-between gap-1">
+            <span className="text-[9px] text-muted-foreground shrink-0">الرصيد</span>
+            <span className={`text-xs font-bold font-mono truncate ${bal.balance > 0 ? "text-emerald-600" : bal.balance < 0 ? "text-red-600" : "text-muted-foreground"}`}>
               {currencyLabel}{fmt(bal.balance)}
             </span>
           </div>
           <div className="flex items-center justify-between text-[9px] text-muted-foreground">
-            {box.branch_location && <span>{box.branch_location}</span>}
+            {box.branch_location && <span className="truncate">{box.branch_location}</span>}
             <span>{currencyLabel}</span>
           </div>
           <div className="text-[9px] space-y-0.5 pt-1 border-t border-border/50">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">↑ وارد</span>
-              <span className="text-emerald-600 font-mono">{currencyLabel}{fmt(bal.inflow)}</span>
+            <div className="flex justify-between gap-1">
+              <span className="text-muted-foreground shrink-0">↑ وارد</span>
+              <span className="text-emerald-600 font-mono truncate">{currencyLabel}{fmt(bal.inflow)}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">↓ صادر</span>
-              <span className="text-red-600 font-mono">{currencyLabel}{fmt(bal.outflow)}</span>
+            <div className="flex justify-between gap-1">
+              <span className="text-muted-foreground shrink-0">↓ صادر</span>
+              <span className="text-red-600 font-mono truncate">{currencyLabel}{fmt(bal.outflow)}</span>
             </div>
           </div>
         </CardContent>
