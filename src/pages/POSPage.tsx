@@ -34,6 +34,7 @@ import { type SelectedModifier } from "@/components/pos/ModifierModal";
 import InlineAddonPanel from "@/components/pos/InlineAddonPanel";
 import QuickModifierBar from "@/components/pos/QuickModifierBar";
 import { getDeviceFingerprint } from "@/lib/device-fingerprint";
+import { dispatchPrintJob, type PrintLine } from "@/lib/pos-print";
 import InventoryInputModal from "@/components/pos/InventoryInputModal";
 import PurchaseModal from "@/components/pos/PurchaseModal";
 import ExpenseModal from "@/components/pos/ExpenseModal";
@@ -154,6 +155,7 @@ interface Product {
   color: string;
   image_url: string | null;
   min_quantity: number;
+  kitchen_station_id: string | null;
 }
 
 interface POSCategory {
@@ -805,7 +807,7 @@ const POSPage = () => {
     if (!dataOwnerId) return;
     const { data } = await supabase
       .from("products")
-      .select("id, name, sell_price, buy_price, quantity, category, pos_category_id, unit, sku, barcode, tax_rate, is_pos_available, color, image_url, min_quantity, sort_order")
+      .select("id, name, sell_price, buy_price, quantity, category, pos_category_id, unit, sku, barcode, tax_rate, is_pos_available, color, image_url, min_quantity, sort_order, kitchen_station_id")
       .eq("user_id", dataOwnerId)
       .order("sort_order")
       .order("name");
@@ -821,6 +823,7 @@ const POSPage = () => {
         buy_price: Number(p.buy_price),
         quantity: Number(p.quantity),
         min_quantity: Number(p.min_quantity) || 0,
+        kitchen_station_id: (p as any).kitchen_station_id || null,
       }))
     );
   };
@@ -1631,22 +1634,113 @@ const POSPage = () => {
   };
 
   // Send to kitchen (print kitchen ticket)
-  const handleSendToKitchen = () => {
+  const handleSendToKitchen = async () => {
     if (cart.length === 0) return;
+
+    const time = new Date().toLocaleTimeString("ar-PS", { hour: "2-digit", minute: "2-digit" });
+    const tableName = activeOrder.tableName || activeOrder.customerName || "بدون طاولة";
+    const cashierName = session?.cashier_name || "";
+
+    // Build product→station map from loaded products
+    const productStationMap = new Map<string, string | null>();
+    products.forEach(p => productStationMap.set(p.id, p.kitchen_station_id));
+
+    // Load station names
+    const { data: stationsData } = await supabase
+      .from("kitchen_stations")
+      .select("id, name, color")
+      .eq("is_active", true);
+    const stationNames = new Map((stationsData || []).map((s: any) => [s.id, { name: s.name, color: s.color }]));
+
+    // Group items by station
+    const stationGroups: Record<string, { stationName: string; stationColor: string; items: any[] }> = {};
+    const noStationItems: any[] = [];
+
+    cart.forEach(item => {
+      const stationId = item.product_id ? productStationMap.get(item.product_id) : null;
+      const itemData = { name: item.name, qty: item.qty, note: item.note, modifiers: item.modifiers || [] };
+      if (stationId && stationNames.has(stationId)) {
+        if (!stationGroups[stationId]) {
+          const info = stationNames.get(stationId)!;
+          stationGroups[stationId] = { stationName: info.name, stationColor: info.color, items: [] };
+        }
+        stationGroups[stationId].items.push(itemData);
+      } else {
+        noStationItems.push(itemData);
+      }
+    });
+
+    // If no stations defined, put all in one group
+    if (Object.keys(stationGroups).length === 0) {
+      stationGroups["_default"] = { stationName: "المطبخ", stationColor: "#ef4444", items: noStationItems.length ? noStationItems : cart.map(item => ({ name: item.name, qty: item.qty, note: item.note, modifiers: item.modifiers || [] })) };
+    } else if (noStationItems.length > 0) {
+      // Attach unassigned items to first station
+      const firstKey = Object.keys(stationGroups)[0];
+      stationGroups[firstKey].items.push(...noStationItems);
+    }
+
+    // Build kitchen ticket data for dialog display
+    const tickets = Object.entries(stationGroups).map(([stationId, group]) => ({
+      stationId,
+      stationName: group.stationName,
+      stationColor: group.stationColor,
+      items: group.items,
+    }));
+
     setKitchenTicketData({
-      tableName: activeOrder.tableName || "بدون طاولة",
+      tableName,
       guestCount: activeOrder.guestCount,
-      cashierName: session?.cashier_name || "",
-      time: new Date().toLocaleTimeString("ar-PS", { hour: "2-digit", minute: "2-digit" }),
-      items: cart.map(item => ({
-        name: item.name,
-        qty: item.qty,
-        note: item.note,
-        modifiers: item.modifiers || [],
-      })),
+      cashierName,
+      time,
+      tickets,
       orderNote: activeOrder.orderNote,
     });
     setShowKitchenTicket(true);
+
+    // Dispatch print jobs per station
+    let printedCount = 0;
+    let failedCount = 0;
+    for (const [stationId, group] of Object.entries(stationGroups)) {
+      const lines: PrintLine[] = [
+        { text: `🍳 طلب مطبخ — ${group.stationName}`, align: "center", bold: true, size: 2 },
+        { text: "", separator: true },
+        { text: `طاولة: ${tableName}    ${time}`, align: "right", bold: true },
+      ];
+      if (activeOrder.guestCount > 0) {
+        lines.push({ text: `عدد الضيوف: ${activeOrder.guestCount}`, align: "right" });
+      }
+      lines.push({ text: "", separator: true });
+      group.items.forEach(item => {
+        lines.push({ text: `${item.qty}× ${item.name}`, align: "right", bold: true });
+        (item.modifiers || []).forEach((m: any) => {
+          lines.push({ text: `  ← ${m.option_name}${m.extra_price > 0 ? ` +₪${m.extra_price}` : ""}`, align: "right" });
+        });
+        if (item.note) lines.push({ text: `  📝 ${item.note}`, align: "right" });
+      });
+      if (activeOrder.orderNote) {
+        lines.push({ text: "", separator: true });
+        lines.push({ text: `📝 ${activeOrder.orderNote}`, align: "right" });
+      }
+      lines.push({ text: "", separator: true });
+      lines.push({ text: `كاشير: ${cashierName}`, align: "center" });
+
+      const htmlContent = lines.map(l => l.separator ? "<hr>" : `<p style="text-align:${l.align || "right"};${l.bold ? "font-weight:bold;" : ""}${l.size === 2 ? "font-size:18px;" : ""}">${l.text}</p>`).join("");
+
+      const result = await dispatchPrintJob({
+        category: "kitchen",
+        stationId: stationId === "_default" ? undefined : stationId,
+        content: htmlContent,
+        lines,
+      });
+      if (result.printed.length > 0) printedCount++;
+      if (result.failed.length > 0) failedCount++;
+    }
+
+    if (printedCount > 0 && failedCount === 0) {
+      toast.success(`✅ تم إرسال ${tickets.length} تذكرة مطبخ`);
+    } else if (failedCount > 0) {
+      toast.warning(`⚠️ تم إرسال ${printedCount} تذكرة، فشل ${failedCount}`);
+    }
   };
 
   // Load existing table order into cart
@@ -4500,34 +4594,46 @@ const POSPage = () => {
 
       {/* ── Kitchen Ticket Dialog ── */}
       <Dialog open={showKitchenTicket} onOpenChange={setShowKitchenTicket}>
-        <DialogContent className="max-w-xs" dir="rtl">
+        <DialogContent className="max-w-sm max-h-[80vh] overflow-y-auto" dir="rtl">
           <div className="text-center space-y-1 pb-2 border-b border-dashed border-border">
-            <p className="text-lg font-bold">🍳 طلب مطبخ</p>
+            <p className="text-lg font-bold">🍳 تذاكر المطبخ</p>
             <p className="text-xs text-muted-foreground">{new Date().toLocaleDateString("ar-PS")}</p>
           </div>
           {kitchenTicketData && (
-            <div className="space-y-3 py-2">
+            <div className="space-y-4 py-2">
               <div className="flex justify-between text-sm">
-                <span className="font-bold text-foreground">طاولة: {kitchenTicketData.tableName}</span>
+                <span className="font-bold text-foreground">{kitchenTicketData.tableName}</span>
                 <span className="text-muted-foreground">{kitchenTicketData.time}</span>
               </div>
               {kitchenTicketData.guestCount > 0 && (
                 <p className="text-xs text-muted-foreground">عدد الضيوف: {kitchenTicketData.guestCount}</p>
               )}
-              <div className="border-t border-dashed border-border pt-2 space-y-2">
-                {kitchenTicketData.items.map((item: any, idx: number) => (
-                  <div key={idx} className="flex items-start gap-2">
-                    <span className="text-lg font-bold text-primary min-w-[28px]">{item.qty}×</span>
-                    <div className="flex-1">
-                      <p className="text-sm font-semibold text-foreground">{item.name}</p>
-                      {item.modifiers?.map((m: any, mi: number) => (
-                        <p key={mi} className="text-xs text-muted-foreground">← {m.option_name}{m.extra_price > 0 ? ` +₪${m.extra_price}` : ''}</p>
-                      ))}
-                      {item.note && <p className="text-xs text-amber-600 mt-0.5">📝 {item.note}</p>}
-                    </div>
+
+              {/* Station-grouped tickets */}
+              {(kitchenTicketData.tickets || []).map((ticket: any, ti: number) => (
+                <div key={ti} className="border border-border rounded-xl overflow-hidden">
+                  <div className="px-3 py-2 flex items-center gap-2" style={{ backgroundColor: ticket.stationColor + "18" }}>
+                    <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: ticket.stationColor }} />
+                    <span className="text-xs font-bold" style={{ color: ticket.stationColor }}>{ticket.stationName}</span>
+                    <span className="text-[10px] text-muted-foreground mr-auto">{ticket.items.length} صنف</span>
                   </div>
-                ))}
-              </div>
+                  <div className="px-3 py-2 space-y-2">
+                    {ticket.items.map((item: any, idx: number) => (
+                      <div key={idx} className="flex items-start gap-2">
+                        <span className="text-base font-bold text-primary min-w-[28px]">{item.qty}×</span>
+                        <div className="flex-1">
+                          <p className="text-sm font-semibold text-foreground">{item.name}</p>
+                          {item.modifiers?.map((m: any, mi: number) => (
+                            <p key={mi} className="text-xs text-muted-foreground">← {m.option_name}{m.extra_price > 0 ? ` +₪${m.extra_price}` : ''}</p>
+                          ))}
+                          {item.note && <p className="text-xs text-amber-600 mt-0.5">📝 {item.note}</p>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+
               {kitchenTicketData.orderNote && (
                 <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-2 text-xs text-amber-800 dark:text-amber-300">
                   📝 {kitchenTicketData.orderNote}
