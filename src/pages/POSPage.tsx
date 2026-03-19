@@ -305,6 +305,7 @@ const POSPage = () => {
   const [employeeSearch, setEmployeeSearch] = useState("");
   const [showEmployeeDropdown, setShowEmployeeDropdown] = useState(false);
   const [employeeBalance, setEmployeeBalance] = useState(0);
+  const [employeeNote, setEmployeeNote] = useState("");
 
   // Sort mode
   const [isSortMode, setIsSortMode] = useState(false);
