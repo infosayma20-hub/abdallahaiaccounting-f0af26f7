@@ -4167,7 +4167,7 @@ const POSPage = () => {
                       <button
                         key={emp.id}
                         onClick={() => {
-                          setSelectedEmployee({ id: emp.id, full_name: emp.full_name, account_code: emp.account_code });
+                          setSelectedEmployee({ id: emp.id, full_name: emp.full_name, account_code: emp.account_code, job_title: emp.job_title });
                           setEmployeeSearch("");
                           setShowEmployeeDropdown(false);
                           loadEmployeeBalance(emp.id);
