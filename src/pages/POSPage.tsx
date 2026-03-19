@@ -1417,6 +1417,7 @@ const POSPage = () => {
         company_id: company.id,
         terminal_id: terminal.id,
         cashier_name: displayName,
+        cashier_auth_user_id: userId,
         opening_cash: cash,
         state: "open",
         cash_box_id: selectedCashBoxId || null,
