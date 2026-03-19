@@ -471,6 +471,7 @@ const POSPage = () => {
   const [receiptData, setReceiptData] = useState<any>(null);
   const [posReturnPolicy, setPosReturnPolicy] = useState({ show: true, days: 7 });
   const [posAllowOrderTransfer, setPosAllowOrderTransfer] = useState(false);
+  const [posRequireCashBox, setPosRequireCashBox] = useState(false);
 
   // Kitchen
   const [showKitchenTicket, setShowKitchenTicket] = useState(false);
@@ -724,7 +725,7 @@ const POSPage = () => {
         // Load POS settings needed at startup (receipt policy + default opening cash)
         const { data: posSettings } = await supabase
           .from("company_settings" as any)
-          .select("pos_show_return_policy, pos_return_policy_days, pos_default_opening_balance, pos_allow_order_transfer")
+          .select("pos_show_return_policy, pos_return_policy_days, pos_default_opening_balance, pos_allow_order_transfer, pos_require_cash_box")
           .eq("user_id", dataOwnerId)
           .maybeSingle();
 
@@ -734,6 +735,7 @@ const POSPage = () => {
             days: (posSettings as any).pos_return_policy_days ?? 7,
           });
           setPosAllowOrderTransfer((posSettings as any).pos_allow_order_transfer ?? false);
+          setPosRequireCashBox((posSettings as any).pos_require_cash_box ?? false);
         }
 
         const rawDefaultOpeningCash = (posSettings as any)?.pos_default_opening_balance;
@@ -1431,6 +1433,10 @@ const POSPage = () => {
   // Open session
   const handleOpenShift = async () => {
     if (!userId || !company || !terminal) return;
+    if (posRequireCashBox && !selectedCashBoxId) {
+      toast.error("يجب اختيار الصندوق قبل فتح الوردية");
+      return;
+    }
     const cash = parseFloat(openingCash) || 0;
     const displayName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "";
 

@@ -81,6 +81,13 @@ const POSSettingsSection = ({ settings, onChange }: Props) => {
             <span className="text-sm">فتح وردية إلزامي قبل البيع</span>
             <Switch checked={settings.pos_require_shift} onCheckedChange={v => onChange({ pos_require_shift: v })} />
           </div>
+          <div className="flex items-center justify-between p-3 bg-muted/40 rounded-lg">
+            <div>
+              <span className="text-sm font-medium">اختيار الصندوق إلزامي قبل فتح الوردية</span>
+              <p className="text-[10px] text-muted-foreground mt-0.5">عند التفعيل، لن يتمكن الكاشير من فتح وردية دون اختيار صندوق</p>
+            </div>
+            <Switch checked={settings.pos_require_cash_box} onCheckedChange={v => onChange({ pos_require_cash_box: v })} />
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>رصيد افتتاحي افتراضي (₪)</Label>
