@@ -1321,9 +1321,6 @@ const POSPage = () => {
   }, [cart, productModifierMap]);
 
   const addToCartDirect = useCallback((product: Product, modifiers?: SelectedModifier[], note?: string, qty?: number) => {
-    if (product.quantity <= 0) {
-      toast.warning(`⚠️ تنبيه: ${product.name} - المخزون صفر، سيتم البيع بالسالب`);
-    }
     const currentInCart = cart.find(i => i.product_id === product.id)?.qty || 0;
     if (product.quantity > 0 && product.min_quantity > 0 && (product.quantity - currentInCart - 1) <= product.min_quantity) {
       toast.warning(`⚠️ تنبيه: ${product.name} - باقي ${product.quantity - currentInCart - 1} قطع فقط`);
