@@ -2861,12 +2861,18 @@ const POSPage = () => {
                 strategy={rectSortingStrategy}
                 disabled={!isSortMode}
               >
-                <div dir="rtl" className={`p-3 grid gap-2 ${
-                  cardSize === "S" 
-                    ? "grid-cols-5 sm:grid-cols-6 lg:grid-cols-7 xl:grid-cols-8 2xl:grid-cols-10 gap-1.5" 
-                    : cardSize === "M" 
-                      ? "grid-cols-4 sm:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8 gap-2" 
-                      : "grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-3"
+                <div dir="rtl" className={`p-3 grid ${
+                  filteredProducts.length <= 10 && filteredProducts.length > 0
+                    ? filteredProducts.length <= 3
+                      ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
+                      : filteredProducts.length <= 6
+                        ? "grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-4"
+                        : "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3"
+                    : cardSize === "S" 
+                      ? "grid-cols-5 sm:grid-cols-6 lg:grid-cols-7 xl:grid-cols-8 2xl:grid-cols-10 gap-1.5" 
+                      : cardSize === "M" 
+                        ? "grid-cols-4 sm:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8 gap-2" 
+                        : "grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-3"
                 }`}>
                   {filteredProducts.map((product) => {
                     const productColor = getProductCatColor(product);
@@ -2874,6 +2880,7 @@ const POSPage = () => {
                     const CatIcon = catConfig.icon;
                     const isLowStock = product.min_quantity > 0 && product.quantity <= product.min_quantity && product.quantity > 0;
                     const qtyInCart = cartQtyMap[product.id] || 0;
+                    const isFewProducts = filteredProducts.length <= 10;
 
                     return (
                       <SortableProductCard key={product.id} id={product.id} isSortMode={isSortMode}>
@@ -2973,9 +2980,11 @@ const POSPage = () => {
 
                               {/* Name */}
                               <p className={`font-medium text-foreground leading-tight mb-0.5 break-words ${
-                                cardSize === "S" 
-                                  ? "text-[10px] font-bold" 
-                                  : "text-[11px]"
+                                isFewProducts
+                                  ? "text-sm font-bold"
+                                  : cardSize === "S" 
+                                    ? "text-[10px] font-bold" 
+                                    : "text-[11px]"
                               }`} dir="rtl" style={{ unicodeBidi: "plaintext" }}>
                                 {product.name}
                               </p>
@@ -2989,7 +2998,9 @@ const POSPage = () => {
 
                               {/* Price */}
                               <p className={`font-bold text-primary tabular-nums ${
-                                cardSize === "S" ? "text-[10px]" : "text-xs"
+                                isFewProducts
+                                  ? "text-base"
+                                  : cardSize === "S" ? "text-[10px]" : "text-xs"
                               }`}>
                                 ₪{product.sell_price.toFixed(2)}
                               </p>
