@@ -2759,7 +2759,7 @@ const POSPage = () => {
                   </button>
                 )}
                 {showContactDropdown && (customerSearch || "").length > 0 && (
-                  <div className="absolute z-50 w-full top-full mt-1 bg-popover border border-border rounded-lg shadow-lg max-h-44 overflow-y-auto">
+                  <div className="absolute z-50 w-[320px] right-0 top-full mt-1 bg-popover border border-border rounded-lg shadow-lg max-h-56 overflow-y-auto">
                     {posCustomerResults.length > 0 && (
                       <>
                         <p className="px-3 py-1 text-[10px] text-muted-foreground font-semibold border-b border-border bg-muted/30">زبائن نقطة البيع</p>
@@ -2772,14 +2772,26 @@ const POSPage = () => {
                               setCustomerSearch("");
                               setShowContactDropdown(false);
                             }}
-                            className="w-full px-3 py-1.5 text-xs text-right hover:bg-muted/50 transition flex items-center justify-between gap-2"
+                            className="w-full px-3 py-2 text-xs text-right hover:bg-muted/50 transition"
                           >
-                            <div className="flex items-center gap-2">
-                              <UserCheck className="h-3 w-3 text-emerald-600 shrink-0" />
-                              <span className="font-medium">{pc.name || pc.whatsapp}</span>
-                              {pc.whatsapp && <span className="text-[10px] text-muted-foreground font-mono">{pc.whatsapp}</span>}
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <UserCheck className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                                <span className="font-semibold truncate">{pc.name || "بدون اسم"}</span>
+                              </div>
+                              <span className="text-[10px] text-muted-foreground shrink-0">{pc.total_visits || 0} زيارة</span>
                             </div>
-                            <span className="text-[10px] text-muted-foreground">{pc.total_visits || 0} زيارة</span>
+                            <div className="flex items-center gap-3 mt-0.5 mr-5">
+                              {pc.whatsapp && (
+                                <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                                  <Phone className="h-2.5 w-2.5" />
+                                  {pc.whatsapp}
+                                </span>
+                              )}
+                              {(pc.total_spent || 0) > 0 && (
+                                <span className="text-[10px] text-emerald-600 font-medium">₪{(pc.total_spent || 0).toLocaleString()}</span>
+                              )}
+                            </div>
                           </button>
                         ))}
                       </>
