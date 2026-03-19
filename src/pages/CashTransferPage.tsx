@@ -150,14 +150,12 @@ const CashTransferPage = () => {
       const targetAccount = fxMainAccounts[transferCurrency] || toBox.gl_account_code;
       
       // We need to figure out the ILS equivalent for the journal entry
-      // Get exchange rate from currencies table
-      const { data: rateData } = await supabase
-        .from("currencies")
-        .select("sell_rate")
-        .eq("code", transferCurrency)
-        .eq("is_active", true)
-        .maybeSingle();
-      const rate = rateData?.sell_rate || (transferCurrency === "USD" ? 3.6 : transferCurrency === "JOD" ? 5.0 : 1);
+      // Get exchange rate from exchange_rates table via RPC
+      const { data: rateVal } = await supabase.rpc("get_exchange_rate", {
+        p_currency_code: transferCurrency,
+        p_rate_type: "sell",
+      });
+      const rate = Number(rateVal) || (transferCurrency === "USD" ? 3.6 : transferCurrency === "JOD" ? 5.0 : 1);
       const ilsEquivalent = amountNum * rate;
 
       // Create journal entry with foreign_amount
