@@ -4187,10 +4187,9 @@ const POSPage = () => {
                         <UserCheck className="h-4 w-4 text-purple-500" />
                         <span className="text-sm font-medium">{selectedEmployee.full_name}</span>
                       </div>
-                      <div className="text-left">
-                        <p className="text-[10px] text-muted-foreground">رصيد مسحوبات الشهر</p>
-                        <p className="text-sm font-bold text-destructive tabular-nums">₪{employeeBalance.toFixed(0)}</p>
-                      </div>
+                      {selectedEmployee.job_title && (
+                        <span className="text-xs text-muted-foreground">{selectedEmployee.job_title}</span>
+                      )}
                     </div>
                     <div className="mt-2">
                       <Input
