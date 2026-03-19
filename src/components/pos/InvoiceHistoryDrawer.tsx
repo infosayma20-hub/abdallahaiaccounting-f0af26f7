@@ -812,6 +812,21 @@ export default function InvoiceHistoryDrawer({
                     </Button>
                   </>
                 )}
+                {allowOrderTransfer && selectedOrder.state === "paid" && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 text-xs"
+                    style={{ borderColor: "#6366F1", color: "#6366F1" }}
+                    onClick={() => {
+                      setTransferringOrder(selectedOrder);
+                      setSelectedTransferUser(null);
+                      setShowTransferDialog(true);
+                    }}
+                  >
+                    <ArrowRightLeft className="h-3.5 w-3.5" /> نقل لموظف آخر
+                  </Button>
+                )}
               </div>
 
               {/* Manager approval note */}
