@@ -2326,8 +2326,14 @@ const POSPage = () => {
     // Multi-currency expected cash calculation
     // ILS expected = opening + ILS cash sales - ILS change given for foreign payments - expenses
     const ilsCashSales = paymentMethodBreakdown["cash"]?.["ILS"] || 0;
-    // Fallback: if no payment records found but session has sales, use session total_sales
-    const effectiveILSCashSales = ilsCashSales > 0 ? ilsCashSales : (orderIds.length === 0 ? (session.total_sales || 0) : ilsCashSales);
+    // If no payment records found (e.g. data integrity issue) but session tracked sales, 
+    // use session.total_sales as fallback for cash (conservative: assumes all sales were cash)
+    const totalCashFromPayments = Object.values(paymentMethodBreakdown).reduce((s, currencies) => 
+      s + Object.values(currencies).reduce((s2, v) => s2 + v, 0), 0);
+    const hasCreditOrCard = (paymentMethodBreakdown["credit"] || paymentMethodBreakdown["card"]);
+    const effectiveILSCashSales = orderIds.length === 0 && (session.total_sales || 0) > 0
+      ? (session.total_sales || 0) // fallback when orders were deleted
+      : ilsCashSales;
     const expectedILS = session.opening_cash + effectiveILSCashSales - foreignChangeILS - totalExpenses;
     // Foreign expected = actual foreign tendered minus foreign change given back
     const expectedUSD = foreignTenderedUSD - foreignChangeUSD;
