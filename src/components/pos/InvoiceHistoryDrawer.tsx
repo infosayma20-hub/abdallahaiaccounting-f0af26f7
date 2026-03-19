@@ -343,14 +343,19 @@ export default function InvoiceHistoryDrawer({
     );
   }, [orders, searchQuery]);
 
+  const isTransferredOut = (order: InvoiceOrder) => 
+    order.transferred_from_session_id === sessionId && order.session_id !== sessionId;
+
   const summary = useMemo(() => {
-    const paid = orders.filter(o => o.state === "paid" && !o.is_return);
+    // Exclude transferred-out orders from summary
+    const sessionOrders = orders.filter(o => !isTransferredOut(o));
+    const paid = sessionOrders.filter(o => o.state === "paid" && !o.is_return);
     return {
       totalToday: paid.reduce((s, o) => s + o.total, 0),
       count: paid.length,
-      cancelled: orders.filter(o => o.state === "cancelled").length,
+      cancelled: sessionOrders.filter(o => o.state === "cancelled").length,
     };
-  }, [orders]);
+  }, [orders, sessionId]);
 
   const loadDetail = async (order: InvoiceOrder) => {
     setSelectedOrder(order);
