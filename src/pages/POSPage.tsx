@@ -2998,9 +2998,12 @@ const POSPage = () => {
 
                               {/* Price */}
                               <p className={`font-bold text-primary tabular-nums ${
-                                cardSize === "S" ? "text-[10px]" : "text-xs"
+                                isFewProducts
+                                  ? "text-base"
+                                  : cardSize === "S" ? "text-[10px]" : "text-xs"
                               }`}>
                                 ₪{product.sell_price.toFixed(2)}
+                              </p>
                               </p>
                             </div>
 
