@@ -1416,6 +1416,18 @@ const InvoicesPage = () => {
                       {inv.remainingAmount > 0 && (
                         <p className="text-[10px] text-destructive font-medium mt-0.5">متبقي: ₪{inv.remainingAmount.toLocaleString()}</p>
                       )}
+                      <div className="flex gap-1 mt-1.5">
+                        {canEdit({ status: inv.status }) && (
+                          <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px] gap-1" onClick={e => { e.stopPropagation(); navigate(`/invoices/new?edit=${inv.id}`); }}>
+                            <Pencil className="h-3 w-3" /> تعديل
+                          </Button>
+                        )}
+                        {canDelete({ status: inv.status }) && (
+                          <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px] gap-1 text-destructive" onClick={e => { e.stopPropagation(); setDeleteTargetInvoice(inv); setShowDeleteDialog(true); }}>
+                            <Trash2 className="h-3 w-3" /> حذف
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </CardContent>
