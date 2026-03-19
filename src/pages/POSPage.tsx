@@ -4179,7 +4179,7 @@ const POSPage = () => {
                                 return (
                                   <button
                                     key={cur}
-                                    onClick={() => setChangeCurrency(cur)}
+                                    onClick={() => { setChangeCurrency(cur); setManualChangeAmount(null); }}}
                                     className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                                       isActive
                                         ? "bg-primary text-primary-foreground shadow-md"
