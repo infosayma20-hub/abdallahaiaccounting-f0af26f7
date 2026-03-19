@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   X, Search, Printer, RotateCcw, Ban, Clock, User, Eye,
-  ChevronLeft, AlertTriangle, Lock, FileText, ShoppingCart,
+  ChevronLeft, AlertTriangle, Lock, FileText, ShoppingCart, ArrowRightLeft,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
