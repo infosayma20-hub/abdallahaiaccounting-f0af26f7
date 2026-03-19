@@ -2880,6 +2880,7 @@ const POSPage = () => {
                     const CatIcon = catConfig.icon;
                     const isLowStock = product.min_quantity > 0 && product.quantity <= product.min_quantity && product.quantity > 0;
                     const qtyInCart = cartQtyMap[product.id] || 0;
+                    const isFewProducts = filteredProducts.length <= 10;
 
                     return (
                       <SortableProductCard key={product.id} id={product.id} isSortMode={isSortMode}>
