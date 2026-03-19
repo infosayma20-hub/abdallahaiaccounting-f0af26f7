@@ -2998,16 +2998,25 @@ const POSPage = () => {
               {activeOrder.tableName && (
                 <span className="text-xs font-semibold text-primary flex items-center gap-1 bg-primary/10 px-2 py-0.5 rounded-md">
                   <UtensilsCrossed className="h-3 w-3" />
-                  {activeOrder.tableName}
+                  {activeOrder.tableName}{activeOrder.customerName ? ` - ${activeOrder.customerName}` : ""}
                 </span>
               )}
-              {activeOrder.customerName ? (
+              {!activeOrder.tableName && activeOrder.customerName ? (
                 <span className="text-xs font-medium text-foreground flex items-center gap-1">
                   <User className="h-3 w-3" />
                   {activeOrder.customerName}
                 </span>
-              ) : (
-                <span className="text-xs text-muted-foreground/60">{activeOrder.tableName ? "" : "بدون زبون"}</span>
+              ) : !activeOrder.tableName ? (
+                <span className="text-xs text-muted-foreground/60">بدون زبون</span>
+              ) : null}
+              {activeOrder.orderType !== "dine_in" && (
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold ${
+                  activeOrder.orderType === "delivery" 
+                    ? "bg-amber-100 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400" 
+                    : "bg-sky-100 text-sky-700 dark:bg-sky-950/30 dark:text-sky-400"
+                }`}>
+                  {activeOrder.orderType === "delivery" ? "🚚 توصيل" : "🛍️ استلام"}
+                </span>
               )}
             </div>
             {cart.length > 0 && (
