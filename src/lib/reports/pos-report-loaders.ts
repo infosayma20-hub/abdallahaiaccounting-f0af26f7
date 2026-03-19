@@ -175,9 +175,18 @@ export async function loadPOSShiftOpenClose(uid: string, dateFrom: string, dateT
 }
 
 export async function loadPOSPaymentMethods(uid: string, dateFrom: string, dateTo: string, setData: SetData) {
-  const { data: payments } = await supabase.from("pos_payments").select("payment_method, amount, currency").eq("user_id", uid).gte("created_at", dateFrom).lte("created_at", dateTo + "T23:59:59");
+  // Get paid order IDs first to exclude cancelled orders' payments
+  const { data: paidOrders } = await supabase.from("pos_orders").select("id").eq("user_id", uid).eq("state", "paid").gte("created_at", dateFrom).lte("created_at", dateTo + "T23:59:59");
+  const paidIds = (paidOrders || []).map(o => o.id);
+  if (!paidIds.length) { setData([]); return; }
+  const allPayments: any[] = [];
+  for (let i = 0; i < paidIds.length; i += 500) {
+    const batch = paidIds.slice(i, i + 500);
+    const { data: payments } = await supabase.from("pos_payments").select("payment_method, amount, currency").in("order_id", batch);
+    if (payments) allPayments.push(...payments);
+  }
   const methodMap: Record<string, { method: string; count: number; total: number; max: number; min: number }> = {};
-  (payments || []).forEach(p => {
+  allPayments.forEach(p => {
     const m = p.payment_method === "cash" ? "نقدي" : p.payment_method === "card" ? "بطاقة" : p.payment_method === "credit" ? "آجل" : p.payment_method || "نقدي";
     if (!methodMap[m]) methodMap[m] = { method: m, count: 0, total: 0, max: 0, min: Infinity };
     methodMap[m].count++;
