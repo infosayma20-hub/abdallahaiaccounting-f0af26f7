@@ -1092,7 +1092,7 @@ const POSPage = () => {
       .eq("is_active", true);
     
     const empMap = new Map<string, boolean>();
-    const emps: { id: string; full_name: string; base_salary: number; account_code?: string }[] = [];
+    const emps: { id: string; full_name: string; base_salary: number; account_code?: string; job_title?: string }[] = [];
     
     // Add HR employees first
     (empData || []).forEach(emp => {
