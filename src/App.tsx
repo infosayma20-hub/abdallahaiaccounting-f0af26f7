@@ -372,6 +372,7 @@ const App = () => (
                       <Route path="/support/tickets/:id" element={<TicketDetailPage />} />
                       <Route path="/support/admin" element={<RoleGuard allowedRoles={["admin"]}><SupportAdminPage /></RoleGuard>} />
                       <Route path="/pos-users" element={<POSUserManagementPage />} />
+                      <Route path="/pos-customers" element={<POSCustomerDatabasePage />} />
                       <Route path="/pos-reports" element={<POSReportsPage />} />
                       <Route path="/customer-reports" element={<CustomerReportsPage />} />
                       <Route path="/contractor" element={<ContractorApp />} />
