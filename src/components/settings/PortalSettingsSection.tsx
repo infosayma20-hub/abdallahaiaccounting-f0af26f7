@@ -21,8 +21,8 @@ export default function PortalSettingsSection() {
       toast.error('يرجى ملء جميع الحقول');
       return;
     }
-    if (password.length < 6) {
-      toast.error('كلمة المرور يجب أن تكون 6 أحرف على الأقل');
+    if (password.length < 3) {
+      toast.error('كلمة المرور يجب أن تكون 3 أحرف على الأقل');
       return;
     }
 
