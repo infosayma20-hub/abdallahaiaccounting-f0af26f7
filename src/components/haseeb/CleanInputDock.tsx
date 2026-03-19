@@ -18,6 +18,7 @@ interface MentionItem {
 interface Props {
   onSend: (text: string, isVoice?: boolean) => void;
   sending: boolean;
+  centered?: boolean;
 }
 
 
