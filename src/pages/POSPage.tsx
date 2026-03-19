@@ -1124,6 +1124,19 @@ const POSPage = () => {
     return contacts.filter(c => c.contact_name.toLowerCase().includes(q));
   }, [contacts, customerSearch]);
 
+  // Search POS customers by name or phone
+  const searchPosCustomers = useCallback(async (query: string) => {
+    if (!query || query.length < 2 || !dataOwnerId) { setPosCustomerResults([]); return; }
+    const q = `%${query}%`;
+    const { data } = await supabase
+      .from("pos_customers")
+      .select("id, name, whatsapp, address, total_visits, total_spent")
+      .eq("user_id", dataOwnerId)
+      .or(`name.ilike.${q},whatsapp.ilike.${q}`)
+      .limit(10);
+    setPosCustomerResults((data as POSCustomer[]) || []);
+  }, [dataOwnerId]);
+
   const handleQuickAddCustomer = async () => {
     if (!newCustomerName.trim() || !dataOwnerId) return;
     setSavingCustomer(true);
