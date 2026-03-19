@@ -2223,6 +2223,7 @@ const POSPage = () => {
       setTenderedAmount("");
       setPaymentMethod("cash");
       setPaymentCurrency("ILS");
+      setChangeCurrency("ILS");
       setEditedRate(null);
       setRateEdited(false);
       setCustomerDataDiscount(null);
