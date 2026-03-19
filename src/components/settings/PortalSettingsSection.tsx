@@ -21,8 +21,8 @@ export default function PortalSettingsSection() {
       toast.error('يرجى ملء جميع الحقول');
       return;
     }
-    if (password.length < 6) {
-      toast.error('كلمة المرور يجب أن تكون 6 أحرف على الأقل');
+    if (password.length < 3) {
+      toast.error('كلمة المرور يجب أن تكون 3 أحرف على الأقل');
       return;
     }
 
@@ -165,7 +165,7 @@ export default function PortalSettingsSection() {
                 type="password"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
-                placeholder="كلمة مرور قوية (6 أحرف على الأقل)"
+                placeholder="كلمة مرور (3 أحرف على الأقل)"
                 dir="ltr"
               />
             </div>

@@ -149,8 +149,8 @@ const EmployeesPage = () => {
       toast.error("الإيميل وكلمة المرور مطلوبين");
       return;
     }
-    if (accountForm.password.length < 6) {
-      toast.error("كلمة المرور يجب أن تكون 6 أحرف على الأقل");
+    if (accountForm.password.length < 3) {
+      toast.error("كلمة المرور يجب أن تكون 3 أحرف على الأقل");
       return;
     }
     setCreatingAccount(true);
@@ -1001,7 +1001,7 @@ const EmployeesPage = () => {
           <p className="text-sm text-muted-foreground">سيتم إنشاء حساب دخول للموظف وربطه تلقائياً.</p>
           <div className="space-y-3 mt-2">
             <div><label className="text-xs text-muted-foreground">البريد الإلكتروني</label><Input type="email" placeholder="employee@example.com" value={accountForm.email} onChange={e => setAccountForm({ ...accountForm, email: e.target.value })} /></div>
-            <div><label className="text-xs text-muted-foreground">كلمة المرور (6 أحرف على الأقل)</label><Input type="text" placeholder="كلمة المرور" value={accountForm.password} onChange={e => setAccountForm({ ...accountForm, password: e.target.value })} /></div>
+            <div><label className="text-xs text-muted-foreground">كلمة المرور (3 أحرف على الأقل)</label><Input type="text" placeholder="كلمة المرور" value={accountForm.password} onChange={e => setAccountForm({ ...accountForm, password: e.target.value })} /></div>
           </div>
           <div className="flex justify-end gap-2 mt-4">
             <Button variant="outline" onClick={() => setShowCreateAccount(false)}>إلغاء</Button>

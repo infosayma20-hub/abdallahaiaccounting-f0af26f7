@@ -1477,8 +1477,8 @@ const POSPage = () => {
 
   // Handle password change for first-login cashiers
   const handleChangePassword = async () => {
-    if (newPassword.length < 6) {
-      toast.error("كلمة المرور يجب أن تكون 6 أحرف على الأقل");
+    if (newPassword.length < 3) {
+      toast.error("كلمة المرور يجب أن تكون 3 أحرف على الأقل");
       return;
     }
     if (newPassword !== confirmNewPassword) {
@@ -3673,7 +3673,7 @@ const POSPage = () => {
                 type="password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="6 أحرف على الأقل"
+                placeholder="3 أحرف على الأقل"
                 className="h-11"
               />
             </div>
@@ -3689,7 +3689,7 @@ const POSPage = () => {
             </div>
           </div>
           <DialogFooter>
-            <Button onClick={handleChangePassword} disabled={changingPassword || newPassword.length < 6} className="w-full h-11 font-bold">
+            <Button onClick={handleChangePassword} disabled={changingPassword || newPassword.length < 3} className="w-full h-11 font-bold">
               {changingPassword ? "جاري التغيير..." : "تغيير كلمة المرور"}
             </Button>
           </DialogFooter>

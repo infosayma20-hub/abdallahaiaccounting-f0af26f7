@@ -43,7 +43,7 @@ const ResetPasswordPage = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                minLength={6}
+                minLength={3}
                 dir="ltr"
               />
               <Button type="submit" className="w-full" disabled={loading}>
