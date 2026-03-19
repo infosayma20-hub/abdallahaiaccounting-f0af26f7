@@ -1239,6 +1239,18 @@ const POSPage = () => {
           p.barcode?.toLowerCase().includes(q)
       );
     }
+    // When "الكل" is selected, sort products grouped by category order
+    if (selectedCategory === "الكل" && !searchQuery) {
+      const catOrderMap = new Map<string, number>();
+      posCategories.forEach((c, i) => catOrderMap.set(c.id, i));
+      filtered.sort((a, b) => {
+        const aCatId = a.pos_category_id || posCategories.find(c => c.name === a.category)?.id || "";
+        const bCatId = b.pos_category_id || posCategories.find(c => c.name === b.category)?.id || "";
+        const aOrder = catOrderMap.get(aCatId) ?? 9999;
+        const bOrder = catOrderMap.get(bCatId) ?? 9999;
+        return aOrder - bOrder;
+      });
+    }
     return filtered;
   }, [products, selectedCategory, searchQuery, posCategories]);
 
