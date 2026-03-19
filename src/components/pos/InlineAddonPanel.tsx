@@ -43,8 +43,9 @@ interface Props {
   anchorRef?: React.RefObject<HTMLElement>;
 }
 
-export default function InlineAddonPanel({ product, groups, onConfirm, onClose, flipUp = false }: Props) {
+export default function InlineAddonPanel({ product, groups, onConfirm, onClose, flipUp = false, anchorRef }: Props) {
   const panelRef = useRef<HTMLDivElement>(null);
+  const [portalPos, setPortalPos] = useState<{ top: number; left: number; width: number } | null>(null);
 
   const [selected, setSelected] = useState<Record<string, string[]>>(() => {
     const defaults: Record<string, string[]> = {};
@@ -55,6 +56,22 @@ export default function InlineAddonPanel({ product, groups, onConfirm, onClose, 
   });
   const [note, setNote] = useState("");
   const [quantity, setQuantity] = useState(1);
+
+  // Position the portal panel relative to the anchor element
+  useLayoutEffect(() => {
+    const anchor = anchorRef?.current;
+    if (!anchor) return;
+    const rect = anchor.getBoundingClientRect();
+    const panelHeight = 400; // estimated max height
+    const viewH = window.innerHeight;
+    const shouldFlipUp = rect.bottom + panelHeight > viewH && rect.top > panelHeight;
+    const top = shouldFlipUp ? rect.top - 6 : rect.bottom + 6;
+    setPortalPos({
+      top,
+      left: rect.left,
+      width: Math.max(rect.width, 280),
+    });
+  }, [anchorRef]);
 
   // Close on Escape
   useEffect(() => {
@@ -67,12 +84,10 @@ export default function InlineAddonPanel({ product, groups, onConfirm, onClose, 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
-      // Check if click is inside the panel or parent card
       if (panelRef.current && !panelRef.current.contains(target) && !target.closest("[data-addon-card]")) {
         onClose();
       }
     };
-    // Delay to avoid immediate close from the opening click
     const timer = setTimeout(() => document.addEventListener("mousedown", handler), 50);
     return () => { clearTimeout(timer); document.removeEventListener("mousedown", handler); };
   }, [onClose]);
@@ -135,20 +150,24 @@ export default function InlineAddonPanel({ product, groups, onConfirm, onClose, 
     return "grid-cols-3";
   };
 
-  const positionStyles: React.CSSProperties = flipUp
-    ? { bottom: "calc(100% + 6px)", top: "auto", left: 0, right: 0 }
-    : { top: "calc(100% + 6px)", left: 0, right: 0 };
+  const usePortal = !!anchorRef?.current;
+  const positionStyles: React.CSSProperties = usePortal && portalPos
+    ? { position: "fixed", top: portalPos.top, left: portalPos.left, width: portalPos.width }
+    : flipUp
+      ? { position: "absolute", bottom: "calc(100% + 6px)", top: "auto", left: 0, right: 0 }
+      : { position: "absolute", top: "calc(100% + 6px)", left: 0, right: 0 };
 
-  return (
+  const panel = (
     <motion.div
       ref={panelRef}
       initial={{ opacity: 0, y: flipUp ? 8 : -8, scale: 0.97 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: flipUp ? 6 : -6 }}
       transition={{ duration: 0.2, ease: [0.34, 1.56, 0.64, 1] }}
-      className="fixed z-[200] min-w-[260px] max-w-[340px] overflow-hidden rounded-[14px] border border-border bg-card"
+      className="min-w-[260px] overflow-hidden rounded-[14px] border border-border bg-card"
       style={{
         ...positionStyles,
+        zIndex: 9999,
         boxShadow: "0 8px 32px rgba(10,35,66,0.18), 0 2px 8px rgba(10,35,66,0.08)",
       }}
       dir="rtl"
