@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, Plus, Loader2, Settings, ArrowUpRight, FileText, Wallet, Building2, Monitor, Landmark } from "lucide-react";
+import { ArrowRight, Plus, Loader2, Settings, ArrowUpRight, FileText, Wallet, Building2, Monitor, Landmark, ArrowDownToLine } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import CashBoxDrawer from "@/components/finance/CashBoxDrawer";
+import PettyCashReplenishDialog from "@/components/finance/PettyCashReplenishDialog";
 
 const CashBoxesPage = () => {
   const navigate = useNavigate();
@@ -19,6 +20,7 @@ const CashBoxesPage = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerType, setDrawerType] = useState<"main" | "branch" | "pos" | "petty" | "petty_cash">("branch");
   const [editBox, setEditBox] = useState<any>(null);
+  const [replenishOpen, setReplenishOpen] = useState(false);
 
   const fetchBoxes = useCallback(async () => {
     if (!user) return;
@@ -166,9 +168,16 @@ const CashBoxesPage = () => {
             <p className="text-xs text-muted-foreground">تعريف وإدارة جميع صناديق الشركة</p>
           </div>
         </div>
-        <Button size="sm" className="gap-2" style={{ background: "#0A2342" }} onClick={() => openAdd("branch")}>
-          <Plus className="h-4 w-4" /> صندوق جديد
-        </Button>
+        <div className="flex items-center gap-2">
+          {pettyBoxes.length > 0 && (
+            <Button variant="outline" size="sm" className="gap-1.5 text-xs border-amber-300 text-amber-700 hover:bg-amber-50" onClick={() => setReplenishOpen(true)}>
+              <ArrowDownToLine className="h-3.5 w-3.5" /> تغذية النثرية
+            </Button>
+          )}
+          <Button size="sm" className="gap-2" style={{ background: "#0A2342" }} onClick={() => openAdd("branch")}>
+            <Plus className="h-4 w-4" /> صندوق جديد
+          </Button>
+        </div>
       </div>
 
       {/* KPI Strip */}
@@ -298,6 +307,14 @@ const CashBoxesPage = () => {
         editBox={editBox}
         hasMainBox={mainBoxes.length > 0}
         onSaved={() => { setDrawerOpen(false); setEditBox(null); fetchBoxes(); }}
+      />
+
+      <PettyCashReplenishDialog
+        open={replenishOpen}
+        onOpenChange={setReplenishOpen}
+        boxes={boxes}
+        userId={user?.id || ""}
+        onSuccess={fetchBoxes}
       />
     </div>
   );
