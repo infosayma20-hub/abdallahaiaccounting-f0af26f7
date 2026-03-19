@@ -2980,9 +2980,11 @@ const POSPage = () => {
 
                               {/* Name */}
                               <p className={`font-medium text-foreground leading-tight mb-0.5 break-words ${
-                                cardSize === "S" 
-                                  ? "text-[10px] font-bold" 
-                                  : "text-[11px]"
+                                isFewProducts
+                                  ? "text-sm font-bold"
+                                  : cardSize === "S" 
+                                    ? "text-[10px] font-bold" 
+                                    : "text-[11px]"
                               }`} dir="rtl" style={{ unicodeBidi: "plaintext" }}>
                                 {product.name}
                               </p>
