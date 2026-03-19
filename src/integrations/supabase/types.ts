@@ -6495,6 +6495,7 @@ export type Database = {
           approved_by_pos_user_id: string | null
           cash_box_id: string | null
           cash_variance: number | null
+          cashier_auth_user_id: string | null
           cashier_name: string | null
           cashier_pos_user_id: string | null
           closed_at: string | null
@@ -6522,6 +6523,7 @@ export type Database = {
           approved_by_pos_user_id?: string | null
           cash_box_id?: string | null
           cash_variance?: number | null
+          cashier_auth_user_id?: string | null
           cashier_name?: string | null
           cashier_pos_user_id?: string | null
           closed_at?: string | null
@@ -6549,6 +6551,7 @@ export type Database = {
           approved_by_pos_user_id?: string | null
           cash_box_id?: string | null
           cash_variance?: number | null
+          cashier_auth_user_id?: string | null
           cashier_name?: string | null
           cashier_pos_user_id?: string | null
           closed_at?: string | null

@@ -206,7 +206,15 @@ function getCatConfig(category: string) {
   return CATEGORY_CONFIG[category] || DEFAULT_CAT_CONFIG;
 }
 
-// ── Sortable Category Chip ──
+// Haversine distance in meters
+function getDistanceMeters(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371000;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
 const SortableCategoryChip = ({ cat, isActive, isSortMode, isDragging, onClick }: {
   cat: { id: string; name: string; color: string; count: number };
   isActive: boolean;
@@ -742,7 +750,7 @@ const POSPage = () => {
           .select("*")
           .eq("user_id", dataOwnerId)
           .eq("state", "open")
-          .eq("cashier_name", displayName)
+          .eq("cashier_auth_user_id", userId)
           .order("opened_at", { ascending: false })
           .limit(1);
 
@@ -1410,6 +1418,51 @@ const POSPage = () => {
     const cash = parseFloat(openingCash) || 0;
     const displayName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "";
 
+    // Geofence check for non-admin users (cashiers)
+    if (!isAdmin) {
+      try {
+        // Get branch linked to POS
+        const { data: cs } = await supabase
+          .from("company_settings" as any)
+          .select("pos_branch_id")
+          .eq("user_id", dataOwnerId)
+          .maybeSingle();
+        const branchId = (cs as any)?.pos_branch_id;
+        if (branchId) {
+          const { data: branch } = await supabase
+            .from("branches")
+            .select("latitude, longitude, radius_meters, name")
+            .eq("id", branchId)
+            .maybeSingle();
+          if (branch && branch.latitude && branch.longitude) {
+            // Get user's current position
+            const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
+              navigator.geolocation.getCurrentPosition(resolve, reject, {
+                enableHighAccuracy: true, timeout: 10000, maximumAge: 0,
+              });
+            }).catch(() => null);
+            if (!pos) {
+              toast.error("يرجى تفعيل خدمة الموقع (GPS) لفتح الوردية");
+              return;
+            }
+            const distance = getDistanceMeters(
+              pos.coords.latitude, pos.coords.longitude,
+              branch.latitude, branch.longitude
+            );
+            const maxRadius = branch.radius_meters || 100;
+            if (distance > maxRadius) {
+              toast.error(`أنت خارج نطاق الفرع "${branch.name}" (${Math.round(distance)}م بعيداً، الحد ${maxRadius}م)`);
+              return;
+            }
+          }
+        }
+      } catch (e) {
+        // If geolocation fails, allow admin but block cashier
+        toast.error("تعذر التحقق من الموقع. يرجى تفعيل GPS.");
+        return;
+      }
+    }
+
     const { data, error } = await supabase
       .from("pos_sessions")
       .insert({
@@ -1417,6 +1470,7 @@ const POSPage = () => {
         company_id: company.id,
         terminal_id: terminal.id,
         cashier_name: displayName,
+        cashier_auth_user_id: userId,
         opening_cash: cash,
         state: "open",
         cash_box_id: selectedCashBoxId || null,
