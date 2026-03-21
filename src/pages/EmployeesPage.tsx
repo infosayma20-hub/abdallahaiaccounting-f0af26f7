@@ -11,7 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Plus, Search, Users, DollarSign, Calendar, FileText, Trash2, UserPlus, Loader2, Upload, CalendarDays, LogOut as LogOutIcon, Download, FileBarChart, ArrowUpDown, Filter, Layers, Pencil, ChevronLeft, ChevronRight, X, Edit, Building2 } from "lucide-react";
+import { Plus, Search, Users, DollarSign, Calendar, FileText, Trash2, UserPlus, Loader2, Upload, CalendarDays, LogOut as LogOutIcon, Download, FileBarChart, ArrowUpDown, Filter, Layers, Pencil, ChevronLeft, ChevronRight, X, Edit, Building2, Shield } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { useNavigate } from "react-router-dom";
 import BackButton from "@/components/BackButton";
 import EmployeeMovementsTab from "@/components/hr/EmployeeMovementsTab";
@@ -74,6 +75,8 @@ interface Employee {
   previous_year_balance?: number;
   is_terminated?: boolean;
   auth_user_id?: string;
+  is_manager?: boolean;
+  is_hr_manager?: boolean;
 }
 
 const emptyEmployee: Partial<Employee> = {
@@ -167,7 +170,7 @@ const EmployeesPage = () => {
   const fetchEmployees = async () => {
     if (!user) return;
     setLoading(true);
-    const { data, error } = await supabase.from("employees_safe").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
+    const { data, error } = await supabase.from("employees").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
     if (error) { toast.error("خطأ في جلب الموظفين"); console.error(error); }
     else setEmployees((data as any[]) || []);
     setLoading(false);
@@ -732,7 +735,38 @@ const EmployeesPage = () => {
                 <Button size="sm" variant="destructive" onClick={() => handleDelete(selectedEmployee.id)}><Trash2 className="h-3 w-3" /></Button>
               </div>
 
-              {/* Tabs */}
+              {/* Manager Role Toggles */}
+              <div className="flex flex-wrap items-center gap-4 mb-4 p-3 bg-muted/30 rounded-xl border border-border">
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={!!(selectedEmployee as any).is_manager}
+                    onCheckedChange={async (checked) => {
+                      await supabase.from("employees").update({ is_manager: checked } as any).eq("id", selectedEmployee.id);
+                      setSelectedEmployee({ ...selectedEmployee, is_manager: checked } as any);
+                      fetchEmployees();
+                      toast.success(checked ? "تم تعيينه كمدير" : "تم إلغاء صفة المدير");
+                    }}
+                  />
+                  <label className="text-xs font-medium flex items-center gap-1">
+                    <Shield className="h-3.5 w-3.5 text-primary" /> مدير فرع
+                  </label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={!!(selectedEmployee as any).is_hr_manager}
+                    onCheckedChange={async (checked) => {
+                      await supabase.from("employees").update({ is_hr_manager: checked } as any).eq("id", selectedEmployee.id);
+                      setSelectedEmployee({ ...selectedEmployee, is_hr_manager: checked } as any);
+                      fetchEmployees();
+                      toast.success(checked ? "تم تعيينه كمدير HR" : "تم إلغاء صفة مدير HR");
+                    }}
+                  />
+                  <label className="text-xs font-medium flex items-center gap-1">
+                    <Shield className="h-3.5 w-3.5 text-amber-500" /> مدير HR
+                  </label>
+                </div>
+              </div>
+
               <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <TabsList className={`w-full grid mb-4 ${canSeeHR ? 'grid-cols-6' : 'grid-cols-5'}`}>
                   <TabsTrigger value="info">المعلومات</TabsTrigger>

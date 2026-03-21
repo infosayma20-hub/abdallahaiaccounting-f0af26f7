@@ -2981,6 +2981,66 @@ export type Database = {
           },
         ]
       }
+      employee_forms: {
+        Row: {
+          attachment_url: string | null
+          created_at: string
+          employee_id: string
+          form_data: Json
+          form_type: string
+          id: string
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          attachment_url?: string | null
+          created_at?: string
+          employee_id: string
+          form_data?: Json
+          form_type: string
+          id?: string
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          attachment_url?: string | null
+          created_at?: string
+          employee_id?: string
+          form_data?: Json
+          form_type?: string
+          id?: string
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_forms_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_forms_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employee_hr_records: {
         Row: {
           action_taken: string | null
@@ -3337,6 +3397,39 @@ export type Database = {
           },
         ]
       }
+      employee_policy_documents: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          file_url: string
+          id: string
+          is_active: boolean
+          title: string
+          user_id: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          file_url: string
+          id?: string
+          is_active?: boolean
+          title: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          file_url?: string
+          id?: string
+          is_active?: boolean
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       employees: {
         Row: {
           address: string | null
@@ -3367,6 +3460,8 @@ export type Database = {
           id: string
           id_number: string | null
           is_active: boolean
+          is_hr_manager: boolean
+          is_manager: boolean
           is_terminated: boolean | null
           job_title: string | null
           marital_status: string | null
@@ -3423,6 +3518,8 @@ export type Database = {
           id?: string
           id_number?: string | null
           is_active?: boolean
+          is_hr_manager?: boolean
+          is_manager?: boolean
           is_terminated?: boolean | null
           job_title?: string | null
           marital_status?: string | null
@@ -3479,6 +3576,8 @@ export type Database = {
           id?: string
           id_number?: string | null
           is_active?: boolean
+          is_hr_manager?: boolean
+          is_manager?: boolean
           is_terminated?: boolean | null
           job_title?: string | null
           marital_status?: string | null

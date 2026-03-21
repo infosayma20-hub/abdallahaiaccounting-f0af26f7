@@ -11,8 +11,9 @@ import AttendanceCalendarTab from "@/components/employee/AttendanceCalendarTab";
 import AlertsTab from "@/components/employee/AlertsTab";
 import EmployeeProfileTab from "@/components/employee/EmployeeProfileTab";
 import EmployeeRequestsTab from "@/components/employee/EmployeeRequestsTab";
+import EmployeeFormsTab from "@/components/employee/EmployeeFormsTab";
 
-type Tab = "home" | "scan" | "history" | "alerts" | "requests" | "profile";
+type Tab = "home" | "scan" | "history" | "alerts" | "requests" | "profile" | "forms";
 
 type AttendanceDay = {
   id: string;
@@ -44,6 +45,8 @@ type Employee = {
   department: string | null;
   phone: string | null;
   email: string | null;
+  is_manager: boolean;
+  is_hr_manager: boolean;
 };
 
 export default function EmployeeApp() {
@@ -72,12 +75,12 @@ export default function EmployeeApp() {
       setIsCashier(userRoles.includes("cashier"));
 
       const { data: emp } = await supabase
-        .from("employees_safe")
-        .select("id, full_name, branch_id, position, department, phone, email")
+        .from("employees")
+        .select("id, full_name, branch_id, position, department, phone, email, is_manager, is_hr_manager")
         .eq("auth_user_id", user.id)
         .eq("is_active", true)
         .single();
-      setEmployee(emp);
+      setEmployee(emp as Employee | null);
       if (!emp) { setLoading(false); return; }
 
       if (emp.branch_id) {
@@ -181,6 +184,16 @@ export default function EmployeeApp() {
             corrections={corrections}
             employeeId={employee.id}
             userId={user!.id}
+            onRefresh={fetchData}
+          />
+        )}
+
+        {activeTab === "forms" && (
+          <EmployeeFormsTab
+            employeeId={employee.id}
+            userId={user!.id}
+            isManager={employee.is_manager || false}
+            isHrManager={employee.is_hr_manager || false}
             onRefresh={fetchData}
           />
         )}

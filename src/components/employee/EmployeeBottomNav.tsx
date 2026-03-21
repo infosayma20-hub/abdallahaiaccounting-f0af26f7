@@ -1,20 +1,20 @@
-import { Home, Calendar, Send, User, Bell } from "lucide-react";
+import { Home, Calendar, Send, User, Bell, ClipboardList } from "lucide-react";
 
-type Tab = "home" | "history" | "requests" | "alerts" | "profile" | "scan";
+type Tab = "home" | "history" | "requests" | "alerts" | "profile" | "scan" | "forms";
+
+const tabs: { id: Tab; label: string; icon: React.ElementType }[] = [
+  { id: "home", label: "الرئيسية", icon: Home },
+  { id: "forms", label: "النماذج", icon: ClipboardList },
+  { id: "history", label: "الحضور", icon: Calendar },
+  { id: "requests", label: "الطلبات", icon: Send },
+  { id: "profile", label: "ملفي", icon: User },
+];
 
 interface Props {
   active: Tab;
   onNavigate: (tab: Tab) => void;
   alertCount?: number;
 }
-
-const tabs: { id: Tab; label: string; icon: React.ElementType }[] = [
-  { id: "home", label: "الرئيسية", icon: Home },
-  { id: "history", label: "الحضور", icon: Calendar },
-  { id: "requests", label: "الطلبات", icon: Send },
-  { id: "alerts", label: "الإشعارات", icon: Bell },
-  { id: "profile", label: "ملفي", icon: User },
-];
 
 export default function EmployeeBottomNav({ active, onNavigate, alertCount = 0 }: Props) {
   return (

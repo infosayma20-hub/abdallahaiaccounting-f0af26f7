@@ -35,6 +35,7 @@ import InventoryValuationPage from "./pages/InventoryValuationPage";
 import BalanceSheetPage from "./pages/BalanceSheetPage";
 import ReportsPage from "./pages/ReportsPage";
 import EmployeesPage from "./pages/EmployeesPage";
+import EmployeeFormsManagementPage from "./pages/EmployeeFormsManagementPage";
 import SalesRepresentativesPage from "./pages/SalesRepresentativesPage";
 import OrdersPage from "./pages/OrdersPage";
 import ChequesPage from "./pages/ChequesPage";
@@ -261,6 +262,7 @@ const App = () => (
                       <Route path="/inventory-movements" element={<StockMovementsPage />} />
                       <Route path="/inventory-valuation" element={<InventoryValuationPage />} />
                       <Route path="/employees" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><EmployeesPage /></RoleGuard>} />
+                      <Route path="/employee-forms-management" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><EmployeeFormsManagementPage /></RoleGuard>} />
                       <Route path="/sales-reps" element={<SalesRepresentativesPage />} />
                       <Route path="/orders" element={<OrdersPage />} />
                       <Route path="/my-attendance" element={<EmployeeAttendancePage />} />
