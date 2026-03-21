@@ -6,11 +6,13 @@ import { getBusinessDay, formatArabicTime, formatArabicDate } from '@/lib/portal
 import { LogOut, Settings, RefreshCw } from 'lucide-react';
 import PortalSalesTab from './PortalSalesTab';
 import PortalLiquidityTab from './PortalLiquidityTab';
+import PortalEmployeeRequestsTab from './PortalEmployeeRequestsTab';
+import PortalSupplierBalancesTab from './PortalSupplierBalancesTab';
 
 export default function PortalDashboard() {
   const { user, loading: authLoading, logout } = usePortalAuth();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'sales' | 'liquidity'>('sales');
+  const [activeTab, setActiveTab] = useState<'sales' | 'liquidity' | 'requests' | 'suppliers'>('sales');
   const [clock, setClock] = useState(new Date());
   const { salesData, liquidityData, loading: dataLoading, needsSetup, lastUpdated, businessDay, refresh } = usePortalData(user?.id);
 
@@ -34,6 +36,13 @@ export default function PortalDashboard() {
   if (authLoading || !user) return null;
 
   const bd = getBusinessDay();
+
+  const tabs = [
+    { key: 'sales' as const, label: '📊 المبيعات', visible: user.can_see_sales },
+    { key: 'liquidity' as const, label: '💰 السيولة', visible: user.can_see_liquidity },
+    { key: 'requests' as const, label: '📋 طلبات الموظفين', visible: true },
+    { key: 'suppliers' as const, label: '🏭 أرصدة الموردين', visible: true },
+  ].filter(t => t.visible);
 
   return (
     <div style={{
@@ -106,23 +115,22 @@ export default function PortalDashboard() {
       <div style={{
         height: 48, background: '#111111',
         borderBottom: '1px solid rgba(255,255,255,0.06)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        display: 'flex', alignItems: 'center', overflowX: 'auto',
+        justifyContent: 'center',
       }}>
-        {[
-          { key: 'sales' as const, label: '📊 المبيعات والأداء', visible: user.can_see_sales },
-          { key: 'liquidity' as const, label: '💰 السيولة النقدية', visible: user.can_see_liquidity },
-        ].filter(t => t.visible).map(tab => (
+        {tabs.map(tab => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
             style={{
-              height: '100%', padding: '0 32px',
+              height: '100%', padding: '0 20px',
               background: 'none', border: 'none',
               borderBottom: activeTab === tab.key ? '3px solid #D4A017' : '3px solid transparent',
               color: activeTab === tab.key ? '#D4A017' : 'rgba(255,255,255,0.5)',
               fontWeight: activeTab === tab.key ? 700 : 400,
-              fontSize: 14, fontFamily: 'Tajawal, sans-serif',
+              fontSize: 13, fontFamily: 'Tajawal, sans-serif',
               cursor: 'pointer', transition: 'all 0.2s',
+              whiteSpace: 'nowrap',
             }}
           >
             {tab.label}
@@ -132,34 +140,36 @@ export default function PortalDashboard() {
 
       {/* CONTENT */}
       <div style={{ padding: '16px 20px', maxWidth: 1400, margin: '0 auto' }}>
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          marginBottom: 12,
-        }}>
+        {(activeTab === 'sales' || activeTab === 'liquidity') && (
           <div style={{
-            display: 'flex', alignItems: 'center', gap: 6,
-            fontSize: 10, color: 'rgba(255,255,255,0.4)',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            marginBottom: 12,
           }}>
-            <RefreshCw size={10} className={dataLoading ? 'animate-spin' : ''} />
-            يتحدث تلقائياً كل دقيقة
-            <span style={{ margin: '0 4px' }}>•</span>
-            آخر تحديث: {formatArabicTime(lastUpdated)}
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              fontSize: 10, color: 'rgba(255,255,255,0.4)',
+            }}>
+              <RefreshCw size={10} className={dataLoading ? 'animate-spin' : ''} />
+              يتحدث تلقائياً كل دقيقة
+              <span style={{ margin: '0 4px' }}>•</span>
+              آخر تحديث: {formatArabicTime(lastUpdated)}
+            </div>
+            <button
+              onClick={() => refresh()}
+              style={{
+                background: 'rgba(212,160,23,0.1)',
+                border: '1px solid rgba(212,160,23,0.3)',
+                borderRadius: 8, padding: '4px 12px',
+                color: '#D4A017', fontSize: 11,
+                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4,
+                fontFamily: 'Tajawal, sans-serif',
+              }}
+            >
+              <RefreshCw size={12} />
+              تحديث الآن
+            </button>
           </div>
-          <button
-            onClick={() => refresh()}
-            style={{
-              background: 'rgba(212,160,23,0.1)',
-              border: '1px solid rgba(212,160,23,0.3)',
-              borderRadius: 8, padding: '4px 12px',
-              color: '#D4A017', fontSize: 11,
-              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4,
-              fontFamily: 'Tajawal, sans-serif',
-            }}
-          >
-            <RefreshCw size={12} />
-            تحديث الآن
-          </button>
-        </div>
+        )}
 
         {activeTab === 'sales' && (
           <PortalSalesTab
@@ -173,6 +183,8 @@ export default function PortalDashboard() {
         {activeTab === 'liquidity' && (
           <PortalLiquidityTab data={liquidityData} loading={dataLoading} />
         )}
+        {activeTab === 'requests' && <PortalEmployeeRequestsTab />}
+        {activeTab === 'suppliers' && <PortalSupplierBalancesTab />}
       </div>
 
       <div style={{ height: 'env(safe-area-inset-bottom, 0px)' }} />
