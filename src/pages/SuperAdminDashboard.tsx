@@ -24,6 +24,17 @@ import * as XLSX from "xlsx";
 
 // ─── Theme CSS ───
 const LIGHT_THEME_STYLES = `
+  [data-sa-theme] * {
+    direction: rtl;
+  }
+  [data-sa-theme] input,
+  [data-sa-theme] [dir="ltr"] {
+    direction: ltr;
+  }
+  [data-sa-theme] table {
+    direction: rtl;
+    text-align: right;
+  }
   [data-sa-theme="light"] {
     --sa-bg: #f8f9fc;
     --sa-bg-gradient: linear-gradient(180deg, #f0f2f7 0%, #e8ecf3 100%);
