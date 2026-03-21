@@ -3451,6 +3451,7 @@ export type Database = {
           email: string | null
           emergency_contact: string | null
           emergency_phone: string | null
+          employee_number: string | null
           end_date: string | null
           fingerprint_id: number | null
           food_transport_override: number | null
@@ -3509,6 +3510,7 @@ export type Database = {
           email?: string | null
           emergency_contact?: string | null
           emergency_phone?: string | null
+          employee_number?: string | null
           end_date?: string | null
           fingerprint_id?: number | null
           food_transport_override?: number | null
@@ -3567,6 +3569,7 @@ export type Database = {
           email?: string | null
           emergency_contact?: string | null
           emergency_phone?: string | null
+          employee_number?: string | null
           end_date?: string | null
           fingerprint_id?: number | null
           food_transport_override?: number | null

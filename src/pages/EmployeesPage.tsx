@@ -38,6 +38,7 @@ interface Employee {
   id: string;
   full_name: string;
   id_number: string;
+  employee_number?: string;
   phone: string;
   email: string;
   photo_url: string;
@@ -80,7 +81,7 @@ interface Employee {
 }
 
 const emptyEmployee: Partial<Employee> = {
-  full_name: "", id_number: "", phone: "", email: "", position: "", department: "",
+  full_name: "", id_number: "", employee_number: "", phone: "", email: "", position: "", department: "",
   job_title: "", start_date: new Date().toISOString().split("T")[0], salary_type: "شهري",
   base_salary: 0, hourly_rate: 0, work_days_per_week: 6, work_hours_per_day: 8,
   annual_leave_days: 14, sick_leave_days: 14, bank_name: "", bank_account: "",
@@ -170,7 +171,7 @@ const EmployeesPage = () => {
   const fetchEmployees = async () => {
     if (!user) return;
     setLoading(true);
-    const { data, error } = await supabase.from("employees").select("*").eq("user_id", user.id).order("id_number", { ascending: true, nullsFirst: false });
+    const { data, error } = await supabase.from("employees").select("*").eq("user_id", user.id).order("employee_number", { ascending: true, nullsFirst: false });
     if (error) { toast.error("خطأ في جلب الموظفين"); console.error(error); }
     else setEmployees((data as any[]) || []);
     setLoading(false);
@@ -444,7 +445,7 @@ const EmployeesPage = () => {
             </div>
             <div className="min-w-0">
               <p className="text-sm font-semibold text-foreground truncate">{emp.full_name}</p>
-              <p className="text-[10px] text-muted-foreground">{emp.id_number || "—"}</p>
+              <p className="text-[10px] text-muted-foreground">{(emp as any).employee_number || emp.id_number || "—"}</p>
             </div>
           </div>
         </td>
@@ -780,6 +781,7 @@ const EmployeesPage = () => {
                 <TabsContent value="info">
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     {[
+                      ["الرقم الوظيفي", (selectedEmployee as any).employee_number || "—"],
                       ["رقم الهوية", selectedEmployee.id_number],
                       ["الهاتف", selectedEmployee.phone],
                       ["البريد", selectedEmployee.email],
@@ -898,6 +900,7 @@ const EmployeesPage = () => {
           <DialogHeader><DialogTitle>{editingId ? "تعديل موظف" : "إضافة موظف جديد"}</DialogTitle></DialogHeader>
           <div className="grid grid-cols-2 gap-3">
             <div><label className="text-xs text-muted-foreground">الاسم الكامل *</label><Input value={form.full_name || ""} onChange={e => setForm({ ...form, full_name: e.target.value })} /></div>
+            <div><label className="text-xs text-muted-foreground">الرقم الوظيفي</label><Input value={(form as any).employee_number || ""} onChange={e => setForm({ ...form, employee_number: e.target.value } as any)} /></div>
             <div><label className="text-xs text-muted-foreground">رقم الهوية</label><Input value={form.id_number || ""} onChange={e => setForm({ ...form, id_number: e.target.value })} /></div>
             <div><label className="text-xs text-muted-foreground">الجنس</label>
               <Select value={form.gender || "male"} onValueChange={v => setForm({ ...form, gender: v })}>
