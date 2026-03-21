@@ -289,8 +289,9 @@ export default function PortalSalesTab({ data, loading, businessDay, needsSetup,
             key={chip.key || 'today'}
             onClick={() => {
               if (chip.key === 'custom') {
-                document.getElementById('portal-date-picker')?.showPicker?.();
-                document.getElementById('portal-date-picker')?.click();
+                const el = document.getElementById('portal-date-picker') as HTMLInputElement | null;
+                if (el && 'showPicker' in el) (el as any).showPicker();
+                else el?.click();
               } else {
                 handleDateChip(chip.key);
               }
