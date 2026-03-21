@@ -90,7 +90,7 @@ const PricingPage = () => {
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const { subscription } = useSubscription();
-  const [billing, setBilling] = useState<BillingCycle>("annual");
+  const [billing, setBilling] = useState<BillingCycle>("monthly");
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
