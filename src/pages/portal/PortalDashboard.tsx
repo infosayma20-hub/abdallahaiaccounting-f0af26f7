@@ -40,97 +40,83 @@ export default function PortalDashboard() {
   const tabs = [
     { key: 'sales' as const, label: '📊 المبيعات', visible: user.can_see_sales },
     { key: 'liquidity' as const, label: '💰 السيولة', visible: user.can_see_liquidity },
-    { key: 'requests' as const, label: '📋 طلبات الموظفين', visible: true },
-    { key: 'suppliers' as const, label: '🏭 أرصدة الموردين', visible: true },
+    { key: 'requests' as const, label: '📋 الطلبات', visible: true },
+    { key: 'suppliers' as const, label: '🏭 الموردين', visible: true },
   ].filter(t => t.visible);
 
   return (
     <div style={{
-      minHeight: '100vh', background: '#0A0A0A', color: 'white',
+      minHeight: '100dvh', background: '#0A0A0A', color: 'white',
       fontFamily: 'Tajawal, sans-serif', direction: 'rtl',
+      paddingBottom: 'env(safe-area-inset-bottom, 0px)',
     }}>
-      {/* TOP BAR */}
+      {/* TOP BAR - Mobile Optimized */}
       <div style={{
-        height: 56,
         background: 'linear-gradient(135deg, #0A0A0A, #1A0A00)',
         borderBottom: '1px solid rgba(212,160,23,0.2)',
-        padding: '0 20px',
+        padding: '10px 12px',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         position: 'sticky', top: 0, zIndex: 50,
+        paddingTop: 'max(10px, env(safe-area-inset-top))',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{
-            width: 32, height: 32, borderRadius: '50%',
-            background: 'linear-gradient(135deg, #D4A017, #8B5E00)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 14, color: 'white',
-          }}>📊</div>
-          <span style={{ fontSize: 15, fontWeight: 700 }}>بوابة الإدارة</span>
-          <div className="hidden sm:block" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{ width: 1, height: 20, background: 'rgba(255,255,255,0.15)' }} />
-            <span style={{ fontSize: 12, color: '#D4A017' }}>متابعة المبيعات والسيولة</span>
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{
-            padding: '6px 14px', borderRadius: 20,
-            background: bd.isActive ? 'rgba(34,197,94,0.15)' : 'rgba(251,191,36,0.15)',
-            border: `1px solid ${bd.isActive ? 'rgba(34,197,94,0.4)' : 'rgba(251,191,36,0.4)'}`,
-            fontSize: 12, fontWeight: 600,
-            display: 'flex', alignItems: 'center', gap: 6,
-          }}>
-            <span>{bd.isActive ? '🟢' : '🟡'}</span>
-            <span className="hidden md:inline">{bd.isActive ? 'وردية جارية' : 'فترة الراحة'}</span>
-            <span className="hidden lg:inline" style={{ opacity: 0.7 }}>— {formatArabicDate(bd.date)}</span>
-          </div>
-          <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 13 }}>
-            ⏰ {formatArabicTime(clock)}
-          </div>
-        </div>
-
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span className="hidden sm:inline" style={{ fontSize: 13 }}>أهلاً، {user.full_name}</span>
+          <img src="/logo-icon.svg" alt="QOYOD" style={{ width: 28, height: 28, borderRadius: 6 }} />
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 700, lineHeight: 1.2 }}>بوابة الإدارة</div>
+            <div style={{ fontSize: 9, color: 'rgba(212,160,23,0.8)', lineHeight: 1 }}>
+              {bd.isActive ? '🟢 وردية جارية' : '🟡 فترة راحة'}
+            </div>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{
+            fontFamily: 'JetBrains Mono, monospace', fontSize: 11,
+            color: 'rgba(255,255,255,0.5)',
+          }}>
+            {formatArabicTime(clock)}
+          </div>
           {user.role === 'owner' && (
             <button onClick={() => navigate('/portal/settings')} style={{
-              background: 'none', border: '1px solid rgba(255,255,255,0.2)',
-              borderRadius: 8, padding: '4px 10px', color: 'rgba(255,255,255,0.7)',
-              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontSize: 12,
+              background: 'none', border: '1px solid rgba(255,255,255,0.15)',
+              borderRadius: 8, padding: 6, color: 'rgba(255,255,255,0.6)',
+              cursor: 'pointer', display: 'flex',
             }}>
-              <Settings size={14} />
+              <Settings size={16} />
             </button>
           )}
           <button onClick={() => { logout(); navigate('/auth?mode=portal'); }} style={{
-            background: 'none', border: '1px solid rgba(255,255,255,0.2)',
-            borderRadius: 8, padding: '4px 10px', color: 'rgba(255,255,255,0.7)',
-            cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontSize: 12,
+            background: 'none', border: '1px solid rgba(255,255,255,0.15)',
+            borderRadius: 8, padding: 6, color: 'rgba(255,255,255,0.6)',
+            cursor: 'pointer', display: 'flex',
           }}>
-            <LogOut size={14} />
-            <span className="hidden sm:inline">خروج</span>
+            <LogOut size={16} />
           </button>
         </div>
       </div>
 
-      {/* TABS */}
+      {/* TABS - Scrollable on mobile */}
       <div style={{
-        height: 48, background: '#111111',
+        background: '#111111',
         borderBottom: '1px solid rgba(255,255,255,0.06)',
-        display: 'flex', alignItems: 'center', overflowX: 'auto',
-        justifyContent: 'center',
+        display: 'flex', alignItems: 'center',
+        overflowX: 'auto', WebkitOverflowScrolling: 'touch',
+        msOverflowStyle: 'none', scrollbarWidth: 'none',
+        position: 'sticky', top: 56, zIndex: 49,
       }}>
         {tabs.map(tab => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
             style={{
-              height: '100%', padding: '0 20px',
+              height: 44, padding: '0 16px',
               background: 'none', border: 'none',
               borderBottom: activeTab === tab.key ? '3px solid #D4A017' : '3px solid transparent',
               color: activeTab === tab.key ? '#D4A017' : 'rgba(255,255,255,0.5)',
               fontWeight: activeTab === tab.key ? 700 : 400,
-              fontSize: 13, fontFamily: 'Tajawal, sans-serif',
+              fontSize: 12, fontFamily: 'Tajawal, sans-serif',
               cursor: 'pointer', transition: 'all 0.2s',
-              whiteSpace: 'nowrap',
+              whiteSpace: 'nowrap', flexShrink: 0,
             }}
           >
             {tab.label}
@@ -139,34 +125,34 @@ export default function PortalDashboard() {
       </div>
 
       {/* CONTENT */}
-      <div style={{ padding: '16px 20px', maxWidth: 1400, margin: '0 auto' }}>
+      <div style={{ padding: '12px', maxWidth: 1400, margin: '0 auto' }}>
         {(activeTab === 'sales' || activeTab === 'liquidity') && (
           <div style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            marginBottom: 12,
+            marginBottom: 10,
           }}>
             <div style={{
-              display: 'flex', alignItems: 'center', gap: 6,
-              fontSize: 10, color: 'rgba(255,255,255,0.4)',
+              display: 'flex', alignItems: 'center', gap: 4,
+              fontSize: 9, color: 'rgba(255,255,255,0.35)',
             }}>
-              <RefreshCw size={10} className={dataLoading ? 'animate-spin' : ''} />
-              يتحدث تلقائياً كل دقيقة
-              <span style={{ margin: '0 4px' }}>•</span>
-              آخر تحديث: {formatArabicTime(lastUpdated)}
+              <RefreshCw size={9} className={dataLoading ? 'animate-spin' : ''} />
+              <span>تحديث تلقائي</span>
+              <span>•</span>
+              <span>{formatArabicTime(lastUpdated)}</span>
             </div>
             <button
               onClick={() => refresh()}
               style={{
                 background: 'rgba(212,160,23,0.1)',
-                border: '1px solid rgba(212,160,23,0.3)',
-                borderRadius: 8, padding: '4px 12px',
+                border: '1px solid rgba(212,160,23,0.25)',
+                borderRadius: 8, padding: '5px 12px',
                 color: '#D4A017', fontSize: 11,
                 cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4,
                 fontFamily: 'Tajawal, sans-serif',
               }}
             >
               <RefreshCw size={12} />
-              تحديث الآن
+              تحديث
             </button>
           </div>
         )}
@@ -187,7 +173,10 @@ export default function PortalDashboard() {
         {activeTab === 'suppliers' && <PortalSupplierBalancesTab />}
       </div>
 
-      <div style={{ height: 'env(safe-area-inset-bottom, 0px)' }} />
+      {/* Hide scrollbar CSS */}
+      <style>{`
+        div::-webkit-scrollbar { display: none; }
+      `}</style>
     </div>
   );
 }
