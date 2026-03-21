@@ -1089,6 +1089,24 @@ const EmployeesPage = () => {
         </DialogContent>
       </Dialog>
 
+      {/* Reset Password Dialog */}
+      <Dialog open={showResetPassword} onOpenChange={setShowResetPassword}>
+        <DialogContent dir="rtl">
+          <DialogHeader><DialogTitle>إعادة تعيين كلمة المرور: {selectedEmployee?.full_name}</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">أدخل كلمة المرور الجديدة للموظف.</p>
+          <div className="space-y-3 mt-2">
+            <div><label className="text-xs text-muted-foreground">كلمة المرور الجديدة (3 أحرف على الأقل)</label><Input type="text" placeholder="كلمة المرور الجديدة" value={resetPasswordValue} onChange={e => setResetPasswordValue(e.target.value)} /></div>
+          </div>
+          <div className="flex justify-end gap-2 mt-4">
+            <Button variant="outline" onClick={() => setShowResetPassword(false)}>إلغاء</Button>
+            <Button onClick={handleResetPassword} disabled={resettingPassword} className="gap-2">
+              {resettingPassword && <Loader2 className="h-4 w-4 animate-spin" />}
+              تحديث كلمة المرور
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Import Dialog */}
       {user && <EmployeeImportDialog open={showImport} onClose={() => setShowImport(false)} userId={user.id} onSuccess={fetchEmployees} />}
 

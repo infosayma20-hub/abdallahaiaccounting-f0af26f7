@@ -44,7 +44,7 @@ Deno.serve(async (req) => {
     });
     if (!hasAdmin) {
       return new Response(
-        JSON.stringify({ error: "ليس لديك صلاحية لإنشاء حسابات" }),
+        JSON.stringify({ error: "ليس لديك صلاحية" }),
         {
           status: 403,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -52,7 +52,73 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { employee_id, email, password } = await req.json();
+    const body = await req.json();
+    const action = body.action || "create";
+
+    // ==================== RESET PASSWORD ====================
+    if (action === "reset-password") {
+      const { employee_id, new_password } = body;
+
+      if (!employee_id || !new_password) {
+        return new Response(
+          JSON.stringify({ error: "البيانات ناقصة" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      if (new_password.length < 3) {
+        return new Response(
+          JSON.stringify({ error: "كلمة المرور يجب أن تكون 3 أحرف على الأقل" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Get employee
+      const { data: employee, error: empErr } = await supabase
+        .from("employees")
+        .select("id, full_name, auth_user_id")
+        .eq("id", employee_id)
+        .eq("user_id", adminUser.id)
+        .single();
+
+      if (empErr || !employee) {
+        return new Response(
+          JSON.stringify({ error: "الموظف غير موجود" }),
+          { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      if (!employee.auth_user_id) {
+        return new Response(
+          JSON.stringify({ error: "هذا الموظف ليس لديه حساب" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Update password using admin API
+      const { error: updateErr } = await supabase.auth.admin.updateUserById(
+        employee.auth_user_id,
+        { password: new_password }
+      );
+
+      if (updateErr) {
+        return new Response(
+          JSON.stringify({ error: updateErr.message }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: `تم إعادة تعيين كلمة مرور ${employee.full_name} بنجاح ✅`,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // ==================== CREATE ACCOUNT ====================
+    const { employee_id, email, password } = body;
 
     if (!employee_id || !email || !password) {
       return new Response(
