@@ -301,7 +301,7 @@ export default function EmployeeFormsManagementPage() {
                         <TableHead className="text-right">الفرع</TableHead>
                         <TableHead className="text-right">النموذج</TableHead>
                         <TableHead className="text-right">المبلغ</TableHead>
-                        <TableHead className="text-right">السبب</TableHead>
+                        <TableHead className="text-right">التفاصيل</TableHead>
                         <TableHead className="text-right">التاريخ</TableHead>
                         <TableHead className="text-right">الحالة</TableHead>
                         <TableHead className="text-right">إجراء</TableHead>
