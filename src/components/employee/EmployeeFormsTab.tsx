@@ -515,17 +515,18 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
               <label className="text-xs text-muted-foreground mb-1 block">القسم *</label>
               <Input value={formData.department || ""} onChange={e => setFormData(p => ({ ...p, department: e.target.value }))} className="rounded-xl" />
             </div>
-            <div>
-              <label className="text-xs text-muted-foreground mb-1 block">الشفت *</label>
-              <p className="text-[10px] text-muted-foreground mb-1">شفت الموظف الذي قام بتعبئة النموذج</p>
-              <Select value={formData.shift || ""} onValueChange={v => setFormData(p => ({ ...p, shift: v }))}>
-                <SelectTrigger className="rounded-xl"><SelectValue placeholder="اختر..." /></SelectTrigger>
-                <SelectContent position="popper" className="z-[9999]">
-                  <SelectItem value="صباحي">صباحي</SelectItem>
-                  <SelectItem value="مسائي">مسائي</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+             <div>
+               <label className="text-xs text-muted-foreground mb-1 block">الشفت *</label>
+               <p className="text-[10px] text-muted-foreground mb-1">شفت الموظف الذي قام بتعبئة النموذج</p>
+               <div className="grid grid-cols-2 gap-2">
+                 {["صباحي", "مسائي"].map(v => (
+                   <button key={v} type="button" onClick={() => setFormData(p => ({ ...p, shift: v }))}
+                     className={`py-2.5 rounded-xl border text-sm font-medium transition-all ${formData.shift === v ? "border-primary bg-primary/10 text-primary" : "border-border bg-card text-muted-foreground hover:bg-muted/50"}`}>
+                     {v}
+                   </button>
+                 ))}
+               </div>
+             </div>
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">مرفق صوري *</label>
               <label className="border-2 border-dashed border-border rounded-xl p-6 flex flex-col items-center gap-2 cursor-pointer hover:bg-muted/50 transition-colors">
