@@ -74,6 +74,8 @@ interface Employee {
   previous_year_balance?: number;
   is_terminated?: boolean;
   auth_user_id?: string;
+  is_manager?: boolean;
+  is_hr_manager?: boolean;
 }
 
 const emptyEmployee: Partial<Employee> = {
