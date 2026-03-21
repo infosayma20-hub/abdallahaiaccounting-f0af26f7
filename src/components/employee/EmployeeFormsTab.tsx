@@ -178,7 +178,7 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
               <label className="text-xs text-muted-foreground mb-1 block">نوع الإجازة *</label>
               <Select value={formData.leave_type || "annual"} onValueChange={v => setFormData(p => ({ ...p, leave_type: v }))}>
                 <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
-                <SelectContent>
+                <SelectContent position="popper" className="z-[9999]">
                   <SelectItem value="annual">سنوية</SelectItem>
                   <SelectItem value="sick">مرضية</SelectItem>
                   <SelectItem value="personal">شخصية</SelectItem>
@@ -250,7 +250,7 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
               <label className="text-xs text-muted-foreground mb-1 block">الحالة الإجتماعية *</label>
               <Select value={formData.marital_status || ""} onValueChange={v => setFormData(p => ({ ...p, marital_status: v }))}>
                 <SelectTrigger className="rounded-xl"><SelectValue placeholder="اختر..." /></SelectTrigger>
-                <SelectContent>
+                <SelectContent position="popper" className="z-[9999]">
                   <SelectItem value="أعزب">أعزب</SelectItem>
                   <SelectItem value="متزوج">متزوج</SelectItem>
                   <SelectItem value="مطلق">مطلق</SelectItem>
@@ -262,7 +262,7 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
               <label className="text-xs text-muted-foreground mb-1 block">الحالة الدراسية</label>
               <Select value={formData.education || ""} onValueChange={v => setFormData(p => ({ ...p, education: v }))}>
                 <SelectTrigger className="rounded-xl"><SelectValue placeholder="اختر..." /></SelectTrigger>
-                <SelectContent>
+                <SelectContent position="popper" className="z-[9999]">
                   <SelectItem value="ثانوي">ثانوي</SelectItem>
                   <SelectItem value="دبلوم">دبلوم</SelectItem>
                   <SelectItem value="بكالوريوس">بكالوريوس</SelectItem>
@@ -311,7 +311,7 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
               <label className="text-xs text-muted-foreground mb-1 block">شكوى / ملاحظة / اقتراح/مشاركة *</label>
               <Select value={formData.complaint_type || ""} onValueChange={v => setFormData(p => ({ ...p, complaint_type: v }))}>
                 <SelectTrigger className="rounded-xl"><SelectValue placeholder="اختر..." /></SelectTrigger>
-                <SelectContent>
+                <SelectContent position="popper" className="z-[9999]">
                   <SelectItem value="شكوى">شكوى</SelectItem>
                   <SelectItem value="ملاحظة">ملاحظة</SelectItem>
                   <SelectItem value="اقتراح">اقتراح</SelectItem>
@@ -347,7 +347,7 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
               <label className="text-xs text-muted-foreground mb-1 block">نوع التصحيح *</label>
               <Select value={formData.correction_type || "missing_checkout"} onValueChange={v => setFormData(p => ({ ...p, correction_type: v }))}>
                 <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
-                <SelectContent>
+                <SelectContent position="popper" className="z-[9999]">
                   <SelectItem value="missing_checkout">نسيت تسجيل خروج</SelectItem>
                   <SelectItem value="missing_checkin">نسيت تسجيل دخول</SelectItem>
                   <SelectItem value="wrong_time">وقت خاطئ</SelectItem>
@@ -414,7 +414,7 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
               <label className="text-xs text-muted-foreground mb-1 block">الشفت *</label>
               <Select value={formData.shift || ""} onValueChange={v => setFormData(p => ({ ...p, shift: v }))}>
                 <SelectTrigger className="rounded-xl"><SelectValue placeholder="اختر..." /></SelectTrigger>
-                <SelectContent>
+                <SelectContent position="popper" className="z-[9999]">
                   <SelectItem value="صباحي">صباحي</SelectItem>
                   <SelectItem value="مسائي">مسائي</SelectItem>
                   <SelectItem value="ليلي">ليلي</SelectItem>
@@ -455,7 +455,7 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
               <label className="text-xs text-muted-foreground mb-1 block">الشفت *</label>
               <Select value={formData.shift || ""} onValueChange={v => setFormData(p => ({ ...p, shift: v }))}>
                 <SelectTrigger className="rounded-xl"><SelectValue placeholder="اختر..." /></SelectTrigger>
-                <SelectContent>
+                <SelectContent position="popper" className="z-[9999]">
                   <SelectItem value="صباحي">صباحي</SelectItem>
                   <SelectItem value="مسائي">مسائي</SelectItem>
                 </SelectContent>
@@ -502,7 +502,7 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
               <p className="text-[10px] text-muted-foreground mb-1">شفت الموظف الذي قام بتعبئة النموذج</p>
               <Select value={formData.shift || ""} onValueChange={v => setFormData(p => ({ ...p, shift: v }))}>
                 <SelectTrigger className="rounded-xl"><SelectValue placeholder="اختر..." /></SelectTrigger>
-                <SelectContent>
+                <SelectContent position="popper" className="z-[9999]">
                   <SelectItem value="صباحي">صباحي</SelectItem>
                   <SelectItem value="مسائي">مسائي</SelectItem>
                 </SelectContent>
