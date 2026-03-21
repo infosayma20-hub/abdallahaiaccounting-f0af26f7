@@ -183,6 +183,14 @@ export default function EmployeeFormsManagementPage() {
       const empName = emp?.name || "";
       if (!empName.includes(search) && !f.form_type.includes(search)) return false;
     }
+    if (dateFrom) {
+      const created = f.created_at?.slice(0, 10);
+      if (created < dateFrom) return false;
+    }
+    if (dateTo) {
+      const created = f.created_at?.slice(0, 10);
+      if (created > dateTo) return false;
+    }
     return true;
   });
 
