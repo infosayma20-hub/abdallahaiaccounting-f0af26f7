@@ -20,6 +20,7 @@ const AuthPage = () => {
   const [mode, setMode] = useState<Mode>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [loading, setLoading] = useState(false);
   const [supportsPasskeys, setSupportsPasskeys] = useState(false);
@@ -55,6 +56,16 @@ const AuthPage = () => {
         toast({ title: "تم الإرسال", description: "تحقق من بريدك الإلكتروني لإعادة تعيين كلمة المرور" });
         setMode("login");
       } else if (mode === "signup") {
+        if (password.length < 6) {
+          toast({ title: "خطأ", description: "كلمة المرور يجب أن تكون 6 أحرف على الأقل", variant: "destructive" });
+          setLoading(false);
+          return;
+        }
+        if (password !== confirmPassword) {
+          toast({ title: "خطأ", description: "كلمتا المرور غير متطابقتين", variant: "destructive" });
+          setLoading(false);
+          return;
+        }
         const { error } = await supabase.auth.signUp({
           email,
           password,
@@ -255,7 +266,13 @@ const AuthPage = () => {
                 {mode !== "forgot" && (
                   <div className="relative">
                     <Lock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                    <Input type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={1} className="pr-10" dir="ltr" style={{ textAlign: "left" }} />
+                    <Input type="password" placeholder={mode === "signup" ? "كلمة المرور (6 أحرف على الأقل)" : "••••••••"} value={password} onChange={(e) => setPassword(e.target.value)} required minLength={mode === "signup" ? 6 : 1} className="pr-10" dir="ltr" style={{ textAlign: "left" }} />
+                  </div>
+                )}
+                {mode === "signup" && (
+                  <div className="relative">
+                    <Lock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                    <Input type="password" placeholder="تأكيد كلمة المرور" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={6} className="pr-10" dir="ltr" style={{ textAlign: "left" }} />
                   </div>
                 )}
                 {mode === "signup" && (
