@@ -56,6 +56,16 @@ const AuthPage = () => {
         toast({ title: "تم الإرسال", description: "تحقق من بريدك الإلكتروني لإعادة تعيين كلمة المرور" });
         setMode("login");
       } else if (mode === "signup") {
+        if (password.length < 6) {
+          toast({ title: "خطأ", description: "كلمة المرور يجب أن تكون 6 أحرف على الأقل", variant: "destructive" });
+          setLoading(false);
+          return;
+        }
+        if (password !== confirmPassword) {
+          toast({ title: "خطأ", description: "كلمتا المرور غير متطابقتين", variant: "destructive" });
+          setLoading(false);
+          return;
+        }
         const { error } = await supabase.auth.signUp({
           email,
           password,
