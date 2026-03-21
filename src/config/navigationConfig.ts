@@ -310,6 +310,7 @@ export const navigationSections: NavSection[] = [
               { label: "الموظفون", path: "/employees" },
               { label: "لوحة الحضور HR", path: "/hr-attendance" },
               { label: "بصمتي", path: "/my-attendance" },
+              { label: "نماذج الموظفين", path: "/employee-forms-management" },
             ],
           },
           {
