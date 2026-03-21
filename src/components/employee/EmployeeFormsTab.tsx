@@ -267,18 +267,17 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
               <Input type="number" value={formData.age || ""} onChange={e => setFormData(p => ({ ...p, age: e.target.value }))} dir="ltr" className="rounded-xl" />
               <p className="text-[10px] text-destructive mt-0.5">الإجابة بالأرقام الإنجليزية</p>
             </div>
-            <div>
-              <label className="text-xs text-muted-foreground mb-1 block">الحالة الإجتماعية *</label>
-              <Select value={formData.marital_status || ""} onValueChange={v => setFormData(p => ({ ...p, marital_status: v }))}>
-                <SelectTrigger className="rounded-xl"><SelectValue placeholder="اختر..." /></SelectTrigger>
-                <SelectContent position="popper" className="z-[9999]">
-                  <SelectItem value="أعزب">أعزب</SelectItem>
-                  <SelectItem value="متزوج">متزوج</SelectItem>
-                  <SelectItem value="مطلق">مطلق</SelectItem>
-                  <SelectItem value="أرمل">أرمل</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+             <div>
+               <label className="text-xs text-muted-foreground mb-1 block">الحالة الإجتماعية *</label>
+               <div className="grid grid-cols-2 gap-2">
+                 {["أعزب", "متزوج", "مطلق", "أرمل"].map(v => (
+                   <button key={v} type="button" onClick={() => setFormData(p => ({ ...p, marital_status: v }))}
+                     className={`py-2.5 rounded-xl border text-sm font-medium transition-all ${formData.marital_status === v ? "border-primary bg-primary/10 text-primary" : "border-border bg-card text-muted-foreground hover:bg-muted/50"}`}>
+                     {v}
+                   </button>
+                 ))}
+               </div>
+             </div>
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">الحالة الدراسية</label>
               <Select value={formData.education || ""} onValueChange={v => setFormData(p => ({ ...p, education: v }))}>
