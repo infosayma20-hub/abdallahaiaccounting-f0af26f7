@@ -755,7 +755,14 @@ const EmployeesPage = () => {
                     <UserPlus className="h-3 w-3" /> إنشاء حساب
                   </Button>
                 )}
-                {selectedEmployee.auth_user_id && <Badge variant="secondary" className="text-[10px]">لديه حساب ✓</Badge>}
+                {selectedEmployee.auth_user_id && (
+                  <>
+                    <Badge variant="secondary" className="text-[10px]">لديه حساب ✓</Badge>
+                    <Button size="sm" variant="outline" className="gap-1 text-xs" onClick={() => { setResetPasswordValue(""); setShowResetPassword(true); }}>
+                      <Shield className="h-3 w-3" /> إعادة كلمة المرور
+                    </Button>
+                  </>
+                )}
                 <Button size="sm" variant="outline" className="gap-1 text-xs" onClick={generateSalarySlip}>
                   <DollarSign className="h-3 w-3" /> قسيمة راتب
                 </Button>
