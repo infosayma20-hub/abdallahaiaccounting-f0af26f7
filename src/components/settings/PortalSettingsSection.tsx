@@ -67,7 +67,7 @@ export default function PortalSettingsSection() {
     }
   };
 
-  const portalUrl = `${window.location.origin}/portal`;
+  const portalUrl = `${window.location.origin}/auth?mode=portal`;
 
   const copyLink = () => {
     navigator.clipboard.writeText(portalUrl);
