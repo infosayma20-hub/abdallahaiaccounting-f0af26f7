@@ -220,12 +220,14 @@ export default function PortalSettings() {
               padding: 16, marginBottom: 16, border: '1px solid rgba(212,160,23,0.2)',
             }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+                <input value={newUser.full_name} onChange={e => setNewUser({ ...newUser, full_name: e.target.value })}
+                  placeholder="الاسم الكامل" style={inputStyle} />
+                <input value={newUser.email} onChange={e => setNewUser({ ...newUser, email: e.target.value })}
+                  placeholder="البريد الإلكتروني" type="email" dir="ltr" style={{ ...inputStyle, textAlign: 'left' }} />
                 <input value={newUser.username} onChange={e => setNewUser({ ...newUser, username: e.target.value })}
                   placeholder="اسم المستخدم" style={inputStyle} />
                 <input value={newUser.password} onChange={e => setNewUser({ ...newUser, password: e.target.value })}
                   placeholder="كلمة المرور" type="password" style={inputStyle} />
-                <input value={newUser.full_name} onChange={e => setNewUser({ ...newUser, full_name: e.target.value })}
-                  placeholder="الاسم الكامل" style={inputStyle} />
                 <select value={newUser.role} onChange={e => setNewUser({ ...newUser, role: e.target.value })}
                   style={{ ...inputStyle, cursor: 'pointer' }}>
                   <option value="viewer">مشاهد</option>
