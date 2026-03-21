@@ -154,7 +154,18 @@ export default function EmployeeFormsManagementPage() {
     return f.form_data?.amount || f.form_data?.loan_amount || null;
   };
 
-  const getFormReason = (f: any) => f.form_data?.reason || f.form_data?.purpose || null;
+  const getFormDetails = (f: any) => {
+    const d = f.form_data || {};
+    if (f.form_type === "leave_request") {
+      const dates = d.from_date && d.to_date ? `${d.from_date} → ${d.to_date}` : "";
+      return [d.leave_type || d.reason || "إجازة", dates].filter(Boolean).join(" | ");
+    }
+    if (f.form_type === "advance_request") return d.reason || d.purpose || "سلفة";
+    if (f.form_type === "loan_request") return d.reason || d.purpose || "قرض حسن";
+    if (f.form_type === "correction_request") return d.date || d.reason || "";
+    if (f.form_type === "overtime_request") return d.hours ? `${d.hours} ساعة` : d.reason || "";
+    return d.reason || d.message || d.notes || "";
+  };
 
   const filtered = forms.filter(f => {
     if (filterType !== "all" && f.form_type !== filterType) return false;
@@ -290,7 +301,7 @@ export default function EmployeeFormsManagementPage() {
                         <TableHead className="text-right">الفرع</TableHead>
                         <TableHead className="text-right">النموذج</TableHead>
                         <TableHead className="text-right">المبلغ</TableHead>
-                        <TableHead className="text-right">السبب</TableHead>
+                        <TableHead className="text-right">التفاصيل</TableHead>
                         <TableHead className="text-right">التاريخ</TableHead>
                         <TableHead className="text-right">الحالة</TableHead>
                         <TableHead className="text-right">إجراء</TableHead>
@@ -306,7 +317,7 @@ export default function EmployeeFormsManagementPage() {
                           const st = statusConfig[f.status] || statusConfig.pending;
                           const emp = employeeMap[f.employee_id];
                           const amount = getFormAmount(f);
-                          const reason = getFormReason(f);
+                          const details = getFormDetails(f);
                           const isPending = f.status === "pending";
                           return (
                             <TableRow key={f.id}>
@@ -316,7 +327,7 @@ export default function EmployeeFormsManagementPage() {
                               <TableCell className="text-sm font-semibold whitespace-nowrap">
                                 {amount ? `${Number(amount).toLocaleString()} ₪` : "—"}
                               </TableCell>
-                              <TableCell className="text-xs text-muted-foreground max-w-[150px] truncate">{reason || "—"}</TableCell>
+                              <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate" title={details}>{details || "—"}</TableCell>
                               <TableCell className="text-xs text-muted-foreground whitespace-nowrap">{format(new Date(f.created_at), "dd/MM/yyyy HH:mm")}</TableCell>
                               <TableCell>
                                 <Badge variant={st.variant} className="text-[10px]">{st.label}</Badge>
