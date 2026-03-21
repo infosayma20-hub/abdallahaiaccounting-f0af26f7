@@ -45,6 +45,8 @@ type Employee = {
   department: string | null;
   phone: string | null;
   email: string | null;
+  is_manager: boolean;
+  is_hr_manager: boolean;
 };
 
 export default function EmployeeApp() {
