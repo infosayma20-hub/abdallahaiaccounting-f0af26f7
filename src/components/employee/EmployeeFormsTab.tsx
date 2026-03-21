@@ -132,12 +132,18 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
     if (!activeForm) return;
     setSubmitting(true);
 
+    // Ensure leave_type default
+    const submitData = { ...formData };
+    if (activeForm === "leave_request" && !submitData.leave_type) {
+      submitData.leave_type = "annual";
+    }
+
     const { error } = await supabase.from("employee_forms").insert({
       employee_id: employeeId,
       user_id: userId,
       form_type: activeForm,
-      form_data: formData,
-      attachment_url: formData.attachment_url || null,
+      form_data: submitData,
+      attachment_url: submitData.attachment_url || null,
       status: "pending",
     } as any);
 
@@ -163,7 +169,14 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
 
   const renderFormFields = () => {
     switch (activeForm) {
-      case "leave_request":
+      case "leave_request": {
+        const leaveOptions = [
+          { value: "annual", label: "سنوية" },
+          { value: "sick", label: "مرضية" },
+          { value: "personal", label: "شخصية" },
+          { value: "unpaid", label: "بدون راتب" },
+        ];
+        const selectedLeave = formData.leave_type || "annual";
         return (
           <>
             <div>
@@ -176,15 +189,22 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
             </div>
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">نوع الإجازة *</label>
-              <Select value={formData.leave_type || "annual"} onValueChange={v => setFormData(p => ({ ...p, leave_type: v }))}>
-                <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
-                <SelectContent position="popper" className="z-[9999]">
-                  <SelectItem value="annual">سنوية</SelectItem>
-                  <SelectItem value="sick">مرضية</SelectItem>
-                  <SelectItem value="personal">شخصية</SelectItem>
-                  <SelectItem value="unpaid">بدون راتب</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="grid grid-cols-2 gap-2">
+                {leaveOptions.map(opt => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setFormData(p => ({ ...p, leave_type: opt.value }))}
+                    className={`p-3 rounded-xl border text-sm font-medium transition-all ${
+                      selectedLeave === opt.value
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-border bg-card text-muted-foreground hover:bg-muted/50"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
             </div>
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">السبب</label>
@@ -192,6 +212,7 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
             </div>
           </>
         );
+      }
 
       case "advance_request":
         return (
