@@ -25,8 +25,8 @@ export default function PortalSettings() {
   const [rateUsd, setRateUsd] = useState('3.65');
   const [linkedUserId, setLinkedUserId] = useState('');
   const [showAddUser, setShowAddUser] = useState(false);
-  const [newUser, setNewUser] = useState({ username: '', password: '', full_name: '', role: 'viewer' });
-  const [createdCredentials, setCreatedCredentials] = useState<{ username: string; password: string; full_name: string; role: string } | null>(null);
+  const [newUser, setNewUser] = useState({ username: '', password: '', full_name: '', role: 'viewer', email: '' });
+  const [createdCredentials, setCreatedCredentials] = useState<{ username: string; password: string; full_name: string; role: string; email: string } | null>(null);
   const [settingsId, setSettingsId] = useState('');
 
   useEffect(() => {
