@@ -1609,7 +1609,7 @@ export default function SuperAdminDashboard() {
     !userSearch || (u.display_name?.toLowerCase().includes(userSearch.toLowerCase()) || u.email?.toLowerCase().includes(userSearch.toLowerCase()))
   );
 
-  const { owners, subUsersMap, standaloneUsers } = useMemo(() => {
+  const { owners, subUsersMap, standaloneUsers, companyCount } = useMemo(() => {
     const ownerSet = new Set<string>();
     const subMap = new Map<string, UserRecord[]>();
     const standalone: UserRecord[] = [];
@@ -1644,7 +1644,19 @@ export default function SuperAdminDashboard() {
     });
 
     const ownerUsers = filteredUsers.filter(u => ownerSet.has(u.user_id) || subMap.has(u.user_id));
-    return { owners: ownerUsers, subUsersMap: subMap, standaloneUsers: standalone };
+    
+    // Count unique companies: each owner is a company, plus standalone admins with unique company_id or without
+    const companyIds = new Set<string>();
+    ownerUsers.forEach(u => { if (u.company_id) companyIds.add(u.company_id); else companyIds.add(u.user_id); });
+    standalone.forEach(u => {
+      const roles = (u as any).roles || [];
+      const isAdmin = roles.includes('admin') || roles.includes('super_admin');
+      if (isAdmin || (!u.invited_by)) {
+        if (u.company_id) companyIds.add(u.company_id); else companyIds.add(u.user_id);
+      }
+    });
+    
+    return { owners: ownerUsers, subUsersMap: subMap, standaloneUsers: standalone, companyCount: companyIds.size };
   }, [filteredUsers]);
 
   const toggleOwnerExpand = (userId: string) => {
