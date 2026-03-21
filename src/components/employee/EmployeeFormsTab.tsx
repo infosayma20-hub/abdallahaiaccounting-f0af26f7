@@ -132,12 +132,18 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
     if (!activeForm) return;
     setSubmitting(true);
 
+    // Ensure leave_type default
+    const submitData = { ...formData };
+    if (activeForm === "leave_request" && !submitData.leave_type) {
+      submitData.leave_type = "annual";
+    }
+
     const { error } = await supabase.from("employee_forms").insert({
       employee_id: employeeId,
       user_id: userId,
       form_type: activeForm,
-      form_data: formData,
-      attachment_url: formData.attachment_url || null,
+      form_data: submitData,
+      attachment_url: submitData.attachment_url || null,
       status: "pending",
     } as any);
 
