@@ -266,7 +266,13 @@ const AuthPage = () => {
                 {mode !== "forgot" && (
                   <div className="relative">
                     <Lock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                    <Input type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={1} className="pr-10" dir="ltr" style={{ textAlign: "left" }} />
+                    <Input type="password" placeholder={mode === "signup" ? "كلمة المرور (6 أحرف على الأقل)" : "••••••••"} value={password} onChange={(e) => setPassword(e.target.value)} required minLength={mode === "signup" ? 6 : 1} className="pr-10" dir="ltr" style={{ textAlign: "left" }} />
+                  </div>
+                )}
+                {mode === "signup" && (
+                  <div className="relative">
+                    <Lock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                    <Input type="password" placeholder="تأكيد كلمة المرور" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={6} className="pr-10" dir="ltr" style={{ textAlign: "left" }} />
                   </div>
                 )}
                 {mode === "signup" && (
