@@ -10,7 +10,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Palmtree, Banknote, HandCoins, UserCog, CalendarHeart, Award, FileText,
   Scale, Clock, Gavel, MessageSquare, Shield, Wrench, AlertTriangle,
-  Package, Send, ChevronLeft, Upload, CheckCircle2, XCircle, Loader2, Eye
+  Package, Send, ChevronLeft, Upload, CheckCircle2, XCircle, Loader2, Eye,
+  PenLine, Timer
 } from "lucide-react";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
@@ -39,6 +40,9 @@ const employeeForms: FormCard[] = [
   { id: "leave_request", label: "طلب إجازة", icon: Palmtree, color: "text-emerald-500", type: "form" },
   { id: "advance_request", label: "طلب سلفة", icon: Banknote, color: "text-warning", type: "form" },
   { id: "loan_request", label: "التقدم بطلب قرض حسن", icon: HandCoins, color: "text-blue-500", type: "form" },
+  { id: "correction_request", label: "تصحيح بصمة", icon: PenLine, color: "text-orange-500", type: "form" },
+  { id: "overtime_request", label: "طلب أوفرتايم", icon: Timer, color: "text-blue-400", type: "form" },
+  { id: "hr_message", label: "رسالة لـ HR", icon: MessageSquare, color: "text-purple-400", type: "form" },
   { id: "employee_info", label: "تعبئة معلومات الموظفين", icon: UserCog, color: "text-purple-500", type: "form" },
   { id: "birthday_whatsapp", label: "تعبئة تاريخ الميلاد ورقم الواتساب", icon: CalendarHeart, color: "text-pink-500", type: "form" },
   { id: "complaints", label: "تقديم شكاوى وملاحظات واقتراحات", icon: MessageSquare, color: "text-orange-500", type: "form" },
@@ -328,6 +332,63 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
                 <input type="file" className="hidden" onChange={handleFileUpload} accept="image/*,.pdf,.doc,.docx" />
               </label>
               {formData.attachment_url && <p className="text-xs text-emerald-500 mt-1">✅ تم رفع الملف</p>}
+            </div>
+          </>
+        );
+
+      case "correction_request":
+        return (
+          <>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">التاريخ *</label>
+              <Input type="date" value={formData.correction_date || ""} onChange={e => setFormData(p => ({ ...p, correction_date: e.target.value }))} dir="ltr" className="rounded-xl" />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">نوع التصحيح *</label>
+              <Select value={formData.correction_type || "missing_checkout"} onValueChange={v => setFormData(p => ({ ...p, correction_type: v }))}>
+                <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="missing_checkout">نسيت تسجيل خروج</SelectItem>
+                  <SelectItem value="missing_checkin">نسيت تسجيل دخول</SelectItem>
+                  <SelectItem value="wrong_time">وقت خاطئ</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">السبب *</label>
+              <Textarea value={formData.reason || ""} onChange={e => setFormData(p => ({ ...p, reason: e.target.value }))} rows={3} className="rounded-xl" placeholder="اشرح سبب التصحيح..." />
+            </div>
+          </>
+        );
+
+      case "overtime_request":
+        return (
+          <>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">التاريخ *</label>
+              <Input type="date" value={formData.overtime_date || ""} onChange={e => setFormData(p => ({ ...p, overtime_date: e.target.value }))} dir="ltr" className="rounded-xl" />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">عدد الساعات *</label>
+              <Input type="number" value={formData.hours || ""} onChange={e => setFormData(p => ({ ...p, hours: e.target.value }))} dir="ltr" className="rounded-xl" placeholder="2" />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">السبب *</label>
+              <Textarea value={formData.reason || ""} onChange={e => setFormData(p => ({ ...p, reason: e.target.value }))} rows={3} className="rounded-xl" placeholder="سبب الأوفرتايم..." />
+            </div>
+          </>
+        );
+
+      case "hr_message":
+        return (
+          <>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">الموضوع *</label>
+              <Input value={formData.subject || ""} onChange={e => setFormData(p => ({ ...p, subject: e.target.value }))} className="rounded-xl" placeholder="موضوع الرسالة..." />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">الرسالة *</label>
+              <Textarea value={formData.message || ""} onChange={e => setFormData(p => ({ ...p, message: e.target.value }))} rows={4} className="rounded-xl" placeholder="اكتب رسالتك هنا..." />
             </div>
           </>
         );
