@@ -1146,10 +1146,21 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
                     <SelectContent>{cashBoxes.map(cb => <SelectItem key={cb.id} value={cb.id}>{cb.name}</SelectItem>)}</SelectContent>
                   </Select>
                 ) : (
-                  <Select value={selectedBankAccount} onValueChange={setSelectedBankAccount}>
-                    <SelectTrigger><SelectValue placeholder="اختر البنك" /></SelectTrigger>
-                    <SelectContent>{bankAccounts.map(ba => <SelectItem key={ba.id} value={ba.id}>{ba.name} - {ba.bank_name}</SelectItem>)}</SelectContent>
-                  </Select>
+                  <div className="space-y-1.5">
+                    <Select value={selectedBankAccount} onValueChange={setSelectedBankAccount}>
+                      <SelectTrigger><SelectValue placeholder="اختر البنك" /></SelectTrigger>
+                      <SelectContent>{bankAccounts.map(ba => <SelectItem key={ba.id} value={ba.id}>{ba.name} - {ba.bank_name}</SelectItem>)}</SelectContent>
+                    </Select>
+                    {bankAccounts.length === 0 && (
+                      <button
+                        type="button"
+                        onClick={() => navigate("/finance/bank-accounts?action=new")}
+                        className="flex items-center gap-1.5 text-[10px] text-primary hover:underline font-medium"
+                      >
+                        <Plus className="h-3 w-3" /> تعريف حساب بنكي جديد
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
             </div>
