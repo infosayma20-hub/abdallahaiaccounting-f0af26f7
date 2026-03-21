@@ -170,7 +170,7 @@ const EmployeesPage = () => {
   const fetchEmployees = async () => {
     if (!user) return;
     setLoading(true);
-    const { data, error } = await supabase.from("employees_safe").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
+    const { data, error } = await supabase.from("employees").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
     if (error) { toast.error("خطأ في جلب الموظفين"); console.error(error); }
     else setEmployees((data as any[]) || []);
     setLoading(false);
