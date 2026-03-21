@@ -267,31 +267,28 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
               <Input type="number" value={formData.age || ""} onChange={e => setFormData(p => ({ ...p, age: e.target.value }))} dir="ltr" className="rounded-xl" />
               <p className="text-[10px] text-destructive mt-0.5">الإجابة بالأرقام الإنجليزية</p>
             </div>
-            <div>
-              <label className="text-xs text-muted-foreground mb-1 block">الحالة الإجتماعية *</label>
-              <Select value={formData.marital_status || ""} onValueChange={v => setFormData(p => ({ ...p, marital_status: v }))}>
-                <SelectTrigger className="rounded-xl"><SelectValue placeholder="اختر..." /></SelectTrigger>
-                <SelectContent position="popper" className="z-[9999]">
-                  <SelectItem value="أعزب">أعزب</SelectItem>
-                  <SelectItem value="متزوج">متزوج</SelectItem>
-                  <SelectItem value="مطلق">مطلق</SelectItem>
-                  <SelectItem value="أرمل">أرمل</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <label className="text-xs text-muted-foreground mb-1 block">الحالة الدراسية</label>
-              <Select value={formData.education || ""} onValueChange={v => setFormData(p => ({ ...p, education: v }))}>
-                <SelectTrigger className="rounded-xl"><SelectValue placeholder="اختر..." /></SelectTrigger>
-                <SelectContent position="popper" className="z-[9999]">
-                  <SelectItem value="ثانوي">ثانوي</SelectItem>
-                  <SelectItem value="دبلوم">دبلوم</SelectItem>
-                  <SelectItem value="بكالوريوس">بكالوريوس</SelectItem>
-                  <SelectItem value="ماجستير">ماجستير</SelectItem>
-                  <SelectItem value="دكتوراه">دكتوراه</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+             <div>
+               <label className="text-xs text-muted-foreground mb-1 block">الحالة الإجتماعية *</label>
+               <div className="grid grid-cols-2 gap-2">
+                 {["أعزب", "متزوج", "مطلق", "أرمل"].map(v => (
+                   <button key={v} type="button" onClick={() => setFormData(p => ({ ...p, marital_status: v }))}
+                     className={`py-2.5 rounded-xl border text-sm font-medium transition-all ${formData.marital_status === v ? "border-primary bg-primary/10 text-primary" : "border-border bg-card text-muted-foreground hover:bg-muted/50"}`}>
+                     {v}
+                   </button>
+                 ))}
+               </div>
+             </div>
+             <div>
+               <label className="text-xs text-muted-foreground mb-1 block">الحالة الدراسية</label>
+               <div className="grid grid-cols-3 gap-2">
+                 {["ثانوي", "دبلوم", "بكالوريوس", "ماجستير", "دكتوراه"].map(v => (
+                   <button key={v} type="button" onClick={() => setFormData(p => ({ ...p, education: v }))}
+                     className={`py-2.5 rounded-xl border text-sm font-medium transition-all ${formData.education === v ? "border-primary bg-primary/10 text-primary" : "border-border bg-card text-muted-foreground hover:bg-muted/50"}`}>
+                     {v}
+                   </button>
+                 ))}
+               </div>
+             </div>
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">أضف ملاحظتك</label>
               <Textarea value={formData.notes || ""} onChange={e => setFormData(p => ({ ...p, notes: e.target.value }))} rows={3} className="rounded-xl" placeholder="أضف أي شيء تحب إعلامنا به" />
@@ -328,18 +325,17 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
               <label className="text-xs text-muted-foreground mb-1 block">الاسم *</label>
               <Input value={formData.name || ""} onChange={e => setFormData(p => ({ ...p, name: e.target.value }))} className="rounded-xl" />
             </div>
-            <div>
-              <label className="text-xs text-muted-foreground mb-1 block">شكوى / ملاحظة / اقتراح/مشاركة *</label>
-              <Select value={formData.complaint_type || ""} onValueChange={v => setFormData(p => ({ ...p, complaint_type: v }))}>
-                <SelectTrigger className="rounded-xl"><SelectValue placeholder="اختر..." /></SelectTrigger>
-                <SelectContent position="popper" className="z-[9999]">
-                  <SelectItem value="شكوى">شكوى</SelectItem>
-                  <SelectItem value="ملاحظة">ملاحظة</SelectItem>
-                  <SelectItem value="اقتراح">اقتراح</SelectItem>
-                  <SelectItem value="مشاركة">مشاركة</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+             <div>
+               <label className="text-xs text-muted-foreground mb-1 block">شكوى / ملاحظة / اقتراح/مشاركة *</label>
+               <div className="grid grid-cols-2 gap-2">
+                 {["شكوى", "ملاحظة", "اقتراح", "مشاركة"].map(v => (
+                   <button key={v} type="button" onClick={() => setFormData(p => ({ ...p, complaint_type: v }))}
+                     className={`py-2.5 rounded-xl border text-sm font-medium transition-all ${formData.complaint_type === v ? "border-primary bg-primary/10 text-primary" : "border-border bg-card text-muted-foreground hover:bg-muted/50"}`}>
+                     {v}
+                   </button>
+                 ))}
+               </div>
+             </div>
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">اكتب شكواك / ملاحظتك / اقتراحك/مشاركتك *</label>
               <Textarea value={formData.content || ""} onChange={e => setFormData(p => ({ ...p, content: e.target.value }))} rows={4} className="rounded-xl" maxLength={2000} />
@@ -364,17 +360,17 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
               <label className="text-xs text-muted-foreground mb-1 block">التاريخ *</label>
               <Input type="date" value={formData.correction_date || ""} onChange={e => setFormData(p => ({ ...p, correction_date: e.target.value }))} dir="ltr" className="rounded-xl" />
             </div>
-            <div>
-              <label className="text-xs text-muted-foreground mb-1 block">نوع التصحيح *</label>
-              <Select value={formData.correction_type || "missing_checkout"} onValueChange={v => setFormData(p => ({ ...p, correction_type: v }))}>
-                <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
-                <SelectContent position="popper" className="z-[9999]">
-                  <SelectItem value="missing_checkout">نسيت تسجيل خروج</SelectItem>
-                  <SelectItem value="missing_checkin">نسيت تسجيل دخول</SelectItem>
-                  <SelectItem value="wrong_time">وقت خاطئ</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+             <div>
+               <label className="text-xs text-muted-foreground mb-1 block">نوع التصحيح *</label>
+               <div className="grid grid-cols-1 gap-2">
+                 {[{ value: "missing_checkout", label: "نسيت تسجيل خروج" }, { value: "missing_checkin", label: "نسيت تسجيل دخول" }, { value: "wrong_time", label: "وقت خاطئ" }].map(opt => (
+                   <button key={opt.value} type="button" onClick={() => setFormData(p => ({ ...p, correction_type: opt.value }))}
+                     className={`py-2.5 rounded-xl border text-sm font-medium transition-all ${(formData.correction_type || "missing_checkout") === opt.value ? "border-primary bg-primary/10 text-primary" : "border-border bg-card text-muted-foreground hover:bg-muted/50"}`}>
+                     {opt.label}
+                   </button>
+                 ))}
+               </div>
+             </div>
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">السبب *</label>
               <Textarea value={formData.reason || ""} onChange={e => setFormData(p => ({ ...p, reason: e.target.value }))} rows={3} className="rounded-xl" placeholder="اشرح سبب التصحيح..." />
@@ -431,17 +427,17 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
               <label className="text-xs text-muted-foreground mb-1 block">الفرع *</label>
               <Input value={formData.branch || ""} onChange={e => setFormData(p => ({ ...p, branch: e.target.value }))} className="rounded-xl" />
             </div>
-            <div>
-              <label className="text-xs text-muted-foreground mb-1 block">الشفت *</label>
-              <Select value={formData.shift || ""} onValueChange={v => setFormData(p => ({ ...p, shift: v }))}>
-                <SelectTrigger className="rounded-xl"><SelectValue placeholder="اختر..." /></SelectTrigger>
-                <SelectContent position="popper" className="z-[9999]">
-                  <SelectItem value="صباحي">صباحي</SelectItem>
-                  <SelectItem value="مسائي">مسائي</SelectItem>
-                  <SelectItem value="ليلي">ليلي</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+             <div>
+               <label className="text-xs text-muted-foreground mb-1 block">الشفت *</label>
+               <div className="grid grid-cols-3 gap-2">
+                 {["صباحي", "مسائي", "ليلي"].map(v => (
+                   <button key={v} type="button" onClick={() => setFormData(p => ({ ...p, shift: v }))}
+                     className={`py-2.5 rounded-xl border text-sm font-medium transition-all ${formData.shift === v ? "border-primary bg-primary/10 text-primary" : "border-border bg-card text-muted-foreground hover:bg-muted/50"}`}>
+                     {v}
+                   </button>
+                 ))}
+               </div>
+             </div>
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">وصف المخالفة والتوصية *</label>
               <Textarea value={formData.description || ""} onChange={e => setFormData(p => ({ ...p, description: e.target.value }))} rows={4} className="rounded-xl" placeholder="مثلاً: التسكع أثناء أوقات العمل الرسمية" maxLength={2000} />
@@ -472,16 +468,17 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
               <label className="text-xs text-muted-foreground mb-1 block">الفرع *</label>
               <Input value={formData.branch || ""} onChange={e => setFormData(p => ({ ...p, branch: e.target.value }))} className="rounded-xl" />
             </div>
-            <div>
-              <label className="text-xs text-muted-foreground mb-1 block">الشفت *</label>
-              <Select value={formData.shift || ""} onValueChange={v => setFormData(p => ({ ...p, shift: v }))}>
-                <SelectTrigger className="rounded-xl"><SelectValue placeholder="اختر..." /></SelectTrigger>
-                <SelectContent position="popper" className="z-[9999]">
-                  <SelectItem value="صباحي">صباحي</SelectItem>
-                  <SelectItem value="مسائي">مسائي</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+             <div>
+               <label className="text-xs text-muted-foreground mb-1 block">الشفت *</label>
+               <div className="grid grid-cols-2 gap-2">
+                 {["صباحي", "مسائي"].map(v => (
+                   <button key={v} type="button" onClick={() => setFormData(p => ({ ...p, shift: v }))}
+                     className={`py-2.5 rounded-xl border text-sm font-medium transition-all ${formData.shift === v ? "border-primary bg-primary/10 text-primary" : "border-border bg-card text-muted-foreground hover:bg-muted/50"}`}>
+                     {v}
+                   </button>
+                 ))}
+               </div>
+             </div>
             {["نظافة مكتب الادارة والكول سنتر", "نظافة الزيت والفلاتر", "نظافة الماكينات", "نظافة المجلى والأطباق", "نظافة الأرضية والجدران", "نظافة الثلاجة وترتيب البضائع", "نظافة الممر"].map(item => (
               <label key={item} className="flex items-center gap-3 p-2 rounded-xl hover:bg-muted/30 cursor-pointer">
                 <input
@@ -518,17 +515,18 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
               <label className="text-xs text-muted-foreground mb-1 block">القسم *</label>
               <Input value={formData.department || ""} onChange={e => setFormData(p => ({ ...p, department: e.target.value }))} className="rounded-xl" />
             </div>
-            <div>
-              <label className="text-xs text-muted-foreground mb-1 block">الشفت *</label>
-              <p className="text-[10px] text-muted-foreground mb-1">شفت الموظف الذي قام بتعبئة النموذج</p>
-              <Select value={formData.shift || ""} onValueChange={v => setFormData(p => ({ ...p, shift: v }))}>
-                <SelectTrigger className="rounded-xl"><SelectValue placeholder="اختر..." /></SelectTrigger>
-                <SelectContent position="popper" className="z-[9999]">
-                  <SelectItem value="صباحي">صباحي</SelectItem>
-                  <SelectItem value="مسائي">مسائي</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+             <div>
+               <label className="text-xs text-muted-foreground mb-1 block">الشفت *</label>
+               <p className="text-[10px] text-muted-foreground mb-1">شفت الموظف الذي قام بتعبئة النموذج</p>
+               <div className="grid grid-cols-2 gap-2">
+                 {["صباحي", "مسائي"].map(v => (
+                   <button key={v} type="button" onClick={() => setFormData(p => ({ ...p, shift: v }))}
+                     className={`py-2.5 rounded-xl border text-sm font-medium transition-all ${formData.shift === v ? "border-primary bg-primary/10 text-primary" : "border-border bg-card text-muted-foreground hover:bg-muted/50"}`}>
+                     {v}
+                   </button>
+                 ))}
+               </div>
+             </div>
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">مرفق صوري *</label>
               <label className="border-2 border-dashed border-border rounded-xl p-6 flex flex-col items-center gap-2 cursor-pointer hover:bg-muted/50 transition-colors">
