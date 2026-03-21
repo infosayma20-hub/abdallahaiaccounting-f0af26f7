@@ -495,6 +495,7 @@ const JournalNewPage = () => {
                         dir="ltr"
                       />
                     </td>
+                    <td className="p-2.5">
                       <Select 
                         value={line.contact_id && line.contact_id !== "__none__" ? `contact:${line.contact_id}` : line.account_code ? `account:${line.account_code}` : ""}
                         onValueChange={v => {
