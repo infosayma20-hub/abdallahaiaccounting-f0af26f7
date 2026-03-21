@@ -11,7 +11,64 @@ interface SetupWizardProps {
   onComplete: () => void;
 }
 
-...
+type BusinessType = "تجارة" | "خدمات" | "مطعم" | "متجر إلكتروني" | "مقاولات" | "عيادة" | "تعليم" | "أخرى";
+
+interface SetupData {
+  companyName: string;
+  city: string;
+  businessType: BusinessType | null;
+  currency: string;
+  customCurrency: string;
+  vatEnabled: boolean | null;
+  vatRate: number;
+  inventoryMethod: string;
+  hasEmployees: boolean | null;
+  employeeRange: string;
+  hasPOS: boolean | null;
+  posCount: number;
+  invoicePrefix: string;
+  invoiceStartNumber: number;
+  paymentTerms: string;
+  cashBalance: number;
+  hasBankAccount: boolean | null;
+  bankAccountName: string;
+  bankName: string;
+  bankCurrency: string;
+  bankAccountType: string;
+  bankBalance: number;
+  leaveForAccountant: boolean;
+  password: string;
+  confirmPassword: string;
+}
+
+const BUSINESS_TYPES: { value: BusinessType; label: string; sublabel: string; emoji: string; modules: string }[] = [
+  { value: "تجارة", label: "تجارة", sublabel: "وتوزيع", emoji: "🏪", modules: "المبيعات + المخزون + نقطة البيع" },
+  { value: "خدمات", label: "خدمات", sublabel: "مهنية", emoji: "🛠️", modules: "المبيعات + الفواتير + التقارير" },
+  { value: "مطعم", label: "مطعم / كافيه", sublabel: "", emoji: "🍽️", modules: "المبيعات + المخزون + نقطة البيع + الطاولات" },
+  { value: "مقاولات", label: "مقاولات", sublabel: "وإنشاء", emoji: "🏗️", modules: "المبيعات + المشتريات + محاسب المشاريع" },
+  { value: "متجر إلكتروني", label: "متجر", sublabel: "إلكتروني", emoji: "🛒", modules: "المبيعات + المخزون + المتاجر" },
+  { value: "عيادة", label: "عيادة /", sublabel: "صيدلية", emoji: "🏥", modules: "المبيعات + الفواتير + التقارير" },
+  { value: "تعليم", label: "تعليم /", sublabel: "تدريب", emoji: "📚", modules: "المبيعات + الفواتير + التقارير" },
+  { value: "أخرى", label: "نشاط", sublabel: "آخر", emoji: "⚙️", modules: "جميع الوحدات مفعّلة" },
+];
+
+const CURRENCIES = [
+  { code: "ILS", symbol: "₪", label: "شيكل" },
+  { code: "USD", symbol: "$", label: "دولار" },
+  { code: "JOD", symbol: "د.أ", label: "دينار" },
+];
+
+const needsInventory = (bt: BusinessType | null) =>
+  bt ? ["تجارة", "مطعم", "متجر إلكتروني"].includes(bt) : false;
+
+const TOTAL_STEPS = 6;
+
+const pageVariants = {
+  enter: { opacity: 0, y: 30 },
+  center: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -20 },
+};
+
 const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
   const { toast } = useToast();
   const { refreshCompany } = useCompany();
