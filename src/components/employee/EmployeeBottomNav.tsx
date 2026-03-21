@@ -1,18 +1,12 @@
-import { Home, Calendar, Send, User, Bell } from "lucide-react";
+import { Home, Calendar, Send, User, Bell, ClipboardList } from "lucide-react";
 
-type Tab = "home" | "history" | "requests" | "alerts" | "profile" | "scan";
-
-interface Props {
-  active: Tab;
-  onNavigate: (tab: Tab) => void;
-  alertCount?: number;
-}
+type Tab = "home" | "history" | "requests" | "alerts" | "profile" | "scan" | "forms";
 
 const tabs: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "home", label: "الرئيسية", icon: Home },
+  { id: "forms", label: "النماذج", icon: ClipboardList },
   { id: "history", label: "الحضور", icon: Calendar },
   { id: "requests", label: "الطلبات", icon: Send },
-  { id: "alerts", label: "الإشعارات", icon: Bell },
   { id: "profile", label: "ملفي", icon: User },
 ];
 

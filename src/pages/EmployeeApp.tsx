@@ -11,8 +11,9 @@ import AttendanceCalendarTab from "@/components/employee/AttendanceCalendarTab";
 import AlertsTab from "@/components/employee/AlertsTab";
 import EmployeeProfileTab from "@/components/employee/EmployeeProfileTab";
 import EmployeeRequestsTab from "@/components/employee/EmployeeRequestsTab";
+import EmployeeFormsTab from "@/components/employee/EmployeeFormsTab";
 
-type Tab = "home" | "scan" | "history" | "alerts" | "requests" | "profile";
+type Tab = "home" | "scan" | "history" | "alerts" | "requests" | "profile" | "forms";
 
 type AttendanceDay = {
   id: string;
