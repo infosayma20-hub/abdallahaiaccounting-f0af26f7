@@ -3,6 +3,7 @@ import { Loader2, ChevronLeft, Building2, MapPin, Zap, SkipForward, Lock, Eye, E
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { FinixLogo } from "@/components/ui/FinixLogo";
+import { useCompany } from "@/hooks/useCompanyContext";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface SetupWizardProps {
@@ -70,6 +71,7 @@ const pageVariants = {
 
 const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
   const { toast } = useToast();
+  const { refreshCompany } = useCompany();
   // -1 = welcome, 0-5 = steps 1-6, 7 = completion
   const [step, setStep] = useState(-1);
   const [saving, setSaving] = useState(false);
@@ -117,7 +119,6 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
           setData(d => ({ ...d, companyName: profileRes.data.company_name || "" }));
         }
       }
-      // Check if Google-only user
       const user = sessionRes.data?.session?.user;
       if (user) {
         const identities = user.identities || [];
@@ -159,15 +160,13 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
   const handleFinish = async () => {
     setSaving(true);
     try {
-      // Save password for Google-only users if provided
       if (isGoogleUser && data.password && data.password === data.confirmPassword && data.password.length >= 3) {
         await supabase.auth.updateUser({ password: data.password });
         localStorage.setItem(`pwd_setup_dismissed_${userId}`, "true");
       }
 
       const hasInv = needsInventory(data.businessType);
-      
-      // 1. Setup accounts
+
       await supabase.functions.invoke("setup-accounts", {
         body: {
           userId,
@@ -178,14 +177,12 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
         },
       });
 
-      // 2. Verify accounts
       const { count } = await supabase
         .from("accounts")
         .select("id", { count: "exact", head: true })
         .eq("user_id", userId);
       if (!count || count === 0) throw new Error("لم يتم إنشاء شجرة الحسابات");
 
-      // 3. Update profile
       await supabase.from("profiles").update({
         setup_completed: true,
         business_type: data.businessType,
@@ -197,7 +194,6 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
         work_field: data.businessType || undefined,
       }).eq("user_id", userId);
 
-      // 3b. Upsert companies table so company name appears in top bar immediately
       if (data.companyName) {
         const { data: existingCompany } = await supabase
           .from("companies")
@@ -211,7 +207,6 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
         }
       }
 
-      // 4. Update company settings
       const settingsPayload: Record<string, any> = {
         user_id: userId,
         company_name: data.companyName || null,
@@ -233,7 +228,6 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
       };
       await supabase.from("company_settings" as any).upsert(settingsPayload as any, { onConflict: "user_id" });
 
-      // 5. Create cash box if balance > 0
       if (data.cashBalance > 0) {
         await supabase.from("cash_boxes").upsert({
           user_id: userId,
@@ -245,7 +239,6 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
         }, { onConflict: "user_id,name" as any });
       }
 
-      // 6. Create bank account if needed
       if (data.hasBankAccount && data.bankName && !data.leaveForAccountant) {
         const bankCurrLabel = data.bankCurrency === "ILS" ? "شيكل" : data.bankCurrency === "USD" ? "دولار" : data.bankCurrency === "JOD" ? "دينار" : data.bankCurrency;
         const accountName = data.bankAccountName || `${data.bankName} - ${data.bankAccountType}`;
@@ -258,7 +251,6 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
           opening_balance_date: new Date().toISOString().split("T")[0],
           currency: bankCurrLabel,
         });
-        // Create matching GL account under 1120 (Banks)
         const { data: existingAccounts } = await supabase
           .from("accounts")
           .select("account_code")
@@ -278,7 +270,8 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
         });
       }
 
-      // Build completion items
+      await refreshCompany();
+
       const items: string[] = [];
       items.push(`شجرة حسابات لـ ${data.businessType || "نشاطك"}`);
       if (data.cashBalance > 0) items.push(`الصندوق الرئيسي — رصيد ₪${data.cashBalance.toLocaleString()}`);
@@ -296,7 +289,7 @@ const SetupWizard = ({ userId, onComplete }: SetupWizardProps) => {
       items.push(mods.join(" + "));
       setCompletedItems(items);
 
-      setStep(7); // completion screen
+      setStep(7);
     } catch (err: any) {
       console.error("Setup error:", err);
       toast({ title: "خطأ في الإعداد", description: err.message, variant: "destructive" });
