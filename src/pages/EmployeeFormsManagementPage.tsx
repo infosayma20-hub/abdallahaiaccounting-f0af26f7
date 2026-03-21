@@ -87,13 +87,14 @@ export default function EmployeeFormsManagementPage() {
     if (!user) return;
     const { data } = await supabase
       .from("employees")
-      .select("id, full_name, branch")
+      .select("id, full_name, branch_id, branches(name)")
       .eq("user_id", user.id);
     const map: Record<string, { name: string; branch: string }> = {};
     const branchSet = new Set<string>();
     (data || []).forEach((e: any) => {
-      map[e.id] = { name: e.full_name, branch: e.branch || "" };
-      if (e.branch) branchSet.add(e.branch);
+      const branchName = e.branches?.name || "";
+      map[e.id] = { name: e.full_name, branch: branchName };
+      if (branchName) branchSet.add(branchName);
     });
     setEmployeeMap(map);
     setBranches(Array.from(branchSet).sort());
