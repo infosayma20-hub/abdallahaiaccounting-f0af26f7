@@ -562,7 +562,7 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
             ))}
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">صورة</label>
-              <Input type="file" accept="image/*" onChange={handleFileAttach} className="rounded-xl" />
+              <Input type="file" accept="image/*" onChange={handleFileUpload} className="rounded-xl" />
             </div>
           </>
         );
