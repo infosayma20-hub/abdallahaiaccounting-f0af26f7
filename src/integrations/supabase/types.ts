@@ -4803,6 +4803,7 @@ export type Database = {
           can_see_liquidity: boolean | null
           can_see_sales: boolean | null
           created_at: string | null
+          email: string | null
           full_name: string
           id: string
           is_active: boolean | null
@@ -4817,6 +4818,7 @@ export type Database = {
           can_see_liquidity?: boolean | null
           can_see_sales?: boolean | null
           created_at?: string | null
+          email?: string | null
           full_name: string
           id?: string
           is_active?: boolean | null
@@ -4831,6 +4833,7 @@ export type Database = {
           can_see_liquidity?: boolean | null
           can_see_sales?: boolean | null
           created_at?: string | null
+          email?: string | null
           full_name?: string
           id?: string
           is_active?: boolean | null
