@@ -172,13 +172,7 @@ export default function EmployeeApp() {
         )}
 
         {activeTab === "requests" && (
-          <EmployeeFormsTab
-            employeeId={employee.id}
-            userId={employee.user_id}
-            isManager={employee.is_manager || false}
-            isHrManager={employee.is_hr_manager || false}
-            onRefresh={fetchData}
-          />
+          <EmployeeMyRequestsTab employeeId={employee.id} />
         )}
 
         {activeTab === "alerts" && (
