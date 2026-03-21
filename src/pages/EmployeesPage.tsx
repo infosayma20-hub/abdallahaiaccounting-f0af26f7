@@ -140,6 +140,31 @@ const EmployeesPage = () => {
   const [accountForm, setAccountForm] = useState({ email: "", password: "" });
   const [creatingAccount, setCreatingAccount] = useState(false);
 
+  // Reset password
+  const [showResetPassword, setShowResetPassword] = useState(false);
+  const [resetPasswordValue, setResetPasswordValue] = useState("");
+  const [resettingPassword, setResettingPassword] = useState(false);
+
+  const handleResetPassword = async () => {
+    if (!selectedEmployee || !resetPasswordValue) {
+      toast.error("أدخل كلمة المرور الجديدة");
+      return;
+    }
+    if (resetPasswordValue.length < 3) {
+      toast.error("كلمة المرور يجب أن تكون 3 أحرف على الأقل");
+      return;
+    }
+    setResettingPassword(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-employee-account", {
+        body: { action: "reset-password", employee_id: selectedEmployee.id, new_password: resetPasswordValue },
+      });
+      if (error || data?.error) toast.error(data?.error || error?.message || "فشل إعادة تعيين كلمة المرور");
+      else { toast.success(data.message || "تم إعادة تعيين كلمة المرور بنجاح"); setShowResetPassword(false); setResetPasswordValue(""); }
+    } catch (err: any) { toast.error(err.message || "خطأ غير متوقع"); }
+    finally { setResettingPassword(false); }
+  };
+
   // New dialogs
   const [showImport, setShowImport] = useState(false);
   const [showHolidays, setShowHolidays] = useState(false);
@@ -730,7 +755,14 @@ const EmployeesPage = () => {
                     <UserPlus className="h-3 w-3" /> إنشاء حساب
                   </Button>
                 )}
-                {selectedEmployee.auth_user_id && <Badge variant="secondary" className="text-[10px]">لديه حساب ✓</Badge>}
+                {selectedEmployee.auth_user_id && (
+                  <>
+                    <Badge variant="secondary" className="text-[10px]">لديه حساب ✓</Badge>
+                    <Button size="sm" variant="outline" className="gap-1 text-xs" onClick={() => { setResetPasswordValue(""); setShowResetPassword(true); }}>
+                      <Shield className="h-3 w-3" /> إعادة كلمة المرور
+                    </Button>
+                  </>
+                )}
                 <Button size="sm" variant="outline" className="gap-1 text-xs" onClick={generateSalarySlip}>
                   <DollarSign className="h-3 w-3" /> قسيمة راتب
                 </Button>
@@ -1052,6 +1084,24 @@ const EmployeesPage = () => {
             <Button onClick={handleCreateAccount} disabled={creatingAccount} className="gap-2">
               {creatingAccount && <Loader2 className="h-4 w-4 animate-spin" />}
               إنشاء الحساب
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reset Password Dialog */}
+      <Dialog open={showResetPassword} onOpenChange={setShowResetPassword}>
+        <DialogContent dir="rtl">
+          <DialogHeader><DialogTitle>إعادة تعيين كلمة المرور: {selectedEmployee?.full_name}</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">أدخل كلمة المرور الجديدة للموظف.</p>
+          <div className="space-y-3 mt-2">
+            <div><label className="text-xs text-muted-foreground">كلمة المرور الجديدة (3 أحرف على الأقل)</label><Input type="text" placeholder="كلمة المرور الجديدة" value={resetPasswordValue} onChange={e => setResetPasswordValue(e.target.value)} /></div>
+          </div>
+          <div className="flex justify-end gap-2 mt-4">
+            <Button variant="outline" onClick={() => setShowResetPassword(false)}>إلغاء</Button>
+            <Button onClick={handleResetPassword} disabled={resettingPassword} className="gap-2">
+              {resettingPassword && <Loader2 className="h-4 w-4 animate-spin" />}
+              تحديث كلمة المرور
             </Button>
           </div>
         </DialogContent>
