@@ -440,6 +440,8 @@ const AuthPage = () => {
               )}
             </>
           )}
+        </div>
+      </div>
     </div>
   );
 };
