@@ -301,6 +301,8 @@ export default function EmployeeFormsManagementPage() {
                   </SelectContent>
                 </Select>
               )}
+              <Input type="date" value={dateFrom} onChange={e => { setDateFrom(e.target.value); setPage(1); }} className="w-[150px] rounded-xl" placeholder="من تاريخ" dir="ltr" />
+              <Input type="date" value={dateTo} onChange={e => { setDateTo(e.target.value); setPage(1); }} className="w-[150px] rounded-xl" placeholder="إلى تاريخ" dir="ltr" />
             </div>
 
             {/* Table */}
