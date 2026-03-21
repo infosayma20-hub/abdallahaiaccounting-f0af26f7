@@ -36,29 +36,29 @@ const LIGHT_THEME_STYLES = `
     text-align: right;
   }
   [data-sa-theme="light"] {
-    --sa-bg: #f8f9fc;
-    --sa-bg-gradient: linear-gradient(180deg, #f0f2f7 0%, #e8ecf3 100%);
-    --sa-header-bg: linear-gradient(180deg, #ffffff, #f8f9fc);
-    --sa-header-border: rgba(0,0,0,0.08);
+    --sa-bg: #F0F2F5;
+    --sa-bg-gradient: linear-gradient(180deg, #F0F2F5 0%, #E8ECF3 100%);
+    --sa-header-bg: linear-gradient(180deg, #ffffff, #fafbfc);
+    --sa-header-border: rgba(0,0,0,0.06);
     --sa-card-bg: #ffffff;
-    --sa-card-border: rgba(0,0,0,0.08);
-    --sa-card-hover: rgba(0,0,0,0.02);
-    --sa-text-primary: #1a1d23;
-    --sa-text-secondary: #4b5563;
-    --sa-text-muted: #9ca3af;
-    --sa-text-faint: #d1d5db;
-    --sa-surface: rgba(0,0,0,0.03);
-    --sa-surface-hover: rgba(0,0,0,0.06);
-    --sa-divider: rgba(0,0,0,0.06);
-    --sa-kpi-gradient: linear-gradient(135deg, #f0f4ff 0%, #e8edf8 100%);
-    --sa-input-bg: rgba(0,0,0,0.03);
-    --sa-input-border: rgba(0,0,0,0.1);
+    --sa-card-border: rgba(0,0,0,0.06);
+    --sa-card-hover: rgba(0,0,0,0.015);
+    --sa-text-primary: #1B3A5C;
+    --sa-text-secondary: #374151;
+    --sa-text-muted: #6b7280;
+    --sa-text-faint: #9ca3af;
+    --sa-surface: rgba(0,0,0,0.025);
+    --sa-surface-hover: rgba(0,0,0,0.05);
+    --sa-divider: rgba(0,0,0,0.05);
+    --sa-kpi-gradient: linear-gradient(135deg, #f5f7fa 0%, #eef1f6 100%);
+    --sa-input-bg: #ffffff;
+    --sa-input-border: rgba(0,0,0,0.12);
     --sa-dialog-bg: #ffffff;
     --sa-dialog-border: rgba(0,0,0,0.1);
-    --sa-table-header-bg: #f3f4f6;
-    --sa-logo-bg: linear-gradient(135deg, #0A2342, #006D8F);
-    --sa-tab-active-bg: rgba(0,180,216,0.1);
-    --sa-tab-active-text: #0891b2;
+    --sa-table-header-bg: #f8f9fb;
+    --sa-logo-bg: linear-gradient(135deg, #1B3A5C, #2A7B9B);
+    --sa-tab-active-bg: rgba(42,123,155,0.08);
+    --sa-tab-active-text: #2A7B9B;
     --sa-tab-inactive-text: #6b7280;
   }
   [data-sa-theme="dark"] {
