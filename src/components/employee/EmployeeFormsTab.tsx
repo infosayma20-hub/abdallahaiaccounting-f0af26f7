@@ -325,18 +325,17 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
               <label className="text-xs text-muted-foreground mb-1 block">الاسم *</label>
               <Input value={formData.name || ""} onChange={e => setFormData(p => ({ ...p, name: e.target.value }))} className="rounded-xl" />
             </div>
-            <div>
-              <label className="text-xs text-muted-foreground mb-1 block">شكوى / ملاحظة / اقتراح/مشاركة *</label>
-              <Select value={formData.complaint_type || ""} onValueChange={v => setFormData(p => ({ ...p, complaint_type: v }))}>
-                <SelectTrigger className="rounded-xl"><SelectValue placeholder="اختر..." /></SelectTrigger>
-                <SelectContent position="popper" className="z-[9999]">
-                  <SelectItem value="شكوى">شكوى</SelectItem>
-                  <SelectItem value="ملاحظة">ملاحظة</SelectItem>
-                  <SelectItem value="اقتراح">اقتراح</SelectItem>
-                  <SelectItem value="مشاركة">مشاركة</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+             <div>
+               <label className="text-xs text-muted-foreground mb-1 block">شكوى / ملاحظة / اقتراح/مشاركة *</label>
+               <div className="grid grid-cols-2 gap-2">
+                 {["شكوى", "ملاحظة", "اقتراح", "مشاركة"].map(v => (
+                   <button key={v} type="button" onClick={() => setFormData(p => ({ ...p, complaint_type: v }))}
+                     className={`py-2.5 rounded-xl border text-sm font-medium transition-all ${formData.complaint_type === v ? "border-primary bg-primary/10 text-primary" : "border-border bg-card text-muted-foreground hover:bg-muted/50"}`}>
+                     {v}
+                   </button>
+                 ))}
+               </div>
+             </div>
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">اكتب شكواك / ملاحظتك / اقتراحك/مشاركتك *</label>
               <Textarea value={formData.content || ""} onChange={e => setFormData(p => ({ ...p, content: e.target.value }))} rows={4} className="rounded-xl" maxLength={2000} />
