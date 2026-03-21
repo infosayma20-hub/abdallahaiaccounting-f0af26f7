@@ -12,6 +12,7 @@ import AlertsTab from "@/components/employee/AlertsTab";
 import EmployeeProfileTab from "@/components/employee/EmployeeProfileTab";
 import EmployeeRequestsTab from "@/components/employee/EmployeeRequestsTab";
 import EmployeeFormsTab from "@/components/employee/EmployeeFormsTab";
+import EmployeeMyRequestsTab from "@/components/employee/EmployeeMyRequestsTab";
 
 type Tab = "home" | "scan" | "history" | "alerts" | "requests" | "profile" | "forms";
 
@@ -171,13 +172,7 @@ export default function EmployeeApp() {
         )}
 
         {activeTab === "requests" && (
-          <EmployeeFormsTab
-            employeeId={employee.id}
-            userId={employee.user_id}
-            isManager={employee.is_manager || false}
-            isHrManager={employee.is_hr_manager || false}
-            onRefresh={fetchData}
-          />
+          <EmployeeMyRequestsTab employeeId={employee.id} />
         )}
 
         {activeTab === "alerts" && (

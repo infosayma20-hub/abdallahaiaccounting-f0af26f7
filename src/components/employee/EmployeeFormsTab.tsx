@@ -659,41 +659,6 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
         </div>
       </div>
 
-      {/* Submissions History */}
-      <div>
-        <button onClick={() => setShowHistory(!showHistory)} className="flex items-center gap-2 text-sm font-semibold text-primary">
-          <FileText className="h-4 w-4" />
-          طلباتي السابقة ({submissions.length})
-          <ChevronLeft className={`h-4 w-4 transition-transform ${showHistory ? "rotate-90" : ""}`} />
-        </button>
-        {showHistory && (
-          <div className="space-y-2 mt-2">
-            {submissions.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">لا يوجد طلبات سابقة</p>
-            ) : (
-              submissions.map(sub => {
-                const st = statusLabel(sub.status);
-                return (
-                  <Card key={sub.id} className="border-border bg-card">
-                    <CardContent className="p-3 space-y-1">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold">{formLabel(sub.form_type)}</span>
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] text-muted-foreground">{format(new Date(sub.created_at), "dd/MM/yyyy")}</span>
-                          <Badge variant={st.variant} className="text-[10px]">{st.emoji} {st.text}</Badge>
-                        </div>
-                      </div>
-                      {sub.review_notes && (
-                        <p className="text-xs text-primary bg-primary/5 rounded-lg p-2">💬 {sub.review_notes}</p>
-                      )}
-                    </CardContent>
-                  </Card>
-                );
-              })
-            )}
-          </div>
-        )}
-      </div>
 
       {/* Form Dialog */}
       <Dialog open={!!activeForm} onOpenChange={o => { if (!o) { setActiveForm(null); setFormData({}); } }}>
