@@ -84,8 +84,7 @@ export default function PortalSettings() {
       });
       if (data?.success) {
         setCreatedCredentials({ ...newUser });
-        setShowAddUser(false);
-        setNewUser({ username: '', password: '', full_name: '', role: 'viewer' });
+        setNewUser({ username: '', password: '', full_name: '', role: 'viewer', email: '' });
         loadData();
       } else { alert(data?.error || 'خطأ'); }
     } catch { alert('خطأ في الإنشاء'); }
