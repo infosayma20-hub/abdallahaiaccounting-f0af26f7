@@ -52,6 +52,10 @@ Deno.serve(async (req) => {
         p_can_see_all_branches: body.can_see_all_branches ?? true,
       });
       if (error) throw error;
+      // Save email if provided
+      if (body.email && data?.id) {
+        await supabase.from("malaki_portal_users").update({ email: body.email }).eq("id", data.id);
+      }
       return respond(data);
     }
 

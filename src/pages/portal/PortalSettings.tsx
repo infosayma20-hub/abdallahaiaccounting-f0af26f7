@@ -25,8 +25,8 @@ export default function PortalSettings() {
   const [rateUsd, setRateUsd] = useState('3.65');
   const [linkedUserId, setLinkedUserId] = useState('');
   const [showAddUser, setShowAddUser] = useState(false);
-  const [newUser, setNewUser] = useState({ username: '', password: '', full_name: '', role: 'viewer' });
-  const [createdCredentials, setCreatedCredentials] = useState<{ username: string; password: string; full_name: string; role: string } | null>(null);
+  const [newUser, setNewUser] = useState({ username: '', password: '', full_name: '', role: 'viewer', email: '' });
+  const [createdCredentials, setCreatedCredentials] = useState<{ username: string; password: string; full_name: string; role: string; email: string } | null>(null);
   const [settingsId, setSettingsId] = useState('');
 
   useEffect(() => {
@@ -84,8 +84,7 @@ export default function PortalSettings() {
       });
       if (data?.success) {
         setCreatedCredentials({ ...newUser });
-        setShowAddUser(false);
-        setNewUser({ username: '', password: '', full_name: '', role: 'viewer' });
+        setNewUser({ username: '', password: '', full_name: '', role: 'viewer', email: '' });
         loadData();
       } else { alert(data?.error || 'خطأ'); }
     } catch { alert('خطأ في الإنشاء'); }
@@ -221,12 +220,14 @@ export default function PortalSettings() {
               padding: 16, marginBottom: 16, border: '1px solid rgba(212,160,23,0.2)',
             }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+                <input value={newUser.full_name} onChange={e => setNewUser({ ...newUser, full_name: e.target.value })}
+                  placeholder="الاسم الكامل" style={inputStyle} />
+                <input value={newUser.email} onChange={e => setNewUser({ ...newUser, email: e.target.value })}
+                  placeholder="البريد الإلكتروني" type="email" dir="ltr" style={{ ...inputStyle, textAlign: 'left' }} />
                 <input value={newUser.username} onChange={e => setNewUser({ ...newUser, username: e.target.value })}
                   placeholder="اسم المستخدم" style={inputStyle} />
                 <input value={newUser.password} onChange={e => setNewUser({ ...newUser, password: e.target.value })}
                   placeholder="كلمة المرور" type="password" style={inputStyle} />
-                <input value={newUser.full_name} onChange={e => setNewUser({ ...newUser, full_name: e.target.value })}
-                  placeholder="الاسم الكامل" style={inputStyle} />
                 <select value={newUser.role} onChange={e => setNewUser({ ...newUser, role: e.target.value })}
                   style={{ ...inputStyle, cursor: 'pointer' }}>
                   <option value="viewer">مشاهد</option>
@@ -265,6 +266,7 @@ export default function PortalSettings() {
                 <tbody>
                   {[
                     { label: 'الاسم الكامل', value: createdCredentials.full_name },
+                    { label: 'البريد الإلكتروني', value: createdCredentials.email || '—', mono: true },
                     { label: 'اسم المستخدم', value: createdCredentials.username, mono: true },
                     { label: 'كلمة المرور', value: createdCredentials.password, mono: true },
                     { label: 'الدور', value: createdCredentials.role === 'owner' ? 'مالك' : createdCredentials.role === 'manager' ? 'مدير' : 'مشاهد' },
