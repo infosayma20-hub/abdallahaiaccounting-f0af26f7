@@ -74,6 +74,7 @@ import POSUserManagementPage from "./pages/POSUserManagementPage";
 import POSReportsPage from "./pages/POSReportsPage";
 import POSCustomerDatabasePage from "./pages/POSCustomerDatabasePage";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
+import SuperAdminLoginPage from "./pages/SuperAdminLoginPage";
 // PurchasePointPage removed — replaced by procurement module
 import FloorPlanPage from "./pages/FloorPlanPage";
 import FloorPlanEditorPage from "./pages/FloorPlanEditorPage";
