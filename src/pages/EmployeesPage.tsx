@@ -140,6 +140,31 @@ const EmployeesPage = () => {
   const [accountForm, setAccountForm] = useState({ email: "", password: "" });
   const [creatingAccount, setCreatingAccount] = useState(false);
 
+  // Reset password
+  const [showResetPassword, setShowResetPassword] = useState(false);
+  const [resetPasswordValue, setResetPasswordValue] = useState("");
+  const [resettingPassword, setResettingPassword] = useState(false);
+
+  const handleResetPassword = async () => {
+    if (!selectedEmployee || !resetPasswordValue) {
+      toast.error("أدخل كلمة المرور الجديدة");
+      return;
+    }
+    if (resetPasswordValue.length < 3) {
+      toast.error("كلمة المرور يجب أن تكون 3 أحرف على الأقل");
+      return;
+    }
+    setResettingPassword(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-employee-account", {
+        body: { action: "reset-password", employee_id: selectedEmployee.id, new_password: resetPasswordValue },
+      });
+      if (error || data?.error) toast.error(data?.error || error?.message || "فشل إعادة تعيين كلمة المرور");
+      else { toast.success(data.message || "تم إعادة تعيين كلمة المرور بنجاح"); setShowResetPassword(false); setResetPasswordValue(""); }
+    } catch (err: any) { toast.error(err.message || "خطأ غير متوقع"); }
+    finally { setResettingPassword(false); }
+  };
+
   // New dialogs
   const [showImport, setShowImport] = useState(false);
   const [showHolidays, setShowHolidays] = useState(false);
