@@ -1912,7 +1912,7 @@ export default function SuperAdminDashboard() {
                   className="pr-10" style={{ background: "var(--sa-input-bg)", borderColor: "var(--sa-input-border)", color: "var(--sa-text-primary)" }} />
               </div>
               <Badge style={{ background: "var(--sa-surface)", color: "var(--sa-text-muted)" }} className="border-0 text-xs">
-                {owners.length} شركة · {filteredUsers.length} مستخدم
+                {companyCount} شركة · {filteredUsers.length} مستخدم
               </Badge>
               <Button variant="ghost" size="sm" onClick={loadUsers} disabled={loadingUsers} style={{ color: "var(--sa-text-muted)" }}>
                 <RefreshCw className={`h-4 w-4 ${loadingUsers ? "animate-spin" : ""}`} />
