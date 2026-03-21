@@ -50,7 +50,9 @@ export default function EmployeeFormsManagementPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState("all");
-  const [filterStatus, setFilterStatus] = useState("all");
+  const [filterStatus, setFilterStatus] = useState("pending");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [filterBranch, setFilterBranch] = useState("all");
   const [selectedForm, setSelectedForm] = useState<any | null>(null);
   const [reviewNotes, setReviewNotes] = useState("");
@@ -181,6 +183,14 @@ export default function EmployeeFormsManagementPage() {
       const empName = emp?.name || "";
       if (!empName.includes(search) && !f.form_type.includes(search)) return false;
     }
+    if (dateFrom) {
+      const created = f.created_at?.slice(0, 10);
+      if (created < dateFrom) return false;
+    }
+    if (dateTo) {
+      const created = f.created_at?.slice(0, 10);
+      if (created > dateTo) return false;
+    }
     return true;
   });
 
@@ -291,6 +301,8 @@ export default function EmployeeFormsManagementPage() {
                   </SelectContent>
                 </Select>
               )}
+              <Input type="date" value={dateFrom} onChange={e => { setDateFrom(e.target.value); setPage(1); }} className="w-[150px] rounded-xl" placeholder="من تاريخ" dir="ltr" />
+              <Input type="date" value={dateTo} onChange={e => { setDateTo(e.target.value); setPage(1); }} className="w-[150px] rounded-xl" placeholder="إلى تاريخ" dir="ltr" />
             </div>
 
             {/* Table */}
