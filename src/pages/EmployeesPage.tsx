@@ -38,6 +38,7 @@ interface Employee {
   id: string;
   full_name: string;
   id_number: string;
+  employee_number?: string;
   phone: string;
   email: string;
   photo_url: string;
