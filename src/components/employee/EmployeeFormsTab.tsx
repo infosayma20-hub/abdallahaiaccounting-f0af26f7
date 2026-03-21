@@ -524,7 +524,19 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
           </>
         );
 
-      case "inventory_balance":
+      case "inventory_balance": {
+        const items = [
+          { key: "chicken", label: "دجاج", required: true },
+          { key: "mshab", label: "مسحب", required: true },
+          { key: "wings", label: "اجنحة", required: true },
+          { key: "burger_fresh", label: "لحصة برغر فريش", required: false },
+          { key: "mutawama", label: "متومة", required: true },
+          { key: "cabbage", label: "ملفوف", required: true },
+          { key: "phino_sandwich", label: "فينو سندويش", required: true },
+          { key: "phino_burger", label: "فينو برجر", required: true },
+          { key: "mini_burger", label: "ميني برجر", required: true },
+          { key: "fries", label: "بطاطا", required: true },
+        ];
         return (
           <>
             <div>
@@ -535,12 +547,26 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
               <label className="text-xs text-muted-foreground mb-1 block">الفرع *</label>
               <Input value={formData.branch || ""} onChange={e => setFormData(p => ({ ...p, branch: e.target.value }))} className="rounded-xl" />
             </div>
+            {items.map(item => (
+              <div key={item.key}>
+                <label className="text-xs text-muted-foreground mb-1 block">{item.label}{item.required ? " *" : ""}</label>
+                <Input
+                  type="number"
+                  inputMode="numeric"
+                  value={formData[item.key] || ""}
+                  onChange={e => setFormData(p => ({ ...p, [item.key]: e.target.value }))}
+                  className="rounded-xl"
+                  placeholder="0"
+                />
+              </div>
+            ))}
             <div>
-              <label className="text-xs text-muted-foreground mb-1 block">بيانات الأصناف (صنف: كمية) *</label>
-              <Textarea value={formData.items || ""} onChange={e => setFormData(p => ({ ...p, items: e.target.value }))} rows={6} className="rounded-xl" placeholder="دجاج: 50&#10;مسحب: 30&#10;اجنحة: 20" />
+              <label className="text-xs text-muted-foreground mb-1 block">صورة</label>
+              <Input type="file" accept="image/*" onChange={handleFileAttach} className="rounded-xl" />
             </div>
           </>
         );
+      }
 
       default:
         return null;
