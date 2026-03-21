@@ -327,7 +327,7 @@ export default function EmployeeFormsManagementPage() {
                               <TableCell className="text-sm font-semibold whitespace-nowrap">
                                 {amount ? `${Number(amount).toLocaleString()} ₪` : "—"}
                               </TableCell>
-                              <TableCell className="text-xs text-muted-foreground max-w-[150px] truncate">{reason || "—"}</TableCell>
+                              <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate" title={details}>{details || "—"}</TableCell>
                               <TableCell className="text-xs text-muted-foreground whitespace-nowrap">{format(new Date(f.created_at), "dd/MM/yyyy HH:mm")}</TableCell>
                               <TableCell>
                                 <Badge variant={st.variant} className="text-[10px]">{st.label}</Badge>
