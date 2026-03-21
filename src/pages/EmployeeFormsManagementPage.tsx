@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import BackButton from "@/components/BackButton";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -13,11 +13,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Search, Filter, CheckCircle2, XCircle, Clock, Eye, MessageSquare, Upload, FileText,
+  Search, CheckCircle2, XCircle, Eye, Upload, FileText,
   Download, ChevronLeft, ChevronRight, Loader2
 } from "lucide-react";
 import { format } from "date-fns";
-import { ar } from "date-fns/locale";
 
 const formTypeLabels: Record<string, string> = {
   leave_request: "🏖️ طلب إجازة",
@@ -41,21 +40,24 @@ const statusConfig: Record<string, { label: string; variant: "default" | "destru
   rejected: { label: "مرفوض", variant: "destructive", color: "text-destructive" },
 };
 
+const financialTypes = ["advance_request", "loan_request"];
+
 export default function EmployeeFormsManagementPage() {
   const { user } = useAuth();
   const [forms, setForms] = useState<any[]>([]);
-  const [employees, setEmployees] = useState<Record<string, string>>({});
+  const [employeeMap, setEmployeeMap] = useState<Record<string, { name: string; branch: string }>>({});
+  const [branches, setBranches] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
+  const [filterBranch, setFilterBranch] = useState("all");
   const [selectedForm, setSelectedForm] = useState<any | null>(null);
   const [reviewNotes, setReviewNotes] = useState("");
-  const [processing, setProcessing] = useState(false);
+  const [processing, setProcessing] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const perPage = 20;
 
-  // Policies management
   const [policiesTab, setPoliciesTab] = useState("forms");
   const [policies, setPolicies] = useState<any[]>([]);
   const [showUploadPolicy, setShowUploadPolicy] = useState(false);
@@ -85,11 +87,16 @@ export default function EmployeeFormsManagementPage() {
     if (!user) return;
     const { data } = await supabase
       .from("employees")
-      .select("id, full_name")
+      .select("id, full_name, branch")
       .eq("user_id", user.id);
-    const map: Record<string, string> = {};
-    (data || []).forEach((e: any) => { map[e.id] = e.full_name; });
-    setEmployees(map);
+    const map: Record<string, { name: string; branch: string }> = {};
+    const branchSet = new Set<string>();
+    (data || []).forEach((e: any) => {
+      map[e.id] = { name: e.full_name, branch: e.branch || "" };
+      if (e.branch) branchSet.add(e.branch);
+    });
+    setEmployeeMap(map);
+    setBranches(Array.from(branchSet).sort());
   };
 
   const fetchPolicies = async () => {
@@ -100,25 +107,25 @@ export default function EmployeeFormsManagementPage() {
     setPolicies(data || []);
   };
 
-  const handleAction = async (action: "approved" | "rejected") => {
-    if (!selectedForm || !user) return;
-    setProcessing(true);
+  const handleAction = async (action: "approved" | "rejected", form: any) => {
+    if (!user) return;
+    setProcessing(form.id + action);
+    const notes = form.id === selectedForm?.id ? reviewNotes : null;
     const { error } = await supabase
       .from("employee_forms")
       .update({
         status: action,
         reviewed_by: user.id,
-        review_notes: reviewNotes || null,
+        review_notes: notes,
         reviewed_at: new Date().toISOString(),
       } as any)
-      .eq("id", selectedForm.id);
-    setProcessing(false);
+      .eq("id", form.id);
+    setProcessing(null);
     if (error) {
       toast.error("خطأ: " + error.message);
     } else {
       toast.success(action === "approved" ? "تمت الموافقة ✅" : "تم الرفض ❌");
-      setSelectedForm(null);
-      setReviewNotes("");
+      if (selectedForm?.id === form.id) { setSelectedForm(null); setReviewNotes(""); }
       fetchForms();
     }
   };
@@ -130,37 +137,31 @@ export default function EmployeeFormsManagementPage() {
     const ext = file.name.split(".").pop();
     const path = `policies/${Date.now()}.${ext}`;
     const { error: uploadErr } = await supabase.storage.from("employee-forms").upload(path, file);
-    if (uploadErr) {
-      toast.error("خطأ في رفع الملف");
-      setUploadingPolicy(false);
-      return;
-    }
+    if (uploadErr) { toast.error("خطأ في رفع الملف"); setUploadingPolicy(false); return; }
     const { data: urlData } = supabase.storage.from("employee-forms").getPublicUrl(path);
-
     const { error } = await supabase.from("employee_policy_documents").insert({
-      user_id: user.id,
-      title: policyForm.title,
-      description: policyForm.description || null,
-      file_url: urlData.publicUrl,
-      category: policyForm.category,
+      user_id: user.id, title: policyForm.title, description: policyForm.description || null,
+      file_url: urlData.publicUrl, category: policyForm.category,
     } as any);
-
     setUploadingPolicy(false);
-    if (error) {
-      toast.error("خطأ: " + error.message);
-    } else {
-      toast.success("تم إضافة السياسة ✅");
-      setShowUploadPolicy(false);
-      setPolicyForm({ title: "", description: "", category: "" });
-      fetchPolicies();
-    }
+    if (error) { toast.error("خطأ: " + error.message); }
+    else { toast.success("تم إضافة السياسة ✅"); setShowUploadPolicy(false); setPolicyForm({ title: "", description: "", category: "" }); fetchPolicies(); }
   };
+
+  const getFormAmount = (f: any) => {
+    if (!financialTypes.includes(f.form_type)) return null;
+    return f.form_data?.amount || f.form_data?.loan_amount || null;
+  };
+
+  const getFormReason = (f: any) => f.form_data?.reason || f.form_data?.purpose || null;
 
   const filtered = forms.filter(f => {
     if (filterType !== "all" && f.form_type !== filterType) return false;
     if (filterStatus !== "all" && f.status !== filterStatus) return false;
+    const emp = employeeMap[f.employee_id];
+    if (filterBranch !== "all" && emp?.branch !== filterBranch) return false;
     if (search) {
-      const empName = employees[f.employee_id] || "";
+      const empName = emp?.name || "";
       if (!empName.includes(search) && !f.form_type.includes(search)) return false;
     }
     return true;
@@ -176,9 +177,15 @@ export default function EmployeeFormsManagementPage() {
     total: forms.length,
   };
 
+  // Financial totals for filtered results
+  const financialFiltered = filtered.filter(f => financialTypes.includes(f.form_type));
+  const totalAmount = financialFiltered.reduce((sum, f) => sum + (Number(getFormAmount(f)) || 0), 0);
+  const pendingAmount = financialFiltered.filter(f => f.status === "pending").reduce((sum, f) => sum + (Number(getFormAmount(f)) || 0), 0);
+  const approvedAmount = financialFiltered.filter(f => f.status === "approved").reduce((sum, f) => sum + (Number(getFormAmount(f)) || 0), 0);
+
   return (
     <div className="min-h-screen bg-background p-4 md:p-6" dir="rtl" style={{ fontFamily: "Tajawal, sans-serif" }}>
-      <div className="max-w-6xl mx-auto space-y-4">
+      <div className="max-w-7xl mx-auto space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <BackButton />
@@ -203,6 +210,30 @@ export default function EmployeeFormsManagementPage() {
           ))}
         </div>
 
+        {/* Financial summary when filtering financial types */}
+        {(filterType === "advance_request" || filterType === "loan_request" || financialFiltered.length > 0) && (
+          <div className="grid grid-cols-3 gap-3">
+            <Card className="border-border bg-muted/30">
+              <CardContent className="p-3 text-center">
+                <div className="text-lg font-bold text-foreground">{totalAmount.toLocaleString()} ₪</div>
+                <p className="text-[10px] text-muted-foreground">إجمالي المبالغ ({financialFiltered.length})</p>
+              </CardContent>
+            </Card>
+            <Card className="border-border bg-muted/30">
+              <CardContent className="p-3 text-center">
+                <div className="text-lg font-bold text-warning">{pendingAmount.toLocaleString()} ₪</div>
+                <p className="text-[10px] text-muted-foreground">قيد المراجعة</p>
+              </CardContent>
+            </Card>
+            <Card className="border-border bg-muted/30">
+              <CardContent className="p-3 text-center">
+                <div className="text-lg font-bold text-emerald-600">{approvedAmount.toLocaleString()} ₪</div>
+                <p className="text-[10px] text-muted-foreground">تمت الموافقة</p>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
         <Tabs value={policiesTab} onValueChange={setPoliciesTab}>
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="forms">الطلبات والنماذج</TabsTrigger>
@@ -216,7 +247,7 @@ export default function EmployeeFormsManagementPage() {
                 <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="بحث باسم الموظف..." className="pr-9 rounded-xl" />
               </div>
-              <Select value={filterType} onValueChange={setFilterType}>
+              <Select value={filterType} onValueChange={v => { setFilterType(v); setPage(1); }}>
                 <SelectTrigger className="w-[180px] rounded-xl"><SelectValue placeholder="نوع النموذج" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">الكل</SelectItem>
@@ -225,7 +256,7 @@ export default function EmployeeFormsManagementPage() {
                   ))}
                 </SelectContent>
               </Select>
-              <Select value={filterStatus} onValueChange={setFilterStatus}>
+              <Select value={filterStatus} onValueChange={v => { setFilterStatus(v); setPage(1); }}>
                 <SelectTrigger className="w-[150px] rounded-xl"><SelectValue placeholder="الحالة" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">الكل</SelectItem>
@@ -234,6 +265,15 @@ export default function EmployeeFormsManagementPage() {
                   <SelectItem value="rejected">مرفوض</SelectItem>
                 </SelectContent>
               </Select>
+              {branches.length > 0 && (
+                <Select value={filterBranch} onValueChange={v => { setFilterBranch(v); setPage(1); }}>
+                  <SelectTrigger className="w-[150px] rounded-xl"><SelectValue placeholder="الفرع" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">كل الفروع</SelectItem>
+                    {branches.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
 
             {/* Table */}
@@ -241,43 +281,73 @@ export default function EmployeeFormsManagementPage() {
               <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
             ) : (
               <Card className="border-border overflow-hidden">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="text-right">الموظف</TableHead>
-                      <TableHead className="text-right">النموذج</TableHead>
-                      <TableHead className="text-right">التاريخ</TableHead>
-                      <TableHead className="text-right">الحالة</TableHead>
-                      <TableHead className="text-right">إجراء</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {paginated.length === 0 ? (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
                       <TableRow>
-                        <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">لا يوجد نماذج</TableCell>
+                        <TableHead className="text-right">الموظف</TableHead>
+                        <TableHead className="text-right">الفرع</TableHead>
+                        <TableHead className="text-right">النموذج</TableHead>
+                        <TableHead className="text-right">المبلغ</TableHead>
+                        <TableHead className="text-right">السبب</TableHead>
+                        <TableHead className="text-right">التاريخ</TableHead>
+                        <TableHead className="text-right">الحالة</TableHead>
+                        <TableHead className="text-right">إجراء</TableHead>
                       </TableRow>
-                    ) : (
-                      paginated.map(f => {
-                        const st = statusConfig[f.status] || statusConfig.pending;
-                        return (
-                          <TableRow key={f.id}>
-                            <TableCell className="font-medium text-sm">{employees[f.employee_id] || "—"}</TableCell>
-                            <TableCell className="text-xs">{formTypeLabels[f.form_type] || f.form_type}</TableCell>
-                            <TableCell className="text-xs text-muted-foreground">{format(new Date(f.created_at), "dd/MM/yyyy HH:mm")}</TableCell>
-                            <TableCell>
-                              <Badge variant={st.variant} className="text-[10px]">{st.label}</Badge>
-                            </TableCell>
-                            <TableCell>
-                              <Button size="sm" variant="ghost" className="gap-1 text-xs" onClick={() => { setSelectedForm(f); setReviewNotes(f.review_notes || ""); }}>
-                                <Eye className="h-3 w-3" /> عرض
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })
-                    )}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {paginated.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">لا يوجد نماذج</TableCell>
+                        </TableRow>
+                      ) : (
+                        paginated.map(f => {
+                          const st = statusConfig[f.status] || statusConfig.pending;
+                          const emp = employeeMap[f.employee_id];
+                          const amount = getFormAmount(f);
+                          const reason = getFormReason(f);
+                          const isPending = f.status === "pending";
+                          return (
+                            <TableRow key={f.id}>
+                              <TableCell className="font-medium text-sm whitespace-nowrap">{emp?.name || "—"}</TableCell>
+                              <TableCell className="text-xs text-muted-foreground whitespace-nowrap">{emp?.branch || "—"}</TableCell>
+                              <TableCell className="text-xs whitespace-nowrap">{formTypeLabels[f.form_type] || f.form_type}</TableCell>
+                              <TableCell className="text-sm font-semibold whitespace-nowrap">
+                                {amount ? `${Number(amount).toLocaleString()} ₪` : "—"}
+                              </TableCell>
+                              <TableCell className="text-xs text-muted-foreground max-w-[150px] truncate">{reason || "—"}</TableCell>
+                              <TableCell className="text-xs text-muted-foreground whitespace-nowrap">{format(new Date(f.created_at), "dd/MM/yyyy HH:mm")}</TableCell>
+                              <TableCell>
+                                <Badge variant={st.variant} className="text-[10px]">{st.label}</Badge>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-1">
+                                  {isPending && (
+                                    <>
+                                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-emerald-600 hover:bg-emerald-50"
+                                        onClick={() => handleAction("approved", f)}
+                                        disabled={!!processing}>
+                                        {processing === f.id + "approved" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+                                      </Button>
+                                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive hover:bg-destructive/10"
+                                        onClick={() => handleAction("rejected", f)}
+                                        disabled={!!processing}>
+                                        {processing === f.id + "rejected" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <XCircle className="h-3.5 w-3.5" />}
+                                      </Button>
+                                    </>
+                                  )}
+                                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => { setSelectedForm(f); setReviewNotes(f.review_notes || ""); }}>
+                                    <Eye className="h-3.5 w-3.5" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
                 {totalPages > 1 && (
                   <div className="flex items-center justify-between p-3 border-t border-border">
                     <span className="text-xs text-muted-foreground">صفحة {page} من {totalPages}</span>
@@ -304,7 +374,6 @@ export default function EmployeeFormsManagementPage() {
                   <CardContent className="p-8 text-center text-muted-foreground">
                     <FileText className="h-8 w-8 mx-auto mb-2 opacity-50" />
                     <p>لم يتم رفع سياسات بعد</p>
-                    <p className="text-xs mt-1">ارفع ملفات PDF للسياسات ليتمكن الموظفون من الاطلاع عليها</p>
                   </CardContent>
                 </Card>
               ) : (
@@ -336,10 +405,13 @@ export default function EmployeeFormsManagementPage() {
         <DialogContent className="max-w-lg bg-card border-border max-h-[85vh] overflow-y-auto" dir="rtl">
           <DialogHeader>
             <DialogTitle>{formTypeLabels[selectedForm?.form_type] || selectedForm?.form_type}</DialogTitle>
-            <DialogDescription className="text-xs">مقدم من: {employees[selectedForm?.employee_id] || "—"} - {selectedForm && format(new Date(selectedForm.created_at), "dd/MM/yyyy HH:mm")}</DialogDescription>
+            <DialogDescription className="text-xs">
+              مقدم من: {employeeMap[selectedForm?.employee_id]?.name || "—"}
+              {employeeMap[selectedForm?.employee_id]?.branch && ` — ${employeeMap[selectedForm?.employee_id]?.branch}`}
+              {" — "}{selectedForm && format(new Date(selectedForm.created_at), "dd/MM/yyyy HH:mm")}
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
-            {/* Form data display */}
             <div className="bg-muted/30 rounded-xl p-4 space-y-2">
               {selectedForm?.form_data && Object.entries(selectedForm.form_data).filter(([k]) => k !== "attachment_url").map(([key, value]) => (
                 <div key={key} className="flex justify-between text-sm">
@@ -348,23 +420,17 @@ export default function EmployeeFormsManagementPage() {
                 </div>
               ))}
             </div>
-
-            {/* Attachment */}
             {selectedForm?.attachment_url && (
               <a href={selectedForm.attachment_url} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm text-primary hover:underline">
                 <Download className="h-4 w-4" /> عرض المرفق
               </a>
             )}
-
-            {/* Current status */}
             <div className="flex items-center gap-2">
               <span className="text-sm text-muted-foreground">الحالة الحالية:</span>
               <Badge variant={statusConfig[selectedForm?.status]?.variant || "outline"}>
                 {statusConfig[selectedForm?.status]?.label || selectedForm?.status}
               </Badge>
             </div>
-
-            {/* Review actions */}
             {selectedForm?.status === "pending" && (
               <>
                 <div>
@@ -372,10 +438,10 @@ export default function EmployeeFormsManagementPage() {
                   <Textarea value={reviewNotes} onChange={e => setReviewNotes(e.target.value)} rows={2} className="rounded-xl" placeholder="أضف ملاحظة..." />
                 </div>
                 <div className="flex gap-2">
-                  <Button className="flex-1 gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => handleAction("approved")} disabled={processing}>
+                  <Button className="flex-1 gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => handleAction("approved", selectedForm)} disabled={!!processing}>
                     <CheckCircle2 className="h-4 w-4" /> موافقة
                   </Button>
-                  <Button variant="destructive" className="flex-1 gap-2 rounded-xl" onClick={() => handleAction("rejected")} disabled={processing}>
+                  <Button variant="destructive" className="flex-1 gap-2 rounded-xl" onClick={() => handleAction("rejected", selectedForm)} disabled={!!processing}>
                     <XCircle className="h-4 w-4" /> رفض
                   </Button>
                 </div>
@@ -418,21 +484,10 @@ export default function EmployeeFormsManagementPage() {
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">ملف PDF *</label>
               <label className="border-2 border-dashed border-border rounded-xl p-6 flex flex-col items-center gap-2 cursor-pointer hover:bg-muted/50 transition-colors">
-                {uploadingPolicy ? (
-                  <Loader2 className="h-6 w-6 animate-spin" />
-                ) : (
-                  <>
-                    <Upload className="h-6 w-6 text-muted-foreground" />
-                    <span className="text-xs text-primary">اختر ملف PDF</span>
-                  </>
+                {uploadingPolicy ? <Loader2 className="h-6 w-6 animate-spin" /> : (
+                  <><Upload className="h-6 w-6 text-muted-foreground" /><span className="text-xs text-primary">اختر ملف PDF</span></>
                 )}
-                <input
-                  type="file"
-                  className="hidden"
-                  accept=".pdf"
-                  onChange={handleUploadPolicy}
-                  disabled={!policyForm.title || !policyForm.category || uploadingPolicy}
-                />
+                <input type="file" className="hidden" accept=".pdf" onChange={handleUploadPolicy} disabled={!policyForm.title || !policyForm.category || uploadingPolicy} />
               </label>
             </div>
           </div>
