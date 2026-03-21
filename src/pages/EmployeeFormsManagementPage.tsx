@@ -317,7 +317,7 @@ export default function EmployeeFormsManagementPage() {
                           const st = statusConfig[f.status] || statusConfig.pending;
                           const emp = employeeMap[f.employee_id];
                           const amount = getFormAmount(f);
-                          const reason = getFormReason(f);
+                          const details = getFormDetails(f);
                           const isPending = f.status === "pending";
                           return (
                             <TableRow key={f.id}>
