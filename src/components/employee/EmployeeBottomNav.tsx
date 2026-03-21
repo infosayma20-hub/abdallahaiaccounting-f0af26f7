@@ -10,6 +10,12 @@ const tabs: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "profile", label: "ملفي", icon: User },
 ];
 
+interface Props {
+  active: Tab;
+  onNavigate: (tab: Tab) => void;
+  alertCount?: number;
+}
+
 export default function EmployeeBottomNav({ active, onNavigate, alertCount = 0 }: Props) {
   return (
     <nav
