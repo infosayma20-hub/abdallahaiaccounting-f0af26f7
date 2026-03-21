@@ -154,7 +154,18 @@ export default function EmployeeFormsManagementPage() {
     return f.form_data?.amount || f.form_data?.loan_amount || null;
   };
 
-  const getFormReason = (f: any) => f.form_data?.reason || f.form_data?.purpose || null;
+  const getFormDetails = (f: any) => {
+    const d = f.form_data || {};
+    if (f.form_type === "leave_request") {
+      const dates = d.from_date && d.to_date ? `${d.from_date} → ${d.to_date}` : "";
+      return [d.leave_type || d.reason || "إجازة", dates].filter(Boolean).join(" | ");
+    }
+    if (f.form_type === "advance_request") return d.reason || d.purpose || "سلفة";
+    if (f.form_type === "loan_request") return d.reason || d.purpose || "قرض حسن";
+    if (f.form_type === "correction_request") return d.date || d.reason || "";
+    if (f.form_type === "overtime_request") return d.hours ? `${d.hours} ساعة` : d.reason || "";
+    return d.reason || d.message || d.notes || "";
+  };
 
   const filtered = forms.filter(f => {
     if (filterType !== "all" && f.form_type !== filterType) return false;
