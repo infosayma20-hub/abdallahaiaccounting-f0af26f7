@@ -74,6 +74,7 @@ import POSUserManagementPage from "./pages/POSUserManagementPage";
 import POSReportsPage from "./pages/POSReportsPage";
 import POSCustomerDatabasePage from "./pages/POSCustomerDatabasePage";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
+import SuperAdminLoginPage from "./pages/SuperAdminLoginPage";
 // PurchasePointPage removed — replaced by procurement module
 import FloorPlanPage from "./pages/FloorPlanPage";
 import FloorPlanEditorPage from "./pages/FloorPlanEditorPage";
@@ -188,6 +189,7 @@ const App = () => (
               <Route path="/privacy" element={<PrivacyPage />} />
               <Route path="/pricing" element={<PricingPage />} />
               <Route path="/branch-display/:branchId" element={<BranchDisplayPage />} />
+              <Route path="/super-admin/login" element={<SuperAdminLoginPage />} />
               <Route path="/super-admin/dashboard" element={<ProtectedRoute><SuperAdminDashboard /></ProtectedRoute>} />
               <Route path="/employee" element={<ProtectedRoute><RoleGuard allowedRoles={["employee"]} fallback="/auth"><EmployeeApp /></RoleGuard></ProtectedRoute>} />
               <Route path="/receipt/:orderId" element={<DigitalReceiptPage />} />
