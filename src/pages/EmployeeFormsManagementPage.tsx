@@ -425,12 +425,25 @@ export default function EmployeeFormsManagementPage() {
           </DialogHeader>
           <div className="space-y-3">
             <div className="bg-muted/30 rounded-xl p-4 space-y-2">
-              {selectedForm?.form_data && Object.entries(selectedForm.form_data).filter(([k]) => k !== "attachment_url").map(([key, value]) => (
-                <div key={key} className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">{key.replace(/_/g, " ")}:</span>
-                  <span className="font-medium">{String(value)}</span>
-                </div>
-              ))}
+              {selectedForm?.form_data && Object.entries(selectedForm.form_data).filter(([k]) => k !== "attachment_url").map(([key, value]) => {
+                const labelMap: Record<string, string> = {
+                  reason: "السبب", from_date: "من تاريخ", to_date: "إلى تاريخ",
+                  leave_type: "نوع الإجازة", amount: "المبلغ", loan_amount: "مبلغ القرض",
+                  purpose: "الغرض", date: "التاريخ", hours: "الساعات", message: "الرسالة",
+                  employee_name: "اسم الموظف", branch: "الفرع", notes: "ملاحظات",
+                  installments: "الأقساط", items: "الأصناف",
+                };
+                const leaveTypes: Record<string, string> = {
+                  annual: "سنوية", sick: "مرضية", personal: "شخصية", unpaid: "بدون راتب",
+                };
+                const displayValue = key === "leave_type" ? (leaveTypes[String(value)] || String(value)) : String(value);
+                return (
+                  <div key={key} className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">{labelMap[key] || key.replace(/_/g, " ")}:</span>
+                    <span className="font-medium">{displayValue}</span>
+                  </div>
+                );
+              })}
             </div>
             {selectedForm?.attachment_url && (
               <a href={selectedForm.attachment_url} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm text-primary hover:underline">
