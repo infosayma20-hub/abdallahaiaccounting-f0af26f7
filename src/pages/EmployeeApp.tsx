@@ -47,6 +47,7 @@ type Employee = {
   email: string | null;
   is_manager: boolean;
   is_hr_manager: boolean;
+  user_id: string;
 };
 
 export default function EmployeeApp() {
@@ -76,7 +77,7 @@ export default function EmployeeApp() {
 
       const { data: emp } = await supabase
         .from("employees")
-        .select("id, full_name, branch_id, position, department, phone, email, is_manager, is_hr_manager")
+        .select("id, full_name, branch_id, position, department, phone, email, is_manager, is_hr_manager, user_id")
         .eq("auth_user_id", user.id)
         .eq("is_active", true)
         .single();
@@ -172,7 +173,7 @@ export default function EmployeeApp() {
         {activeTab === "requests" && (
           <EmployeeFormsTab
             employeeId={employee.id}
-            userId={user!.id}
+            userId={employee.user_id}
             isManager={employee.is_manager || false}
             isHrManager={employee.is_hr_manager || false}
             onRefresh={fetchData}
@@ -192,7 +193,7 @@ export default function EmployeeApp() {
         {activeTab === "forms" && (
           <EmployeeFormsTab
             employeeId={employee.id}
-            userId={user!.id}
+            userId={employee.user_id}
             isManager={employee.is_manager || false}
             isHrManager={employee.is_hr_manager || false}
             onRefresh={fetchData}
