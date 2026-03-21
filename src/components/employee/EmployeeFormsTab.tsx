@@ -360,17 +360,17 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
               <label className="text-xs text-muted-foreground mb-1 block">التاريخ *</label>
               <Input type="date" value={formData.correction_date || ""} onChange={e => setFormData(p => ({ ...p, correction_date: e.target.value }))} dir="ltr" className="rounded-xl" />
             </div>
-            <div>
-              <label className="text-xs text-muted-foreground mb-1 block">نوع التصحيح *</label>
-              <Select value={formData.correction_type || "missing_checkout"} onValueChange={v => setFormData(p => ({ ...p, correction_type: v }))}>
-                <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
-                <SelectContent position="popper" className="z-[9999]">
-                  <SelectItem value="missing_checkout">نسيت تسجيل خروج</SelectItem>
-                  <SelectItem value="missing_checkin">نسيت تسجيل دخول</SelectItem>
-                  <SelectItem value="wrong_time">وقت خاطئ</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+             <div>
+               <label className="text-xs text-muted-foreground mb-1 block">نوع التصحيح *</label>
+               <div className="grid grid-cols-1 gap-2">
+                 {[{ value: "missing_checkout", label: "نسيت تسجيل خروج" }, { value: "missing_checkin", label: "نسيت تسجيل دخول" }, { value: "wrong_time", label: "وقت خاطئ" }].map(opt => (
+                   <button key={opt.value} type="button" onClick={() => setFormData(p => ({ ...p, correction_type: opt.value }))}
+                     className={`py-2.5 rounded-xl border text-sm font-medium transition-all ${(formData.correction_type || "missing_checkout") === opt.value ? "border-primary bg-primary/10 text-primary" : "border-border bg-card text-muted-foreground hover:bg-muted/50"}`}>
+                     {opt.label}
+                   </button>
+                 ))}
+               </div>
+             </div>
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">السبب *</label>
               <Textarea value={formData.reason || ""} onChange={e => setFormData(p => ({ ...p, reason: e.target.value }))} rows={3} className="rounded-xl" placeholder="اشرح سبب التصحيح..." />
