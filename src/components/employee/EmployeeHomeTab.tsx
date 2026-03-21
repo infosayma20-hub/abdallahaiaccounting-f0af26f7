@@ -312,7 +312,7 @@ export default function EmployeeHomeTab({ employeeName, todayRecord, history, on
       <div className="grid grid-cols-2 gap-2">
         {[
           { icon: ClipboardList, label: "سجلي الكامل", tab: "history" },
-          { icon: Send, label: "طلب إجازة / سلفة", tab: "requests" },
+          { icon: Send, label: "النماذج والطلبات", tab: "forms" },
           { icon: AlertTriangle, label: "تنبيهات وتصحيحات", tab: "alerts" },
           { icon: User, label: "ملفي الشخصي", tab: "profile" },
         ].map(link => (
