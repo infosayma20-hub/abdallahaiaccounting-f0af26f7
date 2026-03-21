@@ -336,6 +336,63 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
           </>
         );
 
+      case "correction_request":
+        return (
+          <>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">التاريخ *</label>
+              <Input type="date" value={formData.correction_date || ""} onChange={e => setFormData(p => ({ ...p, correction_date: e.target.value }))} dir="ltr" className="rounded-xl" />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">نوع التصحيح *</label>
+              <Select value={formData.correction_type || "missing_checkout"} onValueChange={v => setFormData(p => ({ ...p, correction_type: v }))}>
+                <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="missing_checkout">نسيت تسجيل خروج</SelectItem>
+                  <SelectItem value="missing_checkin">نسيت تسجيل دخول</SelectItem>
+                  <SelectItem value="wrong_time">وقت خاطئ</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">السبب *</label>
+              <Textarea value={formData.reason || ""} onChange={e => setFormData(p => ({ ...p, reason: e.target.value }))} rows={3} className="rounded-xl" placeholder="اشرح سبب التصحيح..." />
+            </div>
+          </>
+        );
+
+      case "overtime_request":
+        return (
+          <>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">التاريخ *</label>
+              <Input type="date" value={formData.overtime_date || ""} onChange={e => setFormData(p => ({ ...p, overtime_date: e.target.value }))} dir="ltr" className="rounded-xl" />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">عدد الساعات *</label>
+              <Input type="number" value={formData.hours || ""} onChange={e => setFormData(p => ({ ...p, hours: e.target.value }))} dir="ltr" className="rounded-xl" placeholder="2" />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">السبب *</label>
+              <Textarea value={formData.reason || ""} onChange={e => setFormData(p => ({ ...p, reason: e.target.value }))} rows={3} className="rounded-xl" placeholder="سبب الأوفرتايم..." />
+            </div>
+          </>
+        );
+
+      case "hr_message":
+        return (
+          <>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">الموضوع *</label>
+              <Input value={formData.subject || ""} onChange={e => setFormData(p => ({ ...p, subject: e.target.value }))} className="rounded-xl" placeholder="موضوع الرسالة..." />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">الرسالة *</label>
+              <Textarea value={formData.message || ""} onChange={e => setFormData(p => ({ ...p, message: e.target.value }))} rows={4} className="rounded-xl" placeholder="اكتب رسالتك هنا..." />
+            </div>
+          </>
+        );
+
       // === Manager-only forms ===
       case "disciplinary_action":
         return (
