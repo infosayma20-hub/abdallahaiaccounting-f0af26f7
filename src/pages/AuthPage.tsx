@@ -39,6 +39,13 @@ const AuthPage = () => {
     if (stored) setSavedEmail(stored);
   }, []);
 
+  // If portal user is already logged in, redirect
+  useEffect(() => {
+    if (!portalAuthLoading && portalUser && mode === "portal") {
+      navigate("/portal/dashboard", { replace: true });
+    }
+  }, [portalAuthLoading, portalUser, mode, navigate]);
+
   const resolveRedirect = useCallback(async (userId: string): Promise<string> => {
     const { data } = await supabase
       .from("user_roles")
