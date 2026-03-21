@@ -427,17 +427,17 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
               <label className="text-xs text-muted-foreground mb-1 block">الفرع *</label>
               <Input value={formData.branch || ""} onChange={e => setFormData(p => ({ ...p, branch: e.target.value }))} className="rounded-xl" />
             </div>
-            <div>
-              <label className="text-xs text-muted-foreground mb-1 block">الشفت *</label>
-              <Select value={formData.shift || ""} onValueChange={v => setFormData(p => ({ ...p, shift: v }))}>
-                <SelectTrigger className="rounded-xl"><SelectValue placeholder="اختر..." /></SelectTrigger>
-                <SelectContent position="popper" className="z-[9999]">
-                  <SelectItem value="صباحي">صباحي</SelectItem>
-                  <SelectItem value="مسائي">مسائي</SelectItem>
-                  <SelectItem value="ليلي">ليلي</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+             <div>
+               <label className="text-xs text-muted-foreground mb-1 block">الشفت *</label>
+               <div className="grid grid-cols-3 gap-2">
+                 {["صباحي", "مسائي", "ليلي"].map(v => (
+                   <button key={v} type="button" onClick={() => setFormData(p => ({ ...p, shift: v }))}
+                     className={`py-2.5 rounded-xl border text-sm font-medium transition-all ${formData.shift === v ? "border-primary bg-primary/10 text-primary" : "border-border bg-card text-muted-foreground hover:bg-muted/50"}`}>
+                     {v}
+                   </button>
+                 ))}
+               </div>
+             </div>
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">وصف المخالفة والتوصية *</label>
               <Textarea value={formData.description || ""} onChange={e => setFormData(p => ({ ...p, description: e.target.value }))} rows={4} className="rounded-xl" placeholder="مثلاً: التسكع أثناء أوقات العمل الرسمية" maxLength={2000} />
