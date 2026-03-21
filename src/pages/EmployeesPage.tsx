@@ -781,6 +781,7 @@ const EmployeesPage = () => {
                 <TabsContent value="info">
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     {[
+                      ["الرقم الوظيفي", (selectedEmployee as any).employee_number || "—"],
                       ["رقم الهوية", selectedEmployee.id_number],
                       ["الهاتف", selectedEmployee.phone],
                       ["البريد", selectedEmployee.email],
