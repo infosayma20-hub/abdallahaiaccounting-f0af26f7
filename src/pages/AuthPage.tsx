@@ -124,6 +124,7 @@ const AuthPage = () => {
   };
 
   const handleGoogleSignIn = async () => {
+    setLoading(true);
     try {
       await supabase.auth.signOut();
       localStorage.removeItem("trial_banner_dismissed");
