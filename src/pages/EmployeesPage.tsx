@@ -900,6 +900,7 @@ const EmployeesPage = () => {
           <DialogHeader><DialogTitle>{editingId ? "تعديل موظف" : "إضافة موظف جديد"}</DialogTitle></DialogHeader>
           <div className="grid grid-cols-2 gap-3">
             <div><label className="text-xs text-muted-foreground">الاسم الكامل *</label><Input value={form.full_name || ""} onChange={e => setForm({ ...form, full_name: e.target.value })} /></div>
+            <div><label className="text-xs text-muted-foreground">الرقم الوظيفي</label><Input value={(form as any).employee_number || ""} onChange={e => setForm({ ...form, employee_number: e.target.value } as any)} /></div>
             <div><label className="text-xs text-muted-foreground">رقم الهوية</label><Input value={form.id_number || ""} onChange={e => setForm({ ...form, id_number: e.target.value })} /></div>
             <div><label className="text-xs text-muted-foreground">الجنس</label>
               <Select value={form.gender || "male"} onValueChange={v => setForm({ ...form, gender: v })}>
