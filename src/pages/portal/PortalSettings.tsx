@@ -266,6 +266,7 @@ export default function PortalSettings() {
                 <tbody>
                   {[
                     { label: 'الاسم الكامل', value: createdCredentials.full_name },
+                    { label: 'البريد الإلكتروني', value: createdCredentials.email || '—', mono: true },
                     { label: 'اسم المستخدم', value: createdCredentials.username, mono: true },
                     { label: 'كلمة المرور', value: createdCredentials.password, mono: true },
                     { label: 'الدور', value: createdCredentials.role === 'owner' ? 'مالك' : createdCredentials.role === 'manager' ? 'مدير' : 'مشاهد' },
