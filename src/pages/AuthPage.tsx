@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { Button } from "@/components/ui/button";
@@ -7,17 +7,20 @@ import { Link } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ScanFace, Mail, Lock } from "lucide-react";
+import { Loader2, ScanFace, Mail, Lock, User, LayoutDashboard } from "lucide-react";
 import { startAuthentication, browserSupportsWebAuthn } from "@simplewebauthn/browser";
+import { usePortalAuth } from "@/hooks/usePortalAuth";
 
 const FinancialCanvas = lazy(() => import("@/components/auth/FinancialCanvas"));
 
-type Mode = "login" | "signup" | "forgot";
+type Mode = "login" | "signup" | "forgot" | "portal";
 
 const AuthPage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
-  const [mode, setMode] = useState<Mode>("login");
+  const initialMode = searchParams.get("mode") === "portal" ? "portal" : "login";
+  const [mode, setMode] = useState<Mode>(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -25,12 +28,23 @@ const AuthPage = () => {
   const [loading, setLoading] = useState(false);
   const [supportsPasskeys, setSupportsPasskeys] = useState(false);
   const [savedEmail, setSavedEmail] = useState("");
+  const [portalUsername, setPortalUsername] = useState("");
+  const [portalPassword, setPortalPassword] = useState("");
+  const [rememberPortal, setRememberPortal] = useState(false);
+  const { login: portalLogin, user: portalUser, loading: portalAuthLoading } = usePortalAuth();
 
   useEffect(() => {
     setSupportsPasskeys(browserSupportsWebAuthn());
     const stored = localStorage.getItem("passkey_email");
     if (stored) setSavedEmail(stored);
   }, []);
+
+  // If portal user is already logged in, redirect
+  useEffect(() => {
+    if (!portalAuthLoading && portalUser && mode === "portal") {
+      navigate("/portal/dashboard", { replace: true });
+    }
+  }, [portalAuthLoading, portalUser, mode, navigate]);
 
   const resolveRedirect = useCallback(async (userId: string): Promise<string> => {
     const { data } = await supabase
@@ -90,6 +104,20 @@ const AuthPage = () => {
       }
     } catch (err: any) {
       toast({ title: "خطأ", description: err.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePortalLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!portalUsername.trim() || !portalPassword.trim()) return;
+    setLoading(true);
+    try {
+      await portalLogin(portalUsername, portalPassword, rememberPortal);
+      navigate("/portal/dashboard", { replace: true });
+    } catch (err: any) {
+      toast({ title: "خطأ", description: err.message || "بيانات الدخول غير صحيحة", variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -212,121 +240,206 @@ const AuthPage = () => {
               مرحباً بك
             </h2>
             <p className="text-sm text-muted-foreground">
-              {mode === "login" ? "سجل دخولك للمتابعة" : mode === "signup" ? "أنشئ حسابك المجاني" : "أدخل بريدك الإلكتروني وسنرسل لك رابط الاستعادة"}
+              {mode === "login" ? "سجل دخولك للمتابعة" : mode === "signup" ? "أنشئ حسابك المجاني" : mode === "portal" ? "دخول بوابة الإدارة" : "أدخل بريدك الإلكتروني وسنرسل لك رابط الاستعادة"}
             </p>
           </div>
 
-          {/* Biometric */}
-          {mode === "login" && supportsPasskeys && savedEmail && (
-            <Button variant="outline" className="w-full gap-3 h-14 text-base" onClick={handleBiometricSignIn} disabled={loading}>
-              <ScanFace className="h-6 w-6 text-accent" />
-              <span className="font-semibold">تسجيل الدخول بـ Face ID</span>
-            </Button>
-          )}
-
-          {/* Google */}
-          {mode !== "forgot" && (
-            <div className="space-y-2">
-              <button
-                onClick={handleGoogleSignIn}
-                disabled={loading}
-                className="w-full flex items-center justify-center gap-3 h-14 text-base border border-border rounded-lg hover:bg-muted/50 transition-all font-semibold"
-                style={{ fontFamily: "Tajawal" }}
-              >
-                <svg className="h-5 w-5" viewBox="0 0 24 24">
-                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
-                  <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                  <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-                  <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-                </svg>
-                {mode === "signup" ? "متابعة مع Google" : "متابعة مع Google"}
-              </button>
-            </div>
-          )}
-
-          {/* Divider */}
-          {mode !== "forgot" && (
-            <div className="flex items-center gap-3">
-              <div className="flex-1 h-px bg-border" />
-              <span className="text-xs text-muted-foreground">
-                {mode === "signup" ? "أو أنشئ حساب بالبريد الإلكتروني" : "أو استخدم بريدك الإلكتروني"}
-              </span>
-              <div className="flex-1 h-px bg-border" />
-            </div>
-          )}
-
-          {/* Email Form */}
-          <Card className="border-0 shadow-none">
-            <CardContent className="p-0">
-              <form onSubmit={handleEmailAuth} className="space-y-4">
-                <div className="relative">
-                  <Mail className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                  <Input type="email" placeholder="example@email.com" value={email} onChange={(e) => setEmail(e.target.value)} required className="pr-10" dir="ltr" style={{ textAlign: "left" }} />
-                </div>
-                {mode !== "forgot" && (
-                  <div className="relative">
-                    <Lock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                    <Input type="password" placeholder={mode === "signup" ? "كلمة المرور (6 أحرف على الأقل)" : "••••••••"} value={password} onChange={(e) => setPassword(e.target.value)} required minLength={mode === "signup" ? 6 : 1} className="pr-10" dir="ltr" style={{ textAlign: "left" }} />
-                  </div>
-                )}
-                {mode === "signup" && (
-                  <div className="relative">
-                    <Lock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                    <Input type="password" placeholder="تأكيد كلمة المرور" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={6} className="pr-10" dir="ltr" style={{ textAlign: "left" }} />
-                  </div>
-                )}
-                {mode === "signup" && (
-                  <label className="flex items-start gap-2 text-xs text-muted-foreground cursor-pointer" dir="rtl">
-                    <input type="checkbox" checked={agreedToTerms} onChange={(e) => setAgreedToTerms(e.target.checked)} className="mt-0.5 h-4 w-4 rounded border-input accent-accent" />
-                    <span>
-                      أوافق على{" "}
-                      <Link to="/terms" className="text-accent hover:underline">الشروط</Link>
-                      {" "}و{" "}
-                      <Link to="/privacy" className="text-accent hover:underline">سياسة الخصوصية</Link>
-                    </span>
-                  </label>
-                )}
-                <button
-                  type="submit"
-                  disabled={loading || (mode === "signup" && !agreedToTerms)}
-                  className="w-full h-12 rounded-lg text-base font-bold text-white transition-all hover:brightness-110 hover:-translate-y-0.5 disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2"
-                  style={{
-                    background: "linear-gradient(135deg, #E8A020, #F45E0C)",
-                    boxShadow: "0 4px 14px rgba(232,160,32,0.3)",
-                  }}
-                >
-                  {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-                  {mode === "login" ? "دخول" : mode === "signup" ? "إنشاء حساب مجاني" : "إرسال رابط الاستعادة"}
-                </button>
-              </form>
-            </CardContent>
-          </Card>
-
-          {/* Links */}
-          <div className="text-center space-y-3">
-            {mode === "login" && (
-              <>
-                <button onClick={() => setMode("forgot")} className="block w-full text-xs text-muted-foreground hover:text-foreground transition-colors">
-                  نسيت كلمة المرور؟
-                </button>
+          {/* Portal Login Form */}
+          {mode === "portal" && (
+            <>
+              <Card className="border-0 shadow-none">
+                <CardContent className="p-0">
+                  <form onSubmit={handlePortalLogin} className="space-y-4">
+                    <div className="relative">
+                      <User className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                      <Input
+                        placeholder="اسم المستخدم"
+                        value={portalUsername}
+                        onChange={(e) => setPortalUsername(e.target.value)}
+                        required
+                        className="pr-10"
+                        autoComplete="username"
+                      />
+                    </div>
+                    <div className="relative">
+                      <Lock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                      <Input
+                        type="password"
+                        placeholder="كلمة المرور"
+                        value={portalPassword}
+                        onChange={(e) => setPortalPassword(e.target.value)}
+                        required
+                        className="pr-10"
+                        autoComplete="current-password"
+                      />
+                    </div>
+                    <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={rememberPortal}
+                        onChange={(e) => setRememberPortal(e.target.checked)}
+                        className="h-4 w-4 rounded border-input accent-accent"
+                      />
+                      تذكرني لـ 30 يوم
+                    </label>
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="w-full h-12 rounded-lg text-base font-bold text-white transition-all hover:brightness-110 hover:-translate-y-0.5 disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2"
+                      style={{
+                        background: "linear-gradient(135deg, #E8A020, #F45E0C)",
+                        boxShadow: "0 4px 14px rgba(232,160,32,0.3)",
+                      }}
+                    >
+                      {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+                      دخول البوابة
+                    </button>
+                  </form>
+                </CardContent>
+              </Card>
+              <div className="text-center">
                 <p className="text-sm text-muted-foreground">
-                  ليس لديك حساب؟{" "}
-                  <button onClick={() => setMode("signup")} className="text-accent font-semibold hover:underline">أنشئ حساب مجاناً</button>
+                  <button onClick={() => setMode("login")} className="text-accent font-semibold hover:underline">العودة لتسجيل الدخول العادي</button>
                 </p>
-              </>
-            )}
-            {mode === "signup" && (
-              <p className="text-sm text-muted-foreground">
-                لديك حساب؟{" "}
-                <button onClick={() => setMode("login")} className="text-accent font-semibold hover:underline">تسجيل الدخول</button>
-              </p>
-            )}
-            {mode === "forgot" && (
-              <p className="text-sm text-muted-foreground">
-                <button onClick={() => setMode("login")} className="text-accent font-semibold hover:underline">العودة لتسجيل الدخول</button>
-              </p>
-            )}
-          </div>
+              </div>
+            </>
+          )}
+
+          {/* Regular Auth UI */}
+          {mode !== "portal" && (
+            <>
+              {/* Biometric */}
+              {mode === "login" && supportsPasskeys && savedEmail && (
+                <Button variant="outline" className="w-full gap-3 h-14 text-base" onClick={handleBiometricSignIn} disabled={loading}>
+                  <ScanFace className="h-6 w-6 text-accent" />
+                  <span className="font-semibold">تسجيل الدخول بـ Face ID</span>
+                </Button>
+              )}
+
+              {/* Google */}
+              {mode !== "forgot" && (
+                <div className="space-y-2">
+                  <button
+                    onClick={handleGoogleSignIn}
+                    disabled={loading}
+                    className="w-full flex items-center justify-center gap-3 h-14 text-base border border-border rounded-lg hover:bg-muted/50 transition-all font-semibold"
+                    style={{ fontFamily: "Tajawal" }}
+                  >
+                    <svg className="h-5 w-5" viewBox="0 0 24 24">
+                      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
+                      <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                      <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                      <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                    </svg>
+                    {mode === "signup" ? "متابعة مع Google" : "متابعة مع Google"}
+                  </button>
+                </div>
+              )}
+
+              {/* Divider */}
+              {mode !== "forgot" && (
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 h-px bg-border" />
+                  <span className="text-xs text-muted-foreground">
+                    {mode === "signup" ? "أو أنشئ حساب بالبريد الإلكتروني" : "أو استخدم بريدك الإلكتروني"}
+                  </span>
+                  <div className="flex-1 h-px bg-border" />
+                </div>
+              )}
+
+              {/* Email Form */}
+              <Card className="border-0 shadow-none">
+                <CardContent className="p-0">
+                  <form onSubmit={handleEmailAuth} className="space-y-4">
+                    <div className="relative">
+                      <Mail className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                      <Input type="email" placeholder="example@email.com" value={email} onChange={(e) => setEmail(e.target.value)} required className="pr-10" dir="ltr" style={{ textAlign: "left" }} />
+                    </div>
+                    {mode !== "forgot" && (
+                      <div className="relative">
+                        <Lock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                        <Input type="password" placeholder={mode === "signup" ? "كلمة المرور (6 أحرف على الأقل)" : "••••••••"} value={password} onChange={(e) => setPassword(e.target.value)} required minLength={mode === "signup" ? 6 : 1} className="pr-10" dir="ltr" style={{ textAlign: "left" }} />
+                      </div>
+                    )}
+                    {mode === "signup" && (
+                      <div className="relative">
+                        <Lock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                        <Input type="password" placeholder="تأكيد كلمة المرور" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={6} className="pr-10" dir="ltr" style={{ textAlign: "left" }} />
+                      </div>
+                    )}
+                    {mode === "signup" && (
+                      <label className="flex items-start gap-2 text-xs text-muted-foreground cursor-pointer" dir="rtl">
+                        <input type="checkbox" checked={agreedToTerms} onChange={(e) => setAgreedToTerms(e.target.checked)} className="mt-0.5 h-4 w-4 rounded border-input accent-accent" />
+                        <span>
+                          أوافق على{" "}
+                          <Link to="/terms" className="text-accent hover:underline">الشروط</Link>
+                          {" "}و{" "}
+                          <Link to="/privacy" className="text-accent hover:underline">سياسة الخصوصية</Link>
+                        </span>
+                      </label>
+                    )}
+                    <button
+                      type="submit"
+                      disabled={loading || (mode === "signup" && !agreedToTerms)}
+                      className="w-full h-12 rounded-lg text-base font-bold text-white transition-all hover:brightness-110 hover:-translate-y-0.5 disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2"
+                      style={{
+                        background: "linear-gradient(135deg, #E8A020, #F45E0C)",
+                        boxShadow: "0 4px 14px rgba(232,160,32,0.3)",
+                      }}
+                    >
+                      {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+                      {mode === "login" ? "دخول" : mode === "signup" ? "إنشاء حساب مجاني" : "إرسال رابط الاستعادة"}
+                    </button>
+                  </form>
+                </CardContent>
+              </Card>
+
+              {/* Links */}
+              <div className="text-center space-y-3">
+                {mode === "login" && (
+                  <>
+                    <button onClick={() => setMode("forgot")} className="block w-full text-xs text-muted-foreground hover:text-foreground transition-colors">
+                      نسيت كلمة المرور؟
+                    </button>
+                    <p className="text-sm text-muted-foreground">
+                      ليس لديك حساب؟{" "}
+                      <button onClick={() => setMode("signup")} className="text-accent font-semibold hover:underline">أنشئ حساب مجاناً</button>
+                    </p>
+                  </>
+                )}
+                {mode === "signup" && (
+                  <p className="text-sm text-muted-foreground">
+                    لديك حساب؟{" "}
+                    <button onClick={() => setMode("login")} className="text-accent font-semibold hover:underline">تسجيل الدخول</button>
+                  </p>
+                )}
+                {mode === "forgot" && (
+                  <p className="text-sm text-muted-foreground">
+                    <button onClick={() => setMode("login")} className="text-accent font-semibold hover:underline">العودة لتسجيل الدخول</button>
+                  </p>
+                )}
+              </div>
+
+              {/* Portal Entry Link */}
+              {mode === "login" && (
+                <div className="pt-2">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="flex-1 h-px bg-border" />
+                    <span className="text-xs text-muted-foreground">أو</span>
+                    <div className="flex-1 h-px bg-border" />
+                  </div>
+                  <button
+                    onClick={() => setMode("portal")}
+                    className="w-full flex items-center justify-center gap-2 h-12 text-sm border border-border rounded-lg hover:bg-muted/50 transition-all font-semibold text-muted-foreground hover:text-foreground"
+                    style={{ fontFamily: "Tajawal" }}
+                  >
+                    <LayoutDashboard className="h-4 w-4" />
+                    دخول بوابة الإدارة
+                  </button>
+                </div>
+              )}
+            </>
+          )}
         </div>
       </div>
     </div>
