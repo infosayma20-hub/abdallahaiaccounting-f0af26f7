@@ -14,19 +14,19 @@ function KPICard({ icon, label, value, sub, accent }: {
 }) {
   return (
     <div style={{
-      background: '#111111', borderRadius: 14, padding: '18px 20px',
+      background: '#111111', borderRadius: 12, padding: '14px 14px',
       border: `1px solid ${accent ? 'rgba(212,160,23,0.3)' : 'rgba(255,255,255,0.06)'}`,
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
         {icon}
-        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>{label}</span>
+        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)' }}>{label}</span>
       </div>
       <div style={{
-        fontSize: accent ? 28 : 24, fontWeight: 700,
+        fontSize: accent ? 22 : 18, fontWeight: 700,
         fontFamily: 'JetBrains Mono, monospace',
         color: accent ? GOLD : 'white',
       }}>{value}</div>
-      {sub && <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 4 }}>{sub}</div>}
+      {sub && <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', marginTop: 3 }}>{sub}</div>}
     </div>
   );
 }
@@ -48,41 +48,41 @@ function BranchCard({ branch, rank }: { branch: BranchSales; rank: number }) {
     : null;
 
   return (
-    <div style={{ borderRadius: 16, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.06)' }}>
+    <div style={{ borderRadius: 14, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.06)' }}>
       <div style={{
         background: 'linear-gradient(135deg, #1A0A00, #2D1200)',
-        borderTop: `3px solid ${GOLD}`, padding: '14px 18px',
+        borderTop: `3px solid ${GOLD}`, padding: '12px 14px',
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontSize: 24 }}>🏪</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 20 }}>🏪</span>
           <div>
-            <div style={{ fontSize: 16, fontWeight: 700 }}>{branch.name}</div>
+            <div style={{ fontSize: 14, fontWeight: 700 }}>{branch.name}</div>
             {branch.location && (
-              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>{branch.location}</div>
+              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)' }}>{branch.location}</div>
             )}
           </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          {rank <= 3 && <span style={{ fontSize: 16 }}>{rankBadge[rank]} #{rank}</span>}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          {rank <= 3 && <span style={{ fontSize: 14 }}>{rankBadge[rank]}</span>}
           {minutesSinceLast !== null && minutesSinceLast < 30 && (
             <span style={{
-              padding: '2px 8px', borderRadius: 10, fontSize: 10,
+              padding: '2px 6px', borderRadius: 8, fontSize: 9,
               background: 'rgba(34,197,94,0.15)', color: '#22C55E',
             }}>🟢 نشط</span>
           )}
         </div>
       </div>
 
-      <div style={{ background: '#161616', padding: '16px 18px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 16 }}>
-          <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>مبيعات اليوم</span>
-          <span style={{ fontSize: 26, fontWeight: 700, fontFamily: 'JetBrains Mono, monospace', color: GOLD }}>
+      <div style={{ background: '#161616', padding: '14px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 12 }}>
+          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>مبيعات اليوم</span>
+          <span style={{ fontSize: 22, fontWeight: 700, fontFamily: 'JetBrains Mono, monospace', color: GOLD }}>
             {fmt(branch.totalSales)}
           </span>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6, marginBottom: 14 }}>
           {[
             { label: 'الطلبات', value: `${branch.orderCount}` },
             { label: 'متوسط', value: fmt(branch.avgOrder) },
@@ -94,18 +94,19 @@ function BranchCard({ branch, rank }: { branch: BranchSales; rank: number }) {
             })() },
           ].map((s, i) => (
             <div key={i} style={{
-              textAlign: 'center', padding: '8px 4px',
+              textAlign: 'center', padding: '6px 2px',
               background: 'rgba(255,255,255,0.03)', borderRadius: 8,
             }}>
-              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', marginBottom: 4 }}>{s.label}</div>
-              <div style={{ fontSize: 14, fontWeight: 700, fontFamily: 'JetBrains Mono, monospace' }}>{s.value}</div>
+              <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', marginBottom: 3 }}>{s.label}</div>
+              <div style={{ fontSize: 12, fontWeight: 700, fontFamily: 'JetBrains Mono, monospace' }}>{s.value}</div>
             </div>
           ))}
         </div>
 
-        <div style={{ marginBottom: 16 }}>
-          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 8 }}>المبيعات بالساعة</div>
-          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 60 }}>
+        {/* Hourly Chart */}
+        <div style={{ marginBottom: 14 }}>
+          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', marginBottom: 6 }}>المبيعات بالساعة</div>
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 1, height: 50 }}>
             {hours.map(h => {
               const val = branch.hourlySales[h] || 0;
               const pct = (val / maxH) * 100;
@@ -113,7 +114,7 @@ function BranchCard({ branch, rank }: { branch: BranchSales; rank: number }) {
               return (
                 <div key={h} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                   <div style={{
-                    width: '100%', borderRadius: '3px 3px 0 0',
+                    width: '100%', borderRadius: '2px 2px 0 0',
                     height: `${Math.max(pct, 3)}%`,
                     background: h === now
                       ? `linear-gradient(to top, ${GOLD}, #F5D060)`
@@ -124,24 +125,25 @@ function BranchCard({ branch, rank }: { branch: BranchSales; rank: number }) {
               );
             })}
           </div>
-          <div style={{ display: 'flex', gap: 2, marginTop: 2 }}>
+          <div style={{ display: 'flex', gap: 1, marginTop: 2 }}>
             {hours.map(h => (
-              <div key={h} style={{ flex: 1, textAlign: 'center', fontSize: 7, color: 'rgba(255,255,255,0.3)' }}>
+              <div key={h} style={{ flex: 1, textAlign: 'center', fontSize: 6, color: 'rgba(255,255,255,0.3)' }}>
                 {hourLabel[h] || ''}
               </div>
             ))}
           </div>
         </div>
 
+        {/* Top Meals */}
         {branch.topMeals.length > 0 && (
           <div>
-            <div style={{ fontSize: 12, color: GOLD, fontWeight: 700, marginBottom: 10 }}>🏆 أكثر المنتجات طلباً</div>
+            <div style={{ fontSize: 11, color: GOLD, fontWeight: 700, marginBottom: 8 }}>🏆 الأكثر طلباً</div>
             {mealsToShow.map((meal, i) => (
-              <div key={meal.name} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 0' }}>
+              <div key={meal.name} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 0' }}>
                 <div style={{
-                  width: 24, height: 24, borderRadius: '50%',
+                  width: 22, height: 22, borderRadius: '50%',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 10, fontWeight: 700, flexShrink: 0,
+                  fontSize: 9, fontWeight: 700, flexShrink: 0,
                   background: i === 0 ? 'linear-gradient(135deg, #D4A017, #F5D060)'
                     : i === 1 ? 'linear-gradient(135deg, #9CA3AF, #D1D5DB)'
                     : i === 2 ? 'linear-gradient(135deg, #B45309, #D97706)'
@@ -149,8 +151,8 @@ function BranchCard({ branch, rank }: { branch: BranchSales; rank: number }) {
                   color: i < 3 ? '#000' : 'rgba(255,255,255,0.6)',
                 }}>{i + 1}</div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 3 }}>{meal.name}</div>
-                  <div style={{ height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.06)', overflow: 'hidden' }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{meal.name}</div>
+                  <div style={{ height: 3, borderRadius: 2, background: 'rgba(255,255,255,0.06)', overflow: 'hidden' }}>
                     <div style={{
                       height: '100%', borderRadius: 2,
                       width: `${(meal.quantity / maxMealQty) * 100}%`,
@@ -159,10 +161,10 @@ function BranchCard({ branch, rank }: { branch: BranchSales; rank: number }) {
                   </div>
                 </div>
                 <div style={{ textAlign: 'left', flexShrink: 0 }}>
-                  <div style={{ fontSize: 12, fontFamily: 'JetBrains Mono, monospace', color: 'rgba(255,255,255,0.5)' }}>
-                    {meal.quantity} طلب
+                  <div style={{ fontSize: 10, fontFamily: 'JetBrains Mono, monospace', color: 'rgba(255,255,255,0.5)' }}>
+                    {meal.quantity}×
                   </div>
-                  <div style={{ fontSize: 12, fontFamily: 'JetBrains Mono, monospace', color: GOLD }}>
+                  <div style={{ fontSize: 10, fontFamily: 'JetBrains Mono, monospace', color: GOLD }}>
                     {fmt(meal.revenue)}
                   </div>
                 </div>
@@ -171,11 +173,11 @@ function BranchCard({ branch, rank }: { branch: BranchSales; rank: number }) {
             {branch.topMeals.length > 5 && (
               <button onClick={() => setShowAllMeals(!showAllMeals)} style={{
                 background: 'none', border: 'none', color: GOLD,
-                fontSize: 12, cursor: 'pointer', padding: '8px 0',
+                fontSize: 11, cursor: 'pointer', padding: '6px 0',
                 display: 'flex', alignItems: 'center', gap: 4,
                 fontFamily: 'Tajawal, sans-serif',
               }}>
-                <ChevronDown size={14} style={{ transform: showAllMeals ? 'rotate(180deg)' : undefined, transition: 'transform 0.2s' }} />
+                <ChevronDown size={12} style={{ transform: showAllMeals ? 'rotate(180deg)' : undefined, transition: 'transform 0.2s' }} />
                 {showAllMeals ? 'عرض أقل' : 'عرض الكل'}
               </button>
             )}
@@ -184,9 +186,9 @@ function BranchCard({ branch, rank }: { branch: BranchSales; rank: number }) {
       </div>
 
       <div style={{
-        background: '#111111', padding: '10px 18px',
+        background: '#111111', padding: '8px 14px',
         borderTop: '1px solid rgba(255,255,255,0.06)',
-        fontSize: 11, color: 'rgba(255,255,255,0.4)',
+        fontSize: 10, color: 'rgba(255,255,255,0.4)',
       }}>
         {minutesSinceLast !== null ? `آخر طلب: منذ ${minutesSinceLast} دقيقة` : 'لا توجد طلبات'}
       </div>
@@ -219,8 +221,8 @@ export default function PortalSalesTab({ data, loading, businessDay, needsSetup,
   if (loading && !data) {
     return (
       <div style={{ textAlign: 'center', padding: '60px 20px' }}>
-        <Loader2 size={32} className="animate-spin" style={{ color: GOLD, margin: '0 auto 12px', display: 'block' }} />
-        <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14 }}>جاري تحميل البيانات...</div>
+        <Loader2 size={28} className="animate-spin" style={{ color: GOLD, margin: '0 auto 12px', display: 'block' }} />
+        <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13 }}>جاري تحميل البيانات...</div>
       </div>
     );
   }
@@ -241,66 +243,78 @@ export default function PortalSalesTab({ data, loading, businessDay, needsSetup,
 
   return (
     <div>
+      {/* KPI Grid - 2 columns on mobile */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-        gap: 12, marginBottom: 16,
+        gridTemplateColumns: 'repeat(2, 1fr)',
+        gap: 8, marginBottom: 12,
       }}>
         <KPICard
-          icon={<TrendingUp size={16} color={GOLD} />}
-          label="إجمالي مبيعات اليوم"
+          icon={<TrendingUp size={14} color={GOLD} />}
+          label="إجمالي المبيعات"
           value={fmt(sales.totalSales)}
-          sub="إجمالي جميع الأفرع"
+          sub="جميع الأفرع"
           accent
         />
         <KPICard
-          icon={<ShoppingBag size={16} color="rgba(255,255,255,0.5)" />}
+          icon={<ShoppingBag size={14} color="rgba(255,255,255,0.5)" />}
           label="عدد الطلبات"
-          value={`${sales.orderCount} طلب`}
+          value={`${sales.orderCount}`}
         />
         <KPICard
-          icon={<Receipt size={16} color="rgba(255,255,255,0.5)" />}
-          label="متوسط قيمة الطلب"
+          icon={<Receipt size={14} color="rgba(255,255,255,0.5)" />}
+          label="متوسط الطلب"
           value={fmt(sales.avgOrderValue)}
-          sub="متوسط الوجبة الواحدة"
         />
         <KPICard
-          icon={<Trophy size={16} color={GOLD} />}
-          label="أعلى فرع اليوم"
+          icon={<Trophy size={14} color={GOLD} />}
+          label="أعلى فرع"
           value={sales.topBranch?.name || '—'}
-          sub={sales.topBranch ? `${fmt(sales.topBranch.sales)} 🏆` : ''}
+          sub={sales.topBranch ? fmt(sales.topBranch.sales) : ''}
         />
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
-        <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>عرض مبيعات:</span>
+      {/* Date filter buttons - horizontal scroll */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12,
+        overflowX: 'auto', WebkitOverflowScrolling: 'touch',
+        paddingBottom: 4,
+      }}>
         {[
           { key: null, label: '● اليوم' },
           { key: 'yesterday', label: 'أمس' },
-          { key: 'custom', label: '📅 تاريخ محدد' },
+          { key: 'custom', label: '📅 تاريخ' },
         ].map(chip => (
           <button
             key={chip.key || 'today'}
             onClick={() => {
               if (chip.key === 'custom') {
-                document.getElementById('portal-date-picker')?.click();
+                const el = document.getElementById('portal-date-picker') as HTMLInputElement | null;
+                if (el && 'showPicker' in el) (el as any).showPicker();
+                else el?.click();
               } else {
                 handleDateChip(chip.key);
               }
             }}
             style={{
-              padding: '6px 14px', borderRadius: 20,
+              padding: '8px 16px', borderRadius: 20,
               background: dateFilter === chip.key || (dateFilter === null && chip.key === null)
                 ? `linear-gradient(135deg, ${GOLD}, #8B5E00)` : 'rgba(255,255,255,0.06)',
               border: 'none',
               color: dateFilter === chip.key || (dateFilter === null && chip.key === null) ? 'white' : 'rgba(255,255,255,0.5)',
               fontSize: 12, fontWeight: 600, cursor: 'pointer',
               fontFamily: 'Tajawal, sans-serif',
+              whiteSpace: 'nowrap', flexShrink: 0,
             }}
           >
             {chip.label}
           </button>
         ))}
+        {dateFilter === 'custom' && customDate && (
+          <span style={{ fontSize: 11, color: GOLD, fontFamily: 'JetBrains Mono, monospace', flexShrink: 0 }}>
+            {customDate}
+          </span>
+        )}
         <input
           id="portal-date-picker"
           type="date"
@@ -316,16 +330,13 @@ export default function PortalSalesTab({ data, loading, businessDay, needsSetup,
         />
       </div>
 
+      {/* Branch cards - single column on mobile */}
       {sales.branches.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '40px 20px', color: 'rgba(255,255,255,0.4)', fontSize: 14 }}>
+        <div style={{ textAlign: 'center', padding: '40px 20px', color: 'rgba(255,255,255,0.4)', fontSize: 13 }}>
           لا توجد بيانات مبيعات لهذه الفترة
         </div>
       ) : (
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(min(450px, 100%), 1fr))',
-          gap: 16,
-        }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {sales.branches.map((branch, i) => (
             <BranchCard key={branch.id} branch={branch} rank={i + 1} />
           ))}
