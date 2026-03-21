@@ -78,7 +78,6 @@ const OnboardingPage = () => {
   const saveProgress = async (stepData: any, stepNum: number) => {
     if (!user) return;
     try {
-      // First ensure company exists
       const { data: company } = await supabase
         .from("companies")
         .select("id")
@@ -112,14 +111,24 @@ const OnboardingPage = () => {
 
   const nextStep = async () => {
     if (step === 1) {
-      if (!companyName.trim()) { toast.error("أدخل اسم الشركة"); return; }
-      await saveProgress({ business_type: companyName }, 1);
-      // Update company name
+      const trimmedCompanyName = companyName.trim();
+      if (!trimmedCompanyName) { toast.error("أدخل اسم الشركة"); return; }
+
+      await saveProgress({ company_name: trimmedCompanyName }, 1);
+
       if (user) {
         const { data: company } = await supabase.from("companies").select("id").eq("owner_id", user.id).maybeSingle();
         if (company) {
-          await supabase.from("companies").update({ name: companyName }).eq("id", company.id);
+          await supabase.from("companies").update({ name: trimmedCompanyName }).eq("id", company.id);
+        } else {
+          await supabase.from("companies").insert({ owner_id: user.id, name: trimmedCompanyName });
         }
+
+        await Promise.all([
+          supabase.from("profiles").update({ company_name: trimmedCompanyName }).eq("user_id", user.id),
+          supabase.from("company_settings" as any).upsert({ user_id: user.id, company_name: trimmedCompanyName } as any, { onConflict: "user_id" }),
+          supabase.auth.updateUser({ data: { company_name: trimmedCompanyName } }),
+        ]);
       }
     }
     if (step === 2) await saveProgress({ business_type: selectedTypes.join(",") }, 2);

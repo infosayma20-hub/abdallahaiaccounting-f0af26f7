@@ -24,6 +24,13 @@ const defaultCompany: CompanyData = {
   tax_number: null,
 };
 
+const COMPANY_NAME_PLACEHOLDERS = new Set(["شركتي", "الشركة", "اسم الشركة"]);
+
+const normalizeCompanyName = (value?: string | null) => {
+  const trimmed = value?.trim() || "";
+  return COMPANY_NAME_PLACEHOLDERS.has(trimmed) ? "" : trimmed;
+};
+
 interface CompanyContextValue {
   company: CompanyData;
   loading: boolean;
@@ -54,21 +61,18 @@ export const CompanyProvider = ({ children }: { children: ReactNode }) => {
     }
 
     try {
-      // Fetch from companies table
       const { data: companyData } = await supabase
         .from("companies")
         .select("id, name, logo_url, address, phone, email, tax_number")
         .eq("owner_id", userId)
         .maybeSingle();
 
-      // Also fetch from profiles for extra info
       const { data: profileData } = await supabase
         .from("profiles")
         .select("company_name, work_field, company_id")
         .eq("user_id", userId)
         .maybeSingle();
 
-      // If not owner, try via company_id from profile
       let resolvedCompany = companyData;
       if (!resolvedCompany && profileData?.company_id) {
         const { data: linkedCompany } = await supabase
@@ -79,14 +83,18 @@ export const CompanyProvider = ({ children }: { children: ReactNode }) => {
         resolvedCompany = linkedCompany;
       }
 
-      // Also check company_settings for logo if companies doesn't have one
       const { data: settingsData } = await supabase
         .from("company_settings" as any)
         .select("company_name, logo_url, address, phone, email, tax_number")
         .eq("user_id", userId)
         .maybeSingle() as any;
 
-      const name = resolvedCompany?.name || (settingsData as any)?.company_name || profileData?.company_name || "";
+      const name =
+        normalizeCompanyName((settingsData as any)?.company_name) ||
+        normalizeCompanyName(profileData?.company_name) ||
+        normalizeCompanyName(resolvedCompany?.name) ||
+        "";
+
       const logo = resolvedCompany?.logo_url || (settingsData as any)?.logo_url || null;
 
       setCompany({
