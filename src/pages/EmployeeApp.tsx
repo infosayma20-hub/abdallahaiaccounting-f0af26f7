@@ -47,6 +47,7 @@ type Employee = {
   email: string | null;
   is_manager: boolean;
   is_hr_manager: boolean;
+  user_id: string;
 };
 
 export default function EmployeeApp() {
@@ -172,7 +173,7 @@ export default function EmployeeApp() {
         {activeTab === "requests" && (
           <EmployeeFormsTab
             employeeId={employee.id}
-            userId={user!.id}
+            userId={employee.user_id}
             isManager={employee.is_manager || false}
             isHrManager={employee.is_hr_manager || false}
             onRefresh={fetchData}
@@ -192,7 +193,7 @@ export default function EmployeeApp() {
         {activeTab === "forms" && (
           <EmployeeFormsTab
             employeeId={employee.id}
-            userId={user!.id}
+            userId={employee.user_id}
             isManager={employee.is_manager || false}
             isHrManager={employee.is_hr_manager || false}
             onRefresh={fetchData}
