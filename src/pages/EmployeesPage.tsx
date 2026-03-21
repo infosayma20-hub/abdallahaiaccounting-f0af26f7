@@ -735,7 +735,38 @@ const EmployeesPage = () => {
                 <Button size="sm" variant="destructive" onClick={() => handleDelete(selectedEmployee.id)}><Trash2 className="h-3 w-3" /></Button>
               </div>
 
-              {/* Tabs */}
+              {/* Manager Role Toggles */}
+              <div className="flex flex-wrap items-center gap-4 mb-4 p-3 bg-muted/30 rounded-xl border border-border">
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={!!(selectedEmployee as any).is_manager}
+                    onCheckedChange={async (checked) => {
+                      await supabase.from("employees").update({ is_manager: checked } as any).eq("id", selectedEmployee.id);
+                      setSelectedEmployee({ ...selectedEmployee, is_manager: checked } as any);
+                      fetchEmployees();
+                      toast.success(checked ? "تم تعيينه كمدير" : "تم إلغاء صفة المدير");
+                    }}
+                  />
+                  <label className="text-xs font-medium flex items-center gap-1">
+                    <Shield className="h-3.5 w-3.5 text-primary" /> مدير فرع
+                  </label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={!!(selectedEmployee as any).is_hr_manager}
+                    onCheckedChange={async (checked) => {
+                      await supabase.from("employees").update({ is_hr_manager: checked } as any).eq("id", selectedEmployee.id);
+                      setSelectedEmployee({ ...selectedEmployee, is_hr_manager: checked } as any);
+                      fetchEmployees();
+                      toast.success(checked ? "تم تعيينه كمدير HR" : "تم إلغاء صفة مدير HR");
+                    }}
+                  />
+                  <label className="text-xs font-medium flex items-center gap-1">
+                    <Shield className="h-3.5 w-3.5 text-amber-500" /> مدير HR
+                  </label>
+                </div>
+              </div>
+
               <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <TabsList className={`w-full grid mb-4 ${canSeeHR ? 'grid-cols-6' : 'grid-cols-5'}`}>
                   <TabsTrigger value="info">المعلومات</TabsTrigger>
