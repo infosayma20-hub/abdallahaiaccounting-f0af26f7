@@ -215,10 +215,10 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       .then(({ data }) => setEmployeeList(data || []));
   }, [user, isReceipt]);
 
-  // ─── Compute real balance from transactions ───
+  // ─── Compute real balance from transactions (based on contact's own account) ───
   useEffect(() => {
     if (!selectedContact || !user) { setComputedBalance(null); return; }
-    const accountCode = isReceipt ? "1130" : "2100";
+    // Fetch all non-deleted transactions for this contact to compute balance on their control account
     supabase.from("transactions")
       .select("debit_account_code, credit_account_code, amount")
       .eq("user_id", user.id)
@@ -226,12 +226,20 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       .eq("contact_id", selectedContact.id)
       .then(({ data }) => {
         if (!data) { setComputedBalance(0); return; }
-        let balance = 0;
+        // Compute balance on both 1130 (receivable) and 2100 (payable) — whichever has activity
+        let bal1130 = 0;
+        let bal2100 = 0;
         for (const t of data) {
-          if (t.debit_account_code === accountCode) balance += t.amount;
-          if (t.credit_account_code === accountCode) balance -= t.amount;
+          if (t.debit_account_code === "1130") bal1130 += t.amount;
+          if (t.credit_account_code === "1130") bal1130 -= t.amount;
+          if (t.debit_account_code === "2100") bal2100 += t.amount;
+          if (t.credit_account_code === "2100") bal2100 -= t.amount;
         }
-        setComputedBalance(balance);
+        // Use the account that has activity; if both, show receivable for receipts, payable for payments
+        if (bal1130 !== 0 && bal2100 === 0) setComputedBalance(bal1130);
+        else if (bal2100 !== 0 && bal1130 === 0) setComputedBalance(-bal2100); // payable: positive means we owe them
+        else if (bal1130 !== 0 && bal2100 !== 0) setComputedBalance(isReceipt ? bal1130 : -bal2100);
+        else setComputedBalance(0);
       });
   }, [selectedContact, user, isReceipt]);
 
