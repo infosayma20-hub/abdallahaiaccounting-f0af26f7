@@ -28,7 +28,7 @@ export default function PortalDashboard() {
   }, []);
 
   useEffect(() => {
-    if (!authLoading && !user) navigate('/portal', { replace: true });
+    if (!authLoading && !user) navigate('/auth?mode=portal', { replace: true });
   }, [authLoading, user, navigate]);
 
   if (authLoading || !user) return null;
