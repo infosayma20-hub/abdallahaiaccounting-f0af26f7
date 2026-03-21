@@ -445,7 +445,7 @@ const EmployeesPage = () => {
             </div>
             <div className="min-w-0">
               <p className="text-sm font-semibold text-foreground truncate">{emp.full_name}</p>
-              <p className="text-[10px] text-muted-foreground">{emp.id_number || "—"}</p>
+              <p className="text-[10px] text-muted-foreground">{(emp as any).employee_number || emp.id_number || "—"}</p>
             </div>
           </div>
         </td>
