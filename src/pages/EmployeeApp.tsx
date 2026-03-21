@@ -12,6 +12,7 @@ import AlertsTab from "@/components/employee/AlertsTab";
 import EmployeeProfileTab from "@/components/employee/EmployeeProfileTab";
 import EmployeeRequestsTab from "@/components/employee/EmployeeRequestsTab";
 import EmployeeFormsTab from "@/components/employee/EmployeeFormsTab";
+import EmployeeMyRequestsTab from "@/components/employee/EmployeeMyRequestsTab";
 
 type Tab = "home" | "scan" | "history" | "alerts" | "requests" | "profile" | "forms";
 
