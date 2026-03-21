@@ -481,6 +481,20 @@ const JournalNewPage = () => {
                   <tr key={line.id} className={`border-t border-border/30 ${i % 2 === 0 ? "bg-background" : "bg-secondary/20"}`}>
                     <td className="p-2.5 text-muted-foreground">{i + 1}</td>
                     <td className="p-2.5">
+                      <Input
+                        value={line.account_code}
+                        onChange={e => {
+                          const code = e.target.value;
+                          const acct = accounts.find(a => a.account_code === code);
+                          setLines(prev => prev.map(l => l.id !== line.id ? l : {
+                            ...l, account_code: code, account_name: acct?.account_name || l.account_name,
+                          }));
+                        }}
+                        className="h-9 font-mono text-xs w-20"
+                        placeholder="1110"
+                        dir="ltr"
+                      />
+                    </td>
                       <Select 
                         value={line.contact_id && line.contact_id !== "__none__" ? `contact:${line.contact_id}` : line.account_code ? `account:${line.account_code}` : ""}
                         onValueChange={v => {
