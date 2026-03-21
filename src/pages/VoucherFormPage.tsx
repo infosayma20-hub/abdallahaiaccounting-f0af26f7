@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams, useParams } from "react-router-dom";
-import { ArrowRight, FileText, Search, CheckCircle, AlertTriangle, Info, Printer, Save, Landmark, CreditCard, Building2, Receipt as ReceiptIcon, Banknote, User, Users, UserCheck } from "lucide-react";
+import { ArrowRight, FileText, Search, CheckCircle, AlertTriangle, Info, Printer, Save, Landmark, CreditCard, Building2, Receipt as ReceiptIcon, Banknote, User, Users, UserCheck, Plus } from "lucide-react";
 import DuplicateBanner from "@/components/DuplicateBanner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -1097,7 +1097,7 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           {selectedContact && (isReceipt || partyType === "contact") && (
             <div className="bg-primary/5 border border-primary/20 rounded-xl p-3 flex flex-wrap items-center gap-4 text-xs">
               <span className="flex items-center gap-1.5">
-                💰 رصيد {isReceipt ? "الزبون" : "المورد"}: <span className={`font-bold ${(computedBalance ?? 0) > 0 ? "text-destructive" : "text-primary"}`}>₪{formatAmount(computedBalance ?? selectedContact.current_balance ?? 0)}</span>
+                💰 رصيد الزبون / المورد: <span className={`font-bold ${(computedBalance ?? 0) > 0 ? "text-destructive" : "text-primary"}`}>₪{formatAmount(computedBalance ?? selectedContact.current_balance ?? 0)}</span>
               </span>
               <span className="flex items-center gap-1.5">
                 📄 فواتير مفتوحة: <span className="font-bold text-foreground">{openInvoiceCount} فاتورة</span>
@@ -1146,10 +1146,21 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
                     <SelectContent>{cashBoxes.map(cb => <SelectItem key={cb.id} value={cb.id}>{cb.name}</SelectItem>)}</SelectContent>
                   </Select>
                 ) : (
-                  <Select value={selectedBankAccount} onValueChange={setSelectedBankAccount}>
-                    <SelectTrigger><SelectValue placeholder="اختر البنك" /></SelectTrigger>
-                    <SelectContent>{bankAccounts.map(ba => <SelectItem key={ba.id} value={ba.id}>{ba.name} - {ba.bank_name}</SelectItem>)}</SelectContent>
-                  </Select>
+                  <div className="space-y-1.5">
+                    <Select value={selectedBankAccount} onValueChange={setSelectedBankAccount}>
+                      <SelectTrigger><SelectValue placeholder="اختر البنك" /></SelectTrigger>
+                      <SelectContent>{bankAccounts.map(ba => <SelectItem key={ba.id} value={ba.id}>{ba.name} - {ba.bank_name}</SelectItem>)}</SelectContent>
+                    </Select>
+                    {bankAccounts.length === 0 && (
+                      <button
+                        type="button"
+                        onClick={() => navigate("/finance/bank-accounts?action=new")}
+                        className="flex items-center gap-1.5 text-[10px] text-primary hover:underline font-medium"
+                      >
+                        <Plus className="h-3 w-3" /> تعريف حساب بنكي جديد
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
             </div>

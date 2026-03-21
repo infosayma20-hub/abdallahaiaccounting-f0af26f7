@@ -468,7 +468,8 @@ const JournalNewPage = () => {
               <thead>
                 <tr className="text-right" style={{ background: "#0D1B2A" }}>
                   <th className="p-2.5 text-white font-medium w-10">#</th>
-                  <th className="p-2.5 text-white font-medium" style={{ width: "45%" }}>الحساب / الجهة</th>
+                  <th className="p-2.5 text-white font-medium w-24">رقم الحساب</th>
+                  <th className="p-2.5 text-white font-medium" style={{ width: "40%" }}>الحساب / الجهة</th>
                   <th className="p-2.5 text-white font-medium w-28">مدين ₪</th>
                   <th className="p-2.5 text-white font-medium w-28">دائن ₪</th>
                   <th className="p-2.5 w-10"></th>
@@ -479,6 +480,21 @@ const JournalNewPage = () => {
                   return (
                   <tr key={line.id} className={`border-t border-border/30 ${i % 2 === 0 ? "bg-background" : "bg-secondary/20"}`}>
                     <td className="p-2.5 text-muted-foreground">{i + 1}</td>
+                    <td className="p-2.5">
+                      <Input
+                        value={line.account_code}
+                        onChange={e => {
+                          const code = e.target.value;
+                          const acct = accounts.find(a => a.account_code === code);
+                          setLines(prev => prev.map(l => l.id !== line.id ? l : {
+                            ...l, account_code: code, account_name: acct?.account_name || l.account_name,
+                          }));
+                        }}
+                        className="h-9 font-mono text-xs w-20"
+                        placeholder="1110"
+                        dir="ltr"
+                      />
+                    </td>
                     <td className="p-2.5">
                       <Select 
                         value={line.contact_id && line.contact_id !== "__none__" ? `contact:${line.contact_id}` : line.account_code ? `account:${line.account_code}` : ""}
@@ -663,7 +679,7 @@ const JournalNewPage = () => {
               </tbody>
               <tfoot>
                 <tr className="border-t font-bold bg-primary/5">
-                  <td colSpan={2} className="p-2.5 text-xs">الإجمالي</td>
+                  <td colSpan={3} className="p-2.5 text-xs">الإجمالي</td>
                   <td className="p-2.5 font-mono text-xs">₪{formatAmount(totalDebit)}</td>
                   <td className="p-2.5 font-mono text-xs text-destructive">₪{formatAmount(totalCredit)}</td>
                   <td></td>
