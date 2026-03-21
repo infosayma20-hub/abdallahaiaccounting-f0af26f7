@@ -35,6 +35,7 @@ import InventoryValuationPage from "./pages/InventoryValuationPage";
 import BalanceSheetPage from "./pages/BalanceSheetPage";
 import ReportsPage from "./pages/ReportsPage";
 import EmployeesPage from "./pages/EmployeesPage";
+import EmployeeFormsManagementPage from "./pages/EmployeeFormsManagementPage";
 import SalesRepresentativesPage from "./pages/SalesRepresentativesPage";
 import OrdersPage from "./pages/OrdersPage";
 import ChequesPage from "./pages/ChequesPage";
