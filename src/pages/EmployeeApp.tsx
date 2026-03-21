@@ -188,6 +188,16 @@ export default function EmployeeApp() {
           />
         )}
 
+        {activeTab === "forms" && (
+          <EmployeeFormsTab
+            employeeId={employee.id}
+            userId={user!.id}
+            isManager={employee.is_manager || false}
+            isHrManager={employee.is_hr_manager || false}
+            onRefresh={fetchData}
+          />
+        )}
+
         {activeTab === "profile" && (
           <EmployeeProfileTab employee={employee} branchName={branchName} />
         )}
