@@ -171,9 +171,16 @@ const EmployeesPage = () => {
   const fetchEmployees = async () => {
     if (!user) return;
     setLoading(true);
-    const { data, error } = await supabase.from("employees").select("*").eq("user_id", user.id).order("employee_number", { ascending: true, nullsFirst: false });
+    const { data, error } = await supabase.from("employees").select("*").eq("user_id", user.id);
     if (error) { toast.error("خطأ في جلب الموظفين"); console.error(error); }
-    else setEmployees((data as any[]) || []);
+    else {
+      const sorted = ((data as any[]) || []).sort((a, b) => {
+        const numA = parseInt(a.employee_number || "999999", 10);
+        const numB = parseInt(b.employee_number || "999999", 10);
+        return (isNaN(numA) ? 999999 : numA) - (isNaN(numB) ? 999999 : numB);
+      });
+      setEmployees(sorted);
+    }
     setLoading(false);
   };
 
