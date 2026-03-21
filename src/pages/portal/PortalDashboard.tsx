@@ -91,7 +91,7 @@ export default function PortalDashboard() {
               <Settings size={14} />
             </button>
           )}
-          <button onClick={() => { logout(); navigate('/portal'); }} style={{
+          <button onClick={() => { logout(); navigate('/auth?mode=portal'); }} style={{
             background: 'none', border: '1px solid rgba(255,255,255,0.2)',
             borderRadius: 8, padding: '4px 10px', color: 'rgba(255,255,255,0.7)',
             cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontSize: 12,

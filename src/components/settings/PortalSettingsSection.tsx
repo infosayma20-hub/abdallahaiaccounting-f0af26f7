@@ -186,7 +186,7 @@ export default function PortalSettingsSection() {
             يمكنك الآن الدخول من رابط البوابة باستخدام اسم المستخدم وكلمة المرور
           </p>
           <Button variant="outline" size="sm" asChild className="gap-1 mt-2">
-            <a href="/portal" target="_blank" rel="noopener noreferrer">
+            <a href="/auth?mode=portal" target="_blank" rel="noopener noreferrer">
               <ExternalLink className="h-3 w-3" />
               الذهاب لبوابة الإدارة
             </a>
