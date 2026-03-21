@@ -75,12 +75,12 @@ export default function EmployeeApp() {
       setIsCashier(userRoles.includes("cashier"));
 
       const { data: emp } = await supabase
-        .from("employees_safe")
-        .select("id, full_name, branch_id, position, department, phone, email")
+        .from("employees")
+        .select("id, full_name, branch_id, position, department, phone, email, is_manager, is_hr_manager")
         .eq("auth_user_id", user.id)
         .eq("is_active", true)
         .single();
-      setEmployee(emp);
+      setEmployee(emp as Employee | null);
       if (!emp) { setLoading(false); return; }
 
       if (emp.branch_id) {
