@@ -3911,17 +3911,7 @@ const POSPage = () => {
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
-                {/* Send to Branch (Call Center) */}
-                <motion.button
-                  whileTap={{ scale: 0.97 }}
-                  className="h-11 px-3 rounded-xl text-sm font-bold flex items-center justify-center gap-1.5 text-white transition-all disabled:opacity-40 disabled:pointer-events-none"
-                  style={{ backgroundColor: cart.length > 0 ? "#F59E0B" : "hsl(var(--muted))" }}
-                  disabled={cart.length === 0 || !session}
-                  onClick={() => setShowCallCenterDispatch(true)}
-                  title="تحويل للفرع"
-                >
-                  <Send className="h-4 w-4" />
-                </motion.button>
+                
                 <motion.button
                   whileTap={{ scale: 0.97 }}
                   className="flex-1 h-11 rounded-xl text-sm font-bold flex items-center justify-center gap-2 text-white transition-all disabled:opacity-40 disabled:pointer-events-none"
