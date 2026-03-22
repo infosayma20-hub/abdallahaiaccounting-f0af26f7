@@ -1561,15 +1561,24 @@ const POSPage = () => {
 
     // Detect branch from cash box name
     if (selectedCashBoxId && dataOwnerId) {
-      const boxName = cashBoxes.find(b => b.id === selectedCashBoxId)?.name || "";
-      const { data: allBranches } = await supabase
-        .from("branches")
-        .select("id, name")
-        .eq("user_id", dataOwnerId)
-        .eq("is_active", true);
-      if (allBranches && boxName) {
-        const matched = allBranches.find(br => boxName.includes(br.name));
-        setDetectedBranchId(matched?.id || null);
+      const selectedBox = cashBoxes.find(b => b.id === selectedCashBoxId);
+      const boxName = selectedBox?.name || "";
+      // Direct branch_id link (preferred)
+      if ((selectedBox as any)?.branch_id) {
+        setDetectedBranchId((selectedBox as any).branch_id);
+      } else {
+        const { data: allBranches } = await supabase
+          .from("branches")
+          .select("id, name")
+          .eq("user_id", dataOwnerId)
+          .eq("is_active", true);
+        if (allBranches && boxName) {
+          const boxNameNorm = boxName.trim();
+          const matched = allBranches.find(br => 
+            boxNameNorm.includes(br.name) || br.name.includes(boxNameNorm.split(/\s+/)[0])
+          );
+          setDetectedBranchId(matched?.id || null);
+        }
       }
     }
 
