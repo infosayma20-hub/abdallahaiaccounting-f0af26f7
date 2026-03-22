@@ -419,7 +419,7 @@ export default function PortalSalesTab({ data, loading, businessDay, needsSetup,
         <KPICard icon={<TrendingUp size={14} color={GOLD} />} label="إجمالي المبيعات" value={fmt(sales.totalSales)} sub="جميع الأفرع" accent t={t} />
         <KPICard icon={<ShoppingBag size={14} color={t.textMuted} />} label="عدد الطلبات" value={`${sales.orderCount}`} t={t} />
         <KPICard icon={<Receipt size={14} color={t.textMuted} />} label="متوسط الطلب" value={fmt(sales.avgOrderValue)} t={t} />
-        <KPICard icon={<Trophy size={14} color={GOLD} />} label="أعلى فرع" value={sales.topBranch?.name || '—'} sub={sales.topBranch ? fmt(sales.topBranch.sales) : ''} t={t} />
+        <KPICard icon={<Trophy size={14} color={GOLD} />} label="أعلى فرع" value={groupedBranches[0]?.groupName || '—'} sub={groupedBranches[0] ? fmt(groupedBranches[0].totalSales) : ''} t={t} />
       </div>
 
       {/* View mode tabs */}
