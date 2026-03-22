@@ -180,7 +180,7 @@ interface GroupedBranch {
 
 function GroupedBranchCard({ group, t }: { group: GroupedBranch; t: ReturnType<typeof getThemeColors> }) {
   const [showItems, setShowItems] = useState(false);
-  const maxQty = group.topMeals[0]?.quantity || 1;
+  const maxRevenue = group.topMeals[0]?.revenue || 1;
   const mealsToShow = showItems ? group.topMeals : group.topMeals.slice(0, 5);
 
   return (
@@ -222,7 +222,7 @@ function GroupedBranchCard({ group, t }: { group: GroupedBranch; t: ReturnType<t
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 12, fontWeight: 600, color: t.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{meal.name}</div>
                 <div style={{ height: 3, borderRadius: 2, background: t.border, overflow: 'hidden' }}>
-                  <div style={{ height: '100%', borderRadius: 2, width: `${(meal.quantity / maxQty) * 100}%`, background: GOLD }} />
+                  <div style={{ height: '100%', borderRadius: 2, width: `${(meal.revenue / maxRevenue) * 100}%`, background: GOLD }} />
                 </div>
               </div>
               <div style={{ textAlign: 'left', flexShrink: 0 }}>
@@ -257,10 +257,10 @@ function AllItemsView({ branches, t }: { branches: BranchSales[]; t: ReturnType<
         map[m.name].revenue += m.revenue;
       }
     }
-    return Object.values(map).sort((a, b) => b.quantity - a.quantity);
+    return Object.values(map).sort((a, b) => b.revenue - a.revenue);
   }, [branches]);
 
-  const maxQty = allItems[0]?.quantity || 1;
+  const maxRevenue = allItems[0]?.revenue || 1;
   const totalItems = allItems.reduce((s, i) => s + i.quantity, 0);
   const totalRevenue = allItems.reduce((s, i) => s + i.revenue, 0);
 
@@ -302,7 +302,7 @@ function AllItemsView({ branches, t }: { branches: BranchSales[]; t: ReturnType<
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 13, fontWeight: 600, color: t.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</div>
                 <div style={{ height: 4, borderRadius: 2, background: t.border, overflow: 'hidden', marginTop: 3 }}>
-                  <div style={{ height: '100%', borderRadius: 2, width: `${(item.quantity / maxQty) * 100}%`, background: GOLD }} />
+                  <div style={{ height: '100%', borderRadius: 2, width: `${(item.revenue / maxRevenue) * 100}%`, background: GOLD }} />
                 </div>
               </div>
               <div style={{ textAlign: 'left', flexShrink: 0, minWidth: 70 }}>
@@ -352,7 +352,7 @@ export default function PortalSalesTab({ data, loading, businessDay, needsSetup,
         if (!mealMap[m.name]) mealMap[m.name] = { ...m };
         else { mealMap[m.name].quantity += m.quantity; mealMap[m.name].revenue += m.revenue; }
       }
-      groups[gName].topMeals = Object.values(mealMap).sort((a, b) => b.quantity - a.quantity);
+      groups[gName].topMeals = Object.values(mealMap).sort((a, b) => b.revenue - a.revenue);
     }
     for (const g of Object.values(groups)) {
       g.avgOrder = g.orderCount > 0 ? g.totalSales / g.orderCount : 0;
