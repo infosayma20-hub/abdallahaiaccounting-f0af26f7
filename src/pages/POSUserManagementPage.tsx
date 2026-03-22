@@ -834,6 +834,18 @@ export default function POSUserManagementPage() {
                   </SelectContent>
                 </Select>
               </div>
+              <div>
+                <Label>الفرع</Label>
+                <Select value={userForm.branch_id} onValueChange={v => setUserForm(f => ({ ...f, branch_id: v }))}>
+                  <SelectTrigger><SelectValue placeholder="اختر الفرع" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">بدون فرع</SelectItem>
+                    {branches.map(b => (
+                      <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             {/* Password Section - only for new users */}
