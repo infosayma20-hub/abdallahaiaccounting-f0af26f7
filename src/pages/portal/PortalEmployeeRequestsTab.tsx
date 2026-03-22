@@ -4,6 +4,12 @@ import { Loader2, Search, ChevronDown } from 'lucide-react';
 
 const GOLD = '#D4A017';
 
+function getThemeColors(theme: 'light' | 'dark') {
+  return theme === 'dark'
+    ? { card: '#111111', text: 'white', textMuted: 'rgba(255,255,255,0.5)', textFaint: 'rgba(255,255,255,0.4)', border: 'rgba(255,255,255,0.06)', chipBg: 'rgba(255,255,255,0.06)', inputBg: 'rgba(255,255,255,0.06)', inputBorder: 'rgba(255,255,255,0.1)', expandBg: 'rgba(255,255,255,0.02)' }
+    : { card: '#FFFFFF', text: '#1A1A1A', textMuted: 'rgba(0,0,0,0.55)', textFaint: 'rgba(0,0,0,0.4)', border: 'rgba(0,0,0,0.08)', chipBg: 'rgba(0,0,0,0.04)', inputBg: '#F5F5F5', inputBorder: 'rgba(0,0,0,0.12)', expandBg: 'rgba(0,0,0,0.02)' };
+}
+
 interface EmployeeRequest {
   id: string;
   employeeName: string;
@@ -45,6 +51,7 @@ export default function PortalEmployeeRequestsTab({ theme = 'light' }: { theme?:
   const [filter, setFilter] = useState('pending');
   const [search, setSearch] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const t = getThemeColors(theme);
 
   useEffect(() => { fetchData(); }, []);
 
@@ -63,7 +70,7 @@ export default function PortalEmployeeRequestsTab({ theme = 'light' }: { theme?:
     return (
       <div style={{ textAlign: 'center', padding: '60px 20px' }}>
         <Loader2 size={28} className="animate-spin" style={{ color: GOLD, margin: '0 auto 12px', display: 'block' }} />
-        <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13 }}>جاري تحميل الطلبات...</div>
+        <div style={{ color: t.textMuted, fontSize: 13 }}>جاري تحميل الطلبات...</div>
       </div>
     );
   }
@@ -80,28 +87,26 @@ export default function PortalEmployeeRequestsTab({ theme = 'light' }: { theme?:
 
   return (
     <div>
-      {/* KPI Cards - 2x2 grid */}
+      {/* KPI Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, marginBottom: 12 }}>
         {[
-          { label: 'إجمالي', value: requests.length, color: 'white' },
+          { label: 'إجمالي', value: requests.length, color: t.text },
           { label: 'قيد المراجعة', value: pendingCount, color: '#FBBF24' },
           { label: 'موافق', value: approvedCount, color: '#22C55E' },
           { label: 'مرفوض', value: rejectedCount, color: '#EF4444' },
         ].map(k => (
           <div key={k.label} style={{
-            background: '#111', borderRadius: 10, padding: '10px 12px',
-            border: '1px solid rgba(255,255,255,0.06)',
+            background: t.card, borderRadius: 10, padding: '10px 12px',
+            border: `1px solid ${t.border}`,
           }}>
-            <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.5)', marginBottom: 2 }}>{k.label}</div>
+            <div style={{ fontSize: 9, color: t.textMuted, marginBottom: 2 }}>{k.label}</div>
             <div style={{ fontSize: 20, fontWeight: 700, color: k.color, fontFamily: 'JetBrains Mono, monospace' }}>{k.value}</div>
           </div>
         ))}
       </div>
 
-      {/* Filter Buttons - not dropdown */}
-      <div style={{
-        display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap',
-      }}>
+      {/* Filter Buttons */}
+      <div style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
         {[
           { key: 'pending', label: `قيد المراجعة (${pendingCount})` },
           { key: 'approved', label: 'موافق' },
@@ -110,9 +115,9 @@ export default function PortalEmployeeRequestsTab({ theme = 'light' }: { theme?:
         ].map(f => (
           <button key={f.key} onClick={() => setFilter(f.key)} style={{
             padding: '8px 14px', borderRadius: 20, fontSize: 11,
-            background: filter === f.key ? 'rgba(212,160,23,0.2)' : 'rgba(255,255,255,0.06)',
-            border: `1px solid ${filter === f.key ? 'rgba(212,160,23,0.4)' : 'rgba(255,255,255,0.08)'}`,
-            color: filter === f.key ? GOLD : 'rgba(255,255,255,0.6)',
+            background: filter === f.key ? 'rgba(212,160,23,0.2)' : t.chipBg,
+            border: `1px solid ${filter === f.key ? 'rgba(212,160,23,0.4)' : t.border}`,
+            color: filter === f.key ? GOLD : t.textMuted,
             cursor: 'pointer', fontFamily: 'Tajawal, sans-serif',
             whiteSpace: 'nowrap',
           }}>
@@ -123,25 +128,25 @@ export default function PortalEmployeeRequestsTab({ theme = 'light' }: { theme?:
 
       {/* Search */}
       <div style={{ position: 'relative', marginBottom: 12 }}>
-        <Search size={14} style={{ position: 'absolute', right: 10, top: 11, color: 'rgba(255,255,255,0.3)' }} />
+        <Search size={14} style={{ position: 'absolute', right: 10, top: 11, color: t.textFaint }} />
         <input
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder="بحث بالاسم..."
           style={{
-            width: '100%', height: 38, background: 'rgba(255,255,255,0.06)',
-            border: '1px solid rgba(255,255,255,0.1)',
+            width: '100%', height: 38, background: t.inputBg,
+            border: `1px solid ${t.inputBorder}`,
             borderRadius: 10, padding: '0 12px 0 12px',
             paddingRight: 32,
-            color: 'white', fontSize: 13, outline: 'none',
+            color: t.text, fontSize: 13, outline: 'none',
             fontFamily: 'Tajawal, sans-serif', direction: 'rtl',
           }}
         />
       </div>
 
-      {/* Card-based list instead of table for mobile */}
+      {/* Card-based list */}
       {filtered.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '40px 20px', color: 'rgba(255,255,255,0.3)', fontSize: 13 }}>
+        <div style={{ textAlign: 'center', padding: '40px 20px', color: t.textFaint, fontSize: 13 }}>
           لا توجد طلبات
         </div>
       ) : (
@@ -150,8 +155,8 @@ export default function PortalEmployeeRequestsTab({ theme = 'light' }: { theme?:
             const st = statusLabels[r.status] || statusLabels.pending;
             const details = r.details || {};
             let detailText = '';
-            if (r.formType === 'leave') detailText = `${details.leave_type || ''} • ${details.start_date || ''} → ${details.end_date || ''}`;
-            else if (r.formType === 'advance') detailText = details.reason || '';
+            if (r.formType === 'leave' || r.formType === 'leave_request') detailText = `${details.leave_type || ''} • ${details.start_date || ''} → ${details.end_date || ''}`;
+            else if (r.formType === 'advance' || r.formType === 'advance_request') detailText = details.reason || '';
             else if (r.formType === 'attendance_correction') detailText = `${details.correction_type || ''} • ${details.correction_date || ''}`;
             else if (r.formType === 'complaint') detailText = details.subject || '';
             else if (r.formType === 'disciplinary') detailText = details.violation_type || '';
@@ -164,28 +169,28 @@ export default function PortalEmployeeRequestsTab({ theme = 'light' }: { theme?:
                 key={r.id}
                 onClick={() => setExpandedId(isExpanded ? null : r.id)}
                 style={{
-                  background: '#111', borderRadius: 12, overflow: 'hidden',
-                  border: '1px solid rgba(255,255,255,0.06)',
+                  background: t.card, borderRadius: 12, overflow: 'hidden',
+                  border: `1px solid ${t.border}`,
                   cursor: 'pointer',
                 }}
               >
                 <div style={{ padding: '12px 14px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ fontSize: 13, fontWeight: 700 }}>{r.employeeName}</span>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: t.text }}>{r.employeeName}</span>
                       <span style={{
                         padding: '2px 8px', borderRadius: 6, fontSize: 10, fontWeight: 600,
                         background: st.bg, color: st.color,
                       }}>{st.label}</span>
                     </div>
                     <ChevronDown size={14} style={{
-                      color: 'rgba(255,255,255,0.3)',
+                      color: t.textFaint,
                       transform: isExpanded ? 'rotate(180deg)' : undefined,
                       transition: 'transform 0.2s',
                     }} />
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)' }}>
+                    <span style={{ fontSize: 11, color: t.textMuted }}>
                       {formTypeLabels[r.formType] || r.formType}
                     </span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -194,7 +199,7 @@ export default function PortalEmployeeRequestsTab({ theme = 'light' }: { theme?:
                           ₪{r.amount.toLocaleString()}
                         </span>
                       )}
-                      <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontFamily: 'JetBrains Mono, monospace' }}>
+                      <span style={{ fontSize: 10, color: t.textFaint, fontFamily: 'JetBrains Mono, monospace' }}>
                         {new Date(r.createdAt).toLocaleDateString('ar', { day: '2-digit', month: '2-digit' })}
                       </span>
                     </div>
@@ -203,9 +208,9 @@ export default function PortalEmployeeRequestsTab({ theme = 'light' }: { theme?:
                 {isExpanded && detailText && (
                   <div style={{
                     padding: '10px 14px',
-                    borderTop: '1px solid rgba(255,255,255,0.06)',
-                    fontSize: 12, color: 'rgba(255,255,255,0.5)',
-                    background: 'rgba(255,255,255,0.02)',
+                    borderTop: `1px solid ${t.border}`,
+                    fontSize: 12, color: t.textMuted,
+                    background: t.expandBg,
                   }}>
                     {detailText}
                   </div>
