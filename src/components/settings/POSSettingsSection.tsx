@@ -26,6 +26,16 @@ const paymentMethods = [
 ];
 
 const POSSettingsSection = ({ settings, onChange }: Props) => {
+  const { user } = useAuth();
+  const [dataOwnerId, setDataOwnerId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    supabase.rpc("get_team_owner_id", { _user_id: user.id }).then(({ data }) => {
+      setDataOwnerId(data || user.id);
+    });
+  }, [user?.id]);
+
   const togglePayment = (code: string) => {
     const current = settings.pos_payment_methods;
     if (current.includes(code)) {
