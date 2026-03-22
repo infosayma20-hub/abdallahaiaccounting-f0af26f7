@@ -1519,6 +1519,20 @@ const POSPage = () => {
     setShowOpenShift(false);
     toast.success("تم فتح الوردية بنجاح");
 
+    // Detect branch from cash box name
+    if (selectedCashBoxId && dataOwnerId) {
+      const boxName = cashBoxes.find(b => b.id === selectedCashBoxId)?.name || "";
+      const { data: allBranches } = await supabase
+        .from("branches")
+        .select("id, name")
+        .eq("user_id", dataOwnerId)
+        .eq("is_active", true);
+      if (allBranches && boxName) {
+        const matched = allBranches.find(br => boxName.includes(br.name));
+        setDetectedBranchId(matched?.id || null);
+      }
+    }
+
     // Check if cashier must change password on first login
     if (userId) {
       const { data: posUser } = await supabase
