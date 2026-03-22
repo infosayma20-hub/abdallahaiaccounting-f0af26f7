@@ -214,10 +214,10 @@ const PendingOrdersPanel = ({ dataOwnerId, branchId, sessionId, enabled, onAccep
 
       {/* Orders Sheet */}
       <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent side="right" className="w-full sm:max-w-md p-0" dir="rtl">
-          <SheetHeader className="p-4 border-b border-border">
-            <SheetTitle className="flex items-center gap-2">
-              <Bell className="h-5 w-5 text-amber-500" />
+        <SheetContent side="right" className="w-full sm:max-w-xl lg:max-w-2xl p-0" dir="rtl">
+          <SheetHeader className="p-3 border-b border-border">
+            <SheetTitle className="flex items-center gap-2 text-sm">
+              <Bell className="h-4 w-4 text-amber-500" />
               فواتير معلقة من الكول سنتر
               {pendingCount > 0 && (
                 <Badge variant="destructive" className="text-xs">{pendingCount}</Badge>
@@ -225,11 +225,11 @@ const PendingOrdersPanel = ({ dataOwnerId, branchId, sessionId, enabled, onAccep
             </SheetTitle>
           </SheetHeader>
 
-          <ScrollArea className="h-[calc(100vh-80px)]">
-            <div className="p-4 space-y-3">
+          <ScrollArea className="h-[calc(100vh-56px)]">
+            <div className="p-3 space-y-2">
               {orders.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
-                  <Bell className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                  <Bell className="h-10 w-10 mx-auto mb-2 opacity-30" />
                   <p className="text-sm">لا توجد فواتير معلقة</p>
                 </div>
               ) : (
@@ -237,99 +237,103 @@ const PendingOrdersPanel = ({ dataOwnerId, branchId, sessionId, enabled, onAccep
                   {orders.map((order) => (
                     <motion.div
                       key={order.id}
-                      initial={{ opacity: 0, y: -10 }}
+                      initial={{ opacity: 0, y: -8 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, x: 100 }}
-                      className="rounded-xl border-2 border-amber-500/30 bg-amber-500/5 p-4 space-y-3"
+                      className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 space-y-2"
                     >
-                      {/* Header */}
+                      {/* Header row */}
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline" className="text-xs bg-primary/10">
+                        <div className="flex items-center gap-1.5">
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 bg-primary/10">
                             {order.source_app}
                           </Badge>
-                          <span className="text-xs text-muted-foreground">
+                          <span className="text-[10px] text-muted-foreground">
                             {new Date(order.created_at).toLocaleTimeString("ar-PS", { hour: "2-digit", minute: "2-digit" })}
                           </span>
                         </div>
-                        <Badge className={`text-xs ${order.delivery_type === "delivery" ? "bg-orange-500" : "bg-blue-500"}`}>
+                        <Badge className={`text-[10px] px-1.5 py-0 h-5 ${order.delivery_type === "delivery" ? "bg-orange-500" : "bg-blue-500"}`}>
                           {order.delivery_type === "delivery" ? (
-                            <><Truck className="h-3 w-3 ml-1" /> توصيل</>
+                            <><Truck className="h-2.5 w-2.5 ml-0.5" /> توصيل</>
                           ) : (
-                            <><ShoppingBag className="h-3 w-3 ml-1" /> استلام</>
+                            <><ShoppingBag className="h-2.5 w-2.5 ml-0.5" /> استلام</>
                           )}
                         </Badge>
                       </div>
 
-                      {/* Branch */}
-                      {order.target_branch_name && (
-                        <div className="flex items-center gap-2 text-xs font-semibold text-primary">
-                          <MapPin className="h-3.5 w-3.5" />
-                          الفرع: {order.target_branch_name}
+                      {/* Customer + Branch inline */}
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <User className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+                          <span className="text-sm font-bold truncate">{order.customer_name}</span>
                         </div>
-                      )}
-                      {/* Customer Info */}
-                      <div className="space-y-1.5">
-                        <div className="flex items-center gap-2 text-sm font-bold">
-                          <User className="h-4 w-4 text-primary" />
-                          {order.customer_name}
-                        </div>
-                        {order.customer_phone && (
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <Phone className="h-3 w-3" />
-                            <span dir="ltr">{order.customer_phone}</span>
-                          </div>
-                        )}
-                        {order.delivery_address && (
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        {order.target_branch_name && (
+                          <span className="text-[10px] font-semibold text-primary flex items-center gap-0.5 flex-shrink-0">
                             <MapPin className="h-3 w-3" />
-                            {order.delivery_address}
-                          </div>
+                            {order.target_branch_name}
+                          </span>
                         )}
                       </div>
 
-                      {/* Items */}
-                      <div className="bg-background/60 rounded-lg p-2.5 space-y-1">
+                      {/* Phone + Address compact */}
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground">
+                        {order.customer_phone && (
+                          <span className="flex items-center gap-1">
+                            <Phone className="h-2.5 w-2.5" />
+                            <span dir="ltr">{order.customer_phone}</span>
+                          </span>
+                        )}
+                        {order.delivery_address && (
+                          <span className="flex items-center gap-1">
+                            <MapPin className="h-2.5 w-2.5" />
+                            {order.delivery_address}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Items compact */}
+                      <div className="bg-background/60 rounded p-2 space-y-0.5">
                         {(order.items || []).map((item: any, i: number) => (
-                          <div key={i} className="flex justify-between text-xs">
+                          <div key={i} className="flex justify-between text-[11px]">
                             <span>{item.name} × {item.qty}</span>
                             <span className="font-mono">₪{(item.total || 0).toFixed(2)}</span>
                           </div>
                         ))}
-                        <div className="flex justify-between font-bold text-sm border-t border-border pt-1.5 mt-1.5">
+                        <div className="flex justify-between font-bold text-xs border-t border-border pt-1 mt-1">
                           <span>المجموع</span>
                           <span className="font-mono">₪{order.total.toFixed(2)}</span>
                         </div>
                       </div>
 
-                      {/* Payment & Note */}
-                      <div className="flex items-center gap-3 text-xs">
-                      <Badge variant="outline" className={`${order.payment_method.startsWith("visa") ? "border-purple-500/30 text-purple-600" : "border-green-500/30 text-green-600"}`}>
+                      {/* Payment + dispatcher inline */}
+                      <div className="flex items-center justify-between text-[10px]">
+                        <Badge variant="outline" className={`text-[10px] px-1.5 py-0 h-5 ${order.payment_method.startsWith("visa") ? "border-purple-500/30 text-purple-600" : "border-green-500/30 text-green-600"}`}>
                           {order.payment_method === "cash" ? (
-                            <><Banknote className="h-3 w-3 ml-1" /> نقدي</>
+                            <><Banknote className="h-2.5 w-2.5 ml-0.5" /> نقدي</>
                           ) : order.payment_method === "visa" ? (
-                            <><CreditCard className="h-3 w-3 ml-1" /> فيزا</>
+                            <><CreditCard className="h-2.5 w-2.5 ml-0.5" /> فيزا</>
                           ) : (
-                            <><CreditCard className="h-3 w-3 ml-1" /> {order.payment_method.replace("visa_", "فيزا ").replace(/_/g, " ")}</>
+                            <><CreditCard className="h-2.5 w-2.5 ml-0.5" /> {order.payment_method.replace("visa_", "فيزا ").replace(/_/g, " ")}</>
                           )}
                         </Badge>
                         <span className="text-muted-foreground">بواسطة: {order.dispatched_by_name}</span>
                       </div>
+
                       {order.order_note && (
-                        <p className="text-xs text-muted-foreground bg-muted/30 rounded-lg p-2">📝 {order.order_note}</p>
+                        <p className="text-[10px] text-muted-foreground bg-muted/30 rounded p-1.5">📝 {order.order_note}</p>
                       )}
 
                       {/* Accept Button */}
                       <Button
                         onClick={() => handleAccept(order)}
                         disabled={accepting === order.id}
-                        className="w-full h-11 text-sm font-bold gap-2 rounded-xl"
+                        className="w-full h-9 text-xs font-bold gap-1.5 rounded-lg"
                         style={{ backgroundColor: "#16A34A" }}
                       >
                         {accepting === order.id ? (
-                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                         ) : (
-                          <CheckCircle className="h-4 w-4" />
+                          <CheckCircle className="h-3.5 w-3.5" />
                         )}
                         قبول ومعالجة الطلب
                       </Button>
