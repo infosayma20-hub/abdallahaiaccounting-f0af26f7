@@ -2258,7 +2258,7 @@ const POSPage = () => {
         .eq("id", session.id);
 
       // Record employee account movement
-      if (paymentMethod === "employee_account" && selectedEmployee) {
+      if (effectivePaymentMethod === "employee_account" && selectedEmployee) {
         const now = new Date();
         const itemsSummary = cart.map(i => `${i.name} x${i.qty}`).join(", ");
         const noteStr = employeeNote.trim() ? ` | ${employeeNote.trim()}` : "";
