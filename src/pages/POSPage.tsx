@@ -2199,7 +2199,7 @@ const POSPage = () => {
         p_order_id: orderId,
         p_user_id: dataOwnerId,
         p_payments: [{
-          method: paymentMethod,
+          method: effectivePaymentMethod,
           amount: cartTotals.total,
           tendered: paymentCurrency === "ILS" ? tendered : tendered * rate,
           change: actualChangeILS,
