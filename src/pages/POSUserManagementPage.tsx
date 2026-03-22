@@ -137,6 +137,7 @@ const ROLE_LABELS: Record<string, string> = {
   pos_admin: "مدير POS",
   pos_manager: "مشرف",
   cashier: "كاشير",
+  call_center: "كول سنتر",
   viewer: "مشاهد",
 };
 
@@ -144,6 +145,7 @@ const ROLE_COLORS: Record<string, string> = {
   pos_admin: "bg-red-500/20 text-red-400",
   pos_manager: "bg-amber-500/20 text-amber-400",
   cashier: "bg-emerald-500/20 text-emerald-400",
+  call_center: "bg-orange-500/20 text-orange-400",
   viewer: "bg-slate-500/20 text-slate-400",
 };
 
