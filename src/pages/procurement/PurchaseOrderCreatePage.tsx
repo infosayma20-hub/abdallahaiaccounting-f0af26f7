@@ -29,7 +29,17 @@ const CUSTOM_UNITS_KEY = "po-custom-units";
 function loadCustomUnits(): string[] { try { return JSON.parse(localStorage.getItem(CUSTOM_UNITS_KEY) || "[]"); } catch { return []; } }
 function saveCustomUnit(u: string) { const arr = loadCustomUnits(); if (!arr.includes(u)) { arr.push(u); localStorage.setItem(CUSTOM_UNITS_KEY, JSON.stringify(arr)); } }
 
-type CardSize = "small" | "medium" | "large";
+function highlightSearchWords(text: string, query: string): string {
+  if (!query.trim()) return text;
+  const words = query.trim().split(/\s+/).filter(Boolean);
+  let result = text;
+  words.forEach(w => {
+    const escaped = w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    result = result.replace(new RegExp(`(${escaped})`, 'gi'), '<mark class="bg-amber-200/70 dark:bg-amber-500/30 rounded-sm px-0.5">$1</mark>');
+  });
+  return result;
+}
+
 
 interface OrderLine {
   id: string;
