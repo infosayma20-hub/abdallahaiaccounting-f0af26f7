@@ -1,7 +1,8 @@
 import { type LiquidityData } from '@/hooks/usePortalData';
 import { Loader2 } from 'lucide-react';
 
-const GOLD = '#D4A017';
+const PRIMARY = '#1B3A5C';
+const ACCENT = '#2A7B9B';
 
 function fmtAmt(amount: number, currency: string): string {
   const n = amount.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -16,8 +17,8 @@ const currencyIcons: Record<string, string> = { ILS: '₪', JOD: 'د.أ', USD: '
 
 function getThemeColors(theme: 'light' | 'dark') {
   return theme === 'dark'
-    ? { card: '#111111', text: 'white', textMuted: 'rgba(255,255,255,0.5)', textFaint: 'rgba(255,255,255,0.4)', border: 'rgba(255,255,255,0.06)', chipBg: 'rgba(255,255,255,0.06)', branchGrad: 'linear-gradient(135deg, #1A0A00, #2D1200)', totalCard: 'linear-gradient(135deg, #0A0A0A, #1A1200)', branchCard: '#161616' }
-    : { card: '#FFFFFF', text: '#1A1A1A', textMuted: 'rgba(0,0,0,0.55)', textFaint: 'rgba(0,0,0,0.4)', border: 'rgba(0,0,0,0.08)', chipBg: 'rgba(0,0,0,0.04)', branchGrad: 'linear-gradient(135deg, #1B3A5C, #0D1B2A)', totalCard: 'linear-gradient(135deg, #1B3A5C, #0D1B2A)', branchCard: '#F8F9FA' };
+    ? { card: '#161B22', text: '#E6EDF3', textMuted: 'rgba(230,237,243,0.6)', textFaint: 'rgba(230,237,243,0.4)', border: 'rgba(230,237,243,0.08)', chipBg: 'rgba(230,237,243,0.06)', branchGrad: `linear-gradient(135deg, ${PRIMARY}, #0D1B2A)`, totalCard: `linear-gradient(135deg, ${PRIMARY}, #0D1B2A)`, branchCard: '#1C2333' }
+    : { card: '#FFFFFF', text: '#1B3A5C', textMuted: 'rgba(27,58,92,0.6)', textFaint: 'rgba(27,58,92,0.4)', border: 'rgba(27,58,92,0.1)', chipBg: 'rgba(27,58,92,0.04)', branchGrad: `linear-gradient(135deg, ${PRIMARY}, #0D1B2A)`, totalCard: `linear-gradient(135deg, ${PRIMARY}, #0D1B2A)`, branchCard: '#F8F9FA' };
 }
 
 interface Props {
@@ -32,7 +33,7 @@ export default function PortalLiquidityTab({ data, loading, theme = 'light' }: P
   if (loading && !data) {
     return (
       <div style={{ textAlign: 'center', padding: '60px 20px' }}>
-        <Loader2 size={28} className="animate-spin" style={{ color: GOLD, margin: '0 auto 12px', display: 'block' }} />
+        <Loader2 size={28} className="animate-spin" style={{ color: ACCENT, margin: '0 auto 12px', display: 'block' }} />
         <div style={{ color: t.textMuted, fontSize: 13 }}>جاري تحميل البيانات...</div>
       </div>
     );
@@ -87,10 +88,10 @@ export default function PortalLiquidityTab({ data, loading, theme = 'light' }: P
       {/* Total Liquidity Card */}
       <div style={{
         background: t.totalCard,
-        border: '1px solid rgba(212,160,23,0.3)',
+        border: `1px solid rgba(42,123,155,0.3)`,
         borderRadius: 14, padding: '16px', marginBottom: 14,
       }}>
-        <div style={{ fontSize: 12, color: GOLD, fontWeight: 700, marginBottom: 12 }}>
+        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.8)', fontWeight: 700, marginBottom: 12 }}>
           💰 إجمالي السيولة
         </div>
 
@@ -108,7 +109,7 @@ export default function PortalLiquidityTab({ data, loading, theme = 'light' }: P
                 </div>
                 <div style={{
                   fontSize: 18, fontWeight: 700,
-                  fontFamily: 'JetBrains Mono, monospace', color: GOLD,
+                  fontFamily: 'JetBrains Mono, monospace', color: 'white',
                 }}>
                   {fmtAmt(total, currency)}
                 </div>
@@ -120,7 +121,7 @@ export default function PortalLiquidityTab({ data, loading, theme = 'light' }: P
                   <div style={{
                     height: '100%', borderRadius: 2,
                     width: `${pct}%`,
-                    background: `linear-gradient(90deg, ${GOLD}, #8B5E00)`,
+                    background: `linear-gradient(90deg, ${ACCENT}, #1E6A85)`,
                   }} />
                 </div>
                 <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.5)' }}>
@@ -154,7 +155,7 @@ export default function PortalLiquidityTab({ data, loading, theme = 'light' }: P
             <div key={branchName} style={{ borderRadius: 12, overflow: 'hidden', border: `1px solid ${t.border}` }}>
               <div style={{
                 background: t.branchGrad,
-                borderTop: `3px solid ${GOLD}`, padding: '10px 14px',
+                borderTop: `3px solid ${ACCENT}`, padding: '10px 14px',
               }}>
                 <div style={{ fontSize: 14, fontWeight: 700, color: 'white' }}>🏪 {branchName}</div>
               </div>
@@ -167,13 +168,13 @@ export default function PortalLiquidityTab({ data, loading, theme = 'light' }: P
                     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span style={{ fontSize: 14, fontWeight: 700, color: GOLD }}>{currencyIcons[box.currency] || '💰'}</span>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: ACCENT }}>{currencyIcons[box.currency] || '💰'}</span>
                       <span style={{ fontSize: 12, color: t.text }}>{names[box.currency] || box.currency}</span>
                     </div>
                     <div style={{
                       fontSize: 16, fontWeight: 700,
                       fontFamily: 'JetBrains Mono, monospace',
-                      color: box.balance === 0 ? t.textFaint : GOLD,
+                      color: box.balance === 0 ? t.textFaint : ACCENT,
                     }}>
                       {box.balance === 0 ? '—' : fmtAmt(box.balance, box.currency)}
                     </div>
