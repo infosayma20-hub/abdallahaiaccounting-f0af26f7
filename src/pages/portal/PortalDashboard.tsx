@@ -30,7 +30,7 @@ export default function PortalDashboard() {
   }, []);
 
   useEffect(() => {
-    if (!authLoading && !user) navigate('/auth?mode=portal', { replace: true });
+    if (!authLoading && !user) navigate('/auth', { replace: true });
   }, [authLoading, user, navigate]);
 
   if (authLoading || !user) return null;
