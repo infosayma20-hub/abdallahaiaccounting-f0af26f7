@@ -725,7 +725,7 @@ ${contacts.map((c: any, i: number) => {
 async function fetchHRSummary(supabase: any, userId: string): Promise<string> {
   const { data: employees } = await supabase
     .from('employees')
-    .select('full_name, department, basic_salary, status, hire_date, job_title')
+    .select('full_name, department, base_salary, is_active, start_date, job_title')
     .eq('user_id', userId)
     .limit(50);
 
