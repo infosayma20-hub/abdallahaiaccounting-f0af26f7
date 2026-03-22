@@ -424,35 +424,43 @@ const PurchaseOrderCreatePage = () => {
                 return (
                   <div
                     key={item.id}
-                    className={`relative rounded-lg border px-2.5 py-2 cursor-pointer transition-all select-none hover:shadow-sm active:scale-[0.97] ${
-                      isInOrder ? "border-green-500/50 bg-green-500/5 ring-1 ring-green-500/20" : "border-border/50 hover:bg-muted/30"
+                    className={`relative rounded-xl border overflow-hidden cursor-pointer transition-all select-none group hover:shadow-md active:scale-[0.97] ${
+                      isInOrder 
+                        ? "border-primary/40 bg-primary/5 ring-1 ring-primary/20 shadow-sm" 
+                        : "border-border/50 bg-card hover:bg-muted/30 shadow-[0_1px_4px_rgba(0,0,0,0.04)]"
                     }`}
-                    style={{ borderRightWidth: "3px", borderRightColor: catColor }}
+                    style={{ 
+                      borderBottomWidth: "3px", 
+                      borderBottomColor: catColor + "60",
+                    }}
                     onClick={() => addOrUpdateItem(item, 1)}
                     onContextMenu={e => { e.preventDefault(); openEditItem(item); }}
                   >
                     {/* Qty badge */}
                     {isInOrder && (
-                      <div className="absolute -top-1.5 -left-1.5 bg-green-600 text-white text-[9px] font-bold rounded-full h-5 w-5 flex items-center justify-center shadow-sm">{qty}</div>
+                      <div className="absolute -top-1.5 -left-1.5 z-10 bg-primary text-primary-foreground text-[9px] font-bold rounded-full min-w-[20px] h-5 px-1 flex items-center justify-center shadow-md">{qty}</div>
                     )}
                     {/* Edit icon on hover */}
                     <button
-                      className="absolute top-1 left-1 opacity-0 group-hover:opacity-100 hover:!opacity-100 p-0.5 rounded text-muted-foreground hover:text-primary transition-opacity"
+                      className="absolute top-1 left-1 opacity-0 group-hover:opacity-100 p-0.5 rounded text-muted-foreground hover:text-primary transition-opacity"
                       onClick={e => { e.stopPropagation(); openEditItem(item); }}
-                      style={{ opacity: undefined }}
-                      onMouseEnter={e => (e.currentTarget.style.opacity = "1")}
-                      onMouseLeave={e => (e.currentTarget.style.opacity = "0")}
                     >
                       <Pencil className="h-3 w-3" />
                     </button>
 
-                    <p className="text-xs font-semibold leading-tight mb-0.5">{item.name}</p>
-                    <p className="text-[10px] text-muted-foreground">{item.unit}</p>
-                    {cardSize === "large" && (
-                      <p className={`text-[10px] mt-0.5 ${Number(item.default_price) > 0 ? "text-muted-foreground" : "text-orange-400"}`}>
-                        {Number(item.default_price) > 0 ? `${Number(item.default_price).toFixed(2)} ₪` : "بدون سعر"}
-                      </p>
-                    )}
+                    <div className="px-2.5 py-2">
+                      {searchQuery ? (
+                        <p className="text-xs font-semibold leading-tight mb-0.5" dangerouslySetInnerHTML={{ __html: highlightSearchWords(item.name, searchQuery) }} />
+                      ) : (
+                        <p className="text-xs font-semibold leading-tight mb-0.5">{item.name}</p>
+                      )}
+                      <p className="text-[10px] text-muted-foreground">{item.unit}</p>
+                      {cardSize === "large" && (
+                        <p className={`text-[10px] mt-0.5 ${Number(item.default_price) > 0 ? "text-muted-foreground" : "text-orange-400"}`}>
+                          {Number(item.default_price) > 0 ? `${Number(item.default_price).toFixed(2)} ₪` : "بدون سعر"}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 );
               })}
