@@ -127,7 +127,7 @@ Deno.serve(async (req) => {
             has_account: true,
             auth_user_id: authUserId,
             account_status: "active",
-            must_change_password: true,
+            must_change_password: false,
           });
         } else {
           // Update existing
