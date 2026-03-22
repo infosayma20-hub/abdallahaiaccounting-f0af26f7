@@ -47,10 +47,11 @@ export default function PortalDashboard() {
         if (data?.settings?.linked_user_id) {
           const { data: cs } = await supabase
             .from('company_settings')
-            .select('company_name')
+            .select('company_name, logo_url')
             .eq('user_id', data.settings.linked_user_id)
             .single();
           if (cs?.company_name) setCompanyName(cs.company_name);
+          if (cs?.logo_url) setCompanyLogo(cs.logo_url);
         }
       } catch {}
     };
