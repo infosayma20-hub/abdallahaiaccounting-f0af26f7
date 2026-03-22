@@ -611,13 +611,12 @@ const InvoicesPage = () => {
 
   const handleDeleteInvoice = async (id: string, reason: string) => {
     try {
-      // Delete invoice items first, then the invoice
-      await supabase.from("invoice_items").delete().eq("invoice_id", id);
-      const { error } = await supabase.from("invoices").delete().eq("id", id);
+      // Soft-delete: set status to cancelled — DB trigger will cascade to linked transaction
+      const { error } = await supabase.from("invoices").update({ status: "cancelled" } as any).eq("id", id);
       if (error) throw error;
       
-      // Also remove from local state
-      setInvoices(prev => prev.filter(inv => inv.id !== id));
+      // Update local state
+      setInvoices(prev => prev.map(inv => inv.id === id ? { ...inv, status: "cancelled" as any } : inv));
       setShowPreviewDialog(false);
       setSelectedInvoice(null);
       
@@ -629,14 +628,14 @@ const InvoicesPage = () => {
           edit_reason: reason,
           edited_by: user.id,
           old_data: {},
-          new_data: { action: 'delete' },
+          new_data: { action: 'cancel' },
         } as any);
       }
       
-      toast({ title: "تم حذف الفاتورة بنجاح ✅" });
+      toast({ title: "تم إلغاء الفاتورة والقيد المرتبط بنجاح ✅" });
     } catch (err: any) {
-      console.error('Delete invoice error:', err);
-      toast({ title: "خطأ في حذف الفاتورة", description: err.message, variant: "destructive" });
+      console.error('Cancel invoice error:', err);
+      toast({ title: "خطأ في إلغاء الفاتورة", description: err.message, variant: "destructive" });
     }
   };
 
