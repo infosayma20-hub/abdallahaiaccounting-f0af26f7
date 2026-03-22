@@ -522,6 +522,7 @@ const POSPage = () => {
      const [showCallCenterDispatch, setShowCallCenterDispatch] = useState(false);
      const [showDispatchLog, setShowDispatchLog] = useState(false);
      const [isCallCenter, setIsCallCenter] = useState(false);
+     const [pendingDispatchCount, setPendingDispatchCount] = useState(0);
 
    // Modifiers
    const [modifierGroups, setModifierGroups] = useState<any[]>([]);
@@ -640,7 +641,24 @@ const POSPage = () => {
     loadPerms();
   }, [userId, dataOwnerId, isAdmin]);
 
-  // Initialize
+  // Track pending dispatched orders count for call center
+  useEffect(() => {
+    if (!isCallCenter || !dataOwnerId) return;
+    const loadCount = async () => {
+      const { count } = await supabase
+        .from("call_center_orders" as any)
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", dataOwnerId)
+        .eq("status", "pending");
+      setPendingDispatchCount(count || 0);
+    };
+    loadCount();
+    const ch = supabase.channel("dispatch-count")
+      .on("postgres_changes", { event: "*", schema: "public", table: "call_center_orders", filter: `user_id=eq.${dataOwnerId}` }, () => loadCount())
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [isCallCenter, dataOwnerId]);
+
   useEffect(() => {
     if (!userId || !dataOwnerId) return;
     initializePOS();
@@ -3995,10 +4013,15 @@ const POSPage = () => {
               {isCallCenter && (
                 <button
                   onClick={() => setShowDispatchLog(true)}
-                  className="w-full h-9 rounded-xl text-xs font-medium flex items-center justify-center gap-2 border border-border bg-muted/30 text-muted-foreground hover:bg-muted/60 transition-all"
+                  className="w-full h-10 rounded-xl text-xs font-bold flex items-center justify-center gap-2 border-2 border-indigo-500/40 bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 hover:bg-indigo-500/20 transition-all relative"
                 >
                   <ClipboardList className="h-3.5 w-3.5" />
                   سجل الفواتير المحوّلة
+                  {pendingDispatchCount > 0 && (
+                    <Badge className="text-[10px] px-1.5 py-0 h-5 bg-amber-500 text-white animate-pulse">
+                      {pendingDispatchCount} قيد القبول
+                    </Badge>
+                  )}
                 </button>
               )}
               {/* Bottom row: Delete + Print + Pay */}
