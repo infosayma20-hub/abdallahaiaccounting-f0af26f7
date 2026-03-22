@@ -395,15 +395,18 @@ Deno.serve(async (req) => {
         }
       }
 
-      const requests = (forms || []).map((f: any) => ({
-        id: f.id,
-        employeeName: empMap[f.employee_id] || "غير معروف",
-        formType: f.form_type,
-        status: f.status,
-        amount: f.amount,
-        createdAt: f.created_at,
-        details: f.details,
-      }));
+      const requests = (forms || []).map((f: any) => {
+        const fd = f.form_data || {};
+        return {
+          id: f.id,
+          employeeName: empMap[f.employee_id] || "غير معروف",
+          formType: f.form_type,
+          status: f.status,
+          amount: fd.amount || fd.advance_amount || fd.loan_amount || null,
+          createdAt: f.created_at,
+          details: fd,
+        };
+      });
 
       return respond({ success: true, requests });
     }
