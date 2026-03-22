@@ -514,7 +514,8 @@ const POSPage = () => {
    const [showPurchaseModal, setShowPurchaseModal] = useState(false);
    const [showExpenseModal, setShowExpenseModal] = useState(false);
    const [showOpsDropdown, setShowOpsDropdown] = useState(false);
-   const [showSyncLog, setShowSyncLog] = useState(false);
+    const [showSyncLog, setShowSyncLog] = useState(false);
+    const [showCallCenterDispatch, setShowCallCenterDispatch] = useState(false);
 
    // Modifiers
    const [modifierGroups, setModifierGroups] = useState<any[]>([]);
