@@ -1161,6 +1161,7 @@ export type Database = {
           items: Json
           order_note: string | null
           payment_method: string | null
+          pos_order_id: string | null
           session_id: string | null
           source_app: string | null
           status: string | null
@@ -1184,6 +1185,7 @@ export type Database = {
           items?: Json
           order_note?: string | null
           payment_method?: string | null
+          pos_order_id?: string | null
           session_id?: string | null
           source_app?: string | null
           status?: string | null
@@ -1207,6 +1209,7 @@ export type Database = {
           items?: Json
           order_note?: string | null
           payment_method?: string | null
+          pos_order_id?: string | null
           session_id?: string | null
           source_app?: string | null
           status?: string | null
