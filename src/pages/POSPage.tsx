@@ -3958,6 +3958,27 @@ const POSPage = () => {
                   </button>
                 </div>
               )}
+              {/* Quick Save & Print for Call Center orders */}
+              {cart.length > 0 && activeOrder.callCenterOrderId && (
+                <button
+                  onClick={handleQuickSaveAndPrint}
+                  disabled={quickProcessing || processing || !session}
+                  className="w-full h-11 rounded-xl text-sm font-bold flex items-center justify-center gap-2 text-white transition-all disabled:opacity-40"
+                  style={{ backgroundColor: "#7C3AED" }}
+                >
+                  {quickProcessing ? (
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <>
+                      <Printer className="h-4 w-4" />
+                      حفظ وطباعة
+                      <Badge variant="outline" className="text-[10px] border-white/30 text-white px-1.5 py-0 h-5">
+                        {activeOrder.callCenterPaymentMethod === "cash" ? "💵 نقدي" : "💳 فيزا"}
+                      </Badge>
+                    </>
+                  )}
+                </button>
+              )}
               {/* Call Center Dispatch Button - replaces customer data for call center users */}
                {cart.length > 0 && (isAdmin || isCallCenter) && (
                 <button
