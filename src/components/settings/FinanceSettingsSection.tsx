@@ -205,6 +205,7 @@ const FinanceSettingsSection = ({ settings, onChange }: Props) => {
           )}
         </div>
       </div>
+      <TeamAccountManager type="accountant" />
     </div>
   );
 };
