@@ -5067,6 +5067,26 @@ const POSPage = () => {
         sessionBalance={session ? session.opening_cash + session.total_sales : 0}
       />
       <SyncLogSheet open={showSyncLog} onOpenChange={setShowSyncLog} />
+      
+      {/* Call Center Dispatch Dialog */}
+      <CallCenterDispatchDialog
+        open={showCallCenterDispatch}
+        onOpenChange={setShowCallCenterDispatch}
+        dataOwnerId={dataOwnerId || ""}
+        cart={cart.map(item => ({ name: item.name, qty: item.qty, unit_price: item.unit_price, total: item.total, note: item.note, product_id: item.product_id }))}
+        total={customerDataDiscount ? cartTotals.total - customerDataDiscount.discountAmount : cartTotals.total}
+        customerName={customerName}
+        customerPhone={activeOrder.customerPhone}
+        deliveryAddress={activeOrder.deliveryAddress}
+        orderNote={orderNote}
+        onSuccess={() => {
+          // Clear cart after successful dispatch
+          setCart([]); setSelectedCartIndex(null); setOrderDiscount(0); setOrderNote("");
+          setCustomerDataDiscount(null);
+          setCustomerName("", null, "", null);
+          updateActiveOrder(o => ({ ...o, orderType: "dine_in", deliveryAddress: "" }));
+        }}
+      />
     </div>
   );
 };
