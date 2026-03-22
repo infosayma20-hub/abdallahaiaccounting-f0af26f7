@@ -290,6 +290,7 @@ export default function POSUserManagementPage() {
       if (editingUser) {
         const updates: Record<string, unknown> = {
           name: userForm.name, phone: userForm.phone || null, email: userForm.email || null, role: userForm.role,
+          is_call_center: userForm.role === "call_center",
         };
 
         await supabase.from("pos_users").update(updates).eq("id", editingUser.id);
