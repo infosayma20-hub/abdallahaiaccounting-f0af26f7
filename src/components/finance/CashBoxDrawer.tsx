@@ -64,10 +64,15 @@ const CashBoxDrawer = ({ open, onClose, defaultType, editBox, hasMainBox, onSave
     setAutoTransferTrigger(editBox?.auto_transfer_trigger || "end_of_day");
     setPosAutoPost(editBox?.pos_auto_post !== false);
     setPosPostTrigger(editBox?.pos_post_trigger || "shift_close");
+    setSelectedBranchId(editBox?.branch_id || null);
 
     if (user) {
       supabase.from("accounts").select("account_code, account_name").eq("user_id", user.id).eq("is_active", true).order("account_code")
         .then(({ data }) => setAccounts(data || []));
+      
+      // Load branches for linking
+      supabase.from("branches").select("id, name").eq("user_id", user.id).eq("is_active", true)
+        .then(({ data }) => setBranchesList(data || []));
     }
   }, [open, editBox, defaultType, user]);
 
