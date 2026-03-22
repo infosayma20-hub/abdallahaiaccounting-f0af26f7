@@ -2086,6 +2086,14 @@ const POSPage = () => {
 
       await supabase.from("pos_order_lines").insert(lines);
 
+      // Link call center order to POS order if applicable
+      if (activeOrder.callCenterOrderId && orderId) {
+        await supabase
+          .from("call_center_orders" as any)
+          .update({ pos_order_id: orderId } as any)
+          .eq("id", activeOrder.callCenterOrderId);
+      }
+
       const rate = exchangeRates[paymentCurrency] || 1;
       const foreignTotal = paymentCurrency === "ILS" ? effectiveTotal : effectiveTotal / rate;
       const tendered = parseFloat(tenderedAmount) || foreignTotal;
