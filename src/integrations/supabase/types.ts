@@ -5838,6 +5838,62 @@ export type Database = {
         }
         Relationships: []
       }
+      pbx_call_events: {
+        Row: {
+          call_id: string | null
+          called_number: string | null
+          caller_number: string
+          created_at: string
+          customer_address: string | null
+          customer_id: string | null
+          customer_name: string | null
+          customer_phone: string | null
+          handled: boolean
+          id: string
+          status: string
+          trunk_name: string | null
+          user_id: string
+        }
+        Insert: {
+          call_id?: string | null
+          called_number?: string | null
+          caller_number: string
+          created_at?: string
+          customer_address?: string | null
+          customer_id?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          handled?: boolean
+          id?: string
+          status?: string
+          trunk_name?: string | null
+          user_id: string
+        }
+        Update: {
+          call_id?: string | null
+          called_number?: string | null
+          caller_number?: string
+          created_at?: string
+          customer_address?: string | null
+          customer_id?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          handled?: boolean
+          id?: string
+          status?: string
+          trunk_name?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pbx_call_events_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "pos_customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       plans: {
         Row: {
           annual_discount_pct: number
