@@ -212,10 +212,48 @@ Deno.serve(async (req) => {
           })
         );
 
+        // Fetch exchange rates from the currencies + exchange_rates tables
+        let jodRate = settings?.exchange_rate_jod || 3.55;
+        let usdRate = settings?.exchange_rate_usd || 3.65;
+        try {
+          const { data: currencies } = await supabase
+            .from("currencies")
+            .select("id, code")
+            .eq("user_id", linkedUserId)
+            .in("code", ["JOD", "USD"]);
+
+          if (currencies && currencies.length > 0) {
+            const currencyIds = currencies.map((c: any) => c.id);
+            const { data: rates } = await supabase
+              .from("exchange_rates")
+              .select("currency_id, mid_rate, sell_rate, rate_date")
+              .eq("user_id", linkedUserId)
+              .in("currency_id", currencyIds)
+              .order("rate_date", { ascending: false });
+
+            if (rates && rates.length > 0) {
+              const codeMap: Record<string, string> = {};
+              for (const c of currencies) codeMap[c.id] = c.code;
+
+              // Get the latest rate for each currency
+              const seen = new Set<string>();
+              for (const r of rates) {
+                const code = codeMap[r.currency_id];
+                if (code && !seen.has(code)) {
+                  seen.add(code);
+                  const rate = r.sell_rate || r.mid_rate || 0;
+                  if (code === "JOD" && rate > 0) jodRate = rate;
+                  if (code === "USD" && rate > 0) usdRate = rate;
+                }
+              }
+            }
+          }
+        } catch (_) { /* fallback to settings values */ }
+
         liquidityResult = {
           exchangeRates: {
-            jod: settings?.exchange_rate_jod || 3.55,
-            usd: settings?.exchange_rate_usd || 3.65,
+            jod: jodRate,
+            usd: usdRate,
           },
           cashBoxes: boxesWithBalance,
         };
