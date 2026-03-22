@@ -20,7 +20,7 @@ interface Props {
   theme?: 'light' | 'dark';
 }
 
-export default function PortalLiquidityTab({ data, loading }: Props) {
+export default function PortalLiquidityTab({ data, loading, theme = 'light' }: Props) {
   if (loading && !data) {
     return (
       <div style={{ textAlign: 'center', padding: '60px 20px' }}>
