@@ -1,0 +1,1 @@
+UPDATE pos_users SET is_call_center = true WHERE email = 'tartieldandees@malakysales.com';
