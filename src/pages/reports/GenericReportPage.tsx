@@ -231,7 +231,7 @@ const GenericReportPage = ({ reportKey }: GenericReportPageProps) => {
           { key: "full_name", label: "الاسم", type: "text" },
           { key: "department", label: "القسم", type: "text" },
           { key: "job_title", label: "المسمى", type: "text" },
-          { key: "hire_date", label: "تاريخ التعيين", type: "date" },
+          { key: "start_date", label: "تاريخ التعيين", type: "date" },
           { key: "salary", label: "الراتب", type: "currency" },
           { key: "employment_status", label: "الحالة", type: "badge" },
         ];
