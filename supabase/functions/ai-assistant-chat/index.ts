@@ -1001,6 +1001,9 @@ serve(async (req) => {
           case 'top_customers':
             dataPromises.push(fetchTopCustomers(supabaseAdmin, userId, intent.dateFrom || yearStartISO(), intent.dateTo || todayISO()));
             break;
+          case 'oldest_employee':
+            dataPromises.push(fetchOldestEmployee(supabaseAdmin, userId));
+            break;
           case 'hr_summary':
             dataPromises.push(fetchHRSummary(supabaseAdmin, userId));
             break;
