@@ -99,6 +99,7 @@ interface OrderTab {
   deliveryAddress: string;
   callCenterOrderId?: string | null;
   callCenterPaymentMethod?: string | null;
+  callCenterSourceApp?: string | null;
 }
 
 interface POSCustomer {
