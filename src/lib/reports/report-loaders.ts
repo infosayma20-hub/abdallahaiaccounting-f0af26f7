@@ -309,7 +309,7 @@ export async function loadBelowReorder(uid: string, setData: SetData) {
 }
 
 export async function loadEmployeeDirectory(uid: string, setData: SetData) {
-  const { data: employees } = await supabase.from("employees").select("id, full_name, department, job_title, hire_date, salary, employment_status").eq("user_id", uid).order("full_name");
+  const { data: employees } = await supabase.from("employees").select("id, full_name, department, job_title, start_date, salary, employment_status").eq("user_id", uid).order("full_name");
   setData(employees || []);
 }
 
