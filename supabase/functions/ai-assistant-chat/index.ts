@@ -733,8 +733,8 @@ async function fetchHRSummary(supabase: any, userId: string): Promise<string> {
     return '\nلا يوجد موظفون مسجلون في النظام.\n';
   }
 
-  const active = employees.filter((e: any) => e.status === 'active' || !e.status);
-  const totalSalaries = active.reduce((s: number, e: any) => s + (Number(e.basic_salary) || 0), 0);
+  const active = employees.filter((e: any) => e.is_active !== false);
+  const totalSalaries = active.reduce((s: number, e: any) => s + (Number(e.base_salary) || 0), 0);
 
   // Recent payroll
   const { data: payroll } = await supabase
