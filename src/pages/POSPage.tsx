@@ -3051,7 +3051,7 @@ const POSPage = () => {
                   ref={searchRef}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="البحث عن المنتجات... (F2)"
+                  placeholder="البحث عن المنتجات..."
                   className="pr-10 pl-10 h-10 bg-card border-border rounded-xl text-sm shadow-none focus-visible:ring-1 focus-visible:ring-primary/30"
                 />
                 <Barcode className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 cursor-pointer hover:text-primary transition-colors" />
