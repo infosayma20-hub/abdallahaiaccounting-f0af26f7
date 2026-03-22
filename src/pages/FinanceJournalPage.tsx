@@ -164,8 +164,7 @@ const FinanceJournalPage = () => {
 
   const filteredContacts = useMemo(() => {
     if (!contactSearch) return contacts;
-    const q = contactSearch.toLowerCase();
-    return contacts.filter(c => c.contact_name?.toLowerCase().includes(q));
+    return contacts.filter(c => multiWordMatchAny(contactSearch, c.contact_name));
   }, [contacts, contactSearch]);
 
   const addLine = () => {
