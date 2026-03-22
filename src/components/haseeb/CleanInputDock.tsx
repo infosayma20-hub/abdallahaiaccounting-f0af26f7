@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { Send, Mic, X, Square, Users, Package, Briefcase, BookOpen, PlusCircle } from "lucide-react";
+import { ArrowUp, Mic, X, Square, Users, Package, Briefcase, BookOpen, PlusCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -473,7 +473,7 @@ const CleanInputDock = ({ onSend, sending, centered }: Props) => {
                   className="rounded-full flex items-center justify-center active:scale-95 transition-all disabled:opacity-40"
                   style={{ width: 48, height: 48, minWidth: 48, minHeight: 48, flexShrink: 0, padding: 0, border: "none", background: "linear-gradient(135deg, #0A2342, #006D8F)", boxShadow: "0 4px 12px rgba(10,35,66,0.35)", boxSizing: "border-box" }}
                 >
-                  <Send className="h-5 w-5 text-white" style={{ transform: "scaleX(-1) scaleY(-1)" }} />
+                  <ArrowUp className="h-5 w-5 text-white" />
                 </button>
               </TooltipTrigger>
               <TooltipContent side="top"><p>إرسال الرسالة</p></TooltipContent>
