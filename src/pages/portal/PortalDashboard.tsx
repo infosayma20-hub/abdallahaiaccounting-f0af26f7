@@ -109,7 +109,7 @@ export default function PortalDashboard() {
         paddingTop: 'max(10px, env(safe-area-inset-top))',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <img src="/logo-icon-white.svg" alt="QOYOD" style={{ width: 28, height: 28, borderRadius: 6 }} />
+          <img src={companyLogo || '/logo-icon-white.svg'} alt="Logo" style={{ width: 32, height: 32, borderRadius: 8, objectFit: 'contain', background: companyLogo ? 'white' : 'none', padding: companyLogo ? 2 : 0 }} />
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, lineHeight: 1.2, color: 'white' }}>بوابة الإدارة</div>
             {companyName && (
