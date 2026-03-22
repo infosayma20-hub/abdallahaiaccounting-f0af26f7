@@ -2687,6 +2687,23 @@ const POSPage = () => {
     navigate("/auth");
   };
 
+  // Call center quick close — no cash count needed, just logout
+  const handleCallCenterCloseShift = async () => {
+    if (!session || !userId) return;
+    const closedAt = new Date().toISOString();
+    await supabase
+      .from("pos_sessions")
+      .update({ state: "closed", closed_at: closedAt, closing_cash: 0 } as any)
+      .eq("id", session.id);
+    setSession(null);
+    setOrders([createNewOrder(1)]);
+    setActiveOrderIndex(0);
+    orderCounter.current = 1;
+    toast.success("تم إغلاق الوردية بنجاح");
+    await supabase.auth.signOut();
+    navigate("/auth", { replace: true });
+  };
+
   // Keyboard shortcuts
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -2832,7 +2849,6 @@ const POSPage = () => {
         )}
 
         <div className="flex-1" />
-
 
 
 
@@ -3025,11 +3041,17 @@ const POSPage = () => {
 
         {/* Close shift */}
         <button
-          onClick={() => setShowCloseShift(true)}
+          onClick={() => {
+            if (session?.cash_box_id === null) {
+              handleCallCenterCloseShift();
+            } else {
+              setShowCloseShift(true);
+            }
+          }}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-destructive/20 text-destructive hover:bg-destructive/30 transition-colors text-xs font-medium"
         >
           <X className="h-3 w-3" />
-          إغلاق الوردية
+          {session?.cash_box_id === null ? "تسجيل الخروج" : "إغلاق الوردية"}
         </button>
       </header>
 
