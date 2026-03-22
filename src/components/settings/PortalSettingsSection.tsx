@@ -177,6 +177,12 @@ export default function PortalSettingsSection() {
     }
   };
 
+  const ROLE_LABELS: Record<string, string> = {
+    owner: 'مالك',
+    manager: 'مدير',
+    viewer: 'مشاهد',
+  };
+
   return (
     <div className="p-6 space-y-6">
       <div className="space-y-1">
@@ -185,15 +191,6 @@ export default function PortalSettingsSection() {
           إدارة أعضاء بوابة المتابعة الإدارية وصلاحياتهم — يسجلون الدخول من صفحة تسجيل الدخول الرئيسية
         </p>
       </div>
-
-      {(() => {
-        const ROLE_LABELS: Record<string, string> = {
-          owner: 'مالك',
-          manager: 'مدير',
-          viewer: 'مشاهد',
-        };
-        return null;
-      })()}
 
       {/* Members List */}
       <div className="space-y-3">
