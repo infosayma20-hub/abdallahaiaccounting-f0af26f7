@@ -156,7 +156,7 @@ Deno.serve(async (req) => {
             const name = line.product_name || "غير معروف";
             if (!mealMap[name]) mealMap[name] = { quantity: 0, revenue: 0 };
             mealMap[name].quantity += line.qty || 0;
-            mealMap[name].revenue += line.line_total || 0;
+            mealMap[name].revenue += line.total || 0;
           }
 
           branchData[branchKey].topMeals = Object.entries(mealMap)
