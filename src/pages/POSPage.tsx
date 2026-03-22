@@ -601,10 +601,12 @@ const POSPage = () => {
       // Find pos_user linked to this auth user
       const { data: posUser } = await supabase
         .from("pos_users")
-        .select("id")
+        .select("id, branch_id")
         .eq("auth_user_id", userId)
         .maybeSingle();
       if (!posUser) return;
+      // Store branch_id for call center filtering
+      setCashierBranchId((posUser as any).branch_id || null);
       const { data: perms } = await supabase
         .from("pos_user_permissions")
         .select("can_view_invoice_history, can_edit_invoices, require_manager_for_invoices, manage_products_categories, view_invoice_log, edit_cancel_invoices, can_add_inventory, can_create_product, can_record_purchases, can_pay_purchases_cash, can_create_supplier, can_affect_inventory_on_purchase, can_record_expenses, can_create_expense_category, open_cash_drawer")
