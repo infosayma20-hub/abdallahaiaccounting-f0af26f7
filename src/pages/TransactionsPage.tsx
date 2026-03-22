@@ -428,7 +428,7 @@ const TransactionsPage = () => {
     try {
       const { error } = await supabase.from('transactions').update({ is_deleted: true }).eq('id', editingTx.id);
       if (error) throw error;
-      await cancelLinkedVouchers([editingTx.id]);
+      // DB trigger cascades to linked vouchers/invoices automatically
       toast({ title: "تم نقل المعاملة والمستندات المرتبطة إلى سلة المحذوفات" });
       setEditingTx(null); setShowDeleteConfirm(false); fetchData();
     } catch (err: any) {
