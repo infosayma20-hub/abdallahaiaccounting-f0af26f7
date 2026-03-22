@@ -194,6 +194,12 @@ function detectIntents(message: string): QueryIntent[] {
     return intents;
   }
 
+  // Oldest employee
+  if (/من\s+هو\s+أقدم\s+موظف|من\s+هو\s+اقدم\s+موظف|أقدم\s+موظف|اقدم\s+موظف|أول\s+موظف|اول\s+موظف/i.test(message)) {
+    intents.push({ type: 'oldest_employee' });
+    return intents;
+  }
+
   // HR
   if (/موظف|رواتب|حضور|غياب|إجازة/i.test(message)) {
     intents.push({ type: 'hr_summary' });
