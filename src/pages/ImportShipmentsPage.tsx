@@ -42,10 +42,7 @@ const ImportShipmentsPage = () => {
   });
 
   const filtered = shipments.filter((s: any) => {
-    const matchSearch = !search || 
-      s.shipment_number?.includes(search) || 
-      s.shipment_name?.includes(search) ||
-      s.contacts?.contact_name?.includes(search);
+    const matchSearch = !search || multiWordMatchAny(search, s.shipment_number, s.shipment_name, s.contacts?.contact_name);
     const matchStatus = statusFilter === "all" || s.status === statusFilter;
     return matchSearch && matchStatus;
   });

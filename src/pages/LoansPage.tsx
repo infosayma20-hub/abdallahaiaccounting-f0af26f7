@@ -727,8 +727,7 @@ function AddLoanDialog({ open, onOpenChange, userId, companyId, onSuccess }: {
 
   const filteredEmps = useMemo(() => {
     if (!empSearch.trim()) return employees.slice(0, 10);
-    const q = empSearch.toLowerCase();
-    return employees.filter(e => e.full_name.toLowerCase().includes(q)).slice(0, 10);
+    return employees.filter(e => multiWordMatchAny(empSearch, e.full_name)).slice(0, 10);
   }, [employees, empSearch]);
 
   const resetForm = () => {

@@ -58,7 +58,7 @@ export default function ContractsListPage() {
   };
 
   const filtered = contracts.filter(c =>
-    c.project_name?.includes(search) || c.client_name?.includes(search) || c.contract_number?.includes(search)
+    multiWordMatchAny(search, c.project_name, c.client_name, c.contract_number)
   );
 
   const fmtNum = (n: number) => n?.toLocaleString("en-US", { minimumFractionDigits: 0 }) || "0";

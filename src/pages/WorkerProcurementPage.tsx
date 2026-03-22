@@ -161,10 +161,7 @@ const WorkerProcurementPage = () => {
       filtered = filtered.filter(p => p.category === selectedCategory);
     }
     if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      filtered = filtered.filter(p =>
-        p.name.toLowerCase().includes(q) || (p.barcode && p.barcode.includes(q))
-      );
+      filtered = filtered.filter(p => multiWordMatchAny(searchQuery, p.name, p.barcode));
     }
     return filtered;
   }, [products, selectedCategory, searchQuery]);
