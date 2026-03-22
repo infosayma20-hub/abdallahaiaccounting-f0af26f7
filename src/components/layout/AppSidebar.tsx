@@ -229,6 +229,24 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
 
       {/* Bottom — collapse toggle */}
       <div className="py-3 px-3 space-y-0.5" style={{ borderTop: "1px solid #1E3A5F" }}>
+        {/* Logout button */}
+        {collapsed ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button onClick={() => { supabase.auth.signOut(); navigate("/auth"); }} className="w-full flex items-center justify-center px-3 py-2 rounded-lg text-[13px] text-red-400/80 hover:text-red-400 hover:bg-red-500/10 transition-all">
+                <LogOut className="h-5 w-5" strokeWidth={1.8} />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="left"><p>تسجيل الخروج</p></TooltipContent>
+          </Tooltip>
+        ) : (
+          <button onClick={() => { supabase.auth.signOut(); navigate("/auth"); }} className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] text-red-400/80 hover:text-red-400 hover:bg-red-500/10 transition-all">
+            <LogOut className="h-5 w-5" strokeWidth={1.8} />
+            <span>تسجيل الخروج</span>
+          </button>
+        )}
+
+        {/* Collapse toggle */}
         {collapsed ? (
           <Tooltip>
             <TooltipTrigger asChild>
