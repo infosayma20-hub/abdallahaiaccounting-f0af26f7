@@ -34,19 +34,9 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const auth = await authenticateRequest(req);
+    const auth = await authenticateOrService(req, supabase);
     if (auth instanceof Response) return auth;
-    const { userId } = auth;
-
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-      { auth: { autoRefreshToken: false, persistSession: false } }
-    );
-
-    // Check admin
-    const { data: hasAdmin } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
-    if (!hasAdmin) return json({ error: "ليس لديك صلاحية" }, 403);
+    const userId = auth.userId;
 
     // Get admin profile and POS company
     const { data: adminProfile } = await supabase
