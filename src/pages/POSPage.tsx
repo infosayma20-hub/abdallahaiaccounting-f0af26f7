@@ -2968,6 +2968,7 @@ const POSPage = () => {
             newOrder.deliveryAddress = order.delivery_address || "";
             newOrder.callCenterOrderId = order.id;
             newOrder.callCenterPaymentMethod = order.payment_method || "cash";
+            newOrder.callCenterSourceApp = order.source_app || null;
             newOrder.orderNote = [
               order.source_app ? `مصدر: ${order.source_app}` : "",
               order.payment_method === "visa" ? "💳 فيزا" : "💵 نقدي",
