@@ -1527,6 +1527,21 @@ export default function SuperAdminDashboard() {
     try {
       const res = await apiCall("users");
       setUsers(res.users || []);
+      // Load portal members for all users
+      const { data: portalData } = await supabase
+        .from("malaki_portal_users")
+        .select("id, full_name, email, username, role, is_active, last_login, user_id")
+        .order("created_at");
+      if (portalData) {
+        const grouped: typeof portalMembers = {};
+        portalData.forEach((m: any) => {
+          if (m.user_id) {
+            if (!grouped[m.user_id]) grouped[m.user_id] = [];
+            grouped[m.user_id].push(m);
+          }
+        });
+        setPortalMembers(grouped);
+      }
     } catch (e: any) { toast.error(e.message); }
     setLoadingUsers(false);
   }, []);
