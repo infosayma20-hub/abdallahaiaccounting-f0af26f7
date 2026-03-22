@@ -222,7 +222,7 @@ function GroupedBranchCard({ group, t }: { group: GroupedBranch; t: ReturnType<t
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 12, fontWeight: 600, color: t.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{meal.name}</div>
                 <div style={{ height: 3, borderRadius: 2, background: t.border, overflow: 'hidden' }}>
-                  <div style={{ height: '100%', borderRadius: 2, width: `${(meal.quantity / maxQty) * 100}%`, background: GOLD }} />
+                  <div style={{ height: '100%', borderRadius: 2, width: `${(meal.revenue / maxRevenue) * 100}%`, background: GOLD }} />
                 </div>
               </div>
               <div style={{ textAlign: 'left', flexShrink: 0 }}>
