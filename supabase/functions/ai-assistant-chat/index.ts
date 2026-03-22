@@ -727,7 +727,7 @@ async function fetchHRSummary(supabase: any, userId: string): Promise<string> {
     .from('employees')
     .select('full_name, department, base_salary, is_active, start_date, job_title')
     .eq('user_id', userId)
-    .limit(50);
+    .limit(500);
 
   if (!employees || employees.length === 0) {
     return '\nلا يوجد موظفون مسجلون في النظام.\n';
