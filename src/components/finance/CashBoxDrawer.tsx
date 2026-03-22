@@ -40,6 +40,8 @@ const CashBoxDrawer = ({ open, onClose, defaultType, editBox, hasMainBox, onSave
   const [autoTransferTrigger, setAutoTransferTrigger] = useState("end_of_day");
   const [posAutoPost, setPosAutoPost] = useState(true);
   const [posPostTrigger, setPosPostTrigger] = useState("shift_close");
+  const [selectedBranchId, setSelectedBranchId] = useState<string | null>(null);
+  const [branchesList, setBranchesList] = useState<{ id: string; name: string }[]>([]);
 
   const [accounts, setAccounts] = useState<any[]>([]);
   const [saving, setSaving] = useState(false);
@@ -62,10 +64,15 @@ const CashBoxDrawer = ({ open, onClose, defaultType, editBox, hasMainBox, onSave
     setAutoTransferTrigger(editBox?.auto_transfer_trigger || "end_of_day");
     setPosAutoPost(editBox?.pos_auto_post !== false);
     setPosPostTrigger(editBox?.pos_post_trigger || "shift_close");
+    setSelectedBranchId(editBox?.branch_id || null);
 
     if (user) {
       supabase.from("accounts").select("account_code, account_name").eq("user_id", user.id).eq("is_active", true).order("account_code")
         .then(({ data }) => setAccounts(data || []));
+      
+      // Load branches for linking
+      supabase.from("branches").select("id, name").eq("user_id", user.id).eq("is_active", true)
+        .then(({ data }) => setBranchesList(data || []));
     }
   }, [open, editBox, defaultType, user]);
 
@@ -145,6 +152,7 @@ const CashBoxDrawer = ({ open, onClose, defaultType, editBox, hasMainBox, onSave
       auto_transfer_trigger: autoTransfer ? autoTransferTrigger : null,
       pos_auto_post: boxType === "pos" ? posAutoPost : null,
       pos_post_trigger: boxType === "pos" ? posPostTrigger : null,
+      branch_id: (boxType === "pos" || boxType === "branch") ? selectedBranchId : null,
       notes: notes || null,
     };
 
@@ -257,6 +265,26 @@ const CashBoxDrawer = ({ open, onClose, defaultType, editBox, hasMainBox, onSave
               <Label className="text-xs font-bold">الفرع / الموقع</Label>
               <Input value={location} onChange={e => setLocation(e.target.value)} placeholder="مثال: فرع رام الله" className="mt-1 h-11" />
             </div>
+            {/* Branch Link for POS/Branch boxes */}
+            {(boxType === "pos" || boxType === "branch") && branchesList.length > 0 && (
+              <div>
+                <Label className="text-xs font-bold flex items-center gap-1">
+                  ربط بفرع (للكول سنتر) 
+                  <span className="text-[10px] text-muted-foreground font-normal">— مهم لتوصيل الفواتير</span>
+                </Label>
+                <Select value={selectedBranchId || "none"} onValueChange={v => setSelectedBranchId(v === "none" ? null : v)}>
+                  <SelectTrigger className="mt-1 h-11">
+                    <SelectValue placeholder="اختر الفرع..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">بدون ربط</SelectItem>
+                    {branchesList.map(br => (
+                      <SelectItem key={br.id} value={br.id}>🏪 {br.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label className="text-xs font-bold">العملة الأساسية</Label>

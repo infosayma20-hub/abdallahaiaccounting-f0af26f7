@@ -815,17 +815,26 @@ const POSPage = () => {
           if (existingBoxId && dataOwnerId) {
             const { data: boxData } = await supabase
               .from("cash_boxes")
-              .select("name")
+              .select("name, branch_id")
               .eq("id", existingBoxId)
               .maybeSingle();
-            const { data: allBranches } = await supabase
-              .from("branches")
-              .select("id, name")
-              .eq("user_id", dataOwnerId)
-              .eq("is_active", true);
-            if (boxData?.name && allBranches) {
-              const matched = allBranches.find(br => boxData.name.includes(br.name));
-              setDetectedBranchId(matched?.id || null);
+            // Direct branch_id link (preferred)
+            if ((boxData as any)?.branch_id) {
+              setDetectedBranchId((boxData as any).branch_id);
+            } else if (boxData?.name) {
+              // Fallback: name matching
+              const { data: allBranches } = await supabase
+                .from("branches")
+                .select("id, name")
+                .eq("user_id", dataOwnerId)
+                .eq("is_active", true);
+              if (allBranches) {
+                const boxNameNorm = boxData.name.trim();
+                const matched = allBranches.find(br => 
+                  boxNameNorm.includes(br.name) || br.name.includes(boxNameNorm.split(/\s+/)[0])
+                );
+                setDetectedBranchId(matched?.id || null);
+              }
             }
           }
         } else {
@@ -858,7 +867,7 @@ const POSPage = () => {
           // Load POS cash boxes for shift opening
           const { data: boxes } = await supabase
             .from("cash_boxes")
-            .select("id, name, type")
+            .select("id, name, type, branch_id")
             .eq("user_id", dataOwnerId)
             .eq("type", "pos")
             .eq("is_active", true);
@@ -1552,15 +1561,24 @@ const POSPage = () => {
 
     // Detect branch from cash box name
     if (selectedCashBoxId && dataOwnerId) {
-      const boxName = cashBoxes.find(b => b.id === selectedCashBoxId)?.name || "";
-      const { data: allBranches } = await supabase
-        .from("branches")
-        .select("id, name")
-        .eq("user_id", dataOwnerId)
-        .eq("is_active", true);
-      if (allBranches && boxName) {
-        const matched = allBranches.find(br => boxName.includes(br.name));
-        setDetectedBranchId(matched?.id || null);
+      const selectedBox = cashBoxes.find(b => b.id === selectedCashBoxId);
+      const boxName = selectedBox?.name || "";
+      // Direct branch_id link (preferred)
+      if ((selectedBox as any)?.branch_id) {
+        setDetectedBranchId((selectedBox as any).branch_id);
+      } else {
+        const { data: allBranches } = await supabase
+          .from("branches")
+          .select("id, name")
+          .eq("user_id", dataOwnerId)
+          .eq("is_active", true);
+        if (allBranches && boxName) {
+          const boxNameNorm = boxName.trim();
+          const matched = allBranches.find(br => 
+            boxNameNorm.includes(br.name) || br.name.includes(boxNameNorm.split(/\s+/)[0])
+          );
+          setDetectedBranchId(matched?.id || null);
+        }
       }
     }
 

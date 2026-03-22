@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Send, MapPin, Phone, User, Truck, ShoppingBag, CreditCard, Banknote, StickyNote, AlertCircle } from "lucide-react";
+import { Send, MapPin, Phone, User, Truck, ShoppingBag, CreditCard, Banknote, StickyNote, AlertCircle, CheckCircle2, Wifi, WifiOff } from "lucide-react";
 
 interface CartItem {
   name: string;
@@ -64,6 +64,15 @@ const CallCenterDispatchDialog = ({
   const [note, setNote] = useState("");
   const [sending, setSending] = useState(false);
   const [errors, setErrors] = useState<Record<string, boolean>>({});
+  
+  // Branch active sessions tracking
+  const [branchSessions, setBranchSessions] = useState<Record<string, number>>({});
+  
+  // Dispatch tracking
+  const [dispatchedOrderId, setDispatchedOrderId] = useState<string | null>(null);
+  const [dispatchStatus, setDispatchStatus] = useState<"sending" | "pending" | "accepted" | null>(null);
+  const trackingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const trackingChannelRef = useRef<any>(null);
 
   useEffect(() => {
     if (!open || !dataOwnerId) return;
@@ -72,7 +81,10 @@ const CallCenterDispatchDialog = ({
     setAddress(deliveryAddress);
     setNote(orderNote);
     setErrors({});
+    setDispatchedOrderId(null);
+    setDispatchStatus(null);
 
+    // Load branches
     supabase
       .from("branches")
       .select("id, name")
@@ -81,8 +93,12 @@ const CallCenterDispatchDialog = ({
       .then(({ data }) => {
         const filtered = (data || []).filter(b => !b.name.includes("مركزي") && !b.name.toLowerCase().includes("warehouse"));
         setBranches(filtered);
+        
+        // Check active sessions for each branch
+        checkBranchSessions(filtered);
       });
 
+    // Load delivery apps
     supabase
       .from("delivery_apps" as any)
       .select("id, name, icon, visa_gl_account_code")
@@ -90,7 +106,54 @@ const CallCenterDispatchDialog = ({
       .eq("is_active", true)
       .order("display_order")
       .then(({ data }) => setDeliveryApps((data as any) || []));
+
+    return () => {
+      // Cleanup tracking
+      if (trackingTimeoutRef.current) clearTimeout(trackingTimeoutRef.current);
+      if (trackingChannelRef.current) supabase.removeChannel(trackingChannelRef.current);
+    };
   }, [open, dataOwnerId, customerName, customerPhone, deliveryAddress, orderNote]);
+
+  const checkBranchSessions = async (branchList: Branch[]) => {
+    // Check which branches have active POS sessions (cashiers online)
+    const { data: activeSessions } = await supabase
+      .from("pos_sessions" as any)
+      .select("cash_box_id")
+      .eq("user_id", dataOwnerId)
+      .eq("state", "open");
+
+    if (!activeSessions || activeSessions.length === 0) {
+      setBranchSessions({});
+      return;
+    }
+
+    const boxIds = activeSessions.map((s: any) => s.cash_box_id).filter(Boolean);
+    if (boxIds.length === 0) {
+      setBranchSessions({});
+      return;
+    }
+
+    // Get branch_id for each active cash box
+    const { data: boxes } = await supabase
+      .from("cash_boxes")
+      .select("id, name, branch_id")
+      .in("id", boxIds);
+
+    const counts: Record<string, number> = {};
+    for (const box of (boxes || [])) {
+      const branchId = (box as any).branch_id;
+      if (branchId) {
+        counts[branchId] = (counts[branchId] || 0) + 1;
+      } else if (box.name) {
+        // Fallback: name matching
+        const matched = branchList.find(br => box.name.includes(br.name) || br.name.includes(box.name.split(/\s+/)[0]));
+        if (matched) {
+          counts[matched.id] = (counts[matched.id] || 0) + 1;
+        }
+      }
+    }
+    setBranchSessions(counts);
+  };
 
   // Build dynamic payment methods
   const paymentOptions: PaymentOption[] = [
@@ -119,10 +182,63 @@ const CallCenterDispatchDialog = ({
     return Object.keys(newErrors).length === 0;
   };
 
+  // Track order acceptance via realtime
+  const startTrackingOrder = useCallback((orderId: string) => {
+    setDispatchedOrderId(orderId);
+    setDispatchStatus("pending");
+
+    // Listen for status change
+    const channel = supabase
+      .channel(`dispatch-track-${orderId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "call_center_orders",
+          filter: `id=eq.${orderId}`,
+        },
+        (payload) => {
+          const newStatus = (payload.new as any).status;
+          if (newStatus === "accepted") {
+            setDispatchStatus("accepted");
+            toast.success(`✅ تم قبول الطلب في فرع ${selectedBranch?.name}!`, { duration: 5000 });
+            // Auto-close after 2s
+            setTimeout(() => {
+              setDispatchedOrderId(null);
+              setDispatchStatus(null);
+            }, 2000);
+          }
+        }
+      )
+      .subscribe();
+
+    trackingChannelRef.current = channel;
+
+    // Timeout: warn if not accepted in 30s
+    trackingTimeoutRef.current = setTimeout(() => {
+      setDispatchStatus((prev) => {
+        if (prev === "pending") {
+          toast.warning(`⚠️ الطلب لم يتم قبوله بعد في فرع ${selectedBranch?.name}! تأكد أن الفرع مفتوح.`, { duration: 10000 });
+        }
+        return prev;
+      });
+    }, 30000);
+  }, [selectedBranch]);
+
   const handleDispatch = async () => {
     if (!validate()) {
       toast.error("يرجى تعبئة جميع الحقول المطلوبة");
       return;
+    }
+
+    // Warn if no active session on the target branch
+    const activeCashiers = branchSessions[selectedBranch!.id] || 0;
+    if (activeCashiers === 0) {
+      const confirmed = window.confirm(
+        `⚠️ لا يوجد كاشير مفتوح وردية حالياً في فرع ${selectedBranch!.name}!\n\nهل تريد المتابعة بإرسال الطلب؟ سيبقى معلقاً حتى يفتح أحد الكاشيرية وردية.`
+      );
+      if (!confirmed) return;
     }
 
     setSending(true);
@@ -134,7 +250,7 @@ const CallCenterDispatchDialog = ({
         .eq("user_id", user?.id || "")
         .maybeSingle();
 
-      const { error } = await supabase
+      const { data: insertedOrder, error } = await supabase
         .from("call_center_orders" as any)
         .insert({
           user_id: dataOwnerId,
@@ -159,13 +275,25 @@ const CallCenterDispatchDialog = ({
           dispatched_by: user?.id,
           dispatched_by_name: profile?.display_name || user?.email || "كول سنتر",
           status: "pending",
-        } as any);
+        } as any)
+        .select("id")
+        .single();
 
       if (error) throw error;
 
+      const orderId = (insertedOrder as any)?.id;
+      
       toast.success(`✅ تم إرسال الطلب إلى فرع ${selectedBranch!.name}`, { duration: 4000 });
       onSuccess();
-      onOpenChange(false);
+      
+      // Start tracking if we got an order ID
+      if (orderId) {
+        startTrackingOrder(orderId);
+      } else {
+        onOpenChange(false);
+      }
+      
+      // Reset form but keep dialog open for tracking
       setSelectedBranch(null);
       setSourceApp("طلب مباشر");
       setDeliveryType("delivery");
@@ -180,6 +308,53 @@ const CallCenterDispatchDialog = ({
 
   const fieldError = (key: string) =>
     errors[key] ? "ring-2 ring-destructive/50 border-destructive" : "";
+
+  // If tracking an order, show tracking view
+  if (dispatchStatus === "pending" || dispatchStatus === "accepted") {
+    return (
+      <Dialog open={open} onOpenChange={(v) => {
+        if (!v) {
+          if (trackingChannelRef.current) supabase.removeChannel(trackingChannelRef.current);
+          if (trackingTimeoutRef.current) clearTimeout(trackingTimeoutRef.current);
+          setDispatchedOrderId(null);
+          setDispatchStatus(null);
+        }
+        onOpenChange(v);
+      }}>
+        <DialogContent className="sm:max-w-sm" dir="rtl">
+          <div className="flex flex-col items-center justify-center py-8 space-y-4">
+            {dispatchStatus === "pending" ? (
+              <>
+                <div className="w-16 h-16 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                  <div className="w-8 h-8 border-3 border-amber-500 border-t-transparent rounded-full animate-spin" />
+                </div>
+                <p className="text-lg font-bold text-foreground">في انتظار قبول الفرع...</p>
+                <p className="text-sm text-muted-foreground text-center">
+                  تم إرسال الطلب بنجاح، في انتظار أن يقبله الكاشير في الفرع
+                </p>
+              </>
+            ) : (
+              <>
+                <div className="w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                  <CheckCircle2 className="w-8 h-8 text-green-600" />
+                </div>
+                <p className="text-lg font-bold text-green-600">تم قبول الطلب ✅</p>
+              </>
+            )}
+            <Button variant="outline" onClick={() => {
+              if (trackingChannelRef.current) supabase.removeChannel(trackingChannelRef.current);
+              if (trackingTimeoutRef.current) clearTimeout(trackingTimeoutRef.current);
+              setDispatchedOrderId(null);
+              setDispatchStatus(null);
+              onOpenChange(false);
+            }}>
+              إغلاق
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -226,20 +401,51 @@ const CallCenterDispatchDialog = ({
           <div className="space-y-2">
             <label className="text-sm font-medium">الفرع المستهدف *</label>
             <div className={`grid grid-cols-2 gap-2 ${errors.branch ? "ring-2 ring-destructive/50 rounded-xl p-1" : ""}`}>
-              {branches.map((branch) => (
-                <button
-                  key={branch.id}
-                  onClick={() => { setSelectedBranch(branch); setErrors(p => ({ ...p, branch: false })); }}
-                  className={`p-3 rounded-xl text-sm font-bold border-2 transition-all ${
-                    selectedBranch?.id === branch.id
-                      ? "bg-primary text-primary-foreground border-primary shadow-md"
-                      : "bg-muted/30 text-foreground border-border hover:border-primary/40"
-                  }`}
-                >
-                  🏪 {branch.name}
-                </button>
-              ))}
+              {branches.map((branch) => {
+                const activeCount = branchSessions[branch.id] || 0;
+                const isOnline = activeCount > 0;
+                return (
+                  <button
+                    key={branch.id}
+                    onClick={() => { setSelectedBranch(branch); setErrors(p => ({ ...p, branch: false })); }}
+                    className={`relative p-3 rounded-xl text-sm font-bold border-2 transition-all ${
+                      selectedBranch?.id === branch.id
+                        ? "bg-primary text-primary-foreground border-primary shadow-md"
+                        : "bg-muted/30 text-foreground border-border hover:border-primary/40"
+                    }`}
+                  >
+                    <div className="flex items-center justify-center gap-2">
+                      🏪 {branch.name}
+                    </div>
+                    {/* Online/Offline indicator */}
+                    <div className={`flex items-center justify-center gap-1 mt-1.5 text-[10px] font-medium ${
+                      selectedBranch?.id === branch.id
+                        ? isOnline ? "text-green-200" : "text-red-200"
+                        : isOnline ? "text-green-600" : "text-red-500"
+                    }`}>
+                      {isOnline ? (
+                        <>
+                          <Wifi className="h-3 w-3" />
+                          <span>{activeCount} كاشير متصل</span>
+                        </>
+                      ) : (
+                        <>
+                          <WifiOff className="h-3 w-3" />
+                          <span>لا يوجد كاشير</span>
+                        </>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
             </div>
+            {/* Warning if selected branch has no cashier */}
+            {selectedBranch && (branchSessions[selectedBranch.id] || 0) === 0 && (
+              <div className="flex items-center gap-2 p-2 rounded-lg bg-destructive/10 text-destructive text-xs font-medium">
+                <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                <span>تحذير: لا يوجد كاشير مفتوح وردية في هذا الفرع حالياً. الطلب سيبقى معلقاً.</span>
+              </div>
+            )}
           </div>
 
           {/* Customer Info */}
