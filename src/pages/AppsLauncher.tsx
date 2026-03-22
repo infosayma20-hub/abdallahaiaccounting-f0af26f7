@@ -183,7 +183,7 @@ const AppsLauncher = () => {
       const bDisabled = isAppDisabled(b) ? 1 : 0;
       return aDisabled - bDisabled;
     });
-  }, [search, enabledSettings]);
+  }, [search, enabledSettings, restrictedRole]);
 
   const totalResults = allFilteredApps.length;
 
