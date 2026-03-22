@@ -154,13 +154,32 @@ export default function PortalEmployeeRequestsTab({ theme = 'light' }: { theme?:
           {filtered.map(r => {
             const st = statusLabels[r.status] || statusLabels.pending;
             const details = r.details || {};
-            let detailText = '';
-            if (r.formType === 'leave' || r.formType === 'leave_request') detailText = `${details.leave_type || ''} • ${details.start_date || ''} → ${details.end_date || ''}`;
-            else if (r.formType === 'advance' || r.formType === 'advance_request') detailText = details.reason || '';
-            else if (r.formType === 'attendance_correction') detailText = `${details.correction_type || ''} • ${details.correction_date || ''}`;
-            else if (r.formType === 'complaint') detailText = details.subject || '';
-            else if (r.formType === 'disciplinary') detailText = details.violation_type || '';
-            else detailText = details.notes || details.description || '';
+            const detailParts: string[] = [];
+            
+            // Type-specific info
+            if (r.formType === 'leave' || r.formType === 'leave_request') {
+              const leaveTypes: Record<string, string> = { annual: 'سنوية', sick: 'مرضية', unpaid: 'بدون راتب', emergency: 'طارئة', maternity: 'أمومة' };
+              if (details.leave_type) detailParts.push(leaveTypes[details.leave_type] || details.leave_type);
+              if (details.from_date) detailParts.push(`من ${details.from_date} إلى ${details.to_date || details.from_date}`);
+            } else if (r.formType === 'advance' || r.formType === 'advance_request') {
+              // amount already shown in the card
+            } else if (r.formType === 'attendance_correction') {
+              if (details.correction_type) detailParts.push(details.correction_type);
+              if (details.correction_date) detailParts.push(details.correction_date);
+            } else if (r.formType === 'complaint') {
+              if (details.subject) detailParts.push(details.subject);
+            } else if (r.formType === 'disciplinary') {
+              if (details.violation_type) detailParts.push(details.violation_type);
+            }
+            
+            // Always show reason/notes if present
+            if (details.reason) detailParts.push(`📝 ${details.reason}`);
+            if (details.notes && details.notes !== details.reason) detailParts.push(`📝 ${details.notes}`);
+            if (details.description && details.description !== details.reason) detailParts.push(details.description);
+            if (details.items) detailParts.push(`📦 ${details.items}`);
+            if (details.employee_name) detailParts.push(`👤 ${details.employee_name}`);
+            
+            const detailText = detailParts.join(' • ');
 
             const isExpanded = expandedId === r.id;
 
