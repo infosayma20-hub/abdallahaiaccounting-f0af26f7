@@ -225,7 +225,7 @@ const CleanSmartAccountant = ({ user, userName, data, cfoMode, onToggleCfo, onCh
               full_name: parseData.name || '',
               user_id: user?.id,
               status: 'active',
-              hire_date: new Date().toISOString().split('T')[0],
+              start_date: new Date().toISOString().split('T')[0],
             };
             if (parseData.jobTitle) empData.job_title = parseData.jobTitle;
             if (parseData.department) empData.department = parseData.department;
