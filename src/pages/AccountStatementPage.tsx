@@ -295,12 +295,7 @@ const EntitySearchCombobox = ({ entities, selectedId, onSelect, placeholder }: E
 
   const filtered = useMemo(() => {
     if (!search.trim()) return entities;
-    const q = search.toLowerCase().trim();
-    return entities.filter(e =>
-      e.name.toLowerCase().includes(q) ||
-      (e.accountCode || "").includes(q) ||
-      (e.subtitle || "").toLowerCase().includes(q)
-    );
+    return entities.filter(e => multiWordMatchAny(search, e.name, e.accountCode, e.subtitle));
   }, [entities, search]);
 
   useEffect(() => {
