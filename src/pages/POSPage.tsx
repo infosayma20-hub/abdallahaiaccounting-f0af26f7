@@ -4066,7 +4066,7 @@ const POSPage = () => {
               <h3 className="text-sm font-bold text-foreground mb-2 flex items-center gap-1.5">⚡ الأوامر</h3>
               <div className="space-y-1.5">
                 {[
-                  { key: "F2", desc: "البحث عن منتج" },
+                  { key: "F2", desc: "تحويل إلى الفرع" },
                   { key: "F4", desc: "سجل الفواتير" },
                   { key: "F8", desc: "طباعة" },
                   { key: "F9", desc: "إرسال إلى الطابعة" },
