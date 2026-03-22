@@ -2688,9 +2688,9 @@ const POSPage = () => {
       const tag = (e.target as HTMLElement)?.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
 
-      // F2 = Focus search
-      if (e.key === "F2") {
-        searchRef.current?.focus();
+      // F2 = Call Center Dispatch (for call center users / admin)
+      if (e.key === "F2" && cart.length > 0 && (isAdmin || isCallCenter)) {
+        setShowCallCenterDispatch(true);
         e.preventDefault();
         return;
       }
