@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { Send, Mic, X, Square, Users, Package, Briefcase, BookOpen, PlusCircle } from "lucide-react";
+import { ArrowUp, Mic, X, Square, Users, Package, Briefcase, BookOpen, PlusCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
