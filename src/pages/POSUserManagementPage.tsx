@@ -290,9 +290,11 @@ export default function POSUserManagementPage() {
     setSaving(true);
     try {
       if (editingUser) {
+        const isCC = userForm.role === "call_center";
         const updates: Record<string, unknown> = {
-          name: userForm.name, phone: userForm.phone || null, email: userForm.email || null, role: userForm.role,
-          is_call_center: userForm.role === "call_center",
+          name: userForm.name, phone: userForm.phone || null, email: userForm.email || null,
+          role: isCC ? "cashier" : userForm.role,
+          is_call_center: isCC,
         };
 
         await supabase.from("pos_users").update(updates).eq("id", editingUser.id);
@@ -324,7 +326,7 @@ export default function POSUserManagementPage() {
           name: userForm.name,
           phone: userForm.phone || null,
           email: userForm.email || null,
-          role: userForm.role,
+          role: userForm.role === "call_center" ? "cashier" : userForm.role,
           is_call_center: userForm.role === "call_center",
           pin_hash: "no-pin", // Placeholder - PIN system removed
           created_by: user!.id,
