@@ -4,6 +4,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import type { CompanySettings } from "@/hooks/useCompanySettings";
+import TeamAccountManager from "./TeamAccountManager";
 
 interface Props {
   settings: CompanySettings;
@@ -137,6 +138,7 @@ const HRSettingsSection = ({ settings, onChange }: Props) => {
           <Switch checked={settings.hr_social_security ?? false} onCheckedChange={v => onChange({ hr_social_security: v })} />
         </div>
       </div>
+      <TeamAccountManager type="hr_manager" />
     </div>
   );
 };

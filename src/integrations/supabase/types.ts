@@ -14,6 +14,117 @@ export type Database = {
   }
   public: {
     Tables: {
+      accountant_permissions: {
+        Row: {
+          accountant_auth_id: string
+          can_create_journal: boolean | null
+          can_create_payment: boolean | null
+          can_create_purchase_invoice: boolean | null
+          can_create_receipt: boolean | null
+          can_create_sale_invoice: boolean | null
+          can_delete_invoices: boolean | null
+          can_delete_vouchers: boolean | null
+          can_edit_invoices: boolean | null
+          can_edit_vouchers: boolean | null
+          can_export_data: boolean | null
+          can_manage_accounts: boolean | null
+          can_manage_banks: boolean | null
+          can_manage_cash_boxes: boolean | null
+          can_manage_cheques: boolean | null
+          can_manage_customers: boolean | null
+          can_manage_inventory: boolean | null
+          can_manage_orders: boolean | null
+          can_manage_products: boolean | null
+          can_manage_suppliers: boolean | null
+          can_view_account_statement: boolean | null
+          can_view_balance_sheet: boolean | null
+          can_view_balances: boolean | null
+          can_view_ledger: boolean | null
+          can_view_profit_loss: boolean | null
+          can_view_reports: boolean | null
+          can_view_trial_balance: boolean | null
+          created_at: string | null
+          email: string
+          full_name: string
+          id: string
+          is_active: boolean | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          accountant_auth_id: string
+          can_create_journal?: boolean | null
+          can_create_payment?: boolean | null
+          can_create_purchase_invoice?: boolean | null
+          can_create_receipt?: boolean | null
+          can_create_sale_invoice?: boolean | null
+          can_delete_invoices?: boolean | null
+          can_delete_vouchers?: boolean | null
+          can_edit_invoices?: boolean | null
+          can_edit_vouchers?: boolean | null
+          can_export_data?: boolean | null
+          can_manage_accounts?: boolean | null
+          can_manage_banks?: boolean | null
+          can_manage_cash_boxes?: boolean | null
+          can_manage_cheques?: boolean | null
+          can_manage_customers?: boolean | null
+          can_manage_inventory?: boolean | null
+          can_manage_orders?: boolean | null
+          can_manage_products?: boolean | null
+          can_manage_suppliers?: boolean | null
+          can_view_account_statement?: boolean | null
+          can_view_balance_sheet?: boolean | null
+          can_view_balances?: boolean | null
+          can_view_ledger?: boolean | null
+          can_view_profit_loss?: boolean | null
+          can_view_reports?: boolean | null
+          can_view_trial_balance?: boolean | null
+          created_at?: string | null
+          email: string
+          full_name: string
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          accountant_auth_id?: string
+          can_create_journal?: boolean | null
+          can_create_payment?: boolean | null
+          can_create_purchase_invoice?: boolean | null
+          can_create_receipt?: boolean | null
+          can_create_sale_invoice?: boolean | null
+          can_delete_invoices?: boolean | null
+          can_delete_vouchers?: boolean | null
+          can_edit_invoices?: boolean | null
+          can_edit_vouchers?: boolean | null
+          can_export_data?: boolean | null
+          can_manage_accounts?: boolean | null
+          can_manage_banks?: boolean | null
+          can_manage_cash_boxes?: boolean | null
+          can_manage_cheques?: boolean | null
+          can_manage_customers?: boolean | null
+          can_manage_inventory?: boolean | null
+          can_manage_orders?: boolean | null
+          can_manage_products?: boolean | null
+          can_manage_suppliers?: boolean | null
+          can_view_account_statement?: boolean | null
+          can_view_balance_sheet?: boolean | null
+          can_view_balances?: boolean | null
+          can_view_ledger?: boolean | null
+          can_view_profit_loss?: boolean | null
+          can_view_reports?: boolean | null
+          can_view_trial_balance?: boolean | null
+          created_at?: string | null
+          email?: string
+          full_name?: string
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       accounts: {
         Row: {
           account_code: string
@@ -3795,6 +3906,99 @@ export type Database = {
           period_type?: string
           report_type?: string
           title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      hr_manager_permissions: {
+        Row: {
+          can_add_employees: boolean | null
+          can_approve_leaves: boolean | null
+          can_approve_payroll: boolean | null
+          can_approve_requests: boolean | null
+          can_delete_employees: boolean | null
+          can_edit_attendance: boolean | null
+          can_edit_employees: boolean | null
+          can_export_hr_data: boolean | null
+          can_manage_advances: boolean | null
+          can_manage_attendance: boolean | null
+          can_manage_branches: boolean | null
+          can_manage_deductions: boolean | null
+          can_manage_forms: boolean | null
+          can_manage_holidays: boolean | null
+          can_manage_hr_settings: boolean | null
+          can_manage_leave_policy: boolean | null
+          can_manage_loans: boolean | null
+          can_process_payroll: boolean | null
+          can_view_hr_reports: boolean | null
+          can_view_salary_info: boolean | null
+          created_at: string | null
+          email: string
+          full_name: string
+          hr_auth_id: string
+          id: string
+          is_active: boolean | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          can_add_employees?: boolean | null
+          can_approve_leaves?: boolean | null
+          can_approve_payroll?: boolean | null
+          can_approve_requests?: boolean | null
+          can_delete_employees?: boolean | null
+          can_edit_attendance?: boolean | null
+          can_edit_employees?: boolean | null
+          can_export_hr_data?: boolean | null
+          can_manage_advances?: boolean | null
+          can_manage_attendance?: boolean | null
+          can_manage_branches?: boolean | null
+          can_manage_deductions?: boolean | null
+          can_manage_forms?: boolean | null
+          can_manage_holidays?: boolean | null
+          can_manage_hr_settings?: boolean | null
+          can_manage_leave_policy?: boolean | null
+          can_manage_loans?: boolean | null
+          can_process_payroll?: boolean | null
+          can_view_hr_reports?: boolean | null
+          can_view_salary_info?: boolean | null
+          created_at?: string | null
+          email: string
+          full_name: string
+          hr_auth_id: string
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          can_add_employees?: boolean | null
+          can_approve_leaves?: boolean | null
+          can_approve_payroll?: boolean | null
+          can_approve_requests?: boolean | null
+          can_delete_employees?: boolean | null
+          can_edit_attendance?: boolean | null
+          can_edit_employees?: boolean | null
+          can_export_hr_data?: boolean | null
+          can_manage_advances?: boolean | null
+          can_manage_attendance?: boolean | null
+          can_manage_branches?: boolean | null
+          can_manage_deductions?: boolean | null
+          can_manage_forms?: boolean | null
+          can_manage_holidays?: boolean | null
+          can_manage_hr_settings?: boolean | null
+          can_manage_leave_policy?: boolean | null
+          can_manage_loans?: boolean | null
+          can_process_payroll?: boolean | null
+          can_view_hr_reports?: boolean | null
+          can_view_salary_info?: boolean | null
+          created_at?: string | null
+          email?: string
+          full_name?: string
+          hr_auth_id?: string
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string | null
           user_id?: string
         }
         Relationships: []

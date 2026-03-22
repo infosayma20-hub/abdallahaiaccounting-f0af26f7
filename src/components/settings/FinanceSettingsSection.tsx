@@ -8,6 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import type { CompanySettings } from "@/hooks/useCompanySettings";
+import TeamAccountManager from "./TeamAccountManager";
 
 interface Props {
   settings: CompanySettings;
@@ -205,6 +206,7 @@ const FinanceSettingsSection = ({ settings, onChange }: Props) => {
           )}
         </div>
       </div>
+      <TeamAccountManager type="accountant" />
     </div>
   );
 };
