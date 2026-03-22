@@ -109,21 +109,9 @@ Deno.serve(async (req) => {
     );
 
     // ── Determine target company/user ──
-    // 1. Check company_settings for pbx_company_id stored in the webhook secret/header
-    // 2. Fallback: find company that has pos_customers matching the caller
-    // 3. Last resort: use the configured default company
-
-    // Default company for PBX: شركة مطاعم الدجاج الملكي (malaky broast)
-    const DEFAULT_PBX_COMPANY_ID = "fce51290-60e8-4ded-a3bc-0b542797dd67";
-
-    // Get the owner user_id for this company
-    const { data: companyRow } = await supabase
-      .from("companies")
-      .select("owner_id")
-      .eq("id", DEFAULT_PBX_COMPANY_ID)
-      .single();
-
-    const companyOwnerId = companyRow?.owner_id;
+    // Default owner for PBX: شركة مطاعم الدجاج الملكي (malaky broast)
+    const DEFAULT_PBX_OWNER_ID = "0b08eba6-c81a-4f6c-b371-e6e324016e73";
+    const companyOwnerId = DEFAULT_PBX_OWNER_ID;
 
     const phoneVariants = Array.from(new Set([
       normalizedNumber,
