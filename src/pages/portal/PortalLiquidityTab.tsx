@@ -17,6 +17,7 @@ const names: Record<string, string> = { ILS: 'شيكل', JOD: 'دينار', USD:
 interface Props {
   data: LiquidityData | null;
   loading: boolean;
+  theme?: 'light' | 'dark';
 }
 
 export default function PortalLiquidityTab({ data, loading }: Props) {

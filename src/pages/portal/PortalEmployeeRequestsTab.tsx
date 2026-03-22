@@ -16,15 +16,21 @@ interface EmployeeRequest {
 
 const formTypeLabels: Record<string, string> = {
   leave: '🏖️ إجازة',
+  leave_request: '🏖️ إجازة',
   advance: '💰 سلفة',
+  advance_request: '💰 سلفة',
   loan: '🏦 قرض',
+  loan_request: '🏦 قرض',
   overtime: '⏰ أوفرتايم',
+  overtime_request: '⏰ أوفرتايم',
   attendance_correction: '📋 تصحيح بصمة',
   complaint: '📝 شكوى',
   facility_quality: '🏢 جودة مرافق',
   equipment_issue: '🔧 أعطال معدات',
+  equipment_fault: '🔧 أعطال معدات',
   disciplinary: '⚠️ إجراء عقابي',
   stock_balance: '📦 رصيد أصناف',
+  inventory_balance: '📦 رصيد أصناف',
 };
 
 const statusLabels: Record<string, { label: string; color: string; bg: string }> = {
