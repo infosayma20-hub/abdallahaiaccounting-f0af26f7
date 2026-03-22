@@ -2209,7 +2209,7 @@ const POSPage = () => {
           exchange_rate: rate,
           foreign_amount: foreignTotal,
           rate_source: rateEdited ? "cashier" : "system",
-          ...(paymentMethod === "employee_account" && employeeAccountCode
+          ...(effectivePaymentMethod === "employee_account" && employeeAccountCode
             ? { employee_account_code: employeeAccountCode }
             : {}),
         }],
