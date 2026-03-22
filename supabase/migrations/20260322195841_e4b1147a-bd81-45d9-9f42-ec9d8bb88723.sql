@@ -1,0 +1,1 @@
+ALTER TABLE public.pos_users ADD COLUMN IF NOT EXISTS is_call_center boolean DEFAULT false;

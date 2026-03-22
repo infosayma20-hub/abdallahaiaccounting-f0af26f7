@@ -7517,6 +7517,7 @@ export type Database = {
           has_account: boolean | null
           id: string
           is_active: boolean
+          is_call_center: boolean | null
           last_login_at: string | null
           must_change_password: boolean | null
           name: string
@@ -7541,6 +7542,7 @@ export type Database = {
           has_account?: boolean | null
           id?: string
           is_active?: boolean
+          is_call_center?: boolean | null
           last_login_at?: string | null
           must_change_password?: boolean | null
           name: string
@@ -7565,6 +7567,7 @@ export type Database = {
           has_account?: boolean | null
           id?: string
           is_active?: boolean
+          is_call_center?: boolean | null
           last_login_at?: string | null
           must_change_password?: boolean | null
           name?: string
