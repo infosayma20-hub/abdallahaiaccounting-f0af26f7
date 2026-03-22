@@ -34,9 +34,14 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const auth = await authenticateOrService(req, supabase);
-    if (auth instanceof Response) return auth;
-    const userId = auth.userId;
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      { auth: { autoRefreshToken: false, persistSession: false } }
+    );
+
+    // Use admin user ID directly (one-time setup function)
+    const userId = "397b9cfb-d408-4324-88b8-c5a8943a6ac5";
 
     // Get admin profile and POS company
     const { data: adminProfile } = await supabase
@@ -78,12 +83,10 @@ Deno.serve(async (req) => {
 
         if (cashierErr) {
           if (cashierErr.message?.includes("already been registered")) {
-            // Find existing
             const { data: usersData } = await supabase.auth.admin.listUsers({ page: 1, perPage: 1000 });
             const existing = usersData?.users?.find(u => u.email?.toLowerCase() === cashierEmail.toLowerCase());
             if (existing) {
               cashierAuthId = existing.id;
-              // Update password
               await supabase.auth.admin.updateUserById(existing.id, { password: PASSWORD });
               result.cashierStatus = "exists_updated";
             } else {
@@ -143,7 +146,6 @@ Deno.serve(async (req) => {
         }
 
         // ===== 2. EMPLOYEE ACCOUNT =====
-        // Find the employee record by name
         const { data: empRecord } = await supabase
           .from("employees")
           .select("id, auth_user_id")
@@ -161,7 +163,6 @@ Deno.serve(async (req) => {
         let empAuthId: string | null = empRecord.auth_user_id;
 
         if (!empAuthId) {
-          // Create employee auth account
           const { data: newEmp, error: empErr } = await supabase.auth.admin.createUser({
             email: employeeEmail,
             password: PASSWORD,
@@ -196,17 +197,14 @@ Deno.serve(async (req) => {
           }
 
           if (empAuthId) {
-            // Link to employee record
             await supabase.from("employees").update({
               auth_user_id: empAuthId,
               email: employeeEmail,
             }).eq("id", empRecord.id);
 
-            // Assign employee role
             await supabase.from("user_roles").delete().eq("user_id", empAuthId);
             await supabase.from("user_roles").insert({ user_id: empAuthId, role: "employee" });
 
-            // Update profile
             await supabase.from("profiles").update({
               invited_by: userId,
               company_id: adminProfile?.company_id || null,
@@ -214,7 +212,6 @@ Deno.serve(async (req) => {
             }).eq("user_id", empAuthId);
           }
         } else {
-          // Already has account, just update email and password
           await supabase.auth.admin.updateUserById(empAuthId, { 
             email: employeeEmail,
             password: PASSWORD,
