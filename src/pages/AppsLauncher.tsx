@@ -152,8 +152,24 @@ const AppsLauncher = () => {
     return !enabledSettings[app.enableSetting];
   };
 
+  // Check if user has a restricted role (not admin/super_admin)
+  const restrictedRole = useMemo(() => {
+    const restricted = Object.keys(ROLE_ALLOWED_APPS);
+    const found = userRoles.find(r => restricted.includes(r));
+    // If user also has admin role, don't restrict
+    if (userRoles.includes("admin") || userRoles.includes("super_admin")) return null;
+    return found || null;
+  }, [userRoles]);
+
   const allFilteredApps = useMemo(() => {
-    const allApps = appSections.flatMap(s => s.items);
+    let allApps = appSections.flatMap(s => s.items);
+    
+    // Filter by role if restricted
+    if (restrictedRole && ROLE_ALLOWED_APPS[restrictedRole]) {
+      const allowed = ROLE_ALLOWED_APPS[restrictedRole];
+      allApps = allApps.filter(app => allowed.includes(app.id));
+    }
+    
     const q = search.trim();
     const filtered = q
       ? allApps.filter(app =>
