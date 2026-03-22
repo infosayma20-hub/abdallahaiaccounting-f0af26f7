@@ -17,7 +17,7 @@ import {
   UtensilsCrossed, Gamepad2, Shirt, Monitor, ShoppingBag, Printer,
   Apple, Zap, Coffee, Box, BarChart3, TrendingUp, PlusCircle, Tag,
   Eye, EyeOff, UserCheck, LayoutGrid, Grid3X3, Grid2X2, GripVertical,
-  FileText, Keyboard, MoreHorizontal, RefreshCw, ChefHat, Sun, Moon, Phone, MapPin, Send,
+  FileText, Keyboard, MoreHorizontal, RefreshCw, ChefHat, Sun, Moon, Phone, MapPin, Send, ClipboardList,
 } from "lucide-react";
 import { useTheme } from "@/hooks/useTheme";
 import TableSelectorBar, { type TableBarItem } from "@/components/pos/TableSelectorBar";
@@ -32,6 +32,7 @@ import ShiftSummaryReceipt from "@/components/ShiftSummaryReceipt";
 import InvoiceHistoryDrawer from "@/components/pos/InvoiceHistoryDrawer";
 import CallCenterDispatchDialog from "@/components/pos/CallCenterDispatchDialog";
 import PendingOrdersPanel from "@/components/pos/PendingOrdersPanel";
+import DispatchedOrdersLog from "@/components/pos/DispatchedOrdersLog";
 import CustomerDataModal from "@/components/pos/CustomerDataModal";
 import { type SelectedModifier } from "@/components/pos/ModifierModal";
 import InlineAddonPanel from "@/components/pos/InlineAddonPanel";
@@ -96,6 +97,7 @@ interface OrderTab {
   guestName: string;
   orderType: "dine_in" | "takeaway" | "delivery";
   deliveryAddress: string;
+  callCenterOrderId?: string | null;
 }
 
 interface POSCustomer {
@@ -517,6 +519,7 @@ const POSPage = () => {
    const [showOpsDropdown, setShowOpsDropdown] = useState(false);
     const [showSyncLog, setShowSyncLog] = useState(false);
      const [showCallCenterDispatch, setShowCallCenterDispatch] = useState(false);
+     const [showDispatchLog, setShowDispatchLog] = useState(false);
      const [isCallCenter, setIsCallCenter] = useState(false);
 
    // Modifiers
@@ -1771,6 +1774,14 @@ const POSPage = () => {
           cost_price: item.cost_price,
         }));
         await supabase.from("pos_order_lines").insert(lines);
+
+        // Link call center order to POS order if applicable
+        if (activeOrder.callCenterOrderId && order.id) {
+          await supabase
+            .from("call_center_orders" as any)
+            .update({ pos_order_id: order.id } as any)
+            .eq("id", activeOrder.callCenterOrderId);
+        }
       }
 
       toast.success(`💾 تم حفظ الطلب على ${activeOrder.tableName}`);
@@ -2084,6 +2095,14 @@ const POSPage = () => {
       }));
 
       await supabase.from("pos_order_lines").insert(lines);
+
+      // Link call center order to POS order if applicable
+      if (activeOrder.callCenterOrderId && orderId) {
+        await supabase
+          .from("call_center_orders" as any)
+          .update({ pos_order_id: orderId } as any)
+          .eq("id", activeOrder.callCenterOrderId);
+      }
 
       const rate = exchangeRates[paymentCurrency] || 1;
       const foreignTotal = paymentCurrency === "ILS" ? effectiveTotal : effectiveTotal / rate;
@@ -2905,6 +2924,7 @@ const POSPage = () => {
             newOrder.customerPhone = order.customer_phone || "";
             newOrder.orderType = order.delivery_type === "delivery" ? "delivery" : "takeaway";
             newOrder.deliveryAddress = order.delivery_address || "";
+            newOrder.callCenterOrderId = order.id;
             newOrder.orderNote = [
               order.source_app ? `مصدر: ${order.source_app}` : "",
               order.payment_method === "visa" ? "💳 فيزا" : "💵 نقدي",
@@ -3915,7 +3935,7 @@ const POSPage = () => {
                 </div>
               )}
               {/* Call Center Dispatch Button - replaces customer data for call center users */}
-              {cart.length > 0 && (isAdmin || isCallCenter) && (
+               {cart.length > 0 && (isAdmin || isCallCenter) && (
                 <button
                   onClick={() => setShowCallCenterDispatch(true)}
                   disabled={!session}
@@ -3924,6 +3944,16 @@ const POSPage = () => {
                   <Send className="h-4 w-4" />
                   تحويل إلى الفرع
                   <span className="text-[10px] bg-orange-500/20 rounded px-1.5 py-0.5 font-mono">F2</span>
+                </button>
+              )}
+              {/* Dispatched Orders Log for Call Center */}
+              {isCallCenter && (
+                <button
+                  onClick={() => setShowDispatchLog(true)}
+                  className="w-full h-9 rounded-xl text-xs font-medium flex items-center justify-center gap-2 border border-border bg-muted/30 text-muted-foreground hover:bg-muted/60 transition-all"
+                >
+                  <ClipboardList className="h-3.5 w-3.5" />
+                  سجل الفواتير المحوّلة
                 </button>
               )}
               {/* Bottom row: Delete + Print + Pay */}
@@ -5175,6 +5205,13 @@ const POSPage = () => {
           setCustomerName("", null, "", null);
           updateActiveOrder(o => ({ ...o, orderType: "dine_in", deliveryAddress: "" }));
         }}
+      />
+
+      {/* Dispatched Orders Log */}
+      <DispatchedOrdersLog
+        open={showDispatchLog}
+        onClose={() => setShowDispatchLog(false)}
+        dataOwnerId={dataOwnerId || ""}
       />
     </div>
   );

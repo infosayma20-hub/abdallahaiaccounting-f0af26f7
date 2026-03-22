@@ -1,0 +1,230 @@
+import { useState, useEffect, useCallback } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { ClipboardList, Clock, CheckCircle2, XCircle, Truck, ShoppingBag, Phone, User, MapPin, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
+
+interface DispatchedOrder {
+  id: string;
+  source_app: string;
+  target_branch_name: string;
+  customer_name: string;
+  customer_phone: string;
+  delivery_type: string;
+  delivery_address: string | null;
+  payment_method: string;
+  items: any[];
+  total: number;
+  order_note: string | null;
+  status: string;
+  dispatched_by_name: string;
+  created_at: string;
+  accepted_at: string | null;
+}
+
+interface Props {
+  open: boolean;
+  onClose: () => void;
+  dataOwnerId: string;
+}
+
+const statusConfig: Record<string, { label: string; color: string; icon: any }> = {
+  pending: { label: "في الانتظار", color: "bg-amber-500", icon: Clock },
+  accepted: { label: "مقبول", color: "bg-blue-500", icon: CheckCircle2 },
+  completed: { label: "مكتمل", color: "bg-green-600", icon: CheckCircle2 },
+  cancelled: { label: "ملغي", color: "bg-red-500", icon: XCircle },
+};
+
+export default function DispatchedOrdersLog({ open, onClose, dataOwnerId }: Props) {
+  const [orders, setOrders] = useState<DispatchedOrder[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [filter, setFilter] = useState<"all" | "pending" | "accepted" | "completed">("all");
+
+  const loadOrders = useCallback(async () => {
+    if (!dataOwnerId) return;
+    setLoading(true);
+
+    // Load today's dispatched orders
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    let query = supabase
+      .from("call_center_orders" as any)
+      .select("*")
+      .eq("user_id", dataOwnerId)
+      .gte("created_at", today.toISOString())
+      .order("created_at", { ascending: false });
+
+    if (filter !== "all") {
+      query = query.eq("status", filter);
+    }
+
+    const { data } = await query;
+    setOrders((data as any as DispatchedOrder[]) || []);
+    setLoading(false);
+  }, [dataOwnerId, filter]);
+
+  useEffect(() => {
+    if (open) loadOrders();
+  }, [open, loadOrders]);
+
+  // Realtime updates
+  useEffect(() => {
+    if (!open || !dataOwnerId) return;
+
+    const channel = supabase
+      .channel("dispatch-log")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "call_center_orders",
+          filter: `user_id=eq.${dataOwnerId}`,
+        },
+        () => loadOrders()
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [open, dataOwnerId, loadOrders]);
+
+  const pendingCount = orders.filter(o => o.status === "pending").length;
+  const acceptedCount = orders.filter(o => o.status === "accepted").length;
+  const completedCount = orders.filter(o => o.status === "completed").length;
+
+  return (
+    <Sheet open={open} onOpenChange={v => !v && onClose()}>
+      <SheetContent side="right" className="w-full sm:max-w-xl lg:max-w-2xl p-0" dir="rtl">
+        <SheetHeader className="p-3 border-b border-border">
+          <SheetTitle className="flex items-center gap-2 text-sm">
+            <ClipboardList className="h-4 w-4 text-primary" />
+            سجل الفواتير المحوّلة
+            <Button variant="ghost" size="sm" onClick={loadOrders} className="h-6 w-6 p-0 mr-auto">
+              <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
+            </Button>
+          </SheetTitle>
+        </SheetHeader>
+
+        {/* Filter tabs */}
+        <div className="flex gap-1.5 p-2 border-b border-border">
+          {[
+            { key: "all" as const, label: "الكل", count: orders.length },
+            { key: "pending" as const, label: "معلّق", count: pendingCount },
+            { key: "accepted" as const, label: "مقبول", count: acceptedCount },
+            { key: "completed" as const, label: "مكتمل", count: completedCount },
+          ].map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => setFilter(tab.key)}
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all ${
+                filter === tab.key
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted/40 text-muted-foreground hover:bg-muted"
+              }`}
+            >
+              {tab.label} ({tab.count})
+            </button>
+          ))}
+        </div>
+
+        <ScrollArea className="h-[calc(100vh-110px)]">
+          <div className="p-3 space-y-2">
+            {orders.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                <ClipboardList className="h-10 w-10 mx-auto mb-2 opacity-30" />
+                <p className="text-sm">لا توجد فواتير محوّلة اليوم</p>
+              </div>
+            ) : (
+              orders.map((order) => {
+                const cfg = statusConfig[order.status] || statusConfig.pending;
+                const StatusIcon = cfg.icon;
+                return (
+                  <div
+                    key={order.id}
+                    className={`rounded-lg border p-2.5 space-y-1.5 ${
+                      order.status === "pending"
+                        ? "border-amber-500/40 bg-amber-500/5"
+                        : order.status === "accepted"
+                          ? "border-blue-500/30 bg-blue-500/5"
+                          : order.status === "completed"
+                            ? "border-green-500/20 bg-green-500/5"
+                            : "border-border bg-muted/20 opacity-60"
+                    }`}
+                  >
+                    {/* Header */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5">
+                          {order.source_app}
+                        </Badge>
+                        <span className="text-[10px] text-muted-foreground">
+                          {new Date(order.created_at).toLocaleTimeString("ar-PS", { hour: "2-digit", minute: "2-digit" })}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground">→</span>
+                        <span className="text-[10px] font-semibold text-primary">🏪 {order.target_branch_name}</span>
+                      </div>
+                      <Badge className={`text-[10px] px-1.5 py-0 h-5 gap-0.5 ${cfg.color}`}>
+                        <StatusIcon className="h-2.5 w-2.5" />
+                        {cfg.label}
+                      </Badge>
+                    </div>
+
+                    {/* Customer */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <User className="h-3 w-3 text-muted-foreground" />
+                        <span className="text-xs font-bold">{order.customer_name}</span>
+                        {order.customer_phone && (
+                          <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                            <Phone className="h-2.5 w-2.5" />
+                            <span dir="ltr">{order.customer_phone}</span>
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Badge variant="outline" className={`text-[10px] px-1 py-0 h-4 ${order.delivery_type === "delivery" ? "text-orange-600" : "text-blue-600"}`}>
+                          {order.delivery_type === "delivery" ? <Truck className="h-2.5 w-2.5" /> : <ShoppingBag className="h-2.5 w-2.5" />}
+                        </Badge>
+                        <span className="font-mono text-xs font-bold">₪{order.total.toFixed(0)}</span>
+                      </div>
+                    </div>
+
+                    {/* Items preview */}
+                    <div className="text-[10px] text-muted-foreground truncate">
+                      {(order.items || []).map((item: any) => `${item.name}×${item.qty}`).join(" • ")}
+                    </div>
+
+                    {/* Timing */}
+                    {order.status === "pending" && (
+                      <div className="flex items-center gap-1 text-[10px] text-amber-600 font-medium">
+                        <Clock className="h-3 w-3 animate-pulse" />
+                        في انتظار قبول الفرع منذ {getTimeSince(order.created_at)}
+                      </div>
+                    )}
+                    {order.accepted_at && (
+                      <div className="text-[10px] text-muted-foreground">
+                        تم القبول: {new Date(order.accepted_at).toLocaleTimeString("ar-PS", { hour: "2-digit", minute: "2-digit" })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </ScrollArea>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+function getTimeSince(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "أقل من دقيقة";
+  if (mins < 60) return `${mins} دقيقة`;
+  const hours = Math.floor(mins / 60);
+  return `${hours} ساعة و ${mins % 60} دقيقة`;
+}
