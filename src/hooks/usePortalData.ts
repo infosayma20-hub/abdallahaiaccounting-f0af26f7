@@ -1,6 +1,24 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { getBusinessDay, getShiftRangeForDate, type BusinessDay } from '@/lib/portal-business-day';
+import { type BusinessDay } from '@/lib/portal-business-day';
+
+function formatLocalDate(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function getCalendarRangeForDate(dateStr: string) {
+  const start = new Date(`${dateStr}T00:00:00`);
+  const end = new Date(`${dateStr}T23:59:59.999`);
+  return {
+    start: start.toISOString(),
+    end: end.toISOString(),
+    startDate: start,
+    endDate: end,
+  };
+}
 
 export interface BranchSales {
   id: string;
@@ -43,30 +61,54 @@ export function usePortalData(userId: string | undefined) {
   const [loading, setLoading] = useState(true);
   const [needsSetup, setNeedsSetup] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
-  const [businessDay, setBusinessDay] = useState<BusinessDay>(getBusinessDay());
+  const [businessDay, setBusinessDay] = useState<BusinessDay>(() => {
+    const now = new Date();
+    const today = getCalendarRangeForDate(formatLocalDate(now));
+    return {
+      date: now,
+      dateStr: formatLocalDate(now),
+      label: 'اليوم',
+      isActive: true,
+      isBetweenShifts: false,
+      shiftStart: today.startDate,
+      shiftEnd: now,
+    };
+  });
   const intervalRef = useRef<number>();
 
   const fetchData = useCallback(async (customDate?: string) => {
     if (!userId) return;
     try {
+      setLoading(true);
       let shiftStart: string;
       let shiftEnd: string;
       let bd: BusinessDay;
 
       if (customDate) {
-        const range = getShiftRangeForDate(customDate);
+        const range = getCalendarRangeForDate(customDate);
         shiftStart = range.start;
         shiftEnd = range.end;
-        const d = new Date(customDate + 'T00:00:00');
+        const d = new Date(`${customDate}T00:00:00`);
         bd = {
           date: d, dateStr: customDate,
-          label: 'تاريخ محدد', isActive: false,
-          isBetweenShifts: false, shiftStart: new Date(shiftStart), shiftEnd: new Date(shiftEnd),
+          label: 'تاريخ محدد', isActive: customDate === formatLocalDate(new Date()),
+          isBetweenShifts: false, shiftStart: range.startDate, shiftEnd: range.endDate,
         };
       } else {
-        bd = getBusinessDay();
-        shiftStart = bd.shiftStart.toISOString();
-        shiftEnd = bd.shiftEnd.toISOString();
+        const now = new Date();
+        const todayStr = formatLocalDate(now);
+        const range = getCalendarRangeForDate(todayStr);
+        shiftStart = range.start;
+        shiftEnd = now.toISOString();
+        bd = {
+          date: now,
+          dateStr: todayStr,
+          label: 'اليوم',
+          isActive: true,
+          isBetweenShifts: false,
+          shiftStart: range.startDate,
+          shiftEnd: now,
+        };
       }
 
       setBusinessDay(bd);
@@ -90,10 +132,22 @@ export function usePortalData(userId: string | undefined) {
 
   useEffect(() => {
     fetchData();
-    intervalRef.current = window.setInterval(() => {
+    const refreshIfVisible = () => {
       if (document.visibilityState === 'visible') fetchData();
-    }, 60000);
-    return () => clearInterval(intervalRef.current);
+    };
+
+    intervalRef.current = window.setInterval(() => {
+      refreshIfVisible();
+    }, 15000);
+
+    window.addEventListener('focus', refreshIfVisible);
+    document.addEventListener('visibilitychange', refreshIfVisible);
+
+    return () => {
+      clearInterval(intervalRef.current);
+      window.removeEventListener('focus', refreshIfVisible);
+      document.removeEventListener('visibilitychange', refreshIfVisible);
+    };
   }, [fetchData]);
 
   return { salesData, liquidityData, loading, needsSetup, lastUpdated, businessDay, refresh: fetchData };
