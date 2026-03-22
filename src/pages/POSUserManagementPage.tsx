@@ -43,6 +43,12 @@ interface POSUserRow {
   has_account: boolean;
   auth_user_id: string | null;
   account_status: string | null;
+  branch_id: string | null;
+}
+
+interface BranchOption {
+  id: string;
+  name: string;
 }
 
 interface POSDevice {
