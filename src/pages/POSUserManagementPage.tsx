@@ -36,6 +36,7 @@ interface POSUserRow {
   email: string | null;
   avatar_url: string | null;
   role: string;
+  is_call_center: boolean;
   is_active: boolean;
   last_login_at: string | null;
   company_id: string;
@@ -228,7 +229,8 @@ export default function POSUserManagementPage() {
 
   const openEditUser = async (u: POSUserRow) => {
     setEditingUser(u);
-    setUserForm({ name: u.name, phone: u.phone || "", email: u.email || "", role: u.role });
+    const effectiveRole = u.is_call_center ? "call_center" : u.role;
+    setUserForm({ name: u.name, phone: u.phone || "", email: u.email || "", role: effectiveRole });
 
     // Load permissions
     const { data: perms } = await supabase.from("pos_user_permissions").select("*").eq("pos_user_id", u.id).single();
@@ -677,7 +679,7 @@ export default function POSUserManagementPage() {
                         
                         
                         <td className="px-3 py-3">
-                          <Badge className={`text-[10px] ${ROLE_COLORS[u.role] || "bg-muted"}`}>{ROLE_LABELS[u.role] || u.role}</Badge>
+                          <Badge className={`text-[10px] ${ROLE_COLORS[u.is_call_center ? "call_center" : u.role] || "bg-muted"}`}>{ROLE_LABELS[u.is_call_center ? "call_center" : u.role] || u.role}</Badge>
                         </td>
                         <td className="px-3 py-3 text-center">
                           {u.is_active ? (
