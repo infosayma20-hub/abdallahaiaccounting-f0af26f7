@@ -110,8 +110,7 @@ const PurchaseOrderCreatePage = () => {
     let result = allItems;
     if (activeCategory) result = result.filter((i: any) => i.category_id === activeCategory);
     if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      result = result.filter((i: any) => i.name.toLowerCase().includes(q));
+      result = result.filter((i: any) => multiWordMatchAny(searchQuery, i.name));
     }
     return result;
   }, [allItems, activeCategory, searchQuery]);
