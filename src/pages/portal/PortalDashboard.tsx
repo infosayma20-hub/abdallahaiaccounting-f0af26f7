@@ -228,7 +228,7 @@ export default function PortalDashboard() {
           <PortalLiquidityTab data={liquidityData} loading={dataLoading} theme={darkMode ? 'dark' : 'light'} />
         )}
         {activeTab === 'requests' && <PortalEmployeeRequestsTab theme={darkMode ? 'dark' : 'light'} />}
-        {activeTab === 'suppliers' && <PortalSupplierBalancesTab />}
+        {activeTab === 'suppliers' && <PortalSupplierBalancesTab theme={darkMode ? 'dark' : 'light'} />}
       </div>
 
       {/* Hide scrollbar CSS */}
