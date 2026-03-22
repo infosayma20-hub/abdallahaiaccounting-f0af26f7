@@ -48,7 +48,7 @@ const PurchaseOrdersPage = () => {
     if (branchFilter !== "all" && o.branch_id !== branchFilter) return false;
     if (fromDate && o.order_date < fromDate) return false;
     if (toDate && o.order_date > toDate) return false;
-    if (search && !o.order_number?.includes(search) && !o.supplier?.name?.includes(search)) return false;
+    if (search && !multiWordMatchAny(search, o.order_number, o.supplier?.name)) return false;
     return true;
   });
 

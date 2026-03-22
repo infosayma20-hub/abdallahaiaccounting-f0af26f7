@@ -261,12 +261,7 @@ const TrialBalancePage = () => {
   const filteredRows = useMemo(() => {
     let result = rows;
     if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      result = result.filter(r =>
-        r.accountName.toLowerCase().includes(q) ||
-        r.accountCode.toLowerCase().includes(q) ||
-        r.accountType.toLowerCase().includes(q)
-      );
+      result = result.filter(r => multiWordMatchAny(searchQuery, r.accountName, r.accountCode, r.accountType));
     }
     if (typeFilter !== "all") {
       result = result.filter(r => {

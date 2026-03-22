@@ -342,8 +342,7 @@ const FinanceJournalPage = () => {
   const filtered = useMemo(() => {
     return vouchers.filter(v => {
       if (searchQuery) {
-        const q = searchQuery.toLowerCase();
-        if (!v.ref_number?.toLowerCase().includes(q) && !v.description?.toLowerCase().includes(q)) return false;
+        if (!multiWordMatchAny(searchQuery, v.ref_number, v.description)) return false;
       }
       if (filterStatus === "active" && v.status === "cancelled") return false;
       if (filterStatus !== "all" && filterStatus !== "active" && v.status !== filterStatus) return false;

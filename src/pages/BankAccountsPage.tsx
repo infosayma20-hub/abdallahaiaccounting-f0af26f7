@@ -32,8 +32,7 @@ const AccountPicker = ({ accounts, value, onChange, placeholder }: {
   const selected = accounts.find(a => a.account_code === value);
   const filtered = useMemo(() => {
     if (!search.trim()) return accounts;
-    const q = search.trim().toLowerCase();
-    return accounts.filter(a => a.account_code.includes(q) || a.account_name.includes(q));
+    return accounts.filter(a => multiWordMatchAny(search, a.account_code, a.account_name));
   }, [accounts, search]);
 
   const typeColor: Record<string, string> = {

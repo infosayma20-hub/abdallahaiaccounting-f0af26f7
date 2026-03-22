@@ -225,13 +225,7 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
     else if (statusFilter !== "all") data = data.filter(v => v.status_label === statusFilter);
     if (paymentFilter !== "all") data = data.filter(v => v.payment_label === paymentFilter);
     if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      data = data.filter(v =>
-        (v.ref_number || "").toLowerCase().includes(q) ||
-        (v.description || "").toLowerCase().includes(q) ||
-        (v.notes || "").toLowerCase().includes(q) ||
-        (v.contact_name || "").toLowerCase().includes(q)
-      );
+      data = data.filter(v => multiWordMatchAny(searchQuery, v.ref_number, v.description, v.notes, v.contact_name));
     }
     return data;
   }, [tableData, statusFilter, paymentFilter, searchQuery]);
