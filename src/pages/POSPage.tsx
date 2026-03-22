@@ -2001,7 +2001,8 @@ const POSPage = () => {
   const handleCompleteOrder = async (overridePaymentMethod?: string) => {
     if (!userId || !session || cart.length === 0) return;
     if (!company) return;
-    if (paymentMethod === "employee_account" && !selectedEmployee) {
+    const effectivePaymentMethod = overridePaymentMethod || paymentMethod;
+    if (effectivePaymentMethod === "employee_account" && !selectedEmployee) {
       toast.error("يرجى اختيار الموظف أولاً");
       return;
     }
