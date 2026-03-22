@@ -8,7 +8,7 @@ import {
   ChevronLeft, ChevronRight, Search, X, LogOut, Database, FileText, ChevronDown,
   TrendingUp, Wifi, Download, Table2, Play, Pause, Settings, Package,
   Zap, Server, Bell, HardDrive, CreditCard, BarChart3, PieChart, ArrowUpRight, ArrowDownRight, CalendarDays,
-  Sun, Moon,
+  Sun, Moon, LayoutDashboard,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
