@@ -37,7 +37,30 @@ export function fmtDateTimeDisplay(dateStr: string | Date | null | undefined): s
     const year = d.getFullYear();
     const hours = String(d.getHours()).padStart(2, "0");
     const mins = String(d.getMinutes()).padStart(2, "0");
-    return `${day}/${month}/${year} ${hours}:${mins}`;
+  return `${day}/${month}/${year} ${hours}:${mins}`;
+}
+
+/**
+ * Multi-word search: returns true if ALL words in the query exist
+ * somewhere in the target string (order doesn't matter).
+ * Use this for ALL user-facing search/filter inputs.
+ */
+export function multiWordMatch(target: string | null | undefined, query: string): boolean {
+  if (!target || !query) return false;
+  const t = target.toLowerCase();
+  const words = query.toLowerCase().trim().split(/\s+/).filter(Boolean);
+  return words.every(w => t.includes(w));
+}
+
+/**
+ * Check if any of the given fields match the multi-word query.
+ */
+export function multiWordMatchAny(query: string, ...fields: (string | null | undefined)[]): boolean {
+  if (!query || !query.trim()) return true;
+  const words = query.toLowerCase().trim().split(/\s+/).filter(Boolean);
+  // Each word must appear in at least one field
+  return words.every(w => fields.some(f => f?.toLowerCase().includes(w)));
+}
   } catch {
     return String(dateStr);
   }
