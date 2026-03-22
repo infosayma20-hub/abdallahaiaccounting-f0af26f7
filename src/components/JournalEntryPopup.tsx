@@ -127,9 +127,8 @@ const AccountSearchDropdown = ({
   }, []);
 
   const filtered = useMemo(() => {
-    const q = search.toLowerCase();
     return accounts
-      .filter(a => a.account_code.includes(q) || a.account_name.toLowerCase().includes(q))
+      .filter(a => multiWordMatchAny(search, a.account_code, a.account_name))
       .slice(0, 20);
   }, [accounts, search]);
 

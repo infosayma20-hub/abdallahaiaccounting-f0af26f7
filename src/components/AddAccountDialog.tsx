@@ -165,8 +165,7 @@ export default function AddAccountDialog({ open, onOpenChange, accounts, onAdd }
       filtered = filtered.filter(a => normalizeType(a.account_type) === accountType);
     }
     if (parentSearch.trim()) {
-      const q = parentSearch.toLowerCase();
-      filtered = filtered.filter(a => a.account_name.toLowerCase().includes(q) || a.account_code.includes(q));
+      filtered = filtered.filter(a => multiWordMatchAny(parentSearch, a.account_name, a.account_code));
     }
     return filtered.sort((a, b) => a.account_code.localeCompare(b.account_code));
   }, [accounts, accountType, parentSearch]);

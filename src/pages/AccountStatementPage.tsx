@@ -1130,11 +1130,7 @@ const AccountStatementPage = () => {
       result = result.filter(r => r.transaction_type.includes(txTypeFilter));
     }
     if (txSearch.trim()) {
-      const q = txSearch.toLowerCase();
-      result = result.filter(r =>
-        r.description.toLowerCase().includes(q) ||
-        r.reference.toLowerCase().includes(q)
-      );
+      result = result.filter(r => multiWordMatchAny(txSearch, r.description, r.reference));
     }
     // Summary mode: group by reference, keep only one row per reference
     if (detailLevel === "summary") {

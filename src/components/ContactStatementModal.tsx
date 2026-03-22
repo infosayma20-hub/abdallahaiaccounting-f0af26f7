@@ -87,14 +87,13 @@ const ContactStatementModal = ({ open, onClose }: Props) => {
   }, [open, user]);
 
   const filteredItems = useMemo(() => {
-    const q = search.toLowerCase();
     if (tab === "employee") {
-      return employees.filter(e => !q || e.full_name.toLowerCase().includes(q)).slice(0, 15);
+      return employees.filter(e => !search.trim() || multiWordMatchAny(search, e.full_name)).slice(0, 15);
     }
     const typeFilter = tab === "client" ? ["عميل", "customer", "زبون"] : ["مورد", "supplier", "vendor"];
     return contacts.filter(c => {
       const matchType = typeFilter.some(t => (c.contact_type || "").toLowerCase().includes(t));
-      const matchSearch = !q || c.contact_name.toLowerCase().includes(q) || (c.phone || "").includes(q);
+      const matchSearch = !search.trim() || multiWordMatchAny(search, c.contact_name, c.phone);
       return matchType && matchSearch;
     }).slice(0, 15);
   }, [tab, search, contacts, employees]);
