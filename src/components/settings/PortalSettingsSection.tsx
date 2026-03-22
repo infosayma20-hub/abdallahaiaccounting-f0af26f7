@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, ExternalLink, Copy, Check, Trash2, KeyRound, UserPlus, Users, Eye, EyeOff, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Loader2, Trash2, KeyRound, UserPlus, Users, Eye, EyeOff, ToggleLeft, ToggleRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
