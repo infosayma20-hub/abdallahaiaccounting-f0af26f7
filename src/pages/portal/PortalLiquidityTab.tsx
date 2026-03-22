@@ -11,8 +11,14 @@ function fmtAmt(amount: number, currency: string): string {
   return `${n} ${currency}`;
 }
 
-const flags: Record<string, string> = { ILS: '🇮🇱', JOD: '🇯🇴', USD: '🇺🇸', EUR: '🇪🇺' };
 const names: Record<string, string> = { ILS: 'شيكل', JOD: 'دينار', USD: 'دولار', EUR: 'يورو' };
+const currencyIcons: Record<string, string> = { ILS: '₪', JOD: 'د.أ', USD: '$', EUR: '€' };
+
+function getThemeColors(theme: 'light' | 'dark') {
+  return theme === 'dark'
+    ? { card: '#111111', text: 'white', textMuted: 'rgba(255,255,255,0.5)', textFaint: 'rgba(255,255,255,0.4)', border: 'rgba(255,255,255,0.06)', chipBg: 'rgba(255,255,255,0.06)', branchGrad: 'linear-gradient(135deg, #1A0A00, #2D1200)', totalCard: 'linear-gradient(135deg, #0A0A0A, #1A1200)', branchCard: '#161616' }
+    : { card: '#FFFFFF', text: '#1A1A1A', textMuted: 'rgba(0,0,0,0.55)', textFaint: 'rgba(0,0,0,0.4)', border: 'rgba(0,0,0,0.08)', chipBg: 'rgba(0,0,0,0.04)', branchGrad: 'linear-gradient(135deg, #1B3A5C, #0D1B2A)', totalCard: 'linear-gradient(135deg, #1B3A5C, #0D1B2A)', branchCard: '#F8F9FA' };
+}
 
 interface Props {
   data: LiquidityData | null;
@@ -21,18 +27,20 @@ interface Props {
 }
 
 export default function PortalLiquidityTab({ data, loading, theme = 'light' }: Props) {
+  const t = getThemeColors(theme);
+
   if (loading && !data) {
     return (
       <div style={{ textAlign: 'center', padding: '60px 20px' }}>
         <Loader2 size={28} className="animate-spin" style={{ color: GOLD, margin: '0 auto 12px', display: 'block' }} />
-        <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13 }}>جاري تحميل البيانات...</div>
+        <div style={{ color: t.textMuted, fontSize: 13 }}>جاري تحميل البيانات...</div>
       </div>
     );
   }
 
   if (!data || data.cashBoxes.length === 0) {
     return (
-      <div style={{ textAlign: 'center', padding: '40px 20px', color: 'rgba(255,255,255,0.4)', fontSize: 13 }}>
+      <div style={{ textAlign: 'center', padding: '40px 20px', color: t.textFaint, fontSize: 13 }}>
         لا توجد صناديق مُعَرَّفة
       </div>
     );
@@ -65,9 +73,9 @@ export default function PortalLiquidityTab({ data, loading, theme = 'light' }: P
       {/* Exchange rates strip */}
       <div style={{
         padding: '8px 12px', marginBottom: 10,
-        background: 'rgba(255,255,255,0.04)', borderRadius: 8,
-        border: '1px solid rgba(255,255,255,0.06)',
-        fontSize: 10, color: 'rgba(255,255,255,0.5)',
+        background: t.chipBg, borderRadius: 8,
+        border: `1px solid ${t.border}`,
+        fontSize: 10, color: t.textMuted,
         fontFamily: 'JetBrains Mono, monospace',
         display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap',
       }}>
@@ -78,7 +86,7 @@ export default function PortalLiquidityTab({ data, loading, theme = 'light' }: P
 
       {/* Total Liquidity Card */}
       <div style={{
-        background: 'linear-gradient(135deg, #0A0A0A, #1A1200)',
+        background: t.totalCard,
         border: '1px solid rgba(212,160,23,0.3)',
         borderRadius: 14, padding: '16px', marginBottom: 14,
       }}>
@@ -86,7 +94,6 @@ export default function PortalLiquidityTab({ data, loading, theme = 'light' }: P
           💰 إجمالي السيولة
         </div>
 
-        {/* Currency totals - 2 column grid */}
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(2, 1fr)',
@@ -96,8 +103,8 @@ export default function PortalLiquidityTab({ data, loading, theme = 'light' }: P
             const pct = totalILS > 0 ? (toILS(total, currency) / totalILS) * 100 : 0;
             return (
               <div key={currency} style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>
-                  {flags[currency] || '💰'} {names[currency] || currency}
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', marginBottom: 4 }}>
+                  {currencyIcons[currency] || '💰'} {names[currency] || currency}
                 </div>
                 <div style={{
                   fontSize: 18, fontWeight: 700,
@@ -116,7 +123,7 @@ export default function PortalLiquidityTab({ data, loading, theme = 'light' }: P
                     background: `linear-gradient(90deg, ${GOLD}, #8B5E00)`,
                   }} />
                 </div>
-                <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)' }}>
+                <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.5)' }}>
                   {Math.round(pct)}%
                 </div>
               </div>
@@ -129,7 +136,7 @@ export default function PortalLiquidityTab({ data, loading, theme = 'light' }: P
           textAlign: 'center', padding: '10px 0',
           borderTop: '1px solid rgba(255,255,255,0.08)',
         }}>
-          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', marginBottom: 2 }}>بما يعادل:</div>
+          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.6)', marginBottom: 2 }}>بما يعادل:</div>
           <div style={{
             fontSize: 20, fontWeight: 700,
             fontFamily: 'JetBrains Mono, monospace', color: 'white',
@@ -139,34 +146,34 @@ export default function PortalLiquidityTab({ data, loading, theme = 'light' }: P
         </div>
       </div>
 
-      {/* Branch cards - stacked */}
+      {/* Branch cards */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {Object.entries(branchGroups).map(([branchName, boxes]) => {
           const branchTotal = boxes.reduce((sum, b) => sum + toILS(b.balance, b.currency), 0);
           return (
-            <div key={branchName} style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.06)' }}>
+            <div key={branchName} style={{ borderRadius: 12, overflow: 'hidden', border: `1px solid ${t.border}` }}>
               <div style={{
-                background: 'linear-gradient(135deg, #1A0A00, #2D1200)',
+                background: t.branchGrad,
                 borderTop: `3px solid ${GOLD}`, padding: '10px 14px',
               }}>
-                <div style={{ fontSize: 14, fontWeight: 700 }}>🏪 {branchName}</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: 'white' }}>🏪 {branchName}</div>
               </div>
 
-              <div style={{ background: '#161616', padding: '12px 14px' }}>
+              <div style={{ background: t.branchCard, padding: '12px 14px' }}>
                 {boxes.map(box => (
                   <div key={box.id} style={{
                     padding: '10px 0',
-                    borderBottom: '1px solid rgba(255,255,255,0.04)',
+                    borderBottom: `1px solid ${t.border}`,
                     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span style={{ fontSize: 16 }}>{flags[box.currency] || '💰'}</span>
-                      <span style={{ fontSize: 12 }}>{names[box.currency] || box.currency}</span>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: GOLD }}>{currencyIcons[box.currency] || '💰'}</span>
+                      <span style={{ fontSize: 12, color: t.text }}>{names[box.currency] || box.currency}</span>
                     </div>
                     <div style={{
                       fontSize: 16, fontWeight: 700,
                       fontFamily: 'JetBrains Mono, monospace',
-                      color: box.balance === 0 ? 'rgba(255,255,255,0.3)' : GOLD,
+                      color: box.balance === 0 ? t.textFaint : GOLD,
                     }}>
                       {box.balance === 0 ? '—' : fmtAmt(box.balance, box.currency)}
                     </div>
@@ -175,11 +182,11 @@ export default function PortalLiquidityTab({ data, loading, theme = 'light' }: P
 
                 <div style={{
                   marginTop: 8, padding: '10px 0',
-                  borderTop: '1px solid rgba(255,255,255,0.08)',
+                  borderTop: `1px solid ${t.border}`,
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                 }}>
-                  <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>الإجمالي بالشيكل:</span>
-                  <span style={{ fontSize: 15, fontWeight: 700, fontFamily: 'JetBrains Mono, monospace' }}>
+                  <span style={{ fontSize: 11, color: t.textMuted }}>الإجمالي بالشيكل:</span>
+                  <span style={{ fontSize: 15, fontWeight: 700, fontFamily: 'JetBrains Mono, monospace', color: t.text }}>
                     ₪ {branchTotal.toLocaleString('en', { minimumFractionDigits: 2 })}
                   </span>
                 </div>
