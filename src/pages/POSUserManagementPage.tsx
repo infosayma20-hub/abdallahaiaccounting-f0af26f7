@@ -326,7 +326,7 @@ export default function POSUserManagementPage() {
           name: userForm.name,
           phone: userForm.phone || null,
           email: userForm.email || null,
-          role: userForm.role,
+          role: userForm.role === "call_center" ? "cashier" : userForm.role,
           is_call_center: userForm.role === "call_center",
           pin_hash: "no-pin", // Placeholder - PIN system removed
           created_by: user!.id,
