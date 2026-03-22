@@ -78,7 +78,10 @@ const CallCenterDispatchDialog = ({
       .select("id, name")
       .eq("user_id", dataOwnerId)
       .eq("is_active", true)
-      .then(({ data }) => setBranches(data || []));
+      .then(({ data }) => {
+        const filtered = (data || []).filter(b => !b.name.includes("مركزي") && !b.name.toLowerCase().includes("warehouse"));
+        setBranches(filtered);
+      });
 
     supabase
       .from("delivery_apps" as any)
