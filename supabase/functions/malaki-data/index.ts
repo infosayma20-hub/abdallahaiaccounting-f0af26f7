@@ -82,7 +82,7 @@ Deno.serve(async (req) => {
             const chunk = orderIds.slice(i, i + 200);
             const { data: lines } = await supabase
               .from("pos_order_lines")
-              .select("order_id, product_name, qty, line_total")
+              .select("order_id, product_name, qty, total")
               .in("order_id", chunk);
             if (lines) allLines.push(...lines);
           }
