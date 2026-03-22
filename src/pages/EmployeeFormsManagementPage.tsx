@@ -133,6 +133,15 @@ export default function EmployeeFormsManagementPage() {
     }
   };
 
+  const handleDelete = async (form: any) => {
+    if (!confirm("هل أنت متأكد من حذف هذا الطلب؟")) return;
+    setProcessing(form.id + "delete");
+    const { error } = await supabase.from("employee_forms").delete().eq("id", form.id);
+    setProcessing(null);
+    if (error) { toast.error("خطأ: " + error.message); }
+    else { toast.success("تم حذف الطلب 🗑️"); fetchForms(); }
+  };
+
   const handleUploadPolicy = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
