@@ -6,7 +6,7 @@ import { authenticateRequest, corsHeaders } from "../_shared/auth.ts";
 type IntentType =
   | 'financial_summary' | 'cash_position' | 'contact_balance' | 'account_statement'
   | 'overdue_receivables' | 'overdue_payables' | 'inventory_check' | 'income_statement'
-  | 'cheques' | 'exchange_rates' | 'top_customers' | 'hr_summary'
+  | 'cheques' | 'exchange_rates' | 'top_customers' | 'hr_summary' | 'oldest_employee'
   | 'account_ledger' | 'search_transactions' | 'pos_analysis' | 'general';
 
 interface QueryIntent {
@@ -191,6 +191,12 @@ function detectIntents(message: string): QueryIntent[] {
   // Top customers
   if (/أفضل\s+زبائن|أكثر\s+مبيعاً|أهم\s+العملاء|تصنيف\s+الزبائن/i.test(message)) {
     intents.push({ type: 'top_customers', ...period });
+    return intents;
+  }
+
+  // Oldest employee
+  if (/من\s+هو\s+أقدم\s+موظف|من\s+هو\s+اقدم\s+موظف|أقدم\s+موظف|اقدم\s+موظف|أول\s+موظف|اول\s+موظف/i.test(message)) {
+    intents.push({ type: 'oldest_employee' });
     return intents;
   }
 
@@ -722,6 +728,35 @@ ${contacts.map((c: any, i: number) => {
 `;
 }
 
+async function fetchOldestEmployee(supabase: any, userId: string): Promise<string> {
+  const { data: oldest } = await supabase
+    .from('employees')
+    .select('full_name, department, job_title, start_date, is_active')
+    .eq('user_id', userId)
+    .eq('is_active', true)
+    .not('start_date', 'is', null)
+    .order('start_date', { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  if (!oldest?.start_date) {
+    return '\nلا توجد تواريخ تعيين مسجلة للموظفين في النظام.\n';
+  }
+
+  const startDate = new Date(oldest.start_date);
+  const now = new Date();
+  const years = Math.max(0, now.getFullYear() - startDate.getFullYear() - (now < new Date(now.getFullYear(), startDate.getMonth(), startDate.getDate()) ? 1 : 0));
+
+  return `
+=== أقدم موظف (بيانات حقيقية) ===
+الاسم: ${oldest.full_name}
+المسمى الوظيفي: ${oldest.job_title || oldest.department || 'عام'}
+تاريخ التعيين: ${oldest.start_date}
+سنوات الخدمة التقريبية: ${years} سنة
+الحالة: ${oldest.is_active !== false ? 'نشط' : 'غير نشط'}
+`;
+}
+
 async function fetchHRSummary(supabase: any, userId: string): Promise<string> {
   const { data: employees } = await supabase
     .from('employees')
@@ -965,6 +1000,9 @@ serve(async (req) => {
             break;
           case 'top_customers':
             dataPromises.push(fetchTopCustomers(supabaseAdmin, userId, intent.dateFrom || yearStartISO(), intent.dateTo || todayISO()));
+            break;
+          case 'oldest_employee':
+            dataPromises.push(fetchOldestEmployee(supabaseAdmin, userId));
             break;
           case 'hr_summary':
             dataPromises.push(fetchHRSummary(supabaseAdmin, userId));
