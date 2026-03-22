@@ -18,10 +18,10 @@ const appSections = getAppSections();
 
 /* ── Role-based app visibility ── */
 const ROLE_ALLOWED_APPS: Record<string, string[]> = {
-  accountant_senior: ["dashboard", "ai-accountant", "finance", "sales", "purchases", "inventory", "fixed-assets", "reports", "settings"],
-  accountant_sales: ["dashboard", "ai-accountant", "finance", "sales", "reports", "settings"],
-  accountant_purchases: ["dashboard", "ai-accountant", "finance", "purchases", "inventory", "reports", "settings"],
-  hr_manager: ["dashboard", "hr", "settings"],
+  accountant_senior: ["dashboard", "ai-accountant", "finance", "sales", "purchases", "inventory", "fixed-assets", "reports"],
+  accountant_sales: ["dashboard", "ai-accountant", "finance", "sales", "reports"],
+  accountant_purchases: ["dashboard", "ai-accountant", "finance", "purchases", "inventory", "reports"],
+  hr_manager: ["dashboard", "hr"],
 };
 
 /* ── App Card ── */
