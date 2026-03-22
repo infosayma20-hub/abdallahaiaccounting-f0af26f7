@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 export interface PortalUser {
   id: string;
   username: string;
+  email?: string;
   full_name: string;
   role: 'viewer' | 'manager' | 'owner';
   can_see_sales: boolean;
@@ -27,7 +28,6 @@ export function usePortalAuth() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Migrate old session key
     const oldStored = localStorage.getItem('malaki_session');
     if (oldStored && !localStorage.getItem(SESSION_KEY)) {
       localStorage.setItem(SESSION_KEY, oldStored);
@@ -51,9 +51,9 @@ export function usePortalAuth() {
     setLoading(false);
   }, []);
 
-  const login = useCallback(async (username: string, password: string, rememberMe: boolean) => {
+  const login = useCallback(async (email: string, password: string, rememberMe: boolean) => {
     const { data, error } = await supabase.functions.invoke('malaki-auth', {
-      body: { action: 'login', username, password },
+      body: { action: 'login', email, password },
     });
     if (error) throw new Error('خطأ في الاتصال');
     if (!data?.success) throw new Error(data?.error || 'بيانات الدخول غير صحيحة');
