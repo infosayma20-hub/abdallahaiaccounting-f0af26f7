@@ -1597,6 +1597,20 @@ const POSPage = () => {
               });
             }
           }
+          // Load per-user product order preferences
+          if (p.preference_key.startsWith("product_order_")) {
+            const orderIds = (p.preference_value as any)?.order;
+            if (Array.isArray(orderIds) && orderIds.length > 0) {
+              setProducts(prev => {
+                const updated = [...prev];
+                orderIds.forEach((id: string, i: number) => {
+                  const idx = updated.findIndex(u => u.id === id);
+                  if (idx !== -1) updated[idx] = { ...updated[idx], sort_order: i } as any;
+                });
+                return updated.sort((a, b) => ((a as any).sort_order || 0) - ((b as any).sort_order || 0));
+              });
+            }
+          }
         }
       }
     }
