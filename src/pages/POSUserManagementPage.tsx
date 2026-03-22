@@ -323,6 +323,7 @@ export default function POSUserManagementPage() {
           phone: userForm.phone || null,
           email: userForm.email || null,
           role: userForm.role,
+          is_call_center: userForm.role === "call_center",
           pin_hash: "no-pin", // Placeholder - PIN system removed
           created_by: user!.id,
         }).select("id").single();
