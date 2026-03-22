@@ -1122,8 +1122,7 @@ const POSPage = () => {
 
   const filteredEmployees = useMemo(() => {
     if (!employeeSearch) return employees;
-    const q = employeeSearch.toLowerCase();
-    return employees.filter(e => e.full_name.toLowerCase().includes(q));
+    return employees.filter(e => multiWordMatchAny(employeeSearch, e.full_name));
   }, [employees, employeeSearch]);
 
   const loadEmployeeBalance = async (empId: string) => {
