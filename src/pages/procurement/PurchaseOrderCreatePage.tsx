@@ -310,18 +310,6 @@ const PurchaseOrderCreatePage = () => {
               </TooltipTrigger><TooltipContent>إضافة مورد جديد</TooltipContent></Tooltip>
             </div>
 
-            {/* Default Branch */}
-            <div className="flex items-center gap-1">
-              <Select value={defaultBranchId} onValueChange={setDefaultBranchId}>
-                <SelectTrigger className="h-8 w-[130px] text-xs"><SelectValue placeholder="الفرع الافتراضي" /></SelectTrigger>
-                <SelectContent>{branches.map((b: any) => <SelectItem key={b.id} value={b.id} className="text-xs">{b.name}</SelectItem>)}</SelectContent>
-              </Select>
-              <Tooltip><TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-primary" onClick={() => setBranchOpen(true)}>
-                  <MapPin className="h-3.5 w-3.5" />
-                </Button>
-              </TooltipTrigger><TooltipContent>إضافة فرع جديد</TooltipContent></Tooltip>
-            </div>
 
             {/* Dates with labels */}
             <div className="flex flex-col items-center gap-0.5">
