@@ -4810,6 +4810,7 @@ export type Database = {
           last_login: string | null
           password_hash: string
           role: string | null
+          user_id: string | null
           username: string
         }
         Insert: {
@@ -4825,6 +4826,7 @@ export type Database = {
           last_login?: string | null
           password_hash: string
           role?: string | null
+          user_id?: string | null
           username: string
         }
         Update: {
@@ -4840,6 +4842,7 @@ export type Database = {
           last_login?: string | null
           password_hash?: string
           role?: string | null
+          user_id?: string | null
           username?: string
         }
         Relationships: []
@@ -10314,18 +10317,32 @@ export type Database = {
         }
         Returns: undefined
       }
-      malaki_create_user: {
-        Args: {
-          p_can_see_all_branches?: boolean
-          p_can_see_liquidity?: boolean
-          p_can_see_sales?: boolean
-          p_full_name: string
-          p_password: string
-          p_role?: string
-          p_username: string
-        }
-        Returns: Json
-      }
+      malaki_create_user:
+        | {
+            Args: {
+              p_can_see_all_branches?: boolean
+              p_can_see_liquidity?: boolean
+              p_can_see_sales?: boolean
+              p_full_name: string
+              p_password: string
+              p_role?: string
+              p_username: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_can_see_all_branches?: boolean
+              p_can_see_liquidity?: boolean
+              p_can_see_sales?: boolean
+              p_full_name: string
+              p_password: string
+              p_role?: string
+              p_user_id?: string
+              p_username: string
+            }
+            Returns: Json
+          }
       malaki_set_password: {
         Args: { p_new_password: string; p_user_id: string }
         Returns: boolean
