@@ -1238,6 +1238,7 @@ export type Database = {
           auto_transfer_threshold: number | null
           auto_transfer_to_main: boolean | null
           auto_transfer_trigger: string | null
+          branch_id: string | null
           branch_location: string | null
           created_at: string | null
           currency: string | null
@@ -1263,6 +1264,7 @@ export type Database = {
           auto_transfer_threshold?: number | null
           auto_transfer_to_main?: boolean | null
           auto_transfer_trigger?: string | null
+          branch_id?: string | null
           branch_location?: string | null
           created_at?: string | null
           currency?: string | null
@@ -1288,6 +1290,7 @@ export type Database = {
           auto_transfer_threshold?: number | null
           auto_transfer_to_main?: boolean | null
           auto_transfer_trigger?: string | null
+          branch_id?: string | null
           branch_location?: string | null
           created_at?: string | null
           currency?: string | null
@@ -1309,7 +1312,22 @@ export type Database = {
           updated_at?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "cash_boxes_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cash_boxes_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches_safe"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       cash_transfers: {
         Row: {
