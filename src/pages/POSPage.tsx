@@ -3042,11 +3042,17 @@ const POSPage = () => {
 
         {/* Close shift */}
         <button
-          onClick={() => setShowCloseShift(true)}
+          onClick={() => {
+            if (session?.cash_box_id === null) {
+              handleCallCenterCloseShift();
+            } else {
+              setShowCloseShift(true);
+            }
+          }}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-destructive/20 text-destructive hover:bg-destructive/30 transition-colors text-xs font-medium"
         >
           <X className="h-3 w-3" />
-          إغلاق الوردية
+          {session?.cash_box_id === null ? "تسجيل الخروج" : "إغلاق الوردية"}
         </button>
       </header>
 
