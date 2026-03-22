@@ -1545,7 +1545,7 @@ const POSPage = () => {
       total_orders: 0,
       opened_at: data.opened_at,
       cashier_name: displayName,
-      cash_box_id: selectedCashBoxId || null,
+      cash_box_id: actualCashBoxId,
     });
     setShowOpenShift(false);
     toast.success("تم فتح الوردية بنجاح");
