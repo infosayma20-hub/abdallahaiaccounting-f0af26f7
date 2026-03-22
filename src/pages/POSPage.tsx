@@ -2797,6 +2797,45 @@ const POSPage = () => {
         </button>
         )}
 
+        {/* Pending Call Center Orders */}
+        <PendingOrdersPanel
+          dataOwnerId={dataOwnerId || ""}
+          branchId={null}
+          sessionId={session?.id || null}
+          enabled={!!session}
+          onAcceptOrder={(order) => {
+            // Create new order tab with call center order data
+            orderCounter.current += 1;
+            const newOrder = createNewOrder(orderCounter.current);
+            newOrder.customerName = order.customer_name || "";
+            newOrder.customerPhone = order.customer_phone || "";
+            newOrder.orderType = order.delivery_type === "delivery" ? "delivery" : "takeaway";
+            newOrder.deliveryAddress = order.delivery_address || "";
+            newOrder.orderNote = [
+              order.source_app ? `مصدر: ${order.source_app}` : "",
+              order.payment_method === "visa" ? "💳 فيزا" : "💵 نقدي",
+              order.order_note || "",
+            ].filter(Boolean).join(" | ");
+            // Add items to cart
+            newOrder.cart = (order.items || []).map((item: any, i: number) => ({
+              id: crypto.randomUUID(),
+              product_id: item.product_id || null,
+              name: item.name,
+              qty: item.qty,
+              unit_price: item.unit_price,
+              cost_price: 0,
+              discount_pct: 0,
+              tax_rate: 0,
+              unit: "قطعة",
+              total: item.total || item.unit_price * item.qty,
+              note: item.note || "",
+            }));
+            newOrder.name = `📞 ${order.customer_name}`;
+            setOrders(prev => [...prev, newOrder]);
+            setActiveOrderIndex(orders.length);
+          }}
+        />
+
         {/* Kitchen Display - icon only */}
         <button
           onClick={() => navigate("/pos/kitchen")}
