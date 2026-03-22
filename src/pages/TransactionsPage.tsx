@@ -467,7 +467,6 @@ const TransactionsPage = () => {
       const ids = deletedTransactions.map(tx => tx.id);
       const { error } = await supabase.from('transactions').update({ is_deleted: false }).in('id', ids);
       if (error) throw error;
-      await restoreLinkedVouchers(ids);
       toast({ title: `تم استرجاع ${ids.length} معاملة والمستندات المرتبطة بنجاح ✅` });
       fetchDeletedTransactions(); fetchData();
     } catch (err: any) {
