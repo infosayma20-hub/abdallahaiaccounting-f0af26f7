@@ -284,6 +284,11 @@ const POSSettingsSection = ({ settings, onChange }: Props) => {
 
       {/* Network Printers */}
       <NetworkPrintersManager />
+
+      <Separator />
+
+      {/* Delivery Apps */}
+      {dataOwnerId && <DeliveryAppsManager userId={dataOwnerId} />}
     </div>
   );
 };
