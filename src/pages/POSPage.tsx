@@ -294,6 +294,7 @@ const POSPage = () => {
   const [session, setSession] = useState<Session | null>(null);
   const [company, setCompany] = useState<Company | null>(null);
   const [terminal, setTerminal] = useState<Terminal | null>(null);
+  const [cashierBranchId, setCashierBranchId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [contacts, setContacts] = useState<{ id: string; contact_name: string }[]>([]);
   const [customerSearch, setCustomerSearch] = useState("");
