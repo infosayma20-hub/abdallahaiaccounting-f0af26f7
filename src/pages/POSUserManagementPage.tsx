@@ -211,12 +211,14 @@ export default function POSUserManagementPage() {
 
   const loadData = async () => {
     setLoading(true);
-    const [usersRes, devicesRes] = await Promise.all([
+    const [usersRes, devicesRes, branchesRes] = await Promise.all([
       supabase.from("pos_users").select("*").eq("company_id", selectedCompany),
       supabase.from("pos_devices").select("*").eq("company_id", selectedCompany),
+      supabase.from("branches").select("id, name").eq("is_active", true),
     ]);
     setUsers(usersRes.data || []);
     setDevices(devicesRes.data || []);
+    setBranches(branchesRes.data || []);
     setLoading(false);
   };
 
