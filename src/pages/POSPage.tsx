@@ -476,6 +476,7 @@ const POSPage = () => {
   const [posReturnPolicy, setPosReturnPolicy] = useState({ show: true, days: 7 });
   const [posAllowOrderTransfer, setPosAllowOrderTransfer] = useState(false);
   const [posRequireCashBox, setPosRequireCashBox] = useState(false);
+  const [detectedBranchId, setDetectedBranchId] = useState<string | null>(null);
 
   // Kitchen
   const [showKitchenTicket, setShowKitchenTicket] = useState(false);
@@ -806,6 +807,25 @@ const POSPage = () => {
             cashier_name: sessions[0].cashier_name || "",
             cash_box_id: (sessions[0] as any).cash_box_id || null,
           });
+
+          // Detect branch from cash box name for existing session
+          const existingBoxId = (sessions[0] as any).cash_box_id;
+          if (existingBoxId && dataOwnerId) {
+            const { data: boxData } = await supabase
+              .from("cash_boxes")
+              .select("name")
+              .eq("id", existingBoxId)
+              .maybeSingle();
+            const { data: allBranches } = await supabase
+              .from("branches")
+              .select("id, name")
+              .eq("user_id", dataOwnerId)
+              .eq("is_active", true);
+            if (boxData?.name && allBranches) {
+              const matched = allBranches.find(br => boxData.name.includes(br.name));
+              setDetectedBranchId(matched?.id || null);
+            }
+          }
         } else {
           // ── Device fingerprint check (only if enabled in settings) ──
           const { data: csSettings } = await supabase
@@ -1517,6 +1537,20 @@ const POSPage = () => {
     });
     setShowOpenShift(false);
     toast.success("تم فتح الوردية بنجاح");
+
+    // Detect branch from cash box name
+    if (selectedCashBoxId && dataOwnerId) {
+      const boxName = cashBoxes.find(b => b.id === selectedCashBoxId)?.name || "";
+      const { data: allBranches } = await supabase
+        .from("branches")
+        .select("id, name")
+        .eq("user_id", dataOwnerId)
+        .eq("is_active", true);
+      if (allBranches && boxName) {
+        const matched = allBranches.find(br => boxName.includes(br.name));
+        setDetectedBranchId(matched?.id || null);
+      }
+    }
 
     // Check if cashier must change password on first login
     if (userId) {
@@ -2800,7 +2834,7 @@ const POSPage = () => {
         {/* Pending Call Center Orders */}
         <PendingOrdersPanel
           dataOwnerId={dataOwnerId || ""}
-          branchId={null}
+          branchId={detectedBranchId}
           sessionId={session?.id || null}
           enabled={!!session}
           onAcceptOrder={(order) => {
