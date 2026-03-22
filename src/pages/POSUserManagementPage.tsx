@@ -821,6 +821,7 @@ export default function POSUserManagementPage() {
                     <SelectItem value="pos_admin">مدير POS</SelectItem>
                     <SelectItem value="pos_manager">مشرف</SelectItem>
                     <SelectItem value="cashier">كاشير</SelectItem>
+                    <SelectItem value="call_center">كول سنتر</SelectItem>
                     <SelectItem value="viewer">مشاهد</SelectItem>
                   </SelectContent>
                 </Select>
