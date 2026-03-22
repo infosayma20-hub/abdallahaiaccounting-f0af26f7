@@ -725,7 +725,7 @@ ${contacts.map((c: any, i: number) => {
 async function fetchHRSummary(supabase: any, userId: string): Promise<string> {
   const { data: employees } = await supabase
     .from('employees')
-    .select('full_name, department, basic_salary, status, hire_date, job_title')
+    .select('full_name, department, base_salary, is_active, start_date, job_title')
     .eq('user_id', userId)
     .limit(50);
 
@@ -733,8 +733,8 @@ async function fetchHRSummary(supabase: any, userId: string): Promise<string> {
     return '\nلا يوجد موظفون مسجلون في النظام.\n';
   }
 
-  const active = employees.filter((e: any) => e.status === 'active' || !e.status);
-  const totalSalaries = active.reduce((s: number, e: any) => s + (Number(e.basic_salary) || 0), 0);
+  const active = employees.filter((e: any) => e.is_active !== false);
+  const totalSalaries = active.reduce((s: number, e: any) => s + (Number(e.base_salary) || 0), 0);
 
   // Recent payroll
   const { data: payroll } = await supabase
@@ -752,7 +752,7 @@ async function fetchHRSummary(supabase: any, userId: string): Promise<string> {
 إجمالي الرواتب الشهرية: ${totalSalaries.toFixed(2)} ₪
 
 الموظفون:
-${employees.map((e: any) => `  ${e.full_name} — ${e.job_title || e.department || 'عام'} — الراتب: ${e.basic_salary || 0} ₪ — ${e.status || 'نشط'}`).join('\n')}
+${employees.map((e: any) => `  ${e.full_name} — ${e.job_title || e.department || 'عام'} — الراتب: ${e.base_salary || 0} ₪ — ${e.is_active !== false ? 'نشط' : 'غير نشط'}`).join('\n')}
 
 ${payroll && payroll.length > 0 ? `\nآخر الرواتب المسجلة:\n${payroll.slice(0, 10).map((p: any) => `  فترة ${p.period_month}/${p.period_year}: ${p.net_salary} ₪ — ${p.is_paid ? 'مدفوع' : 'معلق'}`).join('\n')}` : ''}
 `;
