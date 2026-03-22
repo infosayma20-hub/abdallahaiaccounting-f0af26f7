@@ -99,6 +99,7 @@ interface OrderTab {
   deliveryAddress: string;
   callCenterOrderId?: string | null;
   callCenterPaymentMethod?: string | null;
+  callCenterSourceApp?: string | null;
 }
 
 interface POSCustomer {
@@ -1999,9 +2000,30 @@ const POSPage = () => {
   const handleQuickSaveAndPrint = async () => {
     if (!userId || !session || cart.length === 0 || !company) return;
     const ccPayment = activeOrder.callCenterPaymentMethod || "cash";
+    const sourceApp = activeOrder.callCenterSourceApp || "";
     
     // Map call center payment to POS payment method
-    const posPayMethod = ccPayment === "cash" ? "cash" : "card";
+    let posPayMethod = ccPayment === "cash" ? "cash" : "card";
+    
+    // If visa payment, check if source_app matches a delivery app with a visa GL account
+    if (ccPayment !== "cash" && sourceApp && dataOwnerId) {
+      const { data: appMatch } = await supabase
+        .from("delivery_apps" as any)
+        .select("visa_gl_account_code, name")
+        .eq("user_id", dataOwnerId)
+        .eq("is_active", true);
+      
+      if (appMatch) {
+        const matchedApp = (appMatch as any[]).find(
+          (app: any) => app.name && sourceApp.toLowerCase().includes(app.name.toLowerCase())
+        );
+        if (matchedApp?.visa_gl_account_code) {
+          // Use the delivery app's specific visa GL account
+          posPayMethod = `card:${matchedApp.visa_gl_account_code}`;
+        }
+        // If no match found, falls back to default "card" (bank account)
+      }
+    }
     
     // Send to kitchen first
     await handleSendToKitchen();
@@ -2019,7 +2041,13 @@ const POSPage = () => {
   const handleCompleteOrder = async (overridePaymentMethod?: string) => {
     if (!userId || !session || cart.length === 0) return;
     if (!company) return;
-    const effectivePaymentMethod = overridePaymentMethod || paymentMethod;
+    // Handle "card:GLCODE" format from delivery app visa accounts
+    let effectivePaymentMethod = overridePaymentMethod || paymentMethod;
+    let visaGlAccountCode: string | null = null;
+    if (effectivePaymentMethod.startsWith("card:")) {
+      visaGlAccountCode = effectivePaymentMethod.split(":")[1];
+      effectivePaymentMethod = "card";
+    }
     if (effectivePaymentMethod === "employee_account" && !selectedEmployee) {
       toast.error("يرجى اختيار الموظف أولاً");
       return;
@@ -2230,6 +2258,7 @@ const POSPage = () => {
           ...(effectivePaymentMethod === "employee_account" && employeeAccountCode
             ? { employee_account_code: employeeAccountCode }
             : {}),
+          ...(visaGlAccountCode ? { visa_gl_account_code: visaGlAccountCode } : {}),
         }],
       });
 
@@ -2967,6 +2996,7 @@ const POSPage = () => {
             newOrder.deliveryAddress = order.delivery_address || "";
             newOrder.callCenterOrderId = order.id;
             newOrder.callCenterPaymentMethod = order.payment_method || "cash";
+            newOrder.callCenterSourceApp = order.source_app || null;
             newOrder.orderNote = [
               order.source_app ? `مصدر: ${order.source_app}` : "",
               order.payment_method === "visa" ? "💳 فيزا" : "💵 نقدي",
