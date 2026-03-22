@@ -28,7 +28,7 @@ const AuthPage = () => {
   const [loading, setLoading] = useState(false);
   const [supportsPasskeys, setSupportsPasskeys] = useState(false);
   const [savedEmail, setSavedEmail] = useState("");
-  const [portalUsername, setPortalUsername] = useState("");
+  const [portalEmail, setPortalEmail] = useState("");
   const [portalPassword, setPortalPassword] = useState("");
   const [rememberPortal, setRememberPortal] = useState(false);
   const { login: portalLogin, user: portalUser, loading: portalAuthLoading } = usePortalAuth();
