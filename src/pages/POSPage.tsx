@@ -867,7 +867,7 @@ const POSPage = () => {
           // Load POS cash boxes for shift opening
           const { data: boxes } = await supabase
             .from("cash_boxes")
-            .select("id, name, type")
+            .select("id, name, type, branch_id")
             .eq("user_id", dataOwnerId)
             .eq("type", "pos")
             .eq("is_active", true);
