@@ -23,6 +23,8 @@ export default function SubscriptionExpiryBanner() {
 
   const { daysLeft, isExpired, isTrial, billing_cycle, plan_name_ar, current_period_end, status } = subscription;
 
+  // Don't show for trial subscriptions (TrialBanner handles those)
+  if (isTrial) return null;
   // Don't show if more than 7 days left and not expired
   if (daysLeft > 7 && !isExpired) return null;
   if (status === "cancelled") return null;
