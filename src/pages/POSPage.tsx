@@ -807,6 +807,25 @@ const POSPage = () => {
             cashier_name: sessions[0].cashier_name || "",
             cash_box_id: (sessions[0] as any).cash_box_id || null,
           });
+
+          // Detect branch from cash box name for existing session
+          const existingBoxId = (sessions[0] as any).cash_box_id;
+          if (existingBoxId && dataOwnerId) {
+            const { data: boxData } = await supabase
+              .from("cash_boxes")
+              .select("name")
+              .eq("id", existingBoxId)
+              .maybeSingle();
+            const { data: allBranches } = await supabase
+              .from("branches")
+              .select("id, name")
+              .eq("user_id", dataOwnerId)
+              .eq("is_active", true);
+            if (boxData?.name && allBranches) {
+              const matched = allBranches.find(br => boxData.name.includes(br.name));
+              setDetectedBranchId(matched?.id || null);
+            }
+          }
         } else {
           // ── Device fingerprint check (only if enabled in settings) ──
           const { data: csSettings } = await supabase
