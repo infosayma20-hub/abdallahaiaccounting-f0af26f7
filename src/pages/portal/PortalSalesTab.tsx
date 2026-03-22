@@ -302,7 +302,7 @@ function AllItemsView({ branches, t }: { branches: BranchSales[]; t: ReturnType<
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 13, fontWeight: 600, color: t.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</div>
                 <div style={{ height: 4, borderRadius: 2, background: t.border, overflow: 'hidden', marginTop: 3 }}>
-                  <div style={{ height: '100%', borderRadius: 2, width: `${(item.quantity / maxQty) * 100}%`, background: GOLD }} />
+                  <div style={{ height: '100%', borderRadius: 2, width: `${(item.revenue / maxRevenue) * 100}%`, background: GOLD }} />
                 </div>
               </div>
               <div style={{ textAlign: 'left', flexShrink: 0, minWidth: 70 }}>
