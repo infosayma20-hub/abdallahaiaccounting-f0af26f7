@@ -6,7 +6,7 @@ import { authenticateRequest, corsHeaders } from "../_shared/auth.ts";
 type IntentType =
   | 'financial_summary' | 'cash_position' | 'contact_balance' | 'account_statement'
   | 'overdue_receivables' | 'overdue_payables' | 'inventory_check' | 'income_statement'
-  | 'cheques' | 'exchange_rates' | 'top_customers' | 'hr_summary'
+  | 'cheques' | 'exchange_rates' | 'top_customers' | 'hr_summary' | 'oldest_employee'
   | 'account_ledger' | 'search_transactions' | 'pos_analysis' | 'general';
 
 interface QueryIntent {
