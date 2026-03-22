@@ -29,7 +29,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { format, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, differenceInDays, parseISO, subYears, subMonths } from "date-fns";
 import { ar } from "date-fns/locale";
-import { cn } from "@/lib/utils";
+import { cn, multiWordMatchAny } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import StatementPrintView from "@/components/StatementPrintView";
 

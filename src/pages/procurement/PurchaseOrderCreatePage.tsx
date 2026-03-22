@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { multiWordMatchAny } from "@/lib/utils";
 
 const iconMap: Record<string, any> = {
   wheat: Wheat, egg: Egg, beef: Beef, droplets: Droplets, sparkles: Sparkles,

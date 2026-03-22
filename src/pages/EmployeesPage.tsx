@@ -28,6 +28,7 @@ import SalarySlipDialog from "@/components/hr/SalarySlipDialog";
 import DeductionsExportDialog from "@/components/hr/DeductionsExportDialog";
 import { calculateSalarySlip, calculateLeaveBalance, getWorkDaysInMonth, getWeeklyDaysOffInMonth, formatCurrency, type SalarySlip } from "@/lib/hr-utils";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { multiWordMatchAny } from "@/lib/utils";
 
 interface Branch {
   id: string;

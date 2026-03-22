@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import * as XLSX from "xlsx";
 import { generateProfessionalPDFHtml, openPrintWindow, useCompanyInfo } from "@/components/ReportPrintLayout";
+import { multiWordMatchAny } from "@/lib/utils";
 
 // Format balance with label instead of parentheses
 function fmtBalance(n: number, currency: string): string {

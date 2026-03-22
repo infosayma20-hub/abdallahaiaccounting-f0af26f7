@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { formatCurrency } from "@/lib/hr-utils";
 import BackButton from "@/components/BackButton";
 import * as XLSX from "xlsx";
+import { multiWordMatchAny } from "@/lib/utils";
 
 const DEDUCTION_SOURCES = ["الكل", "سند صرف", "نقطة البيع", "خصم يدوي", "سلفة", "قرض حسن"] as const;
 

@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import BackButton from "@/components/BackButton";
+import { multiWordMatchAny } from "@/lib/utils";
 
 interface JournalLine {
   id: string;

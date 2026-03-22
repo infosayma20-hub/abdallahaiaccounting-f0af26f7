@@ -19,6 +19,7 @@ import {
   SupabaseTransaction, SupabaseAccount,
 } from "@/lib/supabase-data";
 import { format, startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear, startOfWeek, endOfWeek, subDays } from "date-fns";
+import { multiWordMatchAny } from "@/lib/utils";
 
 interface TrialBalanceRow {
   accountName: string;

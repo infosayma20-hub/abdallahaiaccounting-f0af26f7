@@ -14,6 +14,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Search, Pencil, Trash2, GripVertical, Package, Wheat, Egg, Beef, Droplets, Sparkles, CupSoda, UtensilsCrossed, SprayCan, Shirt, ShoppingCart, Cookie, Flame, Snowflake, Leaf, Fish, Apple, Layers, Box } from "lucide-react";
 import { useSuppliersCrud, useCategoriesCrud, useItemsCrud } from "@/hooks/useProcurementSettings";
 import BackButton from "@/components/BackButton";
+import { multiWordMatchAny } from "@/lib/utils";
 
 const iconOptions = [
   { name: "wheat", Icon: Wheat }, { name: "package", Icon: Package }, { name: "beef", Icon: Beef },

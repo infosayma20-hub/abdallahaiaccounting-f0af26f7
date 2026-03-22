@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useDocumentPermissions } from "@/hooks/useDocumentPermissions";
 import { toast } from "@/hooks/use-toast";
+import { multiWordMatchAny } from "@/lib/utils";
 
 type VoucherType = "receipt" | "payment";
 

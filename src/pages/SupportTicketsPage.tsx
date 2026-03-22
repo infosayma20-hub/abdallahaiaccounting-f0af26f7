@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ArrowRight, Plus, Search, Ticket, MessageCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { multiWordMatchAny } from "@/lib/utils";
 
 const statusColors: Record<string, string> = {
   "جديدة": "bg-blue-500/10 text-blue-600",

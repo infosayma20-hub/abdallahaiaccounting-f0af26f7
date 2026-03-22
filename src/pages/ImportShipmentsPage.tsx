@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Package, Plus, Search, Eye, Pencil, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { multiWordMatchAny } from "@/lib/utils";
 
 const statusMap: Record<string, { label: string; bg: string; text: string }> = {
   draft: { label: "مسودة", bg: "#F1F5F9", text: "#64748B" },

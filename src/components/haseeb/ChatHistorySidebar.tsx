@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { X, Search, Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { multiWordMatchAny } from "@/lib/utils";
 
 interface Conversation {
   id: string;

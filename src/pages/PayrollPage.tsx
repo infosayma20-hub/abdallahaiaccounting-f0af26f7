@@ -14,6 +14,7 @@ import BackButton from "@/components/BackButton";
 import MalakiPayslipDialog from "@/components/hr/MalakiPayslipDialog";
 import { calculateMalakiPayslip, fmtCurrency, type MalakiEmployee, type MalakiMonthInput, type MalakiPayslip } from "@/lib/malaki-payroll";
 import * as XLSX from "xlsx";
+import { multiWordMatchAny } from "@/lib/utils";
 
 const months = [
   "يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو",

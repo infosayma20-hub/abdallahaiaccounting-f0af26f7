@@ -36,7 +36,7 @@ const EditAccountForm = ({ account, onSave, onCancel }: { account: { account_nam
     </div>
   );
 };
-import { cn } from "@/lib/utils";
+import { cn, multiWordMatchAny } from "@/lib/utils";
 import AddAccountDialog from "@/components/AddAccountDialog";
 
 interface Account {

@@ -27,6 +27,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import BackButton from "@/components/BackButton";
 import { getDeviceFingerprint } from "@/lib/device-fingerprint";
+import { multiWordMatchAny } from "@/lib/utils";
 
 interface POSUserRow {
   id: string;

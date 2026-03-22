@@ -6,6 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { ReportSummary, ReportTable, exportToExcel, exportToPDF } from "@/components/ReportComponents";
 import { supabase } from "@/integrations/supabase/client";
+import { multiWordMatchAny } from "@/lib/utils";
 
 interface ReportResult {
   answer: string;

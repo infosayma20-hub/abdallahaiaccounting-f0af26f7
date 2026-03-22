@@ -57,6 +57,7 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { multiWordMatchAny } from "@/lib/utils";
 
 // Types
 interface CartItem {

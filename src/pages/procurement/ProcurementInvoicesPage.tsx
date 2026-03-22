@@ -7,6 +7,7 @@ import { Search, FileText } from "lucide-react";
 import { usePurchaseInvoices } from "@/hooks/useProcurement";
 import BackButton from "@/components/BackButton";
 import { Skeleton } from "@/components/ui/skeleton";
+import { multiWordMatchAny } from "@/lib/utils";
 
 const ProcurementInvoicesPage = () => {
   const { invoices, loading } = usePurchaseInvoices();

@@ -11,6 +11,7 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { multiWordMatchAny } from "@/lib/utils";
 
 const PALESTINIAN_BANKS = [
   "البنك الإسلامي العربي", "بنك فلسطين", "البنك الأهلي الأردني", "بنك القدس",
