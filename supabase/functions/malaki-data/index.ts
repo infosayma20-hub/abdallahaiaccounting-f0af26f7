@@ -291,7 +291,7 @@ Deno.serve(async (req) => {
         const name = line.product_name || "غير معروف";
         if (!itemMap[name]) itemMap[name] = { name, qty: 0, revenue: 0, avgPrice: 0 };
         itemMap[name].qty += line.qty || 0;
-        itemMap[name].revenue += line.line_total || 0;
+        itemMap[name].revenue += line.total || 0;
       }
       for (const key of Object.keys(itemMap)) {
         itemMap[key].avgPrice = itemMap[key].qty > 0 ? itemMap[key].revenue / itemMap[key].qty : 0;
