@@ -4654,7 +4654,7 @@ const POSPage = () => {
           <div className="flex-shrink-0 px-6 pb-5 pt-3 border-t border-border bg-background">
             <motion.div whileTap={{ scale: 0.98 }}>
               <Button
-                onClick={handleCompleteOrder}
+                onClick={() => handleCompleteOrder()}
                 disabled={processing || (paymentMethod === "credit" && !customerName) || (paymentMethod === "employee_account" && !selectedEmployee)}
                 className="w-full h-14 text-lg font-bold gap-2 rounded-xl"
                 style={{ backgroundColor: "#16A34A" }}
