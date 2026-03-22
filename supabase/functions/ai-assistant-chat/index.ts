@@ -728,6 +728,35 @@ ${contacts.map((c: any, i: number) => {
 `;
 }
 
+async function fetchOldestEmployee(supabase: any, userId: string): Promise<string> {
+  const { data: oldest } = await supabase
+    .from('employees')
+    .select('full_name, department, job_title, start_date, is_active')
+    .eq('user_id', userId)
+    .eq('is_active', true)
+    .not('start_date', 'is', null)
+    .order('start_date', { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  if (!oldest?.start_date) {
+    return '\nلا توجد تواريخ تعيين مسجلة للموظفين في النظام.\n';
+  }
+
+  const startDate = new Date(oldest.start_date);
+  const now = new Date();
+  const years = Math.max(0, now.getFullYear() - startDate.getFullYear() - (now < new Date(now.getFullYear(), startDate.getMonth(), startDate.getDate()) ? 1 : 0));
+
+  return `
+=== أقدم موظف (بيانات حقيقية) ===
+الاسم: ${oldest.full_name}
+المسمى الوظيفي: ${oldest.job_title || oldest.department || 'عام'}
+تاريخ التعيين: ${oldest.start_date}
+سنوات الخدمة التقريبية: ${years} سنة
+الحالة: ${oldest.is_active !== false ? 'نشط' : 'غير نشط'}
+`;
+}
+
 async function fetchHRSummary(supabase: any, userId: string): Promise<string> {
   const { data: employees } = await supabase
     .from('employees')
