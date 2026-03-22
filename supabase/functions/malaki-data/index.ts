@@ -82,7 +82,7 @@ Deno.serve(async (req) => {
             const chunk = orderIds.slice(i, i + 200);
             const { data: lines } = await supabase
               .from("pos_order_lines")
-              .select("order_id, product_name, qty, line_total")
+              .select("order_id, product_name, qty, total")
               .in("order_id", chunk);
             if (lines) allLines.push(...lines);
           }
@@ -156,7 +156,7 @@ Deno.serve(async (req) => {
             const name = line.product_name || "غير معروف";
             if (!mealMap[name]) mealMap[name] = { quantity: 0, revenue: 0 };
             mealMap[name].quantity += line.qty || 0;
-            mealMap[name].revenue += line.line_total || 0;
+            mealMap[name].revenue += line.total || 0;
           }
 
           branchData[branchKey].topMeals = Object.entries(mealMap)
@@ -279,7 +279,7 @@ Deno.serve(async (req) => {
           const chunk = orderIds.slice(i, i + 200);
           const { data: lines } = await supabase
             .from("pos_order_lines")
-            .select("order_id, product_name, qty, line_total, unit_price")
+            .select("order_id, product_name, qty, total, unit_price")
             .in("order_id", chunk);
           if (lines) allLines.push(...lines);
         }
@@ -291,7 +291,7 @@ Deno.serve(async (req) => {
         const name = line.product_name || "غير معروف";
         if (!itemMap[name]) itemMap[name] = { name, qty: 0, revenue: 0, avgPrice: 0 };
         itemMap[name].qty += line.qty || 0;
-        itemMap[name].revenue += line.line_total || 0;
+        itemMap[name].revenue += line.total || 0;
       }
       for (const key of Object.keys(itemMap)) {
         itemMap[key].avgPrice = itemMap[key].qty > 0 ? itemMap[key].revenue / itemMap[key].qty : 0;
