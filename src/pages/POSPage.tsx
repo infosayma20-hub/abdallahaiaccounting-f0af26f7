@@ -5206,6 +5206,13 @@ const POSPage = () => {
           updateActiveOrder(o => ({ ...o, orderType: "dine_in", deliveryAddress: "" }));
         }}
       />
+
+      {/* Dispatched Orders Log */}
+      <DispatchedOrdersLog
+        open={showDispatchLog}
+        onClose={() => setShowDispatchLog(false)}
+        dataOwnerId={dataOwnerId || ""}
+      />
     </div>
   );
 };
