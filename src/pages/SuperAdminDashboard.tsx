@@ -1440,6 +1440,7 @@ export default function SuperAdminDashboard() {
   const [users, setUsers] = useState<UserRecord[]>([]);
   const [userSearch, setUserSearch] = useState("");
   const [loadingUsers, setLoadingUsers] = useState(false);
+  const [portalMembers, setPortalMembers] = useState<Record<string, { id: string; full_name: string; email: string | null; username: string; role: string; is_active: boolean; last_login: string | null }[]>>({});
 
   // Audit state
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
