@@ -7,6 +7,10 @@ import { Separator } from "@/components/ui/separator";
 import type { CompanySettings } from "@/hooks/useCompanySettings";
 import KitchenStationsManager from "./KitchenStationsManager";
 import NetworkPrintersManager from "./NetworkPrintersManager";
+import DeliveryAppsManager from "./DeliveryAppsManager";
+import { useAuth } from "@/hooks/useAuth";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Props {
   settings: CompanySettings;
@@ -22,6 +26,16 @@ const paymentMethods = [
 ];
 
 const POSSettingsSection = ({ settings, onChange }: Props) => {
+  const { user } = useAuth();
+  const [dataOwnerId, setDataOwnerId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    supabase.rpc("get_team_owner_id", { _user_id: user.id }).then(({ data }) => {
+      setDataOwnerId(data || user.id);
+    });
+  }, [user?.id]);
+
   const togglePayment = (code: string) => {
     const current = settings.pos_payment_methods;
     if (current.includes(code)) {
@@ -270,6 +284,11 @@ const POSSettingsSection = ({ settings, onChange }: Props) => {
 
       {/* Network Printers */}
       <NetworkPrintersManager />
+
+      <Separator />
+
+      {/* Delivery Apps */}
+      {dataOwnerId && <DeliveryAppsManager userId={dataOwnerId} />}
     </div>
   );
 };

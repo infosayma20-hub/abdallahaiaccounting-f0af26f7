@@ -17,7 +17,7 @@ import {
   UtensilsCrossed, Gamepad2, Shirt, Monitor, ShoppingBag, Printer,
   Apple, Zap, Coffee, Box, BarChart3, TrendingUp, PlusCircle, Tag,
   Eye, EyeOff, UserCheck, LayoutGrid, Grid3X3, Grid2X2, GripVertical,
-  FileText, Keyboard, MoreHorizontal, RefreshCw, ChefHat, Sun, Moon, Phone, MapPin,
+  FileText, Keyboard, MoreHorizontal, RefreshCw, ChefHat, Sun, Moon, Phone, MapPin, Send,
 } from "lucide-react";
 import { useTheme } from "@/hooks/useTheme";
 import TableSelectorBar, { type TableBarItem } from "@/components/pos/TableSelectorBar";
@@ -30,6 +30,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import POSReceiptDialog from "@/components/POSReceiptDialog";
 import ShiftSummaryReceipt from "@/components/ShiftSummaryReceipt";
 import InvoiceHistoryDrawer from "@/components/pos/InvoiceHistoryDrawer";
+import CallCenterDispatchDialog from "@/components/pos/CallCenterDispatchDialog";
+import PendingOrdersPanel from "@/components/pos/PendingOrdersPanel";
 import CustomerDataModal from "@/components/pos/CustomerDataModal";
 import { type SelectedModifier } from "@/components/pos/ModifierModal";
 import InlineAddonPanel from "@/components/pos/InlineAddonPanel";
@@ -512,7 +514,8 @@ const POSPage = () => {
    const [showPurchaseModal, setShowPurchaseModal] = useState(false);
    const [showExpenseModal, setShowExpenseModal] = useState(false);
    const [showOpsDropdown, setShowOpsDropdown] = useState(false);
-   const [showSyncLog, setShowSyncLog] = useState(false);
+    const [showSyncLog, setShowSyncLog] = useState(false);
+    const [showCallCenterDispatch, setShowCallCenterDispatch] = useState(false);
 
    // Modifiers
    const [modifierGroups, setModifierGroups] = useState<any[]>([]);
@@ -2794,6 +2797,45 @@ const POSPage = () => {
         </button>
         )}
 
+        {/* Pending Call Center Orders */}
+        <PendingOrdersPanel
+          dataOwnerId={dataOwnerId || ""}
+          branchId={null}
+          sessionId={session?.id || null}
+          enabled={!!session}
+          onAcceptOrder={(order) => {
+            // Create new order tab with call center order data
+            orderCounter.current += 1;
+            const newOrder = createNewOrder(orderCounter.current);
+            newOrder.customerName = order.customer_name || "";
+            newOrder.customerPhone = order.customer_phone || "";
+            newOrder.orderType = order.delivery_type === "delivery" ? "delivery" : "takeaway";
+            newOrder.deliveryAddress = order.delivery_address || "";
+            newOrder.orderNote = [
+              order.source_app ? `مصدر: ${order.source_app}` : "",
+              order.payment_method === "visa" ? "💳 فيزا" : "💵 نقدي",
+              order.order_note || "",
+            ].filter(Boolean).join(" | ");
+            // Add items to cart
+            newOrder.cart = (order.items || []).map((item: any, i: number) => ({
+              id: crypto.randomUUID(),
+              product_id: item.product_id || null,
+              name: item.name,
+              qty: item.qty,
+              unit_price: item.unit_price,
+              cost_price: 0,
+              discount_pct: 0,
+              tax_rate: 0,
+              unit: "قطعة",
+              total: item.total || item.unit_price * item.qty,
+              note: item.note || "",
+            }));
+            newOrder.name = `📞 ${order.customer_name}`;
+            setOrders(prev => [...prev, newOrder]);
+            setActiveOrderIndex(orders.length);
+          }}
+        />
+
         {/* Kitchen Display - icon only */}
         <button
           onClick={() => navigate("/pos/kitchen")}
@@ -3816,6 +3858,17 @@ const POSPage = () => {
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
+                {/* Send to Branch (Call Center) */}
+                <motion.button
+                  whileTap={{ scale: 0.97 }}
+                  className="h-11 px-3 rounded-xl text-sm font-bold flex items-center justify-center gap-1.5 text-white transition-all disabled:opacity-40 disabled:pointer-events-none"
+                  style={{ backgroundColor: cart.length > 0 ? "#F59E0B" : "hsl(var(--muted))" }}
+                  disabled={cart.length === 0 || !session}
+                  onClick={() => setShowCallCenterDispatch(true)}
+                  title="تحويل للفرع"
+                >
+                  <Send className="h-4 w-4" />
+                </motion.button>
                 <motion.button
                   whileTap={{ scale: 0.97 }}
                   className="flex-1 h-11 rounded-xl text-sm font-bold flex items-center justify-center gap-2 text-white transition-all disabled:opacity-40 disabled:pointer-events-none"
@@ -5014,6 +5067,26 @@ const POSPage = () => {
         sessionBalance={session ? session.opening_cash + session.total_sales : 0}
       />
       <SyncLogSheet open={showSyncLog} onOpenChange={setShowSyncLog} />
+      
+      {/* Call Center Dispatch Dialog */}
+      <CallCenterDispatchDialog
+        open={showCallCenterDispatch}
+        onOpenChange={setShowCallCenterDispatch}
+        dataOwnerId={dataOwnerId || ""}
+        cart={cart.map(item => ({ name: item.name, qty: item.qty, unit_price: item.unit_price, total: item.total, note: item.note, product_id: item.product_id }))}
+        total={customerDataDiscount ? cartTotals.total - customerDataDiscount.discountAmount : cartTotals.total}
+        customerName={customerName}
+        customerPhone={activeOrder.customerPhone}
+        deliveryAddress={activeOrder.deliveryAddress}
+        orderNote={orderNote}
+        onSuccess={() => {
+          // Clear cart after successful dispatch
+          setCart([]); setSelectedCartIndex(null); setOrderDiscount(0); setOrderNote("");
+          setCustomerDataDiscount(null);
+          setCustomerName("", null, "", null);
+          updateActiveOrder(o => ({ ...o, orderType: "dine_in", deliveryAddress: "" }));
+        }}
+      />
     </div>
   );
 };
