@@ -1,11 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Plus, Trash2, Truck, CreditCard } from "lucide-react";
+import { Plus, Trash2, Truck, CreditCard, Search, X, ChevronDown } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface DeliveryApp {
   id: string;
@@ -16,17 +17,121 @@ interface DeliveryApp {
   visa_gl_account_code: string | null;
 }
 
+interface AccountOption {
+  account_code: string;
+  account_name: string;
+  account_type: string;
+}
+
 interface Props {
   userId: string;
 }
 
 const EMOJI_OPTIONS = ["🛵", "🍔", "⏰", "📞", "🚗", "🍕", "📱", "🏍️", "🚲", "🛒", "💳", "🤖"];
 
+const AccountSearchPicker = ({
+  value,
+  onChange,
+  accounts,
+}: {
+  value: string | null;
+  onChange: (code: string) => void;
+  accounts: AccountOption[];
+}) => {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const selectedAccount = accounts.find(a => a.account_code === value);
+
+  const searchTerms = search.toLowerCase().split(/\s+/).filter(Boolean);
+  const filtered = search
+    ? accounts.filter(a => {
+        const text = `${a.account_code} ${a.account_name} ${a.account_type}`.toLowerCase();
+        return searchTerms.every(t => text.includes(t));
+      })
+    : accounts;
+
+  useEffect(() => {
+    if (open) setTimeout(() => inputRef.current?.focus(), 100);
+  }, [open]);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className="h-7 text-xs max-w-[220px] w-full flex items-center gap-1 px-2 rounded-md border border-input bg-background hover:bg-muted/50 transition text-right"
+          dir="rtl"
+        >
+          {selectedAccount ? (
+            <span className="truncate flex-1">
+              {selectedAccount.account_code} - {selectedAccount.account_name}
+            </span>
+          ) : (
+            <span className="text-muted-foreground truncate flex-1">بحث عن حساب...</span>
+          )}
+          <ChevronDown className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-72 p-0" align="start" dir="rtl">
+        <div className="p-2 border-b border-border">
+          <div className="relative">
+            <Search className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input
+              ref={inputRef}
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="بحث بالرقم أو الاسم..."
+              className="h-8 text-xs pr-7 pl-7"
+              dir="rtl"
+            />
+            {search && (
+              <button onClick={() => setSearch("")} className="absolute left-2 top-1/2 -translate-y-1/2">
+                <X className="h-3 w-3 text-muted-foreground" />
+              </button>
+            )}
+          </div>
+        </div>
+        <div className="max-h-48 overflow-y-auto">
+          {filtered.length === 0 ? (
+            <p className="text-xs text-muted-foreground text-center py-4">لا توجد نتائج</p>
+          ) : (
+            filtered.map(a => (
+              <button
+                key={a.account_code}
+                onClick={() => { onChange(a.account_code); setOpen(false); setSearch(""); }}
+                className={`w-full text-right px-3 py-2 text-xs hover:bg-accent/50 flex items-center gap-2 transition ${
+                  value === a.account_code ? "bg-accent/30 font-medium" : ""
+                }`}
+              >
+                <span className="font-mono text-[10px] text-muted-foreground w-10 text-left flex-shrink-0">{a.account_code}</span>
+                <span className="truncate flex-1">{a.account_name}</span>
+              </button>
+            ))
+          )}
+        </div>
+        {value && (
+          <div className="p-1.5 border-t border-border">
+            <button
+              onClick={() => { onChange(""); setOpen(false); }}
+              className="w-full text-xs text-destructive hover:bg-destructive/10 rounded px-2 py-1 transition"
+            >
+              مسح الحساب المحدد
+            </button>
+          </div>
+        )}
+      </PopoverContent>
+    </Popover>
+  );
+};
+
 const DeliveryAppsManager = ({ userId }: Props) => {
   const [apps, setApps] = useState<DeliveryApp[]>([]);
   const [newName, setNewName] = useState("");
   const [newIcon, setNewIcon] = useState("📱");
   const [loading, setLoading] = useState(true);
+  const [accounts, setAccounts] = useState<AccountOption[]>([]);
 
   const loadApps = async () => {
     const { data } = await supabase
@@ -38,8 +143,21 @@ const DeliveryAppsManager = ({ userId }: Props) => {
     setLoading(false);
   };
 
+  const loadAccounts = async () => {
+    const { data } = await supabase
+      .from("accounts")
+      .select("account_code, account_name, account_type")
+      .eq("user_id", userId)
+      .eq("is_active", true)
+      .order("account_code");
+    setAccounts(data || []);
+  };
+
   useEffect(() => {
-    if (userId) loadApps();
+    if (userId) {
+      loadApps();
+      loadAccounts();
+    }
   }, [userId]);
 
   const addApp = async () => {
@@ -106,12 +224,10 @@ const DeliveryAppsManager = ({ userId }: Props) => {
             <div className="flex items-center gap-2 pr-8">
               <CreditCard className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
               <Label className="text-[11px] text-muted-foreground whitespace-nowrap">حساب ذمة الفيزا:</Label>
-              <Input
-                value={app.visa_gl_account_code || ""}
-                onChange={e => updateVisaAccount(app.id, e.target.value)}
-                placeholder="مثال: 1135"
-                className="h-7 text-xs max-w-[140px]"
-                dir="ltr"
+              <AccountSearchPicker
+                value={app.visa_gl_account_code}
+                onChange={(code) => updateVisaAccount(app.id, code)}
+                accounts={accounts}
               />
             </div>
           </div>
