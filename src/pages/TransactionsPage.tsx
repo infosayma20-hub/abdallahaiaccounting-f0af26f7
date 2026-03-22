@@ -442,7 +442,6 @@ const TransactionsPage = () => {
       const ids = Array.from(selectedIds);
       const { error } = await supabase.from('transactions').update({ is_deleted: true }).in('id', ids);
       if (error) throw error;
-      await cancelLinkedVouchers(ids);
       toast({ title: `تم نقل ${ids.length} معاملة والمستندات المرتبطة إلى سلة المحذوفات` });
       setShowBulkDeleteConfirm(false); setSelectedIds(new Set()); fetchData();
     } catch (err: any) {
