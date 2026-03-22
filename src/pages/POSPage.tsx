@@ -1500,7 +1500,7 @@ const POSPage = () => {
   // Open session
   const handleOpenShift = async () => {
     if (!userId || !company || !terminal) return;
-    if (posRequireCashBox && !selectedCashBoxId) {
+    if (!selectedCashBoxId) {
       toast.error("يجب اختيار الصندوق قبل فتح الوردية");
       return;
     }
