@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, ChevronDown, ArrowLeft, Lock } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
@@ -7,6 +7,7 @@ import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { useSubscription } from "@/hooks/useSubscription";
 import WelcomeModal from "@/components/onboarding/WelcomeModal";
 import SpotlightTour from "@/components/onboarding/SpotlightTour";
+import { supabase } from "@/integrations/supabase/client";
 
 import { motion } from "framer-motion";
 import { Input } from "@/components/ui/input";
@@ -14,6 +15,14 @@ import { Input } from "@/components/ui/input";
 import { getAppSections, getAllChildren, type NavItem } from "@/config/navigationConfig";
 
 const appSections = getAppSections();
+
+/* ── Role-based app visibility ── */
+const ROLE_ALLOWED_APPS: Record<string, string[]> = {
+  accountant_senior: ["dashboard", "ai-accountant", "finance", "sales", "purchases", "inventory", "fixed-assets", "reports", "settings"],
+  accountant_sales: ["dashboard", "ai-accountant", "finance", "sales", "reports", "settings"],
+  accountant_purchases: ["dashboard", "ai-accountant", "finance", "purchases", "inventory", "reports", "settings"],
+  hr_manager: ["dashboard", "hr", "settings"],
+};
 
 /* ── App Card ── */
 const AppCard = ({
