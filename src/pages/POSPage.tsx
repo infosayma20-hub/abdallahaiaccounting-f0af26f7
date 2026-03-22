@@ -518,6 +518,7 @@ const POSPage = () => {
    const [showOpsDropdown, setShowOpsDropdown] = useState(false);
     const [showSyncLog, setShowSyncLog] = useState(false);
      const [showCallCenterDispatch, setShowCallCenterDispatch] = useState(false);
+     const [showDispatchLog, setShowDispatchLog] = useState(false);
      const [isCallCenter, setIsCallCenter] = useState(false);
 
    // Modifiers
