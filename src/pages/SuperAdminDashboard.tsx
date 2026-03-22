@@ -1714,7 +1714,7 @@ export default function SuperAdminDashboard() {
       onMouseEnter={(e) => (e.currentTarget.style.background = "var(--sa-card-hover)")}
       onMouseLeave={(e) => (e.currentTarget.style.background = "")}>
       <td className="px-3 py-3 text-center">
-        {!isSub && (subUsersMap.get(u.user_id) || []).length > 0 ? (
+        {!isSub && ((subUsersMap.get(u.user_id) || []).length > 0 || (portalMembers[u.user_id] || []).length > 0) ? (
           <ChevronDown className={`h-4 w-4 transition-transform inline-block cursor-pointer ${expandedOwners.has(u.user_id) ? "" : "-rotate-90"}`}
             style={{ color: "var(--sa-text-muted)" }}
             onClick={() => toggleOwnerExpand(u.user_id)} />
