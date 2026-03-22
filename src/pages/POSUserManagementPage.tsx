@@ -679,7 +679,7 @@ export default function POSUserManagementPage() {
                         
                         
                         <td className="px-3 py-3">
-                          <Badge className={`text-[10px] ${ROLE_COLORS[u.role] || "bg-muted"}`}>{ROLE_LABELS[u.role] || u.role}</Badge>
+                          <Badge className={`text-[10px] ${ROLE_COLORS[u.is_call_center ? "call_center" : u.role] || "bg-muted"}`}>{ROLE_LABELS[u.is_call_center ? "call_center" : u.role] || u.role}</Badge>
                         </td>
                         <td className="px-3 py-3 text-center">
                           {u.is_active ? (
