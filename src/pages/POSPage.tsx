@@ -2906,6 +2906,7 @@ const POSPage = () => {
             newOrder.customerPhone = order.customer_phone || "";
             newOrder.orderType = order.delivery_type === "delivery" ? "delivery" : "takeaway";
             newOrder.deliveryAddress = order.delivery_address || "";
+            newOrder.callCenterOrderId = order.id;
             newOrder.orderNote = [
               order.source_app ? `مصدر: ${order.source_app}` : "",
               order.payment_method === "visa" ? "💳 فيزا" : "💵 نقدي",
