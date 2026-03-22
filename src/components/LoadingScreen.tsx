@@ -83,7 +83,9 @@ const LoadingScreen = ({ demo = false }: { demo?: boolean }) => {
             animationDelay: "200ms",
           }}
         >
-          <img src="/logo-white.svg" alt="QOYOD قيود" width={180} />
+          <div style={{ background: 'white', borderRadius: 20, padding: '14px 18px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+            <img src="/q-icon.svg" alt="QOYOD قيود" style={{ width: 120, height: 'auto' }} />
+          </div>
         </div>
 
         {/* Arabic tagline */}
