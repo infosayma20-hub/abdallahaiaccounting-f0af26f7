@@ -43,7 +43,7 @@ const SupportTicketsPage = () => {
 
   const filtered = tickets.filter((t) => {
     if (statusFilter !== "all" && t.status !== statusFilter) return false;
-    if (search && !t.title.includes(search) && !t.description?.includes(search)) return false;
+    if (search && !multiWordMatchAny(search, t.title, t.description)) return false;
     return true;
   });
 

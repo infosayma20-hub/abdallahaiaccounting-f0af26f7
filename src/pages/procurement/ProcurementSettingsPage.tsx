@@ -38,7 +38,7 @@ function SuppliersTab() {
   const [deleteDialog, setDeleteDialog] = useState<any>(null);
   const [saving, setSaving] = useState(false);
 
-  const filtered = suppliers.filter(s => !search || s.name?.includes(search) || s.phone?.includes(search));
+  const filtered = suppliers.filter(s => !search || multiWordMatchAny(search, s.name, s.phone));
 
   const openNew = () => { setEditing(null); setForm({ name: "", phone: "", address: "", payment_terms_days: 30, opening_balance: 0, opening_balance_date: "", is_active: true, notes: "" }); setDrawerOpen(true); };
   const openEdit = (s: any) => { setEditing(s); setForm({ name: s.name || "", phone: s.phone || "", address: s.address || "", payment_terms_days: s.payment_terms_days || 30, opening_balance: s.opening_balance || 0, opening_balance_date: s.opening_balance_date || "", is_active: s.is_active !== false, notes: s.notes || "" }); setDrawerOpen(true); };
