@@ -190,6 +190,7 @@ export const navigationSections: NavSection[] = [
             groupLabel: "الإدارة",
             children: [
               { label: "تقارير نقطة البيع", path: "/pos-reports" },
+              { label: "تقارير الكول سنتر", path: "/call-center-reports" },
               { label: "إدارة مستخدمي POS", path: "/pos-users" },
             ],
           },

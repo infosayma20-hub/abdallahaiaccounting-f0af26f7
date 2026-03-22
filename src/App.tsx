@@ -73,6 +73,7 @@ import SupportAdminPage from "./pages/SupportAdminPage";
 import POSPage from "./pages/POSPage";
 import POSUserManagementPage from "./pages/POSUserManagementPage";
 import POSReportsPage from "./pages/POSReportsPage";
+import CallCenterReportsPage from "./pages/CallCenterReportsPage";
 import POSCustomerDatabasePage from "./pages/POSCustomerDatabasePage";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import SuperAdminLoginPage from "./pages/SuperAdminLoginPage";
@@ -378,6 +379,7 @@ const App = () => (
                       <Route path="/pos-users" element={<POSUserManagementPage />} />
                       <Route path="/pos-customers" element={<POSCustomerDatabasePage />} />
                       <Route path="/pos-reports" element={<POSReportsPage />} />
+                      <Route path="/call-center-reports" element={<CallCenterReportsPage />} />
                       <Route path="/customer-reports" element={<CustomerReportsPage />} />
                       <Route path="/contractor" element={<ContractorApp />} />
                       {/* Task Manager */}
