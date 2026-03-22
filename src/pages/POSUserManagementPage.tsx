@@ -36,6 +36,7 @@ interface POSUserRow {
   email: string | null;
   avatar_url: string | null;
   role: string;
+  is_call_center: boolean;
   is_active: boolean;
   last_login_at: string | null;
   company_id: string;
