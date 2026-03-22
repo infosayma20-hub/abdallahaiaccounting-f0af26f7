@@ -2041,7 +2041,13 @@ const POSPage = () => {
   const handleCompleteOrder = async (overridePaymentMethod?: string) => {
     if (!userId || !session || cart.length === 0) return;
     if (!company) return;
-    const effectivePaymentMethod = overridePaymentMethod || paymentMethod;
+    // Handle "card:GLCODE" format from delivery app visa accounts
+    let effectivePaymentMethod = overridePaymentMethod || paymentMethod;
+    let visaGlAccountCode: string | null = null;
+    if (effectivePaymentMethod.startsWith("card:")) {
+      visaGlAccountCode = effectivePaymentMethod.split(":")[1];
+      effectivePaymentMethod = "card";
+    }
     if (effectivePaymentMethod === "employee_account" && !selectedEmployee) {
       toast.error("يرجى اختيار الموظف أولاً");
       return;
