@@ -152,6 +152,7 @@ const CashBoxDrawer = ({ open, onClose, defaultType, editBox, hasMainBox, onSave
       auto_transfer_trigger: autoTransfer ? autoTransferTrigger : null,
       pos_auto_post: boxType === "pos" ? posAutoPost : null,
       pos_post_trigger: boxType === "pos" ? posPostTrigger : null,
+      branch_id: (boxType === "pos" || boxType === "branch") ? selectedBranchId : null,
       notes: notes || null,
     };
 
