@@ -2319,7 +2319,7 @@ const POSPage = () => {
         tax: cartTotals.tax,
         discount: effectiveDiscount,
         total: effectiveTotal,
-        paymentMethod,
+        paymentMethod: effectivePaymentMethod,
         tenderedAmount: tendered,
         change: changeILS,
         currency: paymentCurrency,
