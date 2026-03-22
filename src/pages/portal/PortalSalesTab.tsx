@@ -352,7 +352,7 @@ export default function PortalSalesTab({ data, loading, businessDay, needsSetup,
         if (!mealMap[m.name]) mealMap[m.name] = { ...m };
         else { mealMap[m.name].quantity += m.quantity; mealMap[m.name].revenue += m.revenue; }
       }
-      groups[gName].topMeals = Object.values(mealMap).sort((a, b) => b.quantity - a.quantity);
+      groups[gName].topMeals = Object.values(mealMap).sort((a, b) => b.revenue - a.revenue);
     }
     for (const g of Object.values(groups)) {
       g.avgOrder = g.orderCount > 0 ? g.totalSales / g.orderCount : 0;
