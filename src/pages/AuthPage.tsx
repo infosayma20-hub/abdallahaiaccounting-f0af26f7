@@ -250,17 +250,20 @@ const AuthPage = () => {
               <Card className="border-0 shadow-none">
                 <CardContent className="p-0">
                   <form onSubmit={handlePortalLogin} className="space-y-4">
-                    <div className="relative">
-                      <User className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                      <Input
-                        placeholder="اسم المستخدم"
-                        value={portalUsername}
-                        onChange={(e) => setPortalUsername(e.target.value)}
-                        required
-                        className="pr-10"
-                        autoComplete="username"
-                      />
-                    </div>
+                     <div className="relative">
+                       <Mail className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                       <Input
+                         type="email"
+                         placeholder="البريد الإلكتروني"
+                         value={portalEmail}
+                         onChange={(e) => setPortalEmail(e.target.value)}
+                         required
+                         className="pr-10"
+                         dir="ltr"
+                         style={{ textAlign: "left" }}
+                         autoComplete="email"
+                       />
+                     </div>
                     <div className="relative">
                       <Lock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                       <Input
