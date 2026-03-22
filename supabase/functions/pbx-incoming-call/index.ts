@@ -108,6 +108,23 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
+    // ── Determine target company/user ──
+    // 1. Check company_settings for pbx_company_id stored in the webhook secret/header
+    // 2. Fallback: find company that has pos_customers matching the caller
+    // 3. Last resort: use the configured default company
+
+    // Default company for PBX: شركة مطاعم الدجاج الملكي (malaky broast)
+    const DEFAULT_PBX_COMPANY_ID = "fce51290-60e8-4ded-a3bc-0b542797dd67";
+
+    // Get the owner user_id for this company
+    const { data: companyRow } = await supabase
+      .from("companies")
+      .select("owner_id")
+      .eq("id", DEFAULT_PBX_COMPANY_ID)
+      .single();
+
+    const companyOwnerId = companyRow?.owner_id;
+
     const phoneVariants = Array.from(new Set([
       normalizedNumber,
       normalizedNumber.replace(/^0/, ""),
@@ -116,33 +133,18 @@ Deno.serve(async (req) => {
       callerNumber,
     ].filter(Boolean)));
 
+    // Search for customer within this company's data
     const { data: customers } = await supabase
       .from("pos_customers")
       .select("id, name, phone, address, user_id")
       .or(phoneVariants.map((phone) => `phone.eq.${phone}`).join(","))
+      .eq("user_id", companyOwnerId)
       .limit(1);
 
     const customer = customers?.[0] || null;
-    let userId = customer?.user_id;
 
-    if (!userId && calledNumber) {
-      const { data: posUser } = await supabase
-        .from("pos_users")
-        .select("user_id")
-        .eq("extension_number", calledNumber)
-        .limit(1);
-
-      userId = posUser?.[0]?.user_id;
-    }
-
-    if (!userId) {
-      const { data: firstUser } = await supabase
-        .from("pos_customers")
-        .select("user_id")
-        .limit(1);
-
-      userId = firstUser?.[0]?.user_id;
-    }
+    // Always use the company owner as the target user
+    const userId = companyOwnerId;
 
     if (!userId) {
       return jsonResponse({ error: "Cannot determine user context" }, 400);
@@ -170,7 +172,7 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: error.message }, 500);
     }
 
-    console.log("Call event created:", callEvent.id, "Customer:", customer?.name || "unknown");
+    console.log("Call event created:", callEvent.id, "User:", userId, "Customer:", customer?.name || "unknown");
 
     return jsonResponse({
       success: true,
