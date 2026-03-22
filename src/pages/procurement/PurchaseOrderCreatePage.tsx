@@ -246,6 +246,7 @@ const PurchaseOrderCreatePage = () => {
       await supabase.from("products").insert({
         user_id: user.id, name: newItem.name, unit: newItem.unit,
         buy_price: newItem.default_price || 0, sell_price: 0, quantity: 0, min_quantity: 0, category: catName,
+        is_pos_available: false,
       } as any);
     }
     setSavingDialog(false);
