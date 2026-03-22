@@ -2,12 +2,13 @@ import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, Search } from 'lucide-react';
 
-const GOLD = '#D4A017';
+const PRIMARY = '#1B3A5C';
+const ACCENT = '#2A7B9B';
 
 function getThemeColors(theme: 'light' | 'dark') {
   return theme === 'dark'
-    ? { card: '#111111', text: 'white', textMuted: 'rgba(255,255,255,0.5)', textFaint: 'rgba(255,255,255,0.4)', border: 'rgba(255,255,255,0.06)', chipBg: 'rgba(255,255,255,0.06)', inputBg: 'rgba(255,255,255,0.07)', inputBorder: 'rgba(255,255,255,0.12)', subCard: 'rgba(255,255,255,0.03)' }
-    : { card: '#FFFFFF', text: '#1A1A1A', textMuted: 'rgba(0,0,0,0.55)', textFaint: 'rgba(0,0,0,0.4)', border: 'rgba(0,0,0,0.08)', chipBg: 'rgba(0,0,0,0.04)', inputBg: '#F5F5F5', inputBorder: 'rgba(0,0,0,0.12)', subCard: 'rgba(0,0,0,0.03)' };
+    ? { card: '#161B22', text: '#E6EDF3', textMuted: 'rgba(230,237,243,0.6)', textFaint: 'rgba(230,237,243,0.4)', border: 'rgba(230,237,243,0.08)', chipBg: 'rgba(230,237,243,0.06)', inputBg: 'rgba(230,237,243,0.07)', inputBorder: 'rgba(230,237,243,0.12)', subCard: 'rgba(230,237,243,0.03)' }
+    : { card: '#FFFFFF', text: '#1B3A5C', textMuted: 'rgba(27,58,92,0.6)', textFaint: 'rgba(27,58,92,0.4)', border: 'rgba(27,58,92,0.1)', chipBg: 'rgba(27,58,92,0.04)', inputBg: '#F5F5F5', inputBorder: 'rgba(27,58,92,0.12)', subCard: 'rgba(27,58,92,0.03)' };
 }
 
 interface SupplierBalance {
@@ -82,7 +83,7 @@ export default function PortalSupplierBalancesTab({ theme = 'light' }: { theme?:
 
       <button onClick={fetchData} disabled={loading} style={{
         width: '100%', padding: '10px', borderRadius: 10, fontSize: 14, fontWeight: 700,
-        background: `linear-gradient(135deg, ${GOLD}, #8B5E00)`,
+        background: ACCENT,
         border: 'none', color: 'white', cursor: 'pointer',
         fontFamily: 'Tajawal, sans-serif',
         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
@@ -100,7 +101,7 @@ export default function PortalSupplierBalancesTab({ theme = 'light' }: { theme?:
 
       {loading && (
         <div style={{ textAlign: 'center', padding: '50px 20px' }}>
-          <Loader2 size={28} className="animate-spin" style={{ color: GOLD, margin: '0 auto 12px', display: 'block' }} />
+          <Loader2 size={28} className="animate-spin" style={{ color: ACCENT, margin: '0 auto 12px', display: 'block' }} />
         </div>
       )}
 
@@ -177,10 +178,10 @@ export default function PortalSupplierBalancesTab({ theme = 'light' }: { theme?:
 
               {/* Total card */}
               <div style={{
-                background: 'rgba(212,160,23,0.08)', borderRadius: 12, padding: '14px',
-                border: '1px solid rgba(212,160,23,0.25)',
+                background: `rgba(42,123,155,0.08)`, borderRadius: 12, padding: '14px',
+                border: `1px solid rgba(42,123,155,0.25)`,
               }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: GOLD, marginBottom: 10 }}>📊 المجموع</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: ACCENT, marginBottom: 10 }}>📊 المجموع</div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
                   {[
                     { label: 'افتتاحي', value: fmt(totalOpening), color: t.text },

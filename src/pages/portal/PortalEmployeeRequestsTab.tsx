@@ -2,12 +2,12 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, Search, ChevronDown } from 'lucide-react';
 
-const GOLD = '#D4A017';
+const ACCENT = '#2A7B9B';
 
 function getThemeColors(theme: 'light' | 'dark') {
   return theme === 'dark'
-    ? { card: '#111111', text: 'white', textMuted: 'rgba(255,255,255,0.5)', textFaint: 'rgba(255,255,255,0.4)', border: 'rgba(255,255,255,0.06)', chipBg: 'rgba(255,255,255,0.06)', inputBg: 'rgba(255,255,255,0.06)', inputBorder: 'rgba(255,255,255,0.1)', expandBg: 'rgba(255,255,255,0.02)' }
-    : { card: '#FFFFFF', text: '#1A1A1A', textMuted: 'rgba(0,0,0,0.55)', textFaint: 'rgba(0,0,0,0.4)', border: 'rgba(0,0,0,0.08)', chipBg: 'rgba(0,0,0,0.04)', inputBg: '#F5F5F5', inputBorder: 'rgba(0,0,0,0.12)', expandBg: 'rgba(0,0,0,0.02)' };
+    ? { card: '#161B22', text: '#E6EDF3', textMuted: 'rgba(230,237,243,0.6)', textFaint: 'rgba(230,237,243,0.4)', border: 'rgba(230,237,243,0.08)', chipBg: 'rgba(230,237,243,0.06)', inputBg: 'rgba(230,237,243,0.06)', inputBorder: 'rgba(230,237,243,0.1)', expandBg: 'rgba(230,237,243,0.02)' }
+    : { card: '#FFFFFF', text: '#1B3A5C', textMuted: 'rgba(27,58,92,0.6)', textFaint: 'rgba(27,58,92,0.4)', border: 'rgba(27,58,92,0.1)', chipBg: 'rgba(27,58,92,0.04)', inputBg: '#F5F5F5', inputBorder: 'rgba(27,58,92,0.12)', expandBg: 'rgba(27,58,92,0.02)' };
 }
 
 interface EmployeeRequest {
@@ -69,7 +69,7 @@ export default function PortalEmployeeRequestsTab({ theme = 'light' }: { theme?:
   if (loading) {
     return (
       <div style={{ textAlign: 'center', padding: '60px 20px' }}>
-        <Loader2 size={28} className="animate-spin" style={{ color: GOLD, margin: '0 auto 12px', display: 'block' }} />
+        <Loader2 size={28} className="animate-spin" style={{ color: ACCENT, margin: '0 auto 12px', display: 'block' }} />
         <div style={{ color: t.textMuted, fontSize: 13 }}>جاري تحميل الطلبات...</div>
       </div>
     );
@@ -115,9 +115,9 @@ export default function PortalEmployeeRequestsTab({ theme = 'light' }: { theme?:
         ].map(f => (
           <button key={f.key} onClick={() => setFilter(f.key)} style={{
             padding: '8px 14px', borderRadius: 20, fontSize: 11,
-            background: filter === f.key ? 'rgba(212,160,23,0.2)' : t.chipBg,
-            border: `1px solid ${filter === f.key ? 'rgba(212,160,23,0.4)' : t.border}`,
-            color: filter === f.key ? GOLD : t.textMuted,
+            background: filter === f.key ? `rgba(42,123,155,0.15)` : t.chipBg,
+            border: `1px solid ${filter === f.key ? `rgba(42,123,155,0.4)` : t.border}`,
+            color: filter === f.key ? ACCENT : t.textMuted,
             cursor: 'pointer', fontFamily: 'Tajawal, sans-serif',
             whiteSpace: 'nowrap',
           }}>
@@ -195,7 +195,7 @@ export default function PortalEmployeeRequestsTab({ theme = 'light' }: { theme?:
                     </span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       {r.amount && (
-                        <span style={{ fontSize: 12, fontFamily: 'JetBrains Mono, monospace', color: GOLD }}>
+                        <span style={{ fontSize: 12, fontFamily: 'JetBrains Mono, monospace', color: ACCENT }}>
                           ₪{r.amount.toLocaleString()}
                         </span>
                       )}

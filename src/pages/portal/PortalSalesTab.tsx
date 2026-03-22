@@ -3,7 +3,8 @@ import { type SalesData, type BranchSales } from '@/hooks/usePortalData';
 import { type BusinessDay } from '@/lib/portal-business-day';
 import { Loader2, TrendingUp, ShoppingBag, Receipt, Trophy, ChevronDown, Calendar, Store, LayoutGrid, UtensilsCrossed } from 'lucide-react';
 
-const GOLD = '#D4A017';
+const PRIMARY = '#1B3A5C';
+const ACCENT = '#2A7B9B';
 
 type ViewMode = 'live' | 'branches' | 'items';
 
@@ -13,8 +14,8 @@ function fmt(n: number) {
 
 function getThemeColors(theme: 'light' | 'dark') {
   return theme === 'dark'
-    ? { card: '#111111', text: 'white', textMuted: 'rgba(255,255,255,0.5)', textFaint: 'rgba(255,255,255,0.4)', border: 'rgba(255,255,255,0.06)', chipBg: 'rgba(255,255,255,0.06)', branchGrad: 'linear-gradient(135deg, #1A0A00, #2D1200)' }
-    : { card: '#FFFFFF', text: '#1A1A1A', textMuted: 'rgba(0,0,0,0.55)', textFaint: 'rgba(0,0,0,0.4)', border: 'rgba(0,0,0,0.08)', chipBg: 'rgba(0,0,0,0.04)', branchGrad: 'linear-gradient(135deg, #1B3A5C, #0D1B2A)' };
+    ? { card: '#161B22', text: '#E6EDF3', textMuted: 'rgba(230,237,243,0.6)', textFaint: 'rgba(230,237,243,0.4)', border: 'rgba(230,237,243,0.08)', chipBg: 'rgba(230,237,243,0.06)', branchGrad: `linear-gradient(135deg, ${PRIMARY}, #0D1B2A)` }
+    : { card: '#FFFFFF', text: '#1B3A5C', textMuted: 'rgba(27,58,92,0.6)', textFaint: 'rgba(27,58,92,0.4)', border: 'rgba(27,58,92,0.1)', chipBg: 'rgba(27,58,92,0.04)', branchGrad: `linear-gradient(135deg, ${PRIMARY}, #0D1B2A)` };
 }
 
 function KPICard({ icon, label, value, sub, accent, t }: {
@@ -24,7 +25,7 @@ function KPICard({ icon, label, value, sub, accent, t }: {
   return (
     <div style={{
       background: t.card, borderRadius: 12, padding: '14px 14px',
-      border: `1px solid ${accent ? 'rgba(212,160,23,0.3)' : t.border}`,
+      border: `1px solid ${accent ? `rgba(42,123,155,0.3)` : t.border}`,
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
         {icon}
@@ -33,7 +34,7 @@ function KPICard({ icon, label, value, sub, accent, t }: {
       <div style={{
         fontSize: accent ? 22 : 18, fontWeight: 700,
         fontFamily: 'JetBrains Mono, monospace',
-        color: accent ? GOLD : t.text,
+        color: accent ? ACCENT : t.text,
       }}>{value}</div>
       {sub && <div style={{ fontSize: 9, color: t.textFaint, marginTop: 3 }}>{sub}</div>}
     </div>
@@ -59,7 +60,7 @@ function BranchCard({ branch, rank, t }: { branch: BranchSales; rank: number; t:
     <div style={{ borderRadius: 14, overflow: 'hidden', border: `1px solid ${t.border}`, background: t.card }}>
       <div style={{
         background: t.branchGrad,
-        borderTop: `3px solid ${GOLD}`, padding: '12px 14px',
+        borderTop: `3px solid ${ACCENT}`, padding: '12px 14px',
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -70,7 +71,7 @@ function BranchCard({ branch, rank, t }: { branch: BranchSales; rank: number; t:
           </div>
         </div>
         <div style={{ textAlign: 'left' }}>
-          <div style={{ fontSize: 18, fontWeight: 700, fontFamily: 'JetBrains Mono, monospace', color: GOLD }}>
+          <div style={{ fontSize: 18, fontWeight: 700, fontFamily: 'JetBrains Mono, monospace', color: 'white' }}>
             {fmt(branch.totalSales)}
           </div>
           <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.5)' }}>{branch.orderCount} طلب</div>
@@ -88,7 +89,7 @@ function BranchCard({ branch, rank, t }: { branch: BranchSales; rank: number; t:
               <div key={h} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
                 <div style={{
                   width: '100%', height: `${Math.max(pct, 2)}%`, minHeight: 2,
-                  background: val > 0 ? GOLD : t.border,
+                  background: val > 0 ? ACCENT : t.border,
                   borderRadius: 1, opacity: val > 0 ? 0.8 : 0.3,
                 }} />
                 {hourLabel[h] && <span style={{ fontSize: 7, color: t.textFaint }}>{hourLabel[h]}</span>}
@@ -109,11 +110,11 @@ function BranchCard({ branch, rank, t }: { branch: BranchSales; rank: number; t:
               <div style={{
                 width: 20, height: 20, borderRadius: 4, display: 'flex',
                 alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700,
-                background: i === 0 ? `linear-gradient(135deg, ${GOLD}, #8B5E00)`
-                  : i === 1 ? 'linear-gradient(135deg, #9CA3AF, #D1D5DB)'
-                  : i === 2 ? 'linear-gradient(135deg, #B45309, #D97706)'
+                background: i === 0 ? ACCENT
+                  : i === 1 ? '#64748B'
+                  : i === 2 ? '#94A3B8'
                   : t.chipBg,
-                color: i < 3 ? '#000' : t.textMuted,
+                color: i < 3 ? 'white' : t.textMuted,
               }}>{i + 1}</div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: t.text }}>{meal.name}</div>
@@ -121,7 +122,7 @@ function BranchCard({ branch, rank, t }: { branch: BranchSales; rank: number; t:
                   <div style={{
                     height: '100%', borderRadius: 2,
                     width: `${(meal.quantity / maxMealQty) * 100}%`,
-                    background: GOLD, opacity: 1 - i * 0.15,
+                    background: ACCENT, opacity: 1 - i * 0.12,
                   }} />
                 </div>
               </div>
@@ -129,7 +130,7 @@ function BranchCard({ branch, rank, t }: { branch: BranchSales; rank: number; t:
                 <div style={{ fontSize: 10, fontFamily: 'JetBrains Mono, monospace', color: t.textMuted }}>
                   {meal.quantity}×
                 </div>
-                <div style={{ fontSize: 10, fontFamily: 'JetBrains Mono, monospace', color: GOLD }}>
+                <div style={{ fontSize: 10, fontFamily: 'JetBrains Mono, monospace', color: ACCENT }}>
                   {fmt(meal.revenue)}
                 </div>
               </div>
@@ -137,7 +138,7 @@ function BranchCard({ branch, rank, t }: { branch: BranchSales; rank: number; t:
           ))}
           {branch.topMeals.length > 5 && (
             <button onClick={() => setShowAllMeals(!showAllMeals)} style={{
-              background: 'none', border: 'none', color: GOLD,
+              background: 'none', border: 'none', color: ACCENT,
               fontSize: 11, cursor: 'pointer', padding: '6px 0',
               display: 'flex', alignItems: 'center', gap: 4,
               fontFamily: 'Tajawal, sans-serif',
@@ -186,25 +187,25 @@ function GroupedBranchCard({ group, t }: { group: GroupedBranch; t: ReturnType<t
   return (
     <div style={{ borderRadius: 14, overflow: 'hidden', border: `1px solid ${t.border}`, background: t.card }}>
       <div style={{
-        background: t.branchGrad, borderTop: `3px solid ${GOLD}`, padding: '14px 16px',
+        background: t.branchGrad, borderTop: `3px solid ${ACCENT}`, padding: '14px 16px',
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Store size={20} color={GOLD} />
+          <Store size={20} color="white" />
           <div style={{ fontSize: 15, fontWeight: 700, color: 'white' }}>{group.groupName}</div>
         </div>
         <div style={{ textAlign: 'left' }}>
-          <div style={{ fontSize: 20, fontWeight: 700, fontFamily: 'JetBrains Mono, monospace', color: GOLD }}>{fmt(group.totalSales)}</div>
+          <div style={{ fontSize: 20, fontWeight: 700, fontFamily: 'JetBrains Mono, monospace', color: 'white' }}>{fmt(group.totalSales)}</div>
           <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.5)' }}>{group.orderCount} طلب • متوسط {fmt(group.avgOrder)}</div>
         </div>
       </div>
-      {/* Cash boxes in this group */}
+      {/* Cash boxes */}
       <div style={{ padding: '10px 14px', borderBottom: `1px solid ${t.border}` }}>
         <div style={{ fontSize: 10, color: t.textMuted, marginBottom: 6 }}>الصناديق</div>
         {group.cashBoxes.map(cb => (
           <div key={cb.name} style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0', fontSize: 11 }}>
             <span style={{ color: t.text }}>{cb.name}</span>
-            <span style={{ fontFamily: 'JetBrains Mono, monospace', color: GOLD }}>{fmt(cb.sales)} ({cb.orders})</span>
+            <span style={{ fontFamily: 'JetBrains Mono, monospace', color: ACCENT }}>{fmt(cb.sales)} ({cb.orders})</span>
           </div>
         ))}
       </div>
@@ -216,24 +217,24 @@ function GroupedBranchCard({ group, t }: { group: GroupedBranch; t: ReturnType<t
             <div key={meal.name} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0' }}>
               <div style={{
                 width: 20, height: 20, borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 9, fontWeight: 700, background: i < 3 ? `linear-gradient(135deg, ${GOLD}, #8B5E00)` : t.chipBg,
-                color: i < 3 ? '#000' : t.textMuted,
+                fontSize: 9, fontWeight: 700, background: i < 3 ? ACCENT : t.chipBg,
+                color: i < 3 ? 'white' : t.textMuted,
               }}>{i + 1}</div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 12, fontWeight: 600, color: t.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{meal.name}</div>
                 <div style={{ height: 3, borderRadius: 2, background: t.border, overflow: 'hidden' }}>
-                  <div style={{ height: '100%', borderRadius: 2, width: `${(meal.revenue / maxRevenue) * 100}%`, background: GOLD }} />
+                  <div style={{ height: '100%', borderRadius: 2, width: `${(meal.revenue / maxRevenue) * 100}%`, background: ACCENT }} />
                 </div>
               </div>
               <div style={{ textAlign: 'left', flexShrink: 0 }}>
                 <div style={{ fontSize: 10, fontFamily: 'JetBrains Mono, monospace', color: t.textMuted }}>{meal.quantity}×</div>
-                <div style={{ fontSize: 10, fontFamily: 'JetBrains Mono, monospace', color: GOLD }}>{fmt(meal.revenue)}</div>
+                <div style={{ fontSize: 10, fontFamily: 'JetBrains Mono, monospace', color: ACCENT }}>{fmt(meal.revenue)}</div>
               </div>
             </div>
           ))}
           {group.topMeals.length > 5 && (
             <button onClick={() => setShowItems(!showItems)} style={{
-              background: 'none', border: 'none', color: GOLD, fontSize: 11, cursor: 'pointer', padding: '6px 0',
+              background: 'none', border: 'none', color: ACCENT, fontSize: 11, cursor: 'pointer', padding: '6px 0',
               display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'Tajawal, sans-serif',
             }}>
               <ChevronDown size={12} style={{ transform: showItems ? 'rotate(180deg)' : undefined, transition: 'transform 0.2s' }} />
@@ -274,7 +275,7 @@ function AllItemsView({ branches, t }: { branches: BranchSales[]; t: ReturnType<
       }}>
         <div style={{ background: t.card, borderRadius: 12, padding: 12, border: `1px solid ${t.border}`, textAlign: 'center' }}>
           <div style={{ fontSize: 10, color: t.textMuted }}>عدد الأصناف</div>
-          <div style={{ fontSize: 20, fontWeight: 700, color: GOLD, fontFamily: 'JetBrains Mono, monospace' }}>{allItems.length}</div>
+          <div style={{ fontSize: 20, fontWeight: 700, color: ACCENT, fontFamily: 'JetBrains Mono, monospace' }}>{allItems.length}</div>
         </div>
         <div style={{ background: t.card, borderRadius: 12, padding: 12, border: `1px solid ${t.border}`, textAlign: 'center' }}>
           <div style={{ fontSize: 10, color: t.textMuted }}>إجمالي الكميات</div>
@@ -282,7 +283,7 @@ function AllItemsView({ branches, t }: { branches: BranchSales[]; t: ReturnType<
         </div>
         <div style={{ background: t.card, borderRadius: 12, padding: 12, border: `1px solid ${t.border}`, textAlign: 'center' }}>
           <div style={{ fontSize: 10, color: t.textMuted }}>إجمالي الإيراد</div>
-          <div style={{ fontSize: 16, fontWeight: 700, color: GOLD, fontFamily: 'JetBrains Mono, monospace' }}>{fmt(totalRevenue)}</div>
+          <div style={{ fontSize: 16, fontWeight: 700, color: ACCENT, fontFamily: 'JetBrains Mono, monospace' }}>{fmt(totalRevenue)}</div>
         </div>
       </div>
 
@@ -297,7 +298,7 @@ function AllItemsView({ branches, t }: { branches: BranchSales[]; t: ReturnType<
             onClick={() => setSortBy(opt.key)}
             style={{
               padding: '6px 14px', borderRadius: 20, border: 'none',
-              background: sortBy === opt.key ? `linear-gradient(135deg, ${GOLD}, #8B5E00)` : t.chipBg,
+              background: sortBy === opt.key ? ACCENT : t.chipBg,
               color: sortBy === opt.key ? 'white' : t.textMuted,
               fontSize: 11, fontWeight: 600, cursor: 'pointer',
               fontFamily: 'Tajawal, sans-serif',
@@ -310,8 +311,8 @@ function AllItemsView({ branches, t }: { branches: BranchSales[]; t: ReturnType<
 
       {/* Items list */}
       <div style={{ background: t.card, borderRadius: 14, border: `1px solid ${t.border}`, overflow: 'hidden' }}>
-        <div style={{ background: t.branchGrad, borderTop: `3px solid ${GOLD}`, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 8 }}>
-          <UtensilsCrossed size={18} color={GOLD} />
+        <div style={{ background: t.branchGrad, borderTop: `3px solid ${ACCENT}`, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <UtensilsCrossed size={18} color="white" />
           <span style={{ fontSize: 14, fontWeight: 700, color: 'white' }}>جميع الأصناف - كل الأفرع</span>
         </div>
         <div style={{ padding: '10px 14px' }}>
@@ -320,18 +321,18 @@ function AllItemsView({ branches, t }: { branches: BranchSales[]; t: ReturnType<
               <div style={{
                 width: 24, height: 24, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: 10, fontWeight: 700,
-                background: i === 0 ? `linear-gradient(135deg, ${GOLD}, #8B5E00)` : i === 1 ? 'linear-gradient(135deg, #9CA3AF, #D1D5DB)' : i === 2 ? 'linear-gradient(135deg, #B45309, #D97706)' : t.chipBg,
-                color: i < 3 ? '#000' : t.textMuted,
+                background: i === 0 ? ACCENT : i === 1 ? '#64748B' : i === 2 ? '#94A3B8' : t.chipBg,
+                color: i < 3 ? 'white' : t.textMuted,
               }}>{i + 1}</div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 13, fontWeight: 600, color: t.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</div>
                 <div style={{ height: 4, borderRadius: 2, background: t.border, overflow: 'hidden', marginTop: 3 }}>
-                  <div style={{ height: '100%', borderRadius: 2, width: `${((sortBy === 'revenue' ? item.revenue : item.quantity) / maxVal) * 100}%`, background: GOLD }} />
+                  <div style={{ height: '100%', borderRadius: 2, width: `${((sortBy === 'revenue' ? item.revenue : item.quantity) / maxVal) * 100}%`, background: ACCENT }} />
                 </div>
               </div>
               <div style={{ textAlign: 'left', flexShrink: 0, minWidth: 70 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, fontFamily: 'JetBrains Mono, monospace', color: t.text }}>{item.quantity}×</div>
-                <div style={{ fontSize: 10, fontFamily: 'JetBrains Mono, monospace', color: GOLD }}>{fmt(item.revenue)}</div>
+                <div style={{ fontSize: 10, fontFamily: 'JetBrains Mono, monospace', color: ACCENT }}>{fmt(item.revenue)}</div>
               </div>
             </div>
           ))}
@@ -360,7 +361,6 @@ export default function PortalSalesTab({ data, loading, businessDay, needsSetup,
   const [viewMode, setViewMode] = useState<ViewMode>('live');
   const t = getThemeColors(theme);
 
-  // Grouped branches
   const groupedBranches = useMemo(() => {
     if (!data?.branches) return [];
     const groups: Record<string, GroupedBranch> = {};
@@ -370,7 +370,6 @@ export default function PortalSalesTab({ data, loading, businessDay, needsSetup,
       groups[gName].totalSales += b.totalSales;
       groups[gName].orderCount += b.orderCount;
       groups[gName].cashBoxes.push({ name: b.name, sales: b.totalSales, orders: b.orderCount });
-      // Merge meals
       const mealMap: Record<string, { name: string; quantity: number; revenue: number }> = {};
       for (const m of [...groups[gName].topMeals, ...b.topMeals]) {
         if (!mealMap[m.name]) mealMap[m.name] = { ...m };
@@ -397,7 +396,7 @@ export default function PortalSalesTab({ data, loading, businessDay, needsSetup,
   if (loading && !data) {
     return (
       <div style={{ textAlign: 'center', padding: '60px 20px' }}>
-        <Loader2 size={28} className="animate-spin" style={{ color: GOLD, margin: '0 auto 12px', display: 'block' }} />
+        <Loader2 size={28} className="animate-spin" style={{ color: ACCENT, margin: '0 auto 12px', display: 'block' }} />
         <div style={{ color: t.textMuted, fontSize: 13 }}>جاري تحميل البيانات...</div>
       </div>
     );
@@ -440,10 +439,10 @@ export default function PortalSalesTab({ data, loading, businessDay, needsSetup,
         gridTemplateColumns: 'repeat(2, 1fr)',
         gap: 8, marginBottom: 12,
       }}>
-        <KPICard icon={<TrendingUp size={14} color={GOLD} />} label="إجمالي المبيعات" value={fmt(sales.totalSales)} sub="جميع الأفرع" accent t={t} />
+        <KPICard icon={<TrendingUp size={14} color={ACCENT} />} label="إجمالي المبيعات" value={fmt(sales.totalSales)} sub="جميع الأفرع" accent t={t} />
         <KPICard icon={<ShoppingBag size={14} color={t.textMuted} />} label="عدد الطلبات" value={`${sales.orderCount}`} t={t} />
         <KPICard icon={<Receipt size={14} color={t.textMuted} />} label="متوسط الطلب" value={fmt(sales.avgOrderValue)} t={t} />
-        <KPICard icon={<Trophy size={14} color={GOLD} />} label="أعلى فرع" value={groupedBranches[0]?.groupName || '—'} sub={groupedBranches[0] ? fmt(groupedBranches[0].totalSales) : ''} t={t} />
+        <KPICard icon={<Trophy size={14} color={ACCENT} />} label="أعلى فرع" value={groupedBranches[0]?.groupName || '—'} sub={groupedBranches[0] ? fmt(groupedBranches[0].totalSales) : ''} t={t} />
       </div>
 
       {/* View mode tabs */}
@@ -458,7 +457,7 @@ export default function PortalSalesTab({ data, loading, businessDay, needsSetup,
               flex: 1, padding: '8px 6px', borderRadius: 8, border: 'none', cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
               fontSize: 11, fontWeight: 600, fontFamily: 'Tajawal, sans-serif',
-              background: viewMode === vm.key ? GOLD : 'transparent',
+              background: viewMode === vm.key ? ACCENT : 'transparent',
               color: viewMode === vm.key ? 'white' : t.textMuted,
               transition: 'all 0.2s',
             }}
@@ -485,7 +484,7 @@ export default function PortalSalesTab({ data, loading, businessDay, needsSetup,
             style={{
               padding: '8px 16px', borderRadius: 20,
               background: dateFilter === chip.key || (dateFilter === null && chip.key === null)
-                ? `linear-gradient(135deg, ${GOLD}, #8B5E00)` : t.chipBg,
+                ? ACCENT : t.chipBg,
               border: 'none',
               color: dateFilter === chip.key || (dateFilter === null && chip.key === null) ? 'white' : t.textMuted,
               fontSize: 12, fontWeight: 600, cursor: 'pointer',
@@ -537,7 +536,7 @@ export default function PortalSalesTab({ data, loading, businessDay, needsSetup,
           disabled={!dateFrom || !dateTo}
           style={{
             padding: '6px 14px', borderRadius: 8,
-            background: dateFrom && dateTo ? GOLD : t.chipBg,
+            background: dateFrom && dateTo ? ACCENT : t.chipBg,
             border: 'none',
             color: dateFrom && dateTo ? 'white' : t.textFaint,
             fontSize: 11, fontWeight: 600, cursor: dateFrom && dateTo ? 'pointer' : 'default',
