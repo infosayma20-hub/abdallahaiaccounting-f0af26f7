@@ -532,6 +532,32 @@ const POSPage = () => {
      sessionId: session?.id || null,
      terminalId: terminal?.id || null,
      companyId: company?.id || null,
+    });
+
+   // ── PBX Call Listener ──
+   usePBXCallListener({
+     userId: dataOwnerId || userId || null,
+     enabled: !!session,
+     onIncomingCall: useCallback((event) => {
+       // Create a new order tab with the customer info
+       const newOrder = createOrder(undefined, undefined, event.customer_name || event.caller_number, undefined);
+       if (newOrder && event.customer_id) {
+         setCustomerName(
+           event.customer_name || event.caller_number,
+           null,
+           event.customer_phone || event.caller_number,
+           event.customer_id
+         );
+       }
+       // Set order type to delivery if address exists
+       if (event.customer_address) {
+         updateActiveOrder(o => ({
+           ...o,
+           orderType: 'توصيل' as any,
+           deliveryAddress: event.customer_address || '',
+         }));
+       }
+     }, []),
    });
 
   // ── Cart quantity map for badges on product cards ──
