@@ -3868,17 +3868,16 @@ const POSPage = () => {
                   </button>
                 </div>
               )}
-              {/* Customer data button */}
-              {cart.length > 0 && (
+              {/* Call Center Dispatch Button - replaces customer data for call center users */}
+              {cart.length > 0 && (isAdmin || isCallCenter) && (
                 <button
-                  onClick={() => setShowCustomerDataModal(true)}
-                  className={`w-full h-9 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
-                    customerDataDiscount
-                      ? "border-2 border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
-                      : "border border-dashed border-muted-foreground/30 bg-muted/30 text-muted-foreground hover:bg-muted/50"
-                  }`}
+                  onClick={() => setShowCallCenterDispatch(true)}
+                  disabled={!session}
+                  className="w-full h-11 rounded-xl text-sm font-bold flex items-center justify-center gap-2 border-2 border-orange-500/40 bg-orange-500/10 text-orange-700 dark:text-orange-400 hover:bg-orange-500/20 transition-all disabled:opacity-40"
                 >
-                  {customerDataDiscount ? `✅ ${customerDataDiscount.customerName || customerDataDiscount.contactValue}${customerDataDiscount.discountPct > 0 ? ` — خصم ${customerDataDiscount.discountPct}%` : ""}` : "👤 تسجيل بيانات الزبون"}
+                  <Send className="h-4 w-4" />
+                  تحويل إلى الفرع
+                  <span className="text-[10px] bg-orange-500/20 rounded px-1.5 py-0.5 font-mono">F2</span>
                 </button>
               )}
               {/* Bottom row: Delete + Print + Pay */}
