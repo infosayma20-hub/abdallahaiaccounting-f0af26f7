@@ -98,6 +98,7 @@ interface OrderTab {
   orderType: "dine_in" | "takeaway" | "delivery";
   deliveryAddress: string;
   callCenterOrderId?: string | null;
+  callCenterPaymentMethod?: string | null;
 }
 
 interface POSCustomer {
