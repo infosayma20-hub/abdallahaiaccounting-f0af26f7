@@ -248,6 +248,8 @@ function GroupedBranchCard({ group, t }: { group: GroupedBranch; t: ReturnType<t
 
 // ---- All items aggregated ----
 function AllItemsView({ branches, t }: { branches: BranchSales[]; t: ReturnType<typeof getThemeColors> }) {
+  const [sortBy, setSortBy] = useState<'revenue' | 'quantity'>('revenue');
+
   const allItems = useMemo(() => {
     const map: Record<string, { name: string; quantity: number; revenue: number }> = {};
     for (const b of branches) {
@@ -257,10 +259,10 @@ function AllItemsView({ branches, t }: { branches: BranchSales[]; t: ReturnType<
         map[m.name].revenue += m.revenue;
       }
     }
-    return Object.values(map).sort((a, b) => b.revenue - a.revenue);
-  }, [branches]);
+    return Object.values(map).sort((a, b) => sortBy === 'revenue' ? b.revenue - a.revenue : b.quantity - a.quantity);
+  }, [branches, sortBy]);
 
-  const maxRevenue = allItems[0]?.revenue || 1;
+  const maxVal = sortBy === 'revenue' ? (allItems[0]?.revenue || 1) : (allItems[0]?.quantity || 1);
   const totalItems = allItems.reduce((s, i) => s + i.quantity, 0);
   const totalRevenue = allItems.reduce((s, i) => s + i.revenue, 0);
 
@@ -284,6 +286,28 @@ function AllItemsView({ branches, t }: { branches: BranchSales[]; t: ReturnType<
         </div>
       </div>
 
+      {/* Sort toggle */}
+      <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+        {([
+          { key: 'revenue' as const, label: 'ترتيب حسب القيمة' },
+          { key: 'quantity' as const, label: 'ترتيب حسب الكمية' },
+        ]).map(opt => (
+          <button
+            key={opt.key}
+            onClick={() => setSortBy(opt.key)}
+            style={{
+              padding: '6px 14px', borderRadius: 20, border: 'none',
+              background: sortBy === opt.key ? `linear-gradient(135deg, ${GOLD}, #8B5E00)` : t.chipBg,
+              color: sortBy === opt.key ? 'white' : t.textMuted,
+              fontSize: 11, fontWeight: 600, cursor: 'pointer',
+              fontFamily: 'Tajawal, sans-serif',
+            }}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+
       {/* Items list */}
       <div style={{ background: t.card, borderRadius: 14, border: `1px solid ${t.border}`, overflow: 'hidden' }}>
         <div style={{ background: t.branchGrad, borderTop: `3px solid ${GOLD}`, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -302,7 +326,7 @@ function AllItemsView({ branches, t }: { branches: BranchSales[]; t: ReturnType<
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 13, fontWeight: 600, color: t.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</div>
                 <div style={{ height: 4, borderRadius: 2, background: t.border, overflow: 'hidden', marginTop: 3 }}>
-                  <div style={{ height: '100%', borderRadius: 2, width: `${(item.revenue / maxRevenue) * 100}%`, background: GOLD }} />
+                  <div style={{ height: '100%', borderRadius: 2, width: `${((sortBy === 'revenue' ? item.revenue : item.quantity) / maxVal) * 100}%`, background: GOLD }} />
                 </div>
               </div>
               <div style={{ textAlign: 'left', flexShrink: 0, minWidth: 70 }}>
