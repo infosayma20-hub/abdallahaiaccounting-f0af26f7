@@ -43,12 +43,6 @@ interface POSUserRow {
   has_account: boolean;
   auth_user_id: string | null;
   account_status: string | null;
-  branch_id: string | null;
-}
-
-interface BranchOption {
-  id: string;
-  name: string;
 }
 
 interface POSDevice {
@@ -166,9 +160,8 @@ export default function POSUserManagementPage() {
   // Add/Edit user dialog
   const [showUserDialog, setShowUserDialog] = useState(false);
   const [editingUser, setEditingUser] = useState<POSUserRow | null>(null);
-  const [branches, setBranches] = useState<BranchOption[]>([]);
   const [userForm, setUserForm] = useState({
-    name: "", phone: "", email: "", role: "cashier", branch_id: "" as string,
+    name: "", phone: "", email: "", role: "cashier",
   });
   const [createAccount, setCreateAccount] = useState(false);
   const [accountPassword, setAccountPassword] = useState("");
@@ -211,20 +204,18 @@ export default function POSUserManagementPage() {
 
   const loadData = async () => {
     setLoading(true);
-    const [usersRes, devicesRes, branchesRes] = await Promise.all([
+    const [usersRes, devicesRes] = await Promise.all([
       supabase.from("pos_users").select("*").eq("company_id", selectedCompany),
       supabase.from("pos_devices").select("*").eq("company_id", selectedCompany),
-      supabase.from("branches").select("id, name").eq("is_active", true),
     ]);
     setUsers(usersRes.data || []);
     setDevices(devicesRes.data || []);
-    setBranches(branchesRes.data || []);
     setLoading(false);
   };
 
   const openAddUser = () => {
     setEditingUser(null);
-    setUserForm({ name: "", phone: "", email: "", role: "cashier", branch_id: "" });
+    setUserForm({ name: "", phone: "", email: "", role: "cashier" });
     setUserPerms(DEFAULT_PERMS);
     setAssignedDevices([]);
     setCreateAccount(true); // Always create account by default
@@ -235,7 +226,7 @@ export default function POSUserManagementPage() {
 
   const openEditUser = async (u: POSUserRow) => {
     setEditingUser(u);
-    setUserForm({ name: u.name, phone: u.phone || "", email: u.email || "", role: u.role, branch_id: (u as any).branch_id || "" });
+    setUserForm({ name: u.name, phone: u.phone || "", email: u.email || "", role: u.role });
 
     // Load permissions
     const { data: perms } = await supabase.from("pos_user_permissions").select("*").eq("pos_user_id", u.id).single();
@@ -297,7 +288,6 @@ export default function POSUserManagementPage() {
       if (editingUser) {
         const updates: Record<string, unknown> = {
           name: userForm.name, phone: userForm.phone || null, email: userForm.email || null, role: userForm.role,
-          branch_id: userForm.branch_id || null,
         };
 
         await supabase.from("pos_users").update(updates).eq("id", editingUser.id);
@@ -330,7 +320,6 @@ export default function POSUserManagementPage() {
           phone: userForm.phone || null,
           email: userForm.email || null,
           role: userForm.role,
-          branch_id: userForm.branch_id || null,
           pin_hash: "no-pin", // Placeholder - PIN system removed
           created_by: user!.id,
         }).select("id").single();
@@ -831,18 +820,6 @@ export default function POSUserManagementPage() {
                     <SelectItem value="pos_manager">مشرف</SelectItem>
                     <SelectItem value="cashier">كاشير</SelectItem>
                     <SelectItem value="viewer">مشاهد</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>الفرع</Label>
-                <Select value={userForm.branch_id} onValueChange={v => setUserForm(f => ({ ...f, branch_id: v }))}>
-                  <SelectTrigger><SelectValue placeholder="اختر الفرع" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">بدون فرع</SelectItem>
-                    {branches.map(b => (
-                      <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
-                    ))}
                   </SelectContent>
                 </Select>
               </div>

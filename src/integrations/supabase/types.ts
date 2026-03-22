@@ -7505,7 +7505,6 @@ export type Database = {
           account_status: string | null
           auth_user_id: string | null
           avatar_url: string | null
-          branch_id: string | null
           company_id: string
           created_at: string
           created_by: string | null
@@ -7529,7 +7528,6 @@ export type Database = {
           account_status?: string | null
           auth_user_id?: string | null
           avatar_url?: string | null
-          branch_id?: string | null
           company_id: string
           created_at?: string
           created_by?: string | null
@@ -7553,7 +7551,6 @@ export type Database = {
           account_status?: string | null
           auth_user_id?: string | null
           avatar_url?: string | null
-          branch_id?: string | null
           company_id?: string
           created_at?: string
           created_by?: string | null
@@ -7574,20 +7571,6 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "pos_users_branch_id_fkey"
-            columns: ["branch_id"]
-            isOneToOne: false
-            referencedRelation: "branches"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pos_users_branch_id_fkey"
-            columns: ["branch_id"]
-            isOneToOne: false
-            referencedRelation: "branches_safe"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "pos_users_company_id_fkey"
             columns: ["company_id"]
