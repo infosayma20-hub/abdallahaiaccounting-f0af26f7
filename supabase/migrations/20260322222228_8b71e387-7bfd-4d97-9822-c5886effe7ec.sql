@@ -1,0 +1,1 @@
+UPDATE branches SET name = 'رام الله' WHERE id = '15af6bae-d196-4e1f-bd19-88a70f395ccb';
