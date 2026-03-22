@@ -180,7 +180,7 @@ interface GroupedBranch {
 
 function GroupedBranchCard({ group, t }: { group: GroupedBranch; t: ReturnType<typeof getThemeColors> }) {
   const [showItems, setShowItems] = useState(false);
-  const maxQty = group.topMeals[0]?.quantity || 1;
+  const maxRevenue = group.topMeals[0]?.revenue || 1;
   const mealsToShow = showItems ? group.topMeals : group.topMeals.slice(0, 5);
 
   return (
