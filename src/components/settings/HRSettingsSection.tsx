@@ -138,6 +138,7 @@ const HRSettingsSection = ({ settings, onChange }: Props) => {
           <Switch checked={settings.hr_social_security ?? false} onCheckedChange={v => onChange({ hr_social_security: v })} />
         </div>
       </div>
+      <TeamAccountManager type="hr_manager" />
     </div>
   );
 };
