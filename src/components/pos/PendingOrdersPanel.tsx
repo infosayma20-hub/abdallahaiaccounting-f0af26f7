@@ -72,16 +72,20 @@ const PendingOrdersPanel = ({ dataOwnerId, branchId, sessionId, enabled, onAccep
   const loadPendingOrders = useCallback(async () => {
     if (!dataOwnerId || !enabled) return;
 
+    // If no branch detected from cash box name, don't show any orders
+    // This prevents orders for other branches from appearing
+    if (!branchId) {
+      setOrders([]);
+      return;
+    }
+
     let query = supabase
       .from("call_center_orders" as any)
       .select("*")
       .eq("user_id", dataOwnerId)
       .eq("status", "pending")
+      .eq("target_branch_id", branchId)
       .order("created_at", { ascending: false });
-
-    if (branchId) {
-      query = query.eq("target_branch_id", branchId);
-    }
 
     const { data } = await query;
     const newOrders = (data as any as CallCenterOrder[]) || [];
