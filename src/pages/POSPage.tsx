@@ -641,7 +641,24 @@ const POSPage = () => {
     loadPerms();
   }, [userId, dataOwnerId, isAdmin]);
 
-  // Initialize
+  // Track pending dispatched orders count for call center
+  useEffect(() => {
+    if (!isCallCenter || !dataOwnerId) return;
+    const loadCount = async () => {
+      const { count } = await supabase
+        .from("call_center_orders" as any)
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", dataOwnerId)
+        .eq("status", "pending");
+      setPendingDispatchCount(count || 0);
+    };
+    loadCount();
+    const ch = supabase.channel("dispatch-count")
+      .on("postgres_changes", { event: "*", schema: "public", table: "call_center_orders", filter: `user_id=eq.${dataOwnerId}` }, () => loadCount())
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [isCallCenter, dataOwnerId]);
+
   useEffect(() => {
     if (!userId || !dataOwnerId) return;
     initializePOS();
