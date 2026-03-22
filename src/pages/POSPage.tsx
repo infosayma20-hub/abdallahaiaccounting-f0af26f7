@@ -2687,6 +2687,23 @@ const POSPage = () => {
     navigate("/auth");
   };
 
+  // Call center quick close — no cash count needed, just logout
+  const handleCallCenterCloseShift = async () => {
+    if (!session || !userId) return;
+    const closedAt = new Date().toISOString();
+    await supabase
+      .from("pos_sessions")
+      .update({ state: "closed", closed_at: closedAt, closing_cash: 0 } as any)
+      .eq("id", session.id);
+    setSession(null);
+    setOrders([createNewOrder(1)]);
+    setActiveOrderIndex(0);
+    orderCounter.current = 1;
+    toast.success("تم إغلاق الوردية بنجاح");
+    await supabase.auth.signOut();
+    navigate("/auth", { replace: true });
+  };
+
   // Keyboard shortcuts
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
