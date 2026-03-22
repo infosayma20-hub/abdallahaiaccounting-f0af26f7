@@ -309,52 +309,17 @@ const CallCenterDispatchDialog = ({
   const fieldError = (key: string) =>
     errors[key] ? "ring-2 ring-destructive/50 border-destructive" : "";
 
-  // If tracking an order, show tracking view
-  if (dispatchStatus === "pending" || dispatchStatus === "accepted") {
-    return (
-      <Dialog open={open} onOpenChange={(v) => {
-        if (!v) {
-          if (trackingChannelRef.current) supabase.removeChannel(trackingChannelRef.current);
-          if (trackingTimeoutRef.current) clearTimeout(trackingTimeoutRef.current);
-          setDispatchedOrderId(null);
-          setDispatchStatus(null);
-        }
-        onOpenChange(v);
-      }}>
-        <DialogContent className="sm:max-w-sm" dir="rtl">
-          <div className="flex flex-col items-center justify-center py-8 space-y-4">
-            {dispatchStatus === "pending" ? (
-              <>
-                <div className="w-16 h-16 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
-                  <div className="w-8 h-8 border-3 border-amber-500 border-t-transparent rounded-full animate-spin" />
-                </div>
-                <p className="text-lg font-bold text-foreground">في انتظار قبول الفرع...</p>
-                <p className="text-sm text-muted-foreground text-center">
-                  تم إرسال الطلب بنجاح، في انتظار أن يقبله الكاشير في الفرع
-                </p>
-              </>
-            ) : (
-              <>
-                <div className="w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                  <CheckCircle2 className="w-8 h-8 text-green-600" />
-                </div>
-                <p className="text-lg font-bold text-green-600">تم قبول الطلب ✅</p>
-              </>
-            )}
-            <Button variant="outline" onClick={() => {
-              if (trackingChannelRef.current) supabase.removeChannel(trackingChannelRef.current);
-              if (trackingTimeoutRef.current) clearTimeout(trackingTimeoutRef.current);
-              setDispatchedOrderId(null);
-              setDispatchStatus(null);
-              onOpenChange(false);
-            }}>
-              إغلاق
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-    );
-  }
+  // Auto-close after dispatch — tracking is now in the dispatched orders log
+  useEffect(() => {
+    if (dispatchStatus === "pending" || dispatchStatus === "accepted") {
+      if (trackingChannelRef.current) supabase.removeChannel(trackingChannelRef.current);
+      if (trackingTimeoutRef.current) clearTimeout(trackingTimeoutRef.current);
+      setDispatchedOrderId(null);
+      setDispatchStatus(null);
+      onOpenChange(false);
+      toast.success("✅ تم إرسال الطلب — يمكنك متابعته من سجل الفواتير المحوّلة");
+    }
+  }, [dispatchStatus]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
