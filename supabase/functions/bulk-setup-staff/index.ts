@@ -41,7 +41,7 @@ Deno.serve(async (req) => {
     );
 
     // Use admin user ID directly (one-time setup function)
-    const userId = "397b9cfb-d408-4324-88b8-c5a8943a6ac5";
+    const userId = "0b08eba6-c81a-4f6c-b371-e6e324016e73";
 
     // Get admin profile and POS company
     const { data: adminProfile } = await supabase
