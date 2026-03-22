@@ -1504,9 +1504,11 @@ const POSPage = () => {
       toast.error("يجب اختيار الصندوق قبل فتح الوردية");
       return;
     }
-    const cash = parseFloat(openingCash) || 0;
+    const isCallCenter = selectedCashBoxId === "__call_center__";
+    const cash = isCallCenter ? 0 : (parseFloat(openingCash) || 0);
     const displayName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "";
 
+    const actualCashBoxId = isCallCenter ? null : (selectedCashBoxId || null);
 
     const { data, error } = await supabase
       .from("pos_sessions")
@@ -1518,7 +1520,7 @@ const POSPage = () => {
         cashier_auth_user_id: userId,
         opening_cash: cash,
         state: "open",
-        cash_box_id: selectedCashBoxId || null,
+        cash_box_id: actualCashBoxId,
       } as any)
       .select()
       .single();
