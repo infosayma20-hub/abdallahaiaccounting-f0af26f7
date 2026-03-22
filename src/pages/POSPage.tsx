@@ -3935,7 +3935,7 @@ const POSPage = () => {
                 </div>
               )}
               {/* Call Center Dispatch Button - replaces customer data for call center users */}
-              {cart.length > 0 && (isAdmin || isCallCenter) && (
+               {cart.length > 0 && (isAdmin || isCallCenter) && (
                 <button
                   onClick={() => setShowCallCenterDispatch(true)}
                   disabled={!session}
@@ -3944,6 +3944,16 @@ const POSPage = () => {
                   <Send className="h-4 w-4" />
                   تحويل إلى الفرع
                   <span className="text-[10px] bg-orange-500/20 rounded px-1.5 py-0.5 font-mono">F2</span>
+                </button>
+              )}
+              {/* Dispatched Orders Log for Call Center */}
+              {isCallCenter && (
+                <button
+                  onClick={() => setShowDispatchLog(true)}
+                  className="w-full h-9 rounded-xl text-xs font-medium flex items-center justify-center gap-2 border border-border bg-muted/30 text-muted-foreground hover:bg-muted/60 transition-all"
+                >
+                  <ClipboardList className="h-3.5 w-3.5" />
+                  سجل الفواتير المحوّلة
                 </button>
               )}
               {/* Bottom row: Delete + Print + Pay */}
