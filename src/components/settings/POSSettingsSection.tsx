@@ -7,6 +7,10 @@ import { Separator } from "@/components/ui/separator";
 import type { CompanySettings } from "@/hooks/useCompanySettings";
 import KitchenStationsManager from "./KitchenStationsManager";
 import NetworkPrintersManager from "./NetworkPrintersManager";
+import DeliveryAppsManager from "./DeliveryAppsManager";
+import { useAuth } from "@/hooks/useAuth";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Props {
   settings: CompanySettings;
