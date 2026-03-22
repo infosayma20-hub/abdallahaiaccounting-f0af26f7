@@ -7,13 +7,14 @@ import { Search, FileText } from "lucide-react";
 import { usePurchaseInvoices } from "@/hooks/useProcurement";
 import BackButton from "@/components/BackButton";
 import { Skeleton } from "@/components/ui/skeleton";
+import { multiWordMatchAny } from "@/lib/utils";
 
 const ProcurementInvoicesPage = () => {
   const { invoices, loading } = usePurchaseInvoices();
   const [search, setSearch] = useState("");
 
   const filtered = invoices.filter((i: any) =>
-    i.invoice_number?.includes(search) || i.supplier?.name?.includes(search) || i.supplier_name?.includes(search) || i.reference_no?.includes(search)
+    multiWordMatchAny(search, i.invoice_number, i.supplier?.name, i.supplier_name, i.reference_no)
   );
 
   return (

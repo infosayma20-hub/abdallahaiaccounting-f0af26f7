@@ -13,7 +13,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import JournalEntryPopup from "@/components/JournalEntryPopup";
-import { fmtDateDisplay } from "@/lib/utils";
+import { fmtDateDisplay, multiWordMatchAny } from "@/lib/utils";
 
 interface TransactionRow {
   id: string;
@@ -161,13 +161,7 @@ const JournalEntriesPage = () => {
     }
 
     if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      result = result.filter(tx =>
-        (tx.description || "").toLowerCase().includes(q) ||
-        (accountMap[tx.debit_account_code || ""] || "").toLowerCase().includes(q) ||
-        (accountMap[tx.credit_account_code || ""] || "").toLowerCase().includes(q) ||
-        (tx.reference || "").toLowerCase().includes(q)
-      );
+      result = result.filter(tx => multiWordMatchAny(searchQuery, tx.description, accountMap[tx.debit_account_code || ""], accountMap[tx.credit_account_code || ""], tx.reference));
     }
 
     return result.sort((a, b) => (b.transaction_date || "").localeCompare(a.transaction_date || ""));

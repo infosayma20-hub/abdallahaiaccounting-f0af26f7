@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
+import { multiWordMatchAny } from "@/lib/utils";
 
 interface ReportItem {
   slug: string;
@@ -245,14 +246,10 @@ const ReportsPage = () => {
 
   const filteredSections = useMemo(() => {
     if (!searchQuery.trim()) return sections;
-    const q = searchQuery.toLowerCase();
     return sections
       .map(s => ({
         ...s,
-        reports: s.reports.filter(r =>
-          r.label.toLowerCase().includes(q) ||
-          r.description.toLowerCase().includes(q)
-        ),
+        reports: s.reports.filter(r => multiWordMatchAny(searchQuery, r.label, r.description)),
       }))
       .filter(s => s.reports.length > 0);
   }, [searchQuery]);

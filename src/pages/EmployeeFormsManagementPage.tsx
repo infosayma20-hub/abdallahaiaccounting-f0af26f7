@@ -17,6 +17,7 @@ import {
   Download, ChevronLeft, ChevronRight, Loader2, Trash2
 } from "lucide-react";
 import { format } from "date-fns";
+import { multiWordMatchAny } from "@/lib/utils";
 
 const formTypeLabels: Record<string, string> = {
   leave_request: "🏖️ طلب إجازة",

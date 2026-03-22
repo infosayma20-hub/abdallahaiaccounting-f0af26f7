@@ -14,6 +14,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Search, Pencil, Trash2, GripVertical, Package, Wheat, Egg, Beef, Droplets, Sparkles, CupSoda, UtensilsCrossed, SprayCan, Shirt, ShoppingCart, Cookie, Flame, Snowflake, Leaf, Fish, Apple, Layers, Box } from "lucide-react";
 import { useSuppliersCrud, useCategoriesCrud, useItemsCrud } from "@/hooks/useProcurementSettings";
 import BackButton from "@/components/BackButton";
+import { multiWordMatchAny } from "@/lib/utils";
 
 const iconOptions = [
   { name: "wheat", Icon: Wheat }, { name: "package", Icon: Package }, { name: "beef", Icon: Beef },
@@ -37,7 +38,7 @@ function SuppliersTab() {
   const [deleteDialog, setDeleteDialog] = useState<any>(null);
   const [saving, setSaving] = useState(false);
 
-  const filtered = suppliers.filter(s => !search || s.name?.includes(search) || s.phone?.includes(search));
+  const filtered = suppliers.filter(s => !search || multiWordMatchAny(search, s.name, s.phone));
 
   const openNew = () => { setEditing(null); setForm({ name: "", phone: "", address: "", payment_terms_days: 30, opening_balance: 0, opening_balance_date: "", is_active: true, notes: "" }); setDrawerOpen(true); };
   const openEdit = (s: any) => { setEditing(s); setForm({ name: s.name || "", phone: s.phone || "", address: s.address || "", payment_terms_days: s.payment_terms_days || 30, opening_balance: s.opening_balance || 0, opening_balance_date: s.opening_balance_date || "", is_active: s.is_active !== false, notes: s.notes || "" }); setDrawerOpen(true); };

@@ -11,6 +11,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import * as XLSX from "xlsx";
+import { multiWordMatchAny } from "@/lib/utils";
 
 interface Product {
   id: string;
@@ -83,8 +84,8 @@ const StockMovementsPage = () => {
       if (productFilter !== "all" && mv.product_id !== productFilter) return false;
       if (q) {
         const prod = productMap.get(mv.product_id);
-        const searchable = [prod?.name || "", mv.movement_type, mv.reference_note || "", String(mv.quantity), new Date(mv.created_at).toLocaleDateString("ar-EG")].join(" ").toLowerCase();
-        if (!searchable.includes(q)) return false;
+        const searchable = [prod?.name || "", mv.movement_type, mv.reference_note || "", String(mv.quantity), new Date(mv.created_at).toLocaleDateString("ar-EG")].join(" ");
+        if (!multiWordMatchAny(searchQuery, searchable)) return false;
       }
       return true;
     });

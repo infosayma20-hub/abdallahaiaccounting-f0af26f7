@@ -29,7 +29,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { format, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, differenceInDays, parseISO, subYears, subMonths } from "date-fns";
 import { ar } from "date-fns/locale";
-import { cn } from "@/lib/utils";
+import { cn, multiWordMatchAny } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import StatementPrintView from "@/components/StatementPrintView";
 
@@ -295,12 +295,7 @@ const EntitySearchCombobox = ({ entities, selectedId, onSelect, placeholder }: E
 
   const filtered = useMemo(() => {
     if (!search.trim()) return entities;
-    const q = search.toLowerCase().trim();
-    return entities.filter(e =>
-      e.name.toLowerCase().includes(q) ||
-      (e.accountCode || "").includes(q) ||
-      (e.subtitle || "").toLowerCase().includes(q)
-    );
+    return entities.filter(e => multiWordMatchAny(search, e.name, e.accountCode, e.subtitle));
   }, [entities, search]);
 
   useEffect(() => {
@@ -818,9 +813,8 @@ const AccountStatementPage = () => {
   // ─── COMBINED ENTITY LIST FOR LEFT PANEL ───
   const entityList = useMemo(() => {
     if (isAccountsTab) {
-      const q = entitySearch.toLowerCase().trim();
-      const filtered = q
-        ? accounts.filter(a => a.account_name.toLowerCase().includes(q) || a.account_code.includes(q))
+      const filtered = entitySearch.trim()
+        ? accounts.filter(a => multiWordMatchAny(entitySearch, a.account_name, a.account_code))
         : accounts;
       return filtered.map(a => ({
         id: a.id,
@@ -830,9 +824,8 @@ const AccountStatementPage = () => {
         accountCode: a.account_code,
       }));
     } else if (isEmployeesTab) {
-      const q = entitySearch.toLowerCase().trim();
-      const filtered = q
-        ? employeeEntities.filter(e => e.full_name.toLowerCase().includes(q) || (e.department || "").toLowerCase().includes(q))
+      const filtered = entitySearch.trim()
+        ? employeeEntities.filter(e => multiWordMatchAny(entitySearch, e.full_name, e.department))
         : employeeEntities;
       return filtered.map(e => ({
         id: e.id,
@@ -842,9 +835,8 @@ const AccountStatementPage = () => {
         accountCode: e.account_code || "",
       }));
     } else {
-      const q = entitySearch.toLowerCase().trim();
-      const filtered = q
-        ? tabContacts.filter(c => c.contact_name.toLowerCase().includes(q) || (c.phone || "").includes(q))
+      const filtered = entitySearch.trim()
+        ? tabContacts.filter(c => multiWordMatchAny(entitySearch, c.contact_name, c.phone))
         : tabContacts;
       return filtered.map(c => ({
         id: c.id,
@@ -1138,11 +1130,7 @@ const AccountStatementPage = () => {
       result = result.filter(r => r.transaction_type.includes(txTypeFilter));
     }
     if (txSearch.trim()) {
-      const q = txSearch.toLowerCase();
-      result = result.filter(r =>
-        r.description.toLowerCase().includes(q) ||
-        r.reference.toLowerCase().includes(q)
-      );
+      result = result.filter(r => multiWordMatchAny(txSearch, r.description, r.reference));
     }
     // Summary mode: group by reference, keep only one row per reference
     if (detailLevel === "summary") {

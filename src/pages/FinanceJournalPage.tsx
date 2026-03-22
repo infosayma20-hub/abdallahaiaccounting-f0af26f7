@@ -17,6 +17,7 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrig
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { multiWordMatchAny } from "@/lib/utils";
 
 interface JournalLine {
   id: string;
@@ -163,8 +164,7 @@ const FinanceJournalPage = () => {
 
   const filteredContacts = useMemo(() => {
     if (!contactSearch) return contacts;
-    const q = contactSearch.toLowerCase();
-    return contacts.filter(c => c.contact_name?.toLowerCase().includes(q));
+    return contacts.filter(c => multiWordMatchAny(contactSearch, c.contact_name));
   }, [contacts, contactSearch]);
 
   const addLine = () => {
@@ -342,8 +342,7 @@ const FinanceJournalPage = () => {
   const filtered = useMemo(() => {
     return vouchers.filter(v => {
       if (searchQuery) {
-        const q = searchQuery.toLowerCase();
-        if (!v.ref_number?.toLowerCase().includes(q) && !v.description?.toLowerCase().includes(q)) return false;
+        if (!multiWordMatchAny(searchQuery, v.ref_number, v.description)) return false;
       }
       if (filterStatus === "active" && v.status === "cancelled") return false;
       if (filterStatus !== "all" && filterStatus !== "active" && v.status !== filterStatus) return false;
@@ -804,9 +803,9 @@ const FinanceJournalPage = () => {
                             </div>
                             {accounts
                               .filter(a => {
-                                const q = (accountSearches[line.id] || "").toLowerCase();
-                                if (!q) return true;
-                                return a.account_code?.toLowerCase().includes(q) || a.account_name?.toLowerCase().includes(q);
+                                const q = (accountSearches[line.id] || "");
+                                if (!q.trim()) return true;
+                                return multiWordMatchAny(q, a.account_code, a.account_name);
                               })
                               .map(a => (
                               <SelectItem key={a.account_code} value={a.account_code}>

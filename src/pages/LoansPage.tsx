@@ -17,6 +17,7 @@ import BackButton from "@/components/BackButton";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import LoanAttachments from "@/components/hr/LoanAttachments";
+import { multiWordMatchAny } from "@/lib/utils";
 
 const fmtCurrency = (v: number) => `${v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₪`;
 
@@ -726,8 +727,7 @@ function AddLoanDialog({ open, onOpenChange, userId, companyId, onSuccess }: {
 
   const filteredEmps = useMemo(() => {
     if (!empSearch.trim()) return employees.slice(0, 10);
-    const q = empSearch.toLowerCase();
-    return employees.filter(e => e.full_name.toLowerCase().includes(q)).slice(0, 10);
+    return employees.filter(e => multiWordMatchAny(empSearch, e.full_name)).slice(0, 10);
   }, [employees, empSearch]);
 
   const resetForm = () => {

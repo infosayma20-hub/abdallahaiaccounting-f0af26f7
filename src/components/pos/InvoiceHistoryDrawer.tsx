@@ -13,6 +13,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { format, startOfDay, endOfDay, subDays, startOfWeek, startOfMonth } from "date-fns";
 import ManagerOverrideDialog from "./ManagerOverrideDialog";
+import { multiWordMatchAny } from "@/lib/utils";
 
 // ── Types ──
 interface InvoiceOrder {
@@ -404,11 +405,7 @@ export default function InvoiceHistoryDrawer({
 
   const filtered = useMemo(() => {
     if (!searchQuery.trim()) return orders;
-    const q = searchQuery.toLowerCase();
-    return orders.filter(o =>
-      (o.order_number || "").toLowerCase().includes(q) ||
-      (o.customer_name || "").toLowerCase().includes(q)
-    );
+    return orders.filter(o => multiWordMatchAny(searchQuery, o.order_number, o.customer_name));
   }, [orders, searchQuery]);
 
   const isTransferredOut = (order: InvoiceOrder) => 

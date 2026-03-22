@@ -57,6 +57,7 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { multiWordMatchAny } from "@/lib/utils";
 
 // Types
 interface CartItem {
@@ -1121,8 +1122,7 @@ const POSPage = () => {
 
   const filteredEmployees = useMemo(() => {
     if (!employeeSearch) return employees;
-    const q = employeeSearch.toLowerCase();
-    return employees.filter(e => e.full_name.toLowerCase().includes(q));
+    return employees.filter(e => multiWordMatchAny(employeeSearch, e.full_name));
   }, [employees, employeeSearch]);
 
   const loadEmployeeBalance = async (empId: string) => {
@@ -1140,8 +1140,7 @@ const POSPage = () => {
 
   const filteredContacts = useMemo(() => {
     if (!customerSearch) return contacts;
-    const q = customerSearch.toLowerCase();
-    return contacts.filter(c => c.contact_name.toLowerCase().includes(q));
+    return contacts.filter(c => multiWordMatchAny(customerSearch, c.contact_name));
   }, [contacts, customerSearch]);
 
   // Search POS customers by name or phone
@@ -1245,12 +1244,8 @@ const POSPage = () => {
       );
     }
     if (searchQuery) {
-      const q = searchQuery.toLowerCase();
       filtered = filtered.filter(
-        (p) =>
-          p.name.toLowerCase().includes(q) ||
-          p.sku?.toLowerCase().includes(q) ||
-          p.barcode?.toLowerCase().includes(q)
+        (p) => multiWordMatchAny(searchQuery, p.name, p.sku, p.barcode)
       );
     }
     // When "الكل" is selected, sort products grouped by category order

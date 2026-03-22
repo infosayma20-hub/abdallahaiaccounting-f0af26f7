@@ -4,6 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { useState, useMemo } from "react";
 import * as XLSX from "xlsx";
+import { multiWordMatchAny } from "@/lib/utils";
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Report Header
@@ -155,9 +156,9 @@ export const ReportTable = ({
 
   const filtered = useMemo(() => {
     if (!search.trim()) return data;
-    const q = search.toLowerCase();
+    const words = search.toLowerCase().trim().split(/\s+/).filter(Boolean);
     return data.filter((row) =>
-      columns.some((col) => String(row[col] ?? "").toLowerCase().includes(q))
+      words.every(w => columns.some((col) => String(row[col] ?? "").toLowerCase().includes(w)))
     );
   }, [data, search, columns]);
 

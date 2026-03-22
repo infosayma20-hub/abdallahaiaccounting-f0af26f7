@@ -18,6 +18,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
+import { multiWordMatchAny } from "@/lib/utils";
 
 // Types
 interface CartItem {
@@ -160,10 +161,7 @@ const WorkerProcurementPage = () => {
       filtered = filtered.filter(p => p.category === selectedCategory);
     }
     if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      filtered = filtered.filter(p =>
-        p.name.toLowerCase().includes(q) || (p.barcode && p.barcode.includes(q))
-      );
+      filtered = filtered.filter(p => multiWordMatchAny(searchQuery, p.name, p.barcode));
     }
     return filtered;
   }, [products, selectedCategory, searchQuery]);

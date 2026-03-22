@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Search, UserCheck, TrendingUp, Percent, Edit, Trash2 } from "lucide-react";
 import BackButton from "@/components/BackButton";
+import { multiWordMatchAny } from "@/lib/utils";
 
 const SalesRepresentativesPage = () => {
   const { user } = useAuth();

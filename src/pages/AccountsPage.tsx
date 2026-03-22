@@ -36,7 +36,7 @@ const EditAccountForm = ({ account, onSave, onCancel }: { account: { account_nam
     </div>
   );
 };
-import { cn } from "@/lib/utils";
+import { cn, multiWordMatchAny } from "@/lib/utils";
 import AddAccountDialog from "@/components/AddAccountDialog";
 
 interface Account {
@@ -309,8 +309,7 @@ const AccountsPage = () => {
     return accounts.filter(a => {
       if (typeFilter !== "all" && normalizeType(a.account_type) !== typeFilter) return false;
       if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase();
-        if (!a.account_name.toLowerCase().includes(q) && !a.account_code.includes(q)) return false;
+        if (!multiWordMatchAny(searchQuery, a.account_name, a.account_code)) return false;
       }
       return true;
     }).sort((a, b) => a.account_code.localeCompare(b.account_code));

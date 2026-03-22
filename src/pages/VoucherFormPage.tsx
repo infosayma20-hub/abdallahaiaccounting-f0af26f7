@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import BackButton from "@/components/BackButton";
+import { multiWordMatchAny } from "@/lib/utils";
 
 interface Contact {
   id: string;
@@ -350,20 +351,17 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
 
   const filteredContacts = useMemo(() => {
     if (!contactSearch.trim()) return contacts.slice(0, 10);
-    const q = contactSearch.toLowerCase();
-    return contacts.filter(c => c.contact_name.toLowerCase().includes(q)).slice(0, 10);
+    return contacts.filter(c => multiWordMatchAny(contactSearch, c.contact_name)).slice(0, 10);
   }, [contacts, contactSearch]);
 
   const filteredEmployees = useMemo(() => {
     if (!employeeSearch.trim()) return employeeList.slice(0, 10);
-    const q = employeeSearch.toLowerCase();
-    return employeeList.filter(e => e.full_name.toLowerCase().includes(q)).slice(0, 10);
+    return employeeList.filter(e => multiWordMatchAny(employeeSearch, e.full_name)).slice(0, 10);
   }, [employeeList, employeeSearch]);
 
   const filteredInvoices = useMemo(() => {
     if (!invoiceSearch.trim()) return invoices;
-    const q = invoiceSearch.toLowerCase();
-    return invoices.filter(inv => (inv.invoice_number || "").toLowerCase().includes(q));
+    return invoices.filter(inv => multiWordMatchAny(invoiceSearch, inv.invoice_number));
   }, [invoices, invoiceSearch]);
 
   const openInvoiceCount = invoices.length;

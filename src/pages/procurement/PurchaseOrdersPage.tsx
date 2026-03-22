@@ -16,6 +16,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ProcurementPrintView, generateWhatsAppText } from "@/components/procurement/ProcurementPrintView";
 import { toast } from "@/hooks/use-toast";
 import ReactDOM from "react-dom/client";
+import { multiWordMatchAny } from "@/lib/utils";
 
 const statusMap: Record<string, { label: string; color: string }> = {
   draft: { label: "مسودة", color: "bg-[hsl(220,9%,46%)]/10 text-[hsl(220,9%,46%)] border-[hsl(220,9%,46%)]/30" },
@@ -47,7 +48,7 @@ const PurchaseOrdersPage = () => {
     if (branchFilter !== "all" && o.branch_id !== branchFilter) return false;
     if (fromDate && o.order_date < fromDate) return false;
     if (toDate && o.order_date > toDate) return false;
-    if (search && !o.order_number?.includes(search) && !o.supplier?.name?.includes(search)) return false;
+    if (search && !multiWordMatchAny(search, o.order_number, o.supplier?.name)) return false;
     return true;
   });
 

@@ -11,6 +11,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { multiWordMatchAny } from "@/lib/utils";
 
 interface LedgerRow {
   date: string;
@@ -152,10 +153,7 @@ const GeneralLedgerPage = () => {
   // Search filter
   const filteredRows = useMemo(() => {
     if (!searchQuery) return allRows;
-    const q = searchQuery.toLowerCase();
-    return allRows.filter(r =>
-      r.description.toLowerCase().includes(q) || r.date.includes(searchQuery)
-    );
+    return allRows.filter(r => multiWordMatchAny(searchQuery, r.description, r.date));
   }, [allRows, searchQuery]);
 
   // Sorting

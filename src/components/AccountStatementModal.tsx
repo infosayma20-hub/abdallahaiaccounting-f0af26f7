@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import * as XLSX from "xlsx";
-import { fmtDateDisplay } from "@/lib/utils";
+import { fmtDateDisplay, multiWordMatchAny } from "@/lib/utils";
 
 interface Account {
   account_code: string;
@@ -81,10 +81,7 @@ const AccountStatementModal = ({ open, onClose }: Props) => {
 
   const filteredAccounts = useMemo(() => {
     if (!search.trim()) return accounts.slice(0, 20);
-    const q = search.toLowerCase();
-    return accounts.filter(a =>
-      a.account_code.includes(q) || a.account_name.toLowerCase().includes(q) || typeLabel(a.account_type).includes(q)
-    ).slice(0, 20);
+    return accounts.filter(a => multiWordMatchAny(search, a.account_code, a.account_name, typeLabel(a.account_type))).slice(0, 20);
   }, [accounts, search]);
 
   // Group accounts by type

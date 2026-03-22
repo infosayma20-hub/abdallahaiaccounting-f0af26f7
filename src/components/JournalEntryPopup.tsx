@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { multiWordMatchAny } from "@/lib/utils";
 
 /* ── Types ── */
 interface AccountRow {
@@ -126,9 +127,8 @@ const AccountSearchDropdown = ({
   }, []);
 
   const filtered = useMemo(() => {
-    const q = search.toLowerCase();
     return accounts
-      .filter(a => a.account_code.includes(q) || a.account_name.toLowerCase().includes(q))
+      .filter(a => multiWordMatchAny(search, a.account_code, a.account_name))
       .slice(0, 20);
   }, [accounts, search]);
 

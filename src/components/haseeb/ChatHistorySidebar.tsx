@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { X, Search, Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { multiWordMatchAny } from "@/lib/utils";
 
 interface Conversation {
   id: string;
@@ -53,7 +54,7 @@ const ChatHistorySidebar = ({ open, onClose, userId, activeConversationId, onSel
   }, [open, fetchConversations]);
 
   const filtered = search.trim()
-    ? conversations.filter(c => c.title.includes(search))
+    ? conversations.filter(c => multiWordMatchAny(search, c.title))
     : conversations;
 
   const groupByDate = (convs: Conversation[]) => {

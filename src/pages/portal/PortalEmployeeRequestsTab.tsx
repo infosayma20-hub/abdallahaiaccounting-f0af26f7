@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, Search, ChevronDown } from 'lucide-react';
+import { multiWordMatchAny } from "@/lib/utils";
 
 const ACCENT = '#2A7B9B';
 

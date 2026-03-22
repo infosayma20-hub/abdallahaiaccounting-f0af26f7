@@ -11,6 +11,7 @@ import { ArrowRight, Search, Shield } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
+import { multiWordMatchAny } from "@/lib/utils";
 
 const allStatuses = ["جديدة", "قيد المراجعة", "قيد التنفيذ", "بانتظار العميل", "منجزة", "مغلقة"];
 
@@ -83,7 +84,7 @@ const SupportAdminPage = () => {
 
   const filtered = tickets.filter((t) => {
     if (statusFilter !== "all" && t.status !== statusFilter) return false;
-    if (search && !t.title.includes(search)) return false;
+    if (search && !multiWordMatchAny(search, t.title)) return false;
     return true;
   });
 

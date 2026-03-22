@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { multiWordMatchAny } from "@/lib/utils";
 
 interface Props {
   open: boolean;
@@ -55,7 +56,7 @@ export default function InventoryInputModal({ open, onOpenChange, dataOwnerId, u
   }, [open, dataOwnerId]);
 
   const filtered = products.filter(p =>
-    p.name.includes(search) || p.id.includes(search)
+    multiWordMatchAny(search, p.name, p.id)
   ).slice(0, 20);
 
   const handleSave = async () => {

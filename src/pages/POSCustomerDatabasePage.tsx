@@ -16,6 +16,7 @@ import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import * as XLSX from "xlsx";
+import { multiWordMatchAny } from "@/lib/utils";
 
 interface POSCustomerRow {
   id: string;
@@ -92,13 +93,7 @@ export default function POSCustomerDatabasePage() {
   const filtered = useMemo(() => {
     let list = customers;
     if (search) {
-      const q = search.toLowerCase();
-      list = list.filter(c =>
-        (c.name || "").toLowerCase().includes(q) ||
-        (c.whatsapp || "").includes(q) ||
-        (c.email || "").toLowerCase().includes(q) ||
-        (c.address || "").toLowerCase().includes(q)
-      );
+      list = list.filter(c => multiWordMatchAny(search, c.name, c.whatsapp, c.email, c.address));
     }
     list = [...list].sort((a, b) => {
       const aVal = a[sortField] ?? "";

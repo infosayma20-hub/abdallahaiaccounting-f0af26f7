@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
+import { multiWordMatchAny } from "@/lib/utils";
 
 // Types
 interface PurchaseCartItem {
@@ -160,12 +161,7 @@ const PurchasePointPage = () => {
       filtered = filtered.filter((p) => p.category === selectedCategory);
     }
     if (searchQuery.trim()) {
-      const q = searchQuery.trim().toLowerCase();
-      filtered = filtered.filter(
-        (p) =>
-          p.name.toLowerCase().includes(q) ||
-          p.barcode?.toLowerCase().includes(q)
-      );
+      filtered = filtered.filter(p => multiWordMatchAny(searchQuery, p.name, p.barcode));
     }
     return filtered;
   }, [products, selectedCategory, searchQuery]);
@@ -350,8 +346,7 @@ const PurchasePointPage = () => {
   // Filtered suppliers
   const filteredSuppliers = useMemo(() => {
     if (!supplierSearch.trim()) return suppliers;
-    const q = supplierSearch.trim().toLowerCase();
-    return suppliers.filter((s) => s.company_name.toLowerCase().includes(q));
+    return suppliers.filter((s) => multiWordMatchAny(supplierSearch, s.company_name));
   }, [suppliers, supplierSearch]);
 
   // Cart qty map

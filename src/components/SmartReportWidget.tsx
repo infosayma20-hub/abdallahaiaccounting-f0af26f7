@@ -6,6 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { ReportSummary, ReportTable, exportToExcel, exportToPDF } from "@/components/ReportComponents";
 import { supabase } from "@/integrations/supabase/client";
+import { multiWordMatchAny } from "@/lib/utils";
 
 interface ReportResult {
   answer: string;
@@ -93,8 +94,7 @@ const SmartReportWidget = ({ companyName = "" }: SmartReportWidgetProps) => {
 
   const filteredMentions = useMemo(() => {
     if (!mentionSearch) return mentionOptions;
-    const q = mentionSearch.toLowerCase();
-    return mentionOptions.filter(o => o.name.toLowerCase().includes(q) || (o.subtype || "").toLowerCase().includes(q));
+    return mentionOptions.filter(o => multiWordMatchAny(mentionSearch, o.name, o.subtype));
   }, [mentionOptions, mentionSearch]);
 
   const mentionAccounts = filteredMentions.filter(m => m.type === "account");

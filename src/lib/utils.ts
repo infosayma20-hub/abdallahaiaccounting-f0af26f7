@@ -42,3 +42,24 @@ export function fmtDateTimeDisplay(dateStr: string | Date | null | undefined): s
     return String(dateStr);
   }
 }
+
+/**
+ * Multi-word search: returns true if ALL words in the query exist
+ * somewhere in the target string (order doesn't matter).
+ */
+export function multiWordMatch(target: string | null | undefined, query: string): boolean {
+  if (!target || !query) return false;
+  const t = target.toLowerCase();
+  const words = query.toLowerCase().trim().split(/\s+/).filter(Boolean);
+  return words.every(w => t.includes(w));
+}
+
+/**
+ * Check if any of the given fields match the multi-word query.
+ * Each word must appear in at least one of the fields.
+ */
+export function multiWordMatchAny(query: string, ...fields: (string | null | undefined)[]): boolean {
+  if (!query || !query.trim()) return true;
+  const words = query.toLowerCase().trim().split(/\s+/).filter(Boolean);
+  return words.every(w => fields.some(f => f?.toLowerCase().includes(w)));
+}

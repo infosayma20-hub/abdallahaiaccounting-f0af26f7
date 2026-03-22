@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Search, Eye } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { toast } from "@/hooks/use-toast";
+import { multiWordMatchAny } from "@/lib/utils";
 
 const SERVICE_LABELS: Record<string, string> = {
   flight: "✈️ تذاكر طيران", hotel: "🏨 فنادق", visa: "📋 تأشيرة", package: "📦 باقة سياحية",

@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { multiWordMatchAny } from "@/lib/utils";
 
 const iconMap: Record<string, any> = {
   wheat: Wheat, egg: Egg, beef: Beef, droplets: Droplets, sparkles: Sparkles,
@@ -109,8 +110,7 @@ const PurchaseOrderCreatePage = () => {
     let result = allItems;
     if (activeCategory) result = result.filter((i: any) => i.category_id === activeCategory);
     if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      result = result.filter((i: any) => i.name.toLowerCase().includes(q));
+      result = result.filter((i: any) => multiWordMatchAny(searchQuery, i.name));
     }
     return result;
   }, [allItems, activeCategory, searchQuery]);
