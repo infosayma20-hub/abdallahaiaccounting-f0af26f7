@@ -813,9 +813,8 @@ const AccountStatementPage = () => {
   // ─── COMBINED ENTITY LIST FOR LEFT PANEL ───
   const entityList = useMemo(() => {
     if (isAccountsTab) {
-      const q = entitySearch.toLowerCase().trim();
-      const filtered = q
-        ? accounts.filter(a => a.account_name.toLowerCase().includes(q) || a.account_code.includes(q))
+      const filtered = entitySearch.trim()
+        ? accounts.filter(a => multiWordMatchAny(entitySearch, a.account_name, a.account_code))
         : accounts;
       return filtered.map(a => ({
         id: a.id,
@@ -825,9 +824,8 @@ const AccountStatementPage = () => {
         accountCode: a.account_code,
       }));
     } else if (isEmployeesTab) {
-      const q = entitySearch.toLowerCase().trim();
-      const filtered = q
-        ? employeeEntities.filter(e => e.full_name.toLowerCase().includes(q) || (e.department || "").toLowerCase().includes(q))
+      const filtered = entitySearch.trim()
+        ? employeeEntities.filter(e => multiWordMatchAny(entitySearch, e.full_name, e.department))
         : employeeEntities;
       return filtered.map(e => ({
         id: e.id,
@@ -837,9 +835,8 @@ const AccountStatementPage = () => {
         accountCode: e.account_code || "",
       }));
     } else {
-      const q = entitySearch.toLowerCase().trim();
-      const filtered = q
-        ? tabContacts.filter(c => c.contact_name.toLowerCase().includes(q) || (c.phone || "").includes(q))
+      const filtered = entitySearch.trim()
+        ? tabContacts.filter(c => multiWordMatchAny(entitySearch, c.contact_name, c.phone))
         : tabContacts;
       return filtered.map(c => ({
         id: c.id,
