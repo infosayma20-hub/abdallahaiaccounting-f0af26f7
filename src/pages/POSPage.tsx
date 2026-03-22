@@ -2834,7 +2834,7 @@ const POSPage = () => {
         {/* Pending Call Center Orders */}
         <PendingOrdersPanel
           dataOwnerId={dataOwnerId || ""}
-          branchId={null}
+          branchId={detectedBranchId}
           sessionId={session?.id || null}
           enabled={!!session}
           onAcceptOrder={(order) => {
