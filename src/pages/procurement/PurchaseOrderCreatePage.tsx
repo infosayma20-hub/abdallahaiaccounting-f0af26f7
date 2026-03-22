@@ -355,14 +355,17 @@ const PurchaseOrderCreatePage = () => {
           {/* CENTER: Categories (horizontal) + Items Grid */}
           <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
             {/* Category Tabs - wrap style like POS */}
-            <div className="shrink-0 border-b border-border bg-muted/20 px-3 py-2">
-              <div className="flex flex-wrap items-center gap-1.5">
+            <div className="shrink-0 border-b border-border bg-muted/20 px-3 py-2.5">
+              <div className="flex flex-wrap items-center gap-2">
                 <button
                   onClick={() => setActiveCategory(null)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                    !activeCategory ? "bg-foreground text-background shadow-sm" : "border border-border text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+                  className={`flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-bold transition-all ${
+                    !activeCategory 
+                      ? "bg-foreground text-background shadow-md scale-105" 
+                      : "border border-border text-muted-foreground hover:bg-muted/60 hover:text-foreground"
                   }`}
                 >
+                  <Package className="h-3.5 w-3.5" />
                   <span>الكل</span>
                   <span className="text-[9px] opacity-80">({allItems.length})</span>
                 </button>
@@ -370,22 +373,24 @@ const PurchaseOrderCreatePage = () => {
                 {categories.map((cat: any) => {
                   const isActive = activeCategory === cat.id;
                   const Icon = iconMap[cat.icon || ""] || PackageIcon;
+                  const count = categoryCounts[cat.id] || 0;
                   return (
                     <button
                       key={cat.id}
                       onClick={() => setActiveCategory(isActive ? null : cat.id)}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                        isActive ? "shadow-sm text-white" : "hover:opacity-80"
+                      className={`flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-bold transition-all ${
+                        isActive ? "shadow-md scale-105 text-white" : "hover:shadow-sm hover:scale-[1.02]"
                       }`}
                       style={{
-                        backgroundColor: isActive ? (cat.color || "#6b7280") : `${cat.color || "#6b7280"}18`,
+                        backgroundColor: isActive ? (cat.color || "#6b7280") : `${cat.color || "#6b7280"}15`,
                         color: isActive ? "white" : (cat.color || "#6b7280"),
-                        border: `1px solid ${cat.color || "#6b7280"}40`,
+                        border: `1.5px solid ${isActive ? (cat.color || "#6b7280") : (cat.color || "#6b7280") + "50"}`,
+                        boxShadow: isActive ? `0 4px 12px ${cat.color || "#6b7280"}40` : undefined,
                       }}
                     >
                       <Icon className="h-3.5 w-3.5" />
                       <span>{cat.name}</span>
-                      <span className="text-[9px] opacity-70">({categoryCounts[cat.id] || 0})</span>
+                      <span className={`text-[9px] ${isActive ? "opacity-90" : "opacity-60"}`}>({count})</span>
                     </button>
                   );
                 })}
