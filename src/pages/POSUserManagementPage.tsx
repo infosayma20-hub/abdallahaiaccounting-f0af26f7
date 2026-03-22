@@ -166,8 +166,9 @@ export default function POSUserManagementPage() {
   // Add/Edit user dialog
   const [showUserDialog, setShowUserDialog] = useState(false);
   const [editingUser, setEditingUser] = useState<POSUserRow | null>(null);
+  const [branches, setBranches] = useState<BranchOption[]>([]);
   const [userForm, setUserForm] = useState({
-    name: "", phone: "", email: "", role: "cashier",
+    name: "", phone: "", email: "", role: "cashier", branch_id: "" as string,
   });
   const [createAccount, setCreateAccount] = useState(false);
   const [accountPassword, setAccountPassword] = useState("");
