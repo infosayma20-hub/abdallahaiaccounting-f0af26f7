@@ -2157,7 +2157,7 @@ const POSPage = () => {
 
       // Auto-create employee sub-account if missing
       let employeeAccountCode = selectedEmployee?.account_code;
-      if (paymentMethod === "employee_account" && selectedEmployee && !employeeAccountCode) {
+      if (effectivePaymentMethod === "employee_account" && selectedEmployee && !employeeAccountCode) {
         const empAccName = `ذمم موظف - ${selectedEmployee.full_name}`;
         // Check if account already exists
         const { data: existingAcc } = await supabase
