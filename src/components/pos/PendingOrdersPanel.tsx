@@ -42,7 +42,6 @@ interface Props {
 const playNotificationSound = () => {
   try {
     const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-    // Play two-tone notification
     const playTone = (freq: number, start: number, duration: number) => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
@@ -50,14 +49,14 @@ const playNotificationSound = () => {
       gain.connect(ctx.destination);
       osc.frequency.value = freq;
       osc.type = "sine";
-      gain.gain.setValueAtTime(0.3, ctx.currentTime + start);
+      gain.gain.setValueAtTime(0.8, ctx.currentTime + start);
       gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + start + duration);
       osc.start(ctx.currentTime + start);
       osc.stop(ctx.currentTime + start + duration);
     };
-    playTone(880, 0, 0.15);
-    playTone(1100, 0.18, 0.15);
-    playTone(880, 0.36, 0.15);
+    playTone(880, 0, 0.25);
+    playTone(1100, 0.3, 0.25);
+    playTone(1320, 0.6, 0.3);
   } catch (e) {
     // Fallback: do nothing if AudioContext unavailable
   }
@@ -258,6 +257,13 @@ const PendingOrdersPanel = ({ dataOwnerId, branchId, sessionId, enabled, onAccep
                         </Badge>
                       </div>
 
+                      {/* Branch */}
+                      {order.target_branch_name && (
+                        <div className="flex items-center gap-2 text-xs font-semibold text-primary">
+                          <MapPin className="h-3.5 w-3.5" />
+                          الفرع: {order.target_branch_name}
+                        </div>
+                      )}
                       {/* Customer Info */}
                       <div className="space-y-1.5">
                         <div className="flex items-center gap-2 text-sm font-bold">
