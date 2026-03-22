@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { usePOSOffline } from "@/hooks/usePOSOffline";
+import { usePBXCallListener } from "@/hooks/usePBXCallListener";
 import { openCashDrawer } from "@/lib/cash-drawer";
 import OfflineStatusBar from "@/components/pos/OfflineStatusBar";
 import SyncLogSheet from "@/components/pos/SyncLogSheet";
@@ -531,6 +532,44 @@ const POSPage = () => {
      sessionId: session?.id || null,
      terminalId: terminal?.id || null,
      companyId: company?.id || null,
+    });
+
+   // ── PBX Call Listener ──
+   const handlePBXCall = useCallback((event: any) => {
+     // Create a new order tab with customer info
+     orderCounter.current += 1;
+     const newOrder = createNewOrder(
+       orderCounter.current,
+       undefined,
+       undefined,
+       undefined,
+       event.customer_name || event.caller_number
+     );
+     setOrders(prev => [...prev, newOrder]);
+     setActiveOrderIndex(prev => prev + 1);
+
+     // Set customer data on next tick after order is created
+     setTimeout(() => {
+       setCustomerName(
+         event.customer_name || event.caller_number,
+         null,
+         event.customer_phone || event.caller_number,
+         event.customer_id || null
+       );
+       if (event.customer_address) {
+         updateActiveOrder(o => ({
+           ...o,
+           orderType: 'توصيل' as any,
+           deliveryAddress: event.customer_address || '',
+         }));
+       }
+     }, 100);
+   }, [setCustomerName, updateActiveOrder]);
+
+   usePBXCallListener({
+     userId: dataOwnerId || userId || null,
+     enabled: !!session,
+     onIncomingCall: handlePBXCall,
    });
 
   // ── Cart quantity map for badges on product cards ──
