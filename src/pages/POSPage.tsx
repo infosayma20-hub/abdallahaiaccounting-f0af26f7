@@ -1983,29 +1983,22 @@ const POSPage = () => {
     const ccPayment = activeOrder.callCenterPaymentMethod || "cash";
     
     // Map call center payment to POS payment method
-    if (ccPayment === "cash") {
-      setPaymentMethod("cash");
-    } else {
-      // Any visa variant → card
-      setPaymentMethod("card");
-    }
+    const posPayMethod = ccPayment === "cash" ? "cash" : "card";
     
     // Send to kitchen first
     await handleSendToKitchen();
     
-    // Small delay to let state update, then complete
+    // Complete with the correct payment method
     setQuickProcessing(true);
-    setTimeout(async () => {
-      try {
-        await handleCompleteOrder();
-      } finally {
-        setQuickProcessing(false);
-      }
-    }, 100);
+    try {
+      await handleCompleteOrder(posPayMethod);
+    } finally {
+      setQuickProcessing(false);
+    }
   };
 
   // Complete order
-  const handleCompleteOrder = async () => {
+  const handleCompleteOrder = async (overridePaymentMethod?: string) => {
     if (!userId || !session || cart.length === 0) return;
     if (!company) return;
     if (paymentMethod === "employee_account" && !selectedEmployee) {
