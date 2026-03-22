@@ -73,6 +73,7 @@ import SupportAdminPage from "./pages/SupportAdminPage";
 import POSPage from "./pages/POSPage";
 import POSUserManagementPage from "./pages/POSUserManagementPage";
 import POSReportsPage from "./pages/POSReportsPage";
+import CallCenterReportsPage from "./pages/CallCenterReportsPage";
 import POSCustomerDatabasePage from "./pages/POSCustomerDatabasePage";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import SuperAdminLoginPage from "./pages/SuperAdminLoginPage";
