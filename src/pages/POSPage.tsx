@@ -535,21 +535,27 @@ const POSPage = () => {
     });
 
    // ── PBX Call Listener ──
-   usePBXCallListener({
-     userId: dataOwnerId || userId || null,
-     enabled: !!session,
-     onIncomingCall: useCallback((event) => {
-       // Create a new order tab with the customer info
-       const newOrder = createOrder(undefined, undefined, event.customer_name || event.caller_number, undefined);
-       if (newOrder && event.customer_id) {
-         setCustomerName(
-           event.customer_name || event.caller_number,
-           null,
-           event.customer_phone || event.caller_number,
-           event.customer_id
-         );
-       }
-       // Set order type to delivery if address exists
+   const handlePBXCall = useCallback((event: any) => {
+     // Create a new order tab with customer info
+     orderCounter.current += 1;
+     const newOrder = createNewOrder(
+       orderCounter.current,
+       undefined,
+       undefined,
+       undefined,
+       event.customer_name || event.caller_number
+     );
+     setOrders(prev => [...prev, newOrder]);
+     setActiveOrderIndex(prev => prev + 1);
+
+     // Set customer data on next tick after order is created
+     setTimeout(() => {
+       setCustomerName(
+         event.customer_name || event.caller_number,
+         null,
+         event.customer_phone || event.caller_number,
+         event.customer_id || null
+       );
        if (event.customer_address) {
          updateActiveOrder(o => ({
            ...o,
@@ -557,7 +563,13 @@ const POSPage = () => {
            deliveryAddress: event.customer_address || '',
          }));
        }
-     }, []),
+     }, 100);
+   }, [setCustomerName, updateActiveOrder]);
+
+   usePBXCallListener({
+     userId: dataOwnerId || userId || null,
+     enabled: !!session,
+     onIncomingCall: handlePBXCall,
    });
 
   // ── Cart quantity map for badges on product cards ──
