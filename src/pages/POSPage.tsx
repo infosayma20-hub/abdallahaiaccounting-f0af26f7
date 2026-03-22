@@ -1373,12 +1373,16 @@ const POSPage = () => {
       });
       return updated.sort((a, b) => ((a as any).sort_order || 0) - ((b as any).sort_order || 0));
     });
-    // Save to DB
-    for (let i = 0; i < reordered.length; i++) {
-      await supabase.from("products" as any).update({ sort_order: i } as any).eq("id", reordered[i].id);
-    }
+    // Save per-user product order preference
+    const orderIds = reordered.map(p => p.id);
+    const prefKey = selectedCategory === "الكل" ? "product_order_all" : `product_order_${selectedCategory}`;
+    await supabase.from("pos_user_preferences").upsert({
+      auth_user_id: userId,
+      preference_key: prefKey,
+      preference_value: { order: orderIds },
+    } as any, { onConflict: "auth_user_id,preference_key" });
     toast.success("تم حفظ ترتيب المنتجات");
-  }, [filteredProducts, userId, isAdmin]);
+  }, [filteredProducts, userId, isAdmin, selectedCategory]);
 
   // Cart operations
   const addToCart = useCallback((product: Product) => {
