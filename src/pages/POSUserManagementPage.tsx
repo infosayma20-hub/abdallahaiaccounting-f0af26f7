@@ -235,7 +235,7 @@ export default function POSUserManagementPage() {
 
   const openEditUser = async (u: POSUserRow) => {
     setEditingUser(u);
-    setUserForm({ name: u.name, phone: u.phone || "", email: u.email || "", role: u.role });
+    setUserForm({ name: u.name, phone: u.phone || "", email: u.email || "", role: u.role, branch_id: (u as any).branch_id || "" });
 
     // Load permissions
     const { data: perms } = await supabase.from("pos_user_permissions").select("*").eq("pos_user_id", u.id).single();
