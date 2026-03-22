@@ -862,7 +862,11 @@ const POSPage = () => {
             .eq("user_id", dataOwnerId)
             .eq("type", "pos")
             .eq("is_active", true);
-          setCashBoxes(boxes || []);
+          const boxesWithCallCenter = [
+            ...(boxes || []),
+            { id: "__call_center__", name: "كول سنتر", type: "call_center" },
+          ];
+          setCashBoxes(boxesWithCallCenter);
           // Auto-select from device binding (localStorage)
           const savedBoxId = localStorage.getItem(`pos_default_cash_box_${dataOwnerId}`);
           if (savedBoxId && boxes?.some(b => b.id === savedBoxId)) {
@@ -1496,13 +1500,15 @@ const POSPage = () => {
   // Open session
   const handleOpenShift = async () => {
     if (!userId || !company || !terminal) return;
-    if (posRequireCashBox && !selectedCashBoxId) {
+    if (!selectedCashBoxId) {
       toast.error("يجب اختيار الصندوق قبل فتح الوردية");
       return;
     }
-    const cash = parseFloat(openingCash) || 0;
+    const isCallCenter = selectedCashBoxId === "__call_center__";
+    const cash = isCallCenter ? 0 : (parseFloat(openingCash) || 0);
     const displayName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "";
 
+    const actualCashBoxId = isCallCenter ? null : (selectedCashBoxId || null);
 
     const { data, error } = await supabase
       .from("pos_sessions")
@@ -1514,7 +1520,7 @@ const POSPage = () => {
         cashier_auth_user_id: userId,
         opening_cash: cash,
         state: "open",
-        cash_box_id: selectedCashBoxId || null,
+        cash_box_id: actualCashBoxId,
       } as any)
       .select()
       .single();
@@ -1539,7 +1545,7 @@ const POSPage = () => {
       total_orders: 0,
       opened_at: data.opened_at,
       cashier_name: displayName,
-      cash_box_id: selectedCashBoxId || null,
+      cash_box_id: actualCashBoxId,
     });
     setShowOpenShift(false);
     toast.success("تم فتح الوردية بنجاح");
@@ -3939,46 +3945,46 @@ const POSPage = () => {
           </DialogHeader>
           <div className="space-y-4 py-4">
             {/* Cash Box Selector */}
-            {cashBoxes.length > 0 && (
+            <div>
+              <label className="text-sm font-medium text-foreground mb-2 block">الصندوق</label>
+              <select
+                value={selectedCashBoxId}
+                onChange={(e) => {
+                  setSelectedCashBoxId(e.target.value);
+                  if (e.target.value === "__call_center__") {
+                    setOpeningCash("0");
+                  }
+                }}
+                className="w-full h-12 rounded-lg border border-input bg-background px-3 text-sm font-medium text-foreground focus:ring-2 focus:ring-primary/20 outline-none"
+              >
+                <option value="">-- اختر الصندوق --</option>
+                {cashBoxes.map(box => (
+                  <option key={box.id} value={box.id}>{box.name}</option>
+                ))}
+              </select>
+              <label className="flex items-center gap-2 mt-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={rememberCashBox}
+                  onChange={(e) => setRememberCashBox(e.target.checked)}
+                  className="rounded border-input"
+                />
+                <span className="text-xs text-muted-foreground">تذكر هذا الصندوق لهذا الجهاز</span>
+              </label>
+            </div>
+            {selectedCashBoxId !== "__call_center__" && (
               <div>
-                <label className="text-sm font-medium text-foreground mb-2 block">الصندوق</label>
-                <select
-                  value={selectedCashBoxId}
-                  onChange={(e) => setSelectedCashBoxId(e.target.value)}
-                  className="w-full h-12 rounded-lg border border-input bg-background px-3 text-sm font-medium text-foreground focus:ring-2 focus:ring-primary/20 outline-none"
-                >
-                  <option value="">-- اختر الصندوق --</option>
-                  {cashBoxes.map(box => (
-                    <option key={box.id} value={box.id}>{box.name}</option>
-                  ))}
-                </select>
-                <label className="flex items-center gap-2 mt-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={rememberCashBox}
-                    onChange={(e) => setRememberCashBox(e.target.checked)}
-                    className="rounded border-input"
-                  />
-                  <span className="text-xs text-muted-foreground">تذكر هذا الصندوق لهذا الجهاز</span>
-                </label>
+                <label className="text-sm font-medium text-foreground mb-2 block">النقدية الافتتاحية (₪)</label>
+                <Input
+                  type="number"
+                  value={openingCash}
+                  onChange={(e) => setOpeningCash(e.target.value)}
+                  placeholder="0.00"
+                  className="text-lg h-12 text-center font-bold"
+                  autoFocus={!selectedCashBoxId}
+                />
               </div>
             )}
-            {cashBoxes.length === 0 && (
-              <p className="text-xs text-muted-foreground bg-secondary/50 rounded-lg p-3 text-center">
-                لا توجد صناديق POS. يمكنك إضافتها من إدارة الصناديق.
-              </p>
-            )}
-            <div>
-              <label className="text-sm font-medium text-foreground mb-2 block">النقدية الافتتاحية (₪)</label>
-              <Input
-                type="number"
-                value={openingCash}
-                onChange={(e) => setOpeningCash(e.target.value)}
-                placeholder="0.00"
-                className="text-lg h-12 text-center font-bold"
-                autoFocus={cashBoxes.length === 0}
-              />
-            </div>
           </div>
           <DialogFooter>
             <Button onClick={handleOpenShift} className="w-full h-12 text-base font-bold gap-2">
