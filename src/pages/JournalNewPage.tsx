@@ -572,9 +572,9 @@ const JournalNewPage = () => {
                             </SelectItem>
                           )}
                           {(() => {
-                            const q = (accountSearches[line.id] || "").toLowerCase();
-                            const fa = accounts.filter(a => !q || a.account_code?.toLowerCase().includes(q) || a.account_name?.toLowerCase().includes(q));
-                            const fc = q ? contacts.filter(c => c.contact_name?.toLowerCase().includes(q)) : contacts;
+                            const q = (accountSearches[line.id] || "");
+                            const fa = accounts.filter(a => !q.trim() || multiWordMatchAny(q, a.account_code, a.account_name));
+                            const fc = q.trim() ? contacts.filter(c => multiWordMatchAny(q, c.contact_name)) : contacts;
                             return (
                               <>
                                 {fc.filter(isCustomer).length > 0 && (

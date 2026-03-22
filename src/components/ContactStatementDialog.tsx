@@ -174,10 +174,7 @@ const ContactStatementDialog = ({ open, onClose, contactId, contactName, contact
       if (dateTo && (tx.fields.Date || "") > dateTo) return false;
       if (typeFilter !== "all" && (tx.fields["Transaction Type"] || "") !== typeFilter) return false;
       if (searchQuery) {
-        const q = searchQuery.toLowerCase();
-        const desc = (tx.fields.Description || "").toLowerCase();
-        const type = (tx.fields["Transaction Type"] || "").toLowerCase();
-        if (!desc.includes(q) && !type.includes(q)) return false;
+        if (!multiWordMatchAny(searchQuery, tx.fields.Description, tx.fields["Transaction Type"])) return false;
       }
       return true;
     });

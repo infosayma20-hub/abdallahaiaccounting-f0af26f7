@@ -803,9 +803,9 @@ const FinanceJournalPage = () => {
                             </div>
                             {accounts
                               .filter(a => {
-                                const q = (accountSearches[line.id] || "").toLowerCase();
-                                if (!q) return true;
-                                return a.account_code?.toLowerCase().includes(q) || a.account_name?.toLowerCase().includes(q);
+                                const q = (accountSearches[line.id] || "");
+                                if (!q.trim()) return true;
+                                return multiWordMatchAny(q, a.account_code, a.account_name);
                               })
                               .map(a => (
                               <SelectItem key={a.account_code} value={a.account_code}>
