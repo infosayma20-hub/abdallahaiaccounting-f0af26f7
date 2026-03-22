@@ -196,7 +196,7 @@ const CallCenterDispatchDialog = ({
           <div className="space-y-2">
             <label className="text-sm font-medium">مصدر الطلب *</label>
             <div className={`flex flex-wrap gap-2 p-1 rounded-lg ${errors.source ? "ring-2 ring-destructive/50" : ""}`}>
-              {deliveryApps.map((app) => (
+              {deliveryApps.filter(app => app.name !== "طلب مباشر").map((app) => (
                 <button
                   key={app.id}
                   onClick={() => { setSourceApp(app.name); setErrors(p => ({ ...p, source: false })); }}
