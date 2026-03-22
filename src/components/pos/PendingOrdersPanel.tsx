@@ -153,7 +153,8 @@ const PendingOrdersPanel = ({ dataOwnerId, branchId, sessionId, enabled, onAccep
     try {
       const { data: { user } } = await supabase.auth.getUser();
       
-      await supabase
+      // Atomic update: only accept if still pending (prevents double-accept)
+      const { data: updated, error } = await supabase
         .from("call_center_orders" as any)
         .update({
           status: "accepted",
@@ -161,11 +162,24 @@ const PendingOrdersPanel = ({ dataOwnerId, branchId, sessionId, enabled, onAccep
           accepted_at: new Date().toISOString(),
           session_id: sessionId,
         } as any)
-        .eq("id", order.id);
+        .eq("id", order.id)
+        .eq("status", "pending") // Only if still pending
+        .select("id")
+        .maybeSingle();
 
+      if (error) throw error;
+
+      if (!updated) {
+        toast.warning("⚠️ هذا الطلب تم قبوله من كاشير آخر");
+        // Remove from local list immediately
+        setOrders(prev => prev.filter(o => o.id !== order.id));
+        return;
+      }
+
+      // Remove from local list immediately so other cashiers see the update via realtime
+      setOrders(prev => prev.filter(o => o.id !== order.id));
       onAcceptOrder(order);
       toast.success(`✅ تم قبول طلب ${order.customer_name}`);
-      loadPendingOrders();
     } catch (err: any) {
       toast.error("خطأ: " + (err.message || ""));
     } finally {
