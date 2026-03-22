@@ -513,8 +513,9 @@ const CallCenterDispatchDialog = ({
             </div>
           </div>
         </div>
+        </div>
 
-        <DialogFooter>
+        <DialogFooter className="px-6 py-4 border-t border-border flex-shrink-0">
           <Button variant="outline" onClick={() => onOpenChange(false)}>إلغاء</Button>
           <Button
             onClick={handleDispatch}
