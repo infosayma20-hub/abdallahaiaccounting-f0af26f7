@@ -163,7 +163,7 @@ Deno.serve(async (req) => {
         email,
         auth_user_id: newUserId,
         status: "active",
-        hire_date: new Date().toISOString().split("T")[0],
+        start_date: new Date().toISOString().split("T")[0],
       });
     }
 
