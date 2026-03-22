@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, ExternalLink, Copy, Check, Trash2, KeyRound, UserPlus, Users, Shield, Eye, EyeOff, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Loader2, ExternalLink, Copy, Check, Trash2, KeyRound, UserPlus, Users, Eye, EyeOff, ToggleLeft, ToggleRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 interface PortalUser {
   id: string;
   username: string;
+  email: string | null;
   full_name: string;
   role: string;
   can_see_sales: boolean;
@@ -21,40 +22,37 @@ interface PortalUser {
   last_login: string | null;
   is_active: boolean;
   created_at: string;
+  user_id: string | null;
 }
 
 export default function PortalSettingsSection() {
   const { user } = useAuth();
-  const [username, setUsername] = useState('');
+  const [portalEmail, setPortalEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [creating, setCreating] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
 
-  // Members list
   const [members, setMembers] = useState<PortalUser[]>([]);
   const [loadingMembers, setLoadingMembers] = useState(true);
 
-  // Delete dialog
   const [deleteTarget, setDeleteTarget] = useState<PortalUser | null>(null);
-
-  // Reset password dialog
   const [resetTarget, setResetTarget] = useState<PortalUser | null>(null);
   const [newPassword, setNewPassword] = useState('');
   const [resetting, setResetting] = useState(false);
 
-  // Permissions
   const [newCanSeeSales, setNewCanSeeSales] = useState(true);
   const [newCanSeeLiquidity, setNewCanSeeLiquidity] = useState(true);
   const [newCanSeeAllBranches, setNewCanSeeAllBranches] = useState(true);
   const [newRole, setNewRole] = useState('viewer');
 
   const fetchMembers = useCallback(async () => {
+    if (!user?.id) return;
     setLoadingMembers(true);
     try {
       const { data, error } = await supabase.functions.invoke('malaki-auth', {
-        body: { action: 'list_users' },
+        body: { action: 'list_users', user_id: user.id },
       });
       if (error) throw error;
       if (data?.users) setMembers(data.users);
@@ -63,51 +61,50 @@ export default function PortalSettingsSection() {
     } finally {
       setLoadingMembers(false);
     }
-  }, []);
+  }, [user?.id]);
 
   useEffect(() => { fetchMembers(); }, [fetchMembers]);
 
   const handleCreate = async () => {
-    if (!username.trim() || !password.trim() || !fullName.trim()) {
+    if (!portalEmail.trim() || !password.trim() || !fullName.trim()) {
       toast.error('يرجى ملء جميع الحقول');
       return;
     }
-    if (password.length < 3) {
-      toast.error('كلمة المرور يجب أن تكون 3 أحرف على الأقل');
+    if (password.length < 6) {
+      toast.error('كلمة المرور يجب أن تكون 6 أحرف على الأقل');
+      return;
+    }
+    if (!portalEmail.includes('@')) {
+      toast.error('يرجى إدخال بريد إلكتروني صحيح');
       return;
     }
 
     setCreating(true);
     try {
-      await supabase.functions.invoke('malaki-data', {
-        body: {
-          action: 'update_settings',
-          updates: { linked_user_id: user?.id, rates_updated_at: new Date().toISOString() },
-        },
-      });
-
       const { data, error } = await supabase.functions.invoke('malaki-auth', {
         body: {
           action: 'create_user',
-          username: username.trim(),
+          email: portalEmail.trim().toLowerCase(),
+          username: portalEmail.trim().toLowerCase(),
           password: password.trim(),
           full_name: fullName.trim(),
           role: newRole,
           can_see_sales: newCanSeeSales,
           can_see_liquidity: newCanSeeLiquidity,
           can_see_all_branches: newCanSeeAllBranches,
+          user_id: user?.id,
         },
       });
 
       if (error) throw error;
       if (data?.success) {
         toast.success('تم إنشاء الحساب بنجاح ✅');
-        setUsername(''); setPassword(''); setFullName('');
+        setPortalEmail(''); setPassword(''); setFullName('');
         setNewRole('viewer'); setNewCanSeeSales(true); setNewCanSeeLiquidity(true); setNewCanSeeAllBranches(true);
         setShowAddForm(false);
         fetchMembers();
       } else if (data?.error?.includes('موجود')) {
-        toast.info('اسم المستخدم موجود مسبقاً');
+        toast.info('البريد الإلكتروني موجود مسبقاً');
       } else {
         throw new Error(data?.error || 'خطأ غير معروف');
       }
@@ -134,8 +131,8 @@ export default function PortalSettingsSection() {
   };
 
   const handleResetPassword = async () => {
-    if (!resetTarget || newPassword.length < 3) {
-      toast.error('كلمة المرور يجب أن تكون 3 أحرف على الأقل');
+    if (!resetTarget || newPassword.length < 6) {
+      toast.error('كلمة المرور يجب أن تكون 6 أحرف على الأقل');
       return;
     }
     setResetting(true);
@@ -251,7 +248,6 @@ export default function PortalSettingsSection() {
                 key={member.id}
                 className={`border rounded-lg p-4 space-y-3 transition-colors ${member.is_active ? 'border-border bg-card' : 'border-destructive/20 bg-destructive/5 opacity-70'}`}
               >
-                {/* Header row */}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
@@ -259,7 +255,7 @@ export default function PortalSettingsSection() {
                     </div>
                     <div>
                       <p className="text-sm font-semibold leading-tight">{member.full_name}</p>
-                      <p className="text-xs text-muted-foreground font-mono" dir="ltr">@{member.username}</p>
+                      <p className="text-xs text-muted-foreground font-mono" dir="ltr">{member.email || member.username}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-1">
@@ -272,44 +268,25 @@ export default function PortalSettingsSection() {
                   </div>
                 </div>
 
-                {/* Permissions */}
                 <div className="grid grid-cols-3 gap-2">
-                  <button
-                    onClick={() => togglePermission(member, 'can_see_sales', !member.can_see_sales)}
-                    className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11px] font-medium border transition-colors ${
-                      member.can_see_sales
-                        ? 'bg-primary/10 border-primary/20 text-primary'
-                        : 'bg-muted/50 border-border text-muted-foreground'
-                    }`}
-                  >
-                    {member.can_see_sales ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
-                    المبيعات
-                  </button>
-                  <button
-                    onClick={() => togglePermission(member, 'can_see_liquidity', !member.can_see_liquidity)}
-                    className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11px] font-medium border transition-colors ${
-                      member.can_see_liquidity
-                        ? 'bg-primary/10 border-primary/20 text-primary'
-                        : 'bg-muted/50 border-border text-muted-foreground'
-                    }`}
-                  >
-                    {member.can_see_liquidity ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
-                    السيولة
-                  </button>
-                  <button
-                    onClick={() => togglePermission(member, 'can_see_all_branches', !member.can_see_all_branches)}
-                    className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11px] font-medium border transition-colors ${
-                      member.can_see_all_branches
-                        ? 'bg-primary/10 border-primary/20 text-primary'
-                        : 'bg-muted/50 border-border text-muted-foreground'
-                    }`}
-                  >
-                    {member.can_see_all_branches ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
-                    كل الفروع
-                  </button>
+                  {(['can_see_sales', 'can_see_liquidity', 'can_see_all_branches'] as const).map(field => {
+                    const labels = { can_see_sales: 'المبيعات', can_see_liquidity: 'السيولة', can_see_all_branches: 'كل الفروع' };
+                    const val = member[field];
+                    return (
+                      <button
+                        key={field}
+                        onClick={() => togglePermission(member, field, !val)}
+                        className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11px] font-medium border transition-colors ${
+                          val ? 'bg-primary/10 border-primary/20 text-primary' : 'bg-muted/50 border-border text-muted-foreground'
+                        }`}
+                      >
+                        {val ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
+                        {labels[field]}
+                      </button>
+                    );
+                  })}
                 </div>
 
-                {/* Actions + last login */}
                 <div className="flex items-center justify-between pt-1 border-t border-border/50">
                   <p className="text-[10px] text-muted-foreground">
                     {member.last_login
@@ -317,29 +294,13 @@ export default function PortalSettingsSection() {
                       : 'لم يسجل دخول بعد'}
                   </p>
                   <div className="flex items-center gap-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => toggleActive(member)}
-                      className="h-7 px-2 text-xs gap-1"
-                      title={member.is_active ? 'تعطيل' : 'تفعيل'}
-                    >
+                    <Button variant="ghost" size="sm" onClick={() => toggleActive(member)} className="h-7 px-2 text-xs gap-1" title={member.is_active ? 'تعطيل' : 'تفعيل'}>
                       {member.is_active ? <ToggleRight className="h-3.5 w-3.5 text-green-600" /> : <ToggleLeft className="h-3.5 w-3.5" />}
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => { setResetTarget(member); setNewPassword(''); }}
-                      className="h-7 px-2 text-xs gap-1"
-                    >
+                    <Button variant="ghost" size="sm" onClick={() => { setResetTarget(member); setNewPassword(''); }} className="h-7 px-2 text-xs gap-1">
                       <KeyRound className="h-3.5 w-3.5" />
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setDeleteTarget(member)}
-                      className="h-7 px-2 text-xs text-destructive hover:text-destructive"
-                    >
+                    <Button variant="ghost" size="sm" onClick={() => setDeleteTarget(member)} className="h-7 px-2 text-xs text-destructive hover:text-destructive">
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   </div>
@@ -355,24 +316,21 @@ export default function PortalSettingsSection() {
         <DialogContent className="sm:max-w-md" dir="rtl">
           <DialogHeader>
             <DialogTitle>إضافة عضو جديد للبوابة</DialogTitle>
-            <DialogDescription>سيتمكن العضو من الدخول للبوابة ومراقبة البيانات حسب صلاحياته</DialogDescription>
+            <DialogDescription>سيتمكن العضو من الدخول للبوابة باستخدام بريده الإلكتروني وكلمة المرور</DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs">الاسم الكامل</Label>
-                <Input value={fullName} onChange={e => setFullName(e.target.value)} placeholder="أحمد محمد" />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">اسم المستخدم</Label>
-                <Input value={username} onChange={e => setUsername(e.target.value)} placeholder="ahmed" dir="ltr" />
-              </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">الاسم الكامل</Label>
+              <Input value={fullName} onChange={e => setFullName(e.target.value)} placeholder="أحمد محمد" />
             </div>
-
+            <div className="space-y-1.5">
+              <Label className="text-xs">البريد الإلكتروني</Label>
+              <Input type="email" value={portalEmail} onChange={e => setPortalEmail(e.target.value)} placeholder="ahmed@example.com" dir="ltr" />
+            </div>
             <div className="space-y-1.5">
               <Label className="text-xs">كلمة المرور</Label>
-              <Input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="3 أحرف على الأقل" dir="ltr" />
+              <Input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="6 أحرف على الأقل" dir="ltr" />
             </div>
 
             <div className="space-y-1.5">
@@ -454,7 +412,7 @@ export default function PortalSettingsSection() {
               type="password"
               value={newPassword}
               onChange={e => setNewPassword(e.target.value)}
-              placeholder="3 أحرف على الأقل"
+              placeholder="6 أحرف على الأقل"
               dir="ltr"
             />
           </div>

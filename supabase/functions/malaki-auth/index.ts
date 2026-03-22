@@ -25,7 +25,7 @@ Deno.serve(async (req) => {
 
     if (action === "login") {
       const { data, error } = await supabase.rpc("verify_malaki_login", {
-        p_username: body.username,
+        p_username: body.username || body.email,
         p_password: body.password,
       });
       if (error) throw error;
@@ -33,28 +33,38 @@ Deno.serve(async (req) => {
     }
 
     if (action === "list_users") {
-      const { data, error } = await supabase
+      let query = supabase
         .from("malaki_portal_users")
-        .select("id, username, full_name, role, can_see_sales, can_see_liquidity, can_see_all_branches, last_login, is_active, created_at")
+        .select("id, username, email, full_name, role, can_see_sales, can_see_liquidity, can_see_all_branches, last_login, is_active, created_at, user_id")
         .order("created_at");
+      
+      // Filter by user_id if provided
+      if (body.user_id) {
+        query = query.eq("user_id", body.user_id);
+      }
+      
+      const { data, error } = await query;
       if (error) throw error;
       return respond({ success: true, users: data });
     }
 
     if (action === "create_user") {
+      // Use email as username if no separate username provided
+      const username = body.username || body.email;
       const { data, error } = await supabase.rpc("malaki_create_user", {
-        p_username: body.username,
+        p_username: username,
         p_password: body.password,
         p_full_name: body.full_name,
         p_role: body.role || "viewer",
         p_can_see_sales: body.can_see_sales ?? true,
         p_can_see_liquidity: body.can_see_liquidity ?? true,
         p_can_see_all_branches: body.can_see_all_branches ?? true,
+        p_user_id: body.user_id || null,
       });
       if (error) throw error;
-      // Save email if provided
+      // Save email
       if (body.email && data?.id) {
-        await supabase.from("malaki_portal_users").update({ email: body.email }).eq("id", data.id);
+        await supabase.from("malaki_portal_users").update({ email: body.email.toLowerCase().trim() }).eq("id", data.id);
       }
       return respond(data);
     }
