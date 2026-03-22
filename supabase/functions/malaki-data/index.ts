@@ -376,7 +376,7 @@ Deno.serve(async (req) => {
     if (action === "employee_requests") {
       const { data: forms } = await supabase
         .from("employee_forms")
-        .select("id, employee_id, form_type, status, created_at, details, amount")
+        .select("id, employee_id, form_type, status, created_at, form_data")
         .eq("user_id", linkedUserId)
         .order("created_at", { ascending: false })
         .limit(500);
