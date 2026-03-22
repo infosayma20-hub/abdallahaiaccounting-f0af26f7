@@ -30,7 +30,7 @@ export default function PortalDashboard() {
   }, []);
 
   useEffect(() => {
-    if (!authLoading && !user) navigate('/auth?mode=portal', { replace: true });
+    if (!authLoading && !user) navigate('/auth', { replace: true });
   }, [authLoading, user, navigate]);
 
   if (authLoading || !user) return null;
@@ -85,7 +85,7 @@ export default function PortalDashboard() {
               <Settings size={16} />
             </button>
           )}
-          <button onClick={() => { logout(); navigate('/auth?mode=portal'); }} style={{
+          <button onClick={() => { logout(); navigate('/auth'); }} style={{
             background: 'none', border: '1px solid rgba(255,255,255,0.15)',
             borderRadius: 8, padding: 6, color: 'rgba(255,255,255,0.6)',
             cursor: 'pointer', display: 'flex',

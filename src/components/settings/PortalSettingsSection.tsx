@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, ExternalLink, Copy, Check, Trash2, KeyRound, UserPlus, Users, Eye, EyeOff, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Loader2, Trash2, KeyRound, UserPlus, Users, Eye, EyeOff, ToggleLeft, ToggleRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -177,15 +177,6 @@ export default function PortalSettingsSection() {
     }
   };
 
-  const portalUrl = `${window.location.origin}/auth?mode=portal`;
-
-  const copyLink = () => {
-    navigator.clipboard.writeText(portalUrl);
-    setCopied(true);
-    toast.success('تم نسخ الرابط');
-    setTimeout(() => setCopied(false), 2000);
-  };
-
   const ROLE_LABELS: Record<string, string> = {
     owner: 'مالك',
     manager: 'مدير',
@@ -197,26 +188,8 @@ export default function PortalSettingsSection() {
       <div className="space-y-1">
         <h3 className="text-base font-semibold text-foreground">بوابة الإدارة</h3>
         <p className="text-sm text-muted-foreground">
-          إدارة أعضاء بوابة المتابعة الإدارية وصلاحياتهم
+          إدارة أعضاء بوابة المتابعة الإدارية وصلاحياتهم — يسجلون الدخول من صفحة تسجيل الدخول الرئيسية
         </p>
-      </div>
-
-      {/* Portal Link */}
-      <div className="bg-muted/50 rounded-lg p-4 border border-border">
-        <Label className="text-xs text-muted-foreground mb-2 block">رابط بوابة الإدارة</Label>
-        <div className="flex items-center gap-2">
-          <Input value={portalUrl} readOnly className="font-mono text-xs bg-background" dir="ltr" />
-          <Button variant="outline" size="sm" onClick={copyLink} className="shrink-0 gap-1">
-            {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-            {copied ? 'تم' : 'نسخ'}
-          </Button>
-          <Button variant="outline" size="sm" asChild className="shrink-0 gap-1">
-            <a href="/auth?mode=portal" target="_blank" rel="noopener noreferrer">
-              <ExternalLink className="h-3 w-3" />
-              فتح
-            </a>
-          </Button>
-        </div>
       </div>
 
       {/* Members List */}

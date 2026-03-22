@@ -5003,6 +5003,7 @@ export type Database = {
       malaki_portal_users: {
         Row: {
           allowed_branch_ids: string[] | null
+          auth_user_id: string | null
           can_see_all_branches: boolean | null
           can_see_liquidity: boolean | null
           can_see_sales: boolean | null
@@ -5019,6 +5020,7 @@ export type Database = {
         }
         Insert: {
           allowed_branch_ids?: string[] | null
+          auth_user_id?: string | null
           can_see_all_branches?: boolean | null
           can_see_liquidity?: boolean | null
           can_see_sales?: boolean | null
@@ -5035,6 +5037,7 @@ export type Database = {
         }
         Update: {
           allowed_branch_ids?: string[] | null
+          auth_user_id?: string | null
           can_see_all_branches?: boolean | null
           can_see_liquidity?: boolean | null
           can_see_sales?: boolean | null
@@ -10572,6 +10575,7 @@ export type Database = {
         | "cashier"
         | "worker"
         | "supervisor"
+        | "portal"
       cheque_status:
         | "مسجل"
         | "آجل"
@@ -10727,6 +10731,7 @@ export const Constants = {
         "cashier",
         "worker",
         "supervisor",
+        "portal",
       ],
       cheque_status: [
         "مسجل",
