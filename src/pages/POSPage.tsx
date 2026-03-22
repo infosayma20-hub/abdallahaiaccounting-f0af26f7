@@ -4013,10 +4013,15 @@ const POSPage = () => {
               {isCallCenter && (
                 <button
                   onClick={() => setShowDispatchLog(true)}
-                  className="w-full h-9 rounded-xl text-xs font-medium flex items-center justify-center gap-2 border border-border bg-muted/30 text-muted-foreground hover:bg-muted/60 transition-all"
+                  className="w-full h-10 rounded-xl text-xs font-bold flex items-center justify-center gap-2 border-2 border-indigo-500/40 bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 hover:bg-indigo-500/20 transition-all relative"
                 >
                   <ClipboardList className="h-3.5 w-3.5" />
                   سجل الفواتير المحوّلة
+                  {pendingDispatchCount > 0 && (
+                    <Badge className="text-[10px] px-1.5 py-0 h-5 bg-amber-500 text-white animate-pulse">
+                      {pendingDispatchCount} قيد القبول
+                    </Badge>
+                  )}
                 </button>
               )}
               {/* Bottom row: Delete + Print + Pay */}
