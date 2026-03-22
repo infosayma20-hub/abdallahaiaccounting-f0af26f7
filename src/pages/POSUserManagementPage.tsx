@@ -330,6 +330,7 @@ export default function POSUserManagementPage() {
           phone: userForm.phone || null,
           email: userForm.email || null,
           role: userForm.role,
+          branch_id: userForm.branch_id || null,
           pin_hash: "no-pin", // Placeholder - PIN system removed
           created_by: user!.id,
         }).select("id").single();
