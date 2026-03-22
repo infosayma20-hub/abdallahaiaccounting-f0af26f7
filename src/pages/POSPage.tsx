@@ -2258,6 +2258,7 @@ const POSPage = () => {
           ...(effectivePaymentMethod === "employee_account" && employeeAccountCode
             ? { employee_account_code: employeeAccountCode }
             : {}),
+          ...(visaGlAccountCode ? { visa_gl_account_code: visaGlAccountCode } : {}),
         }],
       });
 
