@@ -323,7 +323,7 @@ const CallCenterDispatchDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto" dir="rtl">
+      <DialogContent className="sm:max-w-lg max-h-[90vh] flex flex-col p-0" dir="rtl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-lg">
             <Send className="h-5 w-5 text-primary" />
