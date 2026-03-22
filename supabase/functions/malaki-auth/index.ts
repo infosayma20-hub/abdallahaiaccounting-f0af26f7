@@ -47,6 +47,46 @@ Deno.serve(async (req) => {
       return respond({ success: true, users: data });
     }
 
+    // Link an existing portal user to a new Supabase Auth account
+    if (action === "link_existing_user") {
+      const portalUserId = body.portal_user_id;
+      const email = (body.email || "").toLowerCase().trim();
+      const password = body.password;
+      const fullName = body.full_name;
+      const adminUserId = body.admin_user_id || null;
+
+      // Create Supabase Auth account
+      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: { full_name: fullName, role: 'portal', invited_by: adminUserId },
+      });
+      if (authError) throw authError;
+
+      const authUserId = authData.user.id;
+
+      // Assign portal role
+      await supabase.from("user_roles").insert({ user_id: authUserId, role: "portal" }).throwOnError();
+
+      // Link auth_user_id to existing portal user
+      await supabase.from("malaki_portal_users")
+        .update({ auth_user_id: authUserId, email, user_id: adminUserId })
+        .eq("id", portalUserId);
+
+      // Create profile
+      let adminCompanyId = null;
+      if (adminUserId) {
+        const { data: ap } = await supabase.from("profiles").select("company_id").eq("user_id", adminUserId).single();
+        adminCompanyId = ap?.company_id;
+      }
+      await supabase.from("profiles").upsert({
+        user_id: authUserId, display_name: fullName, role: "portal", invited_by: adminUserId, company_id: adminCompanyId,
+      }, { onConflict: "user_id" });
+
+      return respond({ success: true });
+    }
+
     if (action === "create_user") {
       const email = (body.email || body.username || "").toLowerCase().trim();
       const password = body.password;
