@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, ChevronDown, ArrowLeft, Lock } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
@@ -7,6 +7,7 @@ import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { useSubscription } from "@/hooks/useSubscription";
 import WelcomeModal from "@/components/onboarding/WelcomeModal";
 import SpotlightTour from "@/components/onboarding/SpotlightTour";
+import { supabase } from "@/integrations/supabase/client";
 
 import { motion } from "framer-motion";
 import { Input } from "@/components/ui/input";
@@ -14,6 +15,14 @@ import { Input } from "@/components/ui/input";
 import { getAppSections, getAllChildren, type NavItem } from "@/config/navigationConfig";
 
 const appSections = getAppSections();
+
+/* ── Role-based app visibility ── */
+const ROLE_ALLOWED_APPS: Record<string, string[]> = {
+  accountant_senior: ["dashboard", "ai-accountant", "finance", "sales", "purchases", "inventory", "fixed-assets", "reports", "settings"],
+  accountant_sales: ["dashboard", "ai-accountant", "finance", "sales", "reports", "settings"],
+  accountant_purchases: ["dashboard", "ai-accountant", "finance", "purchases", "inventory", "reports", "settings"],
+  hr_manager: ["dashboard", "hr", "settings"],
+};
 
 /* ── App Card ── */
 const AppCard = ({
@@ -105,6 +114,19 @@ const AppsLauncher = () => {
   const [tourActive, setTourActive] = useState(false);
   const [search, setSearch] = useState("");
   const [expandedApp, setExpandedApp] = useState<string | null>(null);
+  const [userRoles, setUserRoles] = useState<string[]>([]);
+
+  // Fetch user roles for filtering
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id)
+      .then(({ data }) => {
+        setUserRoles((data || []).map((r) => r.role));
+      });
+  }, [user]);
 
   // During trial, all apps are enabled. After subscription, restrict based on settings.
   const isTrial = subscription?.isTrial ?? true;
@@ -130,8 +152,24 @@ const AppsLauncher = () => {
     return !enabledSettings[app.enableSetting];
   };
 
+  // Check if user has a restricted role (not admin/super_admin)
+  const restrictedRole = useMemo(() => {
+    const restricted = Object.keys(ROLE_ALLOWED_APPS);
+    const found = userRoles.find(r => restricted.includes(r));
+    // If user also has admin role, don't restrict
+    if (userRoles.includes("admin") || userRoles.includes("super_admin")) return null;
+    return found || null;
+  }, [userRoles]);
+
   const allFilteredApps = useMemo(() => {
-    const allApps = appSections.flatMap(s => s.items);
+    let allApps = appSections.flatMap(s => s.items);
+    
+    // Filter by role if restricted
+    if (restrictedRole && ROLE_ALLOWED_APPS[restrictedRole]) {
+      const allowed = ROLE_ALLOWED_APPS[restrictedRole];
+      allApps = allApps.filter(app => allowed.includes(app.id));
+    }
+    
     const q = search.trim();
     const filtered = q
       ? allApps.filter(app =>
@@ -145,7 +183,7 @@ const AppsLauncher = () => {
       const bDisabled = isAppDisabled(b) ? 1 : 0;
       return aDisabled - bDisabled;
     });
-  }, [search, enabledSettings]);
+  }, [search, enabledSettings, restrictedRole]);
 
   const totalResults = allFilteredApps.length;
 
