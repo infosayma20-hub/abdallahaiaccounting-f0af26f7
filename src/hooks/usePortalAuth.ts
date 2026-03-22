@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from './useAuth';
 
 export interface PortalUser {
   id: string;
@@ -13,65 +14,65 @@ export interface PortalUser {
   allowed_branch_ids: string[] | null;
 }
 
-interface PortalSession {
-  user: PortalUser;
-  loginAt: number;
-  rememberMe: boolean;
-}
-
-const SESSION_KEY = 'portal_session';
-const SESSION_DURATION = 12 * 60 * 60 * 1000;
-const REMEMBER_DURATION = 30 * 24 * 60 * 60 * 1000;
-
 export function usePortalAuth() {
-  const [user, setUser] = useState<PortalUser | null>(null);
+  const { user: authUser, loading: authLoading } = useAuth();
+  const [portalUser, setPortalUser] = useState<PortalUser | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const oldStored = localStorage.getItem('malaki_session');
-    if (oldStored && !localStorage.getItem(SESSION_KEY)) {
-      localStorage.setItem(SESSION_KEY, oldStored);
-      localStorage.removeItem('malaki_session');
+    if (authLoading) {
+      setLoading(true);
+      return;
     }
 
-    const stored = localStorage.getItem(SESSION_KEY);
-    if (stored) {
+    if (!authUser) {
+      setPortalUser(null);
+      setLoading(false);
+      return;
+    }
+
+    // Fetch portal permissions from malaki_portal_users by auth_user_id
+    const fetchPortalUser = async () => {
       try {
-        const session: PortalSession = JSON.parse(stored);
-        const maxAge = session.rememberMe ? REMEMBER_DURATION : SESSION_DURATION;
-        if (Date.now() - session.loginAt < maxAge) {
-          setUser(session.user);
+        const { data, error } = await supabase
+          .from('malaki_portal_users')
+          .select('*')
+          .eq('auth_user_id', authUser.id)
+          .eq('is_active', true)
+          .single();
+
+        if (error || !data) {
+          setPortalUser(null);
         } else {
-          localStorage.removeItem(SESSION_KEY);
+          setPortalUser({
+            id: data.id,
+            username: data.username,
+            email: data.email || undefined,
+            full_name: data.full_name,
+            role: (data.role as 'viewer' | 'manager' | 'owner') || 'viewer',
+            can_see_sales: data.can_see_sales ?? true,
+            can_see_liquidity: data.can_see_liquidity ?? true,
+            can_see_all_branches: data.can_see_all_branches ?? true,
+            allowed_branch_ids: data.allowed_branch_ids,
+          });
         }
       } catch {
-        localStorage.removeItem(SESSION_KEY);
+        setPortalUser(null);
+      } finally {
+        setLoading(false);
       }
-    }
-    setLoading(false);
-  }, []);
-
-  const login = useCallback(async (email: string, password: string, rememberMe: boolean) => {
-    const { data, error } = await supabase.functions.invoke('malaki-auth', {
-      body: { action: 'login', email, password },
-    });
-    if (error) throw new Error('خطأ في الاتصال');
-    if (!data?.success) throw new Error(data?.error || 'بيانات الدخول غير صحيحة');
-
-    const session: PortalSession = {
-      user: data.user,
-      loginAt: Date.now(),
-      rememberMe,
     };
-    localStorage.setItem(SESSION_KEY, JSON.stringify(session));
-    setUser(data.user);
-    return data.user;
+
+    fetchPortalUser();
+  }, [authUser, authLoading]);
+
+  const logout = useCallback(async () => {
+    // Clean up old localStorage sessions
+    localStorage.removeItem('portal_session');
+    localStorage.removeItem('malaki_session');
+    await supabase.auth.signOut();
+    setPortalUser(null);
   }, []);
 
-  const logout = useCallback(() => {
-    localStorage.removeItem(SESSION_KEY);
-    setUser(null);
-  }, []);
-
-  return { user, loading, login, logout };
+  return { user: portalUser, loading, logout };
 }
