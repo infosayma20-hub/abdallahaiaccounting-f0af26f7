@@ -17,6 +17,7 @@ export default function PortalDashboard() {
   const [clock, setClock] = useState(new Date());
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem('portal_theme') === 'dark');
   const [companyName, setCompanyName] = useState('');
+  const [companyLogo, setCompanyLogo] = useState('');
   const { salesData, liquidityData, loading: dataLoading, needsSetup, lastUpdated, businessDay, refresh } = usePortalData(user?.id);
 
   useEffect(() => {
@@ -46,10 +47,11 @@ export default function PortalDashboard() {
         if (data?.settings?.linked_user_id) {
           const { data: cs } = await supabase
             .from('company_settings')
-            .select('company_name')
+            .select('company_name, logo_url')
             .eq('user_id', data.settings.linked_user_id)
             .single();
           if (cs?.company_name) setCompanyName(cs.company_name);
+          if (cs?.logo_url) setCompanyLogo(cs.logo_url);
         }
       } catch {}
     };
@@ -107,7 +109,7 @@ export default function PortalDashboard() {
         paddingTop: 'max(10px, env(safe-area-inset-top))',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <img src="/logo-icon-white.svg" alt="QOYOD" style={{ width: 28, height: 28, borderRadius: 6 }} />
+          <img src={companyLogo || '/logo-icon-white.svg'} alt="Logo" style={{ width: 32, height: 32, borderRadius: 8, objectFit: 'contain', background: companyLogo ? 'white' : 'none', padding: companyLogo ? 2 : 0 }} />
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, lineHeight: 1.2, color: 'white' }}>بوابة الإدارة</div>
             {companyName && (
