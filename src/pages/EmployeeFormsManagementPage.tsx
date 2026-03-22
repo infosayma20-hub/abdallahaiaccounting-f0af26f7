@@ -382,6 +382,8 @@ export default function EmployeeFormsManagementPage() {
                                     disabled={!!processing}>
                                     {processing === f.id + "delete" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
                                   </Button>
+                                </div>
+                              </TableCell>
                             </TableRow>
                           );
                         })
