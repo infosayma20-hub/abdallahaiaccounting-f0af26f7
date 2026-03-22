@@ -1,0 +1,1 @@
+UPDATE pos_users SET must_change_password = false WHERE auth_user_id = '15c9bd6a-4c03-41c2-baa1-35ae2094a9fe';
