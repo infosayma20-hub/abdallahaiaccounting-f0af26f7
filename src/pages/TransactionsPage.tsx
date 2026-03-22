@@ -419,49 +419,8 @@ const TransactionsPage = () => {
     } finally { setSaving(false); }
   };
 
-  const cancelLinkedVouchers = async (txIds: string[]) => {
-    if (!user || txIds.length === 0) return;
-    // Cancel linked receipt vouchers
-    await supabase.from('receipt_vouchers')
-      .update({ status: 'cancelled' } as any)
-      .eq('user_id', user.id)
-      .in('linked_transaction_id', txIds);
-    // Cancel linked payment vouchers
-    await supabase.from('vouchers')
-      .update({ status: 'cancelled' } as any)
-      .eq('user_id', user.id)
-      .in('linked_transaction_id', txIds);
-    // Cancel linked invoices
-    await supabase.from('invoices')
-      .update({ status: 'cancelled' } as any)
-      .eq('user_id', user.id)
-      .in('linked_transaction_id', txIds);
-    // Cancel linked purchase invoices
-    await supabase.from('purchase_invoices')
-      .update({ status: 'cancelled' } as any)
-      .eq('user_id', user.id)
-      .in('linked_transaction_id', txIds);
-  };
-
-  const restoreLinkedVouchers = async (txIds: string[]) => {
-    if (!user || txIds.length === 0) return;
-    await supabase.from('receipt_vouchers')
-      .update({ status: 'posted' } as any)
-      .eq('user_id', user.id)
-      .in('linked_transaction_id', txIds);
-    await supabase.from('vouchers')
-      .update({ status: 'posted' } as any)
-      .eq('user_id', user.id)
-      .in('linked_transaction_id', txIds);
-    await supabase.from('invoices')
-      .update({ status: 'posted' } as any)
-      .eq('user_id', user.id)
-      .in('linked_transaction_id', txIds);
-    await supabase.from('purchase_invoices')
-      .update({ status: 'posted' } as any)
-      .eq('user_id', user.id)
-      .in('linked_transaction_id', txIds);
-  };
+  // DB triggers now handle cascading automatically when is_deleted changes
+  // No need for manual cancelLinkedVouchers/restoreLinkedVouchers
 
   const handleDelete = async () => {
     if (!editingTx) return;
