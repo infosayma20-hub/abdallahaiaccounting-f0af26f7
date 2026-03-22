@@ -54,7 +54,7 @@ const ChatHistorySidebar = ({ open, onClose, userId, activeConversationId, onSel
   }, [open, fetchConversations]);
 
   const filtered = search.trim()
-    ? conversations.filter(c => c.title.includes(search))
+    ? conversations.filter(c => multiWordMatchAny(search, c.title))
     : conversations;
 
   const groupByDate = (convs: Conversation[]) => {

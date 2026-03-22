@@ -174,8 +174,8 @@ const AppsLauncher = () => {
     const q = search.trim();
     const filtered = q
       ? allApps.filter(app =>
-          app.label.includes(q) || app.description.includes(q) || app.keywords?.some(k => k.includes(q))
-          || getAllChildren(app).some(c => c.label.includes(q))
+          multiWordMatchAny(q, app.label, app.description, ...(app.keywords || []))
+          || getAllChildren(app).some(c => multiWordMatchAny(q, c.label))
         )
       : allApps;
     // Sort: enabled first, disabled last

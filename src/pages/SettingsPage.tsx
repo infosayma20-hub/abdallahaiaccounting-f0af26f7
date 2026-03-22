@@ -45,8 +45,7 @@ const SettingsPage = () => {
 
   const filteredSections = useMemo(() => {
     if (!search) return sections;
-    const q = search.trim().toLowerCase();
-    return sections.filter(s => s.label.includes(q) || s.keywords.includes(q));
+    return sections.filter(s => multiWordMatchAny(search, s.label, s.keywords));
   }, [search]);
 
   const renderContent = () => {

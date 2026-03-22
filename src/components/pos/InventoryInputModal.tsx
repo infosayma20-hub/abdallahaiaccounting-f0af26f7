@@ -56,7 +56,7 @@ export default function InventoryInputModal({ open, onOpenChange, dataOwnerId, u
   }, [open, dataOwnerId]);
 
   const filtered = products.filter(p =>
-    p.name.includes(search) || p.id.includes(search)
+    multiWordMatchAny(search, p.name, p.id)
   ).slice(0, 20);
 
   const handleSave = async () => {
