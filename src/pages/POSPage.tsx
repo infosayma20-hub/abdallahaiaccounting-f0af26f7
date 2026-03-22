@@ -1883,8 +1883,6 @@ const POSPage = () => {
       tickets,
       orderNote: activeOrder.orderNote,
     });
-    setShowKitchenTicket(true);
-
     // Dispatch print jobs per station
     let printedCount = 0;
     let failedCount = 0;
@@ -1928,6 +1926,11 @@ const POSPage = () => {
       toast.success(`✅ تم إرسال ${tickets.length} تذكرة مطبخ`);
     } else if (failedCount > 0) {
       toast.warning(`⚠️ تم إرسال ${printedCount} تذكرة، فشل ${failedCount}`);
+      // Show dialog only when printing failed so user can retry manually
+      setShowKitchenTicket(true);
+    } else if (printedCount === 0) {
+      // No printers configured — show dialog as fallback
+      setShowKitchenTicket(true);
     }
   };
 
