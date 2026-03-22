@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ChevronDown, X, PanelLeftClose, PanelLeftOpen, Lock } from "lucide-react";
+import { ChevronDown, X, PanelLeftClose, PanelLeftOpen, Lock, LogOut } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import ModuleIcon from "@/components/ModuleIcon";
 import { useCompany } from "@/hooks/useCompanyContext";
