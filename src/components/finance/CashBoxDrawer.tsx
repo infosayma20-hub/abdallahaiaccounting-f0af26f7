@@ -265,6 +265,26 @@ const CashBoxDrawer = ({ open, onClose, defaultType, editBox, hasMainBox, onSave
               <Label className="text-xs font-bold">الفرع / الموقع</Label>
               <Input value={location} onChange={e => setLocation(e.target.value)} placeholder="مثال: فرع رام الله" className="mt-1 h-11" />
             </div>
+            {/* Branch Link for POS/Branch boxes */}
+            {(boxType === "pos" || boxType === "branch") && branchesList.length > 0 && (
+              <div>
+                <Label className="text-xs font-bold flex items-center gap-1">
+                  ربط بفرع (للكول سنتر) 
+                  <span className="text-[10px] text-muted-foreground font-normal">— مهم لتوصيل الفواتير</span>
+                </Label>
+                <Select value={selectedBranchId || "none"} onValueChange={v => setSelectedBranchId(v === "none" ? null : v)}>
+                  <SelectTrigger className="mt-1 h-11">
+                    <SelectValue placeholder="اختر الفرع..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">بدون ربط</SelectItem>
+                    {branchesList.map(br => (
+                      <SelectItem key={br.id} value={br.id}>🏪 {br.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label className="text-xs font-bold">العملة الأساسية</Label>
