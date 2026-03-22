@@ -1772,6 +1772,14 @@ const POSPage = () => {
           cost_price: item.cost_price,
         }));
         await supabase.from("pos_order_lines").insert(lines);
+
+        // Link call center order to POS order if applicable
+        if (activeOrder.callCenterOrderId && order.id) {
+          await supabase
+            .from("call_center_orders" as any)
+            .update({ pos_order_id: order.id } as any)
+            .eq("id", activeOrder.callCenterOrderId);
+        }
       }
 
       toast.success(`💾 تم حفظ الطلب على ${activeOrder.tableName}`);
