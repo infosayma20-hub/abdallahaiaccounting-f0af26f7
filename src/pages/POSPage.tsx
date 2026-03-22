@@ -30,6 +30,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import POSReceiptDialog from "@/components/POSReceiptDialog";
 import ShiftSummaryReceipt from "@/components/ShiftSummaryReceipt";
 import InvoiceHistoryDrawer from "@/components/pos/InvoiceHistoryDrawer";
+import CallCenterDispatchDialog from "@/components/pos/CallCenterDispatchDialog";
+import PendingOrdersPanel from "@/components/pos/PendingOrdersPanel";
 import CustomerDataModal from "@/components/pos/CustomerDataModal";
 import { type SelectedModifier } from "@/components/pos/ModifierModal";
 import InlineAddonPanel from "@/components/pos/InlineAddonPanel";
