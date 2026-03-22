@@ -346,8 +346,7 @@ const PurchasePointPage = () => {
   // Filtered suppliers
   const filteredSuppliers = useMemo(() => {
     if (!supplierSearch.trim()) return suppliers;
-    const q = supplierSearch.trim().toLowerCase();
-    return suppliers.filter((s) => s.company_name.toLowerCase().includes(q));
+    return suppliers.filter((s) => multiWordMatchAny(supplierSearch, s.company_name));
   }, [suppliers, supplierSearch]);
 
   // Cart qty map
