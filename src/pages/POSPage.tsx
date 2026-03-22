@@ -815,17 +815,26 @@ const POSPage = () => {
           if (existingBoxId && dataOwnerId) {
             const { data: boxData } = await supabase
               .from("cash_boxes")
-              .select("name")
+              .select("name, branch_id")
               .eq("id", existingBoxId)
               .maybeSingle();
-            const { data: allBranches } = await supabase
-              .from("branches")
-              .select("id, name")
-              .eq("user_id", dataOwnerId)
-              .eq("is_active", true);
-            if (boxData?.name && allBranches) {
-              const matched = allBranches.find(br => boxData.name.includes(br.name));
-              setDetectedBranchId(matched?.id || null);
+            // Direct branch_id link (preferred)
+            if ((boxData as any)?.branch_id) {
+              setDetectedBranchId((boxData as any).branch_id);
+            } else if (boxData?.name) {
+              // Fallback: name matching
+              const { data: allBranches } = await supabase
+                .from("branches")
+                .select("id, name")
+                .eq("user_id", dataOwnerId)
+                .eq("is_active", true);
+              if (allBranches) {
+                const boxNameNorm = boxData.name.trim();
+                const matched = allBranches.find(br => 
+                  boxNameNorm.includes(br.name) || br.name.includes(boxNameNorm.split(/\s+/)[0])
+                );
+                setDetectedBranchId(matched?.id || null);
+              }
             }
           }
         } else {
