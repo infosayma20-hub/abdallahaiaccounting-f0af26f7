@@ -2878,7 +2878,7 @@ const POSPage = () => {
           dataOwnerId={dataOwnerId || ""}
           branchId={detectedBranchId}
           sessionId={session?.id || null}
-          enabled={!!session}
+          enabled={!!session && !isCallCenter}
           onAcceptOrder={(order) => {
             // Create new order tab with call center order data
             orderCounter.current += 1;

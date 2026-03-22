@@ -257,6 +257,13 @@ const PendingOrdersPanel = ({ dataOwnerId, branchId, sessionId, enabled, onAccep
                         </Badge>
                       </div>
 
+                      {/* Branch */}
+                      {order.target_branch_name && (
+                        <div className="flex items-center gap-2 text-xs font-semibold text-primary">
+                          <MapPin className="h-3.5 w-3.5" />
+                          الفرع: {order.target_branch_name}
+                        </div>
+                      )}
                       {/* Customer Info */}
                       <div className="space-y-1.5">
                         <div className="flex items-center gap-2 text-sm font-bold">
