@@ -318,12 +318,7 @@ const TransactionsPage = () => {
         if (range && (tx.transaction_date < range.from || tx.transaction_date > range.to)) return false;
       }
       if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase();
-        const matchDesc = (tx.description || '').toLowerCase().includes(q);
-        const matchRef = (tx.reference || '').toLowerCase().includes(q);
-        const matchDebit = getAccountName(tx.debit_account_code).toLowerCase().includes(q);
-        const matchCredit = getAccountName(tx.credit_account_code).toLowerCase().includes(q);
-        if (!matchDesc && !matchRef && !matchDebit && !matchCredit) return false;
+        if (!multiWordMatchAny(searchQuery, tx.description, tx.reference, getAccountName(tx.debit_account_code), getAccountName(tx.credit_account_code))) return false;
       }
       return true;
     });

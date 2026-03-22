@@ -1244,12 +1244,8 @@ const POSPage = () => {
       );
     }
     if (searchQuery) {
-      const q = searchQuery.toLowerCase();
       filtered = filtered.filter(
-        (p) =>
-          p.name.toLowerCase().includes(q) ||
-          p.sku?.toLowerCase().includes(q) ||
-          p.barcode?.toLowerCase().includes(q)
+        (p) => multiWordMatchAny(searchQuery, p.name, p.sku, p.barcode)
       );
     }
     // When "الكل" is selected, sort products grouped by category order

@@ -337,10 +337,7 @@ const ContactsPage = () => {
       (filterType === "مورد" && c.contact_type === "supplier");
     const matchesClass = !filterClass || c.contact_class === filterClass;
     const matchesSearch = !searchQuery || 
-      c.contact_name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-      (c.phone || "").includes(searchQuery) ||
-      (c.tax_number || "").includes(searchQuery) ||
-      (c.email || "").toLowerCase().includes(searchQuery.toLowerCase());
+      multiWordMatchAny(searchQuery, c.contact_name, c.phone, c.tax_number, c.email);
     return matchesType && matchesClass && matchesSearch;
   }), [activeContacts, filterType, filterClass, searchQuery]);
 

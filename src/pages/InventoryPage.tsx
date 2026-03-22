@@ -256,11 +256,7 @@ const InventoryPage = () => {
     else if (stockFilter === "منخفض") data = data.filter(p => stockStatus(p) === "منخفض");
     else if (stockFilter === "نفد") data = data.filter(p => stockStatus(p) === "نفد");
     if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      data = data.filter(p =>
-        p.name.includes(searchQuery) || p.name.toLowerCase().includes(q) ||
-        (p.sku || "").toLowerCase().includes(q) || p.category.includes(searchQuery)
-      );
+      data = data.filter(p => multiWordMatchAny(searchQuery, p.name, p.sku, p.category));
     }
     return data;
   }, [products, filterCategory, stockFilter, searchQuery]);
