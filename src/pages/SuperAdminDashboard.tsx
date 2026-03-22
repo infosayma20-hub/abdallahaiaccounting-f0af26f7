@@ -1736,10 +1736,19 @@ export default function SuperAdminDashboard() {
           <div>
             <div className="flex items-center gap-2">
               <span className={`${isSub ? "text-[13px]" : "font-semibold"}`} style={{ color: "var(--sa-text-secondary)" }}>{u.display_name || "—"}</span>
-              {!isSub && (subUsersMap.get(u.user_id) || []).length > 0 && (
-                <Badge className="bg-[#00B4D8]/10 text-[#00B4D8] border-0 text-[9px] px-1.5">
-                  {(subUsersMap.get(u.user_id) || []).length} عضو
-                </Badge>
+              {!isSub && ((subUsersMap.get(u.user_id) || []).length > 0 || (portalMembers[u.user_id] || []).length > 0) && (
+                <>
+                  {(subUsersMap.get(u.user_id) || []).length > 0 && (
+                    <Badge className="bg-[#00B4D8]/10 text-[#00B4D8] border-0 text-[9px] px-1.5">
+                      {(subUsersMap.get(u.user_id) || []).length} عضو
+                    </Badge>
+                  )}
+                  {(portalMembers[u.user_id] || []).length > 0 && (
+                    <Badge className="bg-amber-500/10 text-amber-400 border-0 text-[9px] px-1.5">
+                      {(portalMembers[u.user_id] || []).length} بوابة
+                    </Badge>
+                  )}
+                </>
               )}
             </div>
             {u.company_name && (
