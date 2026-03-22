@@ -114,6 +114,19 @@ const AppsLauncher = () => {
   const [tourActive, setTourActive] = useState(false);
   const [search, setSearch] = useState("");
   const [expandedApp, setExpandedApp] = useState<string | null>(null);
+  const [userRoles, setUserRoles] = useState<string[]>([]);
+
+  // Fetch user roles for filtering
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id)
+      .then(({ data }) => {
+        setUserRoles((data || []).map((r) => r.role));
+      });
+  }, [user]);
 
   // During trial, all apps are enabled. After subscription, restrict based on settings.
   const isTrial = subscription?.isTrial ?? true;
