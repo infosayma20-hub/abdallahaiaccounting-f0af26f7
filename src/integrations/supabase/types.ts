@@ -2740,6 +2740,7 @@ export type Database = {
           is_active: boolean | null
           name: string
           user_id: string
+          visa_gl_account_code: string | null
         }
         Insert: {
           created_at?: string | null
@@ -2749,6 +2750,7 @@ export type Database = {
           is_active?: boolean | null
           name: string
           user_id: string
+          visa_gl_account_code?: string | null
         }
         Update: {
           created_at?: string | null
@@ -2758,6 +2760,7 @@ export type Database = {
           is_active?: boolean | null
           name?: string
           user_id?: string
+          visa_gl_account_code?: string | null
         }
         Relationships: []
       }

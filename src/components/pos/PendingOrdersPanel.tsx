@@ -294,11 +294,13 @@ const PendingOrdersPanel = ({ dataOwnerId, branchId, sessionId, enabled, onAccep
 
                       {/* Payment & Note */}
                       <div className="flex items-center gap-3 text-xs">
-                        <Badge variant="outline" className={`${order.payment_method === "visa" ? "border-purple-500/30 text-purple-600" : "border-green-500/30 text-green-600"}`}>
-                          {order.payment_method === "visa" ? (
+                      <Badge variant="outline" className={`${order.payment_method.startsWith("visa") ? "border-purple-500/30 text-purple-600" : "border-green-500/30 text-green-600"}`}>
+                          {order.payment_method === "cash" ? (
+                            <><Banknote className="h-3 w-3 ml-1" /> نقدي</>
+                          ) : order.payment_method === "visa" ? (
                             <><CreditCard className="h-3 w-3 ml-1" /> فيزا</>
                           ) : (
-                            <><Banknote className="h-3 w-3 ml-1" /> نقدي</>
+                            <><CreditCard className="h-3 w-3 ml-1" /> {order.payment_method.replace("visa_", "فيزا ").replace(/_/g, " ")}</>
                           )}
                         </Badge>
                         <span className="text-muted-foreground">بواسطة: {order.dispatched_by_name}</span>
