@@ -29,6 +29,17 @@ const CUSTOM_UNITS_KEY = "po-custom-units";
 function loadCustomUnits(): string[] { try { return JSON.parse(localStorage.getItem(CUSTOM_UNITS_KEY) || "[]"); } catch { return []; } }
 function saveCustomUnit(u: string) { const arr = loadCustomUnits(); if (!arr.includes(u)) { arr.push(u); localStorage.setItem(CUSTOM_UNITS_KEY, JSON.stringify(arr)); } }
 
+function highlightSearchWords(text: string, query: string): string {
+  if (!query.trim()) return text;
+  const words = query.trim().split(/\s+/).filter(Boolean);
+  let result = text;
+  words.forEach(w => {
+    const escaped = w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    result = result.replace(new RegExp(`(${escaped})`, 'gi'), '<mark class="bg-amber-200/70 dark:bg-amber-500/30 rounded-sm px-0.5">$1</mark>');
+  });
+  return result;
+}
+
 type CardSize = "small" | "medium" | "large";
 
 interface OrderLine {
@@ -344,14 +355,17 @@ const PurchaseOrderCreatePage = () => {
           {/* CENTER: Categories (horizontal) + Items Grid */}
           <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
             {/* Category Tabs - wrap style like POS */}
-            <div className="shrink-0 border-b border-border bg-muted/20 px-3 py-2">
-              <div className="flex flex-wrap items-center gap-1.5">
+            <div className="shrink-0 border-b border-border bg-muted/20 px-3 py-2.5">
+              <div className="flex flex-wrap items-center gap-2">
                 <button
                   onClick={() => setActiveCategory(null)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                    !activeCategory ? "bg-foreground text-background shadow-sm" : "border border-border text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+                  className={`flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-bold transition-all ${
+                    !activeCategory 
+                      ? "bg-foreground text-background shadow-md scale-105" 
+                      : "border border-border text-muted-foreground hover:bg-muted/60 hover:text-foreground"
                   }`}
                 >
+                  <Package className="h-3.5 w-3.5" />
                   <span>الكل</span>
                   <span className="text-[9px] opacity-80">({allItems.length})</span>
                 </button>
@@ -359,22 +373,24 @@ const PurchaseOrderCreatePage = () => {
                 {categories.map((cat: any) => {
                   const isActive = activeCategory === cat.id;
                   const Icon = iconMap[cat.icon || ""] || PackageIcon;
+                  const count = categoryCounts[cat.id] || 0;
                   return (
                     <button
                       key={cat.id}
                       onClick={() => setActiveCategory(isActive ? null : cat.id)}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                        isActive ? "shadow-sm text-white" : "hover:opacity-80"
+                      className={`flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-bold transition-all ${
+                        isActive ? "shadow-md scale-105 text-white" : "hover:shadow-sm hover:scale-[1.02]"
                       }`}
                       style={{
-                        backgroundColor: isActive ? (cat.color || "#6b7280") : `${cat.color || "#6b7280"}18`,
+                        backgroundColor: isActive ? (cat.color || "#6b7280") : `${cat.color || "#6b7280"}15`,
                         color: isActive ? "white" : (cat.color || "#6b7280"),
-                        border: `1px solid ${cat.color || "#6b7280"}40`,
+                        border: `1.5px solid ${isActive ? (cat.color || "#6b7280") : (cat.color || "#6b7280") + "50"}`,
+                        boxShadow: isActive ? `0 4px 12px ${cat.color || "#6b7280"}40` : undefined,
                       }}
                     >
                       <Icon className="h-3.5 w-3.5" />
                       <span>{cat.name}</span>
-                      <span className="text-[9px] opacity-70">({categoryCounts[cat.id] || 0})</span>
+                      <span className={`text-[9px] ${isActive ? "opacity-90" : "opacity-60"}`}>({count})</span>
                     </button>
                   );
                 })}
@@ -424,35 +440,43 @@ const PurchaseOrderCreatePage = () => {
                 return (
                   <div
                     key={item.id}
-                    className={`relative rounded-lg border px-2.5 py-2 cursor-pointer transition-all select-none hover:shadow-sm active:scale-[0.97] ${
-                      isInOrder ? "border-green-500/50 bg-green-500/5 ring-1 ring-green-500/20" : "border-border/50 hover:bg-muted/30"
+                    className={`relative rounded-xl border overflow-hidden cursor-pointer transition-all select-none group hover:shadow-md active:scale-[0.97] ${
+                      isInOrder 
+                        ? "border-primary/40 bg-primary/5 ring-1 ring-primary/20 shadow-sm" 
+                        : "border-border/50 bg-card hover:bg-muted/30 shadow-[0_1px_4px_rgba(0,0,0,0.04)]"
                     }`}
-                    style={{ borderRightWidth: "3px", borderRightColor: catColor }}
+                    style={{ 
+                      borderBottomWidth: "3px", 
+                      borderBottomColor: catColor + "60",
+                    }}
                     onClick={() => addOrUpdateItem(item, 1)}
                     onContextMenu={e => { e.preventDefault(); openEditItem(item); }}
                   >
                     {/* Qty badge */}
                     {isInOrder && (
-                      <div className="absolute -top-1.5 -left-1.5 bg-green-600 text-white text-[9px] font-bold rounded-full h-5 w-5 flex items-center justify-center shadow-sm">{qty}</div>
+                      <div className="absolute -top-1.5 -left-1.5 z-10 bg-primary text-primary-foreground text-[9px] font-bold rounded-full min-w-[20px] h-5 px-1 flex items-center justify-center shadow-md">{qty}</div>
                     )}
                     {/* Edit icon on hover */}
                     <button
-                      className="absolute top-1 left-1 opacity-0 group-hover:opacity-100 hover:!opacity-100 p-0.5 rounded text-muted-foreground hover:text-primary transition-opacity"
+                      className="absolute top-1 left-1 opacity-0 group-hover:opacity-100 p-0.5 rounded text-muted-foreground hover:text-primary transition-opacity"
                       onClick={e => { e.stopPropagation(); openEditItem(item); }}
-                      style={{ opacity: undefined }}
-                      onMouseEnter={e => (e.currentTarget.style.opacity = "1")}
-                      onMouseLeave={e => (e.currentTarget.style.opacity = "0")}
                     >
                       <Pencil className="h-3 w-3" />
                     </button>
 
-                    <p className="text-xs font-semibold leading-tight mb-0.5">{item.name}</p>
-                    <p className="text-[10px] text-muted-foreground">{item.unit}</p>
-                    {cardSize === "large" && (
-                      <p className={`text-[10px] mt-0.5 ${Number(item.default_price) > 0 ? "text-muted-foreground" : "text-orange-400"}`}>
-                        {Number(item.default_price) > 0 ? `${Number(item.default_price).toFixed(2)} ₪` : "بدون سعر"}
-                      </p>
-                    )}
+                    <div className="px-2.5 py-2">
+                      {searchQuery ? (
+                        <p className="text-xs font-semibold leading-tight mb-0.5" dangerouslySetInnerHTML={{ __html: highlightSearchWords(item.name, searchQuery) }} />
+                      ) : (
+                        <p className="text-xs font-semibold leading-tight mb-0.5">{item.name}</p>
+                      )}
+                      <p className="text-[10px] text-muted-foreground">{item.unit}</p>
+                      {cardSize === "large" && (
+                        <p className={`text-[10px] mt-0.5 ${Number(item.default_price) > 0 ? "text-muted-foreground" : "text-orange-400"}`}>
+                          {Number(item.default_price) > 0 ? `${Number(item.default_price).toFixed(2)} ₪` : "بدون سعر"}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 );
               })}
