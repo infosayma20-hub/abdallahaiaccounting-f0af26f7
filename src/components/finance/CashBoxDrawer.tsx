@@ -40,6 +40,8 @@ const CashBoxDrawer = ({ open, onClose, defaultType, editBox, hasMainBox, onSave
   const [autoTransferTrigger, setAutoTransferTrigger] = useState("end_of_day");
   const [posAutoPost, setPosAutoPost] = useState(true);
   const [posPostTrigger, setPosPostTrigger] = useState("shift_close");
+  const [selectedBranchId, setSelectedBranchId] = useState<string | null>(null);
+  const [branchesList, setBranchesList] = useState<{ id: string; name: string }[]>([]);
 
   const [accounts, setAccounts] = useState<any[]>([]);
   const [saving, setSaving] = useState(false);
