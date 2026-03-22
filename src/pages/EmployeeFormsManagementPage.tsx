@@ -14,7 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Search, CheckCircle2, XCircle, Eye, Upload, FileText,
-  Download, ChevronLeft, ChevronRight, Loader2
+  Download, ChevronLeft, ChevronRight, Loader2, Trash2
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -131,6 +131,15 @@ export default function EmployeeFormsManagementPage() {
       if (selectedForm?.id === form.id) { setSelectedForm(null); setReviewNotes(""); }
       fetchForms();
     }
+  };
+
+  const handleDelete = async (form: any) => {
+    if (!confirm("هل أنت متأكد من حذف هذا الطلب؟")) return;
+    setProcessing(form.id + "delete");
+    const { error } = await supabase.from("employee_forms").delete().eq("id", form.id);
+    setProcessing(null);
+    if (error) { toast.error("خطأ: " + error.message); }
+    else { toast.success("تم حذف الطلب 🗑️"); fetchForms(); }
   };
 
   const handleUploadPolicy = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -367,6 +376,11 @@ export default function EmployeeFormsManagementPage() {
                                   )}
                                   <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => { setSelectedForm(f); setReviewNotes(f.review_notes || ""); }}>
                                     <Eye className="h-3.5 w-3.5" />
+                                  </Button>
+                                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive hover:bg-destructive/10"
+                                    onClick={() => handleDelete(f)}
+                                    disabled={!!processing}>
+                                    {processing === f.id + "delete" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
                                   </Button>
                                 </div>
                               </TableCell>
