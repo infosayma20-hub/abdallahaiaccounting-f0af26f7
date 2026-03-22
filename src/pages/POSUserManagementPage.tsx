@@ -224,7 +224,7 @@ export default function POSUserManagementPage() {
 
   const openAddUser = () => {
     setEditingUser(null);
-    setUserForm({ name: "", phone: "", email: "", role: "cashier" });
+    setUserForm({ name: "", phone: "", email: "", role: "cashier", branch_id: "" });
     setUserPerms(DEFAULT_PERMS);
     setAssignedDevices([]);
     setCreateAccount(true); // Always create account by default
