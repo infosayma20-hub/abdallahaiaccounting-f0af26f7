@@ -2833,25 +2833,6 @@ const POSPage = () => {
 
         <div className="flex-1" />
 
-  // Call center quick close — no cash count needed
-  const handleCallCenterCloseShift = async () => {
-    if (!session || !userId) return;
-    const closedAt = new Date().toISOString();
-    await supabase
-      .from("pos_sessions")
-      .update({ state: "closed", closed_at: closedAt, closing_cash: 0 } as any)
-      .eq("id", session.id);
-    setSession(null);
-    setOrders([createNewOrder(1)]);
-    setActiveOrderIndex(0);
-    orderCounter.current = 1;
-    toast.success("تم إغلاق الوردية بنجاح");
-    await supabase.auth.signOut();
-    navigate("/auth", { replace: true });
-  };
-
-
-
 
         {/* Invoice History - icon only */}
         {(isAdmin || posPerms.can_view_invoice_history || posPerms.view_invoice_log) && (
