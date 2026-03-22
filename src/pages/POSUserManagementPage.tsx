@@ -137,6 +137,7 @@ const ROLE_LABELS: Record<string, string> = {
   pos_admin: "مدير POS",
   pos_manager: "مشرف",
   cashier: "كاشير",
+  call_center: "كول سنتر",
   viewer: "مشاهد",
 };
 
@@ -144,6 +145,7 @@ const ROLE_COLORS: Record<string, string> = {
   pos_admin: "bg-red-500/20 text-red-400",
   pos_manager: "bg-amber-500/20 text-amber-400",
   cashier: "bg-emerald-500/20 text-emerald-400",
+  call_center: "bg-orange-500/20 text-orange-400",
   viewer: "bg-slate-500/20 text-slate-400",
 };
 
@@ -288,6 +290,7 @@ export default function POSUserManagementPage() {
       if (editingUser) {
         const updates: Record<string, unknown> = {
           name: userForm.name, phone: userForm.phone || null, email: userForm.email || null, role: userForm.role,
+          is_call_center: userForm.role === "call_center",
         };
 
         await supabase.from("pos_users").update(updates).eq("id", editingUser.id);
@@ -320,6 +323,7 @@ export default function POSUserManagementPage() {
           phone: userForm.phone || null,
           email: userForm.email || null,
           role: userForm.role,
+          is_call_center: userForm.role === "call_center",
           pin_hash: "no-pin", // Placeholder - PIN system removed
           created_by: user!.id,
         }).select("id").single();
@@ -819,6 +823,7 @@ export default function POSUserManagementPage() {
                     <SelectItem value="pos_admin">مدير POS</SelectItem>
                     <SelectItem value="pos_manager">مشرف</SelectItem>
                     <SelectItem value="cashier">كاشير</SelectItem>
+                    <SelectItem value="call_center">كول سنتر</SelectItem>
                     <SelectItem value="viewer">مشاهد</SelectItem>
                   </SelectContent>
                 </Select>

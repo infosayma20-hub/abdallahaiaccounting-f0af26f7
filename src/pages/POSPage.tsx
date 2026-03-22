@@ -516,7 +516,8 @@ const POSPage = () => {
    const [showExpenseModal, setShowExpenseModal] = useState(false);
    const [showOpsDropdown, setShowOpsDropdown] = useState(false);
     const [showSyncLog, setShowSyncLog] = useState(false);
-    const [showCallCenterDispatch, setShowCallCenterDispatch] = useState(false);
+     const [showCallCenterDispatch, setShowCallCenterDispatch] = useState(false);
+     const [isCallCenter, setIsCallCenter] = useState(false);
 
    // Modifiers
    const [modifierGroups, setModifierGroups] = useState<any[]>([]);
@@ -602,10 +603,11 @@ const POSPage = () => {
       // Find pos_user linked to this auth user
       const { data: posUser } = await supabase
         .from("pos_users")
-        .select("id")
+        .select("id, is_call_center")
         .eq("auth_user_id", userId)
         .maybeSingle();
       if (!posUser) return;
+      if ((posUser as any).is_call_center) setIsCallCenter(true);
       const { data: perms } = await supabase
         .from("pos_user_permissions")
         .select("can_view_invoice_history, can_edit_invoices, require_manager_for_invoices, manage_products_categories, view_invoice_log, edit_cancel_invoices, can_add_inventory, can_create_product, can_record_purchases, can_pay_purchases_cash, can_create_supplier, can_affect_inventory_on_purchase, can_record_expenses, can_create_expense_category, open_cash_drawer")
@@ -2686,9 +2688,9 @@ const POSPage = () => {
       const tag = (e.target as HTMLElement)?.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
 
-      // F2 = Focus search
-      if (e.key === "F2") {
-        searchRef.current?.focus();
+      // F2 = Call Center Dispatch (for call center users / admin)
+      if (e.key === "F2" && cart.length > 0 && (isAdmin || isCallCenter)) {
+        setShowCallCenterDispatch(true);
         e.preventDefault();
         return;
       }
@@ -3049,7 +3051,7 @@ const POSPage = () => {
                   ref={searchRef}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="البحث عن المنتجات... (F2)"
+                  placeholder="البحث عن المنتجات..."
                   className="pr-10 pl-10 h-10 bg-card border-border rounded-xl text-sm shadow-none focus-visible:ring-1 focus-visible:ring-primary/30"
                 />
                 <Barcode className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 cursor-pointer hover:text-primary transition-colors" />
@@ -3866,17 +3868,16 @@ const POSPage = () => {
                   </button>
                 </div>
               )}
-              {/* Customer data button */}
-              {cart.length > 0 && (
+              {/* Call Center Dispatch Button - replaces customer data for call center users */}
+              {cart.length > 0 && (isAdmin || isCallCenter) && (
                 <button
-                  onClick={() => setShowCustomerDataModal(true)}
-                  className={`w-full h-9 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
-                    customerDataDiscount
-                      ? "border-2 border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
-                      : "border border-dashed border-muted-foreground/30 bg-muted/30 text-muted-foreground hover:bg-muted/50"
-                  }`}
+                  onClick={() => setShowCallCenterDispatch(true)}
+                  disabled={!session}
+                  className="w-full h-11 rounded-xl text-sm font-bold flex items-center justify-center gap-2 border-2 border-orange-500/40 bg-orange-500/10 text-orange-700 dark:text-orange-400 hover:bg-orange-500/20 transition-all disabled:opacity-40"
                 >
-                  {customerDataDiscount ? `✅ ${customerDataDiscount.customerName || customerDataDiscount.contactValue}${customerDataDiscount.discountPct > 0 ? ` — خصم ${customerDataDiscount.discountPct}%` : ""}` : "👤 تسجيل بيانات الزبون"}
+                  <Send className="h-4 w-4" />
+                  تحويل إلى الفرع
+                  <span className="text-[10px] bg-orange-500/20 rounded px-1.5 py-0.5 font-mono">F2</span>
                 </button>
               )}
               {/* Bottom row: Delete + Print + Pay */}
@@ -3910,17 +3911,7 @@ const POSPage = () => {
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
-                {/* Send to Branch (Call Center) */}
-                <motion.button
-                  whileTap={{ scale: 0.97 }}
-                  className="h-11 px-3 rounded-xl text-sm font-bold flex items-center justify-center gap-1.5 text-white transition-all disabled:opacity-40 disabled:pointer-events-none"
-                  style={{ backgroundColor: cart.length > 0 ? "#F59E0B" : "hsl(var(--muted))" }}
-                  disabled={cart.length === 0 || !session}
-                  onClick={() => setShowCallCenterDispatch(true)}
-                  title="تحويل للفرع"
-                >
-                  <Send className="h-4 w-4" />
-                </motion.button>
+                
                 <motion.button
                   whileTap={{ scale: 0.97 }}
                   className="flex-1 h-11 rounded-xl text-sm font-bold flex items-center justify-center gap-2 text-white transition-all disabled:opacity-40 disabled:pointer-events-none"
@@ -4075,7 +4066,7 @@ const POSPage = () => {
               <h3 className="text-sm font-bold text-foreground mb-2 flex items-center gap-1.5">⚡ الأوامر</h3>
               <div className="space-y-1.5">
                 {[
-                  { key: "F2", desc: "البحث عن منتج" },
+                  { key: "F2", desc: "تحويل إلى الفرع" },
                   { key: "F4", desc: "سجل الفواتير" },
                   { key: "F8", desc: "طباعة" },
                   { key: "F9", desc: "إرسال إلى الطابعة" },
