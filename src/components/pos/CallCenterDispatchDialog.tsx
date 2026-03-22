@@ -261,7 +261,7 @@ const CallCenterDispatchDialog = ({
           customer_phone: phone.trim(),
           delivery_type: deliveryType,
           delivery_address: deliveryType === "delivery" ? address.trim() : null,
-          payment_method: paymentMethod,
+          payment_method: paymentMethod.startsWith("visa") ? "visa" : "cash",
           items: cart.map(item => ({
             name: item.name,
             qty: item.qty,
