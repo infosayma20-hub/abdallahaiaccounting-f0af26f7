@@ -1949,10 +1949,66 @@ export default function SuperAdminDashboard() {
                   <tbody>
                     {owners.map((owner) => {
                       const subs = subUsersMap.get(owner.user_id) || [];
+                      const portalMems = portalMembers[owner.user_id] || [];
                       const isExpanded = expandedOwners.has(owner.user_id);
                       return (
                         <>{renderUserRow(owner)}
                           {isExpanded && subs.map((sub) => renderUserRow(sub, true))}
+                          {isExpanded && portalMems.length > 0 && (
+                            <>
+                              <tr style={{ borderBottom: "1px solid var(--sa-divider)" }}>
+                                <td></td>
+                                <td colSpan={6} className="px-4 py-2" style={{ paddingRight: 32 }}>
+                                  <div className="flex items-center gap-2">
+                                    <LayoutDashboard className="h-3.5 w-3.5 text-amber-400" />
+                                    <span className="text-xs font-semibold" style={{ color: "var(--sa-text-muted)" }}>
+                                      أعضاء بوابة الإدارة ({portalMems.length})
+                                    </span>
+                                  </div>
+                                </td>
+                              </tr>
+                              {portalMems.map(pm => (
+                                <tr key={`portal-${pm.id}`}
+                                  style={{
+                                    borderBottom: "1px solid var(--sa-divider)",
+                                    borderRight: "3px solid rgba(201,168,76,0.25)",
+                                  }}
+                                  onMouseEnter={(e) => (e.currentTarget.style.background = "var(--sa-card-hover)")}
+                                  onMouseLeave={(e) => (e.currentTarget.style.background = "")}>
+                                  <td></td>
+                                  <td className="px-4 py-2.5" style={{ paddingRight: 40 }}>
+                                    <div className="flex items-center gap-2">
+                                      <div className="w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-bold"
+                                        style={{ background: "rgba(201,168,76,0.15)", color: "#C9A84C" }}>
+                                        {pm.full_name?.[0] || '?'}
+                                      </div>
+                                      <div>
+                                        <span className="text-[13px]" style={{ color: "var(--sa-text-secondary)" }}>{pm.full_name}</span>
+                                        <Badge className="bg-amber-500/10 text-amber-400 border-0 text-[9px] px-1.5 mr-2">بوابة</Badge>
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td className="px-4 py-2.5 font-mono text-[11px]" style={{ color: "var(--sa-text-muted)" }}>{pm.email || pm.username}</td>
+                                  <td className="px-4 py-2.5">
+                                    <Badge variant="outline" className="text-[9px]" style={{ color: "var(--sa-text-muted)", borderColor: "var(--sa-card-border)" }}>
+                                      {pm.role === 'owner' ? 'مالك' : pm.role === 'manager' ? 'مدير' : 'مشاهد'}
+                                    </Badge>
+                                  </td>
+                                  <td className="px-4 py-2.5 text-xs" style={{ color: "var(--sa-text-muted)" }}>
+                                    {pm.last_login ? format(new Date(pm.last_login), "dd/MM HH:mm", { locale: ar }) : "—"}
+                                  </td>
+                                  <td className="px-4 py-2.5">
+                                    {pm.is_active ? (
+                                      <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-[9px]">نشط</Badge>
+                                    ) : (
+                                      <Badge className="bg-red-500/10 text-red-400 border-red-500/20 text-[9px]">معطل</Badge>
+                                    )}
+                                  </td>
+                                  <td></td>
+                                </tr>
+                              ))}
+                            </>
+                          )}
                         </>
                       );
                     })}
