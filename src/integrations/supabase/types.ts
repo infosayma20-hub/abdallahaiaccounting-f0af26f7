@@ -1146,6 +1146,93 @@ export type Database = {
         }
         Relationships: []
       }
+      call_center_orders: {
+        Row: {
+          accepted_at: string | null
+          accepted_by: string | null
+          created_at: string | null
+          customer_name: string | null
+          customer_phone: string | null
+          delivery_address: string | null
+          delivery_type: string | null
+          dispatched_by: string | null
+          dispatched_by_name: string | null
+          id: string
+          items: Json
+          order_note: string | null
+          payment_method: string | null
+          session_id: string | null
+          source_app: string | null
+          status: string | null
+          target_branch_id: string | null
+          target_branch_name: string | null
+          total: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          created_at?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          delivery_address?: string | null
+          delivery_type?: string | null
+          dispatched_by?: string | null
+          dispatched_by_name?: string | null
+          id?: string
+          items?: Json
+          order_note?: string | null
+          payment_method?: string | null
+          session_id?: string | null
+          source_app?: string | null
+          status?: string | null
+          target_branch_id?: string | null
+          target_branch_name?: string | null
+          total?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          created_at?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          delivery_address?: string | null
+          delivery_type?: string | null
+          dispatched_by?: string | null
+          dispatched_by_name?: string | null
+          id?: string
+          items?: Json
+          order_note?: string | null
+          payment_method?: string | null
+          session_id?: string | null
+          source_app?: string | null
+          status?: string | null
+          target_branch_id?: string | null
+          target_branch_name?: string | null
+          total?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "call_center_orders_target_branch_id_fkey"
+            columns: ["target_branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "call_center_orders_target_branch_id_fkey"
+            columns: ["target_branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cash_boxes: {
         Row: {
           auto_transfer_threshold: number | null
@@ -2643,6 +2730,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      delivery_apps: {
+        Row: {
+          created_at: string | null
+          display_order: number | null
+          icon: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          display_order?: number | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          display_order?: number | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       document_edit_history: {
         Row: {
