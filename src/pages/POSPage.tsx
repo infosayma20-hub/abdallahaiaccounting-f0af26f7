@@ -862,7 +862,11 @@ const POSPage = () => {
             .eq("user_id", dataOwnerId)
             .eq("type", "pos")
             .eq("is_active", true);
-          setCashBoxes(boxes || []);
+          const boxesWithCallCenter = [
+            ...(boxes || []),
+            { id: "__call_center__", name: "كول سنتر", type: "call_center" },
+          ];
+          setCashBoxes(boxesWithCallCenter);
           // Auto-select from device binding (localStorage)
           const savedBoxId = localStorage.getItem(`pos_default_cash_box_${dataOwnerId}`);
           if (savedBoxId && boxes?.some(b => b.id === savedBoxId)) {
