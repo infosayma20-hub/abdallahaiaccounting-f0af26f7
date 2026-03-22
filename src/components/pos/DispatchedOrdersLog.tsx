@@ -3,8 +3,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ClipboardList, Clock, CheckCircle2, XCircle, Truck, ShoppingBag, Phone, User, MapPin, RefreshCw } from "lucide-react";
+import { ClipboardList, Clock, CheckCircle2, XCircle, Truck, ShoppingBag, Phone, User, RefreshCw, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 interface DispatchedOrder {
   id: string;
@@ -37,24 +38,36 @@ const statusConfig: Record<string, { label: string; color: string; icon: any }> 
   cancelled: { label: "ملغي", color: "bg-red-500", icon: XCircle },
 };
 
+function getBusinessDayStart(): string {
+  const now = new Date();
+  const cutoffHour = 6;
+  const localHour = now.getHours();
+  
+  const businessDate = new Date(now);
+  if (localHour < cutoffHour) {
+    businessDate.setDate(businessDate.getDate() - 1);
+  }
+  businessDate.setHours(cutoffHour, 0, 0, 0);
+  return businessDate.toISOString();
+}
+
 export default function DispatchedOrdersLog({ open, onClose, dataOwnerId }: Props) {
   const [orders, setOrders] = useState<DispatchedOrder[]>([]);
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState<"all" | "pending" | "accepted" | "completed">("all");
+  const [resettingId, setResettingId] = useState<string | null>(null);
 
   const loadOrders = useCallback(async () => {
     if (!dataOwnerId) return;
     setLoading(true);
 
-    // Load today's dispatched orders
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const businessStart = getBusinessDayStart();
 
     let query = supabase
       .from("call_center_orders" as any)
       .select("*")
       .eq("user_id", dataOwnerId)
-      .gte("created_at", today.toISOString())
+      .gte("created_at", businessStart)
       .order("created_at", { ascending: false });
 
     if (filter !== "all") {
@@ -70,7 +83,6 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId }: Prop
     if (open) loadOrders();
   }, [open, loadOrders]);
 
-  // Realtime updates
   useEffect(() => {
     if (!open || !dataOwnerId) return;
 
@@ -91,6 +103,27 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId }: Prop
     return () => { supabase.removeChannel(channel); };
   }, [open, dataOwnerId, loadOrders]);
 
+  const handleResetToPending = async (orderId: string) => {
+    setResettingId(orderId);
+    const { error } = await supabase
+      .from("call_center_orders" as any)
+      .update({
+        status: "pending",
+        accepted_by: null,
+        accepted_at: null,
+        session_id: null,
+        pos_order_id: null,
+      } as any)
+      .eq("id", orderId);
+
+    if (error) {
+      toast.error("فشل في إعادة الإرسال");
+    } else {
+      toast.success("تم إعادة الطلب لقائمة الانتظار");
+    }
+    setResettingId(null);
+  };
+
   const pendingCount = orders.filter(o => o.status === "pending").length;
   const acceptedCount = orders.filter(o => o.status === "accepted").length;
   const completedCount = orders.filter(o => o.status === "completed").length;
@@ -108,7 +141,6 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId }: Prop
           </SheetTitle>
         </SheetHeader>
 
-        {/* Filter tabs */}
         <div className="flex gap-1.5 p-2 border-b border-border">
           {[
             { key: "all" as const, label: "الكل", count: orders.length },
@@ -154,7 +186,6 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId }: Prop
                             : "border-border bg-muted/20 opacity-60"
                     }`}
                   >
-                    {/* Header */}
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1.5">
                         <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5">
@@ -172,7 +203,6 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId }: Prop
                       </Badge>
                     </div>
 
-                    {/* Customer */}
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1.5">
                         <User className="h-3 w-3 text-muted-foreground" />
@@ -192,12 +222,10 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId }: Prop
                       </div>
                     </div>
 
-                    {/* Items preview */}
                     <div className="text-[10px] text-muted-foreground truncate">
                       {(order.items || []).map((item: any) => `${item.name}×${item.qty}`).join(" • ")}
                     </div>
 
-                    {/* Timing */}
                     {order.status === "pending" && (
                       <div className="flex items-center gap-1 text-[10px] text-amber-600 font-medium">
                         <Clock className="h-3 w-3 animate-pulse" />
@@ -208,6 +236,20 @@ export default function DispatchedOrdersLog({ open, onClose, dataOwnerId }: Prop
                       <div className="text-[10px] text-muted-foreground">
                         تم القبول: {new Date(order.accepted_at).toLocaleTimeString("ar-PS", { hour: "2-digit", minute: "2-digit" })}
                       </div>
+                    )}
+
+                    {/* Reset button for accepted orders */}
+                    {order.status === "accepted" && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full h-7 text-[11px] gap-1.5 border-amber-500/40 text-amber-700 hover:bg-amber-500/10"
+                        onClick={() => handleResetToPending(order.id)}
+                        disabled={resettingId === order.id}
+                      >
+                        <RotateCcw className={`h-3 w-3 ${resettingId === order.id ? "animate-spin" : ""}`} />
+                        إعادة إرسال للفرع
+                      </Button>
                     )}
                   </div>
                 );
