@@ -223,17 +223,12 @@ export default function PortalEmployeeRequestsTab({ theme = 'light' }: { theme?:
                       </span>
                     </div>
                   </div>
+                  {detailText && (
+                    <div style={{ fontSize: 11, color: t.textMuted, marginTop: 6, lineHeight: 1.6 }}>
+                      {detailText}
+                    </div>
+                  )}
                 </div>
-                {isExpanded && detailText && (
-                  <div style={{
-                    padding: '10px 14px',
-                    borderTop: `1px solid ${t.border}`,
-                    fontSize: 12, color: t.textMuted,
-                    background: t.expandBg,
-                  }}>
-                    {detailText}
-                  </div>
-                )}
               </div>
             );
           })}
