@@ -186,6 +186,15 @@ export default function PortalSettingsSection() {
         </p>
       </div>
 
+      {(() => {
+        const ROLE_LABELS: Record<string, string> = {
+          owner: 'مالك',
+          manager: 'مدير',
+          viewer: 'مشاهد',
+        };
+        return null;
+      })()}
+
       {/* Members List */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
