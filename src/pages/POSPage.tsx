@@ -96,6 +96,7 @@ interface OrderTab {
   guestName: string;
   orderType: "dine_in" | "takeaway" | "delivery";
   deliveryAddress: string;
+  callCenterOrderId?: string | null;
 }
 
 interface POSCustomer {
