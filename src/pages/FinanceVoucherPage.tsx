@@ -106,19 +106,13 @@ const FinanceVoucherPage = ({ voucherType }: Props) => {
     if (!deleteTarget || !user) return;
     try {
       const table = isReceipt ? "receipt_vouchers" : "vouchers";
+      // Just cancel the voucher — DB trigger handles cascading to linked transaction
       const { error } = await supabase
         .from(table as any)
         .update({ status: "cancelled" } as any)
         .eq("id", deleteTarget.id);
 
       if (error) throw error;
-
-      // Also soft-delete the linked transaction in journal
-      if (deleteTarget.linked_transaction_id) {
-        await supabase.from("transactions")
-          .update({ is_deleted: true })
-          .eq("id", deleteTarget.linked_transaction_id);
-      }
 
       // Log deletion
       await supabase.from("document_edit_history" as any).insert({
