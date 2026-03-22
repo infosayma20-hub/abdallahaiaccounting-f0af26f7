@@ -522,6 +522,7 @@ const POSPage = () => {
      const [showCallCenterDispatch, setShowCallCenterDispatch] = useState(false);
      const [showDispatchLog, setShowDispatchLog] = useState(false);
      const [isCallCenter, setIsCallCenter] = useState(false);
+     const [pendingDispatchCount, setPendingDispatchCount] = useState(0);
 
    // Modifiers
    const [modifierGroups, setModifierGroups] = useState<any[]>([]);
