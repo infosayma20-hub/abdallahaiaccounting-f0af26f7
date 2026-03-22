@@ -111,10 +111,10 @@ const AuthPage = () => {
 
   const handlePortalLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!portalUsername.trim() || !portalPassword.trim()) return;
+    if (!portalEmail.trim() || !portalPassword.trim()) return;
     setLoading(true);
     try {
-      await portalLogin(portalUsername, portalPassword, rememberPortal);
+      await portalLogin(portalEmail, portalPassword, rememberPortal);
       navigate("/portal/dashboard", { replace: true });
     } catch (err: any) {
       toast({ title: "خطأ", description: err.message || "بيانات الدخول غير صحيحة", variant: "destructive" });
