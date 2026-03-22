@@ -40,6 +40,7 @@ function highlightSearchWords(text: string, query: string): string {
   return result;
 }
 
+type CardSize = "small" | "medium" | "large";
 
 interface OrderLine {
   id: string;
