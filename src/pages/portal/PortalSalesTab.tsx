@@ -260,7 +260,7 @@ function AllItemsView({ branches, t }: { branches: BranchSales[]; t: ReturnType<
     return Object.values(map).sort((a, b) => b.revenue - a.revenue);
   }, [branches]);
 
-  const maxQty = allItems[0]?.quantity || 1;
+  const maxRevenue = allItems[0]?.revenue || 1;
   const totalItems = allItems.reduce((s, i) => s + i.quantity, 0);
   const totalRevenue = allItems.reduce((s, i) => s + i.revenue, 0);
 
