@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Send, MapPin, Phone, User, Truck, ShoppingBag, CreditCard, Banknote, StickyNote } from "lucide-react";
+import { Send, MapPin, Phone, User, Truck, ShoppingBag, CreditCard, Banknote, StickyNote, AlertCircle } from "lucide-react";
 
 interface CartItem {
   name: string;
@@ -37,7 +37,16 @@ interface DeliveryApp {
   id: string;
   name: string;
   icon: string;
+  visa_gl_account_code?: string | null;
 }
+
+type PaymentOption = {
+  code: string;
+  label: string;
+  icon: "cash" | "visa";
+  color: string;
+  gl_note?: string;
+};
 
 const CallCenterDispatchDialog = ({
   open, onOpenChange, dataOwnerId, cart, total,
@@ -48,12 +57,13 @@ const CallCenterDispatchDialog = ({
   const [selectedBranch, setSelectedBranch] = useState<Branch | null>(null);
   const [sourceApp, setSourceApp] = useState("طلب مباشر");
   const [deliveryType, setDeliveryType] = useState<"delivery" | "pickup">("delivery");
-  const [paymentMethod, setPaymentMethod] = useState<"cash" | "visa">("cash");
+  const [paymentMethod, setPaymentMethod] = useState("cash");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
   const [note, setNote] = useState("");
   const [sending, setSending] = useState(false);
+  const [errors, setErrors] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (!open || !dataOwnerId) return;
@@ -61,8 +71,8 @@ const CallCenterDispatchDialog = ({
     setPhone(customerPhone);
     setAddress(deliveryAddress);
     setNote(orderNote);
+    setErrors({});
 
-    // Load branches
     supabase
       .from("branches")
       .select("id, name")
@@ -70,29 +80,50 @@ const CallCenterDispatchDialog = ({
       .eq("is_active", true)
       .then(({ data }) => setBranches(data || []));
 
-    // Load delivery apps
     supabase
       .from("delivery_apps" as any)
-      .select("id, name, icon")
+      .select("id, name, icon, visa_gl_account_code")
       .eq("user_id", dataOwnerId)
       .eq("is_active", true)
       .order("display_order")
       .then(({ data }) => setDeliveryApps((data as any) || []));
   }, [open, dataOwnerId, customerName, customerPhone, deliveryAddress, orderNote]);
 
+  // Build dynamic payment methods
+  const paymentOptions: PaymentOption[] = [
+    { code: "cash", label: "نقدي", icon: "cash", color: "bg-green-500 border-green-500 text-white" },
+    { code: "visa", label: "فيزا", icon: "visa", color: "bg-purple-500 border-purple-500 text-white" },
+    ...deliveryApps
+      .filter(app => app.visa_gl_account_code)
+      .map(app => ({
+        code: `visa_${app.name.toLowerCase().replace(/\s+/g, '_')}`,
+        label: `فيزا ${app.name}`,
+        icon: "visa" as const,
+        color: "bg-indigo-500 border-indigo-500 text-white",
+        gl_note: app.visa_gl_account_code || undefined,
+      })),
+  ];
+
+  const validate = (): boolean => {
+    const newErrors: Record<string, boolean> = {};
+    if (!selectedBranch) newErrors.branch = true;
+    if (!name.trim()) newErrors.name = true;
+    if (!phone.trim()) newErrors.phone = true;
+    if (deliveryType === "delivery" && !address.trim()) newErrors.address = true;
+    if (!paymentMethod) newErrors.payment = true;
+    if (!sourceApp) newErrors.source = true;
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleDispatch = async () => {
-    if (!selectedBranch) {
-      toast.error("يرجى اختيار الفرع");
-      return;
-    }
-    if (!name.trim()) {
-      toast.error("يرجى إدخال اسم الزبون");
+    if (!validate()) {
+      toast.error("يرجى تعبئة جميع الحقول المطلوبة");
       return;
     }
 
     setSending(true);
     try {
-      // Get current user info
       const { data: { user } } = await supabase.auth.getUser();
       const { data: profile } = await supabase
         .from("profiles")
@@ -105,8 +136,8 @@ const CallCenterDispatchDialog = ({
         .insert({
           user_id: dataOwnerId,
           source_app: sourceApp,
-          target_branch_id: selectedBranch.id,
-          target_branch_name: selectedBranch.name,
+          target_branch_id: selectedBranch!.id,
+          target_branch_name: selectedBranch!.name,
           customer_name: name.trim(),
           customer_phone: phone.trim(),
           delivery_type: deliveryType,
@@ -129,12 +160,9 @@ const CallCenterDispatchDialog = ({
 
       if (error) throw error;
 
-      toast.success(`✅ تم إرسال الطلب إلى فرع ${selectedBranch.name}`, {
-        duration: 4000,
-      });
+      toast.success(`✅ تم إرسال الطلب إلى فرع ${selectedBranch!.name}`, { duration: 4000 });
       onSuccess();
       onOpenChange(false);
-      // Reset
       setSelectedBranch(null);
       setSourceApp("طلب مباشر");
       setDeliveryType("delivery");
@@ -146,6 +174,9 @@ const CallCenterDispatchDialog = ({
       setSending(false);
     }
   };
+
+  const fieldError = (key: string) =>
+    errors[key] ? "ring-2 ring-destructive/50 border-destructive" : "";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -160,12 +191,12 @@ const CallCenterDispatchDialog = ({
         <div className="space-y-4 py-2">
           {/* Source App */}
           <div className="space-y-2">
-            <label className="text-sm font-medium">مصدر الطلب</label>
-            <div className="flex flex-wrap gap-2">
+            <label className="text-sm font-medium">مصدر الطلب *</label>
+            <div className={`flex flex-wrap gap-2 p-1 rounded-lg ${errors.source ? "ring-2 ring-destructive/50" : ""}`}>
               {deliveryApps.map((app) => (
                 <button
                   key={app.id}
-                  onClick={() => setSourceApp(app.name)}
+                  onClick={() => { setSourceApp(app.name); setErrors(p => ({ ...p, source: false })); }}
                   className={`px-3 py-2 rounded-lg text-sm font-medium border transition-all ${
                     sourceApp === app.name
                       ? "bg-primary text-primary-foreground border-primary shadow-sm"
@@ -175,17 +206,27 @@ const CallCenterDispatchDialog = ({
                   {app.icon} {app.name}
                 </button>
               ))}
+              <button
+                onClick={() => { setSourceApp("طلب مباشر"); setErrors(p => ({ ...p, source: false })); }}
+                className={`px-3 py-2 rounded-lg text-sm font-medium border transition-all ${
+                  sourceApp === "طلب مباشر"
+                    ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                    : "bg-muted/40 text-muted-foreground border-border hover:border-primary/30"
+                }`}
+              >
+                📞 طلب مباشر
+              </button>
             </div>
           </div>
 
           {/* Target Branch */}
           <div className="space-y-2">
             <label className="text-sm font-medium">الفرع المستهدف *</label>
-            <div className="grid grid-cols-2 gap-2">
+            <div className={`grid grid-cols-2 gap-2 ${errors.branch ? "ring-2 ring-destructive/50 rounded-xl p-1" : ""}`}>
               {branches.map((branch) => (
                 <button
                   key={branch.id}
-                  onClick={() => setSelectedBranch(branch)}
+                  onClick={() => { setSelectedBranch(branch); setErrors(p => ({ ...p, branch: false })); }}
                   className={`p-3 rounded-xl text-sm font-bold border-2 transition-all ${
                     selectedBranch?.id === branch.id
                       ? "bg-primary text-primary-foreground border-primary shadow-md"
@@ -204,19 +245,19 @@ const CallCenterDispatchDialog = ({
               <label className="text-xs font-medium flex items-center gap-1">
                 <User className="h-3 w-3" /> اسم الزبون *
               </label>
-              <Input value={name} onChange={e => setName(e.target.value)} placeholder="الاسم" className="h-10" />
+              <Input value={name} onChange={e => { setName(e.target.value); setErrors(p => ({ ...p, name: false })); }} placeholder="الاسم" className={`h-10 ${fieldError("name")}`} />
             </div>
             <div className="space-y-1.5">
               <label className="text-xs font-medium flex items-center gap-1">
-                <Phone className="h-3 w-3" /> رقم الجوال
+                <Phone className="h-3 w-3" /> رقم الجوال *
               </label>
-              <Input value={phone} onChange={e => setPhone(e.target.value)} placeholder="05xxxxxxxx" className="h-10" dir="ltr" />
+              <Input value={phone} onChange={e => { setPhone(e.target.value); setErrors(p => ({ ...p, phone: false })); }} placeholder="05xxxxxxxx" className={`h-10 ${fieldError("phone")}`} dir="ltr" />
             </div>
           </div>
 
           {/* Delivery Type */}
           <div className="space-y-2">
-            <label className="text-sm font-medium">نوع الطلب</label>
+            <label className="text-sm font-medium">نوع الطلب *</label>
             <div className="grid grid-cols-2 gap-2">
               <button
                 onClick={() => setDeliveryType("delivery")}
@@ -245,43 +286,37 @@ const CallCenterDispatchDialog = ({
           {deliveryType === "delivery" && (
             <div className="space-y-1.5">
               <label className="text-xs font-medium flex items-center gap-1">
-                <MapPin className="h-3 w-3" /> عنوان التوصيل
+                <MapPin className="h-3 w-3" /> عنوان التوصيل *
               </label>
-              <Input value={address} onChange={e => setAddress(e.target.value)} placeholder="المدينة، الشارع، رقم البناية..." className="h-10" />
+              <Input value={address} onChange={e => { setAddress(e.target.value); setErrors(p => ({ ...p, address: false })); }} placeholder="المدينة، الشارع، رقم البناية..." className={`h-10 ${fieldError("address")}`} />
             </div>
           )}
 
           {/* Payment Method */}
           <div className="space-y-2">
-            <label className="text-sm font-medium">طريقة الدفع</label>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                onClick={() => setPaymentMethod("cash")}
-                className={`p-3 rounded-xl text-sm font-bold border-2 flex items-center justify-center gap-2 transition-all ${
-                  paymentMethod === "cash"
-                    ? "bg-green-500 text-white border-green-500 shadow-md"
-                    : "bg-muted/30 border-border hover:border-green-300"
-                }`}
-              >
-                <Banknote className="h-4 w-4" /> نقدي
-              </button>
-              <button
-                onClick={() => setPaymentMethod("visa")}
-                className={`p-3 rounded-xl text-sm font-bold border-2 flex items-center justify-center gap-2 transition-all ${
-                  paymentMethod === "visa"
-                    ? "bg-purple-500 text-white border-purple-500 shadow-md"
-                    : "bg-muted/30 border-border hover:border-purple-300"
-                }`}
-              >
-                <CreditCard className="h-4 w-4" /> فيزا
-              </button>
+            <label className="text-sm font-medium">طريقة الدفع *</label>
+            <div className={`grid grid-cols-2 gap-2 ${errors.payment ? "ring-2 ring-destructive/50 rounded-xl p-1" : ""}`}>
+              {paymentOptions.map((opt) => (
+                <button
+                  key={opt.code}
+                  onClick={() => { setPaymentMethod(opt.code); setErrors(p => ({ ...p, payment: false })); }}
+                  className={`p-3 rounded-xl text-sm font-bold border-2 flex items-center justify-center gap-2 transition-all ${
+                    paymentMethod === opt.code
+                      ? opt.color + " shadow-md"
+                      : "bg-muted/30 border-border hover:border-primary/30"
+                  }`}
+                >
+                  {opt.icon === "cash" ? <Banknote className="h-4 w-4" /> : <CreditCard className="h-4 w-4" />}
+                  {opt.label}
+                </button>
+              ))}
             </div>
           </div>
 
           {/* Note */}
           <div className="space-y-1.5">
             <label className="text-xs font-medium flex items-center gap-1">
-              <StickyNote className="h-3 w-3" /> ملاحظات
+              <StickyNote className="h-3 w-3" /> ملاحظات (اختياري)
             </label>
             <Input value={note} onChange={e => setNote(e.target.value)} placeholder="ملاحظات إضافية..." className="h-10" />
           </div>
@@ -308,7 +343,7 @@ const CallCenterDispatchDialog = ({
           <Button variant="outline" onClick={() => onOpenChange(false)}>إلغاء</Button>
           <Button
             onClick={handleDispatch}
-            disabled={sending || !selectedBranch || !name.trim()}
+            disabled={sending}
             className="gap-2"
             style={{ backgroundColor: "#16A34A" }}
           >

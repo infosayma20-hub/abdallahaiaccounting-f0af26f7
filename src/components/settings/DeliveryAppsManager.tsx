@@ -3,8 +3,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Plus, Trash2, GripVertical, Truck } from "lucide-react";
+import { Plus, Trash2, Truck, CreditCard } from "lucide-react";
 
 interface DeliveryApp {
   id: string;
@@ -12,13 +13,14 @@ interface DeliveryApp {
   icon: string;
   is_active: boolean;
   display_order: number;
+  visa_gl_account_code: string | null;
 }
 
 interface Props {
   userId: string;
 }
 
-const EMOJI_OPTIONS = ["🛵", "🍔", "⏰", "📞", "🚗", "🍕", "📱", "🏍️", "🚲", "🛒"];
+const EMOJI_OPTIONS = ["🛵", "🍔", "⏰", "📞", "🚗", "🍕", "📱", "🏍️", "🚲", "🛒", "💳", "🤖"];
 
 const DeliveryAppsManager = ({ userId }: Props) => {
   const [apps, setApps] = useState<DeliveryApp[]>([]);
@@ -58,6 +60,11 @@ const DeliveryAppsManager = ({ userId }: Props) => {
     loadApps();
   };
 
+  const updateVisaAccount = async (id: string, code: string) => {
+    await supabase.from("delivery_apps" as any).update({ visa_gl_account_code: code || null } as any).eq("id", id);
+    setApps(prev => prev.map(a => a.id === id ? { ...a, visa_gl_account_code: code || null } : a));
+  };
+
   const deleteApp = async (id: string) => {
     await supabase.from("delivery_apps" as any).delete().eq("id", id);
     toast.success("تم الحذف");
@@ -74,24 +81,38 @@ const DeliveryAppsManager = ({ userId }: Props) => {
         تطبيقات التوصيل (كول سنتر)
       </h3>
       <p className="text-xs text-muted-foreground mb-4">
-        إدارة قائمة تطبيقات التوصيل التي يستخدمها الكول سنتر لتحويل الطلبات
+        إدارة قائمة تطبيقات التوصيل. يمكنك تعيين حساب ذمة (GL) لفيزا كل شركة ليظهر كطريقة دفع مستقلة في الكول سنتر.
       </p>
 
-      <div className="space-y-2 mb-4">
+      <div className="space-y-3 mb-4">
         {apps.map((app) => (
-          <div key={app.id} className="flex items-center justify-between p-3 bg-muted/40 rounded-lg border border-border">
-            <div className="flex items-center gap-3">
-              <span className="text-xl">{app.icon}</span>
-              <span className="text-sm font-medium">{app.name}</span>
+          <div key={app.id} className="p-3 bg-muted/40 rounded-lg border border-border space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <span className="text-xl">{app.icon}</span>
+                <span className="text-sm font-medium">{app.name}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Switch checked={app.is_active} onCheckedChange={(v) => toggleApp(app.id, v)} />
+                <button
+                  onClick={() => deleteApp(app.id)}
+                  className="h-8 w-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <Switch checked={app.is_active} onCheckedChange={(v) => toggleApp(app.id, v)} />
-              <button
-                onClick={() => deleteApp(app.id)}
-                className="h-8 w-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </button>
+            {/* Visa GL Account */}
+            <div className="flex items-center gap-2 pr-8">
+              <CreditCard className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+              <Label className="text-[11px] text-muted-foreground whitespace-nowrap">حساب ذمة الفيزا:</Label>
+              <Input
+                value={app.visa_gl_account_code || ""}
+                onChange={e => updateVisaAccount(app.id, e.target.value)}
+                placeholder="مثال: 1135"
+                className="h-7 text-xs max-w-[140px]"
+                dir="ltr"
+              />
             </div>
           </div>
         ))}
