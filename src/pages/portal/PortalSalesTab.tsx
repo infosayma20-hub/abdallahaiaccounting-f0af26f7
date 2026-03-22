@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { type SalesData, type BranchSales } from '@/hooks/usePortalData';
 import { type BusinessDay } from '@/lib/portal-business-day';
-import { Loader2, TrendingUp, ShoppingBag, Receipt, Trophy, ChevronDown, Calendar } from 'lucide-react';
+import { Loader2, TrendingUp, ShoppingBag, Receipt, Trophy, ChevronDown, Calendar, Store, LayoutGrid, UtensilsCrossed } from 'lucide-react';
 
 const GOLD = '#D4A017';
+
+type ViewMode = 'live' | 'branches' | 'items';
 
 function fmt(n: number) {
   return '₪' + n.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -48,7 +50,6 @@ function BranchCard({ branch, rank, t }: { branch: BranchSales; rank: number; t:
   const hourLabel: Record<string, string> = {
     '9': '9ص', '12': '12م', '15': '3م', '18': '6م', '21': '9م', '0': '12ص', '3': '3ص'
   };
-  const rankBadge = ['', '🥇', '🥈', '🥉'];
 
   const minutesSinceLast = branch.lastOrderAt
     ? Math.round((Date.now() - new Date(branch.lastOrderAt).getTime()) / 60000)
@@ -159,6 +160,166 @@ function BranchCard({ branch, rank, t }: { branch: BranchSales; rank: number; t:
   );
 }
 
+// ---- Grouped by branch name ----
+function detectBranchGroup(name: string): string {
+  const lower = name.toLowerCase();
+  if (lower.includes('سفيان') || lower.includes('sufian')) return 'فرع سفيان';
+  if (lower.includes('فيصل') || lower.includes('faisal')) return 'فرع فيصل';
+  if (lower.includes('رام الله') || lower.includes('ramallah') || lower.includes('طيرة') || lower.includes('الطيرة')) return 'فرع رام الله';
+  return 'فرع آخر';
+}
+
+interface GroupedBranch {
+  groupName: string;
+  totalSales: number;
+  orderCount: number;
+  avgOrder: number;
+  cashBoxes: { name: string; sales: number; orders: number }[];
+  topMeals: { name: string; quantity: number; revenue: number }[];
+}
+
+function GroupedBranchCard({ group, t }: { group: GroupedBranch; t: ReturnType<typeof getThemeColors> }) {
+  const [showItems, setShowItems] = useState(false);
+  const maxQty = group.topMeals[0]?.quantity || 1;
+  const mealsToShow = showItems ? group.topMeals : group.topMeals.slice(0, 5);
+
+  return (
+    <div style={{ borderRadius: 14, overflow: 'hidden', border: `1px solid ${t.border}`, background: t.card }}>
+      <div style={{
+        background: t.branchGrad, borderTop: `3px solid ${GOLD}`, padding: '14px 16px',
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Store size={20} color={GOLD} />
+          <div style={{ fontSize: 15, fontWeight: 700, color: 'white' }}>{group.groupName}</div>
+        </div>
+        <div style={{ textAlign: 'left' }}>
+          <div style={{ fontSize: 20, fontWeight: 700, fontFamily: 'JetBrains Mono, monospace', color: GOLD }}>{fmt(group.totalSales)}</div>
+          <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.5)' }}>{group.orderCount} طلب • متوسط {fmt(group.avgOrder)}</div>
+        </div>
+      </div>
+      {/* Cash boxes in this group */}
+      <div style={{ padding: '10px 14px', borderBottom: `1px solid ${t.border}` }}>
+        <div style={{ fontSize: 10, color: t.textMuted, marginBottom: 6 }}>الصناديق</div>
+        {group.cashBoxes.map(cb => (
+          <div key={cb.name} style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0', fontSize: 11 }}>
+            <span style={{ color: t.text }}>{cb.name}</span>
+            <span style={{ fontFamily: 'JetBrains Mono, monospace', color: GOLD }}>{fmt(cb.sales)} ({cb.orders})</span>
+          </div>
+        ))}
+      </div>
+      {/* Top items */}
+      {mealsToShow.length > 0 && (
+        <div style={{ padding: '10px 14px' }}>
+          <div style={{ fontSize: 10, color: t.textMuted, marginBottom: 6 }}>🍽️ الأصناف</div>
+          {mealsToShow.map((meal, i) => (
+            <div key={meal.name} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0' }}>
+              <div style={{
+                width: 20, height: 20, borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 9, fontWeight: 700, background: i < 3 ? `linear-gradient(135deg, ${GOLD}, #8B5E00)` : t.chipBg,
+                color: i < 3 ? '#000' : t.textMuted,
+              }}>{i + 1}</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: t.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{meal.name}</div>
+                <div style={{ height: 3, borderRadius: 2, background: t.border, overflow: 'hidden' }}>
+                  <div style={{ height: '100%', borderRadius: 2, width: `${(meal.quantity / maxQty) * 100}%`, background: GOLD }} />
+                </div>
+              </div>
+              <div style={{ textAlign: 'left', flexShrink: 0 }}>
+                <div style={{ fontSize: 10, fontFamily: 'JetBrains Mono, monospace', color: t.textMuted }}>{meal.quantity}×</div>
+                <div style={{ fontSize: 10, fontFamily: 'JetBrains Mono, monospace', color: GOLD }}>{fmt(meal.revenue)}</div>
+              </div>
+            </div>
+          ))}
+          {group.topMeals.length > 5 && (
+            <button onClick={() => setShowItems(!showItems)} style={{
+              background: 'none', border: 'none', color: GOLD, fontSize: 11, cursor: 'pointer', padding: '6px 0',
+              display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'Tajawal, sans-serif',
+            }}>
+              <ChevronDown size={12} style={{ transform: showItems ? 'rotate(180deg)' : undefined, transition: 'transform 0.2s' }} />
+              {showItems ? 'عرض أقل' : 'عرض الكل'}
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---- All items aggregated ----
+function AllItemsView({ branches, t }: { branches: BranchSales[]; t: ReturnType<typeof getThemeColors> }) {
+  const allItems = useMemo(() => {
+    const map: Record<string, { name: string; quantity: number; revenue: number }> = {};
+    for (const b of branches) {
+      for (const m of b.topMeals) {
+        if (!map[m.name]) map[m.name] = { name: m.name, quantity: 0, revenue: 0 };
+        map[m.name].quantity += m.quantity;
+        map[m.name].revenue += m.revenue;
+      }
+    }
+    return Object.values(map).sort((a, b) => b.quantity - a.quantity);
+  }, [branches]);
+
+  const maxQty = allItems[0]?.quantity || 1;
+  const totalItems = allItems.reduce((s, i) => s + i.quantity, 0);
+  const totalRevenue = allItems.reduce((s, i) => s + i.revenue, 0);
+
+  return (
+    <div>
+      {/* Summary */}
+      <div style={{
+        display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 12,
+      }}>
+        <div style={{ background: t.card, borderRadius: 12, padding: 12, border: `1px solid ${t.border}`, textAlign: 'center' }}>
+          <div style={{ fontSize: 10, color: t.textMuted }}>عدد الأصناف</div>
+          <div style={{ fontSize: 20, fontWeight: 700, color: GOLD, fontFamily: 'JetBrains Mono, monospace' }}>{allItems.length}</div>
+        </div>
+        <div style={{ background: t.card, borderRadius: 12, padding: 12, border: `1px solid ${t.border}`, textAlign: 'center' }}>
+          <div style={{ fontSize: 10, color: t.textMuted }}>إجمالي الكميات</div>
+          <div style={{ fontSize: 20, fontWeight: 700, color: t.text, fontFamily: 'JetBrains Mono, monospace' }}>{totalItems}</div>
+        </div>
+        <div style={{ background: t.card, borderRadius: 12, padding: 12, border: `1px solid ${t.border}`, textAlign: 'center' }}>
+          <div style={{ fontSize: 10, color: t.textMuted }}>إجمالي الإيراد</div>
+          <div style={{ fontSize: 16, fontWeight: 700, color: GOLD, fontFamily: 'JetBrains Mono, monospace' }}>{fmt(totalRevenue)}</div>
+        </div>
+      </div>
+
+      {/* Items list */}
+      <div style={{ background: t.card, borderRadius: 14, border: `1px solid ${t.border}`, overflow: 'hidden' }}>
+        <div style={{ background: t.branchGrad, borderTop: `3px solid ${GOLD}`, padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <UtensilsCrossed size={18} color={GOLD} />
+          <span style={{ fontSize: 14, fontWeight: 700, color: 'white' }}>جميع الأصناف - كل الأفرع</span>
+        </div>
+        <div style={{ padding: '10px 14px' }}>
+          {allItems.map((item, i) => (
+            <div key={item.name} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', borderBottom: i < allItems.length - 1 ? `1px solid ${t.border}` : 'none' }}>
+              <div style={{
+                width: 24, height: 24, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 10, fontWeight: 700,
+                background: i === 0 ? `linear-gradient(135deg, ${GOLD}, #8B5E00)` : i === 1 ? 'linear-gradient(135deg, #9CA3AF, #D1D5DB)' : i === 2 ? 'linear-gradient(135deg, #B45309, #D97706)' : t.chipBg,
+                color: i < 3 ? '#000' : t.textMuted,
+              }}>{i + 1}</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: t.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</div>
+                <div style={{ height: 4, borderRadius: 2, background: t.border, overflow: 'hidden', marginTop: 3 }}>
+                  <div style={{ height: '100%', borderRadius: 2, width: `${(item.quantity / maxQty) * 100}%`, background: GOLD }} />
+                </div>
+              </div>
+              <div style={{ textAlign: 'left', flexShrink: 0, minWidth: 70 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, fontFamily: 'JetBrains Mono, monospace', color: t.text }}>{item.quantity}×</div>
+                <div style={{ fontSize: 10, fontFamily: 'JetBrains Mono, monospace', color: GOLD }}>{fmt(item.revenue)}</div>
+              </div>
+            </div>
+          ))}
+          {allItems.length === 0 && (
+            <div style={{ textAlign: 'center', padding: 20, color: t.textFaint, fontSize: 13 }}>لا توجد أصناف</div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 interface Props {
   data: SalesData | null;
   loading: boolean;
@@ -172,7 +333,32 @@ export default function PortalSalesTab({ data, loading, businessDay, needsSetup,
   const [dateFilter, setDateFilter] = useState<string | null>(null);
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+  const [viewMode, setViewMode] = useState<ViewMode>('live');
   const t = getThemeColors(theme);
+
+  // Grouped branches
+  const groupedBranches = useMemo(() => {
+    if (!data?.branches) return [];
+    const groups: Record<string, GroupedBranch> = {};
+    for (const b of data.branches) {
+      const gName = detectBranchGroup(b.name);
+      if (!groups[gName]) groups[gName] = { groupName: gName, totalSales: 0, orderCount: 0, avgOrder: 0, cashBoxes: [], topMeals: [] };
+      groups[gName].totalSales += b.totalSales;
+      groups[gName].orderCount += b.orderCount;
+      groups[gName].cashBoxes.push({ name: b.name, sales: b.totalSales, orders: b.orderCount });
+      // Merge meals
+      const mealMap: Record<string, { name: string; quantity: number; revenue: number }> = {};
+      for (const m of [...groups[gName].topMeals, ...b.topMeals]) {
+        if (!mealMap[m.name]) mealMap[m.name] = { ...m };
+        else { mealMap[m.name].quantity += m.quantity; mealMap[m.name].revenue += m.revenue; }
+      }
+      groups[gName].topMeals = Object.values(mealMap).sort((a, b) => b.quantity - a.quantity);
+    }
+    for (const g of Object.values(groups)) {
+      g.avgOrder = g.orderCount > 0 ? g.totalSales / g.orderCount : 0;
+    }
+    return Object.values(groups).sort((a, b) => b.totalSales - a.totalSales);
+  }, [data?.branches]);
 
   if (needsSetup) {
     return (
@@ -216,6 +402,12 @@ export default function PortalSalesTab({ data, loading, businessDay, needsSetup,
     }
   };
 
+  const viewModes: { key: ViewMode; label: string; icon: React.ReactNode }[] = [
+    { key: 'live', label: 'مبيعات مباشرة', icon: <TrendingUp size={13} /> },
+    { key: 'branches', label: 'مبيعات أفرع', icon: <Store size={13} /> },
+    { key: 'items', label: 'مبيعات أصناف', icon: <UtensilsCrossed size={13} /> },
+  ];
+
   return (
     <div>
       {/* KPI Grid */}
@@ -228,6 +420,29 @@ export default function PortalSalesTab({ data, loading, businessDay, needsSetup,
         <KPICard icon={<ShoppingBag size={14} color={t.textMuted} />} label="عدد الطلبات" value={`${sales.orderCount}`} t={t} />
         <KPICard icon={<Receipt size={14} color={t.textMuted} />} label="متوسط الطلب" value={fmt(sales.avgOrderValue)} t={t} />
         <KPICard icon={<Trophy size={14} color={GOLD} />} label="أعلى فرع" value={sales.topBranch?.name || '—'} sub={sales.topBranch ? fmt(sales.topBranch.sales) : ''} t={t} />
+      </div>
+
+      {/* View mode tabs */}
+      <div style={{
+        display: 'flex', gap: 4, marginBottom: 10, background: t.chipBg, borderRadius: 10, padding: 3,
+      }}>
+        {viewModes.map(vm => (
+          <button
+            key={vm.key}
+            onClick={() => setViewMode(vm.key)}
+            style={{
+              flex: 1, padding: '8px 6px', borderRadius: 8, border: 'none', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
+              fontSize: 11, fontWeight: 600, fontFamily: 'Tajawal, sans-serif',
+              background: viewMode === vm.key ? GOLD : 'transparent',
+              color: viewMode === vm.key ? 'white' : t.textMuted,
+              transition: 'all 0.2s',
+            }}
+          >
+            {vm.icon}
+            {vm.label}
+          </button>
+        ))}
       </div>
 
       {/* Date filter buttons */}
@@ -309,17 +524,37 @@ export default function PortalSalesTab({ data, loading, businessDay, needsSetup,
         </button>
       </div>
 
-      {/* Branch cards */}
-      {sales.branches.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '40px 20px', color: t.textFaint, fontSize: 13 }}>
-          لا توجد بيانات مبيعات لهذه الفترة
-        </div>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {sales.branches.map((branch, i) => (
-            <BranchCard key={branch.id} branch={branch} rank={i + 1} t={t} />
-          ))}
-        </div>
+      {/* Content based on view mode */}
+      {viewMode === 'live' && (
+        sales.branches.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '40px 20px', color: t.textFaint, fontSize: 13 }}>
+            لا توجد بيانات مبيعات لهذه الفترة
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {sales.branches.map((branch, i) => (
+              <BranchCard key={branch.id} branch={branch} rank={i + 1} t={t} />
+            ))}
+          </div>
+        )
+      )}
+
+      {viewMode === 'branches' && (
+        groupedBranches.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '40px 20px', color: t.textFaint, fontSize: 13 }}>
+            لا توجد بيانات مبيعات لهذه الفترة
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {groupedBranches.map(g => (
+              <GroupedBranchCard key={g.groupName} group={g} t={t} />
+            ))}
+          </div>
+        )
+      )}
+
+      {viewMode === 'items' && (
+        <AllItemsView branches={sales.branches} t={t} />
       )}
     </div>
   );
