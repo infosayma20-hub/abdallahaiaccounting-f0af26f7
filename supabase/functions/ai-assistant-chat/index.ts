@@ -752,7 +752,7 @@ async function fetchHRSummary(supabase: any, userId: string): Promise<string> {
 إجمالي الرواتب الشهرية: ${totalSalaries.toFixed(2)} ₪
 
 الموظفون:
-${employees.map((e: any) => `  ${e.full_name} — ${e.job_title || e.department || 'عام'} — الراتب: ${e.base_salary || 0} ₪ — ${e.is_active !== false ? 'نشط' : 'غير نشط'}`).join('\n')}
+${employees.map((e: any) => `  ${e.full_name} — ${e.job_title || e.department || 'عام'} — الراتب: ${e.base_salary || 0} ₪ — تاريخ التعيين: ${e.start_date || 'غير محدد'} — ${e.is_active !== false ? 'نشط' : 'غير نشط'}`).join('\n')}
 
 ${payroll && payroll.length > 0 ? `\nآخر الرواتب المسجلة:\n${payroll.slice(0, 10).map((p: any) => `  فترة ${p.period_month}/${p.period_year}: ${p.net_salary} ₪ — ${p.is_paid ? 'مدفوع' : 'معلق'}`).join('\n')}` : ''}
 `;
