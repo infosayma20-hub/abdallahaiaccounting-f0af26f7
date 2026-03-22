@@ -39,7 +39,7 @@ const statusLabels: Record<string, { label: string; color: string; bg: string }>
   rejected: { label: 'مرفوض', color: '#EF4444', bg: 'rgba(239,68,68,0.15)' },
 };
 
-export default function PortalEmployeeRequestsTab() {
+export default function PortalEmployeeRequestsTab({ theme = 'light' }: { theme?: 'light' | 'dark' }) {
   const [requests, setRequests] = useState<EmployeeRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('pending');
