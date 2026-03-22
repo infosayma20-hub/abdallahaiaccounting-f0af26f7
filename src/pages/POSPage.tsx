@@ -98,6 +98,7 @@ interface OrderTab {
   orderType: "dine_in" | "takeaway" | "delivery";
   deliveryAddress: string;
   callCenterOrderId?: string | null;
+  callCenterPaymentMethod?: string | null;
 }
 
 interface POSCustomer {
@@ -1975,11 +1976,33 @@ const POSPage = () => {
     }
   };
 
+  // Quick save+print for call center orders (auto-set payment method and complete)
+  const [quickProcessing, setQuickProcessing] = useState(false);
+  const handleQuickSaveAndPrint = async () => {
+    if (!userId || !session || cart.length === 0 || !company) return;
+    const ccPayment = activeOrder.callCenterPaymentMethod || "cash";
+    
+    // Map call center payment to POS payment method
+    const posPayMethod = ccPayment === "cash" ? "cash" : "card";
+    
+    // Send to kitchen first
+    await handleSendToKitchen();
+    
+    // Complete with the correct payment method
+    setQuickProcessing(true);
+    try {
+      await handleCompleteOrder(posPayMethod);
+    } finally {
+      setQuickProcessing(false);
+    }
+  };
+
   // Complete order
-  const handleCompleteOrder = async () => {
+  const handleCompleteOrder = async (overridePaymentMethod?: string) => {
     if (!userId || !session || cart.length === 0) return;
     if (!company) return;
-    if (paymentMethod === "employee_account" && !selectedEmployee) {
+    const effectivePaymentMethod = overridePaymentMethod || paymentMethod;
+    if (effectivePaymentMethod === "employee_account" && !selectedEmployee) {
       toast.error("يرجى اختيار الموظف أولاً");
       return;
     }
@@ -2134,7 +2157,7 @@ const POSPage = () => {
 
       // Auto-create employee sub-account if missing
       let employeeAccountCode = selectedEmployee?.account_code;
-      if (paymentMethod === "employee_account" && selectedEmployee && !employeeAccountCode) {
+      if (effectivePaymentMethod === "employee_account" && selectedEmployee && !employeeAccountCode) {
         const empAccName = `ذمم موظف - ${selectedEmployee.full_name}`;
         // Check if account already exists
         const { data: existingAcc } = await supabase
@@ -2176,7 +2199,7 @@ const POSPage = () => {
         p_order_id: orderId,
         p_user_id: dataOwnerId,
         p_payments: [{
-          method: paymentMethod,
+          method: effectivePaymentMethod,
           amount: cartTotals.total,
           tendered: paymentCurrency === "ILS" ? tendered : tendered * rate,
           change: actualChangeILS,
@@ -2186,7 +2209,7 @@ const POSPage = () => {
           exchange_rate: rate,
           foreign_amount: foreignTotal,
           rate_source: rateEdited ? "cashier" : "system",
-          ...(paymentMethod === "employee_account" && employeeAccountCode
+          ...(effectivePaymentMethod === "employee_account" && employeeAccountCode
             ? { employee_account_code: employeeAccountCode }
             : {}),
         }],
@@ -2235,7 +2258,7 @@ const POSPage = () => {
         .eq("id", session.id);
 
       // Record employee account movement
-      if (paymentMethod === "employee_account" && selectedEmployee) {
+      if (effectivePaymentMethod === "employee_account" && selectedEmployee) {
         const now = new Date();
         const itemsSummary = cart.map(i => `${i.name} x${i.qty}`).join(", ");
         const noteStr = employeeNote.trim() ? ` | ${employeeNote.trim()}` : "";
@@ -2296,7 +2319,7 @@ const POSPage = () => {
         tax: cartTotals.tax,
         discount: effectiveDiscount,
         total: effectiveTotal,
-        paymentMethod,
+        paymentMethod: effectivePaymentMethod,
         tenderedAmount: tendered,
         change: changeILS,
         currency: paymentCurrency,
@@ -2925,6 +2948,7 @@ const POSPage = () => {
             newOrder.orderType = order.delivery_type === "delivery" ? "delivery" : "takeaway";
             newOrder.deliveryAddress = order.delivery_address || "";
             newOrder.callCenterOrderId = order.id;
+            newOrder.callCenterPaymentMethod = order.payment_method || "cash";
             newOrder.orderNote = [
               order.source_app ? `مصدر: ${order.source_app}` : "",
               order.payment_method === "visa" ? "💳 فيزا" : "💵 نقدي",
@@ -3934,6 +3958,27 @@ const POSPage = () => {
                   </button>
                 </div>
               )}
+              {/* Quick Save & Print for Call Center orders */}
+              {cart.length > 0 && activeOrder.callCenterOrderId && (
+                <button
+                  onClick={handleQuickSaveAndPrint}
+                  disabled={quickProcessing || processing || !session}
+                  className="w-full h-11 rounded-xl text-sm font-bold flex items-center justify-center gap-2 text-white transition-all disabled:opacity-40"
+                  style={{ backgroundColor: "#7C3AED" }}
+                >
+                  {quickProcessing ? (
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <>
+                      <Printer className="h-4 w-4" />
+                      حفظ وطباعة
+                      <Badge variant="outline" className="text-[10px] border-white/30 text-white px-1.5 py-0 h-5">
+                        {activeOrder.callCenterPaymentMethod === "cash" ? "💵 نقدي" : "💳 فيزا"}
+                      </Badge>
+                    </>
+                  )}
+                </button>
+              )}
               {/* Call Center Dispatch Button - replaces customer data for call center users */}
                {cart.length > 0 && (isAdmin || isCallCenter) && (
                 <button
@@ -4631,7 +4676,7 @@ const POSPage = () => {
           <div className="flex-shrink-0 px-6 pb-5 pt-3 border-t border-border bg-background">
             <motion.div whileTap={{ scale: 0.98 }}>
               <Button
-                onClick={handleCompleteOrder}
+                onClick={() => handleCompleteOrder()}
                 disabled={processing || (paymentMethod === "credit" && !customerName) || (paymentMethod === "employee_account" && !selectedEmployee)}
                 className="w-full h-14 text-lg font-bold gap-2 rounded-xl"
                 style={{ backgroundColor: "#16A34A" }}
