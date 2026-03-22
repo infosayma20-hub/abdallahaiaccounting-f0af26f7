@@ -1976,6 +1976,34 @@ const POSPage = () => {
     }
   };
 
+  // Quick save+print for call center orders (auto-set payment method and complete)
+  const [quickProcessing, setQuickProcessing] = useState(false);
+  const handleQuickSaveAndPrint = async () => {
+    if (!userId || !session || cart.length === 0 || !company) return;
+    const ccPayment = activeOrder.callCenterPaymentMethod || "cash";
+    
+    // Map call center payment to POS payment method
+    if (ccPayment === "cash") {
+      setPaymentMethod("cash");
+    } else {
+      // Any visa variant → card
+      setPaymentMethod("card");
+    }
+    
+    // Send to kitchen first
+    await handleSendToKitchen();
+    
+    // Small delay to let state update, then complete
+    setQuickProcessing(true);
+    setTimeout(async () => {
+      try {
+        await handleCompleteOrder();
+      } finally {
+        setQuickProcessing(false);
+      }
+    }, 100);
+  };
+
   // Complete order
   const handleCompleteOrder = async () => {
     if (!userId || !session || cart.length === 0) return;
