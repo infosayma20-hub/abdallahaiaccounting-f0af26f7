@@ -155,11 +155,11 @@ export default function KitchenDisplayPage() {
 
     const itemsHtml = ticket.items.map((item: any) =>
       `<tr>
-        <td style="padding:4px 0;font-weight:bold;font-size:14px;">${item.name}</td>
-        <td style="padding:4px 0;text-align:center;font-size:16px;font-weight:800;">×${item.qty}</td>
+        <td style="padding:6px 0;font-weight:900;font-size:15px;color:#000;">${item.name}</td>
+        <td style="padding:6px 0;text-align:center;font-size:18px;font-weight:900;color:#000;">×${item.qty}</td>
       </tr>
-      ${item.note ? `<tr><td colspan="2" style="font-size:11px;color:#666;padding:0 8px 4px;">📝 ${item.note}</td></tr>` : ""}
-      ${item.modifiers?.map((m: any) => `<tr><td colspan="2" style="font-size:11px;color:#888;padding:0 8px 2px;">↳ ${m.option_name}</td></tr>`).join("") || ""}`
+      ${item.note ? `<tr><td colspan="2" style="font-size:13px;color:#000;font-weight:700;padding:2px 8px 6px;">📝 ${item.note}</td></tr>` : ""}
+      ${item.modifiers?.map((m: any) => `<tr><td colspan="2" style="font-size:13px;color:#000;font-weight:700;padding:2px 8px 4px;">↳ ${m.option_name}</td></tr>`).join("") || ""}`
     ).join("");
 
     const time = new Date(ticket.created_at).toLocaleTimeString("ar-PS", { hour: "2-digit", minute: "2-digit" });
@@ -168,8 +168,8 @@ export default function KitchenDisplayPage() {
       <div class="header">
         <div class="station-name">🔥 ${station?.name || "المطبخ"}</div>
         <div class="order-num">${ticket.order_number || "---"}</div>
-        ${ticket.table_name ? `<div style="font-size:14px;font-weight:700;">🪑 ${ticket.table_name}</div>` : ""}
-        <div style="font-size:11px;color:#666;">${time}</div>
+        ${ticket.table_name ? `<div style="font-size:16px;font-weight:900;color:#000;">🪑 ${ticket.table_name}</div>` : ""}
+        <div style="font-size:13px;color:#000;font-weight:700;">${time}</div>
       </div>
       <table>${itemsHtml}</table>
       <div class="footer">${new Date().toLocaleString("ar-PS")}</div>
