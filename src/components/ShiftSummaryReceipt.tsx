@@ -144,10 +144,10 @@ export default function ShiftSummaryReceipt({ open, onOpenChange, data }: ShiftS
   const formatDate = (iso: string) => new Date(iso).toLocaleDateString("ar-PS", { year: "numeric", month: "2-digit", day: "2-digit" });
   const formatTime = (iso: string) => new Date(iso).toLocaleTimeString("ar-PS", { hour: "2-digit", minute: "2-digit" });
 
-  const rowStyle = { display: "flex", justifyContent: "space-between", padding: "3px 0", fontSize: 12, color: "#475569" } as const;
-  const amountStyle = { fontWeight: 600, fontVariantNumeric: "tabular-nums" as const };
-  const sectionTitle = { fontSize: 10, fontWeight: 700, letterSpacing: 1, color: "#94a3b8", textAlign: "center" as const, margin: "6px 0 4px" };
-  const dashed = { border: "none", borderTop: "1px dashed #ccc", margin: "6px 0" };
+  const rowStyle = { display: "flex", justifyContent: "space-between", padding: "3px 0", fontSize: 13, color: "#000", fontWeight: 700 } as const;
+  const amountStyle = { fontWeight: 800 as const, fontVariantNumeric: "tabular-nums" as const };
+  const sectionTitle = { fontSize: 12, fontWeight: 900, letterSpacing: 0.5, color: "#000", textAlign: "center" as const, margin: "6px 0 4px", borderBottom: "1px solid #333", paddingBottom: 4 };
+  const dashed = { border: "none", borderTop: "1px dashed #333", margin: "6px 0" };
 
   // Non-cash methods to display
   const nonCashMethods = ["card", "credit", "employee_account"].filter(m => {
@@ -166,25 +166,25 @@ export default function ShiftSummaryReceipt({ open, onOpenChange, data }: ShiftS
         </div>
 
         <div className="flex-1 overflow-y-auto p-4">
-          <div
+           <div
             ref={receiptRef}
             className="bg-white text-black rounded-xl border p-5 text-sm"
-            style={{ fontFamily: "'Segoe UI', Arial, sans-serif", direction: "rtl" }}
+            style={{ fontFamily: "'Arial', 'Tahoma', sans-serif", direction: "rtl", color: "#000", fontWeight: 600 }}
           >
             {/* Header */}
             <div style={{ textAlign: "center", marginBottom: 8 }}>
-              <div style={{ fontSize: 20, fontWeight: 800, color: "#0f172a" }}>{data.companyName}</div>
-              <div style={{ fontSize: 11, color: "#64748b" }}>{data.terminalName}</div>
-              <hr style={{ border: "none", borderTop: "2px solid #1a1a1a", margin: "8px 0" }} />
-              <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>📋 ملخص تسليم العهدة</div>
+              <div style={{ fontSize: 20, fontWeight: 900, color: "#000" }}>{data.companyName}</div>
+              <div style={{ fontSize: 12, color: "#000", fontWeight: 700 }}>{data.terminalName}</div>
+              <hr style={{ border: "none", borderTop: "2px solid #000", margin: "8px 0" }} />
+              <div style={{ fontSize: 14, fontWeight: 900, color: "#000" }}>📋 ملخص تسليم العهدة</div>
             </div>
 
             {/* Meta */}
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "#94a3b8", marginBottom: 4 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#000", fontWeight: 700, marginBottom: 4 }}>
               <span>الكاشير: {data.cashierName}</span>
               {data.cashBoxName && <span>الصندوق: {data.cashBoxName}</span>}
             </div>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "#94a3b8", marginBottom: 8 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#000", fontWeight: 700, marginBottom: 8 }}>
               <span>الفتح: {formatDate(data.openedAt)} {formatTime(data.openedAt)}</span>
               <span>الإغلاق: {formatDate(data.closedAt)} {formatTime(data.closedAt)}</span>
             </div>
@@ -199,12 +199,12 @@ export default function ShiftSummaryReceipt({ open, onOpenChange, data }: ShiftS
             </div>
             <div style={rowStyle}>
               <span>إجمالي المبيعات</span>
-              <span style={{ ...amountStyle, color: "#16a34a" }}>₪{data.totalSales.toFixed(2)}</span>
+              <span style={{ ...amountStyle, color: "#000" }}>₪{data.totalSales.toFixed(2)}</span>
             </div>
             {(data.totalExpenses || 0) > 0 && (
               <div style={rowStyle}>
                 <span>مصروفات من الصندوق</span>
-                <span style={{ ...amountStyle, color: "#dc2626" }}>-₪{(data.totalExpenses || 0).toFixed(2)}</span>
+                <span style={{ ...amountStyle, color: "#000" }}>-₪{(data.totalExpenses || 0).toFixed(2)}</span>
               </div>
             )}
             <div style={rowStyle}>
@@ -243,23 +243,23 @@ export default function ShiftSummaryReceipt({ open, onOpenChange, data }: ShiftS
               </>
             )}
 
-            <hr style={{ border: "none", borderTop: "1px solid #e0e0e0", margin: "6px 0" }} />
+            <hr style={{ border: "none", borderTop: "1px solid #333", margin: "6px 0" }} />
 
             {/* Expected Cash (3 currencies) */}
             <div style={sectionTitle}>تسليم النقدية</div>
 
             {/* ILS row: expected / delivered / variance */}
-            <div style={{ ...rowStyle, fontSize: 13, fontWeight: 700, color: "#0f172a" }}>
+            <div style={{ ...rowStyle, fontSize: 14, fontWeight: 900, color: "#000" }}>
               <span>المتوقع (شيكل)</span>
               <span style={{ fontVariantNumeric: "tabular-nums" }}>₪{data.expectedCash.toFixed(2)}</span>
             </div>
-            <div style={{ ...rowStyle, fontSize: 13, fontWeight: 700, color: "#0f172a" }}>
+            <div style={{ ...rowStyle, fontSize: 14, fontWeight: 900, color: "#000" }}>
               <span>المسلّم (شيكل)</span>
               <span style={{ fontVariantNumeric: "tabular-nums" }}>₪{data.closingCash.toFixed(2)}</span>
             </div>
             {(data.varianceILS !== undefined && data.varianceILS !== 0) && (
-              <div style={{ ...rowStyle, fontSize: 12, fontWeight: 700, color: (data.varianceILS || 0) > 0 ? "#16a34a" : "#dc2626" }}>
-                <span>{(data.varianceILS || 0) > 0 ? "فائض" : "عجز"} (شيكل)</span>
+              <div style={{ ...rowStyle, fontSize: 13, fontWeight: 900, color: "#000" }}>
+                <span>{(data.varianceILS || 0) > 0 ? "⬆ فائض" : "⬇ عجز"} (شيكل)</span>
                 <span style={{ fontVariantNumeric: "tabular-nums" }}>₪{Math.abs(data.varianceILS || 0).toFixed(2)}</span>
               </div>
             )}
@@ -267,8 +267,8 @@ export default function ShiftSummaryReceipt({ open, onOpenChange, data }: ShiftS
             {/* USD row: expected / delivered / variance */}
             {((data.expectedCashUSD || 0) > 0 || (data.closingCashUSD || 0) > 0) && (
               <>
-                <hr style={{ border: "none", borderTop: "1px dashed #ccc", margin: "4px 0" }} />
-                <div style={{ ...rowStyle, fontSize: 12, fontWeight: 600, color: "#0f172a" }}>
+                <hr style={{ border: "none", borderTop: "1px dashed #333", margin: "4px 0" }} />
+                <div style={{ ...rowStyle, fontSize: 13, fontWeight: 800, color: "#000" }}>
                   <span>المتوقع (دولار)</span>
                   <span style={{ fontVariantNumeric: "tabular-nums" }}>${(data.expectedCashUSD || 0).toFixed(2)}</span>
                 </div>
@@ -277,8 +277,8 @@ export default function ShiftSummaryReceipt({ open, onOpenChange, data }: ShiftS
                   <span style={amountStyle}>${(data.closingCashUSD || 0).toFixed(2)}</span>
                 </div>
                 {(data.varianceUSD !== undefined && data.varianceUSD !== 0) && (
-                  <div style={{ ...rowStyle, fontSize: 11, fontWeight: 700, color: (data.varianceUSD || 0) > 0 ? "#16a34a" : "#dc2626" }}>
-                    <span>{(data.varianceUSD || 0) > 0 ? "فائض" : "عجز"} (دولار)</span>
+                  <div style={{ ...rowStyle, fontSize: 12, fontWeight: 900, color: "#000" }}>
+                    <span>{(data.varianceUSD || 0) > 0 ? "⬆ فائض" : "⬇ عجز"} (دولار)</span>
                     <span style={{ fontVariantNumeric: "tabular-nums" }}>${Math.abs(data.varianceUSD || 0).toFixed(2)}</span>
                   </div>
                 )}
@@ -288,8 +288,8 @@ export default function ShiftSummaryReceipt({ open, onOpenChange, data }: ShiftS
             {/* JOD row: expected / delivered / variance */}
             {((data.expectedCashJOD || 0) > 0 || (data.closingCashJOD || 0) > 0) && (
               <>
-                <hr style={{ border: "none", borderTop: "1px dashed #ccc", margin: "4px 0" }} />
-                <div style={{ ...rowStyle, fontSize: 12, fontWeight: 600, color: "#0f172a" }}>
+                <hr style={{ border: "none", borderTop: "1px dashed #333", margin: "4px 0" }} />
+                <div style={{ ...rowStyle, fontSize: 13, fontWeight: 800, color: "#000" }}>
                   <span>المتوقع (دينار)</span>
                   <span style={{ fontVariantNumeric: "tabular-nums" }}>{(data.expectedCashJOD || 0).toFixed(2)} د.أ</span>
                 </div>
@@ -298,15 +298,15 @@ export default function ShiftSummaryReceipt({ open, onOpenChange, data }: ShiftS
                   <span style={amountStyle}>{(data.closingCashJOD || 0).toFixed(2)} د.أ</span>
                 </div>
                 {(data.varianceJOD !== undefined && data.varianceJOD !== 0) && (
-                  <div style={{ ...rowStyle, fontSize: 11, fontWeight: 700, color: (data.varianceJOD || 0) > 0 ? "#16a34a" : "#dc2626" }}>
-                    <span>{(data.varianceJOD || 0) > 0 ? "فائض" : "عجز"} (دينار)</span>
+                  <div style={{ ...rowStyle, fontSize: 12, fontWeight: 900, color: "#000" }}>
+                    <span>{(data.varianceJOD || 0) > 0 ? "⬆ فائض" : "⬇ عجز"} (دينار)</span>
                     <span style={{ fontVariantNumeric: "tabular-nums" }}>{Math.abs(data.varianceJOD || 0).toFixed(2)} د.أ</span>
                   </div>
                 )}
               </>
             )}
 
-            <hr style={{ border: "none", borderTop: "2px solid #1a1a1a", margin: "8px 0" }} />
+            <hr style={{ border: "none", borderTop: "2px solid #000", margin: "8px 0" }} />
 
             {/* Total Variance */}
             <div style={{
@@ -314,10 +314,11 @@ export default function ShiftSummaryReceipt({ open, onOpenChange, data }: ShiftS
               padding: 10,
               borderRadius: 6,
               margin: "8px 0",
-              fontWeight: 700,
-              fontSize: 16,
-              background: data.variance === 0 ? "#f0fdf4" : data.variance > 0 ? "#f0fdf4" : "#fef2f2",
-              color: varianceColor,
+              fontWeight: 900,
+              fontSize: 18,
+              background: "#eee",
+              color: "#000",
+              border: "2px solid #000",
             }}>
               {varianceType}: ₪{Math.abs(data.variance).toFixed(2)}
             </div>
@@ -325,14 +326,14 @@ export default function ShiftSummaryReceipt({ open, onOpenChange, data }: ShiftS
             <hr style={dashed} />
 
             {/* Signature */}
-            <div style={{ marginTop: 12, fontSize: 10, color: "#94a3b8" }}>
+            <div style={{ marginTop: 12, fontSize: 11, color: "#000", fontWeight: 700 }}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
                 <span>توقيع الكاشير: _____________</span>
                 <span>توقيع المسؤول: _____________</span>
               </div>
             </div>
 
-            <div style={{ textAlign: "center", fontSize: 9, color: "#94a3b8", lineHeight: 1.8 }}>
+            <div style={{ textAlign: "center", fontSize: 10, color: "#000", fontWeight: 600, lineHeight: 1.8 }}>
               هذا المستند صادر آلياً من النظام
               <br />
               Powered by QOYOD
