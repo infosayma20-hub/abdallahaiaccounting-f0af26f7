@@ -89,12 +89,15 @@ export interface CompanySettings {
   pos_require_cash_box: boolean;
   pos_show_return_policy: boolean;
   pos_return_policy_days: number;
+  pos_kitchen_ticket_size: string;
+  pos_kitchen_auto_print: boolean;
   // Print
   primary_color: string;
   invoice_font: string;
   paper_size: string;
   show_logo_on_invoice: boolean;
   show_address_on_invoice: boolean;
+  print_decorative_ornaments: boolean;
   invoice_footer: string;
   // Inventory
   inventory_costing_method: string;
@@ -210,11 +213,14 @@ const defaultSettings: CompanySettings = {
   pos_require_cash_box: false,
   pos_show_return_policy: true,
   pos_return_policy_days: 7,
+  pos_kitchen_ticket_size: "58mm",
+  pos_kitchen_auto_print: true,
   primary_color: "#22C55E",
   invoice_font: "classic",
   paper_size: "A4",
   show_logo_on_invoice: true,
   show_address_on_invoice: true,
+  print_decorative_ornaments: false,
   invoice_footer: "شكراً لتعاملكم معنا",
   // Inventory
   inventory_costing_method: "weighted_avg",
@@ -331,6 +337,7 @@ export function useCompanySettings() {
     "licensed_dealer_number","pos_disable_cogs","pos_disable_stock_deduction",
      "pos_require_device_fingerprint","pos_allow_order_transfer","pos_require_cash_box",
     "pos_show_return_policy","pos_return_policy_days",
+    "pos_kitchen_ticket_size","pos_kitchen_auto_print","print_decorative_ornaments",
     "hr_annual_leave_days","hr_sick_leave_days","hr_carry_over_leave","hr_salary_day",
     "hr_salary_currency","hr_social_security","hr_require_qr","hr_require_gps",
     "hr_shift_start","hr_shift_end","hr_late_grace_minutes",

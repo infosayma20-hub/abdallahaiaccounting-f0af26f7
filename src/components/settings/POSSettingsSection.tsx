@@ -142,19 +142,19 @@ const POSSettingsSection = ({ settings, onChange }: Props) => {
 
       <Separator />
 
-      {/* Receipt */}
+      {/* Receipt - Customer */}
       <div>
         <h3 className="text-base font-semibold text-foreground mb-4 flex items-center gap-2">
           <span className="w-1 h-5 bg-primary rounded-full" />
-          الطباعة والفاتورة
+          وصل الزبون (الفاتورة)
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label>حجم الفاتورة</Label>
+            <Label>حجم ورقة وصل الزبون</Label>
             <Select value={settings.pos_receipt_size} onValueChange={v => onChange({ pos_receipt_size: v })}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="80mm">80mm (حرارية)</SelectItem>
+                <SelectItem value="80mm">80mm (حرارية عريضة)</SelectItem>
                 <SelectItem value="58mm">58mm (حرارية صغيرة)</SelectItem>
                 <SelectItem value="A4">A4</SelectItem>
               </SelectContent>
@@ -182,6 +182,40 @@ const POSSettingsSection = ({ settings, onChange }: Props) => {
               <Switch checked={settings[item.key]} onCheckedChange={v => onChange({ [item.key]: v })} />
             </div>
           ))}
+        </div>
+      </div>
+
+      <Separator />
+
+      {/* Kitchen Tickets */}
+      <div>
+        <h3 className="text-base font-semibold text-foreground mb-4 flex items-center gap-2">
+          <span className="w-1 h-5 bg-orange-500 rounded-full" />
+          تذاكر المطبخ / المحطات
+        </h3>
+        <p className="text-xs text-muted-foreground mb-3">
+          تذاكر المحطات أصغر من وصل الزبون وتحتوي فقط على اسم المحطة ورقم الطلب والأصناف. يتم إرسالها مباشرة لطابعة المحطة المربوطة.
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label>حجم ورقة تذكرة المحطة</Label>
+            <Select value={settings.pos_kitchen_ticket_size} onValueChange={v => onChange({ pos_kitchen_ticket_size: v })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="58mm">58mm (مربعة صغيرة - موصى بها)</SelectItem>
+                <SelectItem value="80mm">80mm (عريضة)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <div className="mt-4 space-y-3">
+          <div className="flex items-center justify-between p-3 bg-muted/40 rounded-lg">
+            <div>
+              <span className="text-sm font-medium">طباعة تلقائية لتذاكر المطبخ</span>
+              <p className="text-[10px] text-muted-foreground mt-0.5">عند التفعيل، تُرسل التذاكر مباشرة للطابعة بدون معاينة</p>
+            </div>
+            <Switch checked={settings.pos_kitchen_auto_print} onCheckedChange={v => onChange({ pos_kitchen_auto_print: v })} />
+          </div>
         </div>
       </div>
 
