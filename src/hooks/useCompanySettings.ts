@@ -213,6 +213,8 @@ const defaultSettings: CompanySettings = {
   pos_require_cash_box: false,
   pos_show_return_policy: true,
   pos_return_policy_days: 7,
+  pos_kitchen_ticket_size: "58mm",
+  pos_kitchen_auto_print: true,
   primary_color: "#22C55E",
   invoice_font: "classic",
   paper_size: "A4",
