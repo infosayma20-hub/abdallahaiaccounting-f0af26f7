@@ -9,6 +9,7 @@
  */
 
 import { supabase } from "@/integrations/supabase/client";
+import { printThermalContent } from "@/lib/thermal-print";
 
 export interface PrinterInfo {
   id: string;
