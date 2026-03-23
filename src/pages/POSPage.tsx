@@ -1053,6 +1053,25 @@ const POSPage = () => {
     if (selectedCategory !== "الكل") setSelectedCategory("الكل");
   };
 
+  const [deletingProductId, setDeletingProductId] = useState<string | null>(null);
+  const [confirmDeleteProduct, setConfirmDeleteProduct] = useState<{ id: string; name: string } | null>(null);
+
+  const handleDeleteProduct = async (productId: string) => {
+    if (!dataOwnerId || !(isAdmin || posPerms.delete_products)) return;
+    setDeletingProductId(productId);
+    try {
+      const { error } = await supabase.from("products").delete().eq("id", productId).eq("user_id", dataOwnerId);
+      if (error) { toast.error("خطأ في الحذف: " + error.message); return; }
+      setProducts(prev => prev.filter(p => p.id !== productId));
+      toast.success("تم حذف المنتج بنجاح");
+      setConfirmDeleteProduct(null);
+    } catch {
+      toast.error("حدث خطأ أثناء الحذف");
+    } finally {
+      setDeletingProductId(null);
+    }
+  };
+
   const handleSaveNewProduct = async () => {
     if (!userId || !dataOwnerId || !(isAdmin || posPerms.manage_products_categories) || !newProduct.name.trim() || savingProduct) return;
     
