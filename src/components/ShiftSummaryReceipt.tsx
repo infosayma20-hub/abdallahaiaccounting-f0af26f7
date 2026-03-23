@@ -144,10 +144,10 @@ export default function ShiftSummaryReceipt({ open, onOpenChange, data }: ShiftS
   const formatDate = (iso: string) => new Date(iso).toLocaleDateString("ar-PS", { year: "numeric", month: "2-digit", day: "2-digit" });
   const formatTime = (iso: string) => new Date(iso).toLocaleTimeString("ar-PS", { hour: "2-digit", minute: "2-digit" });
 
-  const rowStyle = { display: "flex", justifyContent: "space-between", padding: "3px 0", fontSize: 12, color: "#475569" } as const;
-  const amountStyle = { fontWeight: 600, fontVariantNumeric: "tabular-nums" as const };
-  const sectionTitle = { fontSize: 10, fontWeight: 700, letterSpacing: 1, color: "#94a3b8", textAlign: "center" as const, margin: "6px 0 4px" };
-  const dashed = { border: "none", borderTop: "1px dashed #ccc", margin: "6px 0" };
+  const rowStyle = { display: "flex", justifyContent: "space-between", padding: "3px 0", fontSize: 13, color: "#000", fontWeight: 700 } as const;
+  const amountStyle = { fontWeight: 800 as const, fontVariantNumeric: "tabular-nums" as const };
+  const sectionTitle = { fontSize: 12, fontWeight: 900, letterSpacing: 0.5, color: "#000", textAlign: "center" as const, margin: "6px 0 4px", borderBottom: "1px solid #333", paddingBottom: 4 };
+  const dashed = { border: "none", borderTop: "1px dashed #333", margin: "6px 0" };
 
   // Non-cash methods to display
   const nonCashMethods = ["card", "credit", "employee_account"].filter(m => {
