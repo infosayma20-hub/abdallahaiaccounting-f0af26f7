@@ -796,6 +796,15 @@ export default function InvoiceHistoryDrawer({
                             <RotateCcw className="h-3 w-3" /> استدعاء
                           </button>
                         )}
+                        {canEditInvoices && (order.state === "paid" || order.recall_status === "recalled") && !isTransferredOut(order) && (
+                          <button
+                            onClick={e => { e.stopPropagation(); initiateCancel(order); }}
+                            className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium transition-colors"
+                            style={{ background: "#FEE2E220", color: "#DC2626" }}
+                          >
+                            <Ban className="h-3 w-3" /> إلغاء
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
