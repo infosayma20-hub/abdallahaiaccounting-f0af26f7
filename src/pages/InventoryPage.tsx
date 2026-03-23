@@ -23,6 +23,13 @@ interface Product {
   unit: string;
   notes: string | null;
   created_at: string;
+  kitchen_station_id: string | null;
+}
+
+interface KitchenStation {
+  id: string;
+  name: string;
+  color: string;
 }
 
 interface StockMovement {
