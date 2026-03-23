@@ -89,6 +89,8 @@ export interface CompanySettings {
   pos_require_cash_box: boolean;
   pos_show_return_policy: boolean;
   pos_return_policy_days: number;
+  pos_kitchen_ticket_size: string;
+  pos_kitchen_auto_print: boolean;
   // Print
   primary_color: string;
   invoice_font: string;
