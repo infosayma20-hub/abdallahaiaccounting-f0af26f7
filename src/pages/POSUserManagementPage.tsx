@@ -69,6 +69,7 @@ interface Permission {
   can_refund: boolean;
   allow_credit_sale: boolean;
   open_cash_drawer: boolean;
+  can_remove_cart_items: boolean;
   // Group 3 - Invoices
   can_view_invoice_history: boolean;
   can_edit_invoices: boolean;
