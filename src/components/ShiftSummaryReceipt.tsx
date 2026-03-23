@@ -267,8 +267,8 @@ export default function ShiftSummaryReceipt({ open, onOpenChange, data }: ShiftS
             {/* USD row: expected / delivered / variance */}
             {((data.expectedCashUSD || 0) > 0 || (data.closingCashUSD || 0) > 0) && (
               <>
-                <hr style={{ border: "none", borderTop: "1px dashed #ccc", margin: "4px 0" }} />
-                <div style={{ ...rowStyle, fontSize: 12, fontWeight: 600, color: "#0f172a" }}>
+                <hr style={{ border: "none", borderTop: "1px dashed #333", margin: "4px 0" }} />
+                <div style={{ ...rowStyle, fontSize: 13, fontWeight: 800, color: "#000" }}>
                   <span>المتوقع (دولار)</span>
                   <span style={{ fontVariantNumeric: "tabular-nums" }}>${(data.expectedCashUSD || 0).toFixed(2)}</span>
                 </div>
@@ -277,8 +277,8 @@ export default function ShiftSummaryReceipt({ open, onOpenChange, data }: ShiftS
                   <span style={amountStyle}>${(data.closingCashUSD || 0).toFixed(2)}</span>
                 </div>
                 {(data.varianceUSD !== undefined && data.varianceUSD !== 0) && (
-                  <div style={{ ...rowStyle, fontSize: 11, fontWeight: 700, color: (data.varianceUSD || 0) > 0 ? "#16a34a" : "#dc2626" }}>
-                    <span>{(data.varianceUSD || 0) > 0 ? "فائض" : "عجز"} (دولار)</span>
+                  <div style={{ ...rowStyle, fontSize: 12, fontWeight: 900, color: "#000" }}>
+                    <span>{(data.varianceUSD || 0) > 0 ? "⬆ فائض" : "⬇ عجز"} (دولار)</span>
                     <span style={{ fontVariantNumeric: "tabular-nums" }}>${Math.abs(data.varianceUSD || 0).toFixed(2)}</span>
                   </div>
                 )}
