@@ -551,7 +551,7 @@ export default function InvoiceHistoryDrawer({
       toast.error("ليس لديك صلاحية إلغاء الفواتير");
       return;
     }
-    if (order.state !== "paid") {
+    if (order.state !== "paid" && order.recall_status !== "recalled") {
       toast.error("لا يمكن إلغاء فاتورة غير مكتملة");
       return;
     }
