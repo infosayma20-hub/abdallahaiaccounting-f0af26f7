@@ -107,19 +107,33 @@ export default function POSReceiptDialog({ open, onOpenChange, data, showReturnP
 
     const htmlContent = content.innerHTML;
 
-    // Try network printers first (skips browser dialog)
-    const printers = await loadPrinters();
-    const receiptPrinters = findPrintersForJob(printers, { category: "receipt", content: htmlContent });
+    // Try network printers first (skips browser dialog entirely)
+    try {
+      const printers = await loadPrinters();
+      
+      if (printers.length > 0) {
+        // First try printers with "receipt" category
+        let targetPrinters = findPrintersForJob(printers, { category: "receipt", content: htmlContent });
+        
+        // If no receipt-specific printer, try the default or first active printer
+        if (targetPrinters.length === 0) {
+          const defaultPrinter = printers.find(p => p.is_default);
+          targetPrinters = defaultPrinter ? [defaultPrinter] : [printers[0]];
+        }
 
-    if (receiptPrinters.length > 0) {
-      const result = await dispatchPrintJob({ category: "receipt", content: htmlContent });
-      if (result.printed.length > 0 && !result.printed.includes("browser")) {
-        // Network print succeeded, no browser dialog needed
-        return;
+        const results = await Promise.allSettled(
+          targetPrinters.map(p => printToDevice(p, { category: "receipt", content: htmlContent }))
+        );
+        const anySuccess = results.some(r => r.status === "fulfilled" && r.value === true);
+        if (anySuccess) {
+          return; // Network print succeeded — no browser dialog
+        }
       }
+    } catch (err) {
+      console.error("Network print attempt failed:", err);
     }
 
-    // Fallback: browser print (will show dialog)
+    // Fallback: browser print (only if no network printer worked)
     printThermalContent(htmlContent, {
       title: "إيصال بيع",
       paperWidthMm: 80,
