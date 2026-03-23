@@ -894,6 +894,7 @@ export default function InvoiceHistoryDrawer({
 
               {/* Action buttons */}
               <div className="flex items-center gap-2 pt-4 border-t mt-3" style={{ borderColor: "#E2E8F0" }}>
+                {printInvoices && (
                 <Button
                   variant="outline"
                   size="sm"
