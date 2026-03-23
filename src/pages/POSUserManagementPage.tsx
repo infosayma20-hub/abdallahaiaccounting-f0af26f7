@@ -111,6 +111,7 @@ const DEFAULT_PERMS: Permission = {
   can_refund: false,
   allow_credit_sale: false,
   open_cash_drawer: false,
+  can_remove_cart_items: true,
   can_view_invoice_history: true,
   can_edit_invoices: false,
   require_manager_for_invoices: true,
