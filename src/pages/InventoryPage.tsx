@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo } from "react";
-import { ArrowRight, Loader2, Plus, Package, Search, AlertTriangle, TrendingUp, TrendingDown, Pencil, Trash2, History, X, ArrowUpDown, ChevronLeft, ChevronRight, ClipboardList } from "lucide-react";
+import { useState, useEffect, useMemo, useCallback } from "react";
+import { ArrowRight, Loader2, Plus, Package, Search, AlertTriangle, TrendingUp, TrendingDown, Pencil, Trash2, History, X, ArrowUpDown, ChevronLeft, ChevronRight, ClipboardList, ChefHat } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
