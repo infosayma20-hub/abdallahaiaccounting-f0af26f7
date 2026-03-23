@@ -1563,6 +1563,13 @@ const POSPage = () => {
   }, [selectedCartIndex]);
 
   const updateCartItem = useCallback((index: number, field: "qty" | "unit_price" | "discount_pct", value: number) => {
+    // Enforce price editing permission
+    if (field === "unit_price" && !isAdmin && !posPerms.can_edit_prices) return;
+    // Enforce discount permission and max discount
+    if (field === "discount_pct") {
+      if (!isAdmin && !posPerms.can_apply_discount) { toast.error("ليس لديك صلاحية تطبيق الخصم"); return; }
+      if (!isAdmin && value > posPerms.max_discount_percent) { toast.error(`الحد الأقصى للخصم ${posPerms.max_discount_percent}%`); value = posPerms.max_discount_percent; }
+    }
     setCart((prev) => {
       const updated = [...prev];
       updated[index] = { ...updated[index], [field]: value };
@@ -1570,7 +1577,7 @@ const POSPage = () => {
       updated[index].total = qty * unit_price * (1 - discount_pct / 100);
       return updated;
     });
-  }, []);
+  }, [isAdmin, posPerms]);
 
   // Totals
   const cartTotals = useMemo(() => {
