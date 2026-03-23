@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { QRCodeSVG } from "qrcode.react";
 import { printThermalContent } from "@/lib/thermal-print";
+import { dispatchPrintJob, loadPrinters, findPrintersForJob } from "@/lib/pos-print";
 
 interface ReceiptModifier {
   group_name: string;
