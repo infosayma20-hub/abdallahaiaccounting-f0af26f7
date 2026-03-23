@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { QRCodeSVG } from "qrcode.react";
 import { printThermalContent } from "@/lib/thermal-print";
+import { dispatchPrintJob, loadPrinters, findPrintersForJob } from "@/lib/pos-print";
 
 interface ReceiptModifier {
   group_name: string;
@@ -100,11 +101,26 @@ export default function POSReceiptDialog({ open, onOpenChange, data, showReturnP
   const [sending, setSending] = useState(false);
   const autoPrintDone = useRef(false);
 
-  const doPrint = useCallback(() => {
+  const doPrint = useCallback(async () => {
     const content = receiptRef.current;
     if (!content) return;
 
-    printThermalContent(content.innerHTML, {
+    const htmlContent = content.innerHTML;
+
+    // Try network printers first (skips browser dialog)
+    const printers = await loadPrinters();
+    const receiptPrinters = findPrintersForJob(printers, { category: "receipt", content: htmlContent });
+
+    if (receiptPrinters.length > 0) {
+      const result = await dispatchPrintJob({ category: "receipt", content: htmlContent });
+      if (result.printed.length > 0 && !result.printed.includes("browser")) {
+        // Network print succeeded, no browser dialog needed
+        return;
+      }
+    }
+
+    // Fallback: browser print (will show dialog)
+    printThermalContent(htmlContent, {
       title: "إيصال بيع",
       paperWidthMm: 80,
       contentWidthMm: 72,
