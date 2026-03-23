@@ -151,8 +151,6 @@ export default function KitchenDisplayPage() {
 
   const printTicket = (ticket: Ticket) => {
     const station = stations.find(s => s.id === ticket.station_id);
-    const printWindow = window.open("", "_blank", "width=320,height=500");
-    if (!printWindow) return;
 
     const itemsHtml = ticket.items.map((item: any) =>
       `<tr>
@@ -165,31 +163,29 @@ export default function KitchenDisplayPage() {
 
     const time = new Date(ticket.created_at).toLocaleTimeString("ar-PS", { hour: "2-digit", minute: "2-digit" });
 
-    printWindow.document.write(`
-      <!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="UTF-8">
-      <style>
-        @page { margin: 2mm; size: 80mm auto; }
-        body { font-family: Arial, sans-serif; font-size: 12px; width: 76mm; padding: 0; margin: 0; }
+    const bodyHtml = `
+      <div class="header">
+        <div class="station-name">🔥 ${station?.name || "المطبخ"}</div>
+        <div class="order-num">${ticket.order_number || "---"}</div>
+        ${ticket.table_name ? `<div style="font-size:14px;font-weight:700;">🪑 ${ticket.table_name}</div>` : ""}
+        <div style="font-size:11px;color:#666;">${time}</div>
+      </div>
+      <table>${itemsHtml}</table>
+      <div class="footer">${new Date().toLocaleString("ar-PS")}</div>
+    `;
+
+    printThermalContent(bodyHtml, {
+      title: "تذكرة مطبخ",
+      paperWidthMm: 80,
+      contentWidthMm: 72,
+      extraStyles: `
         .header { text-align: center; border-bottom: 2px dashed #333; padding-bottom: 8px; margin-bottom: 8px; }
         .station-name { font-size: 18px; font-weight: 900; }
         .order-num { font-size: 24px; font-weight: 900; margin: 4px 0; }
         table { width: 100%; border-collapse: collapse; }
         .footer { text-align: center; border-top: 2px dashed #333; padding-top: 6px; margin-top: 8px; font-size: 11px; color: #666; }
-      </style></head>
-      <body>
-        <div class="header">
-          <div class="station-name">🔥 ${station?.name || "المطبخ"}</div>
-          <div class="order-num">${ticket.order_number || "---"}</div>
-          ${ticket.table_name ? `<div style="font-size:14px;font-weight:700;">🪑 ${ticket.table_name}</div>` : ""}
-          <div style="font-size:11px;color:#666;">${time}</div>
-        </div>
-        <table>${itemsHtml}</table>
-        <div class="footer">${new Date().toLocaleString("ar-PS")}</div>
-      </body></html>
-    `);
-    printWindow.document.close();
-    printWindow.focus();
-    setTimeout(() => { printWindow.print(); printWindow.close(); }, 300);
+      `,
+    });
 
     supabase.from("kitchen_tickets").update({ printed_at: new Date().toISOString() } as any).eq("id", ticket.id);
   };
