@@ -478,6 +478,7 @@ const POSPage = () => {
   const [showReceipt, setShowReceipt] = useState(false);
   const [receiptData, setReceiptData] = useState<any>(null);
   const [posReturnPolicy, setPosReturnPolicy] = useState({ show: true, days: 7 });
+  const [posAutoPrint, setPosAutoPrint] = useState(true);
   const [posAllowOrderTransfer, setPosAllowOrderTransfer] = useState(false);
   const [posRequireCashBox, setPosRequireCashBox] = useState(false);
   const [detectedBranchId, setDetectedBranchId] = useState<string | null>(null);
@@ -794,7 +795,7 @@ const POSPage = () => {
         // Load POS settings needed at startup (receipt policy + default opening cash)
         const { data: posSettings } = await supabase
           .from("company_settings" as any)
-          .select("pos_show_return_policy, pos_return_policy_days, pos_default_opening_balance, pos_allow_order_transfer, pos_require_cash_box")
+          .select("pos_show_return_policy, pos_return_policy_days, pos_default_opening_balance, pos_allow_order_transfer, pos_require_cash_box, pos_auto_print")
           .eq("user_id", dataOwnerId)
           .maybeSingle();
 
@@ -805,6 +806,7 @@ const POSPage = () => {
           });
           setPosAllowOrderTransfer((posSettings as any).pos_allow_order_transfer ?? false);
           setPosRequireCashBox((posSettings as any).pos_require_cash_box ?? false);
+          setPosAutoPrint((posSettings as any).pos_auto_print ?? true);
         }
 
         const rawDefaultOpeningCash = (posSettings as any)?.pos_default_opening_balance;
@@ -5085,7 +5087,7 @@ const POSPage = () => {
       </Dialog>
 
       {/* ── Receipt Dialog ── */}
-      <POSReceiptDialog open={showReceipt} onOpenChange={setShowReceipt} data={receiptData} showReturnPolicy={posReturnPolicy.show} returnPolicyDays={posReturnPolicy.days} autoPrint />
+      <POSReceiptDialog open={showReceipt} onOpenChange={setShowReceipt} data={receiptData} showReturnPolicy={posReturnPolicy.show} returnPolicyDays={posReturnPolicy.days} autoPrint={posAutoPrint} />
 
       {/* ── Kitchen Ticket Dialog ── */}
       <Dialog open={showKitchenTicket} onOpenChange={setShowKitchenTicket}>
