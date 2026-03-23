@@ -6,6 +6,7 @@ import { Printer, Mail, CheckCircle, Send, Download } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { QRCodeSVG } from "qrcode.react";
+import { printThermalContent } from "@/lib/thermal-print";
 
 interface ReceiptModifier {
   group_name: string;
