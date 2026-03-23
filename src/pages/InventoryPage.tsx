@@ -147,7 +147,7 @@ const InventoryPage = () => {
   useEffect(() => { fetchProducts(); fetchStations(); }, [user]);
 
   const resetForm = () => {
-    setForm({ name: "", category: "بضاعة عامة", skuPrefix: "GEN", buy_price: "", sell_price: "", quantity: "", min_quantity: "", unit: "قطعة", notes: "" });
+    setForm({ name: "", category: "بضاعة عامة", skuPrefix: "GEN", buy_price: "", sell_price: "", quantity: "", min_quantity: "", unit: "قطعة", notes: "", kitchen_station_id: "" });
     setEditMode(false);
     setSelectedProduct(null);
   };
