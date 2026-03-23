@@ -362,8 +362,9 @@ const POSPage = () => {
   }, [updateActiveOrder]);
 
   const setOrderDiscount = useCallback((d: number) => {
+    if (d > 0 && !isAdmin && !posPerms.can_apply_discount) { toast.error("ليس لديك صلاحية تطبيق الخصم"); return; }
     updateActiveOrder(o => ({ ...o, orderDiscount: d }));
-  }, [updateActiveOrder]);
+  }, [updateActiveOrder, isAdmin, posPerms]);
 
   const setOrderDiscountType = useCallback((t: "fixed" | "percent") => {
     updateActiveOrder(o => ({ ...o, orderDiscountType: t }));
