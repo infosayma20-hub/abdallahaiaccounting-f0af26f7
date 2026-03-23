@@ -97,6 +97,7 @@ export interface CompanySettings {
   paper_size: string;
   show_logo_on_invoice: boolean;
   show_address_on_invoice: boolean;
+  print_decorative_ornaments: boolean;
   invoice_footer: string;
   // Inventory
   inventory_costing_method: string;
