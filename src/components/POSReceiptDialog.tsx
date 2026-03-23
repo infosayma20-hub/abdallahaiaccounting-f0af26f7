@@ -67,29 +67,30 @@ const paymentMethodLabel: Record<string, { label: string; color: string }> = {
 
 const receiptPrintStyles = `
   body {
-    font-size: 12px;
+    font-size: 13px;
+    font-weight: 600;
   }
   .receipt-container { max-width: 100%; }
   .center { text-align: center; }
-  .bold { font-weight: 700; }
-  .divider { border: none; border-top: 1px solid #e0e0e0; margin: 6px 0; }
-  .divider-bold { border: none; border-top: 2px solid #1a1a1a; margin: 8px 0; }
-  .divider-dashed { border: none; border-top: 1px dashed #ccc; margin: 6px 0; }
+  .bold { font-weight: 900; }
+  .divider { border: none; border-top: 1px solid #888; margin: 6px 0; }
+  .divider-bold { border: none; border-top: 2px solid #000; margin: 8px 0; }
+  .divider-dashed { border: none; border-top: 1px dashed #888; margin: 6px 0; }
   .row { display: flex; justify-content: space-between; align-items: center; padding: 2px 0; }
-  .company-name { font-size: 18px; font-weight: 800; letter-spacing: -0.4px; color: #0f172a; margin-bottom: 2px; }
-  .terminal-name { font-size: 10px; color: #64748b; font-weight: 500; }
-  .meta-text { font-size: 9px; color: #94a3b8; }
-  .section-title { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; text-align: center; margin: 4px 0; }
-  .item-name { font-size: 11px; font-weight: 600; color: #1e293b; }
-  .item-detail { font-size: 10px; color: #64748b; display: flex; justify-content: space-between; padding: 1px 0; }
-  .item-note { font-size: 9px; color: #94a3b8; font-style: italic; padding-right: 4px; }
-  .item-discount { font-size: 9px; color: #dc2626; padding-right: 4px; }
-  .total-label { font-size: 13px; font-weight: 700; color: #0f172a; }
-  .total-amount { font-size: 20px; font-weight: 800; color: #0f172a; font-variant-numeric: tabular-nums; }
-  .summary-row { display: flex; justify-content: space-between; padding: 2px 0; font-size: 10px; color: #475569; }
-  .summary-row .amount { font-variant-numeric: tabular-nums; font-weight: 500; }
-  .payment-badge { display: inline-block; background: #f1f5f9; border-radius: 4px; padding: 2px 8px; font-size: 9px; font-weight: 600; color: #475569; }
-  .tag { background: #f0fdf4; color: #16a34a; font-size: 9px; font-weight: 600; padding: 1px 6px; border-radius: 3px; display: inline-block; }
+  .company-name { font-size: 20px; font-weight: 900; letter-spacing: -0.4px; color: #000; margin-bottom: 2px; }
+  .terminal-name { font-size: 12px; color: #333; font-weight: 700; }
+  .meta-text { font-size: 11px; color: #444; font-weight: 600; }
+  .section-title { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: #444; text-align: center; margin: 4px 0; }
+  .item-name { font-size: 13px; font-weight: 800; color: #000; }
+  .item-detail { font-size: 12px; color: #333; font-weight: 600; display: flex; justify-content: space-between; padding: 1px 0; }
+  .item-note { font-size: 11px; color: #444; font-weight: 600; font-style: italic; padding-right: 4px; }
+  .item-discount { font-size: 11px; color: #000; font-weight: 700; padding-right: 4px; }
+  .total-label { font-size: 15px; font-weight: 900; color: #000; }
+  .total-amount { font-size: 22px; font-weight: 900; color: #000; font-variant-numeric: tabular-nums; }
+  .summary-row { display: flex; justify-content: space-between; padding: 2px 0; font-size: 12px; color: #333; font-weight: 600; }
+  .summary-row .amount { font-variant-numeric: tabular-nums; font-weight: 700; }
+  .payment-badge { display: inline-block; background: #eee; border: 1px solid #999; border-radius: 4px; padding: 2px 8px; font-size: 11px; font-weight: 800; color: #000; }
+  .tag { background: #ddd; color: #000; font-size: 11px; font-weight: 800; padding: 1px 6px; border-radius: 3px; display: inline-block; }
 `;
 
 export default function POSReceiptDialog({ open, onOpenChange, data, showReturnPolicy = true, returnPolicyDays = 7, autoPrint = false }: POSReceiptDialogProps) {
