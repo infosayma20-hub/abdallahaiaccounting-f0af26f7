@@ -204,7 +204,7 @@ export default function ShiftSummaryReceipt({ open, onOpenChange, data }: ShiftS
             {(data.totalExpenses || 0) > 0 && (
               <div style={rowStyle}>
                 <span>مصروفات من الصندوق</span>
-                <span style={{ ...amountStyle, color: "#dc2626" }}>-₪{(data.totalExpenses || 0).toFixed(2)}</span>
+                <span style={{ ...amountStyle, color: "#000" }}>-₪{(data.totalExpenses || 0).toFixed(2)}</span>
               </div>
             )}
             <div style={rowStyle}>
