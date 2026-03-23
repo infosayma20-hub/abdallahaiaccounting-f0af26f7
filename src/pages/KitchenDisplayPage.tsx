@@ -151,16 +151,16 @@ export default function KitchenDisplayPage() {
     loadTickets();
   };
 
-  const printTicket = (ticket: Ticket) => {
+  const printTicket = async (ticket: Ticket) => {
     const station = stations.find(s => s.id === ticket.station_id);
 
     const itemsHtml = ticket.items.map((item: any) =>
       `<tr>
-        <td style="padding:6px 0;font-weight:900;font-size:15px;color:#000;">${item.name}</td>
-        <td style="padding:6px 0;text-align:center;font-size:18px;font-weight:900;color:#000;">×${item.qty}</td>
+        <td style="padding:4px 0;font-weight:900;font-size:14px;color:#000;">${item.name}</td>
+        <td style="padding:4px 0;text-align:center;font-size:16px;font-weight:900;color:#000;">×${item.qty}</td>
       </tr>
-      ${item.note ? `<tr><td colspan="2" style="font-size:13px;color:#000;font-weight:700;padding:2px 8px 6px;">📝 ${item.note}</td></tr>` : ""}
-      ${item.modifiers?.map((m: any) => `<tr><td colspan="2" style="font-size:13px;color:#000;font-weight:700;padding:2px 8px 4px;">↳ ${m.option_name}</td></tr>`).join("") || ""}`
+      ${item.note ? `<tr><td colspan="2" style="font-size:12px;color:#000;font-weight:700;padding:1px 6px 4px;">📝 ${item.note}</td></tr>` : ""}
+      ${item.modifiers?.map((m: any) => `<tr><td colspan="2" style="font-size:12px;color:#000;font-weight:700;padding:1px 6px 3px;">↳ ${m.option_name}</td></tr>`).join("") || ""}`
     ).join("");
 
     const time = new Date(ticket.created_at).toLocaleTimeString("ar-PS", { hour: "2-digit", minute: "2-digit" });
@@ -169,26 +169,43 @@ export default function KitchenDisplayPage() {
       <div class="header">
         <div class="station-name">🔥 ${station?.name || "المطبخ"}</div>
         <div class="order-num">${ticket.order_number || "---"}</div>
-        ${ticket.table_name ? `<div style="font-size:16px;font-weight:900;color:#000;">🪑 ${ticket.table_name}</div>` : ""}
-        <div style="font-size:13px;color:#000;font-weight:700;">${time}</div>
+        ${ticket.table_name ? `<div style="font-size:14px;font-weight:900;color:#000;">🪑 ${ticket.table_name}</div>` : ""}
+        <div style="font-size:12px;color:#000;font-weight:700;">${time}</div>
       </div>
       <table>${itemsHtml}</table>
-      <div class="footer">${new Date().toLocaleString("ar-PS")}</div>
     `;
 
-    printThermalContent(bodyHtml, {
-      title: "تذكرة مطبخ",
-      paperWidthMm: 80,
-      contentWidthMm: 72,
-      extraStyles: `
-        .header { text-align: center; border-bottom: 3px dashed #000; padding-bottom: 8px; margin-bottom: 8px; }
-        .station-name { font-size: 20px; font-weight: 900; color: #000; }
-        .order-num { font-size: 28px; font-weight: 900; margin: 4px 0; color: #000; }
-        table { width: 100%; border-collapse: collapse; }
-        td { color: #000 !important; }
-        .footer { text-align: center; border-top: 3px dashed #000; padding-top: 6px; margin-top: 8px; font-size: 13px; color: #000; font-weight: 700; }
-      `,
+    // Try network printer first (auto-print, no dialog)
+    const printResult = await dispatchPrintJob({
+      category: "kitchen",
+      stationId: ticket.station_id,
+      content: bodyHtml,
     });
+
+    // If no network printer matched, fallback to browser thermal print with small paper
+    if (printResult.printed.includes("browser")) {
+      // Fetch kitchen ticket size from settings
+      const { data: settingsData } = await supabase
+        .from("company_settings" as any)
+        .select("pos_kitchen_ticket_size")
+        .maybeSingle();
+      const ticketSize = (settingsData as any)?.pos_kitchen_ticket_size || "58mm";
+      const paperMm = ticketSize === "80mm" ? 80 : 58;
+      const contentMm = paperMm === 80 ? 72 : 50;
+
+      printThermalContent(bodyHtml, {
+        title: "تذكرة مطبخ",
+        paperWidthMm: paperMm as 58 | 80,
+        contentWidthMm: contentMm,
+        extraStyles: `
+          .header { text-align: center; border-bottom: 2px dashed #000; padding-bottom: 6px; margin-bottom: 6px; }
+          .station-name { font-size: 18px; font-weight: 900; color: #000; }
+          .order-num { font-size: 24px; font-weight: 900; margin: 3px 0; color: #000; }
+          table { width: 100%; border-collapse: collapse; }
+          td { color: #000 !important; }
+        `,
+      });
+    }
 
     supabase.from("kitchen_tickets").update({ printed_at: new Date().toISOString() } as any).eq("id", ticket.id);
   };
