@@ -284,28 +284,38 @@ function buildEscPosData(lines: PrintLine[], paperWidth: number): string[] {
 // ── Browser Fallback ────────────────────────────────────────────
 
 function printBrowserFallback(htmlContent: string) {
-  const printWindow = window.open("", "_blank", "width=400,height=600");
-  if (!printWindow) return;
-  
-  printWindow.document.write(`
+  // Use hidden iframe to avoid visible preview window
+  const existingFrame = document.getElementById("pos-print-fallback-frame");
+  if (existingFrame) existingFrame.remove();
+
+  const iframe = document.createElement("iframe");
+  iframe.id = "pos-print-fallback-frame";
+  iframe.style.cssText = "position:fixed;top:-9999px;left:-9999px;width:80mm;height:0;border:none;visibility:hidden;";
+  document.body.appendChild(iframe);
+
+  const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+  if (!iframeDoc) return;
+
+  iframeDoc.open();
+  iframeDoc.write(`
     <!DOCTYPE html>
     <html dir="rtl">
     <head>
       <meta charset="UTF-8">
       <style>
-        body { font-family: 'Courier New', monospace; font-size: 12px; padding: 10px; }
-        @media print { body { margin: 0; padding: 5mm; } }
+        @page { margin: 0; size: 80mm auto; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 12px; padding: 3mm; width: 80mm; direction: rtl; }
       </style>
     </head>
     <body>${htmlContent}</body>
     </html>
   `);
-  printWindow.document.close();
-  printWindow.focus();
+  iframeDoc.close();
+
   setTimeout(() => {
-    printWindow.print();
-    printWindow.close();
-  }, 300);
+    iframe.contentWindow?.print();
+    setTimeout(() => iframe.remove(), 2000);
+  }, 400);
 }
 
 // ── Helpers ─────────────────────────────────────────────────────
