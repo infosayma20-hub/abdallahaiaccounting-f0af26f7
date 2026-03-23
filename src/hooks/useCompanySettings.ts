@@ -220,6 +220,7 @@ const defaultSettings: CompanySettings = {
   paper_size: "A4",
   show_logo_on_invoice: true,
   show_address_on_invoice: true,
+  print_decorative_ornaments: false,
   invoice_footer: "شكراً لتعاملكم معنا",
   // Inventory
   inventory_costing_method: "weighted_avg",
