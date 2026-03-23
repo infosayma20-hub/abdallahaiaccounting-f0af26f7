@@ -1804,6 +1804,8 @@ export type Database = {
           pos_deficit_threshold: number | null
           pos_disable_cogs: boolean
           pos_disable_stock_deduction: boolean
+          pos_kitchen_auto_print: boolean | null
+          pos_kitchen_ticket_size: string | null
           pos_name: string | null
           pos_payment_methods: Json | null
           pos_prevent_zero_stock: boolean | null
@@ -1817,6 +1819,7 @@ export type Database = {
           pos_show_tax: boolean | null
           pos_warn_out_of_stock: boolean | null
           primary_color: string | null
+          print_decorative_ornaments: boolean | null
           purchase_order_prefix: string | null
           receipt_prefix: string | null
           reset_numbering_yearly: boolean | null
@@ -1935,6 +1938,8 @@ export type Database = {
           pos_deficit_threshold?: number | null
           pos_disable_cogs?: boolean
           pos_disable_stock_deduction?: boolean
+          pos_kitchen_auto_print?: boolean | null
+          pos_kitchen_ticket_size?: string | null
           pos_name?: string | null
           pos_payment_methods?: Json | null
           pos_prevent_zero_stock?: boolean | null
@@ -1948,6 +1953,7 @@ export type Database = {
           pos_show_tax?: boolean | null
           pos_warn_out_of_stock?: boolean | null
           primary_color?: string | null
+          print_decorative_ornaments?: boolean | null
           purchase_order_prefix?: string | null
           receipt_prefix?: string | null
           reset_numbering_yearly?: boolean | null
@@ -2066,6 +2072,8 @@ export type Database = {
           pos_deficit_threshold?: number | null
           pos_disable_cogs?: boolean
           pos_disable_stock_deduction?: boolean
+          pos_kitchen_auto_print?: boolean | null
+          pos_kitchen_ticket_size?: string | null
           pos_name?: string | null
           pos_payment_methods?: Json | null
           pos_prevent_zero_stock?: boolean | null
@@ -2079,6 +2087,7 @@ export type Database = {
           pos_show_tax?: boolean | null
           pos_warn_out_of_stock?: boolean | null
           primary_color?: string | null
+          print_decorative_ornaments?: boolean | null
           purchase_order_prefix?: string | null
           receipt_prefix?: string | null
           reset_numbering_yearly?: boolean | null
