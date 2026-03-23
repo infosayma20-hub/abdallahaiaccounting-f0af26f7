@@ -121,7 +121,7 @@ const DEFAULT_PERMS: Permission = {
   edit_products: false,
   delete_products: false,
   view_inventory: false,
-  add_customer: false,
+  add_customer: true,
   view_customers: false,
   edit_customers: false,
   view_sales_report: false,

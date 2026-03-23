@@ -536,12 +536,12 @@ const POSPage = () => {
      can_create_expense_category: boolean;
    }>({
      can_open_register: true, can_close_register: true, can_view_shift_details: true, can_view_profits: false,
-     can_apply_discount: true, max_discount_percent: 100, can_edit_prices: true, can_void_sales: false,
-     can_refund: false, allow_credit_sale: false, open_cash_drawer: false, can_remove_cart_items: true,
-     can_view_invoice_history: true, can_edit_invoices: true, require_manager_for_invoices: true,
-     print_invoices: true, resend_invoice: false,
-     manage_products_categories: false, edit_products: false, delete_products: false, view_inventory: false,
-     add_customer: false, view_customers: false, edit_customers: false,
+      can_apply_discount: true, max_discount_percent: 100, can_edit_prices: true, can_void_sales: true,
+      can_refund: true, allow_credit_sale: true, open_cash_drawer: false, can_remove_cart_items: true,
+      can_view_invoice_history: true, can_edit_invoices: true, require_manager_for_invoices: true,
+      print_invoices: true, resend_invoice: false,
+      manage_products_categories: false, edit_products: false, delete_products: false, view_inventory: false,
+      add_customer: true, view_customers: false, edit_customers: false,
      view_sales_report: false, export_reports: false,
      view_invoice_log: false, edit_cancel_invoices: false,
      can_add_inventory: false, can_create_product: false, can_record_purchases: false,
