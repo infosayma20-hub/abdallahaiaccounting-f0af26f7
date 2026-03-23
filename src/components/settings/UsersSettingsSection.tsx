@@ -220,6 +220,8 @@ const UsersSettingsSection = () => {
     if (error) {
       toast.error("فشل تحديث الصلاحية");
       loadData();
+    } else {
+      toast.success("تم حفظ الصلاحية ✓");
     }
   };
 
