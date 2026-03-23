@@ -159,6 +159,7 @@ const InventoryPage = () => {
       buy_price: String(product.buy_price), sell_price: String(product.sell_price),
       quantity: String(product.quantity), min_quantity: String(product.min_quantity),
       unit: product.unit, notes: product.notes || "",
+      kitchen_station_id: product.kitchen_station_id || "",
     });
     setSelectedProduct(product);
     setEditMode(true);
