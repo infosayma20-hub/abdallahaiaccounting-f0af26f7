@@ -288,8 +288,8 @@ export default function ShiftSummaryReceipt({ open, onOpenChange, data }: ShiftS
             {/* JOD row: expected / delivered / variance */}
             {((data.expectedCashJOD || 0) > 0 || (data.closingCashJOD || 0) > 0) && (
               <>
-                <hr style={{ border: "none", borderTop: "1px dashed #ccc", margin: "4px 0" }} />
-                <div style={{ ...rowStyle, fontSize: 12, fontWeight: 600, color: "#0f172a" }}>
+                <hr style={{ border: "none", borderTop: "1px dashed #333", margin: "4px 0" }} />
+                <div style={{ ...rowStyle, fontSize: 13, fontWeight: 800, color: "#000" }}>
                   <span>المتوقع (دينار)</span>
                   <span style={{ fontVariantNumeric: "tabular-nums" }}>{(data.expectedCashJOD || 0).toFixed(2)} د.أ</span>
                 </div>
@@ -298,15 +298,15 @@ export default function ShiftSummaryReceipt({ open, onOpenChange, data }: ShiftS
                   <span style={amountStyle}>{(data.closingCashJOD || 0).toFixed(2)} د.أ</span>
                 </div>
                 {(data.varianceJOD !== undefined && data.varianceJOD !== 0) && (
-                  <div style={{ ...rowStyle, fontSize: 11, fontWeight: 700, color: (data.varianceJOD || 0) > 0 ? "#16a34a" : "#dc2626" }}>
-                    <span>{(data.varianceJOD || 0) > 0 ? "فائض" : "عجز"} (دينار)</span>
+                  <div style={{ ...rowStyle, fontSize: 12, fontWeight: 900, color: "#000" }}>
+                    <span>{(data.varianceJOD || 0) > 0 ? "⬆ فائض" : "⬇ عجز"} (دينار)</span>
                     <span style={{ fontVariantNumeric: "tabular-nums" }}>{Math.abs(data.varianceJOD || 0).toFixed(2)} د.أ</span>
                   </div>
                 )}
               </>
             )}
 
-            <hr style={{ border: "none", borderTop: "2px solid #1a1a1a", margin: "8px 0" }} />
+            <hr style={{ border: "none", borderTop: "2px solid #000", margin: "8px 0" }} />
 
             {/* Total Variance */}
             <div style={{
@@ -314,10 +314,11 @@ export default function ShiftSummaryReceipt({ open, onOpenChange, data }: ShiftS
               padding: 10,
               borderRadius: 6,
               margin: "8px 0",
-              fontWeight: 700,
-              fontSize: 16,
-              background: data.variance === 0 ? "#f0fdf4" : data.variance > 0 ? "#f0fdf4" : "#fef2f2",
-              color: varianceColor,
+              fontWeight: 900,
+              fontSize: 18,
+              background: "#eee",
+              color: "#000",
+              border: "2px solid #000",
             }}>
               {varianceType}: ₪{Math.abs(data.variance).toFixed(2)}
             </div>
@@ -325,14 +326,14 @@ export default function ShiftSummaryReceipt({ open, onOpenChange, data }: ShiftS
             <hr style={dashed} />
 
             {/* Signature */}
-            <div style={{ marginTop: 12, fontSize: 10, color: "#94a3b8" }}>
+            <div style={{ marginTop: 12, fontSize: 11, color: "#000", fontWeight: 700 }}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
                 <span>توقيع الكاشير: _____________</span>
                 <span>توقيع المسؤول: _____________</span>
               </div>
             </div>
 
-            <div style={{ textAlign: "center", fontSize: 9, color: "#94a3b8", lineHeight: 1.8 }}>
+            <div style={{ textAlign: "center", fontSize: 10, color: "#000", fontWeight: 600, lineHeight: 1.8 }}>
               هذا المستند صادر آلياً من النظام
               <br />
               Powered by QOYOD
