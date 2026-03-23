@@ -4376,9 +4376,12 @@ const POSPage = () => {
               {[
                 { key: "cash", label: "نقد", icon: Banknote, color: "#16A34A" },
                 { key: "card", label: "بطاقة", icon: CreditCard, color: "#3B82F6" },
-                { key: "credit", label: "آجل", icon: Receipt, color: "#F59E0B" },
+                { key: "credit", label: "آجل", icon: Receipt, color: "#F59E0B", requiresPerm: true },
                 { key: "employee_account", label: "حساب موظف", icon: UserCheck, color: "#8B5CF6" },
-              ].map((m) => {
+              ].filter(m => {
+                if (m.requiresPerm && !isAdmin && !posPerms.allow_credit_sale) return false;
+                return true;
+              }).map((m) => {
                 const isActive = paymentMethod === m.key;
                 return (
                   <motion.button
