@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { ChefHat, Clock, CheckCircle2, Printer, ArrowRight, RefreshCw, Volume2 } from "lucide-react";
 import { printThermalContent } from "@/lib/thermal-print";
+import { dispatchPrintJob } from "@/lib/pos-print";
 
 interface Station {
   id: string;
