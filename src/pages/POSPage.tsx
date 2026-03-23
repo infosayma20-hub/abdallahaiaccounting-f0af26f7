@@ -2583,6 +2583,7 @@ const POSPage = () => {
   // Close session
   const handleCloseShift = async () => {
     if (!session || !userId) return;
+    if (!isAdmin && !posPerms.can_close_register) { toast.error("ليس لديك صلاحية إغلاق الوردية"); return; }
     const cash = parseFloat(closingCash) || 0;
     const cashUSD = parseFloat(closingCashUSD) || 0;
     const cashJOD = parseFloat(closingCashJOD) || 0;
