@@ -7365,6 +7365,7 @@ export type Database = {
           can_record_expenses: boolean
           can_record_purchases: boolean
           can_refund: boolean
+          can_remove_cart_items: boolean | null
           can_view_invoice_history: boolean
           can_view_profits: boolean
           can_view_shift_details: boolean
@@ -7409,6 +7410,7 @@ export type Database = {
           can_record_expenses?: boolean
           can_record_purchases?: boolean
           can_refund?: boolean
+          can_remove_cart_items?: boolean | null
           can_view_invoice_history?: boolean
           can_view_profits?: boolean
           can_view_shift_details?: boolean
@@ -7453,6 +7455,7 @@ export type Database = {
           can_record_expenses?: boolean
           can_record_purchases?: boolean
           can_refund?: boolean
+          can_remove_cart_items?: boolean | null
           can_view_invoice_history?: boolean
           can_view_profits?: boolean
           can_view_shift_details?: boolean

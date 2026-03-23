@@ -1,0 +1,1 @@
+ALTER TABLE public.pos_user_permissions ADD COLUMN IF NOT EXISTS can_remove_cart_items BOOLEAN DEFAULT true;
