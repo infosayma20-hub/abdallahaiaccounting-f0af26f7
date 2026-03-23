@@ -13,7 +13,8 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { UserPlus, Shield, ScrollText, Users, Eye, Pencil, Trash2, Check, Copy } from "lucide-react";
+import { UserPlus, Shield, ScrollText, Users, Eye, Pencil, Trash2, Check, Copy, ExternalLink } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const ROLE_LABELS: Record<string, string> = {
   admin: "مدير عام",
@@ -91,6 +92,7 @@ interface AuditEntry {
 
 const UsersSettingsSection = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("users");
   const [teamUsers, setTeamUsers] = useState<TeamUser[]>([]);
   const [permissions, setPermissions] = useState<Permission[]>([]);
@@ -399,7 +401,30 @@ const UsersSettingsSection = () => {
                 </tr>
               </thead>
               <tbody>
-                {Object.entries(ROLE_LABELS).map(([roleKey, roleLabel], ri) => (
+                {Object.entries(ROLE_LABELS).map(([roleKey, roleLabel], ri) => {
+                  // Cashier permissions are managed in POS User Management — show redirect
+                  if (roleKey === "cashier") {
+                    return (
+                      <tr key={roleKey} className={ri % 2 === 0 ? "bg-muted/10" : ""}>
+                        <td className="p-3 font-medium border-b border-border/50 whitespace-nowrap">{roleLabel}</td>
+                        <td colSpan={MODULES.length} className="p-3 border-b border-border/50">
+                          <div className="flex items-center justify-center gap-2">
+                            <span className="text-xs text-muted-foreground">تُدار صلاحيات الكاشير من إدارة مستخدمي نقطة البيع</span>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="gap-1.5 text-xs h-7"
+                              onClick={() => navigate("/pos-users")}
+                            >
+                              <ExternalLink className="h-3 w-3" />
+                              إدارة مستخدمي POS
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  }
+                  return (
                   <tr key={roleKey} className={ri % 2 === 0 ? "bg-muted/10" : ""}>
                     <td className="p-3 font-medium border-b border-border/50 whitespace-nowrap">{roleLabel}</td>
                     {MODULES.map(mod => {
@@ -430,7 +455,8 @@ const UsersSettingsSection = () => {
                       );
                     })}
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
             <div className="flex gap-4 mt-3 text-xs text-muted-foreground">
