@@ -166,25 +166,25 @@ export default function ShiftSummaryReceipt({ open, onOpenChange, data }: ShiftS
         </div>
 
         <div className="flex-1 overflow-y-auto p-4">
-          <div
+           <div
             ref={receiptRef}
             className="bg-white text-black rounded-xl border p-5 text-sm"
-            style={{ fontFamily: "'Segoe UI', Arial, sans-serif", direction: "rtl" }}
+            style={{ fontFamily: "'Arial', 'Tahoma', sans-serif", direction: "rtl", color: "#000", fontWeight: 600 }}
           >
             {/* Header */}
             <div style={{ textAlign: "center", marginBottom: 8 }}>
-              <div style={{ fontSize: 20, fontWeight: 800, color: "#0f172a" }}>{data.companyName}</div>
-              <div style={{ fontSize: 11, color: "#64748b" }}>{data.terminalName}</div>
-              <hr style={{ border: "none", borderTop: "2px solid #1a1a1a", margin: "8px 0" }} />
-              <div style={{ fontSize: 12, fontWeight: 700, color: "#0f172a" }}>📋 ملخص تسليم العهدة</div>
+              <div style={{ fontSize: 20, fontWeight: 900, color: "#000" }}>{data.companyName}</div>
+              <div style={{ fontSize: 12, color: "#000", fontWeight: 700 }}>{data.terminalName}</div>
+              <hr style={{ border: "none", borderTop: "2px solid #000", margin: "8px 0" }} />
+              <div style={{ fontSize: 14, fontWeight: 900, color: "#000" }}>📋 ملخص تسليم العهدة</div>
             </div>
 
             {/* Meta */}
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "#94a3b8", marginBottom: 4 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#000", fontWeight: 700, marginBottom: 4 }}>
               <span>الكاشير: {data.cashierName}</span>
               {data.cashBoxName && <span>الصندوق: {data.cashBoxName}</span>}
             </div>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "#94a3b8", marginBottom: 8 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#000", fontWeight: 700, marginBottom: 8 }}>
               <span>الفتح: {formatDate(data.openedAt)} {formatTime(data.openedAt)}</span>
               <span>الإغلاق: {formatDate(data.closedAt)} {formatTime(data.closedAt)}</span>
             </div>
