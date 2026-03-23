@@ -5421,6 +5421,34 @@ const POSPage = () => {
         onClose={() => setShowDispatchLog(false)}
         dataOwnerId={dataOwnerId || ""}
       />
+
+      {/* Confirm Delete Product Dialog */}
+      <Dialog open={!!confirmDeleteProduct} onOpenChange={(v) => { if (!v) setConfirmDeleteProduct(null); }}>
+        <DialogContent className="max-w-xs z-[1200]" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive text-base">
+              <Trash2 className="h-5 w-5" />
+              حذف المنتج
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground py-2">
+            هل أنت متأكد من حذف "{confirmDeleteProduct?.name}"؟
+            <br />
+            <span className="text-destructive text-xs">لا يمكن التراجع عن هذا الإجراء.</span>
+          </p>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" size="sm" onClick={() => setConfirmDeleteProduct(null)}>إلغاء</Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              disabled={!!deletingProductId}
+              onClick={() => confirmDeleteProduct && handleDeleteProduct(confirmDeleteProduct.id)}
+            >
+              {deletingProductId ? "جاري الحذف..." : "حذف"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
