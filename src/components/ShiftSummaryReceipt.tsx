@@ -243,7 +243,7 @@ export default function ShiftSummaryReceipt({ open, onOpenChange, data }: ShiftS
               </>
             )}
 
-            <hr style={{ border: "none", borderTop: "1px solid #e0e0e0", margin: "6px 0" }} />
+            <hr style={{ border: "none", borderTop: "1px solid #333", margin: "6px 0" }} />
 
             {/* Expected Cash (3 currencies) */}
             <div style={sectionTitle}>تسليم النقدية</div>
