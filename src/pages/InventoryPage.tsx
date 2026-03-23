@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo } from "react";
-import { ArrowRight, Loader2, Plus, Package, Search, AlertTriangle, TrendingUp, TrendingDown, Pencil, Trash2, History, X, ArrowUpDown, ChevronLeft, ChevronRight, ClipboardList } from "lucide-react";
+import { useState, useEffect, useMemo, useCallback } from "react";
+import { ArrowRight, Loader2, Plus, Package, Search, AlertTriangle, TrendingUp, TrendingDown, Pencil, Trash2, History, X, ArrowUpDown, ChevronLeft, ChevronRight, ClipboardList, ChefHat } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -23,6 +23,13 @@ interface Product {
   unit: string;
   notes: string | null;
   created_at: string;
+  kitchen_station_id: string | null;
+}
+
+interface KitchenStation {
+  id: string;
+  name: string;
+  color: string;
 }
 
 interface StockMovement {
@@ -84,6 +91,7 @@ const InventoryPage = () => {
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(15);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [kitchenStations, setKitchenStations] = useState<KitchenStation[]>([]);
 
   const CATEGORIES = useMemo(() =>
     [...new Set([...DEFAULT_CATEGORIES, ...products.map(p => p.category)])].filter(Boolean),
@@ -97,7 +105,7 @@ const InventoryPage = () => {
   const [form, setForm] = useState({
     name: "", category: "بضاعة عامة", skuPrefix: "GEN",
     buy_price: "", sell_price: "", quantity: "", min_quantity: "",
-    unit: "قطعة", notes: "",
+    unit: "قطعة", notes: "", kitchen_station_id: "" as string,
   });
 
   const generateSKU = (prefix: string) => {
@@ -121,15 +129,25 @@ const InventoryPage = () => {
     if (error) {
       toast({ title: "خطأ في تحميل المنتجات", variant: "destructive" });
     } else {
-      setProducts(data || []);
+      setProducts((data || []).map((p: any) => ({ ...p, kitchen_station_id: p.kitchen_station_id || null })));
     }
     setLoading(false);
   };
 
-  useEffect(() => { fetchProducts(); }, [user]);
+  const fetchStations = useCallback(async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from("kitchen_stations")
+      .select("id, name, color")
+      .eq("is_active", true)
+      .order("display_order");
+    setKitchenStations((data as KitchenStation[]) || []);
+  }, [user]);
+
+  useEffect(() => { fetchProducts(); fetchStations(); }, [user]);
 
   const resetForm = () => {
-    setForm({ name: "", category: "بضاعة عامة", skuPrefix: "GEN", buy_price: "", sell_price: "", quantity: "", min_quantity: "", unit: "قطعة", notes: "" });
+    setForm({ name: "", category: "بضاعة عامة", skuPrefix: "GEN", buy_price: "", sell_price: "", quantity: "", min_quantity: "", unit: "قطعة", notes: "", kitchen_station_id: "" });
     setEditMode(false);
     setSelectedProduct(null);
   };
@@ -141,6 +159,7 @@ const InventoryPage = () => {
       buy_price: String(product.buy_price), sell_price: String(product.sell_price),
       quantity: String(product.quantity), min_quantity: String(product.min_quantity),
       unit: product.unit, notes: product.notes || "",
+      kitchen_station_id: product.kitchen_station_id || "",
     });
     setSelectedProduct(product);
     setEditMode(true);
@@ -154,12 +173,13 @@ const InventoryPage = () => {
     }
     setSaving(true);
     const autoSKU = editMode && selectedProduct?.sku ? selectedProduct.sku : generateSKU(form.skuPrefix);
-    const payload = {
+    const payload: any = {
       user_id: user.id, name: form.name.trim(), category: form.category as any,
       sku: autoSKU, buy_price: parseFloat(form.buy_price) || 0,
       sell_price: parseFloat(form.sell_price) || 0, quantity: parseFloat(form.quantity) || 0,
       min_quantity: parseFloat(form.min_quantity) || 0, unit: form.unit,
       notes: form.notes.trim() || null,
+      kitchen_station_id: form.kitchen_station_id || null,
     };
     if (editMode && selectedProduct) {
       const { error } = await supabase.from("products").update(payload).eq("id", selectedProduct.id);
@@ -710,6 +730,29 @@ const InventoryPage = () => {
               <label className="text-xs text-muted-foreground mb-1 block">ملاحظات</label>
               <Input placeholder="اختياري" value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} className="rounded-xl" />
             </div>
+
+            {kitchenStations.length > 0 && (
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 flex items-center gap-1.5">
+                  <ChefHat className="h-3.5 w-3.5" />
+                  محطة المطبخ (للطباعة التلقائية)
+                </label>
+                <Select value={form.kitchen_station_id || "none"} onValueChange={v => setForm(p => ({ ...p, kitchen_station_id: v === "none" ? "" : v }))}>
+                  <SelectTrigger className="rounded-xl"><SelectValue placeholder="بدون محطة" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">بدون محطة</SelectItem>
+                    {kitchenStations.map(s => (
+                      <SelectItem key={s.id} value={s.id}>
+                        <span className="flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: s.color }} />
+                          {s.name}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             <Button onClick={handleSave} disabled={saving} className="w-full rounded-xl gap-2 shadow-md shadow-primary/20">
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
