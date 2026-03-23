@@ -249,17 +249,17 @@ export default function ShiftSummaryReceipt({ open, onOpenChange, data }: ShiftS
             <div style={sectionTitle}>تسليم النقدية</div>
 
             {/* ILS row: expected / delivered / variance */}
-            <div style={{ ...rowStyle, fontSize: 13, fontWeight: 700, color: "#0f172a" }}>
+            <div style={{ ...rowStyle, fontSize: 14, fontWeight: 900, color: "#000" }}>
               <span>المتوقع (شيكل)</span>
               <span style={{ fontVariantNumeric: "tabular-nums" }}>₪{data.expectedCash.toFixed(2)}</span>
             </div>
-            <div style={{ ...rowStyle, fontSize: 13, fontWeight: 700, color: "#0f172a" }}>
+            <div style={{ ...rowStyle, fontSize: 14, fontWeight: 900, color: "#000" }}>
               <span>المسلّم (شيكل)</span>
               <span style={{ fontVariantNumeric: "tabular-nums" }}>₪{data.closingCash.toFixed(2)}</span>
             </div>
             {(data.varianceILS !== undefined && data.varianceILS !== 0) && (
-              <div style={{ ...rowStyle, fontSize: 12, fontWeight: 700, color: (data.varianceILS || 0) > 0 ? "#16a34a" : "#dc2626" }}>
-                <span>{(data.varianceILS || 0) > 0 ? "فائض" : "عجز"} (شيكل)</span>
+              <div style={{ ...rowStyle, fontSize: 13, fontWeight: 900, color: "#000" }}>
+                <span>{(data.varianceILS || 0) > 0 ? "⬆ فائض" : "⬇ عجز"} (شيكل)</span>
                 <span style={{ fontVariantNumeric: "tabular-nums" }}>₪{Math.abs(data.varianceILS || 0).toFixed(2)}</span>
               </div>
             )}
