@@ -91,6 +91,7 @@ const InventoryPage = () => {
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(15);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [kitchenStations, setKitchenStations] = useState<KitchenStation[]>([]);
 
   const CATEGORIES = useMemo(() =>
     [...new Set([...DEFAULT_CATEGORIES, ...products.map(p => p.category)])].filter(Boolean),
