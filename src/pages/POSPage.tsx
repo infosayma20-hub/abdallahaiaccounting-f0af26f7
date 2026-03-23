@@ -3220,6 +3220,7 @@ const POSPage = () => {
         <div className="w-px h-5" style={{ background: "rgba(255,255,255,0.1)" }} />
 
         {/* Close shift */}
+        {(isAdmin || posPerms.can_close_register) && (
         <button
           onClick={() => {
             if (session?.cash_box_id === null) {
@@ -3233,6 +3234,7 @@ const POSPage = () => {
           <X className="h-3 w-3" />
           {session?.cash_box_id === null ? "تسجيل الخروج" : "إغلاق الوردية"}
         </button>
+        )}
       </header>
 
       {/* ══════ OFFLINE STATUS BAR ══════ */}
