@@ -337,6 +337,7 @@ export function useCompanySettings() {
     "licensed_dealer_number","pos_disable_cogs","pos_disable_stock_deduction",
      "pos_require_device_fingerprint","pos_allow_order_transfer","pos_require_cash_box",
     "pos_show_return_policy","pos_return_policy_days",
+    "pos_kitchen_ticket_size","pos_kitchen_auto_print","print_decorative_ornaments",
     "hr_annual_leave_days","hr_sick_leave_days","hr_carry_over_leave","hr_salary_day",
     "hr_salary_currency","hr_social_security","hr_require_qr","hr_require_gps",
     "hr_shift_start","hr_shift_end","hr_late_grace_minutes",
