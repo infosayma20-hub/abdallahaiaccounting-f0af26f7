@@ -513,7 +513,8 @@ const POSPage = () => {
      can_record_expenses: boolean;
      can_create_expense_category: boolean;
      open_cash_drawer: boolean;
-   }>({ can_view_invoice_history: true, can_edit_invoices: true, require_manager_for_invoices: true, manage_products_categories: false, view_invoice_log: false, edit_cancel_invoices: false, can_add_inventory: false, can_create_product: false, can_record_purchases: false, can_pay_purchases_cash: false, can_create_supplier: false, can_affect_inventory_on_purchase: false, can_record_expenses: false, can_create_expense_category: false, open_cash_drawer: false });
+     can_remove_cart_items: boolean;
+   }>({ can_view_invoice_history: true, can_edit_invoices: true, require_manager_for_invoices: true, manage_products_categories: false, view_invoice_log: false, edit_cancel_invoices: false, can_add_inventory: false, can_create_product: false, can_record_purchases: false, can_pay_purchases_cash: false, can_create_supplier: false, can_affect_inventory_on_purchase: false, can_record_expenses: false, can_create_expense_category: false, open_cash_drawer: false, can_remove_cart_items: true });
 
    // Financial operation modals
    const [showInventoryInput, setShowInventoryInput] = useState(false);
