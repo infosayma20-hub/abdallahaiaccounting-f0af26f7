@@ -2,13 +2,14 @@ import { useRef, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Printer, CheckCircle } from "lucide-react";
+import { printThermalContent } from "@/lib/thermal-print";
 
 interface CurrencyBreakdown {
   [key: string]: { sales: number; count: number };
 }
 
 // payment method -> currency -> amount
-type PaymentMethodBreakdown = Record<string, Record<string, number>>;
+ type PaymentMethodBreakdown = Record<string, Record<string, number>>;
 
 interface ShiftSummaryData {
   companyName: string;
@@ -73,41 +74,47 @@ const METHOD_LABELS: Record<string, string> = {
   employee_account: "حساب موظف",
 };
 
-const printStyles = `
-  @page { margin: 0; size: 80mm auto; }
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: 'Segoe UI', 'Arial', sans-serif; font-size: 12px; width: 80mm; padding: 3mm; color: #1a1a1a; direction: rtl; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .center { text-align: center; } .bold { font-weight: 700; }
+const shiftSummaryPrintStyles = `
+  body { font-size: 11px; }
+  .center { text-align: center; }
+  .bold { font-weight: 700; }
   .divider { border: none; border-top: 1px solid #e0e0e0; margin: 6px 0; }
   .divider-bold { border: none; border-top: 2px solid #1a1a1a; margin: 8px 0; }
   .divider-dashed { border: none; border-top: 1px dashed #ccc; margin: 6px 0; }
   .row { display: flex; justify-content: space-between; align-items: center; padding: 3px 0; }
-  .company-name { font-size: 20px; font-weight: 800; color: #0f172a; margin-bottom: 2px; }
-  .terminal-name { font-size: 11px; color: #64748b; font-weight: 500; }
-  .meta-text { font-size: 10px; color: #94a3b8; }
-  .section-title { font-size: 10px; font-weight: 700; letter-spacing: 1px; color: #94a3b8; text-align: center; margin: 6px 0 4px; }
-  .total-label { font-size: 14px; font-weight: 700; color: #0f172a; }
-  .total-amount { font-size: 22px; font-weight: 800; color: #0f172a; font-variant-numeric: tabular-nums; }
-  .summary-row { display: flex; justify-content: space-between; padding: 3px 0; font-size: 12px; color: #475569; }
+  .company-name { font-size: 18px; font-weight: 800; color: #0f172a; margin-bottom: 2px; }
+  .terminal-name { font-size: 10px; color: #64748b; font-weight: 500; }
+  .meta-text { font-size: 9px; color: #94a3b8; }
+  .section-title { font-size: 9px; font-weight: 700; letter-spacing: 1px; color: #94a3b8; text-align: center; margin: 6px 0 4px; }
+  .total-label { font-size: 13px; font-weight: 700; color: #0f172a; }
+  .total-amount { font-size: 18px; font-weight: 800; color: #0f172a; font-variant-numeric: tabular-nums; }
+  .summary-row { display: flex; justify-content: space-between; padding: 2px 0; font-size: 11px; color: #475569; }
   .summary-row .amount { font-variant-numeric: tabular-nums; font-weight: 600; }
   .variance-box { text-align: center; padding: 8px; border-radius: 6px; margin: 8px 0; font-weight: 700; font-size: 14px; }
-  .footer-text { font-size: 10px; color: #94a3b8; text-align: center; line-height: 1.6; }
+  .footer-text { font-size: 9px; color: #94a3b8; text-align: center; line-height: 1.6; }
 `;
 
 export default function ShiftSummaryReceipt({ open, onOpenChange, data }: ShiftSummaryReceiptProps) {
   const receiptRef = useRef<HTMLDivElement>(null);
   const autoPrintDone = useRef(false);
 
+  const printSummary = () => {
+    const content = receiptRef.current;
+    if (!content) return;
+
+    printThermalContent(content.innerHTML, {
+      title: "ملخص الوردية",
+      paperWidthMm: 80,
+      contentWidthMm: 72,
+      extraStyles: shiftSummaryPrintStyles,
+    });
+  };
+
   useEffect(() => {
     if (open && data && !autoPrintDone.current) {
       autoPrintDone.current = true;
       const timer = setTimeout(() => {
-        const content = receiptRef.current;
-        if (!content) return;
-        const printWindow = window.open("", "_blank", "width=320,height=600");
-        if (!printWindow) return;
-        printWindow.document.write(`<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="UTF-8"><title>ملخص الوردية</title><style>${printStyles}</style></head><body>${content.innerHTML}<script>window.onload=function(){window.print();window.close();}<\/script></body></html>`);
-        printWindow.document.close();
+        printSummary();
       }, 600);
       return () => clearTimeout(timer);
     }
@@ -131,12 +138,7 @@ export default function ShiftSummaryReceipt({ open, onOpenChange, data }: ShiftS
   const cashMethodAmounts = pmb["cash"] || {};
 
   const handlePrint = () => {
-    const content = receiptRef.current;
-    if (!content) return;
-    const printWindow = window.open("", "_blank", "width=320,height=600");
-    if (!printWindow) return;
-    printWindow.document.write(`<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="UTF-8"><title>ملخص الوردية</title><style>${printStyles}</style></head><body>${content.innerHTML}<script>window.onload=function(){window.print();window.close();}<\/script></body></html>`);
-    printWindow.document.close();
+    printSummary();
   };
 
   const formatDate = (iso: string) => new Date(iso).toLocaleDateString("ar-PS", { year: "numeric", month: "2-digit", day: "2-digit" });
