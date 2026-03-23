@@ -3783,12 +3783,14 @@ const POSPage = () => {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-start justify-between gap-1">
                               <p className="text-[13px] font-semibold text-foreground truncate leading-tight">{item.name}</p>
+                              {(isAdmin || posPerms.can_remove_cart_items) && (
                               <button
                                 className="p-0.5 text-muted-foreground/40 hover:text-destructive transition-colors shrink-0"
                                 onClick={(e) => { e.stopPropagation(); removeFromCart(index); }}
                               >
                                 <X className="h-3.5 w-3.5" />
                               </button>
+                              )}
                             </div>
                             <div className="flex items-center gap-1 mt-0.5">
                               <input

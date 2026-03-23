@@ -533,6 +533,7 @@ export default function POSUserManagementPage() {
         { key: "can_refund", label: "استرجاع", icon: <RotateCcw className="w-4 h-4" /> },
         { key: "allow_credit_sale", label: "الدفع المؤجل / الدين", icon: <CreditCard className="w-4 h-4" /> },
         { key: "open_cash_drawer", label: "فتح درج الكاش", icon: <Wallet className="w-4 h-4" /> },
+        { key: "can_remove_cart_items", label: "حذف أصناف من السلة", icon: <Ban className="w-4 h-4" /> },
       ],
     },
     {
