@@ -88,6 +88,8 @@ interface InvoiceHistoryDrawerProps {
   canEditInvoices?: boolean;
   requireManagerForInvoices?: boolean;
   allowOrderTransfer?: boolean;
+  printInvoices?: boolean;
+  resendInvoice?: boolean;
   onRecallToCart: (items: CartItem[], invoiceId: string, orderNumber: string, reason: string, approvedBy: string | null) => void;
 }
 
@@ -115,7 +117,7 @@ const RECALL_REASONS = [
 ];
 
 export default function InvoiceHistoryDrawer({
-  open, onClose, dataOwnerId, sessionId, cashierName, terminalName, canEditInvoices = true, requireManagerForInvoices = true, allowOrderTransfer = false, onRecallToCart,
+  open, onClose, dataOwnerId, sessionId, cashierName, terminalName, canEditInvoices = true, requireManagerForInvoices = true, allowOrderTransfer = false, printInvoices = true, resendInvoice = true, onRecallToCart,
 }: InvoiceHistoryDrawerProps) {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -892,6 +894,7 @@ export default function InvoiceHistoryDrawer({
 
               {/* Action buttons */}
               <div className="flex items-center gap-2 pt-4 border-t mt-3" style={{ borderColor: "#E2E8F0" }}>
+                {printInvoices && (
                 <Button
                   variant="outline"
                   size="sm"
@@ -966,6 +969,7 @@ export default function InvoiceHistoryDrawer({
                 >
                   <Printer className="h-3.5 w-3.5" /> طباعة
                 </Button>
+                )}
 
                 {canEditInvoices && (selectedOrder.state === "paid" || selectedOrder.recall_status === "recalled") && (
                   <>

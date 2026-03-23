@@ -498,10 +498,32 @@ const POSPage = () => {
 
    // POS User Permissions
    const [posPerms, setPosPerms] = useState<{
+     can_open_register: boolean;
+     can_close_register: boolean;
+     can_view_shift_details: boolean;
+     can_view_profits: boolean;
+     can_apply_discount: boolean;
+     max_discount_percent: number;
+     can_edit_prices: boolean;
+     can_void_sales: boolean;
+     can_refund: boolean;
+     allow_credit_sale: boolean;
+     open_cash_drawer: boolean;
+     can_remove_cart_items: boolean;
      can_view_invoice_history: boolean;
      can_edit_invoices: boolean;
      require_manager_for_invoices: boolean;
+     print_invoices: boolean;
+     resend_invoice: boolean;
      manage_products_categories: boolean;
+     edit_products: boolean;
+     delete_products: boolean;
+     view_inventory: boolean;
+     add_customer: boolean;
+     view_customers: boolean;
+     edit_customers: boolean;
+     view_sales_report: boolean;
+     export_reports: boolean;
      view_invoice_log: boolean;
      edit_cancel_invoices: boolean;
      can_add_inventory: boolean;
@@ -512,9 +534,20 @@ const POSPage = () => {
      can_affect_inventory_on_purchase: boolean;
      can_record_expenses: boolean;
      can_create_expense_category: boolean;
-     open_cash_drawer: boolean;
-     can_remove_cart_items: boolean;
-   }>({ can_view_invoice_history: true, can_edit_invoices: true, require_manager_for_invoices: true, manage_products_categories: false, view_invoice_log: false, edit_cancel_invoices: false, can_add_inventory: false, can_create_product: false, can_record_purchases: false, can_pay_purchases_cash: false, can_create_supplier: false, can_affect_inventory_on_purchase: false, can_record_expenses: false, can_create_expense_category: false, open_cash_drawer: false, can_remove_cart_items: true });
+   }>({
+     can_open_register: true, can_close_register: true, can_view_shift_details: true, can_view_profits: false,
+     can_apply_discount: true, max_discount_percent: 100, can_edit_prices: true, can_void_sales: false,
+     can_refund: false, allow_credit_sale: false, open_cash_drawer: false, can_remove_cart_items: true,
+     can_view_invoice_history: true, can_edit_invoices: true, require_manager_for_invoices: true,
+     print_invoices: true, resend_invoice: false,
+     manage_products_categories: false, edit_products: false, delete_products: false, view_inventory: false,
+     add_customer: false, view_customers: false, edit_customers: false,
+     view_sales_report: false, export_reports: false,
+     view_invoice_log: false, edit_cancel_invoices: false,
+     can_add_inventory: false, can_create_product: false, can_record_purchases: false,
+     can_pay_purchases_cash: false, can_create_supplier: false, can_affect_inventory_on_purchase: false,
+     can_record_expenses: false, can_create_expense_category: false,
+   });
 
    // Financial operation modals
    const [showInventoryInput, setShowInventoryInput] = useState(false);
@@ -618,27 +651,48 @@ const POSPage = () => {
       if ((posUser as any).is_call_center) setIsCallCenter(true);
       const { data: perms } = await supabase
         .from("pos_user_permissions")
-        .select("can_view_invoice_history, can_edit_invoices, require_manager_for_invoices, manage_products_categories, view_invoice_log, edit_cancel_invoices, can_add_inventory, can_create_product, can_record_purchases, can_pay_purchases_cash, can_create_supplier, can_affect_inventory_on_purchase, can_record_expenses, can_create_expense_category, open_cash_drawer, can_remove_cart_items")
+        .select("*")
         .eq("pos_user_id", posUser.id)
         .maybeSingle();
       if (perms) {
+        const p = perms as any;
         setPosPerms({
-          can_view_invoice_history: perms.can_view_invoice_history ?? true,
-          can_edit_invoices: perms.can_edit_invoices ?? false,
-          require_manager_for_invoices: perms.require_manager_for_invoices ?? true,
-          manage_products_categories: (perms as any).manage_products_categories ?? false,
-          view_invoice_log: (perms as any).view_invoice_log ?? false,
-          edit_cancel_invoices: (perms as any).edit_cancel_invoices ?? false,
-          can_add_inventory: (perms as any).can_add_inventory ?? false,
-          can_create_product: (perms as any).can_create_product ?? false,
-          can_record_purchases: (perms as any).can_record_purchases ?? false,
-          can_pay_purchases_cash: (perms as any).can_pay_purchases_cash ?? false,
-          can_create_supplier: (perms as any).can_create_supplier ?? false,
-          can_affect_inventory_on_purchase: (perms as any).can_affect_inventory_on_purchase ?? false,
-          can_record_expenses: (perms as any).can_record_expenses ?? false,
-          can_create_expense_category: (perms as any).can_create_expense_category ?? false,
-           open_cash_drawer: (perms as any).open_cash_drawer ?? false,
-           can_remove_cart_items: (perms as any).can_remove_cart_items ?? true,
+          can_open_register: p.can_open_register ?? true,
+          can_close_register: p.can_close_register ?? true,
+          can_view_shift_details: p.can_view_shift_details ?? true,
+          can_view_profits: p.can_view_profits ?? false,
+          can_apply_discount: p.can_apply_discount ?? true,
+          max_discount_percent: p.max_discount_percent ?? 100,
+          can_edit_prices: p.can_edit_prices ?? true,
+          can_void_sales: p.can_void_sales ?? false,
+          can_refund: p.can_refund ?? false,
+          allow_credit_sale: p.allow_credit_sale ?? false,
+          open_cash_drawer: p.open_cash_drawer ?? false,
+          can_remove_cart_items: p.can_remove_cart_items ?? true,
+          can_view_invoice_history: p.can_view_invoice_history ?? true,
+          can_edit_invoices: p.can_edit_invoices ?? false,
+          require_manager_for_invoices: p.require_manager_for_invoices ?? true,
+          print_invoices: p.print_invoices ?? true,
+          resend_invoice: p.resend_invoice ?? false,
+          manage_products_categories: p.manage_products_categories ?? false,
+          edit_products: p.edit_products ?? false,
+          delete_products: p.delete_products ?? false,
+          view_inventory: p.view_inventory ?? false,
+          add_customer: p.add_customer ?? false,
+          view_customers: p.view_customers ?? false,
+          edit_customers: p.edit_customers ?? false,
+          view_sales_report: p.view_sales_report ?? false,
+          export_reports: p.export_reports ?? false,
+          view_invoice_log: p.view_invoice_log ?? false,
+          edit_cancel_invoices: p.edit_cancel_invoices ?? false,
+          can_add_inventory: p.can_add_inventory ?? false,
+          can_create_product: p.can_create_product ?? false,
+          can_record_purchases: p.can_record_purchases ?? false,
+          can_pay_purchases_cash: p.can_pay_purchases_cash ?? false,
+          can_create_supplier: p.can_create_supplier ?? false,
+          can_affect_inventory_on_purchase: p.can_affect_inventory_on_purchase ?? false,
+          can_record_expenses: p.can_record_expenses ?? false,
+          can_create_expense_category: p.can_create_expense_category ?? false,
          });
       }
     };
@@ -1509,6 +1563,13 @@ const POSPage = () => {
   }, [selectedCartIndex]);
 
   const updateCartItem = useCallback((index: number, field: "qty" | "unit_price" | "discount_pct", value: number) => {
+    // Enforce price editing permission
+    if (field === "unit_price" && !isAdmin && !posPerms.can_edit_prices) return;
+    // Enforce discount permission and max discount
+    if (field === "discount_pct") {
+      if (!isAdmin && !posPerms.can_apply_discount) { toast.error("ليس لديك صلاحية تطبيق الخصم"); return; }
+      if (!isAdmin && value > posPerms.max_discount_percent) { toast.error(`الحد الأقصى للخصم ${posPerms.max_discount_percent}%`); value = posPerms.max_discount_percent; }
+    }
     setCart((prev) => {
       const updated = [...prev];
       updated[index] = { ...updated[index], [field]: value };
@@ -1516,7 +1577,7 @@ const POSPage = () => {
       updated[index].total = qty * unit_price * (1 - discount_pct / 100);
       return updated;
     });
-  }, []);
+  }, [isAdmin, posPerms]);
 
   // Totals
   const cartTotals = useMemo(() => {
@@ -1536,6 +1597,7 @@ const POSPage = () => {
   // Open session
   const handleOpenShift = async () => {
     if (!userId || !company || !terminal) return;
+    if (!isAdmin && !posPerms.can_open_register) { toast.error("ليس لديك صلاحية فتح الوردية"); return; }
     if (!selectedCashBoxId) {
       toast.error("يجب اختيار الصندوق قبل فتح الوردية");
       return;
@@ -2528,6 +2590,7 @@ const POSPage = () => {
   // Close session
   const handleCloseShift = async () => {
     if (!session || !userId) return;
+    if (!isAdmin && !posPerms.can_close_register) { toast.error("ليس لديك صلاحية إغلاق الوردية"); return; }
     const cash = parseFloat(closingCash) || 0;
     const cashUSD = parseFloat(closingCashUSD) || 0;
     const cashJOD = parseFloat(closingCashJOD) || 0;
@@ -3157,6 +3220,7 @@ const POSPage = () => {
         <div className="w-px h-5" style={{ background: "rgba(255,255,255,0.1)" }} />
 
         {/* Close shift */}
+        {(isAdmin || posPerms.can_close_register) && (
         <button
           onClick={() => {
             if (session?.cash_box_id === null) {
@@ -3170,6 +3234,7 @@ const POSPage = () => {
           <X className="h-3 w-3" />
           {session?.cash_box_id === null ? "تسجيل الخروج" : "إغلاق الوردية"}
         </button>
+        )}
       </header>
 
       {/* ══════ OFFLINE STATUS BAR ══════ */}
@@ -3798,7 +3863,8 @@ const POSPage = () => {
                                 value={item.unit_price}
                                 onChange={(e) => { e.stopPropagation(); updateCartItem(index, "unit_price", Math.max(0, Number(e.target.value))); }}
                                 onClick={(e) => e.stopPropagation()}
-                                className="w-14 text-[11px] tabular-nums bg-transparent border-b border-dashed border-border text-muted-foreground outline-none focus:border-primary/40 py-0 px-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                disabled={!isAdmin && !posPerms.can_edit_prices}
+                                className="w-14 text-[11px] tabular-nums bg-transparent border-b border-dashed border-border text-muted-foreground outline-none focus:border-primary/40 py-0 px-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
                                 min={0}
                                 step={0.01}
                               />
@@ -4319,9 +4385,12 @@ const POSPage = () => {
               {[
                 { key: "cash", label: "نقد", icon: Banknote, color: "#16A34A" },
                 { key: "card", label: "بطاقة", icon: CreditCard, color: "#3B82F6" },
-                { key: "credit", label: "آجل", icon: Receipt, color: "#F59E0B" },
+                { key: "credit", label: "آجل", icon: Receipt, color: "#F59E0B", requiresPerm: true },
                 { key: "employee_account", label: "حساب موظف", icon: UserCheck, color: "#8B5CF6" },
-              ].map((m) => {
+              ].filter(m => {
+                if (m.requiresPerm && !isAdmin && !posPerms.allow_credit_sale) return false;
+                return true;
+              }).map((m) => {
                 const isActive = paymentMethod === m.key;
                 return (
                   <motion.button
@@ -5241,6 +5310,8 @@ const POSPage = () => {
             canEditInvoices={isAdmin || posPerms.can_edit_invoices || posPerms.edit_cancel_invoices}
             requireManagerForInvoices={!isAdmin && posPerms.require_manager_for_invoices}
             allowOrderTransfer={posAllowOrderTransfer}
+            printInvoices={isAdmin || posPerms.print_invoices}
+            resendInvoice={isAdmin || posPerms.resend_invoice}
             onRecallToCart={(items, invoiceId, orderNumber, reason, approvedBy) => {
               setCart(items);
               setRecallBanner({ invoiceId, orderNumber, reason, approvedBy });
