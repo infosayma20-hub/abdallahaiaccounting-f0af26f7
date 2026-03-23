@@ -198,68 +198,68 @@ export default function POSReceiptDialog({ open, onOpenChange, data, showReturnP
         {/* Receipt Preview - Scrollable */}
         <div className="flex-1 overflow-y-auto min-h-0 px-4 pb-2">
           <div className="bg-white text-[#1a1a1a] rounded-xl border border-border overflow-hidden shadow-sm">
-            <div ref={receiptRef} className="p-5" style={{ fontFamily: "'Segoe UI', Arial, sans-serif", fontSize: "12px", direction: "rtl" }}>
+            <div ref={receiptRef} className="p-5" style={{ fontFamily: "'Arial', 'Tahoma', sans-serif", fontSize: "13px", direction: "rtl", fontWeight: 600, color: "#000" }}>
               
               {/* ═══ HEADER ═══ */}
               <div style={{ textAlign: "center", paddingBottom: "4px" }}>
-                <div className="company-name" style={{ fontSize: "20px", fontWeight: 800, color: "#0f172a", marginBottom: "2px", letterSpacing: "-0.5px" }}>
+                <div style={{ fontSize: "20px", fontWeight: 900, color: "#000", marginBottom: "2px" }}>
                   {data.companyName}
                 </div>
-                <div className="terminal-name" style={{ fontSize: "11px", color: "#64748b", fontWeight: 500 }}>
+                <div style={{ fontSize: "12px", color: "#000", fontWeight: 700 }}>
                   {data.terminalName}
                 </div>
-                <div style={{ fontSize: "10px", color: "#94a3b8", marginTop: "4px" }}>
+                <div style={{ fontSize: "11px", color: "#333", fontWeight: 600, marginTop: "4px" }}>
                   {dateStr} • {timeStr}
                 </div>
               </div>
 
-              <hr style={{ border: "none", borderTop: "2px solid #0f172a", margin: "8px 0" }} />
+              <hr style={{ border: "none", borderTop: "2px solid #000", margin: "8px 0" }} />
 
               {/* ═══ ORDER META ═══ */}
-              <div style={{ display: "flex", justifyContent: "space-between", padding: "2px 0", fontSize: "11px" }}>
-                <span style={{ color: "#64748b" }}>رقم الطلب</span>
-                <span style={{ fontWeight: 700, color: "#0f172a", fontVariantNumeric: "tabular-nums" }}>{data.orderNumber}</span>
+              <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", fontSize: "12px" }}>
+                <span style={{ color: "#000", fontWeight: 700 }}>رقم الطلب</span>
+                <span style={{ fontWeight: 900, color: "#000", fontVariantNumeric: "tabular-nums" }}>{data.orderNumber}</span>
               </div>
-              <div style={{ display: "flex", justifyContent: "space-between", padding: "2px 0", fontSize: "11px" }}>
-                <span style={{ color: "#64748b" }}>الكاشير</span>
-                <span style={{ fontWeight: 500, color: "#334155" }}>{data.cashierName}</span>
+              <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", fontSize: "12px" }}>
+                <span style={{ color: "#000", fontWeight: 700 }}>الكاشير</span>
+                <span style={{ fontWeight: 700, color: "#000" }}>{data.cashierName}</span>
               </div>
               {/* Order Type */}
-              <div style={{ display: "flex", justifyContent: "space-between", padding: "2px 0", fontSize: "11px" }}>
-                <span style={{ color: "#64748b" }}>نوع الطلب</span>
-                <span style={{ fontWeight: 600, color: "#0f172a", background: "#f1f5f9", borderRadius: "4px", padding: "1px 8px", fontSize: "10px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", fontSize: "12px" }}>
+                <span style={{ color: "#000", fontWeight: 700 }}>نوع الطلب</span>
+                <span style={{ fontWeight: 800, color: "#000", background: "#eee", border: "1px solid #999", borderRadius: "4px", padding: "1px 8px", fontSize: "11px" }}>
                   {data.orderType === "delivery" ? "🚚 توصيل" : data.orderType === "takeaway" ? "🛍️ استلام" : "🍽️ محلي"}
                 </span>
               </div>
               {data.tableName && (
-                <div style={{ display: "flex", justifyContent: "space-between", padding: "2px 0", fontSize: "11px" }}>
-                  <span style={{ color: "#64748b" }}>الطاولة</span>
-                  <span style={{ fontWeight: 700, color: "#0f172a" }}>{data.tableName}{data.guestCount ? ` (${data.guestCount} ضيوف)` : ""}</span>
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", fontSize: "12px" }}>
+                  <span style={{ color: "#000", fontWeight: 700 }}>الطاولة</span>
+                  <span style={{ fontWeight: 900, color: "#000" }}>{data.tableName}{data.guestCount ? ` (${data.guestCount} ضيوف)` : ""}</span>
                 </div>
               )}
               {data.customerName && (
-                <div style={{ display: "flex", justifyContent: "space-between", padding: "2px 0", fontSize: "11px" }}>
-                  <span style={{ color: "#64748b" }}>الزبون</span>
-                  <span style={{ fontWeight: 500, color: "#334155" }}>{data.customerName}</span>
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", fontSize: "12px" }}>
+                  <span style={{ color: "#000", fontWeight: 700 }}>الزبون</span>
+                  <span style={{ fontWeight: 700, color: "#000" }}>{data.customerName}</span>
                 </div>
               )}
               {data.customerPhone && (
-                <div style={{ display: "flex", justifyContent: "space-between", padding: "2px 0", fontSize: "11px" }}>
-                  <span style={{ color: "#64748b" }}>الجوال</span>
-                  <span style={{ fontWeight: 500, color: "#334155", direction: "ltr" }}>{data.customerPhone}</span>
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", fontSize: "12px" }}>
+                  <span style={{ color: "#000", fontWeight: 700 }}>الجوال</span>
+                  <span style={{ fontWeight: 700, color: "#000", direction: "ltr" }}>{data.customerPhone}</span>
                 </div>
               )}
               {data.orderType === "delivery" && data.deliveryAddress && (
-                <div style={{ display: "flex", justifyContent: "space-between", padding: "2px 0", fontSize: "11px" }}>
-                  <span style={{ color: "#64748b" }}>عنوان التوصيل</span>
-                  <span style={{ fontWeight: 500, color: "#334155", maxWidth: "60%", textAlign: "left" }}>{data.deliveryAddress}</span>
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", fontSize: "12px" }}>
+                  <span style={{ color: "#000", fontWeight: 700 }}>عنوان التوصيل</span>
+                  <span style={{ fontWeight: 700, color: "#000", maxWidth: "60%", textAlign: "left" }}>{data.deliveryAddress}</span>
                 </div>
               )}
 
-              <hr style={{ border: "none", borderTop: "1px solid #e2e8f0", margin: "8px 0" }} />
+              <hr style={{ border: "none", borderTop: "1px solid #000", margin: "8px 0" }} />
 
               {/* ═══ TABLE HEADER ═══ */}
-              <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", fontSize: "9px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "1px", color: "#94a3b8", borderBottom: "1px solid #f1f5f9" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", fontSize: "11px", fontWeight: 900, letterSpacing: "0.5px", color: "#000", borderBottom: "1px solid #333" }}>
                 <span style={{ flex: 2 }}>الصنف</span>
                 <span style={{ flex: 1, textAlign: "center" }}>الكمية</span>
                 <span style={{ flex: 1, textAlign: "center" }}>السعر</span>
@@ -268,82 +268,80 @@ export default function POSReceiptDialog({ open, onOpenChange, data, showReturnP
 
               {/* ═══ ITEMS ═══ */}
               {data.items.map((item, i) => (
-                <div key={i} style={{ padding: "6px 0", borderBottom: i < data.items.length - 1 ? "1px solid #f8fafc" : "none" }}>
+                <div key={i} style={{ padding: "6px 0", borderBottom: i < data.items.length - 1 ? "1px solid #ccc" : "none" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                    <span style={{ flex: 2, fontSize: "12px", fontWeight: 600, color: "#1e293b", lineHeight: 1.3 }}>{item.name}</span>
-                    <span style={{ flex: 1, textAlign: "center", fontSize: "11px", color: "#475569", fontVariantNumeric: "tabular-nums" }}>{item.qty}</span>
-                    <span style={{ flex: 1, textAlign: "center", fontSize: "11px", color: "#475569", fontVariantNumeric: "tabular-nums" }}>₪{item.unit_price.toFixed(2)}</span>
-                    <span style={{ flex: 1, textAlign: "left", fontSize: "12px", fontWeight: 600, color: "#1e293b", fontVariantNumeric: "tabular-nums" }}>₪{item.total.toFixed(2)}</span>
+                    <span style={{ flex: 2, fontSize: "13px", fontWeight: 800, color: "#000", lineHeight: 1.3 }}>{item.name}</span>
+                    <span style={{ flex: 1, textAlign: "center", fontSize: "13px", color: "#000", fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>{item.qty}</span>
+                    <span style={{ flex: 1, textAlign: "center", fontSize: "12px", color: "#000", fontWeight: 700, fontVariantNumeric: "tabular-nums" }}>₪{item.unit_price.toFixed(2)}</span>
+                    <span style={{ flex: 1, textAlign: "left", fontSize: "13px", fontWeight: 800, color: "#000", fontVariantNumeric: "tabular-nums" }}>₪{item.total.toFixed(2)}</span>
                   </div>
                   {item.discount_pct > 0 && (
-                    <div style={{ fontSize: "10px", color: "#dc2626", paddingRight: "4px", marginTop: "1px" }}>
+                    <div style={{ fontSize: "11px", color: "#000", fontWeight: 700, paddingRight: "4px", marginTop: "1px" }}>
                       خصم {item.discount_pct}%
                     </div>
                   )}
                   {item.modifiers && item.modifiers.length > 0 && (
                     <div style={{ paddingRight: "8px", marginTop: "3px" }}>
                       {item.modifiers.map((mod, mi) => (
-                        <div key={mi} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "10px", color: "#64748b", lineHeight: 1.6 }}>
+                        <div key={mi} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "11px", color: "#000", fontWeight: 600, lineHeight: 1.6 }}>
                           <span style={{ display: "flex", alignItems: "center", gap: "3px" }}>
-                            <span style={{ color: "#94a3b8" }}>↳</span>
+                            <span>↳</span>
                             {mod.option_name}
                           </span>
                           {mod.extra_price > 0 && (
-                            <span style={{ fontSize: "9px", fontVariantNumeric: "tabular-nums", color: "#16a34a", fontWeight: 600 }}>+₪{mod.extra_price.toFixed(2)}</span>
+                            <span style={{ fontSize: "11px", fontVariantNumeric: "tabular-nums", color: "#000", fontWeight: 700 }}>+₪{mod.extra_price.toFixed(2)}</span>
                           )}
                         </div>
                       ))}
                     </div>
                   )}
                   {item.note && (
-                    <div style={{ fontSize: "10px", color: "#94a3b8", fontStyle: "italic", paddingRight: "4px", marginTop: "1px" }}>
+                    <div style={{ fontSize: "11px", color: "#000", fontWeight: 600, fontStyle: "italic", paddingRight: "4px", marginTop: "1px" }}>
                       📝 {item.note}
                     </div>
                   )}
                 </div>
               ))}
 
-              <hr style={{ border: "none", borderTop: "1px solid #e2e8f0", margin: "8px 0" }} />
+              <hr style={{ border: "none", borderTop: "1px solid #000", margin: "8px 0" }} />
 
               {/* ═══ SUMMARY ═══ */}
-              <div style={{ display: "flex", justifyContent: "space-between", padding: "2px 0", fontSize: "11px", color: "#475569" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", fontSize: "12px", color: "#000", fontWeight: 700 }}>
                 <span>المجموع الفرعي</span>
-                <span style={{ fontVariantNumeric: "tabular-nums", fontWeight: 500 }}>₪{data.subtotal.toFixed(2)}</span>
+                <span style={{ fontVariantNumeric: "tabular-nums", fontWeight: 700 }}>₪{data.subtotal.toFixed(2)}</span>
               </div>
               {data.tax > 0 && (
-                <div style={{ display: "flex", justifyContent: "space-between", padding: "2px 0", fontSize: "11px", color: "#475569" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", fontSize: "12px", color: "#000", fontWeight: 700 }}>
                   <span>الضريبة</span>
-                  <span style={{ fontVariantNumeric: "tabular-nums", fontWeight: 500 }}>₪{data.tax.toFixed(2)}</span>
+                  <span style={{ fontVariantNumeric: "tabular-nums", fontWeight: 700 }}>₪{data.tax.toFixed(2)}</span>
                 </div>
               )}
               {data.discount > 0 && (
-                <div style={{ display: "flex", justifyContent: "space-between", padding: "2px 0", fontSize: "11px", color: "#dc2626" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", fontSize: "12px", color: "#000", fontWeight: 800 }}>
                   <span>الخصم</span>
-                  <span style={{ fontVariantNumeric: "tabular-nums", fontWeight: 500 }}>-₪{data.discount.toFixed(2)}</span>
+                  <span style={{ fontVariantNumeric: "tabular-nums", fontWeight: 800 }}>-₪{data.discount.toFixed(2)}</span>
                 </div>
               )}
 
-              <hr style={{ border: "none", borderTop: "2px solid #0f172a", margin: "8px 0" }} />
+              <hr style={{ border: "none", borderTop: "2px solid #000", margin: "8px 0" }} />
 
               {/* ═══ TOTAL ═══ */}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "4px 0" }}>
-                <span style={{ fontSize: "14px", fontWeight: 700, color: "#0f172a" }}>الإجمالي</span>
-                <span style={{ fontSize: "22px", fontWeight: 800, color: "#0f172a", fontVariantNumeric: "tabular-nums" }}>₪{data.total.toFixed(2)}</span>
+                <span style={{ fontSize: "16px", fontWeight: 900, color: "#000" }}>الإجمالي</span>
+                <span style={{ fontSize: "24px", fontWeight: 900, color: "#000", fontVariantNumeric: "tabular-nums" }}>₪{data.total.toFixed(2)}</span>
               </div>
 
-              <hr style={{ border: "none", borderTop: "1px dashed #d1d5db", margin: "8px 0" }} />
+              <hr style={{ border: "none", borderTop: "1px dashed #333", margin: "8px 0" }} />
 
               {/* ═══ PAYMENT ═══ */}
-              <div style={{ background: "#f8fafc", borderRadius: "8px", padding: "8px 10px", margin: "4px 0" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", padding: "2px 0", fontSize: "11px" }}>
-                  <span style={{ color: "#64748b" }}>طريقة الدفع</span>
+              <div style={{ background: "#f0f0f0", borderRadius: "6px", padding: "8px 10px", margin: "4px 0", border: "1px solid #ccc" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", fontSize: "12px" }}>
+                  <span style={{ color: "#000", fontWeight: 700 }}>طريقة الدفع</span>
                   {(() => {
                     const pm = paymentMethodLabel[data.paymentMethod];
                     const label = pm ? pm.label : data.paymentMethod;
-                    const bgColor = pm ? pm.color + "1a" : "#e2e8f0";
-                    const txtColor = pm ? pm.color : "#475569";
                     return (
-                      <span style={{ background: bgColor, borderRadius: "4px", padding: "1px 8px", fontSize: "10px", fontWeight: 600, color: txtColor }}>
+                      <span style={{ background: "#ddd", border: "1px solid #999", borderRadius: "4px", padding: "1px 8px", fontSize: "11px", fontWeight: 900, color: "#000" }}>
                         {label}
                       </span>
                     );
@@ -356,14 +354,14 @@ export default function POSReceiptDialog({ open, onOpenChange, data, showReturnP
                       const sym = currencySymbols[data.currency] || data.currency;
                       return (
                         <>
-                          <div style={{ display: "flex", justifyContent: "space-between", padding: "2px 0", fontSize: "11px" }}>
-                            <span style={{ color: "#64748b" }}>المبلغ المستلم</span>
-                            <span style={{ fontWeight: 500, fontVariantNumeric: "tabular-nums", color: "#334155" }}>{sym}{data.tenderedAmount.toFixed(2)}</span>
+                          <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", fontSize: "12px" }}>
+                            <span style={{ color: "#000", fontWeight: 700 }}>المبلغ المستلم</span>
+                            <span style={{ fontWeight: 800, fontVariantNumeric: "tabular-nums", color: "#000" }}>{sym}{data.tenderedAmount.toFixed(2)}</span>
                           </div>
                           {data.change > 0 && (
-                            <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", fontSize: "12px", fontWeight: 700 }}>
-                              <span style={{ color: "#16a34a" }}>الباقي</span>
-                              <span style={{ color: "#16a34a", fontVariantNumeric: "tabular-nums" }}>₪{data.change.toFixed(2)}</span>
+                            <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", fontSize: "13px", fontWeight: 900 }}>
+                              <span style={{ color: "#000" }}>الباقي</span>
+                              <span style={{ color: "#000", fontVariantNumeric: "tabular-nums" }}>₪{data.change.toFixed(2)}</span>
                             </div>
                           )}
                         </>
@@ -375,12 +373,12 @@ export default function POSReceiptDialog({ open, onOpenChange, data, showReturnP
 
               {/* ═══ ORDER NOTE ═══ */}
               {data.orderNote && (
-                <div style={{ background: "#fffbeb", borderRadius: "6px", padding: "6px 8px", margin: "6px 0", fontSize: "10px", color: "#92400e", border: "1px solid #fde68a" }}>
-                  <span style={{ fontWeight: 600 }}>ملاحظة:</span> {data.orderNote}
+                <div style={{ background: "#f0f0f0", borderRadius: "6px", padding: "6px 8px", margin: "6px 0", fontSize: "11px", color: "#000", fontWeight: 700, border: "1px solid #999" }}>
+                  <span style={{ fontWeight: 900 }}>ملاحظة:</span> {data.orderNote}
                 </div>
               )}
 
-              <hr style={{ border: "none", borderTop: "1px dashed #d1d5db", margin: "8px 0" }} />
+              <hr style={{ border: "none", borderTop: "1px dashed #333", margin: "8px 0" }} />
 
               {/* ═══ QR CODE ═══ */}
               {receiptUrl && (
@@ -388,26 +386,26 @@ export default function POSReceiptDialog({ open, onOpenChange, data, showReturnP
                   <div style={{ width: "88px", height: "88px", margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "center" }}>
                     <QRCodeSVG value={receiptUrl} size={80} level="M" />
                   </div>
-                  <div style={{ fontSize: "8px", color: "#94a3b8", marginTop: "4px" }}>امسح للتحقق من الإيصال</div>
+                  <div style={{ fontSize: "10px", color: "#000", fontWeight: 600, marginTop: "4px" }}>امسح للتحقق من الإيصال</div>
                 </div>
               )}
 
               {/* ═══ BARCODE ═══ */}
-              <div style={{ textAlign: "center", fontFamily: "monospace", fontSize: "11px", letterSpacing: "3px", color: "#64748b", margin: "4px 0" }}>
+              <div style={{ textAlign: "center", fontFamily: "monospace", fontSize: "12px", letterSpacing: "3px", color: "#000", fontWeight: 700, margin: "4px 0" }}>
                 ║║║ {data.orderNumber} ║║║
               </div>
 
               {/* ═══ FOOTER ═══ */}
-              <hr style={{ border: "none", borderTop: "1px solid #e2e8f0", margin: "8px 0" }} />
+              <hr style={{ border: "none", borderTop: "1px solid #333", margin: "8px 0" }} />
               <div style={{ textAlign: "center" }}>
-                <div style={{ fontSize: "12px", fontWeight: 600, color: "#475569", marginBottom: "2px" }}>شكراً لتعاملكم معنا 🙏</div>
-                <div style={{ fontSize: "10px", color: "#94a3b8" }}>Thank you for your purchase</div>
+                <div style={{ fontSize: "13px", fontWeight: 800, color: "#000", marginBottom: "2px" }}>شكراً لتعاملكم معنا 🙏</div>
+                <div style={{ fontSize: "11px", color: "#333", fontWeight: 600 }}>Thank you for your purchase</div>
                 {showReturnPolicy && (
                   <>
-                    <div style={{ fontSize: "9px", color: "#cbd5e1", marginTop: "4px" }}>
+                    <div style={{ fontSize: "10px", color: "#333", fontWeight: 600, marginTop: "4px" }}>
                       المرتجعات خلال {returnPolicyDays} أيام مع الإيصال الأصلي
                     </div>
-                    <div style={{ fontSize: "9px", color: "#cbd5e1" }}>
+                    <div style={{ fontSize: "10px", color: "#333", fontWeight: 600 }}>
                       Returns within {returnPolicyDays} days with original receipt
                     </div>
                   </>
