@@ -35,6 +35,7 @@ import POSShiftsReport from "@/components/pos-reports/POSShiftsReport";
 import POSCustomersReport from "@/components/pos-reports/POSCustomersReport";
 import * as XLSX from "xlsx";
 import { useNavigate } from "react-router-dom";
+import { printThermalContent } from "@/lib/thermal-print";
 
 const PRESETS: { key: DatePreset; label: string }[] = [
   { key: "today", label: "اليوم" },
@@ -106,7 +107,23 @@ const POSReportsPage = () => {
     XLSX.writeFile(wb, `تقارير-POS-${format(data.dateFrom, "yyyy-MM-dd")}.xlsx`);
   };
 
-  const handlePrint = () => window.print();
+  const handlePrint = () => {
+    const content = document.querySelector('.min-h-screen');
+    if (!content) { window.print(); return; }
+    printThermalContent((content as HTMLElement).innerHTML, {
+      title: "تقارير نقطة البيع",
+      paperWidthMm: 80,
+      contentWidthMm: 72,
+      extraStyles: `
+        body { font-size: 10px; }
+        table { width: 100%; border-collapse: collapse; font-size: 9px; }
+        th, td { padding: 2px 4px; border-bottom: 1px solid #ddd; text-align: right; }
+        th { font-weight: 700; background: #f5f5f5; }
+        h1, h2, h3 { font-size: 14px; margin: 4px 0; }
+        .print\\:hidden { display: none !important; }
+      `,
+    });
+  };
 
   const totalDiscounts = useMemo(() =>
     data.paidOrders.reduce((s, o) => s + o.discount_amount, 0), [data.paidOrders]);

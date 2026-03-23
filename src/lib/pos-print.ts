@@ -9,6 +9,7 @@
  */
 
 import { supabase } from "@/integrations/supabase/client";
+import { printThermalContent } from "@/lib/thermal-print";
 
 export interface PrinterInfo {
   id: string;
@@ -284,38 +285,11 @@ function buildEscPosData(lines: PrintLine[], paperWidth: number): string[] {
 // ── Browser Fallback ────────────────────────────────────────────
 
 function printBrowserFallback(htmlContent: string) {
-  // Use hidden iframe to avoid visible preview window
-  const existingFrame = document.getElementById("pos-print-fallback-frame");
-  if (existingFrame) existingFrame.remove();
-
-  const iframe = document.createElement("iframe");
-  iframe.id = "pos-print-fallback-frame";
-  iframe.style.cssText = "position:fixed;top:-9999px;left:-9999px;width:80mm;height:0;border:none;visibility:hidden;";
-  document.body.appendChild(iframe);
-
-  const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
-  if (!iframeDoc) return;
-
-  iframeDoc.open();
-  iframeDoc.write(`
-    <!DOCTYPE html>
-    <html dir="rtl">
-    <head>
-      <meta charset="UTF-8">
-      <style>
-        @page { margin: 0; size: 80mm auto; }
-        body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 12px; padding: 3mm; width: 80mm; direction: rtl; }
-      </style>
-    </head>
-    <body>${htmlContent}</body>
-    </html>
-  `);
-  iframeDoc.close();
-
-  setTimeout(() => {
-    iframe.contentWindow?.print();
-    setTimeout(() => iframe.remove(), 2000);
-  }, 400);
+  printThermalContent(htmlContent, {
+    title: "طباعة",
+    paperWidthMm: 80,
+    contentWidthMm: 72,
+  });
 }
 
 // ── Helpers ─────────────────────────────────────────────────────
