@@ -92,6 +92,7 @@ interface AuditEntry {
 
 const UsersSettingsSection = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("users");
   const [teamUsers, setTeamUsers] = useState<TeamUser[]>([]);
   const [permissions, setPermissions] = useState<Permission[]>([]);
