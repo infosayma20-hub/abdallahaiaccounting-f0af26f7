@@ -806,6 +806,7 @@ const POSPage = () => {
           });
           setPosAllowOrderTransfer((posSettings as any).pos_allow_order_transfer ?? false);
           setPosRequireCashBox((posSettings as any).pos_require_cash_box ?? false);
+          setPosAutoPrint((posSettings as any).pos_auto_print ?? true);
         }
 
         const rawDefaultOpeningCash = (posSettings as any)?.pos_default_opening_balance;
