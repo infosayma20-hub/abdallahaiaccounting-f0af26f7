@@ -969,6 +969,7 @@ export default function InvoiceHistoryDrawer({
                 >
                   <Printer className="h-3.5 w-3.5" /> طباعة
                 </Button>
+                )}
 
                 {canEditInvoices && (selectedOrder.state === "paid" || selectedOrder.recall_status === "recalled") && (
                   <>
