@@ -129,12 +129,22 @@ const InventoryPage = () => {
     if (error) {
       toast({ title: "خطأ في تحميل المنتجات", variant: "destructive" });
     } else {
-      setProducts(data || []);
+      setProducts((data || []).map((p: any) => ({ ...p, kitchen_station_id: p.kitchen_station_id || null })));
     }
     setLoading(false);
   };
 
-  useEffect(() => { fetchProducts(); }, [user]);
+  const fetchStations = useCallback(async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from("kitchen_stations")
+      .select("id, name, color")
+      .eq("is_active", true)
+      .order("display_order");
+    setKitchenStations((data as KitchenStation[]) || []);
+  }, [user]);
+
+  useEffect(() => { fetchProducts(); fetchStations(); }, [user]);
 
   const resetForm = () => {
     setForm({ name: "", category: "بضاعة عامة", skuPrefix: "GEN", buy_price: "", sell_price: "", quantity: "", min_quantity: "", unit: "قطعة", notes: "" });
