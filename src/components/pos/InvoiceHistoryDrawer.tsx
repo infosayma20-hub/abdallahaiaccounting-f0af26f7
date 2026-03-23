@@ -1087,7 +1087,7 @@ export default function InvoiceHistoryDrawer({
               onChange={e => setCancelReason(e.target.value)}
               placeholder="سبب الإلغاء (إلزامي)..."
               rows={2}
-              className="w-full px-3 py-2 rounded-lg border text-sm resize-none"
+              className="w-full px-3 py-2 rounded-lg border text-sm resize-none text-black"
               style={{ borderColor: "#E2E8F0" }}
             />
           </div>
