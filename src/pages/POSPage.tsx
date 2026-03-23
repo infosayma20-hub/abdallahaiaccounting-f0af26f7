@@ -1053,6 +1053,25 @@ const POSPage = () => {
     if (selectedCategory !== "الكل") setSelectedCategory("الكل");
   };
 
+  const [deletingProductId, setDeletingProductId] = useState<string | null>(null);
+  const [confirmDeleteProduct, setConfirmDeleteProduct] = useState<{ id: string; name: string } | null>(null);
+
+  const handleDeleteProduct = async (productId: string) => {
+    if (!dataOwnerId || !(isAdmin || posPerms.delete_products)) return;
+    setDeletingProductId(productId);
+    try {
+      const { error } = await supabase.from("products").delete().eq("id", productId).eq("user_id", dataOwnerId);
+      if (error) { toast.error("خطأ في الحذف: " + error.message); return; }
+      setProducts(prev => prev.filter(p => p.id !== productId));
+      toast.success("تم حذف المنتج بنجاح");
+      setConfirmDeleteProduct(null);
+    } catch {
+      toast.error("حدث خطأ أثناء الحذف");
+    } finally {
+      setDeletingProductId(null);
+    }
+  };
+
   const handleSaveNewProduct = async () => {
     if (!userId || !dataOwnerId || !(isAdmin || posPerms.manage_products_categories) || !newProduct.name.trim() || savingProduct) return;
     
@@ -3561,9 +3580,20 @@ const POSPage = () => {
                               </div>
                             )}
 
+                            {/* Delete product button */}
+                            {!isSortMode && (isAdmin || posPerms.delete_products) && (
+                              <button
+                                className="absolute top-1 right-1 z-20 w-5 h-5 rounded-full bg-destructive/80 hover:bg-destructive text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+                                onClick={(e) => { e.stopPropagation(); setConfirmDeleteProduct({ id: product.id, name: product.name }); }}
+                                title="حذف المنتج"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            )}
+
                             {/* Low stock indicator */}
                             {isLowStock && !isSortMode && (
-                              <div className="absolute top-1 right-1 z-10">
+                              <div className={`absolute ${(isAdmin || posPerms.delete_products) ? "top-7" : "top-1"} right-1 z-10`}>
                                 <div className="w-2 h-2 rounded-full bg-orange-400 animate-pulse" />
                               </div>
                             )}
@@ -5391,6 +5421,34 @@ const POSPage = () => {
         onClose={() => setShowDispatchLog(false)}
         dataOwnerId={dataOwnerId || ""}
       />
+
+      {/* Confirm Delete Product Dialog */}
+      <Dialog open={!!confirmDeleteProduct} onOpenChange={(v) => { if (!v) setConfirmDeleteProduct(null); }}>
+        <DialogContent className="max-w-xs z-[1200]" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive text-base">
+              <Trash2 className="h-5 w-5" />
+              حذف المنتج
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground py-2">
+            هل أنت متأكد من حذف "{confirmDeleteProduct?.name}"؟
+            <br />
+            <span className="text-destructive text-xs">لا يمكن التراجع عن هذا الإجراء.</span>
+          </p>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" size="sm" onClick={() => setConfirmDeleteProduct(null)}>إلغاء</Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              disabled={!!deletingProductId}
+              onClick={() => confirmDeleteProduct && handleDeleteProduct(confirmDeleteProduct.id)}
+            >
+              {deletingProductId ? "جاري الحذف..." : "حذف"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
