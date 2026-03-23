@@ -5087,7 +5087,7 @@ const POSPage = () => {
       </Dialog>
 
       {/* ── Receipt Dialog ── */}
-      <POSReceiptDialog open={showReceipt} onOpenChange={setShowReceipt} data={receiptData} showReturnPolicy={posReturnPolicy.show} returnPolicyDays={posReturnPolicy.days} autoPrint />
+      <POSReceiptDialog open={showReceipt} onOpenChange={setShowReceipt} data={receiptData} showReturnPolicy={posReturnPolicy.show} returnPolicyDays={posReturnPolicy.days} autoPrint={posAutoPrint} />
 
       {/* ── Kitchen Ticket Dialog ── */}
       <Dialog open={showKitchenTicket} onOpenChange={setShowKitchenTicket}>
