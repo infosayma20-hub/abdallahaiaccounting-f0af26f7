@@ -173,12 +173,13 @@ const InventoryPage = () => {
     }
     setSaving(true);
     const autoSKU = editMode && selectedProduct?.sku ? selectedProduct.sku : generateSKU(form.skuPrefix);
-    const payload = {
+    const payload: any = {
       user_id: user.id, name: form.name.trim(), category: form.category as any,
       sku: autoSKU, buy_price: parseFloat(form.buy_price) || 0,
       sell_price: parseFloat(form.sell_price) || 0, quantity: parseFloat(form.quantity) || 0,
       min_quantity: parseFloat(form.min_quantity) || 0, unit: form.unit,
       notes: form.notes.trim() || null,
+      kitchen_station_id: form.kitchen_station_id || null,
     };
     if (editMode && selectedProduct) {
       const { error } = await supabase.from("products").update(payload).eq("id", selectedProduct.id);
