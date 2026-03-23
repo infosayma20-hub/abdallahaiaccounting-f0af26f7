@@ -731,6 +731,29 @@ const InventoryPage = () => {
               <Input placeholder="اختياري" value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} className="rounded-xl" />
             </div>
 
+            {kitchenStations.length > 0 && (
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 flex items-center gap-1.5">
+                  <ChefHat className="h-3.5 w-3.5" />
+                  محطة المطبخ (للطباعة التلقائية)
+                </label>
+                <Select value={form.kitchen_station_id || "none"} onValueChange={v => setForm(p => ({ ...p, kitchen_station_id: v === "none" ? "" : v }))}>
+                  <SelectTrigger className="rounded-xl"><SelectValue placeholder="بدون محطة" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">بدون محطة</SelectItem>
+                    {kitchenStations.map(s => (
+                      <SelectItem key={s.id} value={s.id}>
+                        <span className="flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: s.color }} />
+                          {s.name}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             <Button onClick={handleSave} disabled={saving} className="w-full rounded-xl gap-2 shadow-md shadow-primary/20">
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
               {editMode ? "حفظ التعديلات" : "إضافة المنتج"}
