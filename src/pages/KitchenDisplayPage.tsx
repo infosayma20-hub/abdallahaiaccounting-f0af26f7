@@ -180,11 +180,12 @@ export default function KitchenDisplayPage() {
       paperWidthMm: 80,
       contentWidthMm: 72,
       extraStyles: `
-        .header { text-align: center; border-bottom: 2px dashed #333; padding-bottom: 8px; margin-bottom: 8px; }
-        .station-name { font-size: 18px; font-weight: 900; }
-        .order-num { font-size: 24px; font-weight: 900; margin: 4px 0; }
+        .header { text-align: center; border-bottom: 3px dashed #000; padding-bottom: 8px; margin-bottom: 8px; }
+        .station-name { font-size: 20px; font-weight: 900; color: #000; }
+        .order-num { font-size: 28px; font-weight: 900; margin: 4px 0; color: #000; }
         table { width: 100%; border-collapse: collapse; }
-        .footer { text-align: center; border-top: 2px dashed #333; padding-top: 6px; margin-top: 8px; font-size: 11px; color: #666; }
+        td { color: #000 !important; }
+        .footer { text-align: center; border-top: 3px dashed #000; padding-top: 6px; margin-top: 8px; font-size: 13px; color: #000; font-weight: 700; }
       `,
     });
 
