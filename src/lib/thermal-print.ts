@@ -12,7 +12,7 @@ function buildThermalHtml(bodyHtml: string, options: Required<Pick<ThermalPrintO
     html, body {
       margin: 0;
       padding: 0;
-      background: hsl(0 0% 100%);
+      background: #fff;
     }
     * {
       box-sizing: border-box;
@@ -21,16 +21,21 @@ function buildThermalHtml(bodyHtml: string, options: Required<Pick<ThermalPrintO
     }
     body {
       direction: rtl;
-      color: hsl(0 0% 0%);
-      font-family: 'Segoe UI', Arial, sans-serif;
+      color: #000;
+      font-family: 'Arial', 'Tahoma', 'Segoe UI', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 1.5;
       overflow: hidden;
+      -webkit-font-smoothing: none;
+      text-rendering: geometricPrecision;
     }
     .thermal-print-root {
       width: ${options.contentWidthMm}mm;
       max-width: ${options.contentWidthMm}mm;
       margin: 0 auto;
       padding: 2mm 0;
-      background: hsl(0 0% 100%);
+      background: #fff;
     }
     img, svg, canvas {
       max-width: 100% !important;
