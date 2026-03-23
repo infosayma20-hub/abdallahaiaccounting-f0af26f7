@@ -1590,6 +1590,7 @@ const POSPage = () => {
   // Open session
   const handleOpenShift = async () => {
     if (!userId || !company || !terminal) return;
+    if (!isAdmin && !posPerms.can_open_register) { toast.error("ليس لديك صلاحية فتح الوردية"); return; }
     if (!selectedCashBoxId) {
       toast.error("يجب اختيار الصندوق قبل فتح الوردية");
       return;
