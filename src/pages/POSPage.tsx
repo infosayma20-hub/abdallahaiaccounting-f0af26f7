@@ -3580,9 +3580,20 @@ const POSPage = () => {
                               </div>
                             )}
 
+                            {/* Delete product button */}
+                            {!isSortMode && (isAdmin || posPerms.delete_products) && (
+                              <button
+                                className="absolute top-1 right-1 z-20 w-5 h-5 rounded-full bg-destructive/80 hover:bg-destructive text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+                                onClick={(e) => { e.stopPropagation(); setConfirmDeleteProduct({ id: product.id, name: product.name }); }}
+                                title="حذف المنتج"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            )}
+
                             {/* Low stock indicator */}
                             {isLowStock && !isSortMode && (
-                              <div className="absolute top-1 right-1 z-10">
+                              <div className={`absolute ${(isAdmin || posPerms.delete_products) ? "top-7" : "top-1"} right-1 z-10`}>
                                 <div className="w-2 h-2 rounded-full bg-orange-400 animate-pulse" />
                               </div>
                             )}
