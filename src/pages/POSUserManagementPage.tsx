@@ -69,6 +69,7 @@ interface Permission {
   can_refund: boolean;
   allow_credit_sale: boolean;
   open_cash_drawer: boolean;
+  can_remove_cart_items: boolean;
   // Group 3 - Invoices
   can_view_invoice_history: boolean;
   can_edit_invoices: boolean;
@@ -110,6 +111,7 @@ const DEFAULT_PERMS: Permission = {
   can_refund: false,
   allow_credit_sale: false,
   open_cash_drawer: false,
+  can_remove_cart_items: true,
   can_view_invoice_history: true,
   can_edit_invoices: false,
   require_manager_for_invoices: true,
@@ -268,6 +270,7 @@ export default function POSUserManagementPage() {
       can_affect_inventory_on_purchase: (perms as any).can_affect_inventory_on_purchase ?? false,
       can_record_expenses: (perms as any).can_record_expenses ?? false,
       can_create_expense_category: (perms as any).can_create_expense_category ?? false,
+      can_remove_cart_items: (perms as any).can_remove_cart_items ?? true,
     } : DEFAULT_PERMS);
 
     // Load device access
@@ -533,6 +536,7 @@ export default function POSUserManagementPage() {
         { key: "can_refund", label: "استرجاع", icon: <RotateCcw className="w-4 h-4" /> },
         { key: "allow_credit_sale", label: "الدفع المؤجل / الدين", icon: <CreditCard className="w-4 h-4" /> },
         { key: "open_cash_drawer", label: "فتح درج الكاش", icon: <Wallet className="w-4 h-4" /> },
+        { key: "can_remove_cart_items", label: "حذف أصناف من السلة", icon: <Ban className="w-4 h-4" /> },
       ],
     },
     {

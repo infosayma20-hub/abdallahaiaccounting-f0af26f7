@@ -513,7 +513,8 @@ const POSPage = () => {
      can_record_expenses: boolean;
      can_create_expense_category: boolean;
      open_cash_drawer: boolean;
-   }>({ can_view_invoice_history: true, can_edit_invoices: true, require_manager_for_invoices: true, manage_products_categories: false, view_invoice_log: false, edit_cancel_invoices: false, can_add_inventory: false, can_create_product: false, can_record_purchases: false, can_pay_purchases_cash: false, can_create_supplier: false, can_affect_inventory_on_purchase: false, can_record_expenses: false, can_create_expense_category: false, open_cash_drawer: false });
+     can_remove_cart_items: boolean;
+   }>({ can_view_invoice_history: true, can_edit_invoices: true, require_manager_for_invoices: true, manage_products_categories: false, view_invoice_log: false, edit_cancel_invoices: false, can_add_inventory: false, can_create_product: false, can_record_purchases: false, can_pay_purchases_cash: false, can_create_supplier: false, can_affect_inventory_on_purchase: false, can_record_expenses: false, can_create_expense_category: false, open_cash_drawer: false, can_remove_cart_items: true });
 
    // Financial operation modals
    const [showInventoryInput, setShowInventoryInput] = useState(false);
@@ -617,7 +618,7 @@ const POSPage = () => {
       if ((posUser as any).is_call_center) setIsCallCenter(true);
       const { data: perms } = await supabase
         .from("pos_user_permissions")
-        .select("can_view_invoice_history, can_edit_invoices, require_manager_for_invoices, manage_products_categories, view_invoice_log, edit_cancel_invoices, can_add_inventory, can_create_product, can_record_purchases, can_pay_purchases_cash, can_create_supplier, can_affect_inventory_on_purchase, can_record_expenses, can_create_expense_category, open_cash_drawer")
+        .select("can_view_invoice_history, can_edit_invoices, require_manager_for_invoices, manage_products_categories, view_invoice_log, edit_cancel_invoices, can_add_inventory, can_create_product, can_record_purchases, can_pay_purchases_cash, can_create_supplier, can_affect_inventory_on_purchase, can_record_expenses, can_create_expense_category, open_cash_drawer, can_remove_cart_items")
         .eq("pos_user_id", posUser.id)
         .maybeSingle();
       if (perms) {
@@ -636,8 +637,9 @@ const POSPage = () => {
           can_affect_inventory_on_purchase: (perms as any).can_affect_inventory_on_purchase ?? false,
           can_record_expenses: (perms as any).can_record_expenses ?? false,
           can_create_expense_category: (perms as any).can_create_expense_category ?? false,
-          open_cash_drawer: (perms as any).open_cash_drawer ?? false,
-        });
+           open_cash_drawer: (perms as any).open_cash_drawer ?? false,
+           can_remove_cart_items: (perms as any).can_remove_cart_items ?? true,
+         });
       }
     };
     loadPerms();
@@ -3781,12 +3783,14 @@ const POSPage = () => {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-start justify-between gap-1">
                               <p className="text-[13px] font-semibold text-foreground truncate leading-tight">{item.name}</p>
+                              {(isAdmin || posPerms.can_remove_cart_items) && (
                               <button
                                 className="p-0.5 text-muted-foreground/40 hover:text-destructive transition-colors shrink-0"
                                 onClick={(e) => { e.stopPropagation(); removeFromCart(index); }}
                               >
                                 <X className="h-3.5 w-3.5" />
                               </button>
+                              )}
                             </div>
                             <div className="flex items-center gap-1 mt-0.5">
                               <input
