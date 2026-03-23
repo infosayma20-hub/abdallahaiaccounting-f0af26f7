@@ -498,10 +498,32 @@ const POSPage = () => {
 
    // POS User Permissions
    const [posPerms, setPosPerms] = useState<{
+     can_open_register: boolean;
+     can_close_register: boolean;
+     can_view_shift_details: boolean;
+     can_view_profits: boolean;
+     can_apply_discount: boolean;
+     max_discount_percent: number;
+     can_edit_prices: boolean;
+     can_void_sales: boolean;
+     can_refund: boolean;
+     allow_credit_sale: boolean;
+     open_cash_drawer: boolean;
+     can_remove_cart_items: boolean;
      can_view_invoice_history: boolean;
      can_edit_invoices: boolean;
      require_manager_for_invoices: boolean;
+     print_invoices: boolean;
+     resend_invoice: boolean;
      manage_products_categories: boolean;
+     edit_products: boolean;
+     delete_products: boolean;
+     view_inventory: boolean;
+     add_customer: boolean;
+     view_customers: boolean;
+     edit_customers: boolean;
+     view_sales_report: boolean;
+     export_reports: boolean;
      view_invoice_log: boolean;
      edit_cancel_invoices: boolean;
      can_add_inventory: boolean;
@@ -512,9 +534,20 @@ const POSPage = () => {
      can_affect_inventory_on_purchase: boolean;
      can_record_expenses: boolean;
      can_create_expense_category: boolean;
-     open_cash_drawer: boolean;
-     can_remove_cart_items: boolean;
-   }>({ can_view_invoice_history: true, can_edit_invoices: true, require_manager_for_invoices: true, manage_products_categories: false, view_invoice_log: false, edit_cancel_invoices: false, can_add_inventory: false, can_create_product: false, can_record_purchases: false, can_pay_purchases_cash: false, can_create_supplier: false, can_affect_inventory_on_purchase: false, can_record_expenses: false, can_create_expense_category: false, open_cash_drawer: false, can_remove_cart_items: true });
+   }>({
+     can_open_register: true, can_close_register: true, can_view_shift_details: true, can_view_profits: false,
+     can_apply_discount: true, max_discount_percent: 100, can_edit_prices: true, can_void_sales: false,
+     can_refund: false, allow_credit_sale: false, open_cash_drawer: false, can_remove_cart_items: true,
+     can_view_invoice_history: true, can_edit_invoices: true, require_manager_for_invoices: true,
+     print_invoices: true, resend_invoice: false,
+     manage_products_categories: false, edit_products: false, delete_products: false, view_inventory: false,
+     add_customer: false, view_customers: false, edit_customers: false,
+     view_sales_report: false, export_reports: false,
+     view_invoice_log: false, edit_cancel_invoices: false,
+     can_add_inventory: false, can_create_product: false, can_record_purchases: false,
+     can_pay_purchases_cash: false, can_create_supplier: false, can_affect_inventory_on_purchase: false,
+     can_record_expenses: false, can_create_expense_category: false,
+   });
 
    // Financial operation modals
    const [showInventoryInput, setShowInventoryInput] = useState(false);
