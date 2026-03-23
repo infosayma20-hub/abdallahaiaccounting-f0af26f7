@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { ChefHat, Clock, CheckCircle2, Printer, ArrowRight, RefreshCw, Volume2 } from "lucide-react";
+import { printThermalContent } from "@/lib/thermal-print";
 
 interface Station {
   id: string;
