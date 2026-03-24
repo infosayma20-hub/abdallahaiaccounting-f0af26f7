@@ -110,11 +110,11 @@ export default function BranchDisplayPage() {
     return () => clearTimeout(timeout);
   }, [qrData, fetchQR]);
 
-  // Countdown timer
+  // Countdown timer — only for rotating
   useEffect(() => {
-    if (!qrData) return;
+    if (!qrData || qrData.qr_mode === 'static' || !qrData.expires_at) return;
     const update = () => {
-      const remaining = new Date(qrData.expires_at).getTime() - Date.now();
+      const remaining = new Date(qrData.expires_at!).getTime() - Date.now();
       if (remaining <= 0) {
         setCountdown("جاري التحديث...");
         return;
