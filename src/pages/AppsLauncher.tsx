@@ -172,6 +172,11 @@ const AppsLauncher = () => {
   const allFilteredApps = useMemo(() => {
     let allApps = appSections.flatMap(s => s.items);
     
+    // Remove hidden apps completely
+    if (hiddenApps.length > 0) {
+      allApps = allApps.filter(app => !hiddenApps.includes(app.id));
+    }
+
     // Filter by role if restricted
     if (restrictedRole && ROLE_ALLOWED_APPS[restrictedRole]) {
       const allowed = ROLE_ALLOWED_APPS[restrictedRole];
@@ -191,7 +196,7 @@ const AppsLauncher = () => {
       const bDisabled = isAppDisabled(b) ? 1 : 0;
       return aDisabled - bDisabled;
     });
-  }, [search, enabledSettings, restrictedRole]);
+  }, [search, enabledSettings, restrictedRole, hiddenApps]);
 
   const totalResults = allFilteredApps.length;
 
