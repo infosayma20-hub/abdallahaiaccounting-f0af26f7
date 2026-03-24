@@ -7,8 +7,9 @@ import { ar } from "date-fns/locale";
 type QRData = {
   qr_payload: string;
   branch_name: string;
-  expires_at: string;
+  expires_at: string | null;
   rotation_minutes: number;
+  qr_mode?: string;
 };
 
 export default function BranchDisplayPage() {
@@ -87,15 +88,16 @@ export default function BranchDisplayPage() {
     };
   }, [fetchQR]);
 
-  // Auto-refresh every 60 seconds
+  // Auto-refresh — only for rotating QR
   useEffect(() => {
+    if (qrData?.qr_mode === 'static') return; // no refresh needed for static
     const interval = setInterval(fetchQR, 60 * 1000);
     return () => clearInterval(interval);
-  }, [fetchQR]);
+  }, [fetchQR, qrData?.qr_mode]);
 
-  // Auto-regenerate when time window changes
+  // Auto-regenerate when time window changes — only for rotating
   useEffect(() => {
-    if (!qrData) return;
+    if (!qrData || qrData.qr_mode === 'static' || !qrData.expires_at) return;
     const expiryTime = new Date(qrData.expires_at).getTime();
     const timeUntilExpiry = expiryTime - Date.now();
 
@@ -108,11 +110,11 @@ export default function BranchDisplayPage() {
     return () => clearTimeout(timeout);
   }, [qrData, fetchQR]);
 
-  // Countdown timer
+  // Countdown timer — only for rotating
   useEffect(() => {
-    if (!qrData) return;
+    if (!qrData || qrData.qr_mode === 'static' || !qrData.expires_at) return;
     const update = () => {
-      const remaining = new Date(qrData.expires_at).getTime() - Date.now();
+      const remaining = new Date(qrData.expires_at!).getTime() - Date.now();
       if (remaining <= 0) {
         setCountdown("جاري التحديث...");
         return;
@@ -287,21 +289,30 @@ export default function BranchDisplayPage() {
 
       {/* Countdown & metadata */}
       <div className="text-center z-10 space-y-3">
-        <div className="inline-flex items-center gap-3 px-6 py-3 rounded-2xl bg-white/5 border border-white/10">
-          <Clock className="h-5 w-5 text-emerald-400" />
-          <span className="text-white/50 text-sm">يتجدد خلال</span>
-          <span
-            className="font-bold text-emerald-400 tabular-nums text-xl"
-            style={{ fontFeatureSettings: "'tnum' 1" }}
-          >
-            {countdown}
-          </span>
-        </div>
+        {qrData.qr_mode === 'static' ? (
+          <div className="inline-flex items-center gap-3 px-6 py-3 rounded-2xl bg-white/5 border border-white/10">
+            <Shield className="h-5 w-5 text-emerald-400" />
+            <span className="text-white/50 text-sm">رمز ثابت — للطباعة والتعليق</span>
+          </div>
+        ) : (
+          <div className="inline-flex items-center gap-3 px-6 py-3 rounded-2xl bg-white/5 border border-white/10">
+            <Clock className="h-5 w-5 text-emerald-400" />
+            <span className="text-white/50 text-sm">يتجدد خلال</span>
+            <span
+              className="font-bold text-emerald-400 tabular-nums text-xl"
+              style={{ fontFeatureSettings: "'tnum' 1" }}
+            >
+              {countdown}
+            </span>
+          </div>
+        )}
 
-        <div className="flex items-center justify-center gap-2 text-white/25 text-xs">
-          <Shield className="h-3.5 w-3.5" />
-          <span>HMAC-SHA256 · يتجدد كل {qrData.rotation_minutes} دقيقة</span>
-        </div>
+        {qrData.qr_mode !== 'static' && (
+          <div className="flex items-center justify-center gap-2 text-white/25 text-xs">
+            <Shield className="h-3.5 w-3.5" />
+            <span>HMAC-SHA256 · يتجدد كل {qrData.rotation_minutes} دقيقة</span>
+          </div>
+        )}
 
         {lastUpdated && (
           <p className="text-white/15 text-[11px]">

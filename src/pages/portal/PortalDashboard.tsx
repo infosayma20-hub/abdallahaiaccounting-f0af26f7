@@ -8,6 +8,7 @@ import PortalSalesTab from './PortalSalesTab';
 import PortalLiquidityTab from './PortalLiquidityTab';
 import PortalEmployeeRequestsTab from './PortalEmployeeRequestsTab';
 import PortalSupplierBalancesTab from './PortalSupplierBalancesTab';
+import PortalAttendanceTab from './PortalAttendanceTab';
 import { supabase } from '@/integrations/supabase/client';
 
 const PRIMARY = '#1B3A5C';
@@ -16,11 +17,12 @@ const ACCENT = '#2A7B9B';
 export default function PortalDashboard() {
   const { user, loading: authLoading, logout } = usePortalAuth();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'sales' | 'liquidity' | 'requests' | 'suppliers'>('sales');
+  const [activeTab, setActiveTab] = useState<'sales' | 'liquidity' | 'requests' | 'suppliers' | 'attendance'>('sales');
   const [clock, setClock] = useState(new Date());
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem('portal_theme') === 'dark');
   const [companyName, setCompanyName] = useState('');
   const [companyLogo, setCompanyLogo] = useState('');
+  const [hasEmployees, setHasEmployees] = useState(false);
   const { salesData, liquidityData, loading: dataLoading, needsSetup, lastUpdated, businessDay, refresh } = usePortalData(user?.id);
 
   useEffect(() => {
@@ -41,23 +43,32 @@ export default function PortalDashboard() {
   }, [authLoading, user, navigate]);
 
   useEffect(() => {
-    const fetchCompanyName = async () => {
+    const fetchCompanyData = async () => {
       try {
         const { data } = await supabase.functions.invoke('malaki-data', {
           body: { action: 'get_settings' },
         });
         if (data?.settings?.linked_user_id) {
+          const linkedId = data.settings.linked_user_id;
           const { data: cs } = await supabase
             .from('company_settings')
             .select('company_name, logo_url')
-            .eq('user_id', data.settings.linked_user_id)
+            .eq('user_id', linkedId)
             .single();
           if (cs?.company_name) setCompanyName(cs.company_name);
           if (cs?.logo_url) setCompanyLogo(cs.logo_url);
+
+          // Check if this account has employees
+          const { count } = await supabase
+            .from('employees')
+            .select('id', { count: 'exact', head: true })
+            .eq('user_id', linkedId)
+            .eq('is_active', true);
+          setHasEmployees((count || 0) > 0);
         }
       } catch {}
     };
-    fetchCompanyName();
+    fetchCompanyData();
   }, []);
 
   if (authLoading || !user) return null;
@@ -85,6 +96,7 @@ export default function PortalDashboard() {
   const tabs = [
     { key: 'sales' as const, label: '📊 المبيعات', visible: user.can_see_sales },
     { key: 'liquidity' as const, label: '💰 السيولة', visible: user.can_see_liquidity },
+    { key: 'attendance' as const, label: '👥 الحضور', visible: hasEmployees },
     { key: 'requests' as const, label: '📋 الطلبات', visible: true },
     { key: 'suppliers' as const, label: '🏭 الموردين', visible: true },
   ].filter(t => t.visible);
@@ -234,6 +246,7 @@ export default function PortalDashboard() {
         )}
         {activeTab === 'requests' && <PortalEmployeeRequestsTab theme={darkMode ? 'dark' : 'light'} />}
         {activeTab === 'suppliers' && <PortalSupplierBalancesTab theme={darkMode ? 'dark' : 'light'} />}
+        {activeTab === 'attendance' && <PortalAttendanceTab theme={darkMode ? 'dark' : 'light'} />}
       </div>
 
       <style>{`

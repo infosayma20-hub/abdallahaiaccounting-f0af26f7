@@ -1110,6 +1110,7 @@ export type Database = {
           latitude: number
           longitude: number
           name: string
+          qr_mode: string
           qr_rotation_minutes: number
           radius_meters: number
           secret_key: string
@@ -1124,6 +1125,7 @@ export type Database = {
           latitude: number
           longitude: number
           name: string
+          qr_mode?: string
           qr_rotation_minutes?: number
           radius_meters?: number
           secret_key?: string
@@ -1138,6 +1140,7 @@ export type Database = {
           latitude?: number
           longitude?: number
           name?: string
+          qr_mode?: string
           qr_rotation_minutes?: number
           radius_meters?: number
           secret_key?: string
@@ -3760,7 +3763,9 @@ export type Database = {
           position: string | null
           previous_year_balance: number | null
           salary_type: string
+          shift_end: string | null
           shift_id: string | null
+          shift_start: string | null
           sick_leave_days: number
           special_work_allowance: number | null
           spouse_allowance_amount: number | null
@@ -3819,7 +3824,9 @@ export type Database = {
           position?: string | null
           previous_year_balance?: number | null
           salary_type?: string
+          shift_end?: string | null
           shift_id?: string | null
+          shift_start?: string | null
           sick_leave_days?: number
           special_work_allowance?: number | null
           spouse_allowance_amount?: number | null
@@ -3878,7 +3885,9 @@ export type Database = {
           position?: string | null
           previous_year_balance?: number | null
           salary_type?: string
+          shift_end?: string | null
           shift_id?: string | null
+          shift_start?: string | null
           sick_leave_days?: number
           special_work_allowance?: number | null
           spouse_allowance_amount?: number | null

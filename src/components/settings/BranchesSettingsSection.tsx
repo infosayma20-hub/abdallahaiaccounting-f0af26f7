@@ -5,9 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Plus, Trash2, MapPin, Building2, Pencil, X, Check } from "lucide-react";
+import { Plus, Trash2, MapPin, Building2, Pencil, X, Check, QrCode, Copy, ExternalLink } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface Branch {
   id: string;
@@ -18,6 +20,7 @@ interface Branch {
   radius_meters: number;
   is_active: boolean;
   created_at: string;
+  qr_mode?: string;
 }
 
 export default function BranchesSettingsSection() {
@@ -33,6 +36,7 @@ export default function BranchesSettingsSection() {
   const [latitude, setLatitude] = useState(31.9);
   const [longitude, setLongitude] = useState(35.2);
   const [radius, setRadius] = useState(100);
+  const [qrMode, setQrMode] = useState("static");
 
   useEffect(() => {
     if (user) loadBranches();
@@ -53,6 +57,7 @@ export default function BranchesSettingsSection() {
     setLatitude(31.9);
     setLongitude(35.2);
     setRadius(100);
+    setQrMode("static");
     setEditing(null);
   };
 
@@ -68,6 +73,7 @@ export default function BranchesSettingsSection() {
     setLatitude(b.latitude);
     setLongitude(b.longitude);
     setRadius(b.radius_meters);
+    setQrMode(b.qr_mode || "static");
     setShowDialog(true);
   };
 
@@ -81,6 +87,7 @@ export default function BranchesSettingsSection() {
       latitude,
       longitude,
       radius_meters: radius,
+      qr_mode: qrMode,
     };
 
     if (editing) {
@@ -152,6 +159,36 @@ export default function BranchesSettingsSection() {
               <p className="text-[10px] text-muted-foreground mt-0.5 font-mono" dir="ltr">
                 📍 {b.latitude.toFixed(4)}, {b.longitude.toFixed(4)} • نطاق {b.radius_meters}م
               </p>
+              <div className="flex items-center gap-2 mt-1">
+                <Badge variant="outline" className="text-[10px]">
+                  <QrCode className="h-3 w-3 ml-1" />
+                  {b.qr_mode === 'rotating' ? 'QR متجدد' : 'QR ثابت'}
+                </Badge>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 text-[10px] gap-1 text-primary"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const url = `${window.location.origin}/branch/${b.id}`;
+                    navigator.clipboard.writeText(url);
+                    toast.success("تم نسخ رابط QR");
+                  }}
+                >
+                  <Copy className="h-3 w-3" /> نسخ رابط
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 text-[10px] gap-1"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    window.open(`/branch/${b.id}`, '_blank');
+                  }}
+                >
+                  <ExternalLink className="h-3 w-3" /> فتح شاشة QR
+                </Button>
+              </div>
             </div>
             <div className="flex items-center gap-2 shrink-0">
               <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(b)}>
@@ -248,6 +285,26 @@ export default function BranchesSettingsSection() {
               </div>
               <p className="text-[10px] text-muted-foreground">
                 المسافة المسموحة لتسجيل حضور الموظفين من موقع الفرع
+              </p>
+            </div>
+
+            {/* QR Mode */}
+            <div className="space-y-2">
+              <Label className="text-xs font-medium flex items-center gap-1.5">
+                <QrCode className="h-3.5 w-3.5 text-primary" />
+                نوع رمز QR
+              </Label>
+              <Select value={qrMode} onValueChange={setQrMode}>
+                <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="static">ثابت (للطباعة على ورقة)</SelectItem>
+                  <SelectItem value="rotating">متجدد (أمان أعلى)</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-[10px] text-muted-foreground">
+                {qrMode === 'static'
+                  ? 'رمز ثابت يمكن طباعته وتعليقه — مناسب للمطاعم والمحلات'
+                  : 'يتجدد تلقائياً كل 5 دقائق — أمان أعلى ضد التزوير'}
               </p>
             </div>
 
