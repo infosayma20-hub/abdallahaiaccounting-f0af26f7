@@ -920,7 +920,7 @@ function SubscriptionsManager() {
 
       {editSub && (
         <Dialog open={!!editSub} onOpenChange={() => setEditSub(null)}>
-          <DialogContent className="bg-white border-gray-200 text-gray-900 max-w-md" dir="rtl">
+           <DialogContent className="bg-white border-gray-200 text-gray-900 max-w-lg max-h-[90vh] overflow-y-auto" dir="rtl">
             <DialogHeader>
               <DialogTitle className="text-gray-900">تعديل اشتراك {editSub.display_name}</DialogTitle>
             </DialogHeader>
