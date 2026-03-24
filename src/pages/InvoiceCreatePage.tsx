@@ -848,10 +848,15 @@ const InvoiceCreatePage = () => {
             </p>
           </div>
         </div>
-        <Button variant="ghost" size="sm" onClick={handlePrint} className="gap-1.5 text-xs">
-          <Eye className="h-4 w-4" /> معاينة
-        </Button>
       </div>
+
+      {/* Navigation Toolbar */}
+      <VoucherNavToolbar
+        voucherType="invoice"
+        currentRef={isEditMode ? nextInvoiceNumber : undefined}
+        onPrint={handlePrint}
+        showNavigation={isEditMode}
+      />
 
       {/* ─── SECTION 1: Invoice Data ─── */}
       <Card className="border-0 shadow-sm rounded-2xl">
