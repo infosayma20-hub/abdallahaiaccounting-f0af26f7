@@ -47,7 +47,9 @@ const financialTypes = ["advance_request", "loan_request"];
 
 export default function EmployeeFormsManagementPage() {
   const { user } = useAuth();
+  const { settings: companySettings } = useCompanySettings();
   const [forms, setForms] = useState<any[]>([]);
+  const [printForm, setPrintForm] = useState<any | null>(null);
   const [employeeMap, setEmployeeMap] = useState<Record<string, { name: string; branch: string }>>({});
   const [branches, setBranches] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
