@@ -1117,6 +1117,21 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     );
   }
 
+  const handleNewSimilar = () => {
+    const draftData = {
+      _sourceRef: refNumber || savedReceiptNumber,
+      paymentMethod,
+      notes,
+      depositType,
+      selectedCashBox,
+      selectedBankAccount,
+      contactId: selectedContact?.id || "",
+    };
+    localStorage.setItem(`draft_${voucherType}_new`, JSON.stringify(draftData));
+    if (isReceipt) navigate("/finance/receipt/new?from_duplicate=true");
+    else navigate("/finance/payment/new?from_duplicate=true");
+  };
+
   return (
     <div className="max-w-4xl mx-auto space-y-5" dir="rtl">
       {/* Duplicate Banner */}
@@ -1132,6 +1147,15 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
           <p className="text-xs text-muted-foreground">{pageDesc}</p>
         </div>
       </div>
+
+      {/* Navigation Toolbar */}
+      <VoucherNavToolbar
+        voucherType={voucherType}
+        currentRef={isEditMode ? refNumber : undefined}
+        onPrint={handlePrint}
+        onNewSimilar={isEditMode ? handleNewSimilar : undefined}
+        showNavigation={isEditMode}
+      />
 
       {/* Row 1: Basic Info */}
       <Card>

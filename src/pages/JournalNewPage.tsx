@@ -363,6 +363,23 @@ const JournalNewPage = () => {
         </div>
       </div>
 
+      {/* Navigation Toolbar */}
+      <VoucherNavToolbar
+        voucherType="journal"
+        currentRef={formRefNumber}
+        onPrint={handlePrint}
+        onNew={() => {
+          setSaved(false);
+          setFormDescription("");
+          setFormNotes("");
+          setFormContactId("");
+          setLines([
+            { id: "1", account_code: "", account_name: "", debit: 0, credit: 0, contact_id: "", contact_name: "" },
+            { id: "2", account_code: "", account_name: "", debit: 0, credit: 0, contact_id: "", contact_name: "" },
+          ]);
+        }}
+      />
+
       {/* Subtype Tabs */}
       <Card>
         <CardContent className="p-5 space-y-4">
