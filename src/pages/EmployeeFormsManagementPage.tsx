@@ -557,6 +557,16 @@ export default function EmployeeFormsManagementPage() {
           </div>
         </DialogContent>
       </Dialog>
+      {/* Print Preview */}
+      <EmployeeFormPrintView
+        open={!!printForm}
+        onClose={() => setPrintForm(null)}
+        form={printForm}
+        employeeName={employeeMap[printForm?.employee_id]?.name || "—"}
+        employeeBranch={employeeMap[printForm?.employee_id]?.branch || "—"}
+        companyName={companySettings?.company_name}
+        companyLogo={companySettings?.logo_url}
+      />
     </div>
   );
 }
