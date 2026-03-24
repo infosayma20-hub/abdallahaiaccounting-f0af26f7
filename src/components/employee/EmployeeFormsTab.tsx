@@ -177,7 +177,7 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
     }
   };
 
-  const allForms = [...employeeForms, ...(isManager ? managerForms : [])];
+  const allForms = [...employeeForms.filter(f => showLoanForm || f.id !== "loan_request"), ...(isManager ? managerForms : [])];
   const allCards = [...allForms, ...policyCards];
 
   const formLabel = (type: string) => {
