@@ -422,8 +422,74 @@ const ChequesPage = () => {
         }
       }
 
+      // ===== OUTGOING CHEQUE: CASHED (صُرف في البنك) =====
+      if (data.action === 'cashed') {
+        updatePayload.cashed_date = data.cashedDate;
+        const contactId = cheque.contact_id || findContactId(cheque.party_name);
+        const sourceBank = bankAccounts.find(b => b.id === cheque.source_bank_account_id);
+        const bankGlCode = sourceBank?.gl_account_code || '1120';
+        // Journal: Debit outgoing cheques (1160), Credit bank account
+        const { data: txResult } = await supabase.from('transactions').insert({
+          user_id: user.id, transaction_date: data.cashedDate || new Date().toISOString().split('T')[0],
+          description: `صرف شيك صادر - ${cheque.party_name} #${cheque.cheque_number || ''}`,
+          debit_account_code: '1160', credit_account_code: bankGlCode,
+          amount: cheque.amount, currency: cheque.currency || 'شيكل',
+          transaction_type: 'cheque_cashed', contact_id: contactId,
+          reference: `CHQ-CASH-${cheque.id.slice(0, 8)}`,
+          idempotency_key: `CHQ-CASH-${cheque.id}`,
+        }).select('id').single();
+        txId = txResult?.id || null;
+      }
+
+      // ===== OUTGOING CHEQUE: BOUNCED (مرتجع من البنك) =====
+      if (data.action === 'outgoing_bounced') {
+        updatePayload.bounce_date = data.bounceDate;
+        updatePayload.bounce_reason = data.bounceReason;
+        updatePayload.bank_fees = data.bankFees || 0;
+        const contactId = cheque.contact_id || findContactId(cheque.party_name);
+        // Reverse: Debit outgoing cheques (1160), Credit supplier payables (2100) — restore obligation
+        const { data: txResult } = await supabase.from('transactions').insert({
+          user_id: user.id, transaction_date: data.bounceDate || new Date().toISOString().split('T')[0],
+          description: `شيك صادر مرتجع - ${cheque.party_name} #${cheque.cheque_number || ''} - ${data.bounceReason}`,
+          debit_account_code: '1160', credit_account_code: '2100',
+          amount: cheque.amount, currency: cheque.currency || 'شيكل',
+          transaction_type: 'cheque_bounce', contact_id: contactId,
+          reference: `CHQ-OBNC-${cheque.id.slice(0, 8)}`,
+          idempotency_key: `CHQ-OBNC-${cheque.id}`,
+        }).select('id').single();
+        txId = txResult?.id || null;
+        // Bank fees
+        if (data.bankFees && data.bankFees > 0) {
+          await supabase.from('transactions').insert({
+            user_id: user.id, transaction_date: data.bounceDate || new Date().toISOString().split('T')[0],
+            description: `رسوم بنكية - شيك صادر مرتجع ${cheque.cheque_number || ''}`,
+            debit_account_code: '5200', credit_account_code: '1120',
+            amount: data.bankFees, currency: 'شيكل',
+            transaction_type: 'bank_fee', reference: `CHQ-OFEE-${cheque.id.slice(0, 8)}`,
+            idempotency_key: `CHQ-OFEE-${cheque.id}`,
+          });
+        }
+      }
+
+      // ===== OUTGOING CHEQUE: RECOVER (استرداد) =====
+      if (data.action === 'recover') {
+        const contactId = cheque.contact_id || findContactId(cheque.party_name);
+        const today = new Date().toISOString().split('T')[0];
+        // Reverse registration: Debit outgoing cheques (1160), Credit supplier payables (2100)
+        const { data: txResult } = await supabase.from('transactions').insert({
+          user_id: user.id, transaction_date: today,
+          description: `استرداد شيك صادر - ${cheque.party_name} #${cheque.cheque_number || ''} - ${data.recoverReason || ''}`,
+          debit_account_code: '1160', credit_account_code: '2100',
+          amount: cheque.amount, currency: cheque.currency || 'شيكل',
+          transaction_type: 'cheque_recover', contact_id: contactId,
+          reference: `CHQ-RCV-${cheque.id.slice(0, 8)}`,
+          idempotency_key: `CHQ-RCV-${cheque.id}`,
+        }).select('id').single();
+        txId = txResult?.id || null;
+      }
+
       // Update cheque
-      const { error } = await supabase.from('cheques').update(updatePayload).eq('id', cheque.id);
+      const { error } = await supabase.from('cheques').update(updatePayload as any).eq('id', cheque.id);
       if (error) throw error;
 
       // Record status history
