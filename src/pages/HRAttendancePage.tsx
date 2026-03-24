@@ -639,6 +639,13 @@ body { width: 210mm; height: 297mm; display: flex; flex-direction: column; align
                 <Eye className="h-3.5 w-3.5" /> شاشة عرض
               </Button>
             </div>
+            <Button variant="default" className="w-full gap-1" onClick={() => {
+              if (selectedBranchForQR && qrToken) {
+                printQRCode(selectedBranchForQR.name, qrToken);
+              }
+            }}>
+              <Printer className="h-3.5 w-3.5" /> طباعة QR على ورقة A4
+            </Button>
             <p className="text-[10px] text-muted-foreground">🔒 مشفر بتقنية HMAC-SHA256 ويتجدد تلقائياً</p>
           </div>
         </DialogContent>
