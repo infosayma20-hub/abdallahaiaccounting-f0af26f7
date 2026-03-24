@@ -18,7 +18,7 @@ const WebLayout = ({ children }: WebLayoutProps) => {
   
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-background" dir="rtl">
+    <div className="flex h-screen w-full overflow-hidden bg-background" dir="rtl" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}>
       {/* Sidebar — always visible */}
       <AppSidebar
         collapsed={sidebarCollapsed}
