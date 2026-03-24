@@ -1120,12 +1120,19 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   const handleNewSimilar = () => {
     const draftData = {
       _sourceRef: refNumber || savedReceiptNumber,
+      paymentDate,
       paymentMethod,
+      amount,
+      currency,
+      exchangeRate,
       notes,
       depositType,
       selectedCashBox,
       selectedBankAccount,
       contactId: selectedContact?.id || "",
+      partyType,
+      selectedGlAccountCode: selectedGlAccount?.account_code || "",
+      selectedEmployeeId: selectedEmployee?.id || "",
     };
     localStorage.setItem(`draft_${voucherType}_new`, JSON.stringify(draftData));
     if (isReceipt) navigate("/finance/receipt/new?from_duplicate=true");
