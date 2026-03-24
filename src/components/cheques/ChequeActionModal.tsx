@@ -292,6 +292,57 @@ const ChequeActionModal = ({
             </div>
           )}
 
+          {/* CASHED (outgoing) fields */}
+          {action === 'cashed' && (
+            <>
+              <div>
+                <Label className="text-xs">تاريخ الصرف</Label>
+                <Input type="date" value={cashedDate} onChange={e => setCashedDate(e.target.value)} className="h-9 mt-1 rounded-xl" />
+              </div>
+              {sourceBankAccount && (
+                <div className="bg-muted/30 rounded-xl p-3 text-xs">
+                  <p className="text-muted-foreground">سيتم الخصم من: <strong className="text-foreground">{sourceBankAccount.name}</strong> ({sourceBankAccount.bank_name})</p>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* OUTGOING BOUNCED fields */}
+          {action === 'outgoing_bounced' && (
+            <>
+              <div>
+                <Label className="text-xs font-semibold">سبب الإرجاع *</Label>
+                <RadioGroup value={bounceReason} onValueChange={setBounceReason} className="mt-2 space-y-1.5">
+                  {BOUNCE_REASONS.map(r => (
+                    <div key={r} className="flex items-center gap-2">
+                      <RadioGroupItem value={r} id={`out-${r}`} />
+                      <Label htmlFor={`out-${r}`} className="text-sm cursor-pointer">{r}</Label>
+                    </div>
+                  ))}
+                </RadioGroup>
+                {bounceReason === 'أخرى' && (
+                  <Input value={customBounceReason} onChange={e => setCustomBounceReason(e.target.value)} placeholder="سبب آخر..." className="h-9 mt-2 rounded-xl" />
+                )}
+              </div>
+              <div>
+                <Label className="text-xs">تاريخ الارتجاع</Label>
+                <Input type="date" value={bounceDate} onChange={e => setBounceDate(e.target.value)} className="h-9 mt-1 rounded-xl" />
+              </div>
+              <div>
+                <Label className="text-xs">رسوم البنك (إن وجدت)</Label>
+                <Input type="number" value={bankFees} onChange={e => setBankFees(e.target.value)} placeholder="0" className="h-9 mt-1 rounded-xl" />
+              </div>
+            </>
+          )}
+
+          {/* RECOVER fields */}
+          {action === 'recover' && (
+            <div>
+              <Label className="text-xs">سبب الاسترداد</Label>
+              <Input value={recoverReason} onChange={e => setRecoverReason(e.target.value)} placeholder="سبب استرداد الشيك..." className="h-9 mt-1 rounded-xl" />
+            </div>
+          )
+
           {/* Notes (all actions) */}
           <div>
             <Label className="text-xs">ملاحظة (اختياري)</Label>
