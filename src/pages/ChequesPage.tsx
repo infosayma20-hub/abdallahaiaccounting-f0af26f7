@@ -785,7 +785,7 @@ const ChequesPage = () => {
               <tbody>
                 {paged.map((c, i) => {
                   const sc = statusConfig[c.status];
-                  const actions = getAvailableActions(c.status);
+                  const actions = getAvailableActions(c.status, c.cheque_type);
                   const isSelected = selected.has(c.id);
                   const isExpanded = expandedId === c.id;
                   const history = statusHistory[c.id] || [];
