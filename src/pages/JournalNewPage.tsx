@@ -6,6 +6,7 @@ import {
   BookOpen, User, Building2, Users, X, UserPlus
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import VoucherNavToolbar from "@/components/VoucherNavToolbar";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent } from "@/components/ui/card";
