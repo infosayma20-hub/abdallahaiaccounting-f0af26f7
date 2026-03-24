@@ -210,7 +210,13 @@ const CashBoxesPage = () => {
             <p className="text-xs text-muted-foreground">تعريف وإدارة جميع صناديق الشركة</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button variant="outline" size="sm" className="gap-1.5 text-xs border-blue-300 text-blue-700 hover:bg-blue-50" onClick={() => setExchangeOpen(true)}>
+            <ArrowLeftRight className="h-3.5 w-3.5" /> صرف عملة
+          </Button>
+          <Button variant="outline" size="sm" className="gap-1.5 text-xs border-emerald-300 text-emerald-700 hover:bg-emerald-50" onClick={() => setDepositOpen(true)}>
+            <ArrowUpFromLine className="h-3.5 w-3.5" /> إيداع بنكي
+          </Button>
           {pettyBoxes.length > 0 && (
             <Button variant="outline" size="sm" className="gap-1.5 text-xs border-amber-300 text-amber-700 hover:bg-amber-50" onClick={() => setReplenishOpen(true)}>
               <ArrowDownToLine className="h-3.5 w-3.5" /> تغذية النثرية
