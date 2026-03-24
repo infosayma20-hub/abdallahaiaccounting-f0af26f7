@@ -9130,6 +9130,7 @@ export type Database = {
       }
       subscriptions: {
         Row: {
+          agreement_type: string | null
           auto_renew: boolean | null
           billing_cycle: string
           cancelled_at: string | null
@@ -9137,6 +9138,8 @@ export type Database = {
           created_at: string
           current_period_end: string
           current_period_start: string
+          custom_amount: number | null
+          custom_currency: string | null
           id: string
           last_notified_at: string | null
           plan_id: string
@@ -9148,6 +9151,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          agreement_type?: string | null
           auto_renew?: boolean | null
           billing_cycle?: string
           cancelled_at?: string | null
@@ -9155,6 +9159,8 @@ export type Database = {
           created_at?: string
           current_period_end?: string
           current_period_start?: string
+          custom_amount?: number | null
+          custom_currency?: string | null
           id?: string
           last_notified_at?: string | null
           plan_id: string
@@ -9166,6 +9172,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          agreement_type?: string | null
           auto_renew?: boolean | null
           billing_cycle?: string
           cancelled_at?: string | null
@@ -9173,6 +9180,8 @@ export type Database = {
           created_at?: string
           current_period_end?: string
           current_period_start?: string
+          custom_amount?: number | null
+          custom_currency?: string | null
           id?: string
           last_notified_at?: string | null
           plan_id?: string
