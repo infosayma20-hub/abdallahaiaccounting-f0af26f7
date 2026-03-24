@@ -577,6 +577,25 @@ function LiveMonitor() {
   );
 }
 
+// ─── Reset Categories ───
+const RESET_CATEGORIES = [
+  { key: "pos", label: "نقطة البيع (POS)", icon: "🖥️", desc: "طلبات، مدفوعات، ورديات" },
+  { key: "call_center", label: "الكول سنتر", icon: "📞", desc: "طلبات الكول سنتر" },
+  { key: "invoices", label: "فواتير المبيعات", icon: "🧾", desc: "فواتير وبنودها" },
+  { key: "purchase_invoices", label: "فواتير المشتريات", icon: "📦", desc: "فواتير المشتريات وبنودها" },
+  { key: "vouchers", label: "السندات", icon: "📋", desc: "سندات قبض وصرف وقيد" },
+  { key: "cheques", label: "الشيكات", icon: "💳", desc: "شيكات وتاريخ حالاتها" },
+  { key: "cash_transfers", label: "تحويلات الصناديق", icon: "🔄", desc: "تحويلات بين الصناديق" },
+  { key: "loans", label: "القروض والسلف", icon: "💰", desc: "قروض حسنة وأقساطها" },
+  { key: "payroll", label: "الرواتب والمسحوبات", icon: "💵", desc: "كشوف رواتب، مسحوبات، خصومات" },
+  { key: "leaves", label: "الإجازات", icon: "🏖️", desc: "إجازات الموظفين" },
+  { key: "attendance", label: "الحضور", icon: "⏰", desc: "بصمات وأيام الحضور" },
+  { key: "procurement", label: "المشتريات (Procurement)", icon: "🛒", desc: "طلبات وأوامر الشراء" },
+  { key: "contractor", label: "المقاولات", icon: "🏗️", desc: "حركات المقاولين" },
+  { key: "journals", label: "القيود المحاسبية", icon: "📒", desc: "جميع المعاملات المالية" },
+  { key: "other", label: "أخرى", icon: "🗃️", desc: "عمولات، تنبيهات، سجلات، AI" },
+];
+
 // ─── Reset Transactions Tool ───
 function ResetTransactionsTool() {
   const [users, setUsers] = useState<{ user_id: string; display_name: string; email?: string }[]>([]);
@@ -587,6 +606,7 @@ function ResetTransactionsTool() {
   const [resetting, setResetting] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [userSearch, setUserSearch] = useState("");
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(RESET_CATEGORIES.map(c => c.key));
 
   useEffect(() => {
     (async () => {
@@ -604,14 +624,26 @@ function ResetTransactionsTool() {
 
   const selectedUserInfo = users.find(u => u.user_id === selectedUser);
 
+  const toggleCategory = (key: string) => {
+    setSelectedCategories(prev =>
+      prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
+    );
+  };
+
+  const allSelected = selectedCategories.length === RESET_CATEGORIES.length;
+  const toggleAll = () => {
+    setSelectedCategories(allSelected ? [] : RESET_CATEGORIES.map(c => c.key));
+  };
+
   const handleReset = async () => {
-    if (!selectedUser || !password || confirmText !== "RESET") return;
+    if (!selectedUser || !password || confirmText !== "RESET" || selectedCategories.length === 0) return;
     setResetting(true);
     setResult(null);
     try {
       const res = await apiCall("reset_user_transactions", undefined, {
         target_user_id: selectedUser,
         password,
+        categories: selectedCategories,
       });
       setResult(res);
       toast.success(`تم حذف ${res.total_deleted} سجل بنجاح`);
@@ -637,23 +669,9 @@ function ResetTransactionsTool() {
           <div>
             <h3 className="font-bold text-lg" style={{ color: "var(--sa-text-primary)" }}>إعادة تعيين حركات مستخدم</h3>
             <p className="text-sm" style={{ color: "var(--sa-text-muted)" }}>
-              حذف جميع الحركات المالية والمعاملات مع الحفاظ على التعريفات (الحسابات، الأصناف، الموظفين، جهات الاتصال، POS)
+              اختر الأقسام المراد تصفيرها مع الحفاظ على التعريفات
             </p>
           </div>
-        </div>
-
-        <div className="p-4 rounded-xl bg-red-500/5 border border-red-500/10 space-y-2">
-          <p className="text-sm font-bold text-red-400 flex items-center gap-2">
-            <AlertTriangle className="h-4 w-4" /> تحذير: هذا الإجراء لا يمكن التراجع عنه
-          </p>
-          <ul className="text-xs space-y-1 mr-6" style={{ color: "var(--sa-text-muted)" }}>
-            <li>• سيتم حذف جميع المعاملات المالية (transactions)</li>
-            <li>• سيتم حذف جميع طلبات ومدفوعات وورديات POS</li>
-            <li>• سيتم حذف جميع الفواتير والسندات والقيود</li>
-            <li>• سيتم حذف الشيكات والتحويلات والقروض والرواتب</li>
-            <li>• سيتم إعادة أرصدة جهات الاتصال إلى صفر</li>
-            <li className="text-emerald-400 font-medium">✓ ستبقى الحسابات والأصناف والموظفين وإعدادات POS كما هي</li>
-          </ul>
         </div>
 
         {/* User selector */}
@@ -701,6 +719,65 @@ function ResetTransactionsTool() {
               </p>
             </div>
 
+            {/* Category Selection */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-bold" style={{ color: "var(--sa-text-primary)" }}>اختر الأقسام المراد تصفيرها</label>
+                <button
+                  onClick={toggleAll}
+                  className="text-xs px-3 py-1 rounded-lg transition-colors"
+                  style={{ background: "var(--sa-surface)", color: "var(--sa-text-secondary)" }}
+                >
+                  {allSelected ? "إلغاء تحديد الكل" : "تحديد الكل"}
+                </button>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                {RESET_CATEGORIES.map(cat => {
+                  const isSelected = selectedCategories.includes(cat.key);
+                  return (
+                    <button
+                      key={cat.key}
+                      onClick={() => toggleCategory(cat.key)}
+                      className={`flex items-start gap-2 p-2.5 rounded-xl text-right transition-all border ${
+                        isSelected
+                          ? "border-red-500/40 bg-red-500/10"
+                          : "border-transparent"
+                      }`}
+                      style={!isSelected ? { background: "var(--sa-surface)", color: "var(--sa-text-muted)" } : undefined}
+                    >
+                      <div className={`w-5 h-5 rounded-md flex items-center justify-center text-xs flex-shrink-0 mt-0.5 ${
+                        isSelected ? "bg-red-500 text-white" : ""
+                      }`} style={!isSelected ? { background: "var(--sa-card-bg)", border: "1px solid var(--sa-card-border)" } : undefined}>
+                        {isSelected && "✓"}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-xs font-bold ${isSelected ? "text-red-400" : ""}`} style={!isSelected ? { color: "var(--sa-text-secondary)" } : undefined}>
+                          {cat.icon} {cat.label}
+                        </p>
+                        <p className="text-[10px] truncate" style={{ color: "var(--sa-text-faint)" }}>{cat.desc}</p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+              {selectedCategories.length > 0 && (
+                <p className="text-xs text-amber-400">
+                  ✅ سيتم تصفير {selectedCategories.length} من {RESET_CATEGORIES.length} قسم
+                </p>
+              )}
+            </div>
+
+            <div className="p-4 rounded-xl bg-red-500/5 border border-red-500/10 space-y-2">
+              <p className="text-sm font-bold text-red-400 flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4" /> تحذير: هذا الإجراء لا يمكن التراجع عنه
+              </p>
+              <ul className="text-xs space-y-1 mr-6" style={{ color: "var(--sa-text-muted)" }}>
+                <li>• سيتم حذف البيانات في الأقسام المحددة فقط</li>
+                <li>• سيتم إعادة أرصدة جهات الاتصال إلى صفر</li>
+                <li className="text-emerald-400 font-medium">✓ ستبقى الحسابات والأصناف والموظفين وإعدادات POS كما هي</li>
+              </ul>
+            </div>
+
             <div className="space-y-2">
               <label className="text-sm font-bold" style={{ color: "var(--sa-text-primary)" }}>كلمة مرور Super Admin</label>
               <Input
@@ -727,13 +804,13 @@ function ResetTransactionsTool() {
 
             <Button
               onClick={handleReset}
-              disabled={resetting || !password || confirmText !== "RESET"}
+              disabled={resetting || !password || confirmText !== "RESET" || selectedCategories.length === 0}
               className="w-full bg-red-500 hover:bg-red-600 text-white h-11 text-base font-bold gap-2"
             >
               {resetting ? (
                 <><RefreshCw className="h-4 w-4 animate-spin" /> جاري الحذف...</>
               ) : (
-                <><Trash2 className="h-4 w-4" /> حذف جميع الحركات</>
+                <><Trash2 className="h-4 w-4" /> حذف الحركات المحددة ({selectedCategories.length} قسم)</>
               )}
             </Button>
           </div>
@@ -756,7 +833,6 @@ function ResetTransactionsTool() {
     </div>
   );
 }
-
 
 function SubscriptionsManager() {
   const [subs, setSubs] = useState<any[]>([]);
