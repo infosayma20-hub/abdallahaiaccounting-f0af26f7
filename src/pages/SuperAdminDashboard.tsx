@@ -834,6 +834,184 @@ function ResetTransactionsTool() {
   );
 }
 
+// ─── App Visibility Manager ───
+const MANAGEABLE_APPS = [
+  { id: "pos", label: "نقطة البيع", icon: "🖥️" },
+  { id: "inventory", label: "المخزون", icon: "📦" },
+  { id: "fixed-assets", label: "الأصول الثابتة", icon: "🏛️" },
+  { id: "contractor", label: "المقاولات", icon: "🏗️" },
+  { id: "ecommerce", label: "المتاجر الإلكترونية", icon: "🛍️" },
+  { id: "travel", label: "السياحة والسفر", icon: "✈️" },
+  { id: "tasks", label: "إدارة المهام", icon: "📋" },
+  { id: "hr", label: "الموارد البشرية", icon: "👥" },
+  { id: "purchases", label: "المشتريات", icon: "🛒" },
+];
+
+function AppVisibilityManager() {
+  const [users, setUsers] = useState<{ user_id: string; display_name: string; email?: string }[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedUser, setSelectedUser] = useState("");
+  const [hiddenApps, setHiddenApps] = useState<string[]>([]);
+  const [loadingApps, setLoadingApps] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [userSearch, setUserSearch] = useState("");
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await apiCall("users");
+        setUsers(res.users || []);
+      } catch { /* ignore */ }
+      setLoading(false);
+    })();
+  }, []);
+
+  const loadHiddenApps = async (userId: string) => {
+    setLoadingApps(true);
+    try {
+      const res = await apiCall("get_hidden_apps", `target_user_id=${userId}`);
+      setHiddenApps(res.hidden_apps || []);
+    } catch {
+      setHiddenApps([]);
+    }
+    setLoadingApps(false);
+  };
+
+  const handleSelectUser = (userId: string) => {
+    setSelectedUser(userId);
+    loadHiddenApps(userId);
+  };
+
+  const toggleApp = (appId: string) => {
+    setHiddenApps(prev =>
+      prev.includes(appId) ? prev.filter(a => a !== appId) : [...prev, appId]
+    );
+  };
+
+  const handleSave = async () => {
+    if (!selectedUser) return;
+    setSaving(true);
+    try {
+      await apiCall("update_hidden_apps", undefined, {
+        target_user_id: selectedUser,
+        hidden_apps: hiddenApps,
+      });
+      toast.success("تم حفظ إعدادات التطبيقات");
+    } catch (e: any) {
+      toast.error(e.message);
+    }
+    setSaving(false);
+  };
+
+  const filteredUsers = users.filter(u =>
+    !userSearch || u.display_name?.toLowerCase().includes(userSearch.toLowerCase()) || u.email?.toLowerCase().includes(userSearch.toLowerCase())
+  );
+
+  const selectedUserInfo = users.find(u => u.user_id === selectedUser);
+
+  return (
+    <div className="rounded-2xl p-6 space-y-5" style={{ background: "var(--sa-card-bg)", border: "1px solid var(--sa-card-border)" }}>
+      <div className="flex items-center gap-3">
+        <div className="w-12 h-12 rounded-xl bg-purple-500/10 flex items-center justify-center">
+          <Eye className="h-6 w-6 text-purple-400" />
+        </div>
+        <div>
+          <h3 className="font-bold text-lg" style={{ color: "var(--sa-text-primary)" }}>إدارة التطبيقات المرئية</h3>
+          <p className="text-sm" style={{ color: "var(--sa-text-muted)" }}>
+            إخفاء أو إظهار تطبيقات معينة لكل مستخدم
+          </p>
+        </div>
+      </div>
+
+      {/* User selector */}
+      <div className="space-y-2">
+        <label className="text-sm font-bold" style={{ color: "var(--sa-text-primary)" }}>اختر المستخدم</label>
+        <div className="relative">
+          <Search className="absolute right-3 top-2.5 h-4 w-4" style={{ color: "var(--sa-text-faint)" }} />
+          <Input
+            value={userSearch}
+            onChange={e => setUserSearch(e.target.value)}
+            placeholder="ابحث عن مستخدم..."
+            className="pr-9"
+            style={{ background: "var(--sa-input-bg)", borderColor: "var(--sa-input-border)", color: "var(--sa-text-primary)" }}
+          />
+        </div>
+        {loading ? (
+          <p className="text-sm" style={{ color: "var(--sa-text-muted)" }}>جاري التحميل...</p>
+        ) : (
+          <div className="max-h-36 overflow-y-auto space-y-1 rounded-lg p-1" style={{ background: "var(--sa-surface)" }}>
+            {filteredUsers.map(u => (
+              <button
+                key={u.user_id}
+                onClick={() => handleSelectUser(u.user_id)}
+                className={`w-full text-right px-3 py-2 rounded-lg text-sm transition-colors flex items-center justify-between ${
+                  selectedUser === u.user_id ? "bg-purple-500/20 text-purple-400 font-medium" : ""
+                }`}
+                style={selectedUser !== u.user_id ? { color: "var(--sa-text-secondary)" } : undefined}
+              >
+                <span>{u.display_name || u.email}</span>
+                <span className="text-[10px] font-mono" style={{ color: "var(--sa-text-faint)" }}>{u.email}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {selectedUser && !loadingApps && (
+        <div className="space-y-4 pt-2 border-t" style={{ borderColor: "var(--sa-divider)" }}>
+          <p className="text-sm" style={{ color: "var(--sa-text-muted)" }}>
+            التطبيقات لـ <strong style={{ color: "var(--sa-text-primary)" }}>{selectedUserInfo?.display_name}</strong>
+            — أوقف التطبيقات الغير لازمة
+          </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+            {MANAGEABLE_APPS.map(app => {
+              const isHidden = hiddenApps.includes(app.id);
+              return (
+                <button
+                  key={app.id}
+                  onClick={() => toggleApp(app.id)}
+                  className={`flex items-center gap-2 p-3 rounded-xl text-right transition-all border ${
+                    isHidden
+                      ? "border-red-500/30 bg-red-500/5 opacity-60"
+                      : "border-emerald-500/30 bg-emerald-500/5"
+                  }`}
+                >
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-lg ${
+                    isHidden ? "bg-red-500/10" : "bg-emerald-500/10"
+                  }`}>
+                    {app.icon}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-bold" style={{ color: isHidden ? "#ef4444" : "var(--sa-text-primary)" }}>
+                      {app.label}
+                    </p>
+                    <p className="text-[10px]" style={{ color: "var(--sa-text-faint)" }}>
+                      {isHidden ? "🚫 مخفي" : "✅ مرئي"}
+                    </p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          <Button
+            onClick={handleSave}
+            disabled={saving}
+            className="w-full bg-purple-500 hover:bg-purple-600 text-white h-10 font-bold gap-2"
+          >
+            {saving ? <><RefreshCw className="h-4 w-4 animate-spin" /> جاري الحفظ...</> : "💾 حفظ الإعدادات"}
+          </Button>
+        </div>
+      )}
+
+      {loadingApps && (
+        <p className="text-sm text-center py-4" style={{ color: "var(--sa-text-muted)" }}>جاري التحميل...</p>
+      )}
+    </div>
+  );
+}
+
 function SubscriptionsManager() {
   const [subs, setSubs] = useState<any[]>([]);
   const [plans, setPlans] = useState<any[]>([]);
