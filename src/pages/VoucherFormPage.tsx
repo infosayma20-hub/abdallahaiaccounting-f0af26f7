@@ -1169,10 +1169,10 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       {/* Navigation Toolbar */}
       <VoucherNavToolbar
         voucherType={voucherType}
-        currentRef={isEditMode ? refNumber : undefined}
+        currentRef={isEditMode ? refNumber : (savedReceiptNumber || refNumber || undefined)}
         onPrint={handlePrint}
-        onNewSimilar={isEditMode ? handleNewSimilar : undefined}
-        showNavigation={isEditMode}
+        onNewSimilar={(isEditMode || saved) ? handleNewSimilar : undefined}
+        showNavigation={isEditMode || saved}
       />
 
       {/* Row 1: Basic Info */}
