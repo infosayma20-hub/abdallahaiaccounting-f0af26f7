@@ -280,31 +280,42 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     }
     if (!user) return;
     setFetchingRate(true);
-    // Get currency id first, then latest exchange rate
     const fetchRate = async () => {
       try {
-        const { data: currData } = await supabase.from("currencies")
+        // Try getting rate from currencies + exchange_rates tables
+        const { data: currRows } = await supabase.from("currencies")
           .select("id")
           .eq("code", currency)
-          .eq("user_id", user.id)
-          .limit(1)
-          .single();
+          .limit(1);
+        const currData = currRows?.[0];
         if (currData) {
-          const { data: rateData } = await supabase.from("exchange_rates")
+          const { data: rateRows } = await supabase.from("exchange_rates")
             .select("sell_rate, buy_rate, mid_rate")
             .eq("currency_id", currData.id)
-            .eq("user_id", user.id)
             .order("rate_date", { ascending: false })
-            .limit(1)
-            .single();
+            .limit(1);
+          const rateData = rateRows?.[0];
           if (rateData) {
             const rate = isReceipt
               ? (rateData.buy_rate || rateData.sell_rate || rateData.mid_rate || 1)
               : (rateData.sell_rate || rateData.buy_rate || rateData.mid_rate || 1);
-            setExchangeRate(Number(rate));
+            if (Number(rate) > 0) {
+              setExchangeRate(Number(rate));
+              setFetchingRate(false);
+              return;
+            }
           }
         }
-      } catch (e) { /* ignore */ }
+        // Fallback: use get_exchange_rate DB function
+        const rateType = isReceipt ? "buy" : "sell";
+        const { data: dbRate } = await supabase.rpc("get_exchange_rate", {
+          p_currency_code: currency,
+          p_rate_type: rateType,
+        });
+        if (dbRate && Number(dbRate) > 0) {
+          setExchangeRate(Number(dbRate));
+        }
+      } catch (e) { console.warn("Exchange rate fetch failed:", e); }
       setFetchingRate(false);
     };
     fetchRate();
