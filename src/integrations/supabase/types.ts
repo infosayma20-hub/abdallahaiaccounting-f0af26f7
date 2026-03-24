@@ -1781,6 +1781,8 @@ export type Database = {
           hr_salary_day: number | null
           hr_shift_end: string | null
           hr_shift_start: string | null
+          hr_show_loan_form: boolean | null
+          hr_show_policies: boolean | null
           hr_sick_leave_days: number | null
           hr_social_security: boolean | null
           hr_work_days_per_week: number | null
@@ -1915,6 +1917,8 @@ export type Database = {
           hr_salary_day?: number | null
           hr_shift_end?: string | null
           hr_shift_start?: string | null
+          hr_show_loan_form?: boolean | null
+          hr_show_policies?: boolean | null
           hr_sick_leave_days?: number | null
           hr_social_security?: boolean | null
           hr_work_days_per_week?: number | null
@@ -2049,6 +2053,8 @@ export type Database = {
           hr_salary_day?: number | null
           hr_shift_end?: string | null
           hr_shift_start?: string | null
+          hr_show_loan_form?: boolean | null
+          hr_show_policies?: boolean | null
           hr_sick_leave_days?: number | null
           hr_social_security?: boolean | null
           hr_work_days_per_week?: number | null
