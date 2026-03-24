@@ -1822,11 +1822,9 @@ export default function SuperAdminDashboard() {
       }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-full flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: "var(--sa-logo-bg)" }}>
-              <span className="text-white font-bold text-sm" style={{ fontFamily: "Barlow, sans-serif" }}>Z</span>
-            </div>
+            <img src="/q-icon.svg" alt="قيود" className="w-9 h-9" />
             <div>
-              <h1 className="text-lg font-bold" style={{ color: "var(--sa-text-primary)", fontFamily: "Barlow, sans-serif" }}>QOYOD</h1>
+              <h1 className="text-lg font-bold" style={{ color: "var(--sa-text-primary)", fontFamily: "Tajawal, sans-serif" }}>QOYOD</h1>
             </div>
             <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold" style={{ background: "#C9A84C", color: "#0A2342", fontFamily: "Inter, sans-serif" }}>
               Super Admin
