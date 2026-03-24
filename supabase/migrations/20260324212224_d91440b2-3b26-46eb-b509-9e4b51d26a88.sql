@@ -1,0 +1,1 @@
+UPDATE employees SET shift_start = NULL, shift_end = NULL WHERE user_id = 'f095ae37-960c-4de7-8da1-b68cebf0bb50' AND is_active = true;
