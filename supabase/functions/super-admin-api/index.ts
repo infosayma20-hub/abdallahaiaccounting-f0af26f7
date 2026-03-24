@@ -568,29 +568,54 @@ Deno.serve(async (req) => {
 
       // Tables to delete (transactional data only) - order matters for FK constraints
       const transactionalTables = [
+        // POS
         "pos_payments",
         "pos_order_lines",
         "pos_orders",
         "pos_sessions",
+        // Call Center
+        "call_center_orders",
+        // Cheques
         "cheque_status_history",
         "cheques",
+        // Sales Invoices
         "invoice_lines",
         "invoices",
+        // Purchase Invoices
+        "purchase_invoice_lines",
+        "purchase_invoices",
+        // Vouchers
         "voucher_lines",
         "vouchers",
         "receipt_vouchers",
+        // Finance
         "cash_transfers",
+        // HR - Loans
         "loan_installments",
         "employee_loans",
+        // HR - Payroll & Movements
         "employee_payroll",
+        "employee_financial_movements",
+        "employee_deductions",
+        "employee_leaves",
+        // Attendance
         "attendance_events",
         "attendance_days",
+        // Procurement
+        "procurement_order_items",
+        "procurement_orders",
+        "procurement_requests",
+        // Contractor
+        "contractor_transactions",
+        // Other
         "commissions",
         "contact_alerts",
         "document_edit_history",
+        "sensitive_data_audit",
         "ai_messages",
         "ai_conversations",
         "activity_log",
+        // Journal entries (LAST - other tables may reference)
         "transactions",
       ];
 
