@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Building2, CheckCircle2, AlertTriangle, ArrowRight } from "lucide-react";
 
-export type ActionType = 'deposit' | 'collected' | 'bounced' | 'endorse' | 'return_to_customer' | 'cancel';
+export type ActionType = 'deposit' | 'collected' | 'bounced' | 'endorse' | 'return_to_customer' | 'cancel' | 'cashed' | 'outgoing_bounced' | 'recover';
 
 interface ActionConfig {
   id: ActionType;
@@ -19,12 +19,17 @@ interface ActionConfig {
 }
 
 export const ACTION_CONFIGS: Record<ActionType, ActionConfig> = {
+  // Incoming cheque actions
   deposit: { id: 'deposit', label: 'إيداع في البنك', emoji: '🏦', color: 'text-blue-600', nextStatus: 'مودع' },
   collected: { id: 'collected', label: 'تم التحصيل', emoji: '✅', color: 'text-emerald-600', nextStatus: 'محصل', description: 'يُنشئ قيد محاسبي تلقائي' },
   bounced: { id: 'bounced', label: 'شيك مرتجع (بدون رصيد)', emoji: '⛔', color: 'text-red-600', nextStatus: 'مرتجع', description: 'يُعيد الذمة للزبون تلقائياً' },
   endorse: { id: 'endorse', label: 'تظهير لمورد', emoji: '📤', color: 'text-purple-600', nextStatus: 'مظهر' },
   return_to_customer: { id: 'return_to_customer', label: 'إرجاع للزبون', emoji: '↩️', color: 'text-amber-600', nextStatus: 'ملغي', description: 'يُعيد الذمة للزبون تلقائياً' },
   cancel: { id: 'cancel', label: 'إلغاء الشيك', emoji: '🚫', color: 'text-red-600', nextStatus: 'ملغي' },
+  // Outgoing cheque actions
+  cashed: { id: 'cashed', label: 'صُرف في البنك', emoji: '💸', color: 'text-emerald-600', nextStatus: 'مصروف', description: 'خصم من حساب البنك المصدر' },
+  outgoing_bounced: { id: 'outgoing_bounced', label: 'مرتجع من البنك', emoji: '⛔', color: 'text-red-600', nextStatus: 'مرتجع', description: 'يُعيد الالتزام للمورد' },
+  recover: { id: 'recover', label: 'استرداد الشيك', emoji: '🔄', color: 'text-amber-600', nextStatus: 'ملغي', description: 'استرداد الشيك قبل صرفه' },
 };
 
 interface BankAccount {
