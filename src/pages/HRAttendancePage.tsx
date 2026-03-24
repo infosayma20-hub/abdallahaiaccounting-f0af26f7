@@ -16,7 +16,7 @@ import { fmtDateDisplay } from "@/lib/utils";
 import {
   Users, Building2, Clock, CheckCircle2, XCircle, AlertTriangle,
   Calendar, FileText, Download, Loader2, Eye, Check, X, MapPin,
-  QrCode, RefreshCw, Copy, MoreVertical, Pencil, Trash2
+  QrCode, RefreshCw, Copy, MoreVertical, Pencil, Trash2, Printer
 } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import { format } from "date-fns";
@@ -177,6 +177,40 @@ export default function HRAttendancePage() {
 
   const openDisplayPage = (branchId: string) => {
     window.open(`/branch-display/${branchId}`, "_blank");
+  };
+
+  const printQRCode = (branchName: string, qrPayload: string) => {
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=600x600&data=${encodeURIComponent(qrPayload)}&format=svg&margin=2`;
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+    printWindow.document.write(`<!DOCTYPE html>
+<html dir="rtl"><head><meta charset="utf-8">
+<title>QR Code - ${branchName}</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700;800&display=swap');
+* { margin: 0; padding: 0; box-sizing: border-box; }
+@page { size: A4; margin: 0; }
+body { width: 210mm; height: 297mm; display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: 'Tajawal', sans-serif; background: white; }
+.container { text-align: center; padding: 20mm; }
+.title { font-size: 36pt; font-weight: 800; color: #1B3A5C; margin-bottom: 8mm; }
+.subtitle { font-size: 16pt; color: #666; margin-bottom: 15mm; }
+.qr-frame { display: inline-block; padding: 10mm; border: 3px solid #1B3A5C; border-radius: 8mm; background: white; margin-bottom: 12mm; }
+.qr-frame img { width: 100mm; height: 100mm; }
+.instructions { font-size: 18pt; color: #1B3A5C; font-weight: 700; margin-bottom: 5mm; }
+.sub-instructions { font-size: 12pt; color: #888; }
+.badge { display: inline-block; margin-top: 10mm; padding: 3mm 8mm; background: #f0f4f8; border-radius: 4mm; font-size: 10pt; color: #666; }
+</style></head><body>
+<div class="container">
+  <div class="title">${branchName}</div>
+  <div class="subtitle">نظام تسجيل الحضور والانصراف</div>
+  <div class="qr-frame"><img src="${qrUrl}" alt="QR Code" /></div>
+  <div class="instructions">📱 امسح الرمز لتسجيل الحضور</div>
+  <div class="sub-instructions">افتح تطبيق الموظف → اضغط "تسجيل حضور" → وجّه الكاميرا نحو الرمز</div>
+  <div class="badge">🔒 رمز ثابت — لا يتغير</div>
+</div>
+<script>window.onload = () => { setTimeout(() => window.print(), 500); }</script>
+</body></html>`);
+    printWindow.document.close();
   };
 
   const handleCorrection = async (id: string, action: "approved" | "rejected") => {
@@ -368,6 +402,12 @@ export default function HRAttendancePage() {
                 </Button>
                 <Button size="sm" variant="ghost" className="gap-1 text-xs flex-1" onClick={() => openDisplayPage(b.id)}>
                   <Eye className="h-3 w-3" /> شاشة العرض
+                </Button>
+                <Button size="sm" variant="ghost" className="gap-1 text-xs" onClick={() => {
+                  generateQRToken(b).then(() => {});
+                  // We'll print from the dialog after QR is loaded
+                }}>
+                  <Printer className="h-3 w-3" />
                 </Button>
               </div>
             </Card>
@@ -599,6 +639,13 @@ export default function HRAttendancePage() {
                 <Eye className="h-3.5 w-3.5" /> شاشة عرض
               </Button>
             </div>
+            <Button variant="default" className="w-full gap-1" onClick={() => {
+              if (selectedBranchForQR && qrToken) {
+                printQRCode(selectedBranchForQR.name, qrToken);
+              }
+            }}>
+              <Printer className="h-3.5 w-3.5" /> طباعة QR على ورقة A4
+            </Button>
             <p className="text-[10px] text-muted-foreground">🔒 مشفر بتقنية HMAC-SHA256 ويتجدد تلقائياً</p>
           </div>
         </DialogContent>
