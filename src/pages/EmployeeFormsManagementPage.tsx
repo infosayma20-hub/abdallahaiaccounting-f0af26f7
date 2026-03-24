@@ -382,6 +382,9 @@ export default function EmployeeFormsManagementPage() {
                                   <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => { setSelectedForm(f); setReviewNotes(f.review_notes || ""); }}>
                                     <Eye className="h-3.5 w-3.5" />
                                   </Button>
+                                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-primary hover:bg-primary/10" onClick={() => setPrintForm(f)}>
+                                    <Printer className="h-3.5 w-3.5" />
+                                  </Button>
                                   <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive hover:bg-destructive/10"
                                     onClick={() => handleDelete(f)}
                                     disabled={!!processing}>
