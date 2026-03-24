@@ -1704,9 +1704,65 @@ export default function SuperAdminDashboard() {
   if (!authorized) return null;
 
   // Helper for rendering user rows
+  // Mobile card view for users
+  const renderUserCard = (u: UserRecord, isSub = false) => (
+    <div key={u.user_id + "-card"} className="p-3 space-y-2"
+      style={{ borderBottom: "1px solid var(--sa-divider)", ...(isSub ? { borderRight: "3px solid rgba(0,180,216,0.15)", paddingRight: 8 } : {}) }}>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          {!isSub && ((subUsersMap.get(u.user_id) || []).length > 0 || (portalMembers[u.user_id] || []).length > 0) && (
+            <ChevronDown className={`h-4 w-4 shrink-0 transition-transform cursor-pointer ${expandedOwners.has(u.user_id) ? "" : "-rotate-90"}`}
+              style={{ color: "var(--sa-text-muted)" }}
+              onClick={() => toggleOwnerExpand(u.user_id)} />
+          )}
+          <div className={`${isSub ? "w-7 h-7" : "w-8 h-8"} rounded-xl flex items-center justify-center font-bold shrink-0`}
+            style={{ background: isSub ? "var(--sa-surface)" : "var(--sa-logo-bg)", color: isSub ? "var(--sa-text-muted)" : "#00B4D8", fontSize: isSub ? 10 : 12 }}>
+            {(u.display_name || "?")[0]}
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className={`${isSub ? "text-[13px]" : "text-sm font-semibold"} truncate`} style={{ color: "var(--sa-text-secondary)" }}>{u.display_name || "—"}</span>
+              {u.is_banned ? (
+                <Badge className="bg-red-500/10 text-red-400 border-red-500/20 text-[9px]">معلق</Badge>
+              ) : (
+                <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-[9px]">نشط</Badge>
+              )}
+            </div>
+            <p className="text-[11px] font-mono truncate" style={{ color: "var(--sa-text-muted)" }}>{u.email || "—"}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-0.5 shrink-0">
+          {u.is_banned ? (
+            <Button size="icon" variant="ghost" onClick={() => handleUnsuspendUser(u.user_id, u.display_name)} className="h-7 w-7 text-emerald-400"><Unlock className="h-3.5 w-3.5" /></Button>
+          ) : (
+            <Button size="icon" variant="ghost" onClick={() => handleSuspendUser(u.user_id, u.display_name)} className="h-7 w-7 text-amber-400"><Lock className="h-3.5 w-3.5" /></Button>
+          )}
+          <Button size="icon" variant="ghost" onClick={() => handleResetPassword(u.user_id, u.display_name)} className="h-7 w-7 text-blue-400"><KeyRound className="h-3.5 w-3.5" /></Button>
+          <Button size="icon" variant="ghost" onClick={() => setDeleteDialog({ open: true, userId: u.user_id, name: u.display_name })}
+            className="h-7 w-7 text-red-400" disabled={u.roles.includes("super_admin")}><Trash2 className="h-3.5 w-3.5" /></Button>
+        </div>
+      </div>
+      <div className="flex items-center gap-1.5 flex-wrap">
+        {u.roles.map((r) => (
+          <Badge key={r} variant="outline" className={`text-[9px] ${
+            r === "super_admin" ? "text-amber-400 border-amber-400/30" :
+            r === "admin" ? "text-blue-400 border-blue-400/30" :
+            r === "cashier" ? "text-purple-400 border-purple-400/20" :
+            r === "accountant_senior" ? "text-cyan-400 border-cyan-400/20" : ""
+          }`}
+          style={{ borderColor: !["super_admin", "admin", "cashier", "accountant_senior"].includes(r) ? "var(--sa-card-border)" : undefined,
+                   color: !["super_admin", "admin", "cashier", "accountant_senior"].includes(r) ? "var(--sa-text-muted)" : undefined }}>
+            {r}
+          </Badge>
+        ))}
+        {u.last_sign_in && <span className="text-[10px] mr-auto" style={{ color: "var(--sa-text-faint)" }}>{format(new Date(u.last_sign_in), "dd/MM HH:mm", { locale: ar })}</span>}
+      </div>
+    </div>
+  );
+
   const renderUserRow = (u: UserRecord, isSub = false) => (
     <tr key={u.user_id}
-      className={`transition-colors ${isSub ? "" : ""}`}
+      className={`transition-colors`}
       style={{
         borderBottom: "1px solid var(--sa-divider)",
         ...(isSub ? { borderRight: "3px solid rgba(0,180,216,0.15)" } : {}),
