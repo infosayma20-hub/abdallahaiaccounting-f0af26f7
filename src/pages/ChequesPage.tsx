@@ -106,7 +106,7 @@ const getAvailableActions = (status: ChequeStatus, chequeType: ChequeType): Acti
   }
 };
 
-const STATUS_FILTERS = ['الكل', 'مسجل', 'آجل', 'مستحق', 'مودع', 'محصل', 'مرتجع', 'مظهر', 'ملغي'];
+const STATUS_FILTERS = ['الكل', 'مسجل', 'آجل', 'مستحق', 'مودع', 'محصل', 'مرتجع', 'مصروف', 'مظهر', 'ملغي'];
 const PER_PAGE = 15;
 type SortKey = 'party_name' | 'cheque_type' | 'amount' | 'cheque_date' | 'status' | 'bank_name' | 'cheque_number';
 type SortDir = 'asc' | 'desc';
