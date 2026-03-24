@@ -74,8 +74,22 @@ const statusConfig: Record<ChequeStatus, { icon: any; color: string; bg: string;
   'مصروف': { icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-500/10', badgeClass: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400', label: 'مصروف' },
 };
 
-// Available actions per status
-const getAvailableActions = (status: ChequeStatus): ActionType[] => {
+// Available actions per status — differentiate by cheque type
+const getAvailableActions = (status: ChequeStatus, chequeType: ChequeType): ActionType[] => {
+  if (chequeType === 'صادر') {
+    // Outgoing cheque actions
+    switch (status) {
+      case 'مسجل':
+      case 'آجل':
+      case 'مستحق':
+        return ['cashed', 'recover', 'cancel'];
+      case 'مرتجع':
+        return ['cashed', 'cancel'];
+      default:
+        return [];
+    }
+  }
+  // Incoming cheque actions
   switch (status) {
     case 'مسجل':
     case 'آجل':
