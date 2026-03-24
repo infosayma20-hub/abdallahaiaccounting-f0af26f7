@@ -87,6 +87,7 @@ export default function BranchesSettingsSection() {
       latitude,
       longitude,
       radius_meters: radius,
+      qr_mode: qrMode,
     };
 
     if (editing) {
