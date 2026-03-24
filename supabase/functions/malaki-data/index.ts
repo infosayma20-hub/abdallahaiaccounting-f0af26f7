@@ -92,6 +92,7 @@ Deno.serve(async (req) => {
       let companyName = "";
       let companyLogo = "";
       if (linkedUserId) {
+        // Try company_settings first
         const { data: cs } = await supabase
           .from("company_settings")
           .select("company_name, logo_url")
@@ -99,6 +100,17 @@ Deno.serve(async (req) => {
           .single();
         if (cs?.company_name) companyName = cs.company_name;
         if (cs?.logo_url) companyLogo = cs.logo_url;
+
+        // Fallback to companies table if logo/name still empty
+        if (!companyName || !companyLogo) {
+          const { data: comp } = await supabase
+            .from("companies")
+            .select("name, logo_url")
+            .eq("owner_id", linkedUserId)
+            .single();
+          if (!companyName && comp?.name) companyName = comp.name;
+          if (!companyLogo && comp?.logo_url) companyLogo = comp.logo_url;
+        }
       }
       const settingsResponse = portalSettings
         ? { ...portalSettings, linked_user_id: linkedUserId, company_name: companyName, logo_url: companyLogo }
