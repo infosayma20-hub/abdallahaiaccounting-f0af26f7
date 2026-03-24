@@ -1878,28 +1878,25 @@ export default function SuperAdminDashboard() {
       }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-full flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img src="/q-icon.svg" alt="قيود" className="w-9 h-9" />
-            <div>
-              <h1 className="text-lg font-bold" style={{ color: "var(--sa-text-primary)", fontFamily: "Tajawal, sans-serif" }}>QOYOD</h1>
-            </div>
-            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold" style={{ background: "#C9A84C", color: "#0A2342", fontFamily: "Inter, sans-serif" }}>
+            <img src="/q-icon.svg" alt="قيود" className="w-8 h-8 sm:w-9 sm:h-9" />
+            <h1 className="text-base sm:text-lg font-bold hidden sm:block" style={{ color: "var(--sa-text-primary)", fontFamily: "Tajawal, sans-serif" }}>QOYOD</h1>
+            <span className="px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-semibold" style={{ background: "#C9A84C", color: "#0A2342" }}>
               Super Admin
             </span>
           </div>
-          <div className="flex items-center gap-3">
-            {/* Theme Toggle */}
+          <div className="flex items-center gap-1.5 sm:gap-3">
             <button onClick={toggleTheme}
-              className="p-2 rounded-lg transition-colors"
+              className="p-1.5 sm:p-2 rounded-lg transition-colors"
               style={{ background: "var(--sa-surface)", color: "var(--sa-text-muted)" }}
               title={theme === "dark" ? "الوضع الفاتح" : "الوضع الداكن"}>
               {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </button>
-            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full" style={{ background: "rgba(220,38,38,0.1)", border: "1px solid rgba(220,38,38,0.2)" }}>
+            <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full" style={{ background: "rgba(220,38,38,0.1)", border: "1px solid rgba(220,38,38,0.2)" }}>
               <Wifi className="h-3 w-3 text-red-400" />
               <span className="text-[11px] text-red-400 font-medium">LIVE</span>
             </div>
-            <Button variant="ghost" size="sm" onClick={() => navigate("/apps")} style={{ color: "var(--sa-text-muted)" }}>
-              <LogOut className="h-4 w-4 ml-1" /> خروج
+            <Button variant="ghost" size="sm" onClick={() => navigate("/apps")} style={{ color: "var(--sa-text-muted)" }} className="px-2 sm:px-3">
+              <LogOut className="h-4 w-4 sm:ml-1" /> <span className="hidden sm:inline">خروج</span>
             </Button>
           </div>
         </div>
