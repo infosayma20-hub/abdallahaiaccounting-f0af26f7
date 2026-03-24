@@ -364,6 +364,22 @@ const CashBoxesPage = () => {
         userId={user?.id || ""}
         onSuccess={fetchBoxes}
       />
+
+      <CurrencyExchangeDialog
+        open={exchangeOpen}
+        onOpenChange={setExchangeOpen}
+        boxes={boxes}
+        userId={user?.id || ""}
+        onSuccess={fetchBoxes}
+      />
+
+      <BankDepositDialog
+        open={depositOpen}
+        onOpenChange={setDepositOpen}
+        boxes={boxes}
+        userId={user?.id || ""}
+        onSuccess={fetchBoxes}
+      />
     </div>
   );
 };
