@@ -637,6 +637,54 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ─── UPDATE HIDDEN APPS ───
+    if (action === "update_hidden_apps") {
+      const body = await req.json();
+      const { target_user_id, hidden_apps } = body;
+      if (!target_user_id) {
+        return new Response(JSON.stringify({ error: "بيانات ناقصة" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { error } = await admin
+        .from("company_settings")
+        .update({ hidden_apps: hidden_apps || [] })
+        .eq("user_id", target_user_id);
+
+      if (error) {
+        return new Response(JSON.stringify({ error: error.message }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      await logAction("update_hidden_apps", "user", target_user_id, { hidden_apps });
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ─── GET HIDDEN APPS ───
+    if (action === "get_hidden_apps") {
+      const target_user_id = url.searchParams.get("target_user_id");
+      if (!target_user_id) {
+        return new Response(JSON.stringify({ error: "بيانات ناقصة" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { data } = await admin
+        .from("company_settings")
+        .select("hidden_apps")
+        .eq("user_id", target_user_id)
+        .maybeSingle();
+
+      return new Response(JSON.stringify({ hidden_apps: (data as any)?.hidden_apps || [] }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     return new Response(JSON.stringify({ error: "إجراء غير معروف" }), {
       status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
