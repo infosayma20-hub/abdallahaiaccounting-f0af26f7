@@ -794,13 +794,17 @@ function SubscriptionsManager() {
     suspended: { text: "موقوف", cls: "bg-amber-500/10 text-amber-400 border-amber-500/20" },
   };
 
-  const openEdit = (sub: any) => {
-    setEditSub(sub);
-    setEditPlanId(sub.plan_id);
-    setEditStatus(sub.status);
-    setEditBilling(sub.billing_cycle);
-    setEditPeriodEnd(sub.current_period_end ? sub.current_period_end.split("T")[0] : "");
-  };
+   const openEdit = (sub: any) => {
+     setEditSub(sub);
+     setEditPlanId(sub.plan_id);
+     setEditStatus(sub.status);
+     setEditBilling(sub.billing_cycle);
+     setEditPeriodEnd(sub.current_period_end ? sub.current_period_end.split("T")[0] : "");
+     setEditCustomAmount(sub.custom_amount ? String(sub.custom_amount) : "");
+     setEditCustomCurrency(sub.custom_currency || "ILS");
+     setEditAgreementType(sub.agreement_type || "monthly");
+     setEditPeriodStart(sub.current_period_start ? sub.current_period_start.split("T")[0] : new Date().toISOString().split("T")[0]);
+   };
 
   const saveEdit = async () => {
     if (!editSub) return;
