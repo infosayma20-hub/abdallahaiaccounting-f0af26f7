@@ -17,7 +17,7 @@ const ACCENT = '#2A7B9B';
 export default function PortalDashboard() {
   const { user, loading: authLoading, logout } = usePortalAuth();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'sales' | 'liquidity' | 'requests' | 'suppliers'>('sales');
+  const [activeTab, setActiveTab] = useState<'sales' | 'liquidity' | 'requests' | 'suppliers' | 'attendance'>('sales');
   const [clock, setClock] = useState(new Date());
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem('portal_theme') === 'dark');
   const [companyName, setCompanyName] = useState('');
