@@ -403,6 +403,12 @@ body { width: 210mm; height: 297mm; display: flex; flex-direction: column; align
                 <Button size="sm" variant="ghost" className="gap-1 text-xs flex-1" onClick={() => openDisplayPage(b.id)}>
                   <Eye className="h-3 w-3" /> شاشة العرض
                 </Button>
+                <Button size="sm" variant="ghost" className="gap-1 text-xs" onClick={() => {
+                  generateQRToken(b).then(() => {});
+                  // We'll print from the dialog after QR is loaded
+                }}>
+                  <Printer className="h-3 w-3" />
+                </Button>
               </div>
             </Card>
           ))}
