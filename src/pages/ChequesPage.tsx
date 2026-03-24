@@ -901,9 +901,11 @@ const ChequesPage = () => {
         chequeNumber={actionTarget?.cheque_number || null}
         chequeAmount={actionTarget?.amount || 0}
         chequeCurrency={actionTarget?.currency || 'شيكل'}
+        chequeType={actionTarget?.cheque_type || 'وارد'}
         partyName={actionTarget?.party_name || ''}
         bankAccounts={bankAccounts}
         contacts={contacts}
+        sourceBankAccount={actionTarget?.source_bank_account_id ? bankAccounts.find(b => b.id === actionTarget.source_bank_account_id) : null}
         onConfirm={handleAction}
         submitting={actionSubmitting}
       />
