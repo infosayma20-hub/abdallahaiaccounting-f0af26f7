@@ -1905,8 +1905,8 @@ export default function SuperAdminDashboard() {
   );
 
   return (
-    <div className="min-h-screen" data-sa-theme={theme}
-      style={{ background: "var(--sa-bg-gradient)", fontFamily: "Tajawal, sans-serif" }} dir="rtl">
+     <div className="min-h-screen" data-sa-theme={theme}
+       style={{ background: "var(--sa-bg-gradient)", fontFamily: "Tajawal, sans-serif", paddingTop: "env(safe-area-inset-top, 0px)" }} dir="rtl">
       <style>{LIGHT_THEME_STYLES}</style>
 
       {/* Header */}
