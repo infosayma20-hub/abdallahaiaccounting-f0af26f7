@@ -127,8 +127,10 @@ const ChequeActionModal = ({
   };
 
   const getJournalPreview = () => {
-    const amt = `₪${chequeAmount.toLocaleString()}`;
+    const amt = `${chequeAmount.toLocaleString()} ${chequeCurrency}`;
+    const bankName = sourceBankAccount?.name || 'البنك';
     switch (action) {
+      // Incoming cheque actions
       case 'deposit':
         return { debit: `ح/شيكات قيد التحصيل ${amt}`, credit: `ح/شيكات واردة ${amt}` };
       case 'collected': {
@@ -141,7 +143,17 @@ const ChequeActionModal = ({
         return { debit: `ح/ذمم ${endorsedToName || 'المورد'} ${amt}`, credit: `ح/شيكات واردة ${amt}` };
       case 'return_to_customer':
         return { debit: `ح/ذمم ${partyName} ${amt}`, credit: `ح/شيكات واردة ${amt}` };
+      // Outgoing cheque actions
+      case 'cashed':
+        return { debit: `ح/شيكات صادرة (1160) ${amt}`, credit: `ح/${bankName} ${amt}` };
+      case 'outgoing_bounced':
+        return { debit: `ح/شيكات صادرة (1160) ${amt}`, credit: `ح/ذمم موردين (2100) ${amt}` };
+      case 'recover':
+        return { debit: `ح/شيكات صادرة (1160) ${amt}`, credit: `ح/ذمم موردين (2100) ${amt}` };
       case 'cancel':
+        if (chequeType === 'صادر') {
+          return { debit: `ح/شيكات صادرة (1160) ${amt}`, credit: `ح/ذمم موردين (2100) ${amt}` };
+        }
         return { debit: `ح/ذمم ${partyName} ${amt}`, credit: `ح/شيكات واردة ${amt}` };
       default:
         return null;
