@@ -88,8 +88,21 @@ Deno.serve(async (req) => {
     }
 
     if (action === "get_settings") {
-      // Return settings with the resolved linked_user_id
-      const settingsResponse = portalSettings ? { ...portalSettings, linked_user_id: linkedUserId } : { linked_user_id: linkedUserId };
+      // Fetch company name and logo from company_settings using service role
+      let companyName = "";
+      let companyLogo = "";
+      if (linkedUserId) {
+        const { data: cs } = await supabase
+          .from("company_settings")
+          .select("company_name, logo_url")
+          .eq("user_id", linkedUserId)
+          .single();
+        if (cs?.company_name) companyName = cs.company_name;
+        if (cs?.logo_url) companyLogo = cs.logo_url;
+      }
+      const settingsResponse = portalSettings
+        ? { ...portalSettings, linked_user_id: linkedUserId, company_name: companyName, logo_url: companyLogo }
+        : { linked_user_id: linkedUserId, company_name: companyName, logo_url: companyLogo };
       return respond({ success: true, settings: settingsResponse });
     }
 
