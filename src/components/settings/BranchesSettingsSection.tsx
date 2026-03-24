@@ -57,6 +57,7 @@ export default function BranchesSettingsSection() {
     setLatitude(31.9);
     setLongitude(35.2);
     setRadius(100);
+    setQrMode("static");
     setEditing(null);
   };
 
