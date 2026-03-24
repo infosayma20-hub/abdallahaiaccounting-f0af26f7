@@ -23,27 +23,85 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const { action } = body;
 
-    // Get settings
-    const { data: settings } = await supabase
-      .from("malaki_portal_settings")
-      .select("*")
-      .limit(1)
-      .single();
+    // ── Authenticate the portal user from JWT ──
+    const authHeader = req.headers.get("Authorization");
+    let authUserId: string | null = null;
+    if (authHeader?.startsWith("Bearer ")) {
+      const { data: { user: authUser } } = await supabase.auth.getUser(authHeader.replace("Bearer ", ""));
+      authUserId = authUser?.id || null;
+    }
+
+    // ── Resolve the data owner (linked_user_id) from the portal user's record ──
+    let linkedUserId: string | null = null;
+    let portalSettings: any = null;
+
+    if (authUserId) {
+      // First check if this user IS an admin (owner) — they might access portal settings directly
+      const { data: adminProfile } = await supabase
+        .from("profiles")
+        .select("user_id, invited_by")
+        .eq("user_id", authUserId)
+        .single();
+
+      // Find the portal user record linked to this auth user
+      const { data: portalUser } = await supabase
+        .from("malaki_portal_users")
+        .select("user_id")
+        .eq("auth_user_id", authUserId)
+        .eq("is_active", true)
+        .single();
+
+      if (portalUser?.user_id) {
+        // Portal user — data owner is the admin who created them
+        linkedUserId = portalUser.user_id;
+      } else if (adminProfile && !adminProfile.invited_by) {
+        // This is an admin/owner viewing their own portal settings
+        linkedUserId = authUserId;
+      } else if (adminProfile?.invited_by) {
+        // Team member — data owner is their inviter
+        linkedUserId = adminProfile.invited_by;
+      }
+    }
+
+    // Fetch portal settings scoped to the resolved data owner
+    if (linkedUserId) {
+      const { data: settings } = await supabase
+        .from("malaki_portal_settings")
+        .select("*")
+        .eq("linked_user_id", linkedUserId)
+        .single();
+      portalSettings = settings;
+    }
+
+    // Fallback: try global settings (legacy)
+    if (!portalSettings) {
+      const { data: settings } = await supabase
+        .from("malaki_portal_settings")
+        .select("*")
+        .limit(1)
+        .single();
+      portalSettings = settings;
+      // Only use this if linkedUserId wasn't resolved
+      if (!linkedUserId && portalSettings?.linked_user_id) {
+        linkedUserId = portalSettings.linked_user_id;
+      }
+    }
 
     if (action === "get_settings") {
-      return respond({ success: true, settings });
+      // Return settings with the resolved linked_user_id
+      const settingsResponse = portalSettings ? { ...portalSettings, linked_user_id: linkedUserId } : { linked_user_id: linkedUserId };
+      return respond({ success: true, settings: settingsResponse });
     }
 
     if (action === "update_settings") {
+      if (!portalSettings?.id) return respond({ error: "No settings found" }, 404);
       const { error } = await supabase
         .from("malaki_portal_settings")
         .update({ ...body.updates, updated_at: new Date().toISOString() })
-        .eq("id", settings!.id);
+        .eq("id", portalSettings.id);
       if (error) throw error;
       return respond({ success: true });
     }
-
-    const linkedUserId = settings?.linked_user_id;
 
     if (!linkedUserId && ["dashboard", "sales", "liquidity", "employee_requests", "supplier_balances", "pos_sales_detailed"].includes(action)) {
       return respond({
@@ -212,9 +270,8 @@ Deno.serve(async (req) => {
           })
         );
 
-        // Fetch exchange rates from the currencies + exchange_rates tables
-        let jodRate = settings?.exchange_rate_jod || 3.55;
-        let usdRate = settings?.exchange_rate_usd || 3.65;
+        let jodRate = portalSettings?.exchange_rate_jod || 3.55;
+        let usdRate = portalSettings?.exchange_rate_usd || 3.65;
         try {
           const { data: currencies } = await supabase
             .from("currencies")
@@ -235,7 +292,6 @@ Deno.serve(async (req) => {
               const codeMap: Record<string, string> = {};
               for (const c of currencies) codeMap[c.id] = c.code;
 
-              // Get the latest rate for each currency
               const seen = new Set<string>();
               for (const r of rates) {
                 const code = codeMap[r.currency_id];
@@ -266,11 +322,11 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ============ NEW: POS Sales Detailed (with items and branch filter) ============
+    // ============ POS Sales Detailed ============
     if (action === "pos_sales_detailed") {
-      const dateFrom = body.dateFrom; // YYYY-MM-DD
-      const dateTo = body.dateTo; // YYYY-MM-DD
-      const branchFilter = body.branchId; // optional cash_box_id
+      const dateFrom = body.dateFrom;
+      const dateTo = body.dateTo;
+      const branchFilter = body.branchId;
 
       const startISO = new Date(dateFrom + "T00:00:00+03:00").toISOString();
       const endISO = new Date(dateTo + "T23:59:59+03:00").toISOString();
@@ -288,7 +344,6 @@ Deno.serve(async (req) => {
       const { data: orders } = await query;
       const orderList: any[] = orders || [];
 
-      // Get session -> cash_box mapping
       const sessionIds = [...new Set(orderList.map(o => o.session_id).filter(Boolean))];
       const sessionMap: Record<string, string> = {};
       if (sessionIds.length > 0) {
@@ -302,7 +357,6 @@ Deno.serve(async (req) => {
         }
       }
 
-      // Filter by branch if specified
       let filteredOrders = orderList;
       if (branchFilter) {
         filteredOrders = orderList.filter(o => sessionMap[o.session_id] === branchFilter);
@@ -310,7 +364,6 @@ Deno.serve(async (req) => {
 
       const orderIds = filteredOrders.map(o => o.id);
 
-      // Get all lines
       let allLines: any[] = [];
       if (orderIds.length > 0) {
         for (let i = 0; i < orderIds.length; i += 200) {
@@ -323,7 +376,6 @@ Deno.serve(async (req) => {
         }
       }
 
-      // Aggregate items
       const itemMap: Record<string, { name: string; qty: number; revenue: number; avgPrice: number }> = {};
       for (const line of allLines) {
         const name = line.product_name || "غير معروف";
@@ -337,7 +389,6 @@ Deno.serve(async (req) => {
 
       const items = Object.values(itemMap).sort((a, b) => b.qty - a.qty);
 
-      // Get branches list
       const cashBoxIds = [...new Set(Object.values(sessionMap).filter(Boolean))];
       const branches: { id: string; name: string }[] = [];
       if (cashBoxIds.length > 0) {
@@ -350,7 +401,6 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Per-branch totals
       const branchTotals: Record<string, { name: string; total: number; orders: number }> = {};
       for (const order of filteredOrders) {
         const boxId = sessionMap[order.session_id] || "unknown";
@@ -372,7 +422,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ============ NEW: Employee Requests ============
+    // ============ Employee Requests ============
     if (action === "employee_requests") {
       const { data: forms } = await supabase
         .from("employee_forms")
@@ -381,7 +431,6 @@ Deno.serve(async (req) => {
         .order("created_at", { ascending: false })
         .limit(500);
 
-      // Get employee names
       const empIds = [...new Set((forms || []).map((f: any) => f.employee_id).filter(Boolean))];
       const empMap: Record<string, string> = {};
       if (empIds.length > 0) {
@@ -411,12 +460,11 @@ Deno.serve(async (req) => {
       return respond({ success: true, requests });
     }
 
-    // ============ NEW: Supplier Balances ============
+    // ============ Supplier Balances ============
     if (action === "supplier_balances") {
-      const dateFrom = body.dateFrom; // YYYY-MM-DD
-      const dateTo = body.dateTo; // YYYY-MM-DD
+      const dateFrom = body.dateFrom;
+      const dateTo = body.dateTo;
 
-      // Get suppliers (contacts with type supplier or both)
       const { data: contacts } = await supabase
         .from("contacts")
         .select("id, contact_name, contact_type, opening_balance")
@@ -426,7 +474,6 @@ Deno.serve(async (req) => {
 
       const contactIds = (contacts || []).map((c: any) => c.id);
 
-      // Get transactions for these contacts in date range
       let transactions: any[] = [];
       if (contactIds.length > 0) {
         for (let i = 0; i < contactIds.length; i += 200) {
@@ -446,18 +493,15 @@ Deno.serve(async (req) => {
         }
       }
 
-      // Calculate balances
       const supplierData = (contacts || []).map((c: any) => {
         const contactTxs = transactions.filter(t => t.contact_id === c.id);
         let totalPurchases = 0;
         let totalPayments = 0;
 
         for (const tx of contactTxs) {
-          // Purchases: debit is expense (5xxx), credit is supplier account (2100)
           if (tx.debit_account_code?.startsWith("5") || tx.credit_account_code === "2100") {
             totalPurchases += tx.amount || 0;
           }
-          // Payments to supplier: debit is 2100 (reducing liability)
           if (tx.debit_account_code === "2100") {
             totalPayments += tx.amount || 0;
           }
@@ -469,6 +513,7 @@ Deno.serve(async (req) => {
         return {
           id: c.id,
           name: c.contact_name,
+          type: c.contact_type,
           openingBalance,
           totalPurchases,
           totalPayments,
@@ -478,13 +523,13 @@ Deno.serve(async (req) => {
 
       return respond({
         success: true,
-        suppliers: supplierData.filter(s => s.totalPurchases > 0 || s.openingBalance !== 0 || s.closingBalance !== 0),
+        suppliers: supplierData.filter((s: any) => s.closingBalance !== 0 || s.totalPurchases > 0),
+        totalOwed: supplierData.reduce((sum: number, s: any) => sum + Math.max(s.closingBalance, 0), 0),
       });
     }
 
     return respond({ error: "Unknown action" }, 400);
   } catch (err: unknown) {
-    console.error("malaki-data error:", err);
     const message = err instanceof Error ? err.message : "Unknown error";
     return respond({ success: false, error: message }, 500);
   }
