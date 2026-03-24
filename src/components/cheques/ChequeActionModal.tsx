@@ -341,7 +341,7 @@ const ChequeActionModal = ({
               <Label className="text-xs">سبب الاسترداد</Label>
               <Input value={recoverReason} onChange={e => setRecoverReason(e.target.value)} placeholder="سبب استرداد الشيك..." className="h-9 mt-1 rounded-xl" />
             </div>
-          )
+          )}
 
           {/* Notes (all actions) */}
           <div>
