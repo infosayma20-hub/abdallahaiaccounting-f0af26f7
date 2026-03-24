@@ -159,6 +159,36 @@ export default function BranchesSettingsSection() {
               <p className="text-[10px] text-muted-foreground mt-0.5 font-mono" dir="ltr">
                 📍 {b.latitude.toFixed(4)}, {b.longitude.toFixed(4)} • نطاق {b.radius_meters}م
               </p>
+              <div className="flex items-center gap-2 mt-1">
+                <Badge variant="outline" className="text-[10px]">
+                  <QrCode className="h-3 w-3 ml-1" />
+                  {b.qr_mode === 'rotating' ? 'QR متجدد' : 'QR ثابت'}
+                </Badge>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 text-[10px] gap-1 text-primary"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const url = `${window.location.origin}/branch/${b.id}`;
+                    navigator.clipboard.writeText(url);
+                    toast.success("تم نسخ رابط QR");
+                  }}
+                >
+                  <Copy className="h-3 w-3" /> نسخ رابط
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 text-[10px] gap-1"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    window.open(`/branch/${b.id}`, '_blank');
+                  }}
+                >
+                  <ExternalLink className="h-3 w-3" /> فتح شاشة QR
+                </Button>
+              </div>
             </div>
             <div className="flex items-center gap-2 shrink-0">
               <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(b)}>
