@@ -717,8 +717,41 @@ const ChequesPage = () => {
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div><Label className="text-xs">رقم الشيك</Label><Input className="h-9 rounded-xl" value={newCheque.cheque_number} onChange={e => setNewCheque(p => ({ ...p, cheque_number: e.target.value }))} placeholder="اختياري" /></div>
-                <div><Label className="text-xs">البنك</Label><Input className="h-9 rounded-xl" value={newCheque.bank_name} onChange={e => setNewCheque(p => ({ ...p, bank_name: e.target.value }))} placeholder="اختياري" /></div>
+                {newCheque.cheque_type === 'وارد' ? (
+                  <div><Label className="text-xs">البنك</Label><Input className="h-9 rounded-xl" value={newCheque.bank_name} onChange={e => setNewCheque(p => ({ ...p, bank_name: e.target.value }))} placeholder="اختياري" /></div>
+                ) : (
+                  <div><Label className="text-xs">البنك</Label>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">{bankAccounts.find(b => b.id === newCheque.source_bank_account_id)?.bank_name || '—'}</p>
+                  </div>
+                )}
               </div>
+              {/* Source bank account for outgoing cheques */}
+              {newCheque.cheque_type === 'صادر' && (
+                <div>
+                  <Label className="text-xs font-semibold flex items-center gap-1"><Building2 className="h-3 w-3" /> دفتر الشيكات (الحساب البنكي المصدر) *</Label>
+                  {bankAccounts.length === 0 ? (
+                    <p className="text-xs text-muted-foreground mt-2">لا توجد حسابات بنكية — أضف حساباً بنكياً أولاً</p>
+                  ) : (
+                    <div className="space-y-1.5 mt-2 max-h-40 overflow-y-auto">
+                      {bankAccounts.map(bank => (
+                        <button key={bank.id} onClick={() => setNewCheque(p => ({ ...p, source_bank_account_id: bank.id, bank_name: bank.bank_name }))} type="button"
+                          className={`w-full text-right px-3 py-2.5 rounded-xl border transition-all flex items-center justify-between ${
+                            newCheque.source_bank_account_id === bank.id ? 'border-primary bg-primary/5 ring-1 ring-primary/20' : 'border-border hover:border-primary/30'
+                          }`}>
+                          <div className="flex items-center gap-2">
+                            <Building2 className={`h-4 w-4 ${newCheque.source_bank_account_id === bank.id ? 'text-primary' : 'text-muted-foreground'}`} />
+                            <div>
+                              <p className="text-sm font-medium">{bank.name}</p>
+                              <p className="text-[10px] text-muted-foreground">{bank.bank_name}</p>
+                            </div>
+                          </div>
+                          {bank.gl_account_code && <span className="text-[10px] text-muted-foreground font-mono">{bank.gl_account_code}</span>}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
               <div>
                 <Label className="text-xs">الحساب المحاسبي</Label>
                 <Popover open={accountPopoverOpen} onOpenChange={setAccountPopoverOpen}>
