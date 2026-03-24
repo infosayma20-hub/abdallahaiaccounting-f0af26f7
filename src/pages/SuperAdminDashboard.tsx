@@ -2339,8 +2339,9 @@ export default function SuperAdminDashboard() {
             <PlatformSettings />
           </TabsContent>
 
-          <TabsContent value="tools">
+          <TabsContent value="tools" className="space-y-6">
             <ResetTransactionsTool />
+            <AppVisibilityManager />
           </TabsContent>
 
           <TabsContent value="revenue">
