@@ -75,6 +75,23 @@ const VoucherNavToolbar = ({
           status: d.status || "",
         })));
       }
+    } else if (isInvoice) {
+      const { data } = await supabase
+        .from("invoices")
+        .select("id, invoice_number, invoice_date, contact_name, total_amount, status")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: true });
+      if (data) {
+        setAllIds(data.map(d => d.id));
+        setAllRefs(data.map(d => ({
+          id: d.id,
+          ref: d.invoice_number || "",
+          date: d.invoice_date || "",
+          description: d.contact_name || "",
+          amount: d.total_amount || 0,
+          status: d.status || "",
+        })));
+      }
     } else if (isJournal) {
       const { data } = await supabase
         .from("vouchers")
