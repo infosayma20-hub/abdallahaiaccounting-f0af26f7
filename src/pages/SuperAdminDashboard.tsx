@@ -238,21 +238,21 @@ function KPICard({ icon: Icon, label, value, sub, color, accentColor }: {
 }) {
   return (
     <div
-      className="rounded-xl p-5 space-y-3 transition-all duration-150 hover:shadow-lg"
+      className="rounded-xl p-3 sm:p-5 space-y-2 sm:space-y-3 transition-all duration-150 hover:shadow-lg"
       style={{
         background: "var(--sa-kpi-gradient)",
         borderRight: `4px solid ${accentColor || "#00B4D8"}`,
         boxShadow: "0 4px 16px rgba(0,0,0,0.08)",
       }}
     >
-      <div className="flex items-center gap-3">
-        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${color}`}>
-          <Icon className="h-5 w-5" />
+      <div className="flex items-center gap-2 sm:gap-3">
+        <div className={`w-9 h-9 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center ${color}`}>
+          <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
         </div>
-        <span className="text-sm" style={{ color: "var(--sa-text-muted)", fontFamily: "Tajawal, sans-serif" }}>{label}</span>
+        <span className="text-[11px] sm:text-sm" style={{ color: "var(--sa-text-muted)", fontFamily: "Tajawal, sans-serif" }}>{label}</span>
       </div>
-      <div className="text-[32px] font-bold font-mono tabular-nums" style={{ color: "var(--sa-text-primary)", fontFamily: "JetBrains Mono, monospace" }}>{value}</div>
-      {sub && <p className="text-[13px]" style={{ color: "var(--sa-text-muted)", fontFamily: "Tajawal, sans-serif" }}>{sub}</p>}
+      <div className="text-xl sm:text-[32px] font-bold font-mono tabular-nums" style={{ color: "var(--sa-text-primary)", fontFamily: "JetBrains Mono, monospace" }}>{value}</div>
+      {sub && <p className="text-[11px] sm:text-[13px]" style={{ color: "var(--sa-text-muted)", fontFamily: "Tajawal, sans-serif" }}>{sub}</p>}
     </div>
   );
 }
@@ -1704,9 +1704,65 @@ export default function SuperAdminDashboard() {
   if (!authorized) return null;
 
   // Helper for rendering user rows
+  // Mobile card view for users
+  const renderUserCard = (u: UserRecord, isSub = false) => (
+    <div key={u.user_id + "-card"} className="p-3 space-y-2"
+      style={{ borderBottom: "1px solid var(--sa-divider)", ...(isSub ? { borderRight: "3px solid rgba(0,180,216,0.15)", paddingRight: 8 } : {}) }}>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          {!isSub && ((subUsersMap.get(u.user_id) || []).length > 0 || (portalMembers[u.user_id] || []).length > 0) && (
+            <ChevronDown className={`h-4 w-4 shrink-0 transition-transform cursor-pointer ${expandedOwners.has(u.user_id) ? "" : "-rotate-90"}`}
+              style={{ color: "var(--sa-text-muted)" }}
+              onClick={() => toggleOwnerExpand(u.user_id)} />
+          )}
+          <div className={`${isSub ? "w-7 h-7" : "w-8 h-8"} rounded-xl flex items-center justify-center font-bold shrink-0`}
+            style={{ background: isSub ? "var(--sa-surface)" : "var(--sa-logo-bg)", color: isSub ? "var(--sa-text-muted)" : "#00B4D8", fontSize: isSub ? 10 : 12 }}>
+            {(u.display_name || "?")[0]}
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className={`${isSub ? "text-[13px]" : "text-sm font-semibold"} truncate`} style={{ color: "var(--sa-text-secondary)" }}>{u.display_name || "—"}</span>
+              {u.is_banned ? (
+                <Badge className="bg-red-500/10 text-red-400 border-red-500/20 text-[9px]">معلق</Badge>
+              ) : (
+                <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-[9px]">نشط</Badge>
+              )}
+            </div>
+            <p className="text-[11px] font-mono truncate" style={{ color: "var(--sa-text-muted)" }}>{u.email || "—"}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-0.5 shrink-0">
+          {u.is_banned ? (
+            <Button size="icon" variant="ghost" onClick={() => handleUnsuspendUser(u.user_id, u.display_name)} className="h-7 w-7 text-emerald-400"><Unlock className="h-3.5 w-3.5" /></Button>
+          ) : (
+            <Button size="icon" variant="ghost" onClick={() => handleSuspendUser(u.user_id, u.display_name)} className="h-7 w-7 text-amber-400"><Lock className="h-3.5 w-3.5" /></Button>
+          )}
+          <Button size="icon" variant="ghost" onClick={() => handleResetPassword(u.user_id, u.display_name)} className="h-7 w-7 text-blue-400"><KeyRound className="h-3.5 w-3.5" /></Button>
+          <Button size="icon" variant="ghost" onClick={() => setDeleteDialog({ open: true, userId: u.user_id, name: u.display_name })}
+            className="h-7 w-7 text-red-400" disabled={u.roles.includes("super_admin")}><Trash2 className="h-3.5 w-3.5" /></Button>
+        </div>
+      </div>
+      <div className="flex items-center gap-1.5 flex-wrap">
+        {u.roles.map((r) => (
+          <Badge key={r} variant="outline" className={`text-[9px] ${
+            r === "super_admin" ? "text-amber-400 border-amber-400/30" :
+            r === "admin" ? "text-blue-400 border-blue-400/30" :
+            r === "cashier" ? "text-purple-400 border-purple-400/20" :
+            r === "accountant_senior" ? "text-cyan-400 border-cyan-400/20" : ""
+          }`}
+          style={{ borderColor: !["super_admin", "admin", "cashier", "accountant_senior"].includes(r) ? "var(--sa-card-border)" : undefined,
+                   color: !["super_admin", "admin", "cashier", "accountant_senior"].includes(r) ? "var(--sa-text-muted)" : undefined }}>
+            {r}
+          </Badge>
+        ))}
+        {u.last_sign_in && <span className="text-[10px] mr-auto" style={{ color: "var(--sa-text-faint)" }}>{format(new Date(u.last_sign_in), "dd/MM HH:mm", { locale: ar })}</span>}
+      </div>
+    </div>
+  );
+
   const renderUserRow = (u: UserRecord, isSub = false) => (
     <tr key={u.user_id}
-      className={`transition-colors ${isSub ? "" : ""}`}
+      className={`transition-colors`}
       style={{
         borderBottom: "1px solid var(--sa-divider)",
         ...(isSub ? { borderRight: "3px solid rgba(0,180,216,0.15)" } : {}),
@@ -1822,57 +1878,56 @@ export default function SuperAdminDashboard() {
       }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-full flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img src="/q-icon.svg" alt="قيود" className="w-9 h-9" />
-            <div>
-              <h1 className="text-lg font-bold" style={{ color: "var(--sa-text-primary)", fontFamily: "Tajawal, sans-serif" }}>QOYOD</h1>
-            </div>
-            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold" style={{ background: "#C9A84C", color: "#0A2342", fontFamily: "Inter, sans-serif" }}>
+            <img src="/q-icon.svg" alt="قيود" className="w-8 h-8 sm:w-9 sm:h-9" />
+            <h1 className="text-base sm:text-lg font-bold hidden sm:block" style={{ color: "var(--sa-text-primary)", fontFamily: "Tajawal, sans-serif" }}>QOYOD</h1>
+            <span className="px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-semibold" style={{ background: "#C9A84C", color: "#0A2342" }}>
               Super Admin
             </span>
           </div>
-          <div className="flex items-center gap-3">
-            {/* Theme Toggle */}
+          <div className="flex items-center gap-1.5 sm:gap-3">
             <button onClick={toggleTheme}
-              className="p-2 rounded-lg transition-colors"
+              className="p-1.5 sm:p-2 rounded-lg transition-colors"
               style={{ background: "var(--sa-surface)", color: "var(--sa-text-muted)" }}
               title={theme === "dark" ? "الوضع الفاتح" : "الوضع الداكن"}>
               {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </button>
-            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full" style={{ background: "rgba(220,38,38,0.1)", border: "1px solid rgba(220,38,38,0.2)" }}>
+            <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full" style={{ background: "rgba(220,38,38,0.1)", border: "1px solid rgba(220,38,38,0.2)" }}>
               <Wifi className="h-3 w-3 text-red-400" />
               <span className="text-[11px] text-red-400 font-medium">LIVE</span>
             </div>
-            <Button variant="ghost" size="sm" onClick={() => navigate("/apps")} style={{ color: "var(--sa-text-muted)" }}>
-              <LogOut className="h-4 w-4 ml-1" /> خروج
+            <Button variant="ghost" size="sm" onClick={() => navigate("/apps")} style={{ color: "var(--sa-text-muted)" }} className="px-2 sm:px-3">
+              <LogOut className="h-4 w-4 sm:ml-1" /> <span className="hidden sm:inline">خروج</span>
             </Button>
           </div>
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="border p-1 mb-6 flex-wrap h-auto gap-1"
-            style={{ background: "var(--sa-surface)", borderColor: "var(--sa-card-border)" }}>
-            {[
-              { value: "dashboard", icon: Activity, label: "لوحة التحكم" },
-              { value: "users", icon: Users, label: "المستخدمون" },
-              { value: "database", icon: Database, label: "قاعدة البيانات" },
-              { value: "live", icon: Wifi, label: "مراقبة حية" },
-              { value: "audit", icon: FileText, label: "سجل التدقيق" },
-              { value: "settings", icon: Settings, label: "إعدادات المنصة" },
-              { value: "tools", icon: Zap, label: "أدوات" },
-              { value: "subscriptions", icon: CreditCard, label: "الاشتراكات" },
-              { value: "revenue", icon: BarChart3, label: "الإيرادات" },
-            ].map(tab => (
-              <TabsTrigger key={tab.value} value={tab.value}
-                style={{
-                  color: activeTab === tab.value ? "var(--sa-tab-active-text)" : "var(--sa-tab-inactive-text)",
-                  background: activeTab === tab.value ? "var(--sa-tab-active-bg)" : "transparent",
-                }}>
-                <tab.icon className="h-4 w-4 ml-1" /> {tab.label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
+          <div className="overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0 mb-4 sm:mb-6">
+            <TabsList className="border p-1 flex-nowrap sm:flex-wrap h-auto gap-1 w-max sm:w-auto"
+              style={{ background: "var(--sa-surface)", borderColor: "var(--sa-card-border)" }}>
+              {[
+                { value: "dashboard", icon: Activity, label: "لوحة التحكم" },
+                { value: "users", icon: Users, label: "المستخدمون" },
+                { value: "database", icon: Database, label: "قاعدة البيانات" },
+                { value: "live", icon: Wifi, label: "مراقبة حية" },
+                { value: "audit", icon: FileText, label: "سجل التدقيق" },
+                { value: "settings", icon: Settings, label: "إعدادات المنصة" },
+                { value: "tools", icon: Zap, label: "أدوات" },
+                { value: "subscriptions", icon: CreditCard, label: "الاشتراكات" },
+                { value: "revenue", icon: BarChart3, label: "الإيرادات" },
+              ].map(tab => (
+                <TabsTrigger key={tab.value} value={tab.value} className="whitespace-nowrap text-xs sm:text-sm"
+                  style={{
+                    color: activeTab === tab.value ? "var(--sa-tab-active-text)" : "var(--sa-tab-inactive-text)",
+                    background: activeTab === tab.value ? "var(--sa-tab-active-bg)" : "transparent",
+                  }}>
+                  <tab.icon className="h-3.5 w-3.5 sm:h-4 sm:w-4 ml-1" /> <span className="hidden sm:inline">{tab.label}</span><span className="sm:hidden">{tab.label}</span>
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </div>
 
           {/* ─── DASHBOARD TAB ─── */}
           <TabsContent value="dashboard" className="space-y-6">
@@ -1884,7 +1939,7 @@ export default function SuperAdminDashboard() {
             </div>
 
             {stats && (
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 gap-2 sm:gap-4">
                 <KPICard icon={Users} label="إجمالي الشركات" value={stats.total_users} sub={`+${stats.new_users_today} اليوم`} color="bg-[#00B4D8]/20 text-[#00B4D8]" accentColor="#00B4D8" />
                 <KPICard icon={ShoppingCart} label="المستخدمون النشطون" value={stats.active_sessions} sub={`₪${stats.active_sessions_revenue.toLocaleString()}`} color="bg-[#C9A84C]/20 text-[#C9A84C]" accentColor="#C9A84C" />
                 <KPICard icon={DollarSign} label="القيود اليوم" value={`₪${stats.today_revenue.toLocaleString()}`} sub={`${stats.today_transactions} عملية`} color="bg-[#16A34A]/20 text-[#16A34A]" accentColor="#16A34A" />
@@ -1928,13 +1983,13 @@ export default function SuperAdminDashboard() {
 
           {/* ─── USERS TAB ─── */}
           <TabsContent value="users" className="space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="relative flex-1 max-w-md">
+            <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+              <div className="relative flex-1 min-w-[180px]">
                 <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4" style={{ color: "var(--sa-text-faint)" }} />
                 <Input value={userSearch} onChange={(e) => setUserSearch(e.target.value)} placeholder="بحث بالاسم أو الإيميل..."
-                  className="pr-10" style={{ background: "var(--sa-input-bg)", borderColor: "var(--sa-input-border)", color: "var(--sa-text-primary)" }} />
+                  className="pr-10 text-sm" style={{ background: "var(--sa-input-bg)", borderColor: "var(--sa-input-border)", color: "var(--sa-text-primary)" }} />
               </div>
-              <Badge style={{ background: "var(--sa-surface)", color: "var(--sa-text-muted)" }} className="border-0 text-xs">
+              <Badge style={{ background: "var(--sa-surface)", color: "var(--sa-text-muted)" }} className="border-0 text-[10px] sm:text-xs whitespace-nowrap">
                 {companyCount} شركة · {filteredUsers.length} مستخدم
               </Badge>
               <Button variant="ghost" size="sm" onClick={loadUsers} disabled={loadingUsers} style={{ color: "var(--sa-text-muted)" }}>
@@ -1942,7 +1997,49 @@ export default function SuperAdminDashboard() {
               </Button>
             </div>
 
-            <div className="rounded-2xl overflow-hidden" style={{ background: "var(--sa-card-bg)", border: "1px solid var(--sa-card-border)" }}>
+            {/* Mobile card view */}
+            <div className="md:hidden rounded-2xl overflow-hidden" style={{ background: "var(--sa-card-bg)", border: "1px solid var(--sa-card-border)" }}>
+              {owners.map((owner) => {
+                const subs = subUsersMap.get(owner.user_id) || [];
+                const portalMems = portalMembers[owner.user_id] || [];
+                const isExpanded = expandedOwners.has(owner.user_id);
+                return (
+                  <div key={owner.user_id + "-mc"}>
+                    {renderUserCard(owner)}
+                    {isExpanded && subs.map((sub) => renderUserCard(sub, true))}
+                    {isExpanded && portalMems.length > 0 && (
+                      <>
+                        <div className="px-3 py-2 flex items-center gap-2" style={{ borderBottom: "1px solid var(--sa-divider)", background: "var(--sa-surface)" }}>
+                          <LayoutDashboard className="h-3.5 w-3.5 text-amber-400" />
+                          <span className="text-[11px] font-semibold" style={{ color: "var(--sa-text-muted)" }}>أعضاء بوابة الإدارة ({portalMems.length})</span>
+                        </div>
+                        {portalMems.map(pm => (
+                          <div key={`portal-m-${pm.id}`} className="p-3 flex items-center gap-2"
+                            style={{ borderBottom: "1px solid var(--sa-divider)", borderRight: "3px solid rgba(201,168,76,0.25)" }}>
+                            <div className="w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-bold shrink-0"
+                              style={{ background: "rgba(201,168,76,0.15)", color: "#C9A84C" }}>{pm.full_name?.[0] || '?'}</div>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-[13px] truncate" style={{ color: "var(--sa-text-secondary)" }}>{pm.full_name}</span>
+                                <Badge className="bg-amber-500/10 text-amber-400 border-0 text-[9px] px-1.5">بوابة</Badge>
+                              </div>
+                              <p className="text-[10px] font-mono truncate" style={{ color: "var(--sa-text-muted)" }}>{pm.email || pm.username}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </>
+                    )}
+                  </div>
+                );
+              })}
+              {standaloneUsers.map((u) => renderUserCard(u))}
+              {filteredUsers.length === 0 && (
+                <p className="text-center py-8 text-sm" style={{ color: "var(--sa-text-faint)" }}>لا توجد نتائج</p>
+              )}
+            </div>
+
+            {/* Desktop table view */}
+            <div className="hidden md:block rounded-2xl overflow-hidden" style={{ background: "var(--sa-card-bg)", border: "1px solid var(--sa-card-border)" }}>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
@@ -2050,7 +2147,27 @@ export default function SuperAdminDashboard() {
               </Button>
             </div>
 
-            <div className="rounded-2xl overflow-hidden" style={{ background: "var(--sa-card-bg)", border: "1px solid var(--sa-card-border)" }}>
+            {/* Mobile audit cards */}
+            <div className="md:hidden rounded-2xl overflow-hidden" style={{ background: "var(--sa-card-bg)", border: "1px solid var(--sa-card-border)" }}>
+              {auditLogs.map((log) => (
+                <div key={log.id} className="px-3 py-2.5 space-y-1" style={{ borderBottom: "1px solid var(--sa-divider)" }}>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm" style={{ color: "var(--sa-text-secondary)" }}>{actionLabel[log.action] || log.action}</span>
+                    <span className="text-[10px] tabular-nums font-mono" style={{ color: "var(--sa-text-faint)" }}>{format(new Date(log.created_at), "HH:mm:ss")}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    {log.target_id && <p className="text-[10px] font-mono truncate flex-1" style={{ color: "var(--sa-text-muted)" }}>{log.target_type}: {log.target_id.substring(0, 18)}...</p>}
+                    {log.ip_address && <span className="text-[10px] font-mono shrink-0" style={{ color: "var(--sa-text-faint)" }}>{log.ip_address.substring(0, 12)}</span>}
+                  </div>
+                </div>
+              ))}
+              {auditLogs.length === 0 && (
+                <p className="text-center py-8 text-sm" style={{ color: "var(--sa-text-faint)" }}>لا توجد سجلات</p>
+              )}
+            </div>
+
+            {/* Desktop audit table */}
+            <div className="hidden md:block rounded-2xl overflow-hidden" style={{ background: "var(--sa-card-bg)", border: "1px solid var(--sa-card-border)" }}>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
