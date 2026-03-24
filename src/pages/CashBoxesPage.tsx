@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, Plus, Loader2, Settings, ArrowUpRight, FileText, Wallet, Building2, Monitor, Landmark, ArrowDownToLine } from "lucide-react";
+import { ArrowRight, Plus, Loader2, Settings, ArrowUpRight, FileText, Wallet, Building2, Monitor, Landmark, ArrowDownToLine, ArrowLeftRight, ArrowUpFromLine } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import CashBoxDrawer from "@/components/finance/CashBoxDrawer";
 import PettyCashReplenishDialog from "@/components/finance/PettyCashReplenishDialog";
+import CurrencyExchangeDialog from "@/components/finance/CurrencyExchangeDialog";
+import BankDepositDialog from "@/components/finance/BankDepositDialog";
 
 const CashBoxesPage = () => {
   const navigate = useNavigate();
@@ -21,6 +23,8 @@ const CashBoxesPage = () => {
   const [drawerType, setDrawerType] = useState<"main" | "branch" | "pos" | "petty" | "petty_cash">("branch");
   const [editBox, setEditBox] = useState<any>(null);
   const [replenishOpen, setReplenishOpen] = useState(false);
+  const [exchangeOpen, setExchangeOpen] = useState(false);
+  const [depositOpen, setDepositOpen] = useState(false);
 
   const fetchBoxes = useCallback(async () => {
     if (!user) return;
@@ -206,7 +210,13 @@ const CashBoxesPage = () => {
             <p className="text-xs text-muted-foreground">تعريف وإدارة جميع صناديق الشركة</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button variant="outline" size="sm" className="gap-1.5 text-xs border-blue-300 text-blue-700 hover:bg-blue-50" onClick={() => setExchangeOpen(true)}>
+            <ArrowLeftRight className="h-3.5 w-3.5" /> صرف عملة
+          </Button>
+          <Button variant="outline" size="sm" className="gap-1.5 text-xs border-emerald-300 text-emerald-700 hover:bg-emerald-50" onClick={() => setDepositOpen(true)}>
+            <ArrowUpFromLine className="h-3.5 w-3.5" /> إيداع بنكي
+          </Button>
           {pettyBoxes.length > 0 && (
             <Button variant="outline" size="sm" className="gap-1.5 text-xs border-amber-300 text-amber-700 hover:bg-amber-50" onClick={() => setReplenishOpen(true)}>
               <ArrowDownToLine className="h-3.5 w-3.5" /> تغذية النثرية
@@ -350,6 +360,22 @@ const CashBoxesPage = () => {
       <PettyCashReplenishDialog
         open={replenishOpen}
         onOpenChange={setReplenishOpen}
+        boxes={boxes}
+        userId={user?.id || ""}
+        onSuccess={fetchBoxes}
+      />
+
+      <CurrencyExchangeDialog
+        open={exchangeOpen}
+        onOpenChange={setExchangeOpen}
+        boxes={boxes}
+        userId={user?.id || ""}
+        onSuccess={fetchBoxes}
+      />
+
+      <BankDepositDialog
+        open={depositOpen}
+        onOpenChange={setDepositOpen}
         boxes={boxes}
         userId={user?.id || ""}
         onSuccess={fetchBoxes}
