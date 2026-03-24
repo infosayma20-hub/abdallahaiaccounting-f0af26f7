@@ -25,7 +25,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import ChequeActionModal, { type ActionType, type ActionFormData, ACTION_CONFIGS } from "@/components/cheques/ChequeActionModal";
 import ChequeTimeline from "@/components/cheques/ChequeTimeline";
 
-type ChequeStatus = 'مسجل' | 'آجل' | 'مستحق' | 'مودع' | 'محصل' | 'مرتجع' | 'ملغي' | 'مظهر';
+type ChequeStatus = 'مسجل' | 'آجل' | 'مستحق' | 'مودع' | 'محصل' | 'مرتجع' | 'ملغي' | 'مظهر' | 'مصروف';
 type ChequeType = 'وارد' | 'صادر';
 
 interface Cheque {
