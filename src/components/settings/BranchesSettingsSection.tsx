@@ -36,6 +36,7 @@ export default function BranchesSettingsSection() {
   const [latitude, setLatitude] = useState(31.9);
   const [longitude, setLongitude] = useState(35.2);
   const [radius, setRadius] = useState(100);
+  const [qrMode, setQrMode] = useState("static");
 
   useEffect(() => {
     if (user) loadBranches();
