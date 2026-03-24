@@ -158,7 +158,7 @@ const AuthPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-row light" dir="ltr" data-theme="light">
+    <div className="min-h-screen flex flex-row" dir="ltr">
       {/* LEFT panel — brand showcase with animated canvas (desktop only) */}
       <div
         className="hidden lg:flex lg:w-[48%] relative overflow-hidden"
