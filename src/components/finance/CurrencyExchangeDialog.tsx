@@ -50,20 +50,30 @@ export default function CurrencyExchangeDialog({ open, onOpenChange, boxes, onSu
   useEffect(() => {
     if (!open || fromCurrency === toCurrency) return;
     const fetchRate = async () => {
-      // Try to get rate from currencies table
       const targetCode = fromCurrency === "ILS" ? toCurrency : fromCurrency;
-      const { data } = await supabase
+      // Get currency id first, then latest exchange rate
+      const { data: cur } = await supabase
         .from("currencies")
-        .select("sell_rate, buy_rate, mid_rate")
+        .select("id")
         .eq("code", targetCode)
         .eq("is_active", true)
         .maybeSingle();
 
-      if (data) {
-        // If selling ILS to buy foreign, use sell_rate
-        // If selling foreign to buy ILS, use buy_rate
-        const r = fromCurrency === "ILS" ? (data.sell_rate || data.mid_rate) : (data.buy_rate || data.mid_rate);
-        if (r) setRate(String(r));
+      if (cur?.id) {
+        const { data: rateData } = await supabase
+          .from("exchange_rates")
+          .select("sell_rate, buy_rate, mid_rate")
+          .eq("currency_id", cur.id)
+          .order("rate_date", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (rateData) {
+          const r = fromCurrency === "ILS"
+            ? (rateData.sell_rate || rateData.mid_rate)
+            : (rateData.buy_rate || rateData.mid_rate);
+          if (r) setRate(String(r));
+        }
       }
     };
     fetchRate();
