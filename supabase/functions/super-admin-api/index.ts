@@ -351,7 +351,7 @@ Deno.serve(async (req) => {
 
     if (action === "update_subscription") {
       const body = await req.json();
-      const { subscription_id, plan_id, status, billing_cycle, period_end } = body;
+      const { subscription_id, plan_id, status, billing_cycle, period_end, custom_amount, custom_currency, agreement_type, period_start } = body;
 
       if (!subscription_id) {
         return new Response(JSON.stringify({ error: "subscription_id مطلوب" }), {
@@ -363,6 +363,10 @@ Deno.serve(async (req) => {
       if (plan_id) updateData.plan_id = plan_id;
       if (status) updateData.status = status;
       if (billing_cycle) updateData.billing_cycle = billing_cycle;
+      if (custom_amount !== undefined) updateData.custom_amount = custom_amount || null;
+      if (custom_currency !== undefined) updateData.custom_currency = custom_currency;
+      if (agreement_type !== undefined) updateData.agreement_type = agreement_type;
+      if (period_start) updateData.current_period_start = new Date(period_start + "T00:00:00Z").toISOString();
 
       // If a custom period_end is provided, use it
       if (period_end) {

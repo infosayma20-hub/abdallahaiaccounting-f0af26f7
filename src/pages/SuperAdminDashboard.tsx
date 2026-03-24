@@ -763,11 +763,15 @@ function SubscriptionsManager() {
   const [plans, setPlans] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [editSub, setEditSub] = useState<any | null>(null);
-  const [editPlanId, setEditPlanId] = useState("");
-  const [editStatus, setEditStatus] = useState("");
-  const [editBilling, setEditBilling] = useState("");
-  const [editPeriodEnd, setEditPeriodEnd] = useState("");
+   const [editSub, setEditSub] = useState<any | null>(null);
+   const [editPlanId, setEditPlanId] = useState("");
+   const [editStatus, setEditStatus] = useState("");
+   const [editBilling, setEditBilling] = useState("");
+   const [editPeriodEnd, setEditPeriodEnd] = useState("");
+   const [editCustomAmount, setEditCustomAmount] = useState("");
+   const [editCustomCurrency, setEditCustomCurrency] = useState("ILS");
+   const [editAgreementType, setEditAgreementType] = useState("monthly");
+   const [editPeriodStart, setEditPeriodStart] = useState("");
 
   useEffect(() => { loadData(); }, []);
 
