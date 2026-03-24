@@ -548,7 +548,7 @@ const JournalNewPage = () => {
                             <SelectValue placeholder="ابحث عن حساب أو جهة..." />
                           )}
                         </SelectTrigger>
-                        <SelectContent className="max-h-[320px] min-w-[350px]">
+                        <SelectContent className="max-h-[420px] min-w-[380px]">
                           <div className="px-2 py-1.5 sticky top-0 bg-background z-10 space-y-1">
                             <div className="relative">
                               <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
