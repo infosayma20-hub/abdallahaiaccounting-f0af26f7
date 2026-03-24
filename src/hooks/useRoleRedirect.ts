@@ -4,6 +4,11 @@ import { useAuth } from "./useAuth";
 
 const redirectCache = new Map<string, string | null>();
 
+export function clearRoleRedirectCache(userId?: string) {
+  if (userId) redirectCache.delete(userId);
+  else redirectCache.clear();
+}
+
 export function useRoleRedirect() {
   const { user, loading: authLoading } = useAuth();
   const [targetPath, setTargetPath] = useState<string | null>(null);
