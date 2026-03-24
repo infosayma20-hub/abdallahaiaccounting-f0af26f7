@@ -71,6 +71,7 @@ const statusConfig: Record<ChequeStatus, { icon: any; color: string; bg: string;
   'مرتجع': { icon: RefreshCw, color: 'text-rose-700', bg: 'bg-rose-500/10', badgeClass: 'bg-rose-500/15 text-rose-700 dark:text-rose-400', label: 'مرتجع' },
   'ملغي': { icon: Ban, color: 'text-muted-foreground', bg: 'bg-muted/30', badgeClass: 'bg-muted/40 text-muted-foreground', label: 'ملغي' },
   'مظهر': { icon: Send, color: 'text-purple-600', bg: 'bg-purple-500/10', badgeClass: 'bg-purple-500/15 text-purple-700 dark:text-purple-400', label: 'مظهَّر' },
+  'مصروف': { icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-500/10', badgeClass: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400', label: 'مصروف' },
 };
 
 // Available actions per status
