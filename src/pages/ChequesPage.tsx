@@ -499,7 +499,9 @@ const ChequesPage = () => {
         historyDetails.bank_name = bank?.name;
       }
       if (data.action === 'endorse') historyDetails.endorsed_to = data.endorsedToName;
-      if (data.action === 'bounced') { historyDetails.bounce_reason = data.bounceReason; historyDetails.bank_fees = data.bankFees; }
+      if (data.action === 'bounced' || data.action === 'outgoing_bounced') { historyDetails.bounce_reason = data.bounceReason; historyDetails.bank_fees = data.bankFees; }
+      if (data.action === 'cashed') { const sb = bankAccounts.find(b => b.id === cheque.source_bank_account_id); historyDetails.source_bank = sb?.name; }
+      if (data.action === 'recover') { historyDetails.recover_reason = data.recoverReason; }
 
       await supabase.from('cheque_status_history').insert({
         cheque_id: cheque.id, user_id: user.id,
