@@ -178,6 +178,13 @@ const VoucherNavToolbar = ({
   return (
     <>
       <div className="flex items-center gap-1.5 flex-wrap bg-card border border-border rounded-xl px-3 py-2 shadow-sm">
+        {/* Ref Number Display */}
+        {currentRef && (
+          <span className="text-xs font-mono font-bold text-primary bg-primary/10 px-2.5 py-1 rounded-md border border-primary/20">
+            {currentRef}
+          </span>
+        )}
+
         {/* Navigation buttons */}
         {hasNav && (
           <div className="flex items-center gap-0.5 border-l border-border pl-2 ml-1">

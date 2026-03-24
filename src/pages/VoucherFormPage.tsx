@@ -206,13 +206,24 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       const data = JSON.parse(draft);
       localStorage.removeItem(draftKey);
       setDuplicateSourceRef(data._sourceRef || null);
+      if (data.paymentDate) setPaymentDate(data.paymentDate);
       if (data.paymentMethod) setPaymentMethod(data.paymentMethod);
+      if (data.amount) setAmount(data.amount);
+      if (data.currency) setCurrency(data.currency);
+      if (data.exchangeRate) setExchangeRate(data.exchangeRate);
       if (data.notes) setNotes(data.notes);
       if (data.depositType) setDepositType(data.depositType);
       if (data.selectedCashBox) setSelectedCashBox(data.selectedCashBox);
       if (data.selectedBankAccount) setSelectedBankAccount(data.selectedBankAccount);
+      if (data.partyType) setPartyType(data.partyType as PartyType);
       if (data.contactId) {
         (window as any).__duplicateContactId = data.contactId;
+      }
+      if (data.selectedGlAccountCode) {
+        (window as any).__duplicateGlAccountCode = data.selectedGlAccountCode;
+      }
+      if (data.selectedEmployeeId) {
+        (window as any).__duplicateEmployeeId = data.selectedEmployeeId;
       }
     } catch (e) { /* ignore */ }
   }, [fromDuplicate, voucherType]);
@@ -1120,12 +1131,19 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
   const handleNewSimilar = () => {
     const draftData = {
       _sourceRef: refNumber || savedReceiptNumber,
+      paymentDate,
       paymentMethod,
+      amount,
+      currency,
+      exchangeRate,
       notes,
       depositType,
       selectedCashBox,
       selectedBankAccount,
       contactId: selectedContact?.id || "",
+      partyType,
+      selectedGlAccountCode: selectedGlAccount?.account_code || "",
+      selectedEmployeeId: selectedEmployee?.id || "",
     };
     localStorage.setItem(`draft_${voucherType}_new`, JSON.stringify(draftData));
     if (isReceipt) navigate("/finance/receipt/new?from_duplicate=true");
@@ -1151,10 +1169,10 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       {/* Navigation Toolbar */}
       <VoucherNavToolbar
         voucherType={voucherType}
-        currentRef={isEditMode ? refNumber : undefined}
+        currentRef={isEditMode ? refNumber : (savedReceiptNumber || refNumber || undefined)}
         onPrint={handlePrint}
-        onNewSimilar={isEditMode ? handleNewSimilar : undefined}
-        showNavigation={isEditMode}
+        onNewSimilar={(isEditMode || saved) ? handleNewSimilar : undefined}
+        showNavigation={isEditMode || saved}
       />
 
       {/* Row 1: Basic Info */}
