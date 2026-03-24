@@ -142,7 +142,8 @@ const VoucherNavToolbar = ({
   }, [currentRef, allRefs]);
 
   const navigateToVoucher = (id: string) => {
-    if (isReceipt) navigate(`/finance/receipt/${id}/edit`);
+    if (isInvoice) navigate(`/invoices/new?edit=${id}`);
+    else if (isReceipt) navigate(`/finance/receipt/${id}/edit`);
     else if (isJournal) navigate(`/finance/journals?edit=${id}`);
     else navigate(`/finance/payment/${id}/edit`);
   };
