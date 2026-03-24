@@ -198,9 +198,13 @@ const AuthPage = () => {
       <div className="flex-1 flex items-center justify-center px-4 auth-light-panel" dir="rtl">
         <div className="w-full max-w-sm space-y-6">
           {/* Mobile logo */}
-          <div className="text-center space-y-2 lg:hidden">
-            <div className="flex flex-col items-center gap-2" dir="ltr">
-              <img src="/logo-full.svg" alt="QOYOD قيود" width={140} />
+          <div className="text-center space-y-3 lg:hidden py-4">
+            <div className="flex flex-col items-center gap-3">
+              <img src="/q-icon.svg" alt="QOYOD" className="w-20 h-20" />
+              <h1 className="text-2xl font-bold text-foreground tracking-wide" style={{ fontFamily: "Tajawal" }}>
+                QOYOD قيود
+              </h1>
+              <p className="text-sm text-muted-foreground" style={{ fontFamily: "Tajawal" }}>أهلاً بك</p>
             </div>
           </div>
 
