@@ -73,6 +73,7 @@ export default function BranchesSettingsSection() {
     setLatitude(b.latitude);
     setLongitude(b.longitude);
     setRadius(b.radius_meters);
+    setQrMode(b.qr_mode || "static");
     setShowDialog(true);
   };
 
