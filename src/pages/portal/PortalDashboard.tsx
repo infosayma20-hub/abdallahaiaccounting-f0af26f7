@@ -43,23 +43,32 @@ export default function PortalDashboard() {
   }, [authLoading, user, navigate]);
 
   useEffect(() => {
-    const fetchCompanyName = async () => {
+    const fetchCompanyData = async () => {
       try {
         const { data } = await supabase.functions.invoke('malaki-data', {
           body: { action: 'get_settings' },
         });
         if (data?.settings?.linked_user_id) {
+          const linkedId = data.settings.linked_user_id;
           const { data: cs } = await supabase
             .from('company_settings')
             .select('company_name, logo_url')
-            .eq('user_id', data.settings.linked_user_id)
+            .eq('user_id', linkedId)
             .single();
           if (cs?.company_name) setCompanyName(cs.company_name);
           if (cs?.logo_url) setCompanyLogo(cs.logo_url);
+
+          // Check if this account has employees
+          const { count } = await supabase
+            .from('employees')
+            .select('id', { count: 'exact', head: true })
+            .eq('user_id', linkedId)
+            .eq('is_active', true);
+          setHasEmployees((count || 0) > 0);
         }
       } catch {}
     };
-    fetchCompanyName();
+    fetchCompanyData();
   }, []);
 
   if (authLoading || !user) return null;
