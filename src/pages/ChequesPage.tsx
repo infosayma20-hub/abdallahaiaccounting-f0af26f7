@@ -219,6 +219,9 @@ const ChequesPage = () => {
     if (!user || !newCheque.party_name || !newCheque.amount || !newCheque.cheque_date) {
       toast.error("يرجى تعبئة الحقول المطلوبة"); return;
     }
+    if (newCheque.cheque_type === 'صادر' && !newCheque.source_bank_account_id) {
+      toast.error("يرجى اختيار الحساب البنكي المصدر للشيك الصادر"); return;
+    }
     if (submitting) return;
     setSubmitting(true);
     try {
@@ -226,14 +229,17 @@ const ChequesPage = () => {
       const chequeStatus: ChequeStatus = newCheque.cheque_date > today ? 'آجل' : 'مستحق';
       const amount = parseFloat(newCheque.amount);
       const contactId = findContactId(newCheque.party_name);
+      const sourceBank = bankAccounts.find(b => b.id === newCheque.source_bank_account_id);
 
       const { data: chequeData, error } = await supabase.from('cheques').insert({
         user_id: user.id, cheque_type: newCheque.cheque_type, status: chequeStatus,
-        cheque_number: newCheque.cheque_number || null, bank_name: newCheque.bank_name || null,
+        cheque_number: newCheque.cheque_number || null, bank_name: newCheque.cheque_type === 'صادر' ? (sourceBank?.bank_name || newCheque.bank_name || null) : (newCheque.bank_name || null),
         cheque_date: newCheque.cheque_date, amount, currency: newCheque.currency,
         party_name: newCheque.party_name, party_type: newCheque.party_type,
         linked_account: newCheque.linked_account || null, notes: newCheque.notes || null,
-      }).select('id').single();
+        source_bank_account_id: newCheque.source_bank_account_id || null,
+        contact_id: contactId,
+      } as any).select('id').single();
       if (error) throw error;
 
       const chequeId = chequeData?.id || '';
