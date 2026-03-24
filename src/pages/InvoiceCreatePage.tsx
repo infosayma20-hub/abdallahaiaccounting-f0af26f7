@@ -6,6 +6,7 @@ import {
   CreditCard, Building2, Banknote, Clock, Search, Package, Receipt,
   ShoppingCart, Send, Percent, Hash, ChevronDown, MessageSquare, Paperclip
 } from "lucide-react";
+import VoucherNavToolbar from "@/components/VoucherNavToolbar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
