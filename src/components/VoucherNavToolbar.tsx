@@ -163,7 +163,8 @@ const VoucherNavToolbar = ({
 
   const handleNewPath = () => {
     if (onNew) { onNew(); return; }
-    if (isReceipt) navigate("/finance/receipt/new");
+    if (isInvoice) navigate("/invoices/new");
+    else if (isReceipt) navigate("/finance/receipt/new");
     else if (isJournal) navigate("/finance/journal/new");
     else navigate("/finance/payment/new");
   };
