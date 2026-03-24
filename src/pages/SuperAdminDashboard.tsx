@@ -1939,7 +1939,7 @@ export default function SuperAdminDashboard() {
             </div>
 
             {stats && (
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 gap-2 sm:gap-4">
                 <KPICard icon={Users} label="إجمالي الشركات" value={stats.total_users} sub={`+${stats.new_users_today} اليوم`} color="bg-[#00B4D8]/20 text-[#00B4D8]" accentColor="#00B4D8" />
                 <KPICard icon={ShoppingCart} label="المستخدمون النشطون" value={stats.active_sessions} sub={`₪${stats.active_sessions_revenue.toLocaleString()}`} color="bg-[#C9A84C]/20 text-[#C9A84C]" accentColor="#C9A84C" />
                 <KPICard icon={DollarSign} label="القيود اليوم" value={`₪${stats.today_revenue.toLocaleString()}`} sub={`${stats.today_transactions} عملية`} color="bg-[#16A34A]/20 text-[#16A34A]" accentColor="#16A34A" />
