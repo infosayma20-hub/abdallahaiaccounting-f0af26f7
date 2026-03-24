@@ -16,7 +16,7 @@ import { fmtDateDisplay } from "@/lib/utils";
 import {
   Users, Building2, Clock, CheckCircle2, XCircle, AlertTriangle,
   Calendar, FileText, Download, Loader2, Eye, Check, X, MapPin,
-  QrCode, RefreshCw, Copy, MoreVertical, Pencil, Trash2
+  QrCode, RefreshCw, Copy, MoreVertical, Pencil, Trash2, Printer
 } from "lucide-react";
 import BackButton from "@/components/BackButton";
 import { format } from "date-fns";
