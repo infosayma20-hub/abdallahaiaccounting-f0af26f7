@@ -14,8 +14,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Search, CheckCircle2, XCircle, Eye, Upload, FileText,
-  Download, ChevronLeft, ChevronRight, Loader2, Trash2
+  Download, ChevronLeft, ChevronRight, Loader2, Trash2, Printer
 } from "lucide-react";
+import EmployeeFormPrintView from "@/components/employee/EmployeeFormPrintView";
+import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { format } from "date-fns";
 import { multiWordMatchAny } from "@/lib/utils";
 
@@ -45,7 +47,9 @@ const financialTypes = ["advance_request", "loan_request"];
 
 export default function EmployeeFormsManagementPage() {
   const { user } = useAuth();
+  const { settings: companySettings } = useCompanySettings();
   const [forms, setForms] = useState<any[]>([]);
+  const [printForm, setPrintForm] = useState<any | null>(null);
   const [employeeMap, setEmployeeMap] = useState<Record<string, { name: string; branch: string }>>({});
   const [branches, setBranches] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -378,6 +382,9 @@ export default function EmployeeFormsManagementPage() {
                                   <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => { setSelectedForm(f); setReviewNotes(f.review_notes || ""); }}>
                                     <Eye className="h-3.5 w-3.5" />
                                   </Button>
+                                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-primary hover:bg-primary/10" onClick={() => setPrintForm(f)}>
+                                    <Printer className="h-3.5 w-3.5" />
+                                  </Button>
                                   <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive hover:bg-destructive/10"
                                     onClick={() => handleDelete(f)}
                                     disabled={!!processing}>
@@ -550,6 +557,16 @@ export default function EmployeeFormsManagementPage() {
           </div>
         </DialogContent>
       </Dialog>
+      {/* Print Preview */}
+      <EmployeeFormPrintView
+        open={!!printForm}
+        onClose={() => setPrintForm(null)}
+        form={printForm}
+        employeeName={employeeMap[printForm?.employee_id]?.name || "—"}
+        employeeBranch={employeeMap[printForm?.employee_id]?.branch || "—"}
+        companyName={companySettings?.company_name}
+        companyLogo={companySettings?.logo_url}
+      />
     </div>
   );
 }
