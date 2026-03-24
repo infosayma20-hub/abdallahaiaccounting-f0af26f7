@@ -1771,6 +1771,7 @@ export type Database = {
           fiscal_year_start: number | null
           has_employees: boolean | null
           has_pos: boolean | null
+          hidden_apps: string[] | null
           hr_annual_leave_days: number | null
           hr_carry_over_leave: boolean | null
           hr_daily_hours: number | null
@@ -1907,6 +1908,7 @@ export type Database = {
           fiscal_year_start?: number | null
           has_employees?: boolean | null
           has_pos?: boolean | null
+          hidden_apps?: string[] | null
           hr_annual_leave_days?: number | null
           hr_carry_over_leave?: boolean | null
           hr_daily_hours?: number | null
@@ -2043,6 +2045,7 @@ export type Database = {
           fiscal_year_start?: number | null
           has_employees?: boolean | null
           has_pos?: boolean | null
+          hidden_apps?: string[] | null
           hr_annual_leave_days?: number | null
           hr_carry_over_leave?: boolean | null
           hr_daily_hours?: number | null
