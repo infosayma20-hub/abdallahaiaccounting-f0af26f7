@@ -22,6 +22,22 @@ async function computeToken(branchId: string, timeWindow: number, secretKey: str
   return hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
 }
 
+// Compute static HMAC token (no time window — always same)
+async function computeStaticToken(branchId: string, secretKey: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = `${branchId}:static`;
+  const key = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(secretKey),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+  const signature = await crypto.subtle.sign("HMAC", key, encoder.encode(data));
+  const hashArray = Array.from(new Uint8Array(signature));
+  return hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
 function getTimeWindow(rotationMinutes: number): number {
   const now = Date.now();
   return Math.floor(now / (rotationMinutes * 60 * 1000));
@@ -64,7 +80,6 @@ Deno.serve(async (req) => {
     const action = url.searchParams.get("action") || pathParts[pathParts.length - 1];
 
     // GET ?action=public&branch_id=xxx — Public QR generation (for display screens)
-    // SECURITY: Token is generated server-side. secret_key is NEVER returned to the client.
     if (req.method === "GET" && action === "public") {
       const branchId = url.searchParams.get("branch_id");
       if (!branchId || !isValidUUID(branchId)) {
@@ -73,10 +88,9 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Fetch branch info (safe fields only) and secret separately
       const { data: branch, error: branchErr } = await supabase
         .from("branches")
-        .select("id, qr_rotation_minutes, name, secret_key, is_active")
+        .select("id, qr_rotation_minutes, name, secret_key, is_active, qr_mode")
         .eq("id", branchId)
         .eq("is_active", true)
         .single();
@@ -87,16 +101,32 @@ Deno.serve(async (req) => {
         });
       }
 
+      const isStatic = branch.qr_mode === 'static';
+
+      if (isStatic) {
+        const qrToken = await computeStaticToken(branch.id, branch.secret_key);
+        return new Response(JSON.stringify({
+          qr_payload: `${branch.id}:${qrToken}`,
+          branch_name: branch.name,
+          expires_at: null,
+          rotation_minutes: 0,
+          qr_mode: 'static',
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Rotating mode
       const timeWindow = getTimeWindow(branch.qr_rotation_minutes);
       const qrToken = await computeToken(branch.id, timeWindow, branch.secret_key);
       const expiresAt = getTimeWindowExpiry(branch.qr_rotation_minutes);
 
-      // SECURITY: Return ONLY the computed token, NEVER the secret_key
       return new Response(JSON.stringify({
         qr_payload: `${branch.id}:${qrToken}`,
         branch_name: branch.name,
         expires_at: expiresAt,
         rotation_minutes: branch.qr_rotation_minutes,
+        qr_mode: 'rotating',
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -111,7 +141,6 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Auth check — must be branch owner or admin
       const authHeader = req.headers.get("Authorization");
       if (!authHeader) {
         return new Response(JSON.stringify({ error: "غير مصرح" }), {
@@ -126,12 +155,10 @@ Deno.serve(async (req) => {
           status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const userId = user.id;
 
-      // Fetch branch with secret_key (server-side only, never returned)
       const { data: branch, error: branchErr } = await supabase
         .from("branches")
-        .select("id, secret_key, qr_rotation_minutes, name, user_id")
+        .select("id, secret_key, qr_rotation_minutes, name, user_id, qr_mode")
         .eq("id", branchId)
         .eq("is_active", true)
         .single();
@@ -142,12 +169,26 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Check authorization: branch owner or admin
-      const isOwner = branch.user_id === userId;
-      const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
+      const isOwner = branch.user_id === user.id;
+      const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: user.id, _role: "admin" });
       if (!isOwner && !isAdmin) {
         return new Response(JSON.stringify({ error: "غير مصرح لعرض QR لهذا الفرع" }), {
           status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const isStatic = branch.qr_mode === 'static';
+
+      if (isStatic) {
+        const qrToken = await computeStaticToken(branch.id, branch.secret_key);
+        return new Response(JSON.stringify({
+          qr_payload: `${branch.id}:${qrToken}`,
+          branch_name: branch.name,
+          expires_at: null,
+          rotation_minutes: 0,
+          qr_mode: 'static',
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
@@ -155,18 +196,18 @@ Deno.serve(async (req) => {
       const qrToken = await computeToken(branch.id, timeWindow, branch.secret_key);
       const expiresAt = getTimeWindowExpiry(branch.qr_rotation_minutes);
 
-      // SECURITY: Return ONLY the computed token, NEVER the secret_key
       return new Response(JSON.stringify({
         qr_payload: `${branch.id}:${qrToken}`,
         branch_name: branch.name,
         expires_at: expiresAt,
         rotation_minutes: branch.qr_rotation_minutes,
+        qr_mode: 'rotating',
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // POST ?action=validate — Validate a QR token (called by attendance function)
+    // POST ?action=validate — Validate a QR token
     if (req.method === "POST" && action === "validate") {
       const body = await req.json();
       const { branch_id, qr_token } = body;
@@ -177,7 +218,6 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Validate token format (hex string)
       if (typeof qr_token !== 'string' || !/^[0-9a-f]+$/i.test(qr_token) || qr_token.length > 128) {
         return new Response(JSON.stringify({ valid: false, error: "رمز غير صالح" }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -186,7 +226,7 @@ Deno.serve(async (req) => {
 
       const { data: branch, error: branchErr } = await supabase
         .from("branches")
-        .select("id, secret_key, qr_rotation_minutes")
+        .select("id, secret_key, qr_rotation_minutes, qr_mode")
         .eq("id", branch_id)
         .eq("is_active", true)
         .single();
@@ -197,13 +237,22 @@ Deno.serve(async (req) => {
         });
       }
 
+      const isStatic = branch.qr_mode === 'static';
+
+      if (isStatic) {
+        // Static mode: validate against fixed token
+        const staticToken = await computeStaticToken(branch.id, branch.secret_key);
+        const isValid = constantTimeEqual(qr_token, staticToken);
+        return new Response(JSON.stringify({ valid: isValid }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Rotating mode
       const currentWindow = getTimeWindow(branch.qr_rotation_minutes);
       const currentToken = await computeToken(branch.id, currentWindow, branch.secret_key);
-      
-      // Also check previous window for grace period
       const prevToken = await computeToken(branch.id, currentWindow - 1, branch.secret_key);
 
-      // SECURITY: Use constant-time comparison to prevent timing attacks
       const isValid = constantTimeEqual(qr_token, currentToken) || constantTimeEqual(qr_token, prevToken);
 
       return new Response(JSON.stringify({ valid: isValid }), {
@@ -215,7 +264,6 @@ Deno.serve(async (req) => {
       status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
-    // SECURITY: Never expose internal error details
     console.error("branch-qr error:", err);
     return new Response(JSON.stringify({ error: "حدث خطأ في الخادم" }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
