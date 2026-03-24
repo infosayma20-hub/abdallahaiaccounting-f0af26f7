@@ -869,7 +869,7 @@ function AppVisibilityManager() {
   const loadHiddenApps = async (userId: string) => {
     setLoadingApps(true);
     try {
-      const res = await apiCall("get_hidden_apps", `target_user_id=${userId}`);
+      const res = await apiCall("get_hidden_apps", { target_user_id: userId });
       setHiddenApps(res.hidden_apps || []);
     } catch {
       setHiddenApps([]);
