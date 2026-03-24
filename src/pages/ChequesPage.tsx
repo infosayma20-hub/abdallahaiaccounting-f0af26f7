@@ -25,7 +25,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import ChequeActionModal, { type ActionType, type ActionFormData, ACTION_CONFIGS } from "@/components/cheques/ChequeActionModal";
 import ChequeTimeline from "@/components/cheques/ChequeTimeline";
 
-type ChequeStatus = 'مسجل' | 'آجل' | 'مستحق' | 'مودع' | 'محصل' | 'مرتجع' | 'ملغي' | 'مظهر';
+type ChequeStatus = 'مسجل' | 'آجل' | 'مستحق' | 'مودع' | 'محصل' | 'مرتجع' | 'ملغي' | 'مظهر' | 'مصروف';
 type ChequeType = 'وارد' | 'صادر';
 
 interface Cheque {
@@ -46,6 +46,9 @@ interface Cheque {
   updated_at: string;
   deposit_bank_account_id?: string | null;
   endorsed_to_name?: string | null;
+  source_bank_account_id?: string | null;
+  contact_id?: string | null;
+  cashed_date?: string | null;
 }
 
 interface StatusHistory {
@@ -68,10 +71,25 @@ const statusConfig: Record<ChequeStatus, { icon: any; color: string; bg: string;
   'مرتجع': { icon: RefreshCw, color: 'text-rose-700', bg: 'bg-rose-500/10', badgeClass: 'bg-rose-500/15 text-rose-700 dark:text-rose-400', label: 'مرتجع' },
   'ملغي': { icon: Ban, color: 'text-muted-foreground', bg: 'bg-muted/30', badgeClass: 'bg-muted/40 text-muted-foreground', label: 'ملغي' },
   'مظهر': { icon: Send, color: 'text-purple-600', bg: 'bg-purple-500/10', badgeClass: 'bg-purple-500/15 text-purple-700 dark:text-purple-400', label: 'مظهَّر' },
+  'مصروف': { icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-500/10', badgeClass: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400', label: 'مصروف' },
 };
 
-// Available actions per status
-const getAvailableActions = (status: ChequeStatus): ActionType[] => {
+// Available actions per status — differentiate by cheque type
+const getAvailableActions = (status: ChequeStatus, chequeType: ChequeType): ActionType[] => {
+  if (chequeType === 'صادر') {
+    // Outgoing cheque actions
+    switch (status) {
+      case 'مسجل':
+      case 'آجل':
+      case 'مستحق':
+        return ['cashed', 'recover', 'cancel'];
+      case 'مرتجع':
+        return ['cashed', 'cancel'];
+      default:
+        return [];
+    }
+  }
+  // Incoming cheque actions
   switch (status) {
     case 'مسجل':
     case 'آجل':
@@ -88,7 +106,7 @@ const getAvailableActions = (status: ChequeStatus): ActionType[] => {
   }
 };
 
-const STATUS_FILTERS = ['الكل', 'مسجل', 'آجل', 'مستحق', 'مودع', 'محصل', 'مرتجع', 'مظهر', 'ملغي'];
+const STATUS_FILTERS = ['الكل', 'مسجل', 'آجل', 'مستحق', 'مودع', 'محصل', 'مرتجع', 'مصروف', 'مظهر', 'ملغي'];
 const PER_PAGE = 15;
 type SortKey = 'party_name' | 'cheque_type' | 'amount' | 'cheque_date' | 'status' | 'bank_name' | 'cheque_number';
 type SortDir = 'asc' | 'desc';
@@ -137,6 +155,7 @@ const ChequesPage = () => {
     party_type: 'عميل',
     linked_account: '',
     notes: '',
+    source_bank_account_id: '',
   });
 
   const fetchAccounts = async () => {
@@ -200,6 +219,9 @@ const ChequesPage = () => {
     if (!user || !newCheque.party_name || !newCheque.amount || !newCheque.cheque_date) {
       toast.error("يرجى تعبئة الحقول المطلوبة"); return;
     }
+    if (newCheque.cheque_type === 'صادر' && !newCheque.source_bank_account_id) {
+      toast.error("يرجى اختيار الحساب البنكي المصدر للشيك الصادر"); return;
+    }
     if (submitting) return;
     setSubmitting(true);
     try {
@@ -207,14 +229,17 @@ const ChequesPage = () => {
       const chequeStatus: ChequeStatus = newCheque.cheque_date > today ? 'آجل' : 'مستحق';
       const amount = parseFloat(newCheque.amount);
       const contactId = findContactId(newCheque.party_name);
+      const sourceBank = bankAccounts.find(b => b.id === newCheque.source_bank_account_id);
 
       const { data: chequeData, error } = await supabase.from('cheques').insert({
         user_id: user.id, cheque_type: newCheque.cheque_type, status: chequeStatus,
-        cheque_number: newCheque.cheque_number || null, bank_name: newCheque.bank_name || null,
+        cheque_number: newCheque.cheque_number || null, bank_name: newCheque.cheque_type === 'صادر' ? (sourceBank?.bank_name || newCheque.bank_name || null) : (newCheque.bank_name || null),
         cheque_date: newCheque.cheque_date, amount, currency: newCheque.currency,
         party_name: newCheque.party_name, party_type: newCheque.party_type,
         linked_account: newCheque.linked_account || null, notes: newCheque.notes || null,
-      }).select('id').single();
+        source_bank_account_id: newCheque.source_bank_account_id || null,
+        contact_id: contactId,
+      } as any).select('id').single();
       if (error) throw error;
 
       const chequeId = chequeData?.id || '';
@@ -253,7 +278,7 @@ const ChequesPage = () => {
 
       toast.success(`تم تسجيل شيك ${newCheque.cheque_type} وإنشاء القيد ✅`);
       setAddOpen(false);
-      setNewCheque({ cheque_type: 'وارد', cheque_number: '', bank_name: '', cheque_date: '', amount: '', currency: 'شيكل', party_name: '', party_type: 'عميل', linked_account: '', notes: '' });
+      setNewCheque({ cheque_type: 'وارد', cheque_number: '', bank_name: '', cheque_date: '', amount: '', currency: 'شيكل', party_name: '', party_type: 'عميل', linked_account: '', notes: '', source_bank_account_id: '' });
       setPartySearch('');
       fetchCheques();
     } catch { toast.error("خطأ في حفظ الشيك"); }
@@ -397,8 +422,74 @@ const ChequesPage = () => {
         }
       }
 
+      // ===== OUTGOING CHEQUE: CASHED (صُرف في البنك) =====
+      if (data.action === 'cashed') {
+        updatePayload.cashed_date = data.cashedDate;
+        const contactId = cheque.contact_id || findContactId(cheque.party_name);
+        const sourceBank = bankAccounts.find(b => b.id === cheque.source_bank_account_id);
+        const bankGlCode = sourceBank?.gl_account_code || '1120';
+        // Journal: Debit outgoing cheques (1160), Credit bank account
+        const { data: txResult } = await supabase.from('transactions').insert({
+          user_id: user.id, transaction_date: data.cashedDate || new Date().toISOString().split('T')[0],
+          description: `صرف شيك صادر - ${cheque.party_name} #${cheque.cheque_number || ''}`,
+          debit_account_code: '1160', credit_account_code: bankGlCode,
+          amount: cheque.amount, currency: cheque.currency || 'شيكل',
+          transaction_type: 'cheque_cashed', contact_id: contactId,
+          reference: `CHQ-CASH-${cheque.id.slice(0, 8)}`,
+          idempotency_key: `CHQ-CASH-${cheque.id}`,
+        }).select('id').single();
+        txId = txResult?.id || null;
+      }
+
+      // ===== OUTGOING CHEQUE: BOUNCED (مرتجع من البنك) =====
+      if (data.action === 'outgoing_bounced') {
+        updatePayload.bounce_date = data.bounceDate;
+        updatePayload.bounce_reason = data.bounceReason;
+        updatePayload.bank_fees = data.bankFees || 0;
+        const contactId = cheque.contact_id || findContactId(cheque.party_name);
+        // Reverse: Debit outgoing cheques (1160), Credit supplier payables (2100) — restore obligation
+        const { data: txResult } = await supabase.from('transactions').insert({
+          user_id: user.id, transaction_date: data.bounceDate || new Date().toISOString().split('T')[0],
+          description: `شيك صادر مرتجع - ${cheque.party_name} #${cheque.cheque_number || ''} - ${data.bounceReason}`,
+          debit_account_code: '1160', credit_account_code: '2100',
+          amount: cheque.amount, currency: cheque.currency || 'شيكل',
+          transaction_type: 'cheque_bounce', contact_id: contactId,
+          reference: `CHQ-OBNC-${cheque.id.slice(0, 8)}`,
+          idempotency_key: `CHQ-OBNC-${cheque.id}`,
+        }).select('id').single();
+        txId = txResult?.id || null;
+        // Bank fees
+        if (data.bankFees && data.bankFees > 0) {
+          await supabase.from('transactions').insert({
+            user_id: user.id, transaction_date: data.bounceDate || new Date().toISOString().split('T')[0],
+            description: `رسوم بنكية - شيك صادر مرتجع ${cheque.cheque_number || ''}`,
+            debit_account_code: '5200', credit_account_code: '1120',
+            amount: data.bankFees, currency: 'شيكل',
+            transaction_type: 'bank_fee', reference: `CHQ-OFEE-${cheque.id.slice(0, 8)}`,
+            idempotency_key: `CHQ-OFEE-${cheque.id}`,
+          });
+        }
+      }
+
+      // ===== OUTGOING CHEQUE: RECOVER (استرداد) =====
+      if (data.action === 'recover') {
+        const contactId = cheque.contact_id || findContactId(cheque.party_name);
+        const today = new Date().toISOString().split('T')[0];
+        // Reverse registration: Debit outgoing cheques (1160), Credit supplier payables (2100)
+        const { data: txResult } = await supabase.from('transactions').insert({
+          user_id: user.id, transaction_date: today,
+          description: `استرداد شيك صادر - ${cheque.party_name} #${cheque.cheque_number || ''} - ${data.recoverReason || ''}`,
+          debit_account_code: '1160', credit_account_code: '2100',
+          amount: cheque.amount, currency: cheque.currency || 'شيكل',
+          transaction_type: 'cheque_recover', contact_id: contactId,
+          reference: `CHQ-RCV-${cheque.id.slice(0, 8)}`,
+          idempotency_key: `CHQ-RCV-${cheque.id}`,
+        }).select('id').single();
+        txId = txResult?.id || null;
+      }
+
       // Update cheque
-      const { error } = await supabase.from('cheques').update(updatePayload).eq('id', cheque.id);
+      const { error } = await supabase.from('cheques').update(updatePayload as any).eq('id', cheque.id);
       if (error) throw error;
 
       // Record status history
@@ -408,7 +499,9 @@ const ChequesPage = () => {
         historyDetails.bank_name = bank?.name;
       }
       if (data.action === 'endorse') historyDetails.endorsed_to = data.endorsedToName;
-      if (data.action === 'bounced') { historyDetails.bounce_reason = data.bounceReason; historyDetails.bank_fees = data.bankFees; }
+      if (data.action === 'bounced' || data.action === 'outgoing_bounced') { historyDetails.bounce_reason = data.bounceReason; historyDetails.bank_fees = data.bankFees; }
+      if (data.action === 'cashed') { const sb = bankAccounts.find(b => b.id === cheque.source_bank_account_id); historyDetails.source_bank = sb?.name; }
+      if (data.action === 'recover') { historyDetails.recover_reason = data.recoverReason; }
 
       await supabase.from('cheque_status_history').insert({
         cheque_id: cheque.id, user_id: user.id,
@@ -538,8 +631,10 @@ const ChequesPage = () => {
   const selectedTotal = selectedCheques.reduce((s, c) => s + c.amount, 0);
   const selectedStatuses = new Set(selectedCheques.map(c => c.status));
   const bulkSameStatus = selectedStatuses.size === 1;
+  const bulkSameType = new Set(selectedCheques.map(c => c.cheque_type)).size === 1;
   const bulkStatus = bulkSameStatus ? [...selectedStatuses][0] : null;
-  const bulkActions = bulkStatus ? getAvailableActions(bulkStatus) : [];
+  const bulkType = bulkSameType ? selectedCheques[0]?.cheque_type : null;
+  const bulkActions = (bulkStatus && bulkType) ? getAvailableActions(bulkStatus, bulkType) : [];
 
   return (
     <div className="p-4 md:p-6 pb-24 space-y-5" dir="rtl">
@@ -624,8 +719,41 @@ const ChequesPage = () => {
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div><Label className="text-xs">رقم الشيك</Label><Input className="h-9 rounded-xl" value={newCheque.cheque_number} onChange={e => setNewCheque(p => ({ ...p, cheque_number: e.target.value }))} placeholder="اختياري" /></div>
-                <div><Label className="text-xs">البنك</Label><Input className="h-9 rounded-xl" value={newCheque.bank_name} onChange={e => setNewCheque(p => ({ ...p, bank_name: e.target.value }))} placeholder="اختياري" /></div>
+                {newCheque.cheque_type === 'وارد' ? (
+                  <div><Label className="text-xs">البنك</Label><Input className="h-9 rounded-xl" value={newCheque.bank_name} onChange={e => setNewCheque(p => ({ ...p, bank_name: e.target.value }))} placeholder="اختياري" /></div>
+                ) : (
+                  <div><Label className="text-xs">البنك</Label>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">{bankAccounts.find(b => b.id === newCheque.source_bank_account_id)?.bank_name || '—'}</p>
+                  </div>
+                )}
               </div>
+              {/* Source bank account for outgoing cheques */}
+              {newCheque.cheque_type === 'صادر' && (
+                <div>
+                  <Label className="text-xs font-semibold flex items-center gap-1"><Building2 className="h-3 w-3" /> دفتر الشيكات (الحساب البنكي المصدر) *</Label>
+                  {bankAccounts.length === 0 ? (
+                    <p className="text-xs text-muted-foreground mt-2">لا توجد حسابات بنكية — أضف حساباً بنكياً أولاً</p>
+                  ) : (
+                    <div className="space-y-1.5 mt-2 max-h-40 overflow-y-auto">
+                      {bankAccounts.map(bank => (
+                        <button key={bank.id} onClick={() => setNewCheque(p => ({ ...p, source_bank_account_id: bank.id, bank_name: bank.bank_name }))} type="button"
+                          className={`w-full text-right px-3 py-2.5 rounded-xl border transition-all flex items-center justify-between ${
+                            newCheque.source_bank_account_id === bank.id ? 'border-primary bg-primary/5 ring-1 ring-primary/20' : 'border-border hover:border-primary/30'
+                          }`}>
+                          <div className="flex items-center gap-2">
+                            <Building2 className={`h-4 w-4 ${newCheque.source_bank_account_id === bank.id ? 'text-primary' : 'text-muted-foreground'}`} />
+                            <div>
+                              <p className="text-sm font-medium">{bank.name}</p>
+                              <p className="text-[10px] text-muted-foreground">{bank.bank_name}</p>
+                            </div>
+                          </div>
+                          {bank.gl_account_code && <span className="text-[10px] text-muted-foreground font-mono">{bank.gl_account_code}</span>}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
               <div>
                 <Label className="text-xs">الحساب المحاسبي</Label>
                 <Popover open={accountPopoverOpen} onOpenChange={setAccountPopoverOpen}>
@@ -765,7 +893,7 @@ const ChequesPage = () => {
               <tbody>
                 {paged.map((c, i) => {
                   const sc = statusConfig[c.status];
-                  const actions = getAvailableActions(c.status);
+                  const actions = getAvailableActions(c.status, c.cheque_type);
                   const isSelected = selected.has(c.id);
                   const isExpanded = expandedId === c.id;
                   const history = statusHistory[c.id] || [];
@@ -881,9 +1009,11 @@ const ChequesPage = () => {
         chequeNumber={actionTarget?.cheque_number || null}
         chequeAmount={actionTarget?.amount || 0}
         chequeCurrency={actionTarget?.currency || 'شيكل'}
+        chequeType={actionTarget?.cheque_type || 'وارد'}
         partyName={actionTarget?.party_name || ''}
         bankAccounts={bankAccounts}
         contacts={contacts}
+        sourceBankAccount={actionTarget?.source_bank_account_id ? bankAccounts.find(b => b.id === actionTarget.source_bank_account_id) : null}
         onConfirm={handleAction}
         submitting={actionSubmitting}
       />

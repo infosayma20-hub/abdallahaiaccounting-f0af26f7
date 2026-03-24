@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Building2, CheckCircle2, AlertTriangle, ArrowRight } from "lucide-react";
 
-export type ActionType = 'deposit' | 'collected' | 'bounced' | 'endorse' | 'return_to_customer' | 'cancel';
+export type ActionType = 'deposit' | 'collected' | 'bounced' | 'endorse' | 'return_to_customer' | 'cancel' | 'cashed' | 'outgoing_bounced' | 'recover';
 
 interface ActionConfig {
   id: ActionType;
@@ -19,12 +19,17 @@ interface ActionConfig {
 }
 
 export const ACTION_CONFIGS: Record<ActionType, ActionConfig> = {
+  // Incoming cheque actions
   deposit: { id: 'deposit', label: 'إيداع في البنك', emoji: '🏦', color: 'text-blue-600', nextStatus: 'مودع' },
   collected: { id: 'collected', label: 'تم التحصيل', emoji: '✅', color: 'text-emerald-600', nextStatus: 'محصل', description: 'يُنشئ قيد محاسبي تلقائي' },
   bounced: { id: 'bounced', label: 'شيك مرتجع (بدون رصيد)', emoji: '⛔', color: 'text-red-600', nextStatus: 'مرتجع', description: 'يُعيد الذمة للزبون تلقائياً' },
   endorse: { id: 'endorse', label: 'تظهير لمورد', emoji: '📤', color: 'text-purple-600', nextStatus: 'مظهر' },
   return_to_customer: { id: 'return_to_customer', label: 'إرجاع للزبون', emoji: '↩️', color: 'text-amber-600', nextStatus: 'ملغي', description: 'يُعيد الذمة للزبون تلقائياً' },
   cancel: { id: 'cancel', label: 'إلغاء الشيك', emoji: '🚫', color: 'text-red-600', nextStatus: 'ملغي' },
+  // Outgoing cheque actions
+  cashed: { id: 'cashed', label: 'صُرف في البنك', emoji: '💸', color: 'text-emerald-600', nextStatus: 'مصروف', description: 'خصم من حساب البنك المصدر' },
+  outgoing_bounced: { id: 'outgoing_bounced', label: 'مرتجع من البنك', emoji: '⛔', color: 'text-red-600', nextStatus: 'مرتجع', description: 'يُعيد الالتزام للمورد' },
+  recover: { id: 'recover', label: 'استرداد الشيك', emoji: '🔄', color: 'text-amber-600', nextStatus: 'ملغي', description: 'استرداد الشيك قبل صرفه' },
 };
 
 interface BankAccount {
@@ -47,9 +52,11 @@ interface ChequeActionModalProps {
   chequeNumber: string | null;
   chequeAmount: number;
   chequeCurrency: string;
+  chequeType: 'وارد' | 'صادر';
   partyName: string;
   bankAccounts: BankAccount[];
   contacts: Contact[];
+  sourceBankAccount?: BankAccount | null;
   onConfirm: (data: ActionFormData) => void;
   submitting?: boolean;
 }
@@ -66,6 +73,8 @@ export interface ActionFormData {
   endorsedToContactId?: string;
   returnReason?: string;
   cancelReason?: string;
+  cashedDate?: string;
+  recoverReason?: string;
   notes?: string;
 }
 
@@ -78,7 +87,7 @@ const BOUNCE_REASONS = [
 
 const ChequeActionModal = ({
   open, onOpenChange, action, chequeNumber, chequeAmount, chequeCurrency,
-  partyName, bankAccounts, contacts, onConfirm, submitting
+  chequeType, partyName, bankAccounts, contacts, sourceBankAccount, onConfirm, submitting
 }: ChequeActionModalProps) => {
   const [bankAccountId, setBankAccountId] = useState("");
   const [depositDate, setDepositDate] = useState(new Date().toISOString().split('T')[0]);
@@ -91,6 +100,8 @@ const ChequeActionModal = ({
   const [endorsedToContactId, setEndorsedToContactId] = useState("");
   const [returnReason, setReturnReason] = useState("");
   const [cancelReason, setCancelReason] = useState("");
+  const [cashedDate, setCashedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [recoverReason, setRecoverReason] = useState("");
   const [notes, setNotes] = useState("");
 
   if (!action) return null;
@@ -109,13 +120,17 @@ const ChequeActionModal = ({
       endorsedToContactId: endorsedToContactId || undefined,
       returnReason,
       cancelReason,
+      cashedDate,
+      recoverReason,
       notes,
     });
   };
 
   const getJournalPreview = () => {
-    const amt = `₪${chequeAmount.toLocaleString()}`;
+    const amt = `${chequeAmount.toLocaleString()} ${chequeCurrency}`;
+    const bankName = sourceBankAccount?.name || 'البنك';
     switch (action) {
+      // Incoming cheque actions
       case 'deposit':
         return { debit: `ح/شيكات قيد التحصيل ${amt}`, credit: `ح/شيكات واردة ${amt}` };
       case 'collected': {
@@ -128,7 +143,17 @@ const ChequeActionModal = ({
         return { debit: `ح/ذمم ${endorsedToName || 'المورد'} ${amt}`, credit: `ح/شيكات واردة ${amt}` };
       case 'return_to_customer':
         return { debit: `ح/ذمم ${partyName} ${amt}`, credit: `ح/شيكات واردة ${amt}` };
+      // Outgoing cheque actions
+      case 'cashed':
+        return { debit: `ح/شيكات صادرة (1160) ${amt}`, credit: `ح/${bankName} ${amt}` };
+      case 'outgoing_bounced':
+        return { debit: `ح/شيكات صادرة (1160) ${amt}`, credit: `ح/ذمم موردين (2100) ${amt}` };
+      case 'recover':
+        return { debit: `ح/شيكات صادرة (1160) ${amt}`, credit: `ح/ذمم موردين (2100) ${amt}` };
       case 'cancel':
+        if (chequeType === 'صادر') {
+          return { debit: `ح/شيكات صادرة (1160) ${amt}`, credit: `ح/ذمم موردين (2100) ${amt}` };
+        }
         return { debit: `ح/ذمم ${partyName} ${amt}`, credit: `ح/شيكات واردة ${amt}` };
       default:
         return null;
@@ -264,6 +289,57 @@ const ChequeActionModal = ({
             <div>
               <Label className="text-xs">سبب الإلغاء</Label>
               <Input value={cancelReason} onChange={e => setCancelReason(e.target.value)} placeholder="سبب الإلغاء..." className="h-9 mt-1 rounded-xl" />
+            </div>
+          )}
+
+          {/* CASHED (outgoing) fields */}
+          {action === 'cashed' && (
+            <>
+              <div>
+                <Label className="text-xs">تاريخ الصرف</Label>
+                <Input type="date" value={cashedDate} onChange={e => setCashedDate(e.target.value)} className="h-9 mt-1 rounded-xl" />
+              </div>
+              {sourceBankAccount && (
+                <div className="bg-muted/30 rounded-xl p-3 text-xs">
+                  <p className="text-muted-foreground">سيتم الخصم من: <strong className="text-foreground">{sourceBankAccount.name}</strong> ({sourceBankAccount.bank_name})</p>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* OUTGOING BOUNCED fields */}
+          {action === 'outgoing_bounced' && (
+            <>
+              <div>
+                <Label className="text-xs font-semibold">سبب الإرجاع *</Label>
+                <RadioGroup value={bounceReason} onValueChange={setBounceReason} className="mt-2 space-y-1.5">
+                  {BOUNCE_REASONS.map(r => (
+                    <div key={r} className="flex items-center gap-2">
+                      <RadioGroupItem value={r} id={`out-${r}`} />
+                      <Label htmlFor={`out-${r}`} className="text-sm cursor-pointer">{r}</Label>
+                    </div>
+                  ))}
+                </RadioGroup>
+                {bounceReason === 'أخرى' && (
+                  <Input value={customBounceReason} onChange={e => setCustomBounceReason(e.target.value)} placeholder="سبب آخر..." className="h-9 mt-2 rounded-xl" />
+                )}
+              </div>
+              <div>
+                <Label className="text-xs">تاريخ الارتجاع</Label>
+                <Input type="date" value={bounceDate} onChange={e => setBounceDate(e.target.value)} className="h-9 mt-1 rounded-xl" />
+              </div>
+              <div>
+                <Label className="text-xs">رسوم البنك (إن وجدت)</Label>
+                <Input type="number" value={bankFees} onChange={e => setBankFees(e.target.value)} placeholder="0" className="h-9 mt-1 rounded-xl" />
+              </div>
+            </>
+          )}
+
+          {/* RECOVER fields */}
+          {action === 'recover' && (
+            <div>
+              <Label className="text-xs">سبب الاسترداد</Label>
+              <Input value={recoverReason} onChange={e => setRecoverReason(e.target.value)} placeholder="سبب استرداد الشيك..." className="h-9 mt-1 rounded-xl" />
             </div>
           )}
 

@@ -1458,10 +1458,12 @@ export type Database = {
           bank_name: string | null
           bounce_date: string | null
           bounce_reason: string | null
+          cashed_date: string | null
           cheque_date: string
           cheque_number: string | null
           cheque_type: Database["public"]["Enums"]["cheque_type"]
           collection_date: string | null
+          contact_id: string | null
           created_at: string
           currency: string
           deposit_bank_account_id: string | null
@@ -1476,6 +1478,7 @@ export type Database = {
           party_name: string
           party_type: string
           receipt_voucher_id: string | null
+          source_bank_account_id: string | null
           status: Database["public"]["Enums"]["cheque_status"]
           updated_at: string
           user_id: string
@@ -1486,10 +1489,12 @@ export type Database = {
           bank_name?: string | null
           bounce_date?: string | null
           bounce_reason?: string | null
+          cashed_date?: string | null
           cheque_date: string
           cheque_number?: string | null
           cheque_type: Database["public"]["Enums"]["cheque_type"]
           collection_date?: string | null
+          contact_id?: string | null
           created_at?: string
           currency?: string
           deposit_bank_account_id?: string | null
@@ -1504,6 +1509,7 @@ export type Database = {
           party_name: string
           party_type?: string
           receipt_voucher_id?: string | null
+          source_bank_account_id?: string | null
           status?: Database["public"]["Enums"]["cheque_status"]
           updated_at?: string
           user_id: string
@@ -1514,10 +1520,12 @@ export type Database = {
           bank_name?: string | null
           bounce_date?: string | null
           bounce_reason?: string | null
+          cashed_date?: string | null
           cheque_date?: string
           cheque_number?: string | null
           cheque_type?: Database["public"]["Enums"]["cheque_type"]
           collection_date?: string | null
+          contact_id?: string | null
           created_at?: string
           currency?: string
           deposit_bank_account_id?: string | null
@@ -1532,11 +1540,27 @@ export type Database = {
           party_name?: string
           party_type?: string
           receipt_voucher_id?: string | null
+          source_bank_account_id?: string | null
           status?: Database["public"]["Enums"]["cheque_status"]
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "cheques_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cheques_source_bank_account_id_fkey"
+            columns: ["source_bank_account_id"]
+            isOneToOne: false
+            referencedRelation: "bank_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       commissions: {
         Row: {
@@ -10814,6 +10838,7 @@ export type Database = {
         | "مرتجع"
         | "ملغي"
         | "مظهر"
+        | "مصروف"
       cheque_type: "وارد" | "صادر"
       product_category:
         | "بضاعة عامة"
@@ -10971,6 +10996,7 @@ export const Constants = {
         "مرتجع",
         "ملغي",
         "مظهر",
+        "مصروف",
       ],
       cheque_type: ["وارد", "صادر"],
       product_category: [
