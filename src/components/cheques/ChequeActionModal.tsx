@@ -52,9 +52,11 @@ interface ChequeActionModalProps {
   chequeNumber: string | null;
   chequeAmount: number;
   chequeCurrency: string;
+  chequeType: 'وارد' | 'صادر';
   partyName: string;
   bankAccounts: BankAccount[];
   contacts: Contact[];
+  sourceBankAccount?: BankAccount | null;
   onConfirm: (data: ActionFormData) => void;
   submitting?: boolean;
 }
