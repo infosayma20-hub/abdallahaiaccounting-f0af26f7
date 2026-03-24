@@ -130,7 +130,7 @@ const VoucherNavToolbar = ({
         })));
       }
     }
-  }, [user, isReceipt, isJournal]);
+  }, [user, isReceipt, isJournal, isInvoice]);
 
   useEffect(() => { loadVoucherList(); }, [loadVoucherList]);
 
