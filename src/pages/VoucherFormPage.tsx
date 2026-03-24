@@ -206,13 +206,24 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
       const data = JSON.parse(draft);
       localStorage.removeItem(draftKey);
       setDuplicateSourceRef(data._sourceRef || null);
+      if (data.paymentDate) setPaymentDate(data.paymentDate);
       if (data.paymentMethod) setPaymentMethod(data.paymentMethod);
+      if (data.amount) setAmount(data.amount);
+      if (data.currency) setCurrency(data.currency);
+      if (data.exchangeRate) setExchangeRate(data.exchangeRate);
       if (data.notes) setNotes(data.notes);
       if (data.depositType) setDepositType(data.depositType);
       if (data.selectedCashBox) setSelectedCashBox(data.selectedCashBox);
       if (data.selectedBankAccount) setSelectedBankAccount(data.selectedBankAccount);
+      if (data.partyType) setPartyType(data.partyType as PartyType);
       if (data.contactId) {
         (window as any).__duplicateContactId = data.contactId;
+      }
+      if (data.selectedGlAccountCode) {
+        (window as any).__duplicateGlAccountCode = data.selectedGlAccountCode;
+      }
+      if (data.selectedEmployeeId) {
+        (window as any).__duplicateEmployeeId = data.selectedEmployeeId;
       }
     } catch (e) { /* ignore */ }
   }, [fromDuplicate, voucherType]);
