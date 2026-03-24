@@ -280,21 +280,34 @@ const VoucherFormPage = ({ voucherType = "receipt" }: VoucherFormPageProps) => {
     }
     if (!user) return;
     setFetchingRate(true);
-    // Try from exchange_rates table first
-    supabase.from("currencies")
-      .select("id, sell_rate, buy_rate")
-      .eq("code", currency)
-      .limit(1)
-      .single()
-      .then(({ data: currData }) => {
+    // Get currency id first, then latest exchange rate
+    const fetchRate = async () => {
+      try {
+        const { data: currData } = await supabase.from("currencies")
+          .select("id")
+          .eq("code", currency)
+          .eq("user_id", user.id)
+          .limit(1)
+          .single();
         if (currData) {
-          const rate = isReceipt
-            ? (currData.buy_rate || currData.sell_rate || 1)
-            : (currData.sell_rate || currData.buy_rate || 1);
-          setExchangeRate(Number(rate));
+          const { data: rateData } = await supabase.from("exchange_rates")
+            .select("sell_rate, buy_rate, mid_rate")
+            .eq("currency_id", currData.id)
+            .eq("user_id", user.id)
+            .order("rate_date", { ascending: false })
+            .limit(1)
+            .single();
+          if (rateData) {
+            const rate = isReceipt
+              ? (rateData.buy_rate || rateData.sell_rate || rateData.mid_rate || 1)
+              : (rateData.sell_rate || rateData.buy_rate || rateData.mid_rate || 1);
+            setExchangeRate(Number(rate));
+          }
         }
-        setFetchingRate(false);
-      });
+      } catch (e) { /* ignore */ }
+      setFetchingRate(false);
+    };
+    fetchRate();
   }, [currency, user, isReceipt]);
 
   // ─── Compute real balance from transactions ───
