@@ -1690,17 +1690,7 @@ const POSPage = () => {
       }
     }
 
-    // Check if cashier must change password on first login
-    if (userId) {
-      const { data: posUser } = await supabase
-        .from("pos_users")
-        .select("must_change_password")
-        .eq("auth_user_id", userId)
-        .maybeSingle();
-      if ((posUser as any)?.must_change_password) {
-        setShowChangePassword(true);
-      }
-    }
+    // Password change check disabled — no longer forcing first-login password change
 
     // Load per-user UI preferences
     if (userId) {
