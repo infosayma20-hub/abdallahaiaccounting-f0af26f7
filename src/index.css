@@ -168,6 +168,25 @@
   }
 }
 
+/* Auth page right panel — always light regardless of theme */
+.auth-light-panel {
+  background: #ffffff !important;
+  color: hsl(213 50% 11%) !important;
+  --background: 0 0% 100%;
+  --foreground: 213 50% 11%;
+  --card: 0 0% 100%;
+  --card-foreground: 213 50% 11%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 213 50% 11%;
+  --muted: 210 14% 93%;
+  --muted-foreground: 210 12% 59%;
+  --border: 214 32% 91%;
+  --input: 214 32% 91%;
+  --accent: 37 81% 52%;
+  --accent-foreground: 213 50% 11%;
+  --ring: 213 50% 11%;
+}
+
 @layer base {
   * {
     @apply border-border;
