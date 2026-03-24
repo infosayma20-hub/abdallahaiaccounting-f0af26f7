@@ -20,6 +20,7 @@ interface Branch {
   radius_meters: number;
   is_active: boolean;
   created_at: string;
+  qr_mode?: string;
 }
 
 export default function BranchesSettingsSection() {
