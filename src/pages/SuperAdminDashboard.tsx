@@ -1902,30 +1902,32 @@ export default function SuperAdminDashboard() {
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="border p-1 mb-6 flex-wrap h-auto gap-1"
-            style={{ background: "var(--sa-surface)", borderColor: "var(--sa-card-border)" }}>
-            {[
-              { value: "dashboard", icon: Activity, label: "لوحة التحكم" },
-              { value: "users", icon: Users, label: "المستخدمون" },
-              { value: "database", icon: Database, label: "قاعدة البيانات" },
-              { value: "live", icon: Wifi, label: "مراقبة حية" },
-              { value: "audit", icon: FileText, label: "سجل التدقيق" },
-              { value: "settings", icon: Settings, label: "إعدادات المنصة" },
-              { value: "tools", icon: Zap, label: "أدوات" },
-              { value: "subscriptions", icon: CreditCard, label: "الاشتراكات" },
-              { value: "revenue", icon: BarChart3, label: "الإيرادات" },
-            ].map(tab => (
-              <TabsTrigger key={tab.value} value={tab.value}
-                style={{
-                  color: activeTab === tab.value ? "var(--sa-tab-active-text)" : "var(--sa-tab-inactive-text)",
-                  background: activeTab === tab.value ? "var(--sa-tab-active-bg)" : "transparent",
-                }}>
-                <tab.icon className="h-4 w-4 ml-1" /> {tab.label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
+          <div className="overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0 mb-4 sm:mb-6">
+            <TabsList className="border p-1 flex-nowrap sm:flex-wrap h-auto gap-1 w-max sm:w-auto"
+              style={{ background: "var(--sa-surface)", borderColor: "var(--sa-card-border)" }}>
+              {[
+                { value: "dashboard", icon: Activity, label: "لوحة التحكم" },
+                { value: "users", icon: Users, label: "المستخدمون" },
+                { value: "database", icon: Database, label: "قاعدة البيانات" },
+                { value: "live", icon: Wifi, label: "مراقبة حية" },
+                { value: "audit", icon: FileText, label: "سجل التدقيق" },
+                { value: "settings", icon: Settings, label: "إعدادات المنصة" },
+                { value: "tools", icon: Zap, label: "أدوات" },
+                { value: "subscriptions", icon: CreditCard, label: "الاشتراكات" },
+                { value: "revenue", icon: BarChart3, label: "الإيرادات" },
+              ].map(tab => (
+                <TabsTrigger key={tab.value} value={tab.value} className="whitespace-nowrap text-xs sm:text-sm"
+                  style={{
+                    color: activeTab === tab.value ? "var(--sa-tab-active-text)" : "var(--sa-tab-inactive-text)",
+                    background: activeTab === tab.value ? "var(--sa-tab-active-bg)" : "transparent",
+                  }}>
+                  <tab.icon className="h-3.5 w-3.5 sm:h-4 sm:w-4 ml-1" /> <span className="hidden sm:inline">{tab.label}</span><span className="sm:hidden">{tab.label}</span>
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </div>
 
           {/* ─── DASHBOARD TAB ─── */}
           <TabsContent value="dashboard" className="space-y-6">
