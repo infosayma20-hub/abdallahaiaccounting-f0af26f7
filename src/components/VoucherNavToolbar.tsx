@@ -53,6 +53,7 @@ const VoucherNavToolbar = ({
 
   const isReceipt = voucherType === "receipt";
   const isJournal = voucherType === "journal";
+  const isInvoice = voucherType === "invoice";
 
   // Load all voucher IDs for navigation
   const loadVoucherList = useCallback(async () => {
