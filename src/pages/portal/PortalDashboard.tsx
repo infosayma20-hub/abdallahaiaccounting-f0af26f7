@@ -96,6 +96,7 @@ export default function PortalDashboard() {
   const tabs = [
     { key: 'sales' as const, label: '📊 المبيعات', visible: user.can_see_sales },
     { key: 'liquidity' as const, label: '💰 السيولة', visible: user.can_see_liquidity },
+    { key: 'attendance' as const, label: '👥 الحضور', visible: hasEmployees },
     { key: 'requests' as const, label: '📋 الطلبات', visible: true },
     { key: 'suppliers' as const, label: '🏭 الموردين', visible: true },
   ].filter(t => t.visible);
