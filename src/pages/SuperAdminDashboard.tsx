@@ -1983,13 +1983,13 @@ export default function SuperAdminDashboard() {
 
           {/* ─── USERS TAB ─── */}
           <TabsContent value="users" className="space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="relative flex-1 max-w-md">
+            <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+              <div className="relative flex-1 min-w-[180px]">
                 <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4" style={{ color: "var(--sa-text-faint)" }} />
                 <Input value={userSearch} onChange={(e) => setUserSearch(e.target.value)} placeholder="بحث بالاسم أو الإيميل..."
-                  className="pr-10" style={{ background: "var(--sa-input-bg)", borderColor: "var(--sa-input-border)", color: "var(--sa-text-primary)" }} />
+                  className="pr-10 text-sm" style={{ background: "var(--sa-input-bg)", borderColor: "var(--sa-input-border)", color: "var(--sa-text-primary)" }} />
               </div>
-              <Badge style={{ background: "var(--sa-surface)", color: "var(--sa-text-muted)" }} className="border-0 text-xs">
+              <Badge style={{ background: "var(--sa-surface)", color: "var(--sa-text-muted)" }} className="border-0 text-[10px] sm:text-xs whitespace-nowrap">
                 {companyCount} شركة · {filteredUsers.length} مستخدم
               </Badge>
               <Button variant="ghost" size="sm" onClick={loadUsers} disabled={loadingUsers} style={{ color: "var(--sa-text-muted)" }}>
@@ -1997,7 +1997,49 @@ export default function SuperAdminDashboard() {
               </Button>
             </div>
 
-            <div className="rounded-2xl overflow-hidden" style={{ background: "var(--sa-card-bg)", border: "1px solid var(--sa-card-border)" }}>
+            {/* Mobile card view */}
+            <div className="md:hidden rounded-2xl overflow-hidden" style={{ background: "var(--sa-card-bg)", border: "1px solid var(--sa-card-border)" }}>
+              {owners.map((owner) => {
+                const subs = subUsersMap.get(owner.user_id) || [];
+                const portalMems = portalMembers[owner.user_id] || [];
+                const isExpanded = expandedOwners.has(owner.user_id);
+                return (
+                  <div key={owner.user_id + "-mc"}>
+                    {renderUserCard(owner)}
+                    {isExpanded && subs.map((sub) => renderUserCard(sub, true))}
+                    {isExpanded && portalMems.length > 0 && (
+                      <>
+                        <div className="px-3 py-2 flex items-center gap-2" style={{ borderBottom: "1px solid var(--sa-divider)", background: "var(--sa-surface)" }}>
+                          <LayoutDashboard className="h-3.5 w-3.5 text-amber-400" />
+                          <span className="text-[11px] font-semibold" style={{ color: "var(--sa-text-muted)" }}>أعضاء بوابة الإدارة ({portalMems.length})</span>
+                        </div>
+                        {portalMems.map(pm => (
+                          <div key={`portal-m-${pm.id}`} className="p-3 flex items-center gap-2"
+                            style={{ borderBottom: "1px solid var(--sa-divider)", borderRight: "3px solid rgba(201,168,76,0.25)" }}>
+                            <div className="w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-bold shrink-0"
+                              style={{ background: "rgba(201,168,76,0.15)", color: "#C9A84C" }}>{pm.full_name?.[0] || '?'}</div>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-[13px] truncate" style={{ color: "var(--sa-text-secondary)" }}>{pm.full_name}</span>
+                                <Badge className="bg-amber-500/10 text-amber-400 border-0 text-[9px] px-1.5">بوابة</Badge>
+                              </div>
+                              <p className="text-[10px] font-mono truncate" style={{ color: "var(--sa-text-muted)" }}>{pm.email || pm.username}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </>
+                    )}
+                  </div>
+                );
+              })}
+              {standaloneUsers.map((u) => renderUserCard(u))}
+              {filteredUsers.length === 0 && (
+                <p className="text-center py-8 text-sm" style={{ color: "var(--sa-text-faint)" }}>لا توجد نتائج</p>
+              )}
+            </div>
+
+            {/* Desktop table view */}
+            <div className="hidden md:block rounded-2xl overflow-hidden" style={{ background: "var(--sa-card-bg)", border: "1px solid var(--sa-card-border)" }}>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
