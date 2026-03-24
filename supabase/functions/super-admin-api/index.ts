@@ -541,7 +541,7 @@ Deno.serve(async (req) => {
     // ─── RESET USER TRANSACTIONS ───
     if (action === "reset_user_transactions") {
       const body = await req.json();
-      const { target_user_id, password } = body;
+      const { target_user_id, password, categories } = body;
 
       if (!target_user_id || !password) {
         return new Response(JSON.stringify({ error: "بيانات ناقصة" }), {
@@ -564,60 +564,41 @@ Deno.serve(async (req) => {
       const { data: targetProfile } = await admin.from("profiles").select("display_name").eq("user_id", target_user_id).maybeSingle();
       const targetName = targetProfile?.display_name || target_user_id;
 
-      await logAction("reset_user_transactions", "user", target_user_id, { target_name: targetName });
+      await logAction("reset_user_transactions", "user", target_user_id, { target_name: targetName, categories });
 
-      // Tables to delete (transactional data only) - order matters for FK constraints
-      const transactionalTables = [
-        // POS
-        "pos_payments",
-        "pos_order_lines",
-        "pos_orders",
-        "pos_sessions",
-        // Call Center
-        "call_center_orders",
-        // Cheques
-        "cheque_status_history",
-        "cheques",
-        // Sales Invoices
-        "invoice_lines",
-        "invoices",
-        // Purchase Invoices
-        "purchase_invoice_lines",
-        "purchase_invoices",
-        // Vouchers
-        "voucher_lines",
-        "vouchers",
-        "receipt_vouchers",
-        // Finance
-        "cash_transfers",
-        // HR - Loans
-        "loan_installments",
-        "employee_loans",
-        // HR - Payroll & Movements
-        "employee_payroll",
-        "employee_financial_movements",
-        "employee_deductions",
-        "employee_leaves",
-        // Attendance
-        "attendance_events",
-        "attendance_days",
-        // Procurement
-        "procurement_order_items",
-        "procurement_orders",
-        "procurement_requests",
-        // Contractor
-        "contractor_transactions",
-        // Other
-        "commissions",
-        "contact_alerts",
-        "document_edit_history",
-        "sensitive_data_audit",
-        "ai_messages",
-        "ai_conversations",
-        "activity_log",
-        // Journal entries (LAST - other tables may reference)
-        "transactions",
-      ];
+      // Category-based table groups
+      const categoryTables: Record<string, string[]> = {
+        pos: ["pos_payments", "pos_order_lines", "pos_orders", "pos_sessions"],
+        call_center: ["call_center_orders"],
+        invoices: ["invoice_lines", "invoices"],
+        purchase_invoices: ["purchase_invoice_lines", "purchase_invoices"],
+        vouchers: ["voucher_lines", "vouchers", "receipt_vouchers"],
+        cheques: ["cheque_status_history", "cheques"],
+        cash_transfers: ["cash_transfers"],
+        loans: ["loan_installments", "employee_loans"],
+        payroll: ["employee_payroll", "employee_financial_movements", "employee_deductions"],
+        leaves: ["employee_leaves"],
+        attendance: ["attendance_events", "attendance_days"],
+        procurement: ["procurement_order_items", "procurement_orders", "procurement_requests"],
+        contractor: ["contractor_transactions"],
+        journals: ["transactions"],
+        other: ["commissions", "contact_alerts", "document_edit_history", "sensitive_data_audit", "ai_messages", "ai_conversations", "activity_log"],
+      };
+
+      // If no categories specified, use all (backward compatible)
+      const selectedCategories: string[] = categories && Array.isArray(categories) && categories.length > 0
+        ? categories
+        : Object.keys(categoryTables);
+
+      // Build ordered list of tables to delete
+      const transactionalTables: string[] = [];
+      // Ensure correct FK order: journals last
+      const orderedKeys = ["pos", "call_center", "cheques", "invoices", "purchase_invoices", "vouchers", "cash_transfers", "loans", "payroll", "leaves", "attendance", "procurement", "contractor", "other", "journals"];
+      for (const key of orderedKeys) {
+        if (selectedCategories.includes(key) && categoryTables[key]) {
+          transactionalTables.push(...categoryTables[key]);
+        }
+      }
 
       const results: Record<string, number> = {};
 
@@ -652,6 +633,54 @@ Deno.serve(async (req) => {
         deleted: results,
         total_deleted: Object.values(results).reduce((a, b) => a + b, 0),
       }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ─── UPDATE HIDDEN APPS ───
+    if (action === "update_hidden_apps") {
+      const body = await req.json();
+      const { target_user_id, hidden_apps } = body;
+      if (!target_user_id) {
+        return new Response(JSON.stringify({ error: "بيانات ناقصة" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { error } = await admin
+        .from("company_settings")
+        .update({ hidden_apps: hidden_apps || [] })
+        .eq("user_id", target_user_id);
+
+      if (error) {
+        return new Response(JSON.stringify({ error: error.message }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      await logAction("update_hidden_apps", "user", target_user_id, { hidden_apps });
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ─── GET HIDDEN APPS ───
+    if (action === "get_hidden_apps") {
+      const target_user_id = url.searchParams.get("target_user_id");
+      if (!target_user_id) {
+        return new Response(JSON.stringify({ error: "بيانات ناقصة" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { data } = await admin
+        .from("company_settings")
+        .select("hidden_apps")
+        .eq("user_id", target_user_id)
+        .maybeSingle();
+
+      return new Response(JSON.stringify({ hidden_apps: (data as any)?.hidden_apps || [] }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
