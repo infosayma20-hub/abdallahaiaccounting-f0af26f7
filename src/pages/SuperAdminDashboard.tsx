@@ -806,17 +806,21 @@ function SubscriptionsManager() {
      setEditPeriodStart(sub.current_period_start ? sub.current_period_start.split("T")[0] : new Date().toISOString().split("T")[0]);
    };
 
-  const saveEdit = async () => {
-    if (!editSub) return;
-    try {
-      await apiCall("update_subscription", undefined, {
-        subscription_id: editSub.id, plan_id: editPlanId, status: editStatus, billing_cycle: editBilling, period_end: editPeriodEnd || undefined,
-      });
-      toast.success("تم تحديث الاشتراك");
-      setEditSub(null);
-      loadData();
-    } catch (e: any) { toast.error(e.message); }
-  };
+   const saveEdit = async () => {
+     if (!editSub) return;
+     try {
+       await apiCall("update_subscription", undefined, {
+         subscription_id: editSub.id, plan_id: editPlanId, status: editStatus, billing_cycle: editBilling, period_end: editPeriodEnd || undefined,
+         custom_amount: editCustomAmount ? Number(editCustomAmount) : null,
+         custom_currency: editCustomCurrency,
+         agreement_type: editAgreementType,
+         period_start: editPeriodStart || undefined,
+       });
+       toast.success("تم تحديث الاشتراك");
+       setEditSub(null);
+       loadData();
+     } catch (e: any) { toast.error(e.message); }
+   };
 
   const filtered = subs.filter((s) =>
     !search || s.display_name?.toLowerCase().includes(search.toLowerCase()) || s.email?.toLowerCase().includes(search.toLowerCase())
