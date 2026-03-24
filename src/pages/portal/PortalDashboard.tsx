@@ -22,6 +22,7 @@ export default function PortalDashboard() {
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem('portal_theme') === 'dark');
   const [companyName, setCompanyName] = useState('');
   const [companyLogo, setCompanyLogo] = useState('');
+  const [hasEmployees, setHasEmployees] = useState(false);
   const { salesData, liquidityData, loading: dataLoading, needsSetup, lastUpdated, businessDay, refresh } = usePortalData(user?.id);
 
   useEffect(() => {
