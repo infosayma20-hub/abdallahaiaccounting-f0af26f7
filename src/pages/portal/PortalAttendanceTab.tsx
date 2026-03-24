@@ -251,10 +251,12 @@ export default function PortalAttendanceTab({ theme }: Props) {
                     <div style={{ fontSize: 13, fontWeight: 600, color: t.text }}>{emp.full_name}</div>
                     <div style={{ fontSize: 10, color: t.textMuted }}>
                       {emp.position}
-                      {emp.shift_start && emp.shift_end && (
+                      {emp.shift_start && emp.shift_end ? (
                         <span style={{ marginRight: 6 }}>
                           • وردية {emp.shift_start?.slice(0, 5)} - {emp.shift_end?.slice(0, 5)}
                         </span>
+                      ) : (
+                        <span style={{ marginRight: 6 }}>• وردية مفتوحة</span>
                       )}
                     </div>
                   </div>
