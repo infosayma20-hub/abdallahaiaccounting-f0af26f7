@@ -238,21 +238,21 @@ function KPICard({ icon: Icon, label, value, sub, color, accentColor }: {
 }) {
   return (
     <div
-      className="rounded-xl p-5 space-y-3 transition-all duration-150 hover:shadow-lg"
+      className="rounded-xl p-3 sm:p-5 space-y-2 sm:space-y-3 transition-all duration-150 hover:shadow-lg"
       style={{
         background: "var(--sa-kpi-gradient)",
         borderRight: `4px solid ${accentColor || "#00B4D8"}`,
         boxShadow: "0 4px 16px rgba(0,0,0,0.08)",
       }}
     >
-      <div className="flex items-center gap-3">
-        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${color}`}>
-          <Icon className="h-5 w-5" />
+      <div className="flex items-center gap-2 sm:gap-3">
+        <div className={`w-9 h-9 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center ${color}`}>
+          <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
         </div>
-        <span className="text-sm" style={{ color: "var(--sa-text-muted)", fontFamily: "Tajawal, sans-serif" }}>{label}</span>
+        <span className="text-[11px] sm:text-sm" style={{ color: "var(--sa-text-muted)", fontFamily: "Tajawal, sans-serif" }}>{label}</span>
       </div>
-      <div className="text-[32px] font-bold font-mono tabular-nums" style={{ color: "var(--sa-text-primary)", fontFamily: "JetBrains Mono, monospace" }}>{value}</div>
-      {sub && <p className="text-[13px]" style={{ color: "var(--sa-text-muted)", fontFamily: "Tajawal, sans-serif" }}>{sub}</p>}
+      <div className="text-xl sm:text-[32px] font-bold font-mono tabular-nums" style={{ color: "var(--sa-text-primary)", fontFamily: "JetBrains Mono, monospace" }}>{value}</div>
+      {sub && <p className="text-[11px] sm:text-[13px]" style={{ color: "var(--sa-text-muted)", fontFamily: "Tajawal, sans-serif" }}>{sub}</p>}
     </div>
   );
 }
