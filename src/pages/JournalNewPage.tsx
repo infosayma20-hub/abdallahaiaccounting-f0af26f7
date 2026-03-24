@@ -575,7 +575,23 @@ const JournalNewPage = () => {
                             const q = (accountSearches[line.id] || "");
                             const fa = accounts.filter(a => !q.trim() || multiWordMatchAny(q, a.account_code, a.account_name));
                             const fc = q.trim() ? contacts.filter(c => multiWordMatchAny(q, c.contact_name)) : contacts;
-                            return (
+                            const hasSearch = q.trim().length > 0;
+
+                            const accountsSection = fa.length > 0 && (
+                              <SelectGroup>
+                                <SelectLabel className="flex items-center gap-1.5 text-[10px] text-muted-foreground"><BookOpen className="h-3 w-3" /> الحسابات</SelectLabel>
+                                {fa.map(a => (
+                                  <SelectItem key={`a-${a.account_code}`} value={`account:${a.account_code}`}>
+                                    <span className="flex items-center gap-3">
+                                      <span className="font-mono text-muted-foreground text-[10px] bg-muted px-1.5 py-0.5 rounded">{a.account_code}</span>
+                                      <span>{a.account_name}</span>
+                                    </span>
+                                  </SelectItem>
+                                ))}
+                              </SelectGroup>
+                            );
+
+                            const contactsSection = (
                               <>
                                 {fc.filter(isCustomer).length > 0 && (
                                   <SelectGroup>
@@ -611,20 +627,20 @@ const JournalNewPage = () => {
                                     ))}
                                   </SelectGroup>
                                 )}
+                              </>
+                            );
+
+                            return hasSearch ? (
+                              <>
+                                {accountsSection}
+                                {fa.length > 0 && fc.length > 0 && <div className="border-t border-border my-1" />}
+                                {contactsSection}
+                              </>
+                            ) : (
+                              <>
+                                {contactsSection}
                                 {fc.length > 0 && fa.length > 0 && <div className="border-t border-border my-1" />}
-                                {fa.length > 0 && (
-                                  <SelectGroup>
-                                    <SelectLabel className="flex items-center gap-1.5 text-[10px] text-muted-foreground"><BookOpen className="h-3 w-3" /> الحسابات</SelectLabel>
-                                    {fa.map(a => (
-                                      <SelectItem key={`a-${a.account_code}`} value={`account:${a.account_code}`}>
-                                        <span className="flex items-center gap-3">
-                                          <span className="font-mono text-muted-foreground text-[10px] bg-muted px-1.5 py-0.5 rounded">{a.account_code}</span>
-                                          <span>{a.account_name}</span>
-                                        </span>
-                                      </SelectItem>
-                                    ))}
-                                  </SelectGroup>
-                                )}
+                                {accountsSection}
                               </>
                             );
                           })()}
