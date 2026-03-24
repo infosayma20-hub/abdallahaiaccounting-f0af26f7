@@ -556,8 +556,10 @@ const ChequesPage = () => {
   const selectedTotal = selectedCheques.reduce((s, c) => s + c.amount, 0);
   const selectedStatuses = new Set(selectedCheques.map(c => c.status));
   const bulkSameStatus = selectedStatuses.size === 1;
+  const bulkSameType = new Set(selectedCheques.map(c => c.cheque_type)).size === 1;
   const bulkStatus = bulkSameStatus ? [...selectedStatuses][0] : null;
-  const bulkActions = bulkStatus ? getAvailableActions(bulkStatus) : [];
+  const bulkType = bulkSameType ? selectedCheques[0]?.cheque_type : null;
+  const bulkActions = (bulkStatus && bulkType) ? getAvailableActions(bulkStatus, bulkType) : [];
 
   return (
     <div className="p-4 md:p-6 pb-24 space-y-5" dir="rtl">
