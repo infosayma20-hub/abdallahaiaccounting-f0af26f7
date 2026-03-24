@@ -2147,7 +2147,27 @@ export default function SuperAdminDashboard() {
               </Button>
             </div>
 
-            <div className="rounded-2xl overflow-hidden" style={{ background: "var(--sa-card-bg)", border: "1px solid var(--sa-card-border)" }}>
+            {/* Mobile audit cards */}
+            <div className="md:hidden rounded-2xl overflow-hidden" style={{ background: "var(--sa-card-bg)", border: "1px solid var(--sa-card-border)" }}>
+              {auditLogs.map((log) => (
+                <div key={log.id} className="px-3 py-2.5 space-y-1" style={{ borderBottom: "1px solid var(--sa-divider)" }}>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm" style={{ color: "var(--sa-text-secondary)" }}>{actionLabel[log.action] || log.action}</span>
+                    <span className="text-[10px] tabular-nums font-mono" style={{ color: "var(--sa-text-faint)" }}>{format(new Date(log.created_at), "HH:mm:ss")}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    {log.target_id && <p className="text-[10px] font-mono truncate flex-1" style={{ color: "var(--sa-text-muted)" }}>{log.target_type}: {log.target_id.substring(0, 18)}...</p>}
+                    {log.ip_address && <span className="text-[10px] font-mono shrink-0" style={{ color: "var(--sa-text-faint)" }}>{log.ip_address.substring(0, 12)}</span>}
+                  </div>
+                </div>
+              ))}
+              {auditLogs.length === 0 && (
+                <p className="text-center py-8 text-sm" style={{ color: "var(--sa-text-faint)" }}>لا توجد سجلات</p>
+              )}
+            </div>
+
+            {/* Desktop audit table */}
+            <div className="hidden md:block rounded-2xl overflow-hidden" style={{ background: "var(--sa-card-bg)", border: "1px solid var(--sa-card-border)" }}>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
