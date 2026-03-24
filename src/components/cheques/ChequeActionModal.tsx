@@ -71,6 +71,8 @@ export interface ActionFormData {
   endorsedToContactId?: string;
   returnReason?: string;
   cancelReason?: string;
+  cashedDate?: string;
+  recoverReason?: string;
   notes?: string;
 }
 
