@@ -6,6 +6,7 @@ import {
   CreditCard, Building2, Banknote, Clock, Search, Package, Receipt,
   ShoppingCart, Send, Percent, Hash, ChevronDown, MessageSquare, Paperclip
 } from "lucide-react";
+import VoucherNavToolbar from "@/components/VoucherNavToolbar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -847,10 +848,15 @@ const InvoiceCreatePage = () => {
             </p>
           </div>
         </div>
-        <Button variant="ghost" size="sm" onClick={handlePrint} className="gap-1.5 text-xs">
-          <Eye className="h-4 w-4" /> معاينة
-        </Button>
       </div>
+
+      {/* Navigation Toolbar */}
+      <VoucherNavToolbar
+        voucherType="invoice"
+        currentRef={isEditMode ? nextInvoiceNumber : undefined}
+        onPrint={handlePrint}
+        showNavigation={isEditMode}
+      />
 
       {/* ─── SECTION 1: Invoice Data ─── */}
       <Card className="border-0 shadow-sm rounded-2xl">

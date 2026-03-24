@@ -12,8 +12,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { multiWordMatchAny } from "@/lib/utils";
 
 interface VoucherNavToolbarProps {
-  /** "receipt" | "payment" | "journal" */
-  voucherType: "receipt" | "payment" | "journal";
+  /** "receipt" | "payment" | "journal" | "invoice" */
+  voucherType: "receipt" | "payment" | "journal" | "invoice";
   /** Current voucher ref number (for display) */
   currentRef?: string;
   /** Called when user clicks "جديد" */
@@ -53,6 +53,7 @@ const VoucherNavToolbar = ({
 
   const isReceipt = voucherType === "receipt";
   const isJournal = voucherType === "journal";
+  const isInvoice = voucherType === "invoice";
 
   // Load all voucher IDs for navigation
   const loadVoucherList = useCallback(async () => {
@@ -71,6 +72,23 @@ const VoucherNavToolbar = ({
           date: d.payment_date || "",
           description: d.contact_name || "",
           amount: d.amount || 0,
+          status: d.status || "",
+        })));
+      }
+    } else if (isInvoice) {
+      const { data } = await supabase
+        .from("invoices")
+        .select("id, invoice_number, invoice_date, contact_name, total_amount, status")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: true });
+      if (data) {
+        setAllIds(data.map(d => d.id));
+        setAllRefs(data.map(d => ({
+          id: d.id,
+          ref: d.invoice_number || "",
+          date: d.invoice_date || "",
+          description: d.contact_name || "",
+          amount: d.total_amount || 0,
           status: d.status || "",
         })));
       }
@@ -112,7 +130,7 @@ const VoucherNavToolbar = ({
         })));
       }
     }
-  }, [user, isReceipt, isJournal]);
+  }, [user, isReceipt, isJournal, isInvoice]);
 
   useEffect(() => { loadVoucherList(); }, [loadVoucherList]);
 
@@ -124,7 +142,8 @@ const VoucherNavToolbar = ({
   }, [currentRef, allRefs]);
 
   const navigateToVoucher = (id: string) => {
-    if (isReceipt) navigate(`/finance/receipt/${id}/edit`);
+    if (isInvoice) navigate(`/invoices/new?edit=${id}`);
+    else if (isReceipt) navigate(`/finance/receipt/${id}/edit`);
     else if (isJournal) navigate(`/finance/journals?edit=${id}`);
     else navigate(`/finance/payment/${id}/edit`);
   };
@@ -144,7 +163,8 @@ const VoucherNavToolbar = ({
 
   const handleNewPath = () => {
     if (onNew) { onNew(); return; }
-    if (isReceipt) navigate("/finance/receipt/new");
+    if (isInvoice) navigate("/invoices/new");
+    else if (isReceipt) navigate("/finance/receipt/new");
     else if (isJournal) navigate("/finance/journal/new");
     else navigate("/finance/payment/new");
   };
