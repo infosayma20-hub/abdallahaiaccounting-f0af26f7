@@ -88,8 +88,21 @@ Deno.serve(async (req) => {
     }
 
     if (action === "get_settings") {
-      // Return settings with the resolved linked_user_id
-      const settingsResponse = portalSettings ? { ...portalSettings, linked_user_id: linkedUserId } : { linked_user_id: linkedUserId };
+      // Fetch company name and logo from company_settings using service role
+      let companyName = "";
+      let companyLogo = "";
+      if (linkedUserId) {
+        const { data: cs } = await supabase
+          .from("company_settings")
+          .select("company_name, logo_url")
+          .eq("user_id", linkedUserId)
+          .single();
+        if (cs?.company_name) companyName = cs.company_name;
+        if (cs?.logo_url) companyLogo = cs.logo_url;
+      }
+      const settingsResponse = portalSettings
+        ? { ...portalSettings, linked_user_id: linkedUserId, company_name: companyName, logo_url: companyLogo }
+        : { linked_user_id: linkedUserId, company_name: companyName, logo_url: companyLogo };
       return respond({ success: true, settings: settingsResponse });
     }
 
@@ -525,6 +538,106 @@ Deno.serve(async (req) => {
         success: true,
         suppliers: supplierData.filter((s: any) => s.closingBalance !== 0 || s.totalPurchases > 0),
         totalOwed: supplierData.reduce((sum: number, s: any) => sum + Math.max(s.closingBalance, 0), 0),
+      });
+    }
+
+    // ============ Attendance ============
+    if (action === "attendance") {
+      const dateFrom = body.dateFrom; // yyyy-MM-dd
+      const dateTo = body.dateTo;     // yyyy-MM-dd
+
+      // Fetch active employees
+      const { data: emps } = await supabase
+        .from("employees")
+        .select("id, full_name, position, job_title, shift_start, shift_end")
+        .eq("user_id", linkedUserId)
+        .eq("is_active", true)
+        .order("full_name");
+
+      if (!emps?.length) {
+        return respond({ success: true, employees: [], summary: { present: 0, absent: 0, left: 0, totalEmployees: 0 } });
+      }
+
+      const empIds = emps.map((e: any) => e.id);
+
+      // Fetch attendance for date range
+      let attQuery = supabase
+        .from("attendance_days")
+        .select("employee_id, attendance_date, first_check_in, last_check_out, total_hours, status, overtime_hours")
+        .in("employee_id", empIds);
+
+      if (dateFrom) attQuery = attQuery.gte("attendance_date", dateFrom);
+      if (dateTo) attQuery = attQuery.lte("attendance_date", dateTo);
+
+      const { data: attendance } = await attQuery;
+
+      // Build per-employee summary
+      const attByEmp = new Map<string, any[]>();
+      (attendance || []).forEach((a: any) => {
+        if (!attByEmp.has(a.employee_id)) attByEmp.set(a.employee_id, []);
+        attByEmp.get(a.employee_id)!.push(a);
+      });
+
+      // For "today" status
+      const today = dateFrom === dateTo ? dateFrom : new Date().toISOString().split("T")[0];
+      const todayAtt = new Map<string, any>();
+      (attendance || []).filter((a: any) => a.attendance_date === today).forEach((a: any) => {
+        todayAtt.set(a.employee_id, a);
+      });
+
+      let presentCount = 0, absentCount = 0, leftCount = 0;
+
+      const employeeData = emps.map((emp: any) => {
+        const records = attByEmp.get(emp.id) || [];
+        const todayRecord = todayAtt.get(emp.id);
+
+        const totalDays = records.length;
+        const totalHours = records.reduce((s: number, r: any) => s + (r.total_hours || 0), 0);
+        const totalOvertime = records.reduce((s: number, r: any) => s + (r.overtime_hours || 0), 0);
+
+        const hasCheckedIn = !!todayRecord?.first_check_in;
+        const hasCheckedOut = !!todayRecord?.last_check_out;
+        const isPresent = hasCheckedIn && !hasCheckedOut;
+        const status = !hasCheckedIn ? "absent" : isPresent ? "present" : "left";
+
+        if (status === "present") presentCount++;
+        else if (status === "left") leftCount++;
+        else absentCount++;
+
+        return {
+          id: emp.id,
+          full_name: emp.full_name,
+          position: emp.job_title || emp.position || "",
+          shift_start: emp.shift_start,
+          shift_end: emp.shift_end,
+          status,
+          check_in_time: todayRecord?.first_check_in || null,
+          check_out_time: todayRecord?.last_check_out || null,
+          today_hours: todayRecord?.total_hours || null,
+          total_days: totalDays,
+          total_hours: Math.round(totalHours * 10) / 10,
+          total_overtime: Math.round(totalOvertime * 10) / 10,
+          records: records.map((r: any) => ({
+            date: r.attendance_date,
+            check_in: r.first_check_in,
+            check_out: r.last_check_out,
+            hours: r.total_hours,
+            overtime: r.overtime_hours,
+            status: r.status,
+          })),
+        };
+      });
+
+      return respond({
+        success: true,
+        employees: employeeData,
+        summary: {
+          present: presentCount,
+          absent: absentCount,
+          left: leftCount,
+          totalEmployees: emps.length,
+          totalAttendanceDays: (attendance || []).length,
+        },
       });
     }
 

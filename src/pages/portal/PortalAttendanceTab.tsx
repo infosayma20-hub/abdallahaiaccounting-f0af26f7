@@ -1,102 +1,88 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { format } from 'date-fns';
+import { format, subDays } from 'date-fns';
 import { ar } from 'date-fns/locale';
-import { RefreshCw, UserCheck, UserX, Clock, Users } from 'lucide-react';
+import { RefreshCw, UserCheck, UserX, Clock, Users, Calendar, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface Props {
   theme: 'light' | 'dark';
 }
 
-interface EmployeeStatus {
+interface EmployeeAtt {
   id: string;
   full_name: string;
   position: string;
   shift_start: string | null;
   shift_end: string | null;
-  is_present: boolean;
+  status: string;
   check_in_time: string | null;
   check_out_time: string | null;
-  total_hours: number | null;
-  status: string;
+  today_hours: number | null;
+  total_days: number;
+  total_hours: number;
+  total_overtime: number;
+  records: { date: string; check_in: string | null; check_out: string | null; hours: number | null; overtime: number | null; status: string }[];
 }
 
+interface Summary {
+  present: number;
+  absent: number;
+  left: number;
+  totalEmployees: number;
+  totalAttendanceDays: number;
+}
+
+type DatePreset = 'today' | 'yesterday' | 'custom';
+
 export default function PortalAttendanceTab({ theme }: Props) {
-  const [employees, setEmployees] = useState<EmployeeStatus[]>([]);
+  const [employees, setEmployees] = useState<EmployeeAtt[]>([]);
+  const [summary, setSummary] = useState<Summary>({ present: 0, absent: 0, left: 0, totalEmployees: 0, totalAttendanceDays: 0 });
   const [loading, setLoading] = useState(true);
   const [clock, setClock] = useState(new Date());
+  const [preset, setPreset] = useState<DatePreset>('today');
+  const [dateFrom, setDateFrom] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [dateTo, setDateTo] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   useEffect(() => {
     const t = setInterval(() => setClock(new Date()), 1000);
     return () => clearInterval(t);
   }, []);
 
+  const applyPreset = (p: DatePreset) => {
+    setPreset(p);
+    if (p === 'today') {
+      const today = format(new Date(), 'yyyy-MM-dd');
+      setDateFrom(today);
+      setDateTo(today);
+    } else if (p === 'yesterday') {
+      const yesterday = format(subDays(new Date(), 1), 'yyyy-MM-dd');
+      setDateFrom(yesterday);
+      setDateTo(yesterday);
+    }
+  };
+
   const fetchData = async () => {
     setLoading(true);
     try {
-      // Get linked_user_id from portal settings
-      const { data: settingsData } = await supabase.functions.invoke('malaki-data', {
-        body: { action: 'get_settings' },
+      const { data } = await supabase.functions.invoke('malaki-data', {
+        body: { action: 'attendance', dateFrom, dateTo },
       });
-      const linkedUserId = settingsData?.settings?.linked_user_id;
-      if (!linkedUserId) { setLoading(false); return; }
-
-      // Fetch active employees
-      const { data: emps } = await supabase
-        .from('employees')
-        .select('id, full_name, position, job_title, shift_start, shift_end')
-        .eq('user_id', linkedUserId)
-        .eq('is_active', true)
-        .order('full_name');
-
-      if (!emps?.length) { setEmployees([]); setLoading(false); return; }
-
-      const today = format(new Date(), 'yyyy-MM-dd');
-
-      // Fetch today's attendance
-      const { data: attendance } = await supabase
-        .from('attendance_days')
-        .select('employee_id, first_check_in, last_check_out, total_hours, status')
-        .eq('attendance_date', today)
-        .in('employee_id', emps.map(e => e.id));
-
-      const attMap = new Map<string, any>();
-      attendance?.forEach(a => attMap.set(a.employee_id, a));
-
-      const result: EmployeeStatus[] = emps.map(emp => {
-        const att = attMap.get(emp.id);
-        const hasCheckedIn = !!att?.first_check_in;
-        const hasCheckedOut = !!att?.last_check_out;
-        const isPresent = hasCheckedIn && !hasCheckedOut;
-
-        return {
-          id: emp.id,
-          full_name: emp.full_name,
-          position: emp.job_title || emp.position || '',
-          shift_start: emp.shift_start,
-          shift_end: emp.shift_end,
-          is_present: isPresent,
-          check_in_time: att?.first_check_in || null,
-          check_out_time: att?.last_check_out || null,
-          total_hours: att?.total_hours || null,
-          status: !hasCheckedIn ? 'absent' : isPresent ? 'present' : 'left',
-        };
-      });
-
-      setEmployees(result);
+      if (data?.employees) setEmployees(data.employees);
+      if (data?.summary) setSummary(data.summary);
     } catch (e) {
       console.error('Portal attendance error:', e);
     }
     setLoading(false);
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { fetchData(); }, [dateFrom, dateTo]);
 
   // Auto-refresh every 30s
   useEffect(() => {
     const interval = setInterval(fetchData, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [dateFrom, dateTo]);
 
   const d = theme === 'dark';
   const t = {
@@ -107,16 +93,16 @@ export default function PortalAttendanceTab({ theme }: Props) {
     green: d ? '#22c55e' : '#16a34a',
     red: d ? '#ef4444' : '#dc2626',
     amber: d ? '#f59e0b' : '#d97706',
+    bg: d ? '#0D1117' : '#F0F2F5',
+    accent: '#2A7B9B',
   };
-
-  const presentCount = employees.filter(e => e.status === 'present').length;
-  const absentCount = employees.filter(e => e.status === 'absent').length;
-  const leftCount = employees.filter(e => e.status === 'left').length;
 
   const formatTime = (iso: string | null) => {
     if (!iso) return '—';
     return format(new Date(iso), 'hh:mm a');
   };
+
+  const isRangeMode = dateFrom !== dateTo;
 
   return (
     <div style={{ direction: 'rtl' }}>
@@ -131,7 +117,7 @@ export default function PortalAttendanceTab({ theme }: Props) {
         </div>
         <button onClick={fetchData} style={{
           background: 'rgba(42,123,155,0.1)', border: '1px solid rgba(42,123,155,0.25)',
-          borderRadius: 8, padding: '5px 12px', color: '#2A7B9B', fontSize: 11,
+          borderRadius: 8, padding: '5px 12px', color: t.accent, fontSize: 11,
           cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4,
           fontFamily: 'Tajawal, sans-serif',
         }}>
@@ -139,27 +125,85 @@ export default function PortalAttendanceTab({ theme }: Props) {
         </button>
       </div>
 
-      {/* KPI Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 16 }}>
+      {/* Date Presets */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
         {[
-          { label: 'حاضر الآن', value: presentCount, icon: UserCheck, color: t.green },
-          { label: 'غائب', value: absentCount, icon: UserX, color: t.red },
-          { label: 'غادر', value: leftCount, icon: Clock, color: t.amber },
+          { key: 'today' as const, label: '● اليوم' },
+          { key: 'yesterday' as const, label: 'أمس' },
+          { key: 'custom' as const, label: '📅 فترة' },
+        ].map(p => (
+          <button
+            key={p.key}
+            onClick={() => applyPreset(p.key)}
+            style={{
+              background: preset === p.key ? t.accent : `${t.accent}15`,
+              color: preset === p.key ? 'white' : t.accent,
+              border: `1px solid ${preset === p.key ? t.accent : t.accent + '40'}`,
+              borderRadius: 20, padding: '4px 14px', fontSize: 11, fontWeight: 600,
+              cursor: 'pointer', fontFamily: 'Tajawal, sans-serif',
+            }}
+          >
+            {p.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Custom Date Range */}
+      {preset === 'custom' && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12,
+          flexWrap: 'wrap',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <Calendar size={14} style={{ color: t.textMuted }} />
+            <span style={{ fontSize: 11, color: t.textMuted }}>من:</span>
+            <input
+              type="date"
+              value={dateFrom}
+              onChange={e => setDateFrom(e.target.value)}
+              style={{
+                background: t.card, border: `1px solid ${t.border}`, borderRadius: 8,
+                padding: '4px 8px', fontSize: 11, color: t.text,
+                fontFamily: 'Tajawal, sans-serif',
+              }}
+            />
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span style={{ fontSize: 11, color: t.textMuted }}>إلى:</span>
+            <input
+              type="date"
+              value={dateTo}
+              onChange={e => setDateTo(e.target.value)}
+              style={{
+                background: t.card, border: `1px solid ${t.border}`, borderRadius: 8,
+                padding: '4px 8px', fontSize: 11, color: t.text,
+                fontFamily: 'Tajawal, sans-serif',
+              }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* KPI Cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 16 }}>
+        {[
+          { label: 'إجمالي', value: summary.totalEmployees, icon: Users, color: t.accent },
+          { label: 'حاضر', value: summary.present, icon: UserCheck, color: t.green },
+          { label: 'غائب', value: summary.absent, icon: UserX, color: t.red },
+          { label: 'غادر', value: summary.left, icon: Clock, color: t.amber },
         ].map((kpi, i) => (
           <div key={i} style={{
-            background: t.card, border: `1px solid ${t.border}`, borderRadius: 12, padding: 12,
-            display: 'flex', alignItems: 'center', gap: 10,
+            background: t.card, border: `1px solid ${t.border}`, borderRadius: 12, padding: 10,
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
           }}>
             <div style={{
-              width: 36, height: 36, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              width: 32, height: 32, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center',
               background: `${kpi.color}15`,
             }}>
-              <kpi.icon size={18} style={{ color: kpi.color }} />
+              <kpi.icon size={16} style={{ color: kpi.color }} />
             </div>
-            <div>
-              <div style={{ fontSize: 20, fontWeight: 800, color: kpi.color, lineHeight: 1 }}>{kpi.value}</div>
-              <div style={{ fontSize: 10, color: t.textMuted }}>{kpi.label}</div>
-            </div>
+            <div style={{ fontSize: 20, fontWeight: 800, color: kpi.color, lineHeight: 1 }}>{kpi.value}</div>
+            <div style={{ fontSize: 9, color: t.textMuted }}>{kpi.label}</div>
           </div>
         ))}
       </div>
@@ -179,61 +223,140 @@ export default function PortalAttendanceTab({ theme }: Props) {
           employees.map(emp => {
             const statusColor = emp.status === 'present' ? t.green : emp.status === 'left' ? t.amber : t.red;
             const statusLabel = emp.status === 'present' ? 'مداوم ✅' : emp.status === 'left' ? 'غادر 🕐' : 'غائب ❌';
+            const isExpanded = expandedId === emp.id;
 
             return (
               <div key={emp.id} style={{
-                background: t.card, border: `1px solid ${t.border}`, borderRadius: 12, padding: '10px 14px',
-                display: 'flex', alignItems: 'center', gap: 10,
+                background: t.card, border: `1px solid ${t.border}`, borderRadius: 12,
+                overflow: 'hidden',
               }}>
-                {/* Status dot */}
-                <div style={{
-                  width: 10, height: 10, borderRadius: '50%',
-                  background: statusColor,
-                  boxShadow: emp.status === 'present' ? `0 0 8px ${statusColor}80` : 'none',
-                  flexShrink: 0,
-                  animation: emp.status === 'present' ? 'pulse 2s infinite' : 'none',
-                }} />
+                {/* Main Row */}
+                <div
+                  style={{
+                    padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 10,
+                    cursor: 'pointer',
+                  }}
+                  onClick={() => setExpandedId(isExpanded ? null : emp.id)}
+                >
+                  {/* Status dot */}
+                  <div style={{
+                    width: 10, height: 10, borderRadius: '50%', background: statusColor,
+                    boxShadow: emp.status === 'present' ? `0 0 8px ${statusColor}80` : 'none',
+                    flexShrink: 0,
+                    animation: emp.status === 'present' ? 'pulse 2s infinite' : 'none',
+                  }} />
 
-                {/* Name */}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: t.text }}>{emp.full_name}</div>
-                  <div style={{ fontSize: 10, color: t.textMuted }}>
-                    {emp.position}
-                    {emp.shift_start && emp.shift_end && (
-                      <span style={{ marginRight: 6 }}>
-                        • وردية {emp.shift_start?.slice(0, 5)} - {emp.shift_end?.slice(0, 5)}
-                      </span>
+                  {/* Name & position */}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: t.text }}>{emp.full_name}</div>
+                    <div style={{ fontSize: 10, color: t.textMuted }}>
+                      {emp.position}
+                      {emp.shift_start && emp.shift_end && (
+                        <span style={{ marginRight: 6 }}>
+                          • وردية {emp.shift_start?.slice(0, 5)} - {emp.shift_end?.slice(0, 5)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Today times */}
+                  <div style={{ textAlign: 'center', minWidth: 60 }}>
+                    {emp.check_in_time && (
+                      <div style={{ fontSize: 11, color: t.green, fontWeight: 600 }}>
+                        ⬅ {formatTime(emp.check_in_time)}
+                      </div>
+                    )}
+                    {emp.check_out_time && (
+                      <div style={{ fontSize: 11, color: t.amber }}>
+                        ➡ {formatTime(emp.check_out_time)}
+                      </div>
+                    )}
+                    {emp.today_hours != null && emp.today_hours > 0 && (
+                      <div style={{ fontSize: 10, color: t.textMuted }}>
+                        {emp.today_hours.toFixed(1)} ساعة
+                      </div>
                     )}
                   </div>
+
+                  {/* Status badge */}
+                  <div style={{
+                    background: `${statusColor}15`, color: statusColor,
+                    padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700,
+                    whiteSpace: 'nowrap',
+                  }}>
+                    {statusLabel}
+                  </div>
+
+                  {/* Expand icon */}
+                  {isExpanded ? <ChevronUp size={14} style={{ color: t.textMuted }} /> : <ChevronDown size={14} style={{ color: t.textMuted }} />}
                 </div>
 
-                {/* Times */}
-                <div style={{ textAlign: 'center', minWidth: 60 }}>
-                  {emp.check_in_time && (
-                    <div style={{ fontSize: 11, color: t.green, fontWeight: 600 }}>
-                      ⬅ {formatTime(emp.check_in_time)}
+                {/* Expanded Details */}
+                {isExpanded && (
+                  <div style={{ padding: '0 14px 12px', borderTop: `1px solid ${t.border}` }}>
+                    {/* Summary stats */}
+                    <div style={{
+                      display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8,
+                      marginTop: 10, marginBottom: 10,
+                    }}>
+                      <div style={{ textAlign: 'center', padding: 8, background: `${t.accent}08`, borderRadius: 8 }}>
+                        <div style={{ fontSize: 16, fontWeight: 700, color: t.accent }}>{emp.total_days}</div>
+                        <div style={{ fontSize: 9, color: t.textMuted }}>أيام دوام</div>
+                      </div>
+                      <div style={{ textAlign: 'center', padding: 8, background: `${t.green}08`, borderRadius: 8 }}>
+                        <div style={{ fontSize: 16, fontWeight: 700, color: t.green }}>{emp.total_hours}</div>
+                        <div style={{ fontSize: 9, color: t.textMuted }}>ساعات عمل</div>
+                      </div>
+                      <div style={{ textAlign: 'center', padding: 8, background: `${t.amber}08`, borderRadius: 8 }}>
+                        <div style={{ fontSize: 16, fontWeight: 700, color: t.amber }}>{emp.total_overtime}</div>
+                        <div style={{ fontSize: 9, color: t.textMuted }}>ساعات إضافية</div>
+                      </div>
                     </div>
-                  )}
-                  {emp.check_out_time && (
-                    <div style={{ fontSize: 11, color: t.amber }}>
-                      ➡ {formatTime(emp.check_out_time)}
-                    </div>
-                  )}
-                  {emp.total_hours && (
-                    <div style={{ fontSize: 10, color: t.textMuted }}>
-                      {emp.total_hours.toFixed(1)} ساعة
-                    </div>
-                  )}
-                </div>
 
-                {/* Status badge */}
-                <div style={{
-                  background: `${statusColor}15`, color: statusColor,
-                  padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700,
-                  whiteSpace: 'nowrap',
-                }}>
-                  {statusLabel}
-                </div>
+                    {/* Records table */}
+                    {emp.records.length > 0 && (
+                      <div style={{ overflowX: 'auto' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
+                          <thead>
+                            <tr style={{ borderBottom: `1px solid ${t.border}` }}>
+                              <th style={{ padding: '6px 4px', textAlign: 'right', color: t.textMuted, fontWeight: 600 }}>التاريخ</th>
+                              <th style={{ padding: '6px 4px', textAlign: 'center', color: t.textMuted, fontWeight: 600 }}>دخول</th>
+                              <th style={{ padding: '6px 4px', textAlign: 'center', color: t.textMuted, fontWeight: 600 }}>خروج</th>
+                              <th style={{ padding: '6px 4px', textAlign: 'center', color: t.textMuted, fontWeight: 600 }}>ساعات</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {emp.records.slice(0, 30).map((r, i) => (
+                              <tr key={i} style={{ borderBottom: `1px solid ${t.border}` }}>
+                                <td style={{ padding: '6px 4px', color: t.text }}>
+                                  {format(new Date(r.date), 'dd/MM', { locale: ar })}
+                                  <span style={{ fontSize: 9, color: t.textMuted, marginRight: 4 }}>
+                                    {format(new Date(r.date), 'EEEE', { locale: ar })}
+                                  </span>
+                                </td>
+                                <td style={{ padding: '6px 4px', textAlign: 'center', color: t.green }}>
+                                  {r.check_in ? format(new Date(r.check_in), 'hh:mm a') : '—'}
+                                </td>
+                                <td style={{ padding: '6px 4px', textAlign: 'center', color: t.amber }}>
+                                  {r.check_out ? format(new Date(r.check_out), 'hh:mm a') : '—'}
+                                </td>
+                                <td style={{ padding: '6px 4px', textAlign: 'center', color: t.text, fontWeight: 600 }}>
+                                  {r.hours != null ? r.hours.toFixed(1) : '—'}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+
+                    {emp.records.length === 0 && (
+                      <div style={{ textAlign: 'center', padding: 16, color: t.textMuted, fontSize: 11 }}>
+                        لا توجد سجلات حضور في هذه الفترة
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             );
           })

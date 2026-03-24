@@ -17,7 +17,7 @@ const ACCENT = '#2A7B9B';
 export default function PortalDashboard() {
   const { user, loading: authLoading, logout } = usePortalAuth();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'sales' | 'liquidity' | 'requests' | 'suppliers' | 'attendance'>('sales');
+  const [activeTab, setActiveTab] = useState<'sales' | 'liquidity' | 'requests' | 'suppliers' | 'attendance'>('attendance');
   const [clock, setClock] = useState(new Date());
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem('portal_theme') === 'dark');
   const [companyName, setCompanyName] = useState('');
@@ -48,16 +48,12 @@ export default function PortalDashboard() {
         const { data } = await supabase.functions.invoke('malaki-data', {
           body: { action: 'get_settings' },
         });
-        if (data?.settings?.linked_user_id) {
-          const linkedId = data.settings.linked_user_id;
-          const { data: cs } = await supabase
-            .from('company_settings')
-            .select('company_name, logo_url')
-            .eq('user_id', linkedId)
-            .single();
-          if (cs?.company_name) setCompanyName(cs.company_name);
-          if (cs?.logo_url) setCompanyLogo(cs.logo_url);
+        const settings = data?.settings;
+        if (settings?.company_name) setCompanyName(settings.company_name);
+        if (settings?.logo_url) setCompanyLogo(settings.logo_url);
 
+        const linkedId = settings?.linked_user_id;
+        if (linkedId) {
           // Check if this account has employees
           const { count } = await supabase
             .from('employees')
@@ -94,9 +90,9 @@ export default function PortalDashboard() {
       };
 
   const tabs = [
+    { key: 'attendance' as const, label: '👥 الحضور', visible: hasEmployees },
     { key: 'sales' as const, label: '📊 المبيعات', visible: user.can_see_sales },
     { key: 'liquidity' as const, label: '💰 السيولة', visible: user.can_see_liquidity },
-    { key: 'attendance' as const, label: '👥 الحضور', visible: hasEmployees },
     { key: 'requests' as const, label: '📋 الطلبات', visible: true },
     { key: 'suppliers' as const, label: '🏭 الموردين', visible: true },
   ].filter(t => t.visible);
