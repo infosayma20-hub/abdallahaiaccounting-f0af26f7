@@ -88,15 +88,16 @@ export default function BranchDisplayPage() {
     };
   }, [fetchQR]);
 
-  // Auto-refresh every 60 seconds
+  // Auto-refresh — only for rotating QR
   useEffect(() => {
+    if (qrData?.qr_mode === 'static') return; // no refresh needed for static
     const interval = setInterval(fetchQR, 60 * 1000);
     return () => clearInterval(interval);
-  }, [fetchQR]);
+  }, [fetchQR, qrData?.qr_mode]);
 
-  // Auto-regenerate when time window changes
+  // Auto-regenerate when time window changes — only for rotating
   useEffect(() => {
-    if (!qrData) return;
+    if (!qrData || qrData.qr_mode === 'static' || !qrData.expires_at) return;
     const expiryTime = new Date(qrData.expires_at).getTime();
     const timeUntilExpiry = expiryTime - Date.now();
 
