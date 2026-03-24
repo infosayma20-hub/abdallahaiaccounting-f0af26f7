@@ -7,8 +7,9 @@ import { ar } from "date-fns/locale";
 type QRData = {
   qr_payload: string;
   branch_name: string;
-  expires_at: string;
+  expires_at: string | null;
   rotation_minutes: number;
+  qr_mode?: string;
 };
 
 export default function BranchDisplayPage() {
