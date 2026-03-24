@@ -46,6 +46,9 @@ interface Cheque {
   updated_at: string;
   deposit_bank_account_id?: string | null;
   endorsed_to_name?: string | null;
+  source_bank_account_id?: string | null;
+  contact_id?: string | null;
+  cashed_date?: string | null;
 }
 
 interface StatusHistory {
