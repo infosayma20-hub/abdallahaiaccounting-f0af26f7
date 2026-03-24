@@ -378,6 +378,25 @@ const JournalNewPage = () => {
             { id: "2", account_code: "", account_name: "", debit: 0, credit: 0, contact_id: "", contact_name: "" },
           ]);
         }}
+        onNewSimilar={saved ? () => {
+          const draftData = {
+            _sourceRef: formRefNumber,
+            description: formDescription,
+            notes: formNotes,
+            subtype: formSubtype,
+            contactId: formContactId,
+            lines: lines.map(l => ({
+              account_code: l.account_code,
+              account_name: l.account_name,
+              debit: l.debit,
+              credit: l.credit,
+              contact_id: l.contact_id,
+              contact_name: l.contact_name,
+            })),
+          };
+          localStorage.setItem("draft_journal_new", JSON.stringify(draftData));
+          navigate("/finance/journal/new?from_duplicate=true");
+        } : undefined}
       />
 
       {/* Subtype Tabs */}
