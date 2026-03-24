@@ -83,6 +83,8 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
   const [submitting, setSubmitting] = useState(false);
   const [uploadingFile, setUploadingFile] = useState(false);
   const [policies, setPolicies] = useState<any[]>([]);
+  const [showPolicies, setShowPolicies] = useState(true);
+  const [showLoanForm, setShowLoanForm] = useState(true);
 
   // Form state
   const [formData, setFormData] = useState<Record<string, string>>({});
@@ -90,7 +92,23 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
   useEffect(() => {
     fetchSubmissions();
     fetchPolicies();
+    fetchOwnerSettings();
   }, [employeeId]);
+
+  const fetchOwnerSettings = async () => {
+    // Get team owner id for this employee
+    const { data: ownerData } = await supabase.rpc("get_team_owner_id");
+    const ownerId = ownerData || userId;
+    const { data } = await supabase
+      .from("company_settings")
+      .select("hr_show_policies, hr_show_loan_form")
+      .eq("user_id", ownerId)
+      .maybeSingle();
+    if (data) {
+      setShowPolicies(data.hr_show_policies !== false);
+      setShowLoanForm(data.hr_show_loan_form !== false);
+    }
+  };
 
   const fetchSubmissions = async () => {
     const { data } = await supabase
