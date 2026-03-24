@@ -1002,6 +1002,8 @@ const EmployeesPage = () => {
             <div><label className="text-xs text-muted-foreground">معدل الساعة</label><Input type="number" value={form.hourly_rate || 0} onChange={e => setForm({ ...form, hourly_rate: Number(e.target.value) })} /></div>
             <div><label className="text-xs text-muted-foreground">أيام العمل/أسبوع</label><Input type="number" value={form.work_days_per_week || 6} onChange={e => setForm({ ...form, work_days_per_week: Number(e.target.value) })} /></div>
             <div><label className="text-xs text-muted-foreground">ساعات العمل/يوم</label><Input type="number" value={form.work_hours_per_day || 8} onChange={e => setForm({ ...form, work_hours_per_day: Number(e.target.value) })} /></div>
+            <div><label className="text-xs text-muted-foreground">بداية الوردية</label><Input type="time" value={(form as any).shift_start || "08:00"} onChange={e => setForm({ ...form, shift_start: e.target.value })} dir="ltr" /></div>
+            <div><label className="text-xs text-muted-foreground">نهاية الوردية</label><Input type="time" value={(form as any).shift_end || "16:00"} onChange={e => setForm({ ...form, shift_end: e.target.value })} dir="ltr" /></div>
             <div className="col-span-2 border-t border-border pt-3 mt-2">
               <h4 className="text-sm font-bold text-foreground mb-2">البدلات اليومية والعائلية</h4>
             </div>

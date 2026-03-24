@@ -288,6 +288,26 @@ export default function BranchesSettingsSection() {
               </p>
             </div>
 
+            {/* QR Mode */}
+            <div className="space-y-2">
+              <Label className="text-xs font-medium flex items-center gap-1.5">
+                <QrCode className="h-3.5 w-3.5 text-primary" />
+                نوع رمز QR
+              </Label>
+              <Select value={qrMode} onValueChange={setQrMode}>
+                <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="static">ثابت (للطباعة على ورقة)</SelectItem>
+                  <SelectItem value="rotating">متجدد (أمان أعلى)</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-[10px] text-muted-foreground">
+                {qrMode === 'static'
+                  ? 'رمز ثابت يمكن طباعته وتعليقه — مناسب للمطاعم والمحلات'
+                  : 'يتجدد تلقائياً كل 5 دقائق — أمان أعلى ضد التزوير'}
+              </p>
+            </div>
+
             {/* Actions */}
             <div className="flex gap-2 pt-1">
               <Button onClick={saveBranch} className="flex-1 gap-1.5">
