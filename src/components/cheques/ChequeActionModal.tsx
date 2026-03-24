@@ -87,7 +87,7 @@ const BOUNCE_REASONS = [
 
 const ChequeActionModal = ({
   open, onOpenChange, action, chequeNumber, chequeAmount, chequeCurrency,
-  partyName, bankAccounts, contacts, onConfirm, submitting
+  chequeType, partyName, bankAccounts, contacts, sourceBankAccount, onConfirm, submitting
 }: ChequeActionModalProps) => {
   const [bankAccountId, setBankAccountId] = useState("");
   const [depositDate, setDepositDate] = useState(new Date().toISOString().split('T')[0]);
@@ -100,6 +100,8 @@ const ChequeActionModal = ({
   const [endorsedToContactId, setEndorsedToContactId] = useState("");
   const [returnReason, setReturnReason] = useState("");
   const [cancelReason, setCancelReason] = useState("");
+  const [cashedDate, setCashedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [recoverReason, setRecoverReason] = useState("");
   const [notes, setNotes] = useState("");
 
   if (!action) return null;
@@ -118,6 +120,8 @@ const ChequeActionModal = ({
       endorsedToContactId: endorsedToContactId || undefined,
       returnReason,
       cancelReason,
+      cashedDate,
+      recoverReason,
       notes,
     });
   };
