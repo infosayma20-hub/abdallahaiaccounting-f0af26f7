@@ -272,7 +272,7 @@ const ChequesPage = () => {
 
       toast.success(`تم تسجيل شيك ${newCheque.cheque_type} وإنشاء القيد ✅`);
       setAddOpen(false);
-      setNewCheque({ cheque_type: 'وارد', cheque_number: '', bank_name: '', cheque_date: '', amount: '', currency: 'شيكل', party_name: '', party_type: 'عميل', linked_account: '', notes: '' });
+      setNewCheque({ cheque_type: 'وارد', cheque_number: '', bank_name: '', cheque_date: '', amount: '', currency: 'شيكل', party_name: '', party_type: 'عميل', linked_account: '', notes: '', source_bank_account_id: '' });
       setPartySearch('');
       fetchCheques();
     } catch { toast.error("خطأ في حفظ الشيك"); }
