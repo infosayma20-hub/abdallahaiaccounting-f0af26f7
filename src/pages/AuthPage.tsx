@@ -195,8 +195,8 @@ const AuthPage = () => {
       </div>
 
       {/* RIGHT panel — form */}
-      <div className="flex-1 flex items-center justify-center px-4 auth-right-panel" dir="rtl">
-        <div className="w-full max-w-sm space-y-6" style={{ '--background': '0 0% 100%', '--foreground': '215 55% 23%', '--card': '0 0% 100%', '--card-foreground': '215 55% 23%', '--muted': '210 20% 96%', '--muted-foreground': '215 25% 50%', '--border': '214 20% 88%', '--input': '214 20% 88%', '--accent': '196 57% 38%', '--accent-foreground': '0 0% 100%' } as React.CSSProperties}>
+      <div className="flex-1 flex items-center justify-center px-4 auth-light-panel" dir="rtl">
+        <div className="w-full max-w-sm space-y-6">
           {/* Mobile logo */}
           <div className="text-center space-y-2 lg:hidden">
             <div className="flex flex-col items-center gap-2" dir="ltr">
