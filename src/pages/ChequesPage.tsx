@@ -155,6 +155,7 @@ const ChequesPage = () => {
     party_type: 'عميل',
     linked_account: '',
     notes: '',
+    source_bank_account_id: '',
   });
 
   const fetchAccounts = async () => {
