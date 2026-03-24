@@ -763,11 +763,15 @@ function SubscriptionsManager() {
   const [plans, setPlans] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [editSub, setEditSub] = useState<any | null>(null);
-  const [editPlanId, setEditPlanId] = useState("");
-  const [editStatus, setEditStatus] = useState("");
-  const [editBilling, setEditBilling] = useState("");
-  const [editPeriodEnd, setEditPeriodEnd] = useState("");
+   const [editSub, setEditSub] = useState<any | null>(null);
+   const [editPlanId, setEditPlanId] = useState("");
+   const [editStatus, setEditStatus] = useState("");
+   const [editBilling, setEditBilling] = useState("");
+   const [editPeriodEnd, setEditPeriodEnd] = useState("");
+   const [editCustomAmount, setEditCustomAmount] = useState("");
+   const [editCustomCurrency, setEditCustomCurrency] = useState("ILS");
+   const [editAgreementType, setEditAgreementType] = useState("monthly");
+   const [editPeriodStart, setEditPeriodStart] = useState("");
 
   useEffect(() => { loadData(); }, []);
 
@@ -790,25 +794,33 @@ function SubscriptionsManager() {
     suspended: { text: "موقوف", cls: "bg-amber-500/10 text-amber-400 border-amber-500/20" },
   };
 
-  const openEdit = (sub: any) => {
-    setEditSub(sub);
-    setEditPlanId(sub.plan_id);
-    setEditStatus(sub.status);
-    setEditBilling(sub.billing_cycle);
-    setEditPeriodEnd(sub.current_period_end ? sub.current_period_end.split("T")[0] : "");
-  };
+   const openEdit = (sub: any) => {
+     setEditSub(sub);
+     setEditPlanId(sub.plan_id);
+     setEditStatus(sub.status);
+     setEditBilling(sub.billing_cycle);
+     setEditPeriodEnd(sub.current_period_end ? sub.current_period_end.split("T")[0] : "");
+     setEditCustomAmount(sub.custom_amount ? String(sub.custom_amount) : "");
+     setEditCustomCurrency(sub.custom_currency || "ILS");
+     setEditAgreementType(sub.agreement_type || "monthly");
+     setEditPeriodStart(sub.current_period_start ? sub.current_period_start.split("T")[0] : new Date().toISOString().split("T")[0]);
+   };
 
-  const saveEdit = async () => {
-    if (!editSub) return;
-    try {
-      await apiCall("update_subscription", undefined, {
-        subscription_id: editSub.id, plan_id: editPlanId, status: editStatus, billing_cycle: editBilling, period_end: editPeriodEnd || undefined,
-      });
-      toast.success("تم تحديث الاشتراك");
-      setEditSub(null);
-      loadData();
-    } catch (e: any) { toast.error(e.message); }
-  };
+   const saveEdit = async () => {
+     if (!editSub) return;
+     try {
+       await apiCall("update_subscription", undefined, {
+         subscription_id: editSub.id, plan_id: editPlanId, status: editStatus, billing_cycle: editBilling, period_end: editPeriodEnd || undefined,
+         custom_amount: editCustomAmount ? Number(editCustomAmount) : null,
+         custom_currency: editCustomCurrency,
+         agreement_type: editAgreementType,
+         period_start: editPeriodStart || undefined,
+       });
+       toast.success("تم تحديث الاشتراك");
+       setEditSub(null);
+       loadData();
+     } catch (e: any) { toast.error(e.message); }
+   };
 
   const filtered = subs.filter((s) =>
     !search || s.display_name?.toLowerCase().includes(search.toLowerCase()) || s.email?.toLowerCase().includes(search.toLowerCase())
@@ -908,49 +920,77 @@ function SubscriptionsManager() {
 
       {editSub && (
         <Dialog open={!!editSub} onOpenChange={() => setEditSub(null)}>
-          <DialogContent className="bg-white border-gray-200 text-gray-900 max-w-md" dir="rtl">
+           <DialogContent className="bg-white border-gray-200 text-gray-900 max-w-lg max-h-[90vh] overflow-y-auto" dir="rtl">
             <DialogHeader>
               <DialogTitle className="text-gray-900">تعديل اشتراك {editSub.display_name}</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <label className="text-xs block mb-1 text-gray-500">الباقة</label>
-                <select value={editPlanId} onChange={e => setEditPlanId(e.target.value)}
-                  className="w-full h-10 rounded-md px-3 text-sm bg-gray-50 border border-gray-300 text-gray-900">
-                  {plans.map(p => (
-                    <option key={p.id} value={p.id}>{p.name} (₪{p.monthly_price}/شهر)</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="text-xs block mb-1 text-gray-500">الحالة</label>
-                <select value={editStatus} onChange={e => setEditStatus(e.target.value)}
-                  className="w-full h-10 rounded-md px-3 text-sm bg-gray-50 border border-gray-300 text-gray-900">
-                  <option value="trial">تجريبي</option>
-                  <option value="active">نشط</option>
-                  <option value="expired">منتهي</option>
-                  <option value="cancelled">ملغي</option>
-                  <option value="suspended">موقوف</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-xs block mb-1 text-gray-500">دورة الفوترة</label>
-                <select value={editBilling} onChange={e => setEditBilling(e.target.value)}
-                  className="w-full h-10 rounded-md px-3 text-sm bg-gray-50 border border-gray-300 text-gray-900">
-                  <option value="monthly">شهري</option>
-                  <option value="annual">سنوي</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-xs block mb-1 text-gray-500">تاريخ انتهاء الفترة</label>
-                <input type="date" value={editPeriodEnd} onChange={e => setEditPeriodEnd(e.target.value)}
-                  className="w-full h-10 rounded-md px-3 text-sm bg-gray-50 border border-gray-300 text-gray-900" />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="ghost" onClick={() => setEditSub(null)} className="text-gray-500">إلغاء</Button>
-              <Button onClick={saveEdit} className="bg-amber-500 hover:bg-amber-600 text-black">حفظ</Button>
-            </DialogFooter>
+             <div className="space-y-4">
+               <div>
+                 <label className="text-xs block mb-1 text-gray-500">الباقة</label>
+                 <div className="flex flex-wrap gap-2">
+                   {plans.map(p => (
+                     <button key={p.id} type="button" onClick={() => setEditPlanId(p.id)}
+                       className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${editPlanId === p.id ? "bg-amber-500 text-black border-amber-500" : "bg-gray-50 text-gray-700 border-gray-200 hover:border-amber-300"}`}>
+                       {p.name} (₪{p.monthly_price})
+                     </button>
+                   ))}
+                 </div>
+               </div>
+               <div>
+                 <label className="text-xs block mb-1 text-gray-500">الحالة</label>
+                 <div className="flex flex-wrap gap-2">
+                   {[{ v: "trial", l: "تجريبي" }, { v: "active", l: "نشط" }, { v: "expired", l: "منتهي" }, { v: "cancelled", l: "ملغي" }, { v: "suspended", l: "موقوف" }].map(s => (
+                     <button key={s.v} type="button" onClick={() => setEditStatus(s.v)}
+                       className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${editStatus === s.v ? "bg-amber-500 text-black border-amber-500" : "bg-gray-50 text-gray-700 border-gray-200 hover:border-amber-300"}`}>
+                       {s.l}
+                     </button>
+                   ))}
+                 </div>
+               </div>
+               <div>
+                 <label className="text-xs block mb-1 text-gray-500">نوع الاتفاق</label>
+                 <div className="flex flex-wrap gap-2">
+                   {[{ v: "one_time", l: "مرة واحدة" }, { v: "monthly", l: "شهري" }, { v: "annual", l: "سنوي" }].map(t => (
+                     <button key={t.v} type="button" onClick={() => { setEditAgreementType(t.v); setEditBilling(t.v === "annual" ? "annual" : "monthly"); }}
+                       className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${editAgreementType === t.v ? "bg-amber-500 text-black border-amber-500" : "bg-gray-50 text-gray-700 border-gray-200 hover:border-amber-300"}`}>
+                       {t.l}
+                     </button>
+                   ))}
+                 </div>
+               </div>
+               <div>
+                 <label className="text-xs block mb-1 text-gray-500">المبلغ المتفق عليه</label>
+                 <Input type="number" value={editCustomAmount} onChange={e => setEditCustomAmount(e.target.value)} placeholder="أدخل المبلغ"
+                   className="bg-gray-50 border-gray-300 text-gray-900" />
+               </div>
+               <div>
+                 <label className="text-xs block mb-1 text-gray-500">العملة</label>
+                 <div className="flex flex-wrap gap-2">
+                   {[{ v: "ILS", l: "₪ شيكل" }, { v: "USD", l: "$ دولار" }, { v: "JOD", l: "د.أ دينار" }, { v: "EUR", l: "€ يورو" }].map(c => (
+                     <button key={c.v} type="button" onClick={() => setEditCustomCurrency(c.v)}
+                       className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${editCustomCurrency === c.v ? "bg-amber-500 text-black border-amber-500" : "bg-gray-50 text-gray-700 border-gray-200 hover:border-amber-300"}`}>
+                       {c.l}
+                     </button>
+                   ))}
+                 </div>
+               </div>
+               <div className="grid grid-cols-2 gap-3">
+                 <div>
+                   <label className="text-xs block mb-1 text-gray-500">تاريخ بداية الاشتراك</label>
+                   <input type="date" value={editPeriodStart} onChange={e => setEditPeriodStart(e.target.value)}
+                     className="w-full h-10 rounded-md px-3 text-sm bg-gray-50 border border-gray-300 text-gray-900" />
+                 </div>
+                 <div>
+                   <label className="text-xs block mb-1 text-gray-500">تاريخ انتهاء الفترة</label>
+                   <input type="date" value={editPeriodEnd} onChange={e => setEditPeriodEnd(e.target.value)}
+                     className="w-full h-10 rounded-md px-3 text-sm bg-gray-50 border border-gray-300 text-gray-900" />
+                 </div>
+               </div>
+             </div>
+             <DialogFooter>
+               <Button variant="ghost" onClick={() => setEditSub(null)} className="text-gray-500">إلغاء</Button>
+               <Button onClick={saveEdit} className="bg-amber-500 hover:bg-amber-600 text-black">حفظ</Button>
+             </DialogFooter>
           </DialogContent>
         </Dialog>
       )}
