@@ -8,6 +8,7 @@ import PortalSalesTab from './PortalSalesTab';
 import PortalLiquidityTab from './PortalLiquidityTab';
 import PortalEmployeeRequestsTab from './PortalEmployeeRequestsTab';
 import PortalSupplierBalancesTab from './PortalSupplierBalancesTab';
+import PortalAttendanceTab from './PortalAttendanceTab';
 import { supabase } from '@/integrations/supabase/client';
 
 const PRIMARY = '#1B3A5C';
