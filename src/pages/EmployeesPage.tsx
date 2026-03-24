@@ -54,6 +54,8 @@ interface Employee {
   hourly_rate: number;
   work_days_per_week: number;
   work_hours_per_day: number;
+  shift_start?: string;
+  shift_end?: string;
   annual_leave_days: number;
   sick_leave_days: number;
   bank_name: string;
