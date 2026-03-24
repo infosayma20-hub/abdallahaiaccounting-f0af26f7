@@ -6,6 +6,7 @@ import {
   BookOpen, User, Building2, Users, X, UserPlus
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import VoucherNavToolbar from "@/components/VoucherNavToolbar";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent } from "@/components/ui/card";
@@ -361,6 +362,23 @@ const JournalNewPage = () => {
           <p className="text-xs text-muted-foreground">تسجيل قيد محاسبي يدوي</p>
         </div>
       </div>
+
+      {/* Navigation Toolbar */}
+      <VoucherNavToolbar
+        voucherType="journal"
+        currentRef={formRefNumber}
+        onPrint={handlePrint}
+        onNew={() => {
+          setSaved(false);
+          setFormDescription("");
+          setFormNotes("");
+          setFormContactId("");
+          setLines([
+            { id: "1", account_code: "", account_name: "", debit: 0, credit: 0, contact_id: "", contact_name: "" },
+            { id: "2", account_code: "", account_name: "", debit: 0, credit: 0, contact_id: "", contact_name: "" },
+          ]);
+        }}
+      />
 
       {/* Subtype Tabs */}
       <Card>
