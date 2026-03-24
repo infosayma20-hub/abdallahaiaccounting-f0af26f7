@@ -673,7 +673,7 @@ export default function EmployeeFormsTab({ employeeId, userId, isManager, isHrMa
             );
           })}
         </div>
-      </div>
+      </div>}
 
 
       {/* Form Dialog */}
