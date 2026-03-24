@@ -12,8 +12,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { multiWordMatchAny } from "@/lib/utils";
 
 interface VoucherNavToolbarProps {
-  /** "receipt" | "payment" | "journal" */
-  voucherType: "receipt" | "payment" | "journal";
+  /** "receipt" | "payment" | "journal" | "invoice" */
+  voucherType: "receipt" | "payment" | "journal" | "invoice";
   /** Current voucher ref number (for display) */
   currentRef?: string;
   /** Called when user clicks "جديد" */
