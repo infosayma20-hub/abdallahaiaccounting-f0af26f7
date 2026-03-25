@@ -4,9 +4,11 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import {
-  Plus, Search, Hammer, Trash2, ArrowLeft,
+  Plus, Search, Hammer, Trash2, ArrowLeft, Edit, MoreVertical,
   DollarSign, ChevronDown, UserPlus, Image, AlertTriangle, Receipt,
 } from "lucide-react";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -131,6 +133,10 @@ export default function WorkshopsPage() {
   const [payments, setPayments] = useState<WorkshopPayment[]>([]);
   const [loadingCosts, setLoadingCosts] = useState(false);
   const [showNewWorkshop, setShowNewWorkshop] = useState(false);
+  const [showEditWorkshop, setShowEditWorkshop] = useState(false);
+  const [editingWorkshop, setEditingWorkshop] = useState<Workshop | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deletingWorkshop, setDeletingWorkshop] = useState<Workshop | null>(null);
   const [showNewCost, setShowNewCost] = useState(false);
   const [showInvoiceDialog, setShowInvoiceDialog] = useState(false);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
@@ -383,6 +389,67 @@ export default function WorkshopsPage() {
     if (selectedWorkshop?.id === ws.id) setSelectedWorkshop({ ...ws, ...updates });
   };
 
+  /* ── Open Edit Workshop ── */
+  const openEditWorkshop = (ws: Workshop) => {
+    setEditingWorkshop(ws);
+    setWsForm({
+      name: ws.name, customer_name: ws.customer_name || "", customer_phone: ws.customer_phone || "",
+      address: ws.address || "", description: ws.description || "",
+      total_budget: ws.total_budget || 0, start_date: ws.start_date || format(new Date(), "yyyy-MM-dd"),
+      expected_end_date: ws.expected_end_date || "",
+      contact_id: ws.contact_id || null,
+      area_sqm: ws.area_sqm || 0, workshop_type: ws.workshop_type || "kitchen",
+      image_url: ws.image_url || "",
+    });
+    setShowEditWorkshop(true);
+  };
+
+  /* ── Save Edit Workshop ── */
+  const handleEditWorkshop = async () => {
+    if (!editingWorkshop || !wsForm.name.trim()) { toast.error("اسم الورشة مطلوب"); return; }
+    const { error } = await supabase.from("workshops").update({
+      name: wsForm.name, customer_name: wsForm.customer_name || null,
+      customer_phone: wsForm.customer_phone || null, address: wsForm.address || null,
+      description: wsForm.description || null, total_budget: wsForm.total_budget || 0,
+      start_date: wsForm.start_date || null, expected_end_date: wsForm.expected_end_date || null,
+      contact_id: wsForm.contact_id || null, area_sqm: wsForm.area_sqm || null,
+      workshop_type: wsForm.workshop_type || "kitchen", image_url: wsForm.image_url || null,
+      updated_at: new Date().toISOString(),
+    } as any).eq("id", editingWorkshop.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("تم تعديل الورشة بنجاح");
+    setShowEditWorkshop(false);
+    setEditingWorkshop(null);
+    setWsForm(defaultWsForm());
+    loadWorkshops();
+    if (selectedWorkshop?.id === editingWorkshop.id) {
+      setSelectedWorkshop({ ...editingWorkshop, ...wsForm, area_sqm: wsForm.area_sqm || null, contact_id: wsForm.contact_id || null, image_url: wsForm.image_url || null } as any);
+    }
+  };
+
+  /* ── Delete Workshop + related costs/payments/transactions ── */
+  const handleDeleteWorkshop = async (ws: Workshop) => {
+    // Soft-delete linked transactions
+    const { data: costData } = await supabase.from("workshop_costs").select("linked_transaction_id").eq("workshop_id", ws.id);
+    const { data: payData } = await supabase.from("workshop_payments").select("linked_transaction_id").eq("workshop_id", ws.id);
+    const txIds = [
+      ...((costData as any) || []).map((c: any) => c.linked_transaction_id).filter(Boolean),
+      ...((payData as any) || []).map((p: any) => p.linked_transaction_id).filter(Boolean),
+    ];
+    if (txIds.length > 0) {
+      await supabase.from("transactions").update({ is_deleted: true } as any).in("id", txIds);
+    }
+    // Delete costs, payments, then workshop
+    await supabase.from("workshop_costs").delete().eq("workshop_id", ws.id);
+    await supabase.from("workshop_payments").delete().eq("workshop_id", ws.id);
+    await supabase.from("workshops").delete().eq("id", ws.id);
+    toast.success("تم حذف الورشة وجميع القيود المرتبطة بها");
+    setShowDeleteConfirm(false);
+    setDeletingWorkshop(null);
+    if (selectedWorkshop?.id === ws.id) setSelectedWorkshop(null);
+    loadWorkshops();
+  };
+
   const filteredWorkshops = useMemo(() => {
     return workshops.filter(ws => {
       if (statusFilter !== "all" && ws.status !== statusFilter) return false;
@@ -444,6 +511,19 @@ export default function WorkshopsPage() {
               </div>
             </div>
             <Badge variant={status.variant}>{status.label}</Badge>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8"><MoreVertical className="h-4 w-4" /></Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuItem onClick={() => openEditWorkshop(selectedWorkshop)}>
+                  <Edit className="h-3.5 w-3.5 ml-2" /> تعديل الورشة
+                </DropdownMenuItem>
+                <DropdownMenuItem className="text-destructive" onClick={() => { setDeletingWorkshop(selectedWorkshop); setShowDeleteConfirm(true); }}>
+                  <Trash2 className="h-3.5 w-3.5 ml-2" /> حذف الورشة
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
 
           {/* Area + Type info */}
@@ -890,11 +970,26 @@ export default function WorkshopsPage() {
                   onClick={() => openWorkshop(ws)}
                   className="rounded-2xl bg-card border border-border p-4 cursor-pointer hover:shadow-md hover:border-primary/30 transition-all space-y-3">
                   <div className="flex items-start justify-between">
-                    <div>
+                    <div className="flex-1 min-w-0" onClick={() => openWorkshop(ws)}>
                       <h3 className="font-bold text-foreground">{ws.name}</h3>
                       <p className="text-xs text-muted-foreground">{ws.customer_name || "بدون زبون"}</p>
                     </div>
-                    <Badge variant={status.variant} className="text-[10px]">{status.label}</Badge>
+                    <div className="flex items-center gap-1">
+                      <Badge variant={status.variant} className="text-[10px]">{status.label}</Badge>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild onClick={e => e.stopPropagation()}>
+                          <Button variant="ghost" size="icon" className="h-7 w-7"><MoreVertical className="h-3.5 w-3.5" /></Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start">
+                          <DropdownMenuItem onClick={e => { e.stopPropagation(); openEditWorkshop(ws); }}>
+                            <Edit className="h-3.5 w-3.5 ml-2" /> تعديل
+                          </DropdownMenuItem>
+                          <DropdownMenuItem className="text-destructive" onClick={e => { e.stopPropagation(); setDeletingWorkshop(ws); setShowDeleteConfirm(true); }}>
+                            <Trash2 className="h-3.5 w-3.5 ml-2" /> حذف
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                   </div>
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-muted-foreground">الميزانية: <strong className="text-foreground">{ws.total_budget?.toLocaleString()} ₪</strong></span>
@@ -1032,6 +1127,93 @@ export default function WorkshopsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* ── Edit Workshop Dialog ── */}
+      <Dialog open={showEditWorkshop} onOpenChange={v => { if (!v) { setShowEditWorkshop(false); setEditingWorkshop(null); setWsForm(defaultWsForm()); } }}>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto" dir="rtl">
+          <DialogHeader>
+            <DialogTitle>تعديل الورشة</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="space-y-1">
+              <Label>اسم الورشة *</Label>
+              <Input value={wsForm.name} onChange={e => setWsForm(f => ({ ...f, name: e.target.value }))} />
+            </div>
+            <div className="space-y-1">
+              <Label>نوع الورشة</Label>
+              <div className="grid grid-cols-3 gap-2">
+                {WORKSHOP_TYPES.map(wt => (
+                  <button key={wt.value} onClick={() => setWsForm(f => ({ ...f, workshop_type: wt.value }))}
+                    className={`p-2 rounded-xl border text-center transition-all ${
+                      wsForm.workshop_type === wt.value ? "border-primary bg-primary/10 ring-2 ring-primary/30" : "border-border hover:bg-accent/5"
+                    }`}>
+                    <span className="text-xl block">{wt.icon}</span>
+                    <span className="text-[10px] font-medium text-foreground">{wt.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label>اسم الزبون</Label>
+                <Input value={wsForm.customer_name} onChange={e => setWsForm(f => ({ ...f, customer_name: e.target.value }))} />
+              </div>
+              <div className="space-y-1">
+                <Label>رقم الهاتف</Label>
+                <Input value={wsForm.customer_phone} onChange={e => setWsForm(f => ({ ...f, customer_phone: e.target.value }))} dir="ltr" />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label>العنوان</Label>
+              <Input value={wsForm.address} onChange={e => setWsForm(f => ({ ...f, address: e.target.value }))} />
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="space-y-1">
+                <Label>الميزانية (₪)</Label>
+                <Input type="number" value={wsForm.total_budget || ""} onChange={e => setWsForm(f => ({ ...f, total_budget: Number(e.target.value) }))} />
+              </div>
+              <div className="space-y-1">
+                <Label>المساحة (م²)</Label>
+                <Input type="number" value={wsForm.area_sqm || ""} onChange={e => setWsForm(f => ({ ...f, area_sqm: Number(e.target.value) }))} />
+              </div>
+              <div className="space-y-1">
+                <Label>تاريخ البدء</Label>
+                <Input type="date" value={wsForm.start_date} onChange={e => setWsForm(f => ({ ...f, start_date: e.target.value }))} />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label>رابط صورة الورشة</Label>
+              <Input value={wsForm.image_url} onChange={e => setWsForm(f => ({ ...f, image_url: e.target.value }))} placeholder="https://..." dir="ltr" />
+            </div>
+            <div className="space-y-1">
+              <Label>وصف / ملاحظات</Label>
+              <Textarea value={wsForm.description} onChange={e => setWsForm(f => ({ ...f, description: e.target.value }))} rows={2} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => { setShowEditWorkshop(false); setEditingWorkshop(null); setWsForm(defaultWsForm()); }}>إلغاء</Button>
+            <Button onClick={handleEditWorkshop}>حفظ التعديلات</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Delete Confirmation ── */}
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent dir="rtl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>حذف الورشة "{deletingWorkshop?.name}"؟</AlertDialogTitle>
+            <AlertDialogDescription>
+              سيتم حذف الورشة وجميع التكاليف والدفعات والقيود المحاسبية المرتبطة بها. هذا الإجراء لا يمكن التراجع عنه.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex gap-2">
+            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+            <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => deletingWorkshop && handleDeleteWorkshop(deletingWorkshop)}>
+              حذف نهائي
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
