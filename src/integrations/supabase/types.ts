@@ -7405,6 +7405,7 @@ export type Database = {
           can_add_inventory: boolean
           can_affect_inventory_on_purchase: boolean
           can_apply_discount: boolean
+          can_cancel_invoices: boolean
           can_close_register: boolean
           can_create_expense_category: boolean
           can_create_product: boolean
@@ -7450,6 +7451,7 @@ export type Database = {
           can_add_inventory?: boolean
           can_affect_inventory_on_purchase?: boolean
           can_apply_discount?: boolean
+          can_cancel_invoices?: boolean
           can_close_register?: boolean
           can_create_expense_category?: boolean
           can_create_product?: boolean
@@ -7495,6 +7497,7 @@ export type Database = {
           can_add_inventory?: boolean
           can_affect_inventory_on_purchase?: boolean
           can_apply_discount?: boolean
+          can_cancel_invoices?: boolean
           can_close_register?: boolean
           can_create_expense_category?: boolean
           can_create_product?: boolean
