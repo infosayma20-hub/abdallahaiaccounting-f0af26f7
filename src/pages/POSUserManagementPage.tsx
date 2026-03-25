@@ -73,6 +73,7 @@ interface Permission {
   // Group 3 - Invoices
   can_view_invoice_history: boolean;
   can_edit_invoices: boolean;
+  can_cancel_invoices: boolean;
   require_manager_for_invoices: boolean;
   print_invoices: boolean;
   resend_invoice: boolean;
@@ -114,6 +115,7 @@ const DEFAULT_PERMS: Permission = {
   can_remove_cart_items: true,
   can_view_invoice_history: true,
   can_edit_invoices: true,
+  can_cancel_invoices: true,
   require_manager_for_invoices: true,
   print_invoices: true,
   resend_invoice: false,
@@ -250,6 +252,7 @@ export default function POSUserManagementPage() {
       open_cash_drawer: (perms as any).open_cash_drawer ?? false,
       can_view_invoice_history: perms.can_view_invoice_history ?? true,
       can_edit_invoices: perms.can_edit_invoices ?? false,
+      can_cancel_invoices: (perms as any).can_cancel_invoices ?? true,
       require_manager_for_invoices: perms.require_manager_for_invoices ?? true,
       print_invoices: (perms as any).print_invoices ?? false,
       resend_invoice: (perms as any).resend_invoice ?? false,
@@ -544,8 +547,9 @@ export default function POSUserManagementPage() {
       icon: <FileText className="w-4 h-4" />,
       items: [
         { key: "can_view_invoice_history", label: "رؤية سجل الفواتير", icon: <FileText className="w-4 h-4" /> },
-        { key: "can_edit_invoices", label: "تعديل وإلغاء الفواتير", icon: <FilePen className="w-4 h-4" />, dependsOn: "can_view_invoice_history", dependsLabel: "رؤية سجل الفواتير" },
-        { key: "require_manager_for_invoices", label: "تعديل الفواتير بموافقة مدير", icon: <UserCheck className="w-4 h-4" />, dependsOn: "can_edit_invoices", dependsLabel: "تعديل وإلغاء الفواتير" },
+        { key: "can_edit_invoices", label: "تعديل الفواتير (استدعاء)", icon: <FilePen className="w-4 h-4" />, dependsOn: "can_view_invoice_history", dependsLabel: "رؤية سجل الفواتير" },
+        { key: "can_cancel_invoices", label: "إلغاء الفواتير", icon: <Ban className="w-4 h-4" />, dependsOn: "can_view_invoice_history", dependsLabel: "رؤية سجل الفواتير" },
+        { key: "require_manager_for_invoices", label: "تعديل الفواتير بموافقة مدير", icon: <UserCheck className="w-4 h-4" />, dependsOn: "can_edit_invoices", dependsLabel: "تعديل الفواتير" },
         { key: "print_invoices", label: "طباعة الفواتير", icon: <Printer className="w-4 h-4" /> },
         { key: "resend_invoice", label: "إعادة إرسال الفاتورة", icon: <Send className="w-4 h-4" /> },
       ],

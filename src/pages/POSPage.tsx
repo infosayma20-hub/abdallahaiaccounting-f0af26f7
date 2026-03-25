@@ -514,6 +514,7 @@ const POSPage = () => {
      can_remove_cart_items: boolean;
      can_view_invoice_history: boolean;
      can_edit_invoices: boolean;
+     can_cancel_invoices: boolean;
      require_manager_for_invoices: boolean;
      print_invoices: boolean;
      resend_invoice: boolean;
@@ -540,7 +541,7 @@ const POSPage = () => {
      can_open_register: true, can_close_register: true, can_view_shift_details: true, can_view_profits: false,
       can_apply_discount: true, max_discount_percent: 100, can_edit_prices: true, can_void_sales: true,
       can_refund: true, allow_credit_sale: true, open_cash_drawer: false, can_remove_cart_items: true,
-      can_view_invoice_history: true, can_edit_invoices: true, require_manager_for_invoices: true,
+      can_view_invoice_history: true, can_edit_invoices: true, can_cancel_invoices: true, require_manager_for_invoices: true,
       print_invoices: true, resend_invoice: false,
       manage_products_categories: false, edit_products: false, delete_products: false, view_inventory: false,
       add_customer: true, view_customers: false, edit_customers: false,
@@ -693,9 +694,10 @@ const POSPage = () => {
           allow_credit_sale: p.allow_credit_sale ?? false,
           open_cash_drawer: p.open_cash_drawer ?? false,
           can_remove_cart_items: p.can_remove_cart_items ?? true,
-          can_view_invoice_history: p.can_view_invoice_history ?? true,
-          can_edit_invoices: p.can_edit_invoices ?? false,
-          require_manager_for_invoices: p.require_manager_for_invoices ?? true,
+           can_view_invoice_history: p.can_view_invoice_history ?? true,
+           can_edit_invoices: p.can_edit_invoices ?? false,
+           can_cancel_invoices: (p as any).can_cancel_invoices ?? true,
+           require_manager_for_invoices: p.require_manager_for_invoices ?? true,
           print_invoices: p.print_invoices ?? true,
           resend_invoice: p.resend_invoice ?? false,
           manage_products_categories: p.manage_products_categories ?? false,
@@ -5478,6 +5480,7 @@ const POSPage = () => {
             cashierName={session?.cashier_name || ""}
             terminalName={terminal?.name || ""}
             canEditInvoices={isAdmin || posPerms.can_edit_invoices || posPerms.edit_cancel_invoices}
+            canCancelInvoices={isAdmin || posPerms.can_cancel_invoices || posPerms.edit_cancel_invoices}
             requireManagerForInvoices={!isAdmin && posPerms.require_manager_for_invoices}
             allowOrderTransfer={posAllowOrderTransfer}
             printInvoices={isAdmin || posPerms.print_invoices}
