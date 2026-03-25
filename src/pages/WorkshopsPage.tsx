@@ -77,6 +77,15 @@ const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondar
 
 const getCostType = (v: string) => COST_TYPES.find(c => c.value === v) || COST_TYPES[COST_TYPES.length - 1];
 
+const WORKSHOP_TYPES = [
+  { value: "kitchen", label: "مطبخ", icon: "🍳" },
+  { value: "bedroom", label: "غرفة نوم", icon: "🛏️" },
+  { value: "livingroom", label: "صالون", icon: "🛋️" },
+  { value: "closet", label: "خزائن", icon: "🗄️" },
+  { value: "door", label: "أبواب", icon: "🚪" },
+  { value: "other", label: "أخرى", icon: "📦" },
+];
+
 /* ── Ensure workshop GL accounts exist ── */
 async function ensureWorkshopAccounts(userId: string) {
   const codes = ["5350", "5351", "5352", "5353", "5354", "5359"];
