@@ -580,7 +580,7 @@ const POSPage = () => {
     (async () => {
       const { data } = await supabase
         .from("restaurant_tables")
-        .select("id, name, seats, status, section:floor_plan_sections(name)")
+        .select("id, name, seats, status")
         .eq("user_id", dataOwnerId)
         .eq("is_active", true)
         .order("name");
