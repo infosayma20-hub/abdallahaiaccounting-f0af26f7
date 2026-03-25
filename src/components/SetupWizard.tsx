@@ -11,7 +11,7 @@ interface SetupWizardProps {
   onComplete: () => void;
 }
 
-type BusinessType = "تجارة" | "خدمات" | "مطعم" | "متجر إلكتروني" | "مقاولات" | "عيادة" | "تعليم" | "أخرى";
+type BusinessType = "تجارة" | "خدمات" | "مطعم" | "متجر إلكتروني" | "مقاولات" | "ورش ومناجر" | "عيادة" | "تعليم" | "سياحة" | "أخرى";
 
 interface SetupData {
   companyName: string;
@@ -46,7 +46,9 @@ const BUSINESS_TYPES: { value: BusinessType; label: string; sublabel: string; em
   { value: "خدمات", label: "خدمات", sublabel: "مهنية", emoji: "🛠️", modules: "المبيعات + الفواتير + التقارير" },
   { value: "مطعم", label: "مطعم / كافيه", sublabel: "", emoji: "🍽️", modules: "المبيعات + المخزون + نقطة البيع + الطاولات" },
   { value: "مقاولات", label: "مقاولات", sublabel: "وإنشاء", emoji: "🏗️", modules: "المبيعات + المشتريات + محاسب المشاريع" },
+  { value: "ورش ومناجر", label: "ورش /", sublabel: "مناجر", emoji: "🪵", modules: "المالية + الورشات + تتبع التكاليف" },
   { value: "متجر إلكتروني", label: "متجر", sublabel: "إلكتروني", emoji: "🛒", modules: "المبيعات + المخزون + المتاجر" },
+  { value: "سياحة", label: "سياحة /", sublabel: "سفر", emoji: "✈️", modules: "الحجوزات + الموردون + الأرباح" },
   { value: "عيادة", label: "عيادة /", sublabel: "صيدلية", emoji: "🏥", modules: "المبيعات + الفواتير + التقارير" },
   { value: "تعليم", label: "تعليم /", sublabel: "تدريب", emoji: "📚", modules: "المبيعات + الفواتير + التقارير" },
   { value: "أخرى", label: "نشاط", sublabel: "آخر", emoji: "⚙️", modules: "جميع الوحدات مفعّلة" },

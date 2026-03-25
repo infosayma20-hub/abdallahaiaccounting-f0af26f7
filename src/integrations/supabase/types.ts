@@ -10542,6 +10542,116 @@ export type Database = {
         }
         Relationships: []
       }
+      workshop_costs: {
+        Row: {
+          amount: number
+          cost_date: string | null
+          cost_type: string
+          created_at: string | null
+          description: string | null
+          id: string
+          linked_transaction_id: string | null
+          notes: string | null
+          payment_method: string | null
+          receipt_image_url: string | null
+          supplier_name: string | null
+          user_id: string
+          workshop_id: string
+        }
+        Insert: {
+          amount?: number
+          cost_date?: string | null
+          cost_type: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          linked_transaction_id?: string | null
+          notes?: string | null
+          payment_method?: string | null
+          receipt_image_url?: string | null
+          supplier_name?: string | null
+          user_id: string
+          workshop_id: string
+        }
+        Update: {
+          amount?: number
+          cost_date?: string | null
+          cost_type?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          linked_transaction_id?: string | null
+          notes?: string | null
+          payment_method?: string | null
+          receipt_image_url?: string | null
+          supplier_name?: string | null
+          user_id?: string
+          workshop_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workshop_costs_workshop_id_fkey"
+            columns: ["workshop_id"]
+            isOneToOne: false
+            referencedRelation: "workshops"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workshops: {
+        Row: {
+          actual_end_date: string | null
+          address: string | null
+          created_at: string | null
+          customer_name: string | null
+          customer_phone: string | null
+          description: string | null
+          expected_end_date: string | null
+          id: string
+          name: string
+          notes: string | null
+          start_date: string | null
+          status: string
+          total_budget: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          actual_end_date?: string | null
+          address?: string | null
+          created_at?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          description?: string | null
+          expected_end_date?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          start_date?: string | null
+          status?: string
+          total_budget?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          actual_end_date?: string | null
+          address?: string | null
+          created_at?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          description?: string | null
+          expected_end_date?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          start_date?: string | null
+          status?: string
+          total_budget?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       branches_safe: {
