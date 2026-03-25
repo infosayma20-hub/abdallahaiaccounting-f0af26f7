@@ -360,6 +360,7 @@ export default function WorkshopReportsPage() {
       <Tabs defaultValue="profitability" className="space-y-3">
         <TabsList className="w-full justify-start overflow-x-auto">
           <TabsTrigger value="profitability" className="text-xs">ربحية الورشات</TabsTrigger>
+          <TabsTrigger value="sqm" className="text-xs">تكلفة المتر</TabsTrigger>
           <TabsTrigger value="costs" className="text-xs">توزيع التكاليف</TabsTrigger>
           <TabsTrigger value="suppliers" className="text-xs">مشتريات الموردين</TabsTrigger>
           <TabsTrigger value="trend" className="text-xs">الاتجاه الشهري</TabsTrigger>
