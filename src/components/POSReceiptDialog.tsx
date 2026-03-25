@@ -30,6 +30,7 @@ interface ReceiptData {
   orderNumber: string;
   displayNumber?: string;
   queueNumber?: number;
+  logoUrl?: string;
   date: string;
   cashierName: string;
   companyName: string;
@@ -234,6 +235,9 @@ export default function POSReceiptDialog({ open, onOpenChange, data, showReturnP
               
               {/* ═══ LOGO ═══ */}
               <div style={{ textAlign: "center", paddingBottom: "2px" }}>
+                {data.logoUrl && (
+                  <img src={data.logoUrl} alt={data.companyName} style={{ maxWidth: "120px", maxHeight: "60px", margin: "0 auto 4px", display: "block", filter: "grayscale(100%) contrast(1.2)" }} />
+                )}
                 <div style={{ fontSize: "28px", fontWeight: 900, color: "#000", letterSpacing: "1px", lineHeight: 1.2, fontFamily: "'Arial', 'Tahoma', sans-serif" }}>
                   مطعم الملكي
                 </div>
@@ -441,8 +445,8 @@ export default function POSReceiptDialog({ open, onOpenChange, data, showReturnP
               {/* ═══ FOOTER ═══ */}
               <hr style={{ border: "none", borderTop: "1px solid #333", margin: "8px 0" }} />
               <div style={{ textAlign: "center" }}>
-                <div style={{ fontSize: "13px", fontWeight: 800, color: "#000", marginBottom: "2px" }}>شكراً لتعاملكم معنا 🙏</div>
-                <div style={{ fontSize: "11px", color: "#333", fontWeight: 600 }}>Thank you for your purchase</div>
+                <div style={{ fontSize: "13px", fontWeight: 800, color: "#000", marginBottom: "2px" }}>شكراً لتعاملكم معنا ❤️</div>
+                <div style={{ fontSize: "11px", color: "#333", fontWeight: 600 }}>Thank you for your visit</div>
                 {showReturnPolicy && (
                   <>
                     <div style={{ fontSize: "10px", color: "#333", fontWeight: 600, marginTop: "4px" }}>

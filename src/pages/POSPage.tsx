@@ -189,6 +189,7 @@ interface Session {
 interface Company {
   id: string;
   name: string;
+  logo_url?: string;
 }
 
 interface Terminal {
@@ -847,7 +848,7 @@ const POSPage = () => {
           .single();
         comp = newComp;
       }
-      setCompany(comp ? { id: comp.id, name: comp.name } : null);
+      setCompany(comp ? { id: comp.id, name: comp.name, logo_url: comp.logo_url } : null);
 
       if (comp) {
         let { data: terminals } = await supabase
@@ -877,9 +878,14 @@ const POSPage = () => {
         // Load POS settings needed at startup (receipt policy + default opening cash)
         const { data: posSettings } = await supabase
           .from("company_settings" as any)
-          .select("pos_show_return_policy, pos_return_policy_days, pos_default_opening_balance, pos_allow_order_transfer, pos_require_cash_box, pos_auto_print")
+          .select("pos_show_return_policy, pos_return_policy_days, pos_default_opening_balance, pos_allow_order_transfer, pos_require_cash_box, pos_auto_print, logo_url")
           .eq("user_id", dataOwnerId)
           .maybeSingle();
+
+        // If company doesn't have logo from pos_companies, try company_settings
+        if (!company?.logo_url && (posSettings as any)?.logo_url) {
+          setCompany(prev => prev ? { ...prev, logo_url: (posSettings as any).logo_url } : prev);
+        }
 
         if (posSettings) {
           setPosReturnPolicy({
@@ -2469,6 +2475,7 @@ const POSPage = () => {
         date: new Date().toISOString(),
         cashierName: session.cashier_name,
         companyName: company?.name || "شركتي",
+        logoUrl: company?.logo_url || "",
         terminalName: terminal?.name || "نقطة بيع",
         customerName: customerName,
         customerPhone: activeOrder.customerPhone || "",
@@ -2899,6 +2906,7 @@ const POSPage = () => {
     // Prepare shift summary data
     setShiftSummaryData({
       companyName: company?.name || "شركتي",
+      logoUrl: company?.logo_url || "",
       terminalName: terminal?.name || "نقطة بيع",
       cashierName: session.cashier_name,
       cashBoxName,
