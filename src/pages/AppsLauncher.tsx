@@ -141,6 +141,7 @@ const AppsLauncher = () => {
       has_contractor: settings.business_type === "مقاولات",
       has_ecommerce: settings.business_type === "متجر إلكتروني",
       has_travel: settings.business_type === "سياحة",
+      has_workshops: ["ورش ومناجر", "مقاولات"].includes(settings.business_type || ""),
       has_tasks: false,
     };
     return s;
