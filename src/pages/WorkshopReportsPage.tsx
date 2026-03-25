@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { format, subMonths, startOfMonth, endOfMonth } from "date-fns";
+import { format, startOfDay, startOfWeek, startOfMonth } from "date-fns";
 import {
   Hammer, TrendingUp, DollarSign, BarChart3,
   FileSpreadsheet, Download, Filter, Calendar,
@@ -42,15 +42,46 @@ export default function WorkshopReportsPage() {
   const [loading, setLoading] = useState(true);
 
   // Filters
-  const [dateFrom, setDateFrom] = useState(() => format(startOfMonth(subMonths(new Date(), 6)), "yyyy-MM-dd"));
-  const [dateTo, setDateTo] = useState(() => format(endOfMonth(new Date()), "yyyy-MM-dd"));
+  type DatePreset = "today" | "week" | "month" | "custom";
+  const [datePreset, setDatePreset] = useState<DatePreset>("custom");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState(() => format(new Date(), "yyyy-MM-dd"));
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
 
+  // Set default dateFrom to user creation date
   useEffect(() => {
     if (!user) return;
+    const createdAt = (user as any).created_at;
+    if (createdAt) {
+      setDateFrom(format(new Date(createdAt), "yyyy-MM-dd"));
+    } else {
+      setDateFrom("2024-01-01");
+    }
     loadData();
   }, [user]);
+
+  // Handle date presets
+  const applyPreset = (preset: DatePreset) => {
+    setDatePreset(preset);
+    const today = new Date();
+    switch (preset) {
+      case "today":
+        setDateFrom(format(startOfDay(today), "yyyy-MM-dd"));
+        setDateTo(format(today, "yyyy-MM-dd"));
+        break;
+      case "week":
+        setDateFrom(format(startOfWeek(today, { weekStartsOn: 0 }), "yyyy-MM-dd"));
+        setDateTo(format(today, "yyyy-MM-dd"));
+        break;
+      case "month":
+        setDateFrom(format(startOfMonth(today), "yyyy-MM-dd"));
+        setDateTo(format(today, "yyyy-MM-dd"));
+        break;
+      case "custom":
+        break;
+    }
+  };
 
   const loadData = async () => {
     setLoading(true);
@@ -216,11 +247,24 @@ export default function WorkshopReportsPage() {
         <CardContent className="p-3">
           <div className="flex items-center gap-2 flex-wrap">
             <Filter className="h-4 w-4 text-muted-foreground shrink-0" />
-            <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
+            <Input type="date" value={dateFrom} onChange={e => { setDateFrom(e.target.value); setDatePreset("custom"); }}
               className="h-8 text-xs w-[130px]" />
             <span className="text-xs text-muted-foreground">إلى</span>
-            <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
+            <Input type="date" value={dateTo} onChange={e => { setDateTo(e.target.value); setDatePreset("custom"); }}
               className="h-8 text-xs w-[130px]" />
+            <div className="flex gap-1">
+              {([
+                { v: "today" as DatePreset, l: "اليوم" },
+                { v: "week" as DatePreset, l: "الأسبوع" },
+                { v: "month" as DatePreset, l: "الشهر" },
+              ]).map(p => (
+                <Button key={p.v} variant={datePreset === p.v ? "default" : "outline"} size="sm"
+                  className="h-7 text-[10px] px-2" onClick={() => applyPreset(p.v)}>
+                  {p.l}
+                </Button>
+              ))}
+            </div>
+            <div className="w-px h-5 bg-border" />
             <div className="flex gap-1">
               {[
                 { v: "all", l: "الكل" },
