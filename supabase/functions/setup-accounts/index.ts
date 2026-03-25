@@ -90,6 +90,15 @@ const DEFAULT_ACCOUNTS: { code: string; name: string; type: string; parent: stri
   // ═══════════ المصروفات التشغيلية (53xx-59xx) ═══════════
   { code: "5150", name: "رواتب وأجور", type: "مصاريف", parent: null },
   { code: "5300", name: "مصروف إيجار", type: "مصاريف", parent: null },
+
+  // ═══════════ تكاليف الورشات (535x) ═══════════
+  { code: "5350", name: "تكاليف الورشات", type: "مصاريف", parent: null },
+  { code: "5351", name: "مواد خام (خشب)", type: "مصاريف", parent: "5350" },
+  { code: "5352", name: "دهان ومواد تشطيب", type: "مصاريف", parent: "5350" },
+  { code: "5353", name: "أجور عمال الورشات", type: "مصاريف", parent: "5350" },
+  { code: "5354", name: "نقل وتوصيل ورشات", type: "مصاريف", parent: "5350" },
+  { code: "5359", name: "تكاليف ورشات أخرى", type: "مصاريف", parent: "5350" },
+
   { code: "5400", name: "مصروف كهرباء", type: "مصاريف", parent: "5500" },
   { code: "5410", name: "مصروف غاز", type: "مصاريف", parent: "5500" },
   { code: "5500", name: "مصروفات إدارية وعمومية", type: "مصاريف", parent: null },
@@ -107,6 +116,12 @@ const DEFAULT_ACCOUNTS: { code: string; name: string; type: string; parent: stri
   { code: "5800", name: "خسائر بيع أصول", type: "مصاريف", parent: null },
   { code: "5810", name: "مصروف نقل وشحن", type: "مصاريف", parent: "5800" },
   { code: "5900", name: "مصروفات أخرى", type: "مصاريف", parent: null },
+  { code: "5910", name: "خصومات ممنوحة", type: "مصاريف", parent: "5900" },
+  { code: "5920", name: "مصاريف بنكية", type: "مصاريف", parent: "5900" },
+  { code: "5930", name: "فروقات عملة", type: "مصاريف", parent: "5900" },
+  { code: "5940", name: "ضريبة الدخل", type: "مصاريف", parent: "5900" },
+  { code: "5950", name: "غرامات وجزاءات", type: "مصاريف", parent: "5900" },
+  { code: "5960", name: "ديون معدومة", type: "مصاريف", parent: "5900" },
   { code: "5910", name: "خصومات ممنوحة", type: "مصاريف", parent: "5900" },
   { code: "5920", name: "مصاريف بنكية", type: "مصاريف", parent: "5900" },
   { code: "5930", name: "فروقات عملة", type: "مصاريف", parent: "5900" },

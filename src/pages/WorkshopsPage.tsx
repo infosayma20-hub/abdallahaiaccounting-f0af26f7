@@ -1,51 +1,53 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { ar } from "date-fns/locale";
 import {
-  Plus, Search, Hammer, ChevronLeft, Trash2, Edit3, X, Save,
-  DollarSign, Package, Paintbrush, Users, Wrench, MoreHorizontal,
-  TrendingUp, Eye, ArrowLeft,
+  Plus, Search, Hammer, Trash2, ArrowLeft,
+  DollarSign, ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import BackButton from "@/components/BackButton";
 
+/* ── Types ── */
 type Workshop = {
-  id: string;
-  name: string;
-  customer_name: string | null;
-  customer_phone: string | null;
-  address: string | null;
-  description: string | null;
-  status: string;
-  total_budget: number;
-  start_date: string | null;
-  expected_end_date: string | null;
-  actual_end_date: string | null;
-  notes: string | null;
-  created_at: string;
+  id: string; name: string; customer_name: string | null; customer_phone: string | null;
+  address: string | null; description: string | null; status: string; total_budget: number;
+  start_date: string | null; expected_end_date: string | null; actual_end_date: string | null;
+  notes: string | null; created_at: string; contact_id: string | null;
+};
+type WorkshopCost = {
+  id: string; workshop_id: string; cost_type: string; description: string | null;
+  amount: number; cost_date: string; supplier_name: string | null; payment_method: string | null;
+  notes: string | null; created_at: string; linked_transaction_id: string | null;
+  supplier_contact_id: string | null;
+};
+type Contact = { id: string; contact_name: string; contact_type: string; current_balance: number };
+
+/* ── Cost type → GL account mapping ── */
+const COST_ACCOUNT_MAP: Record<string, { debit: string; label: string }> = {
+  wood:      { debit: "5351", label: "مواد خام (خشب)" },
+  paint:     { debit: "5352", label: "دهان ومواد تشطيب" },
+  crystal:   { debit: "5352", label: "دهان ومواد تشطيب" },
+  labor:     { debit: "5353", label: "أجور عمال الورشات" },
+  hardware:  { debit: "5351", label: "مواد خام" },
+  glass:     { debit: "5351", label: "مواد خام" },
+  marble:    { debit: "5351", label: "مواد خام" },
+  transport: { debit: "5354", label: "نقل وتوصيل ورشات" },
+  other:     { debit: "5359", label: "تكاليف ورشات أخرى" },
 };
 
-type WorkshopCost = {
-  id: string;
-  workshop_id: string;
-  cost_type: string;
-  description: string | null;
-  amount: number;
-  cost_date: string;
-  supplier_name: string | null;
-  payment_method: string | null;
-  notes: string | null;
-  created_at: string;
+const PAYMENT_CREDIT_MAP: Record<string, string> = {
+  "نقدي": "1110",
+  "بنك":  "1120",
+  "آجل":  "2110", // ذمم موردين
 };
 
 const COST_TYPES = [
@@ -69,34 +71,94 @@ const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondar
 
 const getCostType = (v: string) => COST_TYPES.find(c => c.value === v) || COST_TYPES[COST_TYPES.length - 1];
 
+/* ── Ensure workshop GL accounts exist ── */
+async function ensureWorkshopAccounts(userId: string) {
+  const codes = ["5350", "5351", "5352", "5353", "5354", "5359"];
+  const { data: existing } = await supabase
+    .from("accounts")
+    .select("account_code")
+    .in("account_code", codes);
+
+  const existingCodes = new Set((existing || []).map((a: any) => a.account_code));
+  const missing = [
+    { code: "5350", name: "تكاليف الورشات", type: "مصاريف", parent: null },
+    { code: "5351", name: "مواد خام (خشب)", type: "مصاريف", parent: "5350" },
+    { code: "5352", name: "دهان ومواد تشطيب", type: "مصاريف", parent: "5350" },
+    { code: "5353", name: "أجور عمال الورشات", type: "مصاريف", parent: "5350" },
+    { code: "5354", name: "نقل وتوصيل ورشات", type: "مصاريف", parent: "5350" },
+    { code: "5359", name: "تكاليف ورشات أخرى", type: "مصاريف", parent: "5350" },
+  ].filter(a => !existingCodes.has(a.code));
+
+  if (missing.length > 0) {
+    await supabase.from("accounts").insert(
+      missing.map(a => ({
+        user_id: userId,
+        account_code: a.code,
+        account_name: a.name,
+        account_type: a.type,
+        parent_code: a.parent,
+        is_system: true,
+        is_active: true,
+      }))
+    );
+  }
+}
+
+/* ══════════════════════════════════════════════════ */
 export default function WorkshopsPage() {
   const { user } = useAuth();
   const [workshops, setWorkshops] = useState<Workshop[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-
-  // Workshop detail view
   const [selectedWorkshop, setSelectedWorkshop] = useState<Workshop | null>(null);
   const [costs, setCosts] = useState<WorkshopCost[]>([]);
   const [loadingCosts, setLoadingCosts] = useState(false);
-
-  // Dialogs
   const [showNewWorkshop, setShowNewWorkshop] = useState(false);
   const [showNewCost, setShowNewCost] = useState(false);
-  const [editingWorkshop, setEditingWorkshop] = useState<Workshop | null>(null);
+  const [showInvoiceDialog, setShowInvoiceDialog] = useState(false);
 
-  // Form states
-  const [wsForm, setWsForm] = useState({ name: "", customer_name: "", customer_phone: "", address: "", description: "", total_budget: 0, start_date: format(new Date(), "yyyy-MM-dd"), expected_end_date: "" });
-  const [costForm, setCostForm] = useState({ cost_type: "wood", description: "", amount: 0, cost_date: format(new Date(), "yyyy-MM-dd"), supplier_name: "", payment_method: "نقدي", notes: "" });
+  // Contacts for search
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [contactSearch, setContactSearch] = useState("");
+  const [supplierSearch, setSupplierSearch] = useState("");
+  const [showContactPicker, setShowContactPicker] = useState(false);
+  const [showSupplierPicker, setShowSupplierPicker] = useState(false);
 
-  useEffect(() => { if (user) loadWorkshops(); }, [user]);
+  // Forms
+  const [wsForm, setWsForm] = useState({
+    name: "", customer_name: "", customer_phone: "", address: "", description: "",
+    total_budget: 0, start_date: format(new Date(), "yyyy-MM-dd"), expected_end_date: "",
+    contact_id: null as string | null,
+  });
+  const [costForm, setCostForm] = useState({
+    cost_type: "wood", description: "", amount: 0, cost_date: format(new Date(), "yyyy-MM-dd"),
+    supplier_name: "", payment_method: "نقدي", notes: "",
+    supplier_contact_id: null as string | null,
+  });
+  const [invoiceForm, setInvoiceForm] = useState({
+    amount: 0, payment_method: "آجل", description: "",
+  });
+
+  const [accountsEnsured, setAccountsEnsured] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    loadWorkshops();
+    loadContacts();
+    ensureWorkshopAccounts(user.id).then(() => setAccountsEnsured(true));
+  }, [user]);
 
   const loadWorkshops = async () => {
     setLoading(true);
     const { data } = await supabase.from("workshops").select("*").order("created_at", { ascending: false });
     setWorkshops((data as any) || []);
     setLoading(false);
+  };
+
+  const loadContacts = async () => {
+    const { data } = await supabase.from("contacts").select("id, contact_name, contact_type, current_balance").order("contact_name");
+    setContacts((data as any) || []);
   };
 
   const loadCosts = async (workshopId: string) => {
@@ -106,63 +168,145 @@ export default function WorkshopsPage() {
     setLoadingCosts(false);
   };
 
-  const openWorkshop = (ws: Workshop) => {
-    setSelectedWorkshop(ws);
-    loadCosts(ws.id);
-  };
+  const openWorkshop = (ws: Workshop) => { setSelectedWorkshop(ws); loadCosts(ws.id); };
 
+  /* ── Create Workshop ── */
   const handleCreateWorkshop = async () => {
     if (!wsForm.name.trim()) { toast.error("اسم الورشة مطلوب"); return; }
     const { error } = await supabase.from("workshops").insert({
-      user_id: user!.id,
-      name: wsForm.name,
+      user_id: user!.id, name: wsForm.name,
       customer_name: wsForm.customer_name || null,
       customer_phone: wsForm.customer_phone || null,
-      address: wsForm.address || null,
-      description: wsForm.description || null,
-      total_budget: wsForm.total_budget || 0,
-      start_date: wsForm.start_date || null,
+      address: wsForm.address || null, description: wsForm.description || null,
+      total_budget: wsForm.total_budget || 0, start_date: wsForm.start_date || null,
       expected_end_date: wsForm.expected_end_date || null,
+      contact_id: wsForm.contact_id || null,
     } as any);
     if (error) { toast.error(error.message); return; }
-    toast.success("تم إنشاء الورشة");
+    toast.success("تم إنشاء الورشة بنجاح");
     setShowNewWorkshop(false);
-    setWsForm({ name: "", customer_name: "", customer_phone: "", address: "", description: "", total_budget: 0, start_date: format(new Date(), "yyyy-MM-dd"), expected_end_date: "" });
+    setWsForm({ name: "", customer_name: "", customer_phone: "", address: "", description: "", total_budget: 0, start_date: format(new Date(), "yyyy-MM-dd"), expected_end_date: "", contact_id: null });
     loadWorkshops();
   };
 
+  /* ── Add Cost + Create Journal Entry ── */
   const handleAddCost = async () => {
     if (!selectedWorkshop || costForm.amount <= 0) { toast.error("المبلغ مطلوب"); return; }
-    const { error } = await supabase.from("workshop_costs").insert({
-      workshop_id: selectedWorkshop.id,
+
+    const costTypeInfo = COST_ACCOUNT_MAP[costForm.cost_type] || COST_ACCOUNT_MAP.other;
+    const creditCode = PAYMENT_CREDIT_MAP[costForm.payment_method] || "1110";
+    const idempotencyKey = `WS-COST-${selectedWorkshop.id}-${Date.now()}`;
+
+    // 1. Create journal entry (transaction)
+    const txDescription = `${costTypeInfo.label} - ورشة ${selectedWorkshop.name}${costForm.supplier_name ? ` (${costForm.supplier_name})` : ""}`;
+
+    const { data: txData, error: txError } = await supabase.from("transactions").insert({
       user_id: user!.id,
-      cost_type: costForm.cost_type,
-      description: costForm.description || null,
+      transaction_date: costForm.cost_date,
+      description: txDescription,
+      debit_account_code: costTypeInfo.debit,
+      credit_account_code: creditCode,
       amount: costForm.amount,
-      cost_date: costForm.cost_date,
-      supplier_name: costForm.supplier_name || null,
+      currency: "شيكل",
+      transaction_type: "workshop_cost",
+      contact_id: costForm.supplier_contact_id || null,
+      reference: `WS-${selectedWorkshop.name.substring(0, 20)}`,
       payment_method: costForm.payment_method,
-      notes: costForm.notes || null,
+      idempotency_key: idempotencyKey,
+    } as any).select("id").single();
+
+    if (txError) { toast.error("خطأ في إنشاء القيد المحاسبي: " + txError.message); return; }
+
+    // 2. Create workshop cost record linked to the transaction
+    const { error: costError } = await supabase.from("workshop_costs").insert({
+      workshop_id: selectedWorkshop.id, user_id: user!.id,
+      cost_type: costForm.cost_type, description: costForm.description || null,
+      amount: costForm.amount, cost_date: costForm.cost_date,
+      supplier_name: costForm.supplier_name || null,
+      payment_method: costForm.payment_method, notes: costForm.notes || null,
+      linked_transaction_id: txData?.id || null,
+      supplier_contact_id: costForm.supplier_contact_id || null,
     } as any);
-    if (error) { toast.error(error.message); return; }
-    toast.success("تم إضافة التكلفة");
+
+    if (costError) { toast.error(costError.message); return; }
+
+    // 3. If payment is on credit (آجل) and supplier has a contact, update balance
+    if (costForm.payment_method === "آجل" && costForm.supplier_contact_id) {
+      await supabase.from("contacts")
+        .update({ current_balance: (contacts.find(c => c.id === costForm.supplier_contact_id)?.current_balance || 0) + costForm.amount } as any)
+        .eq("id", costForm.supplier_contact_id);
+    }
+
+    toast.success(`✅ تم تسجيل التكلفة وإنشاء القيد المحاسبي (${costTypeInfo.debit} ← ${creditCode})`);
     setShowNewCost(false);
-    setCostForm({ cost_type: "wood", description: "", amount: 0, cost_date: format(new Date(), "yyyy-MM-dd"), supplier_name: "", payment_method: "نقدي", notes: "" });
+    setCostForm({ cost_type: "wood", description: "", amount: 0, cost_date: format(new Date(), "yyyy-MM-dd"), supplier_name: "", payment_method: "نقدي", notes: "", supplier_contact_id: null });
     loadCosts(selectedWorkshop.id);
+    loadContacts();
   };
 
-  const handleDeleteCost = async (costId: string) => {
-    const { error } = await supabase.from("workshop_costs").delete().eq("id", costId);
-    if (error) { toast.error(error.message); return; }
-    toast.success("تم حذف التكلفة");
+  /* ── Delete Cost + Soft-delete Transaction ── */
+  const handleDeleteCost = async (cost: WorkshopCost) => {
+    if (cost.linked_transaction_id) {
+      await supabase.from("transactions").update({ is_deleted: true } as any).eq("id", cost.linked_transaction_id);
+    }
+    await supabase.from("workshop_costs").delete().eq("id", cost.id);
+    toast.success("تم حذف التكلفة وإلغاء القيد المحاسبي");
     if (selectedWorkshop) loadCosts(selectedWorkshop.id);
+  };
+
+  /* ── Complete Workshop + Create Revenue Entry ── */
+  const handleInvoiceWorkshop = async () => {
+    if (!selectedWorkshop || invoiceForm.amount <= 0) { toast.error("المبلغ مطلوب"); return; }
+
+    const creditCode = "4200"; // إيرادات خدمات
+    const debitCode = PAYMENT_CREDIT_MAP[invoiceForm.payment_method] || "1130";
+    // For credit sales, debit receivables (1130)
+    const finalDebit = invoiceForm.payment_method === "آجل" ? "1130" : debitCode;
+    const idempotencyKey = `WS-REVENUE-${selectedWorkshop.id}`;
+
+    const { error: txError } = await supabase.from("transactions").insert({
+      user_id: user!.id,
+      transaction_date: format(new Date(), "yyyy-MM-dd"),
+      description: invoiceForm.description || `إيرادات ورشة ${selectedWorkshop.name} - ${selectedWorkshop.customer_name || ""}`,
+      debit_account_code: finalDebit,
+      credit_account_code: creditCode,
+      amount: invoiceForm.amount,
+      currency: "شيكل",
+      transaction_type: "workshop_revenue",
+      contact_id: selectedWorkshop.contact_id || null,
+      reference: `WS-REV-${selectedWorkshop.name.substring(0, 15)}`,
+      payment_method: invoiceForm.payment_method,
+      idempotency_key: idempotencyKey,
+    } as any);
+
+    if (txError) { toast.error(txError.message); return; }
+
+    // Update workshop status
+    await supabase.from("workshops").update({
+      status: "completed", actual_end_date: format(new Date(), "yyyy-MM-dd"), updated_at: new Date().toISOString(),
+    } as any).eq("id", selectedWorkshop.id);
+
+    // Update customer balance if on credit
+    if (invoiceForm.payment_method === "آجل" && selectedWorkshop.contact_id) {
+      const contact = contacts.find(c => c.id === selectedWorkshop.contact_id);
+      if (contact) {
+        await supabase.from("contacts")
+          .update({ current_balance: contact.current_balance + invoiceForm.amount } as any)
+          .eq("id", selectedWorkshop.contact_id);
+      }
+    }
+
+    toast.success("✅ تم إكمال الورشة وتسجيل الإيرادات");
+    setShowInvoiceDialog(false);
+    setSelectedWorkshop({ ...selectedWorkshop, status: "completed" });
+    loadWorkshops();
+    loadContacts();
   };
 
   const handleUpdateStatus = async (ws: Workshop, newStatus: string) => {
     const updates: any = { status: newStatus, updated_at: new Date().toISOString() };
     if (newStatus === "completed") updates.actual_end_date = format(new Date(), "yyyy-MM-dd");
-    const { error } = await supabase.from("workshops").update(updates).eq("id", ws.id);
-    if (error) { toast.error(error.message); return; }
+    await supabase.from("workshops").update(updates).eq("id", ws.id);
     toast.success("تم تحديث الحالة");
     loadWorkshops();
     if (selectedWorkshop?.id === ws.id) setSelectedWorkshop({ ...ws, ...updates });
@@ -179,20 +323,29 @@ export default function WorkshopsPage() {
     });
   }, [workshops, search, statusFilter]);
 
-  // Cost summaries
   const costSummary = useMemo(() => {
     const summary: Record<string, number> = {};
     let total = 0;
-    costs.forEach(c => {
-      summary[c.cost_type] = (summary[c.cost_type] || 0) + c.amount;
-      total += c.amount;
-    });
+    costs.forEach(c => { summary[c.cost_type] = (summary[c.cost_type] || 0) + c.amount; total += c.amount; });
     return { byType: summary, total };
   }, [costs]);
 
-  // ─── Workshop Detail View ───
+  const filteredCustomers = useMemo(() =>
+    contacts.filter(c => c.contact_type === "customer" && (!contactSearch || c.contact_name.toLowerCase().includes(contactSearch.toLowerCase())))
+  , [contacts, contactSearch]);
+
+  const filteredSuppliers = useMemo(() =>
+    contacts.filter(c => c.contact_type === "supplier" && (!supplierSearch || c.contact_name.toLowerCase().includes(supplierSearch.toLowerCase())))
+  , [contacts, supplierSearch]);
+
+  /* ════════════════════════════════════════════ */
+  /* ── Workshop Detail View ── */
+  /* ════════════════════════════════════════════ */
   if (selectedWorkshop) {
     const status = STATUS_MAP[selectedWorkshop.status] || STATUS_MAP.active;
+    const profit = selectedWorkshop.total_budget - costSummary.total;
+    const customerContact = contacts.find(c => c.id === selectedWorkshop.contact_id);
+
     return (
       <div className="min-h-full bg-background pb-24" dir="rtl">
         <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
@@ -203,47 +356,51 @@ export default function WorkshopsPage() {
             </Button>
             <div className="flex-1 min-w-0">
               <h1 className="text-xl font-bold text-foreground truncate">{selectedWorkshop.name}</h1>
-              <p className="text-sm text-muted-foreground">{selectedWorkshop.customer_name || "بدون زبون"}</p>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <span>{selectedWorkshop.customer_name || "بدون زبون"}</span>
+                {customerContact && (
+                  <Badge variant="outline" className="text-[9px]">
+                    رصيد: {customerContact.current_balance.toLocaleString()} ₪
+                  </Badge>
+                )}
+              </div>
             </div>
             <Badge variant={status.variant}>{status.label}</Badge>
           </div>
 
           {/* KPIs */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="rounded-xl bg-card border border-border p-4 text-center">
-              <p className="text-xs text-muted-foreground">الميزانية</p>
-              <p className="text-lg font-bold text-foreground">{selectedWorkshop.total_budget?.toLocaleString()} ₪</p>
-            </div>
-            <div className="rounded-xl bg-card border border-border p-4 text-center">
-              <p className="text-xs text-muted-foreground">إجمالي التكاليف</p>
-              <p className="text-lg font-bold text-destructive">{costSummary.total.toLocaleString()} ₪</p>
-            </div>
-            <div className="rounded-xl bg-card border border-border p-4 text-center">
-              <p className="text-xs text-muted-foreground">المتبقي</p>
-              <p className={`text-lg font-bold ${(selectedWorkshop.total_budget - costSummary.total) >= 0 ? "text-emerald-500" : "text-destructive"}`}>
-                {(selectedWorkshop.total_budget - costSummary.total).toLocaleString()} ₪
-              </p>
-            </div>
-            <div className="rounded-xl bg-card border border-border p-4 text-center">
-              <p className="text-xs text-muted-foreground">عدد البنود</p>
-              <p className="text-lg font-bold text-foreground">{costs.length}</p>
-            </div>
+            {[
+              { label: "الميزانية", value: `${selectedWorkshop.total_budget?.toLocaleString()} ₪`, cls: "text-foreground" },
+              { label: "إجمالي التكاليف", value: `${costSummary.total.toLocaleString()} ₪`, cls: "text-destructive" },
+              { label: "الربح/المتبقي", value: `${profit.toLocaleString()} ₪`, cls: profit >= 0 ? "text-emerald-500" : "text-destructive" },
+              { label: "عدد البنود", value: String(costs.length), cls: "text-foreground" },
+            ].map(kpi => (
+              <div key={kpi.label} className="rounded-xl bg-card border border-border p-4 text-center">
+                <p className="text-xs text-muted-foreground">{kpi.label}</p>
+                <p className={`text-lg font-bold ${kpi.cls}`}>{kpi.value}</p>
+              </div>
+            ))}
           </div>
 
-          {/* Cost breakdown by type */}
+          {/* Cost breakdown */}
           {Object.keys(costSummary.byType).length > 0 && (
             <div className="rounded-xl bg-card border border-border p-4 space-y-3">
-              <h3 className="text-sm font-bold text-foreground">تفصيل التكاليف</h3>
+              <h3 className="text-sm font-bold text-foreground">تفصيل التكاليف (مرتبط بالقيود المحاسبية)</h3>
               <div className="space-y-2">
                 {COST_TYPES.filter(ct => costSummary.byType[ct.value]).map(ct => {
                   const amount = costSummary.byType[ct.value];
                   const pct = costSummary.total > 0 ? (amount / costSummary.total * 100) : 0;
+                  const acct = COST_ACCOUNT_MAP[ct.value];
                   return (
                     <div key={ct.value} className="flex items-center gap-3">
                       <span className="text-lg w-8 text-center">{ct.icon}</span>
-                      <span className="text-sm flex-1 text-foreground">{ct.label}</span>
-                      <div className="w-24 h-2 bg-muted rounded-full overflow-hidden">
-                        <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${pct}%` }} />
+                      <div className="flex-1 min-w-0">
+                        <span className="text-sm text-foreground">{ct.label}</span>
+                        <span className="text-[10px] text-muted-foreground mr-2">({acct?.debit})</span>
+                      </div>
+                      <div className="w-20 h-2 bg-muted rounded-full overflow-hidden">
+                        <div className="h-full bg-primary rounded-full" style={{ width: `${pct}%` }} />
                       </div>
                       <span className="text-sm font-bold text-foreground w-24 text-left tabular-nums">{amount.toLocaleString()} ₪</span>
                     </div>
@@ -253,20 +410,23 @@ export default function WorkshopsPage() {
             </div>
           )}
 
-          {/* Status actions */}
+          {/* Actions */}
           {selectedWorkshop.status === "active" && (
             <div className="flex gap-2">
-              <Button size="sm" variant="outline" onClick={() => handleUpdateStatus(selectedWorkshop, "paused")} className="flex-1">⏸️ إيقاف مؤقت</Button>
-              <Button size="sm" onClick={() => handleUpdateStatus(selectedWorkshop, "completed")} className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white">✅ اكتمال</Button>
+              <Button size="sm" variant="outline" onClick={() => handleUpdateStatus(selectedWorkshop, "paused")} className="flex-1">⏸️ إيقاف</Button>
+              <Button size="sm" onClick={() => {
+                setInvoiceForm({ amount: selectedWorkshop.total_budget, payment_method: "آجل", description: "" });
+                setShowInvoiceDialog(true);
+              }} className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white">💰 فوترة واكتمال</Button>
             </div>
           )}
           {selectedWorkshop.status === "paused" && (
             <Button size="sm" onClick={() => handleUpdateStatus(selectedWorkshop, "active")} className="w-full">▶️ استئناف</Button>
           )}
 
-          {/* Add cost button */}
+          {/* Add cost */}
           <Button onClick={() => setShowNewCost(true)} className="w-full gap-2">
-            <Plus className="h-4 w-4" /> إضافة تكلفة جديدة
+            <Plus className="h-4 w-4" /> إضافة تكلفة (مع قيد محاسبي)
           </Button>
 
           {/* Costs list */}
@@ -283,28 +443,26 @@ export default function WorkshopsPage() {
               <div className="space-y-2">
                 {costs.map(cost => {
                   const ct = getCostType(cost.cost_type);
+                  const acct = COST_ACCOUNT_MAP[cost.cost_type];
                   return (
-                    <motion.div
-                      key={cost.id}
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="rounded-xl bg-card border border-border p-3 flex items-center gap-3"
-                    >
-                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-lg ${ct.color}`}>
-                        {ct.icon}
-                      </div>
+                    <motion.div key={cost.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+                      className="rounded-xl bg-card border border-border p-3 flex items-center gap-3">
+                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-lg ${ct.color}`}>{ct.icon}</div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <p className="text-sm font-medium text-foreground">{ct.label}</p>
                           {cost.supplier_name && <span className="text-[10px] text-muted-foreground">— {cost.supplier_name}</span>}
                         </div>
                         <p className="text-xs text-muted-foreground truncate">{cost.description || cost.payment_method}</p>
-                        <p className="text-[10px] text-muted-foreground/60">{format(new Date(cost.cost_date), "dd/MM/yyyy")}</p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className="text-[10px] text-muted-foreground/60">{format(new Date(cost.cost_date), "dd/MM/yyyy")}</span>
+                          {cost.linked_transaction_id && (
+                            <Badge variant="outline" className="text-[8px] h-4 px-1">قيد {acct?.debit}</Badge>
+                          )}
+                        </div>
                       </div>
-                      <div className="text-left">
-                        <p className="text-sm font-bold text-destructive tabular-nums">{cost.amount.toLocaleString()} ₪</p>
-                      </div>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteCost(cost.id)}>
+                      <p className="text-sm font-bold text-destructive tabular-nums">{cost.amount.toLocaleString()} ₪</p>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteCost(cost)}>
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </motion.div>
@@ -315,32 +473,30 @@ export default function WorkshopsPage() {
           </div>
         </div>
 
-        {/* Add Cost Dialog */}
+        {/* ── Add Cost Dialog ── */}
         <Dialog open={showNewCost} onOpenChange={setShowNewCost}>
-          <DialogContent className="max-w-md" dir="rtl">
+          <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto" dir="rtl">
             <DialogHeader>
-              <DialogTitle>إضافة تكلفة جديدة</DialogTitle>
+              <DialogTitle>إضافة تكلفة (مع قيد محاسبي تلقائي)</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 py-2">
-              {/* Cost type selector */}
               <div className="space-y-2">
                 <Label>نوع التكلفة</Label>
                 <div className="grid grid-cols-3 gap-2">
                   {COST_TYPES.map(ct => (
-                    <button
-                      key={ct.value}
-                      onClick={() => setCostForm(f => ({ ...f, cost_type: ct.value }))}
+                    <button key={ct.value} onClick={() => setCostForm(f => ({ ...f, cost_type: ct.value }))}
                       className={`p-2 rounded-xl border text-center transition-all ${
-                        costForm.cost_type === ct.value
-                          ? "border-primary bg-primary/10 ring-2 ring-primary/30"
-                          : "border-border hover:bg-accent/5"
-                      }`}
-                    >
+                        costForm.cost_type === ct.value ? "border-primary bg-primary/10 ring-2 ring-primary/30" : "border-border hover:bg-accent/5"
+                      }`}>
                       <span className="text-xl block">{ct.icon}</span>
                       <span className="text-[10px] font-medium text-foreground">{ct.label}</span>
                     </button>
                   ))}
                 </div>
+                {/* Show GL mapping */}
+                <p className="text-[10px] text-muted-foreground text-center">
+                  القيد: مدين {COST_ACCOUNT_MAP[costForm.cost_type]?.debit} ← دائن {PAYMENT_CREDIT_MAP[costForm.payment_method]}
+                </p>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
@@ -356,34 +512,120 @@ export default function WorkshopsPage() {
                 <Label>الوصف</Label>
                 <Input value={costForm.description} onChange={e => setCostForm(f => ({ ...f, description: e.target.value }))} placeholder="مثل: خشب سويدي 18مم" />
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label>اسم المورد</Label>
-                  <Input value={costForm.supplier_name} onChange={e => setCostForm(f => ({ ...f, supplier_name: e.target.value }))} />
-                </div>
-                <div className="space-y-1">
-                  <Label>طريقة الدفع</Label>
-                  <div className="flex gap-1">
-                    {["نقدي", "بنك", "آجل"].map(m => (
-                      <button
-                        key={m}
-                        onClick={() => setCostForm(f => ({ ...f, payment_method: m }))}
-                        className={`flex-1 px-2 py-1.5 rounded-lg text-xs font-medium border transition-all ${
-                          costForm.payment_method === m
-                            ? "border-primary bg-primary/10 text-primary"
-                            : "border-border text-muted-foreground"
-                        }`}
-                      >
-                        {m}
-                      </button>
-                    ))}
+
+              {/* Supplier picker */}
+              <div className="space-y-1">
+                <Label>المورد</Label>
+                {costForm.supplier_contact_id ? (
+                  <div className="flex items-center gap-2 p-2 rounded-lg bg-accent/5 border border-border">
+                    <span className="text-sm flex-1 text-foreground">
+                      {contacts.find(c => c.id === costForm.supplier_contact_id)?.contact_name || costForm.supplier_name}
+                    </span>
+                    <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => {
+                      setCostForm(f => ({ ...f, supplier_contact_id: null, supplier_name: "" }));
+                    }}>✕</Button>
                   </div>
+                ) : (
+                  <div className="space-y-1">
+                    <div className="relative">
+                      <Search className="absolute right-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
+                      <Input value={supplierSearch} onChange={e => { setSupplierSearch(e.target.value); setShowSupplierPicker(true); }}
+                        onFocus={() => setShowSupplierPicker(true)}
+                        placeholder="ابحث عن مورد أو اكتب الاسم مباشرة..." className="pr-8 h-9 text-sm" />
+                    </div>
+                    {showSupplierPicker && supplierSearch && (
+                      <div className="max-h-28 overflow-y-auto rounded-lg border border-border bg-card">
+                        {filteredSuppliers.slice(0, 5).map(s => (
+                          <button key={s.id} onClick={() => {
+                            setCostForm(f => ({ ...f, supplier_contact_id: s.id, supplier_name: s.contact_name }));
+                            setShowSupplierPicker(false); setSupplierSearch("");
+                          }} className="w-full text-right px-3 py-1.5 text-sm hover:bg-accent/10 text-foreground">
+                            {s.contact_name}
+                          </button>
+                        ))}
+                        {filteredSuppliers.length === 0 && (
+                          <p className="text-xs text-muted-foreground p-2">
+                            لا يوجد — اكتب اسم المورد في حقل "اسم المورد" بالأسفل
+                          </p>
+                        )}
+                      </div>
+                    )}
+                    <Input value={costForm.supplier_name} onChange={e => setCostForm(f => ({ ...f, supplier_name: e.target.value }))}
+                      placeholder="أو اكتب اسم المورد يدوياً" className="h-8 text-xs" />
+                  </div>
+                )}
+              </div>
+
+              {/* Payment method */}
+              <div className="space-y-1">
+                <Label>طريقة الدفع</Label>
+                <div className="flex gap-1">
+                  {["نقدي", "بنك", "آجل"].map(m => (
+                    <button key={m} onClick={() => setCostForm(f => ({ ...f, payment_method: m }))}
+                      className={`flex-1 px-2 py-2 rounded-lg text-xs font-medium border transition-all ${
+                        costForm.payment_method === m ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground"
+                      }`}>{m}</button>
+                  ))}
                 </div>
               </div>
             </div>
             <DialogFooter>
               <Button variant="ghost" onClick={() => setShowNewCost(false)}>إلغاء</Button>
-              <Button onClick={handleAddCost} disabled={costForm.amount <= 0}>إضافة</Button>
+              <Button onClick={handleAddCost} disabled={costForm.amount <= 0}>إضافة + قيد</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* ── Invoice/Complete Dialog ── */}
+        <Dialog open={showInvoiceDialog} onOpenChange={setShowInvoiceDialog}>
+          <DialogContent className="max-w-sm" dir="rtl">
+            <DialogHeader>
+              <DialogTitle>💰 فوترة الورشة وإكمالها</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3 py-2">
+              <div className="p-3 rounded-lg bg-accent/5 border border-border space-y-1">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">إجمالي التكاليف</span>
+                  <span className="font-bold text-destructive">{costSummary.total.toLocaleString()} ₪</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">الميزانية</span>
+                  <span className="font-bold text-foreground">{selectedWorkshop.total_budget.toLocaleString()} ₪</span>
+                </div>
+              </div>
+              <div className="space-y-1">
+                <Label>مبلغ الفاتورة (₪)</Label>
+                <Input type="number" value={invoiceForm.amount || ""} onChange={e => setInvoiceForm(f => ({ ...f, amount: Number(e.target.value) }))} />
+              </div>
+              <div className="space-y-1">
+                <Label>طريقة الدفع</Label>
+                <div className="flex gap-1">
+                  {["نقدي", "بنك", "آجل"].map(m => (
+                    <button key={m} onClick={() => setInvoiceForm(f => ({ ...f, payment_method: m }))}
+                      className={`flex-1 px-2 py-2 rounded-lg text-xs font-medium border transition-all ${
+                        invoiceForm.payment_method === m ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground"
+                      }`}>{m}</button>
+                  ))}
+                </div>
+              </div>
+              <div className="space-y-1">
+                <Label>وصف</Label>
+                <Input value={invoiceForm.description} onChange={e => setInvoiceForm(f => ({ ...f, description: e.target.value }))}
+                  placeholder={`إيرادات ورشة ${selectedWorkshop.name}`} />
+              </div>
+              {invoiceForm.amount > 0 && (
+                <div className="p-2 rounded-lg bg-emerald-500/5 border border-emerald-500/20 text-center">
+                  <p className="text-xs text-muted-foreground">الربح الصافي</p>
+                  <p className={`text-lg font-bold ${(invoiceForm.amount - costSummary.total) >= 0 ? "text-emerald-500" : "text-destructive"}`}>
+                    {(invoiceForm.amount - costSummary.total).toLocaleString()} ₪
+                  </p>
+                </div>
+              )}
+            </div>
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => setShowInvoiceDialog(false)}>إلغاء</Button>
+              <Button onClick={handleInvoiceWorkshop} disabled={invoiceForm.amount <= 0}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white">تأكيد الفوترة</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -391,16 +633,17 @@ export default function WorkshopsPage() {
     );
   }
 
-  // ─── Workshops List View ───
+  /* ════════════════════════════════════════════ */
+  /* ── Workshops List View ── */
+  /* ════════════════════════════════════════════ */
   return (
     <div className="min-h-full bg-background pb-24" dir="rtl">
       <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
-        {/* Header */}
         <div className="flex items-center gap-3">
           <BackButton />
           <div className="flex-1">
             <h1 className="text-2xl font-bold text-foreground" style={{ fontFamily: "Tajawal, sans-serif" }}>🪵 الورشات</h1>
-            <p className="text-sm text-muted-foreground">إدارة ورشات العمل وتتبع التكاليف</p>
+            <p className="text-sm text-muted-foreground">إدارة ورشات العمل وتتبع التكاليف — مرتبط بالمحاسبة</p>
           </div>
           <Button onClick={() => setShowNewWorkshop(true)} className="gap-2">
             <Plus className="h-4 w-4" /> ورشة جديدة
@@ -414,28 +657,16 @@ export default function WorkshopsPage() {
             <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="بحث..." className="pr-9" />
           </div>
           <div className="flex gap-1">
-            {[
-              { v: "all", l: "الكل" },
-              { v: "active", l: "نشطة" },
-              { v: "completed", l: "مكتملة" },
-              { v: "paused", l: "متوقفة" },
-            ].map(f => (
-              <button
-                key={f.v}
-                onClick={() => setStatusFilter(f.v)}
+            {[{ v: "all", l: "الكل" }, { v: "active", l: "نشطة" }, { v: "completed", l: "مكتملة" }, { v: "paused", l: "متوقفة" }].map(f => (
+              <button key={f.v} onClick={() => setStatusFilter(f.v)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
-                  statusFilter === f.v
-                    ? "border-primary bg-primary/10 text-primary"
-                    : "border-border text-muted-foreground hover:bg-accent/5"
-                }`}
-              >
-                {f.l}
-              </button>
+                  statusFilter === f.v ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:bg-accent/5"
+                }`}>{f.l}</button>
             ))}
           </div>
         </div>
 
-        {/* Workshops grid */}
+        {/* Grid */}
         {loading ? (
           <div className="text-center py-16 text-muted-foreground">جاري التحميل...</div>
         ) : filteredWorkshops.length === 0 ? (
@@ -449,14 +680,10 @@ export default function WorkshopsPage() {
             {filteredWorkshops.map((ws, idx) => {
               const status = STATUS_MAP[ws.status] || STATUS_MAP.active;
               return (
-                <motion.div
-                  key={ws.id}
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
+                <motion.div key={ws.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: idx * 0.05 }}
                   onClick={() => openWorkshop(ws)}
-                  className="rounded-2xl bg-card border border-border p-4 cursor-pointer hover:shadow-md hover:border-primary/30 transition-all space-y-3"
-                >
+                  className="rounded-2xl bg-card border border-border p-4 cursor-pointer hover:shadow-md hover:border-primary/30 transition-all space-y-3">
                   <div className="flex items-start justify-between">
                     <div>
                       <h3 className="font-bold text-foreground">{ws.name}</h3>
@@ -466,9 +693,7 @@ export default function WorkshopsPage() {
                   </div>
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-muted-foreground">الميزانية: <strong className="text-foreground">{ws.total_budget?.toLocaleString()} ₪</strong></span>
-                    {ws.start_date && (
-                      <span className="text-muted-foreground/60">{format(new Date(ws.start_date), "dd/MM/yyyy")}</span>
-                    )}
+                    {ws.start_date && <span className="text-muted-foreground/60">{format(new Date(ws.start_date), "dd/MM/yyyy")}</span>}
                   </div>
                 </motion.div>
               );
@@ -477,9 +702,9 @@ export default function WorkshopsPage() {
         )}
       </div>
 
-      {/* New Workshop Dialog */}
+      {/* ── New Workshop Dialog ── */}
       <Dialog open={showNewWorkshop} onOpenChange={setShowNewWorkshop}>
-        <DialogContent className="max-w-md" dir="rtl">
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto" dir="rtl">
           <DialogHeader>
             <DialogTitle>ورشة جديدة</DialogTitle>
           </DialogHeader>
@@ -488,9 +713,48 @@ export default function WorkshopsPage() {
               <Label>اسم الورشة *</Label>
               <Input value={wsForm.name} onChange={e => setWsForm(f => ({ ...f, name: e.target.value }))} placeholder="مثل: مطبخ أحمد العلي" />
             </div>
+
+            {/* Customer picker */}
+            <div className="space-y-1">
+              <Label>الزبون (من الجهات)</Label>
+              {wsForm.contact_id ? (
+                <div className="flex items-center gap-2 p-2 rounded-lg bg-accent/5 border border-border">
+                  <span className="text-sm flex-1 text-foreground">
+                    {contacts.find(c => c.id === wsForm.contact_id)?.contact_name || wsForm.customer_name}
+                  </span>
+                  <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => {
+                    setWsForm(f => ({ ...f, contact_id: null, customer_name: "" }));
+                  }}>✕</Button>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  <div className="relative">
+                    <Search className="absolute right-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
+                    <Input value={contactSearch} onChange={e => { setContactSearch(e.target.value); setShowContactPicker(true); }}
+                      onFocus={() => setShowContactPicker(true)}
+                      placeholder="ابحث عن زبون..." className="pr-8 h-9 text-sm" />
+                  </div>
+                  {showContactPicker && contactSearch && (
+                    <div className="max-h-28 overflow-y-auto rounded-lg border border-border bg-card">
+                      {filteredCustomers.slice(0, 5).map(c => (
+                        <button key={c.id} onClick={() => {
+                          setWsForm(f => ({ ...f, contact_id: c.id, customer_name: c.contact_name }));
+                          setShowContactPicker(false); setContactSearch("");
+                        }} className="w-full text-right px-3 py-1.5 text-sm hover:bg-accent/10 text-foreground">
+                          {c.contact_name}
+                          <span className="text-[10px] text-muted-foreground mr-2">({c.current_balance.toLocaleString()} ₪)</span>
+                        </button>
+                      ))}
+                      {filteredCustomers.length === 0 && <p className="text-xs text-muted-foreground p-2">لا يوجد — أدخل الاسم يدوياً</p>}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <Label>اسم الزبون</Label>
+                <Label>اسم الزبون (يدوي)</Label>
                 <Input value={wsForm.customer_name} onChange={e => setWsForm(f => ({ ...f, customer_name: e.target.value }))} />
               </div>
               <div className="space-y-1">

@@ -10554,6 +10554,7 @@ export type Database = {
           notes: string | null
           payment_method: string | null
           receipt_image_url: string | null
+          supplier_contact_id: string | null
           supplier_name: string | null
           user_id: string
           workshop_id: string
@@ -10569,6 +10570,7 @@ export type Database = {
           notes?: string | null
           payment_method?: string | null
           receipt_image_url?: string | null
+          supplier_contact_id?: string | null
           supplier_name?: string | null
           user_id: string
           workshop_id: string
@@ -10584,11 +10586,19 @@ export type Database = {
           notes?: string | null
           payment_method?: string | null
           receipt_image_url?: string | null
+          supplier_contact_id?: string | null
           supplier_name?: string | null
           user_id?: string
           workshop_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "workshop_costs_supplier_contact_id_fkey"
+            columns: ["supplier_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "workshop_costs_workshop_id_fkey"
             columns: ["workshop_id"]
@@ -10602,6 +10612,7 @@ export type Database = {
         Row: {
           actual_end_date: string | null
           address: string | null
+          contact_id: string | null
           created_at: string | null
           customer_name: string | null
           customer_phone: string | null
@@ -10619,6 +10630,7 @@ export type Database = {
         Insert: {
           actual_end_date?: string | null
           address?: string | null
+          contact_id?: string | null
           created_at?: string | null
           customer_name?: string | null
           customer_phone?: string | null
@@ -10636,6 +10648,7 @@ export type Database = {
         Update: {
           actual_end_date?: string | null
           address?: string | null
+          contact_id?: string | null
           created_at?: string | null
           customer_name?: string | null
           customer_phone?: string | null
@@ -10650,7 +10663,15 @@ export type Database = {
           updated_at?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "workshops_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
