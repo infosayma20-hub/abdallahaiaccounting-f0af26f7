@@ -515,7 +515,7 @@ export default function WorkshopsPage() {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-8 w-8"><MoreVertical className="h-4 w-4" /></Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" dir="rtl">
+              <DropdownMenuContent align="start">
                 <DropdownMenuItem onClick={() => openEditWorkshop(selectedWorkshop)}>
                   <Edit className="h-3.5 w-3.5 ml-2" /> تعديل الورشة
                 </DropdownMenuItem>
