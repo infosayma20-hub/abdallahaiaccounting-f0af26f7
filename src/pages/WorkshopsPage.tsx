@@ -401,6 +401,13 @@ export default function WorkshopsPage() {
     return { byType: summary, total };
   }, [costs]);
 
+  const totalPaid = useMemo(() => payments.reduce((s, p) => s + p.amount, 0), [payments]);
+
+  const budgetUsedPct = useMemo(() => {
+    if (!selectedWorkshop || !selectedWorkshop.total_budget) return 0;
+    return (costSummary.total / selectedWorkshop.total_budget) * 100;
+  }, [selectedWorkshop, costSummary.total]);
+
   const filteredCustomers = useMemo(() =>
     contacts.filter(c => ["customer", "عميل", "both", "كلاهما"].includes(c.contact_type) && (!contactSearch || c.contact_name.toLowerCase().includes(contactSearch.toLowerCase())))
   , [contacts, contactSearch]);
