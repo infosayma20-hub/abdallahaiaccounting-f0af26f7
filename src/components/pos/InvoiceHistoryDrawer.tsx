@@ -459,7 +459,7 @@ export default function InvoiceHistoryDrawer({
       return;
     }
     setRecallingOrder(order);
-    if (requireManagerForInvoices) {
+    if (needsManagerForRecall) {
       setPendingManagerAction("recall");
       setManagerOverrideVariant("default");
       setManagerOverrideTitle("موافقة المدير — استدعاء فاتورة");
@@ -571,7 +571,7 @@ export default function InvoiceHistoryDrawer({
   const handleCancelConfirm = () => {
     if (!cancelReason.trim()) { toast.error("أدخل سبب الإلغاء"); return; }
     setShowCancelConfirm(false);
-    if (requireManagerForInvoices) {
+    if (needsManagerForCancel) {
       setPendingManagerAction("cancel");
       setManagerOverrideVariant("destructive");
       setManagerOverrideTitle("موافقة المدير — إلغاء فاتورة");
