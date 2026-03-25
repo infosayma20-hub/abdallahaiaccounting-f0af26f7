@@ -39,6 +39,7 @@ interface InvoiceOrder {
   paid_at: string | null;
   transferred_from_session_id: string | null;
   transferred_to_name: string | null;
+  pos_payments?: { payment_method: string }[];
 }
 
 interface InvoiceLine {
