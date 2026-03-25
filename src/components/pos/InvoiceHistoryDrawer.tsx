@@ -89,6 +89,8 @@ interface InvoiceHistoryDrawerProps {
   canEditInvoices?: boolean;
   canCancelInvoices?: boolean;
   requireManagerForInvoices?: boolean;
+  requireManagerForRecall?: boolean;
+  requireManagerForCancel?: boolean;
   allowOrderTransfer?: boolean;
   printInvoices?: boolean;
   resendInvoice?: boolean;
