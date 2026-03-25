@@ -128,10 +128,12 @@ export default function WorkshopsPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedWorkshop, setSelectedWorkshop] = useState<Workshop | null>(null);
   const [costs, setCosts] = useState<WorkshopCost[]>([]);
+  const [payments, setPayments] = useState<WorkshopPayment[]>([]);
   const [loadingCosts, setLoadingCosts] = useState(false);
   const [showNewWorkshop, setShowNewWorkshop] = useState(false);
   const [showNewCost, setShowNewCost] = useState(false);
   const [showInvoiceDialog, setShowInvoiceDialog] = useState(false);
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
 
   // Contacts for search
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -145,6 +147,10 @@ export default function WorkshopsPage() {
     name: "", customer_name: "", customer_phone: "", address: "", description: "",
     total_budget: 0, start_date: format(new Date(), "yyyy-MM-dd"), expected_end_date: "",
     contact_id: null as string | null,
+    area_sqm: 0, workshop_type: "kitchen", image_url: "",
+  });
+  const [paymentForm, setPaymentForm] = useState({
+    amount: 0, payment_method: "نقدي", description: "", payment_date: format(new Date(), "yyyy-MM-dd"),
   });
   const [costForm, setCostForm] = useState({
     cost_type: "wood", description: "", amount: 0, cost_date: format(new Date(), "yyyy-MM-dd"),
