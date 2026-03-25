@@ -89,6 +89,8 @@ interface InvoiceHistoryDrawerProps {
   canEditInvoices?: boolean;
   canCancelInvoices?: boolean;
   requireManagerForInvoices?: boolean;
+  requireManagerForRecall?: boolean;
+  requireManagerForCancel?: boolean;
   allowOrderTransfer?: boolean;
   printInvoices?: boolean;
   resendInvoice?: boolean;
@@ -119,8 +121,11 @@ const RECALL_REASONS = [
 ];
 
 export default function InvoiceHistoryDrawer({
-  open, onClose, dataOwnerId, sessionId, cashierName, terminalName, canEditInvoices = true, canCancelInvoices = true, requireManagerForInvoices = true, allowOrderTransfer = false, printInvoices = true, resendInvoice = true, onRecallToCart,
+  open, onClose, dataOwnerId, sessionId, cashierName, terminalName, canEditInvoices = true, canCancelInvoices = true, requireManagerForInvoices = true, requireManagerForRecall, requireManagerForCancel, allowOrderTransfer = false, printInvoices = true, resendInvoice = true, onRecallToCart,
 }: InvoiceHistoryDrawerProps) {
+  // Use specific flags if provided, otherwise fall back to general flag
+  const needsManagerForRecall = requireManagerForRecall ?? requireManagerForInvoices;
+  const needsManagerForCancel = requireManagerForCancel ?? requireManagerForInvoices;
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -454,7 +459,7 @@ export default function InvoiceHistoryDrawer({
       return;
     }
     setRecallingOrder(order);
-    if (requireManagerForInvoices) {
+    if (needsManagerForRecall) {
       setPendingManagerAction("recall");
       setManagerOverrideVariant("default");
       setManagerOverrideTitle("موافقة المدير — استدعاء فاتورة");
@@ -566,7 +571,7 @@ export default function InvoiceHistoryDrawer({
   const handleCancelConfirm = () => {
     if (!cancelReason.trim()) { toast.error("أدخل سبب الإلغاء"); return; }
     setShowCancelConfirm(false);
-    if (requireManagerForInvoices) {
+    if (needsManagerForCancel) {
       setPendingManagerAction("cancel");
       setManagerOverrideVariant("destructive");
       setManagerOverrideTitle("موافقة المدير — إلغاء فاتورة");
