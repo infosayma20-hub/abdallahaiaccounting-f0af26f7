@@ -121,8 +121,11 @@ const RECALL_REASONS = [
 ];
 
 export default function InvoiceHistoryDrawer({
-  open, onClose, dataOwnerId, sessionId, cashierName, terminalName, canEditInvoices = true, canCancelInvoices = true, requireManagerForInvoices = true, allowOrderTransfer = false, printInvoices = true, resendInvoice = true, onRecallToCart,
+  open, onClose, dataOwnerId, sessionId, cashierName, terminalName, canEditInvoices = true, canCancelInvoices = true, requireManagerForInvoices = true, requireManagerForRecall, requireManagerForCancel, allowOrderTransfer = false, printInvoices = true, resendInvoice = true, onRecallToCart,
 }: InvoiceHistoryDrawerProps) {
+  // Use specific flags if provided, otherwise fall back to general flag
+  const needsManagerForRecall = requireManagerForRecall ?? requireManagerForInvoices;
+  const needsManagerForCancel = requireManagerForCancel ?? requireManagerForInvoices;
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
