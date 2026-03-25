@@ -5,7 +5,7 @@ import { format, startOfDay, startOfWeek, startOfMonth, subMonths } from "date-f
 import {
   Hammer, TrendingUp, DollarSign, BarChart3,
   FileSpreadsheet, Download, Filter, Calendar,
-  Package, Users, CheckCircle2, Clock,
+  Package, Users, CheckCircle2, Clock, Printer, Receipt,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +20,7 @@ import {
   PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as ReTooltip,
   ResponsiveContainer, Legend,
 } from "recharts";
+import { generateProfessionalPDFHtml, openPrintWindow, useCompanyInfo } from "@/components/ReportPrintLayout";
 
 const COST_TYPES: Record<string, { label: string; icon: string; color: string }> = {
   wood:      { label: "خشب", icon: "🪵", color: "#d97706" },
@@ -37,8 +38,11 @@ const PIE_COLORS = Object.values(COST_TYPES).map(c => c.color);
 
 export default function WorkshopReportsPage() {
   const { user } = useAuth();
+  const companyInfo = useCompanyInfo();
   const [workshops, setWorkshops] = useState<any[]>([]);
   const [costs, setCosts] = useState<any[]>([]);
+  const [workshopPayments, setWorkshopPayments] = useState<any[]>([]);
+  const [financeReceipts, setFinanceReceipts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Filters
@@ -98,12 +102,34 @@ export default function WorkshopReportsPage() {
   const loadData = async () => {
     setLoading(true);
     const uid = user!.id;
-    const [wRes, cRes] = await Promise.all([
-      supabase.from("workshops").select("*").eq("user_id", uid).order("created_at", { ascending: false }),
-      supabase.from("workshop_costs").select("*").eq("user_id", uid).order("cost_date", { ascending: false }),
+    const [wRes, cRes, pRes] = await Promise.all([
+      supabase.from("workshops").select("*").order("created_at", { ascending: false }),
+      supabase.from("workshop_costs").select("*").order("cost_date", { ascending: false }),
+      supabase.from("workshop_payments").select("*").order("payment_date", { ascending: false }),
     ]);
-    setWorkshops(wRes.data || []);
+    const ws = wRes.data || [];
+    setWorkshops(ws);
     setCosts(cRes.data || []);
+    setWorkshopPayments(pRes.data || []);
+
+    // Fetch Finance receipts/payments for workshop contacts
+    const contactIds = [...new Set(ws.map((w: any) => w.contact_id).filter(Boolean))];
+    if (contactIds.length > 0) {
+      const { data: txData } = await supabase
+        .from("transactions")
+        .select("id, transaction_date, description, amount, transaction_type, contact_id, payment_method, is_deleted, reference")
+        .in("contact_id", contactIds)
+        .in("transaction_type", ["receipt", "payment", "sale_cash", "sale_bank", "sale_credit", "sale_cheque"])
+        .eq("is_deleted", false)
+        .order("transaction_date", { ascending: false });
+      
+      // Exclude workshop-specific transactions (already tracked in workshop_payments)
+      const wsPaymentTxIds = new Set((pRes.data || []).map((p: any) => p.linked_transaction_id).filter(Boolean));
+      setFinanceReceipts((txData || []).filter((tx: any) => !wsPaymentTxIds.has(tx.id)));
+    } else {
+      setFinanceReceipts([]);
+    }
+
     setLoading(false);
   };
 
@@ -118,8 +144,37 @@ export default function WorkshopReportsPage() {
   }, [workshops, dateFrom, dateTo, statusFilter, search]);
 
   const filteredIds = useMemo(() => new Set(filtered.map(w => w.id)), [filtered]);
+  const filteredContactIds = useMemo(() => new Set(filtered.map(w => w.contact_id).filter(Boolean)), [filtered]);
 
   const filteredCosts = useMemo(() => costs.filter(c => filteredIds.has(c.workshop_id)), [costs, filteredIds]);
+  const filteredPayments = useMemo(() => workshopPayments.filter(p => filteredIds.has(p.workshop_id)), [workshopPayments, filteredIds]);
+  const filteredFinanceReceipts = useMemo(() => financeReceipts.filter(tx => filteredContactIds.has(tx.contact_id)), [financeReceipts, filteredContactIds]);
+
+  // All collected = workshop payments + finance receipts for workshop contacts
+  const allCollectedByContact = useMemo(() => {
+    const map: Record<string, number> = {};
+    // Workshop direct payments
+    filteredPayments.forEach(p => {
+      const ws = workshops.find(w => w.id === p.workshop_id);
+      if (ws?.contact_id) {
+        map[ws.contact_id] = (map[ws.contact_id] || 0) + (p.amount || 0);
+      }
+    });
+    // Finance receipts
+    filteredFinanceReceipts.forEach(tx => {
+      if (tx.contact_id) {
+        map[tx.contact_id] = (map[tx.contact_id] || 0) + (tx.amount || 0);
+      }
+    });
+    return map;
+  }, [filteredPayments, filteredFinanceReceipts, workshops]);
+
+  const totalCollected = useMemo(() => {
+    let total = 0;
+    filteredPayments.forEach(p => total += p.amount || 0);
+    filteredFinanceReceipts.forEach(tx => total += tx.amount || 0);
+    return total;
+  }, [filteredPayments, filteredFinanceReceipts]);
 
   // KPIs
   const kpis = useMemo(() => {
@@ -128,17 +183,16 @@ export default function WorkshopReportsPage() {
     const completed = filtered.filter(w => w.status === "completed").length;
     const totalBudget = filtered.reduce((s, w) => s + (w.total_budget || 0), 0);
     const totalCosts = filteredCosts.reduce((s, c) => s + (c.amount || 0), 0);
-    const totalCollected = filtered.filter(w => w.status === "completed").reduce((s, w) => s + (w.total_budget || 0), 0);
     const avgProfit = completed > 0
       ? filtered.filter(w => w.status === "completed").reduce((s, w) => {
           const wCosts = costs.filter(c => c.workshop_id === w.id).reduce((ss, c) => ss + (c.amount || 0), 0);
           return s + ((w.total_budget || 0) - wCosts);
         }, 0) / completed
       : 0;
-    const profitMargin = totalCollected > 0 ? ((totalCollected - totalCosts) / totalCollected * 100) : 0;
+    const profitMargin = totalBudget > 0 ? ((totalBudget - totalCosts) / totalBudget * 100) : 0;
 
     return { total, active, completed, totalBudget, totalCosts, totalCollected, avgProfit, profitMargin };
-  }, [filtered, filteredCosts, costs]);
+  }, [filtered, filteredCosts, costs, totalCollected]);
 
   // Cost breakdown by type
   const costByType = useMemo(() => {
@@ -161,6 +215,9 @@ export default function WorkshopReportsPage() {
     return filtered.map(w => {
       const wCosts = costs.filter(c => c.workshop_id === w.id);
       const totalCost = wCosts.reduce((s, c) => s + (c.amount || 0), 0);
+      const wPayments = workshopPayments.filter(p => p.workshop_id === w.id).reduce((s, p) => s + (p.amount || 0), 0);
+      const wFinanceReceipts = w.contact_id ? (financeReceipts.filter(tx => tx.contact_id === w.contact_id).reduce((s, tx) => s + (tx.amount || 0), 0)) : 0;
+      const collected = wPayments + wFinanceReceipts;
       const profit = (w.total_budget || 0) - totalCost;
       const margin = w.total_budget > 0 ? (profit / w.total_budget * 100) : 0;
       const costBreakdown: Record<string, number> = {};
@@ -170,14 +227,15 @@ export default function WorkshopReportsPage() {
       });
       return {
         id: w.id, name: w.name, customer: w.customer_name || "-", status: w.status,
-        budget: w.total_budget || 0, totalCost, profit, margin,
+        budget: w.total_budget || 0, totalCost, profit, margin, collected,
         costBreakdown,
         startDate: w.start_date,
         area_sqm: (w as any).area_sqm || 0,
         workshop_type: (w as any).workshop_type || "other",
+        contact_id: w.contact_id,
       };
     }).sort((a, b) => b.budget - a.budget);
-  }, [filtered, costs]);
+  }, [filtered, costs, workshopPayments, financeReceipts]);
 
   // Cost per sqm analysis
   const costPerSqmData = useMemo(() => {
@@ -239,6 +297,41 @@ export default function WorkshopReportsPage() {
       .map(([month, amount]) => ({ month, amount }));
   }, [filteredCosts]);
 
+  // All receipts for "المقبوضات" tab
+  const allReceiptsForDisplay = useMemo(() => {
+    const items: { id: string; date: string; description: string; amount: number; method: string; source: string; workshopName: string }[] = [];
+    
+    // Workshop direct payments
+    filteredPayments.forEach(p => {
+      const ws = workshops.find(w => w.id === p.workshop_id);
+      items.push({
+        id: p.id,
+        date: p.payment_date,
+        description: p.description || `دفعة - ${ws?.name || ""}`,
+        amount: p.amount || 0,
+        method: p.payment_method || "نقدي",
+        source: "ورشات",
+        workshopName: ws?.name || "-",
+      });
+    });
+    
+    // Finance receipts
+    filteredFinanceReceipts.forEach(tx => {
+      const ws = workshops.find(w => w.contact_id === tx.contact_id);
+      items.push({
+        id: tx.id,
+        date: tx.transaction_date,
+        description: tx.description || "",
+        amount: tx.amount || 0,
+        method: tx.payment_method || "-",
+        source: "المالية",
+        workshopName: ws?.name || "-",
+      });
+    });
+    
+    return items.sort((a, b) => b.date.localeCompare(a.date));
+  }, [filteredPayments, filteredFinanceReceipts, workshops]);
+
   const fmtNum = (n: number) => n.toLocaleString("ar-EG", { maximumFractionDigits: 0 });
 
   const exportExcel = () => {
@@ -248,6 +341,7 @@ export default function WorkshopReportsPage() {
       "الحالة": w.status === "completed" ? "مكتملة" : w.status === "active" ? "نشطة" : w.status,
       "الميزانية": w.budget,
       "إجمالي التكلفة": w.totalCost,
+      "المقبوض": w.collected,
       "الربح": w.profit,
       "هامش الربح %": Math.round(w.margin),
     }));
@@ -260,8 +354,52 @@ export default function WorkshopReportsPage() {
     const ws2 = XLSX.utils.json_to_sheet(sRows);
     XLSX.utils.book_append_sheet(wb, ws2, "مشتريات الموردين");
 
+    // Receipts sheet
+    const rRows = allReceiptsForDisplay.map(r => ({
+      "التاريخ": r.date, "الوصف": r.description, "المبلغ": r.amount,
+      "الطريقة": r.method, "المصدر": r.source, "الورشة": r.workshopName,
+    }));
+    const ws3 = XLSX.utils.json_to_sheet(rRows);
+    XLSX.utils.book_append_sheet(wb, ws3, "المقبوضات");
+
     XLSX.writeFile(wb, `تقرير-الورشات-${format(new Date(), "yyyy-MM-dd")}.xlsx`);
     toast.success("تم تصدير التقرير بنجاح");
+  };
+
+  const handlePrint = () => {
+    const periodLabel = dateFrom && dateTo ? `من ${dateFrom} إلى ${dateTo}` : "";
+    const tableHeaders = ["الورشة", "الزبون", "الحالة", "الميزانية", "التكلفة", "المقبوض", "الربح", "هامش الربح"];
+    const tableRows = workshopProfitability.map(w => [
+      w.name, w.customer,
+      w.status === "completed" ? "مكتملة" : w.status === "active" ? "نشطة" : w.status === "paused" ? "متوقفة" : "ملغاة",
+      `₪${fmtNum(w.budget)}`, `₪${fmtNum(w.totalCost)}`, `₪${fmtNum(w.collected)}`,
+      `₪${fmtNum(w.profit)}`, `${Math.round(w.margin)}%`,
+    ]);
+    // Totals row
+    tableRows.push([
+      "الإجمالي", "", "", `₪${fmtNum(kpis.totalBudget)}`, `₪${fmtNum(kpis.totalCosts)}`,
+      `₪${fmtNum(totalCollected)}`, `₪${fmtNum(kpis.totalBudget - kpis.totalCosts)}`, `${Math.round(kpis.profitMargin)}%`,
+    ]);
+
+    const html = generateProfessionalPDFHtml({
+      company: companyInfo,
+      reportTitle: "تقرير الورشات",
+      reportTitleEn: "Workshop Report",
+      periodLabel,
+      summaryItems: [
+        { label: "عدد الورشات", value: String(kpis.total) },
+        { label: "إجمالي المقبوضات", value: `₪${fmtNum(totalCollected)}`, color: "#16A34A" },
+        { label: "إجمالي التكاليف", value: `₪${fmtNum(kpis.totalCosts)}`, color: "#DC2626" },
+        { label: "هامش الربح", value: `${Math.round(kpis.profitMargin)}%`, color: kpis.profitMargin >= 0 ? "#16A34A" : "#DC2626" },
+      ],
+      tableHeaders,
+      tableRows,
+      notes: [
+        `عدد الورشات النشطة: ${kpis.active} | المكتملة: ${kpis.completed}`,
+        `المقبوضات تشمل الدفعات المباشرة من الورشات وسندات القبض من المالية`,
+      ],
+    });
+    openPrintWindow(html);
   };
 
   if (loading) {
@@ -283,13 +421,19 @@ export default function WorkshopReportsPage() {
               <BarChart3 className="h-5 w-5 text-primary" />
               تقارير الورشات
             </h1>
-            <p className="text-xs text-muted-foreground">تحليل الربحية والتكاليف والمشتريات</p>
+            <p className="text-xs text-muted-foreground">تحليل الربحية والتكاليف والمقبوضات — مربوط بالمالية</p>
           </div>
         </div>
-        <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={exportExcel}>
-          <FileSpreadsheet className="h-3.5 w-3.5" />
-          تصدير Excel
-        </Button>
+        <div className="flex gap-1.5">
+          <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={handlePrint}>
+            <Printer className="h-3.5 w-3.5" />
+            طباعة
+          </Button>
+          <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={exportExcel}>
+            <FileSpreadsheet className="h-3.5 w-3.5" />
+            تصدير Excel
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -340,7 +484,7 @@ export default function WorkshopReportsPage() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         {[
           { label: "عدد الورشات", value: kpis.total, icon: Hammer, color: "text-primary", prefix: "" },
-          { label: "المقبوضة (مكتملة)", value: kpis.totalCollected, icon: CheckCircle2, color: "text-emerald-600", prefix: "₪" },
+          { label: "إجمالي المقبوضات", value: totalCollected, icon: Receipt, color: "text-emerald-600", prefix: "₪" },
           { label: "إجمالي التكاليف", value: kpis.totalCosts, icon: DollarSign, color: "text-destructive", prefix: "₪" },
           { label: "هامش الربح", value: Math.round(kpis.profitMargin), icon: TrendingUp, color: kpis.profitMargin >= 0 ? "text-emerald-600" : "text-destructive", prefix: "", suffix: "%" },
         ].map(k => (
@@ -360,6 +504,7 @@ export default function WorkshopReportsPage() {
       <Tabs defaultValue="profitability" className="space-y-3">
         <TabsList className="w-full justify-start overflow-x-auto">
           <TabsTrigger value="profitability" className="text-xs">ربحية الورشات</TabsTrigger>
+          <TabsTrigger value="receipts" className="text-xs">المقبوضات</TabsTrigger>
           <TabsTrigger value="sqm" className="text-xs">تكلفة المتر</TabsTrigger>
           <TabsTrigger value="costs" className="text-xs">توزيع التكاليف</TabsTrigger>
           <TabsTrigger value="suppliers" className="text-xs">مشتريات الموردين</TabsTrigger>
@@ -377,6 +522,7 @@ export default function WorkshopReportsPage() {
                   <TableHead className="text-[11px]">الحالة</TableHead>
                   <TableHead className="text-[11px]">الميزانية</TableHead>
                   <TableHead className="text-[11px]">التكلفة</TableHead>
+                  <TableHead className="text-[11px]">المقبوض</TableHead>
                   <TableHead className="text-[11px]">الربح</TableHead>
                   <TableHead className="text-[11px]">نسبة التكلفة</TableHead>
                   <TableHead className="text-[11px]">هامش الربح</TableHead>
@@ -385,7 +531,7 @@ export default function WorkshopReportsPage() {
               <TableBody>
                 {workshopProfitability.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center text-xs text-muted-foreground py-8">
+                    <TableCell colSpan={9} className="text-center text-xs text-muted-foreground py-8">
                       لا توجد ورشات في الفترة المحددة
                     </TableCell>
                   </TableRow>
@@ -400,6 +546,7 @@ export default function WorkshopReportsPage() {
                     </TableCell>
                     <TableCell className="text-xs tabular-nums">₪{fmtNum(w.budget)}</TableCell>
                     <TableCell className="text-xs tabular-nums text-destructive">₪{fmtNum(w.totalCost)}</TableCell>
+                    <TableCell className="text-xs tabular-nums text-emerald-600 font-semibold">₪{fmtNum(w.collected)}</TableCell>
                     <TableCell className={`text-xs tabular-nums font-semibold ${w.profit >= 0 ? "text-emerald-600" : "text-destructive"}`}>
                       ₪{fmtNum(w.profit)}
                     </TableCell>
@@ -420,6 +567,7 @@ export default function WorkshopReportsPage() {
                     <TableCell colSpan={3} className="text-xs font-bold">الإجمالي</TableCell>
                     <TableCell className="text-xs font-bold tabular-nums">₪{fmtNum(kpis.totalBudget)}</TableCell>
                     <TableCell className="text-xs font-bold tabular-nums text-destructive">₪{fmtNum(kpis.totalCosts)}</TableCell>
+                    <TableCell className="text-xs font-bold tabular-nums text-emerald-600">₪{fmtNum(totalCollected)}</TableCell>
                     <TableCell className={`text-xs font-bold tabular-nums ${(kpis.totalBudget - kpis.totalCosts) >= 0 ? "text-emerald-600" : "text-destructive"}`}>
                       ₪{fmtNum(kpis.totalBudget - kpis.totalCosts)}
                     </TableCell>
@@ -437,7 +585,7 @@ export default function WorkshopReportsPage() {
             </Table>
           </div>
 
-          {/* Cost breakdown per workshop (expandable detail) */}
+          {/* Cost breakdown per workshop */}
           {workshopProfitability.filter(w => Object.keys(w.costBreakdown).length > 0).length > 0 && (
             <Card className="border-border/50">
               <CardHeader className="pb-2 pt-3 px-3">
@@ -473,9 +621,73 @@ export default function WorkshopReportsPage() {
           )}
         </TabsContent>
 
+        {/* Tab: Receipts - All collections from workshops + Finance */}
+        <TabsContent value="receipts" className="space-y-3">
+          <Card className="border-border/50">
+            <CardHeader className="pb-2 pt-3 px-3">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Receipt className="h-4 w-4 text-emerald-600" />
+                جميع المقبوضات (ورشات + سندات قبض من المالية)
+              </CardTitle>
+              <p className="text-[10px] text-muted-foreground">
+                يشمل الدفعات المسجلة من داخل الورشة وسندات القبض المنشأة من وحدة المالية لنفس الزبون
+              </p>
+            </CardHeader>
+            <CardContent className="p-3 pt-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-[11px]">التاريخ</TableHead>
+                    <TableHead className="text-[11px]">الوصف</TableHead>
+                    <TableHead className="text-[11px]">الورشة</TableHead>
+                    <TableHead className="text-[11px]">المبلغ</TableHead>
+                    <TableHead className="text-[11px]">الطريقة</TableHead>
+                    <TableHead className="text-[11px]">المصدر</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {allReceiptsForDisplay.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center text-xs text-muted-foreground py-8">
+                        لا توجد مقبوضات مسجلة
+                      </TableCell>
+                    </TableRow>
+                  ) : allReceiptsForDisplay.map(r => (
+                    <TableRow key={r.id}>
+                      <TableCell className="text-xs tabular-nums">{r.date}</TableCell>
+                      <TableCell className="text-xs">{r.description}</TableCell>
+                      <TableCell className="text-xs">{r.workshopName}</TableCell>
+                      <TableCell className="text-xs tabular-nums font-semibold text-emerald-600">₪{fmtNum(r.amount)}</TableCell>
+                      <TableCell className="text-xs">{r.method}</TableCell>
+                      <TableCell>
+                        <Badge variant={r.source === "ورشات" ? "default" : "secondary"} className="text-[10px]">
+                          {r.source}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+                {allReceiptsForDisplay.length > 0 && (
+                  <TableFooter>
+                    <TableRow>
+                      <TableCell colSpan={3} className="text-xs font-bold">الإجمالي</TableCell>
+                      <TableCell className="text-xs font-bold tabular-nums text-emerald-600">
+                        ₪{fmtNum(allReceiptsForDisplay.reduce((s, r) => s + r.amount, 0))}
+                      </TableCell>
+                      <TableCell colSpan={2} className="text-xs text-muted-foreground">
+                        {allReceiptsForDisplay.filter(r => r.source === "ورشات").length} من الورشات |{" "}
+                        {allReceiptsForDisplay.filter(r => r.source === "المالية").length} من المالية
+                      </TableCell>
+                    </TableRow>
+                  </TableFooter>
+                )}
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         {/* Tab: Cost per SQM */}
         <TabsContent value="sqm" className="space-y-3">
-          {/* Type comparison */}
           {typeComparison.length > 0 && (
             <Card className="border-border/50">
               <CardHeader className="pb-2 pt-3 px-3">
@@ -512,7 +724,6 @@ export default function WorkshopReportsPage() {
             </Card>
           )}
 
-          {/* Per-workshop sqm analysis */}
           <Card className="border-border/50">
             <CardHeader className="pb-2 pt-3 px-3">
               <CardTitle className="text-sm">تفصيل تكلفة المتر لكل ورشة</CardTitle>
@@ -554,10 +765,9 @@ export default function WorkshopReportsPage() {
           </Card>
         </TabsContent>
 
-        {/* Tab 2: Cost Distribution */}
+        {/* Tab: Cost Distribution */}
         <TabsContent value="costs" className="space-y-3">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {/* Pie Chart */}
             <Card className="border-border/50">
               <CardHeader className="pb-2 pt-3 px-3">
                 <CardTitle className="text-sm">توزيع التكاليف حسب النوع</CardTitle>
@@ -582,7 +792,6 @@ export default function WorkshopReportsPage() {
               </CardContent>
             </Card>
 
-            {/* Cost Table */}
             <Card className="border-border/50">
               <CardHeader className="pb-2 pt-3 px-3">
                 <CardTitle className="text-sm">جدول التكاليف</CardTitle>
@@ -623,7 +832,7 @@ export default function WorkshopReportsPage() {
           </div>
         </TabsContent>
 
-        {/* Tab 3: Supplier Purchases */}
+        {/* Tab: Supplier Purchases */}
         <TabsContent value="suppliers" className="space-y-3">
           <Card className="border-border/50">
             <CardHeader className="pb-2 pt-3 px-3">
@@ -676,7 +885,7 @@ export default function WorkshopReportsPage() {
           </Card>
         </TabsContent>
 
-        {/* Tab 4: Monthly Trend */}
+        {/* Tab: Monthly Trend */}
         <TabsContent value="trend" className="space-y-3">
           <Card className="border-border/50">
             <CardHeader className="pb-2 pt-3 px-3">
