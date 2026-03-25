@@ -1,11 +1,15 @@
+import { useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { AlertTriangle, Lock, Shield } from "lucide-react";
+import { AlertTriangle, Lock, Shield, Eye, EyeOff, KeyRound, Check, Loader2 } from "lucide-react";
 import type { CompanySettings } from "@/hooks/useCompanySettings";
 import AdvancedPermissionsSection from "./AdvancedPermissionsSection";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface Props {
   settings: CompanySettings;
