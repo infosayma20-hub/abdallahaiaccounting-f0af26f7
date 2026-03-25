@@ -305,13 +305,14 @@ export default function NetworkPrintersManager() {
             </div>
             <div className="flex items-center gap-1">
               <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8"
+                variant="outline"
+                size="sm"
+                className="h-8 gap-1 text-xs px-2"
                 onClick={() => testPrinter(p)}
                 disabled={testing === p.id}
               >
                 <TestTube className={`h-3.5 w-3.5 ${testing === p.id ? "animate-spin" : ""}`} />
+                {testing === p.id ? "جاري..." : "اختبار"}
               </Button>
               <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(p)}>
                 <Settings2 className="h-3.5 w-3.5" />
