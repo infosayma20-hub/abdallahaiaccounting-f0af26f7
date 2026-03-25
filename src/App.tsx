@@ -86,6 +86,7 @@ import CustomerReportsPage from "./pages/CustomerReportsPage";
 import ModifierManagerPage from "./pages/ModifierManagerPage";
 import ContractorApp from "./pages/ContractorApp";
 import WorkshopsPage from "./pages/WorkshopsPage";
+import WorkshopReportsPage from "./pages/WorkshopReportsPage";
 import WorkerProcurementPage from "./pages/WorkerProcurementPage";
 import ContractsListPage from "./pages/ContractsListPage";
 import ContractFormPage from "./pages/ContractFormPage";
@@ -384,6 +385,7 @@ const App = () => (
                       <Route path="/customer-reports" element={<CustomerReportsPage />} />
                       <Route path="/contractor" element={<ContractorApp />} />
                       <Route path="/workshops" element={<WorkshopsPage />} />
+                      <Route path="/workshop-reports" element={<WorkshopReportsPage />} />
                       {/* Task Manager */}
                       <Route path="/tasks" element={<TaskLoginPage />} />
                       <Route path="/tasks/board" element={<TaskBoardPage />} />
