@@ -791,6 +791,49 @@ export default function WorkshopsPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* ── Payment Dialog ── */}
+        <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
+          <DialogContent className="max-w-sm" dir="rtl">
+            <DialogHeader>
+              <DialogTitle>💵 تسجيل دفعة من الزبون</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3 py-2">
+              <div className="p-3 rounded-lg bg-accent/5 border border-border space-y-1 text-sm">
+                <div className="flex justify-between"><span className="text-muted-foreground">الميزانية</span><span className="font-bold">{selectedWorkshop?.total_budget?.toLocaleString()} ₪</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">المدفوع سابقاً</span><span className="font-bold text-emerald-500">{totalPaid.toLocaleString()} ₪</span></div>
+                <div className="flex justify-between border-t border-border pt-1"><span className="text-muted-foreground">المتبقي</span><span className="font-bold text-amber-600">{((selectedWorkshop?.total_budget || 0) - totalPaid).toLocaleString()} ₪</span></div>
+              </div>
+              <div className="space-y-1">
+                <Label>مبلغ الدفعة (₪)</Label>
+                <Input type="number" value={paymentForm.amount || ""} onChange={e => setPaymentForm(f => ({ ...f, amount: Number(e.target.value) }))} />
+              </div>
+              <div className="space-y-1">
+                <Label>طريقة الدفع</Label>
+                <div className="flex gap-1">
+                  {["نقدي", "بنك"].map(m => (
+                    <button key={m} onClick={() => setPaymentForm(f => ({ ...f, payment_method: m }))}
+                      className={`flex-1 px-2 py-2 rounded-lg text-xs font-medium border transition-all ${
+                        paymentForm.payment_method === m ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground"
+                      }`}>{m}</button>
+                  ))}
+                </div>
+              </div>
+              <div className="space-y-1">
+                <Label>التاريخ</Label>
+                <Input type="date" value={paymentForm.payment_date} onChange={e => setPaymentForm(f => ({ ...f, payment_date: e.target.value }))} />
+              </div>
+              <div className="space-y-1">
+                <Label>ملاحظات</Label>
+                <Input value={paymentForm.description} onChange={e => setPaymentForm(f => ({ ...f, description: e.target.value }))} placeholder="مثل: دفعة أولى 50%" />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => setShowPaymentDialog(false)}>إلغاء</Button>
+              <Button onClick={handleAddPayment} disabled={paymentForm.amount <= 0}>تسجيل الدفعة</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }
