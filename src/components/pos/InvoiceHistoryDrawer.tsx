@@ -1018,10 +1018,10 @@ export default function InvoiceHistoryDrawer({
               </div>
 
               {/* Manager approval note */}
-              {selectedOrder.state === "paid" && !selectedOrder.recall_status && (
+              {requireManagerForInvoices && selectedOrder.state === "paid" && !selectedOrder.recall_status && (
                 <p className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1">
                   <Lock className="h-3 w-3" />
-                  التعديل والإلغاء يتطلب موافقة المدير
+                  التعديل يتطلب موافقة المدير
                 </p>
               )}
             </>
