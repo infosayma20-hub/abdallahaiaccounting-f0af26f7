@@ -86,6 +86,7 @@ import CustomerReportsPage from "./pages/CustomerReportsPage";
 import ModifierManagerPage from "./pages/ModifierManagerPage";
 import ContractorApp from "./pages/ContractorApp";
 import WorkshopsPage from "./pages/WorkshopsPage";
+import WorkshopReportsPage from "./pages/WorkshopReportsPage";
 import WorkerProcurementPage from "./pages/WorkerProcurementPage";
 import ContractsListPage from "./pages/ContractsListPage";
 import ContractFormPage from "./pages/ContractFormPage";
