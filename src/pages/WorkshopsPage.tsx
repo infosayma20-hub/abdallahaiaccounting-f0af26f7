@@ -446,19 +446,91 @@ export default function WorkshopsPage() {
             <Badge variant={status.variant}>{status.label}</Badge>
           </div>
 
+          {/* Area + Type info */}
+          {(selectedWorkshop.area_sqm || selectedWorkshop.workshop_type) && (
+            <div className="flex gap-2 flex-wrap text-xs">
+              {selectedWorkshop.workshop_type && (
+                <Badge variant="outline">{WORKSHOP_TYPES.find(t => t.value === selectedWorkshop.workshop_type)?.icon} {WORKSHOP_TYPES.find(t => t.value === selectedWorkshop.workshop_type)?.label}</Badge>
+              )}
+              {selectedWorkshop.area_sqm ? <Badge variant="outline">📐 {selectedWorkshop.area_sqm} م²</Badge> : null}
+              {selectedWorkshop.area_sqm && costSummary.total > 0 ? (
+                <Badge variant="secondary">تكلفة المتر: {Math.round(costSummary.total / selectedWorkshop.area_sqm).toLocaleString()} ₪/م²</Badge>
+              ) : null}
+            </div>
+          )}
+
+          {/* Image */}
+          {selectedWorkshop.image_url && (
+            <div className="rounded-xl overflow-hidden border border-border max-h-48">
+              <img src={selectedWorkshop.image_url} alt={selectedWorkshop.name} className="w-full h-48 object-cover" />
+            </div>
+          )}
+
+          {/* Budget Alert */}
+          {budgetUsedPct >= 80 && selectedWorkshop.total_budget > 0 && selectedWorkshop.status === "active" && (
+            <div className={`flex items-center gap-2 p-3 rounded-xl border ${budgetUsedPct >= 100 ? "bg-destructive/10 border-destructive/30 text-destructive" : "bg-amber-500/10 border-amber-500/30 text-amber-700"}`}>
+              <AlertTriangle className="h-4 w-4 shrink-0" />
+              <p className="text-xs font-medium">
+                {budgetUsedPct >= 100
+                  ? `⚠️ تم تجاوز الميزانية! التكاليف ${Math.round(budgetUsedPct)}% من الميزانية`
+                  : `⚠️ تنبيه: تم استهلاك ${Math.round(budgetUsedPct)}% من الميزانية`}
+              </p>
+            </div>
+          )}
+
           {/* KPIs */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
             {[
               { label: "الميزانية", value: `${selectedWorkshop.total_budget?.toLocaleString()} ₪`, cls: "text-foreground" },
               { label: "إجمالي التكاليف", value: `${costSummary.total.toLocaleString()} ₪`, cls: "text-destructive" },
-              { label: "الربح/المتبقي", value: `${profit.toLocaleString()} ₪`, cls: profit >= 0 ? "text-emerald-500" : "text-destructive" },
-              { label: "عدد البنود", value: String(costs.length), cls: "text-foreground" },
+              { label: "المقبوض", value: `${totalPaid.toLocaleString()} ₪`, cls: "text-emerald-500" },
+              { label: "المتبقي على الزبون", value: `${(selectedWorkshop.total_budget - totalPaid).toLocaleString()} ₪`, cls: (selectedWorkshop.total_budget - totalPaid) > 0 ? "text-amber-600" : "text-emerald-500" },
+              { label: "الربح", value: `${(selectedWorkshop.total_budget - costSummary.total).toLocaleString()} ₪`, cls: (selectedWorkshop.total_budget - costSummary.total) >= 0 ? "text-emerald-500" : "text-destructive" },
             ].map(kpi => (
-              <div key={kpi.label} className="rounded-xl bg-card border border-border p-4 text-center">
-                <p className="text-xs text-muted-foreground">{kpi.label}</p>
-                <p className={`text-lg font-bold ${kpi.cls}`}>{kpi.value}</p>
+              <div key={kpi.label} className="rounded-xl bg-card border border-border p-3 text-center">
+                <p className="text-[10px] text-muted-foreground">{kpi.label}</p>
+                <p className={`text-base font-bold ${kpi.cls}`}>{kpi.value}</p>
               </div>
             ))}
+          </div>
+
+          {/* Payments section */}
+          <div className="rounded-xl bg-card border border-border p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-bold text-foreground flex items-center gap-1.5">
+                <Receipt className="h-3.5 w-3.5" /> الدفعات المقبوضة
+              </h3>
+              <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => {
+                setPaymentForm({ amount: 0, payment_method: "نقدي", description: "", payment_date: format(new Date(), "yyyy-MM-dd") });
+                setShowPaymentDialog(true);
+              }}>
+                <Plus className="h-3 w-3" /> دفعة جديدة
+              </Button>
+            </div>
+            {payments.length === 0 ? (
+              <p className="text-xs text-muted-foreground text-center py-4">لم يتم تسجيل دفعات بعد</p>
+            ) : (
+              <div className="space-y-1.5">
+                {payments.map(p => (
+                  <div key={p.id} className="flex items-center gap-2 text-xs p-2 rounded-lg bg-accent/5 border border-border">
+                    <span className="text-emerald-500 font-bold">+{p.amount.toLocaleString()} ₪</span>
+                    <span className="text-muted-foreground">{p.payment_method}</span>
+                    <span className="flex-1 text-muted-foreground truncate">{p.description}</span>
+                    <span className="text-muted-foreground/60">{p.payment_date}</span>
+                  </div>
+                ))}
+                {/* Progress bar for payments */}
+                <div className="mt-2">
+                  <div className="flex justify-between text-[10px] text-muted-foreground mb-1">
+                    <span>المدفوع {Math.round((totalPaid / (selectedWorkshop.total_budget || 1)) * 100)}%</span>
+                    <span>{totalPaid.toLocaleString()} / {selectedWorkshop.total_budget.toLocaleString()} ₪</span>
+                  </div>
+                  <div className="h-2 bg-muted rounded-full overflow-hidden">
+                    <div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: `${Math.min((totalPaid / (selectedWorkshop.total_budget || 1)) * 100, 100)}%` }} />
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Cost breakdown */}
@@ -493,7 +565,7 @@ export default function WorkshopsPage() {
             <div className="flex gap-2">
               <Button size="sm" variant="outline" onClick={() => handleUpdateStatus(selectedWorkshop, "paused")} className="flex-1">⏸️ إيقاف</Button>
               <Button size="sm" onClick={() => {
-                setInvoiceForm({ amount: selectedWorkshop.total_budget, payment_method: "آجل", description: "" });
+                setInvoiceForm({ amount: selectedWorkshop.total_budget - totalPaid, payment_method: "آجل", description: "" });
                 setShowInvoiceDialog(true);
               }} className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white">💰 فوترة واكتمال</Button>
             </div>
