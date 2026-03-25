@@ -22,12 +22,18 @@ type Workshop = {
   address: string | null; description: string | null; status: string; total_budget: number;
   start_date: string | null; expected_end_date: string | null; actual_end_date: string | null;
   notes: string | null; created_at: string; contact_id: string | null;
+  area_sqm: number | null; image_url: string | null; workshop_type: string | null;
 };
 type WorkshopCost = {
   id: string; workshop_id: string; cost_type: string; description: string | null;
   amount: number; cost_date: string; supplier_name: string | null; payment_method: string | null;
   notes: string | null; created_at: string; linked_transaction_id: string | null;
   supplier_contact_id: string | null;
+};
+type WorkshopPayment = {
+  id: string; workshop_id: string; amount: number; payment_method: string;
+  payment_date: string; description: string | null; linked_transaction_id: string | null;
+  created_at: string;
 };
 type Contact = { id: string; contact_name: string; contact_type: string; current_balance: number };
 
