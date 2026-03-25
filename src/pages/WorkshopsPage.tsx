@@ -133,6 +133,10 @@ export default function WorkshopsPage() {
   const [payments, setPayments] = useState<WorkshopPayment[]>([]);
   const [loadingCosts, setLoadingCosts] = useState(false);
   const [showNewWorkshop, setShowNewWorkshop] = useState(false);
+  const [showEditWorkshop, setShowEditWorkshop] = useState(false);
+  const [editingWorkshop, setEditingWorkshop] = useState<Workshop | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deletingWorkshop, setDeletingWorkshop] = useState<Workshop | null>(null);
   const [showNewCost, setShowNewCost] = useState(false);
   const [showInvoiceDialog, setShowInvoiceDialog] = useState(false);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
