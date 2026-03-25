@@ -173,9 +173,47 @@ export default function WorkshopReportsPage() {
         budget: w.total_budget || 0, totalCost, profit, margin,
         costBreakdown,
         startDate: w.start_date,
+        area_sqm: (w as any).area_sqm || 0,
+        workshop_type: (w as any).workshop_type || "other",
       };
     }).sort((a, b) => b.budget - a.budget);
   }, [filtered, costs]);
+
+  // Cost per sqm analysis
+  const costPerSqmData = useMemo(() => {
+    return workshopProfitability
+      .filter(w => w.area_sqm > 0)
+      .map(w => ({
+        ...w,
+        costPerSqm: w.area_sqm > 0 ? Math.round(w.totalCost / w.area_sqm) : 0,
+        budgetPerSqm: w.area_sqm > 0 ? Math.round(w.budget / w.area_sqm) : 0,
+        profitPerSqm: w.area_sqm > 0 ? Math.round(w.profit / w.area_sqm) : 0,
+      }))
+      .sort((a, b) => b.costPerSqm - a.costPerSqm);
+  }, [workshopProfitability]);
+
+  // Type comparison
+  const typeComparison = useMemo(() => {
+    const map: Record<string, { count: number; totalCost: number; totalArea: number; totalBudget: number }> = {};
+    workshopProfitability.forEach(w => {
+      const t = w.workshop_type || "other";
+      if (!map[t]) map[t] = { count: 0, totalCost: 0, totalArea: 0, totalBudget: 0 };
+      map[t].count++;
+      map[t].totalCost += w.totalCost;
+      map[t].totalArea += w.area_sqm;
+      map[t].totalBudget += w.budget;
+    });
+    const WORKSHOP_TYPE_LABELS: Record<string, string> = {
+      kitchen: "🍳 مطبخ", bedroom: "🛏️ غرفة نوم", livingroom: "🛋️ صالون",
+      closet: "🗄️ خزائن", door: "🚪 أبواب", other: "📦 أخرى",
+    };
+    return Object.entries(map).map(([type, d]) => ({
+      type, label: WORKSHOP_TYPE_LABELS[type] || type,
+      ...d,
+      avgCostPerSqm: d.totalArea > 0 ? Math.round(d.totalCost / d.totalArea) : 0,
+      avgBudgetPerSqm: d.totalArea > 0 ? Math.round(d.totalBudget / d.totalArea) : 0,
+    }));
+  }, [workshopProfitability]);
 
   // Purchases by supplier
   const supplierPurchases = useMemo(() => {
