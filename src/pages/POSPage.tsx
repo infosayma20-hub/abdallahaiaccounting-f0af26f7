@@ -3117,7 +3117,7 @@ const POSPage = () => {
         {terminal && (
           <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-white/70 text-xs" style={{ background: "rgba(255,255,255,0.08)" }}>
             <Monitor className="h-3 w-3" />
-            <span>{(session?.cash_box_id && cashBoxes.find(b => b.id === session.cash_box_id)?.name) || terminal.name}</span>
+            <span>{posDisplayName}</span>
           </div>
         )}
 
