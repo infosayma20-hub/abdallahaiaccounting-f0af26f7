@@ -229,6 +229,12 @@ export const navigationSections: NavSection[] = [
         keywords: ["مقاولات", "مشاريع", "مقاول"],
       },
       {
+        id: "workshops", label: "الورشات", description: "إدارة ورشات العمل وتتبع تكاليف كل ورشة", module: "accounting", icon: Building2,
+        color: "text-amber-700", bgColor: "bg-amber-600/10", path: "/workshops", isDirect: true,
+        enableSetting: "has_workshops",
+        keywords: ["ورشة", "ورشات", "منجرة", "مطبخ", "خشب", "نجار"],
+      },
+      {
         id: "ecommerce", label: "إدارة المتاجر الإلكترونية", description: "إدارة مالية للمتاجر والصفحات الإلكترونية", module: "sales", icon: Store,
         color: "text-amber-500", bgColor: "bg-amber-500/10", path: "/orders", isDirect: true,
         enableSetting: "has_ecommerce",
