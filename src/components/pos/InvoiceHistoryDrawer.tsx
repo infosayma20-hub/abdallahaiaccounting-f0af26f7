@@ -551,7 +551,7 @@ export default function InvoiceHistoryDrawer({
 
   // ── Cancel: require manager based on permission ──
   const initiateCancel = (order: InvoiceOrder) => {
-    if (!canEditInvoices) {
+    if (!canCancelInvoices) {
       toast.error("ليس لديك صلاحية إلغاء الفواتير");
       return;
     }
