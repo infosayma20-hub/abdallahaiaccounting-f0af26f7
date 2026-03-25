@@ -257,12 +257,6 @@ export default function POSReceiptDialog({ open, onOpenChange, data, showReturnP
               <hr style={{ border: "none", borderTop: "2px solid #000", margin: "8px 0" }} />
 
               {/* ═══ ORDER META ═══ */}
-              {data.displayNumber && (
-                <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", fontSize: "12px" }}>
-                  <span style={{ color: "#000", fontWeight: 700 }}>رقم الفاتورة</span>
-                  <span style={{ fontWeight: 900, color: "#000", fontVariantNumeric: "tabular-nums" }}>{data.displayNumber}</span>
-                </div>
-              )}
               {data.queueNumber != null && (
                 <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", fontSize: "14px" }}>
                   <span style={{ color: "#000", fontWeight: 800 }}>رقم الطلب</span>
@@ -441,7 +435,7 @@ export default function POSReceiptDialog({ open, onOpenChange, data, showReturnP
 
               {/* ═══ BARCODE ═══ */}
               <div style={{ textAlign: "center", fontFamily: "monospace", fontSize: "12px", letterSpacing: "3px", color: "#000", fontWeight: 700, margin: "4px 0" }}>
-                ║║║ {data.displayNumber || data.orderNumber} ║║║
+                ║║║ {data.queueNumber || data.orderNumber} ║║║
               </div>
 
               {/* ═══ FOOTER ═══ */}
