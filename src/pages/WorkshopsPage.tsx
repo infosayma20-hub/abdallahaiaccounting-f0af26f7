@@ -970,11 +970,26 @@ export default function WorkshopsPage() {
                   onClick={() => openWorkshop(ws)}
                   className="rounded-2xl bg-card border border-border p-4 cursor-pointer hover:shadow-md hover:border-primary/30 transition-all space-y-3">
                   <div className="flex items-start justify-between">
-                    <div>
+                    <div className="flex-1 min-w-0" onClick={() => openWorkshop(ws)}>
                       <h3 className="font-bold text-foreground">{ws.name}</h3>
                       <p className="text-xs text-muted-foreground">{ws.customer_name || "بدون زبون"}</p>
                     </div>
-                    <Badge variant={status.variant} className="text-[10px]">{status.label}</Badge>
+                    <div className="flex items-center gap-1">
+                      <Badge variant={status.variant} className="text-[10px]">{status.label}</Badge>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild onClick={e => e.stopPropagation()}>
+                          <Button variant="ghost" size="icon" className="h-7 w-7"><MoreVertical className="h-3.5 w-3.5" /></Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start">
+                          <DropdownMenuItem onClick={e => { e.stopPropagation(); openEditWorkshop(ws); }}>
+                            <Edit className="h-3.5 w-3.5 ml-2" /> تعديل
+                          </DropdownMenuItem>
+                          <DropdownMenuItem className="text-destructive" onClick={e => { e.stopPropagation(); setDeletingWorkshop(ws); setShowDeleteConfirm(true); }}>
+                            <Trash2 className="h-3.5 w-3.5 ml-2" /> حذف
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                   </div>
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-muted-foreground">الميزانية: <strong className="text-foreground">{ws.total_budget?.toLocaleString()} ₪</strong></span>
