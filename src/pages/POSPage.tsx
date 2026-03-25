@@ -696,7 +696,7 @@ const POSPage = () => {
           can_remove_cart_items: p.can_remove_cart_items ?? true,
            can_view_invoice_history: p.can_view_invoice_history ?? true,
            can_edit_invoices: p.can_edit_invoices ?? false,
-           can_cancel_invoices: (p as any).can_cancel_invoices ?? true,
+           can_cancel_invoices: (p as any).can_cancel_invoices ?? false,
            require_manager_for_invoices: p.require_manager_for_invoices ?? true,
           print_invoices: p.print_invoices ?? true,
           resend_invoice: p.resend_invoice ?? false,
