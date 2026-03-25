@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { format, subMonths, startOfMonth, endOfMonth } from "date-fns";
+import { format, startOfDay, startOfWeek, startOfMonth } from "date-fns";
 import {
   Hammer, TrendingUp, DollarSign, BarChart3,
   FileSpreadsheet, Download, Filter, Calendar,
