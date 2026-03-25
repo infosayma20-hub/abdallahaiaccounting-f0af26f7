@@ -13,6 +13,7 @@ interface CurrencyBreakdown {
 
 interface ShiftSummaryData {
   companyName: string;
+  logoUrl?: string;
   terminalName: string;
   cashierName: string;
   cashBoxName?: string;
@@ -173,6 +174,9 @@ export default function ShiftSummaryReceipt({ open, onOpenChange, data }: ShiftS
           >
             {/* Header */}
             <div style={{ textAlign: "center", marginBottom: 8 }}>
+              {data.logoUrl && (
+                <img src={data.logoUrl} alt={data.companyName} style={{ maxWidth: "120px", maxHeight: "60px", margin: "0 auto 4px", display: "block", filter: "grayscale(100%) contrast(1.2)" }} />
+              )}
               <div style={{ fontSize: 20, fontWeight: 900, color: "#000" }}>{data.companyName}</div>
               <div style={{ fontSize: 12, color: "#000", fontWeight: 700 }}>{data.terminalName}</div>
               <hr style={{ border: "none", borderTop: "2px solid #000", margin: "8px 0" }} />
