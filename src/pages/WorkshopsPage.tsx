@@ -389,6 +389,67 @@ export default function WorkshopsPage() {
     if (selectedWorkshop?.id === ws.id) setSelectedWorkshop({ ...ws, ...updates });
   };
 
+  /* ── Open Edit Workshop ── */
+  const openEditWorkshop = (ws: Workshop) => {
+    setEditingWorkshop(ws);
+    setWsForm({
+      name: ws.name, customer_name: ws.customer_name || "", customer_phone: ws.customer_phone || "",
+      address: ws.address || "", description: ws.description || "",
+      total_budget: ws.total_budget || 0, start_date: ws.start_date || format(new Date(), "yyyy-MM-dd"),
+      expected_end_date: ws.expected_end_date || "",
+      contact_id: ws.contact_id || null,
+      area_sqm: ws.area_sqm || 0, workshop_type: ws.workshop_type || "kitchen",
+      image_url: ws.image_url || "",
+    });
+    setShowEditWorkshop(true);
+  };
+
+  /* ── Save Edit Workshop ── */
+  const handleEditWorkshop = async () => {
+    if (!editingWorkshop || !wsForm.name.trim()) { toast.error("اسم الورشة مطلوب"); return; }
+    const { error } = await supabase.from("workshops").update({
+      name: wsForm.name, customer_name: wsForm.customer_name || null,
+      customer_phone: wsForm.customer_phone || null, address: wsForm.address || null,
+      description: wsForm.description || null, total_budget: wsForm.total_budget || 0,
+      start_date: wsForm.start_date || null, expected_end_date: wsForm.expected_end_date || null,
+      contact_id: wsForm.contact_id || null, area_sqm: wsForm.area_sqm || null,
+      workshop_type: wsForm.workshop_type || "kitchen", image_url: wsForm.image_url || null,
+      updated_at: new Date().toISOString(),
+    } as any).eq("id", editingWorkshop.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("تم تعديل الورشة بنجاح");
+    setShowEditWorkshop(false);
+    setEditingWorkshop(null);
+    setWsForm(defaultWsForm());
+    loadWorkshops();
+    if (selectedWorkshop?.id === editingWorkshop.id) {
+      setSelectedWorkshop({ ...editingWorkshop, ...wsForm, area_sqm: wsForm.area_sqm || null, contact_id: wsForm.contact_id || null, image_url: wsForm.image_url || null } as any);
+    }
+  };
+
+  /* ── Delete Workshop + related costs/payments/transactions ── */
+  const handleDeleteWorkshop = async (ws: Workshop) => {
+    // Soft-delete linked transactions
+    const { data: costData } = await supabase.from("workshop_costs").select("linked_transaction_id").eq("workshop_id", ws.id);
+    const { data: payData } = await supabase.from("workshop_payments").select("linked_transaction_id").eq("workshop_id", ws.id);
+    const txIds = [
+      ...((costData as any) || []).map((c: any) => c.linked_transaction_id).filter(Boolean),
+      ...((payData as any) || []).map((p: any) => p.linked_transaction_id).filter(Boolean),
+    ];
+    if (txIds.length > 0) {
+      await supabase.from("transactions").update({ is_deleted: true } as any).in("id", txIds);
+    }
+    // Delete costs, payments, then workshop
+    await supabase.from("workshop_costs").delete().eq("workshop_id", ws.id);
+    await supabase.from("workshop_payments").delete().eq("workshop_id", ws.id);
+    await supabase.from("workshops").delete().eq("id", ws.id);
+    toast.success("تم حذف الورشة وجميع القيود المرتبطة بها");
+    setShowDeleteConfirm(false);
+    setDeletingWorkshop(null);
+    if (selectedWorkshop?.id === ws.id) setSelectedWorkshop(null);
+    loadWorkshops();
+  };
+
   const filteredWorkshops = useMemo(() => {
     return workshops.filter(ws => {
       if (statusFilter !== "all" && ws.status !== statusFilter) return false;
