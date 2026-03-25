@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import {
   Plus, Search, Hammer, Trash2, ArrowLeft,
-  DollarSign, ChevronDown,
+  DollarSign, ChevronDown, UserPlus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -534,7 +534,7 @@ export default function WorkshopsPage() {
                         placeholder="ابحث عن مورد أو اكتب الاسم مباشرة..." className="pr-8 h-9 text-sm" />
                     </div>
                     {showSupplierPicker && supplierSearch && (
-                      <div className="max-h-28 overflow-y-auto rounded-lg border border-border bg-card">
+                      <div className="max-h-36 overflow-y-auto rounded-lg border border-border bg-card">
                         {filteredSuppliers.slice(0, 5).map(s => (
                           <button key={s.id} onClick={() => {
                             setCostForm(f => ({ ...f, supplier_contact_id: s.id, supplier_name: s.contact_name }));
@@ -543,10 +543,22 @@ export default function WorkshopsPage() {
                             {s.contact_name}
                           </button>
                         ))}
-                        {filteredSuppliers.length === 0 && (
-                          <p className="text-xs text-muted-foreground p-2">
-                            لا يوجد — اكتب اسم المورد في حقل "اسم المورد" بالأسفل
-                          </p>
+                        {filteredSuppliers.length === 0 && supplierSearch.trim().length > 1 && (
+                          <button onClick={async () => {
+                            const name = supplierSearch.trim();
+                            const { data, error } = await supabase.from("contacts").upsert(
+                              { contact_name: name, contact_type: "مورد", user_id: user!.id, current_balance: 0 },
+                              { onConflict: "contact_name,user_id" }
+                            ).select().single();
+                            if (error) { toast.error("خطأ في إضافة المورد"); return; }
+                            toast.success(`تم إضافة المورد "${name}"`);
+                            setCostForm(f => ({ ...f, supplier_contact_id: data.id, supplier_name: data.contact_name }));
+                            setShowSupplierPicker(false); setSupplierSearch("");
+                            loadContacts();
+                          }} className="w-full text-right px-3 py-2 text-sm hover:bg-primary/10 text-primary font-medium flex items-center gap-2">
+                            <UserPlus className="h-3.5 w-3.5" />
+                            إضافة مورد جديد "{supplierSearch.trim()}"
+                          </button>
                         )}
                       </div>
                     )}
@@ -735,7 +747,7 @@ export default function WorkshopsPage() {
                       placeholder="ابحث عن زبون..." className="pr-8 h-9 text-sm" />
                   </div>
                   {showContactPicker && contactSearch && (
-                    <div className="max-h-28 overflow-y-auto rounded-lg border border-border bg-card">
+                    <div className="max-h-36 overflow-y-auto rounded-lg border border-border bg-card">
                       {filteredCustomers.slice(0, 5).map(c => (
                         <button key={c.id} onClick={() => {
                           setWsForm(f => ({ ...f, contact_id: c.id, customer_name: c.contact_name }));
@@ -745,7 +757,23 @@ export default function WorkshopsPage() {
                           <span className="text-[10px] text-muted-foreground mr-2">({c.current_balance.toLocaleString()} ₪)</span>
                         </button>
                       ))}
-                      {filteredCustomers.length === 0 && <p className="text-xs text-muted-foreground p-2">لا يوجد — أدخل الاسم يدوياً</p>}
+                      {filteredCustomers.length === 0 && contactSearch.trim().length > 1 && (
+                        <button onClick={async () => {
+                          const name = contactSearch.trim();
+                          const { data, error } = await supabase.from("contacts").upsert(
+                            { contact_name: name, contact_type: "عميل", user_id: user!.id, current_balance: 0 },
+                            { onConflict: "contact_name,user_id" }
+                          ).select().single();
+                          if (error) { toast.error("خطأ في إضافة الزبون"); return; }
+                          toast.success(`تم إضافة الزبون "${name}"`);
+                          setWsForm(f => ({ ...f, contact_id: data.id, customer_name: data.contact_name }));
+                          setShowContactPicker(false); setContactSearch("");
+                          loadContacts();
+                        }} className="w-full text-right px-3 py-2 text-sm hover:bg-primary/10 text-primary font-medium flex items-center gap-2">
+                          <UserPlus className="h-3.5 w-3.5" />
+                          إضافة زبون جديد "{contactSearch.trim()}"
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
