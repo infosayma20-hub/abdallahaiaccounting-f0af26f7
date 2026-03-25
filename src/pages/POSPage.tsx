@@ -2479,7 +2479,7 @@ const POSPage = () => {
         cashierName: session.cashier_name,
         companyName: company?.name || "شركتي",
         logoUrl: company?.logo_url || "",
-        terminalName: terminal?.name || "نقطة بيع",
+        terminalName: posDisplayName,
         customerName: customerName,
         customerPhone: activeOrder.customerPhone || "",
         tableName: tableName || undefined,
