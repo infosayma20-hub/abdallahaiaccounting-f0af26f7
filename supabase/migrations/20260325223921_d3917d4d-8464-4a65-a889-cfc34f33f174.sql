@@ -1,0 +1,1 @@
+ALTER TABLE public.pos_user_permissions ALTER COLUMN can_cancel_invoices SET DEFAULT false;
