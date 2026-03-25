@@ -87,6 +87,7 @@ interface InvoiceHistoryDrawerProps {
   cashierName: string;
   terminalName: string;
   canEditInvoices?: boolean;
+  canCancelInvoices?: boolean;
   requireManagerForInvoices?: boolean;
   allowOrderTransfer?: boolean;
   printInvoices?: boolean;
@@ -118,7 +119,7 @@ const RECALL_REASONS = [
 ];
 
 export default function InvoiceHistoryDrawer({
-  open, onClose, dataOwnerId, sessionId, cashierName, terminalName, canEditInvoices = true, requireManagerForInvoices = true, allowOrderTransfer = false, printInvoices = true, resendInvoice = true, onRecallToCart,
+  open, onClose, dataOwnerId, sessionId, cashierName, terminalName, canEditInvoices = true, canCancelInvoices = true, requireManagerForInvoices = true, allowOrderTransfer = false, printInvoices = true, resendInvoice = true, onRecallToCart,
 }: InvoiceHistoryDrawerProps) {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -550,7 +551,7 @@ export default function InvoiceHistoryDrawer({
 
   // ── Cancel: require manager based on permission ──
   const initiateCancel = (order: InvoiceOrder) => {
-    if (!canEditInvoices) {
+    if (!canCancelInvoices) {
       toast.error("ليس لديك صلاحية إلغاء الفواتير");
       return;
     }
@@ -804,7 +805,7 @@ export default function InvoiceHistoryDrawer({
                             <RotateCcw className="h-3 w-3" /> استدعاء
                           </button>
                         )}
-                        {canEditInvoices && (order.state === "paid" || order.recall_status === "recalled") && !isTransferredOut(order) && (
+                        {canCancelInvoices && (order.state === "paid" || order.recall_status === "recalled") && !isTransferredOut(order) && (
                           <button
                             onClick={e => { e.stopPropagation(); initiateCancel(order); }}
                             className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium transition-colors"
@@ -977,7 +978,7 @@ export default function InvoiceHistoryDrawer({
                 </Button>
                 )}
 
-                {canEditInvoices && (selectedOrder.state === "paid" || selectedOrder.recall_status === "recalled") && (
+                {canCancelInvoices && (selectedOrder.state === "paid" || selectedOrder.recall_status === "recalled") && (
                   <>
                     <Button
                       size="sm"
@@ -1017,10 +1018,10 @@ export default function InvoiceHistoryDrawer({
               </div>
 
               {/* Manager approval note */}
-              {selectedOrder.state === "paid" && !selectedOrder.recall_status && (
+              {requireManagerForInvoices && selectedOrder.state === "paid" && !selectedOrder.recall_status && (
                 <p className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1">
                   <Lock className="h-3 w-3" />
-                  التعديل والإلغاء يتطلب موافقة المدير
+                  التعديل يتطلب موافقة المدير
                 </p>
               )}
             </>

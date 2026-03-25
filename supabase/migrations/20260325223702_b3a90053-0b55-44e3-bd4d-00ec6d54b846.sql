@@ -1,0 +1,1 @@
+ALTER TABLE public.pos_user_permissions ADD COLUMN IF NOT EXISTS can_cancel_invoices boolean NOT NULL DEFAULT true;
