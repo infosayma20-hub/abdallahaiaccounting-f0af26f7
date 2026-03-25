@@ -2461,6 +2461,37 @@ const POSPage = () => {
       setShowPayment(false);
       setShowReceipt(true);
 
+      // Fire-and-forget: send to print bridge (local thermal printers)
+      try {
+        const bridgeOrder: BridgePrintOrder = {
+          orderNumber: res.order_number,
+          branchName: company?.name || "مطعم الملكي",
+          cashier: session.cashier_name,
+          tableNumber: activeOrder.tableName || undefined,
+          orderType: activeOrder.orderType,
+          items: cart.map(item => ({
+            id: item.product_id || item.id,
+            name: item.name,
+            quantity: item.qty,
+            price: item.unit_price,
+            note: item.note || undefined,
+            modifiers: (item.modifiers || []).map(m => ({ option_name: m.option_name, extra_price: m.extra_price })),
+          })),
+          subtotal: cartTotals.subtotal,
+          discount: effectiveDiscount,
+          total: effectiveTotal,
+          paymentMethod: effectivePaymentMethod === "cash" ? "نقد" : effectivePaymentMethod === "card" ? "بطاقة" : "تحويل",
+          currency: paymentCurrency,
+          exchangeRate: rate,
+          tenderedAmount: tendered,
+          change: changeILS,
+          orderNote,
+        };
+        bridgePrintAll(bridgeOrder);
+      } catch (printErr) {
+        console.warn("Print bridge error:", printErr);
+      }
+
       // Create kitchen tickets (split by station)
       try {
         const { data: stationsData } = await supabase
