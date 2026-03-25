@@ -2977,8 +2977,8 @@ const POSPage = () => {
             modifiers: (item.modifiers || []).map(m => ({ option_name: m.option_name, extra_price: m.extra_price })),
           })),
           subtotal: cartTotals.subtotal,
-          discount: effectiveOrderDiscount,
-          total: cartTotals.total - effectiveOrderDiscount,
+          discount: cartTotals.discount,
+          total: cartTotals.total,
           paymentMethod: paymentMethod === "cash" ? "نقد" : paymentMethod === "card" ? "بطاقة" : "تحويل",
         };
         bridgePrintAll(f8Order);
