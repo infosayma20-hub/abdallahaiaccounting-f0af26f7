@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { format, startOfDay, startOfWeek, startOfMonth } from "date-fns";
+import { format, startOfDay, startOfWeek, startOfMonth, subMonths } from "date-fns";
 import {
   Hammer, TrendingUp, DollarSign, BarChart3,
   FileSpreadsheet, Download, Filter, Calendar,
@@ -42,7 +42,7 @@ export default function WorkshopReportsPage() {
   const [loading, setLoading] = useState(true);
 
   // Filters
-  type DatePreset = "today" | "week" | "month" | "custom";
+  type DatePreset = "today" | "week" | "month" | "quarter" | "half" | "year" | "custom";
   const [datePreset, setDatePreset] = useState<DatePreset>("custom");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState(() => format(new Date(), "yyyy-MM-dd"));
@@ -76,6 +76,18 @@ export default function WorkshopReportsPage() {
         break;
       case "month":
         setDateFrom(format(startOfMonth(today), "yyyy-MM-dd"));
+        setDateTo(format(today, "yyyy-MM-dd"));
+        break;
+      case "quarter":
+        setDateFrom(format(subMonths(today, 3), "yyyy-MM-dd"));
+        setDateTo(format(today, "yyyy-MM-dd"));
+        break;
+      case "half":
+        setDateFrom(format(subMonths(today, 6), "yyyy-MM-dd"));
+        setDateTo(format(today, "yyyy-MM-dd"));
+        break;
+      case "year":
+        setDateFrom(format(subMonths(today, 12), "yyyy-MM-dd"));
         setDateTo(format(today, "yyyy-MM-dd"));
         break;
       case "custom":
@@ -257,6 +269,9 @@ export default function WorkshopReportsPage() {
                 { v: "today" as DatePreset, l: "اليوم" },
                 { v: "week" as DatePreset, l: "الأسبوع" },
                 { v: "month" as DatePreset, l: "الشهر" },
+                { v: "quarter" as DatePreset, l: "ربع سنوي" },
+                { v: "half" as DatePreset, l: "نصف سنوي" },
+                { v: "year" as DatePreset, l: "سنوي" },
               ]).map(p => (
                 <Button key={p.v} variant={datePreset === p.v ? "default" : "outline"} size="sm"
                   className="h-7 text-[10px] px-2" onClick={() => applyPreset(p.v)}>
