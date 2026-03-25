@@ -28,6 +28,8 @@ interface ReceiptItem {
 interface ReceiptData {
   orderId?: string;
   orderNumber: string;
+  displayNumber?: string;
+  queueNumber?: number;
   date: string;
   cashierName: string;
   companyName: string;
@@ -230,11 +232,20 @@ export default function POSReceiptDialog({ open, onOpenChange, data, showReturnP
           <div className="bg-white text-[#1a1a1a] rounded-xl border border-border overflow-hidden shadow-sm">
             <div ref={receiptRef} className="p-5" style={{ fontFamily: "'Arial', 'Tahoma', sans-serif", fontSize: "13px", direction: "rtl", fontWeight: 600, color: "#000" }}>
               
+              {/* ═══ LOGO ═══ */}
+              <div style={{ textAlign: "center", paddingBottom: "2px" }}>
+                <div style={{ fontSize: "28px", fontWeight: 900, color: "#000", letterSpacing: "1px", lineHeight: 1.2, fontFamily: "'Arial', 'Tahoma', sans-serif" }}>
+                  مطعم الملكي
+                </div>
+                <div style={{ fontSize: "11px", fontWeight: 700, color: "#333", letterSpacing: "2px", marginTop: "1px" }}>
+                  MALAKY RESTAURANT
+                </div>
+              </div>
+
+              <hr style={{ border: "none", borderTop: "1px solid #999", margin: "4px 0" }} />
+
               {/* ═══ HEADER ═══ */}
               <div style={{ textAlign: "center", paddingBottom: "4px" }}>
-                <div style={{ fontSize: "20px", fontWeight: 900, color: "#000", marginBottom: "2px" }}>
-                  {data.companyName}
-                </div>
                 <div style={{ fontSize: "12px", color: "#000", fontWeight: 700 }}>
                   {data.terminalName}
                 </div>
@@ -246,10 +257,18 @@ export default function POSReceiptDialog({ open, onOpenChange, data, showReturnP
               <hr style={{ border: "none", borderTop: "2px solid #000", margin: "8px 0" }} />
 
               {/* ═══ ORDER META ═══ */}
-              <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", fontSize: "12px" }}>
-                <span style={{ color: "#000", fontWeight: 700 }}>رقم الطلب</span>
-                <span style={{ fontWeight: 900, color: "#000", fontVariantNumeric: "tabular-nums" }}>{data.orderNumber}</span>
-              </div>
+              {data.displayNumber && (
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", fontSize: "12px" }}>
+                  <span style={{ color: "#000", fontWeight: 700 }}>رقم الفاتورة</span>
+                  <span style={{ fontWeight: 900, color: "#000", fontVariantNumeric: "tabular-nums" }}>{data.displayNumber}</span>
+                </div>
+              )}
+              {data.queueNumber != null && (
+                <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", fontSize: "14px" }}>
+                  <span style={{ color: "#000", fontWeight: 800 }}>رقم الطلب</span>
+                  <span style={{ fontWeight: 900, color: "#000", fontSize: "16px", fontVariantNumeric: "tabular-nums" }}>{data.queueNumber}</span>
+                </div>
+              )}
               <div style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", fontSize: "12px" }}>
                 <span style={{ color: "#000", fontWeight: 700 }}>الكاشير</span>
                 <span style={{ fontWeight: 700, color: "#000" }}>{data.cashierName}</span>
@@ -422,7 +441,7 @@ export default function POSReceiptDialog({ open, onOpenChange, data, showReturnP
 
               {/* ═══ BARCODE ═══ */}
               <div style={{ textAlign: "center", fontFamily: "monospace", fontSize: "12px", letterSpacing: "3px", color: "#000", fontWeight: 700, margin: "4px 0" }}>
-                ║║║ {data.orderNumber} ║║║
+                ║║║ {data.displayNumber || data.orderNumber} ║║║
               </div>
 
               {/* ═══ FOOTER ═══ */}
