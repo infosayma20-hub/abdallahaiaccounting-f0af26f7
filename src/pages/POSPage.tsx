@@ -486,6 +486,9 @@ const POSPage = () => {
   const [posRequireCashBox, setPosRequireCashBox] = useState(false);
   const [detectedBranchId, setDetectedBranchId] = useState<string | null>(null);
 
+  // Derived display name for POS terminal/cash box
+  const posDisplayName = (session?.cash_box_id && cashBoxes.find(b => b.id === session.cash_box_id)?.name) || terminal?.name || "نقطة بيع";
+
   // Kitchen
   const [showKitchenTicket, setShowKitchenTicket] = useState(false);
   const [kitchenTicketData, setKitchenTicketData] = useState<any>(null);
@@ -2476,7 +2479,7 @@ const POSPage = () => {
         cashierName: session.cashier_name,
         companyName: company?.name || "شركتي",
         logoUrl: company?.logo_url || "",
-        terminalName: terminal?.name || "نقطة بيع",
+        terminalName: posDisplayName,
         customerName: customerName,
         customerPhone: activeOrder.customerPhone || "",
         tableName: tableName || undefined,
@@ -2907,7 +2910,7 @@ const POSPage = () => {
     setShiftSummaryData({
       companyName: company?.name || "شركتي",
       logoUrl: company?.logo_url || "",
-      terminalName: terminal?.name || "نقطة بيع",
+      terminalName: posDisplayName,
       cashierName: session.cashier_name,
       cashBoxName,
       openedAt: session.opened_at,
@@ -3117,7 +3120,7 @@ const POSPage = () => {
         {terminal && (
           <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-white/70 text-xs" style={{ background: "rgba(255,255,255,0.08)" }}>
             <Monitor className="h-3 w-3" />
-            <span>{(session?.cash_box_id && cashBoxes.find(b => b.id === session.cash_box_id)?.name) || terminal.name}</span>
+            <span>{posDisplayName}</span>
           </div>
         )}
 
