@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import {
   Plus, Search, Hammer, Trash2, ArrowLeft,
-  DollarSign, ChevronDown, UserPlus,
+  DollarSign, ChevronDown, UserPlus, Image, AlertTriangle, Receipt,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
