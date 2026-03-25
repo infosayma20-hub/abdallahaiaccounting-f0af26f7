@@ -269,6 +269,9 @@ export default function WorkshopReportsPage() {
                 { v: "today" as DatePreset, l: "اليوم" },
                 { v: "week" as DatePreset, l: "الأسبوع" },
                 { v: "month" as DatePreset, l: "الشهر" },
+                { v: "quarter" as DatePreset, l: "ربع سنوي" },
+                { v: "half" as DatePreset, l: "نصف سنوي" },
+                { v: "year" as DatePreset, l: "سنوي" },
               ]).map(p => (
                 <Button key={p.v} variant={datePreset === p.v ? "default" : "outline"} size="sm"
                   className="h-7 text-[10px] px-2" onClick={() => applyPreset(p.v)}>
