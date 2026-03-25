@@ -400,28 +400,6 @@ const POSPage = () => {
   const [showOrderNoteInput, setShowOrderNoteInput] = useState(false);
   const [showTablePicker, setShowTablePicker] = useState(false);
   const [availableTables, setAvailableTables] = useState<{ id: string; name: string; seats: number; status: string; section_name: string }[]>([]);
-
-  // Load tables when picker opens
-  useEffect(() => {
-    if (!showTablePicker || !dataOwnerId) return;
-    (async () => {
-      const { data } = await supabase
-        .from("restaurant_tables")
-        .select("id, name, seats, status, section:floor_plan_sections(name)")
-        .eq("user_id", dataOwnerId)
-        .eq("is_active", true)
-        .order("name");
-      if (data) {
-        setAvailableTables(data.map((t: any) => ({
-          id: t.id,
-          name: t.name,
-          seats: t.seats || 0,
-          status: t.status || "available",
-          section_name: t.section?.name || "",
-        })));
-      }
-    })();
-  }, [showTablePicker, dataOwnerId]);
   const [posCustomerResults, setPosCustomerResults] = useState<POSCustomer[]>([]);
 
   // Dialogs
