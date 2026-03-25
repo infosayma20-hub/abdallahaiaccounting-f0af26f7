@@ -136,6 +136,7 @@ import TravelBookingFormPage from "./pages/travel/TravelBookingFormPage";
 import TravelSuppliersPage from "./pages/travel/TravelSuppliersPage";
 import TravelPackagesPage from "./pages/travel/TravelPackagesPage";
 import TravelReportsPage from "./pages/travel/TravelReportsPage";
+import PrinterSettingsPage from "./pages/PrinterSettingsPage";
 
 const queryClient = new QueryClient();
 
@@ -381,6 +382,7 @@ const App = () => (
                       <Route path="/pos-users" element={<POSUserManagementPage />} />
                       <Route path="/pos-customers" element={<POSCustomerDatabasePage />} />
                       <Route path="/pos-reports" element={<POSReportsPage />} />
+                      <Route path="/printer-settings" element={<PrinterSettingsPage />} />
                       <Route path="/call-center-reports" element={<CallCenterReportsPage />} />
                       <Route path="/customer-reports" element={<CustomerReportsPage />} />
                       <Route path="/contractor" element={<ContractorApp />} />
