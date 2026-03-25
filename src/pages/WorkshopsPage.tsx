@@ -184,12 +184,22 @@ export default function WorkshopsPage() {
 
   const loadCosts = async (workshopId: string) => {
     setLoadingCosts(true);
-    const { data } = await supabase.from("workshop_costs").select("*").eq("workshop_id", workshopId).order("cost_date", { ascending: false });
-    setCosts((data as any) || []);
+    const [costRes, payRes] = await Promise.all([
+      supabase.from("workshop_costs").select("*").eq("workshop_id", workshopId).order("cost_date", { ascending: false }),
+      supabase.from("workshop_payments").select("*").eq("workshop_id", workshopId).order("payment_date", { ascending: false }),
+    ]);
+    setCosts((costRes.data as any) || []);
+    setPayments((payRes.data as any) || []);
     setLoadingCosts(false);
   };
 
   const openWorkshop = (ws: Workshop) => { setSelectedWorkshop(ws); loadCosts(ws.id); };
+
+  const defaultWsForm = () => ({
+    name: "", customer_name: "", customer_phone: "", address: "", description: "",
+    total_budget: 0, start_date: format(new Date(), "yyyy-MM-dd"), expected_end_date: "",
+    contact_id: null as string | null, area_sqm: 0, workshop_type: "kitchen", image_url: "",
+  });
 
   /* ── Create Workshop ── */
   const handleCreateWorkshop = async () => {
@@ -202,12 +212,52 @@ export default function WorkshopsPage() {
       total_budget: wsForm.total_budget || 0, start_date: wsForm.start_date || null,
       expected_end_date: wsForm.expected_end_date || null,
       contact_id: wsForm.contact_id || null,
+      area_sqm: wsForm.area_sqm || null,
+      workshop_type: wsForm.workshop_type || "kitchen",
+      image_url: wsForm.image_url || null,
     } as any);
     if (error) { toast.error(error.message); return; }
     toast.success("تم إنشاء الورشة بنجاح");
     setShowNewWorkshop(false);
-    setWsForm({ name: "", customer_name: "", customer_phone: "", address: "", description: "", total_budget: 0, start_date: format(new Date(), "yyyy-MM-dd"), expected_end_date: "", contact_id: null });
+    setWsForm(defaultWsForm());
     loadWorkshops();
+  };
+
+  /* ── Add Partial Payment ── */
+  const handleAddPayment = async () => {
+    if (!selectedWorkshop || paymentForm.amount <= 0) { toast.error("المبلغ مطلوب"); return; }
+    const debitCode = paymentForm.payment_method === "بنك" ? "1120" : "1110";
+    const idempotencyKey = `WS-PAY-${selectedWorkshop.id}-${Date.now()}`;
+
+    const { data: txData, error: txError } = await supabase.from("transactions").insert({
+      user_id: user!.id,
+      transaction_date: paymentForm.payment_date,
+      description: paymentForm.description || `دفعة من ${selectedWorkshop.customer_name || "زبون"} - ورشة ${selectedWorkshop.name}`,
+      debit_account_code: debitCode,
+      credit_account_code: "4200",
+      amount: paymentForm.amount,
+      currency: "شيكل",
+      transaction_type: "workshop_payment",
+      contact_id: selectedWorkshop.contact_id || null,
+      reference: `WS-PAY-${selectedWorkshop.name.substring(0, 15)}`,
+      payment_method: paymentForm.payment_method,
+      idempotency_key: idempotencyKey,
+    } as any).select("id").single();
+
+    if (txError) { toast.error("خطأ في إنشاء القيد: " + txError.message); return; }
+
+    const { error } = await supabase.from("workshop_payments").insert({
+      workshop_id: selectedWorkshop.id, user_id: user!.id,
+      amount: paymentForm.amount, payment_method: paymentForm.payment_method,
+      payment_date: paymentForm.payment_date, description: paymentForm.description || null,
+      linked_transaction_id: txData?.id || null,
+    } as any);
+
+    if (error) { toast.error(error.message); return; }
+    toast.success("✅ تم تسجيل الدفعة بنجاح");
+    setShowPaymentDialog(false);
+    setPaymentForm({ amount: 0, payment_method: "نقدي", description: "", payment_date: format(new Date(), "yyyy-MM-dd") });
+    loadCosts(selectedWorkshop.id);
   };
 
   /* ── Add Cost + Create Journal Entry ── */
