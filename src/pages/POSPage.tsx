@@ -486,6 +486,9 @@ const POSPage = () => {
   const [posRequireCashBox, setPosRequireCashBox] = useState(false);
   const [detectedBranchId, setDetectedBranchId] = useState<string | null>(null);
 
+  // Derived display name for POS terminal/cash box
+  const posDisplayName = (session?.cash_box_id && cashBoxes.find(b => b.id === session.cash_box_id)?.name) || terminal?.name || "نقطة بيع";
+
   // Kitchen
   const [showKitchenTicket, setShowKitchenTicket] = useState(false);
   const [kitchenTicketData, setKitchenTicketData] = useState<any>(null);
