@@ -840,11 +840,15 @@ const MANAGEABLE_APPS = [
   { id: "inventory", label: "المخزون", icon: "📦" },
   { id: "fixed-assets", label: "الأصول الثابتة", icon: "🏛️" },
   { id: "contractor", label: "المقاولات", icon: "🏗️" },
+  { id: "workshops", label: "الورشات", icon: "🪵" },
   { id: "ecommerce", label: "المتاجر الإلكترونية", icon: "🛍️" },
   { id: "travel", label: "السياحة والسفر", icon: "✈️" },
   { id: "tasks", label: "إدارة المهام", icon: "📋" },
   { id: "hr", label: "الموارد البشرية", icon: "👥" },
   { id: "purchases", label: "المشتريات", icon: "🛒" },
+  { id: "sales", label: "المبيعات", icon: "🧾" },
+  { id: "reports", label: "التقارير", icon: "📊" },
+  { id: "settings", label: "الإعدادات", icon: "⚙️" },
 ];
 
 function AppVisibilityManager() {
