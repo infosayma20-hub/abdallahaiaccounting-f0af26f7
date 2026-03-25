@@ -2638,7 +2638,7 @@ const POSPage = () => {
         removeOrder(activeOrderIndex);
       } else {
         setCart([]);
-        setCustomerName("");
+        setCustomerName("", null, "", null);
         setOrderDiscount(0);
         setOrderNote("");
         setSelectedCartIndex(null);
