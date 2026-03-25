@@ -1202,8 +1202,15 @@ export default function WorkshopsPage() {
         <AlertDialogContent dir="rtl">
           <AlertDialogHeader>
             <AlertDialogTitle>حذف الورشة "{deletingWorkshop?.name}"؟</AlertDialogTitle>
-            <AlertDialogDescription>
-              سيتم حذف الورشة وجميع التكاليف والدفعات والقيود المحاسبية المرتبطة بها. هذا الإجراء لا يمكن التراجع عنه.
+            <AlertDialogDescription className="space-y-2 text-right">
+              <p>سيتم حذف الورشة وجميع البيانات المرتبطة بها بشكل نهائي:</p>
+              <ul className="list-disc list-inside text-xs space-y-1 text-muted-foreground">
+                <li>جميع تكاليف الورشة (خشب، دهان، عمال، إلخ)</li>
+                <li>جميع الدفعات المقبوضة من الزبون</li>
+                <li>جميع القيود المحاسبية المرتبطة (سيتم إلغاؤها من دفتر اليومية)</li>
+                <li>سندات القبض والصرف المرتبطة بالورشة</li>
+              </ul>
+              <p className="text-destructive font-medium text-xs mt-2">⚠️ هذا الإجراء لا يمكن التراجع عنه</p>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex gap-2">
