@@ -173,9 +173,47 @@ export default function WorkshopReportsPage() {
         budget: w.total_budget || 0, totalCost, profit, margin,
         costBreakdown,
         startDate: w.start_date,
+        area_sqm: (w as any).area_sqm || 0,
+        workshop_type: (w as any).workshop_type || "other",
       };
     }).sort((a, b) => b.budget - a.budget);
   }, [filtered, costs]);
+
+  // Cost per sqm analysis
+  const costPerSqmData = useMemo(() => {
+    return workshopProfitability
+      .filter(w => w.area_sqm > 0)
+      .map(w => ({
+        ...w,
+        costPerSqm: w.area_sqm > 0 ? Math.round(w.totalCost / w.area_sqm) : 0,
+        budgetPerSqm: w.area_sqm > 0 ? Math.round(w.budget / w.area_sqm) : 0,
+        profitPerSqm: w.area_sqm > 0 ? Math.round(w.profit / w.area_sqm) : 0,
+      }))
+      .sort((a, b) => b.costPerSqm - a.costPerSqm);
+  }, [workshopProfitability]);
+
+  // Type comparison
+  const typeComparison = useMemo(() => {
+    const map: Record<string, { count: number; totalCost: number; totalArea: number; totalBudget: number }> = {};
+    workshopProfitability.forEach(w => {
+      const t = w.workshop_type || "other";
+      if (!map[t]) map[t] = { count: 0, totalCost: 0, totalArea: 0, totalBudget: 0 };
+      map[t].count++;
+      map[t].totalCost += w.totalCost;
+      map[t].totalArea += w.area_sqm;
+      map[t].totalBudget += w.budget;
+    });
+    const WORKSHOP_TYPE_LABELS: Record<string, string> = {
+      kitchen: "🍳 مطبخ", bedroom: "🛏️ غرفة نوم", livingroom: "🛋️ صالون",
+      closet: "🗄️ خزائن", door: "🚪 أبواب", other: "📦 أخرى",
+    };
+    return Object.entries(map).map(([type, d]) => ({
+      type, label: WORKSHOP_TYPE_LABELS[type] || type,
+      ...d,
+      avgCostPerSqm: d.totalArea > 0 ? Math.round(d.totalCost / d.totalArea) : 0,
+      avgBudgetPerSqm: d.totalArea > 0 ? Math.round(d.totalBudget / d.totalArea) : 0,
+    }));
+  }, [workshopProfitability]);
 
   // Purchases by supplier
   const supplierPurchases = useMemo(() => {
@@ -322,6 +360,7 @@ export default function WorkshopReportsPage() {
       <Tabs defaultValue="profitability" className="space-y-3">
         <TabsList className="w-full justify-start overflow-x-auto">
           <TabsTrigger value="profitability" className="text-xs">ربحية الورشات</TabsTrigger>
+          <TabsTrigger value="sqm" className="text-xs">تكلفة المتر</TabsTrigger>
           <TabsTrigger value="costs" className="text-xs">توزيع التكاليف</TabsTrigger>
           <TabsTrigger value="suppliers" className="text-xs">مشتريات الموردين</TabsTrigger>
           <TabsTrigger value="trend" className="text-xs">الاتجاه الشهري</TabsTrigger>
@@ -432,6 +471,87 @@ export default function WorkshopReportsPage() {
               </CardContent>
             </Card>
           )}
+        </TabsContent>
+
+        {/* Tab: Cost per SQM */}
+        <TabsContent value="sqm" className="space-y-3">
+          {/* Type comparison */}
+          {typeComparison.length > 0 && (
+            <Card className="border-border/50">
+              <CardHeader className="pb-2 pt-3 px-3">
+                <CardTitle className="text-sm">مقارنة حسب النوع (متوسط تكلفة المتر)</CardTitle>
+              </CardHeader>
+              <CardContent className="p-3 pt-0">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="text-[11px]">النوع</TableHead>
+                        <TableHead className="text-[11px]">العدد</TableHead>
+                        <TableHead className="text-[11px]">إجمالي المساحة</TableHead>
+                        <TableHead className="text-[11px]">إجمالي التكلفة</TableHead>
+                        <TableHead className="text-[11px]">تكلفة المتر</TableHead>
+                        <TableHead className="text-[11px]">سعر المتر (ميزانية)</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {typeComparison.map(t => (
+                        <TableRow key={t.type}>
+                          <TableCell className="text-xs font-medium">{t.label}</TableCell>
+                          <TableCell className="text-xs tabular-nums">{t.count}</TableCell>
+                          <TableCell className="text-xs tabular-nums">{t.totalArea > 0 ? `${t.totalArea} م²` : "-"}</TableCell>
+                          <TableCell className="text-xs tabular-nums text-destructive">₪{fmtNum(t.totalCost)}</TableCell>
+                          <TableCell className="text-xs tabular-nums font-bold">{t.avgCostPerSqm > 0 ? `₪${fmtNum(t.avgCostPerSqm)}/م²` : "-"}</TableCell>
+                          <TableCell className="text-xs tabular-nums">{t.avgBudgetPerSqm > 0 ? `₪${fmtNum(t.avgBudgetPerSqm)}/م²` : "-"}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Per-workshop sqm analysis */}
+          <Card className="border-border/50">
+            <CardHeader className="pb-2 pt-3 px-3">
+              <CardTitle className="text-sm">تفصيل تكلفة المتر لكل ورشة</CardTitle>
+            </CardHeader>
+            <CardContent className="p-3 pt-0">
+              {costPerSqmData.length === 0 ? (
+                <p className="text-xs text-muted-foreground text-center py-8">لا توجد ورشات بها مساحة محددة — أضف المساحة (م²) عند إنشاء الورشة</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="text-[11px]">الورشة</TableHead>
+                        <TableHead className="text-[11px]">المساحة</TableHead>
+                        <TableHead className="text-[11px]">إجمالي التكلفة</TableHead>
+                        <TableHead className="text-[11px]">تكلفة المتر</TableHead>
+                        <TableHead className="text-[11px]">ميزانية المتر</TableHead>
+                        <TableHead className="text-[11px]">ربح المتر</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {costPerSqmData.map(w => (
+                        <TableRow key={w.id}>
+                          <TableCell className="text-xs font-medium">{w.name}</TableCell>
+                          <TableCell className="text-xs tabular-nums">{w.area_sqm} م²</TableCell>
+                          <TableCell className="text-xs tabular-nums text-destructive">₪{fmtNum(w.totalCost)}</TableCell>
+                          <TableCell className="text-xs tabular-nums font-bold">₪{fmtNum(w.costPerSqm)}/م²</TableCell>
+                          <TableCell className="text-xs tabular-nums">₪{fmtNum(w.budgetPerSqm)}/م²</TableCell>
+                          <TableCell className={`text-xs tabular-nums font-bold ${w.profitPerSqm >= 0 ? "text-emerald-600" : "text-destructive"}`}>
+                            ₪{fmtNum(w.profitPerSqm)}/م²
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* Tab 2: Cost Distribution */}

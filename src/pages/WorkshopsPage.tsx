@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import {
   Plus, Search, Hammer, Trash2, ArrowLeft,
-  DollarSign, ChevronDown, UserPlus,
+  DollarSign, ChevronDown, UserPlus, Image, AlertTriangle, Receipt,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,12 +22,18 @@ type Workshop = {
   address: string | null; description: string | null; status: string; total_budget: number;
   start_date: string | null; expected_end_date: string | null; actual_end_date: string | null;
   notes: string | null; created_at: string; contact_id: string | null;
+  area_sqm: number | null; image_url: string | null; workshop_type: string | null;
 };
 type WorkshopCost = {
   id: string; workshop_id: string; cost_type: string; description: string | null;
   amount: number; cost_date: string; supplier_name: string | null; payment_method: string | null;
   notes: string | null; created_at: string; linked_transaction_id: string | null;
   supplier_contact_id: string | null;
+};
+type WorkshopPayment = {
+  id: string; workshop_id: string; amount: number; payment_method: string;
+  payment_date: string; description: string | null; linked_transaction_id: string | null;
+  created_at: string;
 };
 type Contact = { id: string; contact_name: string; contact_type: string; current_balance: number };
 
@@ -71,6 +77,15 @@ const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondar
 
 const getCostType = (v: string) => COST_TYPES.find(c => c.value === v) || COST_TYPES[COST_TYPES.length - 1];
 
+const WORKSHOP_TYPES = [
+  { value: "kitchen", label: "مطبخ", icon: "🍳" },
+  { value: "bedroom", label: "غرفة نوم", icon: "🛏️" },
+  { value: "livingroom", label: "صالون", icon: "🛋️" },
+  { value: "closet", label: "خزائن", icon: "🗄️" },
+  { value: "door", label: "أبواب", icon: "🚪" },
+  { value: "other", label: "أخرى", icon: "📦" },
+];
+
 /* ── Ensure workshop GL accounts exist ── */
 async function ensureWorkshopAccounts(userId: string) {
   const codes = ["5350", "5351", "5352", "5353", "5354", "5359"];
@@ -113,10 +128,12 @@ export default function WorkshopsPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedWorkshop, setSelectedWorkshop] = useState<Workshop | null>(null);
   const [costs, setCosts] = useState<WorkshopCost[]>([]);
+  const [payments, setPayments] = useState<WorkshopPayment[]>([]);
   const [loadingCosts, setLoadingCosts] = useState(false);
   const [showNewWorkshop, setShowNewWorkshop] = useState(false);
   const [showNewCost, setShowNewCost] = useState(false);
   const [showInvoiceDialog, setShowInvoiceDialog] = useState(false);
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
 
   // Contacts for search
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -130,6 +147,10 @@ export default function WorkshopsPage() {
     name: "", customer_name: "", customer_phone: "", address: "", description: "",
     total_budget: 0, start_date: format(new Date(), "yyyy-MM-dd"), expected_end_date: "",
     contact_id: null as string | null,
+    area_sqm: 0, workshop_type: "kitchen", image_url: "",
+  });
+  const [paymentForm, setPaymentForm] = useState({
+    amount: 0, payment_method: "نقدي", description: "", payment_date: format(new Date(), "yyyy-MM-dd"),
   });
   const [costForm, setCostForm] = useState({
     cost_type: "wood", description: "", amount: 0, cost_date: format(new Date(), "yyyy-MM-dd"),
@@ -163,12 +184,22 @@ export default function WorkshopsPage() {
 
   const loadCosts = async (workshopId: string) => {
     setLoadingCosts(true);
-    const { data } = await supabase.from("workshop_costs").select("*").eq("workshop_id", workshopId).order("cost_date", { ascending: false });
-    setCosts((data as any) || []);
+    const [costRes, payRes] = await Promise.all([
+      supabase.from("workshop_costs").select("*").eq("workshop_id", workshopId).order("cost_date", { ascending: false }),
+      supabase.from("workshop_payments").select("*").eq("workshop_id", workshopId).order("payment_date", { ascending: false }),
+    ]);
+    setCosts((costRes.data as any) || []);
+    setPayments((payRes.data as any) || []);
     setLoadingCosts(false);
   };
 
   const openWorkshop = (ws: Workshop) => { setSelectedWorkshop(ws); loadCosts(ws.id); };
+
+  const defaultWsForm = () => ({
+    name: "", customer_name: "", customer_phone: "", address: "", description: "",
+    total_budget: 0, start_date: format(new Date(), "yyyy-MM-dd"), expected_end_date: "",
+    contact_id: null as string | null, area_sqm: 0, workshop_type: "kitchen", image_url: "",
+  });
 
   /* ── Create Workshop ── */
   const handleCreateWorkshop = async () => {
@@ -181,12 +212,52 @@ export default function WorkshopsPage() {
       total_budget: wsForm.total_budget || 0, start_date: wsForm.start_date || null,
       expected_end_date: wsForm.expected_end_date || null,
       contact_id: wsForm.contact_id || null,
+      area_sqm: wsForm.area_sqm || null,
+      workshop_type: wsForm.workshop_type || "kitchen",
+      image_url: wsForm.image_url || null,
     } as any);
     if (error) { toast.error(error.message); return; }
     toast.success("تم إنشاء الورشة بنجاح");
     setShowNewWorkshop(false);
-    setWsForm({ name: "", customer_name: "", customer_phone: "", address: "", description: "", total_budget: 0, start_date: format(new Date(), "yyyy-MM-dd"), expected_end_date: "", contact_id: null });
+    setWsForm(defaultWsForm());
     loadWorkshops();
+  };
+
+  /* ── Add Partial Payment ── */
+  const handleAddPayment = async () => {
+    if (!selectedWorkshop || paymentForm.amount <= 0) { toast.error("المبلغ مطلوب"); return; }
+    const debitCode = paymentForm.payment_method === "بنك" ? "1120" : "1110";
+    const idempotencyKey = `WS-PAY-${selectedWorkshop.id}-${Date.now()}`;
+
+    const { data: txData, error: txError } = await supabase.from("transactions").insert({
+      user_id: user!.id,
+      transaction_date: paymentForm.payment_date,
+      description: paymentForm.description || `دفعة من ${selectedWorkshop.customer_name || "زبون"} - ورشة ${selectedWorkshop.name}`,
+      debit_account_code: debitCode,
+      credit_account_code: "4200",
+      amount: paymentForm.amount,
+      currency: "شيكل",
+      transaction_type: "workshop_payment",
+      contact_id: selectedWorkshop.contact_id || null,
+      reference: `WS-PAY-${selectedWorkshop.name.substring(0, 15)}`,
+      payment_method: paymentForm.payment_method,
+      idempotency_key: idempotencyKey,
+    } as any).select("id").single();
+
+    if (txError) { toast.error("خطأ في إنشاء القيد: " + txError.message); return; }
+
+    const { error } = await supabase.from("workshop_payments").insert({
+      workshop_id: selectedWorkshop.id, user_id: user!.id,
+      amount: paymentForm.amount, payment_method: paymentForm.payment_method,
+      payment_date: paymentForm.payment_date, description: paymentForm.description || null,
+      linked_transaction_id: txData?.id || null,
+    } as any);
+
+    if (error) { toast.error(error.message); return; }
+    toast.success("✅ تم تسجيل الدفعة بنجاح");
+    setShowPaymentDialog(false);
+    setPaymentForm({ amount: 0, payment_method: "نقدي", description: "", payment_date: format(new Date(), "yyyy-MM-dd") });
+    loadCosts(selectedWorkshop.id);
   };
 
   /* ── Add Cost + Create Journal Entry ── */
@@ -330,6 +401,13 @@ export default function WorkshopsPage() {
     return { byType: summary, total };
   }, [costs]);
 
+  const totalPaid = useMemo(() => payments.reduce((s, p) => s + p.amount, 0), [payments]);
+
+  const budgetUsedPct = useMemo(() => {
+    if (!selectedWorkshop || !selectedWorkshop.total_budget) return 0;
+    return (costSummary.total / selectedWorkshop.total_budget) * 100;
+  }, [selectedWorkshop, costSummary.total]);
+
   const filteredCustomers = useMemo(() =>
     contacts.filter(c => ["customer", "عميل", "both", "كلاهما"].includes(c.contact_type) && (!contactSearch || c.contact_name.toLowerCase().includes(contactSearch.toLowerCase())))
   , [contacts, contactSearch]);
@@ -368,19 +446,91 @@ export default function WorkshopsPage() {
             <Badge variant={status.variant}>{status.label}</Badge>
           </div>
 
+          {/* Area + Type info */}
+          {(selectedWorkshop.area_sqm || selectedWorkshop.workshop_type) && (
+            <div className="flex gap-2 flex-wrap text-xs">
+              {selectedWorkshop.workshop_type && (
+                <Badge variant="outline">{WORKSHOP_TYPES.find(t => t.value === selectedWorkshop.workshop_type)?.icon} {WORKSHOP_TYPES.find(t => t.value === selectedWorkshop.workshop_type)?.label}</Badge>
+              )}
+              {selectedWorkshop.area_sqm ? <Badge variant="outline">📐 {selectedWorkshop.area_sqm} م²</Badge> : null}
+              {selectedWorkshop.area_sqm && costSummary.total > 0 ? (
+                <Badge variant="secondary">تكلفة المتر: {Math.round(costSummary.total / selectedWorkshop.area_sqm).toLocaleString()} ₪/م²</Badge>
+              ) : null}
+            </div>
+          )}
+
+          {/* Image */}
+          {selectedWorkshop.image_url && (
+            <div className="rounded-xl overflow-hidden border border-border max-h-48">
+              <img src={selectedWorkshop.image_url} alt={selectedWorkshop.name} className="w-full h-48 object-cover" />
+            </div>
+          )}
+
+          {/* Budget Alert */}
+          {budgetUsedPct >= 80 && selectedWorkshop.total_budget > 0 && selectedWorkshop.status === "active" && (
+            <div className={`flex items-center gap-2 p-3 rounded-xl border ${budgetUsedPct >= 100 ? "bg-destructive/10 border-destructive/30 text-destructive" : "bg-amber-500/10 border-amber-500/30 text-amber-700"}`}>
+              <AlertTriangle className="h-4 w-4 shrink-0" />
+              <p className="text-xs font-medium">
+                {budgetUsedPct >= 100
+                  ? `⚠️ تم تجاوز الميزانية! التكاليف ${Math.round(budgetUsedPct)}% من الميزانية`
+                  : `⚠️ تنبيه: تم استهلاك ${Math.round(budgetUsedPct)}% من الميزانية`}
+              </p>
+            </div>
+          )}
+
           {/* KPIs */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
             {[
               { label: "الميزانية", value: `${selectedWorkshop.total_budget?.toLocaleString()} ₪`, cls: "text-foreground" },
               { label: "إجمالي التكاليف", value: `${costSummary.total.toLocaleString()} ₪`, cls: "text-destructive" },
-              { label: "الربح/المتبقي", value: `${profit.toLocaleString()} ₪`, cls: profit >= 0 ? "text-emerald-500" : "text-destructive" },
-              { label: "عدد البنود", value: String(costs.length), cls: "text-foreground" },
+              { label: "المقبوض", value: `${totalPaid.toLocaleString()} ₪`, cls: "text-emerald-500" },
+              { label: "المتبقي على الزبون", value: `${(selectedWorkshop.total_budget - totalPaid).toLocaleString()} ₪`, cls: (selectedWorkshop.total_budget - totalPaid) > 0 ? "text-amber-600" : "text-emerald-500" },
+              { label: "الربح", value: `${(selectedWorkshop.total_budget - costSummary.total).toLocaleString()} ₪`, cls: (selectedWorkshop.total_budget - costSummary.total) >= 0 ? "text-emerald-500" : "text-destructive" },
             ].map(kpi => (
-              <div key={kpi.label} className="rounded-xl bg-card border border-border p-4 text-center">
-                <p className="text-xs text-muted-foreground">{kpi.label}</p>
-                <p className={`text-lg font-bold ${kpi.cls}`}>{kpi.value}</p>
+              <div key={kpi.label} className="rounded-xl bg-card border border-border p-3 text-center">
+                <p className="text-[10px] text-muted-foreground">{kpi.label}</p>
+                <p className={`text-base font-bold ${kpi.cls}`}>{kpi.value}</p>
               </div>
             ))}
+          </div>
+
+          {/* Payments section */}
+          <div className="rounded-xl bg-card border border-border p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-bold text-foreground flex items-center gap-1.5">
+                <Receipt className="h-3.5 w-3.5" /> الدفعات المقبوضة
+              </h3>
+              <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => {
+                setPaymentForm({ amount: 0, payment_method: "نقدي", description: "", payment_date: format(new Date(), "yyyy-MM-dd") });
+                setShowPaymentDialog(true);
+              }}>
+                <Plus className="h-3 w-3" /> دفعة جديدة
+              </Button>
+            </div>
+            {payments.length === 0 ? (
+              <p className="text-xs text-muted-foreground text-center py-4">لم يتم تسجيل دفعات بعد</p>
+            ) : (
+              <div className="space-y-1.5">
+                {payments.map(p => (
+                  <div key={p.id} className="flex items-center gap-2 text-xs p-2 rounded-lg bg-accent/5 border border-border">
+                    <span className="text-emerald-500 font-bold">+{p.amount.toLocaleString()} ₪</span>
+                    <span className="text-muted-foreground">{p.payment_method}</span>
+                    <span className="flex-1 text-muted-foreground truncate">{p.description}</span>
+                    <span className="text-muted-foreground/60">{p.payment_date}</span>
+                  </div>
+                ))}
+                {/* Progress bar for payments */}
+                <div className="mt-2">
+                  <div className="flex justify-between text-[10px] text-muted-foreground mb-1">
+                    <span>المدفوع {Math.round((totalPaid / (selectedWorkshop.total_budget || 1)) * 100)}%</span>
+                    <span>{totalPaid.toLocaleString()} / {selectedWorkshop.total_budget.toLocaleString()} ₪</span>
+                  </div>
+                  <div className="h-2 bg-muted rounded-full overflow-hidden">
+                    <div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: `${Math.min((totalPaid / (selectedWorkshop.total_budget || 1)) * 100, 100)}%` }} />
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Cost breakdown */}
@@ -415,7 +565,7 @@ export default function WorkshopsPage() {
             <div className="flex gap-2">
               <Button size="sm" variant="outline" onClick={() => handleUpdateStatus(selectedWorkshop, "paused")} className="flex-1">⏸️ إيقاف</Button>
               <Button size="sm" onClick={() => {
-                setInvoiceForm({ amount: selectedWorkshop.total_budget, payment_method: "آجل", description: "" });
+                setInvoiceForm({ amount: selectedWorkshop.total_budget - totalPaid, payment_method: "آجل", description: "" });
                 setShowInvoiceDialog(true);
               }} className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white">💰 فوترة واكتمال</Button>
             </div>
@@ -641,6 +791,49 @@ export default function WorkshopsPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* ── Payment Dialog ── */}
+        <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
+          <DialogContent className="max-w-sm" dir="rtl">
+            <DialogHeader>
+              <DialogTitle>💵 تسجيل دفعة من الزبون</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3 py-2">
+              <div className="p-3 rounded-lg bg-accent/5 border border-border space-y-1 text-sm">
+                <div className="flex justify-between"><span className="text-muted-foreground">الميزانية</span><span className="font-bold">{selectedWorkshop?.total_budget?.toLocaleString()} ₪</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">المدفوع سابقاً</span><span className="font-bold text-emerald-500">{totalPaid.toLocaleString()} ₪</span></div>
+                <div className="flex justify-between border-t border-border pt-1"><span className="text-muted-foreground">المتبقي</span><span className="font-bold text-amber-600">{((selectedWorkshop?.total_budget || 0) - totalPaid).toLocaleString()} ₪</span></div>
+              </div>
+              <div className="space-y-1">
+                <Label>مبلغ الدفعة (₪)</Label>
+                <Input type="number" value={paymentForm.amount || ""} onChange={e => setPaymentForm(f => ({ ...f, amount: Number(e.target.value) }))} />
+              </div>
+              <div className="space-y-1">
+                <Label>طريقة الدفع</Label>
+                <div className="flex gap-1">
+                  {["نقدي", "بنك"].map(m => (
+                    <button key={m} onClick={() => setPaymentForm(f => ({ ...f, payment_method: m }))}
+                      className={`flex-1 px-2 py-2 rounded-lg text-xs font-medium border transition-all ${
+                        paymentForm.payment_method === m ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground"
+                      }`}>{m}</button>
+                  ))}
+                </div>
+              </div>
+              <div className="space-y-1">
+                <Label>التاريخ</Label>
+                <Input type="date" value={paymentForm.payment_date} onChange={e => setPaymentForm(f => ({ ...f, payment_date: e.target.value }))} />
+              </div>
+              <div className="space-y-1">
+                <Label>ملاحظات</Label>
+                <Input value={paymentForm.description} onChange={e => setPaymentForm(f => ({ ...f, description: e.target.value }))} placeholder="مثل: دفعة أولى 50%" />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => setShowPaymentDialog(false)}>إلغاء</Button>
+              <Button onClick={handleAddPayment} disabled={paymentForm.amount <= 0}>تسجيل الدفعة</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }
@@ -780,6 +973,22 @@ export default function WorkshopsPage() {
               )}
             </div>
 
+            {/* Workshop Type */}
+            <div className="space-y-1">
+              <Label>نوع الورشة</Label>
+              <div className="grid grid-cols-3 gap-2">
+                {WORKSHOP_TYPES.map(wt => (
+                  <button key={wt.value} onClick={() => setWsForm(f => ({ ...f, workshop_type: wt.value }))}
+                    className={`p-2 rounded-xl border text-center transition-all ${
+                      wsForm.workshop_type === wt.value ? "border-primary bg-primary/10 ring-2 ring-primary/30" : "border-border hover:bg-accent/5"
+                    }`}>
+                    <span className="text-xl block">{wt.icon}</span>
+                    <span className="text-[10px] font-medium text-foreground">{wt.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label>اسم الزبون (يدوي)</Label>
@@ -794,10 +1003,14 @@ export default function WorkshopsPage() {
               <Label>العنوان</Label>
               <Input value={wsForm.address} onChange={e => setWsForm(f => ({ ...f, address: e.target.value }))} placeholder="المدينة / الحي" />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-3">
               <div className="space-y-1">
                 <Label>الميزانية (₪)</Label>
                 <Input type="number" value={wsForm.total_budget || ""} onChange={e => setWsForm(f => ({ ...f, total_budget: Number(e.target.value) }))} />
+              </div>
+              <div className="space-y-1">
+                <Label>المساحة (م²)</Label>
+                <Input type="number" value={wsForm.area_sqm || ""} onChange={e => setWsForm(f => ({ ...f, area_sqm: Number(e.target.value) }))} placeholder="مثال: 12" />
               </div>
               <div className="space-y-1">
                 <Label>تاريخ البدء</Label>
@@ -805,8 +1018,12 @@ export default function WorkshopsPage() {
               </div>
             </div>
             <div className="space-y-1">
-              <Label>ملاحظات</Label>
-              <Textarea value={wsForm.description} onChange={e => setWsForm(f => ({ ...f, description: e.target.value }))} rows={2} />
+              <Label>رابط صورة الورشة (اختياري)</Label>
+              <Input value={wsForm.image_url} onChange={e => setWsForm(f => ({ ...f, image_url: e.target.value }))} placeholder="https://..." dir="ltr" />
+            </div>
+            <div className="space-y-1">
+              <Label>وصف / ملاحظات</Label>
+              <Textarea value={wsForm.description} onChange={e => setWsForm(f => ({ ...f, description: e.target.value }))} rows={2} placeholder="مثل: مطبخ ألمنيوم 3×4 لون أبيض..." />
             </div>
           </div>
           <DialogFooter>
