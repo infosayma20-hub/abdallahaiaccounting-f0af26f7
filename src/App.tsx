@@ -385,6 +385,7 @@ const App = () => (
                       <Route path="/customer-reports" element={<CustomerReportsPage />} />
                       <Route path="/contractor" element={<ContractorApp />} />
                       <Route path="/workshops" element={<WorkshopsPage />} />
+                      <Route path="/workshop-reports" element={<WorkshopReportsPage />} />
                       {/* Task Manager */}
                       <Route path="/tasks" element={<TaskLoginPage />} />
                       <Route path="/tasks/board" element={<TaskBoardPage />} />
