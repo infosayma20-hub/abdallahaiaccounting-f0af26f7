@@ -347,7 +347,7 @@ export function useCompanySettings() {
     "onboarding_skipped","onboarding_completed_at",
     "invoice_header_layout","invoice_primary_color","invoice_show_signature",
     "invoice_show_tax_summary","invoice_show_amount_words","invoice_footer_message",
-    "can_edit_posted","can_delete_posted",
+    "can_edit_posted","can_delete_posted","card_bank_account_id",
     // Inventory
     "inventory_costing_method","inventory_default_unit","inventory_low_stock_alert",
     "inventory_default_min_qty","inventory_default_max_qty","inventory_expiry_alert",
