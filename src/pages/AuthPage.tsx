@@ -7,7 +7,7 @@ import { Link } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ScanFace, Mail, Lock, User } from "lucide-react";
+import { Loader2, ScanFace, Mail, Lock, User, Eye, EyeOff } from "lucide-react";
 import { startAuthentication, browserSupportsWebAuthn } from "@simplewebauthn/browser";
 
 const FinancialCanvas = lazy(() => import("@/components/auth/FinancialCanvas"));
@@ -26,6 +26,7 @@ const AuthPage = () => {
   const [loading, setLoading] = useState(false);
   const [supportsPasskeys, setSupportsPasskeys] = useState(false);
   const [savedEmail, setSavedEmail] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     setSupportsPasskeys(browserSupportsWebAuthn());
@@ -269,13 +270,19 @@ const AuthPage = () => {
                 {mode !== "forgot" && (
                   <div className="relative">
                     <Lock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                    <Input type="password" placeholder={mode === "signup" ? "كلمة المرور (6 أحرف على الأقل)" : "••••••••"} value={password} onChange={(e) => setPassword(e.target.value)} required minLength={mode === "signup" ? 6 : 1} className="pr-10" dir="ltr" style={{ textAlign: "left" }} />
+                    <Input type={showPassword ? "text" : "password"} placeholder={mode === "signup" ? "كلمة المرور (6 أحرف على الأقل)" : "••••••••"} value={password} onChange={(e) => setPassword(e.target.value)} required minLength={mode === "signup" ? 6 : 1} className="pr-10 pl-10" dir="ltr" style={{ textAlign: "left" }} />
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
                   </div>
                 )}
                 {mode === "signup" && (
                   <div className="relative">
                     <Lock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-                    <Input type="password" placeholder="تأكيد كلمة المرور" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={6} className="pr-10" dir="ltr" style={{ textAlign: "left" }} />
+                    <Input type={showPassword ? "text" : "password"} placeholder="تأكيد كلمة المرور" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required minLength={6} className="pr-10 pl-10" dir="ltr" style={{ textAlign: "left" }} />
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
                   </div>
                 )}
                 {mode === "signup" && (
