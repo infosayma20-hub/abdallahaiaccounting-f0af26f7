@@ -6694,6 +6694,7 @@ export type Database = {
           digital_receipt_sent: boolean | null
           discount_amount: number
           discount_type: string | null
+          display_number: string | null
           guest_count: number | null
           guest_name: string | null
           id: string
@@ -6709,6 +6710,7 @@ export type Database = {
           payment_currency_amount: number | null
           payment_currency_rate: number | null
           pos_customer_id: string | null
+          queue_number: number | null
           rate_source: string | null
           recall_reason: string | null
           recall_status: string | null
@@ -6749,6 +6751,7 @@ export type Database = {
           digital_receipt_sent?: boolean | null
           discount_amount?: number
           discount_type?: string | null
+          display_number?: string | null
           guest_count?: number | null
           guest_name?: string | null
           id?: string
@@ -6764,6 +6767,7 @@ export type Database = {
           payment_currency_amount?: number | null
           payment_currency_rate?: number | null
           pos_customer_id?: string | null
+          queue_number?: number | null
           rate_source?: string | null
           recall_reason?: string | null
           recall_status?: string | null
@@ -6804,6 +6808,7 @@ export type Database = {
           digital_receipt_sent?: boolean | null
           discount_amount?: number
           discount_type?: string | null
+          display_number?: string | null
           guest_count?: number | null
           guest_name?: string | null
           id?: string
@@ -6819,6 +6824,7 @@ export type Database = {
           payment_currency_amount?: number | null
           payment_currency_rate?: number | null
           pos_customer_id?: string | null
+          queue_number?: number | null
           rate_source?: string | null
           recall_reason?: string | null
           recall_status?: string | null
