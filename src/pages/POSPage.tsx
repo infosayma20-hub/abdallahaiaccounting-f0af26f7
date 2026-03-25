@@ -2475,6 +2475,7 @@ const POSPage = () => {
         date: new Date().toISOString(),
         cashierName: session.cashier_name,
         companyName: company?.name || "شركتي",
+        logoUrl: company?.logo_url || "",
         terminalName: terminal?.name || "نقطة بيع",
         customerName: customerName,
         customerPhone: activeOrder.customerPhone || "",
