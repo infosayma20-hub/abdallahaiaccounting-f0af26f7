@@ -365,7 +365,7 @@ export function useCompanySettings() {
     try {
       const raw = settings as any;
       const UUID_COLUMNS = new Set([
-        "updated_by", "pos_branch_id", "default_bank_account",
+        "updated_by", "pos_branch_id", "default_bank_account", "card_bank_account_id",
       ]);
       const payload: Record<string, any> = { user_id: user.id, updated_by: user.id || null };
       for (const key of DB_COLUMNS) {
