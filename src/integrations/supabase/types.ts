@@ -10608,10 +10608,55 @@ export type Database = {
           },
         ]
       }
+      workshop_payments: {
+        Row: {
+          amount: number
+          created_at: string
+          description: string | null
+          id: string
+          linked_transaction_id: string | null
+          payment_date: string
+          payment_method: string
+          user_id: string
+          workshop_id: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          linked_transaction_id?: string | null
+          payment_date?: string
+          payment_method?: string
+          user_id: string
+          workshop_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          linked_transaction_id?: string | null
+          payment_date?: string
+          payment_method?: string
+          user_id?: string
+          workshop_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workshop_payments_workshop_id_fkey"
+            columns: ["workshop_id"]
+            isOneToOne: false
+            referencedRelation: "workshops"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workshops: {
         Row: {
           actual_end_date: string | null
           address: string | null
+          area_sqm: number | null
           contact_id: string | null
           created_at: string | null
           customer_name: string | null
@@ -10619,6 +10664,7 @@ export type Database = {
           description: string | null
           expected_end_date: string | null
           id: string
+          image_url: string | null
           name: string
           notes: string | null
           start_date: string | null
@@ -10626,10 +10672,12 @@ export type Database = {
           total_budget: number | null
           updated_at: string | null
           user_id: string
+          workshop_type: string | null
         }
         Insert: {
           actual_end_date?: string | null
           address?: string | null
+          area_sqm?: number | null
           contact_id?: string | null
           created_at?: string | null
           customer_name?: string | null
@@ -10637,6 +10685,7 @@ export type Database = {
           description?: string | null
           expected_end_date?: string | null
           id?: string
+          image_url?: string | null
           name: string
           notes?: string | null
           start_date?: string | null
@@ -10644,10 +10693,12 @@ export type Database = {
           total_budget?: number | null
           updated_at?: string | null
           user_id: string
+          workshop_type?: string | null
         }
         Update: {
           actual_end_date?: string | null
           address?: string | null
+          area_sqm?: number | null
           contact_id?: string | null
           created_at?: string | null
           customer_name?: string | null
@@ -10655,6 +10706,7 @@ export type Database = {
           description?: string | null
           expected_end_date?: string | null
           id?: string
+          image_url?: string | null
           name?: string
           notes?: string | null
           start_date?: string | null
@@ -10662,6 +10714,7 @@ export type Database = {
           total_budget?: number | null
           updated_at?: string | null
           user_id?: string
+          workshop_type?: string | null
         }
         Relationships: [
           {
