@@ -2459,7 +2459,7 @@ const POSPage = () => {
 
       setReceiptData(receiptInfo);
       setShowPayment(false);
-      setShowReceipt(true);
+      // Silent print — no receipt dialog
 
       // Fire-and-forget: send to print bridge (local thermal printers)
       try {
@@ -2959,9 +2959,29 @@ const POSPage = () => {
         e.preventDefault();
         return;
       }
-      // F8 = Print
+      // F8 = Print (silent via bridge)
       if (e.key === "F8" && cart.length > 0) {
-        window.print();
+        const f8Order: BridgePrintOrder = {
+          orderNumber: Date.now().toString(),
+          branchName: company?.name || "مطعم الملكي - سفيان",
+          cashier: session?.cashier_name || "",
+          tableNumber: activeOrder.tableName || undefined,
+          orderType: activeOrder.orderType,
+          items: cart.map(item => ({
+            id: item.product_id || item.id,
+            name: item.name,
+            quantity: item.qty,
+            price: item.unit_price,
+            note: item.note || undefined,
+            printerKey: "kitchen" as const,
+            modifiers: (item.modifiers || []).map(m => ({ option_name: m.option_name, extra_price: m.extra_price })),
+          })),
+          subtotal: cartTotals.subtotal,
+          discount: effectiveOrderDiscount,
+          total: cartTotals.total - effectiveOrderDiscount,
+          paymentMethod: paymentMethod === "cash" ? "نقد" : paymentMethod === "card" ? "بطاقة" : "تحويل",
+        };
+        bridgePrintAll(f8Order);
         e.preventDefault();
         return;
       }
@@ -5267,7 +5287,29 @@ const POSPage = () => {
           )}
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setShowKitchenTicket(false)} className="flex-1">إغلاق</Button>
-            <Button onClick={() => { window.print(); setShowKitchenTicket(false); }} className="flex-1 gap-1">
+            <Button onClick={() => {
+              if (kitchenTicketData) {
+                const kitchenOrder: BridgePrintOrder = {
+                  orderNumber: kitchenTicketData.orderNumber || Date.now().toString(),
+                  branchName: company?.name || "مطعم الملكي - سفيان",
+                  cashier: kitchenTicketData.cashierName || "",
+                  items: (kitchenTicketData.stations || []).flatMap((st: any) =>
+                    (st.items || []).map((item: any) => ({
+                      id: item.id || item.name,
+                      name: item.name,
+                      quantity: item.qty || 1,
+                      price: 0,
+                      note: item.note || undefined,
+                      printerKey: "kitchen" as const,
+                    }))
+                  ),
+                  total: 0,
+                  orderNote: kitchenTicketData.orderNote || undefined,
+                };
+                bridgePrintAll(kitchenOrder);
+              }
+              setShowKitchenTicket(false);
+            }} className="flex-1 gap-1">
               <Printer className="h-4 w-4" />
               طباعة
             </Button>
