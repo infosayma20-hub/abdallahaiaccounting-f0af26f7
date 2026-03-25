@@ -767,8 +767,13 @@ export default function InvoiceHistoryDrawer({
                         <Clock className="h-3 w-3" />
                         <span>{time} — {date}</span>
                       </div>
-                      <div className="text-[11px] mt-0.5" style={{ color: "#64748B" }}>
-                        {order.customer_name || "زبون نقدي"}
+                      <div className="text-[11px] mt-0.5 flex items-center gap-2" style={{ color: "#64748B" }}>
+                        <span>{order.customer_name || "زبون"}</span>
+                        {order.pos_payments && order.pos_payments.length > 0 && (
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-medium" style={{ background: "#F1F5F9", color: "#475569" }}>
+                            {order.pos_payments.map(p => PAYMENT_LABELS[p.payment_method] || p.payment_method).filter((v, i, a) => a.indexOf(v) === i).join(" + ")}
+                          </span>
+                        )}
                       </div>
                       {isTransferredOut(order) && order.transferred_to_name && (
                         <div className="text-[10px] mt-0.5 flex items-center gap-1" style={{ color: "#7C3AED" }}>
