@@ -2500,7 +2500,7 @@ const POSPage = () => {
 
       setReceiptData(receiptInfo);
       setShowPayment(false);
-      // Silent print — no receipt dialog
+      setShowReceipt(true); // Show receipt for viewing (print is still silent via bridge)
 
       // Fire-and-forget: send to print bridge (local thermal printers)
       try {
