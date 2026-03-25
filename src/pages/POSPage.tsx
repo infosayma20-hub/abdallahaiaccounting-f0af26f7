@@ -5506,7 +5506,8 @@ const POSPage = () => {
             terminalName={terminal?.name || ""}
             canEditInvoices={isAdmin || posPerms.can_edit_invoices || posPerms.edit_cancel_invoices}
             canCancelInvoices={isAdmin || posPerms.can_cancel_invoices || posPerms.edit_cancel_invoices}
-            requireManagerForInvoices={!isAdmin && posPerms.require_manager_for_invoices}
+            requireManagerForRecall={!isAdmin && !(posPerms.can_edit_invoices) && posPerms.require_manager_for_invoices}
+            requireManagerForCancel={!isAdmin && posPerms.require_manager_for_invoices}
             allowOrderTransfer={posAllowOrderTransfer}
             printInvoices={isAdmin || posPerms.print_invoices}
             resendInvoice={isAdmin || posPerms.resend_invoice}
