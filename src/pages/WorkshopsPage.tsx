@@ -511,6 +511,19 @@ export default function WorkshopsPage() {
               </div>
             </div>
             <Badge variant={status.variant}>{status.label}</Badge>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8"><MoreVertical className="h-4 w-4" /></Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" dir="rtl">
+                <DropdownMenuItem onClick={() => openEditWorkshop(selectedWorkshop)}>
+                  <Edit className="h-3.5 w-3.5 ml-2" /> تعديل الورشة
+                </DropdownMenuItem>
+                <DropdownMenuItem className="text-destructive" onClick={() => { setDeletingWorkshop(selectedWorkshop); setShowDeleteConfirm(true); }}>
+                  <Trash2 className="h-3.5 w-3.5 ml-2" /> حذف الورشة
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
 
           {/* Area + Type info */}
