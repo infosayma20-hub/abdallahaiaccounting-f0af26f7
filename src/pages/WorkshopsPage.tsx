@@ -1127,6 +1127,93 @@ export default function WorkshopsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* ── Edit Workshop Dialog ── */}
+      <Dialog open={showEditWorkshop} onOpenChange={v => { if (!v) { setShowEditWorkshop(false); setEditingWorkshop(null); setWsForm(defaultWsForm()); } }}>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto" dir="rtl">
+          <DialogHeader>
+            <DialogTitle>تعديل الورشة</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="space-y-1">
+              <Label>اسم الورشة *</Label>
+              <Input value={wsForm.name} onChange={e => setWsForm(f => ({ ...f, name: e.target.value }))} />
+            </div>
+            <div className="space-y-1">
+              <Label>نوع الورشة</Label>
+              <div className="grid grid-cols-3 gap-2">
+                {WORKSHOP_TYPES.map(wt => (
+                  <button key={wt.value} onClick={() => setWsForm(f => ({ ...f, workshop_type: wt.value }))}
+                    className={`p-2 rounded-xl border text-center transition-all ${
+                      wsForm.workshop_type === wt.value ? "border-primary bg-primary/10 ring-2 ring-primary/30" : "border-border hover:bg-accent/5"
+                    }`}>
+                    <span className="text-xl block">{wt.icon}</span>
+                    <span className="text-[10px] font-medium text-foreground">{wt.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label>اسم الزبون</Label>
+                <Input value={wsForm.customer_name} onChange={e => setWsForm(f => ({ ...f, customer_name: e.target.value }))} />
+              </div>
+              <div className="space-y-1">
+                <Label>رقم الهاتف</Label>
+                <Input value={wsForm.customer_phone} onChange={e => setWsForm(f => ({ ...f, customer_phone: e.target.value }))} dir="ltr" />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label>العنوان</Label>
+              <Input value={wsForm.address} onChange={e => setWsForm(f => ({ ...f, address: e.target.value }))} />
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="space-y-1">
+                <Label>الميزانية (₪)</Label>
+                <Input type="number" value={wsForm.total_budget || ""} onChange={e => setWsForm(f => ({ ...f, total_budget: Number(e.target.value) }))} />
+              </div>
+              <div className="space-y-1">
+                <Label>المساحة (م²)</Label>
+                <Input type="number" value={wsForm.area_sqm || ""} onChange={e => setWsForm(f => ({ ...f, area_sqm: Number(e.target.value) }))} />
+              </div>
+              <div className="space-y-1">
+                <Label>تاريخ البدء</Label>
+                <Input type="date" value={wsForm.start_date} onChange={e => setWsForm(f => ({ ...f, start_date: e.target.value }))} />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label>رابط صورة الورشة</Label>
+              <Input value={wsForm.image_url} onChange={e => setWsForm(f => ({ ...f, image_url: e.target.value }))} placeholder="https://..." dir="ltr" />
+            </div>
+            <div className="space-y-1">
+              <Label>وصف / ملاحظات</Label>
+              <Textarea value={wsForm.description} onChange={e => setWsForm(f => ({ ...f, description: e.target.value }))} rows={2} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => { setShowEditWorkshop(false); setEditingWorkshop(null); setWsForm(defaultWsForm()); }}>إلغاء</Button>
+            <Button onClick={handleEditWorkshop}>حفظ التعديلات</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Delete Confirmation ── */}
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent dir="rtl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>حذف الورشة "{deletingWorkshop?.name}"؟</AlertDialogTitle>
+            <AlertDialogDescription>
+              سيتم حذف الورشة وجميع التكاليف والدفعات والقيود المحاسبية المرتبطة بها. هذا الإجراء لا يمكن التراجع عنه.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex gap-2">
+            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+            <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => deletingWorkshop && handleDeleteWorkshop(deletingWorkshop)}>
+              حذف نهائي
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
