@@ -2906,6 +2906,7 @@ const POSPage = () => {
     // Prepare shift summary data
     setShiftSummaryData({
       companyName: company?.name || "شركتي",
+      logoUrl: company?.logo_url || "",
       terminalName: terminal?.name || "نقطة بيع",
       cashierName: session.cashier_name,
       cashBoxName,
