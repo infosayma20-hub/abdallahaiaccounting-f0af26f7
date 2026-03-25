@@ -2445,10 +2445,27 @@ const POSPage = () => {
 
       loadProducts();
 
+      // Fetch display_number and queue_number from the created order
+      let displayNumber = '';
+      let queueNumber: number | undefined;
+      try {
+        const { data: orderRow } = await supabase
+          .from("pos_orders")
+          .select("display_number, queue_number")
+          .eq("id", orderId)
+          .single();
+        if (orderRow) {
+          displayNumber = (orderRow as any).display_number || '';
+          queueNumber = (orderRow as any).queue_number;
+        }
+      } catch {}
+
       const tableName = activeOrder.tableName;
       const receiptInfo = {
         orderId,
         orderNumber: res.order_number,
+        displayNumber,
+        queueNumber,
         date: new Date().toISOString(),
         cashierName: session.cashier_name,
         companyName: company?.name || "شركتي",
