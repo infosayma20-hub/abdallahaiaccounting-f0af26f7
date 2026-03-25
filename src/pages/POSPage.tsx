@@ -360,7 +360,7 @@ const POSPage = () => {
       customerId: contactId !== undefined ? contactId : o.customerId,
       customerPhone: phone !== undefined ? phone : o.customerPhone,
       posCustomerId: posCustomerId !== undefined ? posCustomerId : o.posCustomerId,
-      name: name && !o.tableId ? name : o.name,
+      name: !o.tableId ? (name || `طلب ${orderCounter.current}`) : o.name,
     }));
   }, [updateActiveOrder]);
 
