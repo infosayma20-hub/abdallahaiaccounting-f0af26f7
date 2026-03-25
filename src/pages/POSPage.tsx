@@ -281,6 +281,7 @@ const POSPage = () => {
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const searchRef = useRef<HTMLInputElement>(null);
+  const { printAll: bridgePrintAll } = usePrintBridge();
 
   // URL params for table context
   const urlTableId = searchParams.get("table_id");
