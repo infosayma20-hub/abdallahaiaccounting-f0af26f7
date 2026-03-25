@@ -116,7 +116,7 @@ const DEFAULT_PERMS: Permission = {
   can_view_invoice_history: true,
   can_edit_invoices: true,
   can_cancel_invoices: false,
-  require_manager_for_invoices: true,
+  require_manager_for_invoices: false,
   print_invoices: true,
   resend_invoice: false,
   manage_products_categories: false,
