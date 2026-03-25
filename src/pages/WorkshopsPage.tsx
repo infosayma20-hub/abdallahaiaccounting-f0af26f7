@@ -973,6 +973,22 @@ export default function WorkshopsPage() {
               )}
             </div>
 
+            {/* Workshop Type */}
+            <div className="space-y-1">
+              <Label>نوع الورشة</Label>
+              <div className="grid grid-cols-3 gap-2">
+                {WORKSHOP_TYPES.map(wt => (
+                  <button key={wt.value} onClick={() => setWsForm(f => ({ ...f, workshop_type: wt.value }))}
+                    className={`p-2 rounded-xl border text-center transition-all ${
+                      wsForm.workshop_type === wt.value ? "border-primary bg-primary/10 ring-2 ring-primary/30" : "border-border hover:bg-accent/5"
+                    }`}>
+                    <span className="text-xl block">{wt.icon}</span>
+                    <span className="text-[10px] font-medium text-foreground">{wt.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label>اسم الزبون (يدوي)</Label>
@@ -987,10 +1003,14 @@ export default function WorkshopsPage() {
               <Label>العنوان</Label>
               <Input value={wsForm.address} onChange={e => setWsForm(f => ({ ...f, address: e.target.value }))} placeholder="المدينة / الحي" />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-3">
               <div className="space-y-1">
                 <Label>الميزانية (₪)</Label>
                 <Input type="number" value={wsForm.total_budget || ""} onChange={e => setWsForm(f => ({ ...f, total_budget: Number(e.target.value) }))} />
+              </div>
+              <div className="space-y-1">
+                <Label>المساحة (م²)</Label>
+                <Input type="number" value={wsForm.area_sqm || ""} onChange={e => setWsForm(f => ({ ...f, area_sqm: Number(e.target.value) }))} placeholder="مثال: 12" />
               </div>
               <div className="space-y-1">
                 <Label>تاريخ البدء</Label>
@@ -998,8 +1018,12 @@ export default function WorkshopsPage() {
               </div>
             </div>
             <div className="space-y-1">
-              <Label>ملاحظات</Label>
-              <Textarea value={wsForm.description} onChange={e => setWsForm(f => ({ ...f, description: e.target.value }))} rows={2} />
+              <Label>رابط صورة الورشة (اختياري)</Label>
+              <Input value={wsForm.image_url} onChange={e => setWsForm(f => ({ ...f, image_url: e.target.value }))} placeholder="https://..." dir="ltr" />
+            </div>
+            <div className="space-y-1">
+              <Label>وصف / ملاحظات</Label>
+              <Textarea value={wsForm.description} onChange={e => setWsForm(f => ({ ...f, description: e.target.value }))} rows={2} placeholder="مثل: مطبخ ألمنيوم 3×4 لون أبيض..." />
             </div>
           </div>
           <DialogFooter>
