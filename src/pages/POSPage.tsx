@@ -216,6 +216,8 @@ function getCatConfig(category: string) {
   return CATEGORY_CONFIG[category] || DEFAULT_CAT_CONFIG;
 }
 
+  // Derived display name for POS terminal/cash box
+  const posDisplayName = (session?.cash_box_id && cashBoxes.find(b => b.id === session.cash_box_id)?.name) || terminal?.name || "نقطة بيع";
 
 const SortableCategoryChip = ({ cat, isActive, isSortMode, isDragging, onClick }: {
   cat: { id: string; name: string; color: string; count: number };
