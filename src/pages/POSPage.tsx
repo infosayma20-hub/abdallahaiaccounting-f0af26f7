@@ -574,6 +574,28 @@ const POSPage = () => {
    const [dataOwnerId, setDataOwnerId] = useState<string | null>(null);
     const isAdmin = userId === dataOwnerId; // Employee has different dataOwnerId
 
+  // Load tables when picker opens
+  useEffect(() => {
+    if (!showTablePicker || !dataOwnerId) return;
+    (async () => {
+      const { data } = await supabase
+        .from("restaurant_tables")
+        .select("id, name, seats, status")
+        .eq("user_id", dataOwnerId)
+        .eq("is_active", true)
+        .order("name");
+      if (data) {
+        setAvailableTables(data.map((t: any) => ({
+          id: t.id,
+          name: t.name,
+          seats: t.seats || 0,
+          status: t.status || "available",
+          section_name: t.section?.name || "",
+        })));
+      }
+    })();
+  }, [showTablePicker, dataOwnerId]);
+
    // ── Offline Mode ──
    const offlineMode = usePOSOffline({
      userId: dataOwnerId || userId || null,
@@ -4032,18 +4054,71 @@ const POSPage = () => {
             {(
               <div className="px-3 pt-2 pb-1 space-y-1.5">
                 <div className="flex items-center gap-2 text-xs">
-                  {/* Order Type Toggle (Delivery / Takeaway / Dine-in) */}
-                  {(["dine_in", "takeaway", "delivery"] as const).map(type => {
-                    const isActive = activeOrder.orderType === type;
+                  {/* Table Picker (replaces dine_in) */}
+                  <div className="relative">
+                    <button
+                      onClick={() => setShowTablePicker(!showTablePicker)}
+                      className={`flex items-center gap-1 px-2.5 py-1.5 rounded-md transition-all ${
+                        activeOrder.tableId
+                          ? "bg-primary/15 text-primary border border-primary/30 font-bold"
+                          : "bg-muted/40 text-muted-foreground hover:bg-muted/60"
+                      }`}
+                    >
+                      <span>🍽️</span>
+                      {activeOrder.tableName || "طاولة"}
+                      <ChevronDown className="h-3 w-3" />
+                    </button>
+                    {showTablePicker && (
+                      <div className="absolute top-full right-0 mt-1 z-50 bg-popover border border-border rounded-lg shadow-lg p-2 min-w-[180px] max-h-[250px] overflow-y-auto">
+                        {availableTables.length === 0 && (
+                          <p className="text-[11px] text-muted-foreground p-2 text-center">جاري التحميل...</p>
+                        )}
+                        {activeOrder.tableId && (
+                          <button
+                            onClick={() => {
+                              updateActiveOrder(o => ({ ...o, tableId: null, tableName: null, orderType: "takeaway", name: `طلب ${activeOrderIndex + 1}` }));
+                              setShowTablePicker(false);
+                            }}
+                            className="w-full text-right text-xs px-3 py-2 rounded-md hover:bg-destructive/10 text-destructive flex items-center gap-2"
+                          >
+                            <X className="h-3 w-3" />
+                            إلغاء الطاولة
+                          </button>
+                        )}
+                        {availableTables.map(t => (
+                          <button
+                            key={t.id}
+                            onClick={() => {
+                              updateActiveOrder(o => ({ ...o, tableId: t.id, tableName: t.name, orderType: "dine_in", name: t.name }));
+                              setShowTablePicker(false);
+                            }}
+                            className={`w-full text-right text-xs px-3 py-2 rounded-md flex items-center justify-between gap-2 ${
+                              t.id === activeOrder.tableId
+                                ? "bg-primary/15 text-primary font-bold"
+                                : t.status === "occupied"
+                                ? "text-destructive/70 hover:bg-destructive/5"
+                                : "hover:bg-muted/60"
+                            }`}
+                          >
+                            <span>{t.name}</span>
+                            {t.status === "occupied" && <span className="text-[10px]">مشغولة</span>}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Takeaway + Delivery */}
+                  {(["takeaway", "delivery"] as const).map(type => {
+                    const isActive = activeOrder.orderType === type && !activeOrder.tableId;
                     const labels: Record<string, { label: string; icon: string }> = {
-                      dine_in: { label: "محلي", icon: "🍽️" },
                       takeaway: { label: "استلام", icon: "🛍️" },
                       delivery: { label: "توصيل", icon: "🚚" },
                     };
                     return (
                       <button
                         key={type}
-                        onClick={() => updateActiveOrder(o => ({ ...o, orderType: type }))}
+                        onClick={() => updateActiveOrder(o => ({ ...o, orderType: type, tableId: null, tableName: null }))}
                         className={`flex items-center gap-1 px-2.5 py-1.5 rounded-md transition-all ${
                           isActive
                             ? "bg-primary/15 text-primary border border-primary/30 font-bold"
