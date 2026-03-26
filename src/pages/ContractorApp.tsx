@@ -442,13 +442,13 @@ export default function ContractorApp() {
           </div>
           <div className="flex gap-2 flex-wrap">
             <Button variant="outline" size="sm" onClick={printContract}>
-              <Printer className="h-4 w-4 ml-1" /> طباعة العقد
+              <FileText className="h-4 w-4 ml-1" /> طباعة العقد PDF
             </Button>
             <Button variant="outline" size="sm" onClick={exportExcel}>
               <Download className="h-4 w-4 ml-1" /> تصدير
             </Button>
-            <Button size="sm" className="bg-red-600 hover:bg-red-700 text-white" onClick={() => setShowClaimModal(true)}>
-              <Mail className="h-4 w-4 ml-1" /> 📩 مطالبة مالية
+            <Button size="sm" className="bg-destructive hover:bg-destructive/90 text-destructive-foreground" onClick={() => setShowClaimModal(true)}>
+              📩 مطالبة مالية
             </Button>
           </div>
         </div>
@@ -612,7 +612,7 @@ export default function ContractorApp() {
         </Dialog>
 
         {projectDialogJSX}
-        {contractPrintJSX}
+        
 
         {/* Financial Claim Modal */}
         <FinancialClaimModal
