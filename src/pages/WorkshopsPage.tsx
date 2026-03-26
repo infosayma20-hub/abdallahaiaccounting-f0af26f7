@@ -275,25 +275,46 @@ export default function WorkshopsPage() {
     loadWorkshops();
   };
 
+  /* ── Generate default cheque rows ── */
+  const generateChequeRows = (count: number, totalAmount: number, startNumber: string, startDate: string, drawer: string, bank: string) => {
+    const rows: ChequeRow[] = [];
+    const baseNum = parseInt(startNumber) || 0;
+    const perAmount = totalAmount > 0 ? Math.round((totalAmount / count) * 100) / 100 : 0;
+    for (let i = 0; i < count; i++) {
+      const dueDate = new Date(startDate || new Date());
+      if (i > 0) dueDate.setMonth(dueDate.getMonth() + i);
+      rows.push({
+        number: baseNum > 0 ? String(baseNum + i) : (startNumber ? `${startNumber}-${i + 1}` : ""),
+        drawer: drawer,
+        bank: bank,
+        date: format(dueDate, "yyyy-MM-dd"),
+        amount: perAmount,
+      });
+    }
+    return rows;
+  };
+
+  const updateChequeRow = (index: number, field: keyof ChequeRow, value: string | number) => {
+    setChequeRows(prev => prev.map((r, i) => i === index ? { ...r, [field]: value } : r));
+  };
+
   /* ── Add Partial Payment ── */
   const handleAddPayment = async () => {
     if (!selectedWorkshop || paymentForm.amount <= 0) { toast.error("المبلغ مطلوب"); return; }
     const isCheque = paymentForm.payment_method === "شيك";
-    const chequeCount = isCheque ? Math.max(1, paymentForm.cheque_count) : 0;
 
-    if (isCheque && !paymentForm.cheque_number.trim()) { toast.error("رقم الشيك مطلوب"); return; }
+    if (isCheque && chequeRows.some(r => !r.number.trim())) { toast.error("رقم الشيك مطلوب لكل شيك"); return; }
 
     const amountILS = paymentForm.currency !== "ILS" ? paymentForm.amount * paymentForm.exchange_rate : paymentForm.amount;
     const currencyLabel = paymentForm.currency === "ILS" ? "شيكل" : paymentForm.currency === "USD" ? "دولار" : paymentForm.currency === "JOD" ? "دينار" : paymentForm.currency;
 
-    // GL: cheque → 1150, bank → 1120, cash → 1110
     const debitCode = isCheque ? "1150" : paymentForm.payment_method === "بنك" ? "1120" : "1110";
     const idempotencyKey = `WS-PAY-${selectedWorkshop.id}-${Date.now()}`;
 
     const { data: txData, error: txError } = await supabase.from("transactions").insert({
       user_id: user!.id,
       transaction_date: paymentForm.payment_date,
-      description: paymentForm.description || `دفعة من ${selectedWorkshop.customer_name || "زبون"} - ورشة ${selectedWorkshop.name}${isCheque ? ` (${chequeCount} شيك)` : ""}`,
+      description: paymentForm.description || `دفعة من ${selectedWorkshop.customer_name || "زبون"} - ورشة ${selectedWorkshop.name}${isCheque ? ` (${chequeRows.length} شيك)` : ""}`,
       debit_account_code: debitCode,
       credit_account_code: "4200",
       amount: amountILS,
@@ -308,36 +329,25 @@ export default function WorkshopsPage() {
 
     if (txError) { toast.error("خطأ في إنشاء القيد: " + txError.message); return; }
 
-    // Create cheque records (batch)
-    if (isCheque) {
-      const perChequeAmount = paymentForm.amount / chequeCount;
-      const baseNum = parseInt(paymentForm.cheque_number) || 0;
-      const chequeInserts = [];
-
-      for (let i = 0; i < chequeCount; i++) {
-        const chequeNum = baseNum > 0 ? String(baseNum + i) : `${paymentForm.cheque_number}${chequeCount > 1 ? `-${i + 1}` : ""}`;
-        // Add months to cheque_date for sequential cheques
-        const dueDate = new Date(paymentForm.cheque_date);
-        if (i > 0) dueDate.setMonth(dueDate.getMonth() + i);
-
-        chequeInserts.push({
-          user_id: user!.id,
-          cheque_type: "incoming" as any,
-          cheque_number: chequeNum,
-          party_name: paymentForm.cheque_drawer || selectedWorkshop.customer_name || "زبون",
-          party_type: "customer",
-          contact_id: selectedWorkshop.contact_id || null,
-          amount: perChequeAmount,
-          cheque_date: format(dueDate, "yyyy-MM-dd"),
-          bank_name: paymentForm.cheque_bank || null,
-          status: "registered" as any,
-          currency: paymentForm.currency,
-          linked_transaction_id: txData?.id || null,
-          linked_account: "1150",
-          deposit_bank_account_id: paymentForm.deposit_bank_id || null,
-          notes: `دفعة ورشة: ${selectedWorkshop.name}${chequeCount > 1 ? ` (${i + 1}/${chequeCount})` : ""}`,
-        });
-      }
+    // Create cheque records from user-edited rows
+    if (isCheque && chequeRows.length > 0) {
+      const chequeInserts = chequeRows.map((row, i) => ({
+        user_id: user!.id,
+        cheque_type: "incoming" as any,
+        cheque_number: row.number,
+        party_name: row.drawer || selectedWorkshop.customer_name || "زبون",
+        party_type: "customer",
+        contact_id: selectedWorkshop.contact_id || null,
+        amount: row.amount,
+        cheque_date: row.date,
+        bank_name: row.bank || null,
+        status: "registered" as any,
+        currency: paymentForm.currency,
+        linked_transaction_id: txData?.id || null,
+        linked_account: "1150",
+        deposit_bank_account_id: paymentForm.deposit_bank_id || null,
+        notes: `دفعة ورشة: ${selectedWorkshop.name}${chequeRows.length > 1 ? ` (${i + 1}/${chequeRows.length})` : ""}`,
+      }));
 
       const { error: chequeError } = await supabase.from("cheques").insert(chequeInserts as any);
       if (chequeError) { toast.error("خطأ في تسجيل الشيكات: " + chequeError.message); return; }
@@ -351,9 +361,11 @@ export default function WorkshopsPage() {
     } as any);
 
     if (error) { toast.error(error.message); return; }
-    toast.success(isCheque ? `✅ تم تسجيل ${chequeCount} شيك وارد بنجاح` : "✅ تم تسجيل الدفعة بنجاح");
+    toast.success(isCheque ? `✅ تم تسجيل ${chequeRows.length} شيك وارد بنجاح` : "✅ تم تسجيل الدفعة بنجاح");
     setShowPaymentDialog(false);
-    setPaymentForm({ amount: 0, payment_method: "نقدي", description: "", payment_date: format(new Date(), "yyyy-MM-dd"), cheque_number: "", cheque_bank: "", cheque_date: format(new Date(), "yyyy-MM-dd"), cheque_drawer: "", deposit_bank_id: null, currency: "ILS", exchange_rate: 1, cheque_count: 1 });
+    const resetForm = { amount: 0, payment_method: "نقدي", description: "", payment_date: format(new Date(), "yyyy-MM-dd"), cheque_bank: "", deposit_bank_id: null, currency: "ILS", exchange_rate: 1, cheque_count: 1 };
+    setPaymentForm(resetForm as any);
+    setChequeRows([]);
     loadCosts(selectedWorkshop.id);
   };
 
