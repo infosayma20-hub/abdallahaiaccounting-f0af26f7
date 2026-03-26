@@ -47,48 +47,46 @@ const AppCard = ({
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.035, duration: 0.35, ease: "easeOut" }}
-      className={`relative rounded-2xl border overflow-hidden transition-all duration-300 ${
+      className={`relative rounded-2xl overflow-hidden transition-all duration-300 ${
         isLocked
-          ? "border-border/20 bg-muted/20 opacity-40 cursor-not-allowed"
+          ? "border border-border/20 bg-muted/10 opacity-40 cursor-not-allowed"
           : disabled
-          ? "border-border/20 bg-muted/20 opacity-50 grayscale cursor-not-allowed"
+          ? "border border-border/20 bg-muted/10 opacity-50 grayscale cursor-not-allowed"
           : isExpanded
-          ? "border-primary/30 bg-card shadow-lg"
-          : "border-border/30 bg-card hover:border-primary/20 hover:shadow-lg hover:-translate-y-1 transition-transform"
+          ? "border-2 border-primary/30 bg-card shadow-lg"
+          : "border border-border/50 bg-card shadow-sm hover:shadow-xl hover:border-primary/20 hover:-translate-y-1 transition-transform"
       }`}
     >
       <button
         onClick={handleClick}
-        className={`w-full flex flex-col items-center gap-3 p-6 pb-4 text-center group relative z-10 ${isDisabledOrLocked ? "cursor-not-allowed" : ""}`}
+        className={`w-full flex flex-col items-center gap-4 p-7 pb-5 text-center group relative z-10 ${isDisabledOrLocked ? "cursor-not-allowed" : ""}`}
       >
-        {/* Large Icon */}
+        {/* Large Icon — uses app.bgColor and app.color from config */}
         <div
-          className={`w-16 h-16 rounded-2xl flex items-center justify-center transition-all duration-300 ${
-            isDisabledOrLocked ? "bg-muted/40" : "group-hover:scale-110 group-hover:shadow-lg"
+          className={`w-[72px] h-[72px] rounded-2xl flex items-center justify-center transition-all duration-300 border ${
+            isDisabledOrLocked
+              ? "bg-muted/40 border-border/20"
+              : `${app.bgColor || "bg-primary/8"} border-border/40 group-hover:scale-110 group-hover:shadow-md`
           }`}
-          style={!isDisabledOrLocked ? {
-            backgroundColor: app.bgColor ? undefined : 'hsl(var(--primary) / 0.08)',
-            border: `1.5px solid hsl(var(--primary) / 0.15)`,
-          } : undefined}
         >
           {isLocked ? (
-            <Lock className="h-7 w-7 text-muted-foreground/40" />
+            <Lock className="h-8 w-8 text-muted-foreground/40" />
           ) : (
-            <app.icon className={`h-7 w-7 ${app.color || "text-primary"} transition-transform duration-300 group-hover:scale-105`} />
+            <app.icon className={`h-8 w-8 ${app.color || "text-primary"} transition-transform duration-300 group-hover:scale-105`} />
           )}
         </div>
 
         {/* Title */}
-        <div className="space-y-1">
+        <div className="space-y-1.5">
           <div className="flex items-center justify-center gap-2">
-            <p className={`text-sm font-medium ${isDisabledOrLocked ? "text-muted-foreground/50" : "text-foreground"}`}>
+            <p className={`text-base font-medium ${isDisabledOrLocked ? "text-muted-foreground/50" : "text-foreground"}`}>
               {app.label}
             </p>
             {!isDisabledOrLocked && app.isNew && (
-              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-info/10 text-info">جديد</span>
+              <span className="text-[9px] font-medium px-2 py-0.5 rounded-full bg-info/10 text-info">جديد</span>
             )}
           </div>
-          <p className="text-[11px] text-muted-foreground leading-relaxed max-w-[200px] mx-auto">
+          <p className="text-[12px] text-muted-foreground leading-relaxed max-w-[220px] mx-auto">
             {isLocked ? "🔒 غير متاح — تواصل مع الإدارة للتفعيل" : disabled ? "غير مفعّل" : app.description}
           </p>
         </div>
