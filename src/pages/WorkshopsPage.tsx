@@ -635,7 +635,33 @@ export default function WorkshopsPage() {
   if (selectedWorkshop) {
     const status = STATUS_MAP[selectedWorkshop.status] || STATUS_MAP.active;
     const profit = selectedWorkshop.total_budget - costSummary.total;
-    const customerContact = contacts.find(c => c.id === selectedWorkshop.contact_id);
+  const customerContact = contacts.find(c => c.id === selectedWorkshop.contact_id);
+    const [customerBalance, setCustomerBalance] = useState(0);
+
+    // Calculate real balance from transactions (1130 receivables + 2100 payables)
+    useEffect(() => {
+      if (!selectedWorkshop.contact_id) return;
+      const calcBalance = async () => {
+        const { data } = await supabase
+          .from("transactions")
+          .select("debit_account_code, credit_account_code, amount")
+          .eq("contact_id", selectedWorkshop.contact_id!)
+          .is("is_deleted" as any, null)
+          .in("debit_account_code", ["1130", "2100"])
+          .or("credit_account_code.in.(1130,2100)");
+        
+        if (!data) { setCustomerBalance(0); return; }
+        let balance = 0;
+        data.forEach((tx: any) => {
+          if (tx.debit_account_code === "1130") balance += tx.amount;
+          if (tx.credit_account_code === "1130") balance -= tx.amount;
+          if (tx.debit_account_code === "2100") balance -= tx.amount;
+          if (tx.credit_account_code === "2100") balance += tx.amount;
+        });
+        setCustomerBalance(balance);
+      };
+      calcBalance();
+    }, [selectedWorkshop.contact_id, costs, payments]);
 
     return (
       <div className="min-h-full bg-background pb-24" dir="rtl">
@@ -651,7 +677,7 @@ export default function WorkshopsPage() {
                 <span>{selectedWorkshop.customer_name || "بدون زبون"}</span>
                 {customerContact && (
                   <Badge variant="outline" className="text-[9px]">
-                    رصيد: {customerContact.current_balance.toLocaleString()} ₪
+                    رصيد: {customerBalance.toLocaleString()} ₪
                   </Badge>
                 )}
               </div>
@@ -814,7 +840,7 @@ export default function WorkshopsPage() {
 
           {/* Add cost button */}
           <Button onClick={() => setShowNewCost(true)} className="w-full gap-2">
-            <Plus className="h-4 w-4" /> إضافة تكلفة (مع قيد محاسبي)
+            <Plus className="h-4 w-4" /> إضافة تكلفة
           </Button>
 
           {/* ── Cost Ledger Table ── */}
@@ -1004,6 +1030,28 @@ export default function WorkshopsPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* ── Financial Claim Modal ── */}
+        <FinancialClaimModal
+          open={showClaimModal}
+          onOpenChange={setShowClaimModal}
+          project={{
+            id: selectedWorkshop.id,
+            name: selectedWorkshop.name,
+            client_name: selectedWorkshop.customer_name,
+            phone: selectedWorkshop.customer_phone,
+            address: selectedWorkshop.address,
+            budget: selectedWorkshop.total_budget,
+            total_expenses: costSummary.total,
+            total_receipts: totalPaid,
+          }}
+          userId={user!.id}
+          companyName={settings.company_name || "الشركة"}
+          companyPhone={settings.phone || ""}
+          companyAddress={settings.address || ""}
+          companyEmail={settings.email || ""}
+          logoUrl={settings.logo_url || ""}
+        />
 
         {/* ── Payment Dialog ── */}
         <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
@@ -1590,29 +1638,7 @@ export default function WorkshopsPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* ── Financial Claim Modal ── */}
-      {selectedWorkshop && (
-        <FinancialClaimModal
-          open={showClaimModal}
-          onOpenChange={setShowClaimModal}
-          project={{
-            id: selectedWorkshop.id,
-            name: selectedWorkshop.name,
-            client_name: selectedWorkshop.customer_name,
-            phone: selectedWorkshop.customer_phone,
-            address: selectedWorkshop.address,
-            budget: selectedWorkshop.total_budget,
-            total_expenses: costSummary.total,
-            total_receipts: totalPaid,
-          }}
-          userId={user!.id}
-          companyName={settings.company_name || "الشركة"}
-          companyPhone={settings.phone || ""}
-          companyAddress={settings.address || ""}
-          companyEmail={settings.email || ""}
-          logoUrl={settings.logo_url || ""}
-        />
-      )}
+      {/* Claim modal removed — now inside detail view */}
     </div>
   );
 }
