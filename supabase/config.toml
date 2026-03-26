@@ -53,3 +53,6 @@ verify_jwt = false
 
 [functions.zkteco-webhook]
 verify_jwt = false
+
+[functions.receipt-data]
+verify_jwt = false

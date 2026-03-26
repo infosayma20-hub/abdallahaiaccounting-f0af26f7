@@ -1,17 +1,15 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
+
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 const DigitalReceiptPage = () => {
   const { orderId } = useParams<{ orderId: string }>();
-  const [order, setOrder] = useState<any>(null);
-  const [lines, setLines] = useState<any[]>([]);
-  const [company, setCompany] = useState<any>(null);
-  const [cashierName, setCashierName] = useState("");
+  const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState("");
 
   const PAYMENT_LABELS: Record<string, { label: string; color: string }> = {
     cash: { label: "نقد", color: "#16a34a" },
@@ -27,45 +25,13 @@ const DigitalReceiptPage = () => {
 
   const loadReceipt = async () => {
     try {
-      const { data: orderData, error: oErr } = await supabase
-        .from("pos_orders")
-        .select("*")
-        .eq("id", orderId)
-        .single();
-      if (oErr || !orderData) { setError("الفاتورة غير موجودة"); setLoading(false); return; }
-      setOrder(orderData);
-
-      // Try company_id first, fallback to owner_id via user_id
-      const companyId = (orderData as any).company_id;
-      const userId = (orderData as any).user_id;
-
-      const [linesRes, companyRes, companyByOwnerRes, sessionRes, settingsRes, paymentsRes] = await Promise.all([
-        supabase.from("pos_order_lines").select("*").eq("order_id", orderId),
-        companyId
-          ? supabase.from("companies").select("name, logo_url, phone, address").eq("id", companyId).single()
-          : Promise.resolve({ data: null }),
-        supabase.from("companies").select("name, logo_url, phone, address").eq("owner_id", userId).single(),
-        supabase.from("pos_sessions").select("cashier_name").eq("id", (orderData as any).session_id).single(),
-        supabase.from("company_settings").select("company_name, address, email").eq("id", userId).single(),
-        supabase.from("pos_payments").select("payment_method").eq("order_id", orderId).limit(1),
-      ]);
-
-      setLines(linesRes.data || []);
-      const companyData = companyRes?.data || companyByOwnerRes?.data;
-      const settings = settingsRes?.data as any;
-      // Use company_settings name as override if available
-      if (settings?.company_name && companyData) {
-        companyData.name = settings.company_name;
-      }
-      if (settings?.address && companyData) {
-        companyData.address = settings.address;
-      }
-      setCompany(companyData);
-      setCashierName((sessionRes.data as any)?.cashier_name || "");
-      
-      // Store payment method
-      const pm = (paymentsRes.data as any)?.[0]?.payment_method || "";
-      setPaymentMethod(pm);
+      const res = await fetch(
+        `${SUPABASE_URL}/functions/v1/receipt-data?order_id=${orderId}`,
+        { headers: { apikey: SUPABASE_KEY } }
+      );
+      if (!res.ok) { setError("الفاتورة غير موجودة"); setLoading(false); return; }
+      const json = await res.json();
+      setData(json);
     } catch { setError("خطأ في تحميل الفاتورة"); }
     setLoading(false);
   };
@@ -76,7 +42,7 @@ const DigitalReceiptPage = () => {
     </div>
   );
 
-  if (error || !order) return (
+  if (error || !data) return (
     <div className="min-h-screen flex items-center justify-center bg-[#faf9f6]">
       <div className="text-center p-8">
         <p className="text-2xl mb-2">😔</p>
@@ -85,9 +51,9 @@ const DigitalReceiptPage = () => {
     </div>
   );
 
+  const { order, lines, company, cashier_name: cashierName } = data;
   const orderDate = new Date(order.created_at);
-  const discountPct = (order as any).customer_discount_pct || 0;
-  const surveyToken = (order as any).survey_token;
+  const paymentMethod = data.payments?.[0]?.payment_method || "";
 
   return (
     <div className="min-h-screen bg-[#faf9f6] py-4 px-3" dir="rtl">
@@ -140,8 +106,8 @@ const DigitalReceiptPage = () => {
                     <p className="text-[11px] text-gray-400 font-mono" dir="ltr">
                       ₪{line.unit_price?.toFixed(2)} × {line.qty}
                     </p>
-                    {line.discount_pct > 0 && (
-                      <p className="text-[11px] text-red-500">خصم: {line.discount_pct}%</p>
+                    {line.discount > 0 && (
+                      <p className="text-[11px] text-red-500">خصم: ₪{line.discount?.toFixed(2)}</p>
                     )}
                   </td>
                   <td className="text-center font-mono">{line.qty}</td>
@@ -158,16 +124,16 @@ const DigitalReceiptPage = () => {
             <span className="text-gray-500">المجموع قبل الضريبة | Total Before VAT</span>
             <span className="font-mono">₪{order.subtotal?.toFixed(2)}</span>
           </div>
-          {discountPct > 0 && (
+          {order.discount > 0 && (
             <div className="flex justify-between text-[13px] text-red-600">
-              <span>خصم العميل {discountPct}%</span>
-              <span className="font-mono">-₪{order.discount_amount?.toFixed(2)}</span>
+              <span>خصم | Discount</span>
+              <span className="font-mono">-₪{order.discount?.toFixed(2)}</span>
             </div>
           )}
-          {order.tax_amount > 0 && (
+          {order.tax > 0 && (
             <div className="flex justify-between text-[13px]">
               <span className="text-gray-500">ضريبة | VAT</span>
-              <span className="font-mono">₪{order.tax_amount?.toFixed(2)}</span>
+              <span className="font-mono">₪{order.tax?.toFixed(2)}</span>
             </div>
           )}
           <div className="flex justify-between pt-2 border-t-2 border-[#1a1a2e]">
@@ -176,23 +142,16 @@ const DigitalReceiptPage = () => {
           </div>
         </div>
 
-        {/* Survey CTA */}
-        {surveyToken && (
-          <div className="px-5 py-4 text-center bg-blue-50 border-t border-blue-100">
-            <p className="text-sm text-gray-700 mb-2">شاركنا رأيك واربح كوبون خصم 🎁</p>
-            <a
-              href={`/survey/${surveyToken}`}
-              className="inline-block bg-blue-600 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-blue-700 transition-colors"
-            >
-              📋 تقييم تجربتك
-            </a>
-          </div>
-        )}
-
         {/* Footer */}
         <div className="text-center py-5 bg-gray-50 border-t">
-          <p className="text-sm font-bold text-gray-700">شكراً لتعاملكم معنا ❤️</p>
-          <p className="text-[11px] text-gray-400 mt-1">Thank you for your purchase</p>
+          {company?.receipt_footer ? (
+            <p className="text-sm text-gray-700">{company.receipt_footer}</p>
+          ) : (
+            <>
+              <p className="text-sm font-bold text-gray-700">شكراً لتعاملكم معنا ❤️</p>
+              <p className="text-[11px] text-gray-400 mt-1">Thank you for your purchase</p>
+            </>
+          )}
         </div>
       </div>
     </div>
