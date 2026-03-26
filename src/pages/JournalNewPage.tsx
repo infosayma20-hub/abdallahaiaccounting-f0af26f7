@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
+import PageHeader from "@/components/layout/PageHeader";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import DuplicateBanner from "@/components/DuplicateBanner";
 import {
@@ -351,17 +352,7 @@ const JournalNewPage = () => {
     <div className="max-w-4xl mx-auto space-y-5" dir="rtl">
       {/* Duplicate Banner */}
       {duplicateSourceRef && <DuplicateBanner sourceRef={duplicateSourceRef} />}
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <BackButton />
-        <div>
-          <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
-            <BookOpen className="h-5 w-5 text-primary" />
-            سند قيد جديد
-          </h1>
-          <p className="text-xs text-muted-foreground">تسجيل قيد محاسبي يدوي</p>
-        </div>
-      </div>
+      <PageHeader title="سند قيد جديد" breadcrumb={["المحاسبة", "القيود", "سند قيد جديد"]} />
 
       {/* Navigation Toolbar */}
       <VoucherNavToolbar
