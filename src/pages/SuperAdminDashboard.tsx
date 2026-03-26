@@ -907,9 +907,11 @@ function AppVisibilityManager() {
     setSaving(false);
   };
 
-  const filteredUsers = users.filter(u =>
-    !userSearch || u.display_name?.toLowerCase().includes(userSearch.toLowerCase()) || u.email?.toLowerCase().includes(userSearch.toLowerCase())
-  );
+  const filteredUsers = users
+    .filter(u => u.roles?.includes('admin'))
+    .filter(u =>
+      !userSearch || u.display_name?.toLowerCase().includes(userSearch.toLowerCase()) || u.email?.toLowerCase().includes(userSearch.toLowerCase())
+    );
 
   const selectedUserInfo = users.find(u => u.user_id === selectedUser);
 
