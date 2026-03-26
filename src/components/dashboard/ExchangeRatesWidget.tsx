@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { RefreshCw, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import WidgetBanner from "./WidgetBanner";
 
 interface Rate {
   code: string;

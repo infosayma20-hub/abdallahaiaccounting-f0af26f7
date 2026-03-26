@@ -1,7 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import type { InventoryAlert } from "@/hooks/useDashboardData";
 import WidgetBanner from "./WidgetBanner";
-import type { InventoryAlert } from "@/hooks/useDashboardData";
 
 interface Props {
   alerts: InventoryAlert[];

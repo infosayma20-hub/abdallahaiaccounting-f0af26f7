@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { ChequeItem } from "@/hooks/useDashboardData";
+import WidgetBanner from "./WidgetBanner";
 
 interface Props {
   cheques: ChequeItem[];
