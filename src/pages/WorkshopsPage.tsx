@@ -621,50 +621,45 @@ export default function WorkshopsPage() {
               </div>
             </div>
             <Badge variant={status.variant}>{status.label}</Badge>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8"><MoreVertical className="h-4 w-4" /></Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start">
-                <DropdownMenuItem onClick={() => openEditWorkshop(selectedWorkshop)}>
-                  <Edit className="h-3.5 w-3.5 ml-2" /> تعديل الورشة
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={async () => {
-                  const { data: settings } = await supabase.from("company_settings").select("company_name, phone, address, logo_url").eq("user_id", user!.id).maybeSingle();
-                  const workshopTypeLabels = (selectedWorkshop.workshop_type || "").split(",").filter(Boolean).map(t => WORKSHOP_TYPES.find(x => x.value === t)?.label || t).join(" + ");
-                  const contractData: ContractData = {
-                    workshopName: selectedWorkshop.name,
-                    workshopType: workshopTypeLabels,
-                    customerName: selectedWorkshop.customer_name || "",
-                    customerPhone: selectedWorkshop.customer_phone || "",
-                    address: selectedWorkshop.address || "",
-                    description: selectedWorkshop.description || "",
-                    areaSqm: selectedWorkshop.area_sqm || 0,
-                    budget: selectedWorkshop.total_budget || 0,
-                    startDate: selectedWorkshop.start_date || "",
-                    notes: selectedWorkshop.notes || "",
-                  };
-                  const companyData: ContractCompanyData = {
-                    name: settings?.company_name || "",
-                    phone: settings?.phone || "",
-                    address: settings?.address || "",
-                    logo_url: settings?.logo_url || "",
-                  };
-                  try {
-                    const pdf = await generateWorkshopContractPDF(contractData, companyData);
-                    pdf.save(`عقد-${selectedWorkshop.name}.pdf`);
-                    toast.success("تم تحميل العقد بنجاح");
-                  } catch (e: any) {
-                    toast.error("خطأ في إنشاء العقد: " + e.message);
-                  }
-                }}>
-                  <FileText className="h-3.5 w-3.5 ml-2" /> إنشاء عقد PDF
-                </DropdownMenuItem>
-                <DropdownMenuItem className="text-destructive" onClick={() => { setDeletingWorkshop(selectedWorkshop); setShowDeleteConfirm(true); }}>
-                  <Trash2 className="h-3.5 w-3.5 ml-2" /> حذف الورشة
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <div className="flex items-center gap-1.5">
+              <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={() => openEditWorkshop(selectedWorkshop)}>
+                <Edit className="h-3.5 w-3.5" /> تعديل
+              </Button>
+              <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={async () => {
+                const { data: settings } = await supabase.from("company_settings").select("company_name, phone, address, logo_url").eq("user_id", user!.id).maybeSingle();
+                const workshopTypeLabels = (selectedWorkshop.workshop_type || "").split(",").filter(Boolean).map(t => WORKSHOP_TYPES.find(x => x.value === t)?.label || t).join(" + ");
+                const contractData: ContractData = {
+                  workshopName: selectedWorkshop.name,
+                  workshopType: workshopTypeLabels,
+                  customerName: selectedWorkshop.customer_name || "",
+                  customerPhone: selectedWorkshop.customer_phone || "",
+                  address: selectedWorkshop.address || "",
+                  description: selectedWorkshop.description || "",
+                  areaSqm: selectedWorkshop.area_sqm || 0,
+                  budget: selectedWorkshop.total_budget || 0,
+                  startDate: selectedWorkshop.start_date || "",
+                  notes: selectedWorkshop.notes || "",
+                };
+                const companyData: ContractCompanyData = {
+                  name: settings?.company_name || "",
+                  phone: settings?.phone || "",
+                  address: settings?.address || "",
+                  logo_url: settings?.logo_url || "",
+                };
+                try {
+                  const pdf = await generateWorkshopContractPDF(contractData, companyData);
+                  pdf.save(`عقد-${selectedWorkshop.name}.pdf`);
+                  toast.success("تم تحميل العقد بنجاح");
+                } catch (e: any) {
+                  toast.error("خطأ في إنشاء العقد: " + e.message);
+                }
+              }}>
+                <FileText className="h-3.5 w-3.5" /> عقد PDF
+              </Button>
+              <Button variant="destructive" size="sm" className="h-8 text-xs gap-1.5" onClick={() => { setDeletingWorkshop(selectedWorkshop); setShowDeleteConfirm(true); }}>
+                <Trash2 className="h-3.5 w-3.5" /> حذف
+              </Button>
+            </div>
           </div>
 
           {/* Area + Type info */}
