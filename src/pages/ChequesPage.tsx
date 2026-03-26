@@ -227,7 +227,27 @@ const ChequesPage = () => {
     setContacts(data || []);
   };
 
-  const handleQuickAddContact = async (name: string) => {
+  const fetchCheques = async () => {
+    if (!user) return;
+    setLoading(true);
+    const { data, error } = await supabase.from('cheques').select('*').eq('user_id', user.id).order('cheque_date', { ascending: false });
+    if (error) { toast.error("خطأ في جلب الشيكات"); }
+    else { setCheques((data || []) as unknown as Cheque[]); }
+    setLoading(false);
+  };
+
+  const findContactId = (partyName: string): string | null => {
+    const contact = contacts.find(c => c.contact_name === partyName);
+    return contact?.id || null;
+  };
+
+  const fetchHistory = async (chequeId: string) => {
+    if (statusHistory[chequeId]) return;
+    const { data } = await supabase.from('cheque_status_history').select('*').eq('cheque_id', chequeId).order('created_at', { ascending: false });
+    setStatusHistory(prev => ({ ...prev, [chequeId]: (data || []) as StatusHistory[] }));
+  };
+
+
     if (!user || !name.trim()) return;
     setQuickAddingContact(true);
     try {
