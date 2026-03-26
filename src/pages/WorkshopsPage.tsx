@@ -192,6 +192,11 @@ export default function WorkshopsPage() {
     setContacts((data as any) || []);
   };
 
+  const loadBankAccounts = async () => {
+    const { data } = await supabase.from("bank_accounts").select("id, name, bank_name, gl_account_code").eq("is_active", true).order("name");
+    setBankAccounts((data as any) || []);
+  };
+
   const loadCosts = async (workshopId: string) => {
     setLoadingCosts(true);
     const [costRes, payRes] = await Promise.all([
