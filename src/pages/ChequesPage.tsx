@@ -144,7 +144,22 @@ const ChequesPage = () => {
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
-  const emptyChequeRow = (type: ChequeType): typeof newCheques[0] => ({
+  interface ChequeRow {
+    cheque_type: ChequeType;
+    cheque_number: string;
+    bank_name: string;
+    cheque_date: string;
+    amount: string;
+    currency: string;
+    exchange_rate: string;
+    party_name: string;
+    party_type: string;
+    linked_account: string;
+    notes: string;
+    source_bank_account_id: string;
+  }
+
+  const emptyChequeRow = (type: ChequeType): ChequeRow => ({
     cheque_type: type,
     cheque_number: '',
     bank_name: '',
