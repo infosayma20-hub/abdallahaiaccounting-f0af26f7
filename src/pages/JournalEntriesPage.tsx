@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import PageHeader from "@/components/layout/PageHeader";
 import {
   ArrowRight, Loader2, RefreshCw, Pencil, Search, Plus,
   FileText, ChevronLeft, ChevronRight, Filter, FileSpreadsheet,
@@ -341,22 +342,9 @@ const JournalEntriesPage = () => {
   return (
     <div className="space-y-6 max-w-[1400px] mx-auto" dir="rtl">
       {/* Header */}
+      <PageHeader title="تقرير القيود المحاسبية" breadcrumb={["المحاسبة", "القيود المحاسبية"]} />
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => window.history.length > 1 ? navigate(-1) : navigate("/")}
-            className="p-2 rounded-xl hover:bg-muted transition-colors"
-          >
-            <ArrowRight className="h-5 w-5 text-foreground" />
-          </button>
-          <div>
-            <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
-              <FileText className="h-5 w-5 text-primary" />
-              تقرير القيود المحاسبية
-            </h1>
-            <p className="text-xs text-muted-foreground">{companyName} • {dateRangeLabel}</p>
-          </div>
-        </div>
+        <p className="text-xs text-muted-foreground">{companyName} • {dateRangeLabel}</p>
         <div className="flex items-center gap-2">
           <Button size="sm" onClick={() => setShowJournalEntry(true)} className="gap-1.5">
             <Plus className="h-3.5 w-3.5" /> إنشاء قيد

@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import PageHeader from "@/components/layout/PageHeader";
 import { multiWordMatchAny } from "@/lib/utils";
 import { ArrowRight, Loader2, RefreshCw, Plus, Search, MoreVertical, FileText, Pencil, Trash2, Eye, Download, Settings, Bell, AlertTriangle, TrendingUp, Users, ShoppingBag, User, ChevronDown, Filter, X, Archive, ArchiveRestore } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -374,17 +375,10 @@ const ContactsPage = () => {
 
   return (
     <div className="p-4 md:p-6 space-y-4" dir="rtl">
-      {/* Header */}
+      <PageHeader title="جهات الاتصال" breadcrumb={["الرئيسية", "جهات الاتصال"]} />
+      {/* Actions */}
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <div className="flex items-center gap-3">
-          <button onClick={() => navigate("/dashboard")} className="p-2 rounded-xl hover:bg-muted transition-colors">
-            <ArrowRight className="h-5 w-5" />
-          </button>
-          <div>
-            <h1 className="text-xl font-bold text-foreground">جهات الاتصال</h1>
-            <p className="text-xs text-muted-foreground">{contacts.length} جهة اتصال</p>
-          </div>
-        </div>
+        <p className="text-xs text-muted-foreground">{contacts.length} جهة اتصال</p>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" className="gap-1.5" onClick={exportCSV}>
             <Download className="h-4 w-4" /> تصدير

@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
+import PageHeader from "@/components/layout/PageHeader";
 import { ArrowRight, Loader2, Plus, Package, Search, AlertTriangle, TrendingUp, TrendingDown, Pencil, Trash2, History, X, ArrowUpDown, ChevronLeft, ChevronRight, ClipboardList, ChefHat } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -347,22 +348,10 @@ const InventoryPage = () => {
 
   return (
     <div className="p-4 md:p-6 pb-24 space-y-5" dir="rtl">
-      {/* Header */}
+      <PageHeader title="المخزون" breadcrumb={["إدارة المخزون", "المنتجات"]} />
+      {/* Actions */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <button onClick={() => window.history.length > 2 ? navigate(-1) : navigate("/apps")} className="w-9 h-9 rounded-full bg-muted/60 flex items-center justify-center hover:bg-muted transition-all shadow-sm">
-            <ArrowRight className="h-4 w-4 text-muted-foreground" />
-          </button>
-          <div className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
-              <Package className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-foreground">المخزون</h1>
-              <p className="text-xs text-muted-foreground">{filtered.length} صنف من أصل {products.length}</p>
-            </div>
-          </div>
-        </div>
+        <p className="text-xs text-muted-foreground">{filtered.length} صنف من أصل {products.length}</p>
         <Button className="gap-1.5 rounded-xl shadow-md shadow-primary/20" onClick={() => { resetForm(); setShowProductDialog(true); }}>
           <Plus className="h-4 w-4" /> إضافة منتج
         </Button>
