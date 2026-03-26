@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import {
   Plus, Search, Hammer, Trash2, ArrowLeft, Edit, MoreVertical,
-  DollarSign, ChevronDown, UserPlus, Image, AlertTriangle, Receipt,
+  DollarSign, ChevronDown, UserPlus, Image, AlertTriangle, Receipt, FileText,
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -17,6 +17,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { motion } from "framer-motion";
 import BackButton from "@/components/BackButton";
+import { generateWorkshopContractPDF, ContractData, ContractCompanyData } from "@/utils/generateWorkshopContractPDF";
 
 /* ── Types ── */
 type Workshop = {
@@ -607,6 +608,37 @@ export default function WorkshopsPage() {
               <DropdownMenuContent align="start">
                 <DropdownMenuItem onClick={() => openEditWorkshop(selectedWorkshop)}>
                   <Edit className="h-3.5 w-3.5 ml-2" /> تعديل الورشة
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={async () => {
+                  const { data: settings } = await supabase.from("company_settings").select("company_name, phone, address, logo_url").eq("user_id", user!.id).maybeSingle();
+                  const workshopTypeLabels = (selectedWorkshop.workshop_type || "").split(",").filter(Boolean).map(t => WORKSHOP_TYPES.find(x => x.value === t)?.label || t).join(" + ");
+                  const contractData: ContractData = {
+                    workshopName: selectedWorkshop.name,
+                    workshopType: workshopTypeLabels,
+                    customerName: selectedWorkshop.customer_name || "",
+                    customerPhone: selectedWorkshop.customer_phone || "",
+                    address: selectedWorkshop.address || "",
+                    description: selectedWorkshop.description || "",
+                    areaSqm: selectedWorkshop.area_sqm || 0,
+                    budget: selectedWorkshop.total_budget || 0,
+                    startDate: selectedWorkshop.start_date || "",
+                    notes: selectedWorkshop.notes || "",
+                  };
+                  const companyData: ContractCompanyData = {
+                    name: settings?.company_name || "",
+                    phone: settings?.phone || "",
+                    address: settings?.address || "",
+                    logo_url: settings?.logo_url || "",
+                  };
+                  try {
+                    const pdf = await generateWorkshopContractPDF(contractData, companyData);
+                    pdf.save(`عقد-${selectedWorkshop.name}.pdf`);
+                    toast.success("تم تحميل العقد بنجاح");
+                  } catch (e: any) {
+                    toast.error("خطأ في إنشاء العقد: " + e.message);
+                  }
+                }}>
+                  <FileText className="h-3.5 w-3.5 ml-2" /> إنشاء عقد PDF
                 </DropdownMenuItem>
                 <DropdownMenuItem className="text-destructive" onClick={() => { setDeletingWorkshop(selectedWorkshop); setShowDeleteConfirm(true); }}>
                   <Trash2 className="h-3.5 w-3.5 ml-2" /> حذف الورشة
