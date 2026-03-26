@@ -119,7 +119,7 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
         <ModuleIcon module={item.module} size="sm" active={!disabled && (active || !!groupActive)} />
         {!collapsed && (
           <>
-            <span className="flex-1 text-right truncate">{item.label}</span>
+            <span className="flex-1 text-right whitespace-nowrap">{item.label}</span>
             {disabled && <Lock className="h-3 w-3 opacity-60" />}
             {hasChildren && (
               <ChevronDown className={cn("h-3.5 w-3.5 opacity-40 transition-transform duration-200", expanded && "rotate-180")} />
