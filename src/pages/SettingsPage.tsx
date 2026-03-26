@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import PageHeader from "@/components/layout/PageHeader";
 import { Building2, User, Wallet, FileText, ShoppingCart, Package, Users, Bell, Shield, Link2, Printer, Brain, Search, RotateCcw, Monitor, GitBranch } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -103,21 +104,17 @@ const SettingsPage = () => {
 
   return (
     <div className="space-y-6" dir="rtl">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">⚙️ الإعدادات</h1>
-          <p className="text-sm text-muted-foreground mt-1">إدارة إعدادات النظام والشركة</p>
-        </div>
-        <div className="relative w-64">
-          <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="ابحث في الإعدادات..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="pr-9"
-          />
-        </div>
+      <PageHeader title="الإعدادات" breadcrumb={["النظام", "الإعدادات"]} />
+
+      {/* Search */}
+      <div className="relative max-w-sm">
+        <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 pointer-events-none" />
+        <Input
+          placeholder="ابحث في الإعدادات..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          className="pr-9 rounded-xl bg-muted/30 border-0 focus-visible:ring-2 focus-visible:ring-primary/20"
+        />
       </div>
 
       {/* Main Layout */}
