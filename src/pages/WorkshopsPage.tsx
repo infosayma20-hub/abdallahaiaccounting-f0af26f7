@@ -1180,15 +1180,18 @@ export default function WorkshopsPage() {
             <div className="space-y-1">
               <Label>نوع الورشة</Label>
               <div className="grid grid-cols-3 gap-2">
-                {WORKSHOP_TYPES.map(wt => (
-                  <button key={wt.value} onClick={() => setWsForm(f => ({ ...f, workshop_type: wt.value }))}
-                    className={`p-2 rounded-xl border text-center transition-all ${
-                      wsForm.workshop_type === wt.value ? "border-primary bg-primary/10 ring-2 ring-primary/30" : "border-border hover:bg-accent/5"
-                    }`}>
-                    <span className="text-xl block">{wt.icon}</span>
-                    <span className="text-[10px] font-medium text-foreground">{wt.label}</span>
-                  </button>
-                ))}
+                {WORKSHOP_TYPES.map(wt => {
+                  const selected = wsForm.workshop_type.split(",").filter(Boolean).includes(wt.value);
+                  return (
+                    <button key={wt.value} onClick={() => toggleWorkshopType(wt.value)}
+                      className={`p-2 rounded-xl border text-center transition-all ${
+                        selected ? "border-primary bg-primary/10 ring-2 ring-primary/30" : "border-border hover:bg-accent/5"
+                      }`}>
+                      <span className="text-xl block">{wt.icon}</span>
+                      <span className="text-[10px] font-medium text-foreground">{wt.label}</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
