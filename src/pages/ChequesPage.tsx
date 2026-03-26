@@ -247,7 +247,7 @@ const ChequesPage = () => {
     setStatusHistory(prev => ({ ...prev, [chequeId]: (data || []) as StatusHistory[] }));
   };
 
-
+  const handleQuickAddContact = async (name: string) => {
     if (!user || !name.trim()) return;
     setQuickAddingContact(true);
     try {
