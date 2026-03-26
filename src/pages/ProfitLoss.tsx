@@ -1,8 +1,9 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import {
   TrendingUp, TrendingDown, DollarSign, Loader2, BarChart3, ChevronDown, ChevronUp,
-  Download, FileSpreadsheet, Printer, ArrowRight, Percent, Eye, EyeOff, Calendar,
+  Download, FileSpreadsheet, Printer, Percent, Eye, EyeOff, Calendar,
 } from "lucide-react";
+import PageHeader from "@/components/layout/PageHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -525,23 +526,10 @@ const ProfitLoss = () => {
   return (
     <div className="space-y-5 max-w-[1200px] mx-auto pb-10 px-4 pt-4" dir="rtl">
       {/* ── Header ── */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div className="flex items-center gap-3">
-          <button onClick={() => navigate("/reports")} className="p-2 rounded-xl hover:bg-muted transition-colors">
-            <ArrowRight className="h-5 w-5 text-foreground" />
-          </button>
-          <div>
-            <h1 className="text-xl font-bold text-foreground">قائمة الدخل</h1>
-            <p className="text-[10px] text-muted-foreground">Income Statement</p>
-          </div>
-        </div>
-        <div className="p-2.5 rounded-xl bg-primary/10">
-          <BarChart3 className="h-5 w-5 text-primary" />
-        </div>
-      </div>
+      <PageHeader title="قائمة الدخل" breadcrumb={["المحاسبة", "التقارير", "قائمة الدخل"]} />
 
       {/* ── Date Controls ── */}
-      <Card className="p-4 space-y-3">
+      <Card className="border-0 shadow-sm rounded-2xl p-4 space-y-3">
         <div className="flex items-center gap-3 flex-wrap">
           <div className="flex items-center gap-2">
             <Calendar className="h-4 w-4 text-muted-foreground" />

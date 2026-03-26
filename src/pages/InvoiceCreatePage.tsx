@@ -2,10 +2,11 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import DuplicateBanner from "@/components/DuplicateBanner";
 import {
-  ArrowRight, Loader2, Plus, FileText, Trash2, Save, Eye, AlertTriangle,
+  Loader2, Plus, FileText, Trash2, Save, Eye, AlertTriangle,
   CreditCard, Building2, Banknote, Clock, Search, Package, Receipt,
   ShoppingCart, Send, Percent, Hash, ChevronDown, MessageSquare, Paperclip
 } from "lucide-react";
+import PageHeader from "@/components/layout/PageHeader";
 import VoucherNavToolbar from "@/components/VoucherNavToolbar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -836,19 +837,10 @@ const InvoiceCreatePage = () => {
       {duplicateSourceRef && <DuplicateBanner sourceRef={duplicateSourceRef} />}
 
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <button onClick={() => navigate("/invoices")} className="p-2 rounded-xl hover:bg-muted transition-colors">
-            <ArrowRight className="h-5 w-5 text-foreground" />
-          </button>
-          <div>
-            <h1 className="text-lg font-bold text-foreground">{isEditMode ? "تعديل الفاتورة" : "إنشاء فاتورة جديدة"}</h1>
-            <p className="text-xs text-muted-foreground">
-              {form.type === "sales" ? "فاتورة مبيعات" : "فاتورة مشتريات"}
-            </p>
-          </div>
-        </div>
-      </div>
+      <PageHeader 
+        title={isEditMode ? "تعديل الفاتورة" : "إنشاء فاتورة جديدة"} 
+        breadcrumb={["المبيعات", "الفواتير", isEditMode ? "تعديل" : "إنشاء فاتورة"]} 
+      />
 
       {/* Navigation Toolbar */}
       <VoucherNavToolbar
