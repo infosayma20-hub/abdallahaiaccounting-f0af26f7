@@ -70,10 +70,10 @@ export default function PageHeader({ title, breadcrumb }: PageHeaderProps) {
           })}
         </div>
       )}
-      <div className="w-full" style={{ borderTop: "3px solid #5B9BD5" }}>
+      <div className="w-full rounded-xl overflow-hidden" style={{ borderTop: "3px solid #1B3A5C" }}>
         <div
           className="w-full px-6 py-4"
-          style={{ backgroundColor: "#1B3A5C" }}
+          style={{ backgroundColor: "#5B9BD5" }}
         >
           <h1
             className="text-right text-white"
