@@ -20,7 +20,7 @@ export default function PageHeader({ title, breadcrumb }: PageHeaderProps) {
           ))}
         </p>
       )}
-      <div className="w-full" style={{ borderTop: "3px solid #C9A84C" }}>
+      <div className="w-full" style={{ borderTop: "3px solid #5B9BD5" }}>
         <div
           className="w-full px-6 py-4"
           style={{ backgroundColor: "#1B3A5C" }}
