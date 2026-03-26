@@ -229,13 +229,13 @@ export const navigationSections: NavSection[] = [
         keywords: ["مقاولات", "مشاريع", "مقاول"],
       },
       {
-        id: "workshops", label: "الورشات", description: "إدارة ورشات العمل وتتبع تكاليف كل ورشة", module: "accounting", icon: Building2,
+        id: "workshops", label: "إدارة الورشات والمناجر", description: "إدارة ورشات العمل والمناجر وتتبع تكاليف كل ورشة", module: "accounting", icon: Building2,
         color: "text-amber-700", bgColor: "bg-amber-600/10", path: "/workshops",
         enableSetting: "has_workshops",
-        keywords: ["ورشة", "ورشات", "منجرة", "مطبخ", "خشب", "نجار"],
+        keywords: ["ورشة", "ورشات", "منجرة", "مناجر", "مطبخ", "خشب", "نجار"],
         groups: [
           { children: [
-            { label: "إدارة الورشات", path: "/workshops" },
+            { label: "إدارة الورشات والمناجر", path: "/workshops" },
             { label: "تقارير الورشات", path: "/workshop-reports" },
           ]},
         ],
