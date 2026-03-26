@@ -233,21 +233,28 @@ const AppsLauncher = () => {
   return (
     <div className="min-h-full bg-background" dir="rtl">
       
-      <div className="max-w-5xl mx-auto px-6 py-8">
-        {/* Title + Search */}
-        <div className="flex items-center justify-between mb-6 gap-4 flex-wrap">
-          <div>
-            <h2 className="text-2xl font-bold text-foreground" style={{ fontFamily: "Tajawal, sans-serif" }}>التطبيقات</h2>
-            <p className="text-sm text-muted-foreground">كل احتياج، تطبيق واحد.</p>
-          </div>
-          <div className="relative w-full sm:w-72">
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="ابحث عن تطبيق..." className="pr-9 rounded-xl bg-muted/50 border-border/50 h-10" />
+      <div className="max-w-5xl mx-auto px-6 py-8 space-y-8">
+        {/* Title */}
+        <div className="text-center space-y-2">
+          <h2 className="text-3xl font-bold text-foreground" style={{ fontFamily: "Tajawal, sans-serif" }}>التطبيقات</h2>
+          <p className="text-sm text-muted-foreground">كل احتياج، تطبيق واحد.</p>
+        </div>
+
+        {/* Search */}
+        <div className="flex justify-center">
+          <div className="relative w-full max-w-sm">
+            <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="ابحث عن تطبيق..."
+              className="pr-10 rounded-lg bg-white border border-border h-10 text-sm"
+            />
           </div>
         </div>
 
         {/* Apps Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {allFilteredApps.map((app, idx) => (
             <AppCard
               key={app.id}
@@ -264,7 +271,7 @@ const AppsLauncher = () => {
 
         {totalResults === 0 && (
           <div className="text-center py-16 text-muted-foreground">
-            <Search className="h-8 w-8 mx-auto mb-3 opacity-50" />
+            <Search className="h-8 w-8 mx-auto mb-3 opacity-40" />
             <p className="text-sm">لا توجد نتائج لـ "{search}"</p>
           </div>
         )}
