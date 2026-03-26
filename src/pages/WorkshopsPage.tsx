@@ -188,7 +188,7 @@ export default function WorkshopsPage() {
     cost_type: "wood", description: "", amount: 0, cost_date: format(new Date(), "yyyy-MM-dd"),
     supplier_name: "", payment_method: "نقدي", notes: "",
     supplier_contact_id: null as string | null,
-  });
+  }); // kept for backward compat with delete/etc
   const [invoiceForm, setInvoiceForm] = useState({
     amount: 0, payment_method: "آجل", description: "",
   });
