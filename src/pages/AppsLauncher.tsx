@@ -27,10 +27,10 @@ const ROLE_ALLOWED_APPS: Record<string, string[]> = {
 
 /* ── App Card ── */
 const AppCard = ({
-  app, index, isExpanded, onToggle, onNavigate, disabled,
+  app, index, isExpanded, onToggle, onNavigate, disabled, isLocked,
 }: {
   app: NavItem; index: number; isExpanded: boolean;
-  onToggle: () => void; onNavigate: (path: string) => void; disabled?: boolean;
+  onToggle: () => void; onNavigate: (path: string) => void; disabled?: boolean; isLocked?: boolean;
 }) => {
   const [clicking, setClicking] = useState(false);
   const [ripple, setRipple] = useState<{ x: number; y: number } | null>(null);
