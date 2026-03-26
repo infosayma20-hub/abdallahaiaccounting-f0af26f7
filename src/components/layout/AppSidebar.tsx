@@ -8,6 +8,16 @@ import { useCompany } from "@/hooks/useCompanyContext";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { useSubscription } from "@/hooks/useSubscription";
 
+/** Quick-add routes keyed by nav item id */
+const quickAddRoutes: Record<string, { label: string; path: string }> = {
+  finance: { label: "سند جديد", path: "/finance/receipt/new" },
+  sales: { label: "فاتورة جديدة", path: "/invoices/new" },
+  purchases: { label: "طلب شراء", path: "/procurement/orders/new" },
+  inventory: { label: "منتج جديد", path: "/inventory?action=add" },
+  hr: { label: "موظف جديد", path: "/employees?action=add" },
+  workshops: { label: "ورشة جديدة", path: "/workshops?action=add" },
+};
+
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { FinixLogo } from "@/components/ui/FinixLogo";
 import { navigationSections, getAllChildren, type NavItem } from "@/config/navigationConfig";
