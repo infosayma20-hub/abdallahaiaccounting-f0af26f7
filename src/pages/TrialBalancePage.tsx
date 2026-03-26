@@ -1,9 +1,10 @@
 import { useState, useEffect, useMemo } from "react";
 import {
-  ArrowRight, Loader2, RefreshCw, Search, Scale,
+  Loader2, RefreshCw, Search, Scale,
   AlertTriangle, CheckCircle2, FileSpreadsheet, Printer, Calendar, Download,
   TrendingUp, TrendingDown,
 } from "lucide-react";
+import PageHeader from "@/components/layout/PageHeader";
 import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -368,20 +369,7 @@ const TrialBalancePage = () => {
   return (
     <div className="space-y-5 max-w-[1400px] mx-auto px-4 pt-6 pb-8" dir="rtl">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <button onClick={() => navigate(-1)} className="p-2 rounded-xl hover:bg-muted transition-colors">
-            <ArrowRight className="h-5 w-5 text-foreground" />
-          </button>
-          <div>
-            <h1 className="text-xl font-bold text-foreground">ميزان المراجعة</h1>
-            <p className="text-[10px] text-muted-foreground">Trial Balance</p>
-          </div>
-        </div>
-        <div className="p-2.5 rounded-xl bg-primary/10">
-          <Scale className="h-5 w-5 text-primary" />
-        </div>
-      </div>
+      <PageHeader title="ميزان المراجعة" breadcrumb={["المحاسبة", "التقارير", "ميزان المراجعة"]} />
 
       {/* Controls Card - matching Income Statement */}
       <Card className="p-4 space-y-3">
