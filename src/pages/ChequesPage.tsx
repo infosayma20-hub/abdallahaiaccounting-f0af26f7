@@ -950,7 +950,10 @@ const ChequesPage = () => {
           <div className="w-20 h-20 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-4"><Banknote className="h-10 w-10 text-muted-foreground/40" /></div>
           <h3 className="text-base font-semibold text-foreground mb-1">لا توجد شيكات بعد</h3>
           <p className="text-xs text-muted-foreground mb-4">سجّل أول شيك لبدء التتبع</p>
-          <Button className="rounded-xl gap-2 shadow-md shadow-primary/20" onClick={() => setAddOpen(true)}><Plus className="h-4 w-4" /> شيك جديد</Button>
+          <div className="flex items-center gap-2 justify-center">
+            <Button variant="outline" className="rounded-xl gap-2 text-emerald-700 border-emerald-300" onClick={() => openAddDialog('وارد')}><ArrowDownCircle className="h-4 w-4" /> شيك وارد</Button>
+            <Button variant="outline" className="rounded-xl gap-2 text-destructive border-destructive/30" onClick={() => openAddDialog('صادر')}><ArrowUpCircle className="h-4 w-4" /> شيك صادر</Button>
+          </div>
         </div>
       )}
 
