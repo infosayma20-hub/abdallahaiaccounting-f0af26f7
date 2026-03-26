@@ -66,7 +66,7 @@ export default function DashboardHeader({ companyName, companyLogo, period, onPe
           <BackButton />
           <div className="space-y-1">
             <div className="flex items-center gap-2.5">
-              <h1 className="text-lg md:text-xl font-extrabold text-foreground" style={{ fontFamily: "Tajawal, sans-serif" }}>
+              <h1 className="text-lg md:text-xl font-medium text-foreground" style={{ fontFamily: "Tajawal, sans-serif" }}>
                 {companyName || "شركتي"}
               </h1>
               {companyLogo ? (
@@ -87,7 +87,7 @@ export default function DashboardHeader({ companyName, companyLogo, period, onPe
             <button
               key={p.key}
               onClick={() => onPeriodChange(p.key)}
-              className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all ${
+              className={`px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all ${
                 period === p.key
                   ? "text-foreground border-b-2 border-gold bg-accent"
                   : "text-muted-foreground hover:text-foreground"
