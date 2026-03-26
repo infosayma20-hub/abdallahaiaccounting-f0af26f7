@@ -41,6 +41,9 @@ type WorkshopCost = {
   amount: number; cost_date: string; supplier_name: string | null; payment_method: string | null;
   notes: string | null; created_at: string; linked_transaction_id: string | null;
   supplier_contact_id: string | null;
+  category?: string | null; quantity?: number | null; unit?: string | null; unit_price?: number | null;
+  waste_percentage?: number | null; waste_amount?: number | null; phase?: string | null;
+  invoice_number?: string | null; receipt_url?: string | null;
 };
 type WorkshopPayment = {
   id: string; workshop_id: string; amount: number; payment_method: string;
