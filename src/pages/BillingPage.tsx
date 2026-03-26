@@ -217,14 +217,14 @@ const BillingPage = () => {
                     </ul>
                     <button
                       className={cn(
-                        "w-full mt-4 py-2 rounded-lg text-[12px] font-bold transition-all",
+                        "w-full mt-4 py-2.5 rounded-lg text-sm font-bold transition-all border-2",
                         isCurrent
-                          ? "bg-secondary text-muted-foreground cursor-default"
-                          : "bg-primary text-primary-foreground hover:opacity-90"
+                          ? "bg-secondary text-muted-foreground cursor-default border-transparent"
+                          : "bg-white text-primary border-primary hover:bg-primary hover:text-primary-foreground"
                       )}
                       disabled={isCurrent}
                     >
-                      {isCurrent ? "الحزمة الحالية" : "ترقية"}
+                      {isCurrent ? "الحزمة الحالية" : "اشترك الآن"}
                     </button>
                   </div>
                 );
