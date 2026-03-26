@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useSubscription } from "@/hooks/useSubscription";
 import { supabase } from "@/integrations/supabase/client";
-import { CreditCard, Calendar, CheckCircle, AlertTriangle, Download, Crown, X } from "lucide-react";
+import { CreditCard, Calendar, CheckCircle, AlertTriangle, Crown, X, Users, Building2, Monitor } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import PaymentModal from "@/components/billing/PaymentModal";
@@ -20,18 +20,22 @@ interface Payment {
   card_brand: string;
 }
 
+const addons = [
+  { key: "extra_users", icon: Users, label: "مستخدمون إضافيون", desc: "أضف مستخدمين لفريقك", price: 5, unit: "/مستخدم/شهر" },
+  { key: "extra_branches", icon: Building2, label: "فروع إضافية", desc: "أضف فروعاً لنشاطك", price: 10, unit: "/فرع/شهر" },
+  { key: "pos_terminal", icon: Monitor, label: "نقطة بيع POS", desc: "نظام نقطة بيع متكامل", price: 15, unit: "/جهاز/شهر" },
+];
+
 const SubscriptionPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { subscription, loading, refresh } = useSubscription();
-  const [payments, setPayments] = useState<Payment[]>([]);
   const [plans, setPlans] = useState<any[]>([]);
   const [showCancel, setShowCancel] = useState(false);
   const [paymentModal, setPaymentModal] = useState<any>(null);
 
   useEffect(() => {
     if (!user) return;
-
     supabase
       .from("plans")
       .select("*")
@@ -43,16 +47,16 @@ const SubscriptionPage = () => {
   const statusBadge = () => {
     if (!subscription) return null;
     const styles: Record<string, { bg: string; text: string; label: string }> = {
-      trial: { bg: "bg-[#C9A84C]/10", text: "text-[#C9A84C]", label: "تجربة مجانية 🎁" },
-      trialing: { bg: "bg-[#C9A84C]/10", text: "text-[#C9A84C]", label: "تجربة مجانية 🎁" },
-      active: { bg: "bg-green-100", text: "text-green-700", label: "نشط ✓" },
-      expired: { bg: "bg-red-100", text: "text-red-700", label: "منتهي" },
-      cancelled: { bg: "bg-gray-100", text: "text-gray-700", label: "ملغي" },
-      past_due: { bg: "bg-orange-100", text: "text-orange-700", label: "دفع متأخر ⚠️" },
-      grace: { bg: "bg-orange-100", text: "text-orange-700", label: "فترة سماح ⚠️" },
+      trial: { bg: "bg-accent/10", text: "text-accent", label: "تجربة مجانية 🎁" },
+      trialing: { bg: "bg-accent/10", text: "text-accent", label: "تجربة مجانية 🎁" },
+      active: { bg: "bg-success/10", text: "text-success", label: "نشط ✓" },
+      expired: { bg: "bg-destructive/10", text: "text-destructive", label: "منتهي" },
+      cancelled: { bg: "bg-muted", text: "text-muted-foreground", label: "ملغي" },
+      past_due: { bg: "bg-warning/10", text: "text-warning", label: "دفع متأخر ⚠️" },
+      grace: { bg: "bg-warning/10", text: "text-warning", label: "فترة سماح ⚠️" },
     };
     const s = styles[subscription.status] || styles.active;
-    return <span className={`${s.bg} ${s.text} px-3 py-1 rounded-full text-xs font-bold`}>{s.label}</span>;
+    return <span className={`${s.bg} ${s.text} px-3 py-1 rounded-full text-xs font-medium`}>{s.label}</span>;
   };
 
   const handleCancel = async () => {
@@ -68,38 +72,38 @@ const SubscriptionPage = () => {
 
   const progressPct = subscription ? Math.min(100, ((subscription.totalDays - subscription.daysLeft) / subscription.totalDays) * 100) : 0;
   const progressColor = subscription
-    ? subscription.daysLeft > subscription.totalDays * 0.5 ? "#00B4D8"
-      : subscription.daysLeft > subscription.totalDays * 0.2 ? "#C9A84C"
-      : "#DC2626"
-    : "#00B4D8";
+    ? subscription.daysLeft > subscription.totalDays * 0.5 ? "hsl(var(--info))"
+      : subscription.daysLeft > subscription.totalDays * 0.2 ? "hsl(var(--warning))"
+      : "hsl(var(--destructive))"
+    : "hsl(var(--info))";
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center" dir="rtl">
-        <div className="animate-spin w-8 h-8 border-2 border-[#0A2342] border-t-transparent rounded-full" />
+        <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full" />
       </div>
     );
   }
 
   return (
     <div className="min-h-full pb-20" dir="rtl" style={{ fontFamily: "Tajawal, sans-serif" }}>
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <h1 className="text-2xl font-bold text-foreground mb-6">إدارة الاشتراك</h1>
+      <div className="max-w-4xl mx-auto px-4 py-8 space-y-8">
+        <h1 className="text-2xl font-medium text-foreground">إدارة الاشتراك</h1>
 
         {/* Current Plan Hero */}
         {subscription && (
-          <div className="rounded-[20px] p-7 text-white mb-8" style={{ background: "linear-gradient(135deg, #0A2342 0%, #006D8F 100%)" }}>
+          <div className="rounded-2xl p-7 text-primary-foreground" style={{ background: "linear-gradient(135deg, hsl(213 50% 11%) 0%, hsl(192 100% 28%) 100%)" }}>
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h2 className="text-2xl font-bold">{subscription.plan_name_ar}</h2>
-                <p className="text-sm text-white/60 mt-1">
+                <h2 className="text-2xl font-medium">{subscription.plan_name_ar}</h2>
+                <p className="text-sm opacity-60 mt-1">
                   {subscription.billing_cycle === "annual" ? "اشتراك سنوي" : subscription.isTrial ? "تجربة مجانية" : "اشتراك شهري"}
                 </p>
               </div>
               {statusBadge()}
             </div>
 
-            <div className="grid grid-cols-2 gap-4 text-sm text-white/70 mb-5">
+            <div className="grid grid-cols-2 gap-4 text-sm opacity-70 mb-5">
               <div className="flex items-center gap-2">
                 <Calendar className="h-4 w-4" />
                 <span>بدأ في: {new Date(subscription.current_period_start).toLocaleDateString("ar-EG")}</span>
@@ -121,11 +125,8 @@ const SubscriptionPage = () => {
                   transition={{ duration: 1 }}
                 />
               </div>
-              <p className="text-xs text-white/60 mt-1.5">
-                {subscription.daysLeft > 0
-                  ? `متبقي ${subscription.daysLeft} يوم`
-                  : "انتهت الفترة"
-                }
+              <p className="text-xs opacity-60 mt-1.5">
+                {subscription.daysLeft > 0 ? `متبقي ${subscription.daysLeft} يوم` : "انتهت الفترة"}
               </p>
             </div>
 
@@ -134,7 +135,7 @@ const SubscriptionPage = () => {
               {subscription.isTrial && (
                 <button
                   onClick={() => navigate("/pricing")}
-                  className="bg-gradient-to-r from-[#C9A84C] to-[#B8972E] text-[#0A2342] px-6 py-2.5 rounded-xl text-sm font-bold hover:scale-[1.02] transition-transform"
+                  className="bg-accent text-accent-foreground px-6 py-2.5 rounded-xl text-sm font-medium hover:scale-[1.02] transition-transform"
                 >
                   اشترك الآن — عرض الخطط
                 </button>
@@ -142,15 +143,15 @@ const SubscriptionPage = () => {
               {subscription.status === "active" && subscription.billing_cycle === "monthly" && (
                 <button
                   onClick={() => navigate("/pricing")}
-                  className="border border-[#C9A84C] text-[#C9A84C] px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-[#C9A84C]/10"
+                  className="border border-accent text-accent px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-accent/10"
                 >
-                  التحويل للسنوي وتوفير 24%
+                  التحويل للسنوي وتوفير 20%
                 </button>
               )}
               {subscription.isExpired && (
                 <button
                   onClick={() => navigate("/pricing")}
-                  className="bg-red-500 text-white px-6 py-2.5 rounded-xl text-sm font-bold animate-pulse"
+                  className="bg-destructive text-destructive-foreground px-6 py-2.5 rounded-xl text-sm font-medium animate-pulse"
                 >
                   تجديد الاشتراك الآن
                 </button>
@@ -160,13 +161,13 @@ const SubscriptionPage = () => {
         )}
 
         {!subscription && (
-          <div className="bg-card border border-border rounded-2xl p-8 text-center mb-8">
+          <div className="bg-card border border-border/30 rounded-2xl p-8 text-center">
             <AlertTriangle className="h-12 w-12 text-warning mx-auto mb-3" />
-            <h3 className="text-lg font-bold text-foreground mb-2">لا يوجد اشتراك نشط</h3>
+            <h3 className="text-lg font-medium text-foreground mb-2">لا يوجد اشتراك نشط</h3>
             <p className="text-sm text-muted-foreground mb-4">اشترك الآن للوصول إلى جميع ميزات QOYOD قيود</p>
             <button
               onClick={() => navigate("/pricing")}
-              className="bg-gradient-to-r from-[#C9A84C] to-[#B8972E] text-white px-8 py-3 rounded-xl font-bold"
+              className="bg-accent text-accent-foreground px-8 py-3 rounded-xl font-medium"
             >
               عرض الخطط
             </button>
@@ -174,38 +175,66 @@ const SubscriptionPage = () => {
         )}
 
         {/* Change Plan */}
-        <h3 className="text-lg font-bold text-foreground mb-4">تغيير خطتك</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-          {plans.map((plan) => {
-            const isCurrent = subscription?.plan_key === plan.plan_key;
-            return (
-              <div
-                key={plan.id}
-                className={`rounded-2xl border-2 p-5 transition-all ${
-                  isCurrent ? "border-[#C9A84C] bg-[#C9A84C]/5" : "border-border bg-card hover:border-primary/30 cursor-pointer"
-                }`}
-                onClick={() => !isCurrent && setPaymentModal({ plan, cycle: "monthly" })}
-              >
-                <h4 className="font-bold text-foreground">{plan.name_ar}</h4>
-                <p className="text-2xl font-extrabold text-foreground mt-2">
-                  <span className="text-sm text-muted-foreground">$</span>
-                  {plan.monthly_price}
-                  <span className="text-sm text-muted-foreground">/شهر</span>
+        <div>
+          <h3 className="text-lg font-medium text-foreground mb-4">تغيير خطتك</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {plans.map((plan) => {
+              const isCurrent = subscription?.plan_key === plan.plan_key;
+              const isPro = plan.plan_key === "professional";
+              return (
+                <div
+                  key={plan.id}
+                  className={`rounded-2xl border-2 p-5 transition-all cursor-pointer ${
+                    isCurrent ? "border-accent bg-accent/5" : isPro ? "border-primary/30 bg-card hover:border-accent/50" : "border-border/30 bg-card hover:border-primary/20"
+                  }`}
+                  onClick={() => !isCurrent && setPaymentModal({ plan, cycle: "monthly" })}
+                >
+                  {isPro && !isCurrent && (
+                    <span className="inline-block mb-2 text-[10px] bg-accent/10 text-accent px-2.5 py-0.5 rounded-full font-medium">
+                      ⭐ موصى به
+                    </span>
+                  )}
+                  <h4 className="font-medium text-foreground">{plan.name_ar}</h4>
+                  <p className="text-2xl font-medium text-foreground mt-2" style={{ fontVariantNumeric: "tabular-nums" }}>
+                    <span className="text-sm text-muted-foreground">$</span>
+                    {plan.monthly_price}
+                    <span className="text-sm text-muted-foreground">/شهر</span>
+                  </p>
+                  {isCurrent && (
+                    <span className="inline-block mt-2 text-xs bg-accent/10 text-accent px-3 py-1 rounded-full font-medium">
+                      خطتك الحالية ✓
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Addons */}
+        <div>
+          <h3 className="text-lg font-medium text-foreground mb-4">إضافات منفصلة</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {addons.map((addon) => (
+              <div key={addon.key} className="rounded-2xl border border-border/30 bg-card p-5 hover:border-primary/20 transition-all">
+                <div className="w-10 h-10 rounded-xl bg-primary/5 flex items-center justify-center mb-3">
+                  <addon.icon className="h-5 w-5 text-primary" />
+                </div>
+                <h4 className="text-sm font-medium text-foreground">{addon.label}</h4>
+                <p className="text-xs text-muted-foreground mt-1">{addon.desc}</p>
+                <p className="text-lg font-medium text-foreground mt-3" style={{ fontVariantNumeric: "tabular-nums" }}>
+                  ${addon.price}
+                  <span className="text-xs text-muted-foreground mr-1">{addon.unit}</span>
                 </p>
-                {isCurrent && (
-                  <span className="inline-block mt-2 text-xs bg-[#C9A84C]/10 text-[#C9A84C] px-3 py-1 rounded-full font-bold">
-                    خطتك الحالية ✓
-                  </span>
-                )}
               </div>
-            );
-          })}
+            ))}
+          </div>
         </div>
 
         {/* Cancel */}
         {subscription && subscription.status !== "cancelled" && subscription.status !== "expired" && (
-          <div className="text-center pt-8 border-t border-border">
-            <button onClick={() => setShowCancel(true)} className="text-sm text-red-500 hover:text-red-700">
+          <div className="text-center pt-8 border-t border-border/20">
+            <button onClick={() => setShowCancel(true)} className="text-sm text-destructive hover:text-destructive/80">
               إلغاء الاشتراك
             </button>
           </div>
@@ -215,19 +244,19 @@ const SubscriptionPage = () => {
       {/* Cancel confirmation */}
       {showCancel && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl p-8 max-w-md mx-4 text-center" style={{ fontFamily: "Tajawal" }}>
-            <h3 className="text-xl font-bold text-[#0A2342] mb-3">هل أنت متأكد من إلغاء اشتراكك؟</h3>
-            <p className="text-sm text-gray-500 mb-6">ستفقد الوصول إلى جميع المميزات بعد انتهاء الفترة الحالية</p>
+          <div className="bg-card rounded-3xl p-8 max-w-md mx-4 text-center" style={{ fontFamily: "Tajawal" }}>
+            <h3 className="text-xl font-medium text-foreground mb-3">هل أنت متأكد من إلغاء اشتراكك؟</h3>
+            <p className="text-sm text-muted-foreground mb-6">ستفقد الوصول إلى جميع المميزات بعد انتهاء الفترة الحالية</p>
             <div className="flex gap-3">
               <button
                 onClick={() => setShowCancel(false)}
-                className="flex-1 bg-[#0A2342] text-white py-3 rounded-xl font-bold text-sm"
+                className="flex-1 bg-primary text-primary-foreground py-3 rounded-xl font-medium text-sm"
               >
                 لا، أبقِ اشتراكي
               </button>
               <button
                 onClick={handleCancel}
-                className="flex-1 border-2 border-red-500 text-red-500 py-3 rounded-xl font-bold text-sm hover:bg-red-50"
+                className="flex-1 border-2 border-destructive text-destructive py-3 rounded-xl font-medium text-sm hover:bg-destructive/5"
               >
                 نعم، إلغاء
               </button>
