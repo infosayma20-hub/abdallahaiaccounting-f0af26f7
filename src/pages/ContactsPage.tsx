@@ -476,42 +476,70 @@ const ContactsPage = () => {
 
       {/* Filters */}
       {!loading && contacts.length > 0 && (
-        <div className="flex items-center gap-2 flex-wrap">
-          <div className="relative flex-1 min-w-[200px]">
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="بحث اسم، هاتف، رقم ضريبي..." className="pr-9 text-sm" dir="rtl" />
-          </div>
-          <div className="flex gap-1 flex-wrap">
-            <Button variant={filterType === null ? "default" : "outline"} size="sm" className="text-xs" onClick={() => setFilterType(null)}>الكل</Button>
-            {contactTypeOptions.map(opt => (
-              <Button key={opt.value} variant={filterType === opt.value ? "default" : "outline"} size="sm" className="text-xs" onClick={() => setFilterType(opt.value)}>{opt.label}</Button>
-            ))}
-          </div>
-          <div className="flex gap-1">
-            {["A","B","C","D"].map(cls => (
-              <Button key={cls} variant={filterClass === cls ? "default" : "outline"} size="sm" className="text-xs w-8 h-8 p-0" onClick={() => setFilterClass(filterClass === cls ? null : cls)}>
-                {cls}
+        <Card className="border-0 shadow-sm rounded-2xl overflow-hidden">
+          <CardContent className="p-3 space-y-3">
+            {/* Search & Filters */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="relative flex-1 min-w-[200px]">
+                <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 pointer-events-none" />
+                <Input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="بحث اسم، هاتف، رقم ضريبي..." className="pr-9 text-sm rounded-xl bg-muted/30 border-0 focus-visible:ring-2 focus-visible:ring-primary/20" dir="rtl" />
+                {searchQuery && (
+                  <button onClick={() => setSearchQuery("")} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+              <Select value={filterType || "all"} onValueChange={v => setFilterType(v === "all" ? null : v)}>
+                <SelectTrigger className="w-[120px] rounded-xl text-xs h-9">
+                  <Filter className="h-3.5 w-3.5 ml-1.5 text-muted-foreground" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-background z-50">
+                  <SelectItem value="all">الكل</SelectItem>
+                  {contactTypeOptions.map(opt => (
+                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={filterClass || "all"} onValueChange={v => setFilterClass(v === "all" ? null : v)}>
+                <SelectTrigger className="w-[90px] rounded-xl text-xs h-9">
+                  <SelectValue placeholder="الفئة" />
+                </SelectTrigger>
+                <SelectContent className="bg-background z-50">
+                  <SelectItem value="all">كل الفئات</SelectItem>
+                  {["A","B","C","D"].map(cls => (
+                    <SelectItem key={cls} value={cls}>فئة {cls}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button 
+                variant={showArchived ? "default" : "outline"} 
+                size="sm" 
+                className="text-xs gap-1.5 rounded-xl h-9"
+                onClick={() => setShowArchived(!showArchived)}
+              >
+                <Archive className="h-3.5 w-3.5" />
+                {showArchived ? `المؤرشفون (${archivedCount})` : `مؤرشف`}
+                {!showArchived && archivedCount > 0 && (
+                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">{archivedCount}</Badge>
+                )}
               </Button>
-            ))}
-          </div>
-          <Button 
-            variant={showArchived ? "default" : "outline"} 
-            size="sm" 
-            className={`text-xs gap-1.5 ${showArchived ? '' : ''}`}
-            onClick={() => setShowArchived(!showArchived)}
-          >
-            <Archive className="h-3.5 w-3.5" />
-            {showArchived ? `المؤرشفون (${archivedCount})` : `عرض المؤرشفين`}
-            {!showArchived && archivedCount > 0 && (
-              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4">{archivedCount}</Badge>
-            )}
-          </Button>
-          {(filterType || filterClass) && (
-            <Button variant="ghost" size="sm" className="text-xs gap-1" onClick={() => { setFilterType(null); setFilterClass(null); }}>
-              <X className="h-3 w-3" /> مسح الفلاتر
-            </Button>
-          )}
-        </div>
+              {(filterType || filterClass) && (
+                <Button variant="ghost" size="sm" className="text-xs gap-1 h-9" onClick={() => { setFilterType(null); setFilterClass(null); }}>
+                  <X className="h-3 w-3" /> مسح
+                </Button>
+              )}
+            </div>
+
+            {/* Results count */}
+            <div className="flex items-center justify-between px-1">
+              <span className="text-[11px] text-muted-foreground">{filtered.length} جهة اتصال</span>
+              {selectedIds.size > 0 && (
+                <span className="text-[11px] text-primary font-medium">{selectedIds.size} محدد</span>
+              )}
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Table */}
