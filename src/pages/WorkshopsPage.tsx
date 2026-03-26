@@ -155,6 +155,7 @@ export default function WorkshopsPage() {
     contact_id: null as string | null,
     area_sqm: 0, workshop_type: "kitchen", image_url: "",
   });
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [paymentForm, setPaymentForm] = useState({
     amount: 0, payment_method: "نقدي", description: "", payment_date: format(new Date(), "yyyy-MM-dd"),
   });
@@ -204,8 +205,34 @@ export default function WorkshopsPage() {
   const defaultWsForm = () => ({
     name: "", customer_name: "", customer_phone: "", address: "", description: "",
     total_budget: 0, start_date: format(new Date(), "yyyy-MM-dd"), expected_end_date: "",
-    contact_id: null as string | null, area_sqm: 0, workshop_type: "kitchen", image_url: "",
+    contact_id: null as string | null, area_sqm: 0, workshop_type: "", image_url: "",
   });
+
+  const toggleWorkshopType = (value: string) => {
+    setWsForm(f => {
+      const types = f.workshop_type ? f.workshop_type.split(",").filter(Boolean) : [];
+      const updated = types.includes(value) ? types.filter(t => t !== value) : [...types, value];
+      return { ...f, workshop_type: updated.join(",") };
+    });
+  };
+
+  const handleImageUpload = async (file: File) => {
+    if (!user) return;
+    setUploadingImage(true);
+    try {
+      const ext = file.name.split(".").pop() || "jpg";
+      const path = `${user.id}/${Date.now()}.${ext}`;
+      const { error } = await supabase.storage.from("workshop-images").upload(path, file);
+      if (error) throw error;
+      const { data: urlData } = supabase.storage.from("workshop-images").getPublicUrl(path);
+      setWsForm(f => ({ ...f, image_url: urlData.publicUrl }));
+      toast.success("تم رفع الصورة");
+    } catch (e: any) {
+      toast.error("فشل رفع الصورة: " + e.message);
+    } finally {
+      setUploadingImage(false);
+    }
+  };
 
   /* ── Create Workshop ── */
   const handleCreateWorkshop = async () => {
@@ -529,9 +556,10 @@ export default function WorkshopsPage() {
           {/* Area + Type info */}
           {(selectedWorkshop.area_sqm || selectedWorkshop.workshop_type) && (
             <div className="flex gap-2 flex-wrap text-xs">
-              {selectedWorkshop.workshop_type && (
-                <Badge variant="outline">{WORKSHOP_TYPES.find(t => t.value === selectedWorkshop.workshop_type)?.icon} {WORKSHOP_TYPES.find(t => t.value === selectedWorkshop.workshop_type)?.label}</Badge>
-              )}
+              {selectedWorkshop.workshop_type && selectedWorkshop.workshop_type.split(",").filter(Boolean).map(t => {
+                const wt = WORKSHOP_TYPES.find(x => x.value === t);
+                return wt ? <Badge key={t} variant="outline">{wt.icon} {wt.label}</Badge> : null;
+              })}
               {selectedWorkshop.area_sqm ? <Badge variant="outline">📐 {selectedWorkshop.area_sqm} م²</Badge> : null}
               {selectedWorkshop.area_sqm && costSummary.total > 0 ? (
                 <Badge variant="secondary">تكلفة المتر: {Math.round(costSummary.total / selectedWorkshop.area_sqm).toLocaleString()} ₪/م²</Badge>
@@ -1068,19 +1096,22 @@ export default function WorkshopsPage() {
               )}
             </div>
 
-            {/* Workshop Type */}
+            {/* Workshop Type - Multi Select */}
             <div className="space-y-1">
               <Label>نوع الورشة</Label>
               <div className="grid grid-cols-3 gap-2">
-                {WORKSHOP_TYPES.map(wt => (
-                  <button key={wt.value} onClick={() => setWsForm(f => ({ ...f, workshop_type: wt.value }))}
-                    className={`p-2 rounded-xl border text-center transition-all ${
-                      wsForm.workshop_type === wt.value ? "border-primary bg-primary/10 ring-2 ring-primary/30" : "border-border hover:bg-accent/5"
-                    }`}>
-                    <span className="text-xl block">{wt.icon}</span>
-                    <span className="text-[10px] font-medium text-foreground">{wt.label}</span>
-                  </button>
-                ))}
+                {WORKSHOP_TYPES.map(wt => {
+                  const selected = wsForm.workshop_type.split(",").filter(Boolean).includes(wt.value);
+                  return (
+                    <button key={wt.value} onClick={() => toggleWorkshopType(wt.value)}
+                      className={`p-2 rounded-xl border text-center transition-all ${
+                        selected ? "border-primary bg-primary/10 ring-2 ring-primary/30" : "border-border hover:bg-accent/5"
+                      }`}>
+                      <span className="text-xl block">{wt.icon}</span>
+                      <span className="text-[10px] font-medium text-foreground">{wt.label}</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -1113,8 +1144,16 @@ export default function WorkshopsPage() {
               </div>
             </div>
             <div className="space-y-1">
-              <Label>رابط صورة الورشة (اختياري)</Label>
-              <Input value={wsForm.image_url} onChange={e => setWsForm(f => ({ ...f, image_url: e.target.value }))} placeholder="https://..." dir="ltr" />
+              <Label>صورة الورشة (اختياري)</Label>
+              <div className="flex items-center gap-2">
+                <label className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-dashed border-border hover:border-primary/50 cursor-pointer transition-all">
+                  <Image className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">{uploadingImage ? "جاري الرفع..." : wsForm.image_url ? "تغيير الصورة" : "اختر صورة"}</span>
+                  <input type="file" accept="image/*" className="hidden" disabled={uploadingImage}
+                    onChange={e => { const f = e.target.files?.[0]; if (f) handleImageUpload(f); }} />
+                </label>
+                {wsForm.image_url && <img src={wsForm.image_url} alt="" className="h-10 w-10 rounded-lg object-cover border" />}
+              </div>
             </div>
             <div className="space-y-1">
               <Label>وصف / ملاحظات</Label>
@@ -1142,15 +1181,18 @@ export default function WorkshopsPage() {
             <div className="space-y-1">
               <Label>نوع الورشة</Label>
               <div className="grid grid-cols-3 gap-2">
-                {WORKSHOP_TYPES.map(wt => (
-                  <button key={wt.value} onClick={() => setWsForm(f => ({ ...f, workshop_type: wt.value }))}
-                    className={`p-2 rounded-xl border text-center transition-all ${
-                      wsForm.workshop_type === wt.value ? "border-primary bg-primary/10 ring-2 ring-primary/30" : "border-border hover:bg-accent/5"
-                    }`}>
-                    <span className="text-xl block">{wt.icon}</span>
-                    <span className="text-[10px] font-medium text-foreground">{wt.label}</span>
-                  </button>
-                ))}
+                {WORKSHOP_TYPES.map(wt => {
+                  const selected = wsForm.workshop_type.split(",").filter(Boolean).includes(wt.value);
+                  return (
+                    <button key={wt.value} onClick={() => toggleWorkshopType(wt.value)}
+                      className={`p-2 rounded-xl border text-center transition-all ${
+                        selected ? "border-primary bg-primary/10 ring-2 ring-primary/30" : "border-border hover:bg-accent/5"
+                      }`}>
+                      <span className="text-xl block">{wt.icon}</span>
+                      <span className="text-[10px] font-medium text-foreground">{wt.label}</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -1182,8 +1224,16 @@ export default function WorkshopsPage() {
               </div>
             </div>
             <div className="space-y-1">
-              <Label>رابط صورة الورشة</Label>
-              <Input value={wsForm.image_url} onChange={e => setWsForm(f => ({ ...f, image_url: e.target.value }))} placeholder="https://..." dir="ltr" />
+              <Label>صورة الورشة</Label>
+              <div className="flex items-center gap-2">
+                <label className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-dashed border-border hover:border-primary/50 cursor-pointer transition-all">
+                  <Image className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">{uploadingImage ? "جاري الرفع..." : wsForm.image_url ? "تغيير الصورة" : "اختر صورة"}</span>
+                  <input type="file" accept="image/*" className="hidden" disabled={uploadingImage}
+                    onChange={e => { const f = e.target.files?.[0]; if (f) handleImageUpload(f); }} />
+                </label>
+                {wsForm.image_url && <img src={wsForm.image_url} alt="" className="h-10 w-10 rounded-lg object-cover border" />}
+              </div>
             </div>
             <div className="space-y-1">
               <Label>وصف / ملاحظات</Label>
