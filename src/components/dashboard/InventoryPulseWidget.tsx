@@ -26,7 +26,7 @@ export default function InventoryPulseWidget({ alerts, summary, loading }: Props
   return (
     <div className="col-span-12 lg:col-span-4 bg-card rounded-2xl p-5 shadow-sm border border-border/30">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-bold text-foreground">📦 المخزون</h3>
+        <h3 className="text-sm font-medium text-foreground">📦 المخزون</h3>
         <button onClick={() => navigate("/inventory")} className="text-[10px] text-primary font-medium hover:underline">عرض الكل ←</button>
       </div>
 
