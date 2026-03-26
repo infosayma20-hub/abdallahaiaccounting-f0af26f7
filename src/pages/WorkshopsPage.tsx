@@ -1017,7 +1017,7 @@ export default function WorkshopsPage() {
             </div>
             <DialogFooter>
               <Button variant="ghost" onClick={() => setShowPaymentDialog(false)}>إلغاء</Button>
-              <Button onClick={handleAddPayment} disabled={paymentForm.amount <= 0}>تسجيل الدفعة</Button>
+              <Button onClick={handleAddPayment} disabled={paymentForm.amount <= 0 || (paymentForm.payment_method === "شيك" && !paymentForm.cheque_number.trim())}>تسجيل الدفعة</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
