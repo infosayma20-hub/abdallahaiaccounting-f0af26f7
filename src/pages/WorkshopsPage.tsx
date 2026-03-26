@@ -6,7 +6,12 @@ import { format } from "date-fns";
 import {
   Plus, Search, Hammer, Trash2, ArrowLeft, Edit, MoreVertical,
   DollarSign, ChevronDown, UserPlus, Image, AlertTriangle, Receipt, FileText,
+  TrendingDown, TrendingUp, Download, BarChart3, ArrowRight,
 } from "lucide-react";
+import * as XLSX from "xlsx";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
@@ -125,6 +130,8 @@ async function ensureWorkshopAccounts(userId: string) {
 /* ══════════════════════════════════════════════════ */
 export default function WorkshopsPage() {
   const { user } = useAuth();
+  const { settings } = useCompanySettings();
+  const [view, setView] = useState<"workshops" | "reports">("workshops");
   const [workshops, setWorkshops] = useState<Workshop[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -1189,20 +1196,99 @@ export default function WorkshopsPage() {
   }
 
   /* ════════════════════════════════════════════ */
+  /* ── Reports View ── */
+  /* ════════════════════════════════════════════ */
+  if (view === "reports") {
+    const totalBudget = workshops.reduce((s, w) => s + (w.total_budget || 0), 0);
+    const exportWorkshopsExcel = () => {
+      const data = workshops.map(w => ({
+        "الورشة": w.name, "الزبون": w.customer_name || "", "الحالة": STATUS_MAP[w.status]?.label || w.status,
+        "الميزانية": w.total_budget, "تاريخ البدء": w.start_date || "",
+      }));
+      const ws = XLSX.utils.json_to_sheet(data);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "الورشات");
+      XLSX.writeFile(wb, "workshops-report.xlsx");
+    };
+
+    return (
+      <div className="p-4 md:p-6 max-w-6xl mx-auto space-y-5" dir="rtl">
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" onClick={() => setView("workshops")}><ArrowRight className="h-5 w-5" /></Button>
+            <h1 className="text-xl font-bold text-foreground">📊 تقارير الورشات</h1>
+          </div>
+          <Button variant="outline" size="sm" onClick={exportWorkshopsExcel}><Download className="h-4 w-4 ml-1" /> تصدير Excel</Button>
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <Card><CardContent className="pt-4 text-center"><p className="text-xs text-muted-foreground">إجمالي الورشات</p><p className="text-xl font-bold text-foreground">{workshops.length}</p></CardContent></Card>
+          <Card><CardContent className="pt-4 text-center"><p className="text-xs text-muted-foreground">إجمالي الميزانيات</p><p className="text-xl font-bold text-primary">{totalBudget.toLocaleString()}</p></CardContent></Card>
+          <Card><CardContent className="pt-4 text-center"><p className="text-xs text-muted-foreground">نشطة</p><p className="text-xl font-bold text-emerald-600">{workshops.filter(w => w.status === "active").length}</p></CardContent></Card>
+          <Card><CardContent className="pt-4 text-center"><p className="text-xs text-muted-foreground">مكتملة</p><p className="text-xl font-bold text-muted-foreground">{workshops.filter(w => w.status === "completed").length}</p></CardContent></Card>
+        </div>
+
+        <Card>
+          <CardHeader><CardTitle className="text-base">ملخص الورشات</CardTitle></CardHeader>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-right">الورشة</TableHead>
+                  <TableHead className="text-right">الزبون</TableHead>
+                  <TableHead className="text-right">النوع</TableHead>
+                  <TableHead className="text-right">الميزانية</TableHead>
+                  <TableHead className="text-right">الحالة</TableHead>
+                  <TableHead className="text-right">تاريخ البدء</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {workshops.map(w => (
+                  <TableRow key={w.id} className="cursor-pointer hover:bg-muted/50" onClick={() => { setSelectedWorkshop(w); setView("workshops"); }}>
+                    <TableCell className="font-medium">{w.name}</TableCell>
+                    <TableCell className="text-muted-foreground">{w.customer_name || "—"}</TableCell>
+                    <TableCell className="text-xs">{(w.workshop_type || "").split(",").filter(Boolean).map(t => WORKSHOP_TYPES.find(x => x.value === t)?.label || t).join(", ")}</TableCell>
+                    <TableCell>{(w.total_budget || 0).toLocaleString()} ₪</TableCell>
+                    <TableCell><Badge variant={STATUS_MAP[w.status]?.variant || "outline"}>{STATUS_MAP[w.status]?.label || w.status}</Badge></TableCell>
+                    <TableCell className="text-muted-foreground">{w.start_date ? format(new Date(w.start_date), "dd/MM/yyyy") : "—"}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  /* ════════════════════════════════════════════ */
   /* ── Workshops List View ── */
   /* ════════════════════════════════════════════ */
+  const totalBudgetAll = workshops.reduce((s, w) => s + (w.total_budget || 0), 0);
+
   return (
     <div className="min-h-full bg-background pb-24" dir="rtl">
-      <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
-        <div className="flex items-center gap-3">
-          <BackButton />
-          <div className="flex-1">
-            <h1 className="text-2xl font-bold text-foreground" style={{ fontFamily: "Tajawal, sans-serif" }}>🪵 الورشات</h1>
-            <p className="text-sm text-muted-foreground">إدارة ورشات العمل وتتبع التكاليف — مرتبط بالمحاسبة</p>
+      <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <div className="flex items-center gap-3">
+            <BackButton />
+            <div>
+              <h1 className="text-2xl font-bold text-foreground">🪵 إدارة الورشات والمناجر</h1>
+              <p className="text-sm text-muted-foreground">إدارة ورشات العمل وتتبع التكاليف — مرتبط بالمحاسبة</p>
+            </div>
           </div>
-          <Button onClick={() => setShowNewWorkshop(true)} className="gap-2">
-            <Plus className="h-4 w-4" /> ورشة جديدة
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setView("reports")}><BarChart3 className="h-4 w-4 ml-1" /> التقارير</Button>
+            <Button onClick={() => setShowNewWorkshop(true)} className="gap-2"><Plus className="h-4 w-4" /> ورشة جديدة</Button>
+          </div>
+        </div>
+
+        {/* Summary KPIs */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <Card><CardContent className="pt-4 text-center"><p className="text-xs text-muted-foreground">الورشات</p><p className="text-2xl font-bold text-foreground">{workshops.length}</p></CardContent></Card>
+          <Card><CardContent className="pt-4 text-center"><p className="text-xs text-muted-foreground">إجمالي الميزانيات</p><p className="text-2xl font-bold text-primary">{totalBudgetAll.toLocaleString()}</p></CardContent></Card>
+          <Card><CardContent className="pt-4 text-center"><p className="text-xs text-muted-foreground">نشطة</p><p className="text-2xl font-bold text-emerald-600">{workshops.filter(w => w.status === "active").length}</p></CardContent></Card>
+          <Card><CardContent className="pt-4 text-center"><p className="text-xs text-muted-foreground">مكتملة</p><p className="text-2xl font-bold text-muted-foreground">{workshops.filter(w => w.status === "completed").length}</p></CardContent></Card>
         </div>
 
         {/* Filters */}
