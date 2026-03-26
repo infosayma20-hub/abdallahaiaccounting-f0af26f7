@@ -675,7 +675,7 @@ export default function WorkshopsPage() {
               <h1 className="text-xl font-bold text-foreground truncate">{selectedWorkshop.name}</h1>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <span>{selectedWorkshop.customer_name || "بدون زبون"}</span>
-                {customerContact && (
+                {selectedWorkshop.contact_id && (
                   <Badge variant="outline" className="text-[9px]">
                     رصيد: {customerBalance.toLocaleString()} ₪
                   </Badge>
