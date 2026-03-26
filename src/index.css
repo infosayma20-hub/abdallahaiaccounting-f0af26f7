@@ -8,7 +8,7 @@
   /* ─── LIGHT THEME (DEFAULT) ─── */
   :root {
     /* FINIX Brand - HSL */
-    --background: 210 14% 97%;        /* #F4F6F8 */
+    --background: 0 0% 99%;            /* #FCFCFC near-white */
     --foreground: 213 50% 11%;        /* #0D1B2A */
 
     --card: 0 0% 100%;                /* #FFFFFF */
@@ -196,6 +196,7 @@
   html {
     direction: rtl;
     font-size: 15px;
+    -webkit-text-size-adjust: 100%;
   }
 
   body {
@@ -203,8 +204,9 @@
     font-family: 'Tajawal', 'Montserrat', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    line-height: 1.5;
+    line-height: 1.6;
     letter-spacing: 0.01em;
+    font-weight: 400;
   }
 
   /* English text */
