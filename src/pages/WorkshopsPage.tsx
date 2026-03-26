@@ -633,36 +633,35 @@ export default function WorkshopsPage() {
   /* ════════════════════════════════════════════ */
   /* ── Workshop Detail View ── */
   /* ════════════════════════════════════════════ */
+  // Calculate real balance from transactions (1130 receivables + 2100 payables)
+  useEffect(() => {
+    if (!selectedWorkshop?.contact_id) { setCustomerBalance(0); return; }
+    const calcBalance = async () => {
+      const { data } = await supabase
+        .from("transactions")
+        .select("debit_account_code, credit_account_code, amount")
+        .eq("contact_id", selectedWorkshop.contact_id!)
+        .is("is_deleted" as any, null)
+        .in("debit_account_code", ["1130", "2100"])
+        .or("credit_account_code.in.(1130,2100)");
+      
+      if (!data) { setCustomerBalance(0); return; }
+      let balance = 0;
+      data.forEach((tx: any) => {
+        if (tx.debit_account_code === "1130") balance += tx.amount;
+        if (tx.credit_account_code === "1130") balance -= tx.amount;
+        if (tx.debit_account_code === "2100") balance -= tx.amount;
+        if (tx.credit_account_code === "2100") balance += tx.amount;
+      });
+      setCustomerBalance(balance);
+    };
+    calcBalance();
+  }, [selectedWorkshop?.contact_id, costs, payments]);
+
   if (selectedWorkshop) {
     const status = STATUS_MAP[selectedWorkshop.status] || STATUS_MAP.active;
     const profit = selectedWorkshop.total_budget - costSummary.total;
-  const customerContact = contacts.find(c => c.id === selectedWorkshop.contact_id);
-    const [customerBalance, setCustomerBalance] = useState(0);
-
-    // Calculate real balance from transactions (1130 receivables + 2100 payables)
-    useEffect(() => {
-      if (!selectedWorkshop.contact_id) return;
-      const calcBalance = async () => {
-        const { data } = await supabase
-          .from("transactions")
-          .select("debit_account_code, credit_account_code, amount")
-          .eq("contact_id", selectedWorkshop.contact_id!)
-          .is("is_deleted" as any, null)
-          .in("debit_account_code", ["1130", "2100"])
-          .or("credit_account_code.in.(1130,2100)");
-        
-        if (!data) { setCustomerBalance(0); return; }
-        let balance = 0;
-        data.forEach((tx: any) => {
-          if (tx.debit_account_code === "1130") balance += tx.amount;
-          if (tx.credit_account_code === "1130") balance -= tx.amount;
-          if (tx.debit_account_code === "2100") balance -= tx.amount;
-          if (tx.credit_account_code === "2100") balance += tx.amount;
-        });
-        setCustomerBalance(balance);
-      };
-      calcBalance();
-    }, [selectedWorkshop.contact_id, costs, payments]);
+    const customerContact = contacts.find(c => c.id === selectedWorkshop.contact_id);
 
     return (
       <div className="min-h-full bg-background pb-24" dir="rtl">
