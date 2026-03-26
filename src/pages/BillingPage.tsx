@@ -65,8 +65,11 @@ const BillingPage = () => {
   const isExpiringSoon = subscription && subscription.daysLeft <= 7 && subscription.daysLeft > 0;
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6" dir="rtl">
-      <h1 className="text-xl font-bold text-foreground">الفوترة والاشتراك</h1>
+    <div className="max-w-5xl mx-auto space-y-8 pb-12" dir="rtl">
+      {/* Page Header */}
+      <div className="rounded-2xl px-8 py-6 text-white" style={{ background: "linear-gradient(135deg, #0D1B2A 0%, #1E3A5F 100%)" }}>
+        <h1 className="text-2xl font-bold" style={{ fontFamily: "Tajawal, sans-serif" }}>إعدادات الاشتراكات</h1>
+      </div>
 
       {/* Current Plan Card */}
       {subscription && (
