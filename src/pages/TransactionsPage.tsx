@@ -111,6 +111,10 @@ const typeBadgeConfig: Record<string, { label: string; bg: string; text: string 
   // عقود ومقاولات
   contract:           { label: "عقد مقاولة",     bg: "bg-[#FCE7F3]", text: "text-[#9D174D]" },
   contract_payment:   { label: "دفعة عقد",       bg: "bg-[#FCE7F3]", text: "text-[#9D174D]" },
+  // ورشات ومناجر
+  workshop_cost:      { label: "تكلفة ورشة",     bg: "bg-[#FEF3C7]", text: "text-[#92400E]" },
+  workshop_payment:   { label: "دفعة ورشة",      bg: "bg-[#D1FAE5]", text: "text-[#065F46]" },
+  workshop_invoice:   { label: "فاتورة ورشة",    bg: "bg-[#D1FAE5]", text: "text-[#065F46]" },
   // أصول ثابتة
   asset_purchase:     { label: "شراء أصل",       bg: "bg-[#CCFBF1]", text: "text-[#115E59]" },
   depreciation:       { label: "إهلاك",          bg: "bg-[#F3F4F6]", text: "text-[#374151]" },
