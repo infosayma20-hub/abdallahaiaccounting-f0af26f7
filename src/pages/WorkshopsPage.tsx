@@ -160,8 +160,10 @@ export default function WorkshopsPage() {
     amount: 0, payment_method: "نقدي", description: "", payment_date: format(new Date(), "yyyy-MM-dd"),
     cheque_number: "", cheque_bank: "", cheque_date: format(new Date(), "yyyy-MM-dd"),
     cheque_drawer: "", deposit_bank_id: null as string | null,
+    currency: "ILS", exchange_rate: 1, cheque_count: 1,
   });
   const [bankAccounts, setBankAccounts] = useState<{ id: string; name: string; bank_name: string; gl_account_code: string | null }[]>([]);
+  const [currencies, setCurrencies] = useState<{ code: string; name_ar: string; sell_rate: number }[]>([]);
   const [costForm, setCostForm] = useState({
     cost_type: "wood", description: "", amount: 0, cost_date: format(new Date(), "yyyy-MM-dd"),
     supplier_name: "", payment_method: "نقدي", notes: "",
