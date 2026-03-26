@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
+import PageHeader from "@/components/layout/PageHeader";
 import { ArrowRight, Loader2, Plus, Package, Search, AlertTriangle, TrendingUp, TrendingDown, Pencil, Trash2, History, X, ArrowUpDown, ChevronLeft, ChevronRight, ClipboardList, ChefHat } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
