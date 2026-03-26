@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
-import { Loader2, Landmark, ChevronDown, ChevronRight, Calendar, FileSpreadsheet, Download, Printer, ArrowRight, TrendingUp, TrendingDown } from "lucide-react";
+import { Loader2, Landmark, ChevronDown, ChevronRight, Calendar, FileSpreadsheet, Download, Printer, TrendingUp, TrendingDown } from "lucide-react";
+import PageHeader from "@/components/layout/PageHeader";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -287,23 +288,10 @@ const BalanceSheetPage = () => {
   return (
     <div className="px-4 pt-6 space-y-5 pb-8" dir="rtl">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <button onClick={() => navigate(-1)} className="p-2 rounded-xl hover:bg-muted transition-colors">
-            <ArrowRight className="h-5 w-5 text-foreground" />
-          </button>
-          <div>
-            <h1 className="text-xl font-bold text-foreground">قائمة المركز المالي</h1>
-            <p className="text-[10px] text-muted-foreground">Balance Sheet</p>
-          </div>
-        </div>
-        <div className="p-2.5 rounded-xl bg-primary/10">
-          <Landmark className="h-5 w-5 text-primary" />
-        </div>
-      </div>
+      <PageHeader title="قائمة المركز المالي" breadcrumb={["المحاسبة", "التقارير", "قائمة المركز المالي"]} />
 
       {/* Controls Card */}
-      <Card className="p-4 space-y-3">
+      <Card className="border-0 shadow-sm rounded-2xl p-4 space-y-3">
         <div className="flex items-center gap-3 flex-wrap">
           <div className="flex items-center gap-2">
             <Calendar className="h-4 w-4 text-muted-foreground" />
