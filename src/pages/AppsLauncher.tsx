@@ -59,35 +59,33 @@ const AppCard = ({
     >
       <button
         onClick={handleClick}
-        className={`w-full flex flex-col items-center gap-4 p-7 pb-5 text-center group relative z-10 ${isDisabledOrLocked ? "cursor-not-allowed" : ""}`}
+        className={`w-full flex flex-col items-center gap-2 p-4 pb-3 text-center group relative z-10 ${isDisabledOrLocked ? "cursor-not-allowed" : ""}`}
       >
-        {/* Large Icon — uses app.bgColor and app.color from config */}
         <div
-          className={`w-[72px] h-[72px] rounded-2xl flex items-center justify-center transition-all duration-300 border ${
+          className={`w-[48px] h-[48px] rounded-xl flex items-center justify-center transition-all duration-300 border ${
             isDisabledOrLocked
               ? "bg-muted/40 border-border/20"
               : `${app.bgColor || "bg-primary/8"} border-border/40 group-hover:scale-110 group-hover:shadow-md`
           }`}
         >
           {isLocked ? (
-            <Lock className="h-8 w-8 text-muted-foreground/40" />
+            <Lock className="h-5 w-5 text-muted-foreground/40" />
           ) : (
-            <app.icon className={`h-8 w-8 ${app.color || "text-primary"} transition-transform duration-300 group-hover:scale-105`} />
+            <app.icon className={`h-5 w-5 ${app.color || "text-primary"} transition-transform duration-300 group-hover:scale-105`} />
           )}
         </div>
 
-        {/* Title */}
-        <div className="space-y-1.5">
-          <div className="flex items-center justify-center gap-2">
-            <p className={`text-base font-medium ${isDisabledOrLocked ? "text-muted-foreground/50" : "text-foreground"}`}>
+        <div className="space-y-0.5">
+          <div className="flex items-center justify-center gap-1.5">
+            <p className={`text-[13px] font-medium ${isDisabledOrLocked ? "text-muted-foreground/50" : "text-foreground"}`}>
               {app.label}
             </p>
             {!isDisabledOrLocked && app.isNew && (
               <span className="text-[9px] font-medium px-2 py-0.5 rounded-full bg-info/10 text-info">جديد</span>
             )}
           </div>
-          <p className="text-[12px] text-muted-foreground leading-relaxed max-w-[220px] mx-auto">
-            {isLocked ? "🔒 غير متاح — تواصل مع الإدارة للتفعيل" : disabled ? "غير مفعّل" : app.description}
+          <p className="text-[10px] text-muted-foreground leading-relaxed max-w-[180px] mx-auto line-clamp-2">
+            {isLocked ? "🔒 غير متاح" : disabled ? "غير مفعّل" : app.description}
           </p>
         </div>
 
@@ -252,7 +250,7 @@ const AppsLauncher = () => {
         </div>
 
         {/* Apps Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
           {allFilteredApps.map((app, idx) => (
             <AppCard
               key={app.id}
