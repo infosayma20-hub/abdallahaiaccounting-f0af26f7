@@ -605,24 +605,12 @@ const TransactionsPage = () => {
 
   return (
     <div className="p-4 md:p-6 pb-24 space-y-5" dir="rtl">
-      {/* Header */}
+      <PageHeader title="تقرير الحركات المحاسبية" breadcrumb={["المحاسبة", "الحركات المحاسبية"]} />
+      {/* Actions */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <button onClick={() => window.history.length > 2 ? navigate(-1) : navigate("/apps")} className="w-9 h-9 rounded-full bg-muted/60 flex items-center justify-center hover:bg-muted transition-all shadow-sm">
-            <ArrowRight className="h-4 w-4 text-muted-foreground" />
-          </button>
-          <div className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
-              <CalendarDays className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-foreground">تقرير الحركات المحاسبية</h1>
-              <p className="text-xs text-muted-foreground">
-                {filteredTransactions.length} قيد • <span className="text-primary font-medium">مدين: ₪{totalDebit.toFixed(2)}</span> • <span className="text-emerald-500 font-medium">دائن: ₪{totalCredit.toFixed(2)}</span>
-              </p>
-            </div>
-          </div>
-        </div>
+        <p className="text-xs text-muted-foreground">
+          {filteredTransactions.length} قيد • <span className="text-primary font-medium">مدين: ₪{totalDebit.toFixed(2)}</span> • <span className="text-success font-medium">دائن: ₪{totalCredit.toFixed(2)}</span>
+        </p>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" className="gap-1.5 rounded-xl text-xs" onClick={() => setShowTrash(true)}>
             <Archive className="w-3.5 h-3.5" /> المحذوفات

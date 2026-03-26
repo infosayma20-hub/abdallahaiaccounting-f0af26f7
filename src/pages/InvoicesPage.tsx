@@ -1211,17 +1211,10 @@ const InvoicesPage = () => {
 
   return (
     <div className="px-4 pt-6 pb-24 space-y-5" dir="rtl">
-      {/* Header */}
+      <PageHeader title="الفواتير" breadcrumb={["المبيعات", "الفواتير"]} />
+      {/* Actions */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <button onClick={() => window.history.length > 2 ? navigate(-1) : navigate("/apps")} className="w-9 h-9 rounded-full bg-muted/60 flex items-center justify-center hover:bg-muted transition-all shadow-sm">
-            <ArrowRight className="h-4 w-4 text-muted-foreground" />
-          </button>
-          <div>
-            <h1 className="text-xl font-bold text-foreground">الفواتير</h1>
-            <p className="text-xs text-muted-foreground">{sorted.length} فاتورة</p>
-          </div>
-        </div>
+        <p className="text-xs text-muted-foreground">{sorted.length} فاتورة</p>
         <div className="flex items-center gap-2">
           <div className="flex items-center bg-muted/50 rounded-xl p-0.5">
             <button onClick={() => setViewMode("cards")} className={`p-1.5 rounded-lg transition-all ${viewMode === "cards" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground"}`}>
