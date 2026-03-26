@@ -11,7 +11,7 @@ export default function PageHeader({ title, breadcrumb }: PageHeaderProps) {
   return (
     <div className="mb-6">
       {breadcrumb && breadcrumb.length > 0 && (
-        <p className="text-[11px] text-muted-foreground mb-2 flex items-center gap-1 justify-end flex-wrap">
+        <p className="text-[13px] text-muted-foreground mb-2 flex items-center gap-1 justify-end flex-wrap">
           {breadcrumb.map((item, i) => (
             <span key={i}>
               {i > 0 && <span className="mx-1 text-muted-foreground/40">/</span>}
@@ -20,15 +20,22 @@ export default function PageHeader({ title, breadcrumb }: PageHeaderProps) {
           ))}
         </p>
       )}
-      <div
-        className="rounded-xl px-6 py-4"
-        style={{
-          background: "linear-gradient(135deg, hsl(var(--navy)) 0%, hsl(var(--finix-navy-light)) 100%)",
-        }}
-      >
-        <h1 className="text-lg font-medium text-white text-right" style={{ fontFamily: "Tajawal, sans-serif" }}>
-          {title}
-        </h1>
+      <div className="w-full" style={{ borderTop: "3px solid #C9A84C" }}>
+        <div
+          className="w-full px-6 py-4"
+          style={{ backgroundColor: "#1B3A5C" }}
+        >
+          <h1
+            className="text-right text-white"
+            style={{
+              fontFamily: "Tajawal, sans-serif",
+              fontSize: "22px",
+              fontWeight: 500,
+            }}
+          >
+            {title}
+          </h1>
+        </div>
       </div>
     </div>
   );

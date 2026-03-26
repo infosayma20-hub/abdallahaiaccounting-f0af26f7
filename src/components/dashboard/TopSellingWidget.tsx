@@ -31,7 +31,7 @@ export default function TopSellingWidget({ items, loading }: Props) {
     <div className="col-span-12 lg:col-span-6 bg-card rounded-2xl p-5 shadow-sm border border-border/30">
       <div className="flex items-center gap-2 mb-4">
         <TrendingUp className="h-4 w-4 text-primary" />
-        <h3 className="text-sm font-bold text-foreground">🏆 أكثر الأصناف مبيعاً</h3>
+        <h3 className="text-sm font-medium text-foreground">🏆 أكثر الأصناف مبيعاً</h3>
       </div>
 
       {items.length === 0 ? (

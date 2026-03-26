@@ -60,7 +60,7 @@ export default function RevenueExpenseChart({ data, grouping, onGroupingChange, 
     <div className="col-span-12 lg:col-span-8 bg-card rounded-2xl p-5 shadow-sm border border-border/30">
       {/* Header */}
       <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-        <h3 className="text-sm font-bold text-foreground">الإيرادات مقابل المصروفات</h3>
+        <h3 className="text-sm font-medium text-foreground">الإيرادات مقابل المصروفات</h3>
         <div className="flex items-center gap-2">
           {/* Chart type */}
           <div className="flex bg-secondary/50 rounded-lg p-0.5">

@@ -37,7 +37,7 @@ export default function AgingWidget({ receivables, payables, loading }: Props) {
   return (
     <div className="col-span-12 lg:col-span-4 bg-card rounded-2xl p-5 shadow-sm border border-border/30">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-bold text-foreground">📊 أعمار الذمم</h3>
+        <h3 className="text-sm font-medium text-foreground">📊 أعمار الذمم</h3>
         <div className="flex bg-secondary/50 rounded-lg p-0.5">
           <button onClick={() => setTab("recv")} className={`px-3 py-1 rounded-md text-[10px] font-medium transition-all ${tab === "recv" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground"}`}>
             مدينون (لك)
