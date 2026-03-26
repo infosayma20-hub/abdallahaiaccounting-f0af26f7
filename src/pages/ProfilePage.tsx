@@ -339,143 +339,159 @@ const ProfilePage = () => {
   ] as const;
 
   return (
-    <div className="px-4 pt-6 pb-28 space-y-6" dir="rtl">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <button
-          onClick={() => window.history.length > 1 ? navigate(-1) : navigate("/")}
-          className="p-2 rounded-xl hover:bg-muted transition-colors"
-        >
-          <ArrowRight className="h-5 w-5 text-foreground" />
-        </button>
-        <h1 className="text-xl font-bold text-foreground">إعدادات الحساب</h1>
+    <div className="max-w-3xl mx-auto space-y-8 pb-12" dir="rtl">
+      {/* Page Header Banner */}
+      <div className="rounded-2xl px-8 py-6 text-white" style={{ background: "linear-gradient(135deg, #0D1B2A 0%, #1E3A5F 100%)" }}>
+        <h1 className="text-2xl font-bold" style={{ fontFamily: "Tajawal, sans-serif" }}>تعديل الملف الشخصي</h1>
       </div>
 
-      {/* Company Logo Section */}
-      <div className="flex flex-col items-center gap-3 py-4">
-        <div
-          className="relative"
-          onMouseEnter={() => setHovering(true)}
-          onMouseLeave={() => setHovering(false)}
-        >
-          <div className="w-[100px] h-[100px] rounded-2xl bg-white flex items-center justify-center overflow-hidden"
-            style={{ boxShadow: "var(--z-shadow-md, 0 4px 16px rgba(10,35,66,0.14))", border: "1px solid var(--z-border, #E2E8F0)" }}>
-            {company.logo_url ? (
-              <img src={company.logo_url} alt={company.name} className="w-full h-full object-contain p-1" />
-            ) : (
-              <div className="flex flex-col items-center justify-center gap-1">
-                <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ background: "linear-gradient(135deg, #00B4D8, #006D8F)" }}>
-                  <span className="text-white font-bold text-xl" style={{ fontFamily: "Tajawal, sans-serif" }}>
-                    {(company.name || profile.company_name || "Z").charAt(0)}
-                  </span>
-                </div>
-                <span className="text-[10px] text-muted-foreground font-medium">{company.name || profile.company_name || "شعار الشركة"}</span>
-              </div>
-            )}
-          </div>
-          <input ref={logoInputRef} type="file" accept="image/png,image/jpeg,image/jpg,image/svg+xml,image/webp" className="hidden" onChange={handleLogoUpload} />
-          <button
-            onClick={() => logoInputRef.current?.click()}
-            disabled={uploadingLogo}
-            title="تغيير الشعار"
-            className="absolute -bottom-1 -left-1 w-8 h-8 rounded-full flex items-center justify-center shadow-md transition-all cursor-pointer disabled:opacity-50"
-            style={{ 
-              background: logoSuccess ? "#16A34A" : "var(--z-navy, #0A2342)",
-              transform: hovering && !uploadingLogo ? "scale(1.1)" : "scale(1)",
-            }}
+      {/* Company Logo & Avatar */}
+      <div className="flex items-start gap-8 px-2">
+        {/* Company Logo */}
+        <div className="flex flex-col items-center gap-2">
+          <div
+            className="relative"
+            onMouseEnter={() => setHovering(true)}
+            onMouseLeave={() => setHovering(false)}
           >
-            {uploadingLogo ? (
-              <Loader2 className="h-4 w-4 text-white animate-spin" />
-            ) : logoSuccess ? (
-              <Check className="h-4 w-4 text-white" />
-            ) : (
-              <Camera className="h-4 w-4 text-white" />
-            )}
-          </button>
+            <div className="w-24 h-24 rounded-2xl bg-white flex items-center justify-center overflow-hidden border border-border/50 shadow-sm">
+              {company.logo_url ? (
+                <img src={company.logo_url} alt={company.name} className="w-full h-full object-contain p-1" />
+              ) : (
+                <div className="flex flex-col items-center justify-center gap-1">
+                  <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ background: "linear-gradient(135deg, #00B4D8, #006D8F)" }}>
+                    <span className="text-white font-bold text-xl" style={{ fontFamily: "Tajawal, sans-serif" }}>
+                      {(company.name || profile.company_name || "Z").charAt(0)}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+            <input ref={logoInputRef} type="file" accept="image/png,image/jpeg,image/jpg,image/svg+xml,image/webp" className="hidden" onChange={handleLogoUpload} />
+            <button
+              onClick={() => logoInputRef.current?.click()}
+              disabled={uploadingLogo}
+              className="absolute -bottom-1 -left-1 w-7 h-7 rounded-full flex items-center justify-center shadow-md transition-all cursor-pointer disabled:opacity-50 bg-primary"
+            >
+              {uploadingLogo ? <Loader2 className="h-3.5 w-3.5 text-white animate-spin" /> : logoSuccess ? <Check className="h-3.5 w-3.5 text-white" /> : <Camera className="h-3.5 w-3.5 text-white" />}
+            </button>
+          </div>
+          <span className="text-[11px] text-muted-foreground">شعار الشركة</span>
+          {company.logo_url && (
+            <button onClick={handleDeleteLogo} className="text-[11px] flex items-center gap-1 text-destructive hover:underline">
+              <Trash2 className="h-3 w-3" /> إزالة
+            </button>
+          )}
         </div>
-        <div className="text-center">
-          <p className="text-base font-bold text-foreground">{company.name || profile.company_name || displayName || "مستخدم جديد"}</p>
-          <p className="text-xs text-muted-foreground flex items-center gap-1 justify-center">
-            <Mail className="h-3 w-3" />
+
+        {/* Avatar */}
+        <div className="flex flex-col items-center gap-2">
+          <div className="relative">
+            <div className="w-24 h-24 rounded-full bg-muted/30 flex items-center justify-center shadow-sm border border-border/30 overflow-hidden">
+              {avatarUrl ? (
+                <img src={avatarUrl} alt="avatar" className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-2xl font-bold text-primary/40">{initials || "؟"}</span>
+              )}
+            </div>
+            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploadingAvatar}
+              className="absolute -bottom-1 -left-1 w-7 h-7 rounded-full bg-primary flex items-center justify-center shadow-md hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-50"
+            >
+              {uploadingAvatar ? <Loader2 className="h-3.5 w-3.5 text-primary-foreground animate-spin" /> : <Camera className="h-3.5 w-3.5 text-primary-foreground" />}
+            </button>
+          </div>
+          <span className="text-[11px] text-muted-foreground">الصورة الشخصية</span>
+        </div>
+
+        {/* Name & Email */}
+        <div className="flex-1 pt-3">
+          <p className="text-lg font-bold text-foreground">{company.name || profile.company_name || displayName || "مستخدم جديد"}</p>
+          <p className="text-sm text-muted-foreground flex items-center gap-1.5 mt-1">
+            <Mail className="h-3.5 w-3.5" />
             {email}
           </p>
         </div>
-        {company.logo_url && hovering && (
-          <button
-            onClick={handleDeleteLogo}
-            className="text-[12px] flex items-center gap-1 transition-colors"
-            style={{ color: "var(--z-danger, #DC2626)" }}
-          >
-            <Trash2 className="h-3 w-3" />
-            إزالة الشعار
-          </button>
-        )}
       </div>
 
-      {/* Avatar Section (Personal Photo) */}
-      <div className="flex flex-col items-center gap-2 py-2">
-        <p className="text-xs font-semibold text-muted-foreground">الصورة الشخصية</p>
-        <div className="relative">
-          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center shadow-sm border border-primary/10 overflow-hidden">
-            {avatarUrl ? (
-              <img src={avatarUrl} alt="avatar" className="w-full h-full object-cover" />
-            ) : (
-              <span className="text-lg font-bold text-primary">{initials || "؟"}</span>
-            )}
+      {/* Form Fields — clean Qoyod style */}
+      <div className="space-y-5 px-2">
+        {fields.map((field) => (
+          <div key={field.key} className="flex items-center gap-4">
+            <label className="text-sm font-semibold text-foreground w-44 shrink-0 text-left flex items-center gap-2 justify-end">
+              {field.label}
+            </label>
+            <Input
+              value={profile[field.key]}
+              onChange={(e) => setProfile((p) => ({ ...p, [field.key]: e.target.value }))}
+              placeholder={field.placeholder}
+              className="flex-1 h-11 rounded-lg border border-border bg-white text-sm"
+              dir="rtl"
+            />
           </div>
-          <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            disabled={uploadingAvatar}
-            className="absolute -bottom-1 -left-1 w-6 h-6 rounded-full bg-primary flex items-center justify-center shadow-md hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-50"
-          >
-            {uploadingAvatar ? (
-              <Loader2 className="h-3 w-3 text-primary-foreground animate-spin" />
-            ) : (
-              <Camera className="h-3 w-3 text-primary-foreground" />
-            )}
-          </button>
-        </div>
+        ))}
       </div>
 
       {/* Brand Identity Settings */}
       <BrandIdentitySettings />
 
-      {/* Form Fields */}
-      <Card className="border-0 shadow-sm">
-        <CardContent className="p-4 space-y-4">
-          {fields.map((field) => (
-            <div key={field.key} className="space-y-1.5">
-              <label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                <field.icon className="h-3.5 w-3.5 text-muted-foreground" />
-                {field.label}
-              </label>
-              <Input
-                value={profile[field.key]}
-                onChange={(e) => setProfile((p) => ({ ...p, [field.key]: e.target.value }))}
-                placeholder={field.placeholder}
-                className="h-11 rounded-xl bg-secondary/50 border-0 text-sm focus:ring-2 focus:ring-primary/20"
-                dir="rtl"
-              />
-            </div>
-          ))}
-        </CardContent>
-      </Card>
-
-      {/* Add Password Section (for Google-only users) */}
+      {/* Password Section for Google users */}
       <GoogleOnlyPasswordSection />
 
-      {/* Save Button */}
-      <Button onClick={handleSave} disabled={saving} className="w-full h-12 rounded-2xl text-base font-bold gap-2">
-        {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}
-        حفظ التعديلات
-      </Button>
+      {/* Change Password Section */}
+      <div className="space-y-1 px-2">
+        <h2 className="text-lg font-bold text-primary mb-4" style={{ fontFamily: "Tajawal, sans-serif" }}>تغيير كلمة المرور</h2>
+        <div className="space-y-4">
+          <div className="flex items-center gap-4">
+            <label className="text-sm font-semibold text-foreground w-44 shrink-0 text-left">كلمة المرور الحالية</label>
+            <Input type="password" className="flex-1 h-11 rounded-lg border border-border bg-muted/20 text-sm" disabled placeholder="••••••••" dir="ltr" style={{ textAlign: "left" }} />
+          </div>
+          <div className="flex items-center gap-4">
+            <label className="text-sm font-semibold text-foreground w-44 shrink-0 text-left">كلمة المرور الجديدة</label>
+            <Input type="password" className="flex-1 h-11 rounded-lg border border-border bg-white text-sm" placeholder="كلمة المرور الجديدة" dir="ltr" style={{ textAlign: "left" }} />
+          </div>
+          <div className="flex items-center gap-4">
+            <label className="text-sm font-semibold text-foreground w-44 shrink-0 text-left">تأكيد كلمة المرور</label>
+            <Input type="password" className="flex-1 h-11 rounded-lg border border-border bg-white text-sm" placeholder="تأكيد كلمة المرور" dir="ltr" style={{ textAlign: "left" }} />
+          </div>
+        </div>
+      </div>
 
-      {/* Logout Button */}
-      <Button onClick={signOut} variant="outline" className="w-full h-12 rounded-2xl text-base font-bold gap-2 text-destructive border-destructive/30 hover:bg-destructive/10">
-        <LogOut className="h-5 w-5" />
-        تسجيل الخروج
-      </Button>
+      <hr className="border-border/30" />
+
+      {/* Action Buttons */}
+      <div className="flex items-center gap-3 justify-center px-2">
+        <Button onClick={handleSave} disabled={saving} className="px-8 h-11 rounded-lg text-sm font-bold gap-2">
+          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+          حفظ
+        </Button>
+        <Button variant="outline" onClick={() => navigate(-1)} className="px-8 h-11 rounded-lg text-sm font-bold">
+          إلغاء
+        </Button>
+      </div>
+
+      <hr className="border-border/30" />
+
+      {/* 2FA Section */}
+      <div className="space-y-3 px-2">
+        <h2 className="text-lg font-bold text-primary" style={{ fontFamily: "Tajawal, sans-serif" }}>التحقق الثنائي</h2>
+        <div className="flex items-center justify-between py-3">
+          <span className="text-sm text-foreground">التحقق الثنائي غير مفعّل</span>
+          <Button variant="default" className="px-6 h-10 rounded-lg text-sm font-bold">
+            تفعيل التحقق الثنائي
+          </Button>
+        </div>
+      </div>
+
+      {/* Logout */}
+      <div className="px-2 pt-4">
+        <Button onClick={signOut} variant="outline" className="w-full h-12 rounded-xl text-sm font-bold gap-2 text-destructive border-destructive/30 hover:bg-destructive/5">
+          <LogOut className="h-4 w-4" />
+          تسجيل الخروج
+        </Button>
+      </div>
     </div>
   );
 };

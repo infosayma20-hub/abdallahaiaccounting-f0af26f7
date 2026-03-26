@@ -1,6 +1,7 @@
 import { useState } from "react";
 import AppSidebar from "./AppSidebar";
 import TopBar from "./TopBar";
+import AppFooter from "./AppFooter";
 
 import SubscriptionExpiryBanner from "../SubscriptionExpiryBanner";
 import TrialBanner from "../billing/TrialBanner";
@@ -44,6 +45,7 @@ const WebLayout = ({ children }: WebLayoutProps) => {
           <TrialExpiredGate>
             {children}
           </TrialExpiredGate>
+          <AppFooter />
         </main>
       </div>
 

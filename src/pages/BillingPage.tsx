@@ -65,8 +65,11 @@ const BillingPage = () => {
   const isExpiringSoon = subscription && subscription.daysLeft <= 7 && subscription.daysLeft > 0;
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6" dir="rtl">
-      <h1 className="text-xl font-bold text-foreground">الفوترة والاشتراك</h1>
+    <div className="max-w-5xl mx-auto space-y-8 pb-12" dir="rtl">
+      {/* Page Header */}
+      <div className="rounded-2xl px-8 py-6 text-white" style={{ background: "linear-gradient(135deg, #0D1B2A 0%, #1E3A5F 100%)" }}>
+        <h1 className="text-2xl font-bold" style={{ fontFamily: "Tajawal, sans-serif" }}>إعدادات الاشتراكات</h1>
+      </div>
 
       {/* Current Plan Card */}
       {subscription && (
@@ -133,15 +136,22 @@ const BillingPage = () => {
 
       {/* Renewal Section */}
       <div className="bg-card rounded-2xl border border-border/30 p-6 space-y-5">
-        <h3 className="text-base font-bold text-foreground">تجديد الاشتراك</h3>
+        <h3 className="text-xl font-bold text-foreground text-center" style={{ fontFamily: "Tajawal, sans-serif" }}>ما الباقة التي تناسبك؟</h3>
+
+        {/* Savings notice */}
+        {billingCycle === "annual" && (
+          <p className="text-center text-sm text-info bg-info/5 rounded-lg py-2 px-4 mx-auto w-fit">
+            توفير يصل حتى 20% على الاشتراكات السنوية
+          </p>
+        )}
 
         {/* Billing cycle toggle */}
         <div className="flex items-center gap-2 justify-center">
           <button
             onClick={() => setBillingCycle("monthly")}
             className={cn(
-              "px-5 py-2 rounded-lg text-sm font-medium transition-all",
-              billingCycle === "monthly" ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"
+              "px-6 py-2.5 rounded-full text-sm font-medium transition-all",
+              billingCycle === "monthly" ? "bg-primary text-primary-foreground shadow-sm" : "bg-secondary text-muted-foreground"
             )}
           >
             شهري
@@ -149,14 +159,11 @@ const BillingPage = () => {
           <button
             onClick={() => setBillingCycle("annual")}
             className={cn(
-              "px-5 py-2 rounded-lg text-sm font-medium transition-all relative",
-              billingCycle === "annual" ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"
+              "px-6 py-2.5 rounded-full text-sm font-medium transition-all",
+              billingCycle === "annual" ? "bg-primary text-primary-foreground shadow-sm" : "bg-secondary text-muted-foreground"
             )}
           >
             سنوي
-            <span className="absolute -top-2 -left-2 text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-500 text-white font-bold">
-              وفر 20%
-            </span>
           </button>
         </div>
 
@@ -184,7 +191,7 @@ const BillingPage = () => {
                     )}
                   >
                     {isCurrent && (
-                      <span className="absolute -top-2.5 right-4 text-[10px] px-2 py-0.5 rounded-full bg-primary text-primary-foreground font-bold">
+            <span className="absolute -top-3 right-3 text-[10px] px-3 py-1 rounded-full bg-primary text-primary-foreground font-bold shadow-sm">
                         الحزمة الحالية
                       </span>
                     )}
@@ -210,14 +217,14 @@ const BillingPage = () => {
                     </ul>
                     <button
                       className={cn(
-                        "w-full mt-4 py-2 rounded-lg text-[12px] font-bold transition-all",
+                        "w-full mt-4 py-2.5 rounded-lg text-sm font-bold transition-all border-2",
                         isCurrent
-                          ? "bg-secondary text-muted-foreground cursor-default"
-                          : "bg-primary text-primary-foreground hover:opacity-90"
+                          ? "bg-secondary text-muted-foreground cursor-default border-transparent"
+                          : "bg-white text-primary border-primary hover:bg-primary hover:text-primary-foreground"
                       )}
                       disabled={isCurrent}
                     >
-                      {isCurrent ? "الحزمة الحالية" : "ترقية"}
+                      {isCurrent ? "الحزمة الحالية" : "اشترك الآن"}
                     </button>
                   </div>
                 );
