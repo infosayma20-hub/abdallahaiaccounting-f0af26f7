@@ -257,19 +257,18 @@ export default function ExchangeRatesWidget() {
 
   return (
     <div className="col-span-12 lg:col-span-4 bg-card rounded-2xl p-5 shadow-sm border border-border/30">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-medium text-foreground">💱 أسعار الصرف اليوم</h3>
+      <WidgetBanner title="أسعار الصرف اليوم" icon="💱">
         <div className="flex items-center gap-2">
-          {lastUpdated && <span className="text-[9px] text-muted-foreground">{lastUpdated}</span>}
+          {lastUpdated && <span className="text-[9px] text-white/50">{lastUpdated}</span>}
           <button
             onClick={fetchRates}
             disabled={loading}
-            className="w-6 h-6 rounded-lg hover:bg-secondary flex items-center justify-center transition-colors"
+            className="w-6 h-6 rounded-lg hover:bg-white/10 flex items-center justify-center transition-colors"
           >
-            <RefreshCw className={`h-3 w-3 text-muted-foreground ${loading ? "animate-spin" : ""}`} />
+            <RefreshCw className={`h-3 w-3 text-white/60 ${loading ? "animate-spin" : ""}`} />
           </button>
         </div>
-      </div>
+      </WidgetBanner>
 
       {loading && rates.length === 0 ? (
         <div className="space-y-2">

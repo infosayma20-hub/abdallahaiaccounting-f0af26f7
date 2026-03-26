@@ -30,13 +30,12 @@ export default function ChequesCalendarWidget({ cheques, loading }: Props) {
 
   return (
     <div className="col-span-12 lg:col-span-4 bg-card rounded-2xl p-5 shadow-sm border border-border/30">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-medium text-foreground">🗓️ الشيكات القادمة</h3>
-        <div className="flex bg-secondary/50 rounded-lg p-0.5">
-          <button onClick={() => setTab("in")} className={`px-2 py-1 rounded-md text-[10px] transition-all ${tab === "in" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground"}`}>واردة</button>
-          <button onClick={() => setTab("out")} className={`px-2 py-1 rounded-md text-[10px] transition-all ${tab === "out" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground"}`}>صادرة</button>
+      <WidgetBanner title="الشيكات القادمة" icon="🗓️">
+        <div className="flex bg-white/10 rounded-lg p-0.5">
+          <button onClick={() => setTab("in")} className={`px-2 py-1 rounded-md text-[10px] transition-all ${tab === "in" ? "bg-white/20 shadow-sm text-white" : "text-white/50"}`}>واردة</button>
+          <button onClick={() => setTab("out")} className={`px-2 py-1 rounded-md text-[10px] transition-all ${tab === "out" ? "bg-white/20 shadow-sm text-white" : "text-white/50"}`}>صادرة</button>
         </div>
-      </div>
+      </WidgetBanner>
 
       <div className="space-y-1.5 max-h-[240px] overflow-y-auto mb-3">
         {filtered.length === 0 ? (
