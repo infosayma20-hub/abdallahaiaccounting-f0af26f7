@@ -270,24 +270,31 @@ const ReportsPage = () => {
   }, [searchQuery]);
 
   return (
-    <div className="space-y-6 max-w-[1200px] mx-auto pb-10" dir="rtl">
-      {/* Qoyod-style page header */}
-      <div className="rounded-xl px-6 py-4" style={{ background: "linear-gradient(135deg, hsl(var(--navy)) 0%, hsl(var(--finix-navy-light)) 100%)" }}>
-        <h1 className="text-lg font-bold text-white text-right" style={{ fontFamily: "Tajawal, sans-serif" }}>التقارير</h1>
+    <div className="space-y-8 max-w-[1200px] mx-auto pb-10" dir="rtl">
+      {/* Page Header */}
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-foreground" style={{ fontFamily: "Tajawal, sans-serif" }}>التقارير</h1>
       </div>
 
-      <div className="flex items-center gap-3 flex-wrap">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="البحث حسب الاسم..." className="pr-10 h-11 rounded-xl bg-card border-border/60 text-sm" />
+      {/* Search & Stats */}
+      <div className="flex items-center gap-4 flex-wrap">
+        <div className="relative flex-1 min-w-[220px] max-w-sm">
+          <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50" />
+          <Input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="البحث حسب الاسم..."
+            className="pr-10 h-10 rounded-lg bg-white border border-border text-sm"
+          />
         </div>
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+        <div className="flex items-center gap-3 text-xs text-muted-foreground">
           <span>{totalReports} تقرير</span>
-          <span>•</span>
+          <span className="text-border">|</span>
           <span>{availableReports} متاح</span>
         </div>
       </div>
 
+      {/* Favorites */}
       {favoriteReports.length > 0 && !searchQuery.trim() && (
         <div className="space-y-3">
           <div className="flex items-center gap-2">
@@ -296,7 +303,7 @@ const ReportsPage = () => {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
             {favoriteReports.map(report => (
-              <ReportCard key={report.slug} report={report} isFavorite={true} onToggleFavorite={() => toggleFavorite(report.slug)} onClick={() => report.available && navigate(report.path)} />
+              <ReportListItem key={report.slug} report={report} isFavorite={true} onToggleFavorite={() => toggleFavorite(report.slug)} onClick={() => report.available && navigate(report.path)} />
             ))}
           </div>
         </div>
@@ -306,47 +313,50 @@ const ReportsPage = () => {
       {!searchQuery.trim() && (
         <div
           onClick={() => navigate("/reports/periodic")}
-          className="rounded-xl border-2 border-dashed border-[hsl(var(--accent))]/40 bg-[hsl(var(--accent))]/5 p-4 flex items-center gap-4 cursor-pointer hover:bg-[hsl(var(--accent))]/10 hover:border-[hsl(var(--accent))]/60 transition-all group"
+          className="rounded-xl border border-border/40 bg-white p-4 flex items-center gap-4 cursor-pointer hover:shadow-sm hover:border-primary/30 transition-all group"
         >
-          <div className="w-12 h-12 rounded-xl bg-[hsl(var(--accent))]/15 flex items-center justify-center shrink-0">
-            <CalendarRange className="h-6 w-6 text-[hsl(var(--accent))]" />
+          <div className="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center shrink-0">
+            <CalendarRange className="h-6 w-6 text-accent" />
           </div>
           <div className="flex-1">
             <h3 className="text-sm font-bold text-foreground">التقارير الدورية</h3>
             <p className="text-[11px] text-muted-foreground">قوالب جاهزة — شهري، ربعي، نصف سنوي، سنوي — تُولَّد تلقائياً مع رسوم بيانية</p>
           </div>
-          <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-[hsl(var(--accent))] group-hover:-translate-x-1 transition-all rotate-180" />
+          <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-accent group-hover:-translate-x-1 transition-all rotate-180" />
         </div>
       )}
 
-      <div className="space-y-3">
+      {/* Qoyod-style Category Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-12 gap-y-10">
         {filteredSections.map(section => {
-          const isExpanded = expandedSections.has(section.id);
-          const availCount = section.reports.filter(r => r.available).length;
           const SectionIcon = section.icon;
-
           return (
-            <div key={section.id} className="rounded-xl border border-border/60 bg-card overflow-hidden">
-              <button onClick={() => toggleSection(section.id)} className="w-full flex items-center justify-between px-4 py-3.5 hover:bg-muted/30 transition-colors">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: section.color + '18' }}>
-                    <SectionIcon className="h-4 w-4" style={{ color: section.color }} />
-                  </div>
-                  <div className="text-right">
-                    <h3 className="text-sm font-bold text-foreground">{section.label}</h3>
-                    <p className="text-[10px] text-muted-foreground">{section.reports.length} تقرير • {availCount} متاح</p>
-                  </div>
+            <div key={section.id} className="space-y-4">
+              {/* Category Header with Icon */}
+              <div className="flex flex-col items-center text-center gap-3 pb-2">
+                <div
+                  className="w-16 h-16 rounded-2xl flex items-center justify-center"
+                  style={{ backgroundColor: section.color + '12', border: `1.5px solid ${section.color}25` }}
+                >
+                  <SectionIcon className="h-7 w-7" style={{ color: section.color }} />
                 </div>
-                {isExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
-              </button>
+                <h3 className="text-base font-bold text-foreground" style={{ fontFamily: "Tajawal, sans-serif" }}>
+                  {section.label}
+                </h3>
+              </div>
 
-              {isExpanded && (
-                <div className="border-t border-border/40 p-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                  {section.reports.map(report => (
-                    <ReportCard key={report.slug} report={report} isFavorite={favorites.includes(report.slug)} onToggleFavorite={() => toggleFavorite(report.slug)} onClick={() => report.available && navigate(report.path)} />
-                  ))}
-                </div>
-              )}
+              {/* Report Links List */}
+              <div className="space-y-0.5">
+                {section.reports.map(report => (
+                  <ReportListItem
+                    key={report.slug}
+                    report={report}
+                    isFavorite={favorites.includes(report.slug)}
+                    onToggleFavorite={() => toggleFavorite(report.slug)}
+                    onClick={() => report.available && navigate(report.path)}
+                  />
+                ))}
+              </div>
             </div>
           );
         })}
@@ -355,38 +365,41 @@ const ReportsPage = () => {
   );
 };
 
-interface ReportCardProps {
+interface ReportListItemProps {
   report: ReportItem;
   isFavorite: boolean;
   onToggleFavorite: () => void;
   onClick: () => void;
 }
 
-const ReportCard = ({ report, isFavorite, onToggleFavorite, onClick }: ReportCardProps) => {
-  const Icon = report.icon;
+const ReportListItem = ({ report, isFavorite, onToggleFavorite, onClick }: ReportListItemProps) => {
   return (
     <div
-      className={`relative group flex items-start gap-3 p-3 rounded-xl border transition-all duration-200 cursor-pointer ${report.available ? "border-border/40 hover:border-[#00B4D8]/40 hover:shadow-sm hover:bg-[hsl(var(--accent))]/30" : "border-border/20 opacity-50 cursor-not-allowed"}`}
+      className={`group flex items-center justify-between gap-2 py-2 px-2 rounded-lg transition-all cursor-pointer ${
+        report.available
+          ? "hover:bg-muted/40"
+          : "opacity-40 cursor-not-allowed"
+      }`}
       onClick={report.available ? onClick : undefined}
     >
-      <div className="p-2 rounded-lg bg-muted/60 shrink-0">
-        <Icon className="h-4 w-4 text-muted-foreground" />
+      <div className="flex items-center gap-2 min-w-0 flex-1">
+        <span className="text-[13px] text-foreground hover:text-primary transition-colors truncate leading-relaxed">
+          {report.label}
+        </span>
+        {report.isNew && report.available && (
+          <span className="text-[9px] px-2 py-0.5 rounded-full bg-info/10 text-info font-bold whitespace-nowrap shrink-0">
+            جديد
+          </span>
+        )}
+        {!report.available && (
+          <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground font-medium whitespace-nowrap shrink-0">🔒</span>
+        )}
       </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-1.5">
-          <p className="text-xs font-semibold text-foreground truncate">{report.label}</p>
-          {!report.available && (
-            <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[hsl(var(--accent))]/30 text-[hsl(var(--accent-foreground))] font-medium whitespace-nowrap">قريباً</span>
-          )}
-          {report.isNew && report.available && (
-            <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[#00B4D8]/15 text-[#00B4D8] font-medium whitespace-nowrap">جديد</span>
-          )}
-        </div>
-        <p className="text-[10px] text-muted-foreground mt-0.5 line-clamp-1">{report.description}</p>
-        <p className="text-[9px] text-[#00B4D8] mt-1 opacity-0 group-hover:opacity-100 transition-opacity">فتح التقرير ←</p>
-      </div>
-      <button onClick={(e) => { e.stopPropagation(); onToggleFavorite(); }} className="p-1 rounded-md hover:bg-muted/80 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-        <Star className={`h-3.5 w-3.5 ${isFavorite ? "text-yellow-500 fill-yellow-500" : "text-muted-foreground"}`} />
+      <button
+        onClick={(e) => { e.stopPropagation(); onToggleFavorite(); }}
+        className="p-1 rounded-md hover:bg-muted/80 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+      >
+        <Star className={`h-3 w-3 ${isFavorite ? "text-yellow-500 fill-yellow-500" : "text-muted-foreground/40"}`} />
       </button>
     </div>
   );
