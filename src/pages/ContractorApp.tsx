@@ -84,7 +84,7 @@ export default function ContractorApp() {
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
-  const contractRef = useRef<HTMLDivElement>(null);
+  
 
   const [pForm, setPForm] = useState({ ...defaultPForm });
   const [txForm, setTxForm] = useState({
