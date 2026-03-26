@@ -584,9 +584,18 @@ export default function WorkshopsPage() {
 
   const costSummary = useMemo(() => {
     const summary: Record<string, number> = {};
+    const byCategory: Record<string, number> = {};
+    const byPhase: Record<string, number> = {};
     let total = 0;
-    costs.forEach(c => { summary[c.cost_type] = (summary[c.cost_type] || 0) + c.amount; total += c.amount; });
-    return { byType: summary, total };
+    costs.forEach(c => {
+      summary[c.cost_type] = (summary[c.cost_type] || 0) + c.amount;
+      const cat = c.category || c.cost_type || "other";
+      byCategory[cat] = (byCategory[cat] || 0) + c.amount;
+      const ph = c.phase || "preparation";
+      byPhase[ph] = (byPhase[ph] || 0) + c.amount;
+      total += c.amount;
+    });
+    return { byType: summary, byCategory, byPhase, total };
   }, [costs]);
 
   const totalPaid = useMemo(() => payments.reduce((s, p) => s + p.amount, 0), [payments]);
@@ -595,6 +604,22 @@ export default function WorkshopsPage() {
     if (!selectedWorkshop || !selectedWorkshop.total_budget) return 0;
     return (costSummary.total / selectedWorkshop.total_budget) * 100;
   }, [selectedWorkshop, costSummary.total]);
+
+  // Filtered costs for table
+  const materialCats = ["wood_natural", "mdf", "glass", "paint", "varnish", "marble", "hardware", "countertop", "adhesive", "veneer", "fittings", "wood", "crystal"];
+  const laborCats = ["labor"];
+  const transportCats = ["transport"];
+  const filteredCosts = useMemo(() => {
+    if (costFilter === "all") return costs;
+    return costs.filter(c => {
+      const cat = c.category || c.cost_type || "other";
+      if (costFilter === "materials") return materialCats.includes(cat);
+      if (costFilter === "labor") return laborCats.includes(cat);
+      if (costFilter === "transport") return transportCats.includes(cat);
+      if (costFilter === "unpaid") return c.payment_method === "آجل";
+      return true;
+    });
+  }, [costs, costFilter]);
 
   const filteredCustomers = useMemo(() =>
     contacts.filter(c => ["customer", "عميل", "both", "كلاهما"].includes(c.contact_type) && (!contactSearch || c.contact_name.toLowerCase().includes(contactSearch.toLowerCase())))
