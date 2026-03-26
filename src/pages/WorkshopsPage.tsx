@@ -154,6 +154,9 @@ export default function WorkshopsPage() {
   const [deletingWorkshop, setDeletingWorkshop] = useState<Workshop | null>(null);
   const [showClaimModal, setShowClaimModal] = useState(false);
   const [showNewCost, setShowNewCost] = useState(false);
+  const [showCostReport, setShowCostReport] = useState(false);
+  const [costFilter, setCostFilter] = useState("all");
+  const [showCostBreakdown, setShowCostBreakdown] = useState(false);
   const [showInvoiceDialog, setShowInvoiceDialog] = useState(false);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
 
