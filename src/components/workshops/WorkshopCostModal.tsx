@@ -154,7 +154,7 @@ export default function WorkshopCostModal({ open, onOpenChange, workshopId, work
   const wasteAmount = useMemo(() => wasteEnabled ? Math.round((effectiveQty - quantity) * unitPrice * 100) / 100 : 0, [effectiveQty, quantity, unitPrice, wasteEnabled]);
 
   const filteredSuppliers = useMemo(() =>
-    contacts.filter(c => ["supplier", "مورد", "both", "كلاهما"].includes(c.contact_type) && (!supplierSearch || c.contact_name.toLowerCase().includes(supplierSearch.toLowerCase())))
+    contacts.filter(c => !supplierSearch || c.contact_name.toLowerCase().includes(supplierSearch.toLowerCase()))
   , [contacts, supplierSearch]);
 
   const glInfo = CATEGORY_GL_MAP[category] || CATEGORY_GL_MAP.other;
