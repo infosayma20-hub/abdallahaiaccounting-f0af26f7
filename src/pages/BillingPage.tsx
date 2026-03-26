@@ -136,10 +136,14 @@ const BillingPage = () => {
 
       {/* Renewal Section */}
       <div className="bg-card rounded-2xl border border-border/30 p-6 space-y-5">
-        <h3 className="text-base font-bold text-foreground">تجديد الاشتراك</h3>
+        <h3 className="text-xl font-bold text-foreground text-center" style={{ fontFamily: "Tajawal, sans-serif" }}>ما الباقة التي تناسبك؟</h3>
 
-        {/* Billing cycle toggle */}
-        <div className="flex items-center gap-2 justify-center">
+        {/* Savings notice */}
+        {billingCycle === "annual" && (
+          <p className="text-center text-sm text-info bg-info/5 rounded-lg py-2 px-4 mx-auto w-fit">
+            توفير يصل حتى 20% على الاشتراكات السنوية
+          </p>
+        )}
           <button
             onClick={() => setBillingCycle("monthly")}
             className={cn(
@@ -187,7 +191,7 @@ const BillingPage = () => {
                     )}
                   >
                     {isCurrent && (
-                      <span className="absolute -top-2.5 right-4 text-[10px] px-2 py-0.5 rounded-full bg-primary text-primary-foreground font-bold">
+            <span className="absolute -top-3 right-3 text-[10px] px-3 py-1 rounded-full bg-primary text-primary-foreground font-bold shadow-sm">
                         الحزمة الحالية
                       </span>
                     )}
