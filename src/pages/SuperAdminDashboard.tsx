@@ -852,7 +852,7 @@ const MANAGEABLE_APPS = [
 ];
 
 function AppVisibilityManager() {
-  const [users, setUsers] = useState<{ user_id: string; display_name: string; email?: string }[]>([]);
+  const [users, setUsers] = useState<{ user_id: string; display_name: string; email?: string; roles?: string[] }[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState("");
   const [hiddenApps, setHiddenApps] = useState<string[]>([]);
@@ -907,9 +907,11 @@ function AppVisibilityManager() {
     setSaving(false);
   };
 
-  const filteredUsers = users.filter(u =>
-    !userSearch || u.display_name?.toLowerCase().includes(userSearch.toLowerCase()) || u.email?.toLowerCase().includes(userSearch.toLowerCase())
-  );
+  const filteredUsers = users
+    .filter(u => u.roles?.includes('admin'))
+    .filter(u =>
+      !userSearch || u.display_name?.toLowerCase().includes(userSearch.toLowerCase()) || u.email?.toLowerCase().includes(userSearch.toLowerCase())
+    );
 
   const selectedUserInfo = users.find(u => u.user_id === selectedUser);
 
