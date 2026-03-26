@@ -26,7 +26,7 @@ export default function PageHeader({ title, breadcrumb }: PageHeaderProps) {
           background: "linear-gradient(135deg, hsl(var(--navy)) 0%, hsl(var(--finix-navy-light)) 100%)",
         }}
       >
-        <h1 className="text-lg font-bold text-white text-right" style={{ fontFamily: "Tajawal, sans-serif" }}>
+        <h1 className="text-lg font-medium text-white text-right" style={{ fontFamily: "Tajawal, sans-serif" }}>
           {title}
         </h1>
       </div>
