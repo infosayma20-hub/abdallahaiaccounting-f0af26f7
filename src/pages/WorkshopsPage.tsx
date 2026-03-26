@@ -159,10 +159,11 @@ export default function WorkshopsPage() {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [paymentForm, setPaymentForm] = useState({
     amount: 0, payment_method: "نقدي", description: "", payment_date: format(new Date(), "yyyy-MM-dd"),
-    cheque_number: "", cheque_bank: "", cheque_date: format(new Date(), "yyyy-MM-dd"),
-    cheque_drawer: "", deposit_bank_id: null as string | null,
+    cheque_bank: "", deposit_bank_id: null as string | null,
     currency: "ILS", exchange_rate: 1, cheque_count: 1,
   });
+  type ChequeRow = { number: string; drawer: string; bank: string; date: string; amount: number };
+  const [chequeRows, setChequeRows] = useState<ChequeRow[]>([]);
   const [bankAccounts, setBankAccounts] = useState<{ id: string; name: string; bank_name: string; gl_account_code: string | null }[]>([]);
   const [currencies, setCurrencies] = useState<{ code: string; name_ar: string; sell_rate: number }[]>([]);
   const [costForm, setCostForm] = useState({
