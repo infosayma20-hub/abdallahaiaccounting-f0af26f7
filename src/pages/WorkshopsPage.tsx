@@ -23,6 +23,7 @@ import { Label } from "@/components/ui/label";
 import { motion } from "framer-motion";
 import BackButton from "@/components/BackButton";
 import { generateWorkshopContractPDF, ContractData, ContractCompanyData } from "@/utils/generateWorkshopContractPDF";
+import FinancialClaimModal from "@/components/contractor/FinancialClaimModal";
 
 /* ── Types ── */
 type Workshop = {
@@ -145,6 +146,7 @@ export default function WorkshopsPage() {
   const [editingWorkshop, setEditingWorkshop] = useState<Workshop | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deletingWorkshop, setDeletingWorkshop] = useState<Workshop | null>(null);
+  const [showClaimModal, setShowClaimModal] = useState(false);
   const [showNewCost, setShowNewCost] = useState(false);
   const [showInvoiceDialog, setShowInvoiceDialog] = useState(false);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
@@ -655,6 +657,9 @@ export default function WorkshopsPage() {
                 }
               }}>
                 <FileText className="h-3.5 w-3.5" /> عقد PDF
+              </Button>
+              <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={() => setShowClaimModal(true)}>
+                <Receipt className="h-3.5 w-3.5" /> مطالبة مالية
               </Button>
               <Button variant="destructive" size="sm" className="h-8 text-xs gap-1.5" onClick={() => { setDeletingWorkshop(selectedWorkshop); setShowDeleteConfirm(true); }}>
                 <Trash2 className="h-3.5 w-3.5" /> حذف
@@ -1594,6 +1599,30 @@ export default function WorkshopsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* ── Financial Claim Modal ── */}
+      {selectedWorkshop && (
+        <FinancialClaimModal
+          open={showClaimModal}
+          onOpenChange={setShowClaimModal}
+          project={{
+            id: selectedWorkshop.id,
+            name: selectedWorkshop.name,
+            client_name: selectedWorkshop.customer_name,
+            phone: selectedWorkshop.customer_phone,
+            address: selectedWorkshop.address,
+            budget: selectedWorkshop.total_budget,
+            total_expenses: costSummary.total,
+            total_receipts: totalPaid,
+          }}
+          userId={user!.id}
+          companyName={settings.company_name || "الشركة"}
+          companyPhone={settings.phone || ""}
+          companyAddress={settings.address || ""}
+          companyEmail={settings.email || ""}
+          logoUrl={settings.logo_url || ""}
+        />
+      )}
     </div>
   );
 }
