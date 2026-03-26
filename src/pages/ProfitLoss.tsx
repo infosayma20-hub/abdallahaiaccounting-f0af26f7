@@ -529,7 +529,7 @@ const ProfitLoss = () => {
       <PageHeader title="قائمة الدخل" breadcrumb={["المحاسبة", "التقارير", "قائمة الدخل"]} />
 
       {/* ── Date Controls ── */}
-      <Card className="p-4 space-y-3">
+      <Card className="border-0 shadow-sm rounded-2xl p-4 space-y-3">
         <div className="flex items-center gap-3 flex-wrap">
           <div className="flex items-center gap-2">
             <Calendar className="h-4 w-4 text-muted-foreground" />
