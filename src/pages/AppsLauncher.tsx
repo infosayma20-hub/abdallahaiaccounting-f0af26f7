@@ -172,11 +172,6 @@ const AppsLauncher = () => {
 
   const allFilteredApps = useMemo(() => {
     let allApps = appSections.flatMap(s => s.items);
-    
-    // Remove hidden apps completely
-    if (hiddenApps.length > 0) {
-      allApps = allApps.filter(app => !hiddenApps.includes(app.id));
-    }
 
     // Filter by role if restricted
     if (restrictedRole && ROLE_ALLOWED_APPS[restrictedRole]) {
@@ -191,11 +186,13 @@ const AppsLauncher = () => {
           || getAllChildren(app).some(c => multiWordMatchAny(q, c.label))
         )
       : allApps;
-    // Sort: enabled first, disabled last
+    // Sort: enabled first, hidden apps last
     return filtered.sort((a, b) => {
+      const aHidden = hiddenApps.includes(a.id) ? 2 : 0;
+      const bHidden = hiddenApps.includes(b.id) ? 2 : 0;
       const aDisabled = isAppDisabled(a) ? 1 : 0;
       const bDisabled = isAppDisabled(b) ? 1 : 0;
-      return aDisabled - bDisabled;
+      return (aHidden + aDisabled) - (bHidden + bDisabled);
     });
   }, [search, enabledSettings, restrictedRole, hiddenApps]);
 
