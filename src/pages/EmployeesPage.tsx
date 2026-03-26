@@ -553,68 +553,71 @@ const EmployeesPage = () => {
         ))}
       </div>
 
-      {/* Toolbar */}
-      <div className="space-y-3">
-        <div className="relative">
-          <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 pointer-events-none" />
-          <Input
-            placeholder="بحث بالاسم، رقم الهوية، الوظيفة..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="pr-10 rounded-xl bg-muted/30"
-          />
-          {search && (
-            <button onClick={() => setSearch("")} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-              <X className="h-3.5 w-3.5" />
-            </button>
-          )}
-        </div>
-
-        {!isMobile && (
-          <div className="flex items-center gap-3 flex-wrap">
-            <Select value={filterBranch} onValueChange={setFilterBranch}>
-              <SelectTrigger className="w-[140px] rounded-xl text-xs">
-                <Filter className="h-3 w-3 ml-1" />
-                <SelectValue placeholder="الفرع" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">كل الفروع</SelectItem>
-                {branchesList.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
-
-            <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger className="w-[120px] rounded-xl text-xs">
-                <SelectValue placeholder="الحالة" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">الكل</SelectItem>
-                <SelectItem value="active">نشط</SelectItem>
-                <SelectItem value="inactive">غير نشط</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select value={filterJob} onValueChange={setFilterJob}>
-              <SelectTrigger className="w-[140px] rounded-xl text-xs">
-                <SelectValue placeholder="الوظيفة" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">كل الوظائف</SelectItem>
-                {jobs.map(j => <SelectItem key={j} value={j}>{j}</SelectItem>)}
-              </SelectContent>
-            </Select>
-
-            <Button
-              variant={groupByBranch ? "default" : "outline"}
-              size="sm"
-              onClick={() => setGroupByBranch(!groupByBranch)}
-              className="gap-1 text-xs rounded-xl"
-            >
-              <Layers className="h-3 w-3" /> تجميع بالفرع
-            </Button>
+      <Card className="border-0 shadow-sm rounded-2xl overflow-hidden">
+        <CardContent className="p-3 space-y-3">
+          <div className="relative">
+            <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 pointer-events-none" />
+            <Input
+              placeholder="بحث بالاسم، رقم الهوية، الوظيفة..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="pr-10 rounded-xl bg-muted/30 border-0 focus-visible:ring-2 focus-visible:ring-primary/20"
+            />
+            {search && (
+              <button onClick={() => setSearch("")} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
           </div>
-        )}
-      </div>
+
+          {!isMobile && (
+            <div className="flex items-center gap-3 flex-wrap">
+              <Select value={filterBranch} onValueChange={setFilterBranch}>
+                <SelectTrigger className="w-[140px] rounded-xl text-xs h-9">
+                  <Filter className="h-3 w-3 ml-1" />
+                  <SelectValue placeholder="الفرع" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">كل الفروع</SelectItem>
+                  {branchesList.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+
+              <Select value={filterStatus} onValueChange={setFilterStatus}>
+                <SelectTrigger className="w-[120px] rounded-xl text-xs h-9">
+                  <SelectValue placeholder="الحالة" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">الكل</SelectItem>
+                  <SelectItem value="active">نشط</SelectItem>
+                  <SelectItem value="inactive">غير نشط</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select value={filterJob} onValueChange={setFilterJob}>
+                <SelectTrigger className="w-[140px] rounded-xl text-xs h-9">
+                  <SelectValue placeholder="الوظيفة" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">كل الوظائف</SelectItem>
+                  {jobs.map(j => <SelectItem key={j} value={j}>{j}</SelectItem>)}
+                </SelectContent>
+              </Select>
+
+              <Button
+                variant={groupByBranch ? "default" : "outline"}
+                size="sm"
+                onClick={() => setGroupByBranch(!groupByBranch)}
+                className="gap-1 text-xs rounded-xl h-9"
+              >
+                <Layers className="h-3 w-3" /> تجميع بالفرع
+              </Button>
+
+              <span className="text-[11px] text-muted-foreground mr-auto">{filtered.length} موظف</span>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Main Content */}
       {loading ? (
