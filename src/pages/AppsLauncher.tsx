@@ -32,7 +32,7 @@ const AppCard = ({
   app: NavItem; index: number; isExpanded: boolean;
   onToggle: () => void; onNavigate: (path: string) => void; disabled?: boolean; isLocked?: boolean;
 }) => {
-  const [clicking, setClicking] = useState(false);
+  const isDisabledOrLocked = disabled || isLocked;
   const [ripple, setRipple] = useState<{ x: number; y: number } | null>(null);
   const hasChildren = !app.isDirect && app.groups && app.groups.length > 0;
 
