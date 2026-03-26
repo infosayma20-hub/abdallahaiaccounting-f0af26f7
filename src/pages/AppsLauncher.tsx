@@ -25,7 +25,7 @@ const ROLE_ALLOWED_APPS: Record<string, string[]> = {
   hr_manager: ["dashboard", "hr"],
 };
 
-/* ── App Card ── */
+/* ── App Card — Qoyod-style with prominent icon & hover animation ── */
 const AppCard = ({
   app, index, isExpanded, onToggle, onNavigate, disabled, isLocked,
 }: {
@@ -33,74 +33,92 @@ const AppCard = ({
   onToggle: () => void; onNavigate: (path: string) => void; disabled?: boolean; isLocked?: boolean;
 }) => {
   const isDisabledOrLocked = disabled || isLocked;
-  const [clicking, setClicking] = useState(false);
-  const [ripple, setRipple] = useState<{ x: number; y: number } | null>(null);
   const hasChildren = !app.isDirect && app.groups && app.groups.length > 0;
 
-  const handleClick = (e: React.MouseEvent) => {
+  const handleClick = () => {
     if (isDisabledOrLocked) return;
     if (hasChildren) { onToggle(); return; }
-    const rect = e.currentTarget.getBoundingClientRect();
-    setRipple({ x: e.clientX - rect.left, y: e.clientY - rect.top });
-    setClicking(true);
-    setTimeout(() => { onNavigate(app.path); setClicking(false); setRipple(null); }, 250);
+    onNavigate(app.path);
   };
 
   return (
     <motion.div
       id={`app-${app.id}`}
-      initial={{ opacity: 0, y: 12 }}
+      initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.04, duration: 0.3 }}
-      className={`relative rounded-2xl border overflow-hidden transition-all duration-200 ${
+      transition={{ delay: index * 0.035, duration: 0.35, ease: "easeOut" }}
+      className={`relative rounded-2xl border-2 overflow-hidden transition-all duration-300 ${
         isLocked
-          ? "border-border/20 bg-muted/30 opacity-40 cursor-not-allowed"
+          ? "border-border/20 bg-muted/20 opacity-40 cursor-not-allowed"
           : disabled
-          ? "border-border/30 bg-muted/40 opacity-50 grayscale cursor-not-allowed"
-          : isExpanded ? "border-accent/40 bg-card shadow-lg" : "border-border/60 bg-card hover:shadow-lg hover:border-border hover:-translate-y-0.5"
+          ? "border-border/20 bg-muted/20 opacity-50 grayscale cursor-not-allowed"
+          : isExpanded
+          ? "border-primary/40 bg-white shadow-xl scale-[1.01]"
+          : "border-border/40 bg-white hover:border-primary/30 hover:shadow-xl hover:-translate-y-1.5 hover:scale-[1.01]"
       }`}
-      style={{ transform: clicking ? "scale(0.97)" : undefined, transition: "transform 0.15s ease" }}
     >
-      {ripple && !isDisabledOrLocked && (
-        <span className="absolute rounded-full pointer-events-none" style={{
-          left: ripple.x, top: ripple.y, transform: "translate(-50%, -50%)",
-          background: "radial-gradient(circle, rgba(232,160,32,0.35), transparent 70%)",
-          animation: "finixRippleExpand 0.5s ease-out forwards",
-        }} />
-      )}
-      <button onClick={handleClick} className={`w-full flex items-center gap-4 p-5 text-right group relative z-10 ${isDisabledOrLocked ? "cursor-not-allowed" : ""}`}>
-        <div className={`p-3 rounded-xl ${isLocked ? "bg-muted/50" : app.bgColor} transition-transform ${isDisabledOrLocked ? "" : "group-hover:scale-110"}`}>
+      <button
+        onClick={handleClick}
+        className={`w-full flex flex-col items-center gap-3 p-6 pb-4 text-center group relative z-10 ${isDisabledOrLocked ? "cursor-not-allowed" : ""}`}
+      >
+        {/* Large Icon */}
+        <div
+          className={`w-16 h-16 rounded-2xl flex items-center justify-center transition-all duration-300 ${
+            isDisabledOrLocked ? "bg-muted/40" : "group-hover:scale-110 group-hover:shadow-lg"
+          }`}
+          style={!isDisabledOrLocked ? {
+            backgroundColor: app.bgColor ? undefined : 'hsl(var(--primary) / 0.08)',
+            border: `1.5px solid hsl(var(--primary) / 0.15)`,
+          } : undefined}
+        >
           {isLocked ? (
-            <Lock className="h-6 w-6 text-muted-foreground/50" />
+            <Lock className="h-7 w-7 text-muted-foreground/40" />
           ) : (
-            <app.icon className={`h-6 w-6 ${app.color}`} />
+            <app.icon className={`h-7 w-7 ${app.color || "text-primary"} transition-transform duration-300 group-hover:scale-105`} />
           )}
         </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <p className={`text-sm font-bold ${isDisabledOrLocked ? "text-muted-foreground/60" : "text-foreground"}`}>{app.label}</p>
-            {(isLocked || disabled) && <Lock className="h-3 w-3 text-muted-foreground/40" />}
-            {!isDisabledOrLocked && app.isNew && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary">جديد</span>}
+
+        {/* Title */}
+        <div className="space-y-1">
+          <div className="flex items-center justify-center gap-2">
+            <p className={`text-sm font-bold ${isDisabledOrLocked ? "text-muted-foreground/50" : "text-foreground"}`}>
+              {app.label}
+            </p>
+            {!isDisabledOrLocked && app.isNew && (
+              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-info/10 text-info">جديد</span>
+            )}
           </div>
-          <p className="text-xs text-muted-foreground/50 mt-0.5 leading-relaxed">
-            {isLocked ? "🔒 غير متاح — تواصل مع الإدارة للتفعيل" : disabled ? "غير مفعّل — يمكن تفعيله من الإعدادات" : app.description}
+          <p className="text-[11px] text-muted-foreground leading-relaxed max-w-[200px] mx-auto">
+            {isLocked ? "🔒 غير متاح — تواصل مع الإدارة للتفعيل" : disabled ? "غير مفعّل" : app.description}
           </p>
         </div>
+
+        {/* Expand indicator */}
         {!isDisabledOrLocked && hasChildren && (
-          <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`} />
+          <ChevronDown className={`h-4 w-4 text-muted-foreground/40 transition-transform duration-300 ${isExpanded ? "rotate-180 text-primary" : ""}`} />
         )}
       </button>
 
+      {/* Expanded children */}
       {!isDisabledOrLocked && isExpanded && hasChildren && (
-        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="border-t border-border/40 px-5 pb-4 pt-2 space-y-2">
+        <motion.div
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: "auto" }}
+          exit={{ opacity: 0, height: 0 }}
+          className="border-t border-border/30 px-4 pb-4 pt-2 space-y-1"
+        >
           {app.groups!.map((group) => (
             <div key={group.groupLabel || "default"}>
               {group.groupLabel && (
-                <p className="text-[10px] font-bold text-muted-foreground/60 px-3 pt-1 pb-0.5">{group.groupLabel}</p>
+                <p className="text-[10px] font-bold text-muted-foreground/50 px-3 pt-2 pb-1">{group.groupLabel}</p>
               )}
               {group.children.map((child) => (
-                <button key={child.path + child.label} onClick={() => onNavigate(child.path)} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] text-foreground hover:bg-accent/10 hover:text-accent transition-all text-right">
-                  <ArrowLeft className="h-3.5 w-3.5 text-muted-foreground" />
+                <button
+                  key={child.path + child.label}
+                  onClick={() => onNavigate(child.path)}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-[12px] text-foreground hover:bg-primary/5 hover:text-primary transition-all text-right"
+                >
+                  <ArrowLeft className="h-3 w-3 text-muted-foreground/40" />
                   <span>{child.label}</span>
                 </button>
               ))}
