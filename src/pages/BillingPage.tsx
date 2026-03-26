@@ -144,11 +144,14 @@ const BillingPage = () => {
             توفير يصل حتى 20% على الاشتراكات السنوية
           </p>
         )}
+
+        {/* Billing cycle toggle */}
+        <div className="flex items-center gap-2 justify-center">
           <button
             onClick={() => setBillingCycle("monthly")}
             className={cn(
-              "px-5 py-2 rounded-lg text-sm font-medium transition-all",
-              billingCycle === "monthly" ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"
+              "px-6 py-2.5 rounded-full text-sm font-medium transition-all",
+              billingCycle === "monthly" ? "bg-primary text-primary-foreground shadow-sm" : "bg-secondary text-muted-foreground"
             )}
           >
             شهري
@@ -156,14 +159,11 @@ const BillingPage = () => {
           <button
             onClick={() => setBillingCycle("annual")}
             className={cn(
-              "px-5 py-2 rounded-lg text-sm font-medium transition-all relative",
-              billingCycle === "annual" ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"
+              "px-6 py-2.5 rounded-full text-sm font-medium transition-all",
+              billingCycle === "annual" ? "bg-primary text-primary-foreground shadow-sm" : "bg-secondary text-muted-foreground"
             )}
           >
             سنوي
-            <span className="absolute -top-2 -left-2 text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-500 text-white font-bold">
-              وفر 20%
-            </span>
           </button>
         </div>
 
