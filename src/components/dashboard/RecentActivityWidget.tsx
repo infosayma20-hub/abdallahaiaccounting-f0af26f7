@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import type { RecentActivity } from "@/hooks/useDashboardData";
+import WidgetBanner from "./WidgetBanner";
 
 interface Props {
   activities: RecentActivity[];
@@ -30,7 +31,7 @@ export default function RecentActivityWidget({ activities, loading }: Props) {
 
   return (
     <div className="col-span-12 lg:col-span-4 bg-card rounded-2xl p-5 shadow-sm border border-border/30">
-      <h3 className="text-sm font-medium text-foreground mb-4">⚡ آخر النشاطات</h3>
+      <WidgetBanner title="آخر النشاطات" icon="⚡" />
 
       <div className="space-y-1 max-h-[320px] overflow-y-auto">
         {activities.length === 0 ? (

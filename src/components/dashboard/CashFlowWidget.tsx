@@ -1,3 +1,5 @@
+import WidgetBanner from "./WidgetBanner";
+
 interface Props {
   data: { inflows: number; outflows: number; net: number; runway: number };
   cashBalance: number;
@@ -25,7 +27,7 @@ export default function CashFlowWidget({ data, cashBalance, loading }: Props) {
 
   return (
     <div className="col-span-12 lg:col-span-6 bg-card rounded-2xl p-5 shadow-sm border border-border/30">
-      <h3 className="text-sm font-medium text-foreground mb-4">💧 التدفق النقدي</h3>
+      <WidgetBanner title="التدفق النقدي" icon="💧" />
 
       {/* Waterfall visual */}
       <div className="flex items-end gap-2 h-[120px] mb-4">

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { BarChart, Bar, LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ComposedChart } from "recharts";
 import type { ChartDataPoint } from "@/hooks/useDashboardData";
+import WidgetBanner from "./WidgetBanner";
 
 interface Props {
   data: ChartDataPoint[];
@@ -58,12 +59,10 @@ export default function RevenueExpenseChart({ data, grouping, onGroupingChange, 
 
   return (
     <div className="col-span-12 lg:col-span-8 bg-card rounded-2xl p-5 shadow-sm border border-border/30">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-        <h3 className="text-sm font-medium text-foreground">الإيرادات مقابل المصروفات</h3>
+      <WidgetBanner title="الإيرادات مقابل المصروفات">
         <div className="flex items-center gap-2">
           {/* Chart type */}
-          <div className="flex bg-secondary/50 rounded-lg p-0.5">
+          <div className="flex bg-white/10 rounded-lg p-0.5">
             {([
               { key: "bar", label: "📊" },
               { key: "line", label: "📈" },
@@ -73,7 +72,7 @@ export default function RevenueExpenseChart({ data, grouping, onGroupingChange, 
                 key={t.key}
                 onClick={() => setChartType(t.key)}
                 className={`px-2 py-1 rounded-md text-[10px] transition-all ${
-                  chartType === t.key ? "bg-card shadow-sm text-foreground" : "text-muted-foreground"
+                  chartType === t.key ? "bg-white/20 shadow-sm text-white" : "text-white/50"
                 }`}
               >
                 {t.label}
@@ -81,7 +80,7 @@ export default function RevenueExpenseChart({ data, grouping, onGroupingChange, 
             ))}
           </div>
           {/* Grouping */}
-          <div className="flex bg-secondary/50 rounded-lg p-0.5">
+          <div className="flex bg-white/10 rounded-lg p-0.5">
             {([
               { key: "daily" as const, label: "يومي" },
               { key: "weekly" as const, label: "أسبوعي" },
@@ -91,7 +90,7 @@ export default function RevenueExpenseChart({ data, grouping, onGroupingChange, 
                 key={g.key}
                 onClick={() => onGroupingChange(g.key)}
                 className={`px-2 py-1 rounded-md text-[10px] transition-all ${
-                  grouping === g.key ? "bg-card shadow-sm text-foreground" : "text-muted-foreground"
+                  grouping === g.key ? "bg-white/20 shadow-sm text-white" : "text-white/50"
                 }`}
               >
                 {g.label}
@@ -99,7 +98,9 @@ export default function RevenueExpenseChart({ data, grouping, onGroupingChange, 
             ))}
           </div>
         </div>
-      </div>
+      </WidgetBanner>
+
+
 
       {/* Chart */}
       <div style={{ direction: "ltr" }}>

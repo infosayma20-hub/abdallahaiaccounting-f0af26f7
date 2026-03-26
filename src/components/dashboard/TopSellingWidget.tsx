@@ -1,4 +1,5 @@
 import { TrendingUp } from "lucide-react";
+import WidgetBanner from "./WidgetBanner";
 
 interface TopItem {
   name: string;
@@ -29,10 +30,7 @@ export default function TopSellingWidget({ items, loading }: Props) {
 
   return (
     <div className="col-span-12 lg:col-span-6 bg-card rounded-2xl p-5 shadow-sm border border-border/30">
-      <div className="flex items-center gap-2 mb-4">
-        <TrendingUp className="h-4 w-4 text-primary" />
-        <h3 className="text-sm font-medium text-foreground">🏆 أكثر الأصناف مبيعاً</h3>
-      </div>
+      <WidgetBanner title="أكثر الأصناف مبيعاً" icon="🏆" />
 
       {items.length === 0 ? (
         <div className="text-center py-8 text-muted-foreground text-xs">لا توجد مبيعات حالياً</div>
