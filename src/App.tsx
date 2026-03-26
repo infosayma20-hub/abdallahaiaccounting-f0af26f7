@@ -1,3 +1,4 @@
+import { Suspense, lazy } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -10,137 +11,135 @@ import { CompanyProvider } from "@/hooks/useCompanyContext";
 import { CompanyThemeProvider } from "@/hooks/useCompanyTheme";
 import { ReadOnlyProvider } from "@/contexts/ReadOnlyContext";
 import WebLayout from "./components/layout/WebLayout";
-import HomeDashboard from "./pages/HomeDashboard";
-import SmartAccountantPage from "./pages/SmartAccountantPage";
-import MenuPage from "./pages/MenuPage";
-import VoiceInput from "./pages/VoiceInput";
-import ProfitLoss from "./pages/ProfitLoss";
-import TransactionsPage from "./pages/TransactionsPage";
-import AccountsPage from "./pages/AccountsPage";
-import ContactsPage from "./pages/ContactsPage";
-import ContactDetailPage from "./pages/ContactDetailPage";
-import ContactPoliciesPage from "./pages/ContactPoliciesPage";
-import ExportPage from "./pages/ExportPage";
-import SmartReportPage from "./pages/SmartReportPage";
-import JournalEntriesPage from "./pages/JournalEntriesPage";
-import TrialBalancePage from "./pages/TrialBalancePage";
-import AuthPage from "./pages/AuthPage";
-import ResetPasswordPage from "./pages/ResetPasswordPage";
-import PricingPage from "./pages/PricingPage";
-import InvoicesPage from "./pages/InvoicesPage";
-import InvoiceCreatePage from "./pages/InvoiceCreatePage";
-import InventoryPage from "./pages/InventoryPage";
-import StockMovementsPage from "./pages/StockMovementsPage";
-import InventoryValuationPage from "./pages/InventoryValuationPage";
-import BalanceSheetPage from "./pages/BalanceSheetPage";
-import ReportsPage from "./pages/ReportsPage";
-import EmployeesPage from "./pages/EmployeesPage";
-import EmployeeFormsManagementPage from "./pages/EmployeeFormsManagementPage";
-import SalesRepresentativesPage from "./pages/SalesRepresentativesPage";
-import OrdersPage from "./pages/OrdersPage";
-import ChequesPage from "./pages/ChequesPage";
-import TermsPage from "./pages/TermsPage";
-import PrivacyPage from "./pages/PrivacyPage";
-import ProfilePage from "./pages/ProfilePage";
-import NotFound from "./pages/NotFound";
-// LoadingScreen removed from route guards — now using lightweight AuthCheckSpinner
-import EmployeeAttendancePage from "./pages/EmployeeAttendancePage";
-import HRAttendancePage from "./pages/HRAttendancePage";
-import BranchDisplayPage from "./pages/BranchDisplayPage";
-import EmployeeApp from "./pages/EmployeeApp";
 import RoleGuard from "./components/RoleGuard";
-// VoucherPage removed — unified under FinanceVoucherPage
-import AppsLauncher from "./pages/AppsLauncher";
-import OpeningBalancesImportPage from "./pages/OpeningBalancesImportPage";
-import CurrencyManagementPage from "./pages/CurrencyManagementPage";
-import FixedAssetsPage from "./pages/FixedAssetsPage";
-import GeneralLedgerPage from "./pages/GeneralLedgerPage";
-import AccountStatementPage from "./pages/AccountStatementPage";
-import HRPayrollReport from "./pages/reports/HRPayrollReport";
-import HRAttendanceReport from "./pages/reports/HRAttendanceReport";
-import HRLeaveReport from "./pages/reports/HRLeaveReport";
-import HRStaffCostReport from "./pages/reports/HRStaffCostReport";
-import GenericReportPage from "./pages/reports/GenericReportPage";
-import CollectionDashboardPage from "./pages/reports/CollectionDashboardPage";
-import PeriodicReportsPage from "./pages/reports/PeriodicReportsPage";
-import CustomizationPage from "./pages/CustomizationPage";
-import SettingsPage from "./pages/SettingsPage";
-import IndustryTemplatesPage from "./pages/IndustryTemplatesPage";
-import CustomizationRequestPage from "./pages/CustomizationRequestPage";
-import SupportTicketsPage from "./pages/SupportTicketsPage";
-import TicketDetailPage from "./pages/TicketDetailPage";
-import SupportAdminPage from "./pages/SupportAdminPage";
-import POSPage from "./pages/POSPage";
-import POSUserManagementPage from "./pages/POSUserManagementPage";
-import POSReportsPage from "./pages/POSReportsPage";
-import CallCenterReportsPage from "./pages/CallCenterReportsPage";
-import POSCustomerDatabasePage from "./pages/POSCustomerDatabasePage";
-import SuperAdminDashboard from "./pages/SuperAdminDashboard";
-import SuperAdminLoginPage from "./pages/SuperAdminLoginPage";
-// PurchasePointPage removed — replaced by procurement module
-import FloorPlanPage from "./pages/FloorPlanPage";
-import FloorPlanEditorPage from "./pages/FloorPlanEditorPage";
-import DigitalReceiptPage from "./pages/DigitalReceiptPage";
-import SurveyPage from "./pages/SurveyPage";
-import CustomerReportsPage from "./pages/CustomerReportsPage";
-import ModifierManagerPage from "./pages/ModifierManagerPage";
-import ContractorApp from "./pages/ContractorApp";
-import WorkshopsPage from "./pages/WorkshopsPage";
-import WorkshopReportsPage from "./pages/WorkshopReportsPage";
-import WorkerProcurementPage from "./pages/WorkerProcurementPage";
-import ContractsListPage from "./pages/ContractsListPage";
-import ContractFormPage from "./pages/ContractFormPage";
-import ContractPreviewPage from "./pages/ContractPreviewPage";
-import LoadingDemoPage from "./pages/LoadingDemoPage";
-import AdvancesPage from "./pages/AdvancesPage";
-import LoansPage from "./pages/LoansPage";
-import HRDeductionsPage from "./pages/HRDeductionsPage";
-import PayrollSettingsPage from "./pages/PayrollSettingsPage";
-import PayrollPage from "./pages/PayrollPage";
-import MonthlyPayrollInputPage from "./pages/MonthlyPayrollInputPage";
-import LeavesPage from "./pages/LeavesPage";
-import ImportShipmentsPage from "./pages/ImportShipmentsPage";
-// Supplier pages removed — use existing pos_suppliers management
-import PurchaseOrderCreatePage from "./pages/procurement/PurchaseOrderCreatePage";
-import PurchaseOrdersPage from "./pages/procurement/PurchaseOrdersPage";
-import ProcurementInvoicesPage from "./pages/procurement/ProcurementInvoicesPage";
-import ProcurementInvoiceCreatePage from "./pages/procurement/ProcurementInvoiceCreatePage";
-import SupplierStatementPage from "./pages/procurement/SupplierStatementPage";
-import WeeklyProcurementReportPage from "./pages/procurement/WeeklyProcurementReportPage";
-import ProcurementSettingsPage from "./pages/procurement/ProcurementSettingsPage";
-import ImportWizardPage from "./pages/ImportWizardPage";
-import ImportDetailPage from "./pages/ImportDetailPage";
-import BillingPage from "./pages/BillingPage";
-import OnboardingPage from "./pages/OnboardingPage";
-import SubscriptionPage from "./pages/SubscriptionPage";
-import SetupPage from "./pages/SetupPage";
-import FinanceHomePage from "./pages/FinanceHomePage";
-import FinanceVoucherPage from "./pages/FinanceVoucherPage";
-import FinanceJournalPage from "./pages/FinanceJournalPage";
-import KitchenDisplayPage from "./pages/KitchenDisplayPage";
-import BankAccountsPage from "./pages/BankAccountsPage";
-import CashBoxesPage from "./pages/CashBoxesPage";
-import CashTransferPage from "./pages/CashTransferPage";
-import VoucherFormPage from "./pages/VoucherFormPage";
-import JournalNewPage from "./pages/JournalNewPage";
-import PortalLogin from "./pages/portal/PortalLogin";
-import PortalDashboard from "./pages/portal/PortalDashboard";
-import PortalSettings from "./pages/portal/PortalSettings";
-import TaskLoginPage from "./pages/tasks/TaskLoginPage";
-import TaskBoardPage from "./pages/tasks/TaskBoardPage";
-import TaskAdminPage from "./pages/tasks/TaskAdminPage";
-import TaskDisplayPage from "./pages/tasks/TaskDisplayPage";
-import TravelDashboard from "./pages/travel/TravelDashboard";
-import TravelBookingsPage from "./pages/travel/TravelBookingsPage";
-import TravelBookingFormPage from "./pages/travel/TravelBookingFormPage";
-import TravelSuppliersPage from "./pages/travel/TravelSuppliersPage";
-import TravelPackagesPage from "./pages/travel/TravelPackagesPage";
-import TravelReportsPage from "./pages/travel/TravelReportsPage";
-import PrinterSettingsPage from "./pages/PrinterSettingsPage";
+
+// Lazy-loaded pages for code splitting
+const HomeDashboard = lazy(() => import("./pages/HomeDashboard"));
+const SmartAccountantPage = lazy(() => import("./pages/SmartAccountantPage"));
+const MenuPage = lazy(() => import("./pages/MenuPage"));
+const VoiceInput = lazy(() => import("./pages/VoiceInput"));
+const ProfitLoss = lazy(() => import("./pages/ProfitLoss"));
+const TransactionsPage = lazy(() => import("./pages/TransactionsPage"));
+const AccountsPage = lazy(() => import("./pages/AccountsPage"));
+const ContactsPage = lazy(() => import("./pages/ContactsPage"));
+const ContactDetailPage = lazy(() => import("./pages/ContactDetailPage"));
+const ContactPoliciesPage = lazy(() => import("./pages/ContactPoliciesPage"));
+const ExportPage = lazy(() => import("./pages/ExportPage"));
+const SmartReportPage = lazy(() => import("./pages/SmartReportPage"));
+const JournalEntriesPage = lazy(() => import("./pages/JournalEntriesPage"));
+const TrialBalancePage = lazy(() => import("./pages/TrialBalancePage"));
+const AuthPage = lazy(() => import("./pages/AuthPage"));
+const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
+const PricingPage = lazy(() => import("./pages/PricingPage"));
+const InvoicesPage = lazy(() => import("./pages/InvoicesPage"));
+const InvoiceCreatePage = lazy(() => import("./pages/InvoiceCreatePage"));
+const InventoryPage = lazy(() => import("./pages/InventoryPage"));
+const StockMovementsPage = lazy(() => import("./pages/StockMovementsPage"));
+const InventoryValuationPage = lazy(() => import("./pages/InventoryValuationPage"));
+const BalanceSheetPage = lazy(() => import("./pages/BalanceSheetPage"));
+const ReportsPage = lazy(() => import("./pages/ReportsPage"));
+const EmployeesPage = lazy(() => import("./pages/EmployeesPage"));
+const EmployeeFormsManagementPage = lazy(() => import("./pages/EmployeeFormsManagementPage"));
+const SalesRepresentativesPage = lazy(() => import("./pages/SalesRepresentativesPage"));
+const OrdersPage = lazy(() => import("./pages/OrdersPage"));
+const ChequesPage = lazy(() => import("./pages/ChequesPage"));
+const TermsPage = lazy(() => import("./pages/TermsPage"));
+const PrivacyPage = lazy(() => import("./pages/PrivacyPage"));
+const ProfilePage = lazy(() => import("./pages/ProfilePage"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const EmployeeAttendancePage = lazy(() => import("./pages/EmployeeAttendancePage"));
+const HRAttendancePage = lazy(() => import("./pages/HRAttendancePage"));
+const BranchDisplayPage = lazy(() => import("./pages/BranchDisplayPage"));
+const EmployeeApp = lazy(() => import("./pages/EmployeeApp"));
+const AppsLauncher = lazy(() => import("./pages/AppsLauncher"));
+const OpeningBalancesImportPage = lazy(() => import("./pages/OpeningBalancesImportPage"));
+const CurrencyManagementPage = lazy(() => import("./pages/CurrencyManagementPage"));
+const FixedAssetsPage = lazy(() => import("./pages/FixedAssetsPage"));
+const GeneralLedgerPage = lazy(() => import("./pages/GeneralLedgerPage"));
+const AccountStatementPage = lazy(() => import("./pages/AccountStatementPage"));
+const HRPayrollReport = lazy(() => import("./pages/reports/HRPayrollReport"));
+const HRAttendanceReport = lazy(() => import("./pages/reports/HRAttendanceReport"));
+const HRLeaveReport = lazy(() => import("./pages/reports/HRLeaveReport"));
+const HRStaffCostReport = lazy(() => import("./pages/reports/HRStaffCostReport"));
+const GenericReportPage = lazy(() => import("./pages/reports/GenericReportPage"));
+const CollectionDashboardPage = lazy(() => import("./pages/reports/CollectionDashboardPage"));
+const PeriodicReportsPage = lazy(() => import("./pages/reports/PeriodicReportsPage"));
+const CustomizationPage = lazy(() => import("./pages/CustomizationPage"));
+const SettingsPage = lazy(() => import("./pages/SettingsPage"));
+const IndustryTemplatesPage = lazy(() => import("./pages/IndustryTemplatesPage"));
+const CustomizationRequestPage = lazy(() => import("./pages/CustomizationRequestPage"));
+const SupportTicketsPage = lazy(() => import("./pages/SupportTicketsPage"));
+const TicketDetailPage = lazy(() => import("./pages/TicketDetailPage"));
+const SupportAdminPage = lazy(() => import("./pages/SupportAdminPage"));
+const POSPage = lazy(() => import("./pages/POSPage"));
+const POSUserManagementPage = lazy(() => import("./pages/POSUserManagementPage"));
+const POSReportsPage = lazy(() => import("./pages/POSReportsPage"));
+const CallCenterReportsPage = lazy(() => import("./pages/CallCenterReportsPage"));
+const POSCustomerDatabasePage = lazy(() => import("./pages/POSCustomerDatabasePage"));
+const SuperAdminDashboard = lazy(() => import("./pages/SuperAdminDashboard"));
+const SuperAdminLoginPage = lazy(() => import("./pages/SuperAdminLoginPage"));
+const FloorPlanPage = lazy(() => import("./pages/FloorPlanPage"));
+const FloorPlanEditorPage = lazy(() => import("./pages/FloorPlanEditorPage"));
+const DigitalReceiptPage = lazy(() => import("./pages/DigitalReceiptPage"));
+const SurveyPage = lazy(() => import("./pages/SurveyPage"));
+const CustomerReportsPage = lazy(() => import("./pages/CustomerReportsPage"));
+const ModifierManagerPage = lazy(() => import("./pages/ModifierManagerPage"));
+const ContractorApp = lazy(() => import("./pages/ContractorApp"));
+const WorkshopsPage = lazy(() => import("./pages/WorkshopsPage"));
+const WorkshopReportsPage = lazy(() => import("./pages/WorkshopReportsPage"));
+const WorkerProcurementPage = lazy(() => import("./pages/WorkerProcurementPage"));
+const ContractsListPage = lazy(() => import("./pages/ContractsListPage"));
+const ContractFormPage = lazy(() => import("./pages/ContractFormPage"));
+const ContractPreviewPage = lazy(() => import("./pages/ContractPreviewPage"));
+const LoadingDemoPage = lazy(() => import("./pages/LoadingDemoPage"));
+const AdvancesPage = lazy(() => import("./pages/AdvancesPage"));
+const LoansPage = lazy(() => import("./pages/LoansPage"));
+const HRDeductionsPage = lazy(() => import("./pages/HRDeductionsPage"));
+const PayrollSettingsPage = lazy(() => import("./pages/PayrollSettingsPage"));
+const PayrollPage = lazy(() => import("./pages/PayrollPage"));
+const MonthlyPayrollInputPage = lazy(() => import("./pages/MonthlyPayrollInputPage"));
+const LeavesPage = lazy(() => import("./pages/LeavesPage"));
+const ImportShipmentsPage = lazy(() => import("./pages/ImportShipmentsPage"));
+const PurchaseOrderCreatePage = lazy(() => import("./pages/procurement/PurchaseOrderCreatePage"));
+const PurchaseOrdersPage = lazy(() => import("./pages/procurement/PurchaseOrdersPage"));
+const ProcurementInvoicesPage = lazy(() => import("./pages/procurement/ProcurementInvoicesPage"));
+const ProcurementInvoiceCreatePage = lazy(() => import("./pages/procurement/ProcurementInvoiceCreatePage"));
+const SupplierStatementPage = lazy(() => import("./pages/procurement/SupplierStatementPage"));
+const WeeklyProcurementReportPage = lazy(() => import("./pages/procurement/WeeklyProcurementReportPage"));
+const ProcurementSettingsPage = lazy(() => import("./pages/procurement/ProcurementSettingsPage"));
+const ImportWizardPage = lazy(() => import("./pages/ImportWizardPage"));
+const ImportDetailPage = lazy(() => import("./pages/ImportDetailPage"));
+const BillingPage = lazy(() => import("./pages/BillingPage"));
+const OnboardingPage = lazy(() => import("./pages/OnboardingPage"));
+const SubscriptionPage = lazy(() => import("./pages/SubscriptionPage"));
+const SetupPage = lazy(() => import("./pages/SetupPage"));
+const FinanceHomePage = lazy(() => import("./pages/FinanceHomePage"));
+const FinanceVoucherPage = lazy(() => import("./pages/FinanceVoucherPage"));
+const FinanceJournalPage = lazy(() => import("./pages/FinanceJournalPage"));
+const KitchenDisplayPage = lazy(() => import("./pages/KitchenDisplayPage"));
+const BankAccountsPage = lazy(() => import("./pages/BankAccountsPage"));
+const CashBoxesPage = lazy(() => import("./pages/CashBoxesPage"));
+const CashTransferPage = lazy(() => import("./pages/CashTransferPage"));
+const VoucherFormPage = lazy(() => import("./pages/VoucherFormPage"));
+const JournalNewPage = lazy(() => import("./pages/JournalNewPage"));
+const PortalLogin = lazy(() => import("./pages/portal/PortalLogin"));
+const PortalDashboard = lazy(() => import("./pages/portal/PortalDashboard"));
+const PortalSettings = lazy(() => import("./pages/portal/PortalSettings"));
+const TaskLoginPage = lazy(() => import("./pages/tasks/TaskLoginPage"));
+const TaskBoardPage = lazy(() => import("./pages/tasks/TaskBoardPage"));
+const TaskAdminPage = lazy(() => import("./pages/tasks/TaskAdminPage"));
+const TaskDisplayPage = lazy(() => import("./pages/tasks/TaskDisplayPage"));
+const TravelDashboard = lazy(() => import("./pages/travel/TravelDashboard"));
+const TravelBookingsPage = lazy(() => import("./pages/travel/TravelBookingsPage"));
+const TravelBookingFormPage = lazy(() => import("./pages/travel/TravelBookingFormPage"));
+const TravelSuppliersPage = lazy(() => import("./pages/travel/TravelSuppliersPage"));
+const TravelPackagesPage = lazy(() => import("./pages/travel/TravelPackagesPage"));
+const TravelReportsPage = lazy(() => import("./pages/travel/TravelReportsPage"));
+const PrinterSettingsPage = lazy(() => import("./pages/PrinterSettingsPage"));
 
 const queryClient = new QueryClient();
 
-// Minimal inline spinner for auth checks (not full-screen splash)
+// Minimal inline spinner for auth checks and lazy loading
 const AuthCheckSpinner = () => (
   <div className="flex h-screen w-full items-center justify-center bg-background">
     <div
@@ -187,6 +186,7 @@ const App = () => (
             <ReadOnlyProvider>
             <CompanyProvider>
             <CompanyThemeProvider>
+            <Suspense fallback={<AuthCheckSpinner />}>
             <Routes>
               <Route path="/auth" element={<AuthRoute><AuthPage /></AuthRoute>} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />
@@ -203,7 +203,6 @@ const App = () => (
               <Route path="/portal" element={<Navigate to="/auth" replace />} />
               <Route path="/portal/dashboard" element={<PortalDashboard />} />
               <Route path="/portal/settings" element={<PortalSettings />} />
-              {/* Legacy malaki routes redirect to auth */}
               <Route path="/malaki" element={<Navigate to="/auth" replace />} />
               <Route path="/malaki/dashboard" element={<Navigate to="/portal/dashboard" replace />} />
               <Route path="/malaki/settings" element={<Navigate to="/portal/settings" replace />} />
@@ -219,6 +218,7 @@ const App = () => (
               <Route path="/*" element={
                 <ProtectedRoute blockCashier>
                   <WebLayout>
+                    <Suspense fallback={<AuthCheckSpinner />}>
                     <Routes>
                       <Route path="/" element={<SmartRedirect />} />
                       <Route path="/apps" element={<AppsLauncher />} />
@@ -234,7 +234,6 @@ const App = () => (
                       <Route path="/contacts/:id" element={<ContactDetailPage />} />
                       <Route path="/export" element={<ExportPage />} />
                       <Route path="/smart-report" element={<SmartReportPage />} />
-                      {/* pricing is now a public route */}
                       <Route path="/invoices" element={<InvoicesPage />} />
                       <Route path="/invoices/new" element={<InvoiceCreatePage />} />
                       <Route path="/inventory" element={<InventoryPage />} />
@@ -288,14 +287,12 @@ const App = () => (
                       <Route path="/reports/hr-attendance" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><HRAttendanceReport /></RoleGuard>} />
                       <Route path="/reports/hr-leaves" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><HRLeaveReport /></RoleGuard>} />
                       <Route path="/reports/hr-staff-cost" element={<RoleGuard allowedRoles={["admin", "hr_manager"]}><HRStaffCostReport /></RoleGuard>} />
-                      {/* Financial */}
                       <Route path="/reports/ar-aging" element={<GenericReportPage reportKey="ar-aging" />} />
                       <Route path="/reports/ap-aging" element={<GenericReportPage reportKey="ap-aging" />} />
                       <Route path="/reports/cash-flow" element={<GenericReportPage reportKey="cash-flow" />} />
                       <Route path="/reports/cash-movement" element={<GenericReportPage reportKey="cash-movement" />} />
                       <Route path="/reports/bank-movement" element={<GenericReportPage reportKey="bank-movement" />} />
                       <Route path="/reports/cheques" element={<GenericReportPage reportKey="cheques" />} />
-                      {/* Sales */}
                       <Route path="/reports/total-sales" element={<GenericReportPage reportKey="total-sales" />} />
                       <Route path="/reports/invoice-register" element={<GenericReportPage reportKey="invoice-register" />} />
                       <Route path="/reports/by-customer" element={<GenericReportPage reportKey="by-customer" />} />
@@ -304,37 +301,30 @@ const App = () => (
                       <Route path="/reports/sales-returns" element={<GenericReportPage reportKey="sales-returns" />} />
                       <Route path="/reports/sales-by-product" element={<GenericReportPage reportKey="sales-by-product" />} />
                       <Route path="/reports/sales-performance" element={<GenericReportPage reportKey="sales-performance" />} />
-                      {/* Purchases */}
                       <Route path="/reports/total-purchases" element={<GenericReportPage reportKey="total-purchases" />} />
                       <Route path="/reports/purchase-invoice-register" element={<GenericReportPage reportKey="purchase-invoice-register" />} />
                       <Route path="/reports/by-supplier" element={<GenericReportPage reportKey="by-supplier" />} />
                       <Route path="/reports/supplier-payments" element={<GenericReportPage reportKey="supplier-payments" />} />
                       <Route path="/reports/purchase-returns" element={<GenericReportPage reportKey="purchase-returns" />} />
                       <Route path="/reports/supplier-comparison" element={<GenericReportPage reportKey="supplier-comparison" />} />
-                      {/* Inventory */}
                       <Route path="/reports/inventory-valuation" element={<GenericReportPage reportKey="inventory-valuation" />} />
                       <Route path="/reports/stock-movement" element={<GenericReportPage reportKey="stock-movement" />} />
                       <Route path="/reports/below-reorder" element={<GenericReportPage reportKey="below-reorder" />} />
                       <Route path="/reports/dead-stock" element={<GenericReportPage reportKey="dead-stock" />} />
                       <Route path="/reports/product-profitability" element={<GenericReportPage reportKey="product-profitability" />} />
-                      {/* HR */}
                       <Route path="/reports/employee-directory" element={<GenericReportPage reportKey="employee-directory" />} />
-                      {/* Fixed Assets */}
                       <Route path="/reports/asset-register" element={<GenericReportPage reportKey="asset-register" />} />
                       <Route path="/reports/monthly-depreciation" element={<GenericReportPage reportKey="monthly-depreciation" />} />
                       <Route path="/reports/depreciation-schedule" element={<GenericReportPage reportKey="depreciation-schedule" />} />
                       <Route path="/reports/fully-depreciated" element={<GenericReportPage reportKey="fully-depreciated" />} />
                       <Route path="/reports/asset-disposal" element={<GenericReportPage reportKey="asset-disposal" />} />
                       <Route path="/reports/assets-by-location" element={<GenericReportPage reportKey="assets-by-location" />} />
-                      {/* Currency */}
                       <Route path="/reports/exchange-rates" element={<GenericReportPage reportKey="exchange-rates" />} />
                       <Route path="/reports/currency-conversions" element={<GenericReportPage reportKey="currency-conversions" />} />
                       <Route path="/reports/foreign-balances" element={<GenericReportPage reportKey="foreign-balances" />} />
                       <Route path="/reports/exchange-gain-loss" element={<GenericReportPage reportKey="exchange-gain-loss" />} />
-                      {/* Orders */}
                       <Route path="/reports/all-orders" element={<GenericReportPage reportKey="all-orders" />} />
                       <Route path="/reports/order-performance" element={<GenericReportPage reportKey="order-performance" />} />
-                      {/* POS */}
                       <Route path="/reports/pos-daily-sales" element={<GenericReportPage reportKey="pos-daily-sales" />} />
                       <Route path="/reports/pos-sales-by-category" element={<GenericReportPage reportKey="pos-sales-by-category" />} />
                       <Route path="/reports/pos-period-comparison" element={<GenericReportPage reportKey="pos-period-comparison" />} />
@@ -350,7 +340,6 @@ const App = () => (
                       <Route path="/reports/pos-cashier-performance" element={<GenericReportPage reportKey="pos-cashier-performance" />} />
                       <Route path="/reports/pos-cancelled" element={<GenericReportPage reportKey="pos-cancelled" />} />
                       <Route path="/reports/pos-peak-hours" element={<GenericReportPage reportKey="pos-peak-hours" />} />
-                      {/* Receivables & Payables */}
                       <Route path="/reports/ar-aging-detail" element={<GenericReportPage reportKey="ar-aging-detail" />} />
                       <Route path="/reports/dso-report" element={<GenericReportPage reportKey="dso-report" />} />
                       <Route path="/reports/checks-receivable" element={<GenericReportPage reportKey="checks-receivable" />} />
@@ -361,7 +350,6 @@ const App = () => (
                       <Route path="/reports/checks-payable" element={<GenericReportPage reportKey="checks-payable" />} />
                       <Route path="/reports/supplier-purchase-analysis" element={<GenericReportPage reportKey="supplier-purchase-analysis" />} />
                       <Route path="/reports/supplier-statement-all" element={<GenericReportPage reportKey="supplier-statement-all" />} />
-                      {/* Invoice Tracking & Collection */}
                       <Route path="/reports/invoice-lifecycle" element={<GenericReportPage reportKey="invoice-lifecycle" />} />
                       <Route path="/reports/dso-detailed" element={<GenericReportPage reportKey="dso-detailed" />} />
                       <Route path="/reports/ar-aging-advanced" element={<GenericReportPage reportKey="ar-aging-advanced" />} />
@@ -369,7 +357,6 @@ const App = () => (
                       <Route path="/reports/payment-allocation" element={<GenericReportPage reportKey="payment-allocation" />} />
                       <Route path="/reports/unpaid-invoices" element={<GenericReportPage reportKey="unpaid-invoices" />} />
                       <Route path="/reports/collection-dashboard" element={<CollectionDashboardPage />} />
-                      {/* Management */}
                       <Route path="/reports/financial-kpi" element={<GenericReportPage reportKey="financial-kpi" />} />
                       <Route path="/reports/month-comparison" element={<GenericReportPage reportKey="month-comparison" />} />
                       <Route path="/reports/periodic" element={<PeriodicReportsPage />} />
@@ -388,12 +375,10 @@ const App = () => (
                       <Route path="/contractor" element={<ContractorApp />} />
                       <Route path="/workshops" element={<WorkshopsPage />} />
                       <Route path="/workshop-reports" element={<WorkshopReportsPage />} />
-                      {/* Task Manager */}
                       <Route path="/tasks" element={<TaskLoginPage />} />
                       <Route path="/tasks/board" element={<TaskBoardPage />} />
                       <Route path="/tasks/admin" element={<TaskAdminPage />} />
                       <Route path="/tasks/display" element={<TaskDisplayPage />} />
-                      {/* Travel Finance Module */}
                       <Route path="/travel" element={<TravelDashboard />} />
                       <Route path="/travel/bookings" element={<TravelBookingsPage />} />
                       <Route path="/travel/bookings/new" element={<TravelBookingFormPage />} />
@@ -407,8 +392,6 @@ const App = () => (
                       <Route path="/purchases/import" element={<ImportShipmentsPage />} />
                       <Route path="/purchases/import/new" element={<ImportWizardPage />} />
                       <Route path="/purchases/import/:id" element={<ImportDetailPage />} />
-                      {/* Procurement Module */}
-                      {/* Suppliers managed via existing POS supplier pages */}
                       <Route path="/procurement/orders" element={<PurchaseOrdersPage />} />
                       <Route path="/procurement/orders/new" element={<PurchaseOrderCreatePage />} />
                       <Route path="/procurement/invoices" element={<ProcurementInvoicesPage />} />
@@ -419,10 +402,12 @@ const App = () => (
                       <Route path="/reports/import-cost-analysis" element={<GenericReportPage reportKey="import-cost-analysis" />} />
                       <Route path="*" element={<NotFound />} />
                     </Routes>
+                    </Suspense>
                   </WebLayout>
                 </ProtectedRoute>
               } />
             </Routes>
+            </Suspense>
             </CompanyThemeProvider>
             </CompanyProvider>
             </ReadOnlyProvider>
