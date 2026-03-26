@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import type { RecentActivity } from "@/hooks/useDashboardData";
+import WidgetBanner from "./WidgetBanner";
 
 interface Props {
   activities: RecentActivity[];
