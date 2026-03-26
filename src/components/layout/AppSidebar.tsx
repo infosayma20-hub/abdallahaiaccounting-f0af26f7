@@ -139,6 +139,8 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
       </button>
     );
 
+    const quickAdd = quickAddRoutes[item.id];
+
     return (
       <div
         key={item.id}
@@ -151,12 +153,30 @@ const AppSidebar = ({ collapsed, onToggle, mobileOpen, onMobileClose }: SidebarP
           }
         }}
       >
-        {collapsed ? (
-          <Tooltip>
-            <TooltipTrigger asChild>{navButton}</TooltipTrigger>
-            <TooltipContent side="left"><p>{item.label}</p></TooltipContent>
-          </Tooltip>
-        ) : navButton}
+        <div className="flex items-center gap-0.5">
+          <div className="flex-1 min-w-0">
+            {collapsed ? (
+              <Tooltip>
+                <TooltipTrigger asChild>{navButton}</TooltipTrigger>
+                <TooltipContent side="left"><p>{item.label}</p></TooltipContent>
+              </Tooltip>
+            ) : navButton}
+          </div>
+          {/* Quick-add "+" button */}
+          {!collapsed && !disabled && quickAdd && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleNavigate(quickAdd.path); }}
+                  className="w-6 h-6 rounded-md flex items-center justify-center text-sidebar-foreground/40 hover:text-sidebar-primary hover:bg-sidebar-primary/15 transition-all flex-shrink-0"
+                >
+                  <Plus className="h-3.5 w-3.5" strokeWidth={2} />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="left"><p>{quickAdd.label}</p></TooltipContent>
+            </Tooltip>
+          )}
+        </div>
 
         {!disabled && hasChildren && expanded && !collapsed && (
           <div className="mr-5 mt-0.5 space-y-1 pr-3" style={{ borderRight: "1px solid #1E3A5F" }}>
