@@ -144,19 +144,55 @@ const ChequesPage = () => {
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
-  const [newCheque, setNewCheque] = useState({
-    cheque_type: 'وارد' as ChequeType,
+  const emptyChequeRow = (type: ChequeType): typeof newCheques[0] => ({
+    cheque_type: type,
     cheque_number: '',
     bank_name: '',
     cheque_date: '',
     amount: '',
     currency: 'شيكل',
+    exchange_rate: '',
     party_name: '',
-    party_type: 'عميل',
+    party_type: type === 'وارد' ? 'عميل' : 'مورد',
     linked_account: '',
     notes: '',
     source_bank_account_id: '',
   });
+
+  const [addType, setAddType] = useState<ChequeType>('وارد');
+  const [newCheques, setNewCheques] = useState([emptyChequeRow('وارد')]);
+
+  const openAddDialog = (type: ChequeType) => {
+    setAddType(type);
+    setNewCheques([emptyChequeRow(type)]);
+    setPartySearch('');
+    setAddOpen(true);
+  };
+
+  const updateChequeRow = (index: number, field: string, value: any) => {
+    setNewCheques(prev => prev.map((row, i) => i === index ? { ...row, [field]: value } : row));
+  };
+
+  const addChequeRow = () => {
+    const last = newCheques[newCheques.length - 1];
+    const nextNum = last.cheque_number ? String(parseInt(last.cheque_number) + 1 || '') : '';
+    setNewCheques(prev => [...prev, {
+      ...emptyChequeRow(addType),
+      party_name: last.party_name,
+      party_type: last.party_type,
+      bank_name: last.bank_name,
+      source_bank_account_id: last.source_bank_account_id,
+      currency: last.currency,
+      exchange_rate: last.exchange_rate,
+      cheque_date: last.cheque_date,
+      cheque_number: nextNum,
+    }]);
+  };
+
+  const removeChequeRow = (index: number) => {
+    if (newCheques.length <= 1) return;
+    setNewCheques(prev => prev.filter((_, i) => i !== index));
+  };
 
   const fetchAccounts = async () => {
     if (!user) return;
