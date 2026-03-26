@@ -1,5 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { AmiriRegular, AmiriBold } from './amiri-font';
 
 // ─── Types ───
 export interface StatementPDFRow {
@@ -14,7 +15,7 @@ export interface StatementPDFRow {
 
 export interface StatementPDFData {
   entityName: string;
-  entityType: string; // "عميل" | "مورد" | "موظف" | "حساب"
+  entityType: string;
   entityPhone?: string;
   entityCode?: string;
   dateFrom: string;
@@ -75,6 +76,25 @@ const fmtDate = (d: string) => {
   return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : d;
 };
 
+// ─── Register Arabic font ───
+const registerArabicFont = (doc: jsPDF) => {
+  doc.addFileToVFS('Amiri-Regular.ttf', AmiriRegular);
+  doc.addFont('Amiri-Regular.ttf', 'Amiri', 'normal');
+  doc.addFileToVFS('Amiri-Bold.ttf', AmiriBold);
+  doc.addFont('Amiri-Bold.ttf', 'Amiri', 'bold');
+  doc.setFont('Amiri', 'normal');
+};
+
+// ─── Reverse Arabic text for RTL rendering in jsPDF ───
+const isArabic = (text: string) => /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/.test(text);
+
+const rtl = (text: string): string => {
+  if (!isArabic(text)) return text;
+  // Split mixed text: keep numbers/symbols LTR, reverse Arabic segments
+  const segments = text.split(/(\d[\d,.]*\d|\d|[A-Za-z]+[\w.-]*|[₪$€£]|د\.أ|[\(\)\[\]{}|:—\-–/]|\s+)/g);
+  return segments.filter(Boolean).reverse().join('');
+};
+
 // ─── Main Generator ───
 export const generateStatementPDF = (
   data: StatementPDFData,
@@ -85,6 +105,8 @@ export const generateStatementPDF = (
   const H = doc.internal.pageSize.height;
   const sym = getCurrencySymbol(data.currency);
 
+  registerArabicFont(doc);
+
   // ══════ HEADER ══════
   doc.setFillColor(...navy);
   doc.rect(0, 0, W, 38, 'F');
@@ -94,24 +116,23 @@ export const generateStatementPDF = (
   // Company name
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(15);
-  doc.setFont('helvetica', 'bold');
-  doc.text(company.name || 'QOYOD', W / 2, 13, { align: 'center' });
+  doc.setFont('Amiri', 'bold');
+  doc.text(rtl(company.name || 'QOYOD'), W / 2, 13, { align: 'center' });
 
   // Company info
   doc.setTextColor(200, 210, 220);
   doc.setFontSize(7);
-  doc.setFont('helvetica', 'normal');
+  doc.setFont('Amiri', 'normal');
   const info = [company.phone, company.email, company.address].filter(Boolean).join('  |  ');
-  if (info) doc.text(info, W / 2, 19, { align: 'center' });
+  if (info) doc.text(rtl(info), W / 2, 19, { align: 'center' });
   if (company.tax_number) doc.text(`Tax No: ${company.tax_number}`, W / 2, 24, { align: 'center' });
 
   // Title
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(10);
-  doc.setFont('helvetica', 'bold');
+  doc.setFont('Amiri', 'bold');
   doc.text('ACCOUNT STATEMENT', W - 15, 13, { align: 'right' });
-  doc.setFontSize(10);
-  doc.text('كشف حساب', 15, 13);
+  doc.text(rtl('كشف حساب'), 15, 13);
 
   doc.setFontSize(8);
   doc.setTextColor(...gold);
@@ -124,13 +145,13 @@ export const generateStatementPDF = (
   doc.roundedRect(10, currentY, W - 20, 18, 2, 2, 'F');
 
   const drawField = (label: string, value: string, x: number, y: number) => {
-    doc.setFont('helvetica', 'bold');
+    doc.setFont('Amiri', 'bold');
     doc.setTextColor(...navy);
     doc.setFontSize(7.5);
-    doc.text(label, x, y, { align: 'right' });
-    doc.setFont('helvetica', 'normal');
+    doc.text(rtl(label), x, y, { align: 'right' });
+    doc.setFont('Amiri', 'normal');
     doc.setTextColor(...darkText);
-    doc.text(value || '—', x - 2, y + 4.5, { align: 'right' });
+    doc.text(rtl(value || '—'), x - 2, y + 4.5, { align: 'right' });
   };
 
   drawField('اسم الجهة:', data.entityName, W - 15, currentY + 6);
@@ -161,12 +182,12 @@ export const generateStatementPDF = (
     doc.roundedRect(x, currentY, cardW, 16, 1.5, 1.5, 'S');
 
     doc.setFontSize(6.5);
-    doc.setFont('helvetica', 'normal');
+    doc.setFont('Amiri', 'normal');
     doc.setTextColor(120, 120, 120);
-    doc.text(card.label, x + cardW / 2, currentY + 5.5, { align: 'center' });
+    doc.text(rtl(card.label), x + cardW / 2, currentY + 5.5, { align: 'center' });
 
     doc.setFontSize(10);
-    doc.setFont('helvetica', 'bold');
+    doc.setFont('Amiri', 'bold');
     doc.setTextColor(...card.color);
     doc.text(`${sym}${fmt(Math.abs(card.value))}`, x + cardW / 2, currentY + 12.5, { align: 'center' });
   });
@@ -174,13 +195,15 @@ export const generateStatementPDF = (
   currentY += 20;
 
   // ══════ TRANSACTIONS TABLE ══════
-  const tableHead = [['الرصيد', 'دائن', 'مدين', 'البيان', 'المرجع', 'التاريخ']];
+  const tableHead = [[
+    rtl('الرصيد'), rtl('دائن'), rtl('مدين'),
+    rtl('البيان'), rtl('المرجع'), rtl('التاريخ')
+  ]];
 
-  // Opening balance row
   const openRow = [
     `${sym}${fmt(data.openingBalance)}`,
     '', '',
-    'رصيد أول المدة',
+    rtl('رصيد أول المدة'),
     '—',
     fmtDate(data.dateFrom),
   ];
@@ -189,17 +212,16 @@ export const generateStatementPDF = (
     r.isLineItem ? '' : `${sym}${fmt(r.balance)}`,
     r.credit > 0 ? `${sym}${fmt(r.credit)}` : '',
     r.debit > 0 ? `${sym}${fmt(r.debit)}` : '',
-    r.description,
+    rtl(r.description),
     r.reference || '—',
     fmtDate(r.date),
   ]);
 
-  // Closing row
   const closeRow = [
     `${sym}${fmt(data.closingBalance)}`,
     `${sym}${fmt(data.totalCredit)}`,
     `${sym}${fmt(data.totalDebit)}`,
-    'الرصيد الختامي',
+    rtl('الرصيد الختامي'),
     '', '—',
   ];
 
@@ -210,6 +232,7 @@ export const generateStatementPDF = (
     theme: 'grid',
     tableWidth: 'auto',
     styles: {
+      font: 'Amiri',
       fontSize: 7.5,
       cellPadding: 2,
       halign: 'center',
@@ -231,30 +254,26 @@ export const generateStatementPDF = (
       fillColor: [250, 251, 253],
     },
     columnStyles: {
-      0: { cellWidth: 30, fontStyle: 'bold' }, // balance
-      1: { cellWidth: 28, textColor: greenText }, // credit
-      2: { cellWidth: 28, textColor: redText }, // debit
-      3: { cellWidth: 'auto', halign: 'right' }, // description
-      4: { cellWidth: 25 }, // reference
-      5: { cellWidth: 24 }, // date
+      0: { cellWidth: 30, fontStyle: 'bold' },
+      1: { cellWidth: 28, textColor: greenText },
+      2: { cellWidth: 28, textColor: redText },
+      3: { cellWidth: 'auto', halign: 'right' },
+      4: { cellWidth: 25 },
+      5: { cellWidth: 24 },
     },
-    // Opening balance row styling
     didParseCell: (hookData) => {
       const rowIdx = hookData.row.index;
-      const lastIdx = data.rows.length + 1; // +1 for opening row
-      // Opening balance row
+      const lastIdx = data.rows.length + 1;
       if (rowIdx === 0 && hookData.section === 'body') {
         hookData.cell.styles.fillColor = [240, 248, 255];
         hookData.cell.styles.fontStyle = 'bold';
         hookData.cell.styles.textColor = navy;
       }
-      // Closing balance row
       if (rowIdx === lastIdx && hookData.section === 'body') {
         hookData.cell.styles.fillColor = navy;
         hookData.cell.styles.textColor = [255, 255, 255];
         hookData.cell.styles.fontStyle = 'bold';
       }
-      // Line item sub-rows
       if (hookData.section === 'body' && rowIdx > 0 && rowIdx < lastIdx) {
         const dataRowIdx = rowIdx - 1;
         if (data.rows[dataRowIdx]?.isLineItem) {
@@ -273,14 +292,17 @@ export const generateStatementPDF = (
   if (data.agingData && currentY + 30 < H - 40) {
     currentY += 6;
     doc.setFontSize(9);
-    doc.setFont('helvetica', 'bold');
+    doc.setFont('Amiri', 'bold');
     doc.setTextColor(...navy);
-    doc.text('تحليل التقادم  |  Aging Analysis', W - 15, currentY, { align: 'right' });
+    doc.text(rtl('تحليل التقادم') + '  |  Aging Analysis', W - 15, currentY, { align: 'right' });
     currentY += 3;
 
     autoTable(doc, {
       startY: currentY,
-      head: [['الإجمالي', '+60 يوم', '31-60 يوم', '1-30 يوم', 'جاري']],
+      head: [[
+        rtl('الإجمالي'), rtl('+60 يوم'), rtl('31-60 يوم'),
+        rtl('1-30 يوم'), rtl('جاري')
+      ]],
       body: [[
         fmtCurrency(data.agingData.total, data.currency),
         fmtCurrency(data.agingData.d60plus, data.currency),
@@ -289,6 +311,7 @@ export const generateStatementPDF = (
         fmtCurrency(data.agingData.current, data.currency),
       ]],
       theme: 'grid',
+      styles: { font: 'Amiri' },
       headStyles: {
         fillColor: navy,
         textColor: [255, 255, 255],
@@ -324,9 +347,11 @@ export const generateStatementPDF = (
 
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(8);
-    doc.setFont('helvetica', 'bold');
+    doc.setFont('Amiri', 'bold');
 
-    const balLabel = data.closingBalance >= 0 ? 'رصيد مدين (عليه)' : 'رصيد دائن (له)';
+    const balLabel = data.closingBalance >= 0
+      ? rtl('رصيد مدين (عليه)')
+      : rtl('رصيد دائن (له)');
     doc.text(`${balLabel}: ${sym}${fmt(Math.abs(data.closingBalance))}`, W / 2, currentY + 9, { align: 'center' });
   }
 
@@ -338,8 +363,8 @@ export const generateStatementPDF = (
 
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(7);
-  doc.setFont('helvetica', 'normal');
-  doc.text(company.name || 'QOYOD', 15, H - 5);
+  doc.setFont('Amiri', 'normal');
+  doc.text(rtl(company.name || 'QOYOD'), 15, H - 5);
   doc.text(`Printed: ${new Date().toLocaleDateString('en-GB')}`, W / 2, H - 5, { align: 'center' });
 
   doc.setTextColor(...gold);
