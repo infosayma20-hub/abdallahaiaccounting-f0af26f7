@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,12 +14,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { toast } from "sonner";
 import { format } from "date-fns";
 import {
-  Plus, ArrowRight, Building2, TrendingDown, TrendingUp,
+  Plus, ArrowRight, TrendingDown, TrendingUp,
   Receipt, Search, Trash2, Edit, DollarSign, CreditCard,
-  BarChart3, Download, Printer, Phone, MapPin, Mail,
+  BarChart3, Download, Phone, MapPin, FileText,
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import FinancialClaimModal from "@/components/contractor/FinancialClaimModal";
+import { generateContractorContractPDF, ContractorContractData, ContractorCompanyData } from "@/utils/generateContractorContractPDF";
 
 interface Project {
   id: string;
