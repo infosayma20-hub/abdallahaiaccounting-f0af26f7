@@ -155,6 +155,7 @@ export default function WorkshopsPage() {
     contact_id: null as string | null,
     area_sqm: 0, workshop_type: "kitchen", image_url: "",
   });
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [paymentForm, setPaymentForm] = useState({
     amount: 0, payment_method: "نقدي", description: "", payment_date: format(new Date(), "yyyy-MM-dd"),
   });
@@ -204,8 +205,34 @@ export default function WorkshopsPage() {
   const defaultWsForm = () => ({
     name: "", customer_name: "", customer_phone: "", address: "", description: "",
     total_budget: 0, start_date: format(new Date(), "yyyy-MM-dd"), expected_end_date: "",
-    contact_id: null as string | null, area_sqm: 0, workshop_type: "kitchen", image_url: "",
+    contact_id: null as string | null, area_sqm: 0, workshop_type: "", image_url: "",
   });
+
+  const toggleWorkshopType = (value: string) => {
+    setWsForm(f => {
+      const types = f.workshop_type ? f.workshop_type.split(",").filter(Boolean) : [];
+      const updated = types.includes(value) ? types.filter(t => t !== value) : [...types, value];
+      return { ...f, workshop_type: updated.join(",") };
+    });
+  };
+
+  const handleImageUpload = async (file: File) => {
+    if (!user) return;
+    setUploadingImage(true);
+    try {
+      const ext = file.name.split(".").pop() || "jpg";
+      const path = `${user.id}/${Date.now()}.${ext}`;
+      const { error } = await supabase.storage.from("workshop-images").upload(path, file);
+      if (error) throw error;
+      const { data: urlData } = supabase.storage.from("workshop-images").getPublicUrl(path);
+      setWsForm(f => ({ ...f, image_url: urlData.publicUrl }));
+      toast.success("تم رفع الصورة");
+    } catch (e: any) {
+      toast.error("فشل رفع الصورة: " + e.message);
+    } finally {
+      setUploadingImage(false);
+    }
+  };
 
   /* ── Create Workshop ── */
   const handleCreateWorkshop = async () => {
