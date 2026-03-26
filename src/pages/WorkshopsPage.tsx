@@ -177,6 +177,7 @@ export default function WorkshopsPage() {
     if (!user) return;
     loadWorkshops();
     loadContacts();
+    loadBankAccounts();
     ensureWorkshopAccounts(user.id).then(() => setAccountsEnsured(true));
   }, [user]);
 
