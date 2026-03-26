@@ -1253,39 +1253,44 @@ const InvoicesPage = () => {
 
       {/* Search & Filters */}
       {invoices.length > 0 && (
-        <div className="flex items-center gap-2 flex-wrap">
-          <div className="relative flex-1 min-w-[180px]">
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 pointer-events-none" />
-            <Input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="ابحث برقم الفاتورة أو اسم العميل..." className="pr-9 rounded-xl text-sm" />
-            {searchQuery && (
-              <button onClick={() => setSearchQuery("")} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-                <X className="h-3.5 w-3.5" />
-              </button>
-            )}
-          </div>
-          <Select value={filterType} onValueChange={v => setFilterType(v as any)}>
-            <SelectTrigger className="w-[120px] rounded-xl">
-              <Filter className="h-3.5 w-3.5 ml-1.5 text-muted-foreground" />
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="bg-background z-50">
-              <SelectItem value="all">الكل</SelectItem>
-              <SelectItem value="sales">مبيعات</SelectItem>
-              <SelectItem value="purchase">مشتريات</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[120px] rounded-xl">
-              <SelectValue placeholder="الحالة" />
-            </SelectTrigger>
-            <SelectContent className="bg-background z-50">
-              <SelectItem value="all">جميع الحالات</SelectItem>
-              <SelectItem value="draft">مسودة</SelectItem>
-              <SelectItem value="sent">مُرسلة</SelectItem>
-              <SelectItem value="paid">مدفوعة</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        <Card className="border-0 shadow-sm rounded-2xl overflow-hidden">
+          <CardContent className="p-3">
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="relative flex-1 min-w-[180px]">
+                <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 pointer-events-none" />
+                <Input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="ابحث برقم الفاتورة أو اسم العميل..." className="pr-9 rounded-xl text-sm bg-muted/30 border-0 focus-visible:ring-2 focus-visible:ring-primary/20" />
+                {searchQuery && (
+                  <button onClick={() => setSearchQuery("")} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+              <Select value={filterType} onValueChange={v => setFilterType(v as any)}>
+                <SelectTrigger className="w-[120px] rounded-xl text-xs h-9">
+                  <Filter className="h-3.5 w-3.5 ml-1.5 text-muted-foreground" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-background z-50">
+                  <SelectItem value="all">الكل</SelectItem>
+                  <SelectItem value="sales">مبيعات</SelectItem>
+                  <SelectItem value="purchase">مشتريات</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-[120px] rounded-xl text-xs h-9">
+                  <SelectValue placeholder="الحالة" />
+                </SelectTrigger>
+                <SelectContent className="bg-background z-50">
+                  <SelectItem value="all">جميع الحالات</SelectItem>
+                  <SelectItem value="draft">مسودة</SelectItem>
+                  <SelectItem value="sent">مُرسلة</SelectItem>
+                  <SelectItem value="paid">مدفوعة</SelectItem>
+                </SelectContent>
+              </Select>
+              <span className="text-[11px] text-muted-foreground mr-auto">{sorted.length} فاتورة</span>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Loading */}
@@ -1432,14 +1437,19 @@ const InvoicesPage = () => {
 
       {/* Pagination */}
       {!loading && sorted.length > PAGE_SIZE && (
-        <div className="flex items-center justify-center gap-3 pt-2">
-          <Button variant="outline" size="sm" className="rounded-xl gap-1" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
-            <ChevronRight className="h-4 w-4" /> السابق
-          </Button>
-          <span className="text-sm text-muted-foreground tabular-nums">{page} / {totalPages}</span>
-          <Button variant="outline" size="sm" className="rounded-xl gap-1" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>
-            التالي <ChevronLeft className="h-4 w-4" />
-          </Button>
+        <div className="flex items-center justify-between pt-2 px-1">
+          <span className="text-[11px] text-muted-foreground">
+            عرض {(page - 1) * PAGE_SIZE + 1} - {Math.min(page * PAGE_SIZE, sorted.length)} من {sorted.length}
+          </span>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" className="rounded-xl gap-1 h-8 text-xs" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
+              <ChevronRight className="h-3.5 w-3.5" /> السابق
+            </Button>
+            <span className="text-xs text-muted-foreground tabular-nums bg-muted/50 px-3 py-1 rounded-lg">{page} / {totalPages}</span>
+            <Button variant="outline" size="sm" className="rounded-xl gap-1 h-8 text-xs" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>
+              التالي <ChevronLeft className="h-3.5 w-3.5" />
+            </Button>
+          </div>
         </div>
       )}
 
