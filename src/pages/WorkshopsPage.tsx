@@ -6,7 +6,7 @@ import { format } from "date-fns";
 import {
   Plus, Search, Hammer, Trash2, ArrowLeft, Edit, MoreVertical,
   DollarSign, ChevronDown, UserPlus, Image, AlertTriangle, Receipt, FileText,
-  TrendingDown, TrendingUp, Download, BarChart3, ArrowRight, Filter, ChevronUp,
+  TrendingDown, TrendingUp, Download, BarChart3, ArrowRight, Filter, ChevronUp, Printer,
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
