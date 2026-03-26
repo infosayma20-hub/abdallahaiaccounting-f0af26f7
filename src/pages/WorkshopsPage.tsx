@@ -130,6 +130,8 @@ async function ensureWorkshopAccounts(userId: string) {
 /* ══════════════════════════════════════════════════ */
 export default function WorkshopsPage() {
   const { user } = useAuth();
+  const { settings } = useCompanySettings();
+  const [view, setView] = useState<"workshops" | "reports">("workshops");
   const [workshops, setWorkshops] = useState<Workshop[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
