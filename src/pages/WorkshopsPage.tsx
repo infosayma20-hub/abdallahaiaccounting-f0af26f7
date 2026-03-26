@@ -159,10 +159,11 @@ export default function WorkshopsPage() {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [paymentForm, setPaymentForm] = useState({
     amount: 0, payment_method: "نقدي", description: "", payment_date: format(new Date(), "yyyy-MM-dd"),
-    cheque_number: "", cheque_bank: "", cheque_date: format(new Date(), "yyyy-MM-dd"),
-    cheque_drawer: "", deposit_bank_id: null as string | null,
+    cheque_bank: "", deposit_bank_id: null as string | null,
     currency: "ILS", exchange_rate: 1, cheque_count: 1,
   });
+  type ChequeRow = { number: string; drawer: string; bank: string; date: string; amount: number };
+  const [chequeRows, setChequeRows] = useState<ChequeRow[]>([]);
   const [bankAccounts, setBankAccounts] = useState<{ id: string; name: string; bank_name: string; gl_account_code: string | null }[]>([]);
   const [currencies, setCurrencies] = useState<{ code: string; name_ar: string; sell_rate: number }[]>([]);
   const [costForm, setCostForm] = useState({
@@ -274,25 +275,46 @@ export default function WorkshopsPage() {
     loadWorkshops();
   };
 
+  /* ── Generate default cheque rows ── */
+  const generateChequeRows = (count: number, totalAmount: number, startNumber: string, startDate: string, drawer: string, bank: string) => {
+    const rows: ChequeRow[] = [];
+    const baseNum = parseInt(startNumber) || 0;
+    const perAmount = totalAmount > 0 ? Math.round((totalAmount / count) * 100) / 100 : 0;
+    for (let i = 0; i < count; i++) {
+      const dueDate = new Date(startDate || new Date());
+      if (i > 0) dueDate.setMonth(dueDate.getMonth() + i);
+      rows.push({
+        number: baseNum > 0 ? String(baseNum + i) : (startNumber ? `${startNumber}-${i + 1}` : ""),
+        drawer: drawer,
+        bank: bank,
+        date: format(dueDate, "yyyy-MM-dd"),
+        amount: perAmount,
+      });
+    }
+    return rows;
+  };
+
+  const updateChequeRow = (index: number, field: keyof ChequeRow, value: string | number) => {
+    setChequeRows(prev => prev.map((r, i) => i === index ? { ...r, [field]: value } : r));
+  };
+
   /* ── Add Partial Payment ── */
   const handleAddPayment = async () => {
     if (!selectedWorkshop || paymentForm.amount <= 0) { toast.error("المبلغ مطلوب"); return; }
     const isCheque = paymentForm.payment_method === "شيك";
-    const chequeCount = isCheque ? Math.max(1, paymentForm.cheque_count) : 0;
 
-    if (isCheque && !paymentForm.cheque_number.trim()) { toast.error("رقم الشيك مطلوب"); return; }
+    if (isCheque && chequeRows.some(r => !r.number.trim())) { toast.error("رقم الشيك مطلوب لكل شيك"); return; }
 
     const amountILS = paymentForm.currency !== "ILS" ? paymentForm.amount * paymentForm.exchange_rate : paymentForm.amount;
     const currencyLabel = paymentForm.currency === "ILS" ? "شيكل" : paymentForm.currency === "USD" ? "دولار" : paymentForm.currency === "JOD" ? "دينار" : paymentForm.currency;
 
-    // GL: cheque → 1150, bank → 1120, cash → 1110
     const debitCode = isCheque ? "1150" : paymentForm.payment_method === "بنك" ? "1120" : "1110";
     const idempotencyKey = `WS-PAY-${selectedWorkshop.id}-${Date.now()}`;
 
     const { data: txData, error: txError } = await supabase.from("transactions").insert({
       user_id: user!.id,
       transaction_date: paymentForm.payment_date,
-      description: paymentForm.description || `دفعة من ${selectedWorkshop.customer_name || "زبون"} - ورشة ${selectedWorkshop.name}${isCheque ? ` (${chequeCount} شيك)` : ""}`,
+      description: paymentForm.description || `دفعة من ${selectedWorkshop.customer_name || "زبون"} - ورشة ${selectedWorkshop.name}${isCheque ? ` (${chequeRows.length} شيك)` : ""}`,
       debit_account_code: debitCode,
       credit_account_code: "4200",
       amount: amountILS,
@@ -307,36 +329,25 @@ export default function WorkshopsPage() {
 
     if (txError) { toast.error("خطأ في إنشاء القيد: " + txError.message); return; }
 
-    // Create cheque records (batch)
-    if (isCheque) {
-      const perChequeAmount = paymentForm.amount / chequeCount;
-      const baseNum = parseInt(paymentForm.cheque_number) || 0;
-      const chequeInserts = [];
-
-      for (let i = 0; i < chequeCount; i++) {
-        const chequeNum = baseNum > 0 ? String(baseNum + i) : `${paymentForm.cheque_number}${chequeCount > 1 ? `-${i + 1}` : ""}`;
-        // Add months to cheque_date for sequential cheques
-        const dueDate = new Date(paymentForm.cheque_date);
-        if (i > 0) dueDate.setMonth(dueDate.getMonth() + i);
-
-        chequeInserts.push({
-          user_id: user!.id,
-          cheque_type: "incoming" as any,
-          cheque_number: chequeNum,
-          party_name: paymentForm.cheque_drawer || selectedWorkshop.customer_name || "زبون",
-          party_type: "customer",
-          contact_id: selectedWorkshop.contact_id || null,
-          amount: perChequeAmount,
-          cheque_date: format(dueDate, "yyyy-MM-dd"),
-          bank_name: paymentForm.cheque_bank || null,
-          status: "registered" as any,
-          currency: paymentForm.currency,
-          linked_transaction_id: txData?.id || null,
-          linked_account: "1150",
-          deposit_bank_account_id: paymentForm.deposit_bank_id || null,
-          notes: `دفعة ورشة: ${selectedWorkshop.name}${chequeCount > 1 ? ` (${i + 1}/${chequeCount})` : ""}`,
-        });
-      }
+    // Create cheque records from user-edited rows
+    if (isCheque && chequeRows.length > 0) {
+      const chequeInserts = chequeRows.map((row, i) => ({
+        user_id: user!.id,
+        cheque_type: "incoming" as any,
+        cheque_number: row.number,
+        party_name: row.drawer || selectedWorkshop.customer_name || "زبون",
+        party_type: "customer",
+        contact_id: selectedWorkshop.contact_id || null,
+        amount: row.amount,
+        cheque_date: row.date,
+        bank_name: row.bank || null,
+        status: "registered" as any,
+        currency: paymentForm.currency,
+        linked_transaction_id: txData?.id || null,
+        linked_account: "1150",
+        deposit_bank_account_id: paymentForm.deposit_bank_id || null,
+        notes: `دفعة ورشة: ${selectedWorkshop.name}${chequeRows.length > 1 ? ` (${i + 1}/${chequeRows.length})` : ""}`,
+      }));
 
       const { error: chequeError } = await supabase.from("cheques").insert(chequeInserts as any);
       if (chequeError) { toast.error("خطأ في تسجيل الشيكات: " + chequeError.message); return; }
@@ -350,9 +361,11 @@ export default function WorkshopsPage() {
     } as any);
 
     if (error) { toast.error(error.message); return; }
-    toast.success(isCheque ? `✅ تم تسجيل ${chequeCount} شيك وارد بنجاح` : "✅ تم تسجيل الدفعة بنجاح");
+    toast.success(isCheque ? `✅ تم تسجيل ${chequeRows.length} شيك وارد بنجاح` : "✅ تم تسجيل الدفعة بنجاح");
     setShowPaymentDialog(false);
-    setPaymentForm({ amount: 0, payment_method: "نقدي", description: "", payment_date: format(new Date(), "yyyy-MM-dd"), cheque_number: "", cheque_bank: "", cheque_date: format(new Date(), "yyyy-MM-dd"), cheque_drawer: "", deposit_bank_id: null, currency: "ILS", exchange_rate: 1, cheque_count: 1 });
+    const resetForm = { amount: 0, payment_method: "نقدي", description: "", payment_date: format(new Date(), "yyyy-MM-dd"), cheque_bank: "", deposit_bank_id: null, currency: "ILS", exchange_rate: 1, cheque_count: 1 };
+    setPaymentForm(resetForm as any);
+    setChequeRows([]);
     loadCosts(selectedWorkshop.id);
   };
 
@@ -703,7 +716,8 @@ export default function WorkshopsPage() {
                 <Receipt className="h-3.5 w-3.5" /> الدفعات المقبوضة
               </h3>
               <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => {
-                setPaymentForm({ amount: 0, payment_method: "نقدي", description: "", payment_date: format(new Date(), "yyyy-MM-dd"), cheque_number: "", cheque_bank: "", cheque_date: format(new Date(), "yyyy-MM-dd"), cheque_drawer: "", deposit_bank_id: null, currency: "ILS", exchange_rate: 1, cheque_count: 1 });
+                setPaymentForm({ amount: 0, payment_method: "نقدي", description: "", payment_date: format(new Date(), "yyyy-MM-dd"), cheque_bank: "", deposit_bank_id: null, currency: "ILS", exchange_rate: 1, cheque_count: 1 });
+                setChequeRows([]);
                 setShowPaymentDialog(true);
               }}>
                 <Plus className="h-3 w-3" /> دفعة جديدة
@@ -996,7 +1010,7 @@ export default function WorkshopsPage() {
 
         {/* ── Payment Dialog ── */}
         <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
-          <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto" dir="rtl">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" dir="rtl">
             <DialogHeader>
               <DialogTitle>💵 تسجيل دفعة من الزبون</DialogTitle>
             </DialogHeader>
@@ -1062,43 +1076,81 @@ export default function WorkshopsPage() {
 
               {/* Cheque fields */}
               {paymentForm.payment_method === "شيك" && (
-                <div className="space-y-2 p-3 rounded-lg border border-dashed border-primary/30 bg-primary/5">
+                <div className="space-y-3 p-3 rounded-lg border border-dashed border-primary/30 bg-primary/5">
                   <div className="flex items-center justify-between">
-                    <p className="text-xs font-bold text-primary">بيانات الشيك الوارد</p>
-                    <div className="flex items-center gap-1">
+                    <p className="text-xs font-bold text-primary">بيانات الشيكات الواردة</p>
+                    <div className="flex items-center gap-2">
                       <Label className="text-[10px] text-muted-foreground">عدد الشيكات:</Label>
                       <Input type="number" min={1} max={24} value={paymentForm.cheque_count}
-                        onChange={e => setPaymentForm(f => ({ ...f, cheque_count: Math.max(1, Number(e.target.value)) }))}
+                        onChange={e => {
+                          const count = Math.max(1, Number(e.target.value));
+                          setPaymentForm(f => ({ ...f, cheque_count: count }));
+                          setChequeRows(generateChequeRows(count, paymentForm.amount, chequeRows[0]?.number || "", chequeRows[0]?.date || format(new Date(), "yyyy-MM-dd"), selectedWorkshop?.customer_name || "", paymentForm.cheque_bank));
+                        }}
                         className="w-14 h-7 text-xs text-center" dir="ltr" />
+                      <Button size="sm" variant="outline" className="h-7 text-[10px]" onClick={() => {
+                        setChequeRows(generateChequeRows(paymentForm.cheque_count, paymentForm.amount, chequeRows[0]?.number || "1001", chequeRows[0]?.date || format(new Date(), "yyyy-MM-dd"), selectedWorkshop?.customer_name || "", paymentForm.cheque_bank));
+                      }}>توليد تلقائي</Button>
                     </div>
                   </div>
 
-                  {paymentForm.cheque_count > 1 && (
-                    <div className="p-2 rounded bg-accent/10 text-[10px] text-muted-foreground">
-                      سيتم إنشاء {paymentForm.cheque_count} شيك متسلسل بدءاً من رقم {paymentForm.cheque_number || "..."} — المبلغ لكل شيك: {paymentForm.amount > 0 ? (paymentForm.amount / paymentForm.cheque_count).toLocaleString() : 0} — بفارق شهر بين كل استحقاق
+                  {/* Editable cheque rows table */}
+                  {chequeRows.length > 0 && (
+                    <div className="overflow-x-auto -mx-1">
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="text-muted-foreground border-b border-border">
+                            <th className="text-right py-1 px-1 font-medium">#</th>
+                            <th className="text-right py-1 px-1 font-medium">رقم الشيك</th>
+                            <th className="text-right py-1 px-1 font-medium">الساحب</th>
+                            <th className="text-right py-1 px-1 font-medium">البنك</th>
+                            <th className="text-right py-1 px-1 font-medium">تاريخ الاستحقاق</th>
+                            <th className="text-right py-1 px-1 font-medium">المبلغ</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {chequeRows.map((row, i) => (
+                            <tr key={i} className="border-b border-border/50">
+                              <td className="py-1 px-1 text-muted-foreground">{i + 1}</td>
+                              <td className="py-1 px-1">
+                                <Input value={row.number} onChange={e => updateChequeRow(i, "number", e.target.value)}
+                                  className="h-7 text-xs w-20" dir="ltr" />
+                              </td>
+                              <td className="py-1 px-1">
+                                <Input value={row.drawer} onChange={e => updateChequeRow(i, "drawer", e.target.value)}
+                                  className="h-7 text-xs w-28" />
+                              </td>
+                              <td className="py-1 px-1">
+                                <Input value={row.bank} onChange={e => updateChequeRow(i, "bank", e.target.value)}
+                                  className="h-7 text-xs w-24" />
+                              </td>
+                              <td className="py-1 px-1">
+                                <Input type="date" value={row.date} onChange={e => updateChequeRow(i, "date", e.target.value)}
+                                  className="h-7 text-xs w-32" />
+                              </td>
+                              <td className="py-1 px-1">
+                                <Input type="number" value={row.amount} onChange={e => updateChequeRow(i, "amount", Number(e.target.value))}
+                                  className="h-7 text-xs w-24" dir="ltr" />
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                        <tfoot>
+                          <tr className="font-bold text-xs">
+                            <td colSpan={5} className="py-1 px-1 text-left">المجموع</td>
+                            <td className="py-1 px-1 text-primary" dir="ltr">{chequeRows.reduce((s, r) => s + r.amount, 0).toLocaleString()}</td>
+                          </tr>
+                        </tfoot>
+                      </table>
                     </div>
                   )}
 
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="space-y-1">
-                      <Label className="text-xs">رقم الشيك الأول *</Label>
-                      <Input value={paymentForm.cheque_number} onChange={e => setPaymentForm(f => ({ ...f, cheque_number: e.target.value }))} placeholder="مثال: 1234" dir="ltr" className="text-sm" />
+                  {chequeRows.length === 0 && (
+                    <div className="text-center py-3">
+                      <p className="text-[10px] text-muted-foreground">اضغط "توليد تلقائي" لإنشاء صفوف الشيكات</p>
                     </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs">اسم الساحب</Label>
-                      <Input value={paymentForm.cheque_drawer} onChange={e => setPaymentForm(f => ({ ...f, cheque_drawer: e.target.value }))} placeholder={selectedWorkshop?.customer_name || "اسم صاحب الشيك"} className="text-sm" />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="space-y-1">
-                      <Label className="text-xs">البنك المسحوب عليه</Label>
-                      <Input value={paymentForm.cheque_bank} onChange={e => setPaymentForm(f => ({ ...f, cheque_bank: e.target.value }))} placeholder="مثال: بنك فلسطين" className="text-sm" />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs">تاريخ الاستحقاق {paymentForm.cheque_count > 1 ? "(الأول)" : ""}</Label>
-                      <Input type="date" value={paymentForm.cheque_date} onChange={e => setPaymentForm(f => ({ ...f, cheque_date: e.target.value }))} className="text-sm" />
-                    </div>
-                  </div>
+                  )}
+
                   {bankAccounts.length > 0 && (
                     <div className="space-y-1">
                       <Label className="text-xs">إيداع في حساب بنكي (اختياري)</Label>
@@ -1128,7 +1180,7 @@ export default function WorkshopsPage() {
             </div>
             <DialogFooter>
               <Button variant="ghost" onClick={() => setShowPaymentDialog(false)}>إلغاء</Button>
-              <Button onClick={handleAddPayment} disabled={paymentForm.amount <= 0 || (paymentForm.payment_method === "شيك" && !paymentForm.cheque_number.trim())}>تسجيل الدفعة</Button>
+              <Button onClick={handleAddPayment} disabled={paymentForm.amount <= 0 || (paymentForm.payment_method === "شيك" && chequeRows.length === 0)}>تسجيل الدفعة</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
