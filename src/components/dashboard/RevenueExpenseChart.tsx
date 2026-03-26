@@ -99,45 +99,8 @@ export default function RevenueExpenseChart({ data, grouping, onGroupingChange, 
           </div>
         </div>
       </WidgetBanner>
-        <div className="flex items-center gap-2">
-          {/* Chart type */}
-          <div className="flex bg-secondary/50 rounded-lg p-0.5">
-            {([
-              { key: "bar", label: "📊" },
-              { key: "line", label: "📈" },
-              { key: "area", label: "📉" },
-            ] as { key: ChartType; label: string }[]).map((t) => (
-              <button
-                key={t.key}
-                onClick={() => setChartType(t.key)}
-                className={`px-2 py-1 rounded-md text-[10px] transition-all ${
-                  chartType === t.key ? "bg-card shadow-sm text-foreground" : "text-muted-foreground"
-                }`}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
-          {/* Grouping */}
-          <div className="flex bg-secondary/50 rounded-lg p-0.5">
-            {([
-              { key: "daily" as const, label: "يومي" },
-              { key: "weekly" as const, label: "أسبوعي" },
-              { key: "monthly" as const, label: "شهري" },
-            ]).map((g) => (
-              <button
-                key={g.key}
-                onClick={() => onGroupingChange(g.key)}
-                className={`px-2 py-1 rounded-md text-[10px] transition-all ${
-                  grouping === g.key ? "bg-card shadow-sm text-foreground" : "text-muted-foreground"
-                }`}
-              >
-                {g.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
+
+
 
       {/* Chart */}
       <div style={{ direction: "ltr" }}>

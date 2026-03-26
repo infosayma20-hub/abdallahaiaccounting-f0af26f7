@@ -1,4 +1,6 @@
 import WidgetBanner from "./WidgetBanner";
+
+interface Props {
   data: { inflows: number; outflows: number; net: number; runway: number };
   cashBalance: number;
   loading: boolean;
