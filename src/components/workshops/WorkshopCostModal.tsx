@@ -154,7 +154,7 @@ export default function WorkshopCostModal({ open, onOpenChange, workshopId, work
   const wasteAmount = useMemo(() => wasteEnabled ? Math.round((effectiveQty - quantity) * unitPrice * 100) / 100 : 0, [effectiveQty, quantity, unitPrice, wasteEnabled]);
 
   const filteredSuppliers = useMemo(() =>
-    contacts.filter(c => ["supplier", "مورد", "both", "كلاهما"].includes(c.contact_type) && (!supplierSearch || c.contact_name.toLowerCase().includes(supplierSearch.toLowerCase())))
+    contacts.filter(c => !supplierSearch || c.contact_name.toLowerCase().includes(supplierSearch.toLowerCase()))
   , [contacts, supplierSearch]);
 
   const glInfo = CATEGORY_GL_MAP[category] || CATEGORY_GL_MAP.other;
@@ -234,7 +234,7 @@ export default function WorkshopCostModal({ open, onOpenChange, workshopId, work
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[680px] max-h-[92vh] overflow-y-auto" dir="rtl">
         <DialogHeader>
-          <DialogTitle className="text-lg">إضافة تكلفة (مع قيد محاسبي تلقائي)</DialogTitle>
+          <DialogTitle className="text-lg">إضافة تكلفة</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-5 py-2">
@@ -349,6 +349,7 @@ export default function WorkshopCostModal({ open, onOpenChange, workshopId, work
                   <span className="text-sm flex-1 text-foreground">
                     {contacts.find(c => c.id === supplierContactId)?.contact_name || supplierNameManual}
                   </span>
+                  <Badge variant="outline" className="text-[9px]">{contacts.find(c => c.id === supplierContactId)?.contact_type}</Badge>
                   <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => { setSupplierContactId(null); setSupplierNameManual(""); }}>✕</Button>
                 </div>
               ) : (
@@ -356,13 +357,16 @@ export default function WorkshopCostModal({ open, onOpenChange, workshopId, work
                   <div className="relative">
                     <Search className="absolute right-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
                     <Input value={supplierSearch} onChange={e => { setSupplierSearch(e.target.value); setShowSupplierPicker(true); }}
-                      onFocus={() => setShowSupplierPicker(true)} placeholder="ابحث عن مورد..." className="pr-8" />
+                      onFocus={() => setShowSupplierPicker(true)} placeholder="ابحث عن مورد أو زبون..." className="pr-8" />
                   </div>
                   {showSupplierPicker && supplierSearch && (
                     <div className="max-h-36 overflow-y-auto rounded-lg border border-border bg-card">
-                      {filteredSuppliers.slice(0, 5).map(s => (
+                      {filteredSuppliers.slice(0, 8).map(s => (
                         <button key={s.id} onClick={() => { setSupplierContactId(s.id); setSupplierNameManual(s.contact_name); setShowSupplierPicker(false); setSupplierSearch(""); }}
-                          className="w-full text-right px-3 py-1.5 text-sm hover:bg-accent/10 text-foreground">{s.contact_name}</button>
+                          className="w-full text-right px-3 py-1.5 text-sm hover:bg-accent/10 text-foreground flex items-center justify-between">
+                          <span>{s.contact_name}</span>
+                          <Badge variant="outline" className="text-[9px]">{s.contact_type}</Badge>
+                        </button>
                       ))}
                       {filteredSuppliers.length === 0 && supplierSearch.trim().length > 1 && (
                         <button onClick={async () => {
@@ -372,18 +376,16 @@ export default function WorkshopCostModal({ open, onOpenChange, workshopId, work
                             { onConflict: "contact_name,user_id" }
                           ).select().single();
                           if (error) { toast.error("خطأ في إضافة المورد"); return; }
-                          toast.success(`تم إضافة "${name}"`);
+                          toast.success(`تم إضافة "${name}" كمورد`);
                           setSupplierContactId(data.id); setSupplierNameManual(data.contact_name);
                           setShowSupplierPicker(false); setSupplierSearch("");
                           onContactsReload();
                         }} className="w-full text-right px-3 py-2 text-sm hover:bg-primary/10 text-primary font-medium flex items-center gap-2">
-                          <UserPlus className="h-3.5 w-3.5" /> إضافة مورد "{supplierSearch.trim()}"
+                          <UserPlus className="h-3.5 w-3.5" /> إضافة "{supplierSearch.trim()}" كمورد جديد
                         </button>
                       )}
                     </div>
                   )}
-                  <Input value={supplierNameManual} onChange={e => setSupplierNameManual(e.target.value)}
-                    placeholder="أو اكتب اسم المورد يدوياً" className="h-8 text-xs" />
                 </div>
               )}
             </div>
@@ -394,31 +396,13 @@ export default function WorkshopCostModal({ open, onOpenChange, workshopId, work
               <Input value={invoiceNumber} onChange={e => setInvoiceNumber(e.target.value)} placeholder="رقم فاتورة الشراء..." />
             </div>
 
-            {/* Payment Method */}
-            <div className="space-y-1">
-              <Label className="text-[11px]">طريقة الدفع</Label>
-              <div className="flex gap-1.5">
-                {[
-                  { key: "نقدي", icon: "🟢" },
-                  { key: "بنك", icon: "🔵" },
-                  { key: "آجل", icon: "🟡" },
-                ].map(m => (
-                  <button key={m.key} onClick={() => setPaymentMethod(m.key)}
-                    className={`flex-1 px-2 py-2.5 rounded-xl text-xs font-medium border-2 transition-all ${
-                      paymentMethod === m.key ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground"
-                    }`}>
-                    {m.icon} {m.key}
-                  </button>
-                ))}
-              </div>
-            </div>
           </div>
         </div>
 
         <DialogFooter className="gap-2">
           <Button variant="ghost" onClick={() => onOpenChange(false)}>إلغاء</Button>
           <Button onClick={handleSave} disabled={!canSave || saving} className="gap-2">
-            {saving ? "جاري الحفظ..." : "حفظ التكلفة + إنشاء قيد"}
+            {saving ? "جاري الحفظ..." : "حفظ التكلفة"}
           </Button>
         </DialogFooter>
       </DialogContent>
