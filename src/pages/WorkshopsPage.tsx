@@ -268,13 +268,18 @@ export default function WorkshopsPage() {
   /* ── Add Partial Payment ── */
   const handleAddPayment = async () => {
     if (!selectedWorkshop || paymentForm.amount <= 0) { toast.error("المبلغ مطلوب"); return; }
-    const debitCode = paymentForm.payment_method === "بنك" ? "1120" : "1110";
+    const isCheque = paymentForm.payment_method === "شيك";
+
+    if (isCheque && !paymentForm.cheque_number.trim()) { toast.error("رقم الشيك مطلوب"); return; }
+
+    // GL: cheque → 1150 (شيكات واردة), bank → 1120, cash → 1110
+    const debitCode = isCheque ? "1150" : paymentForm.payment_method === "بنك" ? "1120" : "1110";
     const idempotencyKey = `WS-PAY-${selectedWorkshop.id}-${Date.now()}`;
 
     const { data: txData, error: txError } = await supabase.from("transactions").insert({
       user_id: user!.id,
       transaction_date: paymentForm.payment_date,
-      description: paymentForm.description || `دفعة من ${selectedWorkshop.customer_name || "زبون"} - ورشة ${selectedWorkshop.name}`,
+      description: paymentForm.description || `دفعة من ${selectedWorkshop.customer_name || "زبون"} - ورشة ${selectedWorkshop.name}${isCheque ? ` (شيك ${paymentForm.cheque_number})` : ""}`,
       debit_account_code: debitCode,
       credit_account_code: "4200",
       amount: paymentForm.amount,
@@ -282,21 +287,43 @@ export default function WorkshopsPage() {
       transaction_type: "workshop_payment",
       contact_id: selectedWorkshop.contact_id || null,
       reference: `WS-PAY-${selectedWorkshop.name.substring(0, 15)}`,
-      payment_method: paymentForm.payment_method,
+      payment_method: isCheque ? "شيك" : paymentForm.payment_method,
       idempotency_key: idempotencyKey,
     } as any).select("id").single();
 
     if (txError) { toast.error("خطأ في إنشاء القيد: " + txError.message); return; }
 
+    // Create cheque record if payment is by cheque
+    if (isCheque) {
+      const { error: chequeError } = await supabase.from("cheques").insert({
+        user_id: user!.id,
+        cheque_type: "incoming" as any,
+        cheque_number: paymentForm.cheque_number,
+        party_name: paymentForm.cheque_drawer || selectedWorkshop.customer_name || "زبون",
+        party_type: "customer",
+        contact_id: selectedWorkshop.contact_id || null,
+        amount: paymentForm.amount,
+        cheque_date: paymentForm.cheque_date,
+        bank_name: paymentForm.cheque_bank || null,
+        status: "registered" as any,
+        currency: "ILS",
+        linked_transaction_id: txData?.id || null,
+        linked_account: "1150",
+        deposit_bank_account_id: paymentForm.deposit_bank_id || null,
+        notes: `دفعة ورشة: ${selectedWorkshop.name}`,
+      } as any);
+      if (chequeError) { toast.error("خطأ في تسجيل الشيك: " + chequeError.message); return; }
+    }
+
     const { error } = await supabase.from("workshop_payments").insert({
       workshop_id: selectedWorkshop.id, user_id: user!.id,
-      amount: paymentForm.amount, payment_method: paymentForm.payment_method,
+      amount: paymentForm.amount, payment_method: isCheque ? "شيك" : paymentForm.payment_method,
       payment_date: paymentForm.payment_date, description: paymentForm.description || null,
       linked_transaction_id: txData?.id || null,
     } as any);
 
     if (error) { toast.error(error.message); return; }
-    toast.success("✅ تم تسجيل الدفعة بنجاح");
+    toast.success(isCheque ? "✅ تم تسجيل الدفعة وإنشاء الشيك الوارد" : "✅ تم تسجيل الدفعة بنجاح");
     setShowPaymentDialog(false);
     setPaymentForm({ amount: 0, payment_method: "نقدي", description: "", payment_date: format(new Date(), "yyyy-MM-dd"), cheque_number: "", cheque_bank: "", cheque_date: format(new Date(), "yyyy-MM-dd"), cheque_drawer: "", deposit_bank_id: null });
     loadCosts(selectedWorkshop.id);
