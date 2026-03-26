@@ -721,6 +721,59 @@ export default function WorkshopsPage() {
               <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={() => setShowClaimModal(true)}>
                 <Receipt className="h-3.5 w-3.5" /> مطالبة مالية
               </Button>
+              <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={() => {
+                const printContent = document.getElementById("workshop-print-area");
+                if (!printContent) return;
+                const printWin = window.open("", "_blank");
+                if (!printWin) return;
+                printWin.document.write(`
+                  <html dir="rtl"><head><title>معاينة طباعة - ${selectedWorkshop.name}</title>
+                  <style>
+                    * { margin: 0; padding: 0; box-sizing: border-box; }
+                    body { font-family: 'IBM Plex Sans Arabic', 'Segoe UI', sans-serif; padding: 24px; direction: rtl; color: #1a1a1a; }
+                    h1 { font-size: 22px; margin-bottom: 4px; }
+                    .sub { color: #666; font-size: 13px; margin-bottom: 16px; }
+                    .kpis { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 20px; }
+                    .kpi { border: 1px solid #ddd; border-radius: 8px; padding: 10px; text-align: center; }
+                    .kpi-label { font-size: 10px; color: #888; }
+                    .kpi-value { font-size: 16px; font-weight: bold; margin-top: 2px; }
+                    table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 12px; }
+                    th, td { border: 1px solid #ddd; padding: 6px 8px; text-align: right; }
+                    th { background: #f5f5f5; font-weight: 600; }
+                    .section-title { font-size: 14px; font-weight: bold; margin: 16px 0 8px; }
+                    .text-red { color: #dc2626; }
+                    .text-green { color: #16a34a; }
+                    @media print { body { padding: 12px; } }
+                  </style></head><body>
+                  <h1>🪵 ${selectedWorkshop.name}</h1>
+                  <p class="sub">الزبون: ${selectedWorkshop.customer_name || "—"} | التاريخ: ${format(new Date(), "yyyy-MM-dd")}</p>
+                  <div class="kpis">
+                    <div class="kpi"><div class="kpi-label">الميزانية</div><div class="kpi-value">${selectedWorkshop.total_budget?.toLocaleString()} ₪</div></div>
+                    <div class="kpi"><div class="kpi-label">المصروف</div><div class="kpi-value text-red">${costSummary.total.toLocaleString()} ₪</div></div>
+                    <div class="kpi"><div class="kpi-label">المتبقي</div><div class="kpi-value">${(selectedWorkshop.total_budget - costSummary.total).toLocaleString()} ₪</div></div>
+                    <div class="kpi"><div class="kpi-label">المدفوع</div><div class="kpi-value text-green">${totalPaid.toLocaleString()} ₪</div></div>
+                    <div class="kpi"><div class="kpi-label">الربح</div><div class="kpi-value ${profit >= 0 ? "text-green" : "text-red"}">${profit.toLocaleString()} ₪</div></div>
+                  </div>
+                  ${payments.length > 0 ? `
+                    <p class="section-title">💵 الدفعات المقبوضة</p>
+                    <table><thead><tr><th>التاريخ</th><th>المبلغ</th><th>طريقة الدفع</th><th>ملاحظات</th></tr></thead><tbody>
+                    ${payments.map(p => `<tr><td>${p.payment_date}</td><td>${p.amount.toLocaleString()} ₪</td><td>${p.payment_method}</td><td>${p.description || "—"}</td></tr>`).join("")}
+                    </tbody></table>` : ""}
+                  ${costs.length > 0 ? `
+                    <p class="section-title">📋 سجل التكاليف</p>
+                    <table><thead><tr><th>التاريخ</th><th>الفئة</th><th>البند</th><th>المبلغ</th><th>المورد</th></tr></thead><tbody>
+                    ${costs.map(c => {
+                      const catInfo = COST_CATEGORIES.find(cc => cc.value === (c.category || c.cost_type)) || { icon: "📦", label: c.cost_type };
+                      return `<tr><td>${c.cost_date}</td><td>${catInfo.icon} ${catInfo.label}</td><td>${c.description || "—"}</td><td class="text-red">${c.amount.toLocaleString()} ₪</td><td>${c.supplier_name || "—"}</td></tr>`;
+                    }).join("")}
+                    </tbody></table>` : ""}
+                  <script>setTimeout(() => window.print(), 500);</script>
+                  </body></html>
+                `);
+                printWin.document.close();
+              }}>
+                <Printer className="h-3.5 w-3.5" /> معاينة طباعة
+              </Button>
               <Button variant="destructive" size="sm" className="h-8 text-xs gap-1.5" onClick={() => { setDeletingWorkshop(selectedWorkshop); setShowDeleteConfirm(true); }}>
                 <Trash2 className="h-3.5 w-3.5" /> حذف
               </Button>
