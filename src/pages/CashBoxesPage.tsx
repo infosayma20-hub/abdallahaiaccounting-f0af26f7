@@ -217,6 +217,9 @@ const CashBoxesPage = () => {
           <Button variant="outline" size="sm" className="gap-1.5 text-xs border-emerald-300 text-emerald-700 hover:bg-emerald-50" onClick={() => setDepositOpen(true)}>
             <ArrowUpFromLine className="h-3.5 w-3.5" /> إيداع بنكي
           </Button>
+          <Button variant="outline" size="sm" className="gap-1.5 text-xs border-purple-300 text-purple-700 hover:bg-purple-50" onClick={() => navigate("/finance/cash-boxes/transfer")}>
+            <ArrowLeftRight className="h-3.5 w-3.5" /> تحويل بين الصناديق
+          </Button>
           {pettyBoxes.length > 0 && (
             <Button variant="outline" size="sm" className="gap-1.5 text-xs border-amber-300 text-amber-700 hover:bg-amber-50" onClick={() => setReplenishOpen(true)}>
               <ArrowDownToLine className="h-3.5 w-3.5" /> تغذية النثرية
