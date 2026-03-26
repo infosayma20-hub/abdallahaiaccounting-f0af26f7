@@ -6,7 +6,7 @@ import { format } from "date-fns";
 import {
   Plus, Search, Hammer, Trash2, ArrowLeft, Edit, MoreVertical,
   DollarSign, ChevronDown, UserPlus, Image, AlertTriangle, Receipt, FileText,
-  TrendingDown, TrendingUp, Download, BarChart3, ArrowRight, Filter, ChevronUp,
+  TrendingDown, TrendingUp, Download, BarChart3, ArrowRight, Filter, ChevronUp, Printer,
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -159,6 +159,7 @@ export default function WorkshopsPage() {
   const [showCostBreakdown, setShowCostBreakdown] = useState(false);
   const [showInvoiceDialog, setShowInvoiceDialog] = useState(false);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [customerBalance, setCustomerBalance] = useState(0);
 
   // Contacts for search
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -632,6 +633,31 @@ export default function WorkshopsPage() {
   /* ════════════════════════════════════════════ */
   /* ── Workshop Detail View ── */
   /* ════════════════════════════════════════════ */
+  // Calculate real balance from transactions (1130 receivables + 2100 payables)
+  useEffect(() => {
+    if (!selectedWorkshop?.contact_id) { setCustomerBalance(0); return; }
+    const calcBalance = async () => {
+      const { data } = await supabase
+        .from("transactions")
+        .select("debit_account_code, credit_account_code, amount")
+        .eq("contact_id", selectedWorkshop.contact_id!)
+        .is("is_deleted" as any, null)
+        .in("debit_account_code", ["1130", "2100"])
+        .or("credit_account_code.in.(1130,2100)");
+      
+      if (!data) { setCustomerBalance(0); return; }
+      let balance = 0;
+      data.forEach((tx: any) => {
+        if (tx.debit_account_code === "1130") balance += tx.amount;
+        if (tx.credit_account_code === "1130") balance -= tx.amount;
+        if (tx.debit_account_code === "2100") balance -= tx.amount;
+        if (tx.credit_account_code === "2100") balance += tx.amount;
+      });
+      setCustomerBalance(balance);
+    };
+    calcBalance();
+  }, [selectedWorkshop?.contact_id, costs, payments]);
+
   if (selectedWorkshop) {
     const status = STATUS_MAP[selectedWorkshop.status] || STATUS_MAP.active;
     const profit = selectedWorkshop.total_budget - costSummary.total;
@@ -649,9 +675,9 @@ export default function WorkshopsPage() {
               <h1 className="text-xl font-bold text-foreground truncate">{selectedWorkshop.name}</h1>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <span>{selectedWorkshop.customer_name || "بدون زبون"}</span>
-                {customerContact && (
+                {selectedWorkshop.contact_id && (
                   <Badge variant="outline" className="text-[9px]">
-                    رصيد: {customerContact.current_balance.toLocaleString()} ₪
+                    رصيد: {customerBalance.toLocaleString()} ₪
                   </Badge>
                 )}
               </div>
@@ -694,6 +720,59 @@ export default function WorkshopsPage() {
               </Button>
               <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={() => setShowClaimModal(true)}>
                 <Receipt className="h-3.5 w-3.5" /> مطالبة مالية
+              </Button>
+              <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5" onClick={() => {
+                const printContent = document.getElementById("workshop-print-area");
+                if (!printContent) return;
+                const printWin = window.open("", "_blank");
+                if (!printWin) return;
+                printWin.document.write(`
+                  <html dir="rtl"><head><title>معاينة طباعة - ${selectedWorkshop.name}</title>
+                  <style>
+                    * { margin: 0; padding: 0; box-sizing: border-box; }
+                    body { font-family: 'IBM Plex Sans Arabic', 'Segoe UI', sans-serif; padding: 24px; direction: rtl; color: #1a1a1a; }
+                    h1 { font-size: 22px; margin-bottom: 4px; }
+                    .sub { color: #666; font-size: 13px; margin-bottom: 16px; }
+                    .kpis { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 20px; }
+                    .kpi { border: 1px solid #ddd; border-radius: 8px; padding: 10px; text-align: center; }
+                    .kpi-label { font-size: 10px; color: #888; }
+                    .kpi-value { font-size: 16px; font-weight: bold; margin-top: 2px; }
+                    table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 12px; }
+                    th, td { border: 1px solid #ddd; padding: 6px 8px; text-align: right; }
+                    th { background: #f5f5f5; font-weight: 600; }
+                    .section-title { font-size: 14px; font-weight: bold; margin: 16px 0 8px; }
+                    .text-red { color: #dc2626; }
+                    .text-green { color: #16a34a; }
+                    @media print { body { padding: 12px; } }
+                  </style></head><body>
+                  <h1>🪵 ${selectedWorkshop.name}</h1>
+                  <p class="sub">الزبون: ${selectedWorkshop.customer_name || "—"} | التاريخ: ${format(new Date(), "yyyy-MM-dd")}</p>
+                  <div class="kpis">
+                    <div class="kpi"><div class="kpi-label">الميزانية</div><div class="kpi-value">${selectedWorkshop.total_budget?.toLocaleString()} ₪</div></div>
+                    <div class="kpi"><div class="kpi-label">المصروف</div><div class="kpi-value text-red">${costSummary.total.toLocaleString()} ₪</div></div>
+                    <div class="kpi"><div class="kpi-label">المتبقي</div><div class="kpi-value">${(selectedWorkshop.total_budget - costSummary.total).toLocaleString()} ₪</div></div>
+                    <div class="kpi"><div class="kpi-label">المدفوع</div><div class="kpi-value text-green">${totalPaid.toLocaleString()} ₪</div></div>
+                    <div class="kpi"><div class="kpi-label">الربح</div><div class="kpi-value ${profit >= 0 ? "text-green" : "text-red"}">${profit.toLocaleString()} ₪</div></div>
+                  </div>
+                  ${payments.length > 0 ? `
+                    <p class="section-title">💵 الدفعات المقبوضة</p>
+                    <table><thead><tr><th>التاريخ</th><th>المبلغ</th><th>طريقة الدفع</th><th>ملاحظات</th></tr></thead><tbody>
+                    ${payments.map(p => `<tr><td>${p.payment_date}</td><td>${p.amount.toLocaleString()} ₪</td><td>${p.payment_method}</td><td>${p.description || "—"}</td></tr>`).join("")}
+                    </tbody></table>` : ""}
+                  ${costs.length > 0 ? `
+                    <p class="section-title">📋 سجل التكاليف</p>
+                    <table><thead><tr><th>التاريخ</th><th>الفئة</th><th>البند</th><th>المبلغ</th><th>المورد</th></tr></thead><tbody>
+                    ${costs.map(c => {
+                      const catInfo = COST_CATEGORIES.find(cc => cc.value === (c.category || c.cost_type)) || { icon: "📦", label: c.cost_type };
+                      return `<tr><td>${c.cost_date}</td><td>${catInfo.icon} ${catInfo.label}</td><td>${c.description || "—"}</td><td class="text-red">${c.amount.toLocaleString()} ₪</td><td>${c.supplier_name || "—"}</td></tr>`;
+                    }).join("")}
+                    </tbody></table>` : ""}
+                  <script>setTimeout(() => window.print(), 500);</script>
+                  </body></html>
+                `);
+                printWin.document.close();
+              }}>
+                <Printer className="h-3.5 w-3.5" /> معاينة طباعة
               </Button>
               <Button variant="destructive" size="sm" className="h-8 text-xs gap-1.5" onClick={() => { setDeletingWorkshop(selectedWorkshop); setShowDeleteConfirm(true); }}>
                 <Trash2 className="h-3.5 w-3.5" /> حذف
@@ -814,7 +893,7 @@ export default function WorkshopsPage() {
 
           {/* Add cost button */}
           <Button onClick={() => setShowNewCost(true)} className="w-full gap-2">
-            <Plus className="h-4 w-4" /> إضافة تكلفة (مع قيد محاسبي)
+            <Plus className="h-4 w-4" /> إضافة تكلفة
           </Button>
 
           {/* ── Cost Ledger Table ── */}
@@ -1004,6 +1083,28 @@ export default function WorkshopsPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* ── Financial Claim Modal ── */}
+        <FinancialClaimModal
+          open={showClaimModal}
+          onOpenChange={setShowClaimModal}
+          project={{
+            id: selectedWorkshop.id,
+            name: selectedWorkshop.name,
+            client_name: selectedWorkshop.customer_name,
+            phone: selectedWorkshop.customer_phone,
+            address: selectedWorkshop.address,
+            budget: selectedWorkshop.total_budget,
+            total_expenses: costSummary.total,
+            total_receipts: totalPaid,
+          }}
+          userId={user!.id}
+          companyName={settings.company_name || "الشركة"}
+          companyPhone={settings.phone || ""}
+          companyAddress={settings.address || ""}
+          companyEmail={settings.email || ""}
+          logoUrl={settings.logo_url || ""}
+        />
 
         {/* ── Payment Dialog ── */}
         <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
@@ -1590,29 +1691,7 @@ export default function WorkshopsPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* ── Financial Claim Modal ── */}
-      {selectedWorkshop && (
-        <FinancialClaimModal
-          open={showClaimModal}
-          onOpenChange={setShowClaimModal}
-          project={{
-            id: selectedWorkshop.id,
-            name: selectedWorkshop.name,
-            client_name: selectedWorkshop.customer_name,
-            phone: selectedWorkshop.customer_phone,
-            address: selectedWorkshop.address,
-            budget: selectedWorkshop.total_budget,
-            total_expenses: costSummary.total,
-            total_receipts: totalPaid,
-          }}
-          userId={user!.id}
-          companyName={settings.company_name || "الشركة"}
-          companyPhone={settings.phone || ""}
-          companyAddress={settings.address || ""}
-          companyEmail={settings.email || ""}
-          logoUrl={settings.logo_url || ""}
-        />
-      )}
+      {/* Claim modal removed — now inside detail view */}
     </div>
   );
 }
