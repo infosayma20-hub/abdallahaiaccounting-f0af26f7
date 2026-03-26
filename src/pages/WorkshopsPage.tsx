@@ -1076,43 +1076,81 @@ export default function WorkshopsPage() {
 
               {/* Cheque fields */}
               {paymentForm.payment_method === "شيك" && (
-                <div className="space-y-2 p-3 rounded-lg border border-dashed border-primary/30 bg-primary/5">
+                <div className="space-y-3 p-3 rounded-lg border border-dashed border-primary/30 bg-primary/5">
                   <div className="flex items-center justify-between">
-                    <p className="text-xs font-bold text-primary">بيانات الشيك الوارد</p>
-                    <div className="flex items-center gap-1">
+                    <p className="text-xs font-bold text-primary">بيانات الشيكات الواردة</p>
+                    <div className="flex items-center gap-2">
                       <Label className="text-[10px] text-muted-foreground">عدد الشيكات:</Label>
                       <Input type="number" min={1} max={24} value={paymentForm.cheque_count}
-                        onChange={e => setPaymentForm(f => ({ ...f, cheque_count: Math.max(1, Number(e.target.value)) }))}
+                        onChange={e => {
+                          const count = Math.max(1, Number(e.target.value));
+                          setPaymentForm(f => ({ ...f, cheque_count: count }));
+                          setChequeRows(generateChequeRows(count, paymentForm.amount, chequeRows[0]?.number || "", chequeRows[0]?.date || format(new Date(), "yyyy-MM-dd"), selectedWorkshop?.customer_name || "", paymentForm.cheque_bank));
+                        }}
                         className="w-14 h-7 text-xs text-center" dir="ltr" />
+                      <Button size="sm" variant="outline" className="h-7 text-[10px]" onClick={() => {
+                        setChequeRows(generateChequeRows(paymentForm.cheque_count, paymentForm.amount, chequeRows[0]?.number || "1001", chequeRows[0]?.date || format(new Date(), "yyyy-MM-dd"), selectedWorkshop?.customer_name || "", paymentForm.cheque_bank));
+                      }}>توليد تلقائي</Button>
                     </div>
                   </div>
 
-                  {paymentForm.cheque_count > 1 && (
-                    <div className="p-2 rounded bg-accent/10 text-[10px] text-muted-foreground">
-                      سيتم إنشاء {paymentForm.cheque_count} شيك متسلسل بدءاً من رقم {paymentForm.cheque_number || "..."} — المبلغ لكل شيك: {paymentForm.amount > 0 ? (paymentForm.amount / paymentForm.cheque_count).toLocaleString() : 0} — بفارق شهر بين كل استحقاق
+                  {/* Editable cheque rows table */}
+                  {chequeRows.length > 0 && (
+                    <div className="overflow-x-auto -mx-1">
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="text-muted-foreground border-b border-border">
+                            <th className="text-right py-1 px-1 font-medium">#</th>
+                            <th className="text-right py-1 px-1 font-medium">رقم الشيك</th>
+                            <th className="text-right py-1 px-1 font-medium">الساحب</th>
+                            <th className="text-right py-1 px-1 font-medium">البنك</th>
+                            <th className="text-right py-1 px-1 font-medium">تاريخ الاستحقاق</th>
+                            <th className="text-right py-1 px-1 font-medium">المبلغ</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {chequeRows.map((row, i) => (
+                            <tr key={i} className="border-b border-border/50">
+                              <td className="py-1 px-1 text-muted-foreground">{i + 1}</td>
+                              <td className="py-1 px-1">
+                                <Input value={row.number} onChange={e => updateChequeRow(i, "number", e.target.value)}
+                                  className="h-7 text-xs w-20" dir="ltr" />
+                              </td>
+                              <td className="py-1 px-1">
+                                <Input value={row.drawer} onChange={e => updateChequeRow(i, "drawer", e.target.value)}
+                                  className="h-7 text-xs w-28" />
+                              </td>
+                              <td className="py-1 px-1">
+                                <Input value={row.bank} onChange={e => updateChequeRow(i, "bank", e.target.value)}
+                                  className="h-7 text-xs w-24" />
+                              </td>
+                              <td className="py-1 px-1">
+                                <Input type="date" value={row.date} onChange={e => updateChequeRow(i, "date", e.target.value)}
+                                  className="h-7 text-xs w-32" />
+                              </td>
+                              <td className="py-1 px-1">
+                                <Input type="number" value={row.amount} onChange={e => updateChequeRow(i, "amount", Number(e.target.value))}
+                                  className="h-7 text-xs w-24" dir="ltr" />
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                        <tfoot>
+                          <tr className="font-bold text-xs">
+                            <td colSpan={5} className="py-1 px-1 text-left">المجموع</td>
+                            <td className="py-1 px-1 text-primary" dir="ltr">{chequeRows.reduce((s, r) => s + r.amount, 0).toLocaleString()}</td>
+                          </tr>
+                        </tfoot>
+                      </table>
                     </div>
                   )}
 
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="space-y-1">
-                      <Label className="text-xs">رقم الشيك الأول *</Label>
-                      <Input value={paymentForm.cheque_number} onChange={e => setPaymentForm(f => ({ ...f, cheque_number: e.target.value }))} placeholder="مثال: 1234" dir="ltr" className="text-sm" />
+                  {chequeRows.length === 0 && (
+                    <div className="text-center py-3">
+                      <p className="text-[10px] text-muted-foreground">اضغط "توليد تلقائي" لإنشاء صفوف الشيكات</p>
                     </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs">اسم الساحب</Label>
-                      <Input value={paymentForm.cheque_drawer} onChange={e => setPaymentForm(f => ({ ...f, cheque_drawer: e.target.value }))} placeholder={selectedWorkshop?.customer_name || "اسم صاحب الشيك"} className="text-sm" />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="space-y-1">
-                      <Label className="text-xs">البنك المسحوب عليه</Label>
-                      <Input value={paymentForm.cheque_bank} onChange={e => setPaymentForm(f => ({ ...f, cheque_bank: e.target.value }))} placeholder="مثال: بنك فلسطين" className="text-sm" />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs">تاريخ الاستحقاق {paymentForm.cheque_count > 1 ? "(الأول)" : ""}</Label>
-                      <Input type="date" value={paymentForm.cheque_date} onChange={e => setPaymentForm(f => ({ ...f, cheque_date: e.target.value }))} className="text-sm" />
-                    </div>
-                  </div>
+                  )}
+
                   {bankAccounts.length > 0 && (
                     <div className="space-y-1">
                       <Label className="text-xs">إيداع في حساب بنكي (اختياري)</Label>
@@ -1142,7 +1180,7 @@ export default function WorkshopsPage() {
             </div>
             <DialogFooter>
               <Button variant="ghost" onClick={() => setShowPaymentDialog(false)}>إلغاء</Button>
-              <Button onClick={handleAddPayment} disabled={paymentForm.amount <= 0 || (paymentForm.payment_method === "شيك" && !paymentForm.cheque_number.trim())}>تسجيل الدفعة</Button>
+              <Button onClick={handleAddPayment} disabled={paymentForm.amount <= 0 || (paymentForm.payment_method === "شيك" && chequeRows.length === 0)}>تسجيل الدفعة</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
