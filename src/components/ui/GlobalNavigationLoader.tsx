@@ -49,20 +49,6 @@ export function GlobalNavigationLoader() {
         />
       </div>
 
-      {/* Subtle center spinner */}
-      <div
-        className="fixed inset-0 z-[9989] pointer-events-none flex items-center justify-center"
-        style={{ animation: "navLoaderFadeIn 150ms ease forwards" }}
-      >
-        <div
-          className="w-10 h-10 rounded-full border-2 border-transparent"
-          style={{
-            borderTopColor: "hsl(var(--accent))",
-            borderRightColor: "hsl(var(--accent) / 0.3)",
-            animation: "navSpinRing 0.7s linear infinite",
-          }}
-        />
-      </div>
     </>
   );
 }
