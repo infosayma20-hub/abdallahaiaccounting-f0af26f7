@@ -95,7 +95,6 @@ export const navigationSections: NavSection[] = [
             children: [
               { label: "الصناديق", path: "/finance/cash-boxes" },
               { label: "الحسابات البنكية", path: "/finance/bank-accounts" },
-              { label: "تحويل بين الصناديق", path: "/finance/cash-boxes/transfer" },
               { label: "الشيكات", path: "/finance/cheques" },
             ],
           },
