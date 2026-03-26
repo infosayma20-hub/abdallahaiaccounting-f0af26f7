@@ -27,17 +27,18 @@ const ROLE_ALLOWED_APPS: Record<string, string[]> = {
 
 /* ── App Card ── */
 const AppCard = ({
-  app, index, isExpanded, onToggle, onNavigate, disabled,
+  app, index, isExpanded, onToggle, onNavigate, disabled, isLocked,
 }: {
   app: NavItem; index: number; isExpanded: boolean;
-  onToggle: () => void; onNavigate: (path: string) => void; disabled?: boolean;
+  onToggle: () => void; onNavigate: (path: string) => void; disabled?: boolean; isLocked?: boolean;
 }) => {
+  const isDisabledOrLocked = disabled || isLocked;
   const [clicking, setClicking] = useState(false);
   const [ripple, setRipple] = useState<{ x: number; y: number } | null>(null);
   const hasChildren = !app.isDirect && app.groups && app.groups.length > 0;
 
   const handleClick = (e: React.MouseEvent) => {
-    if (disabled) return;
+    if (isDisabledOrLocked) return;
     if (hasChildren) { onToggle(); return; }
     const rect = e.currentTarget.getBoundingClientRect();
     setRipple({ x: e.clientX - rect.left, y: e.clientY - rect.top });
@@ -52,39 +53,45 @@ const AppCard = ({
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.04, duration: 0.3 }}
       className={`relative rounded-2xl border overflow-hidden transition-all duration-200 ${
-        disabled
+        isLocked
+          ? "border-border/20 bg-muted/30 opacity-40 cursor-not-allowed"
+          : disabled
           ? "border-border/30 bg-muted/40 opacity-50 grayscale cursor-not-allowed"
           : isExpanded ? "border-accent/40 bg-card shadow-lg" : "border-border/60 bg-card hover:shadow-lg hover:border-border hover:-translate-y-0.5"
       }`}
       style={{ transform: clicking ? "scale(0.97)" : undefined, transition: "transform 0.15s ease" }}
     >
-      {ripple && !disabled && (
+      {ripple && !isDisabledOrLocked && (
         <span className="absolute rounded-full pointer-events-none" style={{
           left: ripple.x, top: ripple.y, transform: "translate(-50%, -50%)",
           background: "radial-gradient(circle, rgba(232,160,32,0.35), transparent 70%)",
           animation: "finixRippleExpand 0.5s ease-out forwards",
         }} />
       )}
-      <button onClick={handleClick} className={`w-full flex items-center gap-4 p-5 text-right group relative z-10 ${disabled ? "cursor-not-allowed" : ""}`}>
-        <div className={`p-3 rounded-xl ${app.bgColor} transition-transform ${disabled ? "" : "group-hover:scale-110"}`}>
-          <app.icon className={`h-6 w-6 ${app.color}`} />
+      <button onClick={handleClick} className={`w-full flex items-center gap-4 p-5 text-right group relative z-10 ${isDisabledOrLocked ? "cursor-not-allowed" : ""}`}>
+        <div className={`p-3 rounded-xl ${isLocked ? "bg-muted/50" : app.bgColor} transition-transform ${isDisabledOrLocked ? "" : "group-hover:scale-110"}`}>
+          {isLocked ? (
+            <Lock className="h-6 w-6 text-muted-foreground/50" />
+          ) : (
+            <app.icon className={`h-6 w-6 ${app.color}`} />
+          )}
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <p className={`text-sm font-bold ${disabled ? "text-muted-foreground" : "text-foreground"}`}>{app.label}</p>
-            {disabled && <Lock className="h-3 w-3 text-muted-foreground/60" />}
-            {!disabled && app.isNew && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary">جديد</span>}
+            <p className={`text-sm font-bold ${isDisabledOrLocked ? "text-muted-foreground/60" : "text-foreground"}`}>{app.label}</p>
+            {(isLocked || disabled) && <Lock className="h-3 w-3 text-muted-foreground/40" />}
+            {!isDisabledOrLocked && app.isNew && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary">جديد</span>}
           </div>
-          <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-            {disabled ? "غير مفعّل — يمكن تفعيله من الإعدادات" : app.description}
+          <p className="text-xs text-muted-foreground/50 mt-0.5 leading-relaxed">
+            {isLocked ? "🔒 غير متاح — تواصل مع الإدارة للتفعيل" : disabled ? "غير مفعّل — يمكن تفعيله من الإعدادات" : app.description}
           </p>
         </div>
-        {!disabled && hasChildren && (
+        {!isDisabledOrLocked && hasChildren && (
           <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`} />
         )}
       </button>
 
-      {!disabled && isExpanded && hasChildren && (
+      {!isDisabledOrLocked && isExpanded && hasChildren && (
         <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="border-t border-border/40 px-5 pb-4 pt-2 space-y-2">
           {app.groups!.map((group) => (
             <div key={group.groupLabel || "default"}>
@@ -129,23 +136,22 @@ const AppsLauncher = () => {
       });
   }, [user]);
 
-  // During trial, all apps are enabled. After subscription, restrict based on settings.
-  const isTrial = subscription?.isTrial ?? true;
-
-  // Determine which settings are enabled based on business type and company settings
-  const enabledSettings = useMemo(() => {
-    const s: Record<string, boolean> = {
-      has_pos: !!settings.has_pos,
-      has_employees: !!settings.has_employees,
-      has_inventory: ["تجارة", "مطعم", "متجر إلكتروني"].includes(settings.business_type || ""),
-      has_contractor: settings.business_type === "مقاولات",
-      has_ecommerce: settings.business_type === "متجر إلكتروني",
-      has_travel: settings.business_type === "سياحة",
-      has_workshops: ["ورش ومناجر", "مقاولات"].includes(settings.business_type || ""),
-      has_tasks: false,
+  const enabledSettings: Record<string, boolean> = useMemo(() => {
+    if (!settings) return {};
+    return {
+      enable_pos: !!(settings as any)?.enable_pos,
+      enable_inventory: !!(settings as any)?.enable_inventory,
+      enable_fixed_assets: !!(settings as any)?.enable_fixed_assets,
+      enable_contractor: !!(settings as any)?.enable_contractor,
+      enable_workshops: !!(settings as any)?.enable_workshops,
+      enable_ecommerce: !!(settings as any)?.enable_ecommerce,
+      enable_travel: !!(settings as any)?.enable_travel,
+      enable_tasks: !!(settings as any)?.enable_tasks,
+      enable_hr: !!(settings as any)?.enable_hr,
     };
-    return s;
   }, [settings]);
+
+  const isTrial = subscription?.status === "trial" || subscription?.status === "active";
 
   // Hidden apps from super admin
   const hiddenApps: string[] = useMemo(() => {
@@ -172,11 +178,6 @@ const AppsLauncher = () => {
 
   const allFilteredApps = useMemo(() => {
     let allApps = appSections.flatMap(s => s.items);
-    
-    // Remove hidden apps completely
-    if (hiddenApps.length > 0) {
-      allApps = allApps.filter(app => !hiddenApps.includes(app.id));
-    }
 
     // Filter by role if restricted
     if (restrictedRole && ROLE_ALLOWED_APPS[restrictedRole]) {
@@ -191,11 +192,13 @@ const AppsLauncher = () => {
           || getAllChildren(app).some(c => multiWordMatchAny(q, c.label))
         )
       : allApps;
-    // Sort: enabled first, disabled last
+    // Sort: enabled first, hidden/locked apps last
     return filtered.sort((a, b) => {
+      const aHidden = hiddenApps.includes(a.id) ? 2 : 0;
+      const bHidden = hiddenApps.includes(b.id) ? 2 : 0;
       const aDisabled = isAppDisabled(a) ? 1 : 0;
       const bDisabled = isAppDisabled(b) ? 1 : 0;
-      return aDisabled - bDisabled;
+      return (aHidden + aDisabled) - (bHidden + bDisabled);
     });
   }, [search, enabledSettings, restrictedRole, hiddenApps]);
 
@@ -236,6 +239,7 @@ const AppsLauncher = () => {
               onToggle={() => setExpandedApp(prev => prev === app.id ? null : app.id)}
               onNavigate={navigate}
               disabled={isAppDisabled(app)}
+              isLocked={hiddenApps.includes(app.id)}
             />
           ))}
         </div>
