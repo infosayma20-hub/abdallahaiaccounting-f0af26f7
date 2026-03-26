@@ -6,7 +6,12 @@ import { format } from "date-fns";
 import {
   Plus, Search, Hammer, Trash2, ArrowLeft, Edit, MoreVertical,
   DollarSign, ChevronDown, UserPlus, Image, AlertTriangle, Receipt, FileText,
+  TrendingDown, TrendingUp, Download, BarChart3, ArrowRight,
 } from "lucide-react";
+import * as XLSX from "xlsx";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
