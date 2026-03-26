@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { ArrowRight, Loader2, RefreshCw, Plus, ChevronDown, Search, Pencil, Eye, PlusCircle, Save, Trash2 } from "lucide-react";
+import { ArrowRight, Loader2, RefreshCw, Plus, ChevronDown, Search, Pencil, Eye, PlusCircle, Save, Trash2, FileSpreadsheet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -415,29 +415,30 @@ const AccountsPage = () => {
 
   return (
     <div className="min-h-screen bg-[hsl(210,20%,98%)] dark:bg-background" dir="rtl">
-      {/* Top Header */}
-      <div className="bg-white dark:bg-card border-b border-[hsl(210,14%,89%)] dark:border-border sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="flex items-center justify-between h-14">
-            <div className="flex items-center gap-3">
-              <button onClick={() => navigate("/")} className="p-1.5 rounded-lg hover:bg-[hsl(210,20%,96%)] dark:hover:bg-muted transition-colors">
-                <ArrowRight className="h-5 w-5 text-[hsl(240,10%,10%)] dark:text-foreground" />
-              </button>
-              <div>
-                <h1 className="text-base font-bold text-[hsl(240,10%,10%)] dark:text-foreground">شجرة الحسابات</h1>
-                <p className="text-[11px] text-[hsl(210,10%,42%)] dark:text-muted-foreground">{accounts.length} حساب</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button variant="ghost" size="icon" onClick={fetchAccounts} disabled={loading} className="h-8 w-8">
-                <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
-              </Button>
-              <Button onClick={() => setShowAddDialog(true)} size="sm" className="h-8 bg-[hsl(142,71%,45%)] hover:bg-[hsl(142,71%,38%)] text-white gap-1.5 rounded-lg text-xs font-semibold">
-                <Plus className="h-3.5 w-3.5" />
-                إضافة حساب
-              </Button>
-            </div>
-          </div>
+      {/* Action buttons toolbar */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-2 pb-3">
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button onClick={() => setShowAddDialog(true)} size="sm" className="h-9 gap-1.5 rounded-lg text-xs font-semibold" style={{ background: "hsl(var(--navy))" }}>
+            <Plus className="h-3.5 w-3.5" />
+            إضافة حساب
+          </Button>
+          <Button variant="outline" size="sm" className="h-9 rounded-lg text-xs font-semibold gap-1.5">
+            <FileSpreadsheet className="h-3.5 w-3.5" />
+            تصدير الحسابات
+          </Button>
+          <Button variant="outline" size="sm" className="h-9 rounded-lg text-xs font-semibold gap-1.5">
+            استيراد الحسابات
+          </Button>
+          <Button variant="ghost" size="icon" onClick={fetchAccounts} disabled={loading} className="h-9 w-9">
+            <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
+          </Button>
+        </div>
+      </div>
+
+      {/* Qoyod-style navy banner */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 mb-4">
+        <div className="rounded-xl px-6 py-4" style={{ background: "linear-gradient(135deg, hsl(var(--navy)) 0%, hsl(var(--finix-navy-light)) 100%)" }}>
+          <h1 className="text-lg font-bold text-white text-right" style={{ fontFamily: "Tajawal, sans-serif" }}>شجرة الحسابات</h1>
         </div>
       </div>
 

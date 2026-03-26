@@ -220,7 +220,8 @@ const saveFavorites = (favs: string[]) => localStorage.setItem(FAVORITES_KEY, JS
 const ReportsPage = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
+  // All sections expanded by default
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(sections.map(s => s.id)));
   const [favorites, setFavorites] = useState<string[]>(loadFavorites);
 
   const toggleSection = (id: string) => {
@@ -270,21 +271,21 @@ const ReportsPage = () => {
 
   return (
     <div className="space-y-6 max-w-[1200px] mx-auto pb-10" dir="rtl">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div className="flex items-center gap-3">
-          <button onClick={() => navigate("/")} className="p-2 rounded-xl hover:bg-muted transition-colors">
-            <ArrowRight className="h-5 w-5 text-foreground" />
-          </button>
-          <div>
-            <h1 className="text-xl font-bold text-foreground">مركز التقارير</h1>
-            <p className="text-xs text-muted-foreground">{totalReports} تقرير • {availableReports} متاح</p>
-          </div>
-        </div>
+      {/* Qoyod-style page header */}
+      <div className="rounded-xl px-6 py-4" style={{ background: "linear-gradient(135deg, hsl(var(--navy)) 0%, hsl(var(--finix-navy-light)) 100%)" }}>
+        <h1 className="text-lg font-bold text-white text-right" style={{ fontFamily: "Tajawal, sans-serif" }}>التقارير</h1>
       </div>
 
-      <div className="relative">
-        <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="ابحث في التقارير..." className="pr-10 h-11 rounded-xl bg-card border-border/60 text-sm" />
+      <div className="flex items-center gap-3 flex-wrap">
+        <div className="relative flex-1 min-w-[200px]">
+          <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="البحث حسب الاسم..." className="pr-10 h-11 rounded-xl bg-card border-border/60 text-sm" />
+        </div>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <span>{totalReports} تقرير</span>
+          <span>•</span>
+          <span>{availableReports} متاح</span>
+        </div>
       </div>
 
       {favoriteReports.length > 0 && !searchQuery.trim() && (
